@@ -183,7 +183,7 @@ public class HlsViewerStats implements IStreamStats, ApplicationContextAware{
 							}
 						}
 						
-						if(broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+						if(broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 							isBroadcasting = true;
 						}
 					

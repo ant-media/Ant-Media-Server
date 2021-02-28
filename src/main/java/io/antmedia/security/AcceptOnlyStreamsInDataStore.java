@@ -2,6 +2,7 @@ package io.antmedia.security;
 
 import java.util.Map;
 
+import org.red5.server.api.IConnection;
 import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
@@ -13,6 +14,7 @@ import org.springframework.beans.factory.annotation.Value;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.licence.ILicenceService;
 
 public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	
@@ -23,6 +25,8 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	
 	@Value("${settings.acceptOnlyStreamsInDataStore:true}")
 	private boolean enabled = true;
+
+	private ILicenceService licenService = null;
 	
 	public static final String BEAN_NAME = "acceptOnlyStreamsInDataStore"; 
 	
@@ -32,26 +36,49 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams) {
 		
 		boolean result = false;
-		if (enabled) {
+		
+		
+		if (enabled) 
+		{
 			Broadcast broadcast = getDatastore().get(name);
-			if (broadcast != null) 
-			{
-				result = true;
-			}
-			else {
-				logger.info("No stream in data store not allowing the stream {}", name);
-				Red5.getConnectionLocal().close();
-			}
-		}
-		else {
+			result = broadcast != null;
+		}	
+		else 
+		{
 			logger.info("AcceptOnlyStreamsInDataStore is not activated. Accepting all streams {}", name);
 			result = true;
+		}
+	
+		if (result) 
+		{
+			//check license suspended
+			ILicenceService licenceService = getLicenceService(scope);
+			if (licenceService.isLicenceSuspended()) 
+			{
+				logger.info("License is suspended and not accepting connection for {}", name);
+				result = false;
+			}
+		}
+		
+		
+		if (!result) {
+			IConnection connectionLocal = Red5.getConnectionLocal();
+			if (connectionLocal != null) {
+				connectionLocal.close();
+			}
+			else {
+				logger.warn("Connection object is null for {}", name);
+			}
+			
 		}
 		
 		
 		return result;
 	}
 	
+	public ILicenceService getLicenceService(IScope scope) {
+		return (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+	}
 	
 	public DataStore getDatastore() {
 		if (dataStore == null) {

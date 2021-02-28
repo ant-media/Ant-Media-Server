@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.bytedeco.javacpp.BytePointer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -239,8 +240,10 @@ public class VoDRestServiceV2UnitTest {
 			
 			assertEquals(0, restServiceReal.getTotalVodNumber().getNumber());
 
-			restServiceReal.uploadVoDFile(fileName, inputStream);
+			Result result = restServiceReal.uploadVoDFile(fileName, inputStream);
 
+			assertTrue(result.isSuccess());
+			String vodId = result.getDataId();
 
 			assertTrue(f.isDirectory());
 
@@ -249,6 +252,21 @@ public class VoDRestServiceV2UnitTest {
 			assertEquals(1, store.getTotalVodNumber());
 			
 			assertEquals(1, restServiceReal.getTotalVodNumber().getNumber());
+
+			assertEquals(30526, restServiceReal.getVoD(vodId).getDuration());
+      
+			inputStream = new FileInputStream("src/test/resources/big-buck-bunny_trailer.webm");
+
+			restServiceReal.uploadVoDFile(fileName, inputStream);
+
+
+			assertTrue(f.isDirectory());
+
+			assertEquals(2, f.list().length);
+
+			assertEquals(2, store.getTotalVodNumber());
+
+			assertEquals(2, restServiceReal.getTotalVodNumber().getNumber());
 
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();

@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -166,7 +167,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		
 		name = "test2";
 		String streamUrl2 = "rtmp://localhost/LiveApp/test1234";
-		Result result = restService.updateBroadcast(streamSource.getStreamId(), name, null, "", streamUrl2, "streamSource");
+		Result result = restService.callUpdateBroadcast(streamSource.getStreamId(), name, null, "", streamUrl2, "streamSource", null);
 		assertTrue(result.isSuccess());
 		
 		Broadcast returnedBroadcast;
@@ -175,15 +176,18 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 			assertEquals(name, returnedBroadcast.getName());
 			assertEquals(streamUrl2, returnedBroadcast.getStreamUrl());
 			
+			result = restService.callDeleteBroadcast(streamSource.getStreamId());
+			assertTrue(result.isSuccess());
+			
+			
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-		
 	
 	
 	}
+	
 	
 	@Test
 	public void testSetupEndpointStreamFetcher() {
@@ -222,7 +226,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		app.setDataStoreFactory(dsf);
 		
 		//create stream fetcher
-		StreamFetcher streamFetcher = new StreamFetcher(localStream, appScope, Vertx.vertx());
+		StreamFetcher streamFetcher = new StreamFetcher(localStream.getStreamUrl(), localStream.getStreamId(), localStream.getType(), appScope, Vertx.vertx());
 
 		//start stream fetcher
 		streamFetcher.startStream();
@@ -246,7 +250,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		
 		rtmpSendingProcess.destroy();
 		//delete stream on the server
-		Result result = restService.deleteBroadcast(endpointStream.getStreamId());
+		Result result = restService.callDeleteBroadcast(endpointStream.getStreamId());
 		assertTrue(result.isSuccess());
 		
 		Awaitility.await().atMost(20, TimeUnit.SECONDS)

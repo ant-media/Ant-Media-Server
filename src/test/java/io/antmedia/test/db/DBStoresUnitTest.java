@@ -37,11 +37,11 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
@@ -49,6 +49,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
 
@@ -123,6 +124,7 @@ public class DBStoresUnitTest {
 		testVodSearch(dataStore);
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
+		testUpdateEndpointStatus(dataStore);
 
 	}
 
@@ -167,6 +169,7 @@ public class DBStoresUnitTest {
 		testVodSearch(dataStore);
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
+		testUpdateEndpointStatus(dataStore);
 
 	}
 
@@ -228,6 +231,8 @@ public class DBStoresUnitTest {
 		testVodSearch(dataStore);
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
+		testUpdateEndpointStatus(dataStore);
+
 	}
 	
 	@Test
@@ -2373,6 +2378,79 @@ public class DBStoresUnitTest {
 
 		
 	}
+	private void testUpdateEndpointStatus(DataStore dataStore)
+	{
+		Broadcast broadcast = new Broadcast(null, null);
+		String name = "name 1";
+		String description = "description 2";
+		broadcast.setName(name);
+		broadcast.setDescription(description);
+		dataStore.save(broadcast);
+
+		assertNotNull(broadcast.getStreamId());
+
+		//add endpoint
+		String rtmpUrl = "rtmp://rtmp1";
+		Endpoint endPoint = new Endpoint("broacdast id",broadcast.getStreamId(), broadcast.getName(), rtmpUrl, "generic", null, null);
+		boolean result = dataStore.addEndpoint(broadcast.getStreamId().toString(), endPoint);
+		assertTrue(result);
+
+		//add endpoint
+		String rtmpUrl2 = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
+		Endpoint endPoint2 = new Endpoint("broacdast id 2", broadcast.getStreamId(), broadcast.getName(), rtmpUrl2,
+				"generic", null, null);
+		result = dataStore.addEndpoint(broadcast.getStreamId().toString(), endPoint2);
+		assertTrue(result);
+
+		//add endpoint
+		String rtmpUrl3 = "rtmp:(sdfsfasafadgsgsf(ksklasjflakjflaskjflsadfkjsal";
+		Endpoint endPoint3 = new Endpoint("broacdast id 3", broadcast.getStreamId(), broadcast.getName(), rtmpUrl3,
+				"generic", null, null);
+
+
+
+		Broadcast tmpBroadcast = dataStore.get(broadcast.getStreamId());
+		List<Endpoint> endPointList = tmpBroadcast.getEndPointList();
+		for (Endpoint tmpEndpoint : endPointList) {
+			if (tmpEndpoint.getRtmpUrl().equals(rtmpUrl)) {
+				tmpEndpoint.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+				break;
+			}
+		}
+		//update rtmpurl
+		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmpBroadcast); 
+		assertTrue(result);
+		
+		
+		
+		tmpBroadcast = dataStore.get(broadcast.getStreamId());
+		endPointList = tmpBroadcast.getEndPointList();
+		for (Endpoint tmpEndpoint : endPointList) {
+			if (tmpEndpoint.getRtmpUrl().equals(rtmpUrl2)) {
+				tmpEndpoint.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+				break;
+			}
+		}
+		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmpBroadcast); 
+		assertTrue(result);
+		
+		
+		
+		Broadcast updated = dataStore.get(broadcast.getStreamId());
+		List<Endpoint> endpList = updated.getEndPointList();
+		for(int i = 0; i < endpList.size(); i++){
+			Endpoint e = endpList.get(i);
+			if(e.getRtmpUrl().equals(rtmpUrl)){
+				assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED, e.getStatus());
+			}
+			else if(e.getRtmpUrl().equals(rtmpUrl2)){
+				assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, e.getStatus());
+			}
+			else{
+				assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, e.getStatus());
+			}
+		}
+	}
 	
 	private void testUpdateStatus(DataStore dataStore) {
 		String streamId = "test";
@@ -2489,32 +2567,50 @@ public class DBStoresUnitTest {
 	public void testPlaylist(DataStore dataStore) {
 		
 		//create a broadcast
-		Broadcast broadcast=new Broadcast("tahir");
-		dataStore.save(broadcast);
 
-		List<Broadcast> broadcastList = new ArrayList<>();
+		List<PlayListItem> broadcastList = new ArrayList<>();
 		
-		broadcastList.add(broadcast);
+		broadcastList.add(new PlayListItem("", null));
 		
-		Playlist playlist = new Playlist("12312",0,"playlistName",AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED,111,111,broadcastList);
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("playlistName");
+		broadcast.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		broadcast.setPlayListItemList(broadcastList);
+		
 
 		//create playlist
-		assertTrue(dataStore.createPlaylist(playlist));
+		String streamId = dataStore.save(broadcast);
+		
+		Broadcast broadcast2 = dataStore.get(streamId);
+		assertNotNull(streamId);
+		assertEquals(AntMediaApplicationAdapter.PLAY_LIST, broadcast2.getType());
+		assertEquals(1, broadcast2.getPlayListItemList().size());
+		assertNull(broadcast2.getPlayListStatus());
 		
 		//update playlist
-		assertTrue(dataStore.editPlaylist(playlist.getPlaylistId(), playlist));
+		
+		broadcast.setPlayListStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		broadcastList.clear();
+		broadcast.setPlayListItemList(broadcastList);
+		broadcast.setCurrentPlayIndex(10);
+		assertTrue(dataStore.updateBroadcastFields(streamId, broadcast));
+		
+		broadcast2 = dataStore.get(streamId);
+		assertTrue(broadcast2.getPlayListItemList() == null || broadcast2.getPlayListItemList().isEmpty());
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast2.getPlayListStatus());
+		assertEquals(10, broadcast.getCurrentPlayIndex());
 
 		//get new playlist		
-		Playlist playlist2 = dataStore.getPlaylist(playlist.getPlaylistId());
+		Broadcast playlist2 = dataStore.get(streamId);
 
 		assertNotNull(playlist2);
 		
-		assertEquals("playlistName", playlist.getPlaylistName());
+		assertEquals("playlistName", broadcast.getName());
 
 		//delete playlist
-		assertTrue(dataStore.deletePlaylist(playlist.getPlaylistId()));
+		assertTrue(dataStore.delete(streamId));
 
-		assertNull(dataStore.getPlaylist(playlist.getPlaylistId()));
+		assertNull(dataStore.get(streamId));
 		
 	}
 

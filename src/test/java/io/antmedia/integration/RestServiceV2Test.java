@@ -68,6 +68,8 @@ import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
@@ -136,7 +138,7 @@ public class RestServiceV2Test {
 		//delete broadcast in the db before starting
 		List<Broadcast> broadcastList = callGetBroadcastList();
 		for (Broadcast broadcast : broadcastList) {
-			deleteBroadcast(broadcast.getStreamId());
+			callDeleteBroadcast(broadcast.getStreamId());
 		}
 	}
 
@@ -149,7 +151,7 @@ public class RestServiceV2Test {
 		return createBroadcast(name, null, null);
 	}
 
-	public Broadcast createBroadcast(String name, String type, String streamUrl) {
+	public static Broadcast createBroadcast(String name, String type, String streamUrl) {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -192,13 +194,18 @@ public class RestServiceV2Test {
 		return null;
 	}
 	
+	
+	public Result startStreaming(String streamId) {
+		return null;
+	}
+	
 
 	public Result updateBroadcast(String id, String name, String description, String socialNetworks, String streamUrl) {
 
-		return updateBroadcast(id, name, description, socialNetworks, streamUrl, null);
+		return callUpdateBroadcast(id, name, description, socialNetworks, streamUrl, null, null);
 	}
 
-	public Result updateBroadcast(String id, String name, String description, String socialNetworks, String streamUrl, String type) {
+	public static Result callUpdateBroadcast(String id, String name, String description, String socialNetworks, String streamUrl, String type, List<PlayListItem> playList) {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -216,6 +223,9 @@ public class RestServiceV2Test {
 		}
 		if (type != null) {
 			broadcast.setType(type);
+		}
+		if (playList != null) {
+			broadcast.setPlayListItemList(playList);
 		}
 
 		try {
@@ -873,14 +883,37 @@ public class RestServiceV2Test {
 	@Test
 	public void testBroadcastDeleteNULL() {
 
-		Result result2 = deleteBroadcast(null);
+		Result result2 = callDeleteBroadcast(null);
 
 		assertNotNull(result2);
 		assertFalse(result2.isSuccess());
 	}
 
-	public boolean callStopBroadcastService(String streamId) throws Exception {
+	public static boolean callStopBroadcastService(String streamId) throws Exception {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/stop";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest post = RequestBuilder.post().setUri(url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		System.out.println("result string: " + result.toString());
+		Result responseResult = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(responseResult);
+		return responseResult.isSuccess();
+	}
+	
+	
+	public static boolean callStartBroadast(String streamId) throws Exception {
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/start";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
@@ -908,7 +941,7 @@ public class RestServiceV2Test {
 			Broadcast broadcast = callCreateBroadcast(1000);
 			System.out.println("broadcast stream id: " + broadcast.getStreamId());
 
-			Thread.sleep(5000);
+			Thread.sleep(1500);
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
 					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
 
@@ -1075,7 +1108,7 @@ public class RestServiceV2Test {
 		return null;
 	}
 
-	public static Result deleteBroadcast(String id) {
+	public static Result callDeleteBroadcast(String id) {
 		try {
 			// delete broadcast
 			String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + id;
@@ -1247,29 +1280,6 @@ public class RestServiceV2Test {
 
 		return tmp;
 	}
-	
-	public static Result addEndpoint(String broadcastId, String rtmpUrl) throws Exception 
-	{
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/endpoint?rtmpUrl=" + rtmpUrl;
-		
-		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-
-		HttpUriRequest post = RequestBuilder.post().setUri(url)
-				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
-
-		CloseableHttpResponse response = client.execute(post);
-
-		StringBuffer result = readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new Exception(result.toString());
-		}
-		Gson gson = new Gson();
-		System.out.println("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-
-		return tmp;
-	}
 
 	public static Result addEndpointV2(String broadcastId, Endpoint endpoint) throws Exception 
 	{		
@@ -1384,7 +1394,7 @@ public class RestServiceV2Test {
 		}
 	}
 
-	public static Process execute(final String command) {
+		public static Process execute(final String command) {
 		tmpExec = null;
 		new Thread() {
 			public void run() {
@@ -1415,7 +1425,7 @@ public class RestServiceV2Test {
 		while (tmpExec == null) {
 			try {
 				System.out.println("Waiting for exec get initialized...");
-				Thread.sleep(1000);
+				Thread.sleep(500);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -1424,191 +1434,19 @@ public class RestServiceV2Test {
 		return tmpExec;
 	}
 
-	//@Test
-	public void authenticateSocialEndpoints() {
-		Result result;
-		try {
-			// authenticate facebook
-			// get parameters
-			DeviceAuthParameters deviceAuthParameters = getDeviceAuthParameters("facebook");
-			System.out.println(" url: " + deviceAuthParameters.verification_url);
-			System.out.println(" user code: " + deviceAuthParameters.user_code);
-			assertNotNull(deviceAuthParameters.verification_url);
-			assertNotNull(deviceAuthParameters.user_code);
-
-			// ask if authenticated
-			do {
-				System.out.println("You should enter this code: " + deviceAuthParameters.user_code + " to this url: "
-						+ deviceAuthParameters.verification_url);
-				System.out.println("Waiting before asking auth status");
-
-				Thread.sleep(deviceAuthParameters.interval * 1000);
-				result = checkDeviceAuthStatus("facebook");
-				System.out.println("auth status is " + result.isSuccess());
-
-			} while (!result.isSuccess());
-
-			assertTrue(result.isSuccess());
-
-			// authenticate twitter
-			deviceAuthParameters = getDeviceAuthParameters("periscope");
-			System.out.println(" url: " + deviceAuthParameters.verification_url);
-			System.out.println(" user code: " + deviceAuthParameters.user_code);
-			assertNotNull(deviceAuthParameters.verification_url);
-			assertNotNull(deviceAuthParameters.user_code);
-
-			do {
-				System.out.println("You should enter this code: " + deviceAuthParameters.user_code + " to this url: "
-						+ deviceAuthParameters.verification_url);
-				System.out.println("Waiting " + deviceAuthParameters.interval + " seconds before asking auth status");
-
-				Thread.sleep(deviceAuthParameters.interval * 1000);
-				result = checkDeviceAuthStatus("periscope");
-				System.out.println("auth status is " + result.isSuccess());
-
-			} while (!result.isSuccess());
-
-			assertTrue(result.isSuccess());
-
-			// authenticate youtube
-			deviceAuthParameters = getDeviceAuthParameters("youtube");
-			System.out.println(" url: " + deviceAuthParameters.verification_url);
-			System.out.println(" user code: " + deviceAuthParameters.user_code);
-			assertNotNull(deviceAuthParameters.verification_url);
-			assertNotNull(deviceAuthParameters.user_code);
-
-			do {
-				System.out.println("You should enter this code: " + deviceAuthParameters.user_code + " to this url: "
-						+ deviceAuthParameters.verification_url);
-				System.out.println("Waiting " + deviceAuthParameters.interval + " seconds before asking auth status");
-
-				Thread.sleep(deviceAuthParameters.interval * 1000);
-				result = checkDeviceAuthStatus("youtube");
-				System.out.println("auth status is " + result.isSuccess());
-
-			} while (!result.isSuccess());
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	}
-
-	@Test
-	public void testAddEndpoint() {
-		try {
-
-			Broadcast broadcast = createBroadcast(null);
-
-			// add generic endpoint
-			Result result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://dfjdksafjlaskfjalkfj");
-
-			// check that it is successfull
-			assertTrue(result.isSuccess());
-
-			// get endpoint list
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
-
-			// check that 2 element exist
-			assertNotNull(broadcast.getEndPointList());
-			assertEquals(1, broadcast.getEndPointList().size());
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	}
+	
 
 	@Test
 	public void testAddEndpointV2() {
-		try {
-
-			Broadcast broadcast = createBroadcast(null);
-
-			
-			String rtmpUrl = "rtmp://dfjdksafjlaskfjalkfj";
-			
-			Endpoint endpoint = new Endpoint();
-			endpoint.setRtmpUrl(rtmpUrl);
-
-			// add generic endpoint
-			Result result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
-
-			// check that it is successfull
-			assertTrue(result.isSuccess());
-
-			// get endpoint list
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
-
-			// check that 1 element exist
-			assertNotNull(broadcast.getEndPointList());
-			assertEquals(1, broadcast.getEndPointList().size());
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	}
-	
-	@Test
-	public void testAddEndpointCrossCheck() {
-		try {
-			
-			List<Broadcast> broadcastList = callGetBroadcastList();
-			int size = broadcastList.size();
-			Broadcast broadcast = createBroadcast(null);
-
-			String streamId = RandomStringUtils.randomAlphabetic(6);
-			// add generic endpoint
-			Result result = addEndpoint(broadcast.getStreamId().toString(), "rtmp://localhost/LiveApp/" + streamId);
-
-			// check that it is successfull
-			assertTrue(result.isSuccess());
-
-			// get endpoint list
-			broadcast = getBroadcast(broadcast.getStreamId().toString());
-
-			// check that 4 element exist
-			assertNotNull(broadcast.getEndPointList());
-			assertEquals(1, broadcast.getEndPointList().size());
-
-			broadcastList = callGetBroadcastList();
-			assertEquals(size+1, broadcastList.size());
-
-			Process execute = execute(
-					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
-							+ broadcast.getStreamId());
-
-
-			Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-				//size should +2 because we restream again into the server
-				return size+2 == callGetBroadcastList().size();
-			});
-
-			execute.destroy();
-
-			result = deleteBroadcast(broadcast.getStreamId());
-			assertTrue(result.isSuccess());
-
-			Awaitility.await().atMost(60, TimeUnit.SECONDS)
-			.pollInterval(2, TimeUnit.SECONDS).until(() -> 
-			{
-				int broadcastListSize = callGetBroadcastList().size();
-				logger.info("broadcast list size: {} and it should be:{}", broadcastListSize, size);
-				return size == callGetBroadcastList().size();
-			});
-
-
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		assertTrue("This test is moved to #testAddEndpointCrossCheckV2", true);
 	}
 
 	@Test
 	public void testAddEndpointCrossCheckV2() {
 		try {
+			////////////////////////////////////////////////////////////
+			//this test assumes that MP4 recording is enabled by default
+			////////////////////////////////////////////////////////////
 			
 			List<Broadcast> broadcastList = callGetBroadcastList();
 			int size = broadcastList.size();
@@ -1629,6 +1467,7 @@ public class RestServiceV2Test {
 
 			// get endpoint list
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			String finalBroadcastStreamId = broadcast.getStreamId();
 
 			// check that 4 element exist
 			assertNotNull(broadcast.getEndPointList());
@@ -1636,6 +1475,13 @@ public class RestServiceV2Test {
 
 			broadcastList = callGetBroadcastList();
 			assertEquals(size+1, broadcastList.size());
+			
+			//check endpoint status
+			Broadcast tmp = getBroadcast(broadcast.getStreamId());
+			assertEquals(1, broadcast.getEndPointList().size());
+			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, broadcast.getEndPointList().get(0).getStatus());
+
+			
 
 			Process execute = execute(
 					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
@@ -1646,14 +1492,83 @@ public class RestServiceV2Test {
 				//size should +2 because we restream again into the server
 				return size+2 == callGetBroadcastList().size();
 			});
-
+			
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				//this is the endpoint running 
+				Broadcast tmp2 = getBroadcast(streamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getStatus());
+			});
+			
+			{
+			
+				//add dynamic endpoint test
+				String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
+				String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
+				 
+				Endpoint dynamicEndpoint = new Endpoint();
+				dynamicEndpoint.setRtmpUrl(dynamicRtmpURL);
+				Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+					 //if stream is being prepared, it may return false, so try again 
+					 Result tmpRes = addEndpointV2(finalBroadcastStreamId, dynamicEndpoint);
+					 return tmpRes.isSuccess();
+				});
+				
+				 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				 .until(() -> { 
+						 Broadcast tmpBroadcast = callGetBroadcast(streamIdDynamic);
+						 if (tmpBroadcast != null) {
+							 return tmpBroadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING); 
+						 }
+						 return false;
+				 	});
+				 
+				 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+						Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+						
+						return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(0).getStatus())
+								&& IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(1).getStatus());
+					});
+				 
+				 broadcast = getBroadcast(finalBroadcastStreamId);
+				 //remove dynamic endpoint
+				 result = removeEndpointV2(finalBroadcastStreamId, broadcast.getEndPointList().get(1).getEndpointServiceId());
+				 assertTrue(result.isSuccess());
+				 
+				 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				 .until(() -> callGetBroadcast(streamIdDynamic) == null );
+			
+			}
+			
 			execute.destroy();
-
-			result = deleteBroadcast(broadcast.getStreamId());
+			
+			
+			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId + ".mp4";
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile(endpointURL);
+			});
+			
+			String originMP4URL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + finalBroadcastStreamId + ".mp4";
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile(originMP4URL);
+			});
+			
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(() -> {
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+			
+			result = callDeleteBroadcast(broadcast.getStreamId());
 			assertTrue(result.isSuccess());
 
 			Awaitility.await().atMost(45, TimeUnit.SECONDS)
-			.pollInterval(2, TimeUnit.SECONDS).until(() -> 
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> 
 			{
 				int broadcastListSize = callGetBroadcastList().size();
 				logger.info("broadcast list size: {} and it should be:{}", broadcastListSize, size);
@@ -1718,7 +1633,7 @@ public class RestServiceV2Test {
 
 			assertEquals("rtsp://admin:Admin12345@71.234.93.90:5014/11", fetchedBroadcast.getStreamUrl());
 
-			deleteBroadcast(fetchedBroadcast.getStreamId());
+			callDeleteBroadcast(fetchedBroadcast.getStreamId());
 
 
 		} catch (Exception e) {
@@ -1754,12 +1669,12 @@ public class RestServiceV2Test {
 
 
 			// delete broadcast
-			Result result = deleteBroadcast(broadcastFetched.getStreamId());
+			Result result = callDeleteBroadcast(broadcastFetched.getStreamId());
 			assertNotNull(result);
 			assertTrue(result.isSuccess());
 
 			//delete again
-			Result result2 = deleteBroadcast(broadcastFetched.getStreamId());
+			Result result2 = callDeleteBroadcast(broadcastFetched.getStreamId());
 			assertNotNull(result2);
 			assertFalse(result2.isSuccess());
 
@@ -1875,7 +1790,9 @@ public class RestServiceV2Test {
 			return rtmpSendingProcess.isAlive();
 		});
 
-		Thread.sleep(5000);
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId + ".m3u8");
+		});
 
 		rtmpSendingProcess.destroy();
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {

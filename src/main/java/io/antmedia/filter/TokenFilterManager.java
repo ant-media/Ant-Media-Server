@@ -22,6 +22,7 @@ import io.antmedia.security.ITokenService;
 public class TokenFilterManager extends AbstractFilter   {
 
 	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
+	private static final String NOT_INITIALIZED= "Not initialized";
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterManager.class);
 	private ITokenService tokenService;
 
@@ -101,13 +102,13 @@ public class TokenFilterManager extends AbstractFilter   {
 					}
 				}
 				else {
-					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Not initialized");
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
 					logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
 					return;
 				}
 			}
 
-			else if (appSettings.isHashControlPlayEnabled()) 
+			if (appSettings.isHashControlPlayEnabled()) 
 			{
 				ITokenService tokenServiceTmp = getTokenService();
 				if (tokenServiceTmp != null) 
@@ -119,8 +120,26 @@ public class TokenFilterManager extends AbstractFilter   {
 					}
 				}
 				else {
-					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Not initialized");
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
 					logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+					return;
+				}
+			}
+			
+			if (appSettings.isPlayJwtControlEnabled()) 
+			{
+				ITokenService tokenServiceTmp = getTokenService();
+				if (tokenServiceTmp != null) 
+				{
+					if (!tokenServiceTmp.checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN)) {
+						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid JWT Token");
+						logger.warn("JWT token is not valid");
+						return; 
+					}
+				}
+				else {
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
+					logger.warn("JWT Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
 					return;
 				}
 			}

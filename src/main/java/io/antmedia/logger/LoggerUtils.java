@@ -9,7 +9,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class LoggerUtils {
+public class LoggerUtils {
 
     private LoggerUtils() {
         //Hide public constructor
@@ -17,17 +17,16 @@ class LoggerUtils {
 
     private static final Logger logger = LoggerFactory.getLogger(LoggerUtils.class);
 
-    static void writeToFile(String absolutePath, String content) {
+    public static void writeToFile(String absolutePath, String content) {
         try {
             File file = new File(absolutePath);
             Files.write(file.toPath(), content.getBytes(), StandardOpenOption.CREATE);
         } catch (Exception e) {
             logger.error(ExceptionUtils.getStackTrace(e));
         }
-
     }
 
-    static String getFileContent(String path) {
+    public static String getFileContent(String path) {
         try {
             byte[] data = Files.readAllBytes(new File(path).toPath());
             return new String(data);

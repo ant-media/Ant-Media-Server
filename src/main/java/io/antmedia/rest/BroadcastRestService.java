@@ -32,6 +32,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.model.BasicStreamInfo;
 import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
@@ -238,15 +239,15 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 	}
 
-	@ApiOperation(value = "Gets the broadcast list from database", notes = "",responseContainer = "List", response = Broadcast.class)
+	@ApiOperation(value = "Gets the broadcast list from database. It returns max 50 items at a time", notes = "",responseContainer = "List", response = Broadcast.class)
 	@GET
 	@Path("/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<Broadcast> getBroadcastList(@ApiParam(value = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
-			@ApiParam(value = "type of the stream. Possible values are \"liveStream\", \"ipCamera\", \"streamSource\", \"VoD\"", required = false) @PathParam("type_by") String typeBy,
-			@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
-			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
+			@ApiParam(value = "Type of the stream. Possible values are \"liveStream\", \"ipCamera\", \"streamSource\", \"VoD\"", required = false) @PathParam("type_by") String typeBy,
+			@ApiParam(value = "Field to sort. Possible values are \"name\", \"date\", \"status\"", required = false) @QueryParam("sort_by") String sortBy,
+			@ApiParam(value = "\"asc\" for Ascending, \"desc\" Descending order", required = false) @QueryParam("order_by") String orderBy,
 			@ApiParam(value = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
 			) {
 		return getDataStore().getBroadcastList(offset, size, typeBy, sortBy, orderBy, search);
@@ -314,7 +315,7 @@ public class BroadcastRestService extends RestServiceBase{
 		if (result.isSuccess()) 
 		{
 			String status = getDataStore().get(id).getStatus();
-			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
 				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl);
 				result.setSuccess(started);
@@ -350,6 +351,7 @@ public class BroadcastRestService extends RestServiceBase{
 			result = processRTMPEndpoint(result,  getDataStore().get(id), rtmpUrl, true);
 		}
 		else {
+			result.setMessage("Rtmp endpoint is not added to datastore");
 			if (logger.isErrorEnabled()) {
 				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
 			}
@@ -369,7 +371,7 @@ public class BroadcastRestService extends RestServiceBase{
 		if (result.isSuccess()) 
 		{
 			String status = getDataStore().get(id).getStatus();
-			if (status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
 				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl);
 				result.setSuccess(started);
@@ -399,7 +401,7 @@ public class BroadcastRestService extends RestServiceBase{
 		Broadcast broadcast = getDataStore().get(id);
 		Result result;
 		
-		if(endpointServiceId != null && broadcast != null && !broadcast.getEndPointList().isEmpty() && broadcast.getEndPointList() != null) {
+		if(endpointServiceId != null && broadcast != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty() ) {
 			for(Endpoint endpoint: broadcast.getEndPointList()) {
 				if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
 					rtmpUrl = endpoint.getRtmpUrl();
@@ -535,6 +537,26 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "Room Id that token belongs to. It's not mandatory ", required = false) @QueryParam("roomId") String roomId) 
 	{
 		Object result = super.getToken(streamId, expireDate, type, roomId);
+		if (result instanceof Token) {
+			return Response.status(Status.OK).entity(result).build();
+		}
+		else {
+			return Response.status(Status.BAD_REQUEST).entity(result).build();
+		}
+	}
+	
+	@ApiOperation(value = "Generates JWT token for specified stream. It's not required to let the server generate JWT. Generally JWT tokens should be generated on the client side.")
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "Returns token", response=Token.class), 
+			@ApiResponse(code = 400, message = "When there is an error in creating token", response=Result.class)})
+	@GET
+	@Path("/{id}/jwt-token")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getJwtTokenV2 (@ApiParam(value = "The id of the stream", required = true) @PathParam("id")String streamId,
+			@ApiParam(value = "The expire time of the token. It's in unix timestamp seconds.", required = true) @QueryParam("expireDate") long expireDate,
+			@ApiParam(value = "Type of the JWT token. It may be play or publish ", required = true) @QueryParam("type") String type,
+			@ApiParam(value = "Room Id that token belongs to. It's not mandatory ", required = false) @QueryParam("roomId") String roomId) 
+	{
+		Object result = super.getJwtToken(streamId, expireDate, type, roomId);
 		if (result instanceof Token) {
 			return Response.status(Status.OK).entity(result).build();
 		}
@@ -834,31 +856,33 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		boolean result = false;
 		String message = null;
+		
 		if (streamId != null) 
 		{
+			streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) 
 			{
 				if (enableRecording) 
 				{
-					
 					if (broadcast.getMp4Enabled() != RECORD_ENABLE) 
 					{
 						result = getDataStore().setMp4Muxing(streamId, RECORD_ENABLE);
 						
-						streamId = streamId.replaceAll(REPLACE_CHARS, "_");
 						//if it's not enabled, start it
-						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startRecord(streamId, RecordType.MP4);
 							if (!result) 
 							{
+								//revert back to record
+								getDataStore().setMp4Muxing(streamId, RECORD_DISABLE);
 								logFailedOperation(enableRecording,streamId,RecordType.MP4);
 							}
 							else
 							{
 								message=Long.toString(System.currentTimeMillis());
-								logger.warn("Mp4 recording could not be started for stream: {}", streamId);
+								logger.warn("Mp4 recording is started for stream: {}", streamId);
 							}
 						}
 						else {
@@ -867,7 +891,7 @@ public class BroadcastRestService extends RestServiceBase{
 					}
 					else 
 					{
-						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 						{
 							message = "Recording is already active. Please stop it first";
 						}
@@ -876,7 +900,7 @@ public class BroadcastRestService extends RestServiceBase{
 				else 
 				{
 					boolean stopAttempted = false;
-					if (broadcast.getMp4Enabled() == RECORD_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+					if (broadcast.getMp4Enabled() == RECORD_ENABLE && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 					{
 						stopAttempted = true;
 						//we can stop recording
@@ -887,6 +911,7 @@ public class BroadcastRestService extends RestServiceBase{
 						}
 						else{
 							message=Long.toString(System.currentTimeMillis());
+							logger.warn("WebM recording is started for stream: {}", streamId);
 						}
 						
 					}
@@ -917,25 +942,28 @@ public class BroadcastRestService extends RestServiceBase{
 					
 					if (broadcast.getWebMEnabled() != RECORD_ENABLE) 
 					{
+						result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
 						
 						//if it's not enabled, start it
-						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING))
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 						{
 							result = startRecord(streamId, RecordType.WEBM);
 							if (result) 
 							{
-								result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+								
 								message=Long.toString(System.currentTimeMillis());
 							}
 							else
 							{
+								//revert back 
+								getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
 								logFailedOperation(enableRecording,streamId,RecordType.WEBM);
 							}
 						}	
 					}
 					else 
 					{
-						if (broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 						{
 							message = "Recording is already active. Please stop it first";
 						}
@@ -943,7 +971,7 @@ public class BroadcastRestService extends RestServiceBase{
 				}
 				else 
 				{
-					if (broadcast.getWebMEnabled() == RECORD_ENABLE && broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) 
+					if (broadcast.getWebMEnabled() == RECORD_ENABLE && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 					{
 						//we can stop recording
 						result = stopRecord(streamId, RecordType.WEBM);
@@ -974,13 +1002,13 @@ public class BroadcastRestService extends RestServiceBase{
 	@ApiOperation(value = "Get IP Camera Error after connection failure. If returns true, it means there is an error. If returns false, there is no error", notes = "Notes here", response = Result.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{ipAddr}/ip-camera-error")
+	@Path("/{streamId}/ip-camera-error")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result getCameraErrorV2(@ApiParam(value = "IP Addr of the Camera. This IP may contain port number", required = true) @PathParam("ipAddr") String ipAddr) {
-		return super.getCameraError(ipAddr);
+	public Result getCameraErrorV2(@ApiParam(value = "StreamId of the IP Camera Streaming.", required = true) @PathParam("streamId") String streamId) {
+		return super.getCameraErrorById(streamId);
 	}
 
-	@ApiOperation(value = "Start external sources (IP Cameras and Stream Sources) again if it is added and stopped before", response = Result.class)
+	@ApiOperation(value = "Start streaming sources(IP Cameras, Stream Sources, PlayLists) ", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/start")

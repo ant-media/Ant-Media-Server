@@ -1,5 +1,6 @@
 package io.antmedia.statistic;
 
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
@@ -14,6 +15,13 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.HttpHeaders;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.client.LaxRedirectStrategy;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.clients.producer.ProducerConfig;
@@ -31,7 +39,6 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.ApplicationContextAware;
 
-import com.brsanthu.googleanalytics.GoogleAnalytics;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -102,6 +109,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String CPU_USAGE = "cpuUsage";
 
 	public static final String INSTANCE_ID = "instanceId";
+	
+	public static final String INSTANCE_TYPE = "instanceType";
+	
+	public static final String INSTANCE_VERSION = "instanceVersion";
 
 	public static final String JVM_MEMORY_USAGE = "jvmMemoryUsage";
 	
@@ -152,6 +163,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private static final String STREAM_ID = "streamId";
 
 	private static final String WEBRTC_CLIENT_ID = "webrtcClientId";
+
+	private static final String WEBRTC_VIEWER_INFO = "webrtcViewerInfo";
 
 	private static Thread shutdownHook;
 
@@ -257,8 +270,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private int heartbeatPeriodMs = 300000;
 
-	private GoogleAnalytics googleAnalytics;
-
 	private String hostAddress;
 
 	private Vertx webRTCVertx;
@@ -294,10 +305,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		startKafkaProducer();
 
 		if (heartBeatEnabled) {
-			logger.info("Starting heartbeats for the version:{} and type:{}", Launcher.getVersion(), Launcher.getVersionType());
-			startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
-
-			startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), heartbeatPeriodMs);
+			
+			logger.warn("Starting heartbeats for the version:{} and type:{}", Launcher.getVersion(), Launcher.getVersionType());
+			
+			getVertx().setPeriodic(heartbeatPeriodMs, l -> 
+			{
+				startAnalytic();
+			});
 		}
 		else {
 			logger.info("Heartbeats are disabled for this instance");
@@ -331,20 +345,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			jsonObject = queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE);
 		}
 		return jsonObject != null ? jsonObject.getInteger("count") : -1;
-	}
-
-	public static GoogleAnalytics getGoogleAnalyticInstance(String implementationVersion, String type) {
-		return GoogleAnalytics.builder()
-				.withAppVersion(implementationVersion)
-				.withAppName(type)
-				.withTrackingId(GA_TRACKING_ID).build();
-	}
-
-	public GoogleAnalytics getGoogleAnalytic(String implementationVersion, String type) {
-		if (googleAnalytics  == null) {
-			googleAnalytics = getGoogleAnalyticInstance(implementationVersion, type);
-		}
-		return googleAnalytics;
 	}
 
 	private void sendWebRTCClientStats() {
@@ -392,6 +392,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			jsonObject.addProperty(SEND_BITRATE, webRTCClientStat.getSendBitrate());
 			jsonObject.addProperty(TIME, dateTime);
 			jsonObject.addProperty(HOST_ADDRESS, hostAddress);
+			jsonObject.addProperty(WEBRTC_VIEWER_INFO, webRTCClientStat.getClientInfo());
+
 			//logstash cannot parse json array so that we send each info separately
 			send2Kafka(jsonObject, WEBRTC_STATS_TOPIC_NAME);
 		}
@@ -822,34 +824,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		this.scopes = scopes;
 	}
 
-	public boolean startHeartBeats(String implementationVersion, String type, int periodMS) {
-		boolean result = false;
-
-		hearbeatPeriodicTask = vertx.setPeriodic(periodMS, 
-				l -> {
-										
-					getGoogleAnalytic(implementationVersion, type).event()
-					.eventCategory("server_status")
-					.eventAction("heartbeat")
-					.eventLabel("")
-					.clientId(Launcher.getInstanceId())
-					.sendAsync();
-					
-					
-				});
-
-		return result;
-	}
-
-	public void startAnalytic(String implementationVersion, String type) {
-		vertx.setTimer(1, l -> 
-		getGoogleAnalytic(implementationVersion, type).screenView()
-		.sessionControl("start")
-		.clientId(Launcher.getInstanceId())
-		.sendAsync()
-				);
-	}
-
 	public void cancelHeartBeat() {
 		vertx.cancelTimer(hearbeatPeriodicTask);
 	}
@@ -882,12 +856,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			if(logger != null) {
 				logger.info("Ending analytic session");
 			}
-			getGoogleAnalytic(Launcher.getVersion(), Launcher.getVersionType()).screenView()
-			.clientId(Launcher.getInstanceId())
-			.sessionControl("end")
-			.send(); //send directly don't use async
-			
-			getGoogleAnalytic(Launcher.getVersion(), Launcher.getVersionType()).close();
 		}
 		vertx.close();
 		webRTCVertx.close();
@@ -899,6 +867,33 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	
 	public int getMeasurementPeriod() {
 		return measurementPeriod;
+	}
+	
+	public void startAnalytic() {
+		
+		String instanceId = Launcher.getInstanceId();
+		String version = Launcher.getVersion();
+		String type = Launcher.getVersionType();
+			
+		JsonObject instance = new JsonObject();
+		instance.addProperty(INSTANCE_ID, instanceId);
+		instance.addProperty(INSTANCE_TYPE, type);
+		instance.addProperty(INSTANCE_VERSION, version);
+
+		try (CloseableHttpClient client = getHttpClient()){
+			 HttpUriRequest post = RequestBuilder.post().setUri("https://us-central1-ant-media-server-analytics.cloudfunctions.net/sendHeartbeat").setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+			.setEntity(new StringEntity(instance.toString())).build();
+			 
+			 client.execute(post);
+				
+			}catch (IOException e) {
+				logger.error("Couldn't connect Ant Media Server Analytics");
+			} 
+	}
+	
+	public static CloseableHttpClient getHttpClient() {
+		return  HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.build();
 	}
 	
 	

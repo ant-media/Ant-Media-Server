@@ -18,18 +18,20 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.api.services.youtube.model.Playlist;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
 public class InMemoryDataStore extends DataStore {
@@ -96,10 +98,10 @@ public class InMemoryDataStore extends DataStore {
 		boolean result = false;
 		if (broadcast != null) {
 			broadcast.setStatus(status);
-			if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+			if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 				broadcast.setStartTime(System.currentTimeMillis());
 			}
-			else if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+			else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) {
 				broadcast.setRtmpViewerCount(0);
 				broadcast.setWebRTCViewerCount(0);
 				broadcast.setHlsViewerCount(0);
@@ -121,7 +123,6 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
@@ -179,7 +180,7 @@ public class InMemoryDataStore extends DataStore {
 		long activeBroadcastCount = 0;
 		for (Broadcast broadcast : values) {
 			String status = broadcast.getStatus();
-			if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+			if (status != null && status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 				activeBroadcastCount++;
 			}
 		}
@@ -997,42 +998,6 @@ public class InMemoryDataStore extends DataStore {
 		broadcastMap.put(mainTrackId, mainTrack);
 		return result;
 	}
-	
-	@Override
-	public boolean createPlaylist(Playlist playlist) {
-
-		boolean result = false;
-
-		if (playlist != null && playlist.getPlaylistId() != null) {
-			playlistMap.put(playlist.getPlaylistId(), playlist);
-			result = true;
-		}
-
-		return result;
-	}
-	
-	@Override
-	public Playlist getPlaylist(String playlistId) {
-
-		return playlistMap.get(playlistId);
-	}
-	
-	@Override
-	public boolean deletePlaylist(String playlistId) {
-		return playlistMap.remove(playlistId) != null;
-	}
-	
-	@Override
-	public boolean editPlaylist(String playlistId,Playlist playlist) {
-
-		boolean result = false;
-
-		if (playlist != null && playlist.getPlaylistId() != null) {
-			playlistMap.replace(playlistId, playlist);
-			result = true;
-		}
-		return result;
-	}
   
 	@Override
 	public int resetBroadcasts(String hostAddress) {
@@ -1046,10 +1011,10 @@ public class InMemoryDataStore extends DataStore {
 				iterator.remove();
 				i++;
 			}
-			if (next.getValue().getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) ||
-					next.getValue().getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING))
+			if (next.getValue().getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) ||
+					next.getValue().getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING))
 			{
-				next.getValue().setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+				next.getValue().setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 				next.getValue().setWebRTCViewerCount(0);
 				next.getValue().setHlsViewerCount(0);
 				next.getValue().setRtmpViewerCount(0);

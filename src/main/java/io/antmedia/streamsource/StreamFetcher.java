@@ -44,7 +44,6 @@ public class StreamFetcher {
 	private static final String STREAM_TYPE_VOD = "VoD";
 
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
-	private Broadcast stream;
 	private WorkerThread thread;
 	/**
 	 * Connection setup timeout value
@@ -93,11 +92,17 @@ public class StreamFetcher {
 
 	public interface IStreamFetcherListener {
 
-		void streamFinished (IStreamFetcherListener listener);
+		void streamFinished(IStreamFetcherListener listener);
 
 	}
 
 	IStreamFetcherListener streamFetcherListener;
+
+	private String streamUrl;
+
+	private String streamId;
+
+	private String streamType;
 
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
@@ -107,21 +112,16 @@ public class StreamFetcher {
 		this.streamFetcherListener = streamFetcherListener;
 	}
 
-	public StreamFetcher(Broadcast stream, IScope scope, Vertx vertx)  {
-		if (stream == null || stream.getStreamId() == null || stream.getStreamUrl() == null) {
-			String streamId = null;
-			if (stream != null) {
-				streamId = stream.getStreamId();
-			}
-			String streamUrl = null;
-			if (stream != null) {
-				streamUrl = stream.getStreamUrl();
-			}
-			throw new NullPointerException("Stream is not initialized properly. Check stream("+stream+"), "
+	public StreamFetcher(String streamUrl, String streamId, String streamType, IScope scope, Vertx vertx)  {
+		if (streamUrl == null  || streamId == null) {
+			
+			throw new NullPointerException("Stream is not initialized properly. Check "
 					+ " stream id ("+ streamId +") and stream url ("+ streamUrl + ") values");
 		}
 
-		this.stream = stream;
+		this.streamUrl = streamUrl;
+		this.streamType = streamType;
+		this.streamId = streamId;
 		this.scope = scope;
 		this.vertx = vertx;
 
@@ -139,13 +139,12 @@ public class StreamFetcher {
 
 		Result result = new Result(false);
 		if (inputFormatContext == null) {
-			logger.info("cannot allocate input context for {}", stream.getStreamId());
+			logger.info("cannot allocate input context for {}", streamId);
 			return result;
 		}
 
 		AVDictionary optionsDictionary = new AVDictionary();
 
-		String streamUrl = stream.getStreamUrl();
 		String transportType = appSettings.getRtspPullTransportType();
 		if (streamUrl.startsWith("rtsp://") && !transportType.isEmpty()) {
 			logger.info("Setting rtsp transport type to {} for stream source: {}", transportType, streamUrl);
@@ -157,9 +156,9 @@ public class StreamFetcher {
 
 		int ret;
 
-		logger.debug("stream url: {}  " , stream.getStreamUrl());
+		logger.debug("stream url: {}  " , streamUrl);
 
-		if ((ret = avformat_open_input(inputFormatContext, stream.getStreamUrl(), null, optionsDictionary)) < 0) {
+		if ((ret = avformat_open_input(inputFormatContext, streamUrl, null, optionsDictionary)) < 0) {
 
 			byte[] data = new byte[100];
 			avutil.av_strerror(ret, data, data.length);
@@ -168,7 +167,7 @@ public class StreamFetcher {
 
 			result.setMessage(errorStr);		
 
-			logger.error("cannot open stream: {} with error:: {}",  stream.getStreamUrl(), result.getMessage());
+			logger.error("cannot open stream: {} with error:: {}",  streamUrl, result.getMessage());
 			av_dict_free(optionsDictionary);
 			optionsDictionary.close();
 			return result;
@@ -238,7 +237,7 @@ public class StreamFetcher {
 			try {
 				inputFormatContext = new AVFormatContext(null); 
 				pkt = avcodec.av_packet_alloc();
-				logger.info("Preparing the StreamFetcher for {}", stream.getStreamUrl());
+				logger.info("Preparing the StreamFetcher for {}", streamUrl);
 				Result result = prepare(inputFormatContext);
 
 
@@ -262,33 +261,35 @@ public class StreamFetcher {
 					muxAdaptor.setEnableAudio(audioExist);
 					
 					//if stream is rtsp, then it's not AVC
-					muxAdaptor.setAvc(!stream.getStreamUrl().toLowerCase().startsWith("rtsp"));
+					muxAdaptor.setAvc(!streamUrl.toLowerCase().startsWith("rtsp"));
 										
-					setUpEndPoints(stream.getStreamId(), muxAdaptor);
+					setUpEndPoints(streamId, muxAdaptor);
 
-					muxAdaptor.init(scope, stream.getStreamId(), false);
+					muxAdaptor.init(scope, streamId, false);
 
-					logger.info("{} stream count in stream {} is {}", stream.getStreamId(), stream.getStreamUrl(), inputFormatContext.nb_streams());
+					logger.info("{} stream count in stream {} is {}", streamId, streamUrl, inputFormatContext.nb_streams());
 
 					if(muxAdaptor.prepareFromInputFormatContext(inputFormatContext)) {
 						
-						long currentTime = System.currentTimeMillis();
-						muxAdaptor.setStartTime(currentTime);
-
-						getInstance().startPublish(stream.getStreamId(), 0);
-
-						if (bufferTime > 0) {
-							packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l-> 
-								vertx.executeBlocking(h-> {
-									writeBufferedPacket();
-									h.complete();
-								}, false, r-> {
-									//no care
-								})
-							);
-						}
-
 						while (av_read_frame(inputFormatContext, pkt) >= 0) {
+							
+							if(!streamPublished) {
+								long currentTime = System.currentTimeMillis();
+								muxAdaptor.setStartTime(currentTime);
+
+								getInstance().startPublish(streamId, 0);
+
+								if (bufferTime > 0) {
+									packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l-> 
+										vertx.executeBlocking(h-> {
+											writeBufferedPacket();
+											h.complete();
+										}, false, r-> {
+											//no care
+										})
+									);
+								}
+							}
 
 							streamPublished = true;
 							lastPacketReceivedTime = System.currentTimeMillis();
@@ -369,7 +370,7 @@ public class StreamFetcher {
 							}
 							else {
 
-								if(stream.getType().equals(STREAM_TYPE_VOD)) {
+								if(STREAM_TYPE_VOD.equals(streamType)) {
 
 									if(firstPacketTime == 0) {
 										int streamIndex = pkt.stream_index();
@@ -401,21 +402,21 @@ public class StreamFetcher {
 							}
 							av_packet_unref(pkt);
 							if (stopRequestReceived) {
-								logger.warn("Stop request received, breaking the loop for {} ", stream.getStreamId());
+								logger.warn("Stop request received, breaking the loop for {} ", streamId);
 								break;
 							}
 						}
-						logger.info("Leaving the stream fetcher loop for stream: {}", stream.getStreamId());
+						logger.info("Leaving the stream fetcher loop for stream: {}", streamId);
 
 					}
 					else {
-						logger.error("MuxAdaptor.Prepare for {} returned false", stream.getName());
+						logger.error("MuxAdaptor.Prepare for {} returned false", streamId);
 					}
 
 					setCameraError(result);
 				} 
 				else {
-					logger.error("Prepare for opening the {} has failed", stream.getStreamUrl());
+					logger.error("Prepare for opening the {} has failed", streamUrl);
 				}
 			}
 			catch (OutOfMemoryError | Exception e) {
@@ -432,7 +433,7 @@ public class StreamFetcher {
 
 
 			if (muxAdaptor != null) {
-				logger.info("Writing trailer in Muxadaptor {}", stream.getStreamId());
+				logger.info("Writing trailer in Muxadaptor {}", streamId);
 				muxAdaptor.writeTrailer();
 				appInstance.muxAdaptorRemoved(muxAdaptor);
 				muxAdaptor = null;
@@ -454,7 +455,7 @@ public class StreamFetcher {
 			}
 
 			if(streamPublished) {
-				getInstance().closeBroadcast(stream.getStreamId());
+				getInstance().closeBroadcast(streamId);
 				streamPublished=false;
 			}
 
@@ -469,7 +470,7 @@ public class StreamFetcher {
 			}
 
 			if(!stopRequestReceived && restartStream) {
-				logger.info("Stream fetcher will try to fetch source {} after {} ms", stream.getStreamUrl(), STREAM_FETCH_RE_TRY_PERIOD_MS);
+				logger.info("Stream fetcher will try to fetch source {} after {} ms", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS);
 				vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
 
 					thread = new WorkerThread();
@@ -477,7 +478,7 @@ public class StreamFetcher {
 				});
 			}
 
-			logger.debug("Leaving thread for {}", stream.getStreamUrl());
+			logger.debug("Leaving thread for {}", streamUrl);
 
 			stopRequestReceived = false;
 		}
@@ -504,7 +505,7 @@ public class StreamFetcher {
 			synchronized (this) {
 				//different threads may write writeBufferedPacket and this method at the same time
 				
-				logger.info("write all buffered packets for stream: {}", stream.getStreamId());
+				logger.info("write all buffered packets for stream: {}", streamId);
 				while (!bufferQueue.isEmpty()) {
 	
 					AVPacket pkt = bufferQueue.poll();
@@ -567,7 +568,7 @@ public class StreamFetcher {
 		public void logBufferStatus() {
 			bufferLogCounter++; //we use this parameter in execute method as well 
 			if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) {
-				logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, getBufferedDurationMs(), bufferTime, stream.getStreamId());
+				logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, getBufferedDurationMs(), bufferTime, streamId);
 				bufferLogCounter = 0;
 			}
 		}
@@ -593,7 +594,7 @@ public class StreamFetcher {
 					while (threadActive) {
 						Thread.sleep(100);
 						if (i % 50 == 0) {
-							logger.info("waiting for thread to be finished for stream {}", stream.getStreamUrl());
+							logger.info("waiting for thread to be finished for stream {}", streamUrl);
 							i = 0;
 						}
 						i++;
@@ -607,7 +608,7 @@ public class StreamFetcher {
 				exceptionInThread = false;
 				thread = new WorkerThread();
 				thread.start();
-				logger.info("StartStream called, new thread is started for {}", stream.getStreamId());
+				logger.info("StartStream called, new thread is started for {}", streamId);
 			}
 		}.start();
 
@@ -635,7 +636,7 @@ public class StreamFetcher {
 
 	public void stopStream() 
 	{
-		logger.warn("stop stream called for {}", stream.getStreamId());
+		logger.warn("stop stream called for {}", streamUrl);
 		stopRequestReceived = true;
 	}	
 
@@ -649,10 +650,6 @@ public class StreamFetcher {
 
 	public void setThread(WorkerThread thread) {
 		this.thread = thread;
-	}
-
-	public Broadcast getStream() {
-		return stream;
 	}
 
 	public void restart() {
@@ -732,10 +729,6 @@ public class StreamFetcher {
 		this.restartStream = restartStream;
 	}
 
-	public void setStream(Broadcast stream) {
-		this.stream = stream;
-	}
-
 	public int getBufferTime() {
 		return bufferTime;
 	}
@@ -759,5 +752,20 @@ public class StreamFetcher {
 		stopRequestReceived = stopRequest;
 	}
 
+	public String getStreamId() {
+		return streamId;
+	}
+
+	public String getStreamUrl() {
+		return streamUrl;
+	}
+	
+	public void setStreamId(String streamId) {
+		this.streamId = streamId;
+	}
+	
+	public void setStreamUrl(String streamUrl) {
+		this.streamUrl = streamUrl;
+	}
 
 }

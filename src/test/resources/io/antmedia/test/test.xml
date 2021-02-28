@@ -181,6 +181,11 @@
    		<property name="cpuLimit" value="100"/>
    		<property name="minFreeRamSize" value="20"/>
    	</bean>
+   	
+   	<bean id="ant.media.licence.service" class="#{ T(io.antmedia.rest.RestServiceBase).isEnterprise() ? 'io.antmedia.enterprise.licence.LicenceService' : 'io.antmedia.licence.CommunityLicenceService' }"
+	init-method="start">
+		<property name="serverSettings" ref="ant.media.server.settings" />						
+	</bean>
 
 
 </beans>

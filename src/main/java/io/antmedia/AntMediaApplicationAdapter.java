@@ -84,10 +84,7 @@ import io.vertx.ext.dropwizard.MetricsService;
 public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";
-	public static final String BROADCAST_STATUS_CREATED = "created";
-	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
-	public static final String BROADCAST_STATUS_FINISHED = "finished";
-	public static final String BROADCAST_STATUS_PREPARING = "preparing";
+	
 	public static final int BROADCAST_STATS_RESET = 0;
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
@@ -101,6 +98,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public static final String LIVE_STREAM = "liveStream";
 	public static final String IP_CAMERA = "ipCamera";
 	public static final String STREAM_SOURCE = "streamSource";
+	public static final String PLAY_LIST = "playlist";
 	protected static final int END_POINT_LIMIT = 20;
 	public static final String FACEBOOK = "facebook";
 	public static final String PERISCOPE = "periscope";
@@ -140,6 +138,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	protected WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
 	
 	private IClusterNotifier clusterNotifier;
+	
+	protected boolean serverShuttingDown = false;
 
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -225,6 +225,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
+		logger.info("{} started", app.getName());
 
 		return true;
 	}
@@ -312,6 +313,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void closeBroadcast(String streamName) {
 
 		try {
+				logger.info("Closing broadcast stream id: {}", streamName);
 				getDataStore().updateStatus(streamName, BROADCAST_STATUS_FINISHED);
 				Broadcast broadcast = getDataStore().get(streamName);
 								
@@ -456,7 +458,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 						if (broadcast == null) {
 	
-							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
+							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
 						} 
 						else {
 	
@@ -878,22 +880,34 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 
-	public StreamFetcher startStreaming(Broadcast broadcast) {
-		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))  {
-			return streamFetcherManager.startStreaming(broadcast);
-		}
-		return null;
-	}
-
-	public Result stopStreaming(Broadcast broadcast) {
+	public Result startStreaming(Broadcast broadcast) 
+	{
 		Result result = new Result(false);
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
+				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))  {
+			result = getStreamFetcherManager().startStreaming(broadcast);
+		}
+		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
+			result = getStreamFetcherManager().startPlaylist(broadcast);
+			
+		}
+		return result;
+	}
+
+	public Result stopStreaming(Broadcast broadcast) 
+	{
+		Result result = new Result(false);
+		
+		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 						broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) 
 		{
-			result = streamFetcherManager.stopStreaming(broadcast);
+			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
 		} 
+		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) 
+		{
+			result = getStreamFetcherManager().stopPlayList(broadcast.getStreamId());
+		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) 
 		{
 			IBroadcastStream broadcastStream = getBroadcastStream(getScope(), broadcast.getStreamId());
@@ -942,7 +956,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public StreamFetcherManager getStreamFetcherManager() {
 		if(streamFetcherManager == null) {
-			streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(), scope);
+			streamFetcherManager = new StreamFetcherManager(vertx, getDataStore(), getScope());
 		}
 		return streamFetcherManager;
 	}
@@ -1088,6 +1102,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	@Override
 	public void serverShuttingdown() {
 		logger.info("{} is closing streams", getScope().getName());
+		serverShuttingDown = true;
 		closeStreamFetchers();
 		closeRTMPStreams();
 		
@@ -1416,6 +1431,9 @@ public Result createInitializationProcess(String appName){
 		appSettings.setPublishTokenControlEnabled(newSettings.isPublishTokenControlEnabled());
 		appSettings.setPlayTokenControlEnabled(newSettings.isPlayTokenControlEnabled());
 		appSettings.setTimeTokenSubscriberOnly(newSettings.isTimeTokenSubscriberOnly());
+		appSettings.setJwtStreamSecretKey(newSettings.getJwtStreamSecretKey());
+		appSettings.setPlayJwtControlEnabled(newSettings.isPlayJwtControlEnabled());
+		appSettings.setPublishJwtControlEnabled(newSettings.isPublishJwtControlEnabled());
 		
 		appSettings.setWebRTCEnabled(newSettings.isWebRTCEnabled());
 		appSettings.setWebRTCFrameRate(newSettings.getWebRTCFrameRate());
@@ -1507,5 +1525,9 @@ public Result createInitializationProcess(String appName){
 		// TODO Auto-generated method stub
 		
 	}
-
+	
+	@Override
+	public boolean isServerShuttingDown() {
+		return serverShuttingDown;
+	}
 }

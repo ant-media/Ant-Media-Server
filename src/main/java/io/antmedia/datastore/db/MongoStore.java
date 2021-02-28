@@ -19,12 +19,10 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.WriteResult;
 
-import dev.morphia.utils.IndexType;
 import dev.morphia.Datastore;
 import dev.morphia.Key;
 import dev.morphia.Morphia;
 import dev.morphia.aggregation.Group;
-import dev.morphia.query.CriteriaContainer;
 import dev.morphia.query.Criteria;
 import dev.morphia.query.FindOptions;
 import dev.morphia.query.Query;
@@ -36,13 +34,13 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
 public class MongoStore extends DataStore {
@@ -142,7 +140,7 @@ public class MongoStore extends DataStore {
 			}
 			broadcast.setRtmpURL(rtmpURL);
 			if(broadcast.getStatus()==null) {
-				broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
 			}
 
 			synchronized(this) {
@@ -198,10 +196,10 @@ public class MongoStore extends DataStore {
 
 				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(STATUS, status);
 
-				if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 					ops.set(START_TIME, System.currentTimeMillis());
 				}
-				else if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+				else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) {
 					ops.set(WEBRTC_VIEWER_COUNT, 0);
 					ops.set(HLS_VIEWER_COUNT, 0);
 					ops.set(RTMP_VIEWER_COUNT, 0);
@@ -240,8 +238,6 @@ public class MongoStore extends DataStore {
 		}
 		return false;
 	}
-
-
 
 	/*
 	 * (non-Javadoc)
@@ -412,8 +408,8 @@ public class MongoStore extends DataStore {
 								query.criteria("type").equal(AntMediaApplicationAdapter.STREAM_SOURCE)
 								), 
 						query.and(
-								query.criteria(STATUS).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING),
-								query.criteria(STATUS).notEqual(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+								query.criteria(STATUS).notEqual(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING),
+								query.criteria(STATUS).notEqual(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)
 								)
 						);
 				
@@ -755,7 +751,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getActiveBroadcastCount() {
 		synchronized(this) {
-			return datastore.find(Broadcast.class).filter(STATUS, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING).count();
+			return datastore.find(Broadcast.class).filter(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING).count();
 		}
 	}
 
@@ -856,9 +852,21 @@ public class MongoStore extends DataStore {
 					ops.set("mainTrackStreamId", broadcast.getMainTrackStreamId());
 				}
 				
+				if (broadcast.getPlayListItemList() != null) {
+					ops.set("playListItemList", broadcast.getPlayListItemList());
+				}
+				
+				if (broadcast.getPlayListStatus() != null) {
+					ops.set("playListStatus", broadcast.getPlayListStatus());
+				}
+				
+				if (broadcast.getEndPointList() != null) {
+					ops.set("endPointList", broadcast.getEndPointList());
+				}
+				
 				prepareFields(broadcast, ops);
 				
-				
+				ops.set("currentPlayIndex", broadcast.getCurrentPlayIndex());
 				ops.set("receivedBytes", broadcast.getReceivedBytes());
 				ops.set("bitrate", broadcast.getBitrate());
 				ops.set("userAgent", broadcast.getUserAgent());
@@ -1317,7 +1325,7 @@ public class MongoStore extends DataStore {
 							query.criteria(ORIGIN_ADDRESS).doesNotExist(), //check for non cluster mode
 							query.criteria(ORIGIN_ADDRESS).equal(hostAddress)
 							),
-					query.criteria(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)
+					query.criteria(STATUS).equal(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)
 					);
 			return query.count();
 		}
@@ -1378,67 +1386,6 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return false;
-	}
-	
-	
-	@Override
-	public boolean createPlaylist(Playlist playlist) {
-		synchronized(this) {
-			try {
-				datastore.save(playlist);
-				return true;
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return false;
-	}
-
-	@Override
-	public Playlist getPlaylist(String playlistId) {
-		synchronized(this) {
-			try {
-				return datastore.find(Playlist.class).field(PLAYLIST_ID).equal(playlistId).first();
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return null;
-	}
-
-	@Override
-	public boolean deletePlaylist(String playlistId) {
-		synchronized(this) {
-			try {
-				Query<Playlist> query = datastore.createQuery(Playlist.class).field(PLAYLIST_ID).equal(playlistId);
-				WriteResult delete = datastore.delete(query);
-				return (delete.getN() == 1);
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return false;
-	}
-
-	@Override
-	public boolean editPlaylist(String playlistId, Playlist playlist) {
-		boolean result = false;
-		synchronized(this) {
-			try {
-				Query<Playlist> query = datastore.createQuery(Playlist.class).field(PLAYLIST_ID).equal(playlist.getPlaylistId());
-
-				UpdateOperations<Playlist> ops = datastore.createUpdateOperations(Playlist.class).set(PLAYLIST_ID, playlist.getPlaylistId())
-						.set("playlistName", playlist.getPlaylistName()).set("playlistStatus", playlist.getPlaylistStatus())
-						.set(CREATION_DATE, playlist.getCreationDate()).set(DURATION, playlist.getDuration())
-						.set("broadcastItemList", playlist.getBroadcastItemList());
-
-				UpdateResults update = datastore.update(query, ops);
-				return update.getUpdatedCount() == 1;
-			} catch (Exception e) {
-				logger.error(e.getMessage());
-			}
-		}
-		return result;
 	}
 	
 	@Override
@@ -1540,7 +1487,7 @@ public class MongoStore extends DataStore {
 			synchronized(this) {
 				int total = 0;
 				Query<Broadcast> query = datastore.createQuery(Broadcast.class);
-				query.field(STATUS).equal(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				query.field(STATUS).equal(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 
 				Iterator<Summation> result = datastore.createAggregation(Broadcast.class)
 						.match(query)

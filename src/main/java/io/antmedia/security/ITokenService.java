@@ -56,6 +56,15 @@ public interface ITokenService {
 	boolean checkTimeBasedSubscriber(String subscriberId, String streamId, String sessionId, String subscriberCode, boolean forPublish);
 	
 	/**
+	 * Checks the JWT token validity
+	 * @param jwtTokenId - requested token id
+	 * @param streamId - id of the stream
+	 * @param type - type of the token (play/publish)
+	 * @return true or false
+	 */
+	boolean checkJwtToken (String jwtTokenId, String streamId, String type);
+	
+	/**
 	 * creates token according to the provided parameters
 	 * @param streamId - id of the requested stream for token creation
 	 * @param exprireDate - expire date of the token
@@ -65,6 +74,17 @@ public interface ITokenService {
 	 */
 
 	Token createToken(String streamId, long exprireDate, String type, String roomId);
+	
+	/**
+	 * creates token according to the provided parameters
+	 * @param streamId - id of the requested stream for token creation
+	 * @param exprireDate - expire date of the token (unix timestamp)
+	 * @param type type of the token (play/publish)
+	 * @param roomId- id of the room for playing streams in the room
+	 * @return token
+	 */
+
+	Token createJwtToken(String streamId, long exprireDate, String type, String roomId);
 
 	/**
 	 * gets  map of authenticated sessions

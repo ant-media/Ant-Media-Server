@@ -1,7 +1,5 @@
 package io.antmedia.datastore.db;
 
-import static io.antmedia.datastore.db.DataStore.TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME;
-
 import java.io.File;
 import java.lang.reflect.Type;
 import java.time.Instant;
@@ -10,7 +8,6 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -31,13 +28,13 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.Playlist;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
 
@@ -151,7 +148,7 @@ public class MapDBStore extends DataStore {
 					}
 					broadcast.setRtmpURL(rtmpURL);
 					if(broadcast.getStatus()==null) {
-						broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+						broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
 					}
 					map.put(streamId, gson.toJson(broadcast));
 					db.commit();
@@ -200,10 +197,10 @@ public class MapDBStore extends DataStore {
 				if (jsonString != null) {
 					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 					broadcast.setStatus(status);
-					if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+					if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 						broadcast.setStartTime(System.currentTimeMillis());
 					}
-					else if(status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED)) {
+					else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) {
 						broadcast.setRtmpViewerCount(0);
 						broadcast.setWebRTCViewerCount(0);
 						broadcast.setHlsViewerCount(0);
@@ -239,7 +236,6 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
-
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
@@ -1422,58 +1418,6 @@ public class MapDBStore extends DataStore {
 		}
 
 		return result;
-	}
-		
-	@Override
-	public boolean createPlaylist(Playlist playlist) {
-		
-		synchronized (this) {
-			boolean result = false;
-
-			if (playlist != null && playlist.getPlaylistId() != null) {
-				playlistMap.put(playlist.getPlaylistId(), gson.toJson(playlist));
-				db.commit();
-				result = true;
-			}
-
-			return result;
-		}
-	}
-	
-	@Override
-	public Playlist getPlaylist(String playlistId) {
-
-		Playlist playlist = null;
-		synchronized (this) {
-			if (playlistId != null) {
-				String jsonString = playlistMap.get(playlistId);
-				if (jsonString != null) {
-					playlist = gson.fromJson(jsonString, Playlist.class);
-				}
-			}
-		}
-		return playlist;
-	}
-	
-	@Override
-	public boolean deletePlaylist(String playlistId) {
-		synchronized (this) {
-			return playlistMap.remove(playlistId) != null;
-		}
-	}
-	
-	@Override
-	public boolean editPlaylist(String playlistId, Playlist playlist) {
-		synchronized (this) {
-			boolean result = false;
-
-			if (playlist != null && playlist.getPlaylistId() != null) {
-				playlistMap.replace(playlist.getPlaylistId(), gson.toJson(playlist));
-				db.commit();
-				result = true;
-			}
-			return result;
-		}
 	}
 
 	@Override

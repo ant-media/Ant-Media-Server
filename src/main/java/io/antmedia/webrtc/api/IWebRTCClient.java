@@ -171,4 +171,10 @@ public interface IWebRTCClient {
 	 * @return stream resolution current value
 	 */
 	public void forceStreamQuality(int streamHeight);
+
+	/**
+	 * 
+	 * @return free text client info
+	 */
+	public String getClientInfo();
 }

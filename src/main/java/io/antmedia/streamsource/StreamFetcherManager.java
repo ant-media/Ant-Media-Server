@@ -19,8 +19,11 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Playlist;
+import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.licence.ILicenceService;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.model.Result;
+import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.vertx.core.Vertx;
 
 
@@ -55,8 +58,10 @@ public class StreamFetcherManager {
 	private Vertx vertx;
 
 	private int lastRestartCount;
-	
+
 	private AppSettings appSettings;
+
+	private ILicenceService licenseService;
 
 
 	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
@@ -64,10 +69,11 @@ public class StreamFetcherManager {
 		this.datastore = datastore;
 		this.scope=scope;
 		this.appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
+		this.licenseService = (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 	}
 
 	public StreamFetcher make(Broadcast stream, IScope scope, Vertx vertx) {
-		return new StreamFetcher(stream, scope, vertx);
+		return new StreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), scope, vertx);
 	}
 
 	public int getStreamCheckerInterval() {
@@ -85,97 +91,93 @@ public class StreamFetcherManager {
 		this.streamCheckerIntervalMs = streamCheckerInterval;
 	}
 
-	public boolean checkAlreadyFetch(Broadcast broadcast) {
-		
+	public boolean isStreamRunning(String streamId) {
+
 		boolean alreadyFetching = false;
-		
+
 		for (StreamFetcher streamFetcher : streamFetcherList) {
-			if (streamFetcher.getStream().getStreamId().equals(broadcast.getStreamId())) {
+			if (streamFetcher.getStreamId().equals(streamId)) {
 				alreadyFetching = true;
 				break;
 			}
 		}
-		
+
 		return alreadyFetching;
-		
+
 	}
+
+	public Result startStreamScheduler(StreamFetcher streamScheduler) {
+
+		Result result = new Result(false);
+		result.setDataId(streamScheduler.getStreamId());
+		if (!licenseService.isLicenceSuspended()) {
+			streamScheduler.startStream();
 	
-	public void alreadyFetchProcess(StreamFetcher streamScheduler) {
-		
-		streamScheduler.startStream();
-
-		if(!streamFetcherList.contains(streamScheduler)) {
-			streamFetcherList.add(streamScheduler);
+			if(!streamFetcherList.contains(streamScheduler)) {
+				streamFetcherList.add(streamScheduler);
+			}
+	
+			if (streamFetcherScheduleJobName == -1) {
+				scheduleStreamFetcherJob();
+			}
+			result.setSuccess(true);
 		}
-
-		if (streamFetcherScheduleJobName == -1) {
-			scheduleStreamFetcherJob();
+		else {
+			logger.error("License is suspend and new stream scheduler is not started {}", streamScheduler.getStreamUrl());
+			result.setMessage("License is suspended");
 		}
-		
+		return result;
+
 	}
 
 
-	public StreamFetcher startStreaming(@Nonnull Broadcast broadcast) {	
+	public Result startStreaming(@Nonnull Broadcast broadcast) {	
 
 		//check if broadcast is already being fetching
 		boolean alreadyFetching;
-		
-		alreadyFetching = checkAlreadyFetch(broadcast);
+
+		alreadyFetching = isStreamRunning(broadcast.getStreamId());
 
 		StreamFetcher streamScheduler = null;
-		
+
+		Result result = new Result(false);
 		if (!alreadyFetching) {
 
 			try {
-				streamScheduler =  make(broadcast, scope, vertx);
+				streamScheduler = make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(restartStreamAutomatically);
-				
-				alreadyFetchProcess(streamScheduler);
+
+				result = startStreamScheduler(streamScheduler);
 			}
 			catch (Exception e) {
-				streamScheduler = null;
-				logger.error(e.getMessage());
-			}
-		}
-
-		return streamScheduler;
-	}
-
-
-	public StreamFetcher playlistStartStreaming(@Nonnull Broadcast broadcast,StreamFetcher streamScheduler) {	
-
-		//check if broadcast is already being fetching
-		boolean alreadyFetching = false;
-		
-		alreadyFetching = checkAlreadyFetch(broadcast);
-
-		if (!alreadyFetching) 
-		{
-			try {
-				streamScheduler.setRestartStream(false);
-				alreadyFetchProcess(streamScheduler);
-			}
-			catch (Exception e) {
-				streamScheduler = null;
 				logger.error(ExceptionUtils.getStackTrace(e));
+				result.setMessage("Problem occured while fetching the stream");
 			}
 		}
+		else {
+			result.setMessage("Stream is already active. It's already streaming or trying to connect");
+		}
 
-		return streamScheduler;
+		return result;
 	}
 
-	public Result stopStreaming(Broadcast stream) {
-		logger.warn("inside of stopStreaming for {}", stream.getStreamId());
+	public Result stopStreaming(String streamId) 
+	{
+		logger.warn("inside of stopStreaming for {}", streamId);
 		Result result = new Result(false);
 
-		for (StreamFetcher scheduler : streamFetcherList) {
-			if (scheduler.getStream().getStreamId().equals(stream.getStreamId())) {
+		for (StreamFetcher scheduler : streamFetcherList) 
+		{
+			if (scheduler.getStreamId().equals(streamId)) 
+			{
 				scheduler.stopStream();
 				streamFetcherList.remove(scheduler);
 				result.setSuccess(true);
 				break;
 			}
 		}
+		result.setMessage(result.isSuccess() ? "Stream stopped" : "No matching stream source in this server:"+streamId);
+		result.setDataId(streamId);
 		return result;
 	}
 
@@ -205,6 +207,7 @@ public class StreamFetcherManager {
 			}
 			else {
 				result.setSuccess(false);
+				result.setMessage("URL "+url+ "responded:"+responseCode);
 				return result;
 			}
 
@@ -215,97 +218,135 @@ public class StreamFetcherManager {
 	}
 
 
-	public void startPlaylistThread(Playlist playlist){
+	public void playNextItemInList(String streamId, IStreamFetcherListener listener) 
+	{
+		// It's necessary for skip new Stream Fetcher
+		stopStreaming(streamId);
 
-		// Get current stream in Playlist
-		Broadcast playlistBroadcastItem = playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex());
+		// Get current playlist in database
+		Broadcast playlist = datastore.get(streamId);
 
-		// Check Stream URL is valid.
-		// If stream URL is not valid, it's trying next broadcast and trying.
-		if(checkStreamUrlWithHTTP(playlistBroadcastItem.getStreamUrl()).isSuccess()) 
+		//Check playlist is not deleted and not stopped
+		if(playlist != null && !AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus()))
 		{
-
-			// Create Stream Fetcher with Playlist Broadcast Item
-			StreamFetcher streamScheduler = new StreamFetcher(playlistBroadcastItem, scope, vertx);
-			// Update Playlist current playing status
-			playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			// Update broadcast current playing status
-			playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()).setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING); 
-			// Update Datastore current play broadcast
-			datastore.editPlaylist(playlist.getPlaylistId(), playlist);
-
-			streamScheduler.setStreamFetcherListener(listener -> {
-
-				// It's necessary for skip new Stream Fetcher
-				stopStreaming(playlistBroadcastItem);
-				// Get current playlist in database
-				Playlist newPlaylist = datastore.getPlaylist(playlistBroadcastItem.getStreamId());
-				//Check playlist is not deleted and not stopped
-				if(newPlaylist.getPlaylistStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING) && newPlaylist.getPlaylistId() != null)
-				{
-					newPlaylist = skipNextPlaylistQueue(newPlaylist);
-					// Get Current Playlist Stream Index
-					int currentStreamIndex = newPlaylist.getCurrentPlayIndex();
-					// Check Stream URL is valid.
-					// If stream URL is not valid, it's trying next broadcast and trying.
-					if(checkStreamUrlWithHTTP(newPlaylist.getBroadcastItemList().get(currentStreamIndex).getStreamUrl()).isSuccess()) 
-					{
-						//update broadcast informations
-						Broadcast fetchedBroadcast = newPlaylist.getBroadcastItemList().get(currentStreamIndex);
-						Result result = new Result(false);
-						result.setSuccess(datastore.updateBroadcastFields(fetchedBroadcast.getStreamId(), fetchedBroadcast));
-						StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast,scope,vertx);
-						newStreamScheduler.setStreamFetcherListener(listener);
-						playlistStartStreaming(playlistBroadcastItem,newStreamScheduler);
-					}
-					else 
-					{
-						logger.info("Current Playlist Stream URL -> {} is invalid", newPlaylist.getBroadcastItemList().get(currentStreamIndex).getStreamUrl());
-						newPlaylist = skipNextPlaylistQueue(newPlaylist);
-						startPlaylistThread(newPlaylist);
-					}
-				}
-			});
-
-			playlistStartStreaming(playlistBroadcastItem,streamScheduler);
-
-		}
-		else {
-
-			logger.warn("Current Playlist Stream URL -> {} is invalid", playlistBroadcastItem.getStreamUrl());
-			
-			// This method skip next playlist item
 			playlist = skipNextPlaylistQueue(playlist);
 
-			if(checkStreamUrlWithHTTP(playlist.getBroadcastItemList().get(playlist.getCurrentPlayIndex()).getStreamUrl()).isSuccess()) {
-				startPlaylistThread(playlist);
+			// Get Current Playlist Stream Index
+			int currentStreamIndex = playlist.getCurrentPlayIndex();
+			// Check Stream URL is valid.
+			// If stream URL is not valid, it's trying next broadcast and trying.
+			if(checkStreamUrlWithHTTP(playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl()).isSuccess()) 
+			{
+				//update broadcast informations
+				PlayListItem fetchedBroadcast = playlist.getPlayListItemList().get(currentStreamIndex);
+				Result result = new Result(false);
+				result.setSuccess(datastore.updateBroadcastFields(streamId, playlist));
+				StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast.getStreamUrl(), streamId, fetchedBroadcast.getType(), scope,vertx);
+				newStreamScheduler.setStreamFetcherListener(listener);
+				newStreamScheduler.setRestartStream(false);
+				startStreamScheduler(newStreamScheduler);
 			}
-			else {
-				playlist.setPlaylistStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-				// Update Datastore current play broadcast
-				datastore.editPlaylist(playlist.getPlaylistId(), playlist);
+			else 
+			{
+				logger.info("Current Playlist Stream URL -> {} is invalid", playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl());
+				playlist = skipNextPlaylistQueue(playlist);
+				startPlaylist(playlist);
 			}
-
 		}
+
 	}
 
-	public Playlist skipNextPlaylistQueue(Playlist playlist) {
+	public Result startPlaylist(Broadcast playlist){
+
+
+		Result result = new Result(false);
+		List<PlayListItem> playListItemList = playlist.getPlayListItemList();
+
+		if (isStreamRunning(playlist.getStreamId())) 
+		{
+			String msg = "Playlist is already running for stream:"+playlist.getStreamId();
+			logger.warn(msg);
+			result.setMessage(msg);
+		}
+		else if (playListItemList != null && !playListItemList.isEmpty()) 
+		{
+						
+			// Get current stream in Playlist
+			if (playlist.getCurrentPlayIndex() >= playlist.getPlayListItemList().size() || playlist.getCurrentPlayIndex() < 0) {
+				logger.warn("Resetting current play index to 0 because it's not in correct range for id: {}", playlist.getStreamId());
+				playlist.setCurrentPlayIndex(0);
+			}
+			
+			PlayListItem playlistBroadcastItem = playlist.getPlayListItemList().get(playlist.getCurrentPlayIndex());
+			
+			if(checkStreamUrlWithHTTP(playlistBroadcastItem.getStreamUrl()).isSuccess()) 
+			{
+
+				// Check Stream URL is valid.
+				// If stream URL is not valid, it's trying next broadcast and trying.
+				// Create Stream Fetcher with Playlist Broadcast Item
+				StreamFetcher streamScheduler = new StreamFetcher(playlistBroadcastItem.getStreamUrl(), playlist.getStreamId(), playlistBroadcastItem.getType(), scope, vertx);
+				// Update Playlist current playing status
+				playlist.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+				// Update Datastore current play broadcast
+				datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
+
+				String streamId = playlist.getStreamId();
+
+				streamScheduler.setStreamFetcherListener(listener -> {
+					playNextItemInList(streamId, listener);
+				});
+
+				streamScheduler.setRestartStream(false);
+				startStreamScheduler(streamScheduler);
+				result.setSuccess(true);
+
+			}
+			else 
+			{
+
+				logger.warn("Current Playlist Stream URL -> {} is invalid", playlistBroadcastItem.getStreamUrl());
+
+				// This method skip next playlist item
+				playlist = skipNextPlaylistQueue(playlist);
+
+				if(checkStreamUrlWithHTTP(playlist.getPlayListItemList().get(playlist.getCurrentPlayIndex()).getStreamUrl()).isSuccess()) {
+					result = startPlaylist(playlist);
+				}
+				else {
+					playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					// Update Datastore current play broadcast
+					datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
+					result.setSuccess(false);
+				}
+
+			}
+		}
+		else {
+			String msg = "There is no playlist for stream id:" + playlist.getStreamId();
+			logger.warn(msg);
+			result.setMessage(msg);
+		}
+		return result;
+	}
+
+	public Broadcast skipNextPlaylistQueue(Broadcast playlist) {
 
 		// Get Current Playlist Stream Index
 		int currentStreamIndex = playlist.getCurrentPlayIndex()+1;
 
-		if(playlist.getBroadcastItemList().size() <= currentStreamIndex) 
+		if(playlist.getPlayListItemList().size() <= currentStreamIndex) 
 		{
 			//update playlist first broadcast
 			playlist.setCurrentPlayIndex(0);
-			datastore.editPlaylist(playlist.getPlaylistId(), playlist);
 		}
 
 		else {
 			// update playlist currentPlayIndex value.
 			playlist.setCurrentPlayIndex(currentStreamIndex);
-			datastore.editPlaylist(playlist.getPlaylistId(), playlist);
 		}
+		logger.info("Next index to play in play list is {} for stream: {}", playlist.getCurrentPlayIndex(), playlist.getStreamId());
+		datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
 
 		return playlist;
 	}
@@ -358,12 +399,13 @@ public class StreamFetcherManager {
 
 	public void checkStreamFetchersStatus() {
 		for (StreamFetcher streamScheduler : streamFetcherList) {
-			Broadcast stream = streamScheduler.getStream();
+			String streamId = streamScheduler.getStreamId();
 
-			if (!streamScheduler.isStreamAlive() && datastore != null && stream.getStreamId() != null) 
+
+			if (!streamScheduler.isStreamAlive() && datastore != null && streamId != null) 
 			{
-				logger.info("Stream is not alive and setting quality to poor of stream: {} url: {}", stream.getStreamId(), stream.getStreamUrl());
-				datastore.updateSourceQualityParameters(stream.getStreamId(), null, 0, 0);
+				logger.info("Stream is not alive and setting quality to poor of stream: {} url: {}", streamId, streamScheduler.getStreamUrl());
+				datastore.updateSourceQualityParameters(streamId, null, 0, 0);
 			}
 		}
 	}
@@ -373,11 +415,11 @@ public class StreamFetcherManager {
 
 			if (streamScheduler.isStreamAlive()) 
 			{
-				logger.info("Calling stop stream {}", streamScheduler.getStream().getStreamId());
+				logger.info("Calling stop stream {}", streamScheduler.getStreamId());
 				streamScheduler.stopStream();
 			}
 			else {
-				logger.info("Stream is not alive {}", streamScheduler.getStream().getStreamId());
+				logger.info("Stream is not alive {}", streamScheduler.getStreamId());
 			}
 
 			streamScheduler.startStream();
@@ -395,6 +437,17 @@ public class StreamFetcherManager {
 	public Queue<StreamFetcher> getStreamFetcherList() {
 		return streamFetcherList;
 	}
+
+	public StreamFetcher getStreamFetcher(String streamId) 
+	{
+		for (StreamFetcher streamFetcher : streamFetcherList) {
+			if (streamFetcher.getStreamId().equals(streamId)) {
+				return streamFetcher;
+			}
+		}
+		return null;
+	}
+
 
 	public void setStreamFetcherList(Queue<StreamFetcher> streamFetcherList) {
 		this.streamFetcherList = streamFetcherList;
@@ -422,6 +475,27 @@ public class StreamFetcherManager {
 
 	public void setStreamCheckerCount(int streamCheckerCount) {
 		this.streamCheckerCount = streamCheckerCount;
+	}
+
+	public Result stopPlayList(String streamId) 
+	{
+		logger.info("Stopping playlist for stream: {}", streamId);
+		Result result = new Result(false);
+		stopStreaming(streamId);
+		Broadcast broadcast = datastore.get(streamId);
+		if (broadcast != null && AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) 
+		{
+			broadcast.setPlayListStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			result.setSuccess(datastore.updateBroadcastFields(streamId, broadcast));
+		}
+		else {
+			String msg = "Broadcast's type is not play list for stream:" + streamId;
+			result.setMessage(msg);
+			result.setDataId(streamId);
+			logger.error(msg);
+		}
+
+		return result;
 	}
 
 }

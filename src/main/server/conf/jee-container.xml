@@ -55,6 +55,11 @@
 						<map>
 							<entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}" />
 							<entry key="keepAliveTimout" value="-1" />
+							<entry key="useExecutor" value="true"/> 
+							<entry key="maxThreads" value="${http.max_threads}"/> 
+							<entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/> 
+							<entry key="processorCache" value="${http.processor_cache}"/> 
+							<entry key="relaxedQueryChars" value="{}" />
 						</map>
 					</property>
 				</bean>
@@ -83,6 +88,7 @@
 								<entry key="maxThreads" value="${http.max_threads}"/> 
 								<entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/> 
 								<entry key="processorCache" value="${http.processor_cache}"/> 
+								<entry key="relaxedQueryChars" value="{}" />
 							</map> 
 						</property> 
 					</bean>
@@ -109,6 +115,7 @@
 				<!-- cluster start
 				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve">
 					<property name="tokenGenerator" ref="tokenGenerator" />
+					<property name="asyncSupported" value="true" />
 				</bean>
 				cluster end --> 
 			</list>

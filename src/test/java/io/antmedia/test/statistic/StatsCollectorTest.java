@@ -236,9 +236,7 @@ public class StatsCollectorTest {
 			return true;
 		});
 		
-		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
-				
-		Mockito.verify(resMonitor, Mockito.times(1)).startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), 3000);
+		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic();
 		
 		resMonitor.cancelHeartBeat();
 		
@@ -247,9 +245,7 @@ public class StatsCollectorTest {
 		resMonitor.setHeartBeatEnabled(false);
 		resMonitor.start();
 		assertFalse(resMonitor.isHeartBeatEnabled());
-		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic(Launcher.getVersion(), Launcher.getVersionType());
-				
-		Mockito.verify(resMonitor, Mockito.times(1)).startHeartBeats(Launcher.getVersion(), Launcher.getVersionType(), 3000);
+		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic();
 		
 		resMonitor.cancelHeartBeat();
 		
@@ -304,7 +300,7 @@ public class StatsCollectorTest {
 		resMonitor.setKafkaProducer(kafkaProducer);
 		
 		List<WebRTCClientStats> webRTCClientStatList = new ArrayList<>();
-		WebRTCClientStats stats = new WebRTCClientStats(100, 50, 40, 20, 60, 444, 9393838);
+		WebRTCClientStats stats = new WebRTCClientStats(100, 50, 40, 20, 60, 444, 9393838, "info");
 		webRTCClientStatList.add(stats);
 		resMonitor.sendWebRTCClientStats2Kafka(webRTCClientStatList, "stream1");
 		
@@ -360,7 +356,7 @@ public class StatsCollectorTest {
 		streams.add("stream1");
 		Mockito.when(webRTCAdaptor.getStreams()).thenReturn(streams);
 		List<WebRTCClientStats> webRTCClientStatList = new ArrayList<>();
-		WebRTCClientStats stats = new WebRTCClientStats(100, 50, 40, 20, 60, 444, 9393838);
+		WebRTCClientStats stats = new WebRTCClientStats(100, 50, 40, 20, 60, 444, 9393838, "info");
 		webRTCClientStatList.add(stats);
 		 
 		Mockito.when(webRTCAdaptor.getWebRTCClientStats(any())).thenReturn(webRTCClientStatList);
