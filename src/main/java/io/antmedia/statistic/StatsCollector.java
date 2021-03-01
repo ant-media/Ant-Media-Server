@@ -881,7 +881,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		instance.addProperty(INSTANCE_VERSION, version);
 
 		try (CloseableHttpClient client = getHttpClient()){
-			 HttpUriRequest post = RequestBuilder.post().setUri("https://us-central1-ant-media-server-analytics.cloudfunctions.net/sendHeartbeat").setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+			 HttpUriRequest post = RequestBuilder.post().setUri("https://analytics.antmedia.io/send-heartbeat.php").setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 			.setEntity(new StringEntity(instance.toString())).build();
 			 
 			 client.execute(post);

@@ -71,7 +71,7 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
 		instance.addProperty("errorDetail", errorDetail);
 
 		try (CloseableHttpClient client = getHttpClient()){
-			 HttpUriRequest post = RequestBuilder.post().setUri("https://us-central1-ant-media-server-analytics.cloudfunctions.net/sendErrorDetail").setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+			 HttpUriRequest post = RequestBuilder.post().setUri("https://analytics.antmedia.io/send-error-detail.php").setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 			.setEntity(new StringEntity(instance.toString())).build();
 			 
 			 client.execute(post);
