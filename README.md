@@ -8,7 +8,7 @@
 
 Ant Media Server is designed to provide live video streaming technology infrastructure with ultra-low latency(WebRTC) and low-latency(HLS, CMAF available in v2.2+). It can be used to enable streaming any type of live or on demand video to any devices including mobiles, PCs or IPTV boxes.
 
-### 2500+ Running Instances in 120+ Countries
+### 3100+ Running Instances in 120+ Countries 
 
 
 Ant Media Server Features
@@ -78,10 +78,22 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 
 
 ## Releases
+### [Ant Media Server Community 2.3.0 (March 3, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.0/ant-media-server-2.3.0-community-2.3.0-20210301_0825.zip)
+- Improvements in Low latency DASH
+- Low latency HLS (experimental)
+- Stereo support for WebRTC streaming
+- Audio forwarding in SFU mode
+- White Board implementation on top of WebRTC data channel
+- WebRTC Data Channel support without video & audio
+- Application deploy/undeploy on the fly in cluster mode
+- Time-based Tokens (TOTP) for stream security
+- JWT tokens for stream and REST security
+- Support Multi-Level Cluster
 
-### [Ant Media Server Community 2.2.0 (Oct 21, 2020)](https://github.com/ant-media/Ant-Media-Server/archive/ams-v2.2.0.zip) 
+[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.3.0) 
 
-Changelog - including Enterprise Edition
+
+### [Ant Media Server Community 2.2.1 (Oct 29, 2020)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.2.1/ant-media-server-2.2.1-community-2.2.1-20201029_0748.1.zip)
 - Support CMAF in DASH [2471](https://github.com/ant-media/Ant-Media-Server/issues/2471), [2440](https://github.com/ant-media/Ant-Media-Server/issues/2440)
 - Update from Java 8 to Java 11 [2394](https://github.com/ant-media/Ant-Media-Server/issues/2394), [2458](https://github.com/ant-media/Ant-Media-Server/issues/2458)
 - Tomcat performance improvement with APR and SSL [2525](https://github.com/ant-media/Ant-Media-Server/issues/2525)
@@ -108,15 +120,6 @@ Features
 * Update video.js to the latest version for HLS and MP4 playback [#2231](https://github.com/ant-media/Ant-Media-Server/issues/2231)
 * Create a REST method that can send message to the viewers through Data channel [#2026](https://github.com/ant-media/Ant-Media-Server/issues/2026)
 [Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.1.0)
-
-### [Ant Media Server Community 2.0.0 (May 4, 2020)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.0.0/ant-media-server-2.0.0-community-2.0.0-20200504_1842.zip)
-* VP8 Support in Playing, Ingesting, Transcoding and Clustering [#1816](https://github.com/ant-media/Ant-Media-Server/issues/1816) [#1962](https://github.com/ant-media/Ant-Media-Server/issues/1962) [#2013](https://github.com/ant-media/Ant-Media-Server/issues/2013) [#1994](https://github.com/ant-media/Ant-Media-Server/issues/1994)
-* Data Channel Support in Playing, Ingesting, Clustering [#1737](https://github.com/ant-media/Ant-Media-Server/issues/1737) [#2004](https://github.com/ant-media/Ant-Media-Server/issues/2004) [#2011](https://github.com/ant-media/Ant-Media-Server/issues/2001) [#2045](https://github.com/ant-media/Ant-Media-Server/issues/2045) [#1866](https://github.com/ant-media/Ant-Media-Server/issues/1866)
-* 4K 60 FPS RTMP -> WebRTC Streaming Support [#1854](https://github.com/ant-media/Ant-Media-Server/issues/1854) [#1867](https://github.com/ant-media/Ant-Media-Server/issues/1867) [#1759](https://github.com/ant-media/Ant-Media-Server/issues/1759) [#1775](https://github.com/ant-media/Ant-Media-Server/issues/1775)
-* WebRTC Stack is updated to WebRTC M79 [#1818](https://github.com/ant-media/Ant-Media-Server/issues/1818) [#1838](https://github.com/ant-media/Ant-Media-Server/issues/1838) [#1827](https://github.com/ant-media/Ant-Media-Server/issues/1827)
-* Official Ubuntu 18.04 support [#1655](https://github.com/ant-media/Ant-Media-Server/issues/1655)
-* Cluster Monitoring Support [#1897](https://github.com/ant-media/Ant-Media-Server/issues/1897)
-[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.0.0)
 
 
 Previous releases
