@@ -736,9 +736,9 @@ public abstract class RestServiceBase {
 				fqdn = getServerSettings().getHostAddress();
 			}
 
-			int number = 1;
+			int number = 1; 
 			for (Broadcast broadcast : broadcastList) {
-				String cmd = "ffmpeg http://"+ fqdn + ":5080/" 
+				String cmd = "ffmpeg http://"+ fqdn + ":"+serverSettings.getDefaultHttpPort()+"/" 
 						+ getScope().getName() + "/streams/"+broadcast.getStreamId()+".m3u8";
 
 				insertQueryString.append("INSERT INTO stalker_db.itv(name, number, tv_genre_id, base_ch, cmd, languages)"
@@ -867,7 +867,7 @@ public abstract class RestServiceBase {
 						File vodFolder = new File(vodFolderPath);
 						int lastIndexOf = vod.getFilePath().lastIndexOf(vodFolder.getName());
 						String filePath = vod.getFilePath().substring(lastIndexOf);
-						String cmd = "ffmpeg http://"+ fqdn + ":5080/" 
+						String cmd = "ffmpeg http://"+ fqdn + ":"+serverSettings.getDefaultHttpPort()+"/" 
 								+ getScope().getName() + "/streams/" + filePath;
 
 						insertQueryString.append("SET @last_id=LAST_INSERT_ID();");
