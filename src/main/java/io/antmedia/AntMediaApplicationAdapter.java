@@ -1521,6 +1521,9 @@ public Result createInitializationProcess(String appName){
 		return null;
 	}
 
+	public void stopCustomBroadcast(String streamId) {
+	}
+	
 	public void removeFrameListener(String streamId, IFrameListener listener) {
 		// TODO Auto-generated method stub
 		
@@ -1530,4 +1533,6 @@ public Result createInitializationProcess(String appName){
 	public boolean isServerShuttingDown() {
 		return serverShuttingDown;
 	}
+
+	
 }
