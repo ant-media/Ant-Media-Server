@@ -4,7 +4,7 @@ usage() {
   echo "Usage:"
   echo "$0 [-n APPLICATION_NAME] [-p INSTALLATION_PATH]"
   echo "Options:"
-  echo "-n: Application Name is the application name that you want to have. It's mandatory"
+  echo "-n: Application Name is the application name that you want to delete. It's mandatory"
   echo "-p: Path is the install location of Ant Media Server which is /usr/local/antmedia by default."
   echo "-h: print this usage"
   echo " "
