@@ -631,8 +631,12 @@ public abstract class RestServiceBase {
 		String message = null;
 
 		endpoint.setType(ENDPOINT_GENERIC);
-		//generate custom endpoint invidual ID
-		String endpointServiceId = "custom"+RandomStringUtils.randomAlphabetic(6);		
+	
+		String endpointServiceId = endpoint.getEndpointServiceId();
+		if (endpointServiceId == null || endpointServiceId.isEmpty()) {
+			//generate custom endpoint invidual ID
+			endpointServiceId = "custom"+RandomStringUtils.randomAlphabetic(6);		
+		}
 		endpoint.setEndpointServiceId(endpointServiceId);
 
 
