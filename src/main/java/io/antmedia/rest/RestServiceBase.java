@@ -645,7 +645,7 @@ public abstract class RestServiceBase {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
-		return new Result(success, message);
+		return new Result(success, endpointServiceId, message);
 	}
 
 	@Deprecated
