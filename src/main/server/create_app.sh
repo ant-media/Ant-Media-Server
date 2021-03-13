@@ -30,8 +30,8 @@ do
   case "${option}" in
     n) APP_NAME=${OPTARG};;
     p) AMS_DIR=${OPTARG};;
-    w) AS_WAR="true";;
-    c) IS_CLUSTER="true";;
+    w) AS_WAR=${OPTARG};;
+    c) IS_CLUSTER=${OPTARG};;
     m) MONGO_HOST=${OPTARG};;
     u) MONGO_USER=${OPTARG};;
     s) MONGO_PASS=${OPTARG};;
