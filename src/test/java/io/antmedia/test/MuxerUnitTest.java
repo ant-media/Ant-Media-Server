@@ -918,14 +918,22 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 		}
 		
+		activeBroadcastCount = appAdaptor.getDataStore().getActiveBroadcastCount();
 		
 		appSettings.setIngestingStreamLimit(2);
 		
 		
 		appAdaptor.startPublish(streamId, 0);
 		
+		
 		streamId = "stream " + (int)(Math.random()*10000);
 		appAdaptor.startPublish(streamId, 0);
+		
+		long activeBroadcastCountFinal = activeBroadcastCount;
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		.until(() -> {
+			return activeBroadcastCountFinal + 2 == appAdaptor.getDataStore().getActiveBroadcastCount();
+		});
 		
 		
 		streamId = "stream " + (int)(Math.random()*10000);
