@@ -2,15 +2,15 @@
 
 usage() {
   echo "Usage:"
-  echo "$0 [-n APPLICATION_NAME] [-p INSTALLATION_PATH] [-w]"
+  echo "$0 -n APPLICATION_NAME [-p INSTALLATION_PATH] [-w true|false] [-c true|false]"
   echo "Options:"
-  echo "-n: Application Name is the application name that you want to have. It's mandatory"
-  echo "-p: Path is the install location of Ant Media Server which is /usr/local/antmedia by default."
-  echo "-w: The flag to deploy application as war file. If you want to create application on fly, set it true."
-  echo "-c: The flag to deploy application in cluster mode."
-  echo "-m: (Optional) Mongo DB host."
-  echo "-u: (Optional) Mongo DB user"
-  echo "-s: (Optional) Mongo DB password"
+  echo "-n:  Name of the application that you want to have. It's mandatory"
+  echo "-p: (Optional) Path is the install location of Ant Media Server which is /usr/local/antmedia by default."
+  echo "-w: (Optional) The flag to deploy application as war file. Default value is false"
+  echo "-c: (Optional) The flag to deploy application in cluster mode. Default value is false"
+  echo "-m:  Mongo DB host. If it's a cluster, it's mandatory. Otherwise optional"
+  echo "-u:  Mongo DB user. If it's a cluster, it's mandatory. Otherwise optional"
+  echo "-s:  Mongo DB password. If it's a cluster, it's mandatory. Otherwise optional"
   echo "-h: print this usage"
   echo " "
   echo "Example: "
@@ -22,16 +22,16 @@ usage() {
 ERROR_MESSAGE="Error: App is not created. Please check the error in the terminal and take a look at the instructions below"
 
 AMS_DIR=/usr/local/antmedia
-AS_WAR="false"
-IS_CLUSTER="false"
+AS_WAR=false
+IS_CLUSTER=false
 
 while getopts 'n:p:w:h:c:m:u:s' option
 do
   case "${option}" in
     n) APP_NAME=${OPTARG};;
     p) AMS_DIR=${OPTARG};;
-    w) AS_WAR="true";;
-    c) IS_CLUSTER="true";;
+    w) AS_WAR=${OPTARG};;
+    c) IS_CLUSTER=${OPTARG};;
     m) MONGO_HOST=${OPTARG};;
     u) MONGO_USER=${OPTARG};;
     s) MONGO_PASS=${OPTARG};;
@@ -61,6 +61,14 @@ if [[ -z "$APP_NAME" ]]; then
     echo "Error: Missing parameter APPLICATON_NAME. Check instructions below"
     usage
     exit 1
+fi
+
+if [[ "$IS_CLUSTER" == "true" ]]; then
+    if [[ -z "$MONGO_HOST" ]]; then
+       echo "Please set mongodb host, username and password for cluster mode. "
+       usage
+       exit 1
+    fi
 fi
 
 case $AMS_DIR in
@@ -108,17 +116,23 @@ check_result
 sed -i $SED_COMPATIBILITY 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
 check_result
 
-if [ $IS_CLUSTER == "true" ]; then
+if [[ "$IS_CLUSTER" == "true" ]]; then
+    echo "Cluster mode"
 	sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $RED5_PROPERTIES_FILE
     sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$MONGO_HOST'#' $RED5_PROPERTIES_FILE  
     sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$MONGO_USER'/' $RED5_PROPERTIES_FILE
     sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$MONGO_PASS'/' $RED5_PROPERTIES_FILE
+else 
+    echo "Not cluster mode."    
 fi
 
-if [ $AS_WAR == "true" ]; then
+
+if [[ $AS_WAR == "true" ]]; then
   echo "Application will deployed as war" 
   jar -cvf $AMS_DIR/webapps/$APP_NAME.war -C $APP_DIR .  
   rm -r $APP_DIR
+else
+  echo "Application is deployed as directory."
 fi
 
 chown -R antmedia:antmedia $APP_DIR

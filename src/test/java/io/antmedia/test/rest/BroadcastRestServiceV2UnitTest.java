@@ -1072,6 +1072,8 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Result result = restServiceReal.addEndpointV3(streamId, endpoint);
 		assertTrue(result.isSuccess());
+		assertNotNull(result.getDataId());
+		String endpointServiceId = result.getDataId();
 		
 		endpoint = null;
 		
@@ -1084,6 +1086,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Endpoint endpoint2 = broadcast2.getEndPointList().get(0);
 		assertEquals(endpointURL, endpoint2.getRtmpUrl());
 		assertEquals("generic", endpoint2.getType());
+		assertEquals(endpointServiceId, endpoint2.getEndpointServiceId());
 		
 		// Standallone Add RTMP Endpoint with same origin and broadcast
 		{

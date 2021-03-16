@@ -436,7 +436,7 @@
         </dependency>
         <dependency>
     		<groupId>org.bytedeco</groupId>
-    		<artifactId>ffmpeg-platform</artifactId>
+    		<artifactId>ffmpeg-platform-gpl</artifactId>
             <version>${javacpp.ffmpeg.version}</version>
             <scope>provided</scope>
         </dependency>
