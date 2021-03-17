@@ -537,7 +537,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			});
 		}
 		
-		logger.info("start publish leaved");
+		logger.info("start publish leaved for stream:{}", streamName);
 	}
 
 	protected ServerSettings getServerSettings() 
