@@ -623,6 +623,35 @@
                         <version>${maven-dependency-plugin.version}</version>
 
                         <executions>
+                            <execution>
+                                <id>copy-dependencies</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                                    <includeScope>compile</includeScope>
+                                    <excludeScope>test</excludeScope>
+                                    <excludeGroupIds>org.tensorflow,</excludeGroupIds>
+                                    <excludeArtifactIds>cuda,cuda-platform</excludeArtifactIds>
+                                    <excludeTransitive>false</excludeTransitive>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-dependencies-plugin</id>
+                                <phase>package</phase>
+                                <goals>
+                                    <goal>copy-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/plugins</outputDirectory>
+                                    <excludeGroupIds>org.tensorflow</excludeGroupIds>
+                                    <excludeArtifactIds>cuda,cuda-platform</excludeArtifactIds>
+                                    <includeScope>provided</includeScope>
+                                    <excludeTransitive>false</excludeTransitive>
+                                </configuration>
+                            </execution>
                              <execution>
                                <id>unpack-root-app</id>
 					           <phase>package</phase>
