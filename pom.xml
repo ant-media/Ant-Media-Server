@@ -412,12 +412,14 @@
             </exclusions>
         </dependency>
         <!-- Runtime plugin deps -->
+        <!--
         <dependency>
             <groupId>io.antmedia</groupId>
             <artifactId>tomcatplugin</artifactId>
             <version>${tomcatplugin.version}</version>
             <scope>provided</scope>
         </dependency>
+         -->
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
