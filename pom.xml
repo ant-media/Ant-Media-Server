@@ -69,6 +69,7 @@
         <finalName>${project.artifactId}</finalName>
         <maven.build.timestamp.format>yyyyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
+        <commons-daemon.version>1.0.15</commons-daemon.version>
 
     </properties>
 
@@ -317,6 +318,11 @@
             <artifactId>spring-webmvc</artifactId>
         </dependency>
         <dependency>
+			<groupId>commons-daemon</groupId>
+			<artifactId>commons-daemon</artifactId>
+			<version>${commons-daemon.version}</version>
+		</dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <scope>test</scope>
@@ -373,12 +379,14 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- 
         <dependency>
             <groupId>io.antmedia</groupId>
             <artifactId>ant-media-server-service</artifactId>
             <version>${project.parent.version}</version>
             <type>jar</type>
         </dependency>
+        
         <dependency>
             <groupId>io.antmedia</groupId>
             <artifactId>ant-media-server-service</artifactId>
@@ -386,6 +394,7 @@
             <type>tar.gz</type>
             <classifier>daemon</classifier>
         </dependency>
+         -->
         <dependency>
             <artifactId>mina-integration-beans</artifactId>
             <groupId>org.apache.mina</groupId>
