@@ -50,16 +50,18 @@ before_install:
   - cd .. 
   
   #get service project
-  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Service.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
-     then 
-       echo " $TRAVIS_BRANCH branch found";  
-       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Service.git; 
-       cd Ant-Media-Server-Service; 
-       mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet;
-       cd ..;
-     else
-       echo "branch not found. Using version in sonatype"; 
-    fi)
+  
+  #- (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Service.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
+  #   then 
+  #     echo " $TRAVIS_BRANCH branch found";  
+  #     git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Service.git; 
+  #     cd Ant-Media-Server-Service; 
+  #     mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet;
+  #     cd ..;
+  #   else
+  #     echo "branch not found. Using version in sonatype"; 
+  #  fi)
+
      
     #get red5-plugins project
   - (if [ $(git ls-remote https://github.com/ant-media/red5-plugins.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
