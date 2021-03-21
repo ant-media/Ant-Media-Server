@@ -361,10 +361,9 @@ public class InMemoryDataStore extends DataStore {
 					long unixTime = System.currentTimeMillis();
 
 					String filePath = file.getPath();
+					
 
-					String[] subDirs = filePath.split(Pattern.quote(File.separator));
-
-					String relativePath= "streams/" + subDirs[subDirs.length-2] +'/' +subDirs[subDirs.length-1];
+					String relativePath=AntMediaApplicationAdapter.getRelativePath(filePath);
 
 					String vodId = RandomStringUtils.randomNumeric(24);
 					VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,

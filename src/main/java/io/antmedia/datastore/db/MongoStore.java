@@ -552,12 +552,9 @@ public class MongoStore extends DataStore {
 
 
 						String filePath=file.getPath();
+						
 
-						String[] subDirs = filePath.split(Pattern.quote(File.separator));
-
-						Integer pathLength=Integer.valueOf(subDirs.length);
-
-						String relativePath = "streams/"+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+						String relativePath = AntMediaApplicationAdapter.getRelativePath(filePath);
 						String vodId = RandomStringUtils.randomNumeric(24);
 						VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
 								VoD.USER_VOD,vodId);

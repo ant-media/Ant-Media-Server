@@ -599,12 +599,9 @@ public class MapDBStore extends DataStore {
 						long unixTime = System.currentTimeMillis();
 
 						String path=file.getPath();
+						
 
-						String[] subDirs = path.split(Pattern.quote(File.separator));
-
-						Integer pathLength=Integer.valueOf(subDirs.length);
-
-						String relativePath = "streams/" +subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+						String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
 
 						String vodId = RandomStringUtils.randomNumeric(24);
 
