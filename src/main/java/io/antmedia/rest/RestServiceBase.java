@@ -1261,7 +1261,7 @@ public abstract class RestServiceBase {
 					
 
 					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
-					logger.error("Relative Path of uploaded vod is: "+ relativePath);
+					
 					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
 							VoD.UPLOADED_VOD, vodId);
 
