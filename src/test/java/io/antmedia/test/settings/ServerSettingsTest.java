@@ -50,6 +50,8 @@ public class ServerSettingsTest {
 		assertEquals(Logging.Severity.LS_WARNING, settings.getWebRTCLogLevel());
 		assertEquals(ServerSettings.LOG_LEVEL_WARN, settings.getNativeLogLevel());
 		
+		
+		
 	}
 	
 	@Test
@@ -58,6 +60,15 @@ public class ServerSettingsTest {
 		assertEquals(ServerSettings.DEFAULT_NODE_GROUP, settings.getNodeGroup());
 		settings.setNodeGroup("group1");
 		assertEquals("group1", settings.getNodeGroup());
+		
+	}
+	
+	@Test
+	public void testDefaultHttpPort() {
+		ServerSettings settings = new ServerSettings();
+		
+		settings.setDefaultHttpPort(5090);
+		assertEquals(5090,settings.getDefaultHttpPort());
 		
 	}
 

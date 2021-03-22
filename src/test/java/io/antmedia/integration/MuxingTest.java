@@ -148,6 +148,11 @@ public class MuxingTest {
 			Thread.sleep(5000);
 
 			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8"));
+			
+			Awaitility.await().atMost(5, TimeUnit.SECONDS)
+				.until(() -> {
+					return !rtmpSendingProcess.isAlive();
+				});
 
 			assertFalse(rtmpSendingProcess.isAlive());
 
