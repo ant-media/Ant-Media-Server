@@ -118,6 +118,8 @@
 			<fileMode>0755</fileMode>
 			<includes>
 				<include>*.sh</include>
+				<include>antmedia</include>
+				<include>antmedia.service</include>
 			</includes>
 			<filtered>true</filtered>
 		</fileSet>

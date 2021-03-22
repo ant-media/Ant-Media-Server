@@ -38,7 +38,7 @@ echo "Path $FILE_PATH";
 JAVA_HOME="/usr/lib/jvm/java-11-openjdk-amd64"
 
 # Our classpath including our jar file and the Apache Commons Daemon library
-CLASS_PATH="$FILE_PATH/commons-daemon-1.0.15.jar:$FILE_PATH/ant-media-server-service.jar:$FILE_PATH/conf"
+CLASS_PATH="$FILE_PATH/commons-daemon-1.0.15.jar:$FILE_PATH/ant-media-server.jar:$FILE_PATH/conf"
 
 # The fully qualified name of the class to execute
 CLASS="org.red5.daemon.EngineLauncher"
@@ -145,3 +145,5 @@ case "$1" in
     exit 3
     ;;
 esac
+
+#test gg

@@ -157,7 +157,7 @@ then
   exit
 fi
 
-export RED5_CLASSPATH="${RED5_HOME}/ant-media-server-service.jar${P}${RED5_HOME}/conf${P}${CLASSPATH}"
+export RED5_CLASSPATH="${RED5_HOME}/ant-media-server.jar${P}${RED5_HOME}/conf${P}${CLASSPATH}"
 
 # start Red5
 echo "Starting Ant Media Server"

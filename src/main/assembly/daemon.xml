@@ -7,21 +7,16 @@
         <format>tar.gz</format>
         <format>zip</format>
     </formats>
+    
     <files>
         <file>
-            <source>${project.build.directory}/ant-media-server-service-${project.version}.jar</source>
+            <source>${project.basedir}/ant-media-server.jar</source>
             <outputDirectory>/</outputDirectory>
-            <destName>ant-media-server-service.jar</destName>
+            <destName>ant-media-server.jar</destName>
         </file>
     </files>
+    
     <fileSets>
-        <fileSet>
-            <directory>${project.basedir}</directory>
-            <outputDirectory>/</outputDirectory>
-            <includes>
-                <include>license.txt</include>
-            </includes>
-        </fileSet>
         <fileSet>
             <directory>${project.build.directory}/lib</directory>
             <outputDirectory>/</outputDirectory>
@@ -30,14 +25,15 @@
             </includes>
         </fileSet>
         <fileSet>
-            <directory>${project.basedir}/src/main/daemon</directory>
+            <directory>${project.basedir}/src/main/server</directory>
             <outputDirectory>/</outputDirectory>
             <includes>
                 <include>*.bat</include>
             </includes>
         </fileSet>
+        <!-- 
         <fileSet>
-            <directory>${project.basedir}/src/main/daemon</directory>
+            <directory>${project.basedir}/src/main/server</directory>
             <outputDirectory>/</outputDirectory>
             <fileMode>0755</fileMode>
             <includes>
@@ -46,5 +42,7 @@
             </includes>
             <filtered>true</filtered>
         </fileSet>
+         -->
+        
     </fileSets>
 </assembly>

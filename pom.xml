@@ -701,6 +701,7 @@
                                     </artifactItems>
                                 </configuration>
                             </execution>
+                            <!-- 
                             <execution>
                                 <id>unpack-red5-service</id>
                                 <phase>package</phase>
@@ -721,6 +722,7 @@
                                     </artifactItems>
                                 </configuration>
                             </execution>
+                             -->
                         </executions>
                     </plugin>
                     <plugin>
@@ -894,6 +896,7 @@
                                     </artifactItems>
                                 </configuration>
                             </execution>
+                            <!-- 
                             <execution>
                                 <id>unpack-red5-service</id>
                                 <phase>package</phase>
@@ -914,6 +917,7 @@
                                     </artifactItems>
                                 </configuration>
                             </execution>
+                            -->
                         </executions>
                     </plugin>
                     <plugin>
