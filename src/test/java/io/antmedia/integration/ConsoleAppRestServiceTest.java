@@ -1,12 +1,9 @@
 package io.antmedia.integration;
 
-import static org.bytedeco.ffmpeg.global.avformat.av_register_all;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -35,6 +32,7 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
+import org.apache.http.util.EntityUtils;
 import org.awaitility.Awaitility;
 import org.codehaus.plexus.util.ExceptionUtils;
 import org.json.simple.JSONArray;
@@ -71,6 +69,7 @@ import io.antmedia.rest.model.Version;
 import io.antmedia.security.TOTPGenerator;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.test.StreamFetcherUnitTest;
+import net.bytebuddy.utility.RandomString;
 
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public class ConsoleAppRestServiceTest{
@@ -102,6 +101,10 @@ public class ConsoleAppRestServiceTest{
 
 		System.out.println("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
+	}
+	
+	public static class Applications {
+		public String[] applications;
 	}
 
 	public static void resetCookieStore() {
@@ -221,6 +224,37 @@ public class ConsoleAppRestServiceTest{
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	
+	@Test
+	public void testCreateApp() 
+	{
+		
+		Applications applications = getApplications();
+		int appCount = applications.applications.length;
+		
+		String appName = RandomString.make(10);
+		log.info("app:{} will be created", appName);
+		boolean result = createApplication(appName);
+		assertTrue(result);
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			.until(() ->  {
+				Applications tmpApplications = getApplications();
+				return tmpApplications.applications.length == appCount + 1;
+			});
+		
+		
+		result = deleteApplication(appName);
+		assertTrue(result);
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		.until(() ->  {
+			Applications tmpApplications = getApplications();
+			return tmpApplications.applications.length == appCount;
+		});
+		
 	}
 
 	/**
@@ -2422,5 +2456,93 @@ public class ConsoleAppRestServiceTest{
 
 	public static void setHttpCookieStore(BasicCookieStore httpCookieStore) {
 		ConsoleAppRestServiceTest.httpCookieStore = httpCookieStore;
+	}
+	
+	public static boolean createApplication(String appName) {
+		boolean result = false;
+
+		try {
+
+			HttpUriRequest post = RequestBuilder.post().setUri(ROOT_SERVICE_URL+"/applications?appName="+appName)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.build();
+			
+			System.out.println("url:"+ROOT_SERVICE_URL+"/applications?appName="+appName);
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+					.setDefaultCookieStore(httpCookieStore).build();
+			CloseableHttpResponse response = client.execute(post);
+
+			String content = EntityUtils.toString(response.getEntity());
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				System.out.println(response.getStatusLine()+content);
+			}
+
+			result = (response.getStatusLine().getStatusCode() == 200);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return result;
+
+	}
+	
+	public static boolean deleteApplication(String appName) {
+		boolean result = false;
+
+		try {
+
+			HttpUriRequest delete = RequestBuilder.delete().setUri(ROOT_SERVICE_URL +"/applications/"+appName)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.build();
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+					.setDefaultCookieStore(httpCookieStore).build();
+			CloseableHttpResponse response = client.execute(delete);
+
+			String content = EntityUtils.toString(response.getEntity());
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				System.out.println(response.getStatusLine()+content);
+			}
+
+			result = (response.getStatusLine().getStatusCode() == 200);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return result;
+
+	}
+	
+	public static Applications getApplications() {
+		try {
+			
+			HttpUriRequest get = RequestBuilder.get().setUri(ROOT_SERVICE_URL+"/getApplications")
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.build();
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+					.setDefaultCookieStore(httpCookieStore).build();
+			CloseableHttpResponse response = client.execute(get);
+
+			String content = EntityUtils.toString(response.getEntity());
+			
+			if (response.getStatusLine().getStatusCode() != 200) {
+				System.out.println(response.getStatusLine()+content);
+			}
+			
+			Type listType = new TypeToken<List<String>>() {}.getType();
+			System.out.println("content:"+content);
+			
+			
+			 return gson.fromJson(content, Applications.class);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+
 	}
 }
