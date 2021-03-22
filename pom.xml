@@ -2,7 +2,7 @@
     <parent>
         <groupId>io.antmedia</groupId>
         <artifactId>parent</artifactId>
-        <version>2.3.0-SNAPSHOT</version>
+        <version>2.3.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ant-media-server</artifactId>
@@ -436,7 +436,7 @@
         </dependency>
         <dependency>
     		<groupId>org.bytedeco</groupId>
-    		<artifactId>ffmpeg-platform</artifactId>
+    		<artifactId>ffmpeg-platform-gpl</artifactId>
             <version>${javacpp.ffmpeg.version}</version>
             <scope>provided</scope>
         </dependency>
