@@ -168,6 +168,8 @@ public abstract class RestServiceBase {
 	private AppSettings appSettings;
 
 	private ServerSettings serverSettings;
+	private String s3StreamsFolderPath;
+	private String  s3PreviewsFolderPath;
 
 	protected boolean addSocialEndpoints(Broadcast broadcast, String socialEndpointIds) {	
 		boolean success = false;
@@ -1203,9 +1205,16 @@ public abstract class RestServiceBase {
 
 					if (appContext.containsBean("app.storageClient")) {
 						StorageClient storageClient = (StorageClient) appContext.getBean("app.storageClient");
+						
+						if(appSettings.getS3StreamsFolderPath()== null) {
+							s3StreamsFolderPath = FileType.TYPE_PREVIEW.getValue();
+						}
+						if(appSettings.getS3PreviewsFolderPath()== null) {
+							s3PreviewsFolderPath = FileType.TYPE_PREVIEW.getValue();
+						}
 
-						storageClient.delete(splitFileName[0] + ".mp4", FileType.TYPE_STREAM);
-						storageClient.delete(splitFileName[0] + ".png", FileType.TYPE_PREVIEW);
+						storageClient.delete(splitFileName[0] + ".mp4", s3StreamsFolderPath);
+						storageClient.delete(splitFileName[0] + ".png", s3PreviewsFolderPath);
 					}
 				}
 				catch (Exception e) {

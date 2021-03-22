@@ -30,7 +30,7 @@ public class AmazonS3StorageClientTest {
 		storage.setStorageName(BUCKET_NAME);
 		
 		File f = new File("src/test/resources/test.flv");
-		storage.save(f, FileType.TYPE_STREAM);
+		storage.save(f, FileType.TYPE_STREAM.getValue());
 	}
 	
 	@Test
