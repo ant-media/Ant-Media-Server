@@ -203,7 +203,7 @@ public class IPFilterTest {
         Mockito.doReturn(false).when(ipFilter).isAllowed(Mockito.anyString());
 
         MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
-        httpServletRequest.setPathInfo("http://127.0.0.1:5080/WebRTCAppEE/rest/v2/acm/msg");
+        httpServletRequest.setRequestURI("http://127.0.0.1:5080/WebRTCAppEE/rest/v2/acm/msg");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         MockFilterChain filterChain = new MockFilterChain();
         ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
