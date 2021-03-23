@@ -24,8 +24,8 @@ public class IPFilter extends AbstractFilter {
 			chain.doFilter(request, response);
 			return;
 		}
-
-		if(((HttpServletRequest)request).getPathInfo().contains("rest/v2/acm")) {
+		
+		if(((HttpServletRequest)request).getRequestURL().toString().contains("rest/v2/acm")) {
 			chain.doFilter(request, response);
 			return;
 		}
