@@ -25,7 +25,7 @@ public class User {
 	/**
 	 * Type of the user
 	 */
-	@ApiModelProperty(value = "the type of the user", allowableValues = "facebook_user, periscope_user, youtube_user, admin")
+	@ApiModelProperty(value = "the type of the user", allowableValues = "facebook_user, periscope_user, youtube_user, admin, read-only")
 	private UserType userType;
 	
 	/**

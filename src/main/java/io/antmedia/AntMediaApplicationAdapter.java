@@ -1421,6 +1421,7 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isJwtControlEnabled()));
 		store.put(AppSettings.SETTINGS_JWT_SECRET_KEY, newAppsettings.getJwtSecretKey() != null ? newAppsettings.getJwtSecretKey() : "");
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
+		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
 		return store.save();
 	}
 
@@ -1478,6 +1479,8 @@ public Result createInitializationProcess(String appName){
 		appSettings.setIpFilterEnabled(newSettings.isIpFilterEnabled());
 		appSettings.setJwtControlEnabled(newSettings.isJwtControlEnabled());
 		appSettings.setJwtSecretKey(newSettings.getJwtSecretKey());
+		
+		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
