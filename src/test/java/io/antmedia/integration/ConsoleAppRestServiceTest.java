@@ -696,6 +696,8 @@ public class ConsoleAppRestServiceTest{
 
 			appSettingsModel.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 64000)));
 
+			appSettingsModel.setGeneratePreview(true);
+			
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
