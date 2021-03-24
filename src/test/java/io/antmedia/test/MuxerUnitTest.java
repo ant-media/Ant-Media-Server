@@ -2313,7 +2313,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(clientBroadcastStream.getCodecInfo().hasVideo());
 		assertFalse(clientBroadcastStream.getCodecInfo().hasAudio());
 
+		getAppSettings().setMaxAnalyzeDurationMS(3000);
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		muxAdaptor.init(appScope, "name", false);
+		
 		assertFalse(muxAdaptor.isRecording());
 
 		long pollInterval = 1000; //ms
