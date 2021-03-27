@@ -1205,16 +1205,9 @@ public abstract class RestServiceBase {
 
 					if (appContext.containsBean("app.storageClient")) {
 						StorageClient storageClient = (StorageClient) appContext.getBean("app.storageClient");
-						
-						if(appSettings.getS3StreamsFolderPath()== null) {
-							s3StreamsFolderPath = FileType.TYPE_PREVIEW.getValue();
-						}
-						if(appSettings.getS3PreviewsFolderPath()== null) {
-							s3PreviewsFolderPath = FileType.TYPE_PREVIEW.getValue();
-						}
 
-						storageClient.delete(splitFileName[0] + ".mp4", s3StreamsFolderPath);
-						storageClient.delete(splitFileName[0] + ".png", s3PreviewsFolderPath);
+						storageClient.delete(splitFileName[0] + ".mp4", appSettings.getS3StreamsFolderPath());
+						storageClient.delete(splitFileName[0] + ".png", appSettings.getS3PreviewsFolderPath());
 					}
 				}
 				catch (Exception e) {
