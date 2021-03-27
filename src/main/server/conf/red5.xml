@@ -62,6 +62,7 @@
 		<property name="logLevel" value="${logLevel}"/>
 		<property name="nativeLogLevel" value="${nativeLogLevel}" />
 		<property name="allowedDashboardCIDR" value="${server.allowed_dashboard_CIDR}"/>
+		<property name="defaultHttpPort" value="${http.port}"/>
 	</bean>
 	
 
