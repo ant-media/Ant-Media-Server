@@ -411,7 +411,7 @@ public class StreamFetcherManager {
 					muxAdaptor.changeStreamQualityParameters(streamId, null, 0.01d, 0);
 				}
 				else {
-					logger.warn("Mux adaptor is null for stream fetcher with stream id: {}", streamId);
+					logger.warn("Mux adaptor is not initialized for stream fetcher with stream id: {} It's likely that stream fetching is not started yet", streamId);
 				}
 			}
 		}
