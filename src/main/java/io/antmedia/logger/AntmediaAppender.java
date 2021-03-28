@@ -83,14 +83,17 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
 			{
 				String errorDetail = ThrowableProxyUtil.asString(throwbleProxy);
 				String instanceId = Launcher.getInstanceId();
+				
+				String version = Launcher.getVersion();
+				String type = Launcher.getVersionType();
+					
 
 				JsonObject instance = new JsonObject();
 				instance.addProperty(StatsCollector.INSTANCE_ID, instanceId);
+				instance.addProperty(StatsCollector.INSTANCE_TYPE, type);
+				instance.addProperty(StatsCollector.INSTANCE_VERSION, version);
 				instance.addProperty("errorDetail", errorDetail);
-				Version softwareVersion = RestServiceBase.getSoftwareVersion();
-				instance.addProperty("versionName", softwareVersion.getVersionName());
-				instance.addProperty("versionType", softwareVersion.getVersionType());
-				instance.addProperty("versionBuild", softwareVersion.getBuildNumber());
+				
 
 				RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 
@@ -103,7 +106,8 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
 				client.execute(post);
 
 				numberOfCalls ++;
-			}catch (Exception e) {
+			} 
+			catch (Exception e) {
 				logger.error("Couldn't connect Ant Media Server Analytics: {} " , ExceptionUtils.getStackTrace(e));
 				numberOfException ++;
 			} 
