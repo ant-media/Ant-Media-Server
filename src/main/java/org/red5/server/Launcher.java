@@ -141,6 +141,7 @@ public class Launcher {
 				
 			}
 			File f = new File(INSTANCE_STARTED_FILE);
+			System.out.println("INSTANCE_STARTED_FILE: " + f.getAbsolutePath());
 			if (!f.exists()) {
 				writeToFile(INSTANCE_STARTED_FILE, instanceId);
 			}
