@@ -59,6 +59,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
@@ -2293,5 +2294,46 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(nonExistingFile_1, mp4Muxer.getFile());
 
+	}
+	
+	@Test
+	public void testAnalyzeTime() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.info("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream.setCodecInfo(info);
+		
+		assertFalse(clientBroadcastStream.getCodecInfo().hasVideo());
+		assertFalse(clientBroadcastStream.getCodecInfo().hasAudio());
+
+		getAppSettings().setMaxAnalyzeDurationMS(3000);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		muxAdaptor.init(appScope, "name", false);
+		
+		assertFalse(muxAdaptor.isRecording());
+
+		long pollInterval = 1000; //ms
+		int expectedPollCount = (int)(getAppSettings().getMaxAnalyzeDurationMS()*2 / pollInterval) + 1;
+		AtomicInteger actualPollCount = new AtomicInteger(0);
+		
+		Awaitility.await()
+		.pollInterval(pollInterval , TimeUnit.MILLISECONDS)
+		.atMost(getAppSettings().getMaxAnalyzeDurationMS()*10, TimeUnit.MILLISECONDS)
+		.until(() -> {
+			actualPollCount.incrementAndGet();
+			muxAdaptor.execute();
+			return muxAdaptor.isRecording();
+		});
+
+		assertEquals(expectedPollCount, actualPollCount.get());
+		assertTrue(muxAdaptor.isRecording());
+		
 	}
 }
