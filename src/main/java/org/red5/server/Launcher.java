@@ -138,8 +138,13 @@ public class Launcher {
 			else {
 				instanceId =  UUID.randomUUID().toString();
 				writeToFile(idFile.getAbsolutePath(), instanceId);
+				
+			}
+			File f = new File(INSTANCE_STARTED_FILE);
+			if (!f.exists()) {
 				writeToFile(INSTANCE_STARTED_FILE, instanceId);
 			}
+			
 		}
 		return instanceId;
 	}
