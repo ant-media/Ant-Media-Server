@@ -674,10 +674,10 @@ public class StreamFetcher {
 	}
 	/**
 	 * Set timeout when establishing connection
-	 * @param timeout in ms
+	 * @param timeoutMs in ms
 	 */
-	public void setConnectionTimeout(int timeout) {
-		this.timeout = timeout * 1000;
+	public void setConnectionTimeout(int timeoutMs) {
+		this.timeout = timeoutMs * 1000;
 	}
 
 	public boolean isExceptionInThread() {
