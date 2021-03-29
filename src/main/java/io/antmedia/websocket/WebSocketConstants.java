@@ -366,7 +366,7 @@ public class WebSocketConstants {
 	public static final String DATA_STORE_NOT_AVAILABLE = "data_store_not_available";
 
 	/**
-	 * It's send when community handler does not start streaming
+	 * It's sent when community handler does not start streaming
 	 */
 	public static final String SERVER_ERROR_CHECK_LOGS = "server_error_check_logs";
 
@@ -375,8 +375,13 @@ public class WebSocketConstants {
 	 */
 	public static final String VIEWER_INFO = "viewer_info";
 	/**
-	 * It's send when license is suspended
+	 * It's sent when license is suspended
 	 */
 	public static final String LICENCE_SUSPENDED = "license_suspended_please_renew_license";
+
+	/**
+	 * It's sent for conference in MCU mode
+	 */
+	public static final Object MCU = "mcu";
 
 }
