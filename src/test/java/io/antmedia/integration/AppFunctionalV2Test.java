@@ -206,7 +206,7 @@ public class AppFunctionalV2Test {
 		try {
 			//create playlist 
 			
-			Broadcast broadcast = RestServiceV2Test.createBroadcast("test stream", AntMediaApplicationAdapter.PLAY_LIST, null);
+			Broadcast broadcast = RestServiceV2Test.createBroadcast("test stream", AntMediaApplicationAdapter.PLAY_LIST, null, null);
 			assertNotNull(broadcast);
 			
 			Broadcast broadcast2 = RestServiceV2Test.getBroadcast(broadcast.getStreamId());
@@ -437,8 +437,8 @@ public class AppFunctionalV2Test {
 			List<EncoderSettings> encoderSettingsActive = null;
 			AppSettings appSettingsModel = null;
 			boolean mp4MuxingEnabled = false;
-			Broadcast broadcast = restServiceTest.createBroadcast("RTMP_stream");
-			Broadcast broadcastWithSubFolder = restServiceTest.createBroadcast("RTMP_stream_with_subfolder");
+			Broadcast broadcast = restServiceTest.createBroadcast("RTMP_stream", null, null, null);
+			Broadcast broadcastWithSubFolder = restServiceTest.createBroadcast("RTMP_stream_with_subfolder",null,null, "testFolder");
 			{
 				//prepare settings
 				ConsoleAppRestServiceTest.resetCookieStore();
@@ -464,7 +464,6 @@ public class AppFunctionalV2Test {
 				appSettingsModel.setEncoderSettings(settingsList);
 				result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
 				assertTrue(result.isSuccess());
-				broadcastWithSubFolder.setSubFolder("testFolder");
 				assertEquals("testFolder",broadcastWithSubFolder.getSubFolder());
 			}
 

@@ -159,7 +159,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		RestServiceV2Test restService = new RestServiceV2Test();
 		String name = "test";
 		String streamUrl = "rtmp://127.0.0.1/LiveApp/streamtest";
-		Broadcast streamSource = restService.createBroadcast("test", "streamSource", "rtmp://127.0.0.1/LiveApp/streamtest");
+		Broadcast streamSource = restService.createBroadcast("test", "streamSource", "rtmp://127.0.0.1/LiveApp/streamtest", null);
 	
 		assertNotNull(streamSource);
 		assertEquals(name, streamSource.getName());
