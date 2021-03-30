@@ -709,15 +709,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		stopCameraEmulator();
 	}
 
-	
-	@Test
-	public void testData0Video1Source() {
-		//test unexpected source
-		testFetchStreamSources("rtmp://203.123.19.155:1936/live/C80905398:203.123.19.155:7554:18.139.25.22:7660:4:SUB:TCP:1", false, true, false);	
-	}
-
-
-
 	@Test
 	public void testHLSSource() {
 		logger.info("running testHLSSource");
