@@ -460,6 +460,40 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	@Test
+	public void testStreamIndex() {
+		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx);
+		
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		mp4Muxer.init(appScope, "test", 0);
+		
+		SpsParser spsParser = new SpsParser(extradata_original, 5);
+		
+		AVCodecParameters codecParameters = new AVCodecParameters();
+		codecParameters.width(spsParser.getWidth());
+		codecParameters.height(spsParser.getHeight());
+		codecParameters.codec_id(AV_CODEC_ID_H264);
+		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+		codecParameters.extradata_size(sps_pps_avc.length);
+	    BytePointer extraDataPointer = new BytePointer(sps_pps_avc);
+		codecParameters.extradata(extraDataPointer);
+		codecParameters.format(AV_PIX_FMT_YUV420P);
+		codecParameters.codec_tag(0);
+		
+		AVRational rat = new AVRational().num(1).den(1000);
+		//mp4Muxer.addVideoStream(spsParser.getWidth(), spsParser.getHeight(), rat, AV_CODEC_ID_H264, 0, true, codecParameters);
+		
+		mp4Muxer.addStream(codecParameters, rat, 5);
+		
+		assertTrue(mp4Muxer.getRegisteredStreamIndexList().contains(5));
+		
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, null, null, null, null);
+		hlsMuxer.init(appScope, "test", 0);
+		hlsMuxer.addStream(codecParameters, rat, 50);
+		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
+		
+	}
+	
+	@Test
 	public void testMp4MuxerDirectStreaming() {
 		
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -485,7 +519,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		AVRational rat = new AVRational().num(1).den(1000);
 		//mp4Muxer.addVideoStream(spsParser.getWidth(), spsParser.getHeight(), rat, AV_CODEC_ID_H264, 0, true, codecParameters);
 		
-		mp4Muxer.addStream(codecParameters, rat);
+		mp4Muxer.addStream(codecParameters, rat, 0);
 		
 		
 		AACConfigParser aacConfigParser = new AACConfigParser(aacConfig, 0);
@@ -522,7 +556,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		
 		
-		mp4Muxer.addStream(audioCodecParameters, rat);
+		mp4Muxer.addStream(audioCodecParameters, rat, 1);
+		
+		
 		
 		
 		mp4Muxer.prepareIO();
