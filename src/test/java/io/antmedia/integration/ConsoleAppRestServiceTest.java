@@ -232,8 +232,8 @@ public class ConsoleAppRestServiceTest{
 	@Test
 	public void testCreateAppShellBug() {
 		
-		//String installLocation = "/usr/local/antmedia";
-		String installLocation = "/Users/mekya/softwares/ant-media-server";
+		String installLocation = "/usr/local/antmedia";
+		//String installLocation = "/Users/mekya/softwares/ant-media-server";
 		
 		String command = installLocation + "/create_app.sh -c true -n testapp -m 127.0.0.1:27018 -u user -s password -p " + installLocation;
 		
