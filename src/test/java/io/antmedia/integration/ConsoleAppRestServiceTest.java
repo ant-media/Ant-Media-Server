@@ -268,7 +268,8 @@ public class ConsoleAppRestServiceTest{
 	        content.contains("db.password=password");
 	        
 	        
-	        FileUtils.deleteDirectory(new File(installLocation + "/webapps/testapp"));
+	        exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/testapp ");
+	        assertEquals(0, exec.waitFor());
 	        
 		} catch (IOException e) {
 			e.printStackTrace();
