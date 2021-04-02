@@ -19,6 +19,7 @@ import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
 import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.vertx.core.Vertx;
@@ -492,6 +493,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		hlsMuxer.init(appScope, "test", 0);
 		hlsMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
+		
+		
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url");
+		rtmpMuxer.init(appScope, "test", 0);
+		rtmpMuxer.addStream(codecParameters, rat, 50);
+		assertTrue(rtmpMuxer.getRegisteredStreamIndexList().contains(50));
 		
 	}
 	
