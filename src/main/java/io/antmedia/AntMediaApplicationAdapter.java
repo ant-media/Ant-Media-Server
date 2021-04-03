@@ -160,14 +160,27 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			//which means it's in cluster mode
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
+				logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
 				updateSettings(settings, false);
 			});
 			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
 			
-			if(storedSettings == null) {
+			boolean updateClusterSettings = false;
+			if(storedSettings == null) 
+			{
 				storedSettings = appSettings;
+				updateClusterSettings = true;
 			}
-			updateSettings(storedSettings, true);
+			else if (storedSettings.isToBeDeleted()) 
+			{
+				logger.warn("There is a stored settings for the app:{} and it's status to be deleted. Probably, application with the same name is deleted/created again", app.getName());
+				//this update make the app not to be deleted
+				updateClusterSettings = true;				
+			}
+			
+			logger.info("Updating settings while app({}) is being started. App exists in cluster db -> {}", app.getName(), updateClusterSettings);
+			updateSettings(storedSettings, updateClusterSettings);
+			
 		}
 		
 		vertx.setTimer(10, l -> {
@@ -1332,7 +1345,8 @@ public Result createInitializationProcess(String appName){
 			updateAppSettingsBean(appSettings, newSettings);
 			
 			if (notifyCluster && clusterNotifier != null) {
-				clusterNotifier.getClusterStore().saveSettings(appSettings);
+				boolean saveSettings = clusterNotifier.getClusterStore().saveSettings(appSettings);
+				logger.info("Save settings to cluster db -> {} for app: {}", saveSettings, getScope().getName());
 			}
 			
 			result = true;
