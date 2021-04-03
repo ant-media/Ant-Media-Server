@@ -169,5 +169,5 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 		return false;
 	}
 	
-	
+	public void startPublish(String streamName, long absoluteStartTimeMs){getAppAdaptor().startPublish(streamName, absoluteStartTimeMs);}
 }
