@@ -104,7 +104,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 				try {
 					IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
 
-					logger.trace("doPut key:{}", finalFile.getAbsolutePath());
+					logger.info("doPut key:{}", finalFile.getAbsolutePath());
 
 					cacheManager.addCache(finalFile.getAbsolutePath());
 					IParser atomparser;
@@ -220,7 +220,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 		
 		cacheManager.removeCache(finalFile.getAbsolutePath());
 		
-		logger.trace("doPut done key:{}", finalFile.getAbsolutePath());
+		logger.info("doPut done key:{}", finalFile.getAbsolutePath());
 	}
 
 
