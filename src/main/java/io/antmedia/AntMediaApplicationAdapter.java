@@ -1408,6 +1408,14 @@ public Result createInitializationProcess(String appName){
 		
 		store.put(AppSettings.SETTINGS_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isJwtControlEnabled()));
 		store.put(AppSettings.SETTINGS_JWT_SECRET_KEY, newAppsettings.getJwtSecretKey() != null ? newAppsettings.getJwtSecretKey() : "");
+
+		store.put(AppSettings.SETTINGS_S3_RECORDING_ENABLED, String.valueOf(newAppsettings.isS3RecordingEnabled()));
+
+		store.put(AppSettings.SETTINGS_S3_ACCESS_KEY, newAppsettings.getS3AccessKey() != null ? newAppsettings.getS3AccessKey() : "");
+		store.put(AppSettings.SETTINGS_S3_SECRET_KEY, newAppsettings.getS3SecretKey() != null ? newAppsettings.getS3SecretKey() : "");
+		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
+		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
+
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
 		return store.save();
@@ -1467,6 +1475,13 @@ public Result createInitializationProcess(String appName){
 		appSettings.setIpFilterEnabled(newSettings.isIpFilterEnabled());
 		appSettings.setJwtControlEnabled(newSettings.isJwtControlEnabled());
 		appSettings.setJwtSecretKey(newSettings.getJwtSecretKey());
+
+
+		appSettings.setS3RecordingEnabled(newSettings.isS3RecordingEnabled());
+		appSettings.setS3AccessKey(newSettings.getS3AccessKey());
+		appSettings.setS3SecretKey(newSettings.getS3SecretKey());
+		appSettings.setS3BucketName(newSettings.getS3BucketName());
+		appSettings.setS3RegionName(newSettings.getS3RegionName());
 		
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 		
