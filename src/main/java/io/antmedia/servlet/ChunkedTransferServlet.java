@@ -68,6 +68,44 @@ public class ChunkedTransferServlet extends HttpServlet {
 		}
 
 	}
+	
+	private static class StatusListener implements AsyncListener {
+		
+		String filepath;
+		
+		boolean timeoutOrErrorExist = false;
+		
+		public StatusListener (String filepath) {
+			this.filepath = filepath;
+		}
+
+		@Override
+		public void onTimeout(AsyncEvent event) throws IOException {
+			logger.warn("handle incoming stream context Timeout: {}", filepath);
+			timeoutOrErrorExist = true;
+			
+		}
+
+		@Override
+		public void onStartAsync(AsyncEvent event) throws IOException {
+			logger.debug("handle incoming stream context onStartAsync: {}", filepath);
+		}
+
+		@Override
+		public void onError(AsyncEvent event) throws IOException {
+			logger.warn("handle incoming stream context onError: {}", filepath);
+			timeoutOrErrorExist = true;
+		}
+
+		@Override
+		public void onComplete(AsyncEvent event) throws IOException {
+			logger.debug("handle incoming stream context onComplete: {}", filepath);
+		}
+		
+		public boolean isTimeoutOrErrorExist() {
+			return timeoutOrErrorExist;
+		}
+	}
 
 	@Override
 	protected void doPut(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {		
@@ -122,34 +160,14 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 
 					AsyncContext asyncContext = req.startAsync();
-					asyncContext.addListener(new AsyncListener() {
-
-						@Override
-						public void onTimeout(AsyncEvent event) throws IOException {
-							logger.warn("handle incoming stream context Timeout: {}", filepath);
-						}
-
-						@Override
-						public void onStartAsync(AsyncEvent event) throws IOException {
-							logger.debug("handle incoming stream context onStartAsync: {}", filepath);
-						}
-
-						@Override
-						public void onError(AsyncEvent event) throws IOException {
-							logger.warn("handle incoming stream context onError: {}", filepath);
-						}
-
-						@Override
-						public void onComplete(AsyncEvent event) throws IOException {
-							logger.debug("handle incoming stream context onComplete: {}", filepath);
-						}
-					});
+					StatusListener statusListener = new StatusListener(filepath);
+					asyncContext.addListener(statusListener);
 
 
 					InputStream inputStream = asyncContext.getRequest().getInputStream();
 					asyncContext.start(() -> 
 					
-						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream)
+						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream, statusListener)
 					);
 				}
 				catch (BeansException | IllegalStateException | IOException e) 
@@ -186,7 +204,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 	}
 
 	public void readInputStream(File finalFile, File tmpFile, IChunkedCacheManager cacheManager, IParser atomparser,
-			AsyncContext asyncContext, InputStream inputStream) 
+			AsyncContext asyncContext, InputStream inputStream, StatusListener statusListener) 
 	{
 		boolean exceptionOccured = false;
 		try (FileOutputStream fos = new FileOutputStream(tmpFile)) 
@@ -198,6 +216,11 @@ public class ChunkedTransferServlet extends HttpServlet {
 			{
 				atomparser.parse(data, 0, length);
 				fos.write(data, 0, length);
+				
+				if (statusListener.isTimeoutOrErrorExist()) {
+					logger.warn("Timeout or error exists for file: {} breaking the loop", finalFile.getAbsolutePath());
+					break;
+				}
 			}
 			
 			
