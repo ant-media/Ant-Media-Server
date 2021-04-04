@@ -179,7 +179,9 @@ public class TokenFilterManager extends AbstractFilter   {
 		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
 		
 		int endIndex;
-		int startIndex = requestURI.lastIndexOf('/');
+		int startIndex = requestURI.indexOf('/');
+		
+		requestURI = requestURI.split("streams")[1];
 
 		if(requestURI.contains("_")) {
 			//if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
