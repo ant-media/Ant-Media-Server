@@ -432,6 +432,10 @@ public class ChunkedTransferServlet extends HttpServlet {
 			logger.warn("Client aborted - writing chunks for file: {}", filePath);
 			exceptionOccured = true;
 		}
+		catch (InterruptedException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			Thread.currentThread().interrupt();
+		}
 		catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			exceptionOccured = true;

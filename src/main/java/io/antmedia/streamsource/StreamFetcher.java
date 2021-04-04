@@ -419,6 +419,9 @@ public class StreamFetcher {
 					logger.error("Prepare for opening the {} has failed", streamUrl);
 				}
 			}
+			catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
+			}
 			catch (OutOfMemoryError | Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 				exceptionInThread  = true;
