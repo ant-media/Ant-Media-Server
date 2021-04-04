@@ -467,7 +467,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx);
 		
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		mp4Muxer.init(appScope, "test", 0);
+		mp4Muxer.init(appScope, "test", 0, null);
 		
 		SpsParser spsParser = new SpsParser(extradata_original, 5);
 		
@@ -490,13 +490,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(mp4Muxer.getRegisteredStreamIndexList().contains(5));
 		
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, null, null, null, null);
-		hlsMuxer.init(appScope, "test", 0);
+		hlsMuxer.init(appScope, "test", 0, null);
 		hlsMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
 		
 		
 		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url");
-		rtmpMuxer.init(appScope, "test", 0);
+		rtmpMuxer.init(appScope, "test", 0, null);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(rtmpMuxer.getRegisteredStreamIndexList().contains(50));
 		
