@@ -159,8 +159,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		if (app.getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
 			//which means it's in cluster mode
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
+			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
-				logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
+				
 				updateSettings(settings, false);
 			});
 			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
@@ -178,7 +179,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				updateClusterSettings = true;				
 			}
 			
-			logger.info("Updating settings while app({}) is being started. App exists in cluster db -> {}", app.getName(), updateClusterSettings);
+			logger.info("Updating settings while app({}) is being started. Update cluster db for appsettings -> {}", app.getName(), updateClusterSettings);
 			updateSettings(storedSettings, updateClusterSettings);
 			
 		}
@@ -1345,8 +1346,10 @@ public Result createInitializationProcess(String appName){
 			updateAppSettingsBean(appSettings, newSettings);
 			
 			if (notifyCluster && clusterNotifier != null) {
+				//we should set to be deleted because app deletion fully depends on the cluster synch
+				appSettings.setToBeDeleted(newSettings.isToBeDeleted());
 				boolean saveSettings = clusterNotifier.getClusterStore().saveSettings(appSettings);
-				logger.info("Save settings to cluster db -> {} for app: {}", saveSettings, getScope().getName());
+				logger.info("Saving settings to cluster db -> {} for app: {}", saveSettings, getScope().getName());
 			}
 			
 			result = true;
