@@ -35,6 +35,7 @@ import com.google.common.io.Files;
 
 import io.antmedia.servlet.ChunkedTransferServlet;
 import io.antmedia.servlet.ChunkedTransferServlet.ChunkListener;
+import io.antmedia.servlet.ChunkedTransferServlet.StatusListener;
 import io.antmedia.servlet.IChunkedCacheManager;
 import io.antmedia.servlet.MockChunkedCacheManager;
 import io.antmedia.servlet.cmafutils.AtomParser;
@@ -142,11 +143,12 @@ public class ChunkedTransferServletTest {
 		ServletRequest req = Mockito.mock(ServletRequest.class);
 		
 		Mockito.when(asyncContext.getRequest()).thenReturn(req);
+		StatusListener statusListener = new StatusListener(tmpFile.getName());
 		
 		
 		try (FileInputStream istream = new FileInputStream("src/test/resources/chunked-samples/chunk-stream0-00001.m4s")) 
 		{
-			servlet.readInputStream(finalFile, tmpFile, cacheManager, Mockito.mock(AtomParser.class), asyncContext, istream);
+			servlet.readInputStream(finalFile, tmpFile, cacheManager, Mockito.mock(AtomParser.class), asyncContext, istream, statusListener);
 			
 			
 			Mockito.verify(cacheManager).removeCache(finalFile.getAbsolutePath());

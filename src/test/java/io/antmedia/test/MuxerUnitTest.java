@@ -19,6 +19,7 @@ import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
 import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.vertx.core.Vertx;
@@ -52,6 +53,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -92,6 +94,7 @@ import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
+import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamPacket;
 import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.scope.WebScope;
@@ -460,6 +463,46 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
+	public void testStreamIndex() {
+		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx);
+		
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		mp4Muxer.init(appScope, "test", 0);
+		
+		SpsParser spsParser = new SpsParser(extradata_original, 5);
+		
+		AVCodecParameters codecParameters = new AVCodecParameters();
+		codecParameters.width(spsParser.getWidth());
+		codecParameters.height(spsParser.getHeight());
+		codecParameters.codec_id(AV_CODEC_ID_H264);
+		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+		codecParameters.extradata_size(sps_pps_avc.length);
+	    BytePointer extraDataPointer = new BytePointer(sps_pps_avc);
+		codecParameters.extradata(extraDataPointer);
+		codecParameters.format(AV_PIX_FMT_YUV420P);
+		codecParameters.codec_tag(0);
+		
+		AVRational rat = new AVRational().num(1).den(1000);
+		//mp4Muxer.addVideoStream(spsParser.getWidth(), spsParser.getHeight(), rat, AV_CODEC_ID_H264, 0, true, codecParameters);
+		
+		mp4Muxer.addStream(codecParameters, rat, 5);
+		
+		assertTrue(mp4Muxer.getRegisteredStreamIndexList().contains(5));
+		
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, null, null, null, null);
+		hlsMuxer.init(appScope, "test", 0);
+		hlsMuxer.addStream(codecParameters, rat, 50);
+		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
+		
+		
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url");
+		rtmpMuxer.init(appScope, "test", 0);
+		rtmpMuxer.addStream(codecParameters, rat, 50);
+		assertTrue(rtmpMuxer.getRegisteredStreamIndexList().contains(50));
+		
+	}
+	
+	@Test
 	public void testMp4MuxerDirectStreaming() {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -484,10 +527,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		AVRational rat = new AVRational().num(1).den(1000);
 		//mp4Muxer.addVideoStream(spsParser.getWidth(), spsParser.getHeight(), rat, AV_CODEC_ID_H264, 0, true, codecParameters);
-
-		mp4Muxer.addStream(codecParameters, rat);
-
-
+		
+		mp4Muxer.addStream(codecParameters, rat, 0);
+		
+		
 		AACConfigParser aacConfigParser = new AACConfigParser(aacConfig, 0);
 		AVCodecParameters audioCodecParameters = new AVCodecParameters();
 		audioCodecParameters.sample_rate(aacConfigParser.getSampleRate());
@@ -520,11 +563,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		audioCodecParameters.extradata_size(aacConfig.length);
 		audioCodecParameters.codec_tag(0);
 
-
-
-		mp4Muxer.addStream(audioCodecParameters, rat);
-
-
+		
+		
+		mp4Muxer.addStream(audioCodecParameters, rat, 1);
+		
+		
+		
+		
 		mp4Muxer.prepareIO();
 
 		int i = 0;
@@ -2306,7 +2351,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 		
-		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		ClientBroadcastStream clientBroadcastStream = Mockito.spy(new ClientBroadcastStream());
+		Mockito.doReturn(Mockito.mock(IStreamCapableConnection.class)).when(clientBroadcastStream).getConnection();
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
 		
@@ -2314,26 +2360,25 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(clientBroadcastStream.getCodecInfo().hasAudio());
 
 		getAppSettings().setMaxAnalyzeDurationMS(3000);
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope));
 		muxAdaptor.init(appScope, "name", false);
 		
-		assertFalse(muxAdaptor.isRecording());
-
-		long pollInterval = 1000; //ms
-		int expectedPollCount = (int)(getAppSettings().getMaxAnalyzeDurationMS()*2 / pollInterval) + 1;
-		AtomicInteger actualPollCount = new AtomicInteger(0);
+		clientBroadcastStream.setMuxAdaptor(new WeakReference<MuxAdaptor>(muxAdaptor));
 		
-		Awaitility.await()
-		.pollInterval(pollInterval , TimeUnit.MILLISECONDS)
-		.atMost(getAppSettings().getMaxAnalyzeDurationMS()*10, TimeUnit.MILLISECONDS)
+		assertFalse(muxAdaptor.isRecording());
+		
+		muxAdaptor.start();		
+		
+		Awaitility.await().atLeast(getAppSettings().getMaxAnalyzeDurationMS()*2, TimeUnit.MILLISECONDS)
+		.atMost(getAppSettings().getMaxAnalyzeDurationMS()*2+1000, TimeUnit.MILLISECONDS)
 		.until(() -> {
-			actualPollCount.incrementAndGet();
-			muxAdaptor.execute();
-			return muxAdaptor.isRecording();
+			return muxAdaptor.isStopRequestExist();
 		});
+		
+		Mockito.verify(muxAdaptor, Mockito.timeout(500)).closeRtmpConnection();
 
-		assertEquals(expectedPollCount, actualPollCount.get());
-		assertTrue(muxAdaptor.isRecording());
+		//it should be false because there is no video and audio in the stream.
+		assertFalse(muxAdaptor.isRecording());
 		
 	}
 }
