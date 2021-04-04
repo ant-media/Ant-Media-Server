@@ -159,15 +159,29 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		if (app.getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
 			//which means it's in cluster mode
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
+			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
+				
 				updateSettings(settings, false);
 			});
 			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
 			
-			if(storedSettings == null) {
+			boolean updateClusterSettings = false;
+			if(storedSettings == null) 
+			{
 				storedSettings = appSettings;
+				updateClusterSettings = true;
 			}
-			updateSettings(storedSettings, true);
+			else if (storedSettings.isToBeDeleted()) 
+			{
+				logger.warn("There is a stored settings for the app:{} and it's status to be deleted. Probably, application with the same name is deleted/created again", app.getName());
+				//this update make the app not to be deleted
+				updateClusterSettings = true;				
+			}
+			
+			logger.info("Updating settings while app({}) is being started. Update cluster db for appsettings -> {}", app.getName(), updateClusterSettings);
+			updateSettings(storedSettings, updateClusterSettings);
+			
 		}
 		
 		vertx.setTimer(10, l -> {
@@ -966,7 +980,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		
-		vertx.setTimer(5, h -> {
+		vertx.setTimer(500, h -> {
 			logger.info("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
 			getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
 		});
@@ -1332,7 +1346,10 @@ public Result createInitializationProcess(String appName){
 			updateAppSettingsBean(appSettings, newSettings);
 			
 			if (notifyCluster && clusterNotifier != null) {
-				clusterNotifier.getClusterStore().saveSettings(appSettings);
+				//we should set to be deleted because app deletion fully depends on the cluster synch
+				appSettings.setToBeDeleted(newSettings.isToBeDeleted());
+				boolean saveSettings = clusterNotifier.getClusterStore().saveSettings(appSettings);
+				logger.info("Saving settings to cluster db -> {} for app: {}", saveSettings, getScope().getName());
 			}
 			
 			result = true;

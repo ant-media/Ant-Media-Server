@@ -1,5 +1,6 @@
 package io.antmedia.ipcamera.onvifdiscovery;
 
+import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -8,7 +9,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public class ProbeSenderThread extends Thread {
-	
+
 	private Thread probeReceiverThread;
 	private DatagramSocket socket;
 	private CountDownLatch serverStarted;
@@ -27,22 +28,23 @@ public class ProbeSenderThread extends Thread {
 	}
 
 	public void run() {
+		final String uuid = UUID.randomUUID().toString();
+		final String probe = probeMsgTemplate.replaceAll(
+				"<wsa:MessageID>urn:uuid:.*</wsa:MessageID>",
+				"<wsa:MessageID>urn:uuid:" + uuid + "</wsa:MessageID>");
+		probeReceiverThread.start();
 		try {
-			final String uuid = UUID.randomUUID().toString();
-			final String probe = probeMsgTemplate.replaceAll(
-					"<wsa:MessageID>urn:uuid:.*</wsa:MessageID>",
-					"<wsa:MessageID>urn:uuid:" + uuid + "</wsa:MessageID>");
-			probeReceiverThread.start();
-			try {
-				serverStarted.await(1000, TimeUnit.MILLISECONDS);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-				Thread.currentThread().interrupt();
-			}
-			socket.send(new DatagramPacket(probe.getBytes(), probe.length(), address, DeviceDiscovery.WS_DISCOVERY_PORT));
-		} catch (Exception e) {
+			serverStarted.await(1000, TimeUnit.MILLISECONDS);
+		} catch (InterruptedException e) {
 			e.printStackTrace();
+			Thread.currentThread().interrupt();
 		}
+		try {
+			socket.send(new DatagramPacket(probe.getBytes(), probe.length(), address, DeviceDiscovery.WS_DISCOVERY_PORT));
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+
 		try {
 			serverFinished.await(DeviceDiscovery.WS_DISCOVERY_TIMEOUT, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {

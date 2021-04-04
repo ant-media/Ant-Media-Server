@@ -694,7 +694,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		Mockito.doReturn(true).when(mp4Muxer).isCodecSupported(Mockito.anyInt());
 		
-		mp4Muxer.addStream(pars, MuxAdaptor.TIME_BASE_FOR_MS);
+		mp4Muxer.addStream(pars, MuxAdaptor.TIME_BASE_FOR_MS, 0);
 		
 		Mockito.verify(mp4Muxer, Mockito.never()).avNewStream(Mockito.any());
 	}
@@ -708,8 +708,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testRTSPSource");
 		stopCameraEmulator();
 	}
-
-
 
 	@Test
 	public void testHLSSource() {
@@ -744,8 +742,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		testFetchStreamSources("https://moondigitaledge.radyotvonline.net/karadenizfm/playlist.m3u8", false, false);
 		logger.info("leaving testAudioOnlySource");
 	}
-
+	
+	
 	public void testFetchStreamSources(String source, boolean restartStream, boolean checkContext) {
+		testFetchStreamSources(source, restartStream, checkContext, true);
+	}
+
+	public void testFetchStreamSources(String source, boolean restartStream, boolean checkContext, boolean audioExists) {
 
 		Application.enableSourceHealthUpdate = true;
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
@@ -775,9 +778,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			
 			//wait for fetching stream
 			if (checkContext) {
-				Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				Awaitility.await().atMost(50, TimeUnit.SECONDS).until(() -> {
 					// This issue is the check of #1600
-					return fetcher.getMuxAdaptor() != null && fetcher.getMuxAdaptor().isEnableAudio();
+					
+					//xor ^ 
+					// 0 ^ 0 -> 0
+					// 0 ^ 1 -> 1
+					// 1 ^ 0 -> 1
+					// 1 ^ 1 -> 0
+					return fetcher.getMuxAdaptor() != null && !(audioExists ^ fetcher.getMuxAdaptor().isEnableAudio());
 				});
 			}
 	

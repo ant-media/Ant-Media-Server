@@ -22,6 +22,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.vertx.core.Vertx;
@@ -404,8 +405,14 @@ public class StreamFetcherManager {
 
 			if (!streamScheduler.isStreamAlive() && datastore != null && streamId != null) 
 			{
-				logger.info("Stream is not alive and setting quality to poor of stream: {} url: {}", streamId, streamScheduler.getStreamUrl());
-				datastore.updateSourceQualityParameters(streamId, null, 0, 0);
+				MuxAdaptor muxAdaptor = streamScheduler.getMuxAdaptor();
+				if (muxAdaptor != null) {
+					//make speed bigger than zero in order to visible in the web panel
+					muxAdaptor.changeStreamQualityParameters(streamId, null, 0.01d, 0);
+				}
+				else {
+					logger.warn("Mux adaptor is not initialized for stream fetcher with stream id: {} It's likely that stream fetching is not started yet", streamId);
+				}
 			}
 		}
 	}
