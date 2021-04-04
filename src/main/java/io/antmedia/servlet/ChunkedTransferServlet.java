@@ -69,7 +69,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 	}
 	
-	private static class StatusListener implements AsyncListener {
+	public static class StatusListener implements AsyncListener {
 		
 		String filepath;
 		
