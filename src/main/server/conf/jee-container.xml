@@ -48,7 +48,7 @@
 			<list>
 				<bean name="httpConnector" class="org.red5.server.tomcat.TomcatConnector">
 					<property name="protocol"
-						value="org.apache.coyote.http11.Http11AprProtocol" />
+						value="org.apache.coyote.http11.Http11Nio2Protocol" />
 					<property name="address" value="${http.host}:${http.port}" />
 					<property name="redirectPort" value="${https.port}" />
 					<property name="connectionProperties">
@@ -66,7 +66,7 @@
 				<!-- https start
 				<bean name="httpsConnector" class="org.red5.server.tomcat.TomcatConnector"> 
 						<property name="secure" value="true" /> 
-						<property name="protocol" value="org.apache.coyote.http11.Http11AprProtocol"/> 
+						<property name="protocol" value="org.apache.coyote.http11.Http11Nio2Protocol"/> 
 						<property name="address" value="${http.host}:${https.port}" /> 
 						<property name="redirectPort" value="${http.port}" /> 
 						<property name="connectionProperties"> 
