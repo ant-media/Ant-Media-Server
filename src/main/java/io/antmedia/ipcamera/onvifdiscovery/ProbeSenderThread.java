@@ -8,6 +8,10 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class ProbeSenderThread extends Thread {
 
 	private Thread probeReceiverThread;
@@ -16,6 +20,8 @@ public class ProbeSenderThread extends Thread {
 	private CountDownLatch serverFinished;
 	private InetAddress address;
 	private String probeMsgTemplate;
+	
+	private Logger logger = LoggerFactory.getLogger(ProbeSenderThread.class);
 
 	public ProbeSenderThread(InetAddress address, DatagramSocket socket, String probeMsgTemplate,
 			CountDownLatch serverStarted, CountDownLatch serverFinished, Thread probeReceiverThread) {
@@ -36,19 +42,19 @@ public class ProbeSenderThread extends Thread {
 		try {
 			serverStarted.await(1000, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
 		}
 		try {
 			socket.send(new DatagramPacket(probe.getBytes(), probe.length(), address, DeviceDiscovery.WS_DISCOVERY_PORT));
 		} catch (IOException e1) {
-			e1.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e1));
 		}
 
 		try {
 			serverFinished.await(DeviceDiscovery.WS_DISCOVERY_TIMEOUT, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException e) {
-			e.printStackTrace();
+			logger.error(ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
 		}
 	}
