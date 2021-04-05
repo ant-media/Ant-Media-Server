@@ -183,11 +183,36 @@ public class ChunkedTransferServletTest {
 			
 			Mockito.verify(cacheManager).removeCache(finalFile.getAbsolutePath());
 			assertTrue(finalFile.exists());
+			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		
+		finalFile.delete();
+		
+		try (FileInputStream istream = new FileInputStream("src/test/resources/chunked-samples/chunk-stream0-00001.m4s")) 
+		{
+			statusListener.onTimeout(null);
+			servlet.readInputStream(finalFile, tmpFile, cacheManager, Mockito.mock(AtomParser.class), asyncContext, istream, statusListener);
+			
+			
+			Mockito.verify(cacheManager, Mockito.times(2)).removeCache(finalFile.getAbsolutePath());
+			assertTrue(finalFile.exists());
+			
+			//it should be just 2048 byte because it breaks the loop
+			assertEquals(2048, finalFile.length());
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
+		
 	}
 	
 	
