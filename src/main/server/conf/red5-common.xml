@@ -165,7 +165,7 @@
    			<bean class="io.vertx.core.VertxOptions">
    				<!--property name="eventLoopPoolSize" value="20"></property-->
 				<property name="metricsOptions" ref="vertxMetricOptions"></property>
-				<property name="maxWorkerExecuteTime" value="20000000000"></property> <!--  make max worker execute time 20 seconds -->
+				<property name="maxWorkerExecuteTime" value="10000000000"></property> <!--  make max worker execute time 10 seconds -->
    			</bean>
    		</constructor-arg>	
    		<!--    * The default number of event loop threads to be used  = 2 * number of cores on the machine -->

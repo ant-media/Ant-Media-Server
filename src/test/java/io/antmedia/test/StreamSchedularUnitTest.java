@@ -54,6 +54,7 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.integration.AppFunctionalV2Test;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.statistic.IStatsCollector;
@@ -257,6 +258,51 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		catch (Exception e) {
 		}
+	}
+	
+	@Test
+	public void testcheckStreamFetchersStatus() {
+		DataStore dataStore = new InMemoryDataStore("target/testAddCamera.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
+
+		assertNotNull(dataStore);
+		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
+		
+		StreamFetcher streamFetcher = Mockito.mock(StreamFetcher.class);
+		Mockito.when(streamFetcher.getStreamId()).thenReturn("streamId");
+		Mockito.when(streamFetcher.isStreamAlive()).thenReturn(true);
+		
+		
+		streamFetcherManager.getStreamFetcherList().add(streamFetcher);
+		
+		
+		streamFetcherManager.checkStreamFetchersStatus();
+		
+		
+		Mockito.when(streamFetcher.isStreamAlive()).thenReturn(false);
+		MuxAdaptor muxAdaptor = Mockito.mock(MuxAdaptor.class);
+		
+		Mockito.when(streamFetcher.getMuxAdaptor()).thenReturn(muxAdaptor);
+		streamFetcherManager.checkStreamFetchersStatus();
+		Mockito.verify(muxAdaptor).changeStreamQualityParameters("streamId", null, 0.01d, 0);
+		
+		Mockito.when(streamFetcher.getMuxAdaptor()).thenReturn(null);
+		streamFetcherManager.checkStreamFetchersStatus();
+		Mockito.verify(muxAdaptor, Mockito.times(1)).changeStreamQualityParameters("streamId", null, 0.01d, 0);
+		
+		
+		Mockito.when(streamFetcher.getStreamId()).thenReturn(null);
+		Mockito.when(streamFetcher.getMuxAdaptor()).thenReturn(muxAdaptor);
+		streamFetcherManager.checkStreamFetchersStatus();
+		Mockito.verify(muxAdaptor, Mockito.times(1)).changeStreamQualityParameters("streamId", null, 0.01d, 0);
+		
+		
+		streamFetcherManager.setDatastore(null);
+		streamFetcherManager.checkStreamFetchersStatus();
+		Mockito.verify(muxAdaptor, Mockito.times(1)).changeStreamQualityParameters("streamId", null, 0.01d, 0);
+		
+		
+		
+		
 	}
 
 
