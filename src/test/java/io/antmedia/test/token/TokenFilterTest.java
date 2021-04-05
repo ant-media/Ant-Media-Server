@@ -388,6 +388,20 @@ public class TokenFilterTest {
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p.m3u8"));
 
 		assertNull(TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".u8"));
+		
+		// Add "_" in appname
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/live_app/streams/"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
+
+		assertEquals(streamId, TokenFilterManager.getStreamId("/live_app/streams/"+streamId+".m3u8"));
+
+		assertEquals(streamId, TokenFilterManager.getStreamId("/live_app/streams/"+streamId+".mp4"));
+
+		assertEquals(streamId, TokenFilterManager.getStreamId("/live_app/streams/"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8"));
+
+		assertEquals(streamId, TokenFilterManager.getStreamId("/live_app/streams/"+streamId+"_240p.m3u8"));
+
+		assertNull(TokenFilterManager.getStreamId("/live_app/streams/"+streamId+".u8"));
 
 
 		//below test case
