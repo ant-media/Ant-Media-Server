@@ -5,7 +5,7 @@ if ! [ -x "$(command -v sudo)" ]; then
   SUDO=""
 fi
 
-DETECTION_MODEL_ZIP=https://github.com/ant-media/Ant-Media-Server/blob/master/src/main/detection_model.zip
+DETECTION_MODEL_ZIP=https://github.com/ant-media/Ant-Media-Server/blob/master/src/main/server/lib/detection_model.zip
 $SUDO wget $DETECTION_MODEL_ZIP
 $SUDO unzip $DETECTION_MODEL_ZIP
 
