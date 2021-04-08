@@ -26,9 +26,7 @@ public class WebSocketConstants {
 
 	public static final String ENABLE_AUDIO_COMMAND = "enableAudio";
 
-	public static final String DISABLE_VIDEO_COMMAND = "disableVideo";
-
-	public static final String ENABLE_VIDEO_COMMAND = "enableVideo";
+	public static final String TOGGLE_VIDEO_COMMAND = "disableVideo";
 
 	public static final String DEFINITION = "definition";
 
