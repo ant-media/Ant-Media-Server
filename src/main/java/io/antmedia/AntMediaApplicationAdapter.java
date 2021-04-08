@@ -1483,9 +1483,17 @@ public Result createInitializationProcess(String appName){
 		appSettings.setS3BucketName(newSettings.getS3BucketName());
 		appSettings.setS3RegionName(newSettings.getS3RegionName());
 
+		if (!appSettings.isS3RecordingEnabled()) {
+			appSettings.setS3AccessKey("");
+			appSettings.setS3SecretKey("");
+			appSettings.setS3BucketName("");
+			appSettings.setS3RegionName("");
+		}
+
 		/* redeploy test  DELETE LATER*/
 		logger.info("Redeploy test S3 access key is updated as {}", appSettings.getS3AccessKey() );
-		
+
+
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
