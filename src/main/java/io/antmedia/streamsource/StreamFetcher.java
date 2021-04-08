@@ -284,9 +284,7 @@ public class StreamFetcher {
 										vertx.executeBlocking(h-> {
 											writeBufferedPacket();
 											h.complete();
-										}, false, r-> {
-											//no care
-										})
+										}, false, null)
 									);
 								}
 							}

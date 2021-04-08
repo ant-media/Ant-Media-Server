@@ -354,9 +354,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					collectAndSendWebRTCClientsStats();
 					b.complete();
 				}, 
-				r -> {
-
-				});
+				null);
 	}
 
 	public void collectAndSendWebRTCClientsStats() {
