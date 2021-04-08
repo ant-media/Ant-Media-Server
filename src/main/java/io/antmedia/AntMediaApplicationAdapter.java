@@ -1490,8 +1490,8 @@ public Result createInitializationProcess(String appName){
 			appSettings.setS3RegionName("");
 		}
 
-		/* redeploy test  DELETE LATER*/
-		logger.info("Redeploy test S3 access key is updated as {}", appSettings.getS3AccessKey() );
+		/* redeploy test  DELETE LATER
+		logger.info("Redeploy test S3 access key is updated as {}", appSettings.getS3AccessKey() );*/
 
 
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
