@@ -17,6 +17,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import io.antmedia.storage.StorageClient;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -129,8 +130,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	protected WebRTCVideoReceiveStats webRTCVideoReceiveStats = new WebRTCVideoReceiveStats();
 
 	protected WebRTCAudioReceiveStats webRTCAudioReceiveStats = new WebRTCAudioReceiveStats();
-	
-	
+
+
 	protected WebRTCVideoSendStats webRTCVideoSendStats = new WebRTCVideoSendStats();
 
 	protected WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
@@ -139,9 +140,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	protected boolean serverShuttingDown = false;
 
+	private StorageClient storageClient;
+
+
 	public boolean appStart(IScope app) {
 		setScope(app);
 		vertx = (Vertx) app.getContext().getBean(VERTX_BEAN_NAME);
+
+		storageClient = (StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
 
 		//initalize to access the data store directly in the code
 		getDataStore();
@@ -223,6 +229,11 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
+
+		storageClient.setStorageName(appSettings.getS3BucketName());
+		storageClient.setRegion(appSettings.getS3RegionName());
+		storageClient.setAccessKey(appSettings.getS3AccessKey());
+		storageClient.setSecretKey(appSettings.getS3SecretKey());
 		logger.info("{} started", app.getName());
 
 		return true;
@@ -1423,7 +1434,7 @@ public Result createInitializationProcess(String appName){
 
 
 	private void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
-	{	
+	{
 		appSettings.setMp4MuxingEnabled(newSettings.isMp4MuxingEnabled());
 		appSettings.setWebMMuxingEnabled(newSettings.isWebMMuxingEnabled());
 		appSettings.setAddDateTimeToMp4FileName(newSettings.isAddDateTimeToMp4FileName());
@@ -1483,15 +1494,25 @@ public Result createInitializationProcess(String appName){
 		appSettings.setS3BucketName(newSettings.getS3BucketName());
 		appSettings.setS3RegionName(newSettings.getS3RegionName());
 
+		storageClient.setStorageName(newSettings.getS3BucketName());
+		storageClient.setAccessKey(newSettings.getS3AccessKey());
+		storageClient.setSecretKey(newSettings.getS3SecretKey());
+		storageClient.setRegion(newSettings.getS3RegionName());
+
 		if (!appSettings.isS3RecordingEnabled()) {
 			appSettings.setS3AccessKey("");
 			appSettings.setS3SecretKey("");
 			appSettings.setS3BucketName("");
 			appSettings.setS3RegionName("");
+
+			storageClient.setStorageName("");
+			storageClient.setAccessKey("");
+			storageClient.setSecretKey("");
+			storageClient.setRegion("");
 		}
 
 		/* redeploy test  DELETE LATER
-		logger.info("Redeploy test S3 access key is updated as {}", appSettings.getS3AccessKey() );*/
+		logger.info("Redeploy test S3 access key is updated as {}", storageClient.getAccessKey() );*/
 
 
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
