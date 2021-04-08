@@ -1482,6 +1482,9 @@ public Result createInitializationProcess(String appName){
 		appSettings.setS3SecretKey(newSettings.getS3SecretKey());
 		appSettings.setS3BucketName(newSettings.getS3BucketName());
 		appSettings.setS3RegionName(newSettings.getS3RegionName());
+
+		/* redeploy test  DELETE LATER*/
+		logger.info("Redeploy test S3 access key is updated as {}", appSettings.getS3AccessKey() );
 		
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 		
