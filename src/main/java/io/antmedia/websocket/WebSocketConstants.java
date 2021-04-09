@@ -22,11 +22,9 @@ public class WebSocketConstants {
 
 	public static final String STREAM_ID = "streamId";
 
-	public static final String DISABLE_AUDIO_COMMAND = "disableAudio";
+	public static final String TOGGLE_AUDIO_COMMAND = "toggleAudio";
 
-	public static final String ENABLE_AUDIO_COMMAND = "enableAudio";
-
-	public static final String TOGGLE_VIDEO_COMMAND = "disableVideo";
+	public static final String TOGGLE_VIDEO_COMMAND = "toggleVideo";
 
 	public static final String DEFINITION = "definition";
 
