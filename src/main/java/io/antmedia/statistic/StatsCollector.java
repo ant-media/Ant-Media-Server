@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import com.google.gson.Gson;
@@ -578,6 +579,20 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		return jsonObject;
 	}
 
+	public static AntMediaApplicationAdapter getAppAdaptor(ApplicationContext appContext) {
+		AntMediaApplicationAdapter adaptor = null;
+		
+		if (appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)) 
+		{
+			Object bean = appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+			if (bean instanceof IApplicationAdaptorFactory) 
+			{
+				adaptor = ((IApplicationAdaptorFactory) bean).getAppAdaptor();
+			}
+		}
+		
+		return adaptor;
+	}
 
 	public static JsonObject getSystemResourcesInfo(Queue<IScope> scopes) 
 	{
@@ -610,8 +625,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					localWebRTCStreams += webrtcAdaptor.getNumberOfLiveStreams();
 				}
 
-				if (scope.getContext().getApplicationContext().containsBean(AntMediaApplicationAdapter.BEAN_NAME)) {
-					AntMediaApplicationAdapter adaptor = ((IApplicationAdaptorFactory) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+				AntMediaApplicationAdapter adaptor = null;
+				if ((adaptor = getAppAdaptor(scope.getContext().getApplicationContext())) != null)
+				{
 					encodersBlocked += adaptor.getNumberOfEncodersBlocked();
 					encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
 					publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
