@@ -2192,7 +2192,6 @@ public class BroadcastRestServiceV2UnitTest {
 	
 	@Test
 	public void testAddIPCamera()  {
-		BroadcastRestService restService = Mockito.spy(restServiceReal);
 		Result result = new Result(false);
 
 		Broadcast newCam = new Broadcast("testAddIPCamera", "10.2.40.64:8080", "admin", "admin",
