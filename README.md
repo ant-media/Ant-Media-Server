@@ -8,7 +8,7 @@
 
 Ant Media Server is designed to provide live video streaming technology infrastructure with ultra-low latency(WebRTC) and low-latency(HLS, CMAF available in v2.2+). It can be used to enable streaming any type of live or on demand video to any devices including mobiles, PCs or IPTV boxes.
 
-### 3100+ Running Instances in 120+ Countries 
+### 3300+ Running Instances in 120+ Countries 
 
 
 Ant Media Server Features
@@ -78,6 +78,22 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 
 
 ## Releases
+### [Ant Media Server Community 2.3.1 (April 14, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.1/ant-media-server-2.3.1-community-2.3.1-20210414_1212.zip)
+- Problem in fragment.size() Check #3053
+- Audio intermittently cuts out. #3035
+- Webm start - stop recording does not work #3096
+- Fix analyze time in EncoderAdaptor #2939
+- P2P NoSpaceForNewPeer error  #2954
+- Create app is not working on the fly in standalone mode #3033
+- Sorted Application List Would Be Good #2783
+- Web Panel does not show vod ID #3006
+- Import external js files into the package #2943
+- Get MD5 of password in Angular app #3075
+- Provide configuration option to push CMAF and HLS to any Http Endpoint  #3071
+- Create and delete apps via web panel #3064
+- Update FFmpeg(4.3.2) and CUDA(11.2) #3047
+- Audio/Video sync issue in 2.3 with ABR #3088
+
 ### [Ant Media Server Community 2.3.0 (March 3, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.0/ant-media-server-2.3.0-community-2.3.0-20210301_0825.zip)
 - Improvements in Low latency DASH
 - Low latency HLS (experimental)
