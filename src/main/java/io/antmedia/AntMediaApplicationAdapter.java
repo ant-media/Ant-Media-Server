@@ -1511,6 +1511,21 @@ public Result createInitializationProcess(String appName){
 			storageClient.setRegion("");
 		}
 
+		if (appSettings.isS3RecordingEnabled()){
+			if (appSettings.getS3AccessKey().isEmpty())
+			logger.info("S3 recording is enabled but access key is not given ");
+			if (appSettings.getS3SecretKey().isEmpty())
+				logger.info("S3 recording is enabled but secret key is not given ");
+			if (appSettings.getS3BucketName().isEmpty())
+				logger.info("S3 recording is enabled but bucket name is not given ");
+			if (appSettings.getS3RegionName().isEmpty())
+				logger.info("S3 recording is enabled but region name is not given ");
+
+		}
+
+
+
+
 
 
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
