@@ -1511,8 +1511,6 @@ public Result createInitializationProcess(String appName){
 			storageClient.setRegion("");
 		}
 
-		/* redeploy test  DELETE LATER
-		logger.info("Redeploy test S3 access key is updated as {}", storageClient.getAccessKey() );*/
 
 
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
