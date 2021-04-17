@@ -978,6 +978,9 @@ public abstract class RestServiceBase {
 			else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
 				result = addSource(stream, socialEndpointIds);
 			}
+			else{
+				result.setMessage("Auto start query needs an IP camera or stream source.");
+			}
 		} 
 		else {
 
