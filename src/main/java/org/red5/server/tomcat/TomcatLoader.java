@@ -36,6 +36,7 @@ import javax.management.ObjectName;
 import javax.security.auth.message.config.AuthConfigFactory;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
@@ -54,9 +55,7 @@ import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.core.StandardHost;
 import org.apache.catalina.core.StandardWrapper;
 import org.apache.catalina.loader.WebappLoader;
-import org.apache.catalina.realm.JAASRealm;
 import org.apache.catalina.realm.NullRealm;
-import org.apache.catalina.realm.RealmBase;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.ContextLoader;
@@ -64,7 +63,6 @@ import org.red5.server.LoaderBase;
 import org.red5.server.api.IApplicationContext;
 import org.red5.server.jmx.mxbeans.ContextLoaderMXBean;
 import org.red5.server.jmx.mxbeans.LoaderMXBean;
-import org.red5.server.security.IRed5Realm;
 import org.red5.server.util.FileUtil;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.DisposableBean;
@@ -339,6 +337,8 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
                     if (webxml.exists() && webxml.canRead()) {
                         try {
                             DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
+                            docBuilderFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, ""); // Compliant
+                            docBuilderFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, ""); // compliant
                             DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
                             Document doc = docBuilder.parse(webxml);
                             // normalize text representation
@@ -522,31 +522,10 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
                                     if (log.isDebugEnabled()) {
                                         log.debug("Red5 app is active: {} running: {}", appctx.isActive(), appctx.isRunning());
                                     }
-                                    // set a realm for the webapp if one is specified
-                                    if (appctx.containsBean("realm")) {
-                                        log.debug("Realm specified in context configuration");
-                                        Realm contextRealm = (Realm) appctx.getBean("realm");
-                                        if (contextRealm != null) {
-                                            log.debug("Realm class: {}", contextRealm.getClass().getName());
-                                            contextRealm.setContainer(cont);
-                                            ctx.setRealm(contextRealm);
-                                            // when a realm implements our red5 realm, add the app and servlet contexts
-                                            if (contextRealm instanceof IRed5Realm) {
-                                                ((IRed5Realm) contextRealm).setApplicationContext(appctx);
-                                                ((IRed5Realm) contextRealm).setServletContext(servletContext);
-                                            }
-                                            // set the system property to allow the config to be located
-                                            if (contextRealm instanceof JAASRealm) {
-                                                log.debug("Realm is JAAS type");
-                                                // this may interfere with other concurrently loaded jaas realms
-                                                System.setProperty("java.security.auth.login.config", prefix + "WEB-INF/jaas.config");
-                                            }
-                                            log.debug("Realm info: {} path: {}", contextRealm, ((RealmBase) contextRealm).getRealmPath());
-                                        }
-                                    }
+                     
                                     appctx.start();
                                 } catch (Throwable e) {
-                                		log.error(ExceptionUtils.getStackTrace(e));
+                                	log.error(ExceptionUtils.getStackTrace(e));
                                     throw new RuntimeException("Failed to load webapplication context class", e);
                                 }
                             }
@@ -555,7 +534,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
                         log.debug("Context: {} done: {}", servletContext.getContextPath(), appStartTask.isDone());
                     } catch (Throwable t) {
                         log.error("Error setting up context: {} due to: {}", servletContext.getContextPath(), t.getMessage());
-                        t.printStackTrace();
+                        log.error(ExceptionUtils.getStackTrace(t));
                     } finally {
                         //reset the classloader
                         Thread.currentThread().setContextClassLoader(originalClassLoader);
@@ -704,7 +683,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
             result = true;
         } catch (Throwable t) {
             log.error("Error setting up context: {} due to: {}", servletContext.getContextPath(), t.getMessage());
-            t.printStackTrace();
+            log.error(ExceptionUtils.getStackTrace(t));
         } finally {
             //reset the classloader
             Thread.currentThread().setContextClassLoader(originalClassLoader);

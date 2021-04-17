@@ -36,9 +36,9 @@ import org.apache.catalina.webresources.StandardRoot;
  */
 public class EmbeddedTomcat extends Tomcat {
 
-    private long cacheMaxSize = 1024*1024;
+    private long cacheMaxSize = 1024L*1024L;
     
-    
+    @Override
     public Context addWebapp(Host host, String contextPath, String docBase) {
         LifecycleListener listener = null;
         try {
@@ -56,8 +56,9 @@ public class EmbeddedTomcat extends Tomcat {
     /**
      * @see #addWebapp(String, String)
      */
+    @Override
     public Context addWebapp(Host host, String contextPath, String docBase, LifecycleListener config) {
-        Context ctx = createContext(host, contextPath);
+        Context ctx = createContextInternal(host, contextPath);
         ctx.setPath(contextPath);
         ctx.setDocBase(docBase);
         ctx.addLifecycleListener(new DefaultWebXmlListener());
@@ -88,7 +89,7 @@ public class EmbeddedTomcat extends Tomcat {
      *            path of the webapp which should get the {@link Context}
      * @return newly created {@link Context}
      */
-    private Context createContext(Host host, String url) {
+    private Context createContextInternal(Host host, String url) {
         String contextClass = StandardContext.class.getName();
         if (host == null) {
             host = this.getHost();

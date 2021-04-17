@@ -36,6 +36,7 @@ import org.apache.catalina.Loader;
 import org.apache.catalina.Valve;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.core.StandardHost;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.server.ContextLoader;
 import org.red5.server.LoaderBase;
 import org.red5.server.jmx.mxbeans.ContextLoaderMXBean;
@@ -210,9 +211,8 @@ public class TomcatVHostLoader extends TomcatLoader implements TomcatVHostLoader
                         appctx.refresh();
                     } catch (Throwable t) {
                         log.error("Error setting up context: {}", servletContext.getContextPath(), t);
-                        if (log.isDebugEnabled()) {
-                            t.printStackTrace();
-                        }
+                        	
+                        log.error(ExceptionUtils.getStackTrace(t));
                     }
                 }
             }
@@ -338,9 +338,7 @@ public class TomcatVHostLoader extends TomcatLoader implements TomcatVHostLoader
             result = true;
         } catch (Throwable t) {
             log.error("Error setting up context: {}", applicationName, t);
-            if (log.isDebugEnabled()) {
-                t.printStackTrace();
-            }
+            log.error(ExceptionUtils.getStackTrace(t));
         }
 
         return result;
