@@ -2,7 +2,7 @@
     <parent>
         <groupId>io.antmedia</groupId>
         <artifactId>parent</artifactId>
-        <version>2.3.1-SNAPSHOT</version>
+        <version>2.3.2-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ant-media-server</artifactId>
@@ -404,12 +404,6 @@
         </dependency>
         <!-- Runtime plugin deps -->
         <dependency>
-            <groupId>io.antmedia</groupId>
-            <artifactId>tomcatplugin</artifactId>
-            <version>${tomcatplugin.version}</version>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
             <version>${tomcat.version}</version>
@@ -456,11 +450,6 @@
             <groupId>com.restfb</groupId>
             <artifactId>restfb</artifactId>
             <version>${restfb.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.brsanthu</groupId>
-            <artifactId>google-analytics-java</artifactId>
-            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>com.google.apis</groupId>
