@@ -284,9 +284,7 @@ public class StreamFetcher {
 										vertx.executeBlocking(h-> {
 											writeBufferedPacket();
 											h.complete();
-										}, false, r-> {
-											//no care
-										})
+										}, false, null)
 									);
 								}
 							}
@@ -418,6 +416,9 @@ public class StreamFetcher {
 				else {
 					logger.error("Prepare for opening the {} has failed", streamUrl);
 				}
+			}
+			catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 			}
 			catch (OutOfMemoryError | Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -674,10 +675,10 @@ public class StreamFetcher {
 	}
 	/**
 	 * Set timeout when establishing connection
-	 * @param timeout in ms
+	 * @param timeoutMs in ms
 	 */
-	public void setConnectionTimeout(int timeout) {
-		this.timeout = timeout * 1000;
+	public void setConnectionTimeout(int timeoutMs) {
+		this.timeout = timeoutMs * 1000;
 	}
 
 	public boolean isExceptionInThread() {
