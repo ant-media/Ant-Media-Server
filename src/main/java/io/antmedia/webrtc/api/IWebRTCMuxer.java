@@ -58,6 +58,14 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 * @param audioPacket
 	 */
 	public void sendAudioPacket(ByteBuffer audioPacket, long timestamp);
+
+	/**
+	 * Send audio packet to WebRTCClients
+	 * @param videoPacket
+	 * @param isKeyFrame
+	 * @param trackIndex
+	 */
+	public void sendTrackAudioPacket(ByteBuffer audioPacket, long timestamp, String trackId);
 	
 	/**
 	 * Returns number of WebRTCClients registered to the muxer

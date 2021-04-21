@@ -29,7 +29,7 @@ public interface IWebRTCClient {
 	 * Send audio packet to connected client
 	 * @param audioPacket
 	 */
-	public void sendAudioPacket(ByteBuffer audioPacket, long timestamp);
+	public void sendAudioPacket(ByteBuffer audioPacket, long timestamp, String trackId);
 	
 	
 	
