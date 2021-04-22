@@ -47,7 +47,7 @@ public class WebSocketConstants {
 	public static final String PLAY_COMMAND = "play";
 
 	public static final String STOP_COMMAND = "stop";
-	
+
 	public static final String START_COMMAND = "start";
 	
 	public static final String PUBLISH_COMMAND = "publish";

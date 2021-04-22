@@ -2192,7 +2192,6 @@ public class BroadcastRestServiceV2UnitTest {
 	
 	@Test
 	public void testAddIPCamera()  {
-
 		Result result = new Result(false);
 
 		Broadcast newCam = new Broadcast("testAddIPCamera", "10.2.40.64:8080", "admin", "admin",
@@ -2269,6 +2268,12 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//should be true because load is below limit
 		assertTrue(result.isSuccess());
+		
+		Broadcast noSpecifiedType =  new Broadcast("testAddIPCamera");
+		result=streamSourceRest.addStreamSource(noSpecifiedType,"");
+		//should be true since it wouldn't return true because there is no ip camera or stream source defined in the declaration.
+		assertFalse(result.isSuccess());
+		assertEquals("Auto start query needs an IP camera or stream source.",result.getMessage() );
 
 	}
 
