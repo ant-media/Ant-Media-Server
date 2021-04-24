@@ -374,19 +374,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>io.antmedia</groupId>
-            <artifactId>ant-media-server-service</artifactId>
-            <version>${project.parent.version}</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>io.antmedia</groupId>
-            <artifactId>ant-media-server-service</artifactId>
-            <version>${project.parent.version}</version>
-            <type>tar.gz</type>
-            <classifier>daemon</classifier>
-        </dependency>
-        <dependency>
             <artifactId>mina-integration-beans</artifactId>
             <groupId>org.apache.mina</groupId>
             <version>${mina.version}</version>
@@ -679,26 +666,6 @@
                                     </artifactItems>
                                 </configuration>
                             </execution>
-                            <execution>
-                                <id>unpack-red5-service</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>unpack</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                           <groupId>io.antmedia</groupId>
-                                            <artifactId>ant-media-server-service</artifactId>
-                                            <version>${project.parent.version}</version>
-                                            <type>tar.gz</type>
-                                            <classifier>daemon</classifier>
-                                            <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}</outputDirectory>
-                                        </artifactItem>
-                                    </artifactItems>
-                                </configuration>
-                            </execution>
                         </executions>
                     </plugin>
                     <plugin>
@@ -868,26 +835,6 @@
                                             <type>jar</type>
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}/plugins</outputDirectory>
-                                        </artifactItem>
-                                    </artifactItems>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>unpack-red5-service</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>unpack</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                            <groupId>io.antmedia</groupId>
-                                            <artifactId>ant-media-server-service</artifactId>
-                                            <version>${project.parent.version}</version>
-                                            <type>tar.gz</type>
-                                            <classifier>daemon</classifier>
-                                            <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}</outputDirectory>
                                         </artifactItem>
                                     </artifactItems>
                                 </configuration>
