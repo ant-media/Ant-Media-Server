@@ -78,6 +78,14 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 
 
 ## Releases
+### [Ant Media Server Community 2.3.2 (April 22, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.2/ant-media-server-2.3.2-community-2.3.2-20210422_0754.zip)
+ - Increase buffer size - fixes Chrome 90 issue #3164 
+ - Synch video according to audio in SFU mode
+ - Fix during audio stream adding RTMP Endpoint 
+ - Stop timers(native stats, measuring bitrate) in signaling thread 
+ - Fix pts and dts base timing in the incoming packets
+ - Remove jsvc 
+
 ### [Ant Media Server Community 2.3.1 (April 14, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.1/ant-media-server-2.3.1-community-2.3.1-20210414_1212.zip)
 - Problem in fragment.size() Check #3053
 - Audio intermittently cuts out. #3035
@@ -122,20 +130,6 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 - HLS token problem in Cluster [2432](https://github.com/ant-media/Ant-Media-Server/pull/2432)
 - Support WebRTC and HLS Viewer Limit in Broadcasts [2489](https://github.com/ant-media/Ant-Media-Server/issues/2389)
 [Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.2.0)
-
-
-### [Ant Media Server Community 2.1.0 (July 20, 2020)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.1.0/ant-media-server-2.1.0-community-2.1.0-20200720_1340.zip)
-
-Features
-* H265 Transcoding from RTMP to WebRTC [#2058](https://github.com/ant-media/Ant-Media-Server/issues/2058)
-* WebM Recording [#2144](https://github.com/ant-media/Ant-Media-Server/issues/2144)
-* Force WebRTC Player to play at specified resolution [#2155](https://github.com/ant-media/Ant-Media-Server/issues/2155)
-* Create a websocket message that returns the available streams in the conference room [#2227](https://github.com/ant-media/Ant-Media-Server/issues/2227)
-* Create a websocket message that notifies client that if bandwidth is less than the video/audio bitrate [#2103](https://github.com/ant-media/Ant-Media-Server/issues/2103)
-* Check broadcast start and end time before accepting the WebRTC Stream [#2181](https://github.com/ant-media/Ant-Media-Server/issues/2181)
-* Update video.js to the latest version for HLS and MP4 playback [#2231](https://github.com/ant-media/Ant-Media-Server/issues/2231)
-* Create a REST method that can send message to the viewers through Data channel [#2026](https://github.com/ant-media/Ant-Media-Server/issues/2026)
-[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.1.0)
 
 
 Previous releases
