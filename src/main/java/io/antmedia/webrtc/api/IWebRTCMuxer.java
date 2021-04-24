@@ -58,6 +58,13 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 * @param audioPacket
 	 */
 	public void sendAudioPacket(ByteBuffer audioPacket, long timestamp);
+
+	/**
+	 * Send track's audio packet to WebRTCClients
+	 * @param audioPacket
+	 * @param trackId
+	 */
+	public void sendTrackAudioPacket(ByteBuffer audioPacket,long timestamp, String trackId);
 	
 	/**
 	 * Returns number of WebRTCClients registered to the muxer
@@ -78,6 +85,7 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 * Return the video codec of the IWebRTCMuxer
 	 */
 	public VideoCodec getVideoCodec();
+
 
 	/**
 	 * Set the frame id in webrtc stack and relative capture time ms
