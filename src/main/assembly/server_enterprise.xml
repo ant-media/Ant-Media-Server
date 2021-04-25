@@ -11,7 +11,7 @@
 	</formats>
 	<files>
 		<file>
-			<source>${project.build.directory}/${finalName}.jar</source>
+			<source>${project.build.directory}/${finalName}-server.jar</source>
 			<outputDirectory></outputDirectory>
 			<destName>ant-media-server.jar</destName>
 		</file>
