@@ -74,6 +74,15 @@ public class ServerClassLoader extends URLClassLoader {
 		JarFileFilter jarFileFilter = new JarFileFilter();
 
 		String home = System.getProperty("red5.root");
+		
+		if (home == null || ".".equals(home)) {
+			// if home is still null look it up via this classes loader
+			String classLocation = ServerClassLoader.class.getProtectionDomain().getCodeSource().getLocation().toString();
+			// System.out.printf("Classloader location: %s\n",
+			// classLocation);
+			// snip off anything beyond the last slash
+			home = classLocation.substring(0, classLocation.lastIndexOf('/'));
+		}
 
 		//Add jars in the lib directory
 		String libPath = home + File.separator +"lib";
