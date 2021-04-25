@@ -23,8 +23,6 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import org.red5.classloading.ClassLoaderBuilder;
-
 /**
  * Boot-straps Red5 using the latest available jars found in <i>red5.home/lib</i> directory.
  *
@@ -47,11 +45,14 @@ public class Bootstrap {
             String root = getRed5Root();
             getConfigurationRoot(root);
             // bootstrap dependencies and start red5
+            System.out.println("main before bootstrap " + Thread.currentThread().getContextClassLoader().getClass().getSimpleName());
+    		
             bootStrap();
             System.out.println("Bootstrap complete");
-        } catch (Throwable t) {
-            System.out.printf("Bootstrap exception: %s%n", t.getMessage());
+        } catch (Exception t) {
+            System.out.println("Bootstrap exception:");
             t.printStackTrace();
+            
         } finally {
             System.out.println("Bootstrap exit");
         }
@@ -86,42 +87,11 @@ public class Bootstrap {
         String os = System.getProperty("os.name").toLowerCase();
         // String arch = System.getProperty("os.arch").toLowerCase();
         // System.out.printf("OS: %s Arch: %s\n", os, arch);
-        if (os.contains("vista") || os.contains("windows 7")) {
-            String dir = System.getProperty("user.home");
-            // detect base drive (c:\ etc)
-            if (dir.length() == 3) {
-                // use default
-                dir += "Users\\Default\\AppData\\Red5";
-                // make sure the directory exists
-                File f = new File(dir);
-                if (!f.exists()) {
-                    f.mkdir();
-                }
-                f = null;
-            } else {
-                dir += "\\AppData\\localLow";
-            }
-            System.setProperty("java.io.tmpdir", dir);
-            System.out.printf("Setting temp directory to %s%n", System.getProperty("java.io.tmpdir"));
-        }
-        /*
-         * try { // Enable the security manager SecurityManager sm = new
-         * SecurityManager(); System.setSecurityManager(sm); } catch
-         * (SecurityException se) {
-         * System.err.println("Security manager already set"); }
-         */
-        // get current loader
-        ClassLoader baseLoader = Thread.currentThread().getContextClassLoader();
-        // build a ClassLoader
-        ClassLoader loader = ClassLoaderBuilder.build();
-        // set new loader as the loader for this thread
-        Thread.currentThread().setContextClassLoader(loader);
-        // create a new instance of this class using new classloader
-        Object boot = Class.forName("org.red5.server.Launcher", true, loader).newInstance();
+      
+        Object boot = Class.forName("org.red5.server.Launcher", true, ClassLoader.getSystemClassLoader()).getDeclaredConstructor().newInstance();
         Method m1 = boot.getClass().getMethod("launch", (Class[]) null);
         m1.invoke(boot, (Object[]) null);
-        // not that it matters, but set it back to the original loader
-        Thread.currentThread().setContextClassLoader(baseLoader);
+        
     }
 
     /**

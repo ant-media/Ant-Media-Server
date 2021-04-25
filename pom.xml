@@ -76,6 +76,7 @@
         <defaultGoal>install</defaultGoal>
         <directory>${build.dir}</directory>
         <finalName>${finalName}</finalName>
+        
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -84,7 +85,7 @@
                 <directory>src/main/java</directory>
                 <includes>
                     <include>**/*.xml</include>
-                </includes>
+                </includes>           
             </resource>
         </resources>
         <testResources>
@@ -101,29 +102,26 @@
         <pluginManagement>
         <plugins>
             <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>**/red5_codeformat_eclipse.xml</exclude>
-                        <exclude>**/red5_codetemplate.xml</exclude>
-                    </excludes>
-                    <archive>
-                        <manifest>
-                            <mainClass>io.antmedia.Version</mainClass>
-                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                        </manifest>
-                        <manifestEntries>
-                            <Build-OS>${os.name} ${os.version}</Build-OS>
-                            <Build-Java>Java ${java.version}</Build-Java>
-                            <Build-Number>${buildNumber}</Build-Number>
-                            <Main-Class>io.antmedia.Version</Main-Class>
-                            <Class-Path>lib/slf4j-api-${slf4j.version}.jar lib/logback-classic-${logback.version}.jar
-                                lib/logback-core-${logback.version}.jar
-                                lib/red5-server-common-${project.parent.version}.jar
-                            </Class-Path>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
+                <artifactId>maven-jar-plugin</artifactId>           
+                 <executions>
+			          <execution>
+			            <id>service</id> <!-- This part creates the ant-media-server-service.jar -->
+			            <goals><goal>jar</goal></goals>
+			            <phase>package</phase>
+			            <configuration>
+			              <classifier>service</classifier>			       
+			              <includes>
+			              	<include>org/red5/server/classloading/*</include>
+			              	<include>org/red5/server/Bootstrap.class</include>
+			              	<include>org/red5/server/Shutdown.class</include>
+			              </includes>
+			            </configuration>
+			          </execution>
+                 
+                 
+                 <!--  ant-media-server.jar is created by default -->
+          
+                 </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
