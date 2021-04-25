@@ -45,8 +45,6 @@ public class Bootstrap {
             String root = getRed5Root();
             getConfigurationRoot(root);
             // bootstrap dependencies and start red5
-            System.out.println("main before bootstrap " + Thread.currentThread().getContextClassLoader().getClass().getSimpleName());
-    		
             bootStrap();
             System.out.println("Bootstrap complete");
         } catch (Exception t) {

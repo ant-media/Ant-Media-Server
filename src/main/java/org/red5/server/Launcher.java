@@ -52,10 +52,6 @@ public class Launcher {
 	
 	public static final String INSTANCE_STARTED_FILE = System.getProperty("java.io.tmpdir") + File.separator + ".amsinstance";
 
-	static {
-		 System.out.println("Launcher static class loader -> " + ClassLoader.getSystemClassLoader().getClass().getSimpleName());
-	      
-	}
 	/**
 	 * Launch Red5 under it's own classloader
 	 * 
