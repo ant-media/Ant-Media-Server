@@ -163,5 +163,12 @@ export RED5_CLASSPATH="${RED5_HOME}/ant-media-server-service.jar${P}${RED5_HOME}
 mkdir log 2>/dev/null
 
 # start Ant Media Server
-echo "Starting Ant Media Server"
+
+if [ "$RED5_MAINCLASS" = "org.red5.server.Bootstrap" ]; then
+    # start Ant Media Server
+    echo "Starting Ant Media Server"
+elif [ "$RED5_MAINCLASS" = "org.red5.server.Shutdown" ]; then
+    # stop Ant Media Server
+    echo "Stopping Ant Media Server"
+fi
 exec "$JAVA" -Dred5.root="${RED5_HOME}" $JAVA_OPTS -cp "${RED5_CLASSPATH}" "$RED5_MAINCLASS" $RED5_OPTS 2>>${RED5_HOME}/log/antmedia-error.log

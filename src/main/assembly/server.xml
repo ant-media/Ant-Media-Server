@@ -113,6 +113,7 @@
 			<outputDirectory></outputDirectory>
 			<includes>
 				<include>antmedia.service</include>
+				<include>antmedia</include>
 			</includes>
 		</fileSet>
 		<fileSet>
