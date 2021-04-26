@@ -160,6 +160,9 @@ fi
 
 export RED5_CLASSPATH="${RED5_HOME}/ant-media-server-service.jar${P}${RED5_HOME}/conf${P}${CLASSPATH}"
 
-# start Red5
+# create log directory
+mkdir log
+
+# start Ant Media Server
 echo "Starting Ant Media Server"
-exec "$JAVA" -Dred5.root="${RED5_HOME}" $JAVA_OPTS -cp "${RED5_CLASSPATH}" "$RED5_MAINCLASS" $RED5_OPTS
+exec "$JAVA" -Dred5.root="${RED5_HOME}" $JAVA_OPTS -cp "${RED5_CLASSPATH}" "$RED5_MAINCLASS" $RED5_OPTS 2>>${RED5_HOME}/log/antmedia-error.log
