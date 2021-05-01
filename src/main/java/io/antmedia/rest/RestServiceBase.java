@@ -631,7 +631,7 @@ public abstract class RestServiceBase {
 		String message = null;
 
 		endpoint.setType(ENDPOINT_GENERIC);
-	
+
 		String endpointServiceId = endpoint.getEndpointServiceId();
 		if (endpointServiceId == null || endpointServiceId.isEmpty()) {
 			//generate custom endpoint invidual ID
@@ -1836,12 +1836,12 @@ public abstract class RestServiceBase {
 
 		return new Result(false, message);
 	}
-	
+
 	protected Object getJwtToken (String streamId, long expireDate, String type, String roomId) 
 	{
 		Token token = null;
 		String message = "Define Stream ID, Token Type and Expire Date (unix time)";
-		
+
 		if(streamId != null && type != null && expireDate > 0) {
 
 			ApplicationContext appContext = getAppContext();
@@ -1938,26 +1938,20 @@ public abstract class RestServiceBase {
 		Version version = new Version();
 		version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
 
-
-		ClassLoader cl = (ClassLoader) AntMediaApplicationAdapter.class.getClassLoader();
-
 		URL url = null;
-		if(cl instanceof URLClassLoader) { 
-			URLClassLoader urlCl= (URLClassLoader) cl;
-			url = urlCl.findResource("META-INF/MANIFEST.MF");
-		} else {
-			Class clazz = RestServiceBase.class;
-			String className = clazz.getSimpleName() + ".class";
-			String classPath = clazz.getResource(className).toString();
-			String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + 
-					"/META-INF/MANIFEST.MF"; 
 
-			try {
-				url = new URL(manifestPath);
-			} catch (MalformedURLException e) {
-				logger.error(e.getMessage());
-			}
-		} 
+		Class<RestServiceBase> clazz = RestServiceBase.class;
+		String className = clazz.getSimpleName() + ".class";
+		String classPath = clazz.getResource(className).toString();
+		String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + 
+				"/META-INF/MANIFEST.MF"; 
+
+		try {
+			url = new URL(manifestPath);
+		} catch (MalformedURLException e) {
+			logger.error(e.getMessage());
+		}
+
 		Manifest manifest;
 
 		try {
