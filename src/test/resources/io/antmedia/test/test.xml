@@ -92,7 +92,7 @@
 	
 	<bean id="streamAcceptFilter" class="io.antmedia.filter.StreamAcceptFilter"/>
 
-	<bean id="app.storageClient" class="io.antmedia.test.storage.AmazonS3StorageClientTest"> </bean>
+	<!--<bean id="app.storageClient" class="io.antmedia.test.storage.AmazonS3StorageClientTest"> </bean> -->
 
 	<bean id="web.handler" class="io.antmedia.test.Application">
 		<property name="dataStoreFactory" ref="dataStoreFactory" />
@@ -100,7 +100,7 @@
 		<property name="serverSettings" ref="ant.media.server.settings"/>
 		<property name="streamAcceptFilter" ref="streamAcceptFilter"/>
 		<property name="streamPublishSecurityList">
-			<list>			  	
+			<list>
 				<bean class="io.antmedia.security.ExpireStreamPublishSecurity" >
 					<property name="dataStoreFactory"  ref="dataStoreFactory"/>
 				</bean>
