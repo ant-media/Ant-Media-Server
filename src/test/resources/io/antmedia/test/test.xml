@@ -91,8 +91,9 @@
 	<bean id="app.settings" class="io.antmedia.AppSettings"></bean>
 	
 	<bean id="streamAcceptFilter" class="io.antmedia.filter.StreamAcceptFilter"/>
-	<bean id="app.storageClient" class="io.antmedia.storage.AmazonS3StorageClient"> </bean>
-	 
+
+	<bean id="app.storageClient" class="io.antmedia.test.storage.AmazonS3StorageClientTest"> </bean>
+
 	<bean id="web.handler" class="io.antmedia.test.Application">
 		<property name="dataStoreFactory" ref="dataStoreFactory" />
 		<property name="appSettings" ref="app.settings" />
