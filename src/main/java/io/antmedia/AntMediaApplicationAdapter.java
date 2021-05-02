@@ -17,6 +17,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import io.antmedia.storage.AmazonS3StorageClient;
 import io.antmedia.storage.StorageClient;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -147,7 +148,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		setScope(app);
 		vertx = (Vertx) app.getContext().getBean(VERTX_BEAN_NAME);
 
-		storageClient = (StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
+		storageClient = (StorageClient) app.getContext().getBean(AmazonS3StorageClient.BEAN_NAME);
 
 		//initalize to access the data store directly in the code
 		getDataStore();
