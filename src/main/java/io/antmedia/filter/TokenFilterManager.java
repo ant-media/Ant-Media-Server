@@ -79,7 +79,7 @@ public class TokenFilterManager extends AbstractFilter   {
 				&& (tokenGenerator == null || clusterToken == null || !clusterToken.equals(tokenGenerator.getGenetaredToken()))) 
 		{
 			
-			if(appSettings.isTimeTokenSubscriberOnly()) {
+			if(appSettings.isTimeTokenSubscriberOnly() || appSettings.isEnableTimeTokenForPlay() || appSettings.isEnableTimeTokenForPublish()) {
 				ITokenService tokenServiceTmp = getTokenService();
 				
 				if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
