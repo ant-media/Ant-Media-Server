@@ -141,7 +141,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	protected boolean serverShuttingDown = false;
 
-	public AmazonS3StorageClient storageClient;
+	protected AmazonS3StorageClient storageClient;
 
 
 
