@@ -253,11 +253,12 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
-
-		storageClient.setStorageName(appSettings.getS3BucketName());
-		storageClient.setRegion(appSettings.getS3RegionName());
-		storageClient.setAccessKey(appSettings.getS3AccessKey());
-		storageClient.setSecretKey(appSettings.getS3SecretKey());
+		if (appSettings.isS3RecordingEnabled()) {
+			storageClient.setStorageName(appSettings.getS3BucketName());
+			storageClient.setRegion(appSettings.getS3RegionName());
+			storageClient.setAccessKey(appSettings.getS3AccessKey());
+			storageClient.setSecretKey(appSettings.getS3SecretKey());
+		}
 		logger.info("{} started", app.getName());
 
 		return true;
