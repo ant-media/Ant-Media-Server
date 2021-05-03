@@ -141,7 +141,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	protected boolean serverShuttingDown = false;
 
-	private StorageClient storageClient;
+	public StorageClient storageClient;
 
 
 	public boolean appStart(IScope app) {
