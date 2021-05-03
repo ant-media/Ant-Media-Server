@@ -141,15 +141,13 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	protected boolean serverShuttingDown = false;
 
-	protected AmazonS3StorageClient storageClient;
+	//protected AmazonS3StorageClient storageClient;
 
 
 
 	public boolean appStart(IScope app) {
 		setScope(app);
 		vertx = (Vertx) app.getContext().getBean(VERTX_BEAN_NAME);
-
-		storageClient = (AmazonS3StorageClient) app.getContext().getBean(AmazonS3StorageClient.BEAN_NAME);
 
 		//initalize to access the data store directly in the code
 		getDataStore();
@@ -254,6 +252,11 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
+
+		//storageClient = (AmazonS3StorageClient) app.getContext().getBean(AmazonS3StorageClient.BEAN_NAME);
+
+		AmazonS3StorageClient storageClient = new AmazonS3StorageClient();
+
 		if (appSettings.isS3RecordingEnabled()) {
 			storageClient.setStorageName(appSettings.getS3BucketName());
 			storageClient.setRegion(appSettings.getS3RegionName());
@@ -1536,10 +1539,10 @@ public Result createInitializationProcess(String appName){
 			appSettings.setS3BucketName("");
 			appSettings.setS3RegionName("");
 
-			//storageClient.setStorageName("");
-			//storageClient.setAccessKey("");
-			//storageClient.setSecretKey("");
-			//storageClient.setRegion("");
+			storageClient.setStorageName("");
+			storageClient.setAccessKey("");
+			storageClient.setSecretKey("");
+			storageClient.setRegion("");
 		}
 
 		if (appSettings.isS3RecordingEnabled()){
