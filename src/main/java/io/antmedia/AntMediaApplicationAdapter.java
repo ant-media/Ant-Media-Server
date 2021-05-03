@@ -1536,10 +1536,10 @@ public Result createInitializationProcess(String appName){
 			appSettings.setS3BucketName("");
 			appSettings.setS3RegionName("");
 
-			storageClient.setStorageName("");
-			storageClient.setAccessKey("");
-			storageClient.setSecretKey("");
-			storageClient.setRegion("");
+			//storageClient.setStorageName("");
+			//storageClient.setAccessKey("");
+			//storageClient.setSecretKey("");
+			//storageClient.setRegion("");
 		}
 
 		if (appSettings.isS3RecordingEnabled()){
