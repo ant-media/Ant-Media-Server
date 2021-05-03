@@ -141,7 +141,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	protected boolean serverShuttingDown = false;
 
-	//protected AmazonS3StorageClient storageClient;
+	protected AmazonS3StorageClient storageClient;
 
 
 
@@ -255,7 +255,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 		//storageClient = (AmazonS3StorageClient) app.getContext().getBean(AmazonS3StorageClient.BEAN_NAME);
 
-		AmazonS3StorageClient storageClient = new AmazonS3StorageClient();
+		storageClient = new AmazonS3StorageClient();
 
 		if (appSettings.isS3RecordingEnabled()) {
 			storageClient.setStorageName(appSettings.getS3BucketName());
