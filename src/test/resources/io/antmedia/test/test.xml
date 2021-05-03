@@ -93,7 +93,7 @@
 	
 	<bean id="streamAcceptFilter" class="io.antmedia.filter.StreamAcceptFilter"/>
 
-	<bean id="app.storageClient" class="io.antmedia.storage.StorageClient">
+	<bean id="app.storageClient" class="io.antmedia.storage.AmazonS3StorageClient">
 	</bean>
 
 	<bean id="web.handler" class="io.antmedia.test.Application">

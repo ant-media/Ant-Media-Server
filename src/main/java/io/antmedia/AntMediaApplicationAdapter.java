@@ -143,7 +143,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public StorageClient storageClient;
 
-
 	public boolean appStart(IScope app) {
 		setScope(app);
 		vertx = (Vertx) app.getContext().getBean(VERTX_BEAN_NAME);
