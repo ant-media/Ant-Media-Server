@@ -13,6 +13,7 @@
 			</list>
 		</property>
 	</bean>
+	<bean id="app.storageClient" class="io.antmedia.storage.StorageClient"> </bean>
 
 	<!-- Server bean -->
 	<bean id="red5.server" class="org.red5.server.Server" />
