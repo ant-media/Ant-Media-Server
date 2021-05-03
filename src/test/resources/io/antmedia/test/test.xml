@@ -93,7 +93,13 @@
 	
 	<bean id="streamAcceptFilter" class="io.antmedia.filter.StreamAcceptFilter"/>
 
-	<bean id="app.storageClient" class="io.antmedia.storage.StorageClient"> </bean>
+	<bean id="app.storageClient" class="io.antmedia.storage.AmazonS3StorageClient">
+		<property name="accessKey" value="" />
+		<property name="secretKey" value="" />
+		<property name="endpoint" value="" />
+		<property name="region" value="" />
+		<property name="storageName" value="" />
+	</bean>
 
 	<bean id="web.handler" class="io.antmedia.test.Application">
 		<property name="dataStoreFactory" ref="dataStoreFactory" />
