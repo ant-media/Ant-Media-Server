@@ -253,11 +253,13 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
 
-		//storageClient = (AmazonS3StorageClient) app.getContext().getBean(AmazonS3StorageClient.BEAN_NAME);
+		storageClient = (AmazonS3StorageClient) app.getContext().getBean(AmazonS3StorageClient.BEAN_NAME);
 
-		storageClient = new AmazonS3StorageClient();
+		//storageClient = new AmazonS3StorageClient();
 
 		if (appSettings.isS3RecordingEnabled()) {
+
+
 			storageClient.setStorageName(appSettings.getS3BucketName());
 			storageClient.setRegion(appSettings.getS3RegionName());
 			storageClient.setAccessKey(appSettings.getS3AccessKey());
@@ -1523,17 +1525,18 @@ public Result createInitializationProcess(String appName){
 
 
 		appSettings.setS3RecordingEnabled(newSettings.isS3RecordingEnabled());
-		appSettings.setS3AccessKey(newSettings.getS3AccessKey());
-		appSettings.setS3SecretKey(newSettings.getS3SecretKey());
-		appSettings.setS3BucketName(newSettings.getS3BucketName());
-		appSettings.setS3RegionName(newSettings.getS3RegionName());
 
-		storageClient.setStorageName(newSettings.getS3BucketName());
-		storageClient.setAccessKey(newSettings.getS3AccessKey());
-		storageClient.setSecretKey(newSettings.getS3SecretKey());
-		storageClient.setRegion(newSettings.getS3RegionName());
+		if (appSettings.isS3RecordingEnabled()) {
+			appSettings.setS3AccessKey(newSettings.getS3AccessKey());
+			appSettings.setS3SecretKey(newSettings.getS3SecretKey());
+			appSettings.setS3BucketName(newSettings.getS3BucketName());
+			appSettings.setS3RegionName(newSettings.getS3RegionName());
 
-		if (!appSettings.isS3RecordingEnabled()) {
+			storageClient.setStorageName(newSettings.getS3BucketName());
+			storageClient.setAccessKey(newSettings.getS3AccessKey());
+			storageClient.setSecretKey(newSettings.getS3SecretKey());
+			storageClient.setRegion(newSettings.getS3RegionName());
+		}else{
 			appSettings.setS3AccessKey("");
 			appSettings.setS3SecretKey("");
 			appSettings.setS3BucketName("");
