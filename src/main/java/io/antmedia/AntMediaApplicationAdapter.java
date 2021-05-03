@@ -149,7 +149,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		setScope(app);
 		vertx = (Vertx) app.getContext().getBean(VERTX_BEAN_NAME);
 
-		storageClient = (AmazonS3StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
+		storageClient = (AmazonS3StorageClient) app.getContext().getBean(AmazonS3StorageClient.BEAN_NAME);
 
 		//initalize to access the data store directly in the code
 		getDataStore();
