@@ -17,7 +17,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import io.antmedia.storage.AmazonS3StorageClient;
 
 import io.antmedia.storage.StorageClient;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -254,9 +253,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
 
-		storageClient = (AmazonS3StorageClient) app.getContext().getBean(AmazonS3StorageClient.BEAN_NAME);
-
-		//storageClient = new AmazonS3StorageClient();
+		storageClient = (StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
 
 		if (appSettings.isS3RecordingEnabled()) {
 
