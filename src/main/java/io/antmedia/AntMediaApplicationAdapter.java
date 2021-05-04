@@ -19,6 +19,7 @@ import java.util.regex.Pattern;
 
 import io.antmedia.storage.AmazonS3StorageClient;
 
+import io.antmedia.storage.StorageClient;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -141,7 +142,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 	protected boolean serverShuttingDown = false;
 
-	protected AmazonS3StorageClient storageClient;
+	protected StorageClient storageClient;
 
 
 
