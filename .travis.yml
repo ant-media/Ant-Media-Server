@@ -48,18 +48,6 @@ before_install:
   - cd Ant-Media-Server-Common
   - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
   - cd .. 
-  
-  #get service project
-  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Service.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
-     then 
-       echo " $TRAVIS_BRANCH branch found";  
-       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Service.git; 
-       cd Ant-Media-Server-Service; 
-       mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet;
-       cd ..;
-     else
-       echo "branch not found. Using version in sonatype"; 
-    fi)
 
     # install Ant Media Server
   - mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true  
