@@ -262,6 +262,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			storageClient.setRegion(appSettings.getS3RegionName());
 			storageClient.setAccessKey(appSettings.getS3AccessKey());
 			storageClient.setSecretKey(appSettings.getS3SecretKey());
+			storageClient.setEndpoint(appSettings.getS3Endpoint());
 		}
 		logger.info("{} started", app.getName());
 
@@ -1460,6 +1461,8 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_S3_SECRET_KEY, newAppsettings.getS3SecretKey() != null ? newAppsettings.getS3SecretKey() : "");
 		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
 		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
+		store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
+
 
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
@@ -1529,11 +1532,13 @@ public Result createInitializationProcess(String appName){
 			appSettings.setS3SecretKey(newSettings.getS3SecretKey());
 			appSettings.setS3BucketName(newSettings.getS3BucketName());
 			appSettings.setS3RegionName(newSettings.getS3RegionName());
+			appSettings.setS3Endpoint(newSettings.getS3Endpoint());
 
 			storageClient.setStorageName(newSettings.getS3BucketName());
 			storageClient.setAccessKey(newSettings.getS3AccessKey());
 			storageClient.setSecretKey(newSettings.getS3SecretKey());
 			storageClient.setRegion(newSettings.getS3RegionName());
+			storageClient.setEndpoint(newSettings.getS3Endpoint());
 		}else{
 			appSettings.setS3AccessKey("");
 			appSettings.setS3SecretKey("");
