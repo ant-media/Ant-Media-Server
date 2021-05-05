@@ -262,7 +262,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			storageClient.setRegion(appSettings.getS3RegionName());
 			storageClient.setAccessKey(appSettings.getS3AccessKey());
 			storageClient.setSecretKey(appSettings.getS3SecretKey());
-			storageClient.setEndpoint(appSettings.getS3Endpoint());
+			if (appSettings.getS3Endpoint() != null){
+				storageClient.setEndpoint(appSettings.getS3Endpoint());}
 		}
 		logger.info("{} started", app.getName());
 
@@ -1538,7 +1539,10 @@ public Result createInitializationProcess(String appName){
 			storageClient.setAccessKey(newSettings.getS3AccessKey());
 			storageClient.setSecretKey(newSettings.getS3SecretKey());
 			storageClient.setRegion(newSettings.getS3RegionName());
-			storageClient.setEndpoint(newSettings.getS3Endpoint());
+
+			if (appSettings.getS3Endpoint() != null){
+				storageClient.setEndpoint(appSettings.getS3Endpoint());}
+
 		}else{
 			appSettings.setS3AccessKey("");
 			appSettings.setS3SecretKey("");
