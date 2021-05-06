@@ -1463,9 +1463,9 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_S3_SECRET_KEY, newAppsettings.getS3SecretKey() != null ? newAppsettings.getS3SecretKey() : "");
 		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
 		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
-		if (!appSettings.getS3Endpoint().equals("")) {
+		//if (!appSettings.getS3Endpoint().equals("")) {
 			store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
-		}
+		//}
 
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
