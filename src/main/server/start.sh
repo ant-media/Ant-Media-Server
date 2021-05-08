@@ -99,13 +99,14 @@ case "$OS" in
   P=";" # Since these are actually Windows, let Java know
   ;;
   Linux*)
-      LD_LIBRARY_PATH=$RED5_HOME/lib/native
+      ARCH=`uname -m`
+      LD_LIBRARY_PATH=$RED5_HOME/lib/native-linux-$ARCH
       export LD_LIBRARY_PATH
       # Native path
       NATIVE="-Djava.library.path=$LD_LIBRARY_PATH"
   ;;
   Darwin*)
-      DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$RED5_HOME/lib/native
+      DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$RED5_HOME/lib/native-mac
       export DYLD_LIBRARY_PATH
       # Native path
       NATIVE="-Djava.library.path=$DYLD_LIBRARY_PATH"
