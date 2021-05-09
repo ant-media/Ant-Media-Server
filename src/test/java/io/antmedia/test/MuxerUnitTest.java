@@ -22,6 +22,8 @@ import io.antmedia.muxer.Muxer;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
+import io.antmedia.test.utils.VideoInfo;
+import io.antmedia.test.utils.VideoProber;
 import io.vertx.core.Vertx;
 
 import static org.bytedeco.ffmpeg.global.avcodec.*;
@@ -183,6 +185,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	@After
 	public void after() {
 
+		
 		try {
 			AppFunctionalV2Test.delete(new File("webapps"));
 		} catch (IOException e) {
@@ -1429,7 +1432,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	
 	@Test
 	public void testMp4Muxing() {
-		testMp4Muxing("lkdlfkdlfkdlfk");
+		File mp4File = testMp4Muxing("lkdlfkdlfkdlfk");
+		
+		VideoInfo fileInfo = VideoProber.getFileInfo(mp4File.getAbsolutePath());
+		assertTrue(252 - fileInfo.videoPacketsCount<5);
+		assertTrue(431 - fileInfo.audioPacketsCount<5);
 	}
 
 	
