@@ -972,11 +972,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setIngestingStreamLimit(2);
 		
 		
-		appAdaptor.startPublish(streamId, 0);
+		appAdaptor.startPublish(streamId, 0, null);
 		
 		
 		streamId = "stream " + (int)(Math.random()*10000);
-		appAdaptor.startPublish(streamId, 0);
+		appAdaptor.startPublish(streamId, 0, null);
 		
 		long activeBroadcastCountFinal = activeBroadcastCount;
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -986,7 +986,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		
 		streamId = "stream " + (int)(Math.random()*10000);
-		appAdaptor.startPublish(streamId, 0);
+		appAdaptor.startPublish(streamId, 0, null);
 		
 		Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any());
 		
@@ -1058,7 +1058,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		.until(() -> 
 			appAdaptor.getDataStore().get(broadcast.getStreamId()) 
 			.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
-
+		assertEquals("RTMP",broadcast.getPublishType());
 		Broadcast dtBroadcast = appAdaptor.getDataStore().get(broadcast.getStreamId()); 
 		assertEquals(0, dtBroadcast.getWebRTCViewerCount());
 		assertEquals(0, dtBroadcast.getHlsViewerCount());

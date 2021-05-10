@@ -467,12 +467,12 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		if (stream instanceof ClientBroadcastStream) {
 			absoluteStartTimeMs = ((ClientBroadcastStream) stream).getAbsoluteStartTimeMs();
 		}
-		startPublish(streamName, absoluteStartTimeMs);
+		startPublish(streamName, absoluteStartTimeMs, "RTMP");
 		
 	
 	}
 
-	public void startPublish(String streamName, long absoluteStartTimeMs) {
+	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType) {
 		vertx.executeBlocking( handler -> {
 			try {
 
@@ -482,7 +482,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 						if (broadcast == null) {
 	
-							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
+							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs, publishType);
 						} 
 						else {
 	
@@ -491,6 +491,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 							broadcast.setOriginAdress(getServerSettings().getHostAddress());
 							broadcast.setWebRTCViewerCount(0);
 							broadcast.setHlsViewerCount(0);
+							broadcast.setPublishType(publishType);
 							boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
 							
 							logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
@@ -591,7 +592,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 	}
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, ServerSettings serverSettings, long absoluteStartTimeMs) {		
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, ServerSettings serverSettings, long absoluteStartTimeMs, String publishType) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
@@ -599,7 +600,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		newBroadcast.setZombi(true);
 		try {
 			newBroadcast.setStreamId(streamId);
-
+			newBroadcast.setPublishType(publishType);
 			String settingsListenerHookURL = null; 
 			if (appSettings != null) {
 				settingsListenerHookURL = appSettings.getListenerHookURL();
