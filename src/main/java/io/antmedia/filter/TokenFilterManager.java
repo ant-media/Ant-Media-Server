@@ -1,6 +1,7 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
+import java.util.regex.Pattern;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -174,6 +175,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		this.tokenService = tokenService;
 	}
 
+	
 	public static String getStreamId(String requestURI) {
 		
 		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
@@ -182,6 +184,61 @@ public class TokenFilterManager extends AbstractFilter   {
 		int startIndex = requestURI.indexOf('/');
 		
 		requestURI = requestURI.split("streams")[1];
+		
+		//if request is adaptive file ( ending with _adaptive.m3u8)
+		endIndex = requestURI.lastIndexOf(MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8");
+		if (endIndex != -1) {
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+		
+		//if specific bitrate is requested
+		String hlsRegex = "(.*)_[0-9]+p.m3u8$";  // matches ending with _[resolution]p.m3u8
+		if (requestURI.matches(hlsRegex)) {
+			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p.m3u8
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+		
+		//if just the m3u8 file
+		endIndex = requestURI.lastIndexOf(".m3u8");
+		if (endIndex != -1) {
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+		
+		//if specific ts file requested
+		String tsRegex = "(.*)_[0-9]+p+[0-9][0-9][0-9][0-9].ts$";  // matches ending with _[resolution]p.m3u8
+		if (requestURI.matches(tsRegex)) {
+			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p.m3u8
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+
+		//if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
+		String mp4Regex2 = "(.*)+(_[0-9]+p+_[0-9]|_|_[0-9])+.mp4$"; 
+		if (requestURI.matches(mp4Regex2)) {
+			endIndex = requestURI.lastIndexOf('_'); //if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
+			//480p regex
+ 			String mp4resolutionRegex = "(.*)+[0-9]+p$"; 
+			if(requestURI.substring(startIndex+1, endIndex).matches(mp4resolutionRegex)) {
+				endIndex = requestURI.substring(startIndex, endIndex).lastIndexOf('_');
+			}
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+	
+		//if mp4 file requested
+		endIndex = requestURI.lastIndexOf(".mp4");
+		if (endIndex != -1) {
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+		return null;
+	}
+	
+	
+	/*
+public static String getStreamId(String requestURI) {
+		
+		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
+		
+		int endIndex;
+		int startIndex = requestURI.lastIndexOf('/');
 
 		if(requestURI.contains("_")) {
 			//if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
@@ -216,5 +273,5 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		return null;
 	}
-
+*/
 }
