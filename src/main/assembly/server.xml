@@ -12,9 +12,14 @@
 	</formats>
 	<files>
 		<file>
-			<source>${project.build.directory}/${finalName}.jar</source>
+			<source>${project.build.directory}/${finalName}-server.jar</source>
 			<outputDirectory></outputDirectory>
 			<destName>ant-media-server.jar</destName>
+		</file>
+		<file>
+			<source>${project.build.directory}/${finalName}-service.jar</source>
+			<outputDirectory></outputDirectory>
+			<destName>ant-media-server-service.jar</destName>
 		</file>
 	</files>
 	<fileSets>
@@ -38,7 +43,6 @@
 			<excludes>
 				<exclude>ecj-*.jar</exclude>
 				<exclude>tomcat-*.jar</exclude>
-				<exclude>tomcatplugin-*.jar</exclude>
 				<exclude>websocket-*.jar</exclude>
 				<exclude>antlr-2.7.7.jar</exclude>
 				<exclude>asm-analysis-4.0.jar</exclude>
@@ -51,7 +55,6 @@
 				<exclude>servlet-api-*.jar</exclude>
 				<exclude>junit-${junit.version}.jar</exclude>
 				<exclude>logback-access-*.jar</exclude>
-				<exclude>ant-media-server-service-${project.parent.version}.jar</exclude>
 				<exclude>red5-server-${red5-service.version}.jar</exclude>
 				<exclude>red5-server-common-*.jar</exclude>
 				<exclude>red5-server-1*.jar</exclude>
@@ -109,7 +112,8 @@
 			<directory>${project.basedir}/src/main/server</directory>
 			<outputDirectory></outputDirectory>
 			<includes>
-				<include>*.bat</include>
+				<include>antmedia.service</include>
+				<include>antmedia</include>
 			</includes>
 		</fileSet>
 		<fileSet>
@@ -131,6 +135,7 @@
 				<include>*.globals</include>
 				<include>*.jmx</include>
 				<include>*.json</include>
+				<include>*.sh</include>
 			</includes>
 			<excludes>
 				<exclude>build_standalone.properties</exclude>
@@ -150,8 +155,22 @@
 		 
 		<!-- NATIVE LIBRARIES -->
 		<fileSet>
-			<directory>${project.basedir}/src/main/server/lib/native</directory>
-			<outputDirectory>lib/native</outputDirectory>
+			<directory>${project.basedir}/src/main/server/lib/native-mac</directory>
+			<outputDirectory>lib/native-mac</outputDirectory>
+			<includes>
+				<include>*</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>${project.basedir}/src/main/server/lib/native-linux-x86_64</directory>
+			<outputDirectory>lib/native-linux-x86_64</outputDirectory>
+			<includes>
+				<include>*</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>${project.basedir}/src/main/server/lib/native-linux-aarch64</directory>
+			<outputDirectory>lib/native-linux-aarch64</outputDirectory>
 			<includes>
 				<include>*</include>
 			</includes>

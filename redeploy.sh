@@ -10,12 +10,14 @@ fi
 
 ANT_MEDIA_SERVER_DIR=~/softwares/ant-media-server
 
-ANT_MEDIA_SERVER_JAR=./target/ant-media-server.jar
+ANT_MEDIA_SERVER_JAR=./target/ant-media-server-server.jar
+ANT_MEDIA_SERVER_SERVICE_JAR=./target/ant-media-server-service.jar
 
 SRC_CONF_DIR=./src/main/server/conf/
 
 #copy red5 jar from target dir to red5 dir
 cp  $ANT_MEDIA_SERVER_JAR  $ANT_MEDIA_SERVER_DIR/ant-media-server.jar
+cp  $ANT_MEDIA_SERVER_SERVICE_JAR  $ANT_MEDIA_SERVER_DIR/ant-media-server-service.jar
 
 OUT=$?
 
