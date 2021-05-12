@@ -59,6 +59,8 @@
 				<exclude>javacpp-*.jar</exclude>
 				<exclude>cuda-*.jar</exclude>
 				<exclude>ant-media-enterprise*.jar</exclude>
+				<exclude>libtensorflow*.jar</exclude>
+				<exclude>tensorflow*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
@@ -169,14 +171,6 @@
 			<outputDirectory>lib/native-linux-aarch64</outputDirectory>
 			<includes>
 				<include>*</include>
-			</includes>
-		</fileSet>
-		<fileSet>
-			<directory>${project.basedir}/src/main/server/lib/detection</directory>
-			<outputDirectory>lib/detection</outputDirectory>
-			<includes>
-				<include>*.pbtxt</include>
-				<include>*.pb</include>
 			</includes>
 		</fileSet>
 		<fileSet>
