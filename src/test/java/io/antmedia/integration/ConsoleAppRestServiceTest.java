@@ -9,11 +9,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,6 +23,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -221,6 +224,57 @@ public class ConsoleAppRestServiceTest{
 
 
 		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testCreateAppShellBug() {
+		
+		String installLocation = "/usr/local/antmedia";
+		//String installLocation = "/Users/mekya/softwares/ant-media-server";
+		
+		String command = "sudo " + installLocation + "/create_app.sh -c true -n testapp -m 127.0.0.1:27018 -u user -s password -p " + installLocation;
+		
+		try {
+			
+			Process exec = Runtime.getRuntime().exec(command);
+			
+			InputStream errorStream = exec.getErrorStream();
+			byte[] data = new byte[1024];
+			int length = 0;
+			while ((length = errorStream.read(data, 0, data.length)) > 0) 
+			{
+				System.out.println("error stream -> " + new String(data, 0, length));
+			}
+			
+			InputStream inputStream = exec.getInputStream();
+			while ((length = inputStream.read(data, 0, data.length)) > 0) 
+			{
+				System.out.println("inputStream stream -> " + new String(data, 0, length));
+			}
+			
+		
+			exec.waitFor();
+			
+			
+			File propertiesFile = new File( installLocation + "/webapps/testapp/WEB-INF/red5-web.properties");
+	        String content = Files.readString(propertiesFile.toPath());
+	        
+	        content.contains("db.type=mongodb");
+	        content.contains("db.user=user");
+	        content.contains("db.host=127.0.0.1:27018");
+	        content.contains("db.password=password");
+	        
+	        
+	        exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/testapp ");
+	        assertEquals(0, exec.waitFor());
+	        
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
@@ -2517,6 +2571,8 @@ public class ConsoleAppRestServiceTest{
 		return result;
 
 	}
+	
+	
 	
 	public static Applications getApplications() {
 		try {

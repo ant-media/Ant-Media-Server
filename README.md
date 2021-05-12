@@ -8,7 +8,7 @@
 
 Ant Media Server is designed to provide live video streaming technology infrastructure with ultra-low latency(WebRTC) and low-latency(HLS, CMAF available in v2.2+). It can be used to enable streaming any type of live or on demand video to any devices including mobiles, PCs or IPTV boxes.
 
-### 3100+ Running Instances in 120+ Countries 
+### 3300+ Running Instances in 120+ Countries 
 
 
 Ant Media Server Features
@@ -78,6 +78,30 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 
 
 ## Releases
+### [Ant Media Server Community 2.3.2 (April 22, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.2/ant-media-server-2.3.2-community-2.3.2-20210422_0754.zip)
+ - Increase buffer size - fixes Chrome 90 issue #3164 
+ - Synch video according to audio in SFU mode
+ - Fix during audio stream adding RTMP Endpoint 
+ - Stop timers(native stats, measuring bitrate) in signaling thread 
+ - Fix pts and dts base timing in the incoming packets
+ - Remove jsvc 
+
+### [Ant Media Server Community 2.3.1 (April 14, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.1/ant-media-server-2.3.1-community-2.3.1-20210414_1212.zip)
+- Problem in fragment.size() Check #3053
+- Audio intermittently cuts out. #3035
+- Webm start - stop recording does not work #3096
+- Fix analyze time in EncoderAdaptor #2939
+- P2P NoSpaceForNewPeer error  #2954
+- Create app is not working on the fly in standalone mode #3033
+- Sorted Application List Would Be Good #2783
+- Web Panel does not show vod ID #3006
+- Import external js files into the package #2943
+- Get MD5 of password in Angular app #3075
+- Provide configuration option to push CMAF and HLS to any Http Endpoint  #3071
+- Create and delete apps via web panel #3064
+- Update FFmpeg(4.3.2) and CUDA(11.2) #3047
+- Audio/Video sync issue in 2.3 with ABR #3088
+
 ### [Ant Media Server Community 2.3.0 (March 3, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.0/ant-media-server-2.3.0-community-2.3.0-20210301_0825.zip)
 - Improvements in Low latency DASH
 - Low latency HLS (experimental)
@@ -106,20 +130,6 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 - HLS token problem in Cluster [2432](https://github.com/ant-media/Ant-Media-Server/pull/2432)
 - Support WebRTC and HLS Viewer Limit in Broadcasts [2489](https://github.com/ant-media/Ant-Media-Server/issues/2389)
 [Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.2.0)
-
-
-### [Ant Media Server Community 2.1.0 (July 20, 2020)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.1.0/ant-media-server-2.1.0-community-2.1.0-20200720_1340.zip)
-
-Features
-* H265 Transcoding from RTMP to WebRTC [#2058](https://github.com/ant-media/Ant-Media-Server/issues/2058)
-* WebM Recording [#2144](https://github.com/ant-media/Ant-Media-Server/issues/2144)
-* Force WebRTC Player to play at specified resolution [#2155](https://github.com/ant-media/Ant-Media-Server/issues/2155)
-* Create a websocket message that returns the available streams in the conference room [#2227](https://github.com/ant-media/Ant-Media-Server/issues/2227)
-* Create a websocket message that notifies client that if bandwidth is less than the video/audio bitrate [#2103](https://github.com/ant-media/Ant-Media-Server/issues/2103)
-* Check broadcast start and end time before accepting the WebRTC Stream [#2181](https://github.com/ant-media/Ant-Media-Server/issues/2181)
-* Update video.js to the latest version for HLS and MP4 playback [#2231](https://github.com/ant-media/Ant-Media-Server/issues/2231)
-* Create a REST method that can send message to the viewers through Data channel [#2026](https://github.com/ant-media/Ant-Media-Server/issues/2026)
-[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.1.0)
 
 
 Previous releases

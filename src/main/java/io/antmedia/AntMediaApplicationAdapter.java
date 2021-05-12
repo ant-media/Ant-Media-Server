@@ -159,15 +159,38 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		if (app.getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
 			//which means it's in cluster mode
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
+			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
+				
 				updateSettings(settings, false);
 			});
 			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
 			
-			if(storedSettings == null) {
+			boolean updateClusterSettings = false;
+			if(storedSettings == null) 
+			{
+				//if storedSettings is null, it means app is just created
+				
+				logger.warn("There is a stored settings for the app:{} and it's status to be deleted. Probably, application with the same name is deleted/created again", app.getName());
+				
 				storedSettings = appSettings;
+				updateClusterSettings = true;
 			}
-			updateSettings(storedSettings, true);
+			else if (storedSettings.isToBeDeleted() && 
+					(System.currentTimeMillis() - storedSettings.getUpdateTime()) > 60000) {
+				//if storedSettings isToBeDeleted and update time is older 60 seconds, 
+				//it means that app with the same name is re-created
+				logger.info("App:{} exists in datastore and re-creating because latest update time is older than 60 seconds", app.getName());
+				storedSettings = appSettings;
+				updateClusterSettings = true;
+				
+				//if update time is earlier than 60 seconds, 
+				//it means that user just created and deleted the app in 60 seconds
+			}
+			
+			logger.info("Updating settings while app({}) is being started. AppSettings will be saved to Cluster db? Answer -> {}", app.getName(), updateClusterSettings ? "yes" : "no");
+			updateSettings(storedSettings, updateClusterSettings);
+			
 		}
 		
 		vertx.setTimer(10, l -> {
@@ -305,7 +328,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void streamBroadcastClose(IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
-		vertx.executeBlocking(future -> closeBroadcast(streamName), null);
+		vertx.executeBlocking(future ->  { 
+			closeBroadcast(streamName); 
+			future.complete();
+			}, null);
 	}
 
 	public void closeBroadcast(String streamName) {
@@ -644,7 +670,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				logger.info("running muxer finish script: {}", scriptFile);
 				Process exec = Runtime.getRuntime().exec(scriptFile);
 				int result = exec.waitFor();
-				future.complete();
+				
 				logger.info("completing script: {} with return value {}", scriptFile, result);
 			} catch (IOException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -652,10 +678,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				logger.error(ExceptionUtils.getStackTrace(e));
 				Thread.currentThread().interrupt();
 			} 
+			future.complete();
 
-		}, res -> {
-
-		});
+		}, null);
 	}
 
 	private static class AuthCheckJob {
@@ -954,7 +979,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		
-		vertx.setTimer(5, h -> {
+		vertx.setTimer(500, h -> {
 			logger.info("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
 			getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
 		});
@@ -1320,7 +1345,10 @@ public Result createInitializationProcess(String appName){
 			updateAppSettingsBean(appSettings, newSettings);
 			
 			if (notifyCluster && clusterNotifier != null) {
-				clusterNotifier.getClusterStore().saveSettings(appSettings);
+				//we should set to be deleted because app deletion fully depends on the cluster synch
+				appSettings.setToBeDeleted(newSettings.isToBeDeleted());
+				boolean saveSettings = clusterNotifier.getClusterStore().saveSettings(appSettings);
+				logger.info("Saving settings to cluster db -> {} for app: {}", saveSettings, getScope().getName());
 			}
 			
 			result = true;
