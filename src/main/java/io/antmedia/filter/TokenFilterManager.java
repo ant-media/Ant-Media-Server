@@ -231,47 +231,4 @@ public class TokenFilterManager extends AbstractFilter   {
 		return null;
 	}
 	
-	
-	/*
-public static String getStreamId(String requestURI) {
-		
-		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
-		
-		int endIndex;
-		int startIndex = requestURI.lastIndexOf('/');
-
-		if(requestURI.contains("_")) {
-			//if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
-			return requestURI.split("_")[0].substring(startIndex+1);
-		}
-
-		//if mp4 file requested
-		endIndex = requestURI.lastIndexOf(".mp4");
-		if (endIndex != -1) {
-			return requestURI.substring(startIndex+1, endIndex);
-		}
-
-		//if request is adaptive file ( ending with _adaptive.m3u8)
-		endIndex = requestURI.lastIndexOf(MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8");
-		if (endIndex != -1) {
-			return requestURI.substring(startIndex+1, endIndex);
-		}
-
-		//if specific bitrate is requested
-		String regex = "_[0-9]+p\\.m3u8$";  // matches ending with _[resolution]p.m3u8
-		if (requestURI.matches(regex)) {
-			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p.m3u8
-			return requestURI.substring(startIndex+1, endIndex);
-		}
-
-		//if just the m3u8 file
-		endIndex = requestURI.lastIndexOf(".m3u8");
-		if (endIndex != -1) {
-			return requestURI.substring(startIndex+1, endIndex);
-		}
-
-
-		return null;
-	}
-*/
 }
