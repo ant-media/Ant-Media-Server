@@ -460,18 +460,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false));
 	}
 
-	public void streamPublishStart(final IBroadcastStream stream) {
-		String streamName = stream.getPublishedName();
-		logger.info("stream name in streamPublishStart: {}", streamName );
-		long absoluteStartTimeMs = 0;
-		if (stream instanceof ClientBroadcastStream) {
-			absoluteStartTimeMs = ((ClientBroadcastStream) stream).getAbsoluteStartTimeMs();
-		}
-		startPublish(streamName, absoluteStartTimeMs);
-		
-	
-	}
-
 	public void startPublish(String streamName, long absoluteStartTimeMs) {
 		vertx.executeBlocking( handler -> {
 			try {
