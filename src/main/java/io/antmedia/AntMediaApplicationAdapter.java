@@ -328,7 +328,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void streamBroadcastClose(IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
-		vertx.executeBlocking(future -> closeBroadcast(streamName), null);
+		vertx.executeBlocking(future ->  { 
+			closeBroadcast(streamName); 
+			future.complete();
+			}, null);
 	}
 
 	public void closeBroadcast(String streamName) {
@@ -679,7 +682,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				logger.info("running muxer finish script: {}", scriptFile);
 				Process exec = Runtime.getRuntime().exec(scriptFile);
 				int result = exec.waitFor();
-				future.complete();
+				
 				logger.info("completing script: {} with return value {}", scriptFile, result);
 			} catch (IOException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -687,10 +690,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				logger.error(ExceptionUtils.getStackTrace(e));
 				Thread.currentThread().interrupt();
 			} 
+			future.complete();
 
-		}, res -> {
-
-		});
+		}, null);
 	}
 
 	private static class AuthCheckJob {

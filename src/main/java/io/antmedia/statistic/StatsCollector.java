@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import com.google.gson.Gson;
@@ -288,12 +289,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 			//log every 5 minute
 			if (300000/measurementPeriod == time2Log) {
-				if(logger != null) {
+				if(logger != null) 
+				{
 					logger.info("System cpu load:{} process cpu load:{} available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
 
-					int vertxWorkerQueueSize = getVertWorkerQueueSize();
+					int vertxWorkerQueueSize = getVertWorkerQueueSizeStatic();
 
-					int webRTCVertxWorkerQueueSize = getWebRTCVertxWorkerQueueSize();
+					int webRTCVertxWorkerQueueSize = getWebRTCVertxWorkerQueueSizeStatic();
 
 					logger.info("Vertx worker queue size:{} WebRTCVertx worker queue size:{}", vertxWorkerQueueSize, webRTCVertxWorkerQueueSize);
 
@@ -329,8 +331,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			});
 		}	
 	}
-
-	private static int getVertWorkerQueueSize() {
+	
+	private static int getVertWorkerQueueSizeStatic() {
 		io.vertx.core.json.JsonObject queueSizeMetrics = vertXMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
 		io.vertx.core.json.JsonObject jsonObject = null;
 		if (queueSizeMetrics != null) {
@@ -338,14 +340,22 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}
 		return jsonObject != null ? jsonObject.getInteger("count") : -1;
 	}
+	
+	public int getVertWorkerQueueSize() {
+		return getVertWorkerQueueSizeStatic();
+	}
 
-	private static int getWebRTCVertxWorkerQueueSize() {
+	private static int getWebRTCVertxWorkerQueueSizeStatic() {
 		io.vertx.core.json.JsonObject queueSizeMetrics = webRTCVertxMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
 		io.vertx.core.json.JsonObject jsonObject = null;
 		if (queueSizeMetrics != null) {
 			jsonObject = queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE);
 		}
 		return jsonObject != null ? jsonObject.getInteger("count") : -1;
+	}
+	
+	public int getWebRTCVertxWorkerQueueSize() {
+		return getWebRTCVertxWorkerQueueSizeStatic();
 	}
 
 	private void sendWebRTCClientStats() {
@@ -354,10 +364,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					collectAndSendWebRTCClientsStats();
 					b.complete();
 				}, 
-				r -> {
-
-				});
+				null);
 	}
+	
 
 	public void collectAndSendWebRTCClientsStats() {
 
@@ -536,11 +545,16 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.osTotalPhysicalMemory());
 		jsonObject.addProperty(FREE_MEMORY, SystemUtils.osFreePhysicalMemory());
 		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.osInUsePhysicalMemory());
-		jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace());
-		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
-		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
-
-
+		
+		//to handle the problem in raspberry pi4 + ubuntu 20.04
+		try {
+			jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace());
+			jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
+			jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
+		}catch (Exception e) {
+			logger.error("swap memory statistic can not be read");
+		}
+		
 		jsonObject.addProperty(AVAILABLE_MEMORY, SystemUtils.osAvailableMemory());
 
 		return jsonObject;
@@ -570,6 +584,20 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		return jsonObject;
 	}
 
+	public static AntMediaApplicationAdapter getAppAdaptor(ApplicationContext appContext) {
+		AntMediaApplicationAdapter adaptor = null;
+		
+		if (appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)) 
+		{
+			Object bean = appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+			if (bean instanceof IApplicationAdaptorFactory) 
+			{
+				adaptor = ((IApplicationAdaptorFactory) bean).getAppAdaptor();
+			}
+		}
+		
+		return adaptor;
+	}
 
 	public static JsonObject getSystemResourcesInfo(Queue<IScope> scopes) 
 	{
@@ -602,8 +630,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					localWebRTCStreams += webrtcAdaptor.getNumberOfLiveStreams();
 				}
 
-				if (scope.getContext().getApplicationContext().containsBean(AntMediaApplicationAdapter.BEAN_NAME)) {
-					AntMediaApplicationAdapter adaptor = ((IApplicationAdaptorFactory) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+				AntMediaApplicationAdapter adaptor = null;
+				if ((adaptor = getAppAdaptor(scope.getContext().getApplicationContext())) != null)
+				{
 					encodersBlocked += adaptor.getNumberOfEncodersBlocked();
 					encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
 					publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
@@ -618,8 +647,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(StatsCollector.ENCODERS_BLOCKED, encodersBlocked);
 		jsonObject.addProperty(StatsCollector.ENCODERS_NOT_OPENED, encodersNotOpened);
 		jsonObject.addProperty(StatsCollector.PUBLISH_TIMEOUT_ERRORS, publishTimeoutError);
-		jsonObject.addProperty(StatsCollector.VERTX_WORKER_THREAD_QUEUE_SIZE, getVertWorkerQueueSize());
-		jsonObject.addProperty(StatsCollector.WEBRTC_VERTX_WORKER_THREAD_QUEUE_SIZE, getWebRTCVertxWorkerQueueSize());
+		jsonObject.addProperty(StatsCollector.VERTX_WORKER_THREAD_QUEUE_SIZE, getVertWorkerQueueSizeStatic());
+		jsonObject.addProperty(StatsCollector.WEBRTC_VERTX_WORKER_THREAD_QUEUE_SIZE, getWebRTCVertxWorkerQueueSizeStatic());
 
 		//add timing info
 		jsonObject.add(StatsCollector.SERVER_TIMING, getServerTime());

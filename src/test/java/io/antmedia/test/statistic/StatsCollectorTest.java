@@ -38,6 +38,8 @@ import org.springframework.context.ApplicationContext;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.SystemUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
@@ -474,6 +476,25 @@ public class StatsCollectorTest {
 		
 		AVRational rational = new AVRational();
 		assertTrue( 0 != SystemUtils.osAvailableMemory());
+	}
+	
+	@Test
+	public void testGetAppAdaptor() 
+	{
+		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
+		assertNull(StatsCollector.getAppAdaptor(appContext));
+		
+		Mockito.when(appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(true);
+		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(new Object());
+		assertNull(StatsCollector.getAppAdaptor(appContext));
+		
+		IApplicationAdaptorFactory appFactory = Mockito.mock(IApplicationAdaptorFactory.class);
+		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		Mockito.when(appFactory.getAppAdaptor()).thenReturn(adaptor);
+		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appFactory);
+		assertEquals(adaptor, StatsCollector.getAppAdaptor(appContext));
+		
+		
 	}
 	
 }
