@@ -1087,7 +1087,10 @@ public abstract class RestServiceBase {
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
-				url.startsWith(RTSP))) {
+				url.startsWith(RTSP) ||
+				url.startsWith("udp://") ||
+				url.startsWith("srt://")
+				)) {
 			streamUrlControl=true;
 			ipAddrParts = url.split("//");
 			ipAddr = ipAddrParts[1];
