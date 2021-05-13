@@ -285,7 +285,7 @@ public class StreamFetcher {
 								long currentTime = System.currentTimeMillis();
 								muxAdaptor.setStartTime(currentTime);
 
-								getInstance().startPublish(streamId, 0);
+								getInstance().startPublish(streamId, 0, "Pull");
 
 								if (bufferTime > 0) {
 									packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l-> 
