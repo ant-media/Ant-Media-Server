@@ -170,5 +170,7 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 	}
 	
 	@Override
-	public void startPublish(String streamName, long absoluteStartTimeMs){getAppAdaptor().startPublish(streamName, absoluteStartTimeMs);}
+	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType){
+		getAppAdaptor().startPublish(streamName, absoluteStartTimeMs, publishType);
+	}
 }
