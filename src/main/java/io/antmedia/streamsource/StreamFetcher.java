@@ -247,9 +247,17 @@ public class StreamFetcher {
 					for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
 						if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO) {
 							audioExist = true;
+							if(avcodec.avcodec_find_decoder(inputFormatContext.streams(i).codecpar().codec_id()) == null) {
+								logger.error("avcodec_find_decoder() error: Unsupported audio format or codec not found");
+								audioExist = false;
+							}
 						}
 						else if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
 							videoExist = true;
+							if(avcodec.avcodec_find_decoder(inputFormatContext.streams(i).codecpar().codec_id()) == null) {
+								logger.error("avcodec_find_decoder() error: Unsupported video format or codec not found");
+								videoExist = false;
+							}
 						}
 					}
 					
