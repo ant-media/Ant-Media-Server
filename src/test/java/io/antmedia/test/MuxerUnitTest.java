@@ -977,10 +977,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		streamId = "stream " + (int)(Math.random()*10000);
 		appAdaptor.startPublish(streamId, 0, null);
 		
-		Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any());
-		
-		
-		
+		Mockito.verify(appAdaptor, Mockito.times(2)).stopStreaming(Mockito.any());
 		
 	}
 	
