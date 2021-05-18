@@ -184,7 +184,7 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 		}
 		else {
-			//TODO we need to refactor this method. Refactor validateStreamURL and checkStramURL
+			//TODO we need to refactor this method. Refactor validateStreamURL and checkStreamURL
 			if (broadcast != null && 
 				    ((AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) && !validateStreamURL(broadcast.getIpAddr()))
 					|| 
