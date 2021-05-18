@@ -103,13 +103,14 @@ case "$OS" in
       LD_LIBRARY_PATH=$RED5_HOME/lib/native-linux-$ARCH
       export LD_LIBRARY_PATH
       # Native path
-      NATIVE="-Djava.library.path=$LD_LIBRARY_PATH"
+      # First arch parameter is running start.sh directly and second lib/native parameter is installation for init.d scripts
+      NATIVE="-Djava.library.path=$LD_LIBRARY_PATH:$RED5_HOME/lib/native"
   ;;
   Darwin*)
       DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$RED5_HOME/lib/native-mac
       export DYLD_LIBRARY_PATH
       # Native path
-      NATIVE="-Djava.library.path=$DYLD_LIBRARY_PATH"
+      NATIVE="-Djava.library.path=$DYLD_LIBRARY_PATH:$RED5_HOME/lib/native"
   ;;
   SunOS*)
       if [ -z "$JAVA_HOME" ]; then 
