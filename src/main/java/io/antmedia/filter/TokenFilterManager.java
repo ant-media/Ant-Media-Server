@@ -185,7 +185,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		
 		requestURI = requestURI.split("streams")[1];
 		
-		//if request is adaptive file ( ending with _adaptive.m3u8)
+		//if request is adaptive file (ending with _adaptive.m3u8)
 		endIndex = requestURI.lastIndexOf(MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8");
 		if (endIndex != -1) {
 			return requestURI.substring(startIndex+1, endIndex);
@@ -205,30 +205,32 @@ public class TokenFilterManager extends AbstractFilter   {
 		}
 		
 		//if specific ts file requested
-		String tsRegex = "(.*)_[0-9]+p+[0-9][0-9][0-9][0-9].ts$";  // matches ending with _[resolution]p.m3u8
+		String tsRegex = "(.*)_[0-9]+p+[0-9][0-9][0-9][0-9].ts$";  // matches ending with _[_240p0000].ts or default ts file extension  _[_0p0000].ts
 		if (requestURI.matches(tsRegex)) {
-			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p.m3u8
+			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
 			return requestURI.substring(startIndex+1, endIndex);
 		}
 
-		//if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
+		//if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 or 541211332342978513714151_480p.mp4 
 		String mp4Regex2 = "(.*)+(_[0-9]+p+_[0-9]|_|_[0-9])+.mp4$"; 
 		if (requestURI.matches(mp4Regex2)) {
 			endIndex = requestURI.lastIndexOf('_'); //if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
-			//480p regex
- 			String mp4resolutionRegex = "(.*)+[0-9]+p$"; 
+			//_480p regex
+ 			String mp4resolutionRegex = "(.*)+_[0-9]+p$"; 
 			if(requestURI.substring(startIndex+1, endIndex).matches(mp4resolutionRegex)) {
 				endIndex = requestURI.substring(startIndex, endIndex).lastIndexOf('_');
 			}
 			return requestURI.substring(startIndex+1, endIndex);
 		}
 	
-		//if mp4 file requested
+		//if default mp4 file requested such as: 541211332342978513714151.mp4
 		endIndex = requestURI.lastIndexOf(".mp4");
 		if (endIndex != -1) {
 			return requestURI.substring(startIndex+1, endIndex);
 		}
+		
 		return null;
 	}
+	
 	
 }

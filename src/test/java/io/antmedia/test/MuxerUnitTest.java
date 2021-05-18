@@ -973,11 +973,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			return activeBroadcastCountFinal + 2 == appAdaptor.getDataStore().getActiveBroadcastCount();
 		});
 		
+		Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any());
 		
 		streamId = "stream " + (int)(Math.random()*10000);
 		appAdaptor.startPublish(streamId, 0, null);
 		
-		Mockito.verify(appAdaptor, Mockito.times(2)).stopStreaming(Mockito.any());
+		Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any());
 		
 	}
 	
