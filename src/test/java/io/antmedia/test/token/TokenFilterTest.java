@@ -391,6 +391,10 @@ public class TokenFilterTest {
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_1"+".mp4")); 
 
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".mp4")); 
+		
+		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test-2021-05-18_11-26-26.842"+".mp4")); 
+		
+		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test-2021-05-18_11-26-26.842_240p"+".mp4")); 
 
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p.m3u8"));
 		
@@ -413,6 +417,10 @@ public class TokenFilterTest {
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_1"+".mp4")); 
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_480p_1"+".mp4")); 
+		
+		assertEquals("test_test_"+streamId , TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+ "-2021-05-18_11-26-26.842"+".mp4")); 
+		
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+ "-2021-05-18_11-26-26.842_240p"+".mp4")); 
 
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+"_240p.m3u8"));
 				
