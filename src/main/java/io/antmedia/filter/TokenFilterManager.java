@@ -1,6 +1,7 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
+import java.util.regex.Pattern;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -79,7 +80,7 @@ public class TokenFilterManager extends AbstractFilter   {
 				&& (tokenGenerator == null || clusterToken == null || !clusterToken.equals(tokenGenerator.getGenetaredToken()))) 
 		{
 			
-			if(appSettings.isTimeTokenSubscriberOnly()) {
+			if(appSettings.isTimeTokenSubscriberOnly() || appSettings.isEnableTimeTokenForPlay() || appSettings.isEnableTimeTokenForPublish()) {
 				ITokenService tokenServiceTmp = getTokenService();
 				
 				if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
@@ -174,45 +175,62 @@ public class TokenFilterManager extends AbstractFilter   {
 		this.tokenService = tokenService;
 	}
 
+	
 	public static String getStreamId(String requestURI) {
 		
 		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
 		
 		int endIndex;
-		int startIndex = requestURI.lastIndexOf('/');
-
-		if(requestURI.contains("_")) {
-			//if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
-			return requestURI.split("_")[0].substring(startIndex+1);
-		}
-
-		//if mp4 file requested
-		endIndex = requestURI.lastIndexOf(".mp4");
-		if (endIndex != -1) {
-			return requestURI.substring(startIndex+1, endIndex);
-		}
-
-		//if request is adaptive file ( ending with _adaptive.m3u8)
+		int startIndex = requestURI.indexOf('/');
+		
+		requestURI = requestURI.split("streams")[1];
+		
+		//if request is adaptive file (ending with _adaptive.m3u8)
 		endIndex = requestURI.lastIndexOf(MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8");
 		if (endIndex != -1) {
 			return requestURI.substring(startIndex+1, endIndex);
 		}
-
+		
 		//if specific bitrate is requested
-		String regex = "_[0-9]+p\\.m3u8$";  // matches ending with _[resolution]p.m3u8
-		if (requestURI.matches(regex)) {
+		String hlsRegex = "(.*)_[0-9]+p.m3u8$";  // matches ending with _[resolution]p.m3u8
+		if (requestURI.matches(hlsRegex)) {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p.m3u8
 			return requestURI.substring(startIndex+1, endIndex);
 		}
-
+		
 		//if just the m3u8 file
 		endIndex = requestURI.lastIndexOf(".m3u8");
 		if (endIndex != -1) {
 			return requestURI.substring(startIndex+1, endIndex);
 		}
+		
+		//if specific ts file requested
+		String tsRegex = "(.*)_[0-9]+p+[0-9][0-9][0-9][0-9].ts$";  // matches ending with _[_240p0000].ts or default ts file extension  _[_0p0000].ts
+		if (requestURI.matches(tsRegex)) {
+			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
+			return requestURI.substring(startIndex+1, endIndex);
+		}
 
-
+		//if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 or 541211332342978513714151_480p.mp4 
+		String mp4Regex2 = "(.*)+(_[0-9]+p+_[0-9]|_|_[0-9])+.mp4$"; 
+		if (requestURI.matches(mp4Regex2)) {
+			endIndex = requestURI.lastIndexOf('_'); //if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
+			//_480p regex
+ 			String mp4resolutionRegex = "(.*)+_[0-9]+p$"; 
+			if(requestURI.substring(startIndex+1, endIndex).matches(mp4resolutionRegex)) {
+				endIndex = requestURI.substring(startIndex, endIndex).lastIndexOf('_');
+			}
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+	
+		//if default mp4 file requested such as: 541211332342978513714151.mp4
+		endIndex = requestURI.lastIndexOf(".mp4");
+		if (endIndex != -1) {
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+		
 		return null;
 	}
-
+	
+	
 }
