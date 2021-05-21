@@ -2069,5 +2069,11 @@ public abstract class RestServiceBase {
 		}
 		return id;
 	}
+	
+	public void changeStreamTime(String streamId, String streamTime) {
+		
+		getApplication().getStreamFetcherManager().getStreamFetcher(streamId).isSeek= true;
+		getApplication().getStreamFetcherManager().getStreamFetcher(streamId).streamTime= streamTime;
+	}
 
 }

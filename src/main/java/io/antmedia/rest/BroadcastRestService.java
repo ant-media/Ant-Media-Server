@@ -1294,5 +1294,16 @@ public class BroadcastRestService extends RestServiceBase{
 									  @ApiParam(value="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId){
 		return new Result(RestServiceBase.removeStreamFromRoom(roomId,streamId,getDataStore()));
 	}
+	
+	@ApiOperation(value="Seek seconds in Stream Fetcher.",responseContainer ="List",response = String.class)
+	@GET
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/stream-fetcher-time/{streamId}/{streamTime}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public void setStreamTime(@ApiParam(value="streamId", required=true) @PathParam("streamId") String streamId,
+			@ApiParam(value="streamTime", required=true) @PathParam("streamTime") String streamTime
+			){
+		super.changeStreamTime(streamId,streamTime);
+	}
 
 }

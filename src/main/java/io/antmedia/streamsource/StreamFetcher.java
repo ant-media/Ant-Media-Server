@@ -23,6 +23,7 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -103,6 +104,10 @@ public class StreamFetcher {
 	private String streamId;
 
 	private String streamType;
+	
+	public boolean isSeek;
+	
+	public String streamTime;
 
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
@@ -314,7 +319,6 @@ public class StreamFetcher {
 								logger.info("dts ({}) is bigger than pts({})", pkt.dts(), pkt.pts());
 								pkt.pts(pkt.dts());
 							}
-
 							/***************************************************
 							 *  Memory of being paranoid or failing while looking for excellence without understanding the whole picture
 							 *  
@@ -375,38 +379,63 @@ public class StreamFetcher {
 								}
 							}
 							else {
-
-								if(STREAM_TYPE_VOD.equals(streamType)) {
-
-									if(firstPacketTime == 0) {
-										int streamIndex = pkt.stream_index();
-										firstPacketTime = System.currentTimeMillis();
-										long firstPacketDtsInMs = av_rescale_q(pkt.dts(), inputFormatContext.streams(streamIndex).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
-										timeOffset = 0 - firstPacketDtsInMs;
-									}
-
+								if(STREAM_TYPE_VOD.equals(streamType) ||  streamUrl.contains(".mp4")) {
 									long latestTime = System.currentTimeMillis();
-
 									int streamIndex = pkt.stream_index();
 
 									AVRational timeBase = inputFormatContext.streams(streamIndex).time_base();
 
+									if(firstPacketTime == 0 ) { 
+										streamIndex = pkt.stream_index();
+										firstPacketTime = System.currentTimeMillis();
+										long firstPacketDtsInMs = av_rescale_q(pkt.dts(), timeBase, MuxAdaptor.TIME_BASE_FOR_MS);
+										timeOffset = 0 - firstPacketDtsInMs;
+									}
+								
 									long pktTime = av_rescale_q(pkt.dts(), timeBase, MuxAdaptor.TIME_BASE_FOR_MS);
-
+								
 									long durationInMs = latestTime - firstPacketTime;
-
 									long dtsInMS= timeOffset + pktTime;
+									
+									//logger.error("pkt.dts(): " + pkt.dts() +  " pktTime: " + pktTime + " dtsInMS: " + dtsInMS + " durationInMs: " + durationInMs  + "streamIndex: " + streamIndex);
+									// pkt.dts(): 263680 pktTime: 21458 dtsInMS: 21458 durationInMs: 21419
 
-									while(dtsInMS > durationInMs) {
+									 logger.error("\n \n \n \n \n \n new durationInMs: " + durationInMs +" dtsInMS: " + dtsInMS + " firstPacketTime: " + firstPacketTime + " timeOffset: " + timeOffset);
+									
+									 while(dtsInMS > durationInMs) {
 										durationInMs = System.currentTimeMillis() - firstPacketTime;
 										Thread.sleep(1);
 									}
-								}
+	
+									if(isSeek) {
+										
+										//long  seekTarget = 22 * timeBase.den() /  timeBase.num();
+										//seekTarget = 	av_rescale_q(seekTarget, timeBase, MuxAdaptor.TIME_BASE_FOR_MS);
+											
+										int flags = avformat.AVSEEK_FLAG_FRAME;
 
+										logger.error("old durationInMs: " + durationInMs +" dtsInMS: " + dtsInMS + " pkt.dts(): " + pkt.dts() + " pkt.pts(): " + pkt.pts());
+										if(avformat.av_seek_frame(inputFormatContext, streamIndex , 0,  flags) < 0) {
+											logger.error("There is an error with av_seek_frame function");
+											}
+											
+										av_read_frame(inputFormatContext, pkt);
+											
+										firstPacketTime = System.currentTimeMillis();
+										long firstPacketDtsInMs = pkt.dts()*1000*timeBase.num()/timeBase.den();													
+										timeOffset = 0 - firstPacketDtsInMs;
+											
+										isSeek = false;
+										}
+									
+								}
 								muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
+						
+			
 
 							}
 							av_packet_unref(pkt);
+							
 							if (stopRequestReceived) {
 								logger.warn("Stop request received, breaking the loop for {} ", streamId);
 								break;
