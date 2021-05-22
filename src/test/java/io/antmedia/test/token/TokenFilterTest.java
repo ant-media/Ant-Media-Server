@@ -377,19 +377,51 @@ public class TokenFilterTest {
 	@Test
 	public void testGetStreamId() {
 		String streamId = "streamId";
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
+		
+		assertEquals("test_streamId_davut_diyen_kedi", TokenFilterManager.getStreamId("/liveapp/streams/"+"test_"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
 
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX +".m3u8"));
+		
+		assertEquals("streamId_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test" +".m3u8"));
+		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".m3u8"));
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_480p_1"+".mp4")); 
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_1"+".mp4")); 
 
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".mp4"));
-
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".mp4")); 
 
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p.m3u8"));
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_0p0000.ts")); 
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p0000.ts")); 
 
 		assertNull(TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".u8"));
+		
+		// Add "_" in appname and stream Id
+		
+		assertEquals("test_streamId_davut_diyen_kedi", TokenFilterManager.getStreamId("/live_app/streams/"+"test_" + streamId+"_davut_diyen_kedi_adaptive.m3u8"));
 
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8"));
+		
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+".m3u8"));
 
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+".mp4"));
+		
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_1"+".mp4")); 
+		
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_480p_1"+".mp4")); 
+
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+"_240p.m3u8"));
+				
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_0p0000.ts")); 
+		
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_240p0000.ts"));
+
+		assertNull(TokenFilterManager.getStreamId("/live_app/streams/"+streamId+".u8"));
+		
 		//below test case
 		streamId = "AgTWuHxp";
 		String requestURI = "/LiveApp/streams/"+ streamId + ".m3u8"; 

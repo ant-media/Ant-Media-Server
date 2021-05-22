@@ -545,11 +545,16 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.osTotalPhysicalMemory());
 		jsonObject.addProperty(FREE_MEMORY, SystemUtils.osFreePhysicalMemory());
 		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.osInUsePhysicalMemory());
-		jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace());
-		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
-		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
-
-
+		
+		//to handle the problem in raspberry pi4 + ubuntu 20.04
+		try {
+			jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace());
+			jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
+			jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
+		}catch (Exception e) {
+			logger.error("swap memory statistic can not be read");
+		}
+		
 		jsonObject.addProperty(AVAILABLE_MEMORY, SystemUtils.osAvailableMemory());
 
 		return jsonObject;

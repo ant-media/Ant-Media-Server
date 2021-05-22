@@ -59,6 +59,8 @@
 				<exclude>javacpp-*.jar</exclude>
 				<exclude>cuda-*.jar</exclude>
 				<exclude>ant-media-enterprise*.jar</exclude>
+				<exclude>libtensorflow*.jar</exclude>
+				<exclude>tensorflow*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
@@ -88,7 +90,6 @@
 				<!-- Below libs are generic we need custom builds which are under src/main/server/plugins 
 				and they will copied later in this file -->
 				<exclude>ffmpeg*linux-x86.jar</exclude>
-				<exclude>ffmpeg*linux-arm64.jar</exclude>
 				<exclude>ffmpeg*linux-armhf.jar</exclude> 
 				<exclude>ffmpeg*android*.jar</exclude>
 				<exclude>ffmpeg*ppc64le.jar</exclude>
@@ -152,18 +153,24 @@
 		 
 		<!-- NATIVE LIBRARIES -->
 		<fileSet>
-			<directory>${project.basedir}/src/main/server/lib/native</directory>
-			<outputDirectory>lib/native</outputDirectory>
+			<directory>${project.basedir}/src/main/server/lib/native-mac</directory>
+			<outputDirectory>lib/native-mac</outputDirectory>
 			<includes>
 				<include>*</include>
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>${project.basedir}/src/main/server/lib/detection</directory>
-			<outputDirectory>lib/detection</outputDirectory>
+			<directory>${project.basedir}/src/main/server/lib/native-linux-x86_64</directory>
+			<outputDirectory>lib/native-linux-x86_64</outputDirectory>
 			<includes>
-				<include>*.pbtxt</include>
-				<include>*.pb</include>
+				<include>*</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>${project.basedir}/src/main/server/lib/native-linux-aarch64</directory>
+			<outputDirectory>lib/native-linux-aarch64</outputDirectory>
+			<includes>
+				<include>*</include>
 			</includes>
 		</fileSet>
 		<fileSet>
