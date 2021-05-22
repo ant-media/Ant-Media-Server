@@ -8,10 +8,10 @@ public class AudioFrameContext
 	public int numberOfFrames;
 	public int channels;
 	public int sampleRate;
-	public AVFrame frame;
+	public byte[] data;
 
-	public AudioFrameContext(AVFrame frame, long timestampMS, int numberOfFrames, int channels, int sampleRate) {
-		this.frame = frame;
+	public AudioFrameContext(byte[] data, long timestampMS, int numberOfFrames, int channels, int sampleRate) {
+		this.data = data;
 		this.timestampMs = timestampMS;
 		this.numberOfFrames = numberOfFrames;
 		this.channels = channels;

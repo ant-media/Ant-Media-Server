@@ -6,19 +6,19 @@
             <pattern>%d{ISO8601} [%thread] %logger - %msg%n</pattern>
         </encoder>
     </appender>
-    
+
     <appender name="AntmediaLogger" class="io.antmedia.logger.AntmediaAppender">
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
             <level>ERROR</level>
         </filter>
     </appender>
-    
+
     <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="FILE">
-        <File>log/ant-media-server.log</File>
+        <File>/var/log/antmedia/ant-media-server.log</File>
         <Append>false</Append>
 
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-          <fileNamePattern>log/ant-media-server.%i.log.gz</fileNamePattern>
+          <fileNamePattern>/var/log/antmedia/ant-media-server.%i.log.gz</fileNamePattern>
           <minIndex>1</minIndex>
           <maxIndex>2</maxIndex>
         </rollingPolicy>
@@ -29,7 +29,7 @@
             <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
         </encoder>
     </appender>
-    
+
     <root level="${logLevel}">
         <appender-ref ref="CONSOLE" />
         <appender-ref ref="FILE" />

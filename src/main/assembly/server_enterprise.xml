@@ -11,9 +11,14 @@
 	</formats>
 	<files>
 		<file>
-			<source>${project.build.directory}/${finalName}.jar</source>
+			<source>${project.build.directory}/${finalName}-server.jar</source>
 			<outputDirectory></outputDirectory>
 			<destName>ant-media-server.jar</destName>
+		</file>
+		<file>
+			<source>${project.build.directory}/${finalName}-service.jar</source>
+			<outputDirectory></outputDirectory>
+			<destName>ant-media-server-service.jar</destName>
 		</file>
 	</files>
 	<fileSets>
@@ -24,10 +29,7 @@
 				<include>license.txt</include>
 			</includes>
 		</fileSet>
-		<fileSet>
-			<directory>${project.build.directory}/ant-media-server-service-${project.parent.version}</directory>
-			<outputDirectory></outputDirectory>
-		</fileSet>
+
 		<fileSet>
 			<directory>${project.build.directory}/lib</directory>
 			<outputDirectory>lib</outputDirectory>
@@ -49,7 +51,6 @@
 				<exclude>servlet-api-*.jar</exclude>
 				<exclude>junit-${junit.version}.jar</exclude>
 				<exclude>logback-access-*.jar</exclude>
-				<exclude>ant-media-server-service-${project.parent.version}.jar</exclude>
 				<exclude>red5-server-${red5-service.version}.jar</exclude>
 				<exclude>red5-server-common-*.jar</exclude>
 				<exclude>red5-server-1*.jar</exclude>
@@ -58,6 +59,8 @@
 				<exclude>javacpp-*.jar</exclude>
 				<exclude>cuda-*.jar</exclude>
 				<exclude>ant-media-enterprise*.jar</exclude>
+				<exclude>libtensorflow*.jar</exclude>
+				<exclude>tensorflow*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
@@ -87,7 +90,6 @@
 				<!-- Below libs are generic we need custom builds which are under src/main/server/plugins 
 				and they will copied later in this file -->
 				<exclude>ffmpeg*linux-x86.jar</exclude>
-				<exclude>ffmpeg*linux-arm64.jar</exclude>
 				<exclude>ffmpeg*linux-armhf.jar</exclude> 
 				<exclude>ffmpeg*android*.jar</exclude>
 				<exclude>ffmpeg*ppc64le.jar</exclude>
@@ -108,7 +110,8 @@
 			<directory>${project.basedir}/src/main/server</directory>
 			<outputDirectory></outputDirectory>
 			<includes>
-				<include>*.bat</include>
+				<include>antmedia.service</include>
+				<include>antmedia</include>
 			</includes>
 		</fileSet>
 		<fileSet>
@@ -150,18 +153,24 @@
 		 
 		<!-- NATIVE LIBRARIES -->
 		<fileSet>
-			<directory>${project.basedir}/src/main/server/lib/native</directory>
-			<outputDirectory>lib/native</outputDirectory>
+			<directory>${project.basedir}/src/main/server/lib/native-mac</directory>
+			<outputDirectory>lib/native-mac</outputDirectory>
 			<includes>
 				<include>*</include>
 			</includes>
 		</fileSet>
 		<fileSet>
-			<directory>${project.basedir}/src/main/server/lib/detection</directory>
-			<outputDirectory>lib/detection</outputDirectory>
+			<directory>${project.basedir}/src/main/server/lib/native-linux-x86_64</directory>
+			<outputDirectory>lib/native-linux-x86_64</outputDirectory>
 			<includes>
-				<include>*.pbtxt</include>
-				<include>*.pb</include>
+				<include>*</include>
+			</includes>
+		</fileSet>
+		<fileSet>
+			<directory>${project.basedir}/src/main/server/lib/native-linux-aarch64</directory>
+			<outputDirectory>lib/native-linux-aarch64</outputDirectory>
+			<includes>
+				<include>*</include>
 			</includes>
 		</fileSet>
 		<fileSet>
