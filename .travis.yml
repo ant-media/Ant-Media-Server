@@ -1,4 +1,7 @@
-dist: bionic
+matrix:
+  include:
+    - dist: bionic
+    - dist: focal
 language: java
 jdk:
   - openjdk11
@@ -6,7 +9,7 @@ jdk:
 git:
   depth: false
 
-# Sonar cloud addons on travis has some issues so that it's used directly 
+# Sonar cloud addons on travis has some issues so that it's used directly
 addons:
   sonarcloud:
     organization: "ant-media"
@@ -25,66 +28,66 @@ before_install:
   - sudo service mongod start  # start mongo db
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
     # get parent project
-  - (if [ $(git ls-remote https://github.com/ant-media/ant-media-server-parent.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
-      then 
-        echo " $TRAVIS_BRANCH branch found";  
-        git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/ant-media-server-parent.git;  
+  - (if [ $(git ls-remote https://github.com/ant-media/ant-media-server-parent.git $TRAVIS_BRANCH  | wc -l) == "1" ];
+      then
+        echo " $TRAVIS_BRANCH branch found";
+        git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/ant-media-server-parent.git;
       else
-        echo "branch not found"; 
-        git clone --depth=1 https://github.com/ant-media/ant-media-server-parent.git;  
+        echo "branch not found";
+        git clone --depth=1 https://github.com/ant-media/ant-media-server-parent.git;
     fi)
   - cd ant-media-server-parent
   - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
   - cd ..
     #get common project
-  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Common.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
-      then 
-       echo " $TRAVIS_BRANCH branch found";  
-       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Common.git;  
+  - (if [ $(git ls-remote https://github.com/ant-media/Ant-Media-Server-Common.git $TRAVIS_BRANCH  | wc -l) == "1" ];
+      then
+       echo " $TRAVIS_BRANCH branch found";
+       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/Ant-Media-Server-Common.git;
       else
-       echo "branch not found"; 
-       git clone --depth=1 https://github.com/ant-media/Ant-Media-Server-Common.git;  
+       echo "branch not found";
+       git clone --depth=1 https://github.com/ant-media/Ant-Media-Server-Common.git;
      fi)
   - cd Ant-Media-Server-Common
   - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
-  - cd .. 
+  - cd ..
 
     # install Ant Media Server
-  - mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true  
+  - mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true
 
    #get StreamApp project
-  - (if [ $(git ls-remote https://github.com/ant-media/StreamApp.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
-     then 
-       echo " $TRAVIS_BRANCH branch found";  
-       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/StreamApp.git; 
-       cd StreamApp; 
+  - (if [ $(git ls-remote https://github.com/ant-media/StreamApp.git $TRAVIS_BRANCH  | wc -l) == "1" ];
+     then
+       echo " $TRAVIS_BRANCH branch found";
+       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/StreamApp.git;
+       cd StreamApp;
        mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet;
        cd ..;
      else
-       echo "branch not found. Using version in sonatype"; 
+       echo "branch not found. Using version in sonatype";
     fi)
-  
+
     # package ant media server
   - mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
-  
+
     #get install script
-  - (if [ $(git ls-remote https://github.com/ant-media/Scripts.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
-     then 
-       echo " $TRAVIS_BRANCH branch found";  
+  - (if [ $(git ls-remote https://github.com/ant-media/Scripts.git $TRAVIS_BRANCH  | wc -l) == "1" ];
+     then
+       echo " $TRAVIS_BRANCH branch found";
        wget https://raw.githubusercontent.com/ant-media/Scripts/$TRAVIS_BRANCH/install_ant-media-server.sh -O target/install_ant-media-server.sh;
      else
-       echo "branch not found"; 
+       echo "branch not found";
        wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh -O target/install_ant-media-server.sh;
     fi)
 
   - chmod 755 target/install_ant-media-server.sh
-  - cd target 
+  - cd target
   - ./install_ant-media-server.sh ant-media-server-community*.zip
   - cd ..
   - echo "Waiting a little to make sure server is started "
   - sleep 20
   - (if [[ -f /usr/local/antmedia/log/antmedia-error.log ]];
-      then 
+      then
         sudo cat /usr/local/antmedia/log/antmedia-error.log;
     fi)
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
@@ -102,8 +105,8 @@ install:
 
 before_script:
   - sudo chmod -R 777 /tmp
-  
-  
+
+
 script:
   - export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
   - echo $RELEASE_VERSION
@@ -115,7 +118,7 @@ cache:
   directories:
     - '$HOME/.m2/repository'
     - '$HOME/.sonar/cache'
-    
+
 after_failure:
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
   - sudo cat /usr/local/antmedia/hs_err_pid*.log  # cat hs_err_pid file if it exists
@@ -129,16 +132,16 @@ deploy:
       tags: false
       all_branches: true
       #deploy all branches to mvn if it is a snapshot version
-      condition:  $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)  = *"SNAPSHOT"* 
-  
+      condition:  $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)  = *"SNAPSHOT"*
+
   - provider: script
     script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
     cleanup: true
     on:
       #deploy to maven if it is a release tagged
       tags: true
-      condition: $TRAVIS_TAG =~ ^ams-v 
-  
+      condition: $TRAVIS_TAG =~ ^ams-v
+
   - provider: script
     script: "curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$RELEASE_VERSION/"
     cleanup: true
@@ -146,7 +149,7 @@ deploy:
       #deploy to website if it is a release tagged
       tags: true
       condition: $TRAVIS_TAG =~ ^ams-v
-  
+
   - provider: releases
     api_key: $GITHUB_OAUTH_TOKEN
     file_glob: true
@@ -158,5 +161,5 @@ deploy:
       #deploy to github if it is a release tagged
       tags: true
       condition: $TRAVIS_TAG =~ ^ams-v
-      
-#above configuration prevents deploying a new release(not snapshot) if it is not tagged       
+
+#above configuration prevents deploying a new release(not snapshot) if it is not tagged
