@@ -311,18 +311,18 @@ public class StreamFetcher {
 							 * Check that dts values are monotically increasing for each stream
 							 */
 							int packetIndex = pkt.stream_index();
-							/*
-							if (lastDTS[packetIndex] >= pkt.dts()) {
-								logger.info("last dts{} is bigger than incoming dts {}", pkt.dts(), lastDTS[packetIndex]);
-								pkt.dts(lastDTS[packetIndex] + 1);
-								
+							
+							if(!STREAM_TYPE_VOD.equals(streamType) && ! streamUrl.contains(".mp4")) {
+								if (lastDTS[packetIndex] >= pkt.dts()) {
+									logger.info("last dts{} is bigger than incoming dts {}", pkt.dts(), lastDTS[packetIndex]);
+									pkt.dts(lastDTS[packetIndex] + 1);
+								}
+								lastDTS[packetIndex] = pkt.dts();
+								if (pkt.dts() > pkt.pts()) {
+									logger.info("dts ({}) is bigger than pts({})", pkt.dts(), pkt.pts());
+									pkt.pts(pkt.dts());
+								}
 							}
-							lastDTS[packetIndex] = pkt.dts();
-							if (pkt.dts() > pkt.pts()) {
-								logger.info("dts ({}) is bigger than pts({})", pkt.dts(), pkt.pts());
-								pkt.pts(pkt.dts());
-							}
-							*/
 							/***************************************************
 							 *  Memory of being paranoid or failing while looking for excellence without understanding the whole picture
 							 *  
@@ -390,51 +390,33 @@ public class StreamFetcher {
 									AVRational timeBase = inputFormatContext.streams(streamIndex).time_base();
 
 									if(firstPacketTime == 0 ) { 
-										streamIndex = pkt.stream_index();
 										firstPacketTime = System.currentTimeMillis();
 										long firstPacketDtsInMs = av_rescale_q(pkt.dts(), timeBase, MuxAdaptor.TIME_BASE_FOR_MS);
 										timeOffset = 0 - firstPacketDtsInMs;
 									}
-								
 									long pktTime = av_rescale_q(pkt.dts(), timeBase, MuxAdaptor.TIME_BASE_FOR_MS);
 								
 									long durationInMs = latestTime - firstPacketTime;
 									long dtsInMS= timeOffset + pktTime + seekDurationMS;
-									
-									//logger.error("pkt.dts(): " + pkt.dts() +  " pktTime: " + pktTime + " dtsInMS: " + dtsInMS + " durationInMs: " + durationInMs  + "streamIndex: " + streamIndex);
-									// pkt.dts(): 263680 pktTime: 21458 dtsInMS: 21458 durationInMs: 21419
-
-									 logger.error("\n \n \n \n \n \n new durationInMs: " + durationInMs +" dtsInMS: " + dtsInMS + " firstPacketTime: " + firstPacketTime + " timeOffset: " + timeOffset+" pkt.dts(): " + pkt.dts()+ " type:"+streamIndex);
-									
+							
 									 while(dtsInMS > durationInMs) {
 										durationInMs = System.currentTimeMillis() - firstPacketTime;
 										Thread.sleep(1);
 									}
-	
+									
 									 if(isSeek) {
-
-										 seekDurationMS = durationInMs - streamTime;
-										 //long  seekTarget = 22 * timeBase.den() /  timeBase.num();
-										 //seekTarget = 	av_rescale_q(seekTarget, timeBase, MuxAdaptor.TIME_BASE_FOR_MS);
+										  seekDurationMS = durationInMs -( streamTime*1000);
 
 										 int flags = avformat.AVSEEK_FLAG_ANY;
-
-										 int seekTarget = streamTime * timeBase.den() / timeBase.num() /1000;
-
-										 logger.error("old durationInMs: " + durationInMs +" dtsInMS: " + dtsInMS + " pkt.dts(): " + pkt.dts() + " pkt.pts(): " + pkt.pts());
+										 int seekTarget = streamTime * timeBase.den() / timeBase.num();
+									
 										 if(avformat.av_seek_frame(inputFormatContext, streamIndex , seekTarget,  flags) < 0) {
-											 logger.error("There is an error with av_seek_frame function");
+											 logger.error("There is an error with av_seek_frame");
 										 }
-
-										 av_read_frame(inputFormatContext, pkt);
-										 isSeek = false;
-									 }
-									
-									pkt.dts(durationInMs);
-									pkt.dts(durationInMs);
-									
+										 
+										av_read_frame(inputFormatContext, pkt);
+										 isSeek = false;									 }
 								}
-								
 								muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
 							}
 							av_packet_unref(pkt);

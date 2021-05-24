@@ -1300,10 +1300,11 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/stream-fetcher-time/{streamId}/{streamTime}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public void setStreamTime(@ApiParam(value="streamId", required=true) @PathParam("streamId") String streamId,
+	@Override
+	public Result changeStreamTime(@ApiParam(value="streamId", required=true) @PathParam("streamId") String streamId,
 			@ApiParam(value="streamTime", required=true) @PathParam("streamTime") int streamTime
 			){
-		super.changeStreamTime(streamId, streamTime);
+		return super.changeStreamTime(streamId, streamTime);
 	}
 
 }

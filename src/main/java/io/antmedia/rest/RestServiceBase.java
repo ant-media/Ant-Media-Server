@@ -2070,10 +2070,18 @@ public abstract class RestServiceBase {
 		return id;
 	}
 	
-	public void changeStreamTime(String streamId, int streamTime) {
+	public Result changeStreamTime(String streamId, int streamTime) {
+		Result result = new Result(false);
 		
-		getApplication().getStreamFetcherManager().getStreamFetcher(streamId).isSeek= true;
-		getApplication().getStreamFetcherManager().getStreamFetcher(streamId).streamTime = streamTime;
+		if (streamId != null && (getDataStore().get(streamId)) != null && streamTime >= 0 ) {
+			getApplication().getStreamFetcherManager().getStreamFetcher(streamId).isSeek= true;
+			getApplication().getStreamFetcherManager().getStreamFetcher(streamId).streamTime = streamTime;
+		}
+		else {
+			result.setMessage("Please check your stream ID or streamTime parameters");
+		}
+
+		return result;
 	}
 
 }
