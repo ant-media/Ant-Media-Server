@@ -503,40 +503,40 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	@Test
-	public void testLogLevel() throws Exception {
+	public void testLogLevel()  {
 
 		try {	
 
 			//get Log Level Check (Default Log Level INFO)
-
-			String logLevel = callGetLogLevel();
-			JSONObject logJSON = (JSONObject) new JSONParser().parse(logLevel);
-			String tmpObject = (String) logJSON.get(LOG_LEVEL); 
-			assertEquals(LOG_LEVEL_INFO, tmpObject);
+			ServerSettings serverSettings = callGetServerSettings();
+			String logLevel = serverSettings.getLogLevel();
+			
+			assertEquals(LOG_LEVEL_INFO, logLevel);
 
 			// change Log Level Check (INFO -> WARN)
-			Result callSetLogLevelWarn = callSetLogLevel(LOG_LEVEL_WARN);
+			serverSettings.setLogLevel(LOG_LEVEL_WARN);
+			Result callSetLogLevelWarn = callSetServerSettings(serverSettings);
 			assertTrue(callSetLogLevelWarn.isSuccess());
 
-			logLevel = callGetLogLevel();
-			logJSON = (JSONObject) new JSONParser().parse(logLevel);
-			tmpObject = (String) logJSON.get(LOG_LEVEL); 
-			assertEquals(LOG_LEVEL_WARN, tmpObject);
+			serverSettings = callGetServerSettings();
+			logLevel = serverSettings.getLogLevel();
+			assertEquals(LOG_LEVEL_WARN, logLevel);
 
 			// change Log Level Check (currently Log Level doesn't change)
-			Result callSetLogLevelTest = callSetLogLevel(LOG_LEVEL_TEST);
-			assertFalse(callSetLogLevelTest.isSuccess());
+			serverSettings.setLogLevel(LOG_LEVEL_TEST);
+			Result callSetLogLevelTest =  callSetServerSettings(serverSettings);
+			assertTrue(callSetLogLevelTest.isSuccess());
 
 			// check log status
-			logLevel = callGetLogLevel();
-			logJSON = (JSONObject) new JSONParser().parse(logLevel);
-			tmpObject = (String) logJSON.get(LOG_LEVEL); 
+			serverSettings = callGetServerSettings();
+			logLevel = serverSettings.getLogLevel();
 
-			assertEquals(LOG_LEVEL_WARN, tmpObject);
+			assertEquals(LOG_LEVEL_WARN, logLevel);
 
 
 			//restore the log 
-			callSetLogLevelTest = callSetLogLevel(LOG_LEVEL_INFO);
+			serverSettings.setLogLevel(LOG_LEVEL_INFO);
+			callSetLogLevelTest = callSetServerSettings(serverSettings);
 			assertTrue(callSetLogLevelTest.isSuccess());
 
 		} catch (Exception e) {
@@ -2382,55 +2382,6 @@ public class ConsoleAppRestServiceTest{
 		return tmpExec;
 	}
 
-	public static String callGetLogLevel() throws Exception {
-
-		String url = ROOT_SERVICE_URL + "/log-level";
-
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
-				.setDefaultCookieStore(httpCookieStore).build();
-
-		Gson gson = new Gson();
-
-		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
-
-		HttpResponse response = client.execute(post);
-
-		StringBuffer result = RestServiceV2Test.readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			System.out.println("status code: " + response.getStatusLine().getStatusCode());
-			throw new Exception(result.toString());
-		}
-
-		log.info("result string: " + result.toString());
-		return result.toString();
-	}
-
-	public static Result callSetLogLevel(String level) throws Exception {
-
-		String url = ROOT_SERVICE_URL + "/log-level/"+level;
-
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
-				.setDefaultCookieStore(httpCookieStore).build();
-
-		Gson gson = new Gson();
-
-		HttpUriRequest post = RequestBuilder.post().setUri(url).build();
-
-		HttpResponse response = client.execute(post);
-
-		StringBuffer result = RestServiceV2Test.readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			System.out.println("status code: " + response.getStatusLine().getStatusCode());
-			throw new Exception(result.toString());
-		}
-
-		log.info("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-
-		return tmp;
-	}
 
 	@Test
 	public void testPublishIPFilter() 
