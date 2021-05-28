@@ -2117,7 +2117,7 @@ public class ConsoleAppRestServiceTest{
 
 	public static Result callSetAppSettings(String appName, AppSettings appSettingsModel) throws Exception {
 		
-		String url = ROOT_SERVICE_URL + "/admin/applications/settings/" + appName;
+		String url = ROOT_SERVICE_URL + "/applications/settings/" + appName;
 		try (CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build())
 		{
@@ -2145,7 +2145,7 @@ public class ConsoleAppRestServiceTest{
 
 
 	public static Result callSetServerSettings(ServerSettings serverSettings) throws Exception {
-		String url = ROOT_SERVICE_URL + "/admin/server-settings";
+		String url = ROOT_SERVICE_URL + "/server-settings";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
@@ -2519,7 +2519,7 @@ public class ConsoleAppRestServiceTest{
 		boolean result = false;
 
 		try {
-			HttpUriRequest post = RequestBuilder.post().setUri(ROOT_SERVICE_URL+"/admin/applications/"+appName)
+			HttpUriRequest post = RequestBuilder.post().setUri(ROOT_SERVICE_URL+"/applications/"+appName)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.build();
 			
@@ -2549,7 +2549,7 @@ public class ConsoleAppRestServiceTest{
 
 		try {
 
-			HttpUriRequest delete = RequestBuilder.delete().setUri(ROOT_SERVICE_URL +"/admin/applications/"+appName)
+			HttpUriRequest delete = RequestBuilder.delete().setUri(ROOT_SERVICE_URL +"/applications/"+appName)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.build();
 
