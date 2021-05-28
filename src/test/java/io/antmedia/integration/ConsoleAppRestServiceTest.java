@@ -100,7 +100,7 @@ public class ConsoleAppRestServiceTest{
 
 	static {
 
-		ROOT_SERVICE_URL = "http://" + SERVER_ADDR + ":5080/rest";
+		ROOT_SERVICE_URL = "http://" + SERVER_ADDR + ":5080/rest/v2";
 
 		System.out.println("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
@@ -2053,7 +2053,7 @@ public class ConsoleAppRestServiceTest{
 
 
 	public static Result callisFirstLogin() throws Exception {
-		String url = ROOT_SERVICE_URL + "/isFirstLogin";
+		String url = ROOT_SERVICE_URL + "/first-login-status";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 		HttpUriRequest post = RequestBuilder.get().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -2075,7 +2075,7 @@ public class ConsoleAppRestServiceTest{
 
 	public static Result callCreateInitialUser(User user) throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/addInitialUser";
+		String url = ROOT_SERVICE_URL + "/users/initial";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -2095,7 +2095,7 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	private static Result callAuthenticateUser(User user) throws Exception {
-		String url = ROOT_SERVICE_URL + "/authenticateUser";
+		String url = ROOT_SERVICE_URL + "/users/authenticate";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
@@ -2116,7 +2116,8 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	public static Result callSetAppSettings(String appName, AppSettings appSettingsModel) throws Exception {
-		String url = ROOT_SERVICE_URL + "/changeSettings/" + appName;
+		
+		String url = ROOT_SERVICE_URL + "/admin/applications/settings/" + appName;
 		try (CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build())
 		{
@@ -2144,7 +2145,7 @@ public class ConsoleAppRestServiceTest{
 
 
 	public static Result callSetServerSettings(ServerSettings serverSettings) throws Exception {
-		String url = ROOT_SERVICE_URL + "/changeServerSettings";
+		String url = ROOT_SERVICE_URL + "/admin/server-settings";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
@@ -2168,7 +2169,7 @@ public class ConsoleAppRestServiceTest{
 
 
 	public static String callGetApplications() throws Exception {
-		String url = ROOT_SERVICE_URL + "/getApplications";
+		String url = ROOT_SERVICE_URL + "/applications";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2189,7 +2190,7 @@ public class ConsoleAppRestServiceTest{
 
 
 	public static String callGetSoftwareVersion() throws Exception {
-		String url = ROOT_SERVICE_URL + "/getVersion";
+		String url = ROOT_SERVICE_URL + "/version";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
@@ -2208,7 +2209,7 @@ public class ConsoleAppRestServiceTest{
 
 
 	public static String callGetSystemResourcesInfo() throws Exception {
-		String url = ROOT_SERVICE_URL + "/getSystemResourcesInfo";
+		String url = ROOT_SERVICE_URL + "/system-resources";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
@@ -2226,7 +2227,7 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	public static Result callIsClusterMode() throws Exception {
-		String url = ROOT_SERVICE_URL + "/isInClusterMode";
+		String url = ROOT_SERVICE_URL + "/cluster-mode-status";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2247,7 +2248,7 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	public static Result callIsEnterpriseEdition() throws Exception {
-		String url = ROOT_SERVICE_URL + "/isEnterpriseEdition";
+		String url = ROOT_SERVICE_URL + "/enterprise-edition";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2270,7 +2271,7 @@ public class ConsoleAppRestServiceTest{
 
 	public static AppSettings callGetAppSettings(String appName) throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/getSettings/" + appName;
+		String url = ROOT_SERVICE_URL + "/applications/settings/" + appName;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2294,7 +2295,7 @@ public class ConsoleAppRestServiceTest{
 
 	public static ServerSettings callGetServerSettings() throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/getServerSettings";
+		String url = ROOT_SERVICE_URL + "/server-settings";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2320,7 +2321,7 @@ public class ConsoleAppRestServiceTest{
 
 		Licence tmp = null;
 
-		String url = ROOT_SERVICE_URL + "/getLicenceStatus/?key=" + key;
+		String url = ROOT_SERVICE_URL + "/licence-status?key=" + key;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2383,7 +2384,7 @@ public class ConsoleAppRestServiceTest{
 
 	public static String callGetLogLevel() throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/getLogLevel";
+		String url = ROOT_SERVICE_URL + "/log-level";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2407,14 +2408,14 @@ public class ConsoleAppRestServiceTest{
 
 	public static Result callSetLogLevel(String level) throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/changeLogLevel/"+level;
+		String url = ROOT_SERVICE_URL + "/log-level/"+level;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 
 		Gson gson = new Gson();
 
-		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
+		HttpUriRequest post = RequestBuilder.post().setUri(url).build();
 
 		HttpResponse response = client.execute(post);
 
@@ -2518,8 +2519,7 @@ public class ConsoleAppRestServiceTest{
 		boolean result = false;
 
 		try {
-
-			HttpUriRequest post = RequestBuilder.post().setUri(ROOT_SERVICE_URL+"/applications?appName="+appName)
+			HttpUriRequest post = RequestBuilder.post().setUri(ROOT_SERVICE_URL+"/admin/applications/"+appName)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.build();
 			
@@ -2549,7 +2549,7 @@ public class ConsoleAppRestServiceTest{
 
 		try {
 
-			HttpUriRequest delete = RequestBuilder.delete().setUri(ROOT_SERVICE_URL +"/applications/"+appName)
+			HttpUriRequest delete = RequestBuilder.delete().setUri(ROOT_SERVICE_URL +"/admin/applications/"+appName)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.build();
 
@@ -2577,7 +2577,7 @@ public class ConsoleAppRestServiceTest{
 	public static Applications getApplications() {
 		try {
 			
-			HttpUriRequest get = RequestBuilder.get().setUri(ROOT_SERVICE_URL+"/getApplications")
+			HttpUriRequest get = RequestBuilder.get().setUri(ROOT_SERVICE_URL+"/applications")
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.build();
 
