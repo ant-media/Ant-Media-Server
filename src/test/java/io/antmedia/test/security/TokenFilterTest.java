@@ -268,7 +268,7 @@ public class TokenFilterTest {
 	@Test
 	public void testGetStreamId() {
 		String streamId = "streamId";
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
+		assertEquals(streamId+"_davut_diyen_kedi", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".m3u8"));
 		

@@ -1680,7 +1680,7 @@ public class ConsoleAppRestServiceTest{
 							+ SERVER_ADDR + "/LiveApp/" + streamName);
 
 
-			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
 				return broadcast.getSpeed() != 0;
 			});
