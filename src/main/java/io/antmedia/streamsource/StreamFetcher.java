@@ -107,7 +107,7 @@ public class StreamFetcher {
 	
 	public boolean isSeek;
 	
-	public int streamTime;
+	public int streamTime = 0;
 
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
@@ -312,7 +312,7 @@ public class StreamFetcher {
 							 */
 							int packetIndex = pkt.stream_index();
 							
-							if(!STREAM_TYPE_VOD.equals(streamType) && ! streamUrl.contains(".mp4")) {
+							if(!STREAM_TYPE_VOD.equals(streamType) && ! streamUrl.contains(".mp4") ) {
 								if (lastDTS[packetIndex] >= pkt.dts()) {
 									logger.info("last dts{} is bigger than incoming dts {}", pkt.dts(), lastDTS[packetIndex]);
 									pkt.dts(lastDTS[packetIndex] + 1);
@@ -383,10 +383,9 @@ public class StreamFetcher {
 								}
 							}
 							else {
-								if(STREAM_TYPE_VOD.equals(streamType) ||  streamUrl.contains(".mp4")) {
+								if(STREAM_TYPE_VOD.equals(streamType) ||  streamUrl.contains(".mp4")  ) {
 									long latestTime = System.currentTimeMillis();
 									int streamIndex = pkt.stream_index();
-
 									AVRational timeBase = inputFormatContext.streams(streamIndex).time_base();
 
 									if(firstPacketTime == 0 ) { 
@@ -397,7 +396,7 @@ public class StreamFetcher {
 									long pktTime = av_rescale_q(pkt.dts(), timeBase, MuxAdaptor.TIME_BASE_FOR_MS);
 								
 									long durationInMs = latestTime - firstPacketTime;
-									long dtsInMS= timeOffset + pktTime + seekDurationMS;
+									long dtsInMS= timeOffset + pktTime + seekDurationMS;						
 							
 									 while(dtsInMS > durationInMs) {
 										durationInMs = System.currentTimeMillis() - firstPacketTime;
@@ -405,7 +404,10 @@ public class StreamFetcher {
 									}
 									
 									 if(isSeek) {
-										  seekDurationMS = durationInMs -( streamTime*1000);
+										 if(streamTime == 0) {
+											 streamTime = 1;
+										 }
+										  seekDurationMS = durationInMs - streamTime*1000;
 
 										 int flags = avformat.AVSEEK_FLAG_ANY;
 										 int seekTarget = streamTime * timeBase.den() / timeBase.num();
@@ -415,8 +417,13 @@ public class StreamFetcher {
 										 }
 										 
 										av_read_frame(inputFormatContext, pkt);
-										 isSeek = false;									 }
-								}
+										 isSeek = false;			
+										 }
+										if(seekDurationMS != 0) {
+											pkt.dts(av_rescale_q(dtsInMS, MuxAdaptor.TIME_BASE_FOR_MS , timeBase));
+											pkt.pts(av_rescale_q(dtsInMS, MuxAdaptor.TIME_BASE_FOR_MS, timeBase));
+										}
+									 }
 								muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
 							}
 							av_packet_unref(pkt);
