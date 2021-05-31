@@ -1298,7 +1298,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@ApiOperation(value="Seek seconds in Stream Fetcher.",responseContainer ="List",response = String.class)
 	@GET
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/stream-fetcher-time/{streamId}/{streamTime}")
+	@Path("/seek-stream/{streamId}/{streamTime}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result changeStreamTime(@ApiParam(value="streamId", required=true) @PathParam("streamId") String streamId,

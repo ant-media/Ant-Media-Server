@@ -3060,4 +3060,23 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(0,store.getConferenceRoom("testroom").getRoomStreamList().size());
 	}
 	
+	@Test
+	public void testSeekStreamFetcher(){
+			
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
+		Mockito.doReturn(application).when(restServiceSpy).getApplication();
+		Mockito.when(application.getStreamFetcherManager()).thenReturn(Mockito.mock(StreamFetcherManager.class));
+		Mockito.when(application.getStreamFetcherManager().getStreamFetcher(Mockito.anyString())).thenReturn(mock(StreamFetcher.class));
+		
+		DataStore dataStore = new InMemoryDataStore("testdb");
+		restServiceSpy.setDataStore(dataStore);
+
+		Broadcast broadcast = new Broadcast("name", "ipAddr", "username","password","streamUrl.mp4","streamSource");
+		String streamId = dataStore.save(broadcast);
+		
+		assertEquals(true, restServiceSpy.changeStreamTime(streamId, 0).isSuccess());
+		assertEquals(false, restServiceSpy.changeStreamTime("wrongStreamId", 0).isSuccess());
+		
+	}
 }

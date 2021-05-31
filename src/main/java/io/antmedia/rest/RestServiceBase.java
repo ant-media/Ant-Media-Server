@@ -2074,6 +2074,8 @@ public abstract class RestServiceBase {
 		Result result = new Result(false);
 		
 		if (streamId != null && (getDataStore().get(streamId)) != null && streamTime >= 0 ) {
+			result.setSuccess(true);
+
 			getApplication().getStreamFetcherManager().getStreamFetcher(streamId).isSeek= true;
 			getApplication().getStreamFetcherManager().getStreamFetcher(streamId).streamTime = streamTime;
 		}
