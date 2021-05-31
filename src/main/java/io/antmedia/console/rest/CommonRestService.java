@@ -128,9 +128,9 @@ public class CommonRestService {
 
 	private ILicenceService licenceService;
 
-	private static int blockLoginTimeSec = 300 ; // in seconds
+	private static final int BLOCKED_LOGIN_TIMEOUT_SECS = 300 ; // in seconds
 
-	private static int allowedLoginAttempts = 2 ; // in seconds
+	private static final int ALLOWED_LOGIN_ATTEMPTS = 2 ; 
 
 
 
@@ -227,7 +227,7 @@ public class CommonRestService {
 		{
 			if (getDataStore().isUserBlocked(user.getEmail())) 
 			{
-				if ((Instant.now().getEpochSecond() - getDataStore().getBlockTime(user.getEmail())) > blockLoginTimeSec) 
+				if ((Instant.now().getEpochSecond() - getDataStore().getBlockTime(user.getEmail())) > BLOCKED_LOGIN_TIMEOUT_SECS) 
 				{
 					logger.info("Unblocking the user -> {}", user.getEmail());
 					getDataStore().setUnBlocked(user.getEmail());
@@ -235,7 +235,7 @@ public class CommonRestService {
 					tryToAuthenticate = true;
 				}
 				else {
-					message = "Too many login attempts. User is blocked for " + blockLoginTimeSec + " secs";
+					message = "Too many login attempts. User is blocked for " + BLOCKED_LOGIN_TIMEOUT_SECS + " secs";
 				}
 	
 	
@@ -263,7 +263,7 @@ public class CommonRestService {
 			{
 				getDataStore().incrementInvalidLoginCount(user.getEmail());
 				logger.info("Increased invalid login count to: {}", getDataStore().getInvalidLoginCount(user.getEmail()));
-				if (getDataStore().getInvalidLoginCount(user.getEmail()) > allowedLoginAttempts) {
+				if (getDataStore().getInvalidLoginCount(user.getEmail()) > ALLOWED_LOGIN_ATTEMPTS) {
 					getDataStore().setBlocked(user.getEmail());
 					getDataStore().setBlockTime(user.getEmail(), Instant.now().getEpochSecond());
 					logger.info("User is blocked: {}", getDataStore().doesUsernameExist(user.getEmail()));
