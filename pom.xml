@@ -253,6 +253,11 @@
             <scope>compile</scope>
         </dependency>
         <dependency>
+		    <groupId>org.mitre.dsmiley.httpproxy</groupId>
+		    <artifactId>smiley-http-proxy-servlet</artifactId>
+		    <version>1.11</version>
+		</dependency>
+        <dependency>
             <groupId>org.apache.tomcat</groupId>
             <artifactId>tomcat-servlet-api</artifactId>
             <version>${tomcat.version}</version>
@@ -482,7 +487,6 @@
             <artifactId>jersey-media-multipart</artifactId>
             <version>${jersey.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.glassfish.jersey.ext</groupId>
             <artifactId>jersey-spring4</artifactId>
@@ -572,13 +576,6 @@
                     <type>war</type>
                     <scope>provided</scope>
                 </dependency>
-                <dependency>
-                    <groupId>io.antmedia.app</groupId>
-                    <artifactId>root</artifactId>
-                    <version>${project.parent.version}</version>
-                    <type>war</type>
-                    <scope>provided</scope>
-                </dependency>
             </dependencies>
             <build>
                 <plugins>
@@ -646,25 +643,7 @@
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
                             </execution>
-                             <execution>
-                               <id>unpack-root-app</id>
-					           <phase>package</phase>
-					           <goals>
-					             <goal>unpack</goal>
-					           </goals>
-					           <configuration>
-					             <artifactItems>
-						              <artifactItem>
-	                                      <groupId>io.antmedia.app</groupId>
-	                                      <artifactId>root</artifactId>
-	                                      <version>${project.parent.version}</version>
-	                                      <type>war</type>
-	                                      <overWrite>true</overWrite>
-	                                      <outputDirectory>${project.build.directory}/webapps/root</outputDirectory>
-	                                  </artifactItem>
-                                   </artifactItems>
-					           </configuration>
-                            </execution>
+                            
                             <execution>
                                 <id>copy-war-dependencies</id>
                                 <phase>package</phase>
@@ -691,6 +670,19 @@
 						<artifactId>exec-maven-plugin</artifactId>
 						<version>${exec-maven-plugin.version}</version>
 						<executions>
+							<execution>
+							    <id>mkdir-webapps</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>mkdir</executable>
+									<arguments>
+										<argument>target/webapps</argument>
+									</arguments>
+								</configuration>
+							</execution>
 							<execution>
 							    <id>create-liveapp</id>
 								<phase>package</phase>
@@ -757,12 +749,6 @@
                     <type>war</type>
                 </dependency>
                 <dependency>
-                    <groupId>io.antmedia.app</groupId>
-                    <artifactId>root</artifactId>
-                    <version>${project.parent.version}</version>
-                    <type>war</type>
-                </dependency>
-                <dependency>
                     <groupId>io.antmedia.enterprise</groupId>
                     <artifactId>ant-media-enterprise</artifactId>
                     <version>${project.parent.version}</version>
@@ -799,25 +785,6 @@
                                     <includeScope>provided</includeScope>
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
-                            </execution>
-                            <execution>
-                               <id>unpack-root-app</id>
-					           <phase>package</phase>
-					           <goals>
-					             <goal>unpack</goal>
-					           </goals>
-					           <configuration>
-					             <artifactItems>
-						              <artifactItem>
-	                                      <groupId>io.antmedia.app</groupId>
-	                                      <artifactId>root</artifactId>
-	                                      <version>${project.parent.version}</version>
-	                                      <type>war</type>
-	                                      <overWrite>true</overWrite>
-	                                      <outputDirectory>${project.build.directory}/webapps/root</outputDirectory>
-	                                  </artifactItem>
-                                   </artifactItems>
-					           </configuration>
                             </execution>
                             <execution>
                                 <id>copy-war-dependencies</id>
@@ -864,6 +831,19 @@
 						<artifactId>exec-maven-plugin</artifactId>
 						<version>${exec-maven-plugin.version}</version>
 						<executions>
+						    <execution>
+							    <id>mkdir-webapps</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>mkdir</executable>
+									<arguments>
+										<argument>target/webapps</argument>
+									</arguments>
+								</configuration>
+							</execution>
 							<execution>
 							    <id>create-liveapp</id>
 								<phase>package</phase>
