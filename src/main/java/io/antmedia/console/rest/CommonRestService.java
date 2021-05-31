@@ -8,6 +8,7 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -16,9 +17,7 @@ import java.util.Queue;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.FormParam;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -46,7 +45,7 @@ import io.antmedia.console.AdminApplication;
 import io.antmedia.console.AdminApplication.ApplicationInfo;
 import io.antmedia.console.AdminApplication.BroadcastInfo;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
-import io.antmedia.console.datastore.IConsoleDataStore;
+import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.licence.ILicenceService;
@@ -106,7 +105,7 @@ public class CommonRestService {
 
 	Gson gson = new Gson();
 
-	private IConsoleDataStore dataStore;
+	private AbstractConsoleDataStore dataStore;
 
 	private static final String LOG_LEVEL = "logLevel";
 
@@ -129,6 +128,9 @@ public class CommonRestService {
 
 	private ILicenceService licenceService;
 
+	private static int blockLoginTimeSec = 300 ; // in seconds
+
+	private static int allowedLoginAttempts = 2 ; // in seconds
 
 
 
@@ -207,73 +209,6 @@ public class CommonRestService {
 		return new Result(result);
 	}
 
-	/**
-	 * Edit user account on db. 
-	 * Username cannot be changed, password or userType can be changed
-	 * userType = 0 means ready only account
-	 * userType = 1 means read-write account
-	 * 
-	 * Post method should be used.
-	 * 
-	 * application/x-www-form-urlencoded
-	 * 
-	 * form parameters - case sensitive
-	 * "userName", "password", "userType
-	 * 
-	 * @param userName
-	 * @return JSON data
-	 * if user is edited, success will be true
-	 * if not, success will be false
-	 * 	errorId = 2 means user does not exist
-	 */
-	/*
-	@POST
-	@Path("/editUser")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	public OperationResult editUser(@FormParam("userName") String userName, @FormParam("password") String password, @FormParam("userType") Integer userType) {
-		//TODO: check that request is coming from authorized user
-		boolean result = false;
-		int errorId = -1;
-		if (userName != null && getDataStore().doesUsernameExist(userName)) {
-			result = getDataStore().editUser(userName, password, userType);
-		}
-		else {
-			errorId = 2;
-		}
-
-		OperationResult operationResult = new OperationResult(result);
-		operationResult.setErrorId(errorId);
-		return operationResult;
-	}
-	 */
-
-	/**
-	 * Deletes user account from db
-	 * 
-	 * Post method should be used.
-	 * 
-	 * application/x-www-form-urlencoded
-	 * 
-	 * form parameters - case sensitive
-	 * "userName"
-	 * 
-	 * @param userName
-	 * @return
-	 */
-	/*
-	@POST
-	@Path("/deleteUser")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-	public OperationResult deleteUser(@FormParam("userName") String userName) {
-		//TODO: check that request is coming from authorized user
-		boolean result = getDataStore().deleteUser(userName);
-		return new OperationResult(result);
-	}
-	 */
-
-
 
 	/**
 	 * Authenticates user with userName and password
@@ -282,17 +217,63 @@ public class CommonRestService {
 	 * @param user: The User object to be authenticated 
 	 * @return json that shows user is authenticated or not
 	 */
+	public Result authenticateUser(User user) 
+	{
 
-	public Result authenticateUser(User user) {
-		boolean result=getDataStore().doesUserExist(user.getEmail(), user.getPassword()) ||
-				getDataStore().doesUserExist(user.getEmail(), getMD5Hash(user.getPassword()));
-		if (result) {
-			HttpSession session = servletRequest.getSession();
-			session.setAttribute(IS_AUTHENTICATED, true);
-			session.setAttribute(USER_EMAIL, user.getEmail());
-			session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
+		String message = "";
+
+		boolean tryToAuthenticate = false;
+		if (user != null && user.getEmail() != null) 
+		{
+			if (getDataStore().isUserBlocked(user.getEmail())) 
+			{
+				if ((Instant.now().getEpochSecond() - getDataStore().getBlockTime(user.getEmail())) > blockLoginTimeSec) 
+				{
+					logger.info("Unblocking the user -> {}", user.getEmail());
+					getDataStore().setUnBlocked(user.getEmail());
+					getDataStore().resetInvalidLoginCount(user.getEmail());
+					tryToAuthenticate = true;
+				}
+				else {
+					message = "Too many login attempts. User is blocked for " + blockLoginTimeSec + " secs";
+				}
+	
+	
+			}
+			else {
+				tryToAuthenticate = true;
+			}
 		}
-		return new Result(result);
+
+		boolean result = false;
+		if (tryToAuthenticate) 
+		{
+			result = getDataStore().doesUserExist(user.getEmail(), user.getPassword()) ||
+					getDataStore().doesUserExist(user.getEmail(), getMD5Hash(user.getPassword()));
+
+			if (result) 
+			{
+				HttpSession session = servletRequest.getSession();
+				session.setAttribute(IS_AUTHENTICATED, true);
+				session.setAttribute(USER_EMAIL, user.getEmail());
+				session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
+				getDataStore().resetInvalidLoginCount(user.getEmail());
+			} 
+			else 
+			{
+				getDataStore().incrementInvalidLoginCount(user.getEmail());
+				logger.info("Increased invalid login count to: {}", getDataStore().getInvalidLoginCount(user.getEmail()));
+				if (getDataStore().getInvalidLoginCount(user.getEmail()) > allowedLoginAttempts) {
+					getDataStore().setBlocked(user.getEmail());
+					getDataStore().setBlockTime(user.getEmail(), Instant.now().getEpochSecond());
+					logger.info("User is blocked: {}", getDataStore().doesUsernameExist(user.getEmail()));
+				}
+
+			}
+		}
+
+		return new Result(result, message);
+
 	}
 
 	public Result isAdmin() {
@@ -331,12 +312,12 @@ public class CommonRestService {
 			else {
 				message = "User cannot edit itself";
 			}
-			
+
 		} 
 		else {
 			message = "Edited user is not found in database";
 		}
-		
+
 		return new Result(result, message);
 	}
 
@@ -794,7 +775,7 @@ public class CommonRestService {
 
 		store.put(NODE_GROUP, String.valueOf(serverSettings.getNodeGroup()));
 		getServerSettingsInternal().setNodeGroup(serverSettings.getNodeGroup());
-		
+
 		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
 
 		if(LOG_LEVEL_ALL.equals(serverSettings.getLogLevel()) || LOG_LEVEL_TRACE.equals(serverSettings.getLogLevel()) 
@@ -810,7 +791,7 @@ public class CommonRestService {
 		}
 
 		return gson.toJson(new Result(store.save()));
-		
+
 
 	}
 
@@ -875,11 +856,11 @@ public class CommonRestService {
 		return appAdaptor.resetBroadcasts();
 	}
 
-	public void setDataStore(IConsoleDataStore dataStore) {
+	public void setDataStore(AbstractConsoleDataStore dataStore) {
 		this.dataStore = dataStore;
 	}
 
-	public IConsoleDataStore getDataStore() {
+	public AbstractConsoleDataStore getDataStore() {
 		if (dataStore == null) {
 			dataStore = getDataStoreFactory().getDataStore();
 		}
@@ -947,7 +928,7 @@ public class CommonRestService {
 
 			store.put(LOG_LEVEL, logLevel);
 
-	
+
 		}
 
 		return gson.toJson(new Result(store.save()));
@@ -1115,6 +1096,10 @@ public class CommonRestService {
 	public boolean isClusterMode() {
 		WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
 		return ctxt.containsBean(IClusterNotifier.BEAN_NAME);
+	}
+
+	public Result getBlockedStatus(String usermail) {
+		return new Result(getDataStore().isUserBlocked(usermail));
 	}
 
 }
