@@ -65,7 +65,7 @@ before_install:
        echo "branch not found. Using version in sonatype"; 
     fi)
 
-  # Get Angular app
+  # get Angular app
   - npm install -g @angular/cli@10.0.5 
   - (if [ $(git ls-remote https://github.com/ant-media/ManagementConsole_AngularApp.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
       then 

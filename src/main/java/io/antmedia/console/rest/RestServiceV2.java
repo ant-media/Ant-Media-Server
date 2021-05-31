@@ -82,6 +82,16 @@ public class RestServiceV2 extends CommonRestService {
 	public Result deleteUser(@ApiParam(value = "User name or e-mail of the user to be deleted", required = true) @PathParam("username") String userName) {
 		return super.deleteUser(userName);
 	}
+	
+	@ApiOperation(value = "Returns if user is blocked. User is blocked for a specific time if there are login attempts")
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/users/{usermail}/blocked")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public Result getBlockedStatus(@ApiParam(value="User name or e-mail of the user to check it status") @PathParam("usermail") String usermail) {
+		return super.getBlockedStatus(usermail);
+	}
 
 	@ApiOperation(value = "Returns user list in the server management panel", response = List.class)
 	@GET
@@ -605,5 +615,7 @@ public class RestServiceV2 extends CommonRestService {
 		}
 		return new Result(false, "Application name is not defined");
 	}
+
+
 
 }

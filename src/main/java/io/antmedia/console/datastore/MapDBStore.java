@@ -25,7 +25,7 @@ import io.antmedia.rest.model.UserType;
 import kotlin.jvm.functions.Function1;
 
 
-public class MapDBStore implements IConsoleDataStore {
+public class MapDBStore extends AbstractConsoleDataStore {
 
 	private DB db;
 	private HTreeMap<String, String> userMap;
