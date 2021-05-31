@@ -14,7 +14,7 @@ import javax.ws.rs.HttpMethod;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
-import io.antmedia.console.datastore.IConsoleDataStore;
+import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.filter.AbstractFilter;
 import io.antmedia.rest.model.User;
@@ -23,9 +23,9 @@ import io.antmedia.rest.model.UserType;
 public class AuthenticationFilter extends AbstractFilter {
 
 
-	private IConsoleDataStore getDataStore() 
+	private AbstractConsoleDataStore getDataStore() 
 	{
-		IConsoleDataStore dataStore = null;
+		AbstractConsoleDataStore dataStore = null;
 
 		ConfigurableWebApplicationContext appContext = getWebApplicationContext();
 		if (appContext != null && appContext.isRunning()) 
@@ -34,7 +34,7 @@ public class AuthenticationFilter extends AbstractFilter {
 
 			if (dataStoreFactory instanceof ConsoleDataStoreFactory) 
 			{
-				IConsoleDataStore dataStoreTemp = ((ConsoleDataStoreFactory)dataStoreFactory).getDataStore();
+				AbstractConsoleDataStore dataStoreTemp = ((ConsoleDataStoreFactory)dataStoreFactory).getDataStore();
 				if (dataStoreTemp.isAvailable()) 
 				{
 					dataStore = dataStoreTemp;
@@ -62,7 +62,9 @@ public class AuthenticationFilter extends AbstractFilter {
 				path.equals("/rest/v2/authentication-status") ||
 				path.equals("/rest/v2/users/initial") ||
 				path.equals("/rest/v2/first-login-status") ||
-				path.equals("/rest/v2/users/authenticate") ) 
+				path.equals("/rest/v2/users/authenticate") ||
+				(path.startsWith("/rest/v2/users") && path.endsWith("blocked"))
+				) 
 		{
 			chain.doFilter(request, response);
 		}
@@ -78,7 +80,7 @@ public class AuthenticationFilter extends AbstractFilter {
 			else
 			{
 				//if it's not GET method, it should be PUT, DELETE or POST, check if user is admin
-				IConsoleDataStore store = getDataStore();
+				AbstractConsoleDataStore store = getDataStore();
 				if (store != null) 
 				{
 					String userEmail = (String)httpRequest.getSession().getAttribute(CommonRestService.USER_EMAIL);

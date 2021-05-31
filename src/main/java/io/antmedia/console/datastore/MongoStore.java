@@ -23,7 +23,7 @@ import io.antmedia.rest.model.UserType;
 import java.util.List;
 import java.util.ArrayList;
 
-public class MongoStore implements IConsoleDataStore {
+public class MongoStore extends AbstractConsoleDataStore {
 
 	private Morphia morphia;
 	private Datastore datastore;
