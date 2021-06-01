@@ -330,7 +330,7 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 	
-	@ApiOperation(value = "Add a third pary rtmp end point to the stream. It supports adding after broadcast is started ", notes = "", response = Result.class)
+	@ApiOperation(value = "Add a third party rtmp end point to the stream. It supports adding after broadcast is started. If an url is already added to a stream, trying to add the same rtmp url will return false.", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
@@ -340,8 +340,8 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		String rtmpUrl = null;
 		Result result = new Result(false);
-		
-		if(endpoint != null && endpoint.getRtmpUrl() != null) {
+		List<Endpoint> endpoints = getDataStore().get(id) != null ? getDataStore().get(id).getEndPointList():null;
+		if((endpoint != null && endpoint.getRtmpUrl() != null) && (endpoints == null || !endpoints.stream().anyMatch(o -> o.getRtmpUrl().equals(endpoint.getRtmpUrl())))) {
 			rtmpUrl = endpoint.getRtmpUrl();
 			result = super.addEndpoint(id, endpoint);
 		}
