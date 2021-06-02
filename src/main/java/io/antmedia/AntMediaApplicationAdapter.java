@@ -262,9 +262,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			storageClient.setRegion(appSettings.getS3RegionName());
 			storageClient.setAccessKey(appSettings.getS3AccessKey());
 			storageClient.setSecretKey(appSettings.getS3SecretKey());
-			if (!appSettings.getS3Endpoint().equals("")){
-				storageClient.setEndpoint(appSettings.getS3Endpoint());
-			 }
+			if (!"".equals(appSettings.getS3Endpoint())){
+			   storageClient.setEndpoint(appSettings.getS3Endpoint());
+			}
 		}
 		logger.info("{} started", app.getName());
 
@@ -1463,9 +1463,8 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_S3_SECRET_KEY, newAppsettings.getS3SecretKey() != null ? newAppsettings.getS3SecretKey() : "");
 		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
 		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
-		//if (!appSettings.getS3Endpoint().equals("")) {
-			store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
-		//}
+		store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
+		
 
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
@@ -1532,45 +1531,42 @@ public Result createInitializationProcess(String appName){
 
 		if (appSettings.isS3RecordingEnabled()) {
 			appSettings.setS3AccessKey(newSettings.getS3AccessKey());
+			if (appSettings.getS3AccessKey().isEmpty()) {
+			   logger.warn("S3 recording is enabled but access key is not given for app:{} ", getScope().getName());
+			}
+			
+			
 			appSettings.setS3SecretKey(newSettings.getS3SecretKey());
+			if (appSettings.getS3SecretKey().isEmpty()) {
+			   logger.warn("S3 recording is enabled but secret key is not given for app:{} ", getScope().getName());
+			}
+			
 			appSettings.setS3BucketName(newSettings.getS3BucketName());
+			if (appSettings.getS3BucketName().isEmpty()) {
+		   	   logger.info("S3 recording is enabled but bucket name is not given for app:{} ", getScope().getName());
+			}
+			
 			appSettings.setS3RegionName(newSettings.getS3RegionName());
-			if (!appSettings.getS3Endpoint().equals("")) {
-				appSettings.setS3Endpoint(newSettings.getS3Endpoint());
+			if (appSettings.getS3RegionName().isEmpty()) {
+		  	  logger.info("S3 recording is enabled but region name is not given for app:{} ", getScope().getName());
+			}
+			
+			if (!"".equals(newSettings.getS3Endpoint())) {
+			   appSettings.setS3Endpoint(newSettings.getS3Endpoint());
+			   storageClient.setEndpoint(newSettings.getS3Endpoint());
 			}
 			storageClient.setStorageName(newSettings.getS3BucketName());
 			storageClient.setAccessKey(newSettings.getS3AccessKey());
 			storageClient.setSecretKey(newSettings.getS3SecretKey());
 			storageClient.setRegion(newSettings.getS3RegionName());
-
-			if (!appSettings.getS3Endpoint().equals("")){
-				storageClient.setEndpoint(appSettings.getS3Endpoint());
-			}
-
-		}else{
+		}
+		else
+		{
 			appSettings.setS3AccessKey("");
 			appSettings.setS3SecretKey("");
 			appSettings.setS3BucketName("");
 			appSettings.setS3RegionName("");
-
 		}
-
-		if (appSettings.isS3RecordingEnabled()){
-			if (appSettings.getS3AccessKey().isEmpty())
-			logger.info("S3 recording is enabled but access key is not given ");
-			if (appSettings.getS3SecretKey().isEmpty())
-				logger.info("S3 recording is enabled but secret key is not given ");
-			if (appSettings.getS3BucketName().isEmpty())
-				logger.info("S3 recording is enabled but bucket name is not given ");
-			if (appSettings.getS3RegionName().isEmpty())
-				logger.info("S3 recording is enabled but region name is not given ");
-
-		}
-
-
-
-
-
 
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 		
