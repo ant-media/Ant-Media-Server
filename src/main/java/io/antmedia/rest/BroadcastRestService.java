@@ -330,7 +330,7 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 	
-	@ApiOperation(value = "Add a third party rtmp end point to the stream. It supports adding after broadcast is started. If an url is already added to a stream, trying to add the same rtmp url will return false.", notes = "", response = Result.class)
+	@ApiOperation(value = "Adds a third party rtmp end point to the stream. It supports adding after broadcast is started. If an url is already added to a stream, trying to add the same rtmp url will return false.", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
