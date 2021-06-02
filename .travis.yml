@@ -2,6 +2,7 @@ dist: bionic
 language: java
 jdk:
   - openjdk11
+node_js: "14.8.0"
 
 git:
   depth: false
@@ -63,7 +64,23 @@ before_install:
      else
        echo "branch not found. Using version in sonatype"; 
     fi)
-  
+
+  # get Angular app
+  - npm install -g @angular/cli@10.0.5 
+  - (if [ $(git ls-remote https://github.com/ant-media/ManagementConsole_AngularApp.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
+      then 
+       echo " $TRAVIS_BRANCH branch found";  
+       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/ManagementConsole_AngularApp.git;  
+      else
+       echo "branch not found"; 
+       git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git;  
+     fi)
+  - cd ManagementConsole_AngularApp
+  - npm install
+  - ng build --prod
+  - cp -a ./dist/. ../src/main/server/webapps/root/
+  - cd ..
+
     # package ant media server
   - mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
   

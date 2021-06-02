@@ -36,6 +36,10 @@ public class WebSocketConstants {
 
 	public static final String CANDIDATE_ID = "id";
 
+	public static final String TOGGLE_AUDIO_COMMAND = "toggleAudio";
+
+	public static final String TOGGLE_VIDEO_COMMAND = "toggleVideo";
+
 	public static final String CANDIDATE_SDP = "candidate";
 
 	public static final String TAKE_CONFIGURATION_COMMAND = "takeConfiguration";
