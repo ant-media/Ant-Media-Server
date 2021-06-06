@@ -2141,50 +2141,6 @@ public class ConsoleAppRestServiceTest{
 		return tmp;
 	}
 
-	@Test
-	public void testBlockUser() {
-		try {
-			// create user for the first login
-			Result firstLogin = callisFirstLogin();
-
-			User user = new User();
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword(TEST_USER_PASS);
-			assertTrue(callAuthenticateUser(user).isSuccess());
-
-
-			Result authenticatedUserResult = callAuthenticateUser(user);
-			assertTrue(authenticatedUserResult.isSuccess());
-
-			user.setEmail("any_email");
-			authenticatedUserResult = callAuthenticateUser(user);
-			assertFalse(authenticatedUserResult.isSuccess());
-
-
-			user.setEmail(TEST_USER_EMAIL);
-			user.setPassword( "any_pass");
-
-			// try to authenticate 1 more than the allowed number to block the user
-			for (int i = 0; i < restService.getAllowedLoginAttempts()+1; i++) {
-				authenticatedUserResult = callAuthenticateUser(user);
-				assertFalse(authenticatedUserResult.isSuccess());
-			}
-
-
-			// check if the user is really blocked
-			assertTrue(getBlockedStatus(user).isSuccess());
-
-			// try to create user that is being used in first step
-			// but this time it should fail
-			firstLogin = callisFirstLogin();
-			assertFalse(firstLogin.isSuccess());
-
-
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-	}
 
 	public static Result callSetAppSettings(String appName, AppSettings appSettingsModel) throws Exception {
 		
@@ -2624,5 +2580,50 @@ public class ConsoleAppRestServiceTest{
 		}
 		return null;
 
+	}
+
+	@Test
+	public void testBlockUser() {
+		try {
+			// create user for the first login
+			Result firstLogin = callisFirstLogin();
+
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			assertTrue(callAuthenticateUser(user).isSuccess());
+
+
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			user.setEmail("any_email");
+			authenticatedUserResult = callAuthenticateUser(user);
+			assertFalse(authenticatedUserResult.isSuccess());
+
+
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword( "any_pass");
+
+			// try to authenticate 1 more than the allowed number to block the user
+			for (int i = 0; i < restService.getAllowedLoginAttempts()+1; i++) {
+				authenticatedUserResult = callAuthenticateUser(user);
+				assertFalse(authenticatedUserResult.isSuccess());
+			}
+
+
+			// check if the user is really blocked
+			assertTrue(getBlockedStatus(user).isSuccess());
+
+			// try to create user that is being used in first step
+			// but this time it should fail
+			firstLogin = callisFirstLogin();
+			assertFalse(firstLogin.isSuccess());
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 }
