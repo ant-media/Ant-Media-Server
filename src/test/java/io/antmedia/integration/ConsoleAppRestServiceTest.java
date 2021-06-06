@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.console.rest.CommonRestService;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -78,6 +79,7 @@ import net.bytebuddy.utility.RandomString;
 public class ConsoleAppRestServiceTest{
 
 	private static String ROOT_SERVICE_URL;
+	private static CommonRestService restService;
 
 	private static String ffmpegPath = "ffmpeg";
 
@@ -120,6 +122,7 @@ public class ConsoleAppRestServiceTest{
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
 		try {
+			restService = new CommonRestService();
 			httpCookieStore = new BasicCookieStore();
 
 			Result firstLogin = callisFirstLogin();
@@ -2113,6 +2116,74 @@ public class ConsoleAppRestServiceTest{
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
 		return tmp;
+	}
+
+
+	// implement REST command for particular user's blocked status
+	private static Result getBlockedStatus(User user) throws Exception {
+		String url = ROOT_SERVICE_URL + "/users/" + user.getEmail() + "/blocked";
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest get = RequestBuilder.get().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+
+		HttpResponse response = client.execute(get);
+
+		StringBuffer result = RestServiceV2Test.readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		log.info("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(tmp);
+		return tmp;
+	}
+
+	@Test
+	public void testBlockUser() {
+		try {
+			// create user for the first login
+			Result firstLogin = callisFirstLogin();
+
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			assertTrue(callAuthenticateUser(user).isSuccess());
+
+
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			user.setEmail("any_email");
+			authenticatedUserResult = callAuthenticateUser(user);
+			assertFalse(authenticatedUserResult.isSuccess());
+
+
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword( "any_pass");
+
+			// try to authenticate 1 more than the allowed number to block the user
+			for (int i = 0; i < restService.getAllowedLoginAttempts()+1; i++) {
+				authenticatedUserResult = callAuthenticateUser(user);
+				assertFalse(authenticatedUserResult.isSuccess());
+			}
+
+
+			// check if the user is really blocked
+			assertTrue(getBlockedStatus(user).isSuccess());
+
+			// try to create user that is being used in first step
+			// but this time it should fail
+			firstLogin = callisFirstLogin();
+			assertFalse(firstLogin.isSuccess());
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 
 	public static Result callSetAppSettings(String appName, AppSettings appSettingsModel) throws Exception {
