@@ -159,15 +159,12 @@ public class CommonRestService {
 	public Result addUser(User user) {
 		boolean result = false;
 		String message = "";
-		HttpSession session = servletRequest.getSession();
-		User currentUser = getDataStore().getUser(session.getAttribute(USER_EMAIL).toString());
 		if (user != null) 
 		{
 			if (!getDataStore().doesUsernameExist(user.getEmail())) 
 			{
 				result = getDataStore().addUser(user.getEmail(), getMD5Hash(user.getPassword()), user.getUserType());
 				logger.info("added user = {} password = {} user type = {}", user.getEmail(), user.getPassword()  ,user.getUserType());
-				logger.info("current user = {} user type = {}", currentUser.getEmail(),  currentUser.getUserType());
 			}
 			else {
 				message = "User with the same e-mail already exists";
@@ -275,6 +272,9 @@ public class CommonRestService {
 		return new Result(result, message);
 
 	}
+	public void setRequestForTest(HttpServletRequest testRequest){
+		servletRequest = testRequest;
+	}
 
 	public Result isAdmin() {
 		HttpSession session = servletRequest.getSession();
@@ -365,6 +365,7 @@ public class CommonRestService {
 				result = getDataStore().editUser(userMail, getMD5Hash(user.getNewPassword()), UserType.ADMIN);
 
 				if (result) {
+					message = "Sucess";
 					HttpSession session = servletRequest.getSession();
 					if (session != null) {
 						session.setAttribute(IS_AUTHENTICATED, true);
