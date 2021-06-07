@@ -14,6 +14,7 @@
 		</property>
 	</bean>
 
+
 	<!-- Server bean -->
 	<bean id="red5.server" class="org.red5.server.Server" />
 
@@ -91,14 +92,17 @@
 	<bean id="app.settings" class="io.antmedia.AppSettings"></bean>
 	
 	<bean id="streamAcceptFilter" class="io.antmedia.filter.StreamAcceptFilter"/>
-	 
+
+	<bean id="app.storageClient" class="io.antmedia.storage.AmazonS3StorageClient">
+	</bean>
+
 	<bean id="web.handler" class="io.antmedia.test.Application">
 		<property name="dataStoreFactory" ref="dataStoreFactory" />
 		<property name="appSettings" ref="app.settings" />
 		<property name="serverSettings" ref="ant.media.server.settings"/>
 		<property name="streamAcceptFilter" ref="streamAcceptFilter"/>
 		<property name="streamPublishSecurityList">
-			<list>			  	
+			<list>
 				<bean class="io.antmedia.security.ExpireStreamPublishSecurity" >
 					<property name="dataStoreFactory"  ref="dataStoreFactory"/>
 				</bean>

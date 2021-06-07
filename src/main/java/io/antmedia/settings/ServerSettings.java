@@ -85,8 +85,6 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 	 */
 	private boolean buildForMarket = false;
 	
-	
-	
 	private String logLevel = null;
 
 	/**

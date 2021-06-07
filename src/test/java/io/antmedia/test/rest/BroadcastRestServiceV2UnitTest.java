@@ -2192,7 +2192,6 @@ public class BroadcastRestServiceV2UnitTest {
 	
 	@Test
 	public void testAddIPCamera()  {
-
 		Result result = new Result(false);
 
 		Broadcast newCam = new Broadcast("testAddIPCamera", "10.2.40.64:8080", "admin", "admin",
@@ -2269,6 +2268,12 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//should be true because load is below limit
 		assertTrue(result.isSuccess());
+		
+		Broadcast noSpecifiedType =  new Broadcast("testAddIPCamera");
+		result=streamSourceRest.addStreamSource(noSpecifiedType,"");
+		//should be true since it wouldn't return true because there is no ip camera or stream source defined in the declaration.
+		assertFalse(result.isSuccess());
+		assertEquals("Auto start query needs an IP camera or stream source.",result.getMessage() );
 
 	}
 
@@ -2989,6 +2994,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast broadcast2=new Broadcast();
 		Broadcast broadcast3=new Broadcast();
 		Broadcast broadcast4=new Broadcast();
+		Broadcast broadcast5=new Broadcast();
 		try {
 			broadcast1.setStreamId("stream1");
 			broadcast1.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -2997,6 +3003,7 @@ public class BroadcastRestServiceV2UnitTest {
 			broadcast3.setStreamId("stream3");
 			broadcast3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast4.setStreamId("stream4");
+			broadcast5.setStreamId("stream5");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -3004,6 +3011,7 @@ public class BroadcastRestServiceV2UnitTest {
 		store.save(broadcast2);
 		store.save(broadcast3);
 		store.save(broadcast4);
+		store.save(broadcast5);
 		restServiceSpy.addStreamToTheRoom("testroom","stream1");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.addStreamToTheRoom("testroom","stream2");
@@ -3013,7 +3021,9 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceSpy.addStreamToTheRoom("someunknownroom","stream3");
 		assertEquals(2,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.addStreamToTheRoom("testroom","stream4");
-		assertEquals(2,store.getConferenceRoom("testroom").getRoomStreamList().size());
+		assertEquals(3,store.getConferenceRoom("testroom").getRoomStreamList().size());
+		restServiceSpy.addStreamToTheRoom("testroom", "stream5");
+		assertEquals(4,store.getConferenceRoom("testroom").getRoomStreamList().size());
 	}
 
 	@Test

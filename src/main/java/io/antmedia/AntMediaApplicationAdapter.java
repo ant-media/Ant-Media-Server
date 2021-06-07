@@ -17,6 +17,8 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+
+import io.antmedia.storage.StorageClient;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -129,8 +131,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	protected WebRTCVideoReceiveStats webRTCVideoReceiveStats = new WebRTCVideoReceiveStats();
 
 	protected WebRTCAudioReceiveStats webRTCAudioReceiveStats = new WebRTCAudioReceiveStats();
-	
-	
+
+
 	protected WebRTCVideoSendStats webRTCVideoSendStats = new WebRTCVideoSendStats();
 
 	protected WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
@@ -138,6 +140,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	private IClusterNotifier clusterNotifier;
 	
 	protected boolean serverShuttingDown = false;
+
+	protected StorageClient storageClient;
+
+
 
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -159,15 +165,38 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		if (app.getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
 			//which means it's in cluster mode
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
+			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
+				
 				updateSettings(settings, false);
 			});
 			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
 			
-			if(storedSettings == null) {
+			boolean updateClusterSettings = false;
+			if(storedSettings == null) 
+			{
+				//if storedSettings is null, it means app is just created
+				
+				logger.warn("There is a stored settings for the app:{} and it's status to be deleted. Probably, application with the same name is deleted/created again", app.getName());
+				
 				storedSettings = appSettings;
+				updateClusterSettings = true;
 			}
-			updateSettings(storedSettings, true);
+			else if (storedSettings.isToBeDeleted() && 
+					(System.currentTimeMillis() - storedSettings.getUpdateTime()) > 60000) {
+				//if storedSettings isToBeDeleted and update time is older 60 seconds, 
+				//it means that app with the same name is re-created
+				logger.info("App:{} exists in datastore and re-creating because latest update time is older than 60 seconds", app.getName());
+				storedSettings = appSettings;
+				updateClusterSettings = true;
+				
+				//if update time is earlier than 60 seconds, 
+				//it means that user just created and deleted the app in 60 seconds
+			}
+			
+			logger.info("Updating settings while app({}) is being started. AppSettings will be saved to Cluster db? Answer -> {}", app.getName(), updateClusterSettings ? "yes" : "no");
+			updateSettings(storedSettings, updateClusterSettings);
+			
 		}
 		
 		vertx.setTimer(10, l -> {
@@ -222,6 +251,20 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setExcessiveBandwidthAlgorithmEnabled(appSettings.isExcessiveBandwidthAlgorithmEnabled());
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
+		}
+
+		storageClient = (StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
+
+		if (appSettings.isS3RecordingEnabled()) {
+
+
+			storageClient.setStorageName(appSettings.getS3BucketName());
+			storageClient.setRegion(appSettings.getS3RegionName());
+			storageClient.setAccessKey(appSettings.getS3AccessKey());
+			storageClient.setSecretKey(appSettings.getS3SecretKey());
+			if (!"".equals(appSettings.getS3Endpoint())){
+			   storageClient.setEndpoint(appSettings.getS3Endpoint());
+			}
 		}
 		logger.info("{} started", app.getName());
 
@@ -305,7 +348,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void streamBroadcastClose(IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
-		vertx.executeBlocking(future -> closeBroadcast(streamName), null);
+		vertx.executeBlocking(future ->  { 
+			closeBroadcast(streamName); 
+			future.complete();
+			}, null);
 	}
 
 	public void closeBroadcast(String streamName) {
@@ -434,19 +480,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false));
 	}
 
-	public void streamPublishStart(final IBroadcastStream stream) {
-		String streamName = stream.getPublishedName();
-		logger.info("stream name in streamPublishStart: {}", streamName );
-		long absoluteStartTimeMs = 0;
-		if (stream instanceof ClientBroadcastStream) {
-			absoluteStartTimeMs = ((ClientBroadcastStream) stream).getAbsoluteStartTimeMs();
-		}
-		startPublish(streamName, absoluteStartTimeMs);
-		
-	
-	}
-
-	public void startPublish(String streamName, long absoluteStartTimeMs) {
+	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType) {
 		vertx.executeBlocking( handler -> {
 			try {
 
@@ -456,7 +490,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 						if (broadcast == null) {
 	
-							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
+							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs, publishType);
 						} 
 						else {
 	
@@ -465,6 +499,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 							broadcast.setOriginAdress(getServerSettings().getHostAddress());
 							broadcast.setWebRTCViewerCount(0);
 							broadcast.setHlsViewerCount(0);
+							broadcast.setPublishType(publishType);
 							boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
 							
 							logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
@@ -565,7 +600,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 	}
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, ServerSettings serverSettings, long absoluteStartTimeMs) {		
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, ServerSettings serverSettings, long absoluteStartTimeMs, String publishType) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
@@ -573,7 +608,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		newBroadcast.setZombi(true);
 		try {
 			newBroadcast.setStreamId(streamId);
-
+			newBroadcast.setPublishType(publishType);
 			String settingsListenerHookURL = null; 
 			if (appSettings != null) {
 				settingsListenerHookURL = appSettings.getListenerHookURL();
@@ -656,7 +691,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				logger.info("running muxer finish script: {}", scriptFile);
 				Process exec = Runtime.getRuntime().exec(scriptFile);
 				int result = exec.waitFor();
-				future.complete();
+				
 				logger.info("completing script: {} with return value {}", scriptFile, result);
 			} catch (IOException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -664,10 +699,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				logger.error(ExceptionUtils.getStackTrace(e));
 				Thread.currentThread().interrupt();
 			} 
+			future.complete();
 
-		}, res -> {
-
-		});
+		}, null);
 	}
 
 	private static class AuthCheckJob {
@@ -966,7 +1000,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		
-		vertx.setTimer(5, h -> {
+		vertx.setTimer(500, h -> {
 			logger.info("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
 			getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
 		});
@@ -1332,7 +1366,10 @@ public Result createInitializationProcess(String appName){
 			updateAppSettingsBean(appSettings, newSettings);
 			
 			if (notifyCluster && clusterNotifier != null) {
-				clusterNotifier.getClusterStore().saveSettings(appSettings);
+				//we should set to be deleted because app deletion fully depends on the cluster synch
+				appSettings.setToBeDeleted(newSettings.isToBeDeleted());
+				boolean saveSettings = clusterNotifier.getClusterStore().saveSettings(appSettings);
+				logger.info("Saving settings to cluster db -> {} for app: {}", saveSettings, getScope().getName());
 			}
 			
 			result = true;
@@ -1373,6 +1410,13 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishTokenControlEnabled()));
 		store.put(AppSettings.SETTINGS_PLAY_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPlayTokenControlEnabled()));
 		store.put(AppSettings.SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY, String.valueOf(newAppsettings.isTimeTokenSubscriberOnly()));
+		store.put(AppSettings.SETTINGS_ENABLE_TIME_TOKEN_PLAY, String.valueOf(newAppsettings.isEnableTimeTokenForPlay()));
+		store.put(AppSettings.SETTINGS_ENABLE_TIME_TOKEN_PUBLISH, String.valueOf(newAppsettings.isEnableTimeTokenForPublish()));
+
+
+		store.put(AppSettings.SETTINGS_PUBLISH_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishJwtControlEnabled()));
+		store.put(AppSettings.SETTINGS_PLAY_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isPlayJwtControlEnabled()));
+		store.put(AppSettings.SETTINGS_JWT_STREAM_SECRET_KEY, newAppsettings.getJwtStreamSecretKey() != null ? newAppsettings.getJwtStreamSecretKey() : "");
 		
 		store.put(AppSettings.SETTINGS_WEBRTC_ENABLED, String.valueOf(newAppsettings.isWebRTCEnabled()));
 		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(newAppsettings.getWebRTCFrameRate()));
@@ -1405,9 +1449,19 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_LISTENER_HOOK_URL, newAppsettings.getListenerHookURL() != null ? newAppsettings.getListenerHookURL() : "");
 		
 		store.put(AppSettings.SETTINGS_STREAM_FETCHER_RESTART_PERIOD, String.valueOf(newAppsettings.getRestartStreamFetcherPeriod()));
-		
+
 		store.put(AppSettings.SETTINGS_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isJwtControlEnabled()));
 		store.put(AppSettings.SETTINGS_JWT_SECRET_KEY, newAppsettings.getJwtSecretKey() != null ? newAppsettings.getJwtSecretKey() : "");
+
+		store.put(AppSettings.SETTINGS_S3_RECORDING_ENABLED, String.valueOf(newAppsettings.isS3RecordingEnabled()));
+		// app setting S3
+		store.put(AppSettings.SETTINGS_S3_ACCESS_KEY, newAppsettings.getS3AccessKey() != null ? newAppsettings.getS3AccessKey() : "");
+		store.put(AppSettings.SETTINGS_S3_SECRET_KEY, newAppsettings.getS3SecretKey() != null ? newAppsettings.getS3SecretKey() : "");
+		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
+		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
+		store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
+		
+
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
 		return store.save();
@@ -1415,7 +1469,7 @@ public Result createInitializationProcess(String appName){
 
 
 	private void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
-	{	
+	{
 		appSettings.setMp4MuxingEnabled(newSettings.isMp4MuxingEnabled());
 		appSettings.setWebMMuxingEnabled(newSettings.isWebMMuxingEnabled());
 		appSettings.setAddDateTimeToMp4FileName(newSettings.isAddDateTimeToMp4FileName());
@@ -1430,6 +1484,9 @@ public Result createInitializationProcess(String appName){
 		appSettings.setPublishTokenControlEnabled(newSettings.isPublishTokenControlEnabled());
 		appSettings.setPlayTokenControlEnabled(newSettings.isPlayTokenControlEnabled());
 		appSettings.setTimeTokenSubscriberOnly(newSettings.isTimeTokenSubscriberOnly());
+		appSettings.setEnableTimeTokenForPublish(newSettings.isEnableTimeTokenForPublish());
+		appSettings.setEnableTimeTokenForPlay(newSettings.isEnableTimeTokenForPlay());
+
 		appSettings.setJwtStreamSecretKey(newSettings.getJwtStreamSecretKey());
 		appSettings.setPlayJwtControlEnabled(newSettings.isPlayJwtControlEnabled());
 		appSettings.setPublishJwtControlEnabled(newSettings.isPublishJwtControlEnabled());
@@ -1467,7 +1524,49 @@ public Result createInitializationProcess(String appName){
 		appSettings.setIpFilterEnabled(newSettings.isIpFilterEnabled());
 		appSettings.setJwtControlEnabled(newSettings.isJwtControlEnabled());
 		appSettings.setJwtSecretKey(newSettings.getJwtSecretKey());
-		
+
+
+		appSettings.setS3RecordingEnabled(newSettings.isS3RecordingEnabled());
+
+		if (appSettings.isS3RecordingEnabled()) {
+			appSettings.setS3AccessKey(newSettings.getS3AccessKey());
+			if (appSettings.getS3AccessKey().isEmpty()) {
+			   logger.warn("S3 recording is enabled but access key is not given for app:{} ", getScope().getName());
+			}
+			
+			
+			appSettings.setS3SecretKey(newSettings.getS3SecretKey());
+			if (appSettings.getS3SecretKey().isEmpty()) {
+			   logger.warn("S3 recording is enabled but secret key is not given for app:{} ", getScope().getName());
+			}
+			
+			appSettings.setS3BucketName(newSettings.getS3BucketName());
+			if (appSettings.getS3BucketName().isEmpty()) {
+		   	   logger.info("S3 recording is enabled but bucket name is not given for app:{} ", getScope().getName());
+			}
+			
+			appSettings.setS3RegionName(newSettings.getS3RegionName());
+			if (appSettings.getS3RegionName().isEmpty()) {
+		  	  logger.info("S3 recording is enabled but region name is not given for app:{} ", getScope().getName());
+			}
+			
+			if (!"".equals(newSettings.getS3Endpoint())) {
+			   appSettings.setS3Endpoint(newSettings.getS3Endpoint());
+			   storageClient.setEndpoint(newSettings.getS3Endpoint());
+			}
+			storageClient.setStorageName(newSettings.getS3BucketName());
+			storageClient.setAccessKey(newSettings.getS3AccessKey());
+			storageClient.setSecretKey(newSettings.getS3SecretKey());
+			storageClient.setRegion(newSettings.getS3RegionName());
+		}
+		else
+		{
+			appSettings.setS3AccessKey("");
+			appSettings.setS3SecretKey("");
+			appSettings.setS3BucketName("");
+			appSettings.setS3RegionName("");
+		}
+
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	

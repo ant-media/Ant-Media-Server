@@ -9,11 +9,13 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,6 +23,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -97,7 +100,7 @@ public class ConsoleAppRestServiceTest{
 
 	static {
 
-		ROOT_SERVICE_URL = "http://" + SERVER_ADDR + ":5080/rest";
+		ROOT_SERVICE_URL = "http://" + SERVER_ADDR + ":5080/rest/v2";
 
 		System.out.println("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
@@ -221,6 +224,57 @@ public class ConsoleAppRestServiceTest{
 
 
 		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testCreateAppShellBug() {
+		
+		String installLocation = "/usr/local/antmedia";
+		//String installLocation = "/Users/mekya/softwares/ant-media-server";
+		
+		String command = "sudo " + installLocation + "/create_app.sh -c true -n testapp -m 127.0.0.1:27018 -u user -s password -p " + installLocation;
+		
+		try {
+			
+			Process exec = Runtime.getRuntime().exec(command);
+			
+			InputStream errorStream = exec.getErrorStream();
+			byte[] data = new byte[1024];
+			int length = 0;
+			while ((length = errorStream.read(data, 0, data.length)) > 0) 
+			{
+				System.out.println("error stream -> " + new String(data, 0, length));
+			}
+			
+			InputStream inputStream = exec.getInputStream();
+			while ((length = inputStream.read(data, 0, data.length)) > 0) 
+			{
+				System.out.println("inputStream stream -> " + new String(data, 0, length));
+			}
+			
+		
+			exec.waitFor();
+			
+			
+			File propertiesFile = new File( installLocation + "/webapps/testapp/WEB-INF/red5-web.properties");
+	        String content = Files.readString(propertiesFile.toPath());
+	        
+	        content.contains("db.type=mongodb");
+	        content.contains("db.user=user");
+	        content.contains("db.host=127.0.0.1:27018");
+	        content.contains("db.password=password");
+	        
+	        
+	        exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/testapp ");
+	        assertEquals(0, exec.waitFor());
+	        
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (InterruptedException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
@@ -449,40 +503,40 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	@Test
-	public void testLogLevel() throws Exception {
+	public void testLogLevel()  {
 
 		try {	
 
 			//get Log Level Check (Default Log Level INFO)
-
-			String logLevel = callGetLogLevel();
-			JSONObject logJSON = (JSONObject) new JSONParser().parse(logLevel);
-			String tmpObject = (String) logJSON.get(LOG_LEVEL); 
-			assertEquals(LOG_LEVEL_INFO, tmpObject);
+			ServerSettings serverSettings = callGetServerSettings();
+			String logLevel = serverSettings.getLogLevel();
+			
+			assertEquals(LOG_LEVEL_INFO, logLevel);
 
 			// change Log Level Check (INFO -> WARN)
-			Result callSetLogLevelWarn = callSetLogLevel(LOG_LEVEL_WARN);
+			serverSettings.setLogLevel(LOG_LEVEL_WARN);
+			Result callSetLogLevelWarn = callSetServerSettings(serverSettings);
 			assertTrue(callSetLogLevelWarn.isSuccess());
 
-			logLevel = callGetLogLevel();
-			logJSON = (JSONObject) new JSONParser().parse(logLevel);
-			tmpObject = (String) logJSON.get(LOG_LEVEL); 
-			assertEquals(LOG_LEVEL_WARN, tmpObject);
+			serverSettings = callGetServerSettings();
+			logLevel = serverSettings.getLogLevel();
+			assertEquals(LOG_LEVEL_WARN, logLevel);
 
 			// change Log Level Check (currently Log Level doesn't change)
-			Result callSetLogLevelTest = callSetLogLevel(LOG_LEVEL_TEST);
-			assertFalse(callSetLogLevelTest.isSuccess());
+			serverSettings.setLogLevel(LOG_LEVEL_TEST);
+			Result callSetLogLevelTest =  callSetServerSettings(serverSettings);
+			assertTrue(callSetLogLevelTest.isSuccess());
 
 			// check log status
-			logLevel = callGetLogLevel();
-			logJSON = (JSONObject) new JSONParser().parse(logLevel);
-			tmpObject = (String) logJSON.get(LOG_LEVEL); 
+			serverSettings = callGetServerSettings();
+			logLevel = serverSettings.getLogLevel();
 
-			assertEquals(LOG_LEVEL_WARN, tmpObject);
+			assertEquals(LOG_LEVEL_WARN, logLevel);
 
 
 			//restore the log 
-			callSetLogLevelTest = callSetLogLevel(LOG_LEVEL_INFO);
+			serverSettings.setLogLevel(LOG_LEVEL_INFO);
+			callSetLogLevelTest = callSetServerSettings(serverSettings);
 			assertTrue(callSetLogLevelTest.isSuccess());
 
 		} catch (Exception e) {
@@ -1626,7 +1680,7 @@ public class ConsoleAppRestServiceTest{
 							+ SERVER_ADDR + "/LiveApp/" + streamName);
 
 
-			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
 				return broadcast.getSpeed() != 0;
 			});
@@ -1999,7 +2053,7 @@ public class ConsoleAppRestServiceTest{
 
 
 	public static Result callisFirstLogin() throws Exception {
-		String url = ROOT_SERVICE_URL + "/isFirstLogin";
+		String url = ROOT_SERVICE_URL + "/first-login-status";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 		HttpUriRequest post = RequestBuilder.get().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -2021,7 +2075,7 @@ public class ConsoleAppRestServiceTest{
 
 	public static Result callCreateInitialUser(User user) throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/addInitialUser";
+		String url = ROOT_SERVICE_URL + "/users/initial";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 		Gson gson = new Gson();
 		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -2041,7 +2095,7 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	private static Result callAuthenticateUser(User user) throws Exception {
-		String url = ROOT_SERVICE_URL + "/authenticateUser";
+		String url = ROOT_SERVICE_URL + "/users/authenticate";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
@@ -2062,7 +2116,8 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	public static Result callSetAppSettings(String appName, AppSettings appSettingsModel) throws Exception {
-		String url = ROOT_SERVICE_URL + "/changeSettings/" + appName;
+		
+		String url = ROOT_SERVICE_URL + "/applications/settings/" + appName;
 		try (CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build())
 		{
@@ -2090,7 +2145,7 @@ public class ConsoleAppRestServiceTest{
 
 
 	public static Result callSetServerSettings(ServerSettings serverSettings) throws Exception {
-		String url = ROOT_SERVICE_URL + "/changeServerSettings";
+		String url = ROOT_SERVICE_URL + "/server-settings";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
@@ -2114,7 +2169,7 @@ public class ConsoleAppRestServiceTest{
 
 
 	public static String callGetApplications() throws Exception {
-		String url = ROOT_SERVICE_URL + "/getApplications";
+		String url = ROOT_SERVICE_URL + "/applications";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2135,7 +2190,7 @@ public class ConsoleAppRestServiceTest{
 
 
 	public static String callGetSoftwareVersion() throws Exception {
-		String url = ROOT_SERVICE_URL + "/getVersion";
+		String url = ROOT_SERVICE_URL + "/version";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
@@ -2154,7 +2209,7 @@ public class ConsoleAppRestServiceTest{
 
 
 	public static String callGetSystemResourcesInfo() throws Exception {
-		String url = ROOT_SERVICE_URL + "/getSystemResourcesInfo";
+		String url = ROOT_SERVICE_URL + "/system-resources";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
 		Gson gson = new Gson();
@@ -2172,7 +2227,7 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	public static Result callIsClusterMode() throws Exception {
-		String url = ROOT_SERVICE_URL + "/isInClusterMode";
+		String url = ROOT_SERVICE_URL + "/cluster-mode-status";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2193,7 +2248,7 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	public static Result callIsEnterpriseEdition() throws Exception {
-		String url = ROOT_SERVICE_URL + "/isEnterpriseEdition";
+		String url = ROOT_SERVICE_URL + "/enterprise-edition";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2216,7 +2271,7 @@ public class ConsoleAppRestServiceTest{
 
 	public static AppSettings callGetAppSettings(String appName) throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/getSettings/" + appName;
+		String url = ROOT_SERVICE_URL + "/applications/settings/" + appName;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2240,7 +2295,7 @@ public class ConsoleAppRestServiceTest{
 
 	public static ServerSettings callGetServerSettings() throws Exception {
 
-		String url = ROOT_SERVICE_URL + "/getServerSettings";
+		String url = ROOT_SERVICE_URL + "/server-settings";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2266,7 +2321,7 @@ public class ConsoleAppRestServiceTest{
 
 		Licence tmp = null;
 
-		String url = ROOT_SERVICE_URL + "/getLicenceStatus/?key=" + key;
+		String url = ROOT_SERVICE_URL + "/licence-status?key=" + key;
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build();
@@ -2327,55 +2382,6 @@ public class ConsoleAppRestServiceTest{
 		return tmpExec;
 	}
 
-	public static String callGetLogLevel() throws Exception {
-
-		String url = ROOT_SERVICE_URL + "/getLogLevel";
-
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
-				.setDefaultCookieStore(httpCookieStore).build();
-
-		Gson gson = new Gson();
-
-		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
-
-		HttpResponse response = client.execute(post);
-
-		StringBuffer result = RestServiceV2Test.readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			System.out.println("status code: " + response.getStatusLine().getStatusCode());
-			throw new Exception(result.toString());
-		}
-
-		log.info("result string: " + result.toString());
-		return result.toString();
-	}
-
-	public static Result callSetLogLevel(String level) throws Exception {
-
-		String url = ROOT_SERVICE_URL + "/changeLogLevel/"+level;
-
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
-				.setDefaultCookieStore(httpCookieStore).build();
-
-		Gson gson = new Gson();
-
-		HttpUriRequest post = RequestBuilder.get().setUri(url).build();
-
-		HttpResponse response = client.execute(post);
-
-		StringBuffer result = RestServiceV2Test.readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			System.out.println("status code: " + response.getStatusLine().getStatusCode());
-			throw new Exception(result.toString());
-		}
-
-		log.info("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-
-		return tmp;
-	}
 
 	@Test
 	public void testPublishIPFilter() 
@@ -2464,8 +2470,7 @@ public class ConsoleAppRestServiceTest{
 		boolean result = false;
 
 		try {
-
-			HttpUriRequest post = RequestBuilder.post().setUri(ROOT_SERVICE_URL+"/applications?appName="+appName)
+			HttpUriRequest post = RequestBuilder.post().setUri(ROOT_SERVICE_URL+"/applications/"+appName)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.build();
 			
@@ -2518,10 +2523,12 @@ public class ConsoleAppRestServiceTest{
 
 	}
 	
+	
+	
 	public static Applications getApplications() {
 		try {
 			
-			HttpUriRequest get = RequestBuilder.get().setUri(ROOT_SERVICE_URL+"/getApplications")
+			HttpUriRequest get = RequestBuilder.get().setUri(ROOT_SERVICE_URL+"/applications")
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.build();
 
