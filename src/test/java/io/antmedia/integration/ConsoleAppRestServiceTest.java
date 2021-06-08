@@ -1682,7 +1682,7 @@ public class ConsoleAppRestServiceTest{
 
 			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
-				return broadcast.getSpeed() != 0;
+				return broadcast != null && broadcast.getSpeed() != 0;
 			});
 
 			{ //video only recording	
