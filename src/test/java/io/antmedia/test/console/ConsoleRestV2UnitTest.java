@@ -120,7 +120,9 @@ public class ConsoleRestV2UnitTest {
         // System.out.println("error id: " + result.errorId);
         assertTrue(result.isSuccess());
 
-        user = new User("userName1234", "second pass", UserType.ADMIN);
+        String userName2 = "username" + (int) (Math.random() * 1000000000);
+
+        user = new User(userName2, "second pass", UserType.ADMIN);
 
         user.setPassword("second pass");
         user.setUserType(UserType.READ_ONLY);
@@ -144,11 +146,10 @@ public class ConsoleRestV2UnitTest {
 
         assertFalse(result.isSuccess());
 
-        user.setEmail("ksks" + (int) (Math.random() * 100000));
+        user.setEmail("ksks" + (int) (Math.random() * 1000000000));
         user.setPassword("second pass");
         user.setUserType(UserType.ADMIN);
         result = restService.addUser(user);
-        // should pass because user type is not important right now
         assertTrue(result.isSuccess());
 
     }
@@ -221,8 +222,7 @@ public class ConsoleRestV2UnitTest {
         assertEquals(restService.getMD5Hash(password), dbStore.getUser(userName).getPassword());
         assertEquals(UserType.ADMIN, dbStore.getUser(userName).getUserType());
 
-        // TODO: open below test
-
+        //Change password tests
         user.setNewPassword("password2");
         Result result2 = restService.changeUserPasswordInternal(userName, user);
         assertTrue(result2.isSuccess());
@@ -236,22 +236,22 @@ public class ConsoleRestV2UnitTest {
 
         assertEquals(restService.getMD5Hash(user.getNewPassword()), dbStore.getUser(userName).getPassword());
 
-        /*user.setPassword(user.getNewPassword());
-        user.setNewPassword("12345678");
+        //Does not exist with pass
         result2 = restService.changeUserPasswordInternal(userName, user);
-        assertTrue(result2.isSuccess());
+        System.out.println(result2.getMessage());
+        assertFalse(result2.isSuccess());
 
-        assertEquals(user.getNewPassword(), dbStore.getUser(userName).getPassword());
+        //Does not exist with username
+        user.setPassword(user.getNewPassword());
+        result2 = restService.changeUserPasswordInternal("test", user);
+        System.out.println(result2.getMessage());
+        assertFalse(result2.isSuccess());
 
-        /*
-         * result = restService.editUser("notexist", password2, userType2);
-         * assertFalse(result.isSuccess());
-         *
-         *
-         * result = restService.editUser(userName, password2, 3); //should fail
-         * because user type is 3, it should 0 or 1
-         * assertFalse(result.isSuccess());
-         */
+        //No new password
+        user = new User(userName, "12345", UserType.ADMIN);
+        result2 = restService.changeUserPasswordInternal(userName, user);
+        System.out.println(result2.getMessage());
+        assertFalse(result2.isSuccess());
 
     }
     @Test
@@ -285,59 +285,58 @@ public class ConsoleRestV2UnitTest {
         result = restService.addUser(user2);
         assertTrue(result.isSuccess());
 
-        //Change password as another user
-        user2.setNewPassword("password2");
-        result = restService.editUser(user2);
-        assertTrue(result.isSuccess());
-
-        assertEquals(restService.getMD5Hash(user2.getNewPassword()), dbStore.getUser(userName2).getPassword());
-
         //Change User type as another user
         user2.setUserType(UserType.ADMIN);
         result = restService.editUser(user2);
         assertTrue(result.isSuccess());
         assertEquals(user2.getUserType(), dbStore.getUser(userName2).getUserType());
 
+        //Change password as another user
+        user2.setNewPassword("password2");
+        result = restService.editUser(user2);
+        assertTrue(result.isSuccess());
 
+        assertEquals(restService.getMD5Hash(user2.getNewPassword()), dbStore.getUser(userName2).getPassword());
     }
 
     @Test
     public void testDeleteUser() {
-        Integer userType = 0;
         String password = "password";
         String userName = "username" + (int) (Math.random() * 100000);
         User user = new User(userName, password, UserType.ADMIN);
+
+        HttpSession session = Mockito.mock(HttpSession.class);
+        Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
+        Mockito.when(session.getAttribute(USER_EMAIL)).thenReturn(userName);
+        Mockito.when(session.getAttribute(USER_PASSWORD)).thenReturn(password);
+
+        HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
+        Mockito.when(mockRequest.getSession()).thenReturn(session);
+
+        restService.setRequestForTest(mockRequest);
+
         Result result = restService.addUser(user);
         assertTrue(result.isSuccess());
         assertNotNull(dbStore.getUser(userName));
-        // TODO: open below test
-        /*
-         * result = restService.deleteUser(userName);
-         * assertTrue(result.isSuccess());
-         * assertNull(dbStore.getUser(userName));
-         */
-    }
 
-    @Test
-    public void testAuthenticateUser() {
-        Integer userType = 1;
-        String password = "password";
-        String userName = "username" + (int) (Math.random() * 100000);
-        User user = new User(userName, password, UserType.ADMIN);
-        System.out.println("username: " + userName);
-        Result result = restService.addUser(user);
+        String userName2 = "username" + (int) (Math.random() * 100000);
+        User user2 = new User(userName2, password, UserType.READ_ONLY);
+
+        //Trying to delete a non existant user
+        result = restService.deleteUser(userName2);
+        assertFalse(result.isSuccess());
+        assertNull(dbStore.getUser(userName2));
+
+        //Add user2 and delete
+        result = restService.addUser(user2);
         assertTrue(result.isSuccess());
         assertNotNull(dbStore.getUser(userName));
-        // TODO: open below test
 
-         /* result = restService.authenticateUser(userName, password);
-          assertTrue(result.isSuccess());
-
-         result = restService.authenticateUser("nope", password);
-          assertFalse(result.isSuccess());
-
-          result = restService.authenticateUser(userName, "nope");
-          assertFalse(result.isSuccess());*/
+        result = restService.deleteUser(userName2);
+        System.out.println(result.getMessage());
+        assertTrue(result.isSuccess());
+        assertNull(dbStore.getUser(userName2));
 
     }
 }

@@ -359,13 +359,13 @@ public class CommonRestService {
 	public Result changeUserPasswordInternal(String userMail, User user) {
 		boolean result = false;
 		String message = null;
-		if (userMail != null) {
+		if (userMail != null && user.getNewPassword() != null) {
 			result = getDataStore().doesUserExist(userMail, user.getPassword()) || getDataStore().doesUserExist(userMail, getMD5Hash(user.getPassword()));
 			if (result) {
 				result = getDataStore().editUser(userMail, getMD5Hash(user.getNewPassword()), UserType.ADMIN);
 
 				if (result) {
-					message = "Sucess";
+					message = "Success";
 					HttpSession session = servletRequest.getSession();
 					if (session != null) {
 						session.setAttribute(IS_AUTHENTICATED, true);
@@ -379,7 +379,7 @@ public class CommonRestService {
 			}
 		}
 		else {
-			message = "User name does not exist in context";
+			message = "User name does not exist or there is no new password";
 		}
 
 		return new Result(result, message);
