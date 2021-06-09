@@ -155,6 +155,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		// Create initialized file in application
 		Result result = createInitializationProcess(app.getName());
 		
+		//initialize storage client
+		storageClient = (StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
+		
 		if (!result.isSuccess()) {
 			//Save App Setting
 			this.shutdownProperly = false;
@@ -252,9 +255,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
-
-		//initialize storage client
-		storageClient = (StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
 
 		storageClient.setStorageName(appSettings.getS3BucketName());
 		storageClient.setRegion(appSettings.getS3RegionName());
