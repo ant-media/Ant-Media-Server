@@ -121,6 +121,8 @@ public class AppSettingsTest {
 		AntMediaApplicationAdapter mockApplicationAdapter = Mockito.spy(new AntMediaApplicationAdapter());	
 		
 		mockApplicationAdapter.setAppSettings(mockSettings);
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		mockApplicationAdapter.setStorageClient(storageClient);
 		
 		Mockito.doReturn(new InMemoryDataStore("")).when(mockApplicationAdapter).getDataStore();
 		
