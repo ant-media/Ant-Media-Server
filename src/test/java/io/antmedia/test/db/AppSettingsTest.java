@@ -29,6 +29,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
+import io.antmedia.storage.StorageClient;
 
 public class AppSettingsTest {
 	String appName = "TestApp";
@@ -75,7 +76,9 @@ public class AppSettingsTest {
 		IScope scope = mock(IScope.class);
 		when(scope.getContext()).thenReturn(context);
 		when(scope.getName()).thenReturn(appName);
-		Mockito.doReturn(scope).when(mockApplicationAdapter).getScope();		
+		Mockito.doReturn(scope).when(mockApplicationAdapter).getScope();
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		mockApplicationAdapter.setStorageClient(storageClient);
 		
 		//null case
 		assertTrue(mockApplicationAdapter.updateSettings(settings, false));

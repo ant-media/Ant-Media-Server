@@ -1577,5 +1577,9 @@ public Result createInitializationProcess(String appName){
 	public boolean isServerShuttingDown() {
 		return serverShuttingDown;
 	}
+	
+	public void setStorageClient(StorageClient storageClient) {
+		this.storageClient = storageClient;
+	}
 
 }
