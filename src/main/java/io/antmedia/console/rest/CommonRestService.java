@@ -130,8 +130,11 @@ public class CommonRestService {
 
 	private static final int BLOCKED_LOGIN_TIMEOUT_SECS = 300 ; // in seconds
 
-	private static final int ALLOWED_LOGIN_ATTEMPTS = 2 ; 
+	private static final int ALLOWED_LOGIN_ATTEMPTS = 2 ;
 
+	public int getAllowedLoginAttempts() {
+		return ALLOWED_LOGIN_ATTEMPTS;
+	}
 
 
 	/**
