@@ -2018,7 +2018,7 @@ public abstract class RestServiceBase {
 				roomStreamList = conferenceRoom.getRoomStreamList();
 				if(!roomStreamList.contains(streamId)){
 					Broadcast broadcast=store.get(streamId);
-					if(broadcast != null && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
+					if(broadcast != null) {
 						roomStreamList.add(streamId);
 						conferenceRoom.setRoomStreamList(roomStreamList);
 						store.editConferenceRoom(roomId, conferenceRoom);

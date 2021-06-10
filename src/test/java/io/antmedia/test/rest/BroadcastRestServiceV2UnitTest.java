@@ -2994,6 +2994,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast broadcast2=new Broadcast();
 		Broadcast broadcast3=new Broadcast();
 		Broadcast broadcast4=new Broadcast();
+		Broadcast broadcast5=new Broadcast();
 		try {
 			broadcast1.setStreamId("stream1");
 			broadcast1.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -3002,6 +3003,7 @@ public class BroadcastRestServiceV2UnitTest {
 			broadcast3.setStreamId("stream3");
 			broadcast3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast4.setStreamId("stream4");
+			broadcast5.setStreamId("stream5");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -3009,6 +3011,7 @@ public class BroadcastRestServiceV2UnitTest {
 		store.save(broadcast2);
 		store.save(broadcast3);
 		store.save(broadcast4);
+		store.save(broadcast5);
 		restServiceSpy.addStreamToTheRoom("testroom","stream1");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.addStreamToTheRoom("testroom","stream2");
@@ -3018,7 +3021,9 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceSpy.addStreamToTheRoom("someunknownroom","stream3");
 		assertEquals(2,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.addStreamToTheRoom("testroom","stream4");
-		assertEquals(2,store.getConferenceRoom("testroom").getRoomStreamList().size());
+		assertEquals(3,store.getConferenceRoom("testroom").getRoomStreamList().size());
+		restServiceSpy.addStreamToTheRoom("testroom", "stream5");
+		assertEquals(4,store.getConferenceRoom("testroom").getRoomStreamList().size());
 	}
 
 	@Test

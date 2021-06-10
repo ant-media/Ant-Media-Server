@@ -224,6 +224,7 @@
                             <locations>io.antmedia.rest</locations>
                             <swaggerDirectory>target/swagger</swaggerDirectory>
                             <swaggerFileName>swagger</swaggerFileName>
+                            <outputFormats>json</outputFormats>
                         </apiSource>
                     </apiSources>
                 </configuration>
