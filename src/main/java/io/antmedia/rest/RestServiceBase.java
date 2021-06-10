@@ -1207,8 +1207,8 @@ public abstract class RestServiceBase {
 					File previewFile = Muxer.getPreviewFile(getScope(), splitFileName[0], ".png");
 					Files.deleteIfExists(previewFile.toPath());
 
-					if (appContext.containsBean("app.storageClient")) {
-						StorageClient storageClient = (StorageClient) appContext.getBean("app.storageClient");
+					if (appContext.containsBean(StorageClient.BEAN_NAME)) {
+						StorageClient storageClient = (StorageClient) appContext.getBean(StorageClient.BEAN_NAME);
 
 						storageClient.delete(splitFileName[0] + ".mp4", FileType.TYPE_STREAM);
 						storageClient.delete(splitFileName[0] + ".png", FileType.TYPE_PREVIEW);
