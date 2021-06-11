@@ -1464,11 +1464,7 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
 		
-		store.put(AppSettings.SETTINGS_ENABLE_HLS_ENCRYPTION, String.valueOf(newAppsettings.isHlsEncryptionEnabled()));
-		
-		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY, newAppsettings.getHlsEncryptionKey() != null ? newAppsettings.getHlsEncryptionKey() : "");
-		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY_URL, newAppsettings.getHlsEncryptionKeyUrl() != null ? newAppsettings.getHlsEncryptionKeyUrl() : "");	
-		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_IV, newAppsettings.getHlsEncryptionIv() != null ? newAppsettings.getHlsEncryptionIv() : "");
+		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE, newAppsettings.getHlsEncryptionKeyInfoFile() != null ? newAppsettings.getHlsEncryptionKeyInfoFile() : "");
 		
 		return store.save();
 	}
@@ -1547,12 +1543,8 @@ public Result createInitializationProcess(String appName){
 		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
 
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
-		
-		appSettings.setHlsEncryptionEnabled(newSettings.isHlsEncryptionEnabled());
-		
-		appSettings.setHlsEncryptionKey(newSettings.getHlsEncryptionKey());
-		appSettings.setHlsEncryptionKeyUrl(newSettings.getHlsEncryptionKeyUrl());
-		appSettings.setHlsEncryptionIv(newSettings.getHlsEncryptionIv());
+				
+		appSettings.setHlsEncryptionKeyInfoFile(newSettings.getHlsEncryptionKeyInfoFile());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
