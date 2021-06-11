@@ -1,6 +1,7 @@
 package io.antmedia.test.storage;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 
@@ -31,6 +32,28 @@ public class AmazonS3StorageClientTest {
 		
 		File f = new File("src/test/resources/test.flv");
 		storage.save(f, FileType.TYPE_STREAM);
+	}
+	
+	@Test
+	public void testException() {
+		try {
+			AmazonS3StorageClient storage = new AmazonS3StorageClient();
+		
+			storage.delete("any_file", FileType.TYPE_STREAM);
+			
+			storage.fileExist("any_file");
+			
+			storage.fileExist("any_file", FileType.TYPE_STREAM);
+			
+			storage.save(new File("any_file"), FileType.TYPE_STREAM);
+			
+			storage.save("any_file", new File("any_file"));
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 	
 	@Test

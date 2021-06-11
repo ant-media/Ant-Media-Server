@@ -155,6 +155,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		// Create initialized file in application
 		Result result = createInitializationProcess(app.getName());
 		
+		//initialize storage client
+		storageClient = (StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
+		
 		if (!result.isSuccess()) {
 			//Save App Setting
 			this.shutdownProperly = false;
@@ -253,19 +256,15 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
 
-		storageClient = (StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
-
-		if (appSettings.isS3RecordingEnabled()) {
-
-
-			storageClient.setStorageName(appSettings.getS3BucketName());
-			storageClient.setRegion(appSettings.getS3RegionName());
-			storageClient.setAccessKey(appSettings.getS3AccessKey());
-			storageClient.setSecretKey(appSettings.getS3SecretKey());
-			if (!"".equals(appSettings.getS3Endpoint())){
-			   storageClient.setEndpoint(appSettings.getS3Endpoint());
-			}
-		}
+		storageClient.setStorageName(appSettings.getS3BucketName());
+		storageClient.setRegion(appSettings.getS3RegionName());
+		storageClient.setAccessKey(appSettings.getS3AccessKey());
+		storageClient.setSecretKey(appSettings.getS3SecretKey());
+		storageClient.setEnabled(appSettings.isS3RecordingEnabled());
+		storageClient.setEndpoint(appSettings.getS3Endpoint());
+		
+		
+	
 		logger.info("{} started", app.getName());
 
 		return true;
@@ -1464,6 +1463,13 @@ public Result createInitializationProcess(String appName){
 
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
+		
+		store.put(AppSettings.SETTINGS_ENABLE_HLS_ENCRYPTION, String.valueOf(newAppsettings.isHlsEncryptionEnabled()));
+		
+		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY, newAppsettings.getHlsEncryptionKey() != null ? newAppsettings.getHlsEncryptionKey() : "");
+		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY_URL, newAppsettings.getHlsEncryptionKeyUrl() != null ? newAppsettings.getHlsEncryptionKeyUrl() : "");	
+		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_IV, newAppsettings.getHlsEncryptionIv() != null ? newAppsettings.getHlsEncryptionIv() : "");
+		
 		return store.save();
 	}
 
@@ -1527,47 +1533,26 @@ public Result createInitializationProcess(String appName){
 
 
 		appSettings.setS3RecordingEnabled(newSettings.isS3RecordingEnabled());
+		appSettings.setS3AccessKey(newSettings.getS3AccessKey());
+		appSettings.setS3SecretKey(newSettings.getS3SecretKey());
+		appSettings.setS3BucketName(newSettings.getS3BucketName());
+		appSettings.setS3RegionName(newSettings.getS3RegionName());
+		appSettings.setS3Endpoint(newSettings.getS3Endpoint());
 
-		if (appSettings.isS3RecordingEnabled()) {
-			appSettings.setS3AccessKey(newSettings.getS3AccessKey());
-			if (appSettings.getS3AccessKey().isEmpty()) {
-			   logger.warn("S3 recording is enabled but access key is not given for app:{} ", getScope().getName());
-			}
-			
-			
-			appSettings.setS3SecretKey(newSettings.getS3SecretKey());
-			if (appSettings.getS3SecretKey().isEmpty()) {
-			   logger.warn("S3 recording is enabled but secret key is not given for app:{} ", getScope().getName());
-			}
-			
-			appSettings.setS3BucketName(newSettings.getS3BucketName());
-			if (appSettings.getS3BucketName().isEmpty()) {
-		   	   logger.info("S3 recording is enabled but bucket name is not given for app:{} ", getScope().getName());
-			}
-			
-			appSettings.setS3RegionName(newSettings.getS3RegionName());
-			if (appSettings.getS3RegionName().isEmpty()) {
-		  	  logger.info("S3 recording is enabled but region name is not given for app:{} ", getScope().getName());
-			}
-			
-			if (!"".equals(newSettings.getS3Endpoint())) {
-			   appSettings.setS3Endpoint(newSettings.getS3Endpoint());
-			   storageClient.setEndpoint(newSettings.getS3Endpoint());
-			}
-			storageClient.setStorageName(newSettings.getS3BucketName());
-			storageClient.setAccessKey(newSettings.getS3AccessKey());
-			storageClient.setSecretKey(newSettings.getS3SecretKey());
-			storageClient.setRegion(newSettings.getS3RegionName());
-		}
-		else
-		{
-			appSettings.setS3AccessKey("");
-			appSettings.setS3SecretKey("");
-			appSettings.setS3BucketName("");
-			appSettings.setS3RegionName("");
-		}
+		storageClient.setEndpoint(newSettings.getS3Endpoint());
+		storageClient.setStorageName(newSettings.getS3BucketName());
+		storageClient.setAccessKey(newSettings.getS3AccessKey());
+		storageClient.setSecretKey(newSettings.getS3SecretKey());
+		storageClient.setRegion(newSettings.getS3RegionName());
+		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
 
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
+		
+		appSettings.setHlsEncryptionEnabled(newSettings.isHlsEncryptionEnabled());
+		
+		appSettings.setHlsEncryptionKey(newSettings.getHlsEncryptionKey());
+		appSettings.setHlsEncryptionKeyUrl(newSettings.getHlsEncryptionKeyUrl());
+		appSettings.setHlsEncryptionIv(newSettings.getHlsEncryptionIv());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
@@ -1604,6 +1589,10 @@ public Result createInitializationProcess(String appName){
 	@Override
 	public boolean isServerShuttingDown() {
 		return serverShuttingDown;
+	}
+	
+	public void setStorageClient(StorageClient storageClient) {
+		this.storageClient = storageClient;
 	}
 
 }
