@@ -247,9 +247,17 @@ public class StreamFetcher {
 					for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
 						if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO) {
 							audioExist = true;
+							if(avcodec.avcodec_find_decoder(inputFormatContext.streams(i).codecpar().codec_id()) == null) {
+								logger.error("avcodec_find_decoder() error: Unsupported audio format or codec not found");
+								audioExist = false;
+							}
 						}
 						else if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
 							videoExist = true;
+							if(avcodec.avcodec_find_decoder(inputFormatContext.streams(i).codecpar().codec_id()) == null) {
+								logger.error("avcodec_find_decoder() error: Unsupported video format or codec not found");
+								videoExist = false;
+							}
 						}
 					}
 					
@@ -277,16 +285,14 @@ public class StreamFetcher {
 								long currentTime = System.currentTimeMillis();
 								muxAdaptor.setStartTime(currentTime);
 
-								getInstance().startPublish(streamId, 0);
+								getInstance().startPublish(streamId, 0, "Pull");
 
 								if (bufferTime > 0) {
 									packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l-> 
 										vertx.executeBlocking(h-> {
 											writeBufferedPacket();
 											h.complete();
-										}, false, r-> {
-											//no care
-										})
+										}, false, null)
 									);
 								}
 							}
@@ -418,6 +424,9 @@ public class StreamFetcher {
 				else {
 					logger.error("Prepare for opening the {} has failed", streamUrl);
 				}
+			}
+			catch (InterruptedException e) {
+				Thread.currentThread().interrupt();
 			}
 			catch (OutOfMemoryError | Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -674,10 +683,10 @@ public class StreamFetcher {
 	}
 	/**
 	 * Set timeout when establishing connection
-	 * @param timeout in ms
+	 * @param timeoutMs in ms
 	 */
-	public void setConnectionTimeout(int timeout) {
-		this.timeout = timeout * 1000;
+	public void setConnectionTimeout(int timeoutMs) {
+		this.timeout = timeoutMs * 1000;
 	}
 
 	public boolean isExceptionInThread() {

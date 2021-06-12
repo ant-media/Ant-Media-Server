@@ -2,7 +2,7 @@
     <parent>
         <groupId>io.antmedia</groupId>
         <artifactId>parent</artifactId>
-        <version>2.3.1-SNAPSHOT</version>
+        <version>2.4.0-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ant-media-server</artifactId>
@@ -76,6 +76,7 @@
         <defaultGoal>install</defaultGoal>
         <directory>${build.dir}</directory>
         <finalName>${finalName}</finalName>
+        
         <resources>
             <resource>
                 <directory>src/main/resources</directory>
@@ -84,7 +85,7 @@
                 <directory>src/main/java</directory>
                 <includes>
                     <include>**/*.xml</include>
-                </includes>
+                </includes>           
             </resource>
         </resources>
         <testResources>
@@ -101,29 +102,46 @@
         <pluginManagement>
         <plugins>
             <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <excludes>
-                        <exclude>**/red5_codeformat_eclipse.xml</exclude>
-                        <exclude>**/red5_codetemplate.xml</exclude>
-                    </excludes>
-                    <archive>
-                        <manifest>
-                            <mainClass>io.antmedia.Version</mainClass>
-                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
-                        </manifest>
-                        <manifestEntries>
-                            <Build-OS>${os.name} ${os.version}</Build-OS>
-                            <Build-Java>Java ${java.version}</Build-Java>
-                            <Build-Number>${buildNumber}</Build-Number>
-                            <Main-Class>io.antmedia.Version</Main-Class>
-                            <Class-Path>lib/slf4j-api-${slf4j.version}.jar lib/logback-classic-${logback.version}.jar
-                                lib/logback-core-${logback.version}.jar
-                                lib/red5-server-common-${project.parent.version}.jar
-                            </Class-Path>
-                        </manifestEntries>
-                    </archive>
-                </configuration>
+                <artifactId>maven-jar-plugin</artifactId>           
+                 <executions>
+			          <execution>
+			            <id>service</id> <!-- This part creates the ant-media-server-service.jar -->
+			            <goals><goal>jar</goal></goals>
+			            <phase>package</phase>
+			            <configuration>
+			              <classifier>service</classifier>			       
+			              <includes>
+			              	<include>org/red5/server/classloading/*</include>
+			              	<include>org/red5/server/Bootstrap.class</include>
+			              	<include>org/red5/server/Shutdown.class</include>
+			              </includes>
+			            </configuration>
+			          </execution>
+			          <execution>
+			          	  <id>server</id> <!-- This part creates the ant-media-server-server.jar -->
+			              <goals><goal>jar</goal></goals>
+			              <phase>package</phase>
+				          <configuration>
+				                <classifier>server</classifier>	
+			                    <excludes>
+			                        <exclude>**/red5_codeformat_eclipse.xml</exclude>
+			                        <exclude>**/red5_codetemplate.xml</exclude>
+			                    </excludes>
+			                    <archive>
+			                        <manifest>
+			                            <mainClass>io.antmedia.Version</mainClass>
+			                            <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
+			                        </manifest>
+			                        <manifestEntries>
+			                            <Build-OS>${os.name} ${os.version}</Build-OS>
+			                            <Build-Java>Java ${java.version}</Build-Java>
+			                            <Build-Number>${buildNumber}</Build-Number>
+			                            <Main-Class>io.antmedia.Version</Main-Class>
+			                        </manifestEntries>
+			                    </archive>
+		                	</configuration>
+			          </execution>
+                 </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
@@ -172,7 +190,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
-                    <argLine>@{argLine} --illegal-access=permit -Xmx750M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/src/main/server/lib/native</argLine>
+                    <argLine>@{argLine} --illegal-access=permit -Xmx750M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/src/main/server/lib/native-linux-x86_64</argLine>
                 	<skipAfterFailureCount>1</skipAfterFailureCount>
                 </configuration>
             </plugin>
@@ -206,6 +224,7 @@
                             <locations>io.antmedia.rest</locations>
                             <swaggerDirectory>target/swagger</swaggerDirectory>
                             <swaggerFileName>swagger</swaggerFileName>
+                            <outputFormats>json</outputFormats>
                         </apiSource>
                     </apiSources>
                 </configuration>
@@ -234,6 +253,11 @@
             <version>1.1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+		    <groupId>org.mitre.dsmiley.httpproxy</groupId>
+		    <artifactId>smiley-http-proxy-servlet</artifactId>
+		    <version>1.11</version>
+		</dependency>
         <dependency>
             <groupId>org.apache.tomcat</groupId>
             <artifactId>tomcat-servlet-api</artifactId>
@@ -374,19 +398,6 @@
             </exclusions>
         </dependency>
         <dependency>
-            <groupId>io.antmedia</groupId>
-            <artifactId>ant-media-server-service</artifactId>
-            <version>${project.parent.version}</version>
-            <type>jar</type>
-        </dependency>
-        <dependency>
-            <groupId>io.antmedia</groupId>
-            <artifactId>ant-media-server-service</artifactId>
-            <version>${project.parent.version}</version>
-            <type>tar.gz</type>
-            <classifier>daemon</classifier>
-        </dependency>
-        <dependency>
             <artifactId>mina-integration-beans</artifactId>
             <groupId>org.apache.mina</groupId>
             <version>${mina.version}</version>
@@ -403,12 +414,6 @@
             </exclusions>
         </dependency>
         <!-- Runtime plugin deps -->
-        <dependency>
-            <groupId>io.antmedia</groupId>
-            <artifactId>tomcatplugin</artifactId>
-            <version>${tomcatplugin.version}</version>
-            <scope>provided</scope>
-        </dependency>
         <dependency>
             <groupId>org.apache.tomcat.embed</groupId>
             <artifactId>tomcat-embed-core</artifactId>
@@ -458,11 +463,6 @@
             <version>${restfb.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.brsanthu</groupId>
-            <artifactId>google-analytics-java</artifactId>
-            <version>2.0.0</version>
-        </dependency>
-        <dependency>
             <groupId>com.google.apis</groupId>
             <artifactId>google-api-services-youtube</artifactId>
             <version>${youtube.api.version}</version>
@@ -488,7 +488,6 @@
             <artifactId>jersey-media-multipart</artifactId>
             <version>${jersey.version}</version>
         </dependency>
-
         <dependency>
             <groupId>org.glassfish.jersey.ext</groupId>
             <artifactId>jersey-spring4</artifactId>
@@ -578,13 +577,6 @@
                     <type>war</type>
                     <scope>provided</scope>
                 </dependency>
-                <dependency>
-                    <groupId>io.antmedia.app</groupId>
-                    <artifactId>root</artifactId>
-                    <version>${project.parent.version}</version>
-                    <type>war</type>
-                    <scope>provided</scope>
-                </dependency>
             </dependencies>
             <build>
                 <plugins>
@@ -652,25 +644,7 @@
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
                             </execution>
-                             <execution>
-                               <id>unpack-root-app</id>
-					           <phase>package</phase>
-					           <goals>
-					             <goal>unpack</goal>
-					           </goals>
-					           <configuration>
-					             <artifactItems>
-						              <artifactItem>
-	                                      <groupId>io.antmedia.app</groupId>
-	                                      <artifactId>root</artifactId>
-	                                      <version>${project.parent.version}</version>
-	                                      <type>war</type>
-	                                      <overWrite>true</overWrite>
-	                                      <outputDirectory>${project.build.directory}/webapps/root</outputDirectory>
-	                                  </artifactItem>
-                                   </artifactItems>
-					           </configuration>
-                            </execution>
+                            
                             <execution>
                                 <id>copy-war-dependencies</id>
                                 <phase>package</phase>
@@ -690,26 +664,6 @@
                                     </artifactItems>
                                 </configuration>
                             </execution>
-                            <execution>
-                                <id>unpack-red5-service</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>unpack</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                           <groupId>io.antmedia</groupId>
-                                            <artifactId>ant-media-server-service</artifactId>
-                                            <version>${project.parent.version}</version>
-                                            <type>tar.gz</type>
-                                            <classifier>daemon</classifier>
-                                            <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}</outputDirectory>
-                                        </artifactItem>
-                                    </artifactItems>
-                                </configuration>
-                            </execution>
                         </executions>
                     </plugin>
                     <plugin>
@@ -717,6 +671,19 @@
 						<artifactId>exec-maven-plugin</artifactId>
 						<version>${exec-maven-plugin.version}</version>
 						<executions>
+							<execution>
+							    <id>mkdir-webapps</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>mkdir</executable>
+									<arguments>
+										<argument>target/webapps</argument>
+									</arguments>
+								</configuration>
+							</execution>
 							<execution>
 							    <id>create-liveapp</id>
 								<phase>package</phase>
@@ -783,12 +750,6 @@
                     <type>war</type>
                 </dependency>
                 <dependency>
-                    <groupId>io.antmedia.app</groupId>
-                    <artifactId>root</artifactId>
-                    <version>${project.parent.version}</version>
-                    <type>war</type>
-                </dependency>
-                <dependency>
                     <groupId>io.antmedia.enterprise</groupId>
                     <artifactId>ant-media-enterprise</artifactId>
                     <version>${project.parent.version}</version>
@@ -825,25 +786,6 @@
                                     <includeScope>provided</includeScope>
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
-                            </execution>
-                            <execution>
-                               <id>unpack-root-app</id>
-					           <phase>package</phase>
-					           <goals>
-					             <goal>unpack</goal>
-					           </goals>
-					           <configuration>
-					             <artifactItems>
-						              <artifactItem>
-	                                      <groupId>io.antmedia.app</groupId>
-	                                      <artifactId>root</artifactId>
-	                                      <version>${project.parent.version}</version>
-	                                      <type>war</type>
-	                                      <overWrite>true</overWrite>
-	                                      <outputDirectory>${project.build.directory}/webapps/root</outputDirectory>
-	                                  </artifactItem>
-                                   </artifactItems>
-					           </configuration>
                             </execution>
                             <execution>
                                 <id>copy-war-dependencies</id>
@@ -883,26 +825,6 @@
                                     </artifactItems>
                                 </configuration>
                             </execution>
-                            <execution>
-                                <id>unpack-red5-service</id>
-                                <phase>package</phase>
-                                <goals>
-                                    <goal>unpack</goal>
-                                </goals>
-                                <configuration>
-                                    <artifactItems>
-                                        <artifactItem>
-                                            <groupId>io.antmedia</groupId>
-                                            <artifactId>ant-media-server-service</artifactId>
-                                            <version>${project.parent.version}</version>
-                                            <type>tar.gz</type>
-                                            <classifier>daemon</classifier>
-                                            <overWrite>true</overWrite>
-                                            <outputDirectory>${project.build.directory}</outputDirectory>
-                                        </artifactItem>
-                                    </artifactItems>
-                                </configuration>
-                            </execution>
                         </executions>
                     </plugin>
                     <plugin>
@@ -910,6 +832,19 @@
 						<artifactId>exec-maven-plugin</artifactId>
 						<version>${exec-maven-plugin.version}</version>
 						<executions>
+						    <execution>
+							    <id>mkdir-webapps</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>mkdir</executable>
+									<arguments>
+										<argument>target/webapps</argument>
+									</arguments>
+								</configuration>
+							</execution>
 							<execution>
 							    <id>create-liveapp</id>
 								<phase>package</phase>

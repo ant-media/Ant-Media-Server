@@ -221,7 +221,6 @@ public abstract class BaseRTMPTConnection extends RTMPConnection {
                     // add to pending
                     log.debug("Adding outgoing message packet");
                     PendingData pendingData = new PendingData(data, packet);
-                    try {
                         int attempt = 0;
                         while (!pendingOutMessages.offer(pendingData, maxQueueOfferTime, TimeUnit.MILLISECONDS)) {
                             log.trace("Packet was not added to out queue");
@@ -230,15 +229,17 @@ public abstract class BaseRTMPTConnection extends RTMPConnection {
                                 break;
                             }
                         }
-                    } catch (InterruptedException ex) {
-                        log.warn("Offering packet to out queue failed", ex);
-						ex.printStackTrace();
-						Thread.currentThread().interrupt();
-                    }
+                   
                 } else {
                     log.warn("Response buffer was null after encoding");
                 }
-            } catch (Exception e) {
+            
+            } catch (InterruptedException ex) {
+                log.warn("Offering packet to out queue failed", ex);
+				ex.printStackTrace();
+				Thread.currentThread().interrupt();
+            }
+            catch (Exception e) {
                 log.error("Could not encode message {}", packet, e);
             }
         }

@@ -106,11 +106,13 @@ public class AppFunctionalV2Test {
 	private int numberOfClientsInHLSPlay;
 
 	private static int OS_TYPE;
-	private static String ffmpegPath = "ffmpeg";
+	public static String ffmpegPath = "ffmpeg";
+	public static String ffprobePath = "ffprobe";
 	static {
 		String osName = System.getProperty("os.name", "").toLowerCase();
 		if (osName.startsWith("mac os x") || osName.startsWith("darwin")) {
 			OS_TYPE = MAC_OS_X;
+			ffprobePath = "/usr/local/bin/ffprobe";
 		} else if (osName.startsWith("windows")) {
 			OS_TYPE = WINDOWS;
 		} else if (osName.startsWith("linux")) {

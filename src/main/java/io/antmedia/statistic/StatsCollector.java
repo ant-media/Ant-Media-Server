@@ -16,7 +16,8 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpHeaders;
-import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.DisposableBean;
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import com.google.gson.Gson;
@@ -59,15 +61,15 @@ import io.vertx.ext.dropwizard.MetricsService;
 
 
 public class StatsCollector implements IStatsCollector, ApplicationContextAware, DisposableBean {	
-	
+
 	public static final String FREE_NATIVE_MEMORY = "freeNativeMemory";
-	
+
 	public static final String TOTAL_NATIVE_MEMORY = "totalNativeMemory";
 
 	public static final String IN_USE_NATIVE_MEMORY = "inUseNativeMemory";
-	
+
 	public static final String AVAILABLE_MEMORY = "availableMemory";
-	
+
 	public static final String IN_USE_SWAP_SPACE = "inUseSwapSpace";
 
 	public static final String FREE_SWAP_SPACE = "freeSwapSpace";
@@ -109,13 +111,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String CPU_USAGE = "cpuUsage";
 
 	public static final String INSTANCE_ID = "instanceId";
-	
+
 	public static final String INSTANCE_TYPE = "instanceType";
-	
+
 	public static final String INSTANCE_VERSION = "instanceVersion";
 
 	public static final String JVM_MEMORY_USAGE = "jvmMemoryUsage";
-	
+
 	public static final String NATIVE_MEMORY_USAGE = "nativeMemoryUsage";
 
 	public static final String SYSTEM_INFO = "systemInfo";
@@ -250,14 +252,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String JVM_NATIVE_MEMORY_USAGE = "jvmNativeMemoryUsage";
 
 	private static final String HOST_ADDRESS = "host-address";
-	
+
 	private static final String VERTX_WORKER_QUEUE_SIZE = "vertx.pools.worker.vert.x-worker-thread.queue-size";
-	
+
 	private static final String VERTX_WORKER_THREAD_QUEUE_SIZE = "vertx-worker-thread-queue-size";
-	
+
 	private static final String WEBRTC_VERTX_WORKER_THREAD_QUEUE_SIZE = "webrtc-vertx-worker-thread-queue-size";
-	
-	
+
+
 	private Producer<Long,String> kafkaProducer = null;
 
 	private long cpuMeasurementTimerId = -1;
@@ -273,31 +275,32 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private String hostAddress;
 
 	private Vertx webRTCVertx;
-	
+
 	private int time2Log = 0;
 
 	private static MetricsService vertXMetrics;
 
 	private static MetricsService webRTCVertxMetrics;
-	
+
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> 
 		{
 			addCpuMeasurement(SystemUtils.getSystemCpuLoad());
-		
+
 			//log every 5 minute
 			if (300000/measurementPeriod == time2Log) {
-				if(logger != null) {
+				if(logger != null) 
+				{
 					logger.info("System cpu load:{} process cpu load:{} available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
-					
-					int vertxWorkerQueueSize = getVertWorkerQueueSize();
-					
-					int webRTCVertxWorkerQueueSize = getWebRTCVertxWorkerQueueSize();
-					
+
+					int vertxWorkerQueueSize = getVertWorkerQueueSizeStatic();
+
+					int webRTCVertxWorkerQueueSize = getWebRTCVertxWorkerQueueSizeStatic();
+
 					logger.info("Vertx worker queue size:{} WebRTCVertx worker queue size:{}", vertxWorkerQueueSize, webRTCVertxWorkerQueueSize);
-					
+
 				}
-				
+
 				time2Log = 0;
 			}
 			time2Log++;
@@ -305,9 +308,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		startKafkaProducer();
 
 		if (heartBeatEnabled) {
-			
+
 			logger.warn("Starting heartbeats for the version:{} and type:{}", Launcher.getVersion(), Launcher.getVersionType());
-			
+
 			getVertx().setPeriodic(heartbeatPeriodMs, l -> 
 			{
 				startAnalytic();
@@ -329,7 +332,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}	
 	}
 	
-	private static int getVertWorkerQueueSize() {
+	private static int getVertWorkerQueueSizeStatic() {
 		io.vertx.core.json.JsonObject queueSizeMetrics = vertXMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
 		io.vertx.core.json.JsonObject jsonObject = null;
 		if (queueSizeMetrics != null) {
@@ -338,13 +341,21 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		return jsonObject != null ? jsonObject.getInteger("count") : -1;
 	}
 	
-	private static int getWebRTCVertxWorkerQueueSize() {
+	public int getVertWorkerQueueSize() {
+		return getVertWorkerQueueSizeStatic();
+	}
+
+	private static int getWebRTCVertxWorkerQueueSizeStatic() {
 		io.vertx.core.json.JsonObject queueSizeMetrics = webRTCVertxMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
 		io.vertx.core.json.JsonObject jsonObject = null;
 		if (queueSizeMetrics != null) {
 			jsonObject = queueSizeMetrics.getJsonObject(VERTX_WORKER_QUEUE_SIZE);
 		}
 		return jsonObject != null ? jsonObject.getInteger("count") : -1;
+	}
+	
+	public int getWebRTCVertxWorkerQueueSize() {
+		return getWebRTCVertxWorkerQueueSizeStatic();
 	}
 
 	private void sendWebRTCClientStats() {
@@ -353,10 +364,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					collectAndSendWebRTCClientsStats();
 					b.complete();
 				}, 
-				r -> {
-
-				});
+				null);
 	}
+	
 
 	public void collectAndSendWebRTCClientsStats() {
 
@@ -405,6 +415,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		props.put(ProducerConfig.CLIENT_ID_CONFIG, Launcher.getInstanceId());
 		props.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, LongSerializer.class.getName());
 		props.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer.class.getName());
+		props.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 10000);
 		return new KafkaProducer<>(props);
 	}
 
@@ -451,21 +462,21 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(PROCESS_CPU_LOAD, SystemUtils.getProcessCpuLoad());
 		return jsonObject;
 	}
-	
+
 	public static ThreadInfo[] getThreadDump() {
 		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
 		return threadMXBean.dumpAllThreads(true, true);
 	}
-	
+
 	public static JsonArray getThreadDumpJSON() {
 		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
-		
+
 		ThreadInfo[] threadDump = threadMXBean.dumpAllThreads(true, true);
 		JsonArray jsonArray = new JsonArray();
-		
+
 		for (int i = 0; i < threadDump.length; i++) {
 			JsonObject jsonObject = new JsonObject();
-		
+
 			jsonObject.addProperty(THREAD_NAME, threadDump[i].getThreadName());
 			jsonObject.addProperty(THREAD_ID, threadDump[i].getThreadId());
 			jsonObject.addProperty(THREAD_BLOCKED_TIME, threadDump[i].getBlockedTime());
@@ -480,14 +491,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			jsonObject.addProperty(THREAD_STATE, threadDump[i].getThreadState().toString());
 			jsonObject.addProperty(THREAD_CPU_TIME, threadMXBean.getThreadCpuTime(threadDump[i].getThreadId()));
 			jsonObject.addProperty(THREAD_USER_TIME, threadMXBean.getThreadUserTime(threadDump[i].getThreadId()));
-			
+
 			jsonArray.add(jsonObject);
 		}
-		
+
 		return jsonArray;
-		
+
 	}
-	
+
 	private static JsonArray getDeadLockedThreads(long[] deadLockedThreads) {
 		JsonArray jsonArray = new JsonArray();
 		if (deadLockedThreads != null) {
@@ -497,14 +508,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}
 		return jsonArray;
 	}
-	
+
 	public static JsonObject getThreadInfoJSONObject() {
 		JsonObject jsonObject = new JsonObject();
 		ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
 		jsonObject.add(DEAD_LOCKED_THREAD, getDeadLockedThreads(threadMXBean.findDeadlockedThreads()));
 		jsonObject.addProperty(THREAD_COUNT, threadMXBean.getThreadCount());
 		jsonObject.addProperty(THREAD_PEEK_COUNT, threadMXBean.getPeakThreadCount());
-		
+
 		return jsonObject;
 	}
 
@@ -534,22 +545,27 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.osTotalPhysicalMemory());
 		jsonObject.addProperty(FREE_MEMORY, SystemUtils.osFreePhysicalMemory());
 		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.osInUsePhysicalMemory());
-		jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace());
-		jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
-		jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
 		
+		//to handle the problem in raspberry pi4 + ubuntu 20.04
+		try {
+			jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace());
+			jsonObject.addProperty(FREE_SWAP_SPACE, SystemUtils.osFreeSwapSpace());
+			jsonObject.addProperty(IN_USE_SWAP_SPACE, SystemUtils.osInUseSwapSpace());
+		}catch (Exception e) {
+			logger.error("swap memory statistic can not be read");
+		}
 		
 		jsonObject.addProperty(AVAILABLE_MEMORY, SystemUtils.osAvailableMemory());
-		
+
 		return jsonObject;
 	}
-	
+
 	public static JsonObject getJVMNativeMemoryInfoJSObject() {
 		JsonObject jsonObject = new JsonObject();
-		
+
 		long maxPhysicalBytes = Pointer.maxPhysicalBytes();
 		long inUsephysicalBytes = Pointer.physicalBytes();
-		
+
 		jsonObject.addProperty(IN_USE_JVM_NATIVE_MEMORY, inUsephysicalBytes);
 		jsonObject.addProperty(MAX_JVM_NATIVE_MEMORY, maxPhysicalBytes);
 		return jsonObject;
@@ -568,6 +584,20 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		return jsonObject;
 	}
 
+	public static AntMediaApplicationAdapter getAppAdaptor(ApplicationContext appContext) {
+		AntMediaApplicationAdapter adaptor = null;
+		
+		if (appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)) 
+		{
+			Object bean = appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+			if (bean instanceof IApplicationAdaptorFactory) 
+			{
+				adaptor = ((IApplicationAdaptorFactory) bean).getAppAdaptor();
+			}
+		}
+		
+		return adaptor;
+	}
 
 	public static JsonObject getSystemResourcesInfo(Queue<IScope> scopes) 
 	{
@@ -599,9 +629,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					localWebRTCViewers += webrtcAdaptor.getNumberOfTotalViewers();
 					localWebRTCStreams += webrtcAdaptor.getNumberOfLiveStreams();
 				}
-				
-				if (scope.getContext().getApplicationContext().containsBean(AntMediaApplicationAdapter.BEAN_NAME)) {
-					AntMediaApplicationAdapter adaptor = ((IApplicationAdaptorFactory) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+
+				AntMediaApplicationAdapter adaptor = null;
+				if ((adaptor = getAppAdaptor(scope.getContext().getApplicationContext())) != null)
+				{
 					encodersBlocked += adaptor.getNumberOfEncodersBlocked();
 					encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
 					publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
@@ -616,8 +647,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(StatsCollector.ENCODERS_BLOCKED, encodersBlocked);
 		jsonObject.addProperty(StatsCollector.ENCODERS_NOT_OPENED, encodersNotOpened);
 		jsonObject.addProperty(StatsCollector.PUBLISH_TIMEOUT_ERRORS, publishTimeoutError);
-		jsonObject.addProperty(StatsCollector.VERTX_WORKER_THREAD_QUEUE_SIZE, getVertWorkerQueueSize());
-		jsonObject.addProperty(StatsCollector.WEBRTC_VERTX_WORKER_THREAD_QUEUE_SIZE, getWebRTCVertxWorkerQueueSize());
+		jsonObject.addProperty(StatsCollector.VERTX_WORKER_THREAD_QUEUE_SIZE, getVertWorkerQueueSizeStatic());
+		jsonObject.addProperty(StatsCollector.WEBRTC_VERTX_WORKER_THREAD_QUEUE_SIZE, getWebRTCVertxWorkerQueueSizeStatic());
 
 		//add timing info
 		jsonObject.add(StatsCollector.SERVER_TIMING, getServerTime());
@@ -678,7 +709,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public boolean enoughResource(){
 
 		boolean enoughResource = false;
-		
+
 		if(getCpuLoad() < getCpuLimit()) 
 		{		
 			int freeRam = getFreeRam();
@@ -690,7 +721,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			else {
 				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, getFreeRam());
 			}
-			
+
 		}
 		else {
 			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", cpuLoad, cpuLimit);
@@ -698,7 +729,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		return enoughResource; 
 	}
-	
+
 	@Override
 	public int getFreeRam() {
 		long availableMemory = SystemUtils.osAvailableMemory();
@@ -746,7 +777,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		this.vertx = vertx;
 		vertXMetrics= MetricsService.create(vertx);
 	}
-	
+
 	public void setWebRTCVertx(Vertx webRTCVertx) {
 		this.webRTCVertx = webRTCVertx;
 		webRTCVertxMetrics =  MetricsService.create(webRTCVertx);
@@ -792,12 +823,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		hostAddress = serverSettings.getHostAddress();
 		measurementPeriod = serverSettings.getCpuMeasurementPeriodMs();
 		windowSize = serverSettings.getCpuMeasurementWindowSize();
-		
+
 		setVertx((Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME));
-		
-		
+
+
 		setWebRTCVertx((Vertx) applicationContext.getBean(WebSocketCommunityHandler.WebRTC_VERTX_BEAN_NAME));
-		
+
 	}
 
 	public int getStaticSendPeriod() {
@@ -843,13 +874,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public void setHeartbeatPeriodMs(int heartbeatPeriodMs) {
 		this.heartbeatPeriodMs = heartbeatPeriodMs;
 	}
-	
+
 	@Override
 	public void destroy() throws Exception {
 		if(logger != null) {
 			logger.info("Shutting down stats collector ");
 		}
-				
+
 		if (heartBeatEnabled) 
 		{  
 			//send session end if heartBeatEnabled 
@@ -862,39 +893,44 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		if(logger != null) {
 			logger.info("Closing vertx ");
 		}
-		
+
 	}
-	
+
 	public int getMeasurementPeriod() {
 		return measurementPeriod;
 	}
-	
+
 	public void startAnalytic() {
-		
+
 		String instanceId = Launcher.getInstanceId();
 		String version = Launcher.getVersion();
 		String type = Launcher.getVersionType();
-			
+
 		JsonObject instance = new JsonObject();
 		instance.addProperty(INSTANCE_ID, instanceId);
 		instance.addProperty(INSTANCE_TYPE, type);
 		instance.addProperty(INSTANCE_VERSION, version);
 
-		try (CloseableHttpClient client = getHttpClient()){
-			 HttpUriRequest post = RequestBuilder.post().setUri("https://us-central1-ant-media-server-analytics.cloudfunctions.net/sendHeartbeat").setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-			.setEntity(new StringEntity(instance.toString())).build();
-			 
-			 client.execute(post);
-				
-			}catch (IOException e) {
-				logger.error("Couldn't connect Ant Media Server Analytics");
-			} 
+		try (CloseableHttpClient client = getHttpClient())
+		{
+			HttpRequestBase post = (HttpRequestBase)RequestBuilder.post().setUri("https://us-central1-ant-media-server-analytics.cloudfunctions.net/sendHeartbeat").setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.setEntity(new StringEntity(instance.toString())).build();
+
+			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
+
+			post.setConfig(requestConfig);
+
+			client.execute(post);
+
+		}catch (IOException e) {
+			logger.error("Couldn't connect Ant Media Server Analytics");
+		} 
 	}
-	
+
 	public static CloseableHttpClient getHttpClient() {
 		return  HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.build();
 	}
-	
-	
+
+
 }

@@ -25,7 +25,7 @@ AMS_DIR=/usr/local/antmedia
 AS_WAR=false
 IS_CLUSTER=false
 
-while getopts 'n:p:w:h:c:m:u:s' option
+while getopts 'n:p:w:h:c:m:u:s:' option
 do
   case "${option}" in
     n) APP_NAME=${OPTARG};;
