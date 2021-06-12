@@ -39,13 +39,13 @@ public class AmazonS3StorageClientTest {
 		try {
 			AmazonS3StorageClient storage = new AmazonS3StorageClient();
 		
-			storage.delete("any_file", FileType.TYPE_STREAM);
+			storage.delete("any_file", FileType.TYPE_STREAM.getValue());
 			
 			storage.fileExist("any_file");
 			
 			storage.fileExist("any_file", FileType.TYPE_STREAM);
 			
-			storage.save(new File("any_file"), FileType.TYPE_STREAM);
+			storage.save(new File("any_file"), FileType.TYPE_STREAM.getValue());
 			
 			storage.save("any_file", new File("any_file"));
 			
