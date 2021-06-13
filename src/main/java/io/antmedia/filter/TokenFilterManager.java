@@ -144,11 +144,8 @@ public class TokenFilterManager extends AbstractFilter   {
 					return;
 				}
 			}
-			
+			chain.doFilter(request, response);	
 		}
-	
-		chain.doFilter(request, response);
-
 	}
 
 	private TokenGenerator getTokenGenerator() {
