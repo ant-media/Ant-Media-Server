@@ -17,6 +17,8 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+
+import io.antmedia.storage.StorageClient;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -131,8 +133,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	protected WebRTCVideoReceiveStats webRTCVideoReceiveStats = new WebRTCVideoReceiveStats();
 
 	protected WebRTCAudioReceiveStats webRTCAudioReceiveStats = new WebRTCAudioReceiveStats();
-	
-	
+
+
 	protected WebRTCVideoSendStats webRTCVideoSendStats = new WebRTCVideoSendStats();
 
 	protected WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
@@ -140,6 +142,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	private IClusterNotifier clusterNotifier;
 	
 	protected boolean serverShuttingDown = false;
+
+	protected StorageClient storageClient;
+
+
 
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -150,6 +156,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		// Create initialized file in application
 		Result result = createInitializationProcess(app.getName());
+		
+		//initialize storage client
+		storageClient = (StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
 		
 		if (!result.isSuccess()) {
 			//Save App Setting
@@ -248,6 +257,16 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
+
+		storageClient.setStorageName(appSettings.getS3BucketName());
+		storageClient.setRegion(appSettings.getS3RegionName());
+		storageClient.setAccessKey(appSettings.getS3AccessKey());
+		storageClient.setSecretKey(appSettings.getS3SecretKey());
+		storageClient.setEnabled(appSettings.isS3RecordingEnabled());
+		storageClient.setEndpoint(appSettings.getS3Endpoint());
+		
+		
+	
 		logger.info("{} started", app.getName());
 
 		return true;
@@ -1434,14 +1453,27 @@ public Result createInitializationProcess(String appName){
 
 		store.put(AppSettings.SETTINGS_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isJwtControlEnabled()));
 		store.put(AppSettings.SETTINGS_JWT_SECRET_KEY, newAppsettings.getJwtSecretKey() != null ? newAppsettings.getJwtSecretKey() : "");
+
+		store.put(AppSettings.SETTINGS_S3_RECORDING_ENABLED, String.valueOf(newAppsettings.isS3RecordingEnabled()));
+		// app setting S3
+		store.put(AppSettings.SETTINGS_S3_ACCESS_KEY, newAppsettings.getS3AccessKey() != null ? newAppsettings.getS3AccessKey() : "");
+		store.put(AppSettings.SETTINGS_S3_SECRET_KEY, newAppsettings.getS3SecretKey() != null ? newAppsettings.getS3SecretKey() : "");
+		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
+		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
+		store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
+		
+
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
+		
+		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE, newAppsettings.getHlsEncryptionKeyInfoFile() != null ? newAppsettings.getHlsEncryptionKeyInfoFile() : "");
+		
 		return store.save();
 	}
 
 
 	private void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
-	{	
+	{
 		appSettings.setMp4MuxingEnabled(newSettings.isMp4MuxingEnabled());
 		appSettings.setWebMMuxingEnabled(newSettings.isWebMMuxingEnabled());
 		appSettings.setAddDateTimeToMp4FileName(newSettings.isAddDateTimeToMp4FileName());
@@ -1496,8 +1528,25 @@ public Result createInitializationProcess(String appName){
 		appSettings.setIpFilterEnabled(newSettings.isIpFilterEnabled());
 		appSettings.setJwtControlEnabled(newSettings.isJwtControlEnabled());
 		appSettings.setJwtSecretKey(newSettings.getJwtSecretKey());
-		
+
+
+		appSettings.setS3RecordingEnabled(newSettings.isS3RecordingEnabled());
+		appSettings.setS3AccessKey(newSettings.getS3AccessKey());
+		appSettings.setS3SecretKey(newSettings.getS3SecretKey());
+		appSettings.setS3BucketName(newSettings.getS3BucketName());
+		appSettings.setS3RegionName(newSettings.getS3RegionName());
+		appSettings.setS3Endpoint(newSettings.getS3Endpoint());
+
+		storageClient.setEndpoint(newSettings.getS3Endpoint());
+		storageClient.setStorageName(newSettings.getS3BucketName());
+		storageClient.setAccessKey(newSettings.getS3AccessKey());
+		storageClient.setSecretKey(newSettings.getS3SecretKey());
+		storageClient.setRegion(newSettings.getS3RegionName());
+		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
+
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
+				
+		appSettings.setHlsEncryptionKeyInfoFile(newSettings.getHlsEncryptionKeyInfoFile());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
@@ -1562,6 +1611,10 @@ public Result createInitializationProcess(String appName){
 	@Override
 	public boolean isServerShuttingDown() {
 		return serverShuttingDown;
+	}
+	
+	public void setStorageClient(StorageClient storageClient) {
+		this.storageClient = storageClient;
 	}
 
 	

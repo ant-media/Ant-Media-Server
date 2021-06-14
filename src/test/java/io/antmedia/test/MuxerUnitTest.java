@@ -481,7 +481,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		assertTrue(mp4Muxer.getRegisteredStreamIndexList().contains(5));
 		
-		HLSMuxer hlsMuxer = new HLSMuxer(vertx, null, null, null, null);
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, null, null, null, null, null);
 		hlsMuxer.init(appScope, "test", 0);
 		hlsMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
@@ -967,18 +967,21 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		streamId = "stream " + (int)(Math.random()*10000);
 		appAdaptor.startPublish(streamId, 0, null);
 		
+		
 		long activeBroadcastCountFinal = activeBroadcastCount;
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() -> {
 			return activeBroadcastCountFinal + 2 == appAdaptor.getDataStore().getActiveBroadcastCount();
 		});
 		
-		Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any());
+		if (activeBroadcastCount == 1) {
+			Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any());
+		}
 		
 		streamId = "stream " + (int)(Math.random()*10000);
 		appAdaptor.startPublish(streamId, 0, null);
 		
-		Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any());
+		Mockito.verify(appAdaptor, timeout(1000).times((int)activeBroadcastCount+1)).stopStreaming(Mockito.any());
 		
 	}
 	
