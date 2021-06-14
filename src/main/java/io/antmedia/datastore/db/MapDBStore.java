@@ -1405,6 +1405,9 @@ public class MapDBStore extends DataStore {
 		boolean result = false;
 		synchronized (this) {
 			String json = map.get(mainTrackId);
+			
+			System.out.println("***** mid:"+mainTrackId+" sid:"+subTrackId+" json:"+json);
+			
 			Broadcast mainTrack = gson.fromJson(json, Broadcast.class);
 			List<String> subTracks = mainTrack.getSubTrackStreamIds();
 			if (subTracks == null) {

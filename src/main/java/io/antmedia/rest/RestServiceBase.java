@@ -1891,10 +1891,10 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	protected boolean deleteConferenceRoom(String roomName) {
+	public static boolean deleteConferenceRoom(String roomName, DataStore store) {
 
 		if(roomName != null) {
-			return getDataStore().deleteConferenceRoom(roomName);
+			return store.deleteConferenceRoom(roomName);
 		}
 		return false;
 	}
@@ -1985,7 +1985,7 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	public static List<String> getRoomInfoFromConference(String roomId, String streamId,DataStore store){
+	public static List<String> getRoomInfoFromConference(String roomId, String streamId, DataStore store){
 		List<String> streamIdList = null;
 		if (roomId != null)
 		{

@@ -177,4 +177,10 @@ public interface IWebRTCClient {
 	 * @return free text client info
 	 */
 	public String getClientInfo();
+
+	/**
+	 * Remove a track
+	 * @param trackId
+	 */
+	public void removeTracksOnTheFly(String trackId);
 }

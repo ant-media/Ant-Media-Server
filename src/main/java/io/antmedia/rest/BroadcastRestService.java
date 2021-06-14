@@ -1149,7 +1149,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/conference-rooms/{room_id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteConferenceRoomV2(@ApiParam(value = "the id of the conference room", required = true) @PathParam("room_id") String roomId) {
-		return new Result(super.deleteConferenceRoom(roomId));
+		return new Result(super.deleteConferenceRoom(roomId, getDataStore()));
 	}
 	
 	@ApiOperation(value = "Add a subtrack to a main track (broadcast).", notes = "", response = Result.class)
