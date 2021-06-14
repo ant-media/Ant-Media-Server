@@ -1264,13 +1264,10 @@ public abstract class RestServiceBase {
 					long unixTime = System.currentTimeMillis();
 
 					String path = savedFile.getPath();
+					
 
-					String[] subDirs = path.split(Pattern.quote(File.separator));
-
-					Integer pathLength = subDirs.length;
-
-					String relativePath = subDirs[pathLength-2]+ File.separator +subDirs[pathLength-1];
-
+					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
+					
 					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
 							VoD.UPLOADED_VOD, vodId);
 
