@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-4.3.xsd 
+	http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context-4.3.xsd"
+>
+
+	<context:annotation-config />
+	<!-- Defines a properties file for dereferencing variables -->
+	<context:property-placeholder location="/WEB-INF/red5-web.properties"/>
+	
+	<!--
+	Defines the web context
+	-->
+	<bean id="web.context" class="org.red5.server.Context" 
+		autowire="byType" />
+	
+	<!--
+	Defines the web scopes
+	-->
+	<bean id="web.scope" class="org.red5.server.scope.WebScope"
+		 init-method="register">
+		<property name="server" ref="red5.server" />
+		<property name="parent" ref="global.scope" />
+		<property name="context" ref="web.context" />
+		<property name="handler" ref="web.handler" />
+	</bean>
+	
+	<bean id="dataStoreFactory" class="io.antmedia.console.datastore.ConsoleDataStoreFactory"/>
+
+	<!--
+	Defines the web handler which acts as an applications endpoint
+	-->
+	<bean id="web.handler" class="io.antmedia.console.AdminApplication" >
+		<property name="dataStoreFactory" ref="dataStoreFactory" />
+	</bean>
+	
+		
+	<context:component-scan base-package="io.antmedia.console.rest" />
+ 
+</beans>

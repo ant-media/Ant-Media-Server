@@ -50,7 +50,7 @@ esac
 
 APP_DIR=$AMS_DIR/webapps/$APP_NAME
 
-rm -r $APP_DIR*
+rm -r $APP_DIR
 check_result
 
 echo "$APP_NAME is deleted."

@@ -17,6 +17,8 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+
+import io.antmedia.storage.StorageClient;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -129,8 +131,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	protected WebRTCVideoReceiveStats webRTCVideoReceiveStats = new WebRTCVideoReceiveStats();
 
 	protected WebRTCAudioReceiveStats webRTCAudioReceiveStats = new WebRTCAudioReceiveStats();
-	
-	
+
+
 	protected WebRTCVideoSendStats webRTCVideoSendStats = new WebRTCVideoSendStats();
 
 	protected WebRTCAudioSendStats webRTCAudioSendStats = new WebRTCAudioSendStats();
@@ -138,6 +140,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	private IClusterNotifier clusterNotifier;
 	
 	protected boolean serverShuttingDown = false;
+
+	protected StorageClient storageClient;
+
+
 
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -148,6 +154,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		
 		// Create initialized file in application
 		Result result = createInitializationProcess(app.getName());
+		
+		//initialize storage client
+		storageClient = (StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
 		
 		if (!result.isSuccess()) {
 			//Save App Setting
@@ -246,6 +255,16 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
+
+		storageClient.setStorageName(appSettings.getS3BucketName());
+		storageClient.setRegion(appSettings.getS3RegionName());
+		storageClient.setAccessKey(appSettings.getS3AccessKey());
+		storageClient.setSecretKey(appSettings.getS3SecretKey());
+		storageClient.setEnabled(appSettings.isS3RecordingEnabled());
+		storageClient.setEndpoint(appSettings.getS3Endpoint());
+		
+		
+	
 		logger.info("{} started", app.getName());
 
 		return true;
@@ -328,7 +347,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void streamBroadcastClose(IBroadcastStream stream) {
 		String streamName = stream.getPublishedName();
-		vertx.executeBlocking(future -> closeBroadcast(streamName), null);
+		vertx.executeBlocking(future ->  { 
+			closeBroadcast(streamName); 
+			future.complete();
+			}, null);
 	}
 
 	public void closeBroadcast(String streamName) {
@@ -457,19 +479,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false));
 	}
 
-	public void streamPublishStart(final IBroadcastStream stream) {
-		String streamName = stream.getPublishedName();
-		logger.info("stream name in streamPublishStart: {}", streamName );
-		long absoluteStartTimeMs = 0;
-		if (stream instanceof ClientBroadcastStream) {
-			absoluteStartTimeMs = ((ClientBroadcastStream) stream).getAbsoluteStartTimeMs();
-		}
-		startPublish(streamName, absoluteStartTimeMs);
-		
-	
-	}
-
-	public void startPublish(String streamName, long absoluteStartTimeMs) {
+	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType) {
 		vertx.executeBlocking( handler -> {
 			try {
 
@@ -479,7 +489,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	
 						if (broadcast == null) {
 	
-							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs);
+							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs, publishType);
 						} 
 						else {
 	
@@ -488,6 +498,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 							broadcast.setOriginAdress(getServerSettings().getHostAddress());
 							broadcast.setWebRTCViewerCount(0);
 							broadcast.setHlsViewerCount(0);
+							broadcast.setPublishType(publishType);
 							boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
 							
 							logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
@@ -588,7 +599,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 	}
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, ServerSettings serverSettings, long absoluteStartTimeMs) {		
+	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, ServerSettings serverSettings, long absoluteStartTimeMs, String publishType) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
@@ -596,7 +607,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		newBroadcast.setZombi(true);
 		try {
 			newBroadcast.setStreamId(streamId);
-
+			newBroadcast.setPublishType(publishType);
 			String settingsListenerHookURL = null; 
 			if (appSettings != null) {
 				settingsListenerHookURL = appSettings.getListenerHookURL();
@@ -678,7 +689,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				logger.info("running muxer finish script: {}", scriptFile);
 				Process exec = Runtime.getRuntime().exec(scriptFile);
 				int result = exec.waitFor();
-				future.complete();
+				
 				logger.info("completing script: {} with return value {}", scriptFile, result);
 			} catch (IOException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -686,10 +697,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				logger.error(ExceptionUtils.getStackTrace(e));
 				Thread.currentThread().interrupt();
 			} 
+			future.complete();
 
-		}, res -> {
-
-		});
+		}, null);
 	}
 	
 	public static String getRelativePath(String filePath){
@@ -1411,6 +1421,13 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishTokenControlEnabled()));
 		store.put(AppSettings.SETTINGS_PLAY_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPlayTokenControlEnabled()));
 		store.put(AppSettings.SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY, String.valueOf(newAppsettings.isTimeTokenSubscriberOnly()));
+		store.put(AppSettings.SETTINGS_ENABLE_TIME_TOKEN_PLAY, String.valueOf(newAppsettings.isEnableTimeTokenForPlay()));
+		store.put(AppSettings.SETTINGS_ENABLE_TIME_TOKEN_PUBLISH, String.valueOf(newAppsettings.isEnableTimeTokenForPublish()));
+
+
+		store.put(AppSettings.SETTINGS_PUBLISH_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishJwtControlEnabled()));
+		store.put(AppSettings.SETTINGS_PLAY_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isPlayJwtControlEnabled()));
+		store.put(AppSettings.SETTINGS_JWT_STREAM_SECRET_KEY, newAppsettings.getJwtStreamSecretKey() != null ? newAppsettings.getJwtStreamSecretKey() : "");
 		
 		store.put(AppSettings.SETTINGS_WEBRTC_ENABLED, String.valueOf(newAppsettings.isWebRTCEnabled()));
 		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(newAppsettings.getWebRTCFrameRate()));
@@ -1443,17 +1460,30 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_LISTENER_HOOK_URL, newAppsettings.getListenerHookURL() != null ? newAppsettings.getListenerHookURL() : "");
 		
 		store.put(AppSettings.SETTINGS_STREAM_FETCHER_RESTART_PERIOD, String.valueOf(newAppsettings.getRestartStreamFetcherPeriod()));
-		
+
 		store.put(AppSettings.SETTINGS_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isJwtControlEnabled()));
 		store.put(AppSettings.SETTINGS_JWT_SECRET_KEY, newAppsettings.getJwtSecretKey() != null ? newAppsettings.getJwtSecretKey() : "");
+
+		store.put(AppSettings.SETTINGS_S3_RECORDING_ENABLED, String.valueOf(newAppsettings.isS3RecordingEnabled()));
+		// app setting S3
+		store.put(AppSettings.SETTINGS_S3_ACCESS_KEY, newAppsettings.getS3AccessKey() != null ? newAppsettings.getS3AccessKey() : "");
+		store.put(AppSettings.SETTINGS_S3_SECRET_KEY, newAppsettings.getS3SecretKey() != null ? newAppsettings.getS3SecretKey() : "");
+		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
+		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
+		store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
+		
+
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
+		
+		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE, newAppsettings.getHlsEncryptionKeyInfoFile() != null ? newAppsettings.getHlsEncryptionKeyInfoFile() : "");
+		
 		return store.save();
 	}
 
 
 	private void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
-	{	
+	{
 		appSettings.setMp4MuxingEnabled(newSettings.isMp4MuxingEnabled());
 		appSettings.setWebMMuxingEnabled(newSettings.isWebMMuxingEnabled());
 		appSettings.setAddDateTimeToMp4FileName(newSettings.isAddDateTimeToMp4FileName());
@@ -1468,6 +1498,9 @@ public Result createInitializationProcess(String appName){
 		appSettings.setPublishTokenControlEnabled(newSettings.isPublishTokenControlEnabled());
 		appSettings.setPlayTokenControlEnabled(newSettings.isPlayTokenControlEnabled());
 		appSettings.setTimeTokenSubscriberOnly(newSettings.isTimeTokenSubscriberOnly());
+		appSettings.setEnableTimeTokenForPublish(newSettings.isEnableTimeTokenForPublish());
+		appSettings.setEnableTimeTokenForPlay(newSettings.isEnableTimeTokenForPlay());
+
 		appSettings.setJwtStreamSecretKey(newSettings.getJwtStreamSecretKey());
 		appSettings.setPlayJwtControlEnabled(newSettings.isPlayJwtControlEnabled());
 		appSettings.setPublishJwtControlEnabled(newSettings.isPublishJwtControlEnabled());
@@ -1505,8 +1538,25 @@ public Result createInitializationProcess(String appName){
 		appSettings.setIpFilterEnabled(newSettings.isIpFilterEnabled());
 		appSettings.setJwtControlEnabled(newSettings.isJwtControlEnabled());
 		appSettings.setJwtSecretKey(newSettings.getJwtSecretKey());
-		
+
+
+		appSettings.setS3RecordingEnabled(newSettings.isS3RecordingEnabled());
+		appSettings.setS3AccessKey(newSettings.getS3AccessKey());
+		appSettings.setS3SecretKey(newSettings.getS3SecretKey());
+		appSettings.setS3BucketName(newSettings.getS3BucketName());
+		appSettings.setS3RegionName(newSettings.getS3RegionName());
+		appSettings.setS3Endpoint(newSettings.getS3Endpoint());
+
+		storageClient.setEndpoint(newSettings.getS3Endpoint());
+		storageClient.setStorageName(newSettings.getS3BucketName());
+		storageClient.setAccessKey(newSettings.getS3AccessKey());
+		storageClient.setSecretKey(newSettings.getS3SecretKey());
+		storageClient.setRegion(newSettings.getS3RegionName());
+		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
+
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
+				
+		appSettings.setHlsEncryptionKeyInfoFile(newSettings.getHlsEncryptionKeyInfoFile());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
@@ -1543,6 +1593,10 @@ public Result createInitializationProcess(String appName){
 	@Override
 	public boolean isServerShuttingDown() {
 		return serverShuttingDown;
+	}
+	
+	public void setStorageClient(StorageClient storageClient) {
+		this.storageClient = storageClient;
 	}
 
 }

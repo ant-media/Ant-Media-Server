@@ -7,6 +7,7 @@ target/
 *.zip
 *.tar.gz
 *~
+!src/main/server/lib/detection_model.zip
 
 Thumbs.db
 build.sh
