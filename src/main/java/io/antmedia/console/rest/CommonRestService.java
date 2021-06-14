@@ -167,7 +167,7 @@ public class CommonRestService {
 			if (!getDataStore().doesUsernameExist(user.getEmail())) 
 			{
 				result = getDataStore().addUser(user.getEmail(), getMD5Hash(user.getPassword()), user.getUserType());
-				logger.info("added user = {} password = {} user type = {}", user.getEmail(), user.getPassword()  ,user.getUserType());
+				logger.info("added user = {} user type = {} -> {}", user.getEmail() ,user.getUserType(), result);
 			}
 			else {
 				message = "User with the same e-mail already exists";
@@ -332,15 +332,17 @@ public class CommonRestService {
 
 		if (!userEmail.equals(userName)) {
 			result = getDataStore().deleteUser(userName);
+			if (!result) {
+				logger.info("Could not delete the user: {}" , userName);
+			}
 		}
 		else {
 			message = "You cannot delete yourself";
 		}
 
-		if(result)
+		if(result) {
 			logger.info("Deleted user: {} ", userName);
-		else
-			logger.info("Could not find and delete user: {}" , userName);
+		}	
 
 		return new Result(result, message);
 	}

@@ -10,7 +10,6 @@ import org.junit.Test;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 
 import io.antmedia.storage.AmazonS3StorageClient;
-import io.antmedia.storage.StorageClient.FileType;
 
 public class AmazonS3StorageClientTest {
 
@@ -31,7 +30,7 @@ public class AmazonS3StorageClientTest {
 		storage.setStorageName(BUCKET_NAME);
 		
 		File f = new File("src/test/resources/test.flv");
-		storage.save(f, FileType.TYPE_STREAM);
+		storage.save("streams" + "/" + f.getName() , f);
 	}
 	
 	@Test
@@ -39,15 +38,13 @@ public class AmazonS3StorageClientTest {
 		try {
 			AmazonS3StorageClient storage = new AmazonS3StorageClient();
 		
-			storage.delete("any_file", FileType.TYPE_STREAM);
+			storage.delete("streams/" + "any_file");
 			
 			storage.fileExist("any_file");
 			
-			storage.fileExist("any_file", FileType.TYPE_STREAM);
+			storage.fileExist("streams/any_file");
 			
-			storage.save(new File("any_file"), FileType.TYPE_STREAM);
-			
-			storage.save("any_file", new File("any_file"));
+			storage.save("streams/any_file", new File("any_file"));
 			
 		}
 		catch (Exception e) {
