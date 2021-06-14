@@ -76,7 +76,7 @@ public class ConsoleRestV2UnitTest {
     @After
     public void after() {
         // dbStore.clear();
-        // dbStore.close();
+        dbStore.close();
 
         File f = new File("server.db");
         if (f.exists()) {
