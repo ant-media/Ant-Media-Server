@@ -505,6 +505,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		mp4Muxer.init(appScope, "test", 0, null);
 
+
 		SpsParser spsParser = new SpsParser(extradata_original, 5);
 
 		AVCodecParameters codecParameters = new AVCodecParameters();

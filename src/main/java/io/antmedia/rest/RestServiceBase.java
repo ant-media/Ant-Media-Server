@@ -10,7 +10,6 @@ import java.net.MalformedURLException;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -167,6 +166,8 @@ public abstract class RestServiceBase {
 	private AppSettings appSettings;
 
 	private ServerSettings serverSettings;
+	private String s3StreamsFolderPath;
+	private String  s3PreviewsFolderPath;
 
 	protected boolean addSocialEndpoints(Broadcast broadcast, String socialEndpointIds) {	
 		boolean success = false;
@@ -1211,6 +1212,7 @@ public abstract class RestServiceBase {
 
 						storageClient.delete(appSettings.getS3StreamsFolderPath() + File.pathSeparator + splitFileName[0] + ".mp4");
 						storageClient.delete(appSettings.getS3PreviewsFolderPath() + File.pathSeparator + splitFileName[0] + ".png");
+
 					}
 				}
 				catch (Exception e) {

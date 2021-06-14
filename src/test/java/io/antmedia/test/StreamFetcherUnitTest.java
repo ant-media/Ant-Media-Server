@@ -688,9 +688,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		when(pars.codec_type()).thenReturn(AVMEDIA_TYPE_DATA);
 		stream.codecpar(pars);
 
-		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(null, null));
+		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(null, null, "streams"));
 
 		mp4Muxer.init(appScope, "test", 480, null);
+
 
 		Mockito.doReturn(true).when(mp4Muxer).isCodecSupported(Mockito.anyInt());
 
