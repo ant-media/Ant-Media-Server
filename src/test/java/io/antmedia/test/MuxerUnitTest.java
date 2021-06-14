@@ -437,11 +437,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testIsCodecSupported() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		
-		Mp4Muxer mp4Muxer = new Mp4Muxer(null, null);
+		Mp4Muxer mp4Muxer = new Mp4Muxer(null, null, "streams");
 		mp4Muxer.init(appScope, "test", 0);
 		
 		
-		WebMMuxer webMMuxer = new WebMMuxer(null, null);
+		WebMMuxer webMMuxer = new WebMMuxer(null, null, "streams");
 		webMMuxer.init(appScope, "test", 0);
 		
 		
@@ -456,7 +456,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	
 	@Test
 	public void testStreamIndex() {
-		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx);
+		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
 		
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		mp4Muxer.init(appScope, "test", 0);
@@ -500,7 +500,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		vertx = (Vertx)appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 		
-		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx);
+		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
 		
 		mp4Muxer.init(appScope, "test", 0);
 		
@@ -1588,7 +1588,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
 		assertNotNull(vertx);
 
-		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx);
+		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -2252,7 +2252,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		 */
 		
 		String streamId = "test";
-		Muxer mp4Muxer = spy(new Mp4Muxer(null, null));
+		Muxer mp4Muxer = spy(new Mp4Muxer(null, null, "streams"));
 		IScope scope = mock(IScope.class);
 		
 		File parent = mock(File.class);
@@ -2307,7 +2307,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		 */
 		
 		String streamId = "test";
-		Muxer mp4Muxer = spy(new Mp4Muxer(null, null));
+		Muxer mp4Muxer = spy(new Mp4Muxer(null, null, "streams"));
 		IScope scope = mock(IScope.class);
 		
 		File parent = mock(File.class);
