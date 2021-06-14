@@ -10,7 +10,6 @@ import java.net.MalformedURLException;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -74,7 +73,6 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.storage.StorageClient;
-import io.antmedia.storage.StorageClient.FileType;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.ApiModel;
@@ -1212,8 +1210,8 @@ public abstract class RestServiceBase {
 					if (appContext.containsBean(StorageClient.BEAN_NAME)) {
 						StorageClient storageClient = (StorageClient) appContext.getBean(StorageClient.BEAN_NAME);
 
-						storageClient.delete(splitFileName[0] + ".mp4", appSettings.getS3StreamsFolderPath());
-						storageClient.delete(splitFileName[0] + ".png", appSettings.getS3PreviewsFolderPath());
+						storageClient.delete(appSettings.getS3StreamsFolderPath() + "/" + splitFileName[0] + ".mp4");
+						storageClient.delete(appSettings.getS3PreviewsFolderPath() + "/" + splitFileName[0] + ".png");
 					}
 				}
 				catch (Exception e) {
