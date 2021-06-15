@@ -146,6 +146,9 @@ public class TokenFilterManager extends AbstractFilter   {
 			}
 			chain.doFilter(request, response);	
 		}
+		else {
+			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Request Type");
+		}
 	}
 
 	private TokenGenerator getTokenGenerator() {

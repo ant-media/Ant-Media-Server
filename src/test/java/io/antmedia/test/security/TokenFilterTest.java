@@ -180,16 +180,13 @@ public class TokenFilterTest {
 			when(mockRequest.getParameter("token")).thenReturn(tokenId);
 			
 			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
-			
-			when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
 
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			
 			verify(tokenService, never()).checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
-			
-			
+			verify(mockResponse, times(1)).sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Request Type");	
 			
 		} catch (ServletException|IOException e) {
 			e.printStackTrace();
@@ -251,6 +248,7 @@ public class TokenFilterTest {
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			verify(tokenService, times(1)).checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN);
+			
 		} catch (ServletException|IOException e) {
 			e.printStackTrace();
 			fail(ExceptionUtils.getStackTrace(e));
@@ -314,7 +312,6 @@ public class TokenFilterTest {
 			
 			// checkTimeBasedSubscriber is called once
 			verify(tokenService, times(1)).checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCode, false);
-			
 			
 			
 		} catch (ServletException|IOException e) {
