@@ -254,8 +254,50 @@ public class MuxingTest {
 
 	}
 
+	@Test
+	public void testHLSAESEncryption() throws Exception {
 
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+		if (result.isSuccess()) {
+			Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+			assertTrue(createInitialUser.isSuccess());
+		}
 
+		result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+		assertTrue(result.isSuccess());
+		
+		AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+		// send rtmp stream with ffmpeg
+		String streamName = "aes_hls_test" + (int)(Math.random() * 93377);
+		
+		String hlsEncryptionSetting = appSettings.getHlsEncryptionKeyInfoFile();
+		assertEquals("",hlsEncryptionSetting);
+		
+		appSettings.setHlsEncryptionKeyInfoFile("https://gist.githubusercontent.com/SelimEmre/0256120ad418e9f3184160da63977f99/raw/37f4ea5f161d89b6d05555b0421945e3237499a0/hls_aes.keyinfo");
+		ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+
+		// make sure that ffmpeg is installed and in path
+		Process rtmpSendingProcess = execute(ffmpegPath + " -re -i  src/test/resources/test.flv   -codec copy -vcodec copy  -f flv rtmp://"
+				+ SERVER_ADDR + "/LiveApp/" + streamName);
+		
+		try {
+			Thread.sleep(5000);
+			assertTrue(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".m3u8"));
+			
+			// stop rtmp streaming
+			rtmpSendingProcess.destroy();
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		//Restore HLS AES Encryption Setting
+		appSettings.setHlsEncryptionKeyInfoFile("");
+		ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+	}
 
 	//	@Test
 	public void testAzureRTMPSending() {
