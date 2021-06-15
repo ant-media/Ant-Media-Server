@@ -864,6 +864,10 @@ public class MongoStore extends DataStore {
 					ops.set("endPointList", broadcast.getEndPointList());
 				}
 				
+				if (broadcast.getSubFolder() != null) {
+					ops.set("subFolder", broadcast.getSubFolder());
+				}
+				
 				prepareFields(broadcast, ops);
 				
 				ops.set("currentPlayIndex", broadcast.getCurrentPlayIndex());

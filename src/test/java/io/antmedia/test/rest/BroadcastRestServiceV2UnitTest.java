@@ -2673,10 +2673,16 @@ public class BroadcastRestServiceV2UnitTest {
 		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
 		Mockito.doReturn(sfm).when(adaptor).getStreamFetcherManager();
 		Mockito.doReturn(false).when(sfm).isStreamRunning(any());
+		newCam.setSubFolder("testFolder");
 
 		store.save(newCam);
 
 		result = streamSourceRest.updateBroadcast(newCam.getStreamId(), newCam, null);
+		
+		
+		Broadcast broadcast = store.get(newCam.getStreamId());
+		assertEquals("testFolder", broadcast.getSubFolder());
+		
 
 		assertTrue(result.isSuccess());
 		
