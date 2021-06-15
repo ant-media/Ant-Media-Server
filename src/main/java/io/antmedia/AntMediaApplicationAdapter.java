@@ -636,9 +636,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		String filePath = file.getPath();
 		long fileSize = file.length();
 		long systemTime = System.currentTimeMillis();
-		String[] subDirs = filePath.split(Pattern.quote(File.separator));
-		Integer pathLength=Integer.valueOf(subDirs.length);
-		String relativePath= subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+		
+		String relativePath=getRelativePath(filePath);
 		String listenerHookURL = null;
 		String streamName = file.getName();
 
@@ -701,6 +700,19 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			future.complete();
 
 		}, null);
+	}
+	
+	public static String getRelativePath(String filePath){
+		StringBuilder relativePath= new StringBuilder();
+		String[] subDirs = filePath.split("streams");
+		if(subDirs.length == 2)
+			relativePath = new StringBuilder("streams" + subDirs[1]);
+		else{
+			for(int i=1;i<subDirs.length;i++){
+				relativePath.append("streams").append(subDirs[i]);
+			}
+		}
+		return relativePath.toString();
 	}
 
 	private static class AuthCheckJob {

@@ -208,7 +208,7 @@ public class AppFunctionalV2Test {
 		try {
 			//create playlist 
 			
-			Broadcast broadcast = RestServiceV2Test.createBroadcast("test stream", AntMediaApplicationAdapter.PLAY_LIST, null);
+			Broadcast broadcast = RestServiceV2Test.createBroadcast("test stream", AntMediaApplicationAdapter.PLAY_LIST, null, null);
 			assertNotNull(broadcast);
 			
 			Broadcast broadcast2 = RestServiceV2Test.getBroadcast(broadcast.getStreamId());
@@ -439,7 +439,8 @@ public class AppFunctionalV2Test {
 			List<EncoderSettings> encoderSettingsActive = null;
 			AppSettings appSettingsModel = null;
 			boolean mp4MuxingEnabled = false;
-			Broadcast broadcast = restServiceTest.createBroadcast("RTMP_stream");
+			Broadcast broadcast = restServiceTest.createBroadcast("RTMP_stream", null, null, null);
+			Broadcast broadcastWithSubFolder = restServiceTest.createBroadcast("RTMP_stream_with_subfolder",null,null, "testFolder");
 			{
 				//prepare settings
 				ConsoleAppRestServiceTest.resetCookieStore();
@@ -465,7 +466,7 @@ public class AppFunctionalV2Test {
 				appSettingsModel.setEncoderSettings(settingsList);
 				result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
 				assertTrue(result.isSuccess());
-
+				assertEquals("testFolder",broadcastWithSubFolder.getSubFolder());
 			}
 
 
@@ -489,14 +490,39 @@ public class AppFunctionalV2Test {
 			});
 
 			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8"));
+			
+			//For Subfolder Vod recording
+			rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+					+ broadcastWithSubFolder.getStreamId());
+			//wait for fetching stream with subfolder record
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+					.until(() -> MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastWithSubFolder.getSubFolder()+ "/" +broadcastWithSubFolder.getStreamId() + ".m3u8"));
+
+			processInfo = rtmpSendingProcess.info();
+
+			// stop rtmp streaming
+			rtmpSendingProcess.destroy();
+			 duration = (int)(System.currentTimeMillis() - processInfo.startInstant().get().toEpochMilli());
+
+			//wait for creating  files
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastWithSubFolder.getSubFolder()+ "/" + broadcastWithSubFolder.getStreamId() + ".mp4");
+			});
+
+			assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastWithSubFolder.getSubFolder()+ "/" + broadcastWithSubFolder.getStreamId() + ".m3u8"));
 
 			boolean isEnterprise = callIsEnterpriseEdition().getMessage().contains("Enterprise");
 			if(isEnterprise) {
 
 				assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.m3u8"));
+				assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastWithSubFolder.getSubFolder()+ "/" +  broadcastWithSubFolder.getStreamId() + "_240p.m3u8"));
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.mp4");
+				});
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastWithSubFolder.getSubFolder()+ "/" +   broadcastWithSubFolder.getStreamId() + "_240p.mp4");
 				});
 				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 
@@ -511,11 +537,11 @@ public class AppFunctionalV2Test {
 					for (int i = 0; i*50 < vodNumber; i++) {
 						List<VoD> vodList = restServiceTest.callGetVoDList(i*50, 50);
 						for (VoD vod : vodList) {
-							if (vod.getStreamId().equals(broadcast.getStreamId())) 
+							if (vod.getStreamId().equals(broadcast.getStreamId()) || vod.getStreamId().equals(broadcastWithSubFolder.getStreamId())) 
 							{
 								foundTime++;
 							}
-							if (foundTime == 2) {
+							if (foundTime == 4) {
 								return true;
 							}
 						}						
@@ -533,16 +559,17 @@ public class AppFunctionalV2Test {
 					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
 					//480p is not created because original stream is 360p
 
-				
-					//2 more VoDs should be added to DB, one is original other one ise 240p mp4 files
-					//480p is not created because original stream is 360p
 					
 					int foundTime = 0;
 					for (int i = 0; i*50 < lastVodNumber; i++) {
 						List<VoD> vodList = restServiceTest.callGetVoDList(i*50, 50);
 						for (VoD vod : vodList) {
-							if (vod.getStreamId().equals(broadcast.getStreamId())) 
+							if (vod.getStreamId().equals(broadcast.getStreamId()) || vod.getStreamId().equals(broadcastWithSubFolder.getStreamId())) 
 							{
+								foundTime++;
+								
+							}
+							if(foundTime == 2) {
 								return true;
 							}
 						}						
@@ -555,8 +582,11 @@ public class AppFunctionalV2Test {
 
 			List<VoD> callGetVoDList = RestServiceV2Test.callGetVoDList();
 			boolean found = false;
+			boolean found2 = false;
 			VoD vod1 = null;
 			VoD vod2 = null;
+			VoD vod3 = null;
+			VoD vod4 = null;
 			for (VoD voD : callGetVoDList) {
 				if (voD.getStreamId().equals(broadcast.getStreamId())) 
 				{
@@ -571,18 +601,38 @@ public class AppFunctionalV2Test {
 					assertFalse(voD.getFilePath().contains(voD.getVodId()));
 					found = true;
 				}
+				else if(voD.getStreamId().equals(broadcastWithSubFolder.getStreamId())){
+					if (voD.getFilePath().equals("streams/" + broadcastWithSubFolder.getSubFolder() + "/" + broadcastWithSubFolder.getStreamId() + ".mp4")) {
+						vod3 = voD;
+					}
+					else if (voD.getFilePath().equals("streams/" + broadcastWithSubFolder.getSubFolder() + "/" + broadcastWithSubFolder.getStreamId() + "_240p.mp4")) {
+						vod4 = voD;
+					}
+
+					//file path does not contain vod id
+					assertFalse(voD.getFilePath().contains(voD.getVodId()));
+					found2 = true;
+				}
 			}
 			assertTrue(found);
+			assertTrue(found2);
 			assertNotNull(vod1);
+			assertNotNull(vod3);
 			assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod1.getFilePath()));
+			assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod3.getFilePath()));
 			assertTrue(RestServiceV2Test.deleteVoD(vod1.getVodId()).isSuccess());
+			assertTrue(RestServiceV2Test.deleteVoD(vod3.getVodId()).isSuccess());
 			assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod1.getFilePath()));
-
+			assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod3.getFilePath()));
 			if (isEnterprise) {
 				assertNotNull(vod2);
+				assertNotNull(vod4);
 				assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
+				assertTrue(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod4.getFilePath()));
 				assertTrue(RestServiceV2Test.deleteVoD(vod2.getVodId()).isSuccess());
+				assertTrue(RestServiceV2Test.deleteVoD(vod4.getVodId()).isSuccess());
 				assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod2.getFilePath()));
+				assertFalse(MuxingTest.isURLAvailable("http://" + SERVER_ADDR + ":5080/LiveApp/"+ vod4.getFilePath()));
 			}
 
 
