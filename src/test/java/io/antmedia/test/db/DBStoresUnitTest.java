@@ -1333,12 +1333,15 @@ public class DBStoresUnitTest {
 			long now = System.currentTimeMillis();
 			tmp.setStartTime(now);
 			tmp.setOriginAdress(ServerSettings.getLocalHostAddress());
+			String subFolder = "test_folder";
+			tmp.setSubFolder(subFolder);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
 			broadcast2 = dataStore.get(key);
 
 			assertEquals(name, broadcast2.getName());
+			assertEquals(subFolder, broadcast2.getSubFolder());
 			assertEquals(description, broadcast2.getDescription());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast2.getStatus());
 			assertEquals(now, broadcast2.getStartTime());
