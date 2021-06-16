@@ -1211,12 +1211,11 @@ public abstract class RestServiceBase {
 					File previewFile = Muxer.getPreviewFile(getScope(), splitFileName[0], ".png");
 					Files.deleteIfExists(previewFile.toPath());
 
-					if (appContext.containsBean(StorageClient.BEAN_NAME)) {
-						StorageClient storageClient = (StorageClient) appContext.getBean(StorageClient.BEAN_NAME);
+					StorageClient storageClient = (StorageClient) appContext.getBean(StorageClient.BEAN_NAME);
 
-						storageClient.delete(appSettings.getS3StreamsFolderPath() + "/" + splitFileName[0] + ".mp4");
-						storageClient.delete(appSettings.getS3PreviewsFolderPath() + "/" + splitFileName[0] + ".png");
-					}
+					storageClient.delete(getAppSettings().getS3StreamsFolderPath() + File.pathSeparator + splitFileName[0] + ".mp4");
+					storageClient.delete(getAppSettings().getS3PreviewsFolderPath() + File.pathSeparator + splitFileName[0] + ".png");
+
 				}
 				catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
@@ -1269,11 +1268,8 @@ public abstract class RestServiceBase {
 
 					String path = savedFile.getPath();
 
-					String[] subDirs = path.split(Pattern.quote(File.separator));
 
-					Integer pathLength = subDirs.length;
-
-					String relativePath = subDirs[pathLength-2]+ File.separator +subDirs[pathLength-1];
+					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
 
 					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
 							VoD.UPLOADED_VOD, vodId);

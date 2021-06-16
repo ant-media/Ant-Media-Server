@@ -193,7 +193,10 @@ public class BroadcastRestService extends RestServiceBase{
 			   ) {
 				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream url is not valid. ")).build();
 			}
-
+			if(broadcast != null && broadcast.getSubFolder() != null) {
+				if(broadcast.getSubFolder().contains(".."))
+					return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Subfolder is not valid. ")).build();
+			}
 			Broadcast createdBroadcast = createBroadcastWithStreamID(broadcast);
 			if (createdBroadcast.getStreamId() != null && socialEndpointIds != null) {
 				String[] endpointIds = socialEndpointIds.split(",");
