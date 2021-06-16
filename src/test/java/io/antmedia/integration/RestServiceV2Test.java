@@ -1155,7 +1155,7 @@ public class RestServiceV2Test {
 			if (response.getStatusLine().getStatusCode() != 200) {
 				throw new Exception(result.toString());
 			}
-			System.out.println("result string: " + result.toString());
+			System.out.println("result of deleteVoD for id: "+ id +" string: " + result.toString());
 			Result result2 = gson.fromJson(result.toString(), Result.class);
 			return result2;
 		} catch (Exception e) {
