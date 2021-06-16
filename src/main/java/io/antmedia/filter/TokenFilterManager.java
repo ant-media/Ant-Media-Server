@@ -9,6 +9,7 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import javax.ws.rs.HttpMethod;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,6 +71,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		logger.debug("Client IP: {}, request url:  {}, token:  {}, sessionId: {},streamId:  {} ",clientIP 
 				,httpRequest.getRequestURI(), tokenId, sessionId, streamId);
 
+		
 
 		/*
 		 * In cluster mode edges make HLS request to Origin. Token isn't passed with this requests.
@@ -77,7 +79,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		 * then check it here to bypass token control.
 		 */
 		String clusterToken = (String) request.getAttribute("ClusterToken");
-		if ("GET".equals(method) 
+		if ((HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method))
 				&& (tokenGenerator == null || clusterToken == null || !clusterToken.equals(tokenGenerator.getGenetaredToken()))) 
 		{
 			
@@ -145,11 +147,11 @@ public class TokenFilterManager extends AbstractFilter   {
 					return;
 				}
 			}
-			
+			chain.doFilter(request, response);	
 		}
-	
-		chain.doFilter(request, response);
-
+		else {
+			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Request Type");
+		}
 	}
 
 	private TokenGenerator getTokenGenerator() {
