@@ -1652,17 +1652,19 @@ public class BroadcastRestServiceV2UnitTest {
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		store.save(broadcast);
 		
-	//	broadcast.setOriginAdress("127.0.0.1");
-	//	when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
 		when(context.containsBean(any())).thenReturn(false);
+		
+		//Check if stream is on a standalone server
 		
 		// Start MP4 Recording && Broadcast Status: Broadcasting, mp4Enabled: 0, it should return false
 		Result result = restServiceReal.enableRecordMuxing(broadcast.getStreamId(), true,"mp4");
 		assertFalse(result.isSuccess());
+		assertEquals("mp4 recording couldn't started",result.getMessage());
 		
 		// Stop MP4 Recording && Broadcast Status: Broadcasting, mp4Enabled: 0, it should return false
 		result = restServiceReal.enableRecordMuxing(broadcast.getStreamId(), false,"mp4");
 		assertFalse(result.isSuccess());
+		assertEquals("mp4 recording couldn't stopped",result.getMessage());
 		
 		Broadcast broadcast2 = new Broadcast(null, "name");
 		store.save(broadcast2);
@@ -1687,6 +1689,7 @@ public class BroadcastRestServiceV2UnitTest {
 		doReturn(false).when(store).setWebMMuxing(Mockito.any(), Mockito.anyInt());
 		result = restServiceReal.enableRecordMuxing(broadcast3.getStreamId(), false,"webm");
 		assertFalse(result.isSuccess());
+		assertEquals("webm recording couldn't stopped",result.getMessage());
 		
 		
 		//Check if stream is on another cluster node
@@ -1700,7 +1703,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertFalse(result.isSuccess());
 		assertEquals("Please send " + type + " recording request to " + broadcast3.getOriginAdress() + " node or send request in a stopped status.",result.getMessage());
 		
-		// Start MP4 Recording && Broadcast Status: Broadcasting, mp4Enabled: 0, it should return false
+		// Stop MP4 Recording && Broadcast Status: Broadcasting, mp4Enabled: 0, it should return false
 		result = restServiceReal.enableRecordMuxing(broadcast3.getStreamId(), false,type);
 		assertFalse(result.isSuccess());
 		assertEquals("Please send " + type + " recording request to " + broadcast3.getOriginAdress() + " node or send request in a stopped status.",result.getMessage());

@@ -2072,7 +2072,8 @@ public abstract class RestServiceBase {
 	
 	public Result enableRecordMuxing(String streamId, boolean enableRecording, String  type ) {
 		boolean result = false;
-		String message = null;		
+		String message = null;
+		String status = (enableRecording)?"started":"stopped"; 
 		if (streamId != null) 
 		{
 			Broadcast broadcast = getDataStore().get(streamId);
@@ -2106,11 +2107,12 @@ public abstract class RestServiceBase {
 								if (result) 
 								{
 									message=Long.toString(System.currentTimeMillis());
-									logger.warn("{} recording is started for stream: {}", type,streamId);
+									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
 								}
 								else
 								{
 									logFailedOperation(enableRecording,streamId,(type.equals(RecordType.MP4.toString()))?RecordType.MP4:RecordType.WEBM);
+									message= type +" recording couldn't " + status;
 									}
 								}
 							else {
@@ -2134,7 +2136,7 @@ public abstract class RestServiceBase {
 					}
 					else
 					{
-						message =  type + " Recording status  is already: " +enableRecording;
+						message =  type + " recording status  is already: " +enableRecording;
 						}
 				}
 			}
