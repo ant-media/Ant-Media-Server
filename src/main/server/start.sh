@@ -161,8 +161,15 @@ fi
 
 export RED5_CLASSPATH="${RED5_HOME}/ant-media-server-service.jar${P}${RED5_HOME}/conf${P}${CLASSPATH}"
 
-# create log directory
-mkdir log 2>/dev/null
+# create log directory if not exist
+if [ ! -d "/var/log/antmedia" ] 
+then
+    mkdir /var/log/antmedia 
+fi
+
+ln -sf /var/log/antmedia ${RED5_HOME}/log
+check
+
 
 # start Ant Media Server
 
