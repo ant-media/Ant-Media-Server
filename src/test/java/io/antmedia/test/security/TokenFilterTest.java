@@ -405,7 +405,7 @@ public class TokenFilterTest {
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			
-			verify(settings, never()).isPlayTokenControlEnabled();
+			verify(settings).isPlayTokenControlEnabled();
 			
 		} catch (ServletException|IOException e) {
 			e.printStackTrace();
