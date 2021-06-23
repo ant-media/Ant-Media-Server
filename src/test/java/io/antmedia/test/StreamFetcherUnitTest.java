@@ -769,6 +769,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
+			fetcher.setDataStore(dataStore);
 			fetcher.setRestartStream(restartStream);
 
 			assertFalse(fetcher.isThreadActive());
