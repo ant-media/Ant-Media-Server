@@ -1068,9 +1068,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 					AntMediaApplicationAdapter.IP_CAMERA);
 
 			newCam.setStreamId(streamId);
+			DataStore dtStore = new InMemoryDataStore("db");
+			dtStore.save(newCam);
 
 			StreamFetcher camScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
+			camScheduler.setDataStore(dtStore);
 			camScheduler.setConnectionTimeout(10000);
 
 			camScheduler.startStream();
