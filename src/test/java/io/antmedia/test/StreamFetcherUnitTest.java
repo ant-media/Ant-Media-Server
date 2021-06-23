@@ -627,10 +627,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			newCam3.setStreamId("stream_id_" + (int)(Math.random() * 100000));
 
+			DataStore dataStore = new InMemoryDataStore("ntest");
+			dataStore.save(newCam3);
 
 			StreamFetcher fetcher3 = new StreamFetcher(newCam3.getStreamUrl(), newCam3.getStreamId(), newCam3.getType(), appScope, vertx);
 			fetcher3.setRestartStream(false);
 
+			fetcher3.setDataStore(dataStore);
 			// thread start
 			fetcher3.startStream();
 
