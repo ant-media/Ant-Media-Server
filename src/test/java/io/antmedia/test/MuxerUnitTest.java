@@ -96,6 +96,7 @@ import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -636,7 +637,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		int createPreviewPeriod = (int) (Math.random() * 10000);
 		assertNotEquals(0, createPreviewPeriod);
 		getAppSettings().setCreatePreviewPeriod(createPreviewPeriod);
-
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId("test");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		muxAdaptor.setBroadcast(broadcast);
 		boolean result = muxAdaptor.init(appScope, "test", false);
 		assertTrue(result);
 
@@ -939,6 +947,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamId = "stream " + (int)(Math.random()*10000);
 
+		appAdaptor.setDataStore(new InMemoryDataStore("dbtest"));
 		long activeBroadcastCount = appAdaptor.getDataStore().getActiveBroadcastCount();
 
 		logger.info("Active broadcast count: {}", activeBroadcastCount);
@@ -973,7 +982,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		long activeBroadcastCountFinal = activeBroadcastCount;
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-
 		.until(() -> {
 			return activeBroadcastCountFinal + 2 == appAdaptor.getDataStore().getActiveBroadcastCount();
 		});
@@ -1257,6 +1265,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
 		String streamId = "stream_id" + (int)(Math.random()*10000);
 
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		muxAdaptor.setBroadcast(broadcast);
 		boolean result = muxAdaptor.init(appScope, streamId, false);
 
 		assertTrue(result);
@@ -1345,7 +1361,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			File file = new File("target/test-classes/test.flv");
 
 			String streamId = "streamId" + (int)(Math.random()*10000);
-
+			Broadcast broadcast = new Broadcast();
+			try {
+				broadcast.setStreamId(streamId);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			muxAdaptor.setBroadcast(broadcast);
 			boolean result = muxAdaptor.init(appScope, streamId, false);
 			assertTrue(result);
 
@@ -1555,6 +1578,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			logger.debug("f path:" + file.getAbsolutePath());
 			assertTrue(file.exists());
+			Broadcast broadcast = new Broadcast();
+			try {
+				broadcast.setStreamId("video_with_subtitle_stream");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			muxAdaptor.setBroadcast(broadcast);
 
 			boolean result = muxAdaptor.init(appScope, "video_with_subtitle_stream", false);
 			assertTrue(result);
@@ -1693,6 +1724,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			logger.debug("f path:" + file.getAbsolutePath());
 			assertTrue(file.exists());
+			Broadcast broadcast = new Broadcast();
+			try {
+				broadcast.setStreamId("test_within_childscope");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			muxAdaptor.setBroadcast(broadcast);
+
 
 			boolean result = muxAdaptor.init(childScope3, "test_within_childscope", false);
 			assert (result);
@@ -1851,7 +1891,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			logger.info("f path:" + file.getAbsolutePath());
 			assertTrue(file.exists());
-
+			Broadcast broadcast = new Broadcast();
+			try {
+				broadcast.setStreamId(name);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			muxAdaptor.setBroadcast(broadcast);
 			boolean result = muxAdaptor.init(appScope, name, false);
 			assert (result);
 
@@ -1961,6 +2008,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			logger.info("f path: {}" , file.getAbsolutePath());
 			assertTrue(file.exists());
+			Broadcast broadcast = new Broadcast();
+			try {
+				broadcast.setStreamId("hls_video_subtitle");
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			muxAdaptor.setBroadcast(broadcast);
 
 			boolean result = muxAdaptor.init(appScope, "hls_video_subtitle", false);
 			assert (result);
@@ -2099,7 +2154,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("f path:" + file.getAbsolutePath());
 			assertTrue(file.exists());
 
-			logger.info("1");
+			Broadcast broadcast = new Broadcast();
+			try {
+				broadcast.setStreamId(name);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+			muxAdaptor.setBroadcast(broadcast);
 			boolean result = muxAdaptor.init(appScope, name, false);
 
 			assertTrue(result);
@@ -2365,6 +2427,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		getAppSettings().setMaxAnalyzeDurationMS(3000);
 		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope));
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId("name");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		muxAdaptor.setBroadcast(broadcast);
 		muxAdaptor.init(appScope, "name", false);
 		
 		clientBroadcastStream.setMuxAdaptor(new WeakReference<MuxAdaptor>(muxAdaptor));
