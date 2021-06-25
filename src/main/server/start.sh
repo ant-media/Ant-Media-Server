@@ -168,7 +168,6 @@ then
 fi
 
 ln -sf /var/log/antmedia ${RED5_HOME}/log
-check
 
 
 # start Ant Media Server

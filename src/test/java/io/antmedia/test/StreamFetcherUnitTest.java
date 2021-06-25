@@ -627,10 +627,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			newCam3.setStreamId("stream_id_" + (int)(Math.random() * 100000));
 
+			DataStore dataStore = new InMemoryDataStore("ntest");
+			dataStore.save(newCam3);
 
 			StreamFetcher fetcher3 = new StreamFetcher(newCam3.getStreamUrl(), newCam3.getStreamId(), newCam3.getType(), appScope, vertx);
 			fetcher3.setRestartStream(false);
 
+			fetcher3.setDataStore(dataStore);
 			// thread start
 			fetcher3.startStream();
 
@@ -769,6 +772,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
+			fetcher.setDataStore(dataStore);
 			fetcher.setRestartStream(restartStream);
 
 			assertFalse(fetcher.isThreadActive());
@@ -1064,9 +1068,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 					AntMediaApplicationAdapter.IP_CAMERA);
 
 			newCam.setStreamId(streamId);
+			DataStore dtStore = new InMemoryDataStore("db");
+			dtStore.save(newCam);
 
 			StreamFetcher camScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
+			camScheduler.setDataStore(dtStore);
 			camScheduler.setConnectionTimeout(10000);
 
 			camScheduler.startStream();
