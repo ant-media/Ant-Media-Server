@@ -1622,9 +1622,9 @@ public class ConsoleAppRestServiceTest{
 
 			{ //audio only recording	
 				int recordDuration = 5000;
-				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
-				assertTrue(result.isSuccess());
-				assertNotNull(result.getMessage());
+				Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					return RestServiceV2Test.callEnableMp4Muxing(streamName, 1).isSuccess();
+				});
 				Thread.sleep(recordDuration);
 
 				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
