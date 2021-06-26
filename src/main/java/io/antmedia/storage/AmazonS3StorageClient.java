@@ -30,8 +30,8 @@ public class AmazonS3StorageClient extends StorageClient {
 
 	protected static Logger logger = LoggerFactory.getLogger(AmazonS3StorageClient.class);
 
-	private AmazonS3 getAmazonS3() {
-		if (amazonS3 == null) {
+	public AmazonS3 getAmazonS3() {
+		if (amazonS3 == null || isS3ConfChanged()) {
 			AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
 
 			// Inject endpoint if provided in the configuration file
@@ -53,6 +53,7 @@ public class AmazonS3StorageClient extends StorageClient {
 					.withConnectionTimeout(120 * 1000)
 					.withMaxErrorRetry(15));
 
+			setS3ConfChanged(false);
 			amazonS3 = builder.build();
 		}
 		return amazonS3; 
