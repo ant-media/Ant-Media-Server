@@ -874,6 +874,9 @@ public class ConsoleAppRestServiceTest{
 
 			// change settings test testAllowOnlyStreamsInDataStore is true
 			appSettingsModel.setAcceptOnlyStreamsInDataStore(true);
+			//Reset time token settings because some previous test make them enable
+			appSettingsModel.setEnableTimeTokenForPublish(false);
+			appSettingsModel.setTimeTokenSubscriberOnly(false);
 
 			Result result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
