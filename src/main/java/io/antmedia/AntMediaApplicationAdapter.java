@@ -482,27 +482,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType) {
 		vertx.executeBlocking( handler -> {
 			try {
-
-						DataStore dataStoreLocal = getDataStore();
-			
-						Broadcast broadcast = dataStoreLocal.get(streamName);
-	
-						if (broadcast == null) {
-	
-							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs, publishType);
-						} 
-						else {
-	
-							broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
-							broadcast.setStartTime(System.currentTimeMillis());
-							broadcast.setOriginAdress(getServerSettings().getHostAddress());
-							broadcast.setWebRTCViewerCount(0);
-							broadcast.setHlsViewerCount(0);
-							broadcast.setPublishType(publishType);
-							boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
-							
-							logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
-						}
+						
+						Broadcast broadcast = saveBroadcast(streamName, absoluteStartTimeMs, publishType, getDataStore().get(streamName));
 	
 						final String listenerHookURL = broadcast.getListenerHookURL();
 						final String streamId = broadcast.getStreamId();
@@ -570,6 +551,27 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 		
 		logger.info("start publish leaved for stream:{}", streamName);
+	}
+
+	private Broadcast saveBroadcast(String streamName, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
+		if (broadcast == null) 
+		{
+
+			broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), getDataStore(), appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs, publishType);
+		} 
+		else {
+
+			broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
+			broadcast.setStartTime(System.currentTimeMillis());
+			broadcast.setOriginAdress(getServerSettings().getHostAddress());
+			broadcast.setWebRTCViewerCount(0);
+			broadcast.setHlsViewerCount(0);
+			broadcast.setPublishType(publishType);
+			boolean result = getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
+			
+			logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
+		}
+		return broadcast;
 	}
 
 	private ServerSettings getServerSettings() 
@@ -924,7 +926,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 
 	public Result startStreaming(Broadcast broadcast) 
-	{
+	{		
 		Result result = new Result(false);
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))  {
@@ -1012,7 +1014,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		
 		vertx.setTimer(500, h -> {
-			logger.info("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
+			logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
 			getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
 		});
 	}
@@ -1597,6 +1599,10 @@ public Result createInitializationProcess(String appName){
 	
 	public void setStorageClient(StorageClient storageClient) {
 		this.storageClient = storageClient;
+	}
+
+	public void streamPublishStart(IBroadcastStream stream) {
+		saveBroadcast(stream.getPublishedName(), ((ClientBroadcastStream)stream).getAbsoluteStartTimeMs() , MuxAdaptor.PUBLISH_TYPE_RTMP, getDataStore().get(stream.getPublishedName()));
 	}
 
 }
