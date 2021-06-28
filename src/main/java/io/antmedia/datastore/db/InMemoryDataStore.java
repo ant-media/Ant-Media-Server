@@ -361,7 +361,7 @@ public class InMemoryDataStore extends DataStore {
 					long unixTime = System.currentTimeMillis();
 
 					String filePath = file.getPath();
-
+					
 					String[] subDirs = filePath.split(Pattern.quote(File.separator));
 
 					String relativePath= "streams/" + subDirs[subDirs.length-2] +'/' +subDirs[subDirs.length-1];

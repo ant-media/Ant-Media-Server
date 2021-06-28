@@ -65,6 +65,7 @@ import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
+import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
@@ -155,6 +156,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(scope.getContext()).thenReturn(context);
 		Mockito.doReturn(mock(DataStore.class)).when(spyAdapter).getDataStore();
 		
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		spyAdapter.setStorageClient(storageClient);
+		
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setScope(scope);
 		spyAdapter.updateSettings(newSettings, true);
@@ -192,6 +196,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		IContext context = mock(IContext.class);
 		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
 		
 		when(scope.getContext()).thenReturn(context);
 		spyAdapter.setDataStoreFactory(dsf);
@@ -1021,6 +1027,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		IContext context = mock(IContext.class);
 		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
 		
 		when(scope.getContext()).thenReturn(context);
 		spyAdapter.setDataStoreFactory(dsf);
@@ -1130,6 +1138,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		IContext context = mock(IContext.class);
 		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
 		
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
+		
 		when(scope.getContext()).thenReturn(context);
 		spyAdapter.setDataStoreFactory(dsf);
 		
@@ -1173,6 +1184,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		IContext context = mock(IContext.class);
 		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
 		when(context.hasBean(IClusterNotifier.BEAN_NAME)).thenReturn(true);
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
 		
 		
 		IClusterNotifier clusterNotifier = Mockito.mock(IClusterNotifier.class);
