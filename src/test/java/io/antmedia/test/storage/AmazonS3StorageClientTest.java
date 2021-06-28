@@ -4,15 +4,16 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 
 import java.io.File;
 
+import org.junit.Rule;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 
-import com.amazonaws.SdkClientException;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 
@@ -26,6 +27,21 @@ public class AmazonS3StorageClientTest {
 	public final String BUCKET_NAME = "";
 	
 	public final String REGION = "";
+	
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+		protected void starting(Description description) {
+			System.out.println("Starting test: " + description.getMethodName());
+		}
+
+		protected void failed(Throwable e, Description description) {
+			System.out.println("Failed test: " + description.getMethodName() );
+			e.printStackTrace();
+		}
+		protected void finished(Description description) {
+			System.out.println("Finishing test: " + description.getMethodName());
+		}
+	};
 	
 	//@Test
 	public void testS3() {
@@ -64,6 +80,8 @@ public class AmazonS3StorageClientTest {
 	public void testChangeS3Settings() {
 		
 		AmazonS3StorageClient storage = spy(new AmazonS3StorageClient());
+		storage.setAccessKey("any access key");
+		storage.setSecretKey("any secret key");
 
 		//Call getAmazonS3 with default settings
 		AmazonS3 amazonS3 = storage.getAmazonS3();
