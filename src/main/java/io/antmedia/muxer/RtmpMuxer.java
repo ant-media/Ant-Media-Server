@@ -136,7 +136,7 @@ public class RtmpMuxer extends Muxer {
 
 	private AVFormatContext getOutputFormatContext() {
 		if (outputFormatContext == null) {
-			logger.info("Filling outputFormatContext");
+			logger.info("Creating outputFormatContext");
 			outputFormatContext= new AVFormatContext(null);
 			int ret = avformat_alloc_output_context2(outputFormatContext, null, format, null);
 			if (ret < 0) {
@@ -206,7 +206,7 @@ public class RtmpMuxer extends Muxer {
 	 * Then writeTrailer causes crash because of memory problem.
 	 * We need to control if header is written before trying to write Trailer and synchronize them.
 	 */
-	private synchronized boolean writeHeader() {
+	public synchronized boolean writeHeader() {
 		if(!trailerWritten) {
 			long startTime = System.currentTimeMillis();
 			AVDictionary optionsDictionary = null;
@@ -273,6 +273,21 @@ public class RtmpMuxer extends Muxer {
 		}
 	}
 
+	/*
+	 * This method is only used for testing
+	 */
+	public boolean initializeForCrashTest(){
+		AVFormatContext context = getOutputFormatContext();
+		if (context != null && context.pb() != null) {
+			//return false if it is already prepared
+			return false;
+		}
+		AVIOContext pb = new AVIOContext(null);
+		int ret = avformat.avio_open(pb,  url, AVIO_FLAG_WRITE);
+		context.pb(pb);
+		isRunning.set(true);
+		return true;
+	}
 
 	private void clearResource() {
 		/* close output */

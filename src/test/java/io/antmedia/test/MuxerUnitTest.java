@@ -493,10 +493,48 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url");
 		rtmpMuxer.init(appScope, "test", 0, null);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
-		assertTrue(rtmpMuxer.getRegisteredStreamIndexList().contains(50));
+		
 		
 	}
-	
+	@Test
+	public void testRTMPWriteCrash(){
+
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+
+		SpsParser spsParser = new SpsParser(extradata_original, 5);
+
+		AVCodecParameters codecParameters = new AVCodecParameters();
+		codecParameters.width(spsParser.getWidth());
+		codecParameters.height(spsParser.getHeight());
+		codecParameters.codec_id(AV_CODEC_ID_H264);
+		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+		codecParameters.extradata_size(sps_pps_avc.length);
+		BytePointer extraDataPointer = new BytePointer(sps_pps_avc);
+		codecParameters.extradata(extraDataPointer);
+		codecParameters.format(AV_PIX_FMT_YUV420P);
+		codecParameters.codec_tag(0);
+		AVRational rat = new AVRational().num(1).den(1000);
+
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url");
+
+		rtmpMuxer.init(appScope, "test", 0, null);
+		rtmpMuxer.addStream(codecParameters, rat, 50);
+		assertTrue(rtmpMuxer.initializeForCrashTest());
+
+		//This was a crash if we don't check headerWritten after we initialize the context and get isRunning true
+		//To test the scenarios of that crash;
+		rtmpMuxer.writeTrailer();
+
+		//This should work since the trailer is not written yet
+		rtmpMuxer.writeHeader();
+
+		//This should work since header is written
+		rtmpMuxer.writeTrailer();
+
+		//This is for testing writeHeader after writeTrailer.
+		rtmpMuxer.writeHeader();
+	}
+
 	@Test
 	public void testMp4MuxerDirectStreaming() {
 
@@ -559,13 +597,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		audioCodecParameters.extradata_size(aacConfig.length);
 		audioCodecParameters.codec_tag(0);
 
-		
-		
+
 		mp4Muxer.addStream(audioCodecParameters, rat, 1);
 		
-		
-		
-		
+
 		mp4Muxer.prepareIO();
 
 		int i = 0;
