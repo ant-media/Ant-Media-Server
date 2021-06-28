@@ -1549,13 +1549,14 @@ public Result createInitializationProcess(String appName){
 		appSettings.setS3RegionName(newSettings.getS3RegionName());
 		appSettings.setS3Endpoint(newSettings.getS3Endpoint());
 
-		storageClient.setS3ConfChanged(true);
+	
 		storageClient.setEndpoint(newSettings.getS3Endpoint());
 		storageClient.setStorageName(newSettings.getS3BucketName());
 		storageClient.setAccessKey(newSettings.getS3AccessKey());
 		storageClient.setSecretKey(newSettings.getS3SecretKey());
 		storageClient.setRegion(newSettings.getS3RegionName());
 		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
+		storageClient.reset();
 
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 				

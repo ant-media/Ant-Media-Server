@@ -39,11 +39,6 @@ public abstract class StorageClient {
 
 	private boolean enabled;
 
-	/**
-	 * S3 Configurations change flag
-	 * It's false by default
-	 */
-	private boolean isS3ConfChanged = false;
 	
 	/**
 	 * Delete file from storage
@@ -68,6 +63,11 @@ public abstract class StorageClient {
 	 * @return
 	 */
 	public abstract boolean fileExist(String key);
+	
+	/**
+	 * Re-initialize the storage client with the current parameters
+	 */
+	public abstract void reset();
 
 	public String getEndpoint() {
 		return endpoint;
@@ -123,13 +123,5 @@ public abstract class StorageClient {
 	
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
-	}
-	
-	public boolean isS3ConfChanged() {
-		return isS3ConfChanged;
-	}
-
-	public void setS3ConfChanged(boolean isS3ConfChanged) {
-		this.isS3ConfChanged = isS3ConfChanged;
 	}
 }

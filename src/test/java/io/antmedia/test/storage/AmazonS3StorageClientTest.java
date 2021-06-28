@@ -1,6 +1,8 @@
 package io.antmedia.test.storage;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -11,6 +13,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 
 import com.amazonaws.SdkClientException;
+import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 
 import io.antmedia.storage.AmazonS3StorageClient;
@@ -57,25 +60,24 @@ public class AmazonS3StorageClientTest {
 		}
 	}
 	
-	@Test(expected = SdkClientException.class)
+	@Test
 	public void testChangeS3Settings() {
 		
-		AmazonS3StorageClient storage = spy(AmazonS3StorageClient.class);
+		AmazonS3StorageClient storage = spy(new AmazonS3StorageClient());
 
 		//Call getAmazonS3 with default settings
-		storage.getAmazonS3();
-		Mockito.verify(storage, never()).setS3ConfChanged(false);	
+		AmazonS3 amazonS3 = storage.getAmazonS3();
+		assertNotNull(amazonS3);
 		
-		//Call getAmazonS3 with set S3ConfChanged "true" flag
-		storage.setS3ConfChanged(true);
-		storage.getAmazonS3();
+		AmazonS3 amazonS3_2 = storage.getAmazonS3();
+		assertNotNull(amazonS3_2);
 		
-		Mockito.verify(storage, Mockito.times(1)).setS3ConfChanged(false);	
+		assertEquals(amazonS3_2, amazonS3);
 		
-		//Call getAmazonS3  with default settings again
-		storage.getAmazonS3();
+		storage.reset();
+		AmazonS3 amazonS3_3 = storage.getAmazonS3();
+		assertNotEquals(amazonS3_3, amazonS3);
 		
-		Mockito.verify(storage, Mockito.times(1)).setS3ConfChanged(false);	
 	}
 	
 	@Test

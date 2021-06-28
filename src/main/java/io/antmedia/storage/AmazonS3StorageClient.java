@@ -31,7 +31,7 @@ public class AmazonS3StorageClient extends StorageClient {
 	protected static Logger logger = LoggerFactory.getLogger(AmazonS3StorageClient.class);
 
 	public AmazonS3 getAmazonS3() {
-		if (amazonS3 == null || isS3ConfChanged()) {
+		if (amazonS3 == null) {
 			AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
 
 			// Inject endpoint if provided in the configuration file
@@ -53,7 +53,6 @@ public class AmazonS3StorageClient extends StorageClient {
 					.withConnectionTimeout(120 * 1000)
 					.withMaxErrorRetry(15));
 
-			setS3ConfChanged(false);
 			amazonS3 = builder.build();
 		}
 		return amazonS3; 
@@ -140,6 +139,11 @@ public class AmazonS3StorageClient extends StorageClient {
 			logger.debug("S3 is not enabled to save the file: {}", key);
 		}
 
+	}
+	
+	@Override
+	public void reset() {
+		this.amazonS3 = null;
 	}
 
 
