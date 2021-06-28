@@ -519,9 +519,11 @@ public class AppSettings {
 	private boolean playTokenControlEnabled ;
 
 	/**
-	 * the settings for accepting only time based token subscribers as connections to the streams 
+	 * The settings for accepting only time based token subscribers as connections to the streams 
+	 * @Deprecated. Please use {@link #enableTimeTokenForPlay} or {@link #enableTimeTokenForPublish}
 	 */
 	@Value( "${"+SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY+":false}" )
+	@Deprecated
 	private boolean timeTokenSubscriberOnly;
 	/**
 	 * the settings for accepting only time based token subscribers as connections to the streams
@@ -1644,10 +1646,16 @@ public class AppSettings {
 		this.playTokenControlEnabled = playTokenControlEnabled;
 	}
 	
+	/**
+	 * @Deprecated Please use {@link #isEnableTimeTokenForPlay()} or {@link #isEnableTimeTokenForPublish()}
+	 * @return
+	 */
+	@Deprecated
 	public boolean isTimeTokenSubscriberOnly() {
 		return timeTokenSubscriberOnly;
 	}
 	
+	@Deprecated
 	public void setTimeTokenSubscriberOnly(boolean timeTokenSubscriberOnly) {
 		this.timeTokenSubscriberOnly = timeTokenSubscriberOnly;
 	}
