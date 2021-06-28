@@ -974,7 +974,7 @@ public class BroadcastRestServiceV2UnitTest {
 			Endpoint endpoint6 = new Endpoint();
 			endpoint6.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
 			
-			assertFalse(restServiceReal.addEndpointV3("Not_regsitered_s, 0tream_id", endpoint6, 0).isSuccess());
+			assertFalse(restServiceReal.addEndpointV3("Not_regsitered_stream_id", endpoint6, 0).isSuccess());
 		}
 
 	}
