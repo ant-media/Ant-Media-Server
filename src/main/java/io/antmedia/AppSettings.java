@@ -1337,10 +1337,11 @@ public class AppSettings {
 	
 	/*
 	 * JWT Control Type
+	 * It can be default or jwks
 	 * It's "default" by default
 	 */
-	
-	@Value( "${" + SETTINGS_JWT_CONTROL_TYPE +":#{default}}")
+
+	@Value( "${" + SETTINGS_JWT_CONTROL_TYPE +":default}")
 	private String jwtControlType;
 	
 	/*
