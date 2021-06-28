@@ -675,7 +675,7 @@ public abstract class RestServiceBase {
 
 	}
 
-	public Result processRTMPEndpoint(Result result, Broadcast broadcast, String rtmpUrl, boolean addEndpoint) {
+	public Result processRTMPEndpoint(Result result, Broadcast broadcast, String rtmpUrl, boolean addEndpoint, int resolution) {
 		if (broadcast != null) 
 		{
 			boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
@@ -685,7 +685,7 @@ public abstract class RestServiceBase {
 			{
 				if((broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) || !isCluster)) {
 					if(addEndpoint) {
-						started = getMuxAdaptor(broadcast.getStreamId()).startRtmpStreaming(rtmpUrl);
+						started = getMuxAdaptor(broadcast.getStreamId()).startRtmpStreaming(rtmpUrl, resolution);
 					}
 					else {
 						started = getMuxAdaptor(broadcast.getStreamId()).stopRtmpStreaming(rtmpUrl);
