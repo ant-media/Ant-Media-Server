@@ -38,6 +38,9 @@ public class ConferenceRoom {
 	
 	@ApiModelProperty(value = "The list of streams in the Conference Room")
 	private List<String> roomStreamList = new ArrayList<>();
+	
+	@JsonIgnore
+	private boolean zombi;
 
 	public String getRoomId() {
 		return roomId;
@@ -69,6 +72,14 @@ public class ConferenceRoom {
 
 	public void setRoomStreamList(List<String> roomStreamList) {
 		this.roomStreamList = roomStreamList;
+	}
+
+	public boolean isZombi() {
+		return zombi;
+	}
+
+	public void setZombi(boolean zombi) {
+		this.zombi = zombi;
 	}
 
 }
