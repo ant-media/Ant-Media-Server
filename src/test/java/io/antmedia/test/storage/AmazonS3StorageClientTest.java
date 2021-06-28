@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.Mockito;
 
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
@@ -77,24 +78,26 @@ public class AmazonS3StorageClientTest {
 	}
 	
 	@Test
-	public void testChangeS3Settings() {
-		
+	public void testChangeS3Settings() 
+	{
 		AmazonS3StorageClient storage = spy(new AmazonS3StorageClient());
-		storage.setAccessKey("any access key");
-		storage.setSecretKey("any secret key");
 
+		Mockito.doReturn(Mockito.mock(AmazonS3.class)).when(storage).initAmazonS3();
+		
+		
 		//Call getAmazonS3 with default settings
-		AmazonS3 amazonS3 = storage.getAmazonS3();
-		assertNotNull(amazonS3);
+		storage.getAmazonS3();
+		Mockito.verify(storage, Mockito.times(1)).initAmazonS3();
 		
-		AmazonS3 amazonS3_2 = storage.getAmazonS3();
-		assertNotNull(amazonS3_2);
 		
-		assertEquals(amazonS3_2, amazonS3);
+		storage.getAmazonS3();
+		//it should still be called 1 time
+		Mockito.verify(storage, Mockito.times(1)).initAmazonS3();
 		
 		storage.reset();
-		AmazonS3 amazonS3_3 = storage.getAmazonS3();
-		assertNotEquals(amazonS3_3, amazonS3);
+		storage.getAmazonS3();
+		//it should be called twice because it's reset
+		Mockito.verify(storage, Mockito.times(2)).initAmazonS3();
 		
 	}
 	
