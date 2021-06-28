@@ -290,7 +290,9 @@ public class AppSettings {
 	
 	public static final String SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE = "settings.hlsEncryptionKeyInfoFile";
 	
-
+	public static final String SETTINGS_JWT_CONTROL_TYPE = "settings.jwtControlType";
+	public static final String SETTINGS_JWKS_URL = "settings.jwksURL";
+	
 
 	@JsonIgnore
 	@NotSaved
@@ -1333,6 +1335,22 @@ public class AppSettings {
 	@Value( "${" + SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE +":#{null}}")
 	private String hlsEncryptionKeyInfoFile;
 	
+	/*
+	 * JWT Control Type
+	 * It's "default" by default
+	 */
+	
+	@Value( "${" + SETTINGS_JWT_CONTROL_TYPE +":#{default}}")
+	private String jwtControlType;
+	
+	/*
+	 * JWKS URL
+	 * It's null by default
+	 */
+	
+	@Value( "${" + SETTINGS_JWKS_URL +":#{null}}")
+	private String jwksURL;
+
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
 	}
@@ -2563,6 +2581,22 @@ public class AppSettings {
 
 	public void setForceDecoding(boolean forceDecoding) {
 		this.forceDecoding = forceDecoding;
+	}
+	
+	public String getJwtControlType() {
+		return jwtControlType;
+	}
+
+	public void setJwtControlType(String jwtControlType) {
+		this.jwtControlType = jwtControlType;
+	}
+	
+	public String getJwksURL() {
+		return jwksURL;
+	}
+
+	public void setJwksURL(String jwksURL) {
+		this.jwksURL = jwksURL;
 	}
 
 }

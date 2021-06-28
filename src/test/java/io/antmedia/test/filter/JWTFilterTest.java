@@ -3,9 +3,7 @@ package io.antmedia.test.filter;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 
-import javax.crypto.SecretKey;
 import javax.servlet.ServletException;
 
 import org.junit.Test;
@@ -17,10 +15,11 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
+
 import io.antmedia.AppSettings;
 import io.antmedia.filter.JWTFilter;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.security.Keys;
 
 public class JWTFilterTest {
 	
@@ -38,14 +37,12 @@ public class JWTFilterTest {
         AppSettings appSettings = new AppSettings();
         appSettings.setJwtSecretKey("testtesttesttesttesttesttesttest");       
         appSettings.setJwtControlEnabled(true);
+        appSettings.setJwtControlType(jwtFilter.JWT_DEFAULT_TYPE);
         
         Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
         
-		SecretKey key = Keys.hmacShaKeyFor(appSettings.getJwtSecretKey().getBytes(StandardCharsets.UTF_8));
-		SecretKey invalidKey = Keys.hmacShaKeyFor("invalid-key-invalid-key-invalid-key".getBytes(StandardCharsets.UTF_8));
-		
-		String token = Jwts.builder().setSubject("token").signWith(key).compact();		
-		String invalidToken = Jwts.builder().setSubject("token").signWith(invalidKey).compact();
+		String token = JWT.create().sign(Algorithm.HMAC256(appSettings.getJwtSecretKey()));
+		String invalidToken = JWT.create().sign(Algorithm.HMAC256("invalid-key-invalid-key-invalid-key"));
 		
 		System.out.println("Valid Token: " + token);
 
@@ -129,7 +126,7 @@ public class JWTFilterTest {
             
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
             assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
-        }
+        }        
     }
 
 }
