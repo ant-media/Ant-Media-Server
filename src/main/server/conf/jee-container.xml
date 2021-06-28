@@ -104,12 +104,14 @@
 
 		<property name="valves">
 			<list>
+				<bean id="valve.access" class="org.apache.catalina.valves.RemoteIpValve" />
 				<bean id="valve.access" class="org.apache.catalina.valves.AccessLogValve">
 					<property name="directory" value="log" />
 					<property name="prefix" value="${http.host}_access" />
 					<property name="suffix" value=".log" />
 					<property name="pattern" value="common" />
 					<property name="rotatable" value="true" />
+					<property name="requestAttributesEnabled" value="true" />
 				</bean>
 				
 				<!-- cluster start

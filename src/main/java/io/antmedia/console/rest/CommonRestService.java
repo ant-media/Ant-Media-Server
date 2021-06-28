@@ -130,8 +130,11 @@ public class CommonRestService {
 
 	private static final int BLOCKED_LOGIN_TIMEOUT_SECS = 300 ; // in seconds
 
-	private static final int ALLOWED_LOGIN_ATTEMPTS = 2 ; 
+	private static final int ALLOWED_LOGIN_ATTEMPTS = 2 ;
 
+	public int getAllowedLoginAttempts() {
+		return ALLOWED_LOGIN_ATTEMPTS;
+	}
 
 
 	/**
@@ -159,15 +162,12 @@ public class CommonRestService {
 	public Result addUser(User user) {
 		boolean result = false;
 		String message = "";
-		HttpSession session = servletRequest.getSession();
-		User currentUser = getDataStore().getUser(session.getAttribute(USER_EMAIL).toString());
 		if (user != null) 
 		{
 			if (!getDataStore().doesUsernameExist(user.getEmail())) 
 			{
 				result = getDataStore().addUser(user.getEmail(), getMD5Hash(user.getPassword()), user.getUserType());
-				logger.info("added user = {} password = {} user type = {}", user.getEmail(), user.getPassword()  ,user.getUserType());
-				logger.info("current user = {} user type = {}", currentUser.getEmail(),  currentUser.getUserType());
+				logger.info("added user = {} user type = {} -> {}", user.getEmail() ,user.getUserType(), result);
 			}
 			else {
 				message = "User with the same e-mail already exists";
@@ -275,6 +275,9 @@ public class CommonRestService {
 		return new Result(result, message);
 
 	}
+	public void setRequestForTest(HttpServletRequest testRequest){
+		servletRequest = testRequest;
+	}
 
 	public Result isAdmin() {
 		HttpSession session = servletRequest.getSession();
@@ -329,15 +332,17 @@ public class CommonRestService {
 
 		if (!userEmail.equals(userName)) {
 			result = getDataStore().deleteUser(userName);
+			if (!result) {
+				logger.info("Could not delete the user: {}" , userName);
+			}
 		}
 		else {
 			message = "You cannot delete yourself";
 		}
 
-		if(result)
+		if(result) {
 			logger.info("Deleted user: {} ", userName);
-		else
-			logger.info("Could not find and delete user: {}" , userName);
+		}	
 
 		return new Result(result, message);
 	}
@@ -359,12 +364,13 @@ public class CommonRestService {
 	public Result changeUserPasswordInternal(String userMail, User user) {
 		boolean result = false;
 		String message = null;
-		if (userMail != null) {
+		if (userMail != null && user.getNewPassword() != null) {
 			result = getDataStore().doesUserExist(userMail, user.getPassword()) || getDataStore().doesUserExist(userMail, getMD5Hash(user.getPassword()));
 			if (result) {
 				result = getDataStore().editUser(userMail, getMD5Hash(user.getNewPassword()), UserType.ADMIN);
 
 				if (result) {
+					message = "Success";
 					HttpSession session = servletRequest.getSession();
 					if (session != null) {
 						session.setAttribute(IS_AUTHENTICATED, true);
@@ -378,7 +384,7 @@ public class CommonRestService {
 			}
 		}
 		else {
-			message = "User name does not exist in context";
+			message = "User name does not exist or there is no new password";
 		}
 
 		return new Result(result, message);

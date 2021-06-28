@@ -168,8 +168,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private static final String WEBRTC_VIEWER_INFO = "webrtcViewerInfo";
 
-	private static Thread shutdownHook;
-
 	private Queue<IScope> scopes = new ConcurrentLinkedQueue<>();
 
 	public static final String GA_TRACKING_ID = "UA-93263926-3";

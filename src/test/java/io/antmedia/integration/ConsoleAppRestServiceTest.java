@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.console.rest.CommonRestService;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -78,6 +79,7 @@ import net.bytebuddy.utility.RandomString;
 public class ConsoleAppRestServiceTest{
 
 	private static String ROOT_SERVICE_URL;
+	private static CommonRestService restService;
 
 	private static String ffmpegPath = "ffmpeg";
 
@@ -120,6 +122,7 @@ public class ConsoleAppRestServiceTest{
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
 		try {
+			restService = new CommonRestService();
 			httpCookieStore = new BasicCookieStore();
 
 			Result firstLogin = callisFirstLogin();
@@ -871,6 +874,9 @@ public class ConsoleAppRestServiceTest{
 
 			// change settings test testAllowOnlyStreamsInDataStore is true
 			appSettingsModel.setAcceptOnlyStreamsInDataStore(true);
+			//Reset time token settings because some previous test make them enable
+			appSettingsModel.setEnableTimeTokenForPublish(false);
+			appSettingsModel.setTimeTokenSubscriberOnly(false);
 
 			Result result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
@@ -1619,9 +1625,9 @@ public class ConsoleAppRestServiceTest{
 
 			{ //audio only recording	
 				int recordDuration = 5000;
-				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
-				assertTrue(result.isSuccess());
-				assertNotNull(result.getMessage());
+				Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+					return RestServiceV2Test.callEnableMp4Muxing(streamName, 1).isSuccess();
+				});
 				Thread.sleep(recordDuration);
 
 				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
@@ -1682,7 +1688,7 @@ public class ConsoleAppRestServiceTest{
 
 			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcast = RestServiceV2Test.callGetBroadcast(streamName);
-				return broadcast.getSpeed() != 0;
+				return broadcast != null && broadcast.getSpeed() != 0;
 			});
 
 			{ //video only recording	
@@ -2113,6 +2119,85 @@ public class ConsoleAppRestServiceTest{
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
 		return tmp;
+	}
+
+
+	// implement REST command for particular user's blocked status
+	private static Result getBlockedStatus(User user) throws Exception {
+		String url = ROOT_SERVICE_URL + "/users/" + user.getEmail() + "/blocked";
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
+				.setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+
+		HttpUriRequest get = RequestBuilder.get().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+
+		HttpResponse response = client.execute(get);
+
+		StringBuffer result = RestServiceV2Test.readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			throw new Exception(result.toString());
+		}
+		log.info("result string: " + result.toString());
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(tmp);
+		return tmp;
+	}
+	@Test
+	public void testBlockUser() {
+		try {
+			// create user for the first login
+
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			assertTrue(callAuthenticateUser(user).isSuccess());
+
+
+			Result authenticatedUserResult = callAuthenticateUser(user);
+			assertTrue(authenticatedUserResult.isSuccess());
+
+			user.setEmail("any_email");
+			authenticatedUserResult = callAuthenticateUser(user);
+			assertFalse(authenticatedUserResult.isSuccess());
+
+
+			user.setEmail("any_email");
+			user.setPassword( "any_pass");
+
+			// try to authenticate 1 more than the allowed number to block the user
+			for (int i = 0; i < restService.getAllowedLoginAttempts()+1; i++) {
+				authenticatedUserResult = callAuthenticateUser(user);
+				assertFalse(authenticatedUserResult.isSuccess());
+			}
+
+			System.out.println(getBlockedStatus(user).isSuccess());
+			// check if the user is really blocked
+			assertTrue(getBlockedStatus(user).isSuccess());
+
+			user.setEmail("any_otheremail");
+			user.setPassword( "any_pass");
+
+			// try to authenticate 5 more than the allowed number to block the user
+			for (int i = 0; i < restService.getAllowedLoginAttempts()+5; i++) {
+				authenticatedUserResult = callAuthenticateUser(user);
+				assertFalse(authenticatedUserResult.isSuccess());
+			}
+
+			assertTrue(getBlockedStatus(user).isSuccess());
+
+
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+
+			// attempt with the correct username and password
+			assertTrue(callAuthenticateUser(user).isSuccess());
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 
 	public static Result callSetAppSettings(String appName, AppSettings appSettingsModel) throws Exception {
