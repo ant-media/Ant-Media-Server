@@ -340,10 +340,18 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		String rtmpUrl = null;
 		Result result = new Result(false);
-		List<Endpoint> endpoints = getDataStore().get(id) != null ? getDataStore().get(id).getEndPointList():null;
-		if((endpoint != null && endpoint.getRtmpUrl() != null) && (endpoints == null || !endpoints.stream().anyMatch(o -> o.getRtmpUrl().equals(endpoint.getRtmpUrl())))) {
-			rtmpUrl = endpoint.getRtmpUrl();
-			result = super.addEndpoint(id, endpoint);
+		
+		if(endpoint != null && endpoint.getRtmpUrl() != null) {
+			
+			Broadcast broadcast = getDataStore().get(id);
+			if (broadcast != null) {
+			
+				List<Endpoint> endpoints = broadcast.getEndPointList();
+				if (endpoints == null || endpoints.stream().noneMatch(o -> o.getRtmpUrl().equals(endpoint.getRtmpUrl()))) {
+					rtmpUrl = endpoint.getRtmpUrl();
+					result = super.addEndpoint(id, endpoint);
+				}
+			}
 		}
 		
 		if (result.isSuccess()) 
