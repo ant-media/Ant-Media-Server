@@ -1,0 +1,26 @@
+[Unit]
+Description=Ant Media Server
+After=syslog.target network.target
+
+[Service]
+Type=simple
+Environment=JVM_MEMORY_OPTIONS=
+Environment=JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+LimitNOFILE=65536
+Environment=ANTMEDIA_HOME=/usr/local/antmedia
+WorkingDirectory=/usr/local/antmedia
+RemainAfterExit=no
+Restart=on-failure
+RestartSec=5s
+TasksMax=36000
+TimeoutStopSec=10
+SuccessExitStatus=143
+User=antmedia
+Group=antmedia
+StandardOutput=null
+StandardError=append:/usr/local/antmedia/log/antmedia-error.log
+
+ExecStart=/usr/bin/env ${JAVA_HOME}/bin/java -Dlogback.ContextSelector=org.red5.logging.LoggingContextSelector -cp ${ANTMEDIA_HOME}/ant-media-server-service.jar:${ANTMEDIA_HOME}/conf -Djava.security.debug=failure -Djava.awt.headless=true -Djava.security.egd=file:/dev/./urandom -Dcatalina.home=${ANTMEDIA_HOME} -Dcatalina.useNaming=true -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:+UseG1GC -XX:MaxGCPauseMillis=200 -XX:ParallelGCThreads=10 -XX:ConcGCThreads=5 -Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.port=5599 -Dcom.sun.management.jmxremote.local.only=true -Dcom.sun.management.jmxremote.host=127.0.0.1 -Djava.rmi.server.hostname=127.0.0.1 -Djava.rmi.server.useLocalHostname=true -Dcom.sun.management.jmxremote.rmi.port=5599 -XX:+HeapDumpOnOutOfMemoryError -Djava.library.path=/usr/local/antmedia/lib/native -Xverify:none -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Djava.net.preferIPv4Stack=true $JVM_MEMORY_OPTIONS -Djava.system.class.loader=org.red5.server.classloading.ServerClassLoader -Xshare:off org.red5.server.Bootstrap 9999
+
+[Install]
+WantedBy=multi-user.target

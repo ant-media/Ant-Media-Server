@@ -552,11 +552,11 @@ public class MongoStore extends DataStore {
 
 
 						String filePath=file.getPath();
-
+						
 						String[] subDirs = filePath.split(Pattern.quote(File.separator));
-
+						
 						Integer pathLength=Integer.valueOf(subDirs.length);
-
+						
 						String relativePath = "streams/"+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 						String vodId = RandomStringUtils.randomNumeric(24);
 						VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
@@ -862,6 +862,10 @@ public class MongoStore extends DataStore {
 				
 				if (broadcast.getEndPointList() != null) {
 					ops.set("endPointList", broadcast.getEndPointList());
+				}
+				
+				if (broadcast.getSubFolder() != null) {
+					ops.set("subFolder", broadcast.getSubFolder());
 				}
 				
 				prepareFields(broadcast, ops);

@@ -99,16 +99,18 @@ case "$OS" in
   P=";" # Since these are actually Windows, let Java know
   ;;
   Linux*)
-      LD_LIBRARY_PATH=$RED5_HOME/lib/native
+      ARCH=`uname -m`
+      LD_LIBRARY_PATH=$RED5_HOME/lib/native-linux-$ARCH
       export LD_LIBRARY_PATH
       # Native path
-      NATIVE="-Djava.library.path=$LD_LIBRARY_PATH"
+      # First arch parameter is running start.sh directly and second lib/native parameter is installation for init.d scripts
+      NATIVE="-Djava.library.path=$LD_LIBRARY_PATH:$RED5_HOME/lib/native"
   ;;
   Darwin*)
-      DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$RED5_HOME/lib/native
+      DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:$RED5_HOME/lib/native-mac
       export DYLD_LIBRARY_PATH
       # Native path
-      NATIVE="-Djava.library.path=$DYLD_LIBRARY_PATH"
+      NATIVE="-Djava.library.path=$DYLD_LIBRARY_PATH:$RED5_HOME/lib/native"
   ;;
   SunOS*)
       if [ -z "$JAVA_HOME" ]; then 
@@ -124,7 +126,7 @@ echo "Running on " $OS
 # JAVA options
 # You can set JVM additional options here if you want
 if [ -z "$JVM_OPTS" ]; then 
-    JVM_OPTS="-Xms256m -Djava.awt.headless=true -Xverify:none -XX:+HeapDumpOnOutOfMemoryError -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:MaxMetaspaceSize=128m  -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=10 -XX:ConcGCThreads=5"
+    JVM_OPTS="-Xms256m -Djava.awt.headless=true -Xverify:none -XX:+HeapDumpOnOutOfMemoryError -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:MaxMetaspaceSize=128m  -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=10 -XX:ConcGCThreads=5 -Djava.system.class.loader=org.red5.server.classloading.ServerClassLoader -Xshare:off "
 fi
 # Set up security options
 SECURITY_OPTS="-Djava.security.debug=failure -Djava.security.egd=file:/dev/./urandom"
@@ -159,6 +161,22 @@ fi
 
 export RED5_CLASSPATH="${RED5_HOME}/ant-media-server-service.jar${P}${RED5_HOME}/conf${P}${CLASSPATH}"
 
-# start Red5
-echo "Starting Ant Media Server"
-exec "$JAVA" -Dred5.root="${RED5_HOME}" $JAVA_OPTS -cp "${RED5_CLASSPATH}" "$RED5_MAINCLASS" $RED5_OPTS
+# create log directory if not exist
+if [ ! -d "/var/log/antmedia" ] 
+then
+    mkdir /var/log/antmedia 
+fi
+
+ln -sf /var/log/antmedia ${RED5_HOME}/log
+
+
+# start Ant Media Server
+
+if [ "$RED5_MAINCLASS" = "org.red5.server.Bootstrap" ]; then
+    # start Ant Media Server
+    echo "Starting Ant Media Server"
+elif [ "$RED5_MAINCLASS" = "org.red5.server.Shutdown" ]; then
+    # stop Ant Media Server
+    echo "Stopping Ant Media Server"
+fi
+exec "$JAVA" -Dred5.root="${RED5_HOME}" $JAVA_OPTS -cp "${RED5_CLASSPATH}" "$RED5_MAINCLASS" $RED5_OPTS 2>>${RED5_HOME}/log/antmedia-error.log

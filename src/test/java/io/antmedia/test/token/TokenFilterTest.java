@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -186,6 +187,66 @@ public class TokenFilterTest {
 		} 
 		catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
+			fail(ExceptionUtils.getStackTrace(e));
+		}
+	}
+	
+
+	@Test
+	public void testDoFilterWithPOST() {
+		
+		FilterConfig filterconfig = mock(FilterConfig.class);
+		ServletContext servletContext = mock(ServletContext.class);
+		ConfigurableWebApplicationContext context = mock(ConfigurableWebApplicationContext.class);
+		when(context.isRunning()).thenReturn(true);
+		
+		ITokenService tokenService = mock(ITokenService.class);
+		AppSettings settings = new AppSettings();
+		settings.resetDefaults();
+		settings.setPlayTokenControlEnabled(true);
+
+		
+		when(context.getBean("token.service")).thenReturn(tokenService);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
+		
+		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
+				.thenReturn(context);
+		
+		when(filterconfig.getServletContext()).thenReturn(servletContext);
+		
+		try {
+			tokenFilter.init(filterconfig);
+			
+			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			FilterChain mockChain = mock(FilterChain.class);
+			
+			String streamId = RandomStringUtils.randomAlphanumeric(8);
+			String tokenId = RandomStringUtils.randomAlphanumeric(8);
+			HttpSession session = mock(HttpSession.class);
+			String sessionId = RandomStringUtils.randomAlphanumeric(16);
+			String clientIP = "10.0.0.1";
+			when(session.getId()).thenReturn(sessionId);
+			when(mockRequest.getSession()).thenReturn(session);
+			when(mockRequest.getMethod()).thenReturn("POST");
+			when(mockRequest.getRemoteAddr()).thenReturn(clientIP);
+			
+			when(mockRequest.getParameter("token")).thenReturn(tokenId);
+			
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
+
+			logger.info("session id {}, stream id {}", sessionId, streamId);
+			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
+			
+			verify(tokenService, never()).checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
+			verify(mockResponse, times(1)).sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Request Type");	
+			
+		} catch (ServletException|IOException e) {
+			e.printStackTrace();
+			fail(ExceptionUtils.getStackTrace(e));
+		} 
+		catch (Exception e) {
+			e.printStackTrace();
 			fail(ExceptionUtils.getStackTrace(e));
 		}
 	}
@@ -377,19 +438,59 @@ public class TokenFilterTest {
 	@Test
 	public void testGetStreamId() {
 		String streamId = "streamId";
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
+		
+		assertEquals("test_streamId_davut_diyen_kedi", TokenFilterManager.getStreamId("/liveapp/streams/"+"test_"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
 
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX +".m3u8"));
+		
+		assertEquals("streamId_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test" +".m3u8"));
+		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".m3u8"));
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_480p_1"+".mp4")); 
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_1"+".mp4")); 
 
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".mp4"));
-
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".mp4")); 
+		
+		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test-2021-05-18_11-26-26.842"+".mp4")); 
+		
+		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test-2021-05-18_11-26-26.842_240p"+".mp4")); 
 
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p.m3u8"));
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_0p0000.ts")); 
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p0000.ts")); 
 
 		assertNull(TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".u8"));
+		
+		// Add "_" in appname and stream Id
+		
+		assertEquals("test_streamId_davut_diyen_kedi", TokenFilterManager.getStreamId("/live_app/streams/"+"test_" + streamId+"_davut_diyen_kedi_adaptive.m3u8"));
 
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8"));
+		
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+".m3u8"));
 
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+".mp4"));
+		
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_1"+".mp4")); 
+		
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_480p_1"+".mp4")); 
+		
+		assertEquals("test_test_"+streamId , TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+ "-2021-05-18_11-26-26.842"+".mp4")); 
+		
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+ "-2021-05-18_11-26-26.842_240p"+".mp4")); 
+
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+"_240p.m3u8"));
+				
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_0p0000.ts")); 
+		
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_240p0000.ts"));
+
+		assertNull(TokenFilterManager.getStreamId("/live_app/streams/"+streamId+".u8"));
+		
 		//below test case
 		streamId = "AgTWuHxp";
 		String requestURI = "/LiveApp/streams/"+ streamId + ".m3u8"; 

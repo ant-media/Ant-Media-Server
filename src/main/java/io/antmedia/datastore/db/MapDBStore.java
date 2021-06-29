@@ -601,9 +601,7 @@ public class MapDBStore extends DataStore {
 						String path=file.getPath();
 
 						String[] subDirs = path.split(Pattern.quote(File.separator));
-
 						Integer pathLength=Integer.valueOf(subDirs.length);
-
 						String relativePath = "streams/" +subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
 						String vodId = RandomStringUtils.randomNumeric(24);

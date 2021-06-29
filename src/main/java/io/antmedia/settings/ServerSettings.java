@@ -27,7 +27,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 @JsonIgnoreProperties(ignoreUnknown=true)
-public class ServerSettings implements ApplicationContextAware {
+public class ServerSettings implements IServerSettings, ApplicationContextAware {
 
 	public static final String BEAN_NAME = "ant.media.server.settings";
 
@@ -84,8 +84,6 @@ public class ServerSettings implements ApplicationContextAware {
 	 * The setting for customized marketplace build
 	 */
 	private boolean buildForMarket = false;
-	
-	
 	
 	private String logLevel = null;
 
