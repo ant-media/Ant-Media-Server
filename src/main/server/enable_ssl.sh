@@ -116,7 +116,8 @@ if [ "$fullChainFileExist" != "$privateKeyFileExist" ]; then
    exit 1
 fi
 
-if [ "$chainFileExist" != "true" ]; then
+# private key file should exist if it's custome ssl
+if [ "$chainFileExist" != "$privateKeyFileExist" ]; then
    usage
    echo -e "Missing chain file. Please check this link: https://github.com/ant-media/Ant-Media-Server/wiki/Frequently-Asked-Questions#how-to-install-custom-ssl-by-building-full-chain-certificate-\n"
    exit 1
