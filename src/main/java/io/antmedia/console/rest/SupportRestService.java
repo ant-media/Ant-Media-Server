@@ -49,7 +49,7 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
 
 @Component
-@Path("/support")
+@Path("/v2/support")
 public class SupportRestService {
 	class SupportResponse {
 		private boolean result;
