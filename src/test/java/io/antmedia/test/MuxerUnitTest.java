@@ -43,6 +43,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
@@ -519,7 +520,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		rtmpMuxer.init(appScope, "test", 0, null);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
-		assertTrue(rtmpMuxer.initializeForCrashTest());
+		assertTrue(rtmpMuxer.initializeOutputFormatContextIO());
+		
+		rtmpMuxer.setIsRunning(new AtomicBoolean(true));
 
 		//This was a crash if we don't check headerWritten after we initialize the context and get isRunning true
 		//To test the scenarios of that crash;

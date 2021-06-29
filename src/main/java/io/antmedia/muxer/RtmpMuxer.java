@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
 public class RtmpMuxer extends Muxer {
 
 	protected static Logger logger = LoggerFactory.getLogger(RtmpMuxer.class);
-	
+
 	private String url;
 	private AVPacket videoPkt;
 	private Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
@@ -78,7 +78,7 @@ public class RtmpMuxer extends Muxer {
 	private BytePointer allocatedExtraDataPointer = null;
 
 	private String status = IAntMediaStreamHandler.BROADCAST_STATUS_CREATED;
-	
+
 	boolean keyFrameReceived = false;
 	private int audioIndex;
 	private int videoIndex;
@@ -150,7 +150,7 @@ public class RtmpMuxer extends Muxer {
 
 	public void setStatus(String status)
 	{
-		
+
 		if (!this.status.equals(status) && this.statusListener != null) 
 		{
 			this.statusListener.endpointStatusUpdated(this.url, status);
@@ -159,6 +159,33 @@ public class RtmpMuxer extends Muxer {
 	}
 	public String getStatus(){
 		return this.status;
+	}
+
+	public boolean initializeOutputFormatContextIO(){
+		AVFormatContext context = getOutputFormatContext();
+		boolean result = false;
+		if (context != null && context.pb() == null) 
+		{
+			//if context.pb is not null, it means it's already initialized so we're checking if it's null
+
+			AVIOContext pb = new AVIOContext(null);
+			long startTime = System.currentTimeMillis();
+			logger.info("rtmp muxer opening: {} time:{}" , url, System.currentTimeMillis());
+			int ret = avformat.avio_open(pb,  url, AVIO_FLAG_WRITE);
+			if (ret >= 0) {
+				context.pb(pb);
+				long diff = System.currentTimeMillis() - startTime;
+				logger.info("avio open takes {}", diff);
+				result = true;
+			}
+			else
+			{
+				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+				logger.error("Could not open output file for rtmp url {}", url);
+			}
+
+		}
+		return result;
 	}
 
 	/**
@@ -170,34 +197,21 @@ public class RtmpMuxer extends Muxer {
 		/*
 		 * extradata context is created if addVideoStream is called from WebRTC Forwarder 
 		 */
-		AVFormatContext context = getOutputFormatContext();
-		if (context != null && context.pb() != null) {
-			//return false if it is already prepared
-			return false;
+		boolean result = false;
+		if (initializeOutputFormatContextIO()) 
+		{
+			if (bsfExtractdataContext == null)  
+			{	
+				return writeHeader(); 
+			}
+			isRunning.set(true);
+			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+			result = true;
 		}
-
-		AVIOContext pb = new AVIOContext(null);
-
-		long startTime = System.currentTimeMillis();
-		logger.info("rtmp muxer opening: {} time:{}" , url, System.currentTimeMillis());
-		int ret = avformat.avio_open(pb,  url, AVIO_FLAG_WRITE);
-		if (ret < 0) {
-			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
-			logger.error("Could not open output file for rtmp url {}", url);
-			return false;
+		else {
+			logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
 		}
-		context.pb(pb);
-		long diff = System.currentTimeMillis() - startTime;
-		logger.info("avio open takes {}", diff);
-
-
-		if (bsfExtractdataContext == null)  
-		{	
-			return writeHeader(); 
-		}
-		isRunning.set(true);
-		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-		return true;
+		return result;
 	}
 
 	/**
@@ -273,22 +287,6 @@ public class RtmpMuxer extends Muxer {
 		}
 	}
 
-	/*
-	 * This method is only used for testing
-	 */
-	public boolean initializeForCrashTest(){
-		AVFormatContext context = getOutputFormatContext();
-		if (context != null && context.pb() != null) {
-			//return false if it is already prepared
-			return false;
-		}
-		AVIOContext pb = new AVIOContext(null);
-		int ret = avformat.avio_open(pb,  url, AVIO_FLAG_WRITE);
-		context.pb(pb);
-		isRunning.set(true);
-		return true;
-	}
-
 	private void clearResource() {
 		/* close output */
 		if ((outputFormatContext.flags() & AVFMT_NOFILE) == 0) {
@@ -314,11 +312,11 @@ public class RtmpMuxer extends Muxer {
 			av_bsf_free(bsfExtractdataContext);
 			bsfExtractdataContext = null;
 		}
-		
+
 		/**
 		 *  Don't free the allocatedExtraDataPointer because it's internally deallocated
 		 * 
-	     * if (allocatedExtraDataPointer != null) {
+		 * if (allocatedExtraDataPointer != null) {
 		 *	avutil.av_free(allocatedExtraDataPointer);
 		 *	allocatedExtraDataPointer = null;
 		 * }
@@ -430,13 +428,13 @@ public class RtmpMuxer extends Muxer {
 			logger.error("Undefined codec type for stream: {} ", url);
 			return;
 		}
-		
+
 		AVStream outStream = outputFormatContext.streams(streamIndex);
 		int index = pkt.stream_index();
 		pkt.stream_index(streamIndex);
-				
+
 		writePacket(pkt, stream.time_base(),  outStream.time_base(), outStream.codecpar().codec_type());
-		
+
 		pkt.stream_index(index);
 	}
 
@@ -453,7 +451,7 @@ public class RtmpMuxer extends Muxer {
 			time2log++;
 			return;
 		}
-		
+
 		AVStream outStream = outputFormatContext.streams(pkt.stream_index());
 		AVRational codecTimebase = codecTimeBaseMap.get(pkt.stream_index());
 		writePacket(pkt, codecTimebase,  outStream.time_base(), outStream.codecpar().codec_type()); 
@@ -619,7 +617,7 @@ public class RtmpMuxer extends Muxer {
 				&& (codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO || codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO)) 
 		{
 			AVStream outStream = avformat_new_stream(outputContext, null);
-			
+
 			avcodec_parameters_copy(outStream.codecpar(), codecParameters);
 			outStream.time_base(timebase);
 			codecTimeBaseMap.put(outStream.index(), timebase);
@@ -631,7 +629,7 @@ public class RtmpMuxer extends Muxer {
 			else {
 				videoIndex = outStream.index();
 			}
-			
+
 			result = true;
 		}
 		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {
@@ -641,10 +639,10 @@ public class RtmpMuxer extends Muxer {
 
 		return result;
 	}
-	
 
-	
-	
+
+
+
 
 	@Override
 	public void writeAudioBuffer(ByteBuffer audioFrame, int streamIndex, long timestamp) {
@@ -671,6 +669,7 @@ public class RtmpMuxer extends Muxer {
 		av_packet_unref(audioPkt);
 	}
 	
+
 
 
 }
