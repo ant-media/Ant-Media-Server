@@ -1117,10 +1117,17 @@ public class BroadcastRestServiceV2UnitTest {
 			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString())).thenReturn(true);
 			
 			Endpoint endpoint3 = new Endpoint();
+			//This is already in the endpoints list, so it won't be added.
 			endpoint3.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
 			
 			store.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			assertTrue(restServiceSpy.addEndpointV3(streamId, endpoint3).isSuccess());
+			assertFalse(restServiceSpy.addEndpointV3(streamId, endpoint3).isSuccess());
+
+			Endpoint endpoint3true = new Endpoint();
+			//This is not included in the endpoints list, so it should be true.
+			endpoint3true.setRtmpUrl("rtmp://test.endpoint.url/any_other_stream_test");
+			
+			assertTrue(restServiceSpy.addEndpointV3(streamId, endpoint3true).isSuccess());
 		}
 		
 		// enable Cluster mode with same origin and broadcast
@@ -1138,10 +1145,17 @@ public class BroadcastRestServiceV2UnitTest {
 			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString())).thenReturn(true);
 			
 			Endpoint endpoint4 = new Endpoint();
+			//This is already in the endpoints list, so it won't be added.
 			endpoint4.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
 			
 			store.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			assertTrue(restServiceSpy.addEndpointV3(streamId, endpoint4).isSuccess());
+			assertFalse(restServiceSpy.addEndpointV3(streamId, endpoint4).isSuccess());
+
+			Endpoint endpoint4true = new Endpoint();
+			//This is not included in the endpoints list, so it should be true.
+			endpoint4true.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test2");
+			
+			assertTrue(restServiceSpy.addEndpointV3(streamId, endpoint4true).isSuccess());
 			
 		}
 		
@@ -2673,10 +2687,16 @@ public class BroadcastRestServiceV2UnitTest {
 		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
 		Mockito.doReturn(sfm).when(adaptor).getStreamFetcherManager();
 		Mockito.doReturn(false).when(sfm).isStreamRunning(any());
+		newCam.setSubFolder("testFolder");
 
 		store.save(newCam);
 
 		result = streamSourceRest.updateBroadcast(newCam.getStreamId(), newCam, null);
+		
+		
+		Broadcast broadcast = store.get(newCam.getStreamId());
+		assertEquals("testFolder", broadcast.getSubFolder());
+		
 
 		assertTrue(result.isSuccess());
 		
@@ -2994,6 +3014,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast broadcast2=new Broadcast();
 		Broadcast broadcast3=new Broadcast();
 		Broadcast broadcast4=new Broadcast();
+		Broadcast broadcast5=new Broadcast();
 		try {
 			broadcast1.setStreamId("stream1");
 			broadcast1.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -3002,6 +3023,7 @@ public class BroadcastRestServiceV2UnitTest {
 			broadcast3.setStreamId("stream3");
 			broadcast3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast4.setStreamId("stream4");
+			broadcast5.setStreamId("stream5");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -3009,6 +3031,7 @@ public class BroadcastRestServiceV2UnitTest {
 		store.save(broadcast2);
 		store.save(broadcast3);
 		store.save(broadcast4);
+		store.save(broadcast5);
 		restServiceSpy.addStreamToTheRoom("testroom","stream1");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.addStreamToTheRoom("testroom","stream2");
@@ -3018,7 +3041,9 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceSpy.addStreamToTheRoom("someunknownroom","stream3");
 		assertEquals(2,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.addStreamToTheRoom("testroom","stream4");
-		assertEquals(2,store.getConferenceRoom("testroom").getRoomStreamList().size());
+		assertEquals(3,store.getConferenceRoom("testroom").getRoomStreamList().size());
+		restServiceSpy.addStreamToTheRoom("testroom", "stream5");
+		assertEquals(4,store.getConferenceRoom("testroom").getRoomStreamList().size());
 	}
 
 	@Test
