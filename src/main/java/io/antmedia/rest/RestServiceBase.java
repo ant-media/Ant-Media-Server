@@ -10,7 +10,6 @@ import java.net.MalformedURLException;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -74,7 +73,6 @@ import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.storage.StorageClient;
-import io.antmedia.storage.StorageClient.FileType;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.ApiModel;
@@ -168,6 +166,8 @@ public abstract class RestServiceBase {
 	private AppSettings appSettings;
 
 	private ServerSettings serverSettings;
+	private String s3StreamsFolderPath;
+	private String  s3PreviewsFolderPath;
 
 	protected boolean addSocialEndpoints(Broadcast broadcast, String socialEndpointIds) {	
 		boolean success = false;
@@ -631,7 +631,7 @@ public abstract class RestServiceBase {
 		String message = null;
 
 		endpoint.setType(ENDPOINT_GENERIC);
-	
+
 		String endpointServiceId = endpoint.getEndpointServiceId();
 		if (endpointServiceId == null || endpointServiceId.isEmpty()) {
 			//generate custom endpoint invidual ID
@@ -1087,7 +1087,10 @@ public abstract class RestServiceBase {
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
-				url.startsWith(RTSP))) {
+				url.startsWith(RTSP) ||
+				url.startsWith("udp://") ||
+				url.startsWith("srt://")
+				)) {
 			streamUrlControl=true;
 			ipAddrParts = url.split("//");
 			ipAddr = ipAddrParts[1];
@@ -1204,12 +1207,11 @@ public abstract class RestServiceBase {
 					File previewFile = Muxer.getPreviewFile(getScope(), splitFileName[0], ".png");
 					Files.deleteIfExists(previewFile.toPath());
 
-					if (appContext.containsBean("app.storageClient")) {
-						StorageClient storageClient = (StorageClient) appContext.getBean("app.storageClient");
+					StorageClient storageClient = (StorageClient) appContext.getBean(StorageClient.BEAN_NAME);
 
-						storageClient.delete(splitFileName[0] + ".mp4", FileType.TYPE_STREAM);
-						storageClient.delete(splitFileName[0] + ".png", FileType.TYPE_PREVIEW);
-					}
+					storageClient.delete(getAppSettings().getS3StreamsFolderPath() + File.pathSeparator + splitFileName[0] + ".mp4");
+					storageClient.delete(getAppSettings().getS3PreviewsFolderPath() + File.pathSeparator + splitFileName[0] + ".png");
+
 				}
 				catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
@@ -1262,11 +1264,8 @@ public abstract class RestServiceBase {
 
 					String path = savedFile.getPath();
 
-					String[] subDirs = path.split(Pattern.quote(File.separator));
 
-					Integer pathLength = subDirs.length;
-
-					String relativePath = subDirs[pathLength-2]+ File.separator +subDirs[pathLength-1];
+					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
 
 					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
 							VoD.UPLOADED_VOD, vodId);
@@ -1836,12 +1835,12 @@ public abstract class RestServiceBase {
 
 		return new Result(false, message);
 	}
-	
+
 	protected Object getJwtToken (String streamId, long expireDate, String type, String roomId) 
 	{
 		Token token = null;
 		String message = "Define Stream ID, Token Type and Expire Date (unix time)";
-		
+
 		if(streamId != null && type != null && expireDate > 0) {
 
 			ApplicationContext appContext = getAppContext();
@@ -1938,26 +1937,20 @@ public abstract class RestServiceBase {
 		Version version = new Version();
 		version.setVersionName(AntMediaApplicationAdapter.class.getPackage().getImplementationVersion());
 
-
-		ClassLoader cl = (ClassLoader) AntMediaApplicationAdapter.class.getClassLoader();
-
 		URL url = null;
-		if(cl instanceof URLClassLoader) { 
-			URLClassLoader urlCl= (URLClassLoader) cl;
-			url = urlCl.findResource("META-INF/MANIFEST.MF");
-		} else {
-			Class clazz = RestServiceBase.class;
-			String className = clazz.getSimpleName() + ".class";
-			String classPath = clazz.getResource(className).toString();
-			String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + 
-					"/META-INF/MANIFEST.MF"; 
 
-			try {
-				url = new URL(manifestPath);
-			} catch (MalformedURLException e) {
-				logger.error(e.getMessage());
-			}
-		} 
+		Class<RestServiceBase> clazz = RestServiceBase.class;
+		String className = clazz.getSimpleName() + ".class";
+		String classPath = clazz.getResource(className).toString();
+		String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + 
+				"/META-INF/MANIFEST.MF"; 
+
+		try {
+			url = new URL(manifestPath);
+		} catch (MalformedURLException e) {
+			logger.error(e.getMessage());
+		}
+
 		Manifest manifest;
 
 		try {
@@ -2021,7 +2014,7 @@ public abstract class RestServiceBase {
 				roomStreamList = conferenceRoom.getRoomStreamList();
 				if(!roomStreamList.contains(streamId)){
 					Broadcast broadcast=store.get(streamId);
-					if(broadcast != null && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
+					if(broadcast != null) {
 						roomStreamList.add(streamId);
 						conferenceRoom.setRoomStreamList(roomStreamList);
 						store.editConferenceRoom(roomId, conferenceRoom);
