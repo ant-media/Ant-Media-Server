@@ -19,6 +19,7 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.security.ITokenService;
 
 public class TokenFilterManager extends AbstractFilter   {
@@ -217,6 +218,24 @@ public class TokenFilterManager extends AbstractFilter   {
 		String tsRegex = "(.*)_[0-9]+p+[0-9][0-9][0-9][0-9].ts$";  // matches ending with _[_240p0000].ts or default ts file extension  _[_0p0000].ts
 		if (requestURI.matches(tsRegex)) {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+		
+		//streamId_underline_test-2021-05-18_11-26-26.842.mp4 and streamId_underline_test-2021-05-18_11-26-26.842_360p.mp4 
+		String mp4Regex1 = "(.*)+(-20)[0-9][0-9]+(-)+([0-9][0-9])+(.*).mp4$"; 
+		if (requestURI.matches(mp4Regex1)) {
+			endIndex = requestURI.lastIndexOf('_'); //if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
+			//_480p regex
+ 			String mp4resolutionRegex = "(.*)+_[0-9]+p+(.*)"; 
+			if(requestURI.matches(mp4resolutionRegex)) {
+				endIndex = requestURI.substring(startIndex, endIndex).lastIndexOf('.');
+				//Remove -2021-05-18_11-26-26 character size
+				endIndex-=Muxer.DATE_TIME_PATTERN.length()-3; 
+			}
+			else {
+				//Remove -2021-05-18 character size
+				endIndex-=Muxer.DATE_TIME_PATTERN.length()-12;
+			}
 			return requestURI.substring(startIndex+1, endIndex);
 		}
 
