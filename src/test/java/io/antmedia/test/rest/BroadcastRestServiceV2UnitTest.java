@@ -1116,10 +1116,17 @@ public class BroadcastRestServiceV2UnitTest {
 			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString())).thenReturn(true);
 			
 			Endpoint endpoint3 = new Endpoint();
+			//This is already in the endpoints list, so it won't be added.
 			endpoint3.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
 			
 			store.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			assertTrue(restServiceSpy.addEndpointV3(streamId, endpoint3).isSuccess());
+			assertFalse(restServiceSpy.addEndpointV3(streamId, endpoint3).isSuccess());
+
+			Endpoint endpoint3true = new Endpoint();
+			//This is not included in the endpoints list, so it should be true.
+			endpoint3true.setRtmpUrl("rtmp://test.endpoint.url/any_other_stream_test");
+			
+			assertTrue(restServiceSpy.addEndpointV3(streamId, endpoint3true).isSuccess());
 		}
 		
 		// enable Cluster mode with same origin and broadcast
@@ -1137,10 +1144,17 @@ public class BroadcastRestServiceV2UnitTest {
 			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString())).thenReturn(true);
 			
 			Endpoint endpoint4 = new Endpoint();
+			//This is already in the endpoints list, so it won't be added.
 			endpoint4.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
 			
 			store.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			assertTrue(restServiceSpy.addEndpointV3(streamId, endpoint4).isSuccess());
+			assertFalse(restServiceSpy.addEndpointV3(streamId, endpoint4).isSuccess());
+
+			Endpoint endpoint4true = new Endpoint();
+			//This is not included in the endpoints list, so it should be true.
+			endpoint4true.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test2");
+			
+			assertTrue(restServiceSpy.addEndpointV3(streamId, endpoint4true).isSuccess());
 			
 		}
 		

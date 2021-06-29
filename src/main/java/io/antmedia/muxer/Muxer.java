@@ -376,5 +376,9 @@ public abstract class Muxer {
 	public List<Integer> getRegisteredStreamIndexList() {
 		return registeredStreamIndexList;
 	}
+	
+	public void setIsRunning(AtomicBoolean isRunning) {
+		this.isRunning = isRunning;
+	}
 
 }

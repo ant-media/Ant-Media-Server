@@ -1014,7 +1014,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		
 		vertx.setTimer(500, h -> {
-			logger.info("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
+			logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
 			getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
 		});
 	}
@@ -1549,12 +1549,14 @@ public Result createInitializationProcess(String appName){
 		appSettings.setS3RegionName(newSettings.getS3RegionName());
 		appSettings.setS3Endpoint(newSettings.getS3Endpoint());
 
+	
 		storageClient.setEndpoint(newSettings.getS3Endpoint());
 		storageClient.setStorageName(newSettings.getS3BucketName());
 		storageClient.setAccessKey(newSettings.getS3AccessKey());
 		storageClient.setSecretKey(newSettings.getS3SecretKey());
 		storageClient.setRegion(newSettings.getS3RegionName());
 		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
+		storageClient.reset();
 
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 				
