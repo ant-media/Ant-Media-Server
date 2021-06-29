@@ -5,6 +5,7 @@ INSTALL_DIRECTORY=/usr/local/antmedia
 
 FULL_CHAIN_FILE=
 PRIVATE_KEY_FILE=
+CHAIN_FILE=
 domain=""
 password=
 renew_flag='false'
@@ -28,7 +29,7 @@ usage() {
   echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
   echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -c {CHAIN_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
   echo " "
-  echo "If you have any question, send e-mail to contact@antmedia.io"
+  echo -e "If you have any question, send e-mail to contact@antmedia.io\n"
 }
 
 ipt_remove() {
@@ -57,16 +58,16 @@ distro () {
 }
 
 
-get_password() {  
+get_password() {
   until [ ! -z "$password" ]
   do
     read -sp 'Enter Password For SSL Certificate:' password
   if [ -z "$password" ]
   then
-    echo 
+    echo
     echo "Password cannot be empty. "
   fi
-  done         
+  done
 }
 
 SUDO="sudo"
@@ -78,6 +79,9 @@ output() {
   OUT=$?
       if [ $OUT -ne 0 ]; then
           echo -e $ERROR_MESSAGE
+	  if [ -d $TEMP_DIR ]; then
+	     rm -rf $TEMP_DIR
+	  fi
           exit $OUT
     fi
 }
@@ -100,11 +104,25 @@ if [ ! -z "$PRIVATE_KEY_FILE" ] && [ -f "$PRIVATE_KEY_FILE" ]; then
   privateKeyFileExist=true
 fi
 
+chainFileExist=false
+if [ ! -z "$CHAIN_FILE" ] && [ -f "$CHAIN_FILE" ]; then
+  chainFileExist=true
+fi
+
+
 if [ "$fullChainFileExist" != "$privateKeyFileExist" ]; then
    echo "Missing full chain or private key file. Please provide both or neither of them"
    usage
    exit 1
 fi
+
+# private key file should exist if it's custome ssl
+if [ "$chainFileExist" != "$privateKeyFileExist" ]; then
+   usage
+   echo -e "Missing chain file. Please check this link: https://github.com/ant-media/Ant-Media-Server/wiki/Frequently-Asked-Questions#how-to-install-custom-ssl-by-building-full-chain-certificate-\n"
+   exit 1
+fi
+
 
 if [ ! -d "$INSTALL_DIRECTORY" ]; then
   # Control will enter here if $DIRECTORY doesn't exist.
@@ -121,13 +139,13 @@ get_new_certificate(){
       echo "creating new certificate"
       distro
       if [ "$ID" == "ubuntu" ]; then
-          
+
         $SUDO apt-get update -qq -y
         output
 
         $SUDO apt-get install certbot -qq -y
         output
-          
+
       elif [ "$ID" == "centos" ]; then
         $SUDO yum -y install epel-release
         $SUDO yum -y install certbot
@@ -135,14 +153,14 @@ get_new_certificate(){
       fi
 
     # Install required libraries
-    
+
     #Get certificate
     $SUDO certbot certonly --standalone --non-interactive --agree-tos --email letsencrypt@antmedia.io -d $domain
     output
-    
+
     file="/etc/letsencrypt/live/$domain/keystore.jks"
     delete_alias $file
-    
+
     file="/etc/letsencrypt/live/$domain/truststore.jks"
     delete_alias $file
 
@@ -162,8 +180,8 @@ renew_certificate(){
    output
 }
 
-# We don't need keystore and truststore for Tomcat. We can use full chain and private key file directly. 
-# However we need to have keystore and truststore for rtmps.  
+# We don't need keystore and truststore for Tomcat. We can use full chain and private key file directly.
+# However we need to have keystore and truststore for rtmps.
 
 auth_tomcat(){
     echo ""
@@ -180,13 +198,13 @@ auth_tomcat(){
   fi
 
   EXPORT_P12_FILE=$TEMP_DIR/fullchain_and_key.p12
-  
+
   DEST_KEYSTORE=$TEMP_DIR/keystore.jks
-  
+
   TRUST_STORE=$TEMP_DIR/truststore.jks
-  
+
   CER_FILE=$INSTALL_DIRECTORY/$domain/tomcat.cer
-  
+
   $SUDO openssl pkcs12 -export \
       -in $FULL_CHAIN_FILE \
       -inkey $PRIVATE_KEY_FILE \
@@ -194,9 +212,9 @@ auth_tomcat(){
       -name tomcat \
       -password pass:$password
   output
-  
-  
-  
+
+
+
   $SUDO keytool -importkeystore \
          -deststorepass $password \
          -destkeypass $password \
@@ -207,8 +225,8 @@ auth_tomcat(){
          -alias tomcat \
          -deststoretype pkcs12
   output
-  
-  
+
+
   $SUDO keytool -export  \
            -alias tomcat \
            -deststorepass $password \
@@ -222,35 +240,35 @@ auth_tomcat(){
     -keystore $TRUST_STORE \
     -storepass $password -noprompt
   output
-  
-  
+
+
   $SUDO cp $TRUST_STORE $INSTALL_DIRECTORY/conf/
   output
 
 
   $SUDO cp $DEST_KEYSTORE $INSTALL_DIRECTORY/conf/
   output
-  
-  
+
+
   $SUDO sed -i "/rtmps.keystorepass=/c\rtmps.keystorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
   output
-  
+
   $SUDO sed -i "/rtmps.truststorepass=/c\rtmps.truststorepass=$password"  $INSTALL_DIRECTORY/conf/red5.properties
   output
-  
-  
+
+
   $SUDO cp $FULL_CHAIN_FILE $INSTALL_DIRECTORY/conf/fullchain.pem
   output
   $SUDO chown antmedia:antmedia $INSTALL_DIRECTORY/conf/fullchain.pem
-  
+
   $SUDO cp $CHAIN_FILE $INSTALL_DIRECTORY/conf/chain.pem
   output
   $SUDO chown antmedia:antmedia $INSTALL_DIRECTORY/conf/chain.pem
-  
+
   $SUDO cp $PRIVATE_KEY_FILE $INSTALL_DIRECTORY/conf/privkey.pem
   output
   $SUDO chown antmedia:antmedia $INSTALL_DIRECTORY/conf/privkey.pem
-  
+
   #uncomment ssl part in jee-container.xml
   $SUDO sed -i -E -e 's/(<!-- https start|<!-- https start -->)/<!-- https start -->/g' $INSTALL_DIRECTORY/conf/jee-container.xml
   output
@@ -324,7 +342,7 @@ then
     if [ "$fullChainFileExist" == false ]; then
       create_cron_job
     fi
-    
+
 fi
 
 #restore iptables redirect rule
