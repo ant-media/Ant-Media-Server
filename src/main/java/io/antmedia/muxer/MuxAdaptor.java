@@ -1668,7 +1668,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return rtmpMuxer;
 	}
 
-	public boolean stopRtmpStreaming(String rtmpUrl)
+	public boolean stopRtmpStreaming(String rtmpUrl, int resolution)
 	{
 		RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
 		boolean result = false;

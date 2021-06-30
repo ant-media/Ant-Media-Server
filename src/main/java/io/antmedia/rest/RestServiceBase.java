@@ -692,7 +692,7 @@ public abstract class RestServiceBase {
 						started = getMuxAdaptor(broadcast.getStreamId()).startRtmpStreaming(rtmpUrl, resolution);
 					}
 					else {
-						started = getMuxAdaptor(broadcast.getStreamId()).stopRtmpStreaming(rtmpUrl);
+						started = getMuxAdaptor(broadcast.getStreamId()).stopRtmpStreaming(rtmpUrl, resolution);
 					}
 					result.setSuccess(started);
 				}

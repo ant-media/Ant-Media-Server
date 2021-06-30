@@ -387,7 +387,7 @@ public class BroadcastRestService extends RestServiceBase{
 			String status = getDataStore().get(id).getStatus();
 			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
-				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl);
+				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl, 0);
 				result.setSuccess(started);
 			}
 		}
@@ -407,8 +407,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result removeEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
-			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId
-			){
+			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId, 
+								   @ApiParam(value = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.", required = true) 
+									   @QueryParam("resolution") int resolution){
 		
 		//Get rtmpURL with broadcast
 		String rtmpUrl = null;
@@ -427,7 +428,7 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		if (result.isSuccess()) 
 		{
-			result = processRTMPEndpoint(result, broadcast, rtmpUrl, false, 0);
+			result = processRTMPEndpoint(result, broadcast, rtmpUrl, false, resolution);
 		}
 		else if (logger.isErrorEnabled()) {	
 			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));

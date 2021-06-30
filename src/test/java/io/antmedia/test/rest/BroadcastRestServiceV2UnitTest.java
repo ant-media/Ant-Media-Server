@@ -806,7 +806,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(streamId);
 			
-			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString())).thenReturn(true);
+			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(true);
 			
 			String endpointURL = "rtmp://test.endpoint.url/test";
 			Result result = restServiceSpy.addEndpointV2(streamId, endpointURL);
@@ -851,7 +851,7 @@ public class BroadcastRestServiceV2UnitTest {
 		when(scope.getName()).thenReturn(scopeName);
 		restServiceReal.setScope(scope);
 		
-		assertFalse(restServiceReal.removeEndpointV2("any_stream_not_registered", "rtmp://test.endpoint.url/server_test").isSuccess());
+		assertFalse(restServiceReal.removeEndpointV2("any_stream_not_registered", "rtmp://test.endpoint.url/server_test", 0).isSuccess());
 		String streamId = null;
 		// Standallone Remove RTMP Endpoint with same origin and broadcast
 		{			
@@ -872,7 +872,7 @@ public class BroadcastRestServiceV2UnitTest {
 			serverHostAddress = "127.0.1.1";
 			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 			
-			assertTrue(restServiceReal.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId()).isSuccess());
+			assertTrue(restServiceReal.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId(), 0).isSuccess());
 		}
 		
 		// Standallone Remove RTMP Endpoint with different origin and broadcast
@@ -894,7 +894,7 @@ public class BroadcastRestServiceV2UnitTest {
 			serverHostAddress = "55.55.55.55";
 			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 			
-			assertTrue(restServiceReal.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId()).isSuccess());
+			assertTrue(restServiceReal.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId(), 0).isSuccess());
 		}
 		
 		// enable Cluster mode with same origin and broadcast
@@ -912,7 +912,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(streamId);
 			
-			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString())).thenReturn(true);
+			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(true);
 			
 			
 			String endpointURL = "rtmp://test.endpoint.url/test";
@@ -931,7 +931,7 @@ public class BroadcastRestServiceV2UnitTest {
 			serverHostAddress = "127.0.1.1";
 			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 			
-			assertTrue(restServiceSpy.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId()).isSuccess());
+			assertTrue(restServiceSpy.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId(), 0).isSuccess());
 		}
 		
 		// enable Cluster mode with different origin and broadcast
@@ -945,7 +945,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(streamId);
 			
-			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString())).thenReturn(true);
+			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(true);
 			String endpointURL = "rtmp://test.endpoint.url/test";
 					
 			Endpoint endpoint = new Endpoint();
@@ -962,7 +962,7 @@ public class BroadcastRestServiceV2UnitTest {
 			serverHostAddress = "55.55.55.55";
 			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 					
-			assertFalse(restServiceSpy.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId()).isSuccess());
+			assertFalse(restServiceSpy.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId(), 0).isSuccess());
 		}
 				
 		{
