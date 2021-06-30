@@ -148,10 +148,10 @@ public class RestServiceV2Test {
 	}
 
 	public Broadcast createBroadcast(String name) {
-		return createBroadcast(name, null, null);
+		return createBroadcast(name, null, null, null);
 	}
 
-	public static Broadcast createBroadcast(String name, String type, String streamUrl) {
+	public static Broadcast createBroadcast(String name, String type, String streamUrl, String subFolder) {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -168,6 +168,9 @@ public class RestServiceV2Test {
 		if (streamUrl != null) {
 			broadcast.setStreamUrl(streamUrl);
 		}
+		
+		if(subFolder != null)
+			broadcast.setSubFolder(subFolder);
 
 		try {
 
@@ -1152,7 +1155,7 @@ public class RestServiceV2Test {
 			if (response.getStatusLine().getStatusCode() != 200) {
 				throw new Exception(result.toString());
 			}
-			System.out.println("result string: " + result.toString());
+			System.out.println("result of deleteVoD for id: "+ id +" string: " + result.toString());
 			Result result2 = gson.fromJson(result.toString(), Result.class);
 			return result2;
 		} catch (Exception e) {

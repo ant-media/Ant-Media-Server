@@ -484,27 +484,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType) {
 		vertx.executeBlocking( handler -> {
 			try {
-
-						DataStore dataStoreLocal = getDataStore();
-			
-						Broadcast broadcast = dataStoreLocal.get(streamName);
-	
-						if (broadcast == null) {
-	
-							broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), dataStoreLocal, appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs, publishType);
-						} 
-						else {
-	
-							broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
-							broadcast.setStartTime(System.currentTimeMillis());
-							broadcast.setOriginAdress(getServerSettings().getHostAddress());
-							broadcast.setWebRTCViewerCount(0);
-							broadcast.setHlsViewerCount(0);
-							broadcast.setPublishType(publishType);
-							boolean result = dataStoreLocal.updateBroadcastFields(broadcast.getStreamId(), broadcast);
-							
-							logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
-						}
+						
+						Broadcast broadcast = saveBroadcast(streamName, absoluteStartTimeMs, publishType, getDataStore().get(streamName));
 	
 						final String listenerHookURL = broadcast.getListenerHookURL();
 						final String streamId = broadcast.getStreamId();
@@ -574,7 +555,30 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		logger.info("start publish leaved for stream:{}", streamName);
 	}
 
-	protected ServerSettings getServerSettings() 
+
+	private Broadcast saveBroadcast(String streamName, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
+		if (broadcast == null) 
+		{
+
+			broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), getDataStore(), appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs, publishType);
+		} 
+		else {
+
+			broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
+			broadcast.setStartTime(System.currentTimeMillis());
+			broadcast.setOriginAdress(getServerSettings().getHostAddress());
+			broadcast.setWebRTCViewerCount(0);
+			broadcast.setHlsViewerCount(0);
+			broadcast.setPublishType(publishType);
+			boolean result = getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
+			
+			logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
+		}
+		return broadcast;
+	}
+
+	private ServerSettings getServerSettings() 
+
 	{
 		if (serverSettings == null) {
 			serverSettings = (ServerSettings)scope.getContext().getApplicationContext().getBean(ServerSettings.BEAN_NAME);
@@ -638,9 +642,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		String filePath = file.getPath();
 		long fileSize = file.length();
 		long systemTime = System.currentTimeMillis();
-		String[] subDirs = filePath.split(Pattern.quote(File.separator));
-		Integer pathLength=Integer.valueOf(subDirs.length);
-		String relativePath= subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+		
+		String relativePath=getRelativePath(filePath);
 		String listenerHookURL = null;
 		String streamName = file.getName();
 
@@ -703,6 +706,19 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			future.complete();
 
 		}, null);
+	}
+	
+	public static String getRelativePath(String filePath){
+		StringBuilder relativePath= new StringBuilder();
+		String[] subDirs = filePath.split("streams");
+		if(subDirs.length == 2)
+			relativePath = new StringBuilder("streams" + subDirs[1]);
+		else{
+			for(int i=1;i<subDirs.length;i++){
+				relativePath.append("streams").append(subDirs[i]);
+			}
+		}
+		return relativePath.toString();
 	}
 
 	private static class AuthCheckJob {
@@ -914,7 +930,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 
 	public Result startStreaming(Broadcast broadcast) 
-	{
+	{		
 		Result result = new Result(false);
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))  {
@@ -1002,7 +1018,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
 		
 		vertx.setTimer(500, h -> {
-			logger.info("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
+			logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
 			getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
 		});
 	}
@@ -1537,12 +1553,14 @@ public Result createInitializationProcess(String appName){
 		appSettings.setS3RegionName(newSettings.getS3RegionName());
 		appSettings.setS3Endpoint(newSettings.getS3Endpoint());
 
+	
 		storageClient.setEndpoint(newSettings.getS3Endpoint());
 		storageClient.setStorageName(newSettings.getS3BucketName());
 		storageClient.setAccessKey(newSettings.getS3AccessKey());
 		storageClient.setSecretKey(newSettings.getS3SecretKey());
 		storageClient.setRegion(newSettings.getS3RegionName());
 		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
+		storageClient.reset();
 
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 				
@@ -1617,5 +1635,8 @@ public Result createInitializationProcess(String appName){
 		this.storageClient = storageClient;
 	}
 
-	
+	public void streamPublishStart(IBroadcastStream stream) {
+		saveBroadcast(stream.getPublishedName(), ((ClientBroadcastStream)stream).getAbsoluteStartTimeMs() , MuxAdaptor.PUBLISH_TYPE_RTMP, getDataStore().get(stream.getPublishedName()));
+	}
+
 }
