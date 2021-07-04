@@ -48,7 +48,6 @@ public class MapDBStore extends DataStore {
 	private BTreeMap<String, String> tokenMap;
 	private BTreeMap<String, String> subscriberMap;
 	private BTreeMap<String, String> conferenceRoomMap;
-	private BTreeMap<String, String> playlistMap;
 
 
 	private Gson gson;
@@ -56,7 +55,6 @@ public class MapDBStore extends DataStore {
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "BROADCAST";
 	private static final String VOD_MAP_NAME = "VOD";
-	private static final String PLAYLIST_MAP_NAME = "PLAYLIST";
 	private static final String DETECTION_MAP_NAME = "DETECTION";
 	private static final String TOKEN = "TOKEN";
 	private static final String SUBSCRIBER = "SUBSCRIBER";
@@ -70,17 +68,19 @@ public class MapDBStore extends DataStore {
 		db = DBMaker
 				.fileDB(dbName)
 				.fileMmapEnableIfSupported()
-				.transactionEnable()
+				//.transactionEnable() we disable this because under load, it causes exception.
+					//In addition, we already commit and synch methods. So it seems that we don't need this one
 				.make();
 
+		
 		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
 				.createOrOpen();
+		
+		
+		
 		vodMap = db.treeMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 		
-		playlistMap = db.treeMap(PLAYLIST_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
-				.counterEnable().createOrOpen();
-
 		detectionMap = db.treeMap(DETECTION_MAP_NAME).keySerializer(Serializer.STRING)
 				.valueSerializer(Serializer.STRING).counterEnable().createOrOpen();
 
@@ -633,6 +633,7 @@ public class MapDBStore extends DataStore {
 					}
 					broadcast.setPendingPacketSize(pendingPacketQueue);
 					map.replace(id, gson.toJson(broadcast));
+					
 					db.commit();
 					result = true;
 
