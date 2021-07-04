@@ -1,22 +1,6 @@
 package io.antmedia.muxer;
 
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_FLAG_GLOBAL_HEADER;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_alloc;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_free;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_get_by_name;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_init;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_receive_packet;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_send_packet;
-import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_ref;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
-import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
-import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_from_context;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.bytedeco.ffmpeg.global.avformat.AVFMT_GLOBALHEADER;
 import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
@@ -212,7 +196,7 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	private boolean isCodecSupported(int codecId) {
-		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC || codecId == AV_CODEC_ID_MP3);
+		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC || codecId == AV_CODEC_ID_MP3 || codecId == AV_CODEC_ID_H265);
 	}
 
 	/**
