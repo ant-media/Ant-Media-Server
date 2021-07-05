@@ -61,6 +61,7 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
+import io.antmedia.plugin.api.IStreamListener;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -144,8 +145,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	protected boolean serverShuttingDown = false;
 
 	protected StorageClient storageClient;
-
-
+	
+	protected ArrayList<IStreamListener> streamListeners = new ArrayList<IStreamListener>();
 
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -940,6 +941,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			result = getStreamFetcherManager().startPlaylist(broadcast);
 			
 		}
+		
+		for (IStreamListener listener : streamListeners) {
+			listener.streamStarted(broadcast.getStreamId());
+		}
 		return result;
 	}
 
@@ -972,6 +977,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				}
 				result.setSuccess(true);
 			}
+		}
+		
+		for (IStreamListener listener : streamListeners) {
+			listener.streamFinished(broadcast.getStreamId());
 		}
 		return result;
 	}
@@ -1637,6 +1646,14 @@ public Result createInitializationProcess(String appName){
 
 	public void streamPublishStart(IBroadcastStream stream) {
 		saveBroadcast(stream.getPublishedName(), ((ClientBroadcastStream)stream).getAbsoluteStartTimeMs() , MuxAdaptor.PUBLISH_TYPE_RTMP, getDataStore().get(stream.getPublishedName()));
+	}
+	
+	public void addStreamListener(IStreamListener listener) {
+		streamListeners.add(listener);
+	}
+	
+	public void removeStreamListener(IStreamListener listener) {
+		streamListeners.remove(listener);
 	}
 
 }
