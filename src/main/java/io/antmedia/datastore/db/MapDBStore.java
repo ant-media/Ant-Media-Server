@@ -68,8 +68,10 @@ public class MapDBStore extends DataStore {
 		db = DBMaker
 				.fileDB(dbName)
 				.fileMmapEnableIfSupported()
-				//.transactionEnable() we disable this because under load, it causes exception.
+				/*.transactionEnable() we disable this because under load, it causes exception.
 					//In addition, we already commit and synch methods. So it seems that we don't need this one
+				*/
+				.checksumHeaderBypass()
 				.make();
 
 		

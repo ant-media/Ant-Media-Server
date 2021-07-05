@@ -320,7 +320,7 @@ public class BroadcastRestService extends RestServiceBase{
 			String status = getDataStore().get(id).getStatus();
 			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
-				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl);
+				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl, 0);
 				result.setSuccess(started);
 			}
 		}
@@ -333,13 +333,16 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 	
-	@ApiOperation(value = "Adds a third party rtmp end point to the stream. It supports adding after broadcast is started. If an url is already added to a stream, trying to add the same rtmp url will return false.", notes = "", response = Result.class)
+
+	@ApiOperation(value = "Adds a third party rtmp end point to the stream. It supports adding after broadcast is started. Resolution can be specified to send a specific adaptive resolution. If an url is already added to a stream, trying to add the same rtmp url will return false.", notes = "", response = Result.class)
+
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpointV3(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
-			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint) {
+			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint,
+								@ApiParam(value = "Resolution of the broadcast that is wanted to send to the RTMP endpoint. Only applicable if there is at least an adaptive resolution is available.", required = false) @QueryParam("resolution") int resolution) {
 		
 		String rtmpUrl = null;
 		Result result = new Result(false);
@@ -359,7 +362,7 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		if (result.isSuccess()) 
 		{
-			result = processRTMPEndpoint(result,  getDataStore().get(id), rtmpUrl, true);
+			result = processRTMPEndpoint(result,  getDataStore().get(id), rtmpUrl, true, resolution);
 		}
 		else {
 			result.setMessage("Rtmp endpoint is not added to datastore");
@@ -384,7 +387,7 @@ public class BroadcastRestService extends RestServiceBase{
 			String status = getDataStore().get(id).getStatus();
 			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
-				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl);
+				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl, 0);
 				result.setSuccess(started);
 			}
 		}
@@ -404,8 +407,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result removeEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
-			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId
-			){
+			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId, 
+								   @ApiParam(value = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.", required = true) 
+									   @QueryParam("resolution") int resolution){
 		
 		//Get rtmpURL with broadcast
 		String rtmpUrl = null;
@@ -424,7 +428,7 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		if (result.isSuccess()) 
 		{
-			result = processRTMPEndpoint(result, broadcast, rtmpUrl, false);
+			result = processRTMPEndpoint(result, broadcast, rtmpUrl, false, resolution);
 		}
 		else if (logger.isErrorEnabled()) {	
 			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
