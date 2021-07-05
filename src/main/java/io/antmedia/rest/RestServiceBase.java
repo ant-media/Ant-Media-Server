@@ -680,7 +680,7 @@ public abstract class RestServiceBase {
 		return !isCluster || broadcast.getOriginAdress().equals(getServerSettings().getHostAddress());
 	}
 
-	public Result processRTMPEndpoint(Result result, Broadcast broadcast, String rtmpUrl, boolean addEndpoint) {
+	public Result processRTMPEndpoint(Result result, Broadcast broadcast, String rtmpUrl, boolean addEndpoint, int resolution) {
 		if (broadcast != null) 
 		{
 			boolean started;
@@ -689,10 +689,10 @@ public abstract class RestServiceBase {
 			{
 				if(isInSameNodeInCluster(broadcast)) {
 					if(addEndpoint) {
-						started = getMuxAdaptor(broadcast.getStreamId()).startRtmpStreaming(rtmpUrl);
+						started = getMuxAdaptor(broadcast.getStreamId()).startRtmpStreaming(rtmpUrl, resolution);
 					}
 					else {
-						started = getMuxAdaptor(broadcast.getStreamId()).stopRtmpStreaming(rtmpUrl);
+						started = getMuxAdaptor(broadcast.getStreamId()).stopRtmpStreaming(rtmpUrl, resolution);
 					}
 					result.setSuccess(started);
 				}
