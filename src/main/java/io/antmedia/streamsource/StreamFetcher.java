@@ -90,6 +90,8 @@ public class StreamFetcher {
 
 	private AppSettings appSettings;
 	private Vertx vertx;
+	
+	private DataStore dataStore;
 
 	public interface IStreamFetcherListener {
 
@@ -268,13 +270,14 @@ public class StreamFetcher {
 						}
 					}
 					
+					
 					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 					// because there is no video frame
 					muxAdaptor.setFirstKeyFrameReceivedChecked(!videoExist); 
 					muxAdaptor.setEnableVideo(videoExist);
 					muxAdaptor.setEnableAudio(audioExist);
-					
+					muxAdaptor.setBroadcast(getDataStore().get(streamId));
 					//if stream is rtsp, then it's not AVC
 					muxAdaptor.setAvc(!streamUrl.toLowerCase().startsWith("rtsp"));
 										
@@ -513,10 +516,8 @@ public class StreamFetcher {
 			stopRequestReceived = false;
 		}
 
-
 		private void setUpEndPoints(String publishedName, MuxAdaptor muxAdaptor) {
-			DataStore dataStore = getInstance().getDataStore();
-			Broadcast broadcast = dataStore.get(publishedName);
+			Broadcast broadcast = getDataStore().get(publishedName);
 			if (broadcast != null) {
 				List<Endpoint> endPointList = broadcast.getEndPointList();
 
@@ -643,6 +644,18 @@ public class StreamFetcher {
 		}.start();
 
 	}
+	
+	public DataStore getDataStore() {
+		if (dataStore == null) {
+			dataStore = getInstance().getDataStore();
+		}
+		return dataStore;
+	}
+	
+	public void setDataStore(DataStore dataStore) {
+		this.dataStore = dataStore;
+	}
+	
 
 	public AVPacket getAVPacket() {
 		if (!availableBufferQueue.isEmpty()) {
