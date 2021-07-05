@@ -1559,10 +1559,7 @@ public Result createInitializationProcess(String appName){
 		storageClient.reset();
 
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
-				
 		appSettings.setHlsEncryptionKeyInfoFile(newSettings.getHlsEncryptionKeyInfoFile());
-		
-		appSettings.setJwtControlType(newSettings.getJwtControlType());
 		appSettings.setJwksURL(newSettings.getJwksURL());
 		
 		

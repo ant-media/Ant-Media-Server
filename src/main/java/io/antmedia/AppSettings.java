@@ -290,7 +290,6 @@ public class AppSettings {
 	
 	public static final String SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE = "settings.hlsEncryptionKeyInfoFile";
 	
-	public static final String SETTINGS_JWT_CONTROL_TYPE = "settings.jwtControlType";
 	public static final String SETTINGS_JWKS_URL = "settings.jwksURL";
 	
 
@@ -1336,17 +1335,10 @@ public class AppSettings {
 	private String hlsEncryptionKeyInfoFile;
 	
 	/*
-	 * JWT Control Type
-	 * It can be default or jwks
-	 * It's "default" by default
-	 */
-
-	@Value( "${" + SETTINGS_JWT_CONTROL_TYPE +":default}")
-	private String jwtControlType;
-	
-	/*
-	 * JWKS URL
-	 * It's null by default
+	 * JWKS URL - it's effective if {@link#jwtControlEnabled} is true
+	 * 
+	 * It's null by default. If it's not null, JWKS is used to filter. 
+	 * Otherwise it uses JWT
 	 */
 	
 	@Value( "${" + SETTINGS_JWKS_URL +":#{null}}")
@@ -2582,14 +2574,6 @@ public class AppSettings {
 
 	public void setForceDecoding(boolean forceDecoding) {
 		this.forceDecoding = forceDecoding;
-	}
-	
-	public String getJwtControlType() {
-		return jwtControlType;
-	}
-
-	public void setJwtControlType(String jwtControlType) {
-		this.jwtControlType = jwtControlType;
 	}
 	
 	public String getJwksURL() {

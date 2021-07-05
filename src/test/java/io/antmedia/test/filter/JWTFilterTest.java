@@ -37,7 +37,6 @@ public class JWTFilterTest {
         AppSettings appSettings = new AppSettings();
         appSettings.setJwtSecretKey("testtesttesttesttesttesttesttest");       
         appSettings.setJwtControlEnabled(true);
-        appSettings.setJwtControlType(jwtFilter.JWT_DEFAULT_TYPE);
         
         Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
         
