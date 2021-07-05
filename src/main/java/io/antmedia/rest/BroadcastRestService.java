@@ -333,7 +333,7 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 	
-	@ApiOperation(value = "Add a third pary rtmp end point to the stream. It supports adding after broadcast is started ", notes = "", response = Result.class)
+	@ApiOperation(value = "Adds a third party rtmp end point to the stream. It supports adding after broadcast is started. If an url is already added to a stream, trying to add the same rtmp url will return false.", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
@@ -345,8 +345,16 @@ public class BroadcastRestService extends RestServiceBase{
 		Result result = new Result(false);
 		
 		if(endpoint != null && endpoint.getRtmpUrl() != null) {
-			rtmpUrl = endpoint.getRtmpUrl();
-			result = super.addEndpoint(id, endpoint);
+			
+			Broadcast broadcast = getDataStore().get(id);
+			if (broadcast != null) {
+			
+				List<Endpoint> endpoints = broadcast.getEndPointList();
+				if (endpoints == null || endpoints.stream().noneMatch(o -> o.getRtmpUrl().equals(endpoint.getRtmpUrl()))) {
+					rtmpUrl = endpoint.getRtmpUrl();
+					result = super.addEndpoint(id, endpoint);
+				}
+			}
 		}
 		
 		if (result.isSuccess()) 
@@ -844,161 +852,10 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording,
 			@ApiParam(value = "Record type: 'mp4' or 'webm'. It's optional parameter.", required = false) @QueryParam("recordType") String recordType) {
 		if (logger.isInfoEnabled()) {
-			logger.info("Recording method is called for {} to make it {} and recordy Type: {}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null);
+			logger.info("Recording method is called for {} to make it {} and record Type: {}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null);
 		}
-		if(WEBM.equals(recordType)) {
-			return enableWebMMuxing(streamId, enableRecording);
-		}
-		else {
-			return enableMp4Muxing(streamId, enableRecording);
-		}
-	}
-	
-	
-	public Result enableMp4Muxing(String streamId, boolean enableRecording) {
-		
-		boolean result = false;
-		String message = null;
-		
-		if (streamId != null) 
-		{
-			streamId = streamId.replaceAll(REPLACE_CHARS, "_");
-			Broadcast broadcast = getDataStore().get(streamId);
-			if (broadcast != null) 
-			{
-				if (enableRecording) 
-				{
-					if (broadcast.getMp4Enabled() != RECORD_ENABLE) 
-					{
-						result = getDataStore().setMp4Muxing(streamId, RECORD_ENABLE);
-						
-						//if it's not enabled, start it
-						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-						{
-							result = startRecord(streamId, RecordType.MP4);
-							if (!result) 
-							{
-								//revert back to record
-								getDataStore().setMp4Muxing(streamId, RECORD_DISABLE);
-								logFailedOperation(enableRecording,streamId,RecordType.MP4);
-							}
-							else
-							{
-								message=Long.toString(System.currentTimeMillis());
-								logger.warn("Mp4 recording is started for stream: {}", streamId);
-							}
-						}
-						else {
-							logger.info("Broadcast is not broadcasting status so recording only saved to the database for stream:{}", streamId);
-						}
-					}
-					else 
-					{
-						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
-						{
-							message = "Recording is already active. Please stop it first";
-						}
-					}
-				}
-				else 
-				{
-					boolean stopAttempted = false;
-					if (broadcast.getMp4Enabled() == RECORD_ENABLE && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
-					{
-						stopAttempted = true;
-						//we can stop recording
-						result = stopRecord(streamId, RecordType.MP4);
-						if (!result) 
-						{
-							streamId = logFailedOperation(enableRecording,streamId,RecordType.MP4);
-						}
-						else{
-							message=Long.toString(System.currentTimeMillis());
-							logger.warn("WebM recording is started for stream: {}", streamId);
-						}
-						
-					}
-					boolean dataStoreResult = getDataStore().setMp4Muxing(streamId, RECORD_DISABLE);
-					
-					result = stopAttempted ? (result && dataStoreResult) : dataStoreResult;
-				}
-			}
-			else 
-			{
-				message = "no stream for this id: " + streamId + " or wrong setting parameter";
-			}
-		}
-		
-		return new Result(result, message);
-	}
-	
-	public Result enableWebMMuxing(String streamId, boolean enableRecording) {
-		boolean result = false;
-		String message = null;
-		if (streamId != null) 
-		{
-			Broadcast broadcast = getDataStore().get(streamId);
-			if (broadcast != null) 
-			{
-				if (enableRecording) 
-				{
-					
-					if (broadcast.getWebMEnabled() != RECORD_ENABLE) 
-					{
-						result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
-						
-						//if it's not enabled, start it
-						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-						{
-							result = startRecord(streamId, RecordType.WEBM);
-							if (result) 
-							{
-								
-								message=Long.toString(System.currentTimeMillis());
-							}
-							else
-							{
-								//revert back 
-								getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
-								logFailedOperation(enableRecording,streamId,RecordType.WEBM);
-							}
-						}	
-					}
-					else 
-					{
-						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
-						{
-							message = "Recording is already active. Please stop it first";
-						}
-					}
-				}
-				else 
-				{
-					if (broadcast.getWebMEnabled() == RECORD_ENABLE && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
-					{
-						//we can stop recording
-						result = stopRecord(streamId, RecordType.WEBM);
-						if (result) 
-						{
-							message=Long.toString(System.currentTimeMillis());
-						}
-						else{
-							logFailedOperation(enableRecording,streamId,RecordType.WEBM);
-						}
-						
-					}
-					boolean dataStoreResult = getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
-					
-					result = (result && dataStoreResult);
-				}
-			}
-			else 
-			{
-				message = "no stream for this id: " + streamId + " or wrong setting parameter";
-			}
-		}
-
-		return new Result(result, message);
+		recordType = (recordType==null)?RecordType.MP4.toString():recordType;  // It means, if recordType is null, function using Mp4 Record by default
+		return enableRecordMuxing(streamId, enableRecording, recordType);
 	}
 
 
