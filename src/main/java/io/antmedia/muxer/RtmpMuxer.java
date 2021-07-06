@@ -86,7 +86,7 @@ public class RtmpMuxer extends Muxer {
 	private int audioIndex;
 	private int videoIndex;
 
-	private AtomicBoolean initializationFailedOnce = new AtomicBoolean(false);
+	private AtomicBoolean preparedIO = new AtomicBoolean(false);
 
 	public RtmpMuxer(String url, Vertx vertx) {
 		super(vertx);
@@ -176,29 +176,21 @@ public class RtmpMuxer extends Muxer {
 			//if context.pb is not null, it means it's already initialized so we're checking if it's null
 			//if initializationFailedOnce is true, it means that initialization has been tried and failed. No need to try again
 
-			if (!initializationFailedOnce.get()) 
-			{
-				AVIOContext pb = new AVIOContext(null);
-				long startTime = System.currentTimeMillis();
-				logger.info("rtmp muxer opening: {} time:{}" , url, System.currentTimeMillis());
-				int ret = avformat.avio_open(pb,  url, AVIO_FLAG_WRITE);
-				if (ret >= 0) {
-					context.pb(pb);
-					long diff = System.currentTimeMillis() - startTime;
-					logger.info("avio open takes {}", diff);
-					result = true;
-				}
-				else
-				{
-					logger.error("Could not open output file for rtmp url {}", url);
-					clearResource();
-					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
-					initializationFailedOnce.set(true);
-				}
+			AVIOContext pb = new AVIOContext(null);
+			long startTime = System.currentTimeMillis();
+			logger.info("rtmp muxer opening: {} time:{}" , url, System.currentTimeMillis());
+			int ret = avformat.avio_open(pb,  url, AVIO_FLAG_WRITE);
+			if (ret >= 0) {
+				context.pb(pb);
+				long diff = System.currentTimeMillis() - startTime;
+				logger.info("avio open takes {}", diff);
+				result = true;
 			}
-			else {
-				logger.error("Initialization has failed before so that it's not trying again for rtmp url {}", url);
+			else
+			{
+				logger.error("Could not open output file for rtmp url {}", url);
 				clearResource();
+				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
 			}
 
 		}
@@ -210,14 +202,21 @@ public class RtmpMuxer extends Muxer {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public  boolean prepareIO() 
+	public boolean prepareIO() 
 	{
 		/*
 		 * extradata context is created if addVideoStream is called from WebRTC Forwarder 
 		 */
-		boolean result = true;
-		this.vertx.executeBlocking(b -> {
-			
+		
+		
+		if (preparedIO.get()) {
+			//it means it's already called
+			return true;
+		}
+		preparedIO.set(true);
+		this.vertx.executeBlocking(b -> 
+		{
+
 			if (initializeOutputFormatContextIO()) 
 			{
 				if (bsfExtractdataContext == null)  
@@ -233,7 +232,7 @@ public class RtmpMuxer extends Muxer {
 				logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
 			}
 		}, null);
-		return result;
+		return true;
 	}
 
 	/**
