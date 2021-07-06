@@ -41,6 +41,7 @@ import java.nio.ByteBuffer;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
@@ -60,6 +61,8 @@ import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.IntPointer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.vertx.core.Vertx;
 
 public class RtmpMuxer extends Muxer {
 
@@ -83,8 +86,10 @@ public class RtmpMuxer extends Muxer {
 	private int audioIndex;
 	private int videoIndex;
 
-	public RtmpMuxer(String url) {
-		super(null);
+	private AtomicBoolean initializationFailedOnce = new AtomicBoolean(false);
+
+	public RtmpMuxer(String url, Vertx vertx) {
+		super(vertx);
 		format = "flv";
 		this.url = url;
 
@@ -164,27 +169,40 @@ public class RtmpMuxer extends Muxer {
 	public boolean initializeOutputFormatContextIO(){
 		AVFormatContext context = getOutputFormatContext();
 		boolean result = false;
+
+
 		if (context != null && context.pb() == null) 
 		{
 			//if context.pb is not null, it means it's already initialized so we're checking if it's null
+			//if initializationFailedOnce is true, it means that initialization has been tried and failed. No need to try again
 
-			AVIOContext pb = new AVIOContext(null);
-			long startTime = System.currentTimeMillis();
-			logger.info("rtmp muxer opening: {} time:{}" , url, System.currentTimeMillis());
-			int ret = avformat.avio_open(pb,  url, AVIO_FLAG_WRITE);
-			if (ret >= 0) {
-				context.pb(pb);
-				long diff = System.currentTimeMillis() - startTime;
-				logger.info("avio open takes {}", diff);
-				result = true;
-			}
-			else
+			if (!initializationFailedOnce.get()) 
 			{
-				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
-				logger.error("Could not open output file for rtmp url {}", url);
+				AVIOContext pb = new AVIOContext(null);
+				long startTime = System.currentTimeMillis();
+				logger.info("rtmp muxer opening: {} time:{}" , url, System.currentTimeMillis());
+				int ret = avformat.avio_open(pb,  url, AVIO_FLAG_WRITE);
+				if (ret >= 0) {
+					context.pb(pb);
+					long diff = System.currentTimeMillis() - startTime;
+					logger.info("avio open takes {}", diff);
+					result = true;
+				}
+				else
+				{
+					logger.error("Could not open output file for rtmp url {}", url);
+					clearResource();
+					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+					initializationFailedOnce.set(true);
+				}
+			}
+			else {
+				logger.error("Initialization has failed before so that it's not trying again for rtmp url {}", url);
+				clearResource();
 			}
 
 		}
+
 		return result;
 	}
 
@@ -197,20 +215,24 @@ public class RtmpMuxer extends Muxer {
 		/*
 		 * extradata context is created if addVideoStream is called from WebRTC Forwarder 
 		 */
-		boolean result = false;
-		if (initializeOutputFormatContextIO()) 
-		{
-			if (bsfExtractdataContext == null)  
-			{	
-				return writeHeader(); 
+		boolean result = true;
+		this.vertx.executeBlocking(b -> {
+			
+			if (initializeOutputFormatContextIO()) 
+			{
+				if (bsfExtractdataContext == null)  
+				{	
+					writeHeader(); 
+					return;
+				}
+				isRunning.set(true);
+				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 			}
-			isRunning.set(true);
-			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-			result = true;
-		}
-		else {
-			logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
-		}
+			else 
+			{
+				logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
+			}
+		}, null);
 		return result;
 	}
 
@@ -238,7 +260,6 @@ public class RtmpMuxer extends Muxer {
 			if (ret < 0) {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
 				logger.warn("could not write header to rtmp url {}", url);
-
 				clearResource();
 				return false;
 			}
@@ -255,7 +276,7 @@ public class RtmpMuxer extends Muxer {
 			return true;
 		}
 		else{
-			logger.info("Trying to write header after writing trailer");
+			logger.warn("Trying to write header after writing trailer");
 			return false;
 		}
 	}
@@ -278,18 +299,18 @@ public class RtmpMuxer extends Muxer {
 
 			av_write_trailer(outputFormatContext);
 			clearResource();
-			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-			isRecording = false;
 			trailerWritten = true;
 		}
 		else{
 			logger.info("Not writing trailer because header is not written yet");
 		}
+		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		isRecording = false;
 	}
 
-	private void clearResource() {
+	private synchronized void clearResource() {
 		/* close output */
-		if ((outputFormatContext.flags() & AVFMT_NOFILE) == 0) {
+		if ((outputFormatContext.flags() & AVFMT_NOFILE) == 0 && outputFormatContext.pb() != null) {
 			avio_closep(outputFormatContext.pb());
 		}
 
@@ -460,7 +481,7 @@ public class RtmpMuxer extends Muxer {
 
 	private void writePacket(AVPacket pkt, final AVRational inputTimebase, final AVRational outputTimebase, int codecType) 
 	{
-		final AVFormatContext context = getOutputFormatContext();
+		AVFormatContext context = getOutputFormatContext();
 		if (context.streams(pkt.stream_index()).codecpar().codec_type() ==  AVMEDIA_TYPE_AUDIO && !headerWritten) {
 			//Opening the RTMP muxer may take some time and don't make audio queue increase
 			logger.info("Not writing audio packet to muxer because header is not written yet for {}", url);
@@ -483,15 +504,16 @@ public class RtmpMuxer extends Muxer {
 		pkt.pos(-1);
 		int ret = 0;
 
-		if (codecType == AVMEDIA_TYPE_VIDEO) {
+		if (codecType == AVMEDIA_TYPE_VIDEO) 
+		{
 			ret = av_packet_ref(tmpPacket , pkt);
 			if (ret < 0) {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 				logger.error("Cannot copy packet for {}", file.getName());
 				return;
 			}
-			if (bsfExtractdataContext != null) {
-
+			if (bsfExtractdataContext != null) 
+			{
 				ret = av_bsf_send_packet(bsfExtractdataContext, tmpPacket);
 				if (ret < 0) {
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
@@ -519,7 +541,8 @@ public class RtmpMuxer extends Muxer {
 						}
 					}
 
-					if (headerWritten) {
+					if (headerWritten) 
+					{
 						ret = av_write_frame(context, tmpPacket);
 						if (ret < 0 && logger.isInfoEnabled()) {
 							byte[] data = new byte[128];
@@ -575,7 +598,12 @@ public class RtmpMuxer extends Muxer {
 	{
 
 		if (!isRunning.get() || !registeredStreamIndexList.contains(streamIndex)) {
-			logger.info("Not writing to muxer because it's not started for {}", url);
+			if (time2log % 100 == 0) {
+				logger.warn("Not writing to RTMP muxer because it's not started for {}", url);
+				time2log = 0;
+			}
+			time2log++;
+
 			return;
 		}
 
@@ -668,7 +696,7 @@ public class RtmpMuxer extends Muxer {
 		writePacket(audioPkt, (AVCodecContext)null);
 		av_packet_unref(audioPkt);
 	}
-	
+
 
 
 

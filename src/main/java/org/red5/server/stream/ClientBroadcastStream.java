@@ -968,7 +968,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 
 		MuxAdaptor localMuxAdaptor = MuxAdaptor.initializeMuxAdaptor(this, false, conn.getScope());
 
-		setUpEndPoints(appCtx, publishedName, localMuxAdaptor);
+		
 		
 
 		try {
@@ -978,6 +978,9 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			}
 
 			localMuxAdaptor.init(conn, publishedName, false);
+			
+			
+			setUpEndPoints(appCtx, publishedName, localMuxAdaptor);
 
 			
 			addStreamListener(localMuxAdaptor);
@@ -1010,7 +1013,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 				if (endPointList != null && !endPointList.isEmpty()) 
 				{
 					for (Endpoint endpoint : endPointList) {
-						RtmpMuxer rtmpMuxer = new RtmpMuxer(endpoint.getRtmpUrl());
+						RtmpMuxer rtmpMuxer = new RtmpMuxer(endpoint.getRtmpUrl(), muxAdaptor.getVertx());
 						rtmpMuxer.setStatusListener(muxAdaptor);
 						muxAdaptor.addMuxer(rtmpMuxer);
 					}
