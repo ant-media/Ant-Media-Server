@@ -583,22 +583,15 @@
 		    <groupId>org.apache.kafka</groupId>
 		    <artifactId>kafka-streams</artifactId>
         </dependency>
-  		<dependency>
-    		<groupId>io.jsonwebtoken</groupId>
-    		<artifactId>jjwt-api</artifactId>
-    		<version>0.11.2</version>
+        <dependency>
+  			<groupId>com.auth0</groupId>
+  			<artifactId>jwks-rsa</artifactId>
+  			<version>0.9.0</version>
 		</dependency>
 		<dependency>
-    		<groupId>io.jsonwebtoken</groupId>
-    		<artifactId>jjwt-impl</artifactId>
-    		<version>0.11.2</version>
-    		<scope>provided</scope>
-		</dependency>
-		<dependency>
- 		   <groupId>io.jsonwebtoken</groupId>
-    		<artifactId>jjwt-jackson</artifactId> <!-- or jjwt-gson if Gson is preferred -->
-    		<version>0.11.2</version>
-    		<scope>provided</scope>
+  			<groupId>com.auth0</groupId>
+  			<artifactId>java-jwt</artifactId>
+  			<version>3.8.3</version>
 		</dependency>
     </dependencies>
     <profiles>
