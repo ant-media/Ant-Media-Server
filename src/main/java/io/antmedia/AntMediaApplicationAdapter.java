@@ -382,6 +382,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 						// This is resets Viewer map in HLS Viewer Stats
 						resetHLSStats(streamId);
 					}
+					
+					for (IStreamListener listener : streamListeners) {
+						listener.streamFinished(broadcast.getStreamId());
+					}
 				}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -511,6 +515,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 						{
 							publishSocialEndpoints(broadcast.getEndPointList());
 						}
+						
+						for (IStreamListener listener : streamListeners) {
+							listener.streamStarted(broadcast.getStreamId());
+						}
 					
 				
 				handler.complete();
@@ -578,8 +586,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		return broadcast;
 	}
 
-	private ServerSettings getServerSettings() 
-
+	protected ServerSettings getServerSettings() 
 	{
 		if (serverSettings == null) {
 			serverSettings = (ServerSettings)scope.getContext().getApplicationContext().getBean(ServerSettings.BEAN_NAME);
@@ -941,10 +948,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			result = getStreamFetcherManager().startPlaylist(broadcast);
 			
 		}
-		
-		for (IStreamListener listener : streamListeners) {
-			listener.streamStarted(broadcast.getStreamId());
-		}
 		return result;
 	}
 
@@ -977,10 +980,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				}
 				result.setSuccess(true);
 			}
-		}
-		
-		for (IStreamListener listener : streamListeners) {
-			listener.streamFinished(broadcast.getStreamId());
 		}
 		return result;
 	}
