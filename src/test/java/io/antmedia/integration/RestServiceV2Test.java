@@ -1461,10 +1461,19 @@ public class RestServiceV2Test {
 			
 			Endpoint endpoint = new Endpoint();
 			endpoint.setRtmpUrl(rtmpUrl);
-
+			
 			// add generic endpoint
 			Result result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
 
+			// check that it is successfull
+			assertTrue(result.isSuccess());
+			
+			//add non existin rtmp url bugfix test - issue #3032
+			String rtmpUrl2 = "rtmp://nonexisting.com/abcdef";
+			Endpoint endpoint2 = new Endpoint();
+			endpoint2.setRtmpUrl(rtmpUrl2);
+			// add generic endpoint
+			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint2);
 			// check that it is successfull
 			assertTrue(result.isSuccess());
 
@@ -1472,16 +1481,16 @@ public class RestServiceV2Test {
 			broadcast = getBroadcast(broadcast.getStreamId().toString());
 			String finalBroadcastStreamId = broadcast.getStreamId();
 
-			// check that 4 element exist
+			// check that 2 element exist
 			assertNotNull(broadcast.getEndPointList());
-			assertEquals(1, broadcast.getEndPointList().size());
+			assertEquals(2, broadcast.getEndPointList().size());
 
 			broadcastList = callGetBroadcastList();
 			assertEquals(size+1, broadcastList.size());
 			
 			//check endpoint status
 			Broadcast tmp = getBroadcast(broadcast.getStreamId());
-			assertEquals(1, broadcast.getEndPointList().size());
+			assertEquals(2, broadcast.getEndPointList().size());
 			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, broadcast.getEndPointList().get(0).getStatus());
 
 			
@@ -1494,6 +1503,12 @@ public class RestServiceV2Test {
 			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				//size should +2 because we restream again into the server
 				return size+2 == callGetBroadcastList().size();
+			});
+			
+			// bugfix test - issue #3032
+			String endpointURLM3u8 = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8";
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile(endpointURLM3u8);
 			});
 			
 			
@@ -1534,13 +1549,14 @@ public class RestServiceV2Test {
 				 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
 						Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
 						
+						//we're checking endpoint list index:0 and index:2 because index:1 is "rtmp://nonexisting.com/abcdef";
 						return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(0).getStatus())
-								&& IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(1).getStatus());
+								&& IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(2).getStatus());
 					});
 				 
 				 broadcast = getBroadcast(finalBroadcastStreamId);
 				 //remove dynamic endpoint
-				 result = removeEndpointV2(finalBroadcastStreamId, broadcast.getEndPointList().get(1).getEndpointServiceId());
+				 result = removeEndpointV2(finalBroadcastStreamId, broadcast.getEndPointList().get(2).getEndpointServiceId());
 				 assertTrue(result.isSuccess());
 				 
 				 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
