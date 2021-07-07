@@ -214,8 +214,7 @@ public class RtmpMuxer extends Muxer {
 			return true;
 		}
 		preparedIO.set(true);
-		this.vertx.executeBlocking(b -> 
-		{
+		this.vertx.executeBlocking(b -> {
 
 			if (initializeOutputFormatContextIO()) 
 			{
