@@ -36,7 +36,7 @@ public class MapDBStore extends AbstractConsoleDataStore {
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 
 	public MapDBStore() {
-		db = DBMaker.fileDB(SERVER_STORAGE_FILE).make();
+		db = DBMaker.fileDB(SERVER_STORAGE_FILE).fileMmapEnableIfSupported().checksumHeaderBypass().make();
 		userMap = db.hashMap(SERVER_STORAGE_MAP_NAME)
 				.keySerializer(Serializer.STRING)
 				.valueSerializer(Serializer.STRING)

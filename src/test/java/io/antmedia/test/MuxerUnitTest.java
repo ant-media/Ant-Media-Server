@@ -491,7 +491,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
 		
 		
-		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url");
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
 		rtmpMuxer.init(appScope, "test", 0, null);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
 		
@@ -516,7 +516,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		codecParameters.codec_tag(0);
 		AVRational rat = new AVRational().num(1).den(1000);
 
-		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url");
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
 
 		rtmpMuxer.init(appScope, "test", 0, null);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
