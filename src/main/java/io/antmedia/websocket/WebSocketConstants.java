@@ -386,6 +386,6 @@ public class WebSocketConstants {
 	/**
 	 * It's sent for conference in MCU mode
 	 */
-	public static final Object MCU = "mcu";
+	public static final String MCU = "mcu";
 
 }
