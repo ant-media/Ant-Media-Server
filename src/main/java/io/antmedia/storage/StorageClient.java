@@ -63,6 +63,11 @@ public abstract class StorageClient {
 	 * @return
 	 */
 	public abstract boolean fileExist(String key);
+	
+	/**
+	 * Re-initialize the storage client with the current parameters
+	 */
+	public abstract void reset();
 
 	public String getEndpoint() {
 		return endpoint;

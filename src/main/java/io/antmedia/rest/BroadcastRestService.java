@@ -320,7 +320,7 @@ public class BroadcastRestService extends RestServiceBase{
 			String status = getDataStore().get(id).getStatus();
 			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
-				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl);
+				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl, 0);
 				result.setSuccess(started);
 			}
 		}
@@ -333,25 +333,36 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 	
-	@ApiOperation(value = "Add a third pary rtmp end point to the stream. It supports adding after broadcast is started ", notes = "", response = Result.class)
+
+	@ApiOperation(value = "Adds a third party rtmp end point to the stream. It supports adding after broadcast is started. Resolution can be specified to send a specific adaptive resolution. If an url is already added to a stream, trying to add the same rtmp url will return false.", notes = "", response = Result.class)
+
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpointV3(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
-			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint) {
+			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint,
+								@ApiParam(value = "Resolution of the broadcast that is wanted to send to the RTMP endpoint. Only applicable if there is at least an adaptive resolution is available.", required = false) @QueryParam("resolution") int resolution) {
 		
 		String rtmpUrl = null;
 		Result result = new Result(false);
 		
 		if(endpoint != null && endpoint.getRtmpUrl() != null) {
-			rtmpUrl = endpoint.getRtmpUrl();
-			result = super.addEndpoint(id, endpoint);
+			
+			Broadcast broadcast = getDataStore().get(id);
+			if (broadcast != null) {
+			
+				List<Endpoint> endpoints = broadcast.getEndPointList();
+				if (endpoints == null || endpoints.stream().noneMatch(o -> o.getRtmpUrl().equals(endpoint.getRtmpUrl()))) {
+					rtmpUrl = endpoint.getRtmpUrl();
+					result = super.addEndpoint(id, endpoint);
+				}
+			}
 		}
 		
 		if (result.isSuccess()) 
 		{
-			result = processRTMPEndpoint(result,  getDataStore().get(id), rtmpUrl, true);
+			result = processRTMPEndpoint(result,  getDataStore().get(id), rtmpUrl, true, resolution);
 		}
 		else {
 			result.setMessage("Rtmp endpoint is not added to datastore");
@@ -376,7 +387,7 @@ public class BroadcastRestService extends RestServiceBase{
 			String status = getDataStore().get(id).getStatus();
 			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
-				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl);
+				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl, 0);
 				result.setSuccess(started);
 			}
 		}
@@ -396,8 +407,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result removeEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
-			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId
-			){
+			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId, 
+								   @ApiParam(value = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.", required = true) 
+									   @QueryParam("resolution") int resolution){
 		
 		//Get rtmpURL with broadcast
 		String rtmpUrl = null;
@@ -416,7 +428,7 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		if (result.isSuccess()) 
 		{
-			result = processRTMPEndpoint(result, broadcast, rtmpUrl, false);
+			result = processRTMPEndpoint(result, broadcast, rtmpUrl, false, resolution);
 		}
 		else if (logger.isErrorEnabled()) {	
 			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
@@ -844,161 +856,10 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording,
 			@ApiParam(value = "Record type: 'mp4' or 'webm'. It's optional parameter.", required = false) @QueryParam("recordType") String recordType) {
 		if (logger.isInfoEnabled()) {
-			logger.info("Recording method is called for {} to make it {} and recordy Type: {}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null);
+			logger.info("Recording method is called for {} to make it {} and record Type: {}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null);
 		}
-		if(WEBM.equals(recordType)) {
-			return enableWebMMuxing(streamId, enableRecording);
-		}
-		else {
-			return enableMp4Muxing(streamId, enableRecording);
-		}
-	}
-	
-	
-	public Result enableMp4Muxing(String streamId, boolean enableRecording) {
-		
-		boolean result = false;
-		String message = null;
-		
-		if (streamId != null) 
-		{
-			streamId = streamId.replaceAll(REPLACE_CHARS, "_");
-			Broadcast broadcast = getDataStore().get(streamId);
-			if (broadcast != null) 
-			{
-				if (enableRecording) 
-				{
-					if (broadcast.getMp4Enabled() != RECORD_ENABLE) 
-					{
-						result = getDataStore().setMp4Muxing(streamId, RECORD_ENABLE);
-						
-						//if it's not enabled, start it
-						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-						{
-							result = startRecord(streamId, RecordType.MP4);
-							if (!result) 
-							{
-								//revert back to record
-								getDataStore().setMp4Muxing(streamId, RECORD_DISABLE);
-								logFailedOperation(enableRecording,streamId,RecordType.MP4);
-							}
-							else
-							{
-								message=Long.toString(System.currentTimeMillis());
-								logger.warn("Mp4 recording is started for stream: {}", streamId);
-							}
-						}
-						else {
-							logger.info("Broadcast is not broadcasting status so recording only saved to the database for stream:{}", streamId);
-						}
-					}
-					else 
-					{
-						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
-						{
-							message = "Recording is already active. Please stop it first";
-						}
-					}
-				}
-				else 
-				{
-					boolean stopAttempted = false;
-					if (broadcast.getMp4Enabled() == RECORD_ENABLE && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
-					{
-						stopAttempted = true;
-						//we can stop recording
-						result = stopRecord(streamId, RecordType.MP4);
-						if (!result) 
-						{
-							streamId = logFailedOperation(enableRecording,streamId,RecordType.MP4);
-						}
-						else{
-							message=Long.toString(System.currentTimeMillis());
-							logger.warn("WebM recording is started for stream: {}", streamId);
-						}
-						
-					}
-					boolean dataStoreResult = getDataStore().setMp4Muxing(streamId, RECORD_DISABLE);
-					
-					result = stopAttempted ? (result && dataStoreResult) : dataStoreResult;
-				}
-			}
-			else 
-			{
-				message = "no stream for this id: " + streamId + " or wrong setting parameter";
-			}
-		}
-		
-		return new Result(result, message);
-	}
-	
-	public Result enableWebMMuxing(String streamId, boolean enableRecording) {
-		boolean result = false;
-		String message = null;
-		if (streamId != null) 
-		{
-			Broadcast broadcast = getDataStore().get(streamId);
-			if (broadcast != null) 
-			{
-				if (enableRecording) 
-				{
-					
-					if (broadcast.getWebMEnabled() != RECORD_ENABLE) 
-					{
-						result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
-						
-						//if it's not enabled, start it
-						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-						{
-							result = startRecord(streamId, RecordType.WEBM);
-							if (result) 
-							{
-								
-								message=Long.toString(System.currentTimeMillis());
-							}
-							else
-							{
-								//revert back 
-								getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
-								logFailedOperation(enableRecording,streamId,RecordType.WEBM);
-							}
-						}	
-					}
-					else 
-					{
-						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
-						{
-							message = "Recording is already active. Please stop it first";
-						}
-					}
-				}
-				else 
-				{
-					if (broadcast.getWebMEnabled() == RECORD_ENABLE && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
-					{
-						//we can stop recording
-						result = stopRecord(streamId, RecordType.WEBM);
-						if (result) 
-						{
-							message=Long.toString(System.currentTimeMillis());
-						}
-						else{
-							logFailedOperation(enableRecording,streamId,RecordType.WEBM);
-						}
-						
-					}
-					boolean dataStoreResult = getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
-					
-					result = (result && dataStoreResult);
-				}
-			}
-			else 
-			{
-				message = "no stream for this id: " + streamId + " or wrong setting parameter";
-			}
-		}
-
-		return new Result(result, message);
+		recordType = (recordType==null)?RecordType.MP4.toString():recordType;  // It means, if recordType is null, function using Mp4 Record by default
+		return enableRecordMuxing(streamId, enableRecording, recordType);
 	}
 
 

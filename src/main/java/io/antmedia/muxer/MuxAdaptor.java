@@ -1583,13 +1583,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
-	public boolean startRtmpStreaming(String rtmpUrl)
+	public boolean startRtmpStreaming(String rtmpUrl, int resolution)
 	{
 		if (!isRecording) {
 			logger.warn("Start rtmp streaming return false for stream:{} because stream is being prepared", streamId);
 			return false;
 		}
-		RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl);
+		RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
 		rtmpMuxer.setStatusListener(this);
 
 		boolean prepared = prepareMuxer(rtmpMuxer);
@@ -1668,7 +1668,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return rtmpMuxer;
 	}
 
-	public boolean stopRtmpStreaming(String rtmpUrl)
+	public boolean stopRtmpStreaming(String rtmpUrl, int resolution)
 	{
 		RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
 		boolean result = false;
@@ -1808,6 +1808,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	
 	public AVRational getAudioTimeBase() {
 		return TIME_BASE_FOR_MS;
+	}
+	
+	public Vertx getVertx() {
+		return vertx;
 	}
 }
 

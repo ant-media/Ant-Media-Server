@@ -674,21 +674,25 @@ public abstract class RestServiceBase {
 		return new Result(removed);
 
 	}
+	
+	public  boolean isInSameNodeInCluster(Broadcast broadcast) {
+		boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
+		return !isCluster || broadcast.getOriginAdress().equals(getServerSettings().getHostAddress());
+	}
 
-	public Result processRTMPEndpoint(Result result, Broadcast broadcast, String rtmpUrl, boolean addEndpoint) {
+	public Result processRTMPEndpoint(Result result, Broadcast broadcast, String rtmpUrl, boolean addEndpoint, int resolution) {
 		if (broadcast != null) 
 		{
-			boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
 			boolean started;
 
 			if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
-				if((broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) || !isCluster)) {
+				if(isInSameNodeInCluster(broadcast)) {
 					if(addEndpoint) {
-						started = getMuxAdaptor(broadcast.getStreamId()).startRtmpStreaming(rtmpUrl);
+						started = getMuxAdaptor(broadcast.getStreamId()).startRtmpStreaming(rtmpUrl, resolution);
 					}
 					else {
-						started = getMuxAdaptor(broadcast.getStreamId()).stopRtmpStreaming(rtmpUrl);
+						started = getMuxAdaptor(broadcast.getStreamId()).stopRtmpStreaming(rtmpUrl, resolution);
 					}
 					result.setSuccess(started);
 				}
@@ -2064,6 +2068,84 @@ public abstract class RestServiceBase {
 			logger.warn("{} recording could not be stopped for stream: {}",type, id);
 		}
 		return id;
+	}
+	
+	public Result enableRecordMuxing(String streamId, boolean enableRecording, String  type ) {
+		boolean result = false;
+		String message = null;
+		String status = (enableRecording)?"started":"stopped"; 
+		if (streamId != null) 
+		{
+			Broadcast broadcast = getDataStore().get(streamId);
+			if (broadcast != null) 
+			{
+					if ( (type.equals(RecordType.WEBM.toString()) && (enableRecording && broadcast.getWebMEnabled() != RECORD_ENABLE )  ||
+							( !enableRecording && broadcast.getWebMEnabled() != RECORD_DISABLE))
+							|| 							
+							( type.equals(RecordType.MP4.toString()) && (enableRecording && broadcast.getMp4Enabled() != RECORD_ENABLE ) ||
+							( !enableRecording && broadcast.getMp4Enabled() != RECORD_DISABLE))
+							)
+					{
+						result = true;
+						//if it's not enabled, start it
+						if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+						{	
+							if (isInSameNodeInCluster(broadcast)) {
+								if(enableRecording && type.equals(RecordType.WEBM.toString())) {
+									result = startRecord(streamId, RecordType.WEBM);
+								}
+								else if(!enableRecording && type.equals(RecordType.WEBM.toString())) {
+									result = stopRecord(streamId, RecordType.WEBM);
+								}
+								else if (enableRecording && type.equals(RecordType.MP4.toString())) {
+									result = startRecord(streamId, RecordType.MP4);
+								}
+								else if(!enableRecording && type.equals(RecordType.MP4.toString())){
+									result = stopRecord(streamId, RecordType.MP4);
+								}
+								//Check process status result
+								if (result) 
+								{
+									message=Long.toString(System.currentTimeMillis());
+									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
+								}
+								else
+								{
+									logFailedOperation(enableRecording,streamId,(type.equals(RecordType.MP4.toString()))?RecordType.MP4:RecordType.WEBM);
+									message= type +" recording couldn't " + status;
+									}
+								}
+							else {
+								message="Please send " + type + " recording request to " + broadcast.getOriginAdress() + " node or send request in a stopped status.";
+								result = false;
+							}
+							}
+						// If record process works well then change record status in DB
+							if(result && enableRecording && type.equals(RecordType.WEBM.toString())) {
+								result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+							}
+							else if(result && enableRecording && type.equals(RecordType.MP4.toString())) {
+								result = getDataStore().setMp4Muxing(streamId, RECORD_ENABLE);
+							}
+							else if(result && !enableRecording &&  type.equals(RecordType.WEBM.toString())) {
+								result = getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
+							}
+							else if(result && !enableRecording &&  type.equals(RecordType.MP4.toString())) {
+								result = getDataStore().setMp4Muxing(streamId, RECORD_DISABLE);
+							}
+					}
+					else
+					{
+						message =  type + " recording status  is already: " +enableRecording;
+						}
+				}
+			}
+			else 
+			{
+				message = "No stream for this id: " + streamId + " or wrong setting parameter";
+			}
+
+		return new Result(result, message);
 	}
 
 }

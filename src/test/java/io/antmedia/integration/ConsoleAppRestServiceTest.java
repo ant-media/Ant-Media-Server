@@ -1086,8 +1086,9 @@ public class ConsoleAppRestServiceTest{
 			Awaitility.await()
 			.pollDelay(5, TimeUnit.SECONDS)
 			.atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
-				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
-						+ broadcast.getStreamId() + ".m3u8") || clusterResult.isSuccess();
+				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 	+ broadcast.getStreamId() + ".m3u8") && 
+						!MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "_0p0005.ts")
+						|| clusterResult.isSuccess();
 			});
 
 			rtmpSendingProcessToken.destroy();
@@ -1275,7 +1276,8 @@ public class ConsoleAppRestServiceTest{
 
 			//it should be false, because publishing is not allowed and hls files are not created
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId(), true)==404;
+				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId(), true)==404 
+						&& ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "_0p0005.ts?token=" + accessToken.getTokenId(), true) == 404;
 			});
 
 			rtmpSendingProcess.destroy();
@@ -1299,8 +1301,9 @@ public class ConsoleAppRestServiceTest{
 			Awaitility.await()
 			.pollDelay(5, TimeUnit.SECONDS)
 			.atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
-				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 
-						+ broadcast.getStreamId() + ".m3u8") || clusterResult.isSuccess();
+				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8") &&
+						 !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "_0p0005.ts") ||
+						 clusterResult.isSuccess();
 			});
 
 			rtmpSendingProcessToken.destroy();
