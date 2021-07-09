@@ -243,14 +243,14 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			sendRecordStopNotify();
 			notifyRecordingStop();
 			// inform the listener to finish and close
-			recordingListener.get().stop();
+			recordingListener.get().stop(true);
 		}
 
 		log.info("Checking mux adaptor to stop {}", publishedName);
 		if (muxAdaptor != null) {
 			MuxAdaptor realAdaptor = muxAdaptor.get();
 			if (realAdaptor != null) {
-				realAdaptor.stop();
+				realAdaptor.stop(true);
 			}
 			else {
 				log.warn("Mux adaptor reference is null");
@@ -1044,7 +1044,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			// remove the listener
 			removeStreamListener(listener);
 			// stop the recording listener
-			listener.stop();
+			listener.stop(true);
 			// clear and null-out the tsetHlsTimehread local
 			recordingListener.clear();
 			recordingListener = null;
@@ -1053,7 +1053,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 		if (muxAdaptor != null) {
 			MuxAdaptor localMuxAdaptor = muxAdaptor.get();
 			removeStreamListener(localMuxAdaptor);
-			localMuxAdaptor.stop();
+			localMuxAdaptor.stop(true);
 			muxAdaptor.clear();
 			muxAdaptor = null;
 		}
