@@ -48,7 +48,7 @@ public interface IRecordingListener extends IStreamListener {
     /**
      * Stop the recording.
      */
-    public void stop();
+    public void stop(boolean shutdownCompletely);
 
     /** {@inheritDoc} */
     public void packetReceived(IBroadcastStream stream, IStreamPacket packet);

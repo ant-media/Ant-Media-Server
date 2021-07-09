@@ -762,7 +762,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(0, sfQueue.size());
 
 		verify(cbs, times(1)).stop();
-		verify(muxerAdaptor, times(1)).stop();
+		verify(muxerAdaptor, times(1)).stop(true);
 	}
 	
 	@Test
