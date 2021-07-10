@@ -410,24 +410,34 @@ public class WebSocketCommunityHandlerTest {
 	public void testSendRoomInformation() 
 	{
 		String roomId = "roomId12345";
-		JSONArray jsonStreamArray = new JSONArray();
-		jsonStreamArray.add("stream1");
-		jsonStreamArray.add("stream2");
-		jsonStreamArray.add("stream3");
-		jsonStreamArray.add("stream4");
+		
+		HashMap<String,String> streamDetailsMap = new HashMap<>();
+		streamDetailsMap.put("streamId1",null);
+		streamDetailsMap.put("streamId2","streamName2");
+		streamDetailsMap.put("streamId3",null);
+		streamDetailsMap.put("streamId4","streamName4");
 		wsHandler.setSession(session);
-		wsHandler.sendRoomInformation(jsonStreamArray, roomId);
+		wsHandler.sendRoomInformation(streamDetailsMap, roomId);
 		
 		
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
 		verify(wsHandler).sendMessage(argument.capture(), Mockito.eq(session));
+		
+		JSONArray jsonStreamIdArray = new JSONArray();
+		JSONArray jsonStreamNameArray = new JSONArray();
+		
+        for (HashMap.Entry<String, String> e : streamDetailsMap.entrySet()) {
+        	jsonStreamIdArray.add(e.getKey());
+        	jsonStreamNameArray.add(e.getValue());
+        }
 		
 		JSONObject json;
 		try {
 			json = (JSONObject) new JSONParser().parse(argument.getValue());
 			assertEquals(WebSocketConstants.ROOM_INFORMATION_NOTIFICATION, json.get(WebSocketConstants.COMMAND));	
 			assertEquals(roomId, json.get(WebSocketConstants.ROOM));
-			assertEquals(jsonStreamArray, json.get(WebSocketConstants.STREAMS_IN_ROOM));
+			assertEquals(jsonStreamIdArray, json.get(WebSocketConstants.STREAMS_IN_ROOM));
+			assertEquals(jsonStreamNameArray, json.get(WebSocketConstants.STREAM_NAMES_IN_ROOM));
 			
 		} catch (ParseException e) {
 			e.printStackTrace();
@@ -439,25 +449,36 @@ public class WebSocketCommunityHandlerTest {
 	public void testSendJoinedRoomInformation() {
 		String roomId = "roomId12345";
 		String streamId = "stream34567";
-		JSONArray jsonStreamArray = new JSONArray();
-		jsonStreamArray.add("stream1");
-		jsonStreamArray.add("stream2");
-		jsonStreamArray.add("stream3");
-		jsonStreamArray.add("stream4");
+		
+		HashMap<String,String> streamDetailsMap = new HashMap<>();
+		streamDetailsMap.put("streamId1",null);
+		streamDetailsMap.put("streamId2","streamName2");
+		streamDetailsMap.put("streamId3",null);
+		streamDetailsMap.put("streamId4","streamName4");
+		
 		wsHandler.setSession(session);
 		
-		wsHandler.sendJoinedRoomMessage(roomId, streamId, jsonStreamArray);
+		wsHandler.sendJoinedRoomMessage(roomId, streamId, streamDetailsMap);
 		
 		
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
 		verify(wsHandler).sendMessage(argument.capture(), Mockito.eq(session));
+		
+		JSONArray jsonStreamIdArray = new JSONArray();
+		JSONArray jsonStreamNameArray = new JSONArray();
+		
+        for (HashMap.Entry<String, String> e : streamDetailsMap.entrySet()) {
+        	jsonStreamIdArray.add(e.getKey());
+        	jsonStreamNameArray.add(e.getValue());
+        }
 		
 		JSONObject json;
 		try {
 			json = (JSONObject) new JSONParser().parse(argument.getValue());
 			assertEquals(WebSocketConstants.NOTIFICATION_COMMAND, json.get(WebSocketConstants.COMMAND));	
 			assertEquals(roomId, json.get(WebSocketConstants.ROOM));
-			assertEquals(jsonStreamArray, json.get(WebSocketConstants.STREAMS_IN_ROOM));
+			assertEquals(jsonStreamIdArray, json.get(WebSocketConstants.STREAMS_IN_ROOM));
+			assertEquals(jsonStreamNameArray, json.get(WebSocketConstants.STREAM_NAMES_IN_ROOM));
 			assertEquals(WebSocketConstants.JOINED_THE_ROOM, json.get(WebSocketConstants.DEFINITION));
 			assertEquals(streamId, json.get(WebSocketConstants.STREAM_ID));
 			

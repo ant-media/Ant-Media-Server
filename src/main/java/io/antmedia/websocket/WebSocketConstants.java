@@ -253,9 +253,14 @@ public class WebSocketConstants {
 	public static final String AUDIO = "audio";
 
 	/**
-	 * Stream list in the room
+	 * Stream Id list in the room
 	 */
 	public static final String STREAMS_IN_ROOM = "streams";
+	
+	/**
+	 * Stream Name list in the room
+	 */
+	public static final String STREAM_NAMES_IN_ROOM = "streamNames";
 
 	/**
 	 * Error definition it is send when stream id is not specified in the message

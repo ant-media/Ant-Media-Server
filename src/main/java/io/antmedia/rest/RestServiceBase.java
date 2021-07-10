@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -1985,29 +1986,33 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	public static List<String> getRoomInfoFromConference(String roomId, String streamId,DataStore store){
-		List<String> streamIdList = null;
+	public static HashMap<String,String> getRoomInfoFromConference(String roomId, String streamId,DataStore store){
+		HashMap<String,String> streamDetailsMap = null;
+		
 		if (roomId != null)
 		{
 			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
 			if (conferenceRoom == null) {
 				logger.warn("There is no room with id:{}", roomId.replaceAll("[\n|\r|\t]", "_"));
-				return streamIdList;
+				return streamDetailsMap;
 			}
-			streamIdList=new ArrayList<>();
+			 streamDetailsMap = new HashMap<>();
+			
 			List<String> tempList=conferenceRoom.getRoomStreamList();
 			if(tempList != null) {
 				for (String tmpStreamId : tempList)
 				{
 					Broadcast broadcast = store.get(tmpStreamId);
-					if (broadcast != null && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !tmpStreamId.equals(streamId))
+					if (broadcast != null && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 					{
-						streamIdList.add(tmpStreamId);
+						streamDetailsMap.put(tmpStreamId, broadcast.getName());
 					}
 				}
+				//remove the itself from the streamDetailsMap
+				streamDetailsMap.remove(streamId);
 			}
 		}
-		return streamIdList;
+		return streamDetailsMap;
 	}
 
 	public static boolean addStreamToConferenceRoom(String roomId,String streamId,DataStore store){

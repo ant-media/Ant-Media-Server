@@ -1,5 +1,7 @@
 package io.antmedia.websocket;
 
+import java.util.HashMap;
+
 import javax.websocket.Session;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -296,23 +298,49 @@ public class WebSocketCommunityHandler {
 		}
 	}
 	
-	public void sendRoomInformation(JSONArray jsonStreamArray , String roomId) 
+	public void sendRoomInformation(HashMap<String,String> streamDetailsMap , String roomId) 
 	{
 		JSONObject jsObject = new JSONObject();
+		JSONArray jsonStreamIdArray = null;
+		JSONArray jsonStreamNameArray = null;
+		
+		if(streamDetailsMap != null) {
+			jsonStreamIdArray = new JSONArray();
+			jsonStreamNameArray = new JSONArray();
+			for (HashMap.Entry<String, String> e : streamDetailsMap.entrySet()) {
+				jsonStreamIdArray.add(e.getKey());
+				jsonStreamNameArray.add(e.getValue());
+			}
+		}
+        
 		jsObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ROOM_INFORMATION_NOTIFICATION);
-		jsObject.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamArray);	
+		jsObject.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamIdArray);	
+		jsObject.put(WebSocketConstants.STREAM_NAMES_IN_ROOM, jsonStreamNameArray);	
 		jsObject.put(WebSocketConstants.ATTR_ROOM_NAME, roomId);
 		jsObject.put(WebSocketConstants.ROOM, roomId);
 		String jsonString = jsObject.toJSONString();
 		sendMessage(jsonString, session);
 	}
 	
-	public void sendJoinedRoomMessage(String room, String newStreamId, JSONArray jsonStreamArray) {
+	public void sendJoinedRoomMessage(String room, String newStreamId, HashMap<String,String> streamDetailsMap ) {
 		JSONObject jsonResponse = new JSONObject();
+		JSONArray jsonStreamIdArray = null;
+		JSONArray jsonStreamNameArray = null;
+		
+		if(streamDetailsMap != null) {
+			jsonStreamIdArray = new JSONArray();
+			jsonStreamNameArray = new JSONArray();
+			for (HashMap.Entry<String, String> e : streamDetailsMap.entrySet()) {
+				jsonStreamIdArray.add(e.getKey());
+				jsonStreamNameArray.add(e.getValue());
+			}
+		}
+		
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.JOINED_THE_ROOM);
 		jsonResponse.put(WebSocketConstants.STREAM_ID, newStreamId);
-		jsonResponse.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamArray);	
+		jsonResponse.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamIdArray);	
+		jsonResponse.put(WebSocketConstants.STREAM_NAMES_IN_ROOM, jsonStreamNameArray);	
 		jsonResponse.put(WebSocketConstants.ATTR_ROOM_NAME, room);	
 		jsonResponse.put(WebSocketConstants.ROOM, room);	
 

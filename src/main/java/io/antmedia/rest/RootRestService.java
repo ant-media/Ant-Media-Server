@@ -18,6 +18,7 @@ import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
 
+import java.util.HashMap;
 import java.util.List;
 
 @Api(value = "Rest Service")
@@ -51,13 +52,13 @@ public class RootRestService extends RestServiceBase {
 
 	public static class RoomInfo{
 		private String roomId;
-		private List<String> streamIds;
+		private HashMap<String,String> streamDetailsMap;
 		private long endDate = 0;
 		private long startDate = 0;
 
-		public RoomInfo(String roomId, List<String> streamIds, ConferenceRoom room) {
+		public RoomInfo(String roomId, HashMap<String, String> streamDetailsMap, ConferenceRoom room) {
 			this.roomId = roomId;
-			this.streamIds = streamIds;
+			this.streamDetailsMap = streamDetailsMap;
 			if(room != null) {
 				this.endDate = room.getEndDate();
 				this.startDate = room.getStartDate();
@@ -77,12 +78,12 @@ public class RootRestService extends RestServiceBase {
 			this.roomId = roomId;
 		}
 
-		public List<String> getStreamIds() {
-			return streamIds;
+		public HashMap<String,String> getStreamDetailsMap() {
+			return streamDetailsMap;
 		}
 
-		public void setStreamIds(List<String> streamIds) {
-			this.streamIds = streamIds;
+		public void setStreamDetailsMap(HashMap<String,String> streamDetailsMap) {
+			this.streamDetailsMap = streamDetailsMap;
 		}
 	}
 }
