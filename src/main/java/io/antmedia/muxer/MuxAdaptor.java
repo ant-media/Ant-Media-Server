@@ -112,7 +112,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public static final int RECORDING_DISABLED_FOR_STREAM = -1;
 	public static final int RECORDING_NO_SET_FOR_STREAM = 0;
 	protected static final long WAIT_TIME_MILLISECONDS = 5;
-	protected volatile boolean isRecording = false;
+	protected AtomicBoolean isRecording = new AtomicBoolean(false);
 	protected ClientBroadcastStream broadcastStream;
 	protected boolean mp4MuxingEnabled;
 	protected boolean webMMuxingEnabled;
@@ -623,7 +623,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			return false;
 		}
 
-		isRecording = true;
+		isRecording.set(true); 
 
 		prepareMuxerIO();
 		return true;
@@ -858,7 +858,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (isPipeReaderJobRunning.compareAndSet(false, true)) 
 		{
-			if (!isRecording) {				
+			if (!isRecording.get()) {				
 
 				if (checkStreamsStartTime == -1) {
 					checkStreamsStartTime  = System.currentTimeMillis();
@@ -888,7 +888,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 			}
 
-			if (!isRecording)
+			if (!isRecording.get())
 			{
 
 				//if it's not recording, return
@@ -1001,7 +1001,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private void prepareParameters() {
 		try {
 			prepare();
-			isRecording = true;
+			isRecording.set(true);
 		}
 		catch(Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -1127,7 +1127,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		writeTrailer();
 
-		isRecording = false;
+		isRecording.set(false);
 
 
 		if (videoExtraDataPointer != null) {
@@ -1208,7 +1208,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	@Override
-	public void stop() {
+	public void stop(boolean shutdownCompletely) {
 		logger.info("Calling stop for {} input queue size:{}", streamId, getInputQueueSize());
 		stopRequestExist = true;
 	}
@@ -1304,7 +1304,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	@Override
 	public boolean isRecording() {
-		return isRecording;
+		return isRecording.get();
 	}
 
 	@Override
@@ -1466,7 +1466,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public boolean startRecording(RecordType recordType) {
 
-		if (!isRecording) {
+		if (!isRecording.get()) {
 			logger.warn("Starting recording return false for stream:{} because stream is being prepared", streamId);
 			return false;
 		}
@@ -1585,11 +1585,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public boolean startRtmpStreaming(String rtmpUrl, int resolution)
 	{
-		if (!isRecording) {
+		if (!isRecording.get()) {
 			logger.warn("Start rtmp streaming return false for stream:{} because stream is being prepared", streamId);
 			return false;
 		}
-		RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl);
+		RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
 		rtmpMuxer.setStatusListener(this);
 
 		boolean prepared = prepareMuxer(rtmpMuxer);
@@ -1808,6 +1808,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	
 	public AVRational getAudioTimeBase() {
 		return TIME_BASE_FOR_MS;
+	}
+	
+	public Vertx getVertx() {
+		return vertx;
 	}
 }
 

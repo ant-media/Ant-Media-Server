@@ -524,7 +524,7 @@ public class StreamFetcher {
 				if (endPointList != null && !endPointList.isEmpty()) 
 				{
 					for (Endpoint endpoint : endPointList) {
-						muxAdaptor.addMuxer(new RtmpMuxer(endpoint.getRtmpUrl()));
+						muxAdaptor.addMuxer(new RtmpMuxer(endpoint.getRtmpUrl(), vertx));
 					}
 				}
 			}

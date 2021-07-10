@@ -59,6 +59,9 @@ import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.plugin.api.IFrameListener;
+import io.antmedia.plugin.api.IPacketListener;
+import io.antmedia.plugin.api.IStreamListener;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -142,8 +145,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	protected boolean serverShuttingDown = false;
 
 	protected StorageClient storageClient;
-
-
+	
+	protected ArrayList<IStreamListener> streamListeners = new ArrayList<IStreamListener>();
 
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -379,6 +382,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 						// This is resets Viewer map in HLS Viewer Stats
 						resetHLSStats(streamId);
 					}
+					
+					for (IStreamListener listener : streamListeners) {
+						listener.streamFinished(broadcast.getStreamId());
+					}
 				}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -508,6 +515,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 						{
 							publishSocialEndpoints(broadcast.getEndPointList());
 						}
+						
+						for (IStreamListener listener : streamListeners) {
+							listener.streamStarted(broadcast.getStreamId());
+						}
 					
 				
 				handler.complete();
@@ -553,6 +564,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		logger.info("start publish leaved for stream:{}", streamName);
 	}
 
+
 	private Broadcast saveBroadcast(String streamName, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
 		if (broadcast == null) 
 		{
@@ -574,7 +586,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		return broadcast;
 	}
 
-	private ServerSettings getServerSettings() 
+	protected ServerSettings getServerSettings() 
 	{
 		if (serverSettings == null) {
 			serverSettings = (ServerSettings)scope.getContext().getApplicationContext().getBean(ServerSettings.BEAN_NAME);
@@ -1060,7 +1072,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					if (broadcastStream != null) {
 						broadcastStream.stop();
 					}
-					adaptor.stop();
+					adaptor.stop(true);
 				}
 			}
 		}
@@ -1595,6 +1607,34 @@ public Result createInitializationProcess(String appName){
 		return false;
 	}
 	
+	public void addPacketListener(String streamId, IPacketListener listener) {
+		List<MuxAdaptor> muxAdaptors = getMuxAdaptors();
+		for (MuxAdaptor muxAdaptor : muxAdaptors) 
+		{
+			if (streamId.equals(muxAdaptor.getStreamId())) 
+			{
+				muxAdaptor.addPacketListener(listener);
+				break;
+			}
+		}
+	}
+	
+	public void addFrameListener(String streamId, IFrameListener listener) {
+		//for enterprise
+	}
+	
+	public IFrameListener createCustomBroadcast(String streamId) {
+		return null;
+	}
+
+	public void stopCustomBroadcast(String streamId) {
+	}
+	
+	public void removeFrameListener(String streamId, IFrameListener listener) {
+		// TODO Auto-generated method stub
+		
+	}
+	
 	@Override
 	public boolean isServerShuttingDown() {
 		return serverShuttingDown;
@@ -1606,6 +1646,14 @@ public Result createInitializationProcess(String appName){
 
 	public void streamPublishStart(IBroadcastStream stream) {
 		saveBroadcast(stream.getPublishedName(), ((ClientBroadcastStream)stream).getAbsoluteStartTimeMs() , MuxAdaptor.PUBLISH_TYPE_RTMP, getDataStore().get(stream.getPublishedName()));
+	}
+	
+	public void addStreamListener(IStreamListener listener) {
+		streamListeners.add(listener);
+	}
+	
+	public void removeStreamListener(IStreamListener listener) {
+		streamListeners.remove(listener);
 	}
 
 }

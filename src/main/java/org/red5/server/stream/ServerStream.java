@@ -483,7 +483,7 @@ public class ServerStream extends AbstractStream implements IServerStream, IFilt
             // remove the listener
             removeStreamListener(listener);
             // stop the recording listener
-            listener.stop();
+            listener.stop(true);
             // clear and null-out the thread local
             recordingListener.clear();
             recordingListener = null;

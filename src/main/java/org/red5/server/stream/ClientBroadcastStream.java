@@ -89,8 +89,10 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.RtmpMuxer;
+import io.vertx.core.Vertx;
 
 /**
  * Represents live stream broadcasted from client. As Flash Media Server, Red5 supports recording mode for live streams, that is,
@@ -241,14 +243,14 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			sendRecordStopNotify();
 			notifyRecordingStop();
 			// inform the listener to finish and close
-			recordingListener.get().stop();
+			recordingListener.get().stop(true);
 		}
 
 		log.info("Checking mux adaptor to stop {}", publishedName);
 		if (muxAdaptor != null) {
 			MuxAdaptor realAdaptor = muxAdaptor.get();
 			if (realAdaptor != null) {
-				realAdaptor.stop();
+				realAdaptor.stop(true);
 			}
 			else {
 				log.warn("Mux adaptor reference is null");
@@ -968,7 +970,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 
 		MuxAdaptor localMuxAdaptor = MuxAdaptor.initializeMuxAdaptor(this, false, conn.getScope());
 
-		setUpEndPoints(appCtx, publishedName, localMuxAdaptor);
+		
 		
 
 		try {
@@ -977,8 +979,8 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 
 			}
 
+			setUpEndPoints(appCtx, publishedName, localMuxAdaptor);
 			localMuxAdaptor.init(conn, publishedName, false);
-
 			
 			addStreamListener(localMuxAdaptor);
 			this.muxAdaptor = new WeakReference<MuxAdaptor>(localMuxAdaptor);
@@ -1004,13 +1006,15 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 		{
 			DataStore dataStore = ((IDataStoreFactory)appCtx.getBean(IDataStoreFactory.BEAN_NAME)).getDataStore();
 			Broadcast broadcast = dataStore.get(publishedName);
+			Vertx vertx = (Vertx) appCtx.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+			
 			if (broadcast != null) {
 				List<Endpoint> endPointList = broadcast.getEndPointList();
 
 				if (endPointList != null && !endPointList.isEmpty()) 
 				{
 					for (Endpoint endpoint : endPointList) {
-						RtmpMuxer rtmpMuxer = new RtmpMuxer(endpoint.getRtmpUrl());
+						RtmpMuxer rtmpMuxer = new RtmpMuxer(endpoint.getRtmpUrl(), vertx);
 						rtmpMuxer.setStatusListener(muxAdaptor);
 						muxAdaptor.addMuxer(rtmpMuxer);
 					}
@@ -1040,7 +1044,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			// remove the listener
 			removeStreamListener(listener);
 			// stop the recording listener
-			listener.stop();
+			listener.stop(true);
 			// clear and null-out the tsetHlsTimehread local
 			recordingListener.clear();
 			recordingListener = null;
@@ -1049,7 +1053,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 		if (muxAdaptor != null) {
 			MuxAdaptor localMuxAdaptor = muxAdaptor.get();
 			removeStreamListener(localMuxAdaptor);
-			localMuxAdaptor.stop();
+			localMuxAdaptor.stop(true);
 			muxAdaptor.clear();
 			muxAdaptor = null;
 		}

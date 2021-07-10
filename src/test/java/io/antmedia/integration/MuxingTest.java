@@ -314,7 +314,7 @@ public class MuxingTest {
 
 		AVPacket pkt = avcodec.av_packet_alloc();
 
-		RtmpMuxer rtmpMuxer = new RtmpMuxer("rtmp://test-rtmptest-usea.channel.media.azure.net:1935/live/e0c44eb42c2747869c67227f183fad59/test");
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("rtmp://test-rtmptest-usea.channel.media.azure.net:1935/live/e0c44eb42c2747869c67227f183fad59/test", null);
 
 		//rtmpMuxer.prepare(inputFormatContext);
 		rtmpMuxer.addVideoStream(1280, 720, null, avcodec.AV_CODEC_ID_H264, 0, false, null);
