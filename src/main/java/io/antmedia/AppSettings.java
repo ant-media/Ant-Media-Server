@@ -292,6 +292,8 @@ public class AppSettings {
 	
 	public static final String SETTINGS_JWKS_URL = "settings.jwksURL";
 	
+	public static final String SETTINGS_ENCODING_RESOLUTION_CHECK = "settings.encoding.resolutionCheck";
+	
 
 	@JsonIgnore
 	@NotSaved
@@ -1343,6 +1345,14 @@ public class AppSettings {
 	
 	@Value( "${" + SETTINGS_JWKS_URL +":#{null}}")
 	private String jwksURL;
+	
+	/**
+	 * Enable/Disable stream resolution check flag
+	 * If it's enabled, Ant Media Server will ignore if the adaptive requested resolution is higher than the incoming stream
+	 *  It's false by default
+	 */
+	@Value( "${"+SETTINGS_ENCODING_RESOLUTION_CHECK+":false}" )
+	private boolean encodingResolutionCheck;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2582,6 +2592,14 @@ public class AppSettings {
 
 	public void setJwksURL(String jwksURL) {
 		this.jwksURL = jwksURL;
+	}
+	
+	public boolean isEncodingResolutionCheck() {
+		return encodingResolutionCheck;
+	}
+
+	public void setEncodingResolutionCheck(boolean encodingResolutionCheck) {
+		this.encodingResolutionCheck = encodingResolutionCheck;
 	}
 
 }

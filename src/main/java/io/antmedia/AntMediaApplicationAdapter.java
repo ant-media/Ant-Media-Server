@@ -1573,7 +1573,7 @@ public Result createInitializationProcess(String appName){
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 		appSettings.setHlsEncryptionKeyInfoFile(newSettings.getHlsEncryptionKeyInfoFile());
 		appSettings.setJwksURL(newSettings.getJwksURL());
-		
+		appSettings.setEncodingResolutionCheck(newSettings.isEncodingResolutionCheck());
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
