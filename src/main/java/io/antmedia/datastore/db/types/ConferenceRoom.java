@@ -39,6 +39,9 @@ public class ConferenceRoom {
 	@ApiModelProperty(value = "The list of streams in the Conference Room")
 	private List<String> roomStreamList = new ArrayList<>();
 	
+	@ApiModelProperty(value = "Conference Room Mode: legacy | mcu | multi-track")
+	private String mode = "legacy";
+	
 	@JsonIgnore
 	private boolean zombi;
 
@@ -80,6 +83,14 @@ public class ConferenceRoom {
 
 	public void setZombi(boolean zombi) {
 		this.zombi = zombi;
+	}
+
+	public String getMode() {
+		return mode;
+	}
+
+	public void setMode(String mode) {
+		this.mode = mode;
 	}
 
 }
