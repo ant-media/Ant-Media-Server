@@ -167,8 +167,6 @@ public abstract class RestServiceBase {
 	private AppSettings appSettings;
 
 	private ServerSettings serverSettings;
-	private String s3StreamsFolderPath;
-	private String  s3PreviewsFolderPath;
 
 	protected boolean addSocialEndpoints(Broadcast broadcast, String socialEndpointIds) {	
 		boolean success = false;
@@ -549,7 +547,7 @@ public abstract class RestServiceBase {
 		int i = 0;
 		int waitPeriod = 250;
 		// Broadcast status finished is not enough to be sure about broadcast's status.
-		while (!AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(getDataStore().get(broadcast.getStreamId()).getStatus()) && !resultStopStreaming.equals(true)) {
+		while (!IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(getDataStore().get(broadcast.getStreamId()).getStatus()) && !resultStopStreaming.equals(true)) {
 			try {
 				i++;
 				logger.info("Waiting for stop broadcast: {} Total wait time: {}ms", broadcast.getStreamId() , i*waitPeriod);
@@ -1986,7 +1984,7 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	public static HashMap<String,String> getRoomInfoFromConference(String roomId, String streamId,DataStore store){
+	public static Map<String,String> getRoomInfoFromConference(String roomId, String streamId,DataStore store){
 		HashMap<String,String> streamDetailsMap = null;
 		
 		if (roomId != null)

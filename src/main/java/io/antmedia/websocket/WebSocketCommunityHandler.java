@@ -1,6 +1,6 @@
 package io.antmedia.websocket;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import javax.websocket.Session;
 
@@ -25,7 +25,7 @@ import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
 public class WebSocketCommunityHandler {
 
-	public static final String WebRTC_VERTX_BEAN_NAME = "webRTCVertx";
+	public static final String WEBRTC_VERTX_BEAN_NAME = "webRTCVertx";
 	
 	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
 
@@ -97,7 +97,7 @@ public class WebSocketCommunityHandler {
 					String status = broadcast.getStatus();
 					if (status.endsWith(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)
 							||
-							status.endsWith(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING)) 
+							status.endsWith(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) 
 					{
 						logger.error("Sending stream id in use error for stream:{} session:{}", streamId, session.getId());
 						sendStreamIdInUse(session);
@@ -298,7 +298,7 @@ public class WebSocketCommunityHandler {
 		}
 	}
 	
-	public void sendRoomInformation(HashMap<String,String> streamDetailsMap , String roomId) 
+	public void sendRoomInformation(Map<String,String> streamDetailsMap , String roomId) 
 	{
 		JSONObject jsObject = new JSONObject();
 		JSONArray jsonStreamIdArray = null;
@@ -307,7 +307,7 @@ public class WebSocketCommunityHandler {
 		if(streamDetailsMap != null) {
 			jsonStreamIdArray = new JSONArray();
 			jsonStreamNameArray = new JSONArray();
-			for (HashMap.Entry<String, String> e : streamDetailsMap.entrySet()) {
+			for (Map.Entry<String, String> e : streamDetailsMap.entrySet()) {
 				jsonStreamIdArray.add(e.getKey());
 				jsonStreamNameArray.add(e.getValue());
 			}
@@ -322,7 +322,7 @@ public class WebSocketCommunityHandler {
 		sendMessage(jsonString, session);
 	}
 	
-	public void sendJoinedRoomMessage(String room, String newStreamId, HashMap<String,String> streamDetailsMap ) {
+	public void sendJoinedRoomMessage(String room, String newStreamId, Map<String,String> streamDetailsMap ) {
 		JSONObject jsonResponse = new JSONObject();
 		JSONArray jsonStreamIdArray = null;
 		JSONArray jsonStreamNameArray = null;
@@ -330,7 +330,7 @@ public class WebSocketCommunityHandler {
 		if(streamDetailsMap != null) {
 			jsonStreamIdArray = new JSONArray();
 			jsonStreamNameArray = new JSONArray();
-			for (HashMap.Entry<String, String> e : streamDetailsMap.entrySet()) {
+			for (Map.Entry<String, String> e : streamDetailsMap.entrySet()) {
 				jsonStreamIdArray.add(e.getKey());
 				jsonStreamNameArray.add(e.getValue());
 			}
