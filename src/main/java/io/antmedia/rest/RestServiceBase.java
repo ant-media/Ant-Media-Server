@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -166,8 +167,6 @@ public abstract class RestServiceBase {
 	private AppSettings appSettings;
 
 	private ServerSettings serverSettings;
-	private String s3StreamsFolderPath;
-	private String  s3PreviewsFolderPath;
 
 	protected boolean addSocialEndpoints(Broadcast broadcast, String socialEndpointIds) {	
 		boolean success = false;
@@ -548,7 +547,7 @@ public abstract class RestServiceBase {
 		int i = 0;
 		int waitPeriod = 250;
 		// Broadcast status finished is not enough to be sure about broadcast's status.
-		while (!AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(getDataStore().get(broadcast.getStreamId()).getStatus()) && !resultStopStreaming.equals(true)) {
+		while (!IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(getDataStore().get(broadcast.getStreamId()).getStatus()) && !resultStopStreaming.equals(true)) {
 			try {
 				i++;
 				logger.info("Waiting for stop broadcast: {} Total wait time: {}ms", broadcast.getStreamId() , i*waitPeriod);
@@ -1985,29 +1984,33 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	public static List<String> getRoomInfoFromConference(String roomId, String streamId, DataStore store){
-		List<String> streamIdList = null;
+	public static Map<String,String> getRoomInfoFromConference(String roomId, String streamId,DataStore store){
+		HashMap<String,String> streamDetailsMap = null;
+		
 		if (roomId != null)
 		{
 			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
 			if (conferenceRoom == null) {
 				logger.warn("There is no room with id:{}", roomId.replaceAll("[\n|\r|\t]", "_"));
-				return streamIdList;
+				return streamDetailsMap;
 			}
-			streamIdList=new ArrayList<>();
+			 streamDetailsMap = new HashMap<>();
+			
 			List<String> tempList=conferenceRoom.getRoomStreamList();
 			if(tempList != null) {
 				for (String tmpStreamId : tempList)
 				{
 					Broadcast broadcast = store.get(tmpStreamId);
-					if (broadcast != null && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !tmpStreamId.equals(streamId))
+					if (broadcast != null && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 					{
-						streamIdList.add(tmpStreamId);
+						streamDetailsMap.put(tmpStreamId, broadcast.getName());
 					}
 				}
+				//remove the itself from the streamDetailsMap
+				streamDetailsMap.remove(streamId);
 			}
 		}
-		return streamIdList;
+		return streamDetailsMap;
 	}
 
 	public static boolean addStreamToConferenceRoom(String roomId,String streamId,DataStore store){

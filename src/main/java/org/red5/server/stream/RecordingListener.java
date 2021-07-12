@@ -230,7 +230,7 @@ public class RecordingListener implements IRecordingListener {
     }
 
     /** {@inheritDoc} */
-    public void stop() {
+    public void stop(boolean shutdownCompletely) {
         // set the record flag to false
         if (recording.compareAndSet(true, false)) {
             // remove the scheduled job

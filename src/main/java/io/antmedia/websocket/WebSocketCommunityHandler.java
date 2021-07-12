@@ -1,5 +1,7 @@
 package io.antmedia.websocket;
 
+import java.util.Map;
+
 import javax.websocket.Session;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -23,7 +25,7 @@ import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
 public class WebSocketCommunityHandler {
 
-	public static final String WebRTC_VERTX_BEAN_NAME = "webRTCVertx";
+	public static final String WEBRTC_VERTX_BEAN_NAME = "webRTCVertx";
 	
 	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
 
@@ -95,7 +97,7 @@ public class WebSocketCommunityHandler {
 					String status = broadcast.getStatus();
 					if (status.endsWith(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)
 							||
-							status.endsWith(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING)) 
+							status.endsWith(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) 
 					{
 						logger.error("Sending stream id in use error for stream:{} session:{}", streamId, session.getId());
 						sendStreamIdInUse(session);
@@ -296,23 +298,57 @@ public class WebSocketCommunityHandler {
 		}
 	}
 	
-	public void sendRoomInformation(JSONArray jsonStreamArray , String roomId) 
+
+	
+	/**
+	 * 
+	 * @param streamIdNameMap this is the map that keys are stream ids and values are stream names
+	 * @param roomId is the id of the room
+	 */
+	public void sendRoomInformation(Map<String,String> streamIdNameMap , String roomId) 
 	{
 		JSONObject jsObject = new JSONObject();
+		JSONArray jsonStreamIdArray = new JSONArray();
+		JSONArray jsonStreamListArray = new JSONArray();
+		
+		prepareStreamListJSON(streamIdNameMap, jsonStreamIdArray, jsonStreamListArray);
+        
 		jsObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ROOM_INFORMATION_NOTIFICATION);
-		jsObject.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamArray);	
+		jsObject.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamIdArray);
+		//This field is deprecated. Use STREAM_LIST_IN_ROOM 
+		jsObject.put(WebSocketConstants.STREAM_LIST_IN_ROOM, jsonStreamListArray);	
 		jsObject.put(WebSocketConstants.ATTR_ROOM_NAME, roomId);
 		jsObject.put(WebSocketConstants.ROOM, roomId);
 		String jsonString = jsObject.toJSONString();
 		sendMessage(jsonString, session);
 	}
+
+	private void prepareStreamListJSON(Map<String, String> streamIdNameMap, JSONArray jsonStreamIdArray,
+			JSONArray jsonStreamListArray) {
+		if(streamIdNameMap != null) {
+			for (Map.Entry<String, String> e : streamIdNameMap.entrySet()) {
+				jsonStreamIdArray.add(e.getKey());
+				JSONObject jsStreamObject = new JSONObject();
+				jsStreamObject.put(WebSocketConstants.STREAM_ID, e.getKey());
+				jsStreamObject.put(WebSocketConstants.STREAM_NAME, e.getValue());
+				jsonStreamListArray.add(jsStreamObject);
+			}
+		}
+	}
 	
-	public void sendJoinedRoomMessage(String room, String newStreamId, JSONArray jsonStreamArray) {
+	public void sendJoinedRoomMessage(String room, String newStreamId, Map<String,String> streamIdNameMap ) {
 		JSONObject jsonResponse = new JSONObject();
+		JSONArray jsonStreamIdArray = new JSONArray();
+		JSONArray jsonStreamListArray = new JSONArray();
+		
+		prepareStreamListJSON(streamIdNameMap, jsonStreamIdArray, jsonStreamListArray);
+		
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.JOINED_THE_ROOM);
 		jsonResponse.put(WebSocketConstants.STREAM_ID, newStreamId);
-		jsonResponse.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamArray);	
+		//This field is deprecated. Use STREAM_LIST_IN_ROOM 
+		jsonResponse.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamIdArray);	
+		jsonResponse.put(WebSocketConstants.STREAM_LIST_IN_ROOM, jsonStreamListArray);	
 		jsonResponse.put(WebSocketConstants.ATTR_ROOM_NAME, room);	
 		jsonResponse.put(WebSocketConstants.ROOM, room);	
 

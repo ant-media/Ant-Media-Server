@@ -732,7 +732,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertTrue(muxAdaptor.isRecording());
 
-			muxAdaptor.stop();
+			muxAdaptor.stop(true);
 
 			flvReader.close();
 
@@ -816,7 +816,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				}
 
 				for (MuxAdaptor muxAdaptor : muxAdaptorList) {
-					muxAdaptor.stop();
+					muxAdaptor.stop(true);
 				}
 
 
@@ -1268,7 +1268,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
 			assertTrue(muxAdaptor.isRecording());
 
-			muxAdaptor.stop();
+			muxAdaptor.stop(true);
 
 			flvReader.close();
 
@@ -1474,7 +1474,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			//after 6 seconds buffering should be also true again because it's finished
 			Awaitility.await().atMost(6, TimeUnit.SECONDS).until(muxAdaptor::isBuffering);
 
-			muxAdaptor.stop();
+			muxAdaptor.stop(true);
 
 			Awaitility.await().atMost(4, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
@@ -1556,7 +1556,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
 			assertTrue(muxAdaptor.isRecording());
 
-			muxAdaptor.stop();
+			muxAdaptor.stop(true);
 
 			flvReader.close();
 
@@ -1634,7 +1634,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			feedMuxAdaptor(flvReader, Arrays.asList(muxAdaptor), info);
 
 			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
-			muxAdaptor.stop();
+			muxAdaptor.stop(true);
 
 			flvReader.close();
 
@@ -1780,7 +1780,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			feedMuxAdaptor(flvReader, Arrays.asList(muxAdaptor), info);
 			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
 
-			muxAdaptor.stop();
+			muxAdaptor.stop(true);
 
 			flvReader.close();
 
@@ -1946,7 +1946,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
 
-			muxAdaptor.stop();
+			muxAdaptor.stop(true);
 
 			flvReader.close();
 
@@ -2064,7 +2064,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
 
-			muxAdaptor.stop();
+			muxAdaptor.stop(true);
 
 			flvReader.close();
 
@@ -2282,7 +2282,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 			assertTrue(muxAdaptor.stopRecording(RecordType.MP4));
 
-			muxAdaptor.stop();
+			muxAdaptor.stop(true);
 
 			flvReader.close();
 

@@ -1072,7 +1072,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					if (broadcastStream != null) {
 						broadcastStream.stop();
 					}
-					adaptor.stop();
+					adaptor.stop(true);
 				}
 			}
 		}
