@@ -308,6 +308,7 @@ public class RtmpMuxer extends Muxer {
 
 	private synchronized void clearResource() {
 		/* close output */
+		isRunning.set(false);
 		if ((outputFormatContext.flags() & AVFMT_NOFILE) == 0 && outputFormatContext.pb() != null) {
 			avio_closep(outputFormatContext.pb());
 		}
