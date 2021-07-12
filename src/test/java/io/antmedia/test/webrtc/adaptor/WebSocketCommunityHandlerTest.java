@@ -428,7 +428,10 @@ public class WebSocketCommunityHandlerTest {
 		
         for (HashMap.Entry<String, String> e : streamDetailsMap.entrySet()) {
         	jsonStreamIdArray.add(e.getKey());
-        	jsonStreamNameArray.add(e.getValue());
+        	JSONObject jsStreamObject = new JSONObject();
+        	jsStreamObject.put(WebSocketConstants.STREAM_ID, e.getKey());
+        	jsStreamObject.put(WebSocketConstants.STREAM_NAME, e.getValue());
+        	jsonStreamNameArray.add(jsStreamObject);
         }
 		
 		JSONObject json;
@@ -437,7 +440,7 @@ public class WebSocketCommunityHandlerTest {
 			assertEquals(WebSocketConstants.ROOM_INFORMATION_NOTIFICATION, json.get(WebSocketConstants.COMMAND));	
 			assertEquals(roomId, json.get(WebSocketConstants.ROOM));
 			assertEquals(jsonStreamIdArray, json.get(WebSocketConstants.STREAMS_IN_ROOM));
-			assertEquals(jsonStreamNameArray, json.get(WebSocketConstants.STREAM_NAMES_IN_ROOM));
+			assertEquals(jsonStreamNameArray, json.get(WebSocketConstants.STREAM_LIST_IN_ROOM));
 			
 		} catch (ParseException e) {
 			e.printStackTrace();
@@ -469,7 +472,10 @@ public class WebSocketCommunityHandlerTest {
 		
         for (HashMap.Entry<String, String> e : streamDetailsMap.entrySet()) {
         	jsonStreamIdArray.add(e.getKey());
-        	jsonStreamNameArray.add(e.getValue());
+        	JSONObject jsStreamObject = new JSONObject();
+        	jsStreamObject.put(WebSocketConstants.STREAM_ID, e.getKey());
+        	jsStreamObject.put(WebSocketConstants.STREAM_NAME, e.getValue());
+        	jsonStreamNameArray.add(jsStreamObject);
         }
 		
 		JSONObject json;
@@ -478,7 +484,7 @@ public class WebSocketCommunityHandlerTest {
 			assertEquals(WebSocketConstants.NOTIFICATION_COMMAND, json.get(WebSocketConstants.COMMAND));	
 			assertEquals(roomId, json.get(WebSocketConstants.ROOM));
 			assertEquals(jsonStreamIdArray, json.get(WebSocketConstants.STREAMS_IN_ROOM));
-			assertEquals(jsonStreamNameArray, json.get(WebSocketConstants.STREAM_NAMES_IN_ROOM));
+			assertEquals(jsonStreamNameArray, json.get(WebSocketConstants.STREAM_LIST_IN_ROOM));
 			assertEquals(WebSocketConstants.JOINED_THE_ROOM, json.get(WebSocketConstants.DEFINITION));
 			assertEquals(streamId, json.get(WebSocketConstants.STREAM_ID));
 			

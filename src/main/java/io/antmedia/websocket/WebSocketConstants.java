@@ -21,6 +21,8 @@ public class WebSocketConstants {
 	public static final String ATTR_SIGNALLING_CONNECTION = "ATTR_SIGNALLING_CONNECTION";
 
 	public static final String STREAM_ID = "streamId";
+	
+	public static final String STREAM_NAME = "streamName";
 
 	public static final String DEFINITION = "definition";
 
@@ -260,7 +262,7 @@ public class WebSocketConstants {
 	/**
 	 * Stream Name list in the room
 	 */
-	public static final String STREAM_NAMES_IN_ROOM = "streamNames";
+	public static final String STREAM_LIST_IN_ROOM = "streamList";
 
 	/**
 	 * Error definition it is send when stream id is not specified in the message

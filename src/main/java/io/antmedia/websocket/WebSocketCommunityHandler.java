@@ -298,49 +298,57 @@ public class WebSocketCommunityHandler {
 		}
 	}
 	
-	public void sendRoomInformation(Map<String,String> streamDetailsMap , String roomId) 
+
+	
+	/**
+	 * 
+	 * @param streamIdNameMap this is the map that keys are stream ids and values are stream names
+	 * @param roomId is the id of the room
+	 */
+	public void sendRoomInformation(Map<String,String> streamIdNameMap , String roomId) 
 	{
 		JSONObject jsObject = new JSONObject();
-		JSONArray jsonStreamIdArray = null;
-		JSONArray jsonStreamNameArray = null;
+		JSONArray jsonStreamIdArray = new JSONArray();
+		JSONArray jsonStreamListArray = new JSONArray();
 		
-		if(streamDetailsMap != null) {
-			jsonStreamIdArray = new JSONArray();
-			jsonStreamNameArray = new JSONArray();
-			for (Map.Entry<String, String> e : streamDetailsMap.entrySet()) {
-				jsonStreamIdArray.add(e.getKey());
-				jsonStreamNameArray.add(e.getValue());
-			}
-		}
+		prepareStreamListJSON(streamIdNameMap, jsonStreamIdArray, jsonStreamListArray);
         
 		jsObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ROOM_INFORMATION_NOTIFICATION);
-		jsObject.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamIdArray);	
-		jsObject.put(WebSocketConstants.STREAM_NAMES_IN_ROOM, jsonStreamNameArray);	
+		jsObject.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamIdArray);
+		//This field is deprecated. Use STREAM_LIST_IN_ROOM 
+		jsObject.put(WebSocketConstants.STREAM_LIST_IN_ROOM, jsonStreamListArray);	
 		jsObject.put(WebSocketConstants.ATTR_ROOM_NAME, roomId);
 		jsObject.put(WebSocketConstants.ROOM, roomId);
 		String jsonString = jsObject.toJSONString();
 		sendMessage(jsonString, session);
 	}
-	
-	public void sendJoinedRoomMessage(String room, String newStreamId, Map<String,String> streamDetailsMap ) {
-		JSONObject jsonResponse = new JSONObject();
-		JSONArray jsonStreamIdArray = null;
-		JSONArray jsonStreamNameArray = null;
-		
-		if(streamDetailsMap != null) {
-			jsonStreamIdArray = new JSONArray();
-			jsonStreamNameArray = new JSONArray();
-			for (Map.Entry<String, String> e : streamDetailsMap.entrySet()) {
+
+	private void prepareStreamListJSON(Map<String, String> streamIdNameMap, JSONArray jsonStreamIdArray,
+			JSONArray jsonStreamListArray) {
+		if(streamIdNameMap != null) {
+			for (Map.Entry<String, String> e : streamIdNameMap.entrySet()) {
 				jsonStreamIdArray.add(e.getKey());
-				jsonStreamNameArray.add(e.getValue());
+				JSONObject jsStreamObject = new JSONObject();
+				jsStreamObject.put(WebSocketConstants.STREAM_ID, e.getKey());
+				jsStreamObject.put(WebSocketConstants.STREAM_NAME, e.getValue());
+				jsonStreamListArray.add(jsStreamObject);
 			}
 		}
+	}
+	
+	public void sendJoinedRoomMessage(String room, String newStreamId, Map<String,String> streamIdNameMap ) {
+		JSONObject jsonResponse = new JSONObject();
+		JSONArray jsonStreamIdArray = new JSONArray();
+		JSONArray jsonStreamListArray = new JSONArray();
+		
+		prepareStreamListJSON(streamIdNameMap, jsonStreamIdArray, jsonStreamListArray);
 		
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.JOINED_THE_ROOM);
 		jsonResponse.put(WebSocketConstants.STREAM_ID, newStreamId);
+		//This field is deprecated. Use STREAM_LIST_IN_ROOM 
 		jsonResponse.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamIdArray);	
-		jsonResponse.put(WebSocketConstants.STREAM_NAMES_IN_ROOM, jsonStreamNameArray);	
+		jsonResponse.put(WebSocketConstants.STREAM_LIST_IN_ROOM, jsonStreamListArray);	
 		jsonResponse.put(WebSocketConstants.ATTR_ROOM_NAME, room);	
 		jsonResponse.put(WebSocketConstants.ROOM, room);	
 
