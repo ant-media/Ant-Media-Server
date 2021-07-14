@@ -110,9 +110,9 @@ public class AmazonS3StorageClient extends StorageClient {
 			// TransferManager processes all transfers asynchronously,
 			// so this call returns immediately.
 			//Upload upload = tm.upload(getStorageName(), key, file);
-			logger.info("Mp4 {} upload has started with key: {}", file.getName(), key);
+			logger.info("{} upload has started with key: {}", file.getName(), key);
 
-			upload.addProgressListener((ProgressListener) event -> 
+			upload.addProgressListener((ProgressListener)event -> 
 			{
 				if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT){
 					logger.error("S3 - Error: Upload failed for {} with key {}", file.getName(), key);
@@ -132,7 +132,7 @@ public class AmazonS3StorageClient extends StorageClient {
 			try {  
 				upload.waitForCompletion();
 
-				logger.info("Mp4 {} upload completed", file.getName());
+				logger.info("{} upload completed", file.getName());
 			} catch (AmazonServiceException e1) {
 				logger.error(ExceptionUtils.getStackTrace(e1));
 			} catch (InterruptedException e1) {

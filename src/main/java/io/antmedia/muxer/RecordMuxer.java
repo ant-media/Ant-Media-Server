@@ -133,6 +133,7 @@ public abstract class RecordMuxer extends Muxer {
 
 		this.streamId = name;
 		this.resolution = resolutionHeight;
+		this.subFolder = subFolder;
 
 		tmpPacket = avcodec.av_packet_alloc();
 		av_init_packet(tmpPacket);
@@ -440,7 +441,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				if (appSettings.isS3RecordingEnabled()) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
-					saveToStorage(s3FolderPath + File.pathSeparator + subFolder + File.pathSeparator, f, getFile().getName(), storageClient);
+					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, getFile().getName(), storageClient);
 				}
 			} catch (Exception e) {
 				logger.error(e.getMessage());
