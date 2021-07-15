@@ -13,6 +13,7 @@ import org.red5.server.api.IClient;
 import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IBroadcastScope;
+import org.red5.server.api.scope.IGlobalScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
 import org.red5.server.tomcat.WarDeployer;
@@ -211,22 +212,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return root.getStatistics().getActiveClients();
 	}
 
-	public HashMap<Integer, String> getConnections(String scopeName) {
-		HashMap<Integer, String> connections = new HashMap<Integer, String>();
-		IScope root = getScope(scopeName);
-		if (root != null) {
-			Set<IClient> clients = root.getClients();
-			Iterator<IClient> client = clients.iterator();
-			int id = 0;
-			while (client.hasNext()) {
-				IClient c = client.next();
-				String user = c.getId();
-				connections.put(id, user);
-				id++;
-			}
-		}
-		return connections;
-	}
 
 	public ApplicationContext getApplicationContext(String scopeName) {
 		IScope scope = getScope(scopeName);
@@ -242,7 +227,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 
 	private IScope getScope(String scopeName) {
-		IScope root = ScopeUtils.findRoot(scope);
+		IGlobalScope root = (IGlobalScope) ScopeUtils.findRoot(scope);
 		return getScopes(root, scopeName);
 	}
 
@@ -254,7 +239,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	 * @param scopeName
 	 * @return IScope the requested scope
 	 */
-	private IScope getScopes(IScope root, String scopeName) {
+	private IScope getScopes(IGlobalScope root, String scopeName) {
 		if (root.getName().equals(scopeName)) {
 			return root;
 		} else {
@@ -262,8 +247,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				Set<String> names = root.getScopeNames();
 				for (String name : names) {
 					try {
-						IScope parent = root.getScope(name);
-						IScope scope = getScopes(parent, scopeName);
+						IScope scope = root.getScope(name);
 						if (scope != null) {
 							return scope;
 						}

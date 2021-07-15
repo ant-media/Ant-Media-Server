@@ -140,6 +140,7 @@ public class HLSMuxer extends Muxer  {
 			super.init(scope, name, resolutionHeight, subFolder);
 
 			streamId = name;
+			this.subFolder = subFolder;
 			options.put("hls_list_size", hlsListSize);
 			options.put("hls_time", hlsTime);
 
@@ -354,16 +355,10 @@ public class HLSMuxer extends Muxer  {
 
 		logger.info("Scheduling the task to upload and/or delete. HLS time: {}, hlsListSize:{}", hlsTime, hlsListSize);
 		vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
-			logger.info("Deleting HLS files on exit");
 
 			final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
 
-			File[] files = file.getParentFile().listFiles(new FilenameFilter() {
-				@Override
-				public boolean accept(File dir, String name) {
-					return name.contains(filenameWithoutExtension) && name.endsWith(".ts");
-				}
-			});
+			File[] files = file.getParentFile().listFiles((dir, name) -> name.contains(filenameWithoutExtension) && name.endsWith(".ts"));
 
 			if (files != null)
 			{
@@ -374,7 +369,7 @@ public class HLSMuxer extends Muxer  {
 							continue;
 						}
 
-						storageClient.save(s3StreamsFolderPath + File.pathSeparator + subFolder + files[i].getName(), files[i]);
+						storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i]);
 
 						if (deleteFileOnExit) {
 							Files.delete(files[i].toPath());
@@ -386,7 +381,7 @@ public class HLSMuxer extends Muxer  {
 			}
 			if (file.exists()) {
 				try {
-					RecordMuxer.saveToStorage(s3StreamsFolderPath + File.pathSeparator + subFolder, file,  getFile().getName(), storageClient);
+					RecordMuxer.saveToStorage(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), file,  getFile().getName(), storageClient);
 
 					if (deleteFileOnExit) {
 						Files.delete(file.toPath());
