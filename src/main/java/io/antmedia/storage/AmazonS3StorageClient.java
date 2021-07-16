@@ -91,7 +91,7 @@ public class AmazonS3StorageClient extends StorageClient {
 		save(type + "/" + file.getName(), file);
 	}
 
-	public void save(String key, File file)
+	public void save(String key, File file, boolean deleteLocalFile)
 	{	
 		if (isEnabled()) {
 			AmazonS3 s3 = getAmazonS3();
@@ -118,10 +118,9 @@ public class AmazonS3StorageClient extends StorageClient {
 					logger.error("S3 - Error: Upload failed for {} with key {}", file.getName(), key);
 				}
 				else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT){
-					try {
-						Files.delete(file.toPath());
-					} catch (IOException e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
+					if (deleteLocalFile) 
+					{
+						deleteFile(file);
 					}
 					logger.info("File {} uploaded to S3 with key: {}", file.getName(), key);
 				}
@@ -144,6 +143,14 @@ public class AmazonS3StorageClient extends StorageClient {
 			logger.debug("S3 is not enabled to save the file: {}", key);
 		}
 
+	}
+
+	private void deleteFile(File file) {
+		try {
+			Files.delete(file.toPath());
+		} catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
 	}
 	
 	@Override

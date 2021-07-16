@@ -369,7 +369,7 @@ public class HLSMuxer extends Muxer  {
 							continue;
 						}
 
-						storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i]);
+						storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], false);
 
 						if (deleteFileOnExit) {
 							Files.delete(files[i].toPath());
@@ -381,8 +381,7 @@ public class HLSMuxer extends Muxer  {
 			}
 			if (file.exists()) {
 				try {
-					RecordMuxer.saveToStorage(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), file,  getFile().getName(), storageClient);
-
+					storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + file.getName(), file, false);
 					if (deleteFileOnExit) {
 						Files.delete(file.toPath());
 					}
