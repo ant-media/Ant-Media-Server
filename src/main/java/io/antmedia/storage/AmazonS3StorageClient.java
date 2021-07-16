@@ -94,17 +94,10 @@ public class AmazonS3StorageClient extends StorageClient {
 	public void save(String key, File file, boolean deleteLocalFile)
 	{	
 		if (isEnabled()) {
-			AmazonS3 s3 = getAmazonS3();
-
-			TransferManager tm = TransferManagerBuilder.standard()
-					.withS3Client(s3)
-					.build();
+			TransferManager tm = getTransferManager();
 
 			PutObjectRequest putRequest = new PutObjectRequest(getStorageName(), key, file);
-
-
 			putRequest.setCannedAcl(getCannedAcl());
-
 
 			Upload upload = tm.upload(putRequest);
 			// TransferManager processes all transfers asynchronously,
@@ -145,7 +138,13 @@ public class AmazonS3StorageClient extends StorageClient {
 
 	}
 
-	private void deleteFile(File file) {
+	public TransferManager getTransferManager() {
+		return TransferManagerBuilder.standard()
+				.withS3Client(getAmazonS3())
+				.build();
+	}
+
+	public void deleteFile(File file) {
 		try {
 			Files.delete(file.toPath());
 		} catch (IOException e) {
