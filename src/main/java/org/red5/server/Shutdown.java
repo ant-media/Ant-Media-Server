@@ -68,7 +68,7 @@ public class Shutdown {
         }
     }
 
-	private static String getToken(String token) {
+	public static String getToken(String token) {
 		File tokenFile = Paths.get("shutdown.token").toFile();
 		try (RandomAccessFile raf = new RandomAccessFile(tokenFile, "r")) {
 		    byte[] buf = new byte[36];
