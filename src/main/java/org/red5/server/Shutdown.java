@@ -57,17 +57,7 @@ public class Shutdown {
                 token = args[1];
             } else {
                 // read the token from the file
-                try {
-                    File tokenFile = Paths.get("shutdown.token").toFile();
-                    RandomAccessFile raf = new RandomAccessFile(tokenFile, "r");
-                    byte[] buf = new byte[36];
-                    raf.readFully(buf);
-                    token = new String(buf);
-                    System.out.printf("Token loaded: %s%n", token);
-                    raf.close();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+            	token = getToken(token);
             }
             out.println(token);
             in.readLine(); //wait for server to stop
@@ -77,4 +67,17 @@ public class Shutdown {
             System.exit(1);
         }
     }
+
+	public static String getToken(String token) {
+		File tokenFile = Paths.get("shutdown.token").toFile();
+		try (RandomAccessFile raf = new RandomAccessFile(tokenFile, "r")) {
+		    byte[] buf = new byte[36];
+		    raf.readFully(buf);
+		    token = new String(buf);
+		    System.out.printf("Token loaded: %s%n", token);
+		} catch (Exception e) {
+		    e.printStackTrace();
+		}
+		return token;
+	}
 }
