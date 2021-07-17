@@ -691,10 +691,10 @@ public abstract class DataStore {
 					{
 						result = c2.compareTo(c1);
 					} 
-					else if (orderBy != null && !(orderBy.isEmpty())) {
-						//Wrong entry check to not get null pointer.
+					else {
+						result = c1.compareTo(c2);
 					}
-					result = c1.compareTo(c2);
+					
 				}
 				return result;
 			});
