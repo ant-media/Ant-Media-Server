@@ -5,9 +5,6 @@
 	<id>community-${project.version}-${buildNumber}</id>
 	
 	<formats>
-	<!-- 
-		<format>tar.gz</format>
-		 -->
 		<format>zip</format>
 	</formats>
 	<files>

@@ -4,9 +4,7 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -62,17 +60,17 @@ public class SupportRestService {
 			this.result = result;
 		}
 	}
-	
+
 	protected static Logger logger = LoggerFactory.getLogger(SupportRestService.class);
-	
+
 	@Context
 	private ServletContext servletContext;
 	private ILicenceService licenceService;
 	private IStatsCollector statsCollector;
 	private ServerSettings serverSettings;
 	private Gson gson = new Gson();
-	private static final String LOG_FILE = "ant-media-server.log.zip";
-	
+	public static final String LOG_FILE = "ant-media-server.log.zip";
+
 	@POST
 	@Path("/request")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -87,7 +85,7 @@ public class SupportRestService {
 		}
 		return new Result(success);
 	}	
-	
+
 	public ILicenceService getLicenceServiceInstance () {
 		if(licenceService == null) {
 
@@ -96,7 +94,7 @@ public class SupportRestService {
 		}
 		return licenceService;
 	}
-	
+
 	public IStatsCollector getStatsCollector () {
 		if(statsCollector == null) {
 			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
@@ -104,13 +102,13 @@ public class SupportRestService {
 		}
 		return statsCollector;
 	}
-	
+
 	public boolean sendSupport(SupportRequest supportRequest) throws Exception {
 		boolean success = false;
 		String cpuInfo = "not allowed to get";
-		
+
 		CloseableHttpClient httpClient = HttpClients.createDefault();
-		
+
 		try {
 			Version version = RestServiceBase.getSoftwareVersion();
 
@@ -118,16 +116,16 @@ public class SupportRestService {
 
 			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 			builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
-			
+
 			if(supportRequest.isSendSystemInfo()) {
 				cpuInfo = getCpuInfo();
-				
+
 				zipFile();
 				File logFile = new File(LOG_FILE);
-				
+
 				builder.addBinaryBody(LOG_FILE, logFile, ContentType.create("application/zip"), LOG_FILE);
 			}
-			
+
 			builder.addTextBody("name", supportRequest.getName());
 			builder.addTextBody("email", supportRequest.getEmail());
 			builder.addTextBody("title", supportRequest.getTitle());
@@ -139,13 +137,13 @@ public class SupportRestService {
 			builder.addTextBody("ramUsage", SystemUtils.osFreePhysicalMemory()+"/"+SystemUtils.osTotalPhysicalMemory());
 			builder.addTextBody("diskUsage", SystemUtils.osHDFreeSpace(null)+"/"+SystemUtils.osHDTotalSpace(null));
 			builder.addTextBody("version", version.getVersionType()+" "+version.getVersionName()+" "+version.getBuildNumber());
-			
+
 			HttpEntity httpEntity = builder.build();
-			
+
 			httpPost.setEntity(httpEntity);
 
 			CloseableHttpResponse response = httpClient.execute(httpPost);
-			
+
 			try {
 				if (response.getStatusLine().getStatusCode() == 200) {
 					String jsonResponse = readResponse(response).toString();
@@ -156,7 +154,7 @@ public class SupportRestService {
 				response.close();
 			}
 		}catch (Exception e) {
-			logger.error(e.getMessage());
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 		finally {
 			httpClient.close();
@@ -166,71 +164,61 @@ public class SupportRestService {
 		}
 		return success;		
 	}
-	
-	private static void zipFile() {
-		
-        List<String> files = new ArrayList<>();
-        
-        File serverLogFile = new File("log/ant-media-server.log");
-        File errorLogFile = new File("log/antmedia-error.log");
-        
-        if(serverLogFile.exists()) {
-        	files.add("log/ant-media-server.log");
-        }
-        if(errorLogFile.exists()) {
-        	files.add("log/antmedia-error.log");
-        }
-        
-    	// your directory
-    	File f = new File(".");
-    	File[] matchingFiles = f.listFiles(new FilenameFilter() {
-    	    public boolean accept(File dir, String name) {
-    	        return name.startsWith("hs_err") ;
-    	    }
-    	});
-    	
-    	for (File file : matchingFiles) {
-    		files.add(file.getName());
+
+	public static void zipFile() {
+
+		List<String> files = new ArrayList<>();
+
+		File serverLogFile = new File("log/ant-media-server.log");
+		File errorLogFile = new File("log/antmedia-error.log");
+
+		if(serverLogFile.exists()) {
+			files.add("log/ant-media-server.log");
 		}
-    	
-		
-		 FileOutputStream fos = null;
-		 ZipOutputStream zipOut = null;
-	     FileInputStream fis = null;
-	     try {
-	    	 fos = new FileOutputStream(LOG_FILE);
-	         zipOut = new ZipOutputStream(new BufferedOutputStream(fos));
-	         for(String filePath:files){
-	        	 File input = new File(filePath);
-	             fis = new FileInputStream(input);
-	             ZipEntry ze = new ZipEntry(input.getName());
-	             System.out.println("Zipping the file: "+input.getName());
-	             zipOut.putNextEntry(ze);
-	             byte[] tmp = new byte[4*1024];
-	             int size = 0;
-	             while((size = fis.read(tmp)) != -1){
-	            	 zipOut.write(tmp, 0, size);
-	             }
-	             zipOut.flush();
-	             fis.close();
-	             }
-	            zipOut.close();
-	        } catch (FileNotFoundException e) {
-	            // TODO Auto-generated catch block
-	            e.printStackTrace();
-	        } catch (IOException e) {
-	            // TODO Auto-generated catch block
-	            e.printStackTrace();
-	        } finally{
-	            try{
-	                if(fos != null) fos.close();
-	            } catch(Exception ex){
-	                 
-	            }
-	        }
-    }
-	
-	
+		if(errorLogFile.exists()) {
+			files.add("log/antmedia-error.log");
+		}
+
+		// your directory
+		File f = new File(".");
+		File[] matchingFiles = f.listFiles((dir, name) -> name.startsWith("hs_err"));
+
+		for (File file : matchingFiles) {
+			files.add(file.getName());
+		}
+
+
+		try ( FileOutputStream fos = new FileOutputStream(LOG_FILE);
+			  ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(fos))) 
+		{
+			for(String filePath:files){
+				File input = new File(filePath);
+				addZipEntry(zipOut, input);
+			}
+		}
+		catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		} 
+	}
+
+	private static void addZipEntry(ZipOutputStream zipOut, File input) {
+		try (FileInputStream fis = new FileInputStream(input)) 
+		{
+			ZipEntry ze = new ZipEntry(input.getName());
+			zipOut.putNextEntry(ze);
+			byte[] tmp = new byte[4*1024];
+			int size = 0;
+			while((size = fis.read(tmp)) != -1){
+				zipOut.write(tmp, 0, size);
+			}
+			zipOut.flush();
+		}
+		catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+	}
+
+
 	public String getCpuInfo() {
 		StringBuilder cpuInfo = new StringBuilder();
 		ProcessBuilder pb = new ProcessBuilder("lscpu");
@@ -244,7 +232,7 @@ public class SupportRestService {
 		} catch (IOException e) {
 			logger.error(ExceptionUtils.getMessage(e));
 		}
-		
+
 		return cpuInfo.toString();
 	}
 
