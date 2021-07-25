@@ -1626,7 +1626,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 							String statusUpdate = endpointStatusUpdateMap.getValueOrDefault(endpoint.getRtmpUrl(), null);
 							if (statusUpdate != null) {
 								endpoint.setStatus(statusUpdate);
-								break;
 							}
 							else {
 								logger.warn("Endpoint is not found to update its status to {} for rtmp url:{}", statusUpdate, endpoint.getRtmpUrl());
@@ -1634,6 +1633,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						}
 						getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
 
+					}
+					else {
+						logger.info("Broadcast with streamId:{} is not found to update its endpoint status. It's likely a zombi stream", streamId);
 					}
 					endpointStatusUpdateMap.clear();
 
@@ -1812,6 +1814,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	
 	public Vertx getVertx() {
 		return vertx;
+	}
+
+
+	public ConcurrentHashMap<String, String> getEndpointStatusUpdateMap() {
+		return endpointStatusUpdateMap;
 	}
 }
 

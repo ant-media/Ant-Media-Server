@@ -11,8 +11,9 @@ public class Endpoint
 
 	/**
 	 * Keeps track of the RTMP endpoint status if it is writing or not
+	 * {@link IAntMediaStreamHandler#BROADCAST_STATUS_*}
 	 */
-	@ApiModelProperty(value = "Status of the RTMP muxer, possible values are, started, finished, failed")
+	@ApiModelProperty(value = "Status of the RTMP muxer, possible values are started, finished, failed, broadcasting, {@link IAntMediaStreamHandler#BROADCAST_STATUS_*}")
 	private String status;
 
 	/**
