@@ -163,11 +163,11 @@ public class BroadcastRestService extends RestServiceBase{
 			Broadcast broadcastTmp = getDataStore().get(broadcast.getStreamId());
 			if (broadcastTmp != null) 
 			{
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. ")).build();
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. Please change stream id or keep it empty")).build();
 			}
 			else if (!StreamIdValidator.isStreamIdValid(broadcast.getStreamId())) 
 			{
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid. ")).build();
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid.")).build();
 			}
 
 		}
