@@ -127,6 +127,65 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 	@Value( "${"+SETTINGS_SERVER_DEFAULT_HTTP_PORT+":5080}" )
 	private int defaultHttpPort;
 
+
+
+	/** jwt server filter control*/
+	public static final String SETTINGS_JWT_SERVER_CONTROL_ENABLED = "server.jwtServerControlEnabled";
+
+	/**
+	 * Server JWT Control Enabled
+	 */
+	@Value( "${"+SETTINGS_JWT_SERVER_CONTROL_ENABLED+":false}" )
+	private boolean jwtServerControlEnabled;
+
+	public static final String SETTINGS_JWT_SERVER_SECRET_KEY = "server.jwtServerSecretKey";
+
+	/**
+	 * Server JWT secret key
+	 * "afw7Zz9MqvLiheA5X3GFEKvLWb1JTKC2"
+	 *
+	 */
+	@Value( "${"+SETTINGS_JWT_SERVER_SECRET_KEY+":#{null}}" )
+	private String jwtServerSecretKey;
+
+	public String getJwtServerSecretKey() {
+		return jwtServerSecretKey;
+	}
+
+	public void setSettingsJwtServerSecretKey(String jwtServerSecretKey){
+		this.jwtServerSecretKey=jwtServerSecretKey;
+	}
+
+	public boolean isJwtServerControlEnabled() {
+		return jwtServerControlEnabled;
+	}
+
+	public void setJwtServerControlEnabled(boolean jwtServerControlEnabled) {
+		this.jwtServerControlEnabled = jwtServerControlEnabled;
+	}
+
+
+	public static final String SETTINGS_JWKS_URL = "server.jwksURL";
+
+	/*
+	 * JWKS URL - it's effective if {@link#jwtControlEnabled} is true
+	 *
+	 * It's null by default. If it's not null, JWKS is used to filter.
+	 * Otherwise it uses JWT
+	 */
+
+	@Value( "${" + SETTINGS_JWKS_URL +":#{null}}")
+	private String jwksURL;
+
+	public String getJwksURL() {
+		return jwksURL;
+	}
+
+	public void setJwksURL(String jwksURL) {
+		this.jwksURL = jwksURL;
+	}
+
+
 	public boolean isBuildForMarket() {
 		return buildForMarket;
 	}
