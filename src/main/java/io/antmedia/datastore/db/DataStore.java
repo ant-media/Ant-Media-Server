@@ -34,7 +34,7 @@ public abstract class DataStore {
 	private boolean writeStatsToDatastore = true;
 
 	protected volatile boolean available = false;
-	
+
 	protected static Logger logger = LoggerFactory.getLogger(DataStore.class);
 
 
@@ -207,8 +207,8 @@ public abstract class DataStore {
 	 * @return lists of subscribers
 	 */	
 	public abstract List<Subscriber> listAllSubscribers(String streamId, int offset, int size);
-	
-	
+
+
 	/**
 	 * Lists all subscriber statistics of requested stream
 	 * @param streamId
@@ -219,14 +219,14 @@ public abstract class DataStore {
 	public List<SubscriberStats> listAllSubscriberStats(String streamId, int offset, int size) {
 		List<Subscriber> subscribers= listAllSubscribers(streamId, offset, size);
 		List<SubscriberStats> subscriberStats = new ArrayList<>();
-		
+
 		for(Subscriber subscriber : subscribers) {
 			subscriberStats.add(subscriber.getStats());
 		}
-		
+
 		return subscriberStats;
 	}
-	
+
 	/**
 	 * adds subscriber to the datastore for this stream
 	 * @param streamId
@@ -234,7 +234,7 @@ public abstract class DataStore {
 	 * @return- true if set, false if not
 	 */	
 	public abstract boolean addSubscriber(String streamId, Subscriber subscriber);
-	
+
 	/**
 	 * deletes subscriber from the datastore for this stream
 	 * @param streamId
@@ -242,14 +242,14 @@ public abstract class DataStore {
 	 * @return- true if set, false if not
 	 */		
 	public abstract boolean deleteSubscriber(String streamId, String subscriberId);
-	
+
 	/**
 	 * deletes all subscriber from the datastore for this stream
 	 * @param streamId
 	 * @return- true if set, false if not
 	 */		
 	public abstract boolean revokeSubscribers(String streamId);
-	
+
 	/**
 	 * gets subscriber from the datastore
 	 * @param streamId
@@ -257,7 +257,7 @@ public abstract class DataStore {
 	 * @return- Subscriber
 	 */	
 	public abstract Subscriber getSubscriber (String streamId, String subscriberId);
-		
+
 	/**
 	 * gets the connection status of the subscriber from the datastore
 	 * @param streamId
@@ -266,13 +266,13 @@ public abstract class DataStore {
 	 */	
 	public boolean isSubscriberConnected(String streamId, String subscriberId) {
 		Subscriber subscriber = getSubscriber(streamId, subscriberId);
-	
+
 		if(subscriber != null) {
-			 return subscriber.isConnected();
+			return subscriber.isConnected();
 		}
 		return false;
 	}
-	
+
 	/**
 	 * sets the connection status of the subscriber in the datastore
 	 * @param streamId
@@ -285,7 +285,7 @@ public abstract class DataStore {
 		Subscriber subscriber = getSubscriber(streamId, subscriberId);
 		if (subscriber != null) {
 			handleConnectionEvent(subscriber, event);
-			
+
 			addSubscriber(streamId, subscriber);
 			result = true;
 		}
@@ -302,7 +302,7 @@ public abstract class DataStore {
 		}
 		subscriber.getStats().addConnectionEvent(event);
 	}	
-	
+
 	/**
 	 * sets the avarage bitrate of the subscriber in the datastore
 	 * @param streamId
@@ -324,15 +324,15 @@ public abstract class DataStore {
 		return result;
 	}
 
-  
-	
+
+
 	/**
 	 * sets the connection status of all the subscribers false in the datastore
 	 * called after an ungraceful shutdown
 	 * @return- true if successful else false
 	 */	
 	public abstract boolean resetSubscribersConnectedStatus ();	
-	
+
 	/**
 	 * enables or disables mp4 muxing for the stream
 	 * @param streamId- id of the stream
@@ -602,18 +602,18 @@ public abstract class DataStore {
 		if (newBroadcast.getPlayListItemList() != null) {
 			broadcast.setPlayListItemList(newBroadcast.getPlayListItemList());
 		}
-		
+
 		if (newBroadcast.getPlayListStatus() != null) {
 			broadcast.setPlayListStatus(newBroadcast.getPlayListStatus());
 		}
-		
+
 		if (newBroadcast.getEndPointList() != null) {
 			broadcast.setEndPointList(newBroadcast.getEndPointList());
 		}
 		if (newBroadcast.getSubFolder() != null) {
 			broadcast.setSubFolder(newBroadcast.getSubFolder());
 		}
-		
+
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
 		broadcast.setDuration(newBroadcast.getDuration());
@@ -664,30 +664,40 @@ public abstract class DataStore {
 		return broadcastList;
 	}
 
-	protected List<VoD> sortAndCropVodList(List<VoD> vodList, int offset, int size, String sortBy, String orderBy) {
-		if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
-			if(sortBy.contentEquals("date") || sortBy.contentEquals("name")) {
-				Collections.sort(vodList, new Comparator<VoD>() {
-					@Override
-					public int compare(VoD vod1, VoD vod2) {
-						Comparable c1 = null;
-						Comparable c2 = null;
-						if (sortBy.contentEquals("name")) {
-							c1 = vod1.getVodName().toLowerCase();
-							c2 = vod2.getVodName().toLowerCase();
-						} else if (sortBy.contentEquals("date")) {
-							c1 = new Long(vod1.getCreationDate());
-							c2 = new Long(vod2.getCreationDate());
-						}
-						if (orderBy.contentEquals("desc")) {
-							return c2.compareTo(c1);
-						} else if (orderBy != null && !(orderBy.isEmpty())) {
-							//Wrong entry check to not get null pointer.
-						}
-						return c1.compareTo(c2);
+	protected List<VoD> sortAndCropVodList(List<VoD> vodList, int offset, int size, String sortBy, String orderBy) 
+	{
+		if (("name".equals(sortBy) || "date".equals(sortBy)) && orderBy != null ) 
+
+		{
+			Collections.sort(vodList, (vod1, vod2) -> 
+			{
+				Comparable c1 = null;
+				Comparable c2 = null;
+				if (sortBy.contentEquals("name")) 
+				{
+					c1 = vod1.getVodName().toLowerCase();
+					c2 = vod2.getVodName().toLowerCase();
+				} 
+				else if (sortBy.contentEquals("date")) 
+				{
+					c1 = Long.valueOf(vod1.getCreationDate());
+					c2 = Long.valueOf(vod2.getCreationDate());
+				}
+
+				int result = 0;
+				if (c1 != null && c2 != null) 
+				{
+					if (orderBy.contentEquals("desc")) 
+					{
+						result = c2.compareTo(c1);
+					} 
+					else {
+						result = c1.compareTo(c2);
 					}
-				});
-			}
+					
+				}
+				return result;
+			});
 		}
 
 		if (size > MAX_ITEM_IN_ONE_LIST) {
@@ -727,37 +737,46 @@ public abstract class DataStore {
 	}
 
 	protected List<Broadcast> sortAndCropBroadcastList(List<Broadcast> broadcastList, int offset, int size, String sortBy, String orderBy) {
-		if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty() )
+
+		if(("name".equals(sortBy) || "date".equals(sortBy) || "status".equals(sortBy)) && orderBy != null) 
 		{
-			if(sortBy.equals("name") || sortBy.equals("date") || sortBy.equals("status")) {
-				Collections.sort(broadcastList, new Comparator<Broadcast>() {
-					@Override
-					public int compare(Broadcast broadcast1, Broadcast broadcast2) {
-						Comparable c1 = null;
-						Comparable c2 = null;
+			Collections.sort(broadcastList, new Comparator<Broadcast>() {
+				@Override
+				public int compare(Broadcast broadcast1, Broadcast broadcast2) {
+					Comparable c1 = null;
+					Comparable c2 = null;
 
-						if (sortBy.equals("name")) {
-							c1 = broadcast1.getName().toLowerCase();
-							c2 = broadcast2.getName().toLowerCase();
-						} else if (sortBy.equals("date")) {
-							c1 = new Long(broadcast1.getDate());
-							c2 = new Long(broadcast2.getDate());
-						} else if (sortBy.equals("status")) {
-							c1 = broadcast1.getStatus();
-							c2 = broadcast2.getStatus();
-						} else if (sortBy != null && !(sortBy.isEmpty())) {
-							//Wrong entry check to not get null pointer.
-						}
+					if (sortBy.equals("name")) 
+					{
+						c1 = broadcast1.getName().toLowerCase();
+						c2 = broadcast2.getName().toLowerCase();
+					} 
+					else if (sortBy.equals("date")) 
+					{
+						c1 = Long.valueOf(broadcast1.getDate());
+						c2 = Long.valueOf(broadcast2.getDate());
+					} 
+					else if (sortBy.equals("status")) 
+					{
+						c1 = broadcast1.getStatus();
+						c2 = broadcast2.getStatus();
+					} 
 
-						if (orderBy.equals("desc")) {
-							return c2.compareTo(c1);
-						} else if (orderBy != null && !(orderBy.isEmpty())) {
-							//Wrong entry check to not get null pointer.
+
+					int result = 0;
+					if (c1 != null && c2 != null) 
+					{
+						if (orderBy.equals("desc")) 
+						{
+							result = c2.compareTo(c1);
+						} 
+						else {
+							result = c1.compareTo(c2);
 						}
-						return c1.compareTo(c2);
 					}
-				});
-			}
+					return result;
+				}
+			});
 		}
 
 		if (size > MAX_ITEM_IN_ONE_LIST) {
@@ -792,37 +811,38 @@ public abstract class DataStore {
 	}
 
 	protected List<ConferenceRoom> sortAndCropConferenceRoomList(List<ConferenceRoom> roomList, int offset, int size, String sortBy, String orderBy) {
-		if(sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty())
+		if("roomId".equals(sortBy) || "startDate".equals(sortBy) || "endDate".equals(sortBy)) 
 		{
-			if(sortBy.equals("roomId") || sortBy.equals("startDate") || sortBy.equals("endDate") ) {
-				Collections.sort(roomList, new Comparator<ConferenceRoom>() {
-					@Override
-					public int compare(ConferenceRoom room1, ConferenceRoom room2) {
-						Comparable c1 = null;
-						Comparable c2 = null;
+			Collections.sort(roomList, (room1, room2) -> {
+				Comparable c1 = null;
+				Comparable c2 = null;
 
-						if (sortBy.equals("roomId")) {
-							c1 = room1.getRoomId().toLowerCase();
-							c2 = room2.getRoomId().toLowerCase();
-						} else if (sortBy.equals("startDate")) {
-							c1 = new Long(room1.getStartDate());
-							c2 = new Long(room2.getStartDate());
-						} else if (sortBy.equals("endDate")) {
-							c1 = new Long(room1.getEndDate());
-							c2 = new Long(room2.getEndDate());
-						} else if (sortBy != null && !(sortBy.isEmpty())) {
-							//Wrong entry check to not get null pointer.
-						}
+				if (sortBy.equals("roomId")) 
+				{
+					c1 = room1.getRoomId().toLowerCase();
+					c2 = room2.getRoomId().toLowerCase();
+				} 
+				else if (sortBy.equals("startDate")) {
+					c1 = Long.valueOf(room1.getStartDate());
+					c2 = Long.valueOf(room2.getStartDate());
+				} 
+				else if (sortBy.equals("endDate")) {
+					c1 = Long.valueOf(room1.getEndDate());
+					c2 = Long.valueOf(room2.getEndDate());
+				} 
 
-						if (orderBy.equals("desc")) {
-							return c2.compareTo(c1);
-						} else if (orderBy != null && !(orderBy.isEmpty())) {
-							//Wrong entry check to not get null pointer.
-						}
-						return c1.compareTo(c2);
+				int result = 0;
+				if (c1 != null && c2 != null) 
+				{
+					if ("desc".equals(orderBy)) {
+						result = c2.compareTo(c1);
 					}
-				});
-			}
+					else {
+						result = c1.compareTo(c2);
+					}
+				}
+				return result;
+			});
 		}
 
 		if (size > MAX_ITEM_IN_ONE_LIST) {
@@ -897,7 +917,7 @@ public abstract class DataStore {
 	 */
 	public abstract int getTotalWebRTCViewersCount();
 
-//**************************************
-//ATTENTION: Write function descriptions while adding new functions
-//**************************************	
+	//**************************************
+	//ATTENTION: Write function descriptions while adding new functions
+	//**************************************	
 }
