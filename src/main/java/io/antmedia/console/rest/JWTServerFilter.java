@@ -7,10 +7,8 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.HttpMethod;
 import io.antmedia.settings.ServerSettings;
 
 
@@ -23,14 +21,9 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import org.springframework.web.context.ConfigurableWebApplicationContext;
 
-import io.antmedia.console.datastore.ConsoleDataStoreFactory;
-import io.antmedia.console.datastore.AbstractConsoleDataStore;
-import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.filter.AbstractFilter;
-import io.antmedia.rest.model.User;
-import io.antmedia.rest.model.UserType;
+
 
 public class JWTServerFilter extends AbstractFilter {
 
@@ -48,7 +41,6 @@ public class JWTServerFilter extends AbstractFilter {
 		if(serverSettings != null && !serverSettings.isJwtServerControlEnabled() || (httpjwtRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpjwtRequest.getHeader(JWT_TOKEN)))) {
 			chain.doFilter(request, response);
 			logger.info("Request {} is completed",path);
-			return;
 		}
 		else {
 			HttpServletResponse resp = (HttpServletResponse) response;
