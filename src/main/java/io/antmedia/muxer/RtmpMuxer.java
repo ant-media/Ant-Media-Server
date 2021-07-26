@@ -568,20 +568,24 @@ public class RtmpMuxer extends Muxer {
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 					logger.info("cannot write video frame to muxer. Error: {} stream: {} codec type: {} index: {} pkt.dts:{}", new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index(), tmpPacket.dts());
 				}
+				else {
+					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+				}
 			}
 			av_packet_unref(tmpPacket);
-		}
-		else 
+		} 
+		else if (codecType == AVMEDIA_TYPE_AUDIO && headerWritten) 
 		{
-			if (headerWritten) 
+			ret = av_write_frame(context, pkt);
+			if (ret < 0 && logger.isInfoEnabled()) 
 			{
-				ret = av_write_frame(context, pkt);
-				if (ret < 0 && logger.isInfoEnabled()) {
-					byte[] data = new byte[128];
-					av_strerror(ret, data, data.length);
-					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-					logger.info("cannot write frame to muxer(not video). Error: {} stream: {} codec type: {} index: {} pkt.dts:{}", new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index(), pkt.dts());
-				}
+				byte[] data = new byte[128];
+				av_strerror(ret, data, data.length);
+				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
+				logger.info("cannot write frame to muxer(not video). Error: {} stream: {} codec type: {} index: {} pkt.dts:{}", new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index(), pkt.dts());
+			}
+			else {
+				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 			}
 		}
 
