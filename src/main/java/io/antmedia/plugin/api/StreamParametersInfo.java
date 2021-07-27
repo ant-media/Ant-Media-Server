@@ -5,5 +5,6 @@ import org.bytedeco.ffmpeg.avutil.AVRational;
 
 public class StreamParametersInfo {
 	public AVCodecParameters codecParameters;
-	public AVRational timeBase; 
+	public AVRational timeBase;
+	public boolean enabled; 
 }
