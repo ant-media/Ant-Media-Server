@@ -55,7 +55,7 @@ public class JWTServerFilter extends AbstractFilter {
 
 			if (jwksURL != null && !jwksURL.isEmpty()) {
 				DecodedJWT jwt = JWT.decode(jwtString);
-				JwkProvider provider = new UrlJwkProvider(serverSettings.getJwksURL());
+				JwkProvider provider = new UrlJwkProvider(jwksURL);
 				Jwk jwk = provider.get(jwt.getKeyId());
 				Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
 				algorithm.verify(jwt);
