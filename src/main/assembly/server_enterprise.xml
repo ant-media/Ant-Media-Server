@@ -59,6 +59,7 @@
 				<exclude>javacpp-*.jar</exclude>
 				<exclude>cuda-*.jar</exclude>
 				<exclude>ant-media-enterprise*.jar</exclude>
+				<exclude>antmedia-filter-plugin*.jar</exclude>
 				<exclude>libtensorflow*.jar</exclude>
 				<exclude>tensorflow*.jar</exclude>
 			</excludes>
