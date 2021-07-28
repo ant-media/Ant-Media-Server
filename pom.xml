@@ -807,6 +807,12 @@
                     <version>${project.parent.version}</version>
                     <type>jar</type>
                 </dependency>
+                <dependency>
+                    <groupId>io.antmedia.plugin</groupId>
+                    <artifactId>FilterPlugin</artifactId>
+                    <version>${project.parent.version}</version>
+                    <type>jar</type>
+                </dependency>
             </dependencies>
             <build>
                 <plugins>
@@ -870,6 +876,14 @@
                                             <groupId>io.antmedia.enterprise</groupId>
                                             <artifactId>ant-media-enterprise</artifactId>
                                             <version>${ant-media-server-enterprise.version}</version>
+                                            <type>jar</type>
+                                            <overWrite>true</overWrite>
+                                            <outputDirectory>${project.build.directory}/plugins</outputDirectory>
+                                        </artifactItem>
+                                        <artifactItem>
+                                            <groupId>io.antmedia.plugin</groupId>
+                                            <artifactId>FilterPlugin</artifactId>
+                                            <version>${project.parent.version}</version>
                                             <type>jar</type>
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}/plugins</outputDirectory>
