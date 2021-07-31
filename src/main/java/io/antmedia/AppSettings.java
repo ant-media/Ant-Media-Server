@@ -7,12 +7,19 @@ import java.util.List;
 
 import org.apache.catalina.util.NetMask;
 import org.bson.types.ObjectId;
-
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.core.JsonParser;
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
@@ -20,6 +27,7 @@ import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import dev.morphia.annotations.NotSaved;
+import io.antmedia.websocket.WebSocketConstants;
 
 /**
  * Application Settings for each application running in Ant Media Server.
@@ -290,10 +298,7 @@ public class AppSettings {
 	
 	public static final String SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE = "settings.hlsEncryptionKeyInfoFile";
 	
-	public static final String SETTINGS_JWKS_URL = "settings.jwksURL";
-	
-	public static final String SETTINGS_ENCODING_RESOLUTION_CHECK = "settings.encoding.resolutionCheck";
-	
+	public static final String SETTINGS_JWKS_URL = "settings.jwksURL";	
 
 	@JsonIgnore
 	@NotSaved
@@ -1345,14 +1350,6 @@ public class AppSettings {
 	
 	@Value( "${" + SETTINGS_JWKS_URL +":#{null}}")
 	private String jwksURL;
-	
-	/**
-	 * Enable/Disable stream resolution check flag
-	 * If it's enabled, Ant Media Server will ignore if the adaptive requested resolution is higher than the incoming stream
-	 *  It's false by default
-	 */
-	@Value( "${"+SETTINGS_ENCODING_RESOLUTION_CHECK+":false}" )
-	private boolean encodingResolutionCheck;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -1431,33 +1428,58 @@ public class AppSettings {
 		if(encoderSettingsList == null) {
 			return "";
 		}
-		String encoderSettingsString = "";
+		
+		JSONArray jsonArray = new JSONArray();
 
 		for (EncoderSettings encoderSettings : encoderSettingsList) {
-			if (encoderSettingsString.length() != 0) {
-				encoderSettingsString += ",";
-			}
-			encoderSettingsString += encoderSettings.getHeight() + "," + encoderSettings.getVideoBitrate() + "," + encoderSettings.getAudioBitrate();
+			JSONObject encoderJSON = new JSONObject();
+			encoderJSON.put(EncoderSettings.HEIGHT, encoderSettings.getHeight());
+			encoderJSON.put(EncoderSettings.VIDEO_BITRATE, encoderSettings.getVideoBitrate());
+			encoderJSON.put(EncoderSettings.AUDIO_BITRATE, encoderSettings.getAudioBitrate());
+			encoderJSON.put(EncoderSettings.FORCE_ENCODE, encoderSettings.isForceEncode());
+			jsonArray.add(encoderJSON);
 		}
-		return encoderSettingsString;
+		return jsonArray.toJSONString();
 	}
 
-	public static List<EncoderSettings> encodersStr2List(String encoderSettingsString) {
+	public static List<EncoderSettings> encodersStr2List(String encoderSettingsString)  {
 		if(encoderSettingsString == null) {
 			return null;
 		}
-
-		String[] values = encoderSettingsString.split(",");
-
+		
+		int height;
+		int videoBitrate;
+		int audioBitrate;
+		boolean forceEncode;
 		List<EncoderSettings> encoderSettingsList = new ArrayList<>();
-		if (values.length >= 3){
-			for (int i = 0; i < values.length; i++) {
-				int height = Integer.parseInt(values[i]);
-				i++;
-				int videoBitrate = Integer.parseInt(values[i]);
-				i++;
-				int audioBitrate = Integer.parseInt(values[i]);
-				encoderSettingsList.add(new EncoderSettings(height, videoBitrate, audioBitrate));
+		
+		try {
+			JSONParser jsonParser = new JSONParser();
+			JSONArray jsonArray = (JSONArray) jsonParser.parse(encoderSettingsString);
+			JSONObject jsObject;
+			
+			for (int i = 0; i < jsonArray.size(); i++) {
+				jsObject =  (JSONObject)jsonArray.get(i);
+				height = Integer.parseInt(jsObject.get(EncoderSettings.HEIGHT).toString());
+				videoBitrate = Integer.parseInt(jsObject.get(EncoderSettings.VIDEO_BITRATE).toString());
+				audioBitrate = Integer.parseInt(jsObject.get(EncoderSettings.AUDIO_BITRATE).toString());
+				forceEncode = (boolean)jsObject.get(EncoderSettings.FORCE_ENCODE);
+				encoderSettingsList.add(new EncoderSettings(height,videoBitrate,audioBitrate,forceEncode));
+			}
+		}
+		catch (ParseException e) {
+			// If there is old format, then try to add encoderSettingsList
+			String[] values = encoderSettingsString.split(",");
+
+			if (values.length >= 3){
+				for (int i = 0; i < values.length; i++) {
+					height = Integer.parseInt(values[i]);
+					i++;
+					videoBitrate = Integer.parseInt(values[i]);
+					i++;
+					 audioBitrate = Integer.parseInt(values[i]);
+					encoderSettingsList.add(new EncoderSettings(height, videoBitrate, audioBitrate,true));
+				}
 			}
 		}
 		return encoderSettingsList;
@@ -2593,13 +2615,4 @@ public class AppSettings {
 	public void setJwksURL(String jwksURL) {
 		this.jwksURL = jwksURL;
 	}
-	
-	public boolean isEncodingResolutionCheck() {
-		return encodingResolutionCheck;
-	}
-
-	public void setEncodingResolutionCheck(boolean encodingResolutionCheck) {
-		this.encodingResolutionCheck = encodingResolutionCheck;
-	}
-
 }
