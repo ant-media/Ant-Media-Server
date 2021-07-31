@@ -1,22 +1,30 @@
 package io.antmedia.test.storage;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.spy;
 
 import java.io.File;
+import java.io.IOException;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
+import com.amazonaws.event.ProgressEvent;
+import com.amazonaws.event.ProgressEventType;
+import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.Upload;
 
 import io.antmedia.storage.AmazonS3StorageClient;
 
@@ -44,17 +52,20 @@ public class AmazonS3StorageClientTest {
 		}
 	};
 	
-	//@Test
+	@Test
 	public void testS3() {
-		AmazonS3StorageClient storage = new AmazonS3StorageClient();
+		AmazonS3StorageClient storage = Mockito.spy(new AmazonS3StorageClient());
 		
 		storage.setAccessKey(ACCESS_KEY);
 		storage.setSecretKey(SECRET_KEY);
-		storage.setRegion(REGION);
+		storage.setRegion("eu-west-1");
 		storage.setStorageName(BUCKET_NAME);
 		
 		File f = new File("src/test/resources/test.flv");
+		storage.setEnabled(true);
 		storage.save("streams" + "/" + f.getName() , f);
+		
+		Mockito.verify(storage).getTransferManager();
 	}
 	
 	@Test
@@ -67,7 +78,7 @@ public class AmazonS3StorageClientTest {
 			storage.fileExist("any_file");
 			
 			storage.fileExist("streams/any_file");
-			
+						
 			storage.save("streams/any_file", new File("any_file"));
 			
 		}
@@ -75,6 +86,56 @@ public class AmazonS3StorageClientTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testDeleteLocalFile() {
+		AmazonS3StorageClient storage = spy(new AmazonS3StorageClient());
+
+		TransferManager tm = Mockito.mock(TransferManager.class);
+		Mockito.doReturn(tm).when(storage).getTransferManager();
+		Upload upload = Mockito.mock(Upload.class);
+		Mockito.when(tm.upload(Mockito.any())).thenReturn(upload);
+		storage.setEnabled(true);
+		
+		{
+			ArgumentCaptor<ProgressListener> listener = ArgumentCaptor.forClass(ProgressListener.class);
+			storage.save("key", new File("filename"), false);
+			Mockito.verify(upload).addProgressListener(listener.capture());
+			ProgressListener progressListener = listener.getValue();
+			progressListener.progressChanged(new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT));
+			Mockito.verify(storage, Mockito.never()).deleteFile(Mockito.any());
+		}
+		
+		{
+			ArgumentCaptor<ProgressListener> listener = ArgumentCaptor.forClass(ProgressListener.class);
+			
+			storage.save("key", new File("filename"), true);
+			Mockito.verify(upload, Mockito.times(2)).addProgressListener(listener.capture());
+			ProgressListener progressListener = listener.getValue();
+			progressListener.progressChanged(new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT));
+			Mockito.verify(storage, Mockito.times(1)).deleteFile(Mockito.any());
+		}
+		
+		{
+			ArgumentCaptor<ProgressListener> listener = ArgumentCaptor.forClass(ProgressListener.class);
+			File file = new File("filename");
+			try {
+				file.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			storage.save("key", file, true);
+			Mockito.verify(upload, Mockito.times(3)).addProgressListener(listener.capture());
+			ProgressListener progressListener = listener.getValue();
+			progressListener.progressChanged(new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT));
+			Mockito.verify(storage, Mockito.times(2)).deleteFile(Mockito.any());
+			assertFalse(file.exists());
+		}
+		
+		
+		
+		
 	}
 	
 	@Test

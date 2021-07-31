@@ -3016,10 +3016,10 @@ public class BroadcastRestServiceV2UnitTest {
 		//If the stream id is provided in the list, it won't return that stream id. This is query parameter in the rest.
 		RootRestService.RoomInfo testroom=restServiceSpy.getRoomInfo("testroom","stream1");
 		assertEquals("testroom",testroom.getRoomId());
-		assertEquals(1,testroom.getStreamIds().size());
+		assertEquals(1,testroom.getStreamDetailsMap().size());
 		testroom=restServiceSpy.getRoomInfo("testroom","stream3");
 		assertEquals("testroom",testroom.getRoomId());
-		assertEquals(2,testroom.getStreamIds().size());
+		assertEquals(2,testroom.getStreamDetailsMap().size());
 		testroom=restServiceSpy.getRoomInfo("someunknownroom","stream1");
 		//Even though room is not defined yet, it will not return null.
 		assertNotNull(testroom);

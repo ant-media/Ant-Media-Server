@@ -393,7 +393,7 @@ public class StatsCollectorTest {
 		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
 		
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
-		Mockito.when(context.getBean(WebSocketCommunityHandler.WebRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
+		Mockito.when(context.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
 		//Call setApplicationContext
 		statsCollector.setApplicationContext(context);
 		

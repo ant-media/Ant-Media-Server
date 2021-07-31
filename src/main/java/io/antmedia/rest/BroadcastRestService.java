@@ -163,11 +163,11 @@ public class BroadcastRestService extends RestServiceBase{
 			Broadcast broadcastTmp = getDataStore().get(broadcast.getStreamId());
 			if (broadcastTmp != null) 
 			{
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. ")).build();
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. Please change stream id or keep it empty")).build();
 			}
 			else if (!StreamIdValidator.isStreamIdValid(broadcast.getStreamId())) 
 			{
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid. ")).build();
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid.")).build();
 			}
 
 		}
@@ -335,7 +335,6 @@ public class BroadcastRestService extends RestServiceBase{
 	
 
 	@ApiOperation(value = "Adds a third party rtmp end point to the stream. It supports adding after broadcast is started. Resolution can be specified to send a specific adaptive resolution. If an url is already added to a stream, trying to add the same rtmp url will return false.", notes = "", response = Result.class)
-
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")

@@ -49,12 +49,23 @@ public abstract class StorageClient {
 	public abstract void delete(String key);
 	
 	/**
+	 * Save file to storage and delete the local file according to the parameter
+	 * 
+	 * @param key
+	 * @param file
+	 * @param deleteLocalFile
+	 */
+	public abstract void save(String key, File file, boolean deleteLocalFile);
+	
+	/**
 	 * Save file to storage and delete the local file 
 	 * 
 	 * @param key
 	 * @param file
 	 */
-	public abstract void save(String key, File file);
+	public void save(String key, File file) {
+		save(key, file, true);
+	}
 
 	/**
 	 * Check if the key exists in the bucket

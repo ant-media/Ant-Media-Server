@@ -56,7 +56,7 @@ change_server_mode() {
   done
   
   if [ "$OS_NAME" != "Darwin" ]; then
-    LOCAL_IPv4=`ifconfig | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'`
+    LOCAL_IPv4=`ip add | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'`
     HOST_NAME=`cat /proc/sys/kernel/hostname`
     HOST_LINE="$LOCAL_IPv4 $HOST_NAME"
 

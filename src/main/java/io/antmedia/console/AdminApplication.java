@@ -13,6 +13,7 @@ import org.red5.server.api.IClient;
 import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IBroadcastScope;
+import org.red5.server.api.scope.IGlobalScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
 import org.red5.server.tomcat.WarDeployer;
@@ -71,7 +72,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		vertx = (Vertx) scope.getContext().getBean("vertxCore");
 		warDeployer = (WarDeployer) app.getContext().getBean("warDeployer");
-		
+
 		if(isCluster) {
 			IClusterNotifier clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
 			clusterNotifier.registerCreateAppListener(appName -> {
@@ -83,7 +84,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				return deleteApplication(appName);
 			});
 		}
-		
+
 		return super.appStart(app);
 	}
 
@@ -211,22 +212,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return root.getStatistics().getActiveClients();
 	}
 
-	public HashMap<Integer, String> getConnections(String scopeName) {
-		HashMap<Integer, String> connections = new HashMap<Integer, String>();
-		IScope root = getScope(scopeName);
-		if (root != null) {
-			Set<IClient> clients = root.getClients();
-			Iterator<IClient> client = clients.iterator();
-			int id = 0;
-			while (client.hasNext()) {
-				IClient c = client.next();
-				String user = c.getId();
-				connections.put(id, user);
-				id++;
-			}
-		}
-		return connections;
-	}
 
 	public ApplicationContext getApplicationContext(String scopeName) {
 		IScope scope = getScope(scopeName);
@@ -242,35 +227,31 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 
 	private IScope getScope(String scopeName) {
-		IScope root = ScopeUtils.findRoot(scope);
+		IGlobalScope root = (IGlobalScope) ScopeUtils.findRoot(scope);
 		return getScopes(root, scopeName);
 	}
 
 	/**
-	 * Search through all the scopes in the given scope to a scope with the
-	 * given name
+	 * Gt only application scope
 	 * 
 	 * @param root
 	 * @param scopeName
 	 * @return IScope the requested scope
 	 */
-	private IScope getScopes(IScope root, String scopeName) {
+	private IScope getScopes(IGlobalScope root, String scopeName) {
 		if (root.getName().equals(scopeName)) {
 			return root;
 		} else {
 			if (root instanceof IScope) {
-				Set<String> names = root.getScopeNames();
-				for (String name : names) {
-					try {
-						IScope parent = root.getScope(name);
-						IScope scope = getScopes(parent, scopeName);
-						if (scope != null) {
-							return scope;
-						}
-					} catch (NullPointerException npe) {
-						log.debug(npe.toString());
+				try {
+					IScope scope = root.getScope(scopeName);
+					if (scope != null) {
+						return scope;
 					}
+				} catch (NullPointerException npe) {
+					log.debug(npe.toString());
 				}
+
 			}
 		}
 		return null;
@@ -301,7 +282,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	public boolean createApplication(String appName) {
 		boolean success = false;
-		
+
 		if(isCluster) {
 			String mongoHost = getDataStoreFactory().getDbHost();
 			String mongoUser = getDataStoreFactory().getDbUser();
@@ -314,50 +295,50 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			boolean result = runCreateAppScript(appName);
 			success = result;
 		}
-		
+
 		vertx.setTimer(3000, i -> warDeployer.deploy(true));
 
 		return success;
-		
+
 	}
 
 	public boolean deleteApplication(String appName) {
 		boolean success = runDeleteAppScript(appName);
 		warDeployer.undeploy(appName);
-		
+
 		IScope appScope = getRootScope().getScope(appName);	
 		getRootScope().removeChildScope(appScope);
-		
+
 		return success;
 	}
-	
-	
+
+
 	public boolean runCreateAppScript(String appName) {
 		return runCreateAppScript(appName, false, null, null, null);
 	}
-	
+
 	public boolean runCreateAppScript(String appName, boolean isCluster, 
 			String mongoHost, String mongoUser, String mongoPass) {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
-		
+
 		String command = "/bin/bash create_app.sh"
 				+ " -n "+appName
 				+ " -w true"
 				+ " -p "+webappsPath
 				+ " -c "+isCluster;
-		
+
 		if(isCluster) {
 			command += " -m "+mongoHost
 					+ " -u "+mongoUser
 					+ " -s "+mongoPass;
 		}
-		
+
 		log.info("Creating application with command: {}", command);
 		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
 		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
 		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
-		
+
 		try {
 			pb.start();
 			return true;
@@ -366,17 +347,17 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			return false;
 		}
 	}
-	
+
 	public boolean runDeleteAppScript(String appName) {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
-		
+
 		String command = "/bin/bash delete_app.sh -n "+appName+" -p "+webappsPath;
 
 		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
 		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
 		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
-		
+
 		try {
 			pb.start();
 			return true;

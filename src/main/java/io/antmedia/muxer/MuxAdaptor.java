@@ -3,7 +3,6 @@ package io.antmedia.muxer;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
@@ -17,11 +16,9 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -65,11 +62,11 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
-import io.antmedia.settings.IServerSettings;
 import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.plugin.api.StreamParametersInfo;
+import io.antmedia.settings.IServerSettings;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
@@ -1626,7 +1623,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 							String statusUpdate = endpointStatusUpdateMap.getValueOrDefault(endpoint.getRtmpUrl(), null);
 							if (statusUpdate != null) {
 								endpoint.setStatus(statusUpdate);
-								break;
 							}
 							else {
 								logger.warn("Endpoint is not found to update its status to {} for rtmp url:{}", statusUpdate, endpoint.getRtmpUrl());
@@ -1634,6 +1630,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						}
 						getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
 
+					}
+					else {
+						logger.info("Broadcast with streamId:{} is not found to update its endpoint status. It's likely a zombi stream", streamId);
 					}
 					endpointStatusUpdateMap.clear();
 
@@ -1812,6 +1811,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	
 	public Vertx getVertx() {
 		return vertx;
+	}
+
+
+	public Map<String, String> getEndpointStatusUpdateMap() {
+		return endpointStatusUpdateMap;
 	}
 }
 
