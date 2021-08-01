@@ -391,8 +391,23 @@ public class WebSocketConstants {
 	public static final String LICENCE_SUSPENDED = "license_suspended_please_renew_license";
 
 	/**
+	 * It's sent as parameter conference mode
+	 */
+	public static final String MODE = "mode";
+	
+	/**
 	 * It's sent for conference in MCU mode
 	 */
 	public static final String MCU = "mcu";
+	
+	/**
+	 * It's sent for conference in Audio Only MCU mode
+	 */
+	public static final String AMCU = "amcu";
+	
+	/**
+	 * It's sent for conference in legacy mode
+	 */
+	public static final String LEGACY = "legacy";
 
 }
