@@ -106,6 +106,7 @@ import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.test.StreamFetcherUnitTest;
 import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -2130,11 +2131,20 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//define roomName
 		room.setRoomId("roomName");
+		
+		//let it be zombi
+		room.setZombi(true);
+		
+		//let it be mcu
+		room.setMode(WebSocketConstants.MCU);
 
 		//should not be null because room is saved to database and created room is returned
 		assertNotNull(restServiceReal.createConferenceRoomV2(room));
 
 		room = restServiceReal.getDataStore().getConferenceRoom(room.getRoomId());
+		
+		assertTrue(room.isZombi());
+		assertEquals(WebSocketConstants.MCU, room.getMode());
 		
 		//this should not be null, because although start date is not defined, service create it as now
 		assertNotNull(room.getStartDate());
