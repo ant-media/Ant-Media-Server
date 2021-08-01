@@ -1890,10 +1890,10 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	protected boolean deleteConferenceRoom(String roomName) {
+	public static boolean deleteConferenceRoom(String roomName, DataStore store) {
 
 		if(roomName != null) {
-			return getDataStore().deleteConferenceRoom(roomName);
+			return store.deleteConferenceRoom(roomName);
 		}
 		return false;
 	}
