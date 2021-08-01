@@ -16,10 +16,6 @@ import org.springframework.context.annotation.PropertySource;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.core.JsonParser;
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
@@ -27,7 +23,6 @@ import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import dev.morphia.annotations.NotSaved;
-import io.antmedia.websocket.WebSocketConstants;
 
 /**
  * Application Settings for each application running in Ant Media Server.
