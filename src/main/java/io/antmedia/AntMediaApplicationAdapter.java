@@ -1574,7 +1574,6 @@ public Result createInitializationProcess(String appName){
 		appSettings.setHlsEncryptionKeyInfoFile(newSettings.getHlsEncryptionKeyInfoFile());
 		appSettings.setJwksURL(newSettings.getJwksURL());
 		
-		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
 	
