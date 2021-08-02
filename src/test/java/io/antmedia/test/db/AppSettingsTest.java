@@ -86,10 +86,10 @@ public class AppSettingsTest {
 		
 		
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
-		encoderSettings.add(new EncoderSettings(720, 2500000, 128000)); //correct 
-		encoderSettings.add(new EncoderSettings(0, 2500000, 128000)); //wrong setting
-		encoderSettings.add(new EncoderSettings(720, 0, 128000)); //wrong setting
-		encoderSettings.add(new EncoderSettings(720, 2500000, 0)); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 128000,true)); //correct 
+		encoderSettings.add(new EncoderSettings(0, 2500000, 128000,true)); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 0, 128000,true)); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 0,true)); //wrong setting
 		settings.setEncoderSettings(encoderSettings);
 		
 		
@@ -155,10 +155,10 @@ public class AppSettingsTest {
 		settings.setHlsTime("17");
 		settings.setHlsPlayListType("event");
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
-		encoderSettings.add(new EncoderSettings(720, 2500000, 128000)); //correct 
-		encoderSettings.add(new EncoderSettings(0, 2500000, 128000)); //wrong setting
-		encoderSettings.add(new EncoderSettings(720, 0, 128000)); //wrong setting
-		encoderSettings.add(new EncoderSettings(720, 2500000, 0)); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 128000,true)); //correct 
+		encoderSettings.add(new EncoderSettings(0, 2500000, 128000,true)); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 0, 128000,true)); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 0,true)); //wrong setting
 		settings.setEncoderSettings(encoderSettings);
 		settings.setPreviewOverwrite(false);
 		
@@ -176,7 +176,7 @@ public class AppSettingsTest {
 		
 		
 		encoderSettings = new ArrayList<>();
-		encoderSettings.add(new EncoderSettings(720, 2500000, 128000)); //correct 
+		encoderSettings.add(new EncoderSettings(720, 2500000, 128000,true)); //correct 
 		settings.setEncoderSettings(encoderSettings);
 		settings.setPreviewOverwrite(false);
 		
