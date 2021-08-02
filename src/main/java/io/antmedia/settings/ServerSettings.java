@@ -152,7 +152,7 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 		return jwtServerSecretKey;
 	}
 
-	public void setSettingsJwtServerSecretKey(String jwtServerSecretKey){
+	public void setJwtServerSecretKey(String jwtServerSecretKey){
 		this.jwtServerSecretKey=jwtServerSecretKey;
 	}
 
