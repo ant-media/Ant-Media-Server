@@ -576,7 +576,7 @@ public class ConsoleAppRestServiceTest{
 			int size = appSettings.getEncoderSettings().size();
 			List<EncoderSettings> settingsList = new ArrayList<>();
 
-			settingsList.add(new EncoderSettings(0, 200000, 300000));
+			settingsList.add(new EncoderSettings(0, 200000, 300000,true));
 
 			appSettings.setEncoderSettings(settingsList);
 			Result result = callSetAppSettings(appName, appSettings);
@@ -588,7 +588,7 @@ public class ConsoleAppRestServiceTest{
 
 
 
-			settingsList.add(new EncoderSettings(480, 0, 300000));
+			settingsList.add(new EncoderSettings(480, 0, 300000,true));
 			appSettings.setEncoderSettings(settingsList);
 			result = callSetAppSettings(appName, appSettings);
 			assertFalse(result.isSuccess());
@@ -597,7 +597,7 @@ public class ConsoleAppRestServiceTest{
 			assertEquals(encoderSettingSize, appSettings.getEncoderSettings().size());
 
 
-			settingsList.add(new EncoderSettings(480, 2000, 0));
+			settingsList.add(new EncoderSettings(480, 2000, 0,true));
 			appSettings.setEncoderSettings(settingsList);
 			result = callSetAppSettings(appName, appSettings);
 			assertFalse(result.isSuccess());
@@ -607,7 +607,7 @@ public class ConsoleAppRestServiceTest{
 
 
 			settingsList.clear();
-			settingsList.add(new EncoderSettings(480, 2000, 30000));
+			settingsList.add(new EncoderSettings(480, 2000, 30000,true));
 			appSettings.setEncoderSettings(settingsList);
 
 			result = callSetAppSettings(appName, appSettings);
@@ -751,7 +751,7 @@ public class ConsoleAppRestServiceTest{
 			AppSettings appSettingsModel = callGetAppSettings("LiveApp");
 
 
-			appSettingsModel.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 64000)));
+			appSettingsModel.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 64000,true)));
 
 			appSettingsModel.setGeneratePreview(true);
 			
@@ -1892,7 +1892,7 @@ public class ConsoleAppRestServiceTest{
 				return;
 			}
 
-			rtspSource(Arrays.asList(new EncoderSettings(144, 150000, 16000)));
+			rtspSource(Arrays.asList(new EncoderSettings(144, 150000, 16000,true)));
 
 		} catch (Exception e) {
 			e.printStackTrace();

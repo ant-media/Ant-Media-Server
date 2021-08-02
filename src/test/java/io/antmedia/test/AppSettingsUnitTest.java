@@ -9,6 +9,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 
 import org.apache.catalina.util.NetMask;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
 import org.junit.Test;
 import org.red5.server.scope.WebScope;
 import org.springframework.test.annotation.DirtiesContext;
@@ -91,20 +93,23 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		int height1 = 480;
 		int videoBitrate1= 500000;
 		int audioBitrate1 = 128000;
+		boolean forceEncode1 = false;
 		
 		int height2 = 360;
 		int videoBitrate2 = 400000;
 		int audioBitrate2 = 64000;
+		boolean forceEncode2 = true;
 		
 		int height3 = 240;
 		int videoBitrate3 = 300000;
 		int audioBitrate3 = 32000;
-		String encoderSettingString = height1+"," + videoBitrate1 + "," + audioBitrate1
-				+ "," + height2 +"," + videoBitrate2 + "," + audioBitrate2
-				+ "," + height3 +"," + videoBitrate3 + "," + audioBitrate3;
-		List<EncoderSettings> list = AppSettings.encodersStr2List(encoderSettingString);
+		boolean forceEncode3 = false;
 		
-	
+			
+		//Try with new format settings
+		String newFormatEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceEncode\":"+forceEncode1+",\"audioBitrate\":"+audioBitrate1+",\"height\":"+height1+"},{\"videoBitrate\":"+videoBitrate2+",\"forceEncode\":"+forceEncode2+",\"audioBitrate\":"+audioBitrate2+",\"height\":"+height2+"},{\"videoBitrate\":"+videoBitrate3+",\"forceEncode\":"+forceEncode3+",\"audioBitrate\":"+audioBitrate3+",\"height\":"+height3+"}]";
+		
+		List<EncoderSettings> list = AppSettings.encodersStr2List(newFormatEncoderSettingString);
 		
 		assertEquals(3, list.size());
 		assertEquals(480, list.get(0).getHeight());
@@ -119,8 +124,35 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(300000, list.get(2).getVideoBitrate());
 		assertEquals(32000, list.get(2).getAudioBitrate());
 		
-		assertEquals(encoderSettingString, appSettings.encodersList2Str(list));
+		assertEquals(newFormatEncoderSettingString, appSettings.encodersList2Str(list));
+		
+		//Try with old format settings
+		String oldFormatEncoderSettingString = height1+"," + videoBitrate1 + "," + audioBitrate1
+				+ "," + height2 +"," + videoBitrate2 + "," + audioBitrate2
+				+ "," + height3 +"," + videoBitrate3 + "," + audioBitrate3;
+		list = AppSettings.encodersStr2List(oldFormatEncoderSettingString);
+		
+		assertEquals(3, list.size());
+		assertEquals(480, list.get(0).getHeight());
+		assertEquals(500000, list.get(0).getVideoBitrate());
+		assertEquals(128000, list.get(0).getAudioBitrate());
+		
+		assertEquals(360, list.get(1).getHeight());
+		assertEquals(400000, list.get(1).getVideoBitrate());
+		assertEquals(64000, list.get(1).getAudioBitrate());
+		
+		assertEquals(240, list.get(2).getHeight());
+		assertEquals(300000, list.get(2).getVideoBitrate());
+		assertEquals(32000, list.get(2).getAudioBitrate());
+		
+		//It will convert new json format
+		list.get(0).setForceEncode(false);
+		list.get(1).setForceEncode(true);
+		list.get(2).setForceEncode(false);
+		assertEquals(newFormatEncoderSettingString, appSettings.encodersList2Str(list));
 	}
+	
+	
 
 	@Test
 	public void isCommunity() {
