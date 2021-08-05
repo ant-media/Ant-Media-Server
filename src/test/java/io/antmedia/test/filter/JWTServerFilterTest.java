@@ -48,7 +48,7 @@ public class JWTServerFilterTest {
 
         String token = JWT.create().sign(Algorithm.HMAC256(serverSettings.getJwtServerSecretKey()));
         String invalidToken = JWT.create().sign(Algorithm.HMAC256("invalid-key-invalid-key-invalid-key"));
-
+        String jwkstoken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InFWMWhqT0o2RFlFOWIzRDFSU0lHSSJ9.eyJpc3MiOiJodHRwczovL2FudG1lZGlhLnVzLmF1dGgwLmNvbS8iLCJzdWIiOiI3UVEzWTlLSzJPY1dOSzRwMXpydGU1UzQxSWR4amxLc0BjbGllbnRzIiwiYXVkIjoiaHR0cHM6Ly9hbnRtZWRpYS51cy5hdXRoMC5jb20vYXBpL3YyLyIsImlhdCI6MTYyODE1MTQ4NSwiZXhwIjoxNjI4MjM3ODg1LCJhenAiOiI3UVEzWTlLSzJPY1dOSzRwMXpydGU1UzQxSWR4amxLcyIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyJ9.dgtT0dqL_JiA1AJRIWYyJMU7KG_EpJzucqlmIdEt36rL35G9QLWcxJVWCM-OFDAje9UaNDqFVHMNfXzDhvXrs5LvPlEFSZVAZUtMgjP0X94hlCjKIrvhnfN2lcDZFsSMIqXJeoPMjlRvGItrphRQaMr5ow3eCcvRYVK1MXvptGisdh1rTVBWPRRvaFH8x5yISw98DwNauVWW949o8JDIkortDQEXHmpipC7NoACCzZmGlmBv6ubaZxyTwh7QAp68kx6_tIcmj7nm6cLdoheFjH-io-ee6oTkLRr2krRqSjJrY9A_hJYH4Gixpe-F7mMeE8dMuRGhWue3pfMJmy8ulQ";
 
 
         System.out.println("Valid Token: " + token);
@@ -148,16 +148,15 @@ public class JWTServerFilterTest {
 
             serverSettings.setJwtServerControlEnabled(true);
             serverSettings.setJwksURL("https://antmedia.us.auth0.com");
+            serverSettings.setJwtServerSecretKey("4Hr7PWwrTf6YFynkO5QeNQrlxe5r7HtfUdLhis2i_vbXdtF1VI0SwnP0ZSlhf0Yh");
 
-            /*
-            String jwkstoken = JWT.create().sign(Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null));
 
             Mockito.doReturn(serverSettings).when(jwtServerFilter).getServerSetting();
 
             httpServletRequest.addHeader("Authorization", jwkstoken);
 
             jwtServerFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
-            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());*/
+            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
         }
         /// Jwks Url is not given
 
@@ -174,15 +173,13 @@ public class JWTServerFilterTest {
             serverSettings.setJwtServerControlEnabled(true);
             serverSettings.setJwksURL("");
 
-            /*
-            String jwkstoken = JWT.create().sign(Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null));
-
             Mockito.doReturn(serverSettings).when(jwtServerFilter).getServerSetting();
+            serverSettings.setJwtServerSecretKey("random");
 
             httpServletRequest.addHeader("Authorization", jwkstoken);
 
             jwtServerFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
-            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());*/
+            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
         }
     }
 
