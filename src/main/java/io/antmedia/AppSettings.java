@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
+import io.antmedia.security.AcceptOnlyStreamsWithWebhook;
 import org.apache.catalina.util.NetMask;
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
@@ -51,7 +52,7 @@ import dev.morphia.annotations.NotSaved;
 @PropertySource("/WEB-INF/red5-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AppSettings {
-	
+
 	@JsonIgnore
 	@Id
 	private ObjectId dbId;
@@ -123,6 +124,7 @@ public class AppSettings {
 	private static final String SETTINGS_ENCODING_VP8_THREAD_COUNT = "settings.encoding.vp8.threadCount";
 	private static final String SETTINGS_ENCODING_VP8_SPEED = "settings.encoding.vp8.speed";
 	private static final String SETTINGS_ENCODING_VP8_DEADLINE = "settings.encoding.vp8.deadline";
+	public static final String SETTINGS_ACCEPT_STREAMS_WITH_WEBHOOK = "settings.acceptOnlyStreamsWithWebhook";
 
 	/**
 	 * Generate preview if there is any adaptive settings.
@@ -1230,6 +1232,13 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_PLAY_JWT_CONTROL_ENABLED+":false}" )
 	private boolean playJwtControlEnabled;
+
+	/**
+	 * Enable Webhook Authentication when publishing streams
+	 */
+	@Value( "${"+SETTINGS_ACCEPT_STREAMS_WITH_WEBHOOK+":false}" )
+	private boolean acceptOnlyStreamsWithWebhook;
+
 	
 	/**
 	 * Use http streaming in Low Latency Dash,
@@ -2609,5 +2618,14 @@ public class AppSettings {
 
 	public void setJwksURL(String jwksURL) {
 		this.jwksURL = jwksURL;
+	}
+
+
+	public boolean isAcceptOnlyStreamsWithWebhook(){
+		return acceptOnlyStreamsWithWebhook;
+	}
+
+	public void setAcceptStreamsWithWebhook(boolean acceptOnlyStreamsWithWebhook){
+		this.acceptOnlyStreamsWithWebhook = acceptOnlyStreamsWithWebhook;
 	}
 }

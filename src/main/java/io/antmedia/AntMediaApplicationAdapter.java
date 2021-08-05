@@ -1487,13 +1487,14 @@ public Result createInitializationProcess(String appName){
 		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
 		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
 		store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
-		
+
 
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
 		
 		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE, newAppsettings.getHlsEncryptionKeyInfoFile() != null ? newAppsettings.getHlsEncryptionKeyInfoFile() : "");
-		
+		store.put(AppSettings.SETTINGS_ACCEPT_STREAMS_WITH_WEBHOOK, String.valueOf(newAppsettings.isAcceptOnlyStreamsWithWebhook()));
+
 		return store.save();
 	}
 
@@ -1575,7 +1576,9 @@ public Result createInitializationProcess(String appName){
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 		appSettings.setHlsEncryptionKeyInfoFile(newSettings.getHlsEncryptionKeyInfoFile());
 		appSettings.setJwksURL(newSettings.getJwksURL());
-		
+
+		appSettings.setAcceptStreamsWithWebhook(newSettings.isAcceptOnlyStreamsWithWebhook());
+
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
 	
