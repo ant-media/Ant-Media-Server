@@ -625,7 +625,6 @@
                             </plugins>
                         </configuration>
                     </plugin>
-                    <!-- TODO: Enable this later. There is a bug in the plugin with the start of the new year 
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
@@ -637,7 +636,6 @@
                             </execution>
                         </executions>
                     </plugin>
-                     -->
                     <plugin>
                         <artifactId>maven-dependency-plugin</artifactId>
                         <version>${maven-dependency-plugin.version}</version>
@@ -727,6 +725,19 @@
 								</configuration>
 							</execution>
 							<execution>
+							    <id>show-enterprise-feature-message-liveapp</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/assembly/show_enterprise_feature_message.sh</executable>
+									<arguments>
+										<argument>${project.build.directory}/webapps/LiveApp</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
 								<id>create-webrtcapp</id>
 								<phase>package</phase>
 								<goals>
@@ -737,6 +748,19 @@
 									<arguments>
 										<argument>WebRTCApp</argument>
 										<argument>${project.build.directory}</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+							    <id>show-enterprise-feature-message-webrtcapp</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/assembly/show_enterprise_feature_message.sh</executable>
+									<arguments>
+										<argument>${project.build.directory}/webapps/WebRTCApp</argument>
 									</arguments>
 								</configuration>
 							</execution>
@@ -780,6 +804,12 @@
                 <dependency>
                     <groupId>io.antmedia.enterprise</groupId>
                     <artifactId>ant-media-enterprise</artifactId>
+                    <version>${project.parent.version}</version>
+                    <type>jar</type>
+                </dependency>
+                <dependency>
+                    <groupId>io.antmedia.plugin</groupId>
+                    <artifactId>ant-media-filter-plugin</artifactId>
                     <version>${project.parent.version}</version>
                     <type>jar</type>
                 </dependency>
@@ -850,8 +880,27 @@
                                             <overWrite>true</overWrite>
                                             <outputDirectory>${project.build.directory}/plugins</outputDirectory>
                                         </artifactItem>
+                                        <artifactItem>
+                                            <groupId>io.antmedia.plugin</groupId>
+                                            <artifactId>ant-media-filter-plugin</artifactId>
+                                            <version>${project.parent.version}</version>
+                                            <type>jar</type>
+                                            <overWrite>true</overWrite>
+                                            <outputDirectory>${project.build.directory}/plugins</outputDirectory>
+                                        </artifactItem>
                                     </artifactItems>
                                 </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                     <plugin>
+                        <groupId>org.owasp</groupId>
+                        <artifactId>dependency-check-maven</artifactId>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
                             </execution>
                         </executions>
                     </plugin>

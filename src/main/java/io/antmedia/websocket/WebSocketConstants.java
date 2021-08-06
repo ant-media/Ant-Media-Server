@@ -401,8 +401,18 @@ public class WebSocketConstants {
 	public static final String MCU = "mcu";
 	
 	/**
+	 * It's sent for conference in Audio Only MCU mode
+	 */
+	public static final String AMCU = "amcu";
+	
+	/**
 	 * It's sent for conference in MCU mode
 	 */
 	public static final String MULTI_TRACK = "multitrack";
+	
+	/**
+	 * It's sent for conference in legacy mode
+	 */
+	public static final String LEGACY = "legacy";
 
 }

@@ -565,11 +565,11 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 
-	private Broadcast saveBroadcast(String streamName, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
+	private Broadcast saveBroadcast(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
 		if (broadcast == null) 
 		{
 
-			broadcast = saveUndefinedBroadcast(streamName, getScope().getName(), getDataStore(), appSettings,  IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, getServerSettings(), absoluteStartTimeMs, publishType);
+			broadcast = saveUndefinedBroadcast(streamId, null, this, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, absoluteStartTimeMs, publishType);
 		} 
 		else {
 
@@ -613,23 +613,25 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 	}
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String scopeName, DataStore dataStore, AppSettings appSettings, String streamStatus, ServerSettings serverSettings, long absoluteStartTimeMs, String publishType) {		
+	
+	
+	
+	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
 		newBroadcast.setStartTime(now);
 		newBroadcast.setZombi(true);
+		newBroadcast.setName(streamName);
 		try {
 			newBroadcast.setStreamId(streamId);
 			newBroadcast.setPublishType(publishType);
 			String settingsListenerHookURL = null; 
-			if (appSettings != null) {
-				settingsListenerHookURL = appSettings.getListenerHookURL();
-			}
+			settingsListenerHookURL = appAdapter.getAppSettings().getListenerHookURL();
 
 			return RestServiceBase.saveBroadcast(newBroadcast,
-					streamStatus, scopeName, dataStore,
-					settingsListenerHookURL, serverSettings, absoluteStartTimeMs);
+					streamStatus, appAdapter.getScope().getName(), appAdapter.getDataStore(),
+					settingsListenerHookURL, appAdapter.getServerSettings(), absoluteStartTimeMs);
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
@@ -1573,7 +1575,6 @@ public Result createInitializationProcess(String appName){
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 		appSettings.setHlsEncryptionKeyInfoFile(newSettings.getHlsEncryptionKeyInfoFile());
 		appSettings.setJwksURL(newSettings.getJwksURL());
-		
 		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}

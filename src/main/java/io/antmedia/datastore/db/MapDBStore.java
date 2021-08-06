@@ -861,7 +861,7 @@ public class MapDBStore extends DataStore {
 		boolean result = false;
 		synchronized (this) {
 			try {
-				logger.debug("inside of editStreamSourceInfo {}", broadcast.getStreamId());
+				logger.debug("inside of updateBroadcastFields {}", broadcast.getStreamId());
 				Broadcast oldBroadcast = get(streamId);
 				if (oldBroadcast != null) 
 				{
@@ -877,7 +877,7 @@ public class MapDBStore extends DataStore {
 			}
 		}
 
-		logger.debug("result inside edit camera:{} ", result);
+		logger.debug("result inside updateBroadcastFields:{} ", result);
 		return result;
 	}
 
