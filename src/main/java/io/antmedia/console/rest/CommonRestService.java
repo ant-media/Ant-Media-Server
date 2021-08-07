@@ -808,24 +808,16 @@ public class CommonRestService {
 	}
 
 
-	public AppSettings getSettings(@PathParam("appname") String appname) 
+	public AppSettings getSettings(String appname) 
 	{
-		AdminApplication application = getApplication();
-		if (application != null) {
-			ApplicationContext context = application.getApplicationContext(appname);
-			if (context != null) {
-				IApplicationAdaptorFactory adaptorFactory = (IApplicationAdaptorFactory)context.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-				if (adaptorFactory != null) {
-					AntMediaApplicationAdapter adapter = adaptorFactory.getAppAdaptor();
-					if (adapter != null) {
-						return adapter.getAppSettings();
-					}
-				}
-			}
+		AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appname);
+		if (appAdaptor != null) {
+			return appAdaptor.getAppSettings();
 		}
 		logger.warn("getSettings for app: {} returns null. It's likely not initialized.", appname);
 		return null;
 	}
+	
 
 
 	public ServerSettings getServerSettings() 
