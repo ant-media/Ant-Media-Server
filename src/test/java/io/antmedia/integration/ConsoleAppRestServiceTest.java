@@ -312,6 +312,24 @@ public class ConsoleAppRestServiceTest{
 			return tmpApplications.applications.length == appCount;
 		});
 		
+		//create the application again with the same name because there was a bug for that
+		result = createApplication(appName);
+		assertTrue(result);
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		.until(() ->  {
+			Applications tmpApplications = getApplications();
+			return tmpApplications.applications.length == appCount + 1;
+		});
+		result = deleteApplication(appName);
+		assertTrue(result);
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		.until(() ->  {
+			Applications tmpApplications = getApplications();
+			return tmpApplications.applications.length == appCount;
+		});
+		
 	}
 
 	/**

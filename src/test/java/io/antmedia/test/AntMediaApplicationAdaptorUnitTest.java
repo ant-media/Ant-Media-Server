@@ -977,6 +977,43 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(true, result.isSuccess());
 		assertEquals("System works, deleted closed file in "+ scope.getName(), result.getMessage());
 		
+		
+		//initiiazed file does not exist but closed file exists
+		initializedFile.delete();
+		
+		
+		try {
+			closedFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		result = adapter.createInitializationProcess(scope.getName());
+		
+		assertEquals(false, closedFile.exists());
+		assertEquals(true, initializedFile.exists());
+		assertEquals(true, result.isSuccess());
+		
+		
+		
+		//run create initialization file for odd case
+		result = new Result(true);
+		initializedFile = Mockito.mock(File.class);
+		try {
+			Mockito.when(initializedFile.createNewFile()).thenReturn(false);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			adapter.createInitializationFile("app", result, initializedFile);
+			assertFalse(result.isSuccess());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
+		
 	}
 	
 	boolean threadStarted = false; 

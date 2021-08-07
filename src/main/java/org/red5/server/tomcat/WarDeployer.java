@@ -44,7 +44,7 @@ import org.springframework.beans.factory.InitializingBean;
  * 
  * @author Paul Gregoire (mondain@gmail.com)
  */
-public final class WarDeployer implements InitializingBean, DisposableBean {
+public class WarDeployer implements InitializingBean, DisposableBean {
 
     private Logger log = LoggerFactory.getLogger(WarDeployer.class);
 
