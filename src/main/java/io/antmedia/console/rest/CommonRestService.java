@@ -1072,12 +1072,13 @@ public class CommonRestService {
 	}
 
 
-	public Result createApplication(@QueryParam("appName") String appName) {
+	public Result createApplication(String appName) {
 		return new Result(getApplication().createApplication(appName));
 	}
 
 
-	public Result deleteApplication(@PathParam("appName") String appName) {
+	public Result deleteApplication(String appName) {
+		appName = appName.replaceAll("[\n\r\t]", "_");
 		logger.info("delete application http request:{}", appName);
 		AppSettings appSettings = getSettings(appName);
 		boolean result = false;
