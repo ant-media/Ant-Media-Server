@@ -1,6 +1,8 @@
 package io.antmedia.test.console;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.console.AdminApplication;
 import io.antmedia.console.datastore.MapDBStore;
 import io.antmedia.console.rest.RestServiceV2;
 import io.antmedia.rest.BroadcastRestService;
@@ -338,5 +340,36 @@ public class ConsoleRestV2UnitTest {
         assertTrue(result.isSuccess());
         assertNull(dbStore.getUser(userName2));
 
+    }
+    
+    @Test
+    public void testDeleteApplication() {
+    	
+    	 RestServiceV2 restServiceSpy = Mockito.spy(restService);
+    	 
+    	 AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
+    	 Mockito.doReturn(adapter).when(restServiceSpy).getAppAdaptor(Mockito.any());
+    	 Mockito.when(adapter.getAppSettings()).thenReturn(Mockito.mock(AppSettings.class));
+    	 
+    	 AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+    	 
+    	 Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+    	 Mockito.doReturn("").when(restServiceSpy).changeSettings(Mockito.any(), Mockito.any());
+    	 Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+    	 
+    	 Result result = restServiceSpy.deleteApplication("test");
+    	 assertFalse(result.isSuccess());
+    	 
+    	 
+    	 Mockito.when(adminApp.deleteApplication(Mockito.anyString())).thenReturn(true);
+    	 result = restServiceSpy.deleteApplication("test");
+    	 assertTrue(result.isSuccess());
+    	 
+    	 
+    	 Mockito.doReturn(null).when(restServiceSpy).getAppAdaptor(Mockito.any());
+    	 result = restServiceSpy.deleteApplication("test");
+    	 assertFalse(result.isSuccess());
+    	 
+    	
     }
 }

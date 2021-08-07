@@ -1,5 +1,10 @@
 package io.antmedia.test.console;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.fail;
+
+import java.io.IOException;
+
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -50,16 +55,69 @@ public class AdminApplicationTest {
 		AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adapter).when(app).getApplicationAdaptor(Mockito.any());
 		
-		app.deleteApplication("test");
+		boolean result = app.deleteApplication("test");
+		assertFalse(result);
 		
 		Mockito.verify(adapter).serverShuttingdown();
 		try {
 			Mockito.verify(appScope).destroy();
 		} catch (Exception e) {
 			e.printStackTrace();
+			fail(e.getMessage());
 		}
 		
 		Mockito.verify(warDeployer).undeploy("test");
+
+		
+		
+		try {
+			Mockito.doThrow(new Exception()).when(appScope).destroy();
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		Mockito.doReturn(true).when(app).runDeleteAppScript(Mockito.any());
+		
+		result = app.deleteApplication("test");
+		assertFalse(result);
+		
+	}
+	
+	@Test
+	public void testRunCommand() {
+		AdminApplication app = Mockito.spy(new AdminApplication());
+		
+		Process process = Mockito.mock(Process.class);
+		
+		
+		try {
+			Mockito.doThrow(new IOException()).when(app).getProcess(Mockito.anyString());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		boolean runCommand = app.runCommand("");
+		assertFalse(runCommand);
+		
+		
+		try {
+			Mockito.doReturn(process).when(app).getProcess(Mockito.anyString());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		try {
+			Mockito.doThrow(new InterruptedException()).when(process).waitFor();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		runCommand = app.runCommand("");
+		assertFalse(runCommand);
+		
 		
 		
 	}

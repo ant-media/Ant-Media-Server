@@ -1080,13 +1080,19 @@ public class CommonRestService {
 	public Result deleteApplication(@PathParam("appName") String appName) {
 		logger.info("delete application http request:{}", appName);
 		AppSettings appSettings = getSettings(appName);
-		appSettings.setToBeDeleted(true);
-		changeSettings(appName, appSettings);
-		boolean result = true;
-		if (!isClusterMode()) {
-			//if it's not in cluster mode, delete application
-			//In cluster mode, it's deleted by synchronization
-			result = getApplication().deleteApplication(appName);
+		boolean result = false;
+		if (appSettings != null) {
+			appSettings.setToBeDeleted(true);
+			changeSettings(appName, appSettings);
+			result = true;
+			if (!isClusterMode()) {
+				//if it's not in cluster mode, delete application
+				//In cluster mode, it's deleted by synchronization
+				result = getApplication().deleteApplication(appName);
+			}
+		}
+		else {
+			logger.info("App settings is not available for app name:{}. App may be initializing", appName);
 		}
 		return new Result(result);
 	}

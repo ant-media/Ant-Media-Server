@@ -140,7 +140,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		return appsInfo;
 	}
-	
+
 	public AntMediaApplicationAdapter getApplicationAdaptor(IScope appScope) 
 	{
 		return ((IApplicationAdaptorFactory) appScope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
@@ -310,17 +310,18 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	public boolean deleteApplication(String appName) {
-		
+
 		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
 		getApplicationAdaptor(appScope).serverShuttingdown();
-		
+
 		boolean success = runDeleteAppScript(appName);
 		warDeployer.undeploy(appName);
-		
+
 		try {
 			appScope.destroy();
 		} catch (Exception e) {
 			log.error(ExceptionUtils.getStackTrace(e));
+			success = false;
 		}
 
 		return success;
@@ -361,14 +362,13 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return runCommand(command);
 	}
 
-	private boolean runCommand(String command) {
-		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
-		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
-		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
+
+
+	public boolean runCommand(String command) {
 
 		boolean result = false;
 		try {
-			Process process = pb.start();
+			Process process = getProcess(command);
 			result = process.waitFor() == 0;
 		}
 		catch (IOException e) {
@@ -379,6 +379,14 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			Thread.currentThread().interrupt();
 		}
 		return result;
+	}
+
+	public Process getProcess(String command) throws IOException {
+		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
+		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
+		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
+		return pb.start();
+
 	}
 
 	public void setVertx(Vertx vertx) {
