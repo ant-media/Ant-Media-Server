@@ -1212,6 +1212,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				// Other odd is initialization file doesn't exist and closed file exist.
 				// This case happens when app is created but not deployed for some reason
 				createInitializationFile(appName, result, initializedFile);
+				Files.deleteIfExists(closedFile.toPath());
+				
 			}
 
 
@@ -1223,7 +1225,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		return result;
 	}
 
-	private void createInitializationFile(String appName, Result result, File initializedFile) throws IOException {
+	public void createInitializationFile(String appName, Result result, File initializedFile) throws IOException {
 		if(initializedFile.createNewFile()) {
 			result.setMessage("Initialized file created in " + appName);
 			result.setSuccess(true);

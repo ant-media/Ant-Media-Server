@@ -349,6 +349,19 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 
 		log.info("Creating application with command: {}", command);
+		return runCommand(command);
+	}
+
+	public boolean runDeleteAppScript(String appName) {
+		Path currentRelativePath = Paths.get("");
+		String webappsPath = currentRelativePath.toAbsolutePath().toString();
+
+		String command = "/bin/bash delete_app.sh -n "+appName+" -p "+webappsPath;
+
+		return runCommand(command);
+	}
+
+	private boolean runCommand(String command) {
 		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
 		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
 		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
@@ -357,8 +370,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		try {
 			Process process = pb.start();
 			result = process.waitFor() == 0;
-			
-		} 
+		}
 		catch (IOException e) {
 			log.error(ExceptionUtils.getStackTrace(e));
 		} 
@@ -369,28 +381,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return result;
 	}
 
-	public boolean runDeleteAppScript(String appName) {
-		Path currentRelativePath = Paths.get("");
-		String webappsPath = currentRelativePath.toAbsolutePath().toString();
+	public void setVertx(Vertx vertx) {
+		this.vertx = vertx;
+	}
 
-		String command = "/bin/bash delete_app.sh -n "+appName+" -p "+webappsPath;
-
-		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
-		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
-		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
-
-		boolean result = false;
-		try {
-			Process process = pb.start();
-			result = process.waitFor() == 0;
-		}
-		catch (IOException e) {
-			log.error(ExceptionUtils.getStackTrace(e));
-		} 
-		catch (InterruptedException e) {
-			log.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-		}
-		return result;
+	public void setWarDeployer(WarDeployer warDeployer) {
+		this.warDeployer = warDeployer;
 	}
 }

@@ -57,7 +57,6 @@ import org.apache.catalina.core.StandardWrapper;
 import org.apache.catalina.loader.WebappLoader;
 import org.apache.catalina.realm.NullRealm;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.ContextLoader;
 import org.red5.server.LoaderBase;
 import org.red5.server.api.IApplicationContext;
@@ -131,10 +130,6 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	public static final String defaultSpringConfigLocation = "/WEB-INF/red5-*.xml";
 
 	public static final String defaultParentContextKey = "default.context";
-
-	static {
-//		log.debug("Initializing Tomcat");
-	}
 
 	/**
 	 * Common name for the Service and Engine components.
@@ -629,61 +624,56 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 			Thread thread = new Thread("Launcher:" + servletContext.getContextPath()) {
 				@SuppressWarnings("cast")
 				public void run() {
-					try {
-						//set current threads classloader to the webapp classloader
-						Thread.currentThread().setContextClassLoader(webClassLoader);
-						// create a spring web application context
-						XmlWebApplicationContext appctx = new XmlWebApplicationContext();
-						appctx.setClassLoader(webClassLoader);
-						appctx.setConfigLocations(new String[] { contextConfigLocation });
-						// check for red5 context bean
-						ApplicationContext parentAppCtx = null;
-						if (applicationContext.containsBean(defaultParentContextKey)) {
-							parentAppCtx = (ApplicationContext) applicationContext.getBean(defaultParentContextKey);
+
+					//set current threads classloader to the webapp classloader
+					Thread.currentThread().setContextClassLoader(webClassLoader);
+					// create a spring web application context
+					XmlWebApplicationContext appctx = new XmlWebApplicationContext();
+					appctx.setClassLoader(webClassLoader);
+					appctx.setConfigLocations(new String[] { contextConfigLocation });
+					// check for red5 context bean
+					ApplicationContext parentAppCtx = null;
+					if (applicationContext.containsBean(defaultParentContextKey)) {
+						parentAppCtx = (ApplicationContext) applicationContext.getBean(defaultParentContextKey);
+						appctx.setParent(parentAppCtx);
+					} else {
+						log.warn("{} bean was not found in context: {}", defaultParentContextKey, applicationContext.getDisplayName());
+						// lookup context loader and attempt to get what we need from it
+						if (applicationContext.containsBean("context.loader")) {
+							ContextLoader contextLoader = (ContextLoader) applicationContext.getBean("context.loader");
+							parentAppCtx = contextLoader.getContext(defaultParentContextKey);
 							appctx.setParent(parentAppCtx);
 						} else {
-							log.warn("{} bean was not found in context: {}", defaultParentContextKey, applicationContext.getDisplayName());
-							// lookup context loader and attempt to get what we need from it
-							if (applicationContext.containsBean("context.loader")) {
-								ContextLoader contextLoader = (ContextLoader) applicationContext.getBean("context.loader");
-								parentAppCtx = contextLoader.getContext(defaultParentContextKey);
-								appctx.setParent(parentAppCtx);
-							} else {
-								log.debug("Context loader was not found, trying JMX");
-								MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
-								// get the ContextLoader from jmx
-								ContextLoaderMXBean proxy = null;
-								ObjectName oName = null;
-								try {
-									oName = new ObjectName("org.red5.server:name=contextLoader,type=ContextLoader");
-									if (mbs.isRegistered(oName)) {
-										proxy = JMX.newMXBeanProxy(mbs, oName, ContextLoaderMXBean.class, true);
-										log.debug("Context loader was found");
-										proxy.setParentContext(defaultParentContextKey, appctx.getId());
-									} else {
-										log.warn("Context loader was not found");
-									}
-								} catch (Exception e) {
-									log.warn("Exception looking up ContextLoader", e);
+							log.debug("Context loader was not found, trying JMX");
+							MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+							// get the ContextLoader from jmx
+							ContextLoaderMXBean proxy = null;
+							ObjectName oName = null;
+							try {
+								oName = new ObjectName("org.red5.server:name=contextLoader,type=ContextLoader");
+								if (mbs.isRegistered(oName)) {
+									proxy = JMX.newMXBeanProxy(mbs, oName, ContextLoaderMXBean.class, true);
+									log.debug("Context loader was found");
+									proxy.setParentContext(defaultParentContextKey, appctx.getId());
+								} else {
+									log.warn("Context loader was not found");
 								}
+							} catch (Exception e) {
+								log.warn("Exception looking up ContextLoader", e);
 							}
 						}
-						if (log.isDebugEnabled()) {
-							if (appctx.getParent() != null) {
-								log.debug("Parent application context: {}", appctx.getParent().getDisplayName());
-							}
+					}
+					if (log.isDebugEnabled()) {
+						if (appctx.getParent() != null) {
+							log.debug("Parent application context: {}", appctx.getParent().getDisplayName());
 						}
-						// add the servlet context
-						appctx.setServletContext(servletContext);
-						// set the root webapp ctx attr on the each servlet context so spring can find it later
-						servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, appctx);
-						appctx.refresh();
 					}
-					catch (Exception e) {
-						e.printStackTrace();
-						log.error(ExceptionUtils.getStackTrace(e));
-						System.out.println(ExceptionUtils.getStackTrace(e));
-					}
+					// add the servlet context
+					appctx.setServletContext(servletContext);
+					// set the root webapp ctx attr on the each servlet context so spring can find it later
+					servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, appctx);
+					appctx.refresh();
+
 				}
 			};
 			thread.setDaemon(true);
