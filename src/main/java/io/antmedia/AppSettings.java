@@ -23,6 +23,7 @@ import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import dev.morphia.annotations.NotSaved;
+import dev.morphia.annotations.IndexOptions;
 
 /**
  * Application Settings for each application running in Ant Media Server.
@@ -47,7 +48,7 @@ import dev.morphia.annotations.NotSaved;
  *
  */
 @Entity("AppSettings")
-@Indexes({ @Index(fields = @Field("appName"))})
+@Indexes(@Index(fields = {@Field("appName")}, options = @IndexOptions(unique = true)))
 @PropertySource("/WEB-INF/red5-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AppSettings {
