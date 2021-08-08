@@ -1582,6 +1582,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public boolean startRtmpStreaming(String rtmpUrl, int resolutionHeight)
 	{
+		rtmpUrl = rtmpUrl.replaceAll("[\n\r\t]", "_");
 		if (!isRecording.get()) {
 			logger.warn("Start rtmp streaming return false for stream:{} because stream is being prepared", streamId);
 			return false;
