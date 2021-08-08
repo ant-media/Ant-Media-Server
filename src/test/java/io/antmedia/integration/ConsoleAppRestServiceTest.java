@@ -313,6 +313,9 @@ public class ConsoleAppRestServiceTest{
 		});
 		
 		//create the application again with the same name because there was a bug for that
+		
+		//just wait for 5+ seconds to make sure cluster is synched
+		Awaitility.await().pollInterval(6, TimeUnit.SECONDS).until(() -> true);;
 		result = createApplication(appName);
 		assertTrue(result);
 		
