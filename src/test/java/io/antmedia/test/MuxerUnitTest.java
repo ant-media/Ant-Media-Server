@@ -496,6 +496,48 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		rtmpMuxer.addStream(codecParameters, rat, 50);
 
 	}
+	
+	@Test
+	public void testMuxerStartStopRTMPStreaming() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		logger.info("Application / web scope: {}", appScope);
+		assertTrue(appScope.getDepth() == 1);
+		
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		
+		muxAdaptor.setIsRecording(true);
+		Mockito.doReturn(true).when(muxAdaptor).prepareMuxer(Mockito.any());
+		
+		String rtmpUrl = "rtmp://localhost";
+		int resolutionHeight = 480;
+		boolean result = muxAdaptor.startRtmpStreaming(rtmpUrl, resolutionHeight);
+		assertFalse(result);
+		
+		muxAdaptor.setHeight(480);
+		result = muxAdaptor.startRtmpStreaming(rtmpUrl, resolutionHeight);
+		assertTrue(result);
+		
+		
+		result = muxAdaptor.startRtmpStreaming(rtmpUrl, 0);
+		assertTrue(result);
+		
+		
+		
+		RtmpMuxer rtmpMuxer = Mockito.mock(RtmpMuxer.class);
+		Mockito.doReturn(rtmpMuxer).when(muxAdaptor).getRtmpMuxer(Mockito.any());
+		muxAdaptor.stopRtmpStreaming(rtmpUrl, resolutionHeight);
+		Mockito.verify(rtmpMuxer).writeTrailer();
+		
+		
+		muxAdaptor.stopRtmpStreaming(rtmpUrl, 0);
+		Mockito.verify(rtmpMuxer, Mockito.times(2)).writeTrailer();
+		
+	
+		muxAdaptor.stopRtmpStreaming(rtmpUrl, 360);
+		//it should be 2 times again because 360 and 480 don't match
+		Mockito.verify(rtmpMuxer, Mockito.times(2)).writeTrailer();
+		
+	}
 
 	@Test
 	public void testMuxerEndpointStatusUpdate() {
