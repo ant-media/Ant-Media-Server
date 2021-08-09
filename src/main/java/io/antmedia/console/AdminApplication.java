@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 import java.util.*;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.IClient;
 import org.red5.server.api.IConnection;
@@ -16,6 +17,7 @@ import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IGlobalScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.ScopeType;
+import org.red5.server.scope.WebScope;
 import org.red5.server.tomcat.WarDeployer;
 import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
@@ -139,6 +141,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return appsInfo;
 	}
 
+	public AntMediaApplicationAdapter getApplicationAdaptor(IScope appScope) 
+	{
+		return ((IApplicationAdaptorFactory) appScope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+	}
+
 	private long getStorage(String name) {
 		File appFolder = new File("webapps/"+name);
 		return FileUtils.sizeOfDirectory(appFolder);
@@ -194,7 +201,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		IScope root = getRootScope();
 
 		java.util.Set<String> names = root.getScopeNames();
-		List<String> apps = new ArrayList<String>();
+		List<String> apps = new ArrayList<>();
 		for (String name : names) {
 			if(!name.equals("root")) {
 				apps.add(name);
@@ -303,11 +310,19 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	public boolean deleteApplication(String appName) {
+
+		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
+		getApplicationAdaptor(appScope).serverShuttingdown();
+
 		boolean success = runDeleteAppScript(appName);
 		warDeployer.undeploy(appName);
 
-		IScope appScope = getRootScope().getScope(appName);	
-		getRootScope().removeChildScope(appScope);
+		try {
+			appScope.destroy();
+		} catch (Exception e) {
+			log.error(ExceptionUtils.getStackTrace(e));
+			success = false;
+		}
 
 		return success;
 	}
@@ -335,17 +350,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 
 		log.info("Creating application with command: {}", command);
-		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
-		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
-		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
-
-		try {
-			pb.start();
-			return true;
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
+		return runCommand(command);
 	}
 
 	public boolean runDeleteAppScript(String appName) {
@@ -354,16 +359,41 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		String command = "/bin/bash delete_app.sh -n "+appName+" -p "+webappsPath;
 
+		return runCommand(command);
+	}
+
+
+
+	public boolean runCommand(String command) {
+
+		boolean result = false;
+		try {
+			Process process = getProcess(command);
+			result = process.waitFor() == 0;
+		}
+		catch (IOException e) {
+			log.error(ExceptionUtils.getStackTrace(e));
+		} 
+		catch (InterruptedException e) {
+			log.error(ExceptionUtils.getStackTrace(e));
+			Thread.currentThread().interrupt();
+		}
+		return result;
+	}
+
+	public Process getProcess(String command) throws IOException {
 		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
 		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
 		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
+		return pb.start();
 
-		try {
-			pb.start();
-			return true;
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
-		}
+	}
+
+	public void setVertx(Vertx vertx) {
+		this.vertx = vertx;
+	}
+
+	public void setWarDeployer(WarDeployer warDeployer) {
+		this.warDeployer = warDeployer;
 	}
 }
