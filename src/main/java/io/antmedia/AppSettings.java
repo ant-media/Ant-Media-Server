@@ -294,6 +294,8 @@ public class AppSettings {
 	public static final String SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE = "settings.hlsEncryptionKeyInfoFile";
 	
 	public static final String SETTINGS_JWKS_URL = "settings.jwksURL";	
+	
+	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
 
 	@JsonIgnore
 	@NotSaved
@@ -702,9 +704,9 @@ public class AppSettings {
 	/**
 	 * It's mandatory,
 	 * Determines the frame rate of video publishing to the WebRTC players,
-	 * Default value is 20
+	 * Default value is 30 because users are complaining about the 20fps(previous value) and may not know to change it
 	 */
-	@Value( "${"+SETTINGS_WEBRTC_FRAME_RATE+":20}" )
+	@Value( "${"+SETTINGS_WEBRTC_FRAME_RATE+":30}" )
 	private int webRTCFrameRate;
 	
 	/**
@@ -1345,6 +1347,23 @@ public class AppSettings {
 	
 	@Value( "${" + SETTINGS_JWKS_URL +":#{null}}")
 	private String jwksURL;
+	
+	/**
+	 * This settings forces the aspect ratio to match the incoming aspect ratio perfectly.
+	 * For instance, if the incoming source is 1280x720 and there is an adaptive bitrate with 480p
+	 * There is no integer value that makes this equation true 1280/720 = x/480 -> x = 853.333
+	 * 
+	 *
+	 * So Ant Media Server can change the video height to match the aspect ratio perfectly. 
+	 * This is critical when there are multi-bitrates in the dash streaming. 
+	 * Because dash requires perfect match of aspect ratios of all streams
+	 * 
+	 * The disadvantage of this approach is that there may be have some uncommon resolutions at the result of the transcoding.
+	 * So that default value is false
+	 * 
+	 */
+	@Value( "${" + SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING +":false}")
+	private boolean forceAspectRatioInTranscoding;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2609,5 +2628,13 @@ public class AppSettings {
 
 	public void setJwksURL(String jwksURL) {
 		this.jwksURL = jwksURL;
+	}
+
+	public boolean isForceAspectRatioInTranscoding() {
+		return forceAspectRatioInTranscoding;
+	}
+
+	public void setForceAspectRatioInTranscoding(boolean forceAspectRatioInTranscoding) {
+		this.forceAspectRatioInTranscoding = forceAspectRatioInTranscoding;
 	}
 }
