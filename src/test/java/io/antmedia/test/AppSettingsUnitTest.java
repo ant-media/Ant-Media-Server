@@ -52,6 +52,13 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(appSettings.isUseOriginalWebRTCEnabled());
 		assertEquals(5000, appSettings.getCreatePreviewPeriod());
 		
+		//check default value
+		assertEquals(false, appSettings.isForceAspectRatioInTranscoding());
+		appSettings.setForceAspectRatioInTranscoding(true);
+		assertEquals(true, appSettings.isForceAspectRatioInTranscoding());
+		appSettings.setForceAspectRatioInTranscoding(true);
+		assertEquals(false, appSettings.isForceAspectRatioInTranscoding());
+		
 		List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
 		System.out.println("allowedCIDRList ->" + allowedCIDRList.size());
 	}

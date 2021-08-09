@@ -373,8 +373,9 @@ public class BroadcastRestService extends RestServiceBase{
 					if (!result.isSuccess()) 
 					{
 						result.setMessage("Rtmp endpoint is not added to stream: " + id);
-						logRtmpEndpointError(id, endpoint);
+						
 					}
+					logRtmpEndpointInfo(id, endpoint, result.isSuccess());
 				}
 				else 
 				{
@@ -389,9 +390,9 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 
-	private void logRtmpEndpointError(String id, Endpoint endpoint) {
-		if (logger.isErrorEnabled()) {
-			logger.error("Rtmp endpoint({}) was not added to the stream: {}", endpoint.getRtmpUrl().replaceAll(REPLACE_CHARS, "_") , id.replaceAll(REPLACE_CHARS, "_"));
+	private void logRtmpEndpointInfo(String id, Endpoint endpoint, boolean result) {
+		if (logger.isInfoEnabled()) {
+			logger.info("Rtmp endpoint({}) adding to the stream: {} is {}", endpoint.getRtmpUrl().replaceAll(REPLACE_CHARS, "_") , id.replaceAll(REPLACE_CHARS, "_"), result);
 		}
 	}
 
