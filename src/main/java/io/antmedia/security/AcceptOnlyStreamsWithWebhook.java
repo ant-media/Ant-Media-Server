@@ -65,10 +65,9 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 				RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 
-				HttpRequestBase post = (HttpRequestBase) RequestBuilder.post().setUri("https://webhook.site/af3f661e-e8da-4f35-b8ca-83ec970f19bd")//getAppSettings().getListenerHookURL())
+				HttpRequestBase post = (HttpRequestBase) RequestBuilder.post().setUri(webhookAuthURL)
 						.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 						.setEntity(new StringEntity(instance.toString())).build();
-
 				post.setConfig(requestConfig);
 
 				HttpResponse response= client.execute(post);
