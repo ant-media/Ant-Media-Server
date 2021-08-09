@@ -36,7 +36,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 	private DataStore dataStore;
 	private AppSettings appSettings;
 
-	@Value("${settings.acceptOnlyStreamsWithWebhook:false}")
+	@Value("${settings.acceptOnlyStreamsWithWebhook:true}")
 	private boolean enabled = true;
 
 	private ILicenceService licenService = null;
@@ -46,44 +46,44 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsWithWebhook.class);
 
 	@Override
-	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams) {
+	public synchronized boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams) {
 		
 		AtomicBoolean result = new AtomicBoolean(false);
+		AppSettings appSettings= (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
+		final String webhookAuthURL = appSettings.getWebhookAuthenticateURL();
 
-		if (getAppSettings().isAcceptOnlyStreamsWithWebhook())
+		if (webhookAuthURL != null && !webhookAuthURL.isEmpty())
 		{
-		executor.submit(() ->
-			{
 				try (CloseableHttpClient client = getHttpClient())
 				{
-
 					//Broadcast broadcast = getDatastore().get(name);
-
 					JsonObject instance = new JsonObject();
 
 					instance.addProperty("name", name);
 					instance.addProperty("mode", mode);
 					instance.addProperty("queryParams", queryParams.toString());
 
-
 					RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 
-					HttpRequestBase post = (HttpRequestBase) RequestBuilder.post().setUri(getAppSettings().getListenerHookURL())
+					HttpRequestBase post = (HttpRequestBase) RequestBuilder.post().setUri("https://webhook.site/af3f661e-e8da-4f35-b8ca-83ec970f19bd")//getAppSettings().getListenerHookURL())
 							.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 							.setEntity(new StringEntity(instance.toString())).build();
 
 					post.setConfig(requestConfig);
 
 					HttpResponse response= client.execute(post);
-					if (response.getStatusLine().getStatusCode() ==200){
+
+					int statuscode = response.getStatusLine().getStatusCode();
+					logger.info("Response from webhook is: {}", statuscode);
+
+					if (statuscode ==200){
 						result.set(true);
 					}
-
 				}
 				catch (Exception e) {
 					logger.error("Couldn't connect Webhook for Stream Authentication " , ExceptionUtils.getStackTrace(e));
 				}
-			});
+
 		}	
 		else 
 		{
@@ -117,7 +117,6 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 			
 		}
 
-		
 		return result.get();
 	}
 	

@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
-import io.antmedia.security.AcceptOnlyStreamsWithWebhook;
+
 import org.apache.catalina.util.NetMask;
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
@@ -124,7 +124,7 @@ public class AppSettings {
 	private static final String SETTINGS_ENCODING_VP8_THREAD_COUNT = "settings.encoding.vp8.threadCount";
 	private static final String SETTINGS_ENCODING_VP8_SPEED = "settings.encoding.vp8.speed";
 	private static final String SETTINGS_ENCODING_VP8_DEADLINE = "settings.encoding.vp8.deadline";
-	public static final String SETTINGS_ACCEPT_STREAMS_WITH_WEBHOOK = "settings.acceptOnlyStreamsWithWebhook";
+	public static final String SETTINGS_WEBHOOK_AUTHENTICATE_URL = "settings.webhookAuthenticateURL";
 
 	/**
 	 * Generate preview if there is any adaptive settings.
@@ -1236,10 +1236,10 @@ public class AppSettings {
 	/**
 	 * Enable Webhook Authentication when publishing streams
 	 */
-	@Value( "${"+SETTINGS_ACCEPT_STREAMS_WITH_WEBHOOK+":false}" )
-	private boolean acceptOnlyStreamsWithWebhook;
+	@Value( "${"+SETTINGS_WEBHOOK_AUTHENTICATE_URL+":}" )
+	private String webhookAuthenticateURL;
 
-	
+
 	/**
 	 * Use http streaming in Low Latency Dash,
 	 * If it's true, it sends files through http
@@ -2621,11 +2621,11 @@ public class AppSettings {
 	}
 
 
-	public boolean isAcceptOnlyStreamsWithWebhook(){
-		return acceptOnlyStreamsWithWebhook;
+	public String getWebhookAuthenticateURL(){
+		return webhookAuthenticateURL;
 	}
 
-	public void setAcceptStreamsWithWebhook(boolean acceptOnlyStreamsWithWebhook){
-		this.acceptOnlyStreamsWithWebhook = acceptOnlyStreamsWithWebhook;
+	public void setWebhookAuthenticateURL(String webhookAuthenticateURL){
+		this.webhookAuthenticateURL = webhookAuthenticateURL;
 	}
 }
