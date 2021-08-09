@@ -808,24 +808,16 @@ public class CommonRestService {
 	}
 
 
-	public AppSettings getSettings(@PathParam("appname") String appname) 
+	public AppSettings getSettings(String appname) 
 	{
-		AdminApplication application = getApplication();
-		if (application != null) {
-			ApplicationContext context = application.getApplicationContext(appname);
-			if (context != null) {
-				IApplicationAdaptorFactory adaptorFactory = (IApplicationAdaptorFactory)context.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-				if (adaptorFactory != null) {
-					AntMediaApplicationAdapter adapter = adaptorFactory.getAppAdaptor();
-					if (adapter != null) {
-						return adapter.getAppSettings();
-					}
-				}
-			}
+		AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appname);
+		if (appAdaptor != null) {
+			return appAdaptor.getAppSettings();
 		}
 		logger.warn("getSettings for app: {} returns null. It's likely not initialized.", appname);
 		return null;
 	}
+	
 
 
 	public ServerSettings getServerSettings() 
@@ -1080,21 +1072,28 @@ public class CommonRestService {
 	}
 
 
-	public Result createApplication(@QueryParam("appName") String appName) {
+	public Result createApplication(String appName) {
 		return new Result(getApplication().createApplication(appName));
 	}
 
 
-	public Result deleteApplication(@PathParam("appName") String appName) {
+	public Result deleteApplication(String appName) {
+		appName = appName.replaceAll("[\n\r\t]", "_");
 		logger.info("delete application http request:{}", appName);
 		AppSettings appSettings = getSettings(appName);
-		appSettings.setToBeDeleted(true);
-		changeSettings(appName, appSettings);
-		boolean result = true;
-		if (!isClusterMode()) {
-			//if it's not in cluster mode, delete application
-			//In cluster mode, it's deleted by synchronization
-			result = getApplication().deleteApplication(appName);
+		boolean result = false;
+		if (appSettings != null) {
+			appSettings.setToBeDeleted(true);
+			changeSettings(appName, appSettings);
+			result = true;
+			if (!isClusterMode()) {
+				//if it's not in cluster mode, delete application
+				//In cluster mode, it's deleted by synchronization
+				result = getApplication().deleteApplication(appName);
+			}
+		}
+		else {
+			logger.info("App settings is not available for app name:{}. App may be initializing", appName);
 		}
 		return new Result(result);
 	}

@@ -341,7 +341,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpointV3(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
 			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint,
-								@ApiParam(value = "Resolution of the broadcast that is wanted to send to the RTMP endpoint. Only applicable if there is at least an adaptive resolution is available.", required = false) @QueryParam("resolution") int resolution) {
+								@ApiParam(value = "Resolution height of the broadcast that is wanted to send to the RTMP endpoint. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight) {
 		
 		String rtmpUrl = null;
 		Result result = new Result(false);
@@ -361,7 +361,7 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		if (result.isSuccess()) 
 		{
-			result = processRTMPEndpoint(result,  getDataStore().get(id), rtmpUrl, true, resolution);
+			result = processRTMPEndpoint(result,  getDataStore().get(id), rtmpUrl, true, resolutionHeight);
 		}
 		else {
 			result.setMessage("Rtmp endpoint is not added to datastore");
@@ -408,7 +408,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result removeEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
 			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId, 
 								   @ApiParam(value = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.", required = true) 
-									   @QueryParam("resolution") int resolution){
+									   @QueryParam("resolutionHeight") int resolutionHeight){
 		
 		//Get rtmpURL with broadcast
 		String rtmpUrl = null;
@@ -427,7 +427,7 @@ public class BroadcastRestService extends RestServiceBase{
 		
 		if (result.isSuccess()) 
 		{
-			result = processRTMPEndpoint(result, broadcast, rtmpUrl, false, resolution);
+			result = processRTMPEndpoint(result, broadcast, rtmpUrl, false, resolutionHeight);
 		}
 		else if (logger.isErrorEnabled()) {	
 			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));

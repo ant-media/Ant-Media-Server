@@ -221,10 +221,17 @@
                     <apiSources>
                         <apiSource>
                             <springmvc>false</springmvc>
-                            <locations>io.antmedia.rest</locations>
+                            <locations>
+                             	<location>io.antmedia.rest</location> 
+                            	<location>io.antmedia.console.rest</location>
+                            </locations>
                             <swaggerDirectory>target/swagger</swaggerDirectory>
                             <swaggerFileName>swagger</swaggerFileName>
                             <outputFormats>json</outputFormats>
+                            <info>
+                   				 <title>Ant Media Server REST API Reference</title>
+                   				 <version>${project.parent.version}</version>
+                   			</info>
                         </apiSource>
                     </apiSources>
                 </configuration>
