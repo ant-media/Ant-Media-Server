@@ -56,7 +56,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(false, appSettings.isForceAspectRatioInTranscoding());
 		appSettings.setForceAspectRatioInTranscoding(true);
 		assertEquals(true, appSettings.isForceAspectRatioInTranscoding());
-		appSettings.setForceAspectRatioInTranscoding(true);
+		appSettings.setForceAspectRatioInTranscoding(false);
 		assertEquals(false, appSettings.isForceAspectRatioInTranscoding());
 		
 		List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
