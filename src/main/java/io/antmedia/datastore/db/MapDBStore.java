@@ -1480,4 +1480,16 @@ public class MapDBStore extends DataStore {
 		}  
 		return totalWebRTCViewerCount;
 	}
+	
+	@Override
+	public List<String> getSubtracks(String mainTrackId) {
+		ArrayList<String> subtracks = new ArrayList<String>();
+		for (String json : map.getValues()) {
+			Broadcast broadcast = gson.fromJson(json, Broadcast.class);
+			if(broadcast.getMainTrackStreamId() != null && broadcast.getMainTrackStreamId().equals(mainTrackId)) {
+				subtracks.add(broadcast.getStreamId());
+			}
+		}
+		return subtracks;
+	}
 }

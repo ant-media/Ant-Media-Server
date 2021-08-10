@@ -573,8 +573,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		prepareMuxerIO();
 		getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), PUBLISH_TYPE_RTMP);
-
-
+		
+		String mainTrack = broadcastStream.getParameters().get("mainTrack");
+		if(mainTrack != null) {
+			Broadcast broadcastLocal = getBroadcast();
+			broadcastLocal.setMainTrackStreamId(mainTrack);
+			getDataStore().updateBroadcastFields(streamId, broadcast);
+		}
 		return true;
 	}
 

@@ -389,6 +389,12 @@ public class WebSocketConstants {
 	 * It's sent when license is suspended
 	 */
 	public static final String LICENCE_SUSPENDED = "license_suspended_please_renew_license";
+	
+	/**
+	 * It's sent to determine mainTrackId if exists
+	 */
+	public static final String MAIN_TRACK = "mainTrack";
+
 
 	/**
 	 * It's sent as parameter conference mode

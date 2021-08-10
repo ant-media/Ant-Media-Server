@@ -44,12 +44,12 @@ public interface IWebRTCClient {
 	
 	public void setVideoResolution(int width, int height);
 
-
-	public void setWebRTCMuxer(IWebRTCMuxer webRTCMuxer);
+	public void addWebRTCMuxer(IWebRTCMuxer webRTCMuxer);
 	
-	public IWebRTCMuxer getWebRTCMuxer();
+	public void removeWebRTCMuxer(IWebRTCMuxer webRTCMuxer);
 	
 	public void stop();
+	
 
 
 	/**
@@ -183,4 +183,7 @@ public interface IWebRTCClient {
 	 * @param trackId
 	 */
 	public void removeTracksOnTheFly(String trackId);
+
+
+	public IWebRTCMuxer getWebRTCMuxer();
 }
