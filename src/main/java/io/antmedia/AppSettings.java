@@ -86,7 +86,9 @@ public class AppSettings {
 	public static final String FACEBOOK_CLIENT_SECRET = "facebook.clientSecret";
 	public static final String PERISCOPE_CLIENT_ID = "periscope.clientId";
 	public static final String PERISCOPE_CLIENT_SECRET = "periscope.clientSecret";
-	public static final String YOUTUBE_CLIENT_ID = "youtube.clientId";
+	public static final String YOUTUBE_CLIENT_ID = "youtube.clientId";WebM stop record function is fixed for WebRTC and RTMP when the recording is set to true from appsettings and when the recording is not dynamically started.
+
+
 	public static final String YOUTUBE_CLIENT_SECRET = "youtube.clientSecret";
 	public static final String SETTINGS_VOD_FOLDER = "settings.vodFolder";
 	public static final String SETTINGS_PREVIEW_OVERWRITE = "settings.previewOverwrite";
@@ -115,7 +117,9 @@ public class AppSettings {
 	private static final String SETTINGS_ENCODING_PRESET = "settings.encoding.preset";
 	private static final String SETTINGS_ENCODING_PROFILE = "settings.encoding.profile";
 	private static final String SETTINGS_ENCODING_LEVEL = "settings.encoding.level";
-	private static final String SETTINGS_ENCODING_RC = "settings.encoding.rc";
+	private static final String SETTINGS_ENCODING_RC = "settings.encoding.rc";WebM stop record function is fixed for WebRTC and RTMP when the recording is set to true from appsettings and when the recording is not dynamically started.
+
+
 	private static final String SETTINGS_ENCODING_THREAD_COUNT = "settings.encoding.threadCount";
 	private static final String SETTINGS_ENCODING_THREAD_TYPE= "settings.encoding.threadType";
 	private static final String SETTINGS_PREVIEW_HEIGHT = "settings.previewHeight";
@@ -293,8 +297,13 @@ public class AppSettings {
 	
 	public static final String SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE = "settings.hlsEncryptionKeyInfoFile";
 	
+
 	public static final String SETTINGS_JWKS_URL = "settings.jwksURL";
 	public static final String SETTINGS_WEBHOOK_AUTHENTICATE_URL = "settings.webhookAuthenticateURL";
+
+	
+	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
+
 
 	@JsonIgnore
 	@NotSaved
@@ -703,9 +712,9 @@ public class AppSettings {
 	/**
 	 * It's mandatory,
 	 * Determines the frame rate of video publishing to the WebRTC players,
-	 * Default value is 20
+	 * Default value is 30 because users are complaining about the 20fps(previous value) and may not know to change it
 	 */
-	@Value( "${"+SETTINGS_WEBRTC_FRAME_RATE+":20}" )
+	@Value( "${"+SETTINGS_WEBRTC_FRAME_RATE+":30}" )
 	private int webRTCFrameRate;
 	
 	/**
@@ -1346,6 +1355,23 @@ public class AppSettings {
 	
 	@Value( "${" + SETTINGS_JWKS_URL +":#{null}}")
 	private String jwksURL;
+	
+	/**
+	 * This settings forces the aspect ratio to match the incoming aspect ratio perfectly.
+	 * For instance, if the incoming source is 1280x720 and there is an adaptive bitrate with 480p
+	 * There is no integer value that makes this equation true 1280/720 = x/480 -> x = 853.333
+	 * 
+	 *
+	 * So Ant Media Server can change the video height to match the aspect ratio perfectly. 
+	 * This is critical when there are multi-bitrates in the dash streaming. 
+	 * Because dash requires perfect match of aspect ratios of all streams
+	 * 
+	 * The disadvantage of this approach is that there may be have some uncommon resolutions at the result of the transcoding.
+	 * So that default value is false
+	 * 
+	 */
+	@Value( "${" + SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING +":false}")
+	private boolean forceAspectRatioInTranscoding;
 
 	/**
 	 * Enable Webhook Authentication when publishing streams
@@ -2618,11 +2644,20 @@ public class AppSettings {
 		this.jwksURL = jwksURL;
 	}
 
+
 	public String getWebhookAuthenticateURL(){
 		return webhookAuthenticateURL;
 	}
 
 	public void setWebhookAuthenticateURL(String webhookAuthenticateURL){
 		this.webhookAuthenticateURL = webhookAuthenticateURL;
+
+	public boolean isForceAspectRatioInTranscoding() {
+		return forceAspectRatioInTranscoding;
+	}
+
+	public void setForceAspectRatioInTranscoding(boolean forceAspectRatioInTranscoding) {
+		this.forceAspectRatioInTranscoding = forceAspectRatioInTranscoding;
+
 	}
 }
