@@ -33,7 +33,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 	@Autowired
 	private DataStoreFactory dataStoreFactory;
 	private DataStore dataStore;
-	private AppSettings appSettings;
+	private AppSettings appSettings = null;
 
 	@Value("${settings.acceptOnlyStreamsWithWebhook:true}")
 	private boolean enabled = true;
@@ -47,7 +47,10 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 	public synchronized boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams) {
 
 		AtomicBoolean result = new AtomicBoolean(false);
-		AppSettings appSettings= (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
+		if (appSettings == null){
+			appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
+		}
+
 		final String webhookAuthURL = appSettings.getWebhookAuthenticateURL();
 
 		if (webhookAuthURL != null && !webhookAuthURL.isEmpty())
@@ -154,6 +157,10 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 	public AppSettings getAppSettings() {
 		return appSettings;
+	}
+
+	public void setAppSettings(AppSettings appSettings){
+		this.appSettings = appSettings;
 	}
 
 	public CloseableHttpClient getHttpClient() {

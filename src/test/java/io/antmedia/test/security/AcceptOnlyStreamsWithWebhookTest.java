@@ -13,12 +13,15 @@ import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.scope.Scope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.doReturn;
 
 public class AcceptOnlyStreamsWithWebhookTest {
-	
+	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsWithWebhookTest.class);
 	
 	@Test
 	public void testAcceptOnlyStreamsWithWebhook()
@@ -68,6 +71,59 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(false);
 		publishAllowed = mfilter.isPublishAllowed(scope, "streamId", "mode", null);
 		assertFalse(publishAllowed);
+
+
+
+
+
+	}
+
+	@Test
+	public void testIsPublishAllowedWithWebhook()
+	{
+		AcceptOnlyStreamsWithWebhook filter = new AcceptOnlyStreamsWithWebhook();
+		AcceptOnlyStreamsWithWebhook mfilter = Mockito.mock(AcceptOnlyStreamsWithWebhook.class);
+		IScope scope = Mockito.mock(IScope.class);
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWebhookAuthenticateURL("asd");
+		filter.setAppSettings(appSettings);
+
+		assertFalse(filter.isPublishAllowed(scope, "any()", "any()", null));
+
+		appSettings.setWebhookAuthenticateURL("");
+		filter.setAppSettings(appSettings);
+
+		IContext context = Mockito.mock(IContext.class);
+		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
+		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		Mockito.when(scope.getContext()).thenReturn(context);
+		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null);
+		assertTrue(publishAllowed);
+
+		filter.isPublishAllowed(scope, "any()", "any()", null);
+
+		appSettings.setWebhookAuthenticateURL(null);
+		filter.setAppSettings(appSettings);
+
+		filter.isPublishAllowed(scope, "any()", "any()", null);
+
+
+
+		InMemoryDataStore dataStore = new InMemoryDataStore("db");
+		DataStoreFactory factory = Mockito.mock(DataStoreFactory.class);
+		filter.setDataStoreFactory(factory);
+		Mockito.when(factory.getDataStore()).thenReturn(dataStore);
+		assertEquals(dataStore, filter.getDatastore());
+		assertEquals(factory, filter.getDataStoreFactory());
+
+		filter.setDataStore(dataStore);
+		filter.setEnabled(true);
+		boolean result = false;
+
+		doReturn(result).when(mfilter).isPublishAllowed(any(),any(),any(),any());
+
+
+
 
 	}
 
