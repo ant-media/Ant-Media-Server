@@ -32,14 +32,12 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 	@Autowired
 	private DataStoreFactory dataStoreFactory;
-	private static ExecutorService executor = Executors.newSingleThreadExecutor();
 	private DataStore dataStore;
 	private AppSettings appSettings;
 
 	@Value("${settings.acceptOnlyStreamsWithWebhook:true}")
 	private boolean enabled = true;
 
-	private ILicenceService licenService = null;
 
 	public static final String BEAN_NAME = "acceptOnlyStreamsWithWebhook";
 
