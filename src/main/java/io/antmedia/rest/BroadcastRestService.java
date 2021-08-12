@@ -74,7 +74,7 @@ import io.swagger.annotations.SwaggerDefinition;
 @Path("/v2/broadcasts")
 public class BroadcastRestService extends RestServiceBase{
 
-	
+
 	private static final String REPLACE_CHARS = "[\n|\r|\t]";
 	private static final String WEBM = "webm";
 	private static final String VALUE_IS_LESS_THAN_ZERO = "Value is less than zero";
@@ -96,13 +96,13 @@ public class BroadcastRestService extends RestServiceBase{
 			return number;
 		}
 	}
-	
+
 	@ApiModel(value="WebRTCSendStats", description="Aggregation of WebRTC Low Level Send Stats")
 	public static class WebRTCSendStats
 	{
 		@ApiModelProperty(value = "Audio send stats")
 		private final WebRTCAudioSendStats audioSendStats;
-		
+
 		@ApiModelProperty(value = "Video send stats")
 		private final WebRTCVideoSendStats videoSendStats;
 
@@ -119,13 +119,13 @@ public class BroadcastRestService extends RestServiceBase{
 			return audioSendStats;
 		}
 	}
-	
+
 	@ApiModel(value="WebRTCReceiveStats", description="Aggregation of WebRTC Low Level Receive Stats")
 	public static class WebRTCReceiveStats
 	{
 		@ApiModelProperty(value = "Audio receive stats")
 		private final WebRTCAudioReceiveStats audioReceiveStats;
-		
+
 		@ApiModelProperty(value = "Video receive stats")
 		private final WebRTCVideoReceiveStats videoReceiveStats;
 
@@ -142,7 +142,7 @@ public class BroadcastRestService extends RestServiceBase{
 			return audioReceiveStats;
 		}
 	}
-	
+
 
 	@ApiOperation(value = "Creates a Broadcast, IP Camera or Stream Source and returns the full broadcast object with rtmp address and "
 			+ "other information. The different between Broadcast and IP Camera or Stream Source is that Broadcast is ingested by Ant Media Server"
@@ -186,11 +186,11 @@ public class BroadcastRestService extends RestServiceBase{
 		else {
 			//TODO we need to refactor this method. Refactor validateStreamURL and checkStreamURL
 			if (broadcast != null && 
-				    ((AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) && !validateStreamURL(broadcast.getIpAddr()))
-					|| 
-					(AntMediaApplicationAdapter.STREAM_SOURCE.equals(broadcast.getType()) && !checkStreamUrl(broadcast.getStreamUrl()))
-					)
-			   ) {
+					((AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) && !validateStreamURL(broadcast.getIpAddr()))
+							|| 
+							(AntMediaApplicationAdapter.STREAM_SOURCE.equals(broadcast.getType()) && !checkStreamUrl(broadcast.getStreamUrl()))
+							)
+					) {
 				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream url is not valid. ")).build();
 			}
 			if(broadcast != null && broadcast.getSubFolder() != null) {
@@ -313,7 +313,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
 			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) @QueryParam("rtmpUrl") String rtmpUrl) {
-		
+
 		Result result = super.addEndpoint(id, rtmpUrl);
 		if (result.isSuccess()) 
 		{
@@ -329,10 +329,10 @@ public class BroadcastRestService extends RestServiceBase{
 				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
 			}
 		}
-		
+
 		return result;
 	}
-	
+
 
 	@ApiOperation(value = "Adds a third party rtmp end point to the stream. It supports adding after broadcast is started. Resolution can be specified to send a specific adaptive resolution. If an url is already added to a stream, trying to add the same rtmp url will return false.", notes = "", response = Result.class)
 	@POST
@@ -341,38 +341,61 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addEndpointV3(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
 			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) Endpoint endpoint,
-								@ApiParam(value = "Resolution height of the broadcast that is wanted to send to the RTMP endpoint. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight) {
-		
+			@ApiParam(value = "Resolution height of the broadcast that is wanted to send to the RTMP endpoint. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight) {
+
 		String rtmpUrl = null;
 		Result result = new Result(false);
-		
+
 		if(endpoint != null && endpoint.getRtmpUrl() != null) {
-			
+
 			Broadcast broadcast = getDataStore().get(id);
 			if (broadcast != null) {
-			
+
 				List<Endpoint> endpoints = broadcast.getEndPointList();
-				if (endpoints == null || endpoints.stream().noneMatch(o -> o.getRtmpUrl().equals(endpoint.getRtmpUrl()))) {
+				if (endpoints == null || endpoints.stream().noneMatch(o -> o.getRtmpUrl().equals(endpoint.getRtmpUrl()))) 
+				{
 					rtmpUrl = endpoint.getRtmpUrl();
-					result = super.addEndpoint(id, endpoint);
+
+					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
+					{
+						result = processRTMPEndpoint(result, broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, true, resolutionHeight);
+						if (result.isSuccess()) 
+						{
+							result = super.addEndpoint(id, endpoint);
+						}
+					}
+					else 
+					{
+						result = super.addEndpoint(id, endpoint);
+					}
+
+
+					if (!result.isSuccess()) 
+					{
+						result.setMessage("Rtmp endpoint is not added to stream: " + id);
+						
+					}
+					logRtmpEndpointInfo(id, endpoint, result.isSuccess());
+				}
+				else 
+				{
+					result.setMessage("Rtmp endpoint is not added to datastore for stream " + id + ". It is already added ->" + endpoint.getRtmpUrl());
 				}
 			}
 		}
-		
-		if (result.isSuccess()) 
-		{
-			result = processRTMPEndpoint(result,  getDataStore().get(id), rtmpUrl, true, resolutionHeight);
-		}
 		else {
-			result.setMessage("Rtmp endpoint is not added to datastore");
-			if (logger.isErrorEnabled()) {
-				logger.error("Rtmp endpoint({}) was not added to the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
-			}
+			result.setMessage("Missing rtmp url");
 		}
-		
+
 		return result;
 	}
-	
+
+	private void logRtmpEndpointInfo(String id, Endpoint endpoint, boolean result) {
+		if (logger.isInfoEnabled()) {
+			logger.info("Rtmp endpoint({}) adding to the stream: {} is {}", endpoint.getRtmpUrl().replaceAll(REPLACE_CHARS, "_") , id.replaceAll(REPLACE_CHARS, "_"), result);
+		}
+	}
+
 	@Deprecated
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -391,12 +414,12 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 		}
 		else {	
-		
+
 			if (logger.isErrorEnabled()) {
 				logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
 			}
 		}
-		
+
 		return result;
 	}
 
@@ -407,32 +430,51 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result removeEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
 			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId, 
-								   @ApiParam(value = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.", required = true) 
-									   @QueryParam("resolutionHeight") int resolutionHeight){
-		
+			@ApiParam(value = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.", required = true) 
+	@QueryParam("resolutionHeight") int resolutionHeight){
+
 		//Get rtmpURL with broadcast
 		String rtmpUrl = null;
 		Broadcast broadcast = getDataStore().get(id);
-		Result result;
-		
-		if(endpointServiceId != null && broadcast != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty() ) {
-			for(Endpoint endpoint: broadcast.getEndPointList()) {
-				if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
-					rtmpUrl = endpoint.getRtmpUrl();
+		Result result = new Result(false);
+
+		if (broadcast != null && endpointServiceId != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty()) 
+		{
+
+			rtmpUrl = getRtmpUrlFromList(endpointServiceId, rtmpUrl, broadcast);
+			if (rtmpUrl != null) {
+			
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
+				{
+					result = processRTMPEndpoint(result, broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, false, resolutionHeight);
+					if (result.isSuccess()) 
+					{
+						result = super.removeRTMPEndpoint(id, endpointServiceId);
+					}
+				}
+				else 
+				{
+					result = super.removeRTMPEndpoint(id, endpointServiceId);
 				}
 			}
-		}
 
-		result = super.removeRTMPEndpoint(id, endpointServiceId);
-		
-		if (result.isSuccess()) 
-		{
-			result = processRTMPEndpoint(result, broadcast, rtmpUrl, false, resolutionHeight);
-		}
-		else if (logger.isErrorEnabled()) {	
-			logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
+			
+		} 
+		if (logger.isInfoEnabled()) 
+		{ 
+			logger.info("Rtmp endpoint({}) removal operation is {} from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , result.isSuccess(), id.replaceAll(REPLACE_CHARS, "_"));
 		}
 		return result;
+	}
+
+	private String getRtmpUrlFromList(String endpointServiceId, String rtmpUrl, Broadcast broadcast) {
+		for(Endpoint endpoint: broadcast.getEndPointList()) 
+		{
+			if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
+				rtmpUrl = endpoint.getRtmpUrl();
+			}
+		}
+		return rtmpUrl;
 	}
 
 	@ApiOperation(value = "Returns live comments from a specific endpoint like Facebook, Youtube, PSCP, etc. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "Notes here", responseContainer = "List", response = LiveComment.class)
@@ -535,7 +577,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public SimpleStat getAppLiveStatistics() {
 		return new SimpleStat(getDataStore().getActiveBroadcastCount());
 	}
-	
+
 
 
 
@@ -558,7 +600,7 @@ public class BroadcastRestService extends RestServiceBase{
 			return Response.status(Status.BAD_REQUEST).entity(result).build();
 		}
 	}
-	
+
 	@ApiOperation(value = "Generates JWT token for specified stream. It's not required to let the server generate JWT. Generally JWT tokens should be generated on the client side.")
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "Returns token", response=Token.class), 
 			@ApiResponse(code = 400, message = "When there is an error in creating token", response=Result.class)})
@@ -620,7 +662,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return tokens;
 	}
-	
+
 	@ApiOperation(value = "Get the all subscribers of the requested stream", notes = "",responseContainer = "List", response = Subscriber.class)
 	@GET
 	@Path("/{id}/subscribers/list/{offset}/{size}")
@@ -634,7 +676,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return subscribers;
 	}	
-	
+
 	@ApiOperation(value = "Get the all subscriber statistics of the requested stream", notes = "",responseContainer = "List", response = SubscriberStats.class)
 	@GET
 	@Path("/{id}/subscriber-stats/list/{offset}/{size}")
@@ -648,7 +690,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return subscriberStats;
 	}
-	
+
 	@ApiOperation(value = "Add Subscriber to the requested stream ", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -665,14 +707,14 @@ public class BroadcastRestService extends RestServiceBase{
 			subscriber.setStats(new SubscriberStats());
 			// subscriber is not connected yet
 			subscriber.setConnected(false);
-			
+
 			if (streamId != null) {
 				result = getDataStore().addSubscriber(streamId, subscriber);
 			}
 		}
 		return new Result(result);
 	}
-	
+
 	@ApiOperation(value = "Delete specific subscriber from data store for selected stream", response = Result.class)
 	@DELETE
 	@Consumes({ MediaType.APPLICATION_JSON })
@@ -681,7 +723,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result deleteSubscriber(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@ApiParam(value = "the id of the subscriber", required = true) @PathParam("sid") String subscriberId) {
 		boolean result =  false;
-				
+
 		if(streamId != null) {
 			result = getDataStore().deleteSubscriber(streamId, subscriberId);
 		}
@@ -696,14 +738,14 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result revokeSubscribers(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId) {
 		boolean result =  false;
-		
+
 		if(streamId != null) {
 			result = getDataStore().revokeSubscribers(streamId);
 		}
 
 		return new Result(result);
 	}	
-	
+
 	@ApiOperation(value = "Get the broadcast live statistics total RTMP watcher count, total HLS watcher count, total WebRTC watcher count", notes = "", response = BroadcastStatistics.class)
 	@GET
 	@Path("/{id}/broadcast-statistics")
@@ -712,7 +754,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public BroadcastStatistics getBroadcastStatistics(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id) {
 		return super.getBroadcastStatistics(id);
 	}
-	
+
 	@ApiOperation(value = "Get the total broadcast live statistics total HLS watcher count, total WebRTC watcher count", notes = "", response = BroadcastStatistics.class)
 	@GET
 	@Path("/total-broadcast-statistics")
@@ -730,7 +772,7 @@ public class BroadcastRestService extends RestServiceBase{
 	{
 		return new WebRTCSendStats(getApplication().getWebRTCAudioSendStats(), getApplication().getWebRTCVideoSendStats());
 	}
-	
+
 	@ApiOperation(value = "Get WebRTC Low Level receive stats in general", notes = "",response = WebRTCSendStats.class)
 	@GET
 	@Path("/webrtc-receive-low-level-stats")
@@ -739,7 +781,7 @@ public class BroadcastRestService extends RestServiceBase{
 	{
 		return new WebRTCReceiveStats(getApplication().getWebRTCAudioReceiveStats(), getApplication().getWebRTCVideoReceiveStats());
 	}
-	
+
 	@ApiOperation(value = "Get RTMP to WebRTC path stats in general", notes = "",response = RTMPToWebRTCStats.class)
 	@GET
 	@Path("/{id}/rtmp-to-webrtc-stats")
@@ -748,8 +790,8 @@ public class BroadcastRestService extends RestServiceBase{
 	{
 		return getApplication().getRTMPToWebRTCStats(id);
 	}
-	
-	
+
+
 	@ApiOperation(value = "Get WebRTC Client Statistics such as : Audio bitrate, Video bitrate, Target bitrate, Video Sent Period etc.", notes = "", responseContainer = "List",response = WebRTCClientStats.class)
 	@GET
 	@Path("/{stream_id}/webrtc-client-stats/{offset}/{size}")
@@ -844,8 +886,8 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "id", required = true) @PathParam("id") String channelId) {
 		return super.setSocialNetworkChannelList(endpointId, type, channelId);
 	}
-	
-	
+
+
 	@ApiOperation(value = "Set stream specific recording setting, this setting overrides general Mp4 and WebM Muxing Setting", notes = "", response = Result.class)
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -923,19 +965,19 @@ public class BroadcastRestService extends RestServiceBase{
 			if (valueX == null) {
 				valueX = 0f;
 			}
-			
+
 			if (valueY == null) {
 				valueY = 0f;
 			}
-			
+
 			if (valueZ == null) {
 				valueZ = 0f;
 			}
-			
+
 			if (movement == null) {
 				movement = RELATIVE_MOVE;
 			}
-			
+
 			if (movement.equals(RELATIVE_MOVE)) {
 				result = super.moveRelative(id, valueX, valueY, valueZ);
 			}
@@ -951,7 +993,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return new Result(result, message);
 	}
-	
+
 	@ApiOperation(value="Stop move for IP Camera.", response = Result.class)
 	@POST
 	@Path("/{id}/ip-camera/stop-move")
@@ -963,7 +1005,7 @@ public class BroadcastRestService extends RestServiceBase{
 		{		
 			OnvifCamera camera = getApplication().getOnvifCamera(id);
 			if (camera != null) {
-			result = camera.moveStop();
+				result = camera.moveStop();
 				message = "";
 			}
 			else {
@@ -1014,7 +1056,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result deleteConferenceRoomV2(@ApiParam(value = "the id of the conference room", required = true) @PathParam("room_id") String roomId) {
 		return new Result(super.deleteConferenceRoom(roomId, getDataStore()));
 	}
-	
+
 	@ApiOperation(value = "Add a subtrack to a main track (broadcast).", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -1022,14 +1064,14 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSubTrack(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
 			@ApiParam(value = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId) {
-		
+
 		Broadcast subTrack = getDataStore().get(subTrackId);
 		subTrack.setMainTrackStreamId(id);
 		boolean success = getDataStore().updateBroadcastFields(subTrackId, subTrack);
 		success = success && getDataStore().addSubTrack(id, subTrackId);
 		return new Result(success);
 	}
-	
+
 	@ApiOperation(value = "Returns the stream info(width, height, bitrates and video codec) of the stream", response= BasicStreamInfo[].class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -1056,7 +1098,7 @@ public class BroadcastRestService extends RestServiceBase{
 						iStreamInfo.getVideoBitrate(), iStreamInfo.getAudioBitrate(), iStreamInfo.getVideoCodec());
 			}
 		}
-		
+
 		return basicStreamInfo;
 	}	
 
@@ -1075,22 +1117,22 @@ public class BroadcastRestService extends RestServiceBase{
 			if(application.isDataChannelEnabled()) {
 				// check if stream with given stream id exists
 				if(application.doesWebRTCStreamExist(id)) {
-					 // send the message through the application
-					 boolean status = application.sendDataChannelMessage(id,message);
-					 if(status) {
-						 return new Result(true);
-					 } else {
-						 return new Result(false, "Operation not completed");
-					 }
-					
+					// send the message through the application
+					boolean status = application.sendDataChannelMessage(id,message);
+					if(status) {
+						return new Result(true);
+					} else {
+						return new Result(false, "Operation not completed");
+					}
+
 				} else {
 					return new Result(false, "Requested WebRTC stream does not exist");
 				}
-				
+
 			} else {
 				return new Result(false, "Data channels are not enabled");
 			}
-			
+
 		} else {
 			return new Result(false, "Operation not supported in the Community Edition. Check the Enterprise version for more features.");
 		}
@@ -1100,11 +1142,11 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/conference-rooms/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public List<ConferenceRoom> getConferenceRoomList(@ApiParam(value = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
-											@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
-											@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
-											@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
-											@ApiParam(value = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
-	) {
+			@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
+			@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
+			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
+			@ApiParam(value = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
+			) {
 		return getDataStore().getConferenceRoomList(offset, size ,sortBy, orderBy, search);
 	}
 
@@ -1133,7 +1175,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/conference-rooms/{room_id}/room-info")
 	@Produces(MediaType.APPLICATION_JSON)
 	public RootRestService.RoomInfo getRoomInfo(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
-												@ApiParam(value="If Stream Id is entered, that stream id will be isolated from the result",required = false) @QueryParam("streamId") String streamId){
+			@ApiParam(value="If Stream Id is entered, that stream id will be isolated from the result",required = false) @QueryParam("streamId") String streamId){
 		ConferenceRoom room = getDataStore().getConferenceRoom(roomId);
 		return new RootRestService.RoomInfo(roomId,RestServiceBase.getRoomInfoFromConference(roomId,streamId,getDataStore()), room);
 	}
@@ -1144,7 +1186,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/conference-rooms/{room_id}/add")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addStreamToTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
-												@ApiParam(value="Stream id to add to the conference room",required = true) @QueryParam("streamId") String streamId){
+			@ApiParam(value="Stream id to add to the conference room",required = true) @QueryParam("streamId") String streamId){
 		return new Result(RestServiceBase.addStreamToConferenceRoom(roomId,streamId,getDataStore()));
 	}
 
@@ -1154,7 +1196,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/conference-rooms/{room_id}/delete")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteStreamFromTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
-									  @ApiParam(value="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId){
+			@ApiParam(value="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId){
 		return new Result(RestServiceBase.removeStreamFromRoom(roomId,streamId,getDataStore()));
 	}
 

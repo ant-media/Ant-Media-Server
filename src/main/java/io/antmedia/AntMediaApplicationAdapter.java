@@ -1502,6 +1502,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE, newAppsettings.getHlsEncryptionKeyInfoFile() != null ? newAppsettings.getHlsEncryptionKeyInfoFile() : "");
 		store.put(AppSettings.SETTINGS_WEBHOOK_AUTHENTICATE_URL, String.valueOf(newAppsettings.getWebhookAuthenticateURL()));
 
+		store.put(AppSettings.SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING, String.valueOf(newAppsettings.isForceAspectRatioInTranscoding()));
 		return store.save();
 	}
 
@@ -1579,6 +1580,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		storageClient.setRegion(newSettings.getS3RegionName());
 		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
 		storageClient.reset();
+		
+		
+		appSettings.setForceAspectRatioInTranscoding(newSettings.isForceAspectRatioInTranscoding());
 
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 		appSettings.setHlsEncryptionKeyInfoFile(newSettings.getHlsEncryptionKeyInfoFile());

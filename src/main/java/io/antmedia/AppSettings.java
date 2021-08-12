@@ -294,6 +294,8 @@ public class AppSettings {
 	public static final String SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE = "settings.hlsEncryptionKeyInfoFile";
 	
 	public static final String SETTINGS_JWKS_URL = "settings.jwksURL";
+
+	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
 	public static final String SETTINGS_WEBHOOK_AUTHENTICATE_URL = "settings.webhookAuthenticateURL";
 
 	@JsonIgnore
@@ -1346,12 +1348,6 @@ public class AppSettings {
 	
 	@Value( "${" + SETTINGS_JWKS_URL +":#{null}}")
 	private String jwksURL;
-
-	/**
-	 * Enable Webhook Authentication when publishing streams
-	 */
-	@Value( "${"+SETTINGS_WEBHOOK_AUTHENTICATE_URL+":}" )
-	private String webhookAuthenticateURL;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2616,13 +2612,5 @@ public class AppSettings {
 
 	public void setJwksURL(String jwksURL) {
 		this.jwksURL = jwksURL;
-	}
-
-	public String getWebhookAuthenticateURL(){
-		return webhookAuthenticateURL;
-	}
-
-	public void setWebhookAuthenticateURL(String webhookAuthenticateURL){
-		this.webhookAuthenticateURL = webhookAuthenticateURL;
 	}
 }
