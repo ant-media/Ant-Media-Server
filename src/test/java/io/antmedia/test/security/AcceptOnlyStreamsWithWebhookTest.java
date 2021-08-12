@@ -11,11 +11,17 @@ import io.antmedia.security.AcceptOnlyStreamsWithWebhook;
 import org.junit.Test;
 import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
+
+import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
+import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.Scope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.doReturn;
@@ -92,12 +98,16 @@ public class AcceptOnlyStreamsWithWebhookTest {
 
 		appSettings.setWebhookAuthenticateURL("");
 		filter.setAppSettings(appSettings);
-
 		IContext context = Mockito.mock(IContext.class);
 		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
 		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
 		Mockito.when(scope.getContext()).thenReturn(context);
+		IConnection connectionlocal = Mockito.mock(IConnection.class);
+
 		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null);
+		assertTrue(publishAllowed);
+
+		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null);
 		assertTrue(publishAllowed);
 
 		filter.isPublishAllowed(scope, "any()", "any()", null);
@@ -106,8 +116,6 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		filter.setAppSettings(appSettings);
 
 		filter.isPublishAllowed(scope, "any()", "any()", null);
-
-
 
 		InMemoryDataStore dataStore = new InMemoryDataStore("db");
 		DataStoreFactory factory = Mockito.mock(DataStoreFactory.class);
@@ -122,8 +130,14 @@ public class AcceptOnlyStreamsWithWebhookTest {
 
 		doReturn(result).when(mfilter).isPublishAllowed(any(),any(),any(),any());
 
+		filter.getAppSettings();
+		assertTrue(filter.isEnabled());
 
+		Map<String, String> queryParams = new HashMap<>();
 
+		queryParams.put("q1","p1");
+
+		filter.isPublishAllowed(scope, "any()", "any()", null);
 
 	}
 
