@@ -49,5 +49,5 @@ public abstract class AbstractStreamSecurity implements IStreamPublishSecurity  
 
 	}
 
-	
+
 }
