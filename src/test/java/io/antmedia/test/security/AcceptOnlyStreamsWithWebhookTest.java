@@ -49,12 +49,8 @@ public class AcceptOnlyStreamsWithWebhookTest {
 
 		InMemoryDataStore dataStore = new InMemoryDataStore("db");
 		DataStoreFactory factory = Mockito.mock(DataStoreFactory.class);
-		filter.setDataStoreFactory(factory);
 		Mockito.when(factory.getDataStore()).thenReturn(dataStore);
-		assertEquals(dataStore, filter.getDatastore());
-		assertEquals(factory, filter.getDataStoreFactory());
 
-		filter.setDataStore(dataStore);
 		filter.setEnabled(true);
 		boolean result = false;
 
@@ -89,10 +85,6 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(false);
 		publishAllowed = mfilter.isPublishAllowed(scope, "streamId", "mode", null);
 		assertFalse(publishAllowed);
-
-
-
-
 
 	}
 
@@ -130,12 +122,8 @@ public class AcceptOnlyStreamsWithWebhookTest {
 
 		InMemoryDataStore dataStore = new InMemoryDataStore("db");
 		DataStoreFactory factory = Mockito.mock(DataStoreFactory.class);
-		filter.setDataStoreFactory(factory);
 		Mockito.when(factory.getDataStore()).thenReturn(dataStore);
-		assertEquals(dataStore, filter.getDatastore());
-		assertEquals(factory, filter.getDataStoreFactory());
 
-		filter.setDataStore(dataStore);
 		filter.setEnabled(true);
 		boolean result = false;
 
@@ -149,9 +137,6 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		queryParams.put("q1","p1");
 
 		filter.isPublishAllowed(scope, "any()", "any()", null);
-
-		filter.setDataStore(null);
-
 
 		filter.isPublishAllowed(scope, "any()", "any()", null);
 
@@ -199,7 +184,7 @@ public class AcceptOnlyStreamsWithWebhookTest {
 
 		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(true);
 		publishAllowed = acceptOnlyStreamsWithWebhook.isPublishAllowed(scope, "streamId", "mode", queryParams);
-		assertFalse(publishAllowed);
+		assertTrue(publishAllowed);
 		RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 
 		CloseableHttpClient client = Mockito.mock(CloseableHttpClient.class);
@@ -221,7 +206,7 @@ public class AcceptOnlyStreamsWithWebhookTest {
 
 		publishAllowed = acceptOnlyStreamsWithWebhook.isPublishAllowed(scope, "streamId", "mode", queryParams);
 		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(false);
-		assertFalse(publishAllowed);
+		assertTrue(publishAllowed);
 
 
 		Mockito.when(httpResponsse.getStatusLine()).thenReturn(statusLine);

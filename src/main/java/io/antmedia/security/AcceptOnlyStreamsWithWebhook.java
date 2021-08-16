@@ -28,7 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class AcceptOnlyStreamsWithWebhook extends AbstractStreamSecurity  {
+public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 	@Autowired
 	private DataStoreFactory dataStoreFactory;
@@ -50,9 +50,7 @@ public class AcceptOnlyStreamsWithWebhook extends AbstractStreamSecurity  {
 		if (appSettings == null){
 			appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
 		}
-
 		final String webhookAuthURL = appSettings.getWebhookAuthenticateURL();
-
 		if (webhookAuthURL != null && !webhookAuthURL.isEmpty())
 		{
 			try (CloseableHttpClient client = getHttpClient())
@@ -91,20 +89,6 @@ public class AcceptOnlyStreamsWithWebhook extends AbstractStreamSecurity  {
 		}
 
 
-
-
-		if (result.get())
-		{
-			//check license suspended
-			ILicenceService licenceService = getLicenceService(scope);
-			if (licenceService.isLicenceSuspended())
-			{
-				logger.info("License is suspended and not accepting connection for {}", name);
-				result.set(false);
-			}
-		}
-
-
 		if (!result.get()) {
 			IConnection connectionLocal = Red5.getConnectionLocal();
 			if (connectionLocal != null) {
@@ -118,40 +102,16 @@ public class AcceptOnlyStreamsWithWebhook extends AbstractStreamSecurity  {
 
 		return result.get();
 	}
-	@Override
-	public ILicenceService getLicenceService(IScope scope) {
-		return (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
-	}
-	@Override
-	public DataStore getDatastore() {
-		if (dataStore == null) {
-			dataStore = dataStoreFactory.getDataStore();
-		}
-		return dataStore;
-	}
 
-	@Override
-	public void setDataStore(DataStore dataStore) {
-		this.dataStore = dataStore;
-	}
 
-	@Override
+
 	public boolean isEnabled() {
 		return enabled;
 	}
 
-	@Override
+
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
-	}
-	@Override
-	public DataStoreFactory getDataStoreFactory() {
-		return dataStoreFactory;
-	}
-
-	@Override
-	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
-		this.dataStoreFactory = dataStoreFactory;
 	}
 
 	public AppSettings getAppSettings() {
