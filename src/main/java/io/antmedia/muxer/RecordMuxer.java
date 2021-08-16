@@ -78,6 +78,9 @@ public abstract class RecordMuxer extends Muxer {
 	protected int resolution;
 	protected AVBSFContext bsfExtractdataContext = null;
 
+	private byte[] extradata = null;
+
+
 	protected AVPacket tmpPacket;
 	protected Map<Integer, AVRational> codecTimeBaseMap = new HashMap<>();
 
@@ -231,6 +234,15 @@ public abstract class RecordMuxer extends Muxer {
 			codecTimeBaseMap.put(outStream.index(), timebase);
 			registeredStreamIndexList.add(streamIndex);
 			outStream.codecpar().codec_tag(0);
+
+			extradata = new byte[codecParameters.extradata_size()];
+
+			if(extradata.length > 0) {
+				BytePointer extraDataPointer = codecParameters.extradata();
+				extraDataPointer.get(extradata).close();
+				extraDataPointer.close();
+				logger.info("extra data 0: {}  1: {}, 2:{}, 3:{}, 4:{}", extradata[0], extradata[1], extradata[2], extradata[3], extradata[4]);
+			}
 
 			if (codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO)
 			{
@@ -675,14 +687,50 @@ public abstract class RecordMuxer extends Muxer {
 			}
 			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames
 			// until the first key frame
-			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			//pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			//pkt.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
-			int ret = av_packet_ref(tmpPacket , pkt);
+			/*int ret = av_packet_ref(tmpPacket , pkt);
 			if (ret < 0) {
 				logger.error("Cannot copy video packet for {}", streamId);
 				return;
+			}*/
+			boolean isKeyFrame = false;
+			if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
+				isKeyFrame = true;
 			}
+
+			ByteBuffer byteBuffer;
+
+			//TODO: Use buffer pools
+			if (isKeyFrame) {
+				byteBuffer = ByteBuffer.allocateDirect(extradata.length + pkt.size());
+				byteBuffer.put(extradata);
+				logger.info("*************** adding extra data record muxer");
+				byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+
+			}
+			else {
+				byteBuffer = ByteBuffer.allocateDirect(pkt.size());
+				byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+			}
+			byteBuffer.position(0);
+			//byteBuffer = ByteBuffer.allocateDirect(pkt.size());
+			//byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+
+			int streamIndex = pkt.stream_index();
+			int flag = pkt.flags();
+			long position = pkt.position();
+			//logger.info("pkt stream index = " + pkt.stream_index() + " flag = " + pkt.flags() + " duration = " + pkt.duration() + " position = " + pkt.position());
+			tmpPacket.stream_index(streamIndex);
+			tmpPacket.data(new BytePointer(byteBuffer));
+			tmpPacket.size(byteBuffer.limit());
+			tmpPacket.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			tmpPacket.position(position);
+			tmpPacket.flags(flag);
+			tmpPacket.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+
+			//logger.info("TMPpkt stream index = " + tmpPacket.stream_index() + " flag = " + tmpPacket.flags() + " duration = " + tmpPacket.duration() + " position  = " + tmpPacket.position());
 
 			writeVideoFrame(tmpPacket, context);
 
