@@ -218,6 +218,7 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		Mockito.when(httpResponsse.getStatusLine()).thenReturn(statusLine);
 		Mockito.when(httpResponsse.getStatusLine().getStatusCode()).thenReturn(404);
 		Mockito.when(acceptOnlyStreamsWithWebhook.readHttpResponse(httpResponsse)).thenReturn(404);
+
 		publishAllowed = acceptOnlyStreamsWithWebhook.isPublishAllowed(scope, "streamId", "mode", queryParams);
 		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(false);
 		assertFalse(publishAllowed);
@@ -229,13 +230,6 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		publishAllowed = acceptOnlyStreamsWithWebhook.isPublishAllowed(scope, "streamId", "mode", queryParams);
 		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(false);
 		assertTrue(publishAllowed);
-
-
-
-
-
-
-
 
 	}
 

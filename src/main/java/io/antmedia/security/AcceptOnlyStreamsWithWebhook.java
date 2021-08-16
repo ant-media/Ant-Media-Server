@@ -73,10 +73,11 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 				HttpResponse response= client.execute(post);
 
+				int statuscode = response.getStatusLine().getStatusCode();
+				logger.info("Response from webhook is: {}", statuscode);
 
-				if (readHttpResponse(response) ==200){
-					result.set(true);
-				}
+				result.set(statuscode==200);
+
 			}
 			catch (Exception e) {
 				logger.error("Couldn't connect Webhook for Stream Authentication " , ExceptionUtils.getStackTrace(e));
