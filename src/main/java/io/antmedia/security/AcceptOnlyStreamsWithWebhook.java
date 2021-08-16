@@ -73,10 +73,8 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 				HttpResponse response= client.execute(post);
 
-				int statuscode = response.getStatusLine().getStatusCode();
-				logger.info("Response from webhook is: {}", statuscode);
 
-				if (statuscode ==200){
+				if (readHttpResponse(response) ==200){
 					result.set(true);
 				}
 			}
@@ -165,5 +163,13 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 	public CloseableHttpClient getHttpClient() {
 		return HttpClients.createDefault();
+	}
+
+
+	public int readHttpResponse(HttpResponse response){
+
+		int statuscode = response.getStatusLine().getStatusCode();
+		logger.info("Response from webhook is: {}", statuscode);
+		return statuscode;
 	}
 }

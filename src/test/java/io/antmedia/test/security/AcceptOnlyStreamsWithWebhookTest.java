@@ -5,9 +5,11 @@ import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.filter.IPFilterDashboard;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.security.AcceptOnlyStreamsWithWebhook;
+import org.apache.http.HttpResponse;
 import org.junit.Test;
 import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
@@ -138,6 +140,61 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		queryParams.put("q1","p1");
 
 		filter.isPublishAllowed(scope, "any()", "any()", null);
+
+		filter.setDataStore(null);
+
+
+		filter.isPublishAllowed(scope, "any()", "any()", null);
+
+
+		filter.setEnabled(true);
+		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(false);
+		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", queryParams);
+		assertTrue(publishAllowed);
+
+
+
+		HttpResponse httpResponse = Mockito.mock(HttpResponse.class);
+
+		mfilter.setEnabled(true);
+
+
+		//Mockito.when(httpResponse.getStatusLine().getStatusCode()).thenReturn(404);
+		//Mockito.when(filter.readHttpResponse(httpResponse)).thenReturn(404);
+		Mockito.doReturn(404).when(mfilter).readHttpResponse(httpResponse);
+
+		publishAllowed = mfilter.isPublishAllowed(scope, "streamId", "mode", queryParams);
+		assertFalse(publishAllowed);
+
+		Mockito.doReturn(200).when(mfilter).readHttpResponse(httpResponse);
+		appSettings.setWebhookAuthenticateURL("asd");
+		mfilter.setAppSettings(appSettings);
+
+		mfilter.setEnabled(true);
+		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(true);
+		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", queryParams);
+		assertFalse(publishAllowed);
+
+
+
+		AcceptOnlyStreamsWithWebhook acceptOnlyStreamsWithWebhook = Mockito.spy(new AcceptOnlyStreamsWithWebhook());
+
+		acceptOnlyStreamsWithWebhook.setAppSettings(appSettings);
+
+		assertFalse(acceptOnlyStreamsWithWebhook.isPublishAllowed(scope, "any()", "any()", null));
+
+		appSettings.setWebhookAuthenticateURL("");
+		acceptOnlyStreamsWithWebhook.setAppSettings(appSettings);
+
+		Mockito.doReturn(200).when(acceptOnlyStreamsWithWebhook).readHttpResponse(httpResponse);
+
+
+		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		Mockito.when(scope.getContext()).thenReturn(context);
+		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(true);
+		publishAllowed = acceptOnlyStreamsWithWebhook.isPublishAllowed(scope, "streamId", "mode", queryParams);
+		assertFalse(publishAllowed);
+
 
 	}
 
