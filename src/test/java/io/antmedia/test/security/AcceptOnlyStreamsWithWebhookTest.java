@@ -1,5 +1,6 @@
 package io.antmedia.test.security;
 
+import com.google.gson.JsonObject;
 import io.antmedia.AppSettings;
 import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -9,7 +10,15 @@ import io.antmedia.filter.IPFilterDashboard;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.security.AcceptOnlyStreamsWithWebhook;
+import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
+import org.apache.http.StatusLine;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
 import org.junit.Test;
 import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
@@ -22,6 +31,7 @@ import org.red5.server.scope.Scope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -87,8 +97,7 @@ public class AcceptOnlyStreamsWithWebhookTest {
 	}
 
 	@Test
-	public void testIsPublishAllowedWithWebhook()
-	{
+	public void testIsPublishAllowedWithWebhook() throws IOException {
 		AcceptOnlyStreamsWithWebhook filter = new AcceptOnlyStreamsWithWebhook();
 		AcceptOnlyStreamsWithWebhook mfilter = Mockito.mock(AcceptOnlyStreamsWithWebhook.class);
 		IScope scope = Mockito.mock(IScope.class);
@@ -188,12 +197,44 @@ public class AcceptOnlyStreamsWithWebhookTest {
 
 		Mockito.doReturn(200).when(acceptOnlyStreamsWithWebhook).readHttpResponse(httpResponse);
 
-
-		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
-		Mockito.when(scope.getContext()).thenReturn(context);
 		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(true);
 		publishAllowed = acceptOnlyStreamsWithWebhook.isPublishAllowed(scope, "streamId", "mode", queryParams);
 		assertFalse(publishAllowed);
+		RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
+
+		CloseableHttpClient client = Mockito.mock(CloseableHttpClient.class);
+		JsonObject instance = new JsonObject();
+		HttpRequestBase post = (HttpRequestBase) RequestBuilder.post().setUri("webhookAuthURL")
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(instance.toString())).build();
+		post.setConfig(requestConfig);
+
+
+		CloseableHttpResponse httpResponsse = Mockito.mock(CloseableHttpResponse.class);
+		Mockito.when(client.execute(post)).thenReturn(httpResponsse);
+		StatusLine statusLine = Mockito.mock(StatusLine.class);
+
+
+		Mockito.when(httpResponsse.getStatusLine()).thenReturn(statusLine);
+		Mockito.when(httpResponsse.getStatusLine().getStatusCode()).thenReturn(404);
+		Mockito.when(acceptOnlyStreamsWithWebhook.readHttpResponse(httpResponsse)).thenReturn(404);
+		publishAllowed = acceptOnlyStreamsWithWebhook.isPublishAllowed(scope, "streamId", "mode", queryParams);
+		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(false);
+		assertFalse(publishAllowed);
+
+
+		Mockito.when(httpResponsse.getStatusLine()).thenReturn(statusLine);
+		Mockito.when(httpResponsse.getStatusLine().getStatusCode()).thenReturn(200);
+		Mockito.when(acceptOnlyStreamsWithWebhook.readHttpResponse(httpResponsse)).thenReturn(200);
+		publishAllowed = acceptOnlyStreamsWithWebhook.isPublishAllowed(scope, "streamId", "mode", queryParams);
+		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(false);
+		assertTrue(publishAllowed);
+
+
+
+
+
+
 
 
 	}
