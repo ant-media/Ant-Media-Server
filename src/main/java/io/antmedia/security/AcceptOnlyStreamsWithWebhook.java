@@ -28,7 +28,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
+public class AcceptOnlyStreamsWithWebhook extends AbstractStreamSecurity  {
 
 	@Autowired
 	private DataStoreFactory dataStoreFactory;
@@ -118,11 +118,11 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 		return result.get();
 	}
-
+	@Override
 	public ILicenceService getLicenceService(IScope scope) {
 		return (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 	}
-
+	@Override
 	public DataStore getDatastore() {
 		if (dataStore == null) {
 			dataStore = dataStoreFactory.getDataStore();
@@ -130,26 +130,26 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 		return dataStore;
 	}
 
-
+	@Override
 	public void setDataStore(DataStore dataStore) {
 		this.dataStore = dataStore;
 	}
 
-
+	@Override
 	public boolean isEnabled() {
 		return enabled;
 	}
 
-
+	@Override
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
 	}
-
+	@Override
 	public DataStoreFactory getDataStoreFactory() {
 		return dataStoreFactory;
 	}
 
-
+	@Override
 	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
 		this.dataStoreFactory = dataStoreFactory;
 	}

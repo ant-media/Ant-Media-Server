@@ -16,7 +16,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.licence.ILicenceService;
 
-public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
+public class AcceptOnlyStreamsInDataStore extends AbstractStreamSecurity  {
 	
 	@Autowired
 	private DataStoreFactory dataStoreFactory;
@@ -75,38 +75,38 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		
 		return result;
 	}
-	
+	@Override
 	public ILicenceService getLicenceService(IScope scope) {
 		return (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 	}
-	
+	@Override
 	public DataStore getDatastore() {
 		if (dataStore == null) {
 			dataStore = dataStoreFactory.getDataStore();
 		}
 		return dataStore;
 	}
-	
-	
+
+	@Override
 	public void setDataStore(DataStore dataStore) {
 		this.dataStore = dataStore;
 	}
 
-
+	@Override
 	public boolean isEnabled() {
 		return enabled;
 	}
 
-
+	@Override
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
 	}
-
+	@Override
 	public DataStoreFactory getDataStoreFactory() {
 		return dataStoreFactory;
 	}
 
-
+	@Override
 	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
 		this.dataStoreFactory = dataStoreFactory;
 	}
