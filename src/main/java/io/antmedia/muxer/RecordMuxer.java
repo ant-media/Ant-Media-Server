@@ -687,14 +687,6 @@ public abstract class RecordMuxer extends Muxer {
 			}
 			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames
 			// until the first key frame
-			//pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			//pkt.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-
-			/*int ret = av_packet_ref(tmpPacket , pkt);
-			if (ret < 0) {
-				logger.error("Cannot copy video packet for {}", streamId);
-				return;
-			}*/
 			boolean isKeyFrame = false;
 			if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
 				isKeyFrame = true;
@@ -706,7 +698,7 @@ public abstract class RecordMuxer extends Muxer {
 			if (isKeyFrame) {
 				byteBuffer = ByteBuffer.allocateDirect(extradata.length + pkt.size());
 				byteBuffer.put(extradata);
-				logger.info("*************** adding extra data record muxer");
+				logger.debug("Adding extradata to record muxer packet");
 				byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
 
 			}
@@ -715,13 +707,12 @@ public abstract class RecordMuxer extends Muxer {
 				byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
 			}
 			byteBuffer.position(0);
-			//byteBuffer = ByteBuffer.allocateDirect(pkt.size());
-			//byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
 
 			int streamIndex = pkt.stream_index();
 			int flag = pkt.flags();
 			long position = pkt.position();
-			//logger.info("pkt stream index = " + pkt.stream_index() + " flag = " + pkt.flags() + " duration = " + pkt.duration() + " position = " + pkt.position());
+
+			//Started to manually packet the frames because we want to add the extra data.
 			tmpPacket.stream_index(streamIndex);
 			tmpPacket.data(new BytePointer(byteBuffer));
 			tmpPacket.size(byteBuffer.limit());
@@ -729,8 +720,6 @@ public abstract class RecordMuxer extends Muxer {
 			tmpPacket.position(position);
 			tmpPacket.flags(flag);
 			tmpPacket.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-
-			//logger.info("TMPpkt stream index = " + tmpPacket.stream_index() + " flag = " + tmpPacket.flags() + " duration = " + tmpPacket.duration() + " position  = " + tmpPacket.position());
 
 			writeVideoFrame(tmpPacket, context);
 
