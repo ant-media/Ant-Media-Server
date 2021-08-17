@@ -35,9 +35,6 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 	private DataStore dataStore;
 	private AppSettings appSettings = null;
 
-	@Value("${settings.acceptOnlyStreamsWithWebhook:true}")
-	private boolean enabled = true;
-
 
 	public static final String BEAN_NAME = "acceptOnlyStreamsWithWebhook";
 
@@ -103,16 +100,6 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 		return result.get();
 	}
 
-
-
-	public boolean isEnabled() {
-		return enabled;
-	}
-
-
-	public void setEnabled(boolean enabled) {
-		this.enabled = enabled;
-	}
 
 	public AppSettings getAppSettings() {
 		return appSettings;
