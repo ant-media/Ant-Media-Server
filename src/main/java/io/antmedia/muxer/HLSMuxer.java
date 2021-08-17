@@ -451,7 +451,7 @@ public class HLSMuxer extends Muxer  {
 	public boolean addVideoStream(int width, int height, AVRational videoTimebase, int codecId, int streamIndex,
 			boolean isAVC, AVCodecParameters codecpar) {
 		boolean result = false;
-		logger.info("llllllllllllllllllllllllllllll***************");
+
 		AVFormatContext outputContext = getOutputFormatContext();
 		if (outputContext != null && isCodecSupported(codecId))
 		{
@@ -465,7 +465,6 @@ public class HLSMuxer extends Muxer  {
 			outStream.codecpar().codec_type(AVMEDIA_TYPE_VIDEO);
 			outStream.codecpar().format(AV_PIX_FMT_YUV420P);
 			outStream.codecpar().codec_tag(0);
-			logger.info("annnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn");
 
 			AVRational timeBase = new AVRational();
 			timeBase.num(1).den(1000);
