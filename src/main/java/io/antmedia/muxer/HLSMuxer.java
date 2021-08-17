@@ -76,6 +76,8 @@ public class HLSMuxer extends Muxer  {
 	private long bitrate;
 	private long bitrateReferenceTime;
 
+	private byte[] extradata = null;
+
 	int videoWidth;
 	int videoHeight;
 	private AVPacket tmpPacket;
@@ -249,19 +251,47 @@ public class HLSMuxer extends Muxer  {
 		}
 
 		int ret;
-		pkt.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-		pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+
 		pkt.duration(av_rescale_q(pkt.duration(), inputTimebase, outputTimebase));
 		pkt.pos(-1);
 
-
 		if (codecType ==  AVMEDIA_TYPE_VIDEO)
 		{
-			ret = av_packet_ref(tmpPacket , pkt);
-			if (ret < 0) {
-				logger.error("Cannot copy packet for {}", file.getName());
-				return;
+			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames
+			// until the first key frame
+			boolean isKeyFrame = false;
+			if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
+				isKeyFrame = true;
 			}
+
+			ByteBuffer byteBuffer;
+
+			//TODO: Use buffer pools
+			if (isKeyFrame) {
+				byteBuffer = ByteBuffer.allocateDirect(extradata.length + pkt.size());
+				byteBuffer.put(extradata);
+				logger.debug("Adding extradata to record muxer packet");
+				byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+
+			}
+			else {
+				byteBuffer = ByteBuffer.allocateDirect(pkt.size());
+				byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+			}
+			byteBuffer.position(0);
+
+			int streamIndex = pkt.stream_index();
+			int flag = pkt.flags();
+			long position = pkt.position();
+
+			//Started to manually packet the frames because we want to add the extra data.
+			tmpPacket.stream_index(streamIndex);
+			tmpPacket.data(new BytePointer(byteBuffer));
+			tmpPacket.size(byteBuffer.limit());
+			tmpPacket.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			tmpPacket.position(position);
+			tmpPacket.flags(flag);
+			tmpPacket.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
 			if (bsfContext != null)
 			{
@@ -291,6 +321,9 @@ public class HLSMuxer extends Muxer  {
 			av_packet_unref(tmpPacket);
 		}
 		else {
+			pkt.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+			pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+
 			ret = av_write_frame(outputFormatContext, pkt);
 			if (ret < 0 && logger.isInfoEnabled()) {
 				byte[] data = new byte[64];
@@ -418,6 +451,7 @@ public class HLSMuxer extends Muxer  {
 	public boolean addVideoStream(int width, int height, AVRational videoTimebase, int codecId, int streamIndex,
 			boolean isAVC, AVCodecParameters codecpar) {
 		boolean result = false;
+		logger.info("llllllllllllllllllllllllllllll***************");
 		AVFormatContext outputContext = getOutputFormatContext();
 		if (outputContext != null && isCodecSupported(codecId))
 		{
@@ -431,6 +465,7 @@ public class HLSMuxer extends Muxer  {
 			outStream.codecpar().codec_type(AVMEDIA_TYPE_VIDEO);
 			outStream.codecpar().format(AV_PIX_FMT_YUV420P);
 			outStream.codecpar().codec_tag(0);
+			logger.info("annnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn");
 
 			AVRational timeBase = new AVRational();
 			timeBase.num(1).den(1000);
@@ -451,6 +486,14 @@ public class HLSMuxer extends Muxer  {
 
 		AVFormatContext context = getOutputFormatContext();
 
+		//We get parameters because we want to add extra data to the streams to keep the aspect ratio
+		AVCodecParameters codecParameters = new AVCodecParameters();
+		int ret = avcodec_parameters_from_context(codecParameters, codecContext);
+
+		if (ret < 0) {
+			logger.error("Cannot get codec parameters for {}", streamId);
+		}
+
 		if (context == null) {
 			return false;
 		}
@@ -465,10 +508,19 @@ public class HLSMuxer extends Muxer  {
 				avcodec_parameters_from_context(outStream.codecpar(), codecContext);
 				outStream.time_base(codecContext.time_base());
 				codecTimeBaseMap.put(streamIndex, codecContext.time_base());
+
+				extradata = new byte[codecParameters.extradata_size()];
+
+				if(extradata.length > 0) {
+					BytePointer extraDataPointer = codecParameters.extradata();
+					extraDataPointer.get(extradata).close();
+					extraDataPointer.close();
+					logger.info("extra data 0: {}  1: {}, 2:{}, 3:{}, 4:{}", extradata[0], extradata[1], extradata[2], extradata[3], extradata[4]);
+				}
 			}
 			else {
 
-				int ret = avcodec_parameters_from_context(outStream.codecpar(), codecContext);
+				ret = avcodec_parameters_from_context(outStream.codecpar(), codecContext);
 				codecTimeBaseMap.put(streamIndex, codecContext.time_base());
 				logger.info("copy codec parameter from context {} stream index: {}", ret,  streamIndex);
 				if (codecContext.codec_type() != AVMEDIA_TYPE_AUDIO) {
@@ -488,7 +540,6 @@ public class HLSMuxer extends Muxer  {
 
 
 	@Override
-
 	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
 		boolean result = false;
@@ -496,12 +547,20 @@ public class HLSMuxer extends Muxer  {
 		if (outputContext != null && isCodecSupported(codecParameters.codec_id()))
 		{
 			AVStream outStream = avformat_new_stream(outputContext, null);
-
 			if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO)
 			{
 				videoIndex = outStream.index();
 				AVBitStreamFilter h264bsfc = av_bsf_get_by_name("h264_mp4toannexb");
 				bsfContext = new AVBSFContext(null);
+
+				extradata = new byte[codecParameters.extradata_size()];
+
+				if(extradata.length > 0) {
+					BytePointer extraDataPointer = codecParameters.extradata();
+					extraDataPointer.get(extradata).close();
+					extraDataPointer.close();
+					logger.info("extra data 0: {}  1: {}, 2:{}, 3:{}, 4:{}", extradata[0], extradata[1], extradata[2], extradata[3], extradata[4]);
+				}
 
 				int ret = av_bsf_alloc(h264bsfc, bsfContext);
 				if (ret < 0) {
