@@ -77,6 +77,7 @@ public abstract class RecordMuxer extends Muxer {
 	protected int audioIndex;
 	protected int resolution;
 	protected AVBSFContext bsfExtractdataContext = null;
+	protected boolean packetReady = false;
 
 	private byte[] extradata = null;
 
@@ -358,6 +359,42 @@ public abstract class RecordMuxer extends Muxer {
 		}
 
 		/*
+		* Add extra data in case it is necessary
+		 */
+		encodedVideoFrame.rewind();
+		ByteBuffer buffer;
+
+		if (isKeyFrame)
+		{
+
+			if (encodedVideoFrame.limit() > 4)
+			{
+				byte nalType = (byte)(encodedVideoFrame.get(4) & 0x1F);
+				if (nalType != 7 && extradata != null) {
+					//It means it's not SPS
+					//then we need to add extra data
+					buffer = ByteBuffer.allocateDirect(extradata.length + encodedVideoFrame.limit());
+					buffer.put(extradata);
+				}
+				else {
+					buffer = ByteBuffer.allocateDirect(encodedVideoFrame.limit());
+				}
+			}
+			else {
+				buffer = ByteBuffer.allocateDirect(encodedVideoFrame.limit());
+			}
+
+		}
+		else {
+			buffer = ByteBuffer.allocateDirect(encodedVideoFrame.limit());
+
+		}
+
+		buffer.put(encodedVideoFrame);
+
+		buffer.rewind();
+
+		/*
 		 * Rotation field is used add metadata to the mp4.
 		 * this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
 		 */
@@ -369,10 +406,10 @@ public abstract class RecordMuxer extends Muxer {
 			videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 		}
 
-		encodedVideoFrame.rewind();
-		videoPkt.data(new BytePointer(encodedVideoFrame));
-		videoPkt.size(encodedVideoFrame.limit());
+		videoPkt.data(new BytePointer(buffer));
+		videoPkt.size(buffer.limit());
 		videoPkt.position(0);
+		packetReady = true;
 		writePacket(videoPkt, (AVCodecContext)null);
 
 		av_packet_unref(videoPkt);
@@ -692,39 +729,55 @@ public abstract class RecordMuxer extends Muxer {
 				isKeyFrame = true;
 			}
 
-			ByteBuffer byteBuffer;
+			/*
+			* We add this check because when encoder calls this method the packet needs extra data inside
+			* However, SFUForwarder calls writeVideoBuffer and the method packets itself there
+			* To prevent memory issues and crashes we don't repacket if the packet is ready to use from SFU forwarder
+			 */
+			if(!packetReady) {
 
-			//TODO: Use buffer pools
-			if (isKeyFrame) {
-				byteBuffer = ByteBuffer.allocateDirect(extradata.length + pkt.size());
-				byteBuffer.put(extradata);
-				logger.debug("Adding extradata to record muxer packet");
-				byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+				ByteBuffer byteBuffer;
+				
+				if (isKeyFrame) {
+					byteBuffer = ByteBuffer.allocateDirect(extradata.length + pkt.size());
+					byteBuffer.put(extradata);
+					logger.debug("Adding extradata to record muxer packet");
+					byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
 
+				} else {
+					byteBuffer = ByteBuffer.allocateDirect(pkt.size());
+					byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+				}
+				byteBuffer.position(0);
+
+				int streamIndex = pkt.stream_index();
+				int flag = pkt.flags();
+				long position = pkt.position();
+
+				//Started to manually packet the frames because we want to add the extra data.
+				tmpPacket.stream_index(streamIndex);
+				tmpPacket.data(new BytePointer(byteBuffer));
+				tmpPacket.size(byteBuffer.limit());
+				tmpPacket.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+				tmpPacket.position(position);
+				tmpPacket.flags(flag);
+				tmpPacket.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
 			}
-			else {
-				byteBuffer = ByteBuffer.allocateDirect(pkt.size());
-				byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
-			}
-			byteBuffer.position(0);
 
-			int streamIndex = pkt.stream_index();
-			int flag = pkt.flags();
-			long position = pkt.position();
+			else{
+				pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+				pkt.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
-			//Started to manually packet the frames because we want to add the extra data.
-			tmpPacket.stream_index(streamIndex);
-			tmpPacket.data(new BytePointer(byteBuffer));
-			tmpPacket.size(byteBuffer.limit());
-			tmpPacket.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			tmpPacket.position(position);
-			tmpPacket.flags(flag);
-			tmpPacket.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+				int ret = av_packet_ref(tmpPacket , pkt);
+				if (ret < 0) {
+					logger.error("Cannot copy video packet for {}", streamId);
+					return;
+				}
+		    }
 
 			writeVideoFrame(tmpPacket, context);
-
+			packetReady = false;
 			av_packet_unref(tmpPacket);
-
 		}
 		else {
 			//for any other stream like subtitle, etc.

@@ -77,6 +77,7 @@ public class HLSMuxer extends Muxer  {
 	private long bitrateReferenceTime;
 
 	private byte[] extradata = null;
+	protected boolean packetReady = false;
 
 	int videoWidth;
 	int videoHeight;
@@ -266,32 +267,45 @@ public class HLSMuxer extends Muxer  {
 
 			ByteBuffer byteBuffer;
 
-			//TODO: Use buffer pools
-			if (isKeyFrame) {
-				byteBuffer = ByteBuffer.allocateDirect(extradata.length + pkt.size());
-				byteBuffer.put(extradata);
-				logger.debug("Adding extradata to record muxer packet");
-				byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+			/*
+			 * We add this check because when encoder calls this method the packet needs extra data inside
+			 * However, SFUForwarder calls writeVideoBuffer and the method packets itself there
+			 * To prevent memory issues and crashes we don't repacket if the packet is ready to use from SFU forwarder
+			 */
+			if(!packetReady) {
+				if (isKeyFrame) {
+					byteBuffer = ByteBuffer.allocateDirect(extradata.length + pkt.size());
+					byteBuffer.put(extradata);
+					logger.debug("Adding extradata to record muxer packet");
+					byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+				} else {
+					byteBuffer = ByteBuffer.allocateDirect(pkt.size());
+					byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+				}
+				byteBuffer.position(0);
 
+				int streamIndex = pkt.stream_index();
+				int flag = pkt.flags();
+				long position = pkt.position();
+
+				//Started to manually packet the frames because we want to add the extra data.
+				tmpPacket.stream_index(streamIndex);
+				tmpPacket.data(new BytePointer(byteBuffer));
+				tmpPacket.size(byteBuffer.limit());
+				tmpPacket.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
+				tmpPacket.position(position);
+				tmpPacket.flags(flag);
+				tmpPacket.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
 			}
-			else {
-				byteBuffer = ByteBuffer.allocateDirect(pkt.size());
-				byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+			else{
+				pkt.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+				pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
+				ret = av_packet_ref(tmpPacket , pkt);
+				if (ret < 0) {
+					logger.error("Cannot copy packet for {}", file.getName());
+					return;
+				}
 			}
-			byteBuffer.position(0);
-
-			int streamIndex = pkt.stream_index();
-			int flag = pkt.flags();
-			long position = pkt.position();
-
-			//Started to manually packet the frames because we want to add the extra data.
-			tmpPacket.stream_index(streamIndex);
-			tmpPacket.data(new BytePointer(byteBuffer));
-			tmpPacket.size(byteBuffer.limit());
-			tmpPacket.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
-			tmpPacket.position(position);
-			tmpPacket.flags(flag);
-			tmpPacket.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
 			if (bsfContext != null)
 			{
@@ -318,6 +332,7 @@ public class HLSMuxer extends Muxer  {
 				}
 			}
 
+			packetReady = false;
 			av_packet_unref(tmpPacket);
 		}
 		else {
@@ -465,6 +480,17 @@ public class HLSMuxer extends Muxer  {
 			outStream.codecpar().codec_type(AVMEDIA_TYPE_VIDEO);
 			outStream.codecpar().format(AV_PIX_FMT_YUV420P);
 			outStream.codecpar().codec_tag(0);
+
+			if(codecpar != null){
+				extradata = new byte[codecpar.extradata_size()];
+
+				if(extradata.length > 0) {
+					BytePointer extraDataPointer = codecpar.extradata();
+					extraDataPointer.get(extradata).close();
+					extraDataPointer.close();
+					logger.info("extra data 0: {}  1: {}, 2:{}, 3:{}, 4:{}", extradata[0], extradata[1], extradata[2], extradata[3], extradata[4]);
+				}
+			}
 
 			AVRational timeBase = new AVRational();
 			timeBase.num(1).den(1000);
@@ -742,6 +768,39 @@ public class HLSMuxer extends Muxer  {
 			return;
 		}
 
+		encodedVideoFrame.rewind();
+		ByteBuffer buffer;
+
+		if (isKeyFrame)
+		{
+
+			if (encodedVideoFrame.limit() > 4)
+			{
+				byte nalType = (byte)(encodedVideoFrame.get(4) & 0x1F);
+				if (nalType != 7 && extradata != null) {
+					//It means it's not SPS
+					//then we need to add extra data
+					buffer = ByteBuffer.allocateDirect(extradata.length + encodedVideoFrame.limit());
+					buffer.put(extradata);
+				}
+				else {
+					buffer = ByteBuffer.allocateDirect(encodedVideoFrame.limit());
+				}
+			}
+			else {
+				buffer = ByteBuffer.allocateDirect(encodedVideoFrame.limit());
+			}
+
+		}
+		else {
+			buffer = ByteBuffer.allocateDirect(encodedVideoFrame.limit());
+
+		}
+
+		buffer.put(encodedVideoFrame);
+
+		buffer.rewind();
+
 		videoPkt.stream_index(streamIndex);
 		videoPkt.pts(pts);
 		videoPkt.dts(dts);
@@ -751,12 +810,12 @@ public class HLSMuxer extends Muxer  {
 			videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 		}
 
-		BytePointer bytePointer = new BytePointer(encodedVideoFrame);
+		BytePointer bytePointer = new BytePointer(buffer);
 		videoPkt.data(bytePointer);
-		videoPkt.size(encodedVideoFrame.limit());
+		videoPkt.size(buffer.limit());
 		videoPkt.position(0);
 
-
+		packetReady = true;
 		writePacket(videoPkt, (AVCodecContext)null);
 
 		av_packet_unref(videoPkt);
