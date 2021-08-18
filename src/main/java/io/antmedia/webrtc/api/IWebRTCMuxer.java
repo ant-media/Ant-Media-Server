@@ -94,10 +94,4 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 * @param captureTimeMs
 	 */
 	public void setFrameIdAndCaptureTimeMs(long frameId, long captureTimeMs);
-
-	/**
-	 * Write trailer for a subtrack
-	 * @param trackIndex
-	 */
-	public void writeTrackTrailer(String streamId);
 }
