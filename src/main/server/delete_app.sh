@@ -14,7 +14,7 @@ usage() {
   echo "If you have any question, send e-mail to contact@antmedia.io"
 }
 
-ERROR_MESSAGE="Error: App is not created. Please check the error in the terminal and take a look at the instructions below"
+ERROR_MESSAGE="Error: App is not deleted. Please check the error in the terminal and take a look at the instructions below"
 
 AMS_DIR=/usr/local/antmedia
 
