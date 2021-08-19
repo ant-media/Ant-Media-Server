@@ -1196,17 +1196,13 @@ public abstract class RestServiceBase {
 
 
 					String fileName = videoFile.getName();
-					String[] splitFileName = StringUtils.split(fileName,".");
+					int indexOfFileExtension = fileName.lastIndexOf(".");
+					String finalFileName = fileName.substring(0,indexOfFileExtension);
+
 					//delete preview file if exists
-					File previewFile = Muxer.getPreviewFile(getScope(), splitFileName[0], ".png");
+					File previewFile = Muxer.getPreviewFile(getScope(), finalFileName, ".png");
 					Files.deleteIfExists(previewFile.toPath());
 
-					// check if Add Date Time is Enabled
-					String finalFileName;
-					finalFileName = splitFileName[0];
-					if (getAppSettings().isAddDateTimeToMp4FileName()){
-						finalFileName = finalFileName+"."+splitFileName[1];
-					}
 					StorageClient storageClient = (StorageClient) appContext.getBean(StorageClient.BEAN_NAME);
 
 					storageClient.delete(getAppSettings().getS3StreamsFolderPath() + File.separator + finalFileName + ".mp4");
