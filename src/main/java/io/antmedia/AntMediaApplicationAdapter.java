@@ -1367,7 +1367,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		if (appSettings.getUpdateTime() != 0 && appSettings.getUpdateTime() > newSettings.getUpdateTime()) {
 			//if current app settings update time is bigger than the newSettings, don't update the bean
 			//it may happen in cluster mode, app settings may be updated locally then a new update just may come instantly from cluster settings.
-			
+			logger.warn("Not saving the settings because current appsettings update time({}) is later than incoming settings update time({}) ", appSettings.getUpdateTime(), newSettings.getUpdateTime() );
 			return result;
 		}
 		
@@ -1596,6 +1596,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setHlsEncryptionKeyInfoFile(newSettings.getHlsEncryptionKeyInfoFile());
 		appSettings.setJwksURL(newSettings.getJwksURL());
 		appSettings.setWebhookAuthenticateURL(newSettings.getWebhookAuthenticateURL());
+		appSettings.setUpdateTime(System.currentTimeMillis());
 
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
