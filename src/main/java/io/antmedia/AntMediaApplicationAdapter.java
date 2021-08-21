@@ -1363,6 +1363,14 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public synchronized boolean updateSettings(AppSettings newSettings, boolean notifyCluster) {
 
 		boolean result = false;
+		
+		if (appSettings.getUpdateTime() != 0 && appSettings.getUpdateTime() > newSettings.getUpdateTime()) {
+			//if current app settings update time is bigger than the newSettings, don't update the bean
+			//it may happen in cluster mode, app settings may be updated locally then a new update just may come instantly from cluster settings.
+			
+			return result;
+		}
+		
 
 		//if there is any wrong encoder settings, return false
 		List<EncoderSettings> encoderSettingsList = newSettings.getEncoderSettings();
