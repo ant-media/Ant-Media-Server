@@ -174,7 +174,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
 
-				updateSettings(settings, false);
+				updateSettings(settings, false, false);
 			});
 			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
 
@@ -201,7 +201,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			}
 
 			logger.info("Updating settings while app({}) is being started. AppSettings will be saved to Cluster db? Answer -> {}", app.getName(), updateClusterSettings ? "yes" : "no");
-			updateSettings(storedSettings, updateClusterSettings);
+			updateSettings(storedSettings, updateClusterSettings, false);
 
 		}
 
@@ -1358,13 +1358,16 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	 * and this cause some issues for settings synchronization. So that it's synchronized
 	 * @param newSettings
 	 * @param notifyCluster
+	 * @param checkUpdateTime, if it is false it checks the update time of the currents settings and incoming settings. 
+	 *   If the incoming setting is older than current settings, it returns false.
+	 *   If it is false, it just writes the settings without checking time
 	 * @return
 	 */
-	public synchronized boolean updateSettings(AppSettings newSettings, boolean notifyCluster) {
+	public synchronized boolean updateSettings(AppSettings newSettings, boolean notifyCluster, boolean checkUpdateTime) {
 
 		boolean result = false;
 		
-		if (appSettings.getUpdateTime() != 0 && newSettings.getUpdateTime() != 0 
+		if (checkUpdateTime && appSettings.getUpdateTime() != 0 && newSettings.getUpdateTime() != 0 
 				&& appSettings.getUpdateTime() > newSettings.getUpdateTime()) {
 			//if current app settings update time is bigger than the newSettings, don't update the bean
 			//it may happen in cluster mode, app settings may be updated locally then a new update just may come instantly from cluster settings.
