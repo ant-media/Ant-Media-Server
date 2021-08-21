@@ -133,6 +133,48 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 	}
 
+	@Test
+	public void testIsIncomingTimeValid() {
+		AppSettings settings = new AppSettings();
+		
+		IScope scope = mock(IScope.class);
+
+		when(scope.getName()).thenReturn("junit");
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		AppSettings appSettings = new AppSettings();
+		spyAdapter.setAppSettings(appSettings);
+		IContext context = mock(IContext.class);
+		when(context.getBean(Mockito.any())).thenReturn(mock(AcceptOnlyStreamsInDataStore.class));
+		when(scope.getContext()).thenReturn(context);
+		Mockito.doReturn(mock(DataStore.class)).when(spyAdapter).getDataStore();
+		
+		
+		settings = new AppSettings();
+		
+		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		
+		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
+		
+		settings.setUpdateTime(1000);
+		
+		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
+		
+		appSettings.setUpdateTime(900);
+		
+		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
+		
+		appSettings.setUpdateTime(2000);
+		
+		assertFalse(spyAdapter.isIncomingTimeValid(settings, true));
+		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		
+		settings.setUpdateTime(3000);
+		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		
+		
+		
+	}
 
 	@Test
 	public void testAppSettings() 
@@ -181,6 +223,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 		//it should not change times(1) because we don't want it to update the datastore
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
+		
+		settings.setUpdateTime(1000);
+		newSettings.setUpdateTime(900);
+		assertFalse(spyAdapter.updateSettings(newSettings, false, true));
+		
 	}
 
 	@Test

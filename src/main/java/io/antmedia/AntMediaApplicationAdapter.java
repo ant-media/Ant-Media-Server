@@ -1367,8 +1367,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 		boolean result = false;
 		
-		if (checkUpdateTime && appSettings.getUpdateTime() != 0 && newSettings.getUpdateTime() != 0 
-				&& appSettings.getUpdateTime() > newSettings.getUpdateTime()) {
+		if (!isIncomingTimeValid(newSettings, checkUpdateTime)) {
 			//if current app settings update time is bigger than the newSettings, don't update the bean
 			//it may happen in cluster mode, app settings may be updated locally then a new update just may come instantly from cluster settings.
 			logger.warn("Not saving the settings because current appsettings update time({}) is later than incoming settings update time({}) ", appSettings.getUpdateTime(), newSettings.getUpdateTime() );
@@ -1378,16 +1377,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 		//if there is any wrong encoder settings, return false
 		List<EncoderSettings> encoderSettingsList = newSettings.getEncoderSettings();
-		if (encoderSettingsList != null) {
-			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
-				EncoderSettings encoderSettings = iterator.next();
-				if (encoderSettings.getHeight() <= 0 || encoderSettings.getVideoBitrate() <= 0 || encoderSettings.getAudioBitrate() <= 0)
-				{
-					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
-					return false;
-				}
-			}
+		if (!isEncoderSettingsValid(encoderSettingsList)) {
+			return result;
 		}
+		
 		//synch again because of string to list mapping- TODO: There is a better way for string to list mapping
 		//in properties files
 		newSettings.setEncoderSettings(encoderSettingsList);
@@ -1425,6 +1418,31 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 
 		return result;
+	}
+
+	private boolean isEncoderSettingsValid(List<EncoderSettings> encoderSettingsList) {
+		if (encoderSettingsList != null) {
+			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
+				EncoderSettings encoderSettings = iterator.next();
+				if (encoderSettings.getHeight() <= 0 || encoderSettings.getVideoBitrate() <= 0 || encoderSettings.getAudioBitrate() <= 0)
+				{
+					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * 
+	 * @param newSettings
+	 * @param checkUpdateTime
+	 * @return true if timing is valid, false if it is invalid
+	 */
+	public boolean isIncomingTimeValid(AppSettings newSettings, boolean checkUpdateTime) {
+		return !(checkUpdateTime && appSettings.getUpdateTime() != 0 && newSettings.getUpdateTime() != 0 
+				&& appSettings.getUpdateTime() > newSettings.getUpdateTime());
 	}
 
 	public void setClusterNotifier(IClusterNotifier clusterNotifier) {
