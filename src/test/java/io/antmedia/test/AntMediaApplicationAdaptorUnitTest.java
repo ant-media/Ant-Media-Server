@@ -161,7 +161,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setScope(scope);
-		spyAdapter.updateSettings(newSettings, true);
+		spyAdapter.updateSettings(newSettings, true, false);
 		
 		
 
@@ -172,12 +172,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
 		spyAdapter.setClusterNotifier(clusterNotifier);
 
-		spyAdapter.updateSettings(newSettings, true);
+		spyAdapter.updateSettings(newSettings, true, false);
 
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
 		
-		spyAdapter.updateSettings(newSettings, false);
+		spyAdapter.updateSettings(newSettings, false, false);
 		//it should not change times(1) because we don't want it to update the datastore
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
@@ -1249,27 +1249,27 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.appStart(scope);
 		
 		verify(clusterNotifier).registerSettingUpdateListener(Mockito.any(), Mockito.any());
-		verify(spyAdapter).updateSettings(settings, true);
+		verify(spyAdapter).updateSettings(settings, true, false);
 		
 
 		AppSettings clusterStoreSettings = new AppSettings();
 		when(clusterStore.getSettings(Mockito.any())).thenReturn(clusterStoreSettings);
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(2)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
-		verify(spyAdapter).updateSettings(clusterStoreSettings, false);
+		verify(spyAdapter).updateSettings(clusterStoreSettings, false, false);
 		
 		
 		clusterStoreSettings.setToBeDeleted(true);
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis());
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(3)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
-		verify(spyAdapter, times(2)).updateSettings(clusterStoreSettings, false);
+		verify(spyAdapter, times(2)).updateSettings(clusterStoreSettings, false, false);
 		
 		
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()-80000);
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(4)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
-		verify(spyAdapter, times(2)).updateSettings(settings, true);
+		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
 	
 		
 	}
