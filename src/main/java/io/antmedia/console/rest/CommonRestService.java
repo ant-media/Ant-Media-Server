@@ -643,7 +643,7 @@ public class CommonRestService {
 
 	public String changeSettings(@PathParam("appname") String appname, AppSettings newSettings){
 		AntMediaApplicationAdapter adapter = ((IApplicationAdaptorFactory) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
-		return gson.toJson(new Result(adapter.updateSettings(newSettings, true)));
+		return gson.toJson(new Result(adapter.updateSettings(newSettings, true, false)));
 	}
 
 

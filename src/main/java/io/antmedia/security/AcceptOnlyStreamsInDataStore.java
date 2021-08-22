@@ -75,19 +75,19 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		
 		return result;
 	}
-	
+
 	public ILicenceService getLicenceService(IScope scope) {
 		return (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 	}
-	
+
 	public DataStore getDatastore() {
 		if (dataStore == null) {
 			dataStore = dataStoreFactory.getDataStore();
 		}
 		return dataStore;
 	}
-	
-	
+
+
 	public void setDataStore(DataStore dataStore) {
 		this.dataStore = dataStore;
 	}
