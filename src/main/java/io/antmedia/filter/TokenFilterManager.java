@@ -1,7 +1,6 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
-import java.util.regex.Pattern;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -54,8 +53,6 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		String sessionId = httpRequest.getSession().getId();
 		String streamId = getStreamId(httpRequest.getRequestURI());
-		
-
 
 		String clientIP = httpRequest.getRemoteAddr().replaceAll(REPLACE_CHARS_REGEX, "_");
 
@@ -156,12 +153,11 @@ public class TokenFilterManager extends AbstractFilter   {
 			}
 			
 			chain.doFilter(request, response);	
-	}
+		}
 		else {
 			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
 			logger.warn("Invalid method type for stream: {}", streamId);
 		}
-		
 	}
 
 	private TokenGenerator getTokenGenerator() {
@@ -191,9 +187,6 @@ public class TokenFilterManager extends AbstractFilter   {
 
 	public static String getStreamId(String requestURI) {
 
-
-		logger.error("requestURI:" + requestURI);
-		
 		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
 
 		int endIndex;
@@ -209,13 +202,11 @@ public class TokenFilterManager extends AbstractFilter   {
 				return requestURI.substring(startIndex+1, endIndex);
 		}
 
-
 		//if request is adaptive file (ending with _adaptive.m3u8)
 		endIndex = requestURI.lastIndexOf(MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8");
 		if (endIndex != -1) {
 			return requestURI.substring(startIndex+1, endIndex);
 		}
-
 
 		//if specific bitrate is requested
 		String hlsRegex = "(.*)_[0-9]+p.m3u8$";  // matches ending with _[resolution]p.m3u8
