@@ -174,7 +174,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
 
-				updateSettings(settings, false);
+				updateSettings(settings, false, false);
 			});
 			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
 
@@ -201,7 +201,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			}
 
 			logger.info("Updating settings while app({}) is being started. AppSettings will be saved to Cluster db? Answer -> {}", app.getName(), updateClusterSettings ? "yes" : "no");
-			updateSettings(storedSettings, updateClusterSettings);
+			updateSettings(storedSettings, updateClusterSettings, false);
 
 		}
 
@@ -1358,24 +1358,29 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	 * and this cause some issues for settings synchronization. So that it's synchronized
 	 * @param newSettings
 	 * @param notifyCluster
+	 * @param checkUpdateTime, if it is false it checks the update time of the currents settings and incoming settings. 
+	 *   If the incoming setting is older than current settings, it returns false.
+	 *   If it is false, it just writes the settings without checking time
 	 * @return
 	 */
-	public synchronized boolean updateSettings(AppSettings newSettings, boolean notifyCluster) {
+	public synchronized boolean updateSettings(AppSettings newSettings, boolean notifyCluster, boolean checkUpdateTime) {
 
 		boolean result = false;
+		
+		if (!isIncomingTimeValid(newSettings, checkUpdateTime)) {
+			//if current app settings update time is bigger than the newSettings, don't update the bean
+			//it may happen in cluster mode, app settings may be updated locally then a new update just may come instantly from cluster settings.
+			logger.warn("Not saving the settings because current appsettings update time({}) is later than incoming settings update time({}) ", appSettings.getUpdateTime(), newSettings.getUpdateTime() );
+			return result;
+		}
+		
 
 		//if there is any wrong encoder settings, return false
 		List<EncoderSettings> encoderSettingsList = newSettings.getEncoderSettings();
-		if (encoderSettingsList != null) {
-			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
-				EncoderSettings encoderSettings = iterator.next();
-				if (encoderSettings.getHeight() <= 0 || encoderSettings.getVideoBitrate() <= 0 || encoderSettings.getAudioBitrate() <= 0)
-				{
-					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
-					return false;
-				}
-			}
+		if (!isEncoderSettingsValid(encoderSettingsList)) {
+			return result;
 		}
+		
 		//synch again because of string to list mapping- TODO: There is a better way for string to list mapping
 		//in properties files
 		newSettings.setEncoderSettings(encoderSettingsList);
@@ -1413,6 +1418,31 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 
 		return result;
+	}
+
+	private boolean isEncoderSettingsValid(List<EncoderSettings> encoderSettingsList) {
+		if (encoderSettingsList != null) {
+			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
+				EncoderSettings encoderSettings = iterator.next();
+				if (encoderSettings.getHeight() <= 0 || encoderSettings.getVideoBitrate() <= 0 || encoderSettings.getAudioBitrate() <= 0)
+				{
+					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
+					return false;
+				}
+			}
+		}
+		return true;
+	}
+
+	/**
+	 * 
+	 * @param newSettings
+	 * @param checkUpdateTime
+	 * @return true if timing is valid, false if it is invalid
+	 */
+	public boolean isIncomingTimeValid(AppSettings newSettings, boolean checkUpdateTime) {
+		return !(checkUpdateTime && appSettings.getUpdateTime() != 0 && newSettings.getUpdateTime() != 0 
+				&& appSettings.getUpdateTime() > newSettings.getUpdateTime());
 	}
 
 	public void setClusterNotifier(IClusterNotifier clusterNotifier) {
@@ -1500,6 +1530,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
 
 		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE, newAppsettings.getHlsEncryptionKeyInfoFile() != null ? newAppsettings.getHlsEncryptionKeyInfoFile() : "");
+		store.put(AppSettings.SETTINGS_WEBHOOK_AUTHENTICATE_URL, String.valueOf(newAppsettings.getWebhookAuthenticateURL()));
 
 		store.put(AppSettings.SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING, String.valueOf(newAppsettings.isForceAspectRatioInTranscoding()));
 		return store.save();
@@ -1586,6 +1617,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
 		appSettings.setHlsEncryptionKeyInfoFile(newSettings.getHlsEncryptionKeyInfoFile());
 		appSettings.setJwksURL(newSettings.getJwksURL());
+		appSettings.setWebhookAuthenticateURL(newSettings.getWebhookAuthenticateURL());
+		appSettings.setUpdateTime(System.currentTimeMillis());
 
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}

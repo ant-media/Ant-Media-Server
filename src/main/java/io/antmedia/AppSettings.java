@@ -293,9 +293,12 @@ public class AppSettings {
 	
 	public static final String SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE = "settings.hlsEncryptionKeyInfoFile";
 	
-	public static final String SETTINGS_JWKS_URL = "settings.jwksURL";	
-	
+
+	public static final String SETTINGS_JWKS_URL = "settings.jwksURL";
+	public static final String SETTINGS_WEBHOOK_AUTHENTICATE_URL = "settings.webhookAuthenticateURL";
+
 	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
+
 
 	@JsonIgnore
 	@NotSaved
@@ -996,7 +999,7 @@ public class AppSettings {
 	@Value("${" + SETTINGS_DEFAULT_DECODERS_ENABLED+ ":false}")
 	private boolean defaultDecodersEnabled;
 
-	private long updateTime;
+	private long updateTime = 0;
 
 	private List<EncoderSettings> encoderSettings;
 
@@ -1364,6 +1367,12 @@ public class AppSettings {
 	 */
 	@Value( "${" + SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING +":false}")
 	private boolean forceAspectRatioInTranscoding;
+
+	/**
+	 * Enable Webhook Authentication when publishing streams
+	 */
+	@Value( "${"+SETTINGS_WEBHOOK_AUTHENTICATE_URL+":}" )
+	private String webhookAuthenticateURL;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2630,11 +2639,21 @@ public class AppSettings {
 		this.jwksURL = jwksURL;
 	}
 
+
+	public String getWebhookAuthenticateURL(){
+		return webhookAuthenticateURL;
+	}
+
+	public void setWebhookAuthenticateURL(String webhookAuthenticateURL) {
+		this.webhookAuthenticateURL = webhookAuthenticateURL;
+	}
+
 	public boolean isForceAspectRatioInTranscoding() {
 		return forceAspectRatioInTranscoding;
 	}
 
 	public void setForceAspectRatioInTranscoding(boolean forceAspectRatioInTranscoding) {
 		this.forceAspectRatioInTranscoding = forceAspectRatioInTranscoding;
+
 	}
 }
