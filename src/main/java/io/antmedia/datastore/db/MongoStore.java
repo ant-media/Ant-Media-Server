@@ -103,6 +103,10 @@ public class MongoStore extends DataStore {
 	}
 	
 	public static String getMongoConnectionUri(String host, String username, String password) {
+		//If it is DNS seed name, no need to check for username and password since it needs to be integrated to the given uri.
+		//Mongodb Atlas users will have such syntax and won't need to enter seperate username and password to the script since it is already in the uri.
+		if(host.indexOf("mongodb+srv") == 0)
+			return host;
 		String credential = "";
 		if(username != null && !username.isEmpty()) {
 			credential = username+":"+password+"@";
