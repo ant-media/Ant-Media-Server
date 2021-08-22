@@ -999,7 +999,7 @@ public class AppSettings {
 	@Value("${" + SETTINGS_DEFAULT_DECODERS_ENABLED+ ":false}")
 	private boolean defaultDecodersEnabled;
 
-	private long updateTime;
+	private long updateTime = 0;
 
 	private List<EncoderSettings> encoderSettings;
 

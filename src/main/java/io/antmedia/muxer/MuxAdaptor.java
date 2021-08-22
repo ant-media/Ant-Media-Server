@@ -572,8 +572,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		prepareMuxerIO();
-		getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), PUBLISH_TYPE_RTMP);
-
 
 		return true;
 	}
@@ -732,6 +730,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		return appAdapter;
 	}
+	
+	
 
 	public AppSettings getAppSettings() {
 
@@ -999,6 +999,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		try {
 			prepare();
 			isRecording.set(true);
+			
+			//Calling startPublish to here is critical. It's called after encoders are ready and isRecording is true
+			//the above prepare method is overriden in EncoderAdaptor so that we resolve calling startPublish just here
+			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), PUBLISH_TYPE_RTMP);
+			
 		}
 		catch(Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -1838,6 +1843,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void setIsRecording(boolean isRecording) {
 		this.isRecording.set(isRecording);
 	}
+
 }
 
 

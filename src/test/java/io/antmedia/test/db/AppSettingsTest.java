@@ -81,7 +81,7 @@ public class AppSettingsTest {
 		mockApplicationAdapter.setStorageClient(storageClient);
 		
 		//null case
-		assertTrue(mockApplicationAdapter.updateSettings(settings, false));
+		assertTrue(mockApplicationAdapter.updateSettings(settings, false, false));
 		verify(mockSettings, times(1)).setEncoderSettings(settings.getEncoderSettings());
 		
 		
@@ -93,7 +93,7 @@ public class AppSettingsTest {
 		settings.setEncoderSettings(encoderSettings);
 		
 		
-		assertFalse(mockApplicationAdapter.updateSettings(settings, false));
+		assertFalse(mockApplicationAdapter.updateSettings(settings, false, false));
 		
 		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		
@@ -135,7 +135,7 @@ public class AppSettingsTest {
 		when(scope.getName()).thenReturn(appName);
 		Mockito.doReturn(scope).when(mockApplicationAdapter).getScope();		
 								
-		mockApplicationAdapter.updateSettings(settings, false);
+		mockApplicationAdapter.updateSettings(settings, false, false);
 		
 		verify(mockSettings, times(1)).setMp4MuxingEnabled(settings.isMp4MuxingEnabled());
 		verify(mockApplicationAdapter, times(1)).synchUserVoDFolder(any(), any());
@@ -162,7 +162,7 @@ public class AppSettingsTest {
 		settings.setEncoderSettings(encoderSettings);
 		settings.setPreviewOverwrite(false);
 		
-		boolean updateSettings = mockApplicationAdapter.updateSettings(settings, false);
+		boolean updateSettings = mockApplicationAdapter.updateSettings(settings, false, false);
 		assertFalse(updateSettings);
 		
 		savedSettings = mockApplicationAdapter.getAppSettings();
@@ -180,7 +180,7 @@ public class AppSettingsTest {
 		settings.setEncoderSettings(encoderSettings);
 		settings.setPreviewOverwrite(false);
 		
-		updateSettings = mockApplicationAdapter.updateSettings(settings, false);
+		updateSettings = mockApplicationAdapter.updateSettings(settings, false, false);
 		assertTrue(updateSettings);
 		
 		assertEquals("12", savedSettings.getHlsListSize());
