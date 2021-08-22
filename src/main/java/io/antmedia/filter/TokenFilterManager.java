@@ -54,6 +54,8 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		String sessionId = httpRequest.getSession().getId();
 		String streamId = getStreamId(httpRequest.getRequestURI());
+		
+
 
 		String clientIP = httpRequest.getRemoteAddr().replaceAll(REPLACE_CHARS_REGEX, "_");
 
@@ -79,7 +81,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		 * then check it here to bypass token control.
 		 */
 		String clusterToken = (String) request.getAttribute(TokenGenerator.INTERNAL_COMMUNICATION_TOKEN_NAME);
-		if ((HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method))) 
+		if ((HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method) || HttpMethod.PUT.equals(method)) ) 
 		{
 
 			if (tokenGenerator == null || clusterToken == null || clusterToken.equals(tokenGenerator.getGenetaredToken())) {
@@ -154,11 +156,12 @@ public class TokenFilterManager extends AbstractFilter   {
 			}
 			
 			chain.doFilter(request, response);	
-		}
+	}
 		else {
 			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
 			logger.warn("Invalid method type for stream: {}", streamId);
 		}
+		
 	}
 
 	private TokenGenerator getTokenGenerator() {
@@ -188,18 +191,31 @@ public class TokenFilterManager extends AbstractFilter   {
 
 	public static String getStreamId(String requestURI) {
 
+
+		logger.error("requestURI:" + requestURI);
+		
 		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
 
 		int endIndex;
 		int startIndex = requestURI.indexOf('/');
 
-		requestURI = requestURI.split("streams")[1];
+		if(requestURI.contains("streams")) {
+			requestURI = requestURI.split("streams")[1];
+		}
+		else if(requestURI.contains("chunked")) {
+				requestURI = requestURI.split("chunked")[1];
+				startIndex = requestURI.indexOf("/");
+				endIndex = requestURI.lastIndexOf("/");
+				return requestURI.substring(startIndex+1, endIndex);
+		}
+
 
 		//if request is adaptive file (ending with _adaptive.m3u8)
 		endIndex = requestURI.lastIndexOf(MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8");
 		if (endIndex != -1) {
 			return requestURI.substring(startIndex+1, endIndex);
 		}
+
 
 		//if specific bitrate is requested
 		String hlsRegex = "(.*)_[0-9]+p.m3u8$";  // matches ending with _[resolution]p.m3u8
