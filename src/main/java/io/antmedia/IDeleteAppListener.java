@@ -1,7 +1,7 @@
 package io.antmedia;
 
 public interface IDeleteAppListener {
-	public boolean deleteApplication(String appName);
+	public boolean deleteApplication(String appName, boolean deleteDB);
 
 }
 

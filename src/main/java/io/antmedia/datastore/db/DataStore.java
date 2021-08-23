@@ -123,8 +123,17 @@ public abstract class DataStore {
 	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
 
 	public abstract List<Broadcast> getExternalStreamsList();
-
-	public abstract void close();
+	
+	public void close() {
+		close(false);
+	}
+	
+	/**
+	 * This is used to close data store on shutdown
+	 * 
+	 * @param deleteDBAfterClose - set true to delete files or collection
+	 */
+	public abstract void close(boolean deleteDBAfterClose);
 
 	/**
 	 * Returns the VoD List in order

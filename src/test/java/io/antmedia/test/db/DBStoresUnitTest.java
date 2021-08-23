@@ -2721,4 +2721,10 @@ public class DBStoresUnitTest {
 			.pollDelay(1000, TimeUnit.MILLISECONDS)
 			.until(() -> (finalTotal == dataStore.getTotalWebRTCViewersCount()));
 	}	
+	
+	@Test
+	public void testDeleteMapDB() {
+		DataStore dataStore = new MapDBStore("deleteMapdb");
+		dataStore.close(true);
+	}
 }

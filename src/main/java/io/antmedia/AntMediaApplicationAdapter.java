@@ -1154,7 +1154,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 	@Override
-	public void serverShuttingdown() {
+	public void serverShuttingdown(boolean deleteDB) {
 		logger.info("{} is closing streams", getScope().getName());
 		serverShuttingDown = true;
 		closeStreamFetchers();
@@ -1165,7 +1165,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 		createShutdownFile(getScope().getName());
 
-		getDataStore().close();
+		getDataStore().close(deleteDB);
 	}
 	
 

@@ -81,9 +81,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				log.info("Creating application with name {}", appName);
 				return createApplication(appName);
 			});
-			clusterNotifier.registerDeleteAppListener(appName -> {
+			clusterNotifier.registerDeleteAppListener((appName, deleteDB) -> {
 				log.info("Deleting application with name {}", appName);
-				return deleteApplication(appName);
+				return deleteApplication(appName, deleteDB);
 			});
 		}
 
@@ -309,10 +309,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	}
 
-	public boolean deleteApplication(String appName) {
+	public boolean deleteApplication(String appName, boolean deleteDB) {
 
 		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
-		getApplicationAdaptor(appScope).serverShuttingdown();
+		getApplicationAdaptor(appScope).serverShuttingdown(deleteDB);
 
 		boolean success = runDeleteAppScript(appName);
 		warDeployer.undeploy(appName);

@@ -246,7 +246,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public void close() {
+	public void close(boolean deleteDBAfterClose) {
 		//no need to implement 
 		available = false;
 	}

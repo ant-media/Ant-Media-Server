@@ -432,10 +432,20 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public void close() {
+	public void close(boolean deleteDBAfterClose) {
 		synchronized(this) {
 			available = false;
 			datastore.getMongo().close();
+			
+			if(deleteDBAfterClose) {
+				tokenDatastore.getMongo().dropDatabase(tokenDatastore.getDB().getName());
+				subscriberDatastore.getMongo().dropDatabase(subscriberDatastore.getDB().getName());
+				datastore.getMongo().dropDatabase(datastore.getDB().getName());
+				vodDatastore.getMongo().dropDatabase(vodDatastore.getDB().getName());
+				endpointCredentialsDS.getMongo().dropDatabase(endpointCredentialsDS.getDB().getName());
+				detectionMap.getMongo().dropDatabase(detectionMap.getDB().getName());
+				conferenceRoomDatastore.getMongo().dropDatabase(conferenceRoomDatastore.getDB().getName());
+			}
 		}
 	}
 

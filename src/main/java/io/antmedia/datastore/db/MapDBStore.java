@@ -1,7 +1,9 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -511,10 +513,24 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public void close() {
+	public void close(boolean deleteDBAfterClose) {
+		Iterable<String> dbFiles = db.getStore().getAllFiles();
 		synchronized (this) {
 			available = false;
 			db.close();
+		}
+		
+		if(deleteDBAfterClose) {
+			for (String fileName : dbFiles) {
+				File file = new File(fileName);
+				if (file.exists()) {
+					try {
+						Files.delete(file.toPath());
+					} catch (IOException e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+				}
+			}
 		}
 	}
 
