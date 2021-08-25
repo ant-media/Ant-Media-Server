@@ -246,7 +246,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public void close(boolean deleteDBAfterClose) {
+	public void close() {
 		//no need to implement 
 		available = false;
 	}
@@ -1038,5 +1038,11 @@ public class InMemoryDataStore extends DataStore {
 			totalWebRTCViewerCountLastUpdateTime = now;
 		}  
 		return totalWebRTCViewerCount;
+	}
+
+	@Override
+	public void delete() {
+		// TODO Auto-generated method stub
+		
 	}
 }

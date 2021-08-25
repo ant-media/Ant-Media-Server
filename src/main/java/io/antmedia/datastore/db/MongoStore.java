@@ -432,20 +432,10 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public void close(boolean deleteDBAfterClose) {
+	public void close() {
 		synchronized(this) {
 			available = false;
 			datastore.getMongo().close();
-			
-			if(deleteDBAfterClose) {
-				tokenDatastore.getMongo().dropDatabase(tokenDatastore.getDB().getName());
-				subscriberDatastore.getMongo().dropDatabase(subscriberDatastore.getDB().getName());
-				datastore.getMongo().dropDatabase(datastore.getDB().getName());
-				vodDatastore.getMongo().dropDatabase(vodDatastore.getDB().getName());
-				endpointCredentialsDS.getMongo().dropDatabase(endpointCredentialsDS.getDB().getName());
-				detectionMap.getMongo().dropDatabase(detectionMap.getDB().getName());
-				conferenceRoomDatastore.getMongo().dropDatabase(conferenceRoomDatastore.getDB().getName());
-			}
 		}
 	}
 
@@ -1517,5 +1507,21 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return totalWebRTCViewerCount;
+	}
+
+	@Override
+	public void delete() {
+		synchronized(this) {
+			available = false;
+			datastore.getMongo().close();
+
+			tokenDatastore.getMongo().dropDatabase(tokenDatastore.getDB().getName());
+			subscriberDatastore.getMongo().dropDatabase(subscriberDatastore.getDB().getName());
+			datastore.getMongo().dropDatabase(datastore.getDB().getName());
+			vodDatastore.getMongo().dropDatabase(vodDatastore.getDB().getName());
+			endpointCredentialsDS.getMongo().dropDatabase(endpointCredentialsDS.getDB().getName());
+			detectionMap.getMongo().dropDatabase(detectionMap.getDB().getName());
+			conferenceRoomDatastore.getMongo().dropDatabase(conferenceRoomDatastore.getDB().getName());
+		}
 	}
 }

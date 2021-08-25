@@ -55,10 +55,10 @@ public class AdminApplicationTest {
 		AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adapter).when(app).getApplicationAdaptor(Mockito.any());
 		
-		boolean result = app.deleteApplication("test", true);
+		boolean result = app.deleteApplication("test");
 		assertFalse(result);
 		
-		Mockito.verify(adapter).serverShuttingdown(true);
+		Mockito.verify(adapter).serverShuttingdown();
 		try {
 			Mockito.verify(appScope).destroy();
 		} catch (Exception e) {
@@ -78,7 +78,7 @@ public class AdminApplicationTest {
 		}
 		Mockito.doReturn(true).when(app).runDeleteAppScript(Mockito.any());
 		
-		result = app.deleteApplication("test", true);
+		result = app.deleteApplication("test");
 		assertFalse(result);
 		
 	}

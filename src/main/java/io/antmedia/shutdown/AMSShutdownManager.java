@@ -37,7 +37,7 @@ public class AMSShutdownManager {
 			isShuttingDown = true;
 			for (IShutdownListener listener : listeners) {
 				try {
-					listener.serverShuttingdown(false);
+					listener.serverShuttingdown();
 				}
 				catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));

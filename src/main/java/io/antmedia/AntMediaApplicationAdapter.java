@@ -1154,7 +1154,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 	@Override
-	public void serverShuttingdown(boolean deleteDB) {
+	public void serverShuttingdown() {
 		logger.info("{} is closing streams", getScope().getName());
 		serverShuttingDown = true;
 		closeStreamFetchers();
@@ -1165,7 +1165,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 		createShutdownFile(getScope().getName());
 
-		getDataStore().close(deleteDB);
+		getDataStore().close();
 	}
 	
 
@@ -1699,6 +1699,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void removeStreamListener(IStreamListener listener) {
 		streamListeners.remove(listener);
+	}
+
+	public void deleteDBInSeconds() {
+		vertx.setTimer(5000, l->getDataStore().delete());
 	}
 
 }

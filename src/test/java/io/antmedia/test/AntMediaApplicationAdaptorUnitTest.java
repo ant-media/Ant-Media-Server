@@ -798,7 +798,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		assertFalse(adapter.isServerShuttingDown());
 		
-		adapter.serverShuttingdown(false);
+		adapter.serverShuttingdown();
 		
 		assertTrue(adapter.isServerShuttingDown());
 

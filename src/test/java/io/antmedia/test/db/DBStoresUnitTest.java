@@ -2725,6 +2725,7 @@ public class DBStoresUnitTest {
 	@Test
 	public void testDeleteMapDB() {
 		DataStore dataStore = new MapDBStore("deleteMapdb");
-		dataStore.close(true);
+		dataStore.close();
+		dataStore.delete();
 	}
 }

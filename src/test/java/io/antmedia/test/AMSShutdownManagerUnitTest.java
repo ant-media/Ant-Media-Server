@@ -29,15 +29,15 @@ public class AMSShutdownManagerUnitTest {
 		
 		
 		AMSShutdownManager.getInstance().notifyShutdown();
-		verify(listener1, times(1)).serverShuttingdown(false);
-		verify(listener2, times(1)).serverShuttingdown(false);
+		verify(listener1, times(1)).serverShuttingdown();
+		verify(listener2, times(1)).serverShuttingdown();
 
 		
 		//notification can be made only one times 
 		
 		AMSShutdownManager.getInstance().notifyShutdown();
-		verify(listener1, times(1)).serverShuttingdown(false);
-		verify(listener2, times(1)).serverShuttingdown(false);
+		verify(listener1, times(1)).serverShuttingdown();
+		verify(listener2, times(1)).serverShuttingdown();
 		
 		AMSShutdownManager.getInstance().getListeners().clear();
 				

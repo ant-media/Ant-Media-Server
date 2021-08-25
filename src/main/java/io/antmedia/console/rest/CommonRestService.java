@@ -1089,7 +1089,7 @@ public class CommonRestService {
 			if (!isClusterMode()) {
 				//if it's not in cluster mode, delete application
 				//In cluster mode, it's deleted by synchronization
-				result = getApplication().deleteApplication(appName, deleteDB);
+				result = getApplication().deleteApplication(appName);
 			}
 		}
 		else {

@@ -54,6 +54,7 @@ public class MapDBStore extends DataStore {
 
 	private Gson gson;
 	private String dbName;
+	private Iterable<String> dbFiles;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "BROADCAST";
 	private static final String VOD_MAP_NAME = "VOD";
@@ -513,24 +514,11 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public void close(boolean deleteDBAfterClose) {
-		Iterable<String> dbFiles = db.getStore().getAllFiles();
+	public void close() {
+		dbFiles = db.getStore().getAllFiles();
 		synchronized (this) {
 			available = false;
 			db.close();
-		}
-		
-		if(deleteDBAfterClose) {
-			for (String fileName : dbFiles) {
-				File file = new File(fileName);
-				if (file.exists()) {
-					try {
-						Files.delete(file.toPath());
-					} catch (IOException e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
-				}
-			}
 		}
 	}
 
@@ -1492,5 +1480,21 @@ public class MapDBStore extends DataStore {
 			totalWebRTCViewerCountLastUpdateTime = now;
 		}  
 		return totalWebRTCViewerCount;
+	}
+
+
+
+	@Override
+	public void delete() {
+		for (String fileName : dbFiles) {
+			File file = new File(fileName);
+			if (file.exists()) {
+				try {
+					Files.delete(file.toPath());
+				} catch (IOException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
 	}
 }
