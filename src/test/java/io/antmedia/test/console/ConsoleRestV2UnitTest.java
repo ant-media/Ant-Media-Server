@@ -361,7 +361,7 @@ public class ConsoleRestV2UnitTest {
     	 assertFalse(result.isSuccess());
     	 
     	 
-    	 Mockito.when(adminApp.deleteApplication(Mockito.anyString())).thenReturn(true);
+    	 Mockito.when(adminApp.deleteApplication(Mockito.anyString(),true)).thenReturn(true);
     	 result = restServiceSpy.deleteApplication("test", true);
     	 assertTrue(result.isSuccess());
     	 

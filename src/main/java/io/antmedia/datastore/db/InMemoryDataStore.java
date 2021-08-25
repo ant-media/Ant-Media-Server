@@ -1042,7 +1042,6 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public void delete() {
-		// TODO Auto-generated method stub
-		
+		// No need to implement.
 	}
 }
