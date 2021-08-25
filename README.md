@@ -8,12 +8,10 @@
 
 Ant Media Server is designed to provide live video streaming technology infrastructure with ultra-low latency(WebRTC) and low-latency(HLS, CMAF available in v2.2+). It can be used to enable streaming any type of live or on demand video to any devices including mobiles, PCs or IPTV boxes.
 
-### 3300+ Running Instances in 120+ Countries 
+### 3867 Running Instances in 129 Countries 
 
 
-Ant Media Server Features
-====
-
+## Ant Media Server Features
  * Ant Media Server is an open source media server:
  * Ant Media Server is available with Free (Community) and Paid (Enterprise) versions.
  * Ultra Low Latency Adaptive One to Many WebRTC Live Streaming in **Enterprise Edition**
@@ -35,6 +33,28 @@ Ant Media Server Features
  [Comparison table for Community and Enterprise Edition](https://github.com/ant-media/Ant-Media-Server/wiki#community-edition--enterprise-edition)
 
  ![image](https://user-images.githubusercontent.com/54481799/95864676-64954580-0d6e-11eb-94d0-d661746d49af.png)
+ 
+## Quick Launch
+
+<b>Launch in [Amazon Web Services](https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Ant+Media+Server&page=1&ref_=nav_search_box)</b>
+
+ <a href="https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Ant+Media+Server&page=1&ref_=nav_search_box"><img src="https://i1.wp.com/antmedia.io/wp-content/uploads/2019/06/1200px-Amazon_Web_Services_Logo.svg-300x180.png" width=90/></a>
+
+<b>Launch in [Microsoft Azure](https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1)</b> (Wait a few seconds for listings appear)
+
+ <a href="https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1"><img src="https://i1.wp.com/antmedia.io/wp-content/uploads/2019/01/azure-e1548153434609.png" width=130/></a>
+
+ 
+### Links
+
+ * [Documentation](http://docs.antmedia.io/)
+ * [Web site](https://antmedia.io)
+ * [Community Edition vs. Enterprise Edition](https://github.com/ant-media/Ant-Media-Server/wiki#community-edition--enterprise-edition) 
+ * [Your Scalable, Real-Time Video Streaming Platform Ready in 5 Minutes](https://www.youtube.com/watch?v=y7bP0u0jQRQ)
+ 
+  [![Your Scalable, Real-Time Video Streaming Platform Ready in 5 Minutes](https://img.youtube.com/vi/y7bP0u0jQRQ/0.jpg)](https://www.youtube.com/watch?v=y7bP0u0jQRQ)
+
+ 
 ## Usage Scenarios
 ### Education
 Ant Media can provide virtual classrooms with teachers as many as it is required and it might be presented and viewed separately with ultra-low latency.
@@ -57,27 +77,27 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 <br/>
 <br/>
 
-<b>Scaling WebRTC</b> streaming is one of the powerful features of Ant Media Server and you can scale up viewers 1 to 30K easily in one minute installation with CloudFormation utility. Here is the [guide!](https://antmedia.io/scaling-webrtc-streaming-30k-cloudformation/)
-
-## Quick Launch
-
-<b>Launch in [Amazon Web Services](https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Ant+Media+Server&page=1&ref_=nav_search_box)</b>
-
- <a href="https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Ant+Media+Server&page=1&ref_=nav_search_box"><img src="https://i1.wp.com/antmedia.io/wp-content/uploads/2019/06/1200px-Amazon_Web_Services_Logo.svg-300x180.png" width=90/></a>
-
-<b>Launch in [Microsoft Azure](https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1)</b> (Wait a few seconds for listings appear)
-
- <a href="https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1"><img src="https://i1.wp.com/antmedia.io/wp-content/uploads/2019/01/azure-e1548153434609.png" width=130/></a>
-
-
- ### Links
-
- * [Documentation](http://docs.antmedia.io/)
- * [Web site](https://antmedia.io)
- * [Community Edition vs. Enterprise Edition](https://github.com/ant-media/Ant-Media-Server/wiki#community-edition--enterprise-edition)
-
-
 ## Releases
+
+### [Ant Media Server Community 2.4.0 (Aug 24, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.4.0/ant-media-server-2.4.0-community-2.4.0-20210824_1041.zip)
+
+- Plugin Architecture 
+- Implementing MCU Plugin(audio-only supported) and providing it as a  built-in plugin -> Quick test: https://SERVER:5443/WebRTCAppEE/mcu.html
+- H265 Support in Ingesting WebRTC(H265 encoder is available in some Android devices)
+- Support HLS AES-Encryption
+- Support QuickSync in Hardware Transcoding
+- Configure `X-Forwarded-For` support as built-in for REST API.
+- Send specific resolutions to the RTMP endpoints via REST API
+- Add JWKS support for JWT Filter
+- Provide option to force adaptive bitrate all time or use whenever the source resolution is higher
+- Fix random bad name issue in RTMP Ingest (This was a common issue. Thank you God, it seems it's fixed :))
+- Upgrade Tomcat to 8.5.69 and don't use native Tomcat libraries(Because it causes crash in some cases)
+- Support re-connecting to the same session in a specific timeout after the publisher is disconnected. 
+
+[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.4.0)
+
+
+
 ### [Ant Media Server Community 2.3.3 (June 6, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.2/ant-media-server-2.3.2-community-2.3.2-20210422_0754.zip)
 
 - Check existence of audio sync issue for RTMP to WebRTC case #3229
@@ -119,17 +139,6 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 - Update FFmpeg(4.3.2) and CUDA(11.2) #3047
 - Audio/Video sync issue in 2.3 with ABR #3088
 
-### [Ant Media Server Community 2.3.0 (March 3, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.0/ant-media-server-2.3.0-community-2.3.0-20210301_0825.zip)
-- Improvements in Low latency DASH
-- Low latency HLS (experimental)
-- Stereo support for WebRTC streaming
-- Audio forwarding in SFU mode
-- White Board implementation on top of WebRTC data channel
-- WebRTC Data Channel support without video & audio
-- Application deploy/undeploy on the fly in cluster mode
-- Time-based Tokens (TOTP) for stream security
-- JWT tokens for stream and REST security
-- Support Multi-Level Cluster
 
 [Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.3.0) 
 
