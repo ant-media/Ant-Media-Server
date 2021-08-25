@@ -28,6 +28,10 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoDatabase;
+
 import dev.morphia.Datastore;
 import dev.morphia.query.Query;
 import io.antmedia.AntMediaApplicationAdapter;
@@ -2724,8 +2728,33 @@ public class DBStoresUnitTest {
 	
 	@Test
 	public void testDeleteMapDB() {
-		DataStore dataStore = new MapDBStore("deleteMapdb");
+		String dbName = "deleteMapdb";
+		DataStore dataStore = new MapDBStore(dbName);
+		assertTrue(new File(dbName).exists());
 		dataStore.close();
 		dataStore.delete();
+		assertFalse(new File(dbName).exists());
+	}
+	
+	@Test
+	public void testDeleteMongoDBCollection() {
+		String dbName = "deleteMapdb";
+		MongoStore dataStore = new MongoStore("localhost", "", "", dbName);
+		
+		MongoClientURI mongoUri = new MongoClientURI(dataStore.getMongoConnectionUri("localhost", "", ""));
+		MongoClient client = new MongoClient(mongoUri);
+		
+		
+		ArrayList<String> dbNames = new ArrayList<String>();
+		client.listDatabaseNames().forEach(c-> dbNames.add(c));
+		assertTrue(dbNames.contains(dbName));
+		
+		dataStore.close();
+		dataStore.delete();
+
+		dbNames.clear();
+		client.listDatabaseNames().forEach(c-> dbNames.add(c));
+		assertFalse(dbNames.contains(dbName));
+
 	}
 }
