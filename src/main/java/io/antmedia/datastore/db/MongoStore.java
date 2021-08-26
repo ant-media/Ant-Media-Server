@@ -435,7 +435,6 @@ public class MongoStore extends DataStore {
 	public void close() {
 		synchronized(this) {
 			available = false;
-			//datastore.getMongo().close();
 		}
 	}
 
@@ -1509,6 +1508,7 @@ public class MongoStore extends DataStore {
 		return totalWebRTCViewerCount;
 	}
 
+	@SuppressWarnings("deprecation")
 	@Override
 	public void delete() {
 		synchronized(this) {
