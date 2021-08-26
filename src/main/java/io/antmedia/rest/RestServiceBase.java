@@ -388,6 +388,33 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
+	protected Result deleteBroadcasts(String streamIds) {
+
+		Result result = new Result (false);
+		boolean stopResult = false;
+		Broadcast broadcast = null;
+		String message = "";
+		String[] streams = StringUtils.split(streamIds,",");
+
+		if(streamIds != null && !streamIds.isEmpty()){
+			for (String id : streams) {
+				deleteBroadcast(id);
+			}
+
+			for (String id : streams) {
+				broadcast = getDataStore().get(id);
+				if (broadcast != null) {
+					return new Result(false, message);
+				}
+			}
+		}
+		else{
+			logger.warn("Requested deletion for Stream Ids is empty");
+		}
+
+		return new Result(true, message);
+	}
+
 	protected boolean stopBroadcastInternal(Broadcast broadcast) {
 		boolean result = false;
 		if (broadcast != null) {
@@ -1212,6 +1239,35 @@ public abstract class RestServiceBase {
 			}
 
 		}
+		return new Result(success, message);
+	}
+
+	protected Result deleteVoDs(String vodIds) {
+		boolean success = false;
+		String message = "";
+		ApplicationContext appContext = getAppContext();
+		String[] splitFileName = StringUtils.split(vodIds,",");
+
+		if (appContext != null ) {
+			if(vodIds != null && !vodIds.isEmpty()){
+				for (String id : splitFileName) {
+					deleteVoD(id);
+				}
+
+				for (String checkVod : splitFileName) {
+					VoD voD = getDataStore().getVoD(checkVod);
+					if (voD != null) {
+						return new Result(success, message);
+					}
+				}
+			}
+			else{
+				logger.warn("Requested deletion for VoD Ids is empty");
+			}
+		}
+		success = true;
+		message = "VoDs are deleted";
+
 		return new Result(success, message);
 	}
 
