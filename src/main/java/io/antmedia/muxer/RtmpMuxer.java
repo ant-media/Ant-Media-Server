@@ -582,7 +582,7 @@ public class RtmpMuxer extends Muxer {
 				byte[] data = new byte[128];
 				av_strerror(ret, data, data.length);
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-				logger.info("cannot write frame to muxer(not video). Error: {} stream: {} codec type: {} index: {} pkt.dts:{}", new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index(), pkt.dts());
+				logger.info("cannot write audio frame to muxer. Error: {} stream: {} codec type: {} index: {} pkt.dts:{}", new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index(), pkt.dts());
 			}
 			else {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);

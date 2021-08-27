@@ -133,6 +133,48 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 	}
 
+	@Test
+	public void testIsIncomingTimeValid() {
+		AppSettings settings = new AppSettings();
+		
+		IScope scope = mock(IScope.class);
+
+		when(scope.getName()).thenReturn("junit");
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		AppSettings appSettings = new AppSettings();
+		spyAdapter.setAppSettings(appSettings);
+		IContext context = mock(IContext.class);
+		when(context.getBean(Mockito.any())).thenReturn(mock(AcceptOnlyStreamsInDataStore.class));
+		when(scope.getContext()).thenReturn(context);
+		Mockito.doReturn(mock(DataStore.class)).when(spyAdapter).getDataStore();
+		
+		
+		settings = new AppSettings();
+		
+		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		
+		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
+		
+		settings.setUpdateTime(1000);
+		
+		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
+		
+		appSettings.setUpdateTime(900);
+		
+		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
+		
+		appSettings.setUpdateTime(2000);
+		
+		assertFalse(spyAdapter.isIncomingTimeValid(settings, true));
+		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		
+		settings.setUpdateTime(3000);
+		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		
+		
+		
+	}
 
 	@Test
 	public void testAppSettings() 
@@ -161,7 +203,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setScope(scope);
-		spyAdapter.updateSettings(newSettings, true);
+		spyAdapter.updateSettings(newSettings, true, false);
 		
 		
 
@@ -172,15 +214,20 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
 		spyAdapter.setClusterNotifier(clusterNotifier);
 
-		spyAdapter.updateSettings(newSettings, true);
+		spyAdapter.updateSettings(newSettings, true, false);
 
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
 		
-		spyAdapter.updateSettings(newSettings, false);
+		spyAdapter.updateSettings(newSettings, false, false);
 		//it should not change times(1) because we don't want it to update the datastore
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
+		
+		settings.setUpdateTime(1000);
+		newSettings.setUpdateTime(900);
+		assertFalse(spyAdapter.updateSettings(newSettings, false, true));
+		
 	}
 
 	@Test
@@ -977,6 +1024,43 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(true, result.isSuccess());
 		assertEquals("System works, deleted closed file in "+ scope.getName(), result.getMessage());
 		
+		
+		//initiiazed file does not exist but closed file exists
+		initializedFile.delete();
+		
+		
+		try {
+			closedFile.createNewFile();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		result = adapter.createInitializationProcess(scope.getName());
+		
+		assertEquals(false, closedFile.exists());
+		assertEquals(true, initializedFile.exists());
+		assertEquals(true, result.isSuccess());
+		
+		
+		
+		//run create initialization file for odd case
+		result = new Result(true);
+		initializedFile = Mockito.mock(File.class);
+		try {
+			Mockito.when(initializedFile.createNewFile()).thenReturn(false);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+		try {
+			adapter.createInitializationFile("app", result, initializedFile);
+			assertFalse(result.isSuccess());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
+		
 	}
 	
 	boolean threadStarted = false; 
@@ -1212,27 +1296,27 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.appStart(scope);
 		
 		verify(clusterNotifier).registerSettingUpdateListener(Mockito.any(), Mockito.any());
-		verify(spyAdapter).updateSettings(settings, true);
+		verify(spyAdapter).updateSettings(settings, true, false);
 		
 
 		AppSettings clusterStoreSettings = new AppSettings();
 		when(clusterStore.getSettings(Mockito.any())).thenReturn(clusterStoreSettings);
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(2)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
-		verify(spyAdapter).updateSettings(clusterStoreSettings, false);
+		verify(spyAdapter).updateSettings(clusterStoreSettings, false, false);
 		
 		
 		clusterStoreSettings.setToBeDeleted(true);
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis());
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(3)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
-		verify(spyAdapter, times(2)).updateSettings(clusterStoreSettings, false);
+		verify(spyAdapter, times(2)).updateSettings(clusterStoreSettings, false, false);
 		
 		
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()-80000);
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(4)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
-		verify(spyAdapter, times(2)).updateSettings(settings, true);
+		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
 	
 		
 	}

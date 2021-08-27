@@ -737,6 +737,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		return appAdapter;
 	}
+	
+	
 
 	public AppSettings getAppSettings() {
 
@@ -1004,6 +1006,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		try {
 			prepare();
 			isRecording.set(true);
+			
+			//Calling startPublish to here is critical. It's called after encoders are ready and isRecording is true
+			//the above prepare method is overriden in EncoderAdaptor so that we resolve calling startPublish just here
+			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), PUBLISH_TYPE_RTMP);
+			
 		}
 		catch(Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -1503,7 +1510,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
-	private boolean prepareMuxer(Muxer muxer) {
+	public boolean prepareMuxer(Muxer muxer) {
 		boolean prepared;
 		muxer.init(scope, streamId, 0, broadcast != null ? broadcast.getSubFolder(): null);
 		logger.info("prepareMuxer for stream:{} muxer:{}", streamId, muxer.getClass().getSimpleName());
@@ -1585,20 +1592,28 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
-	public boolean startRtmpStreaming(String rtmpUrl, int resolution)
+	public boolean startRtmpStreaming(String rtmpUrl, int resolutionHeight)
 	{
+		rtmpUrl = rtmpUrl.replaceAll("[\n\r\t]", "_");
 		if (!isRecording.get()) {
 			logger.warn("Start rtmp streaming return false for stream:{} because stream is being prepared", streamId);
 			return false;
 		}
-		RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
-		rtmpMuxer.setStatusListener(this);
-
-		boolean prepared = prepareMuxer(rtmpMuxer);
-		if (!prepared) {
-			logger.error("RTMP prepare returned false so that rtmp pushing to {} for {} didn't started ", rtmpUrl, streamId);
+		
+		logger.info("start rtmp streaming for stream id:{} to {} with requested resolution height{} stream resolution:{}", streamId, rtmpUrl, resolutionHeight, height);
+		boolean result = false;
+		if (resolutionHeight == 0 || resolutionHeight == height) 
+		{
+			RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
+			rtmpMuxer.setStatusListener(this);
+	
+			result = prepareMuxer(rtmpMuxer);
+			if (!result) {
+				logger.error("RTMP prepare returned false so that rtmp pushing to {} for {} didn't started ", rtmpUrl, streamId);
+			}
 		}
-		return prepared;
+		
+		return result;
 	}
 
 	@Override
@@ -1672,14 +1687,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return rtmpMuxer;
 	}
 
-	public boolean stopRtmpStreaming(String rtmpUrl, int resolution)
+	public boolean stopRtmpStreaming(String rtmpUrl, int resolutionHeight)
 	{
-		RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
 		boolean result = false;
-		if (rtmpMuxer != null) {
-			muxerList.remove(rtmpMuxer);
-			rtmpMuxer.writeTrailer();
-			result = true;
+		if (resolutionHeight == 0 || resolutionHeight == height) 
+		{
+			RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
+			if (rtmpMuxer != null) {
+				muxerList.remove(rtmpMuxer);
+				rtmpMuxer.writeTrailer();
+				result = true;
+			}
 		}
 		return result;
 	}
@@ -1822,6 +1840,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public Map<String, String> getEndpointStatusUpdateMap() {
 		return endpointStatusUpdateMap;
 	}
+
+
+	public void setHeight(int height) {
+		this.height = height;
+	}
+
+
+	public void setIsRecording(boolean isRecording) {
+		this.isRecording.set(isRecording);
+	}
+
 }
 
 
