@@ -1406,9 +1406,6 @@ public class MapDBStore extends DataStore {
 		boolean result = false;
 		synchronized (this) {
 			String json = map.get(mainTrackId);
-			
-			System.out.println("***** mid:"+mainTrackId+" sid:"+subTrackId+" json:"+json);
-			
 			Broadcast mainTrack = gson.fromJson(json, Broadcast.class);
 			List<String> subTracks = mainTrack.getSubTrackStreamIds();
 			if (subTracks == null) {
@@ -1479,17 +1476,5 @@ public class MapDBStore extends DataStore {
 			totalWebRTCViewerCountLastUpdateTime = now;
 		}  
 		return totalWebRTCViewerCount;
-	}
-	
-	@Override
-	public List<String> getSubtracks(String mainTrackId) {
-		ArrayList<String> subtracks = new ArrayList<String>();
-		for (String json : map.getValues()) {
-			Broadcast broadcast = gson.fromJson(json, Broadcast.class);
-			if(broadcast.getMainTrackStreamId() != null && broadcast.getMainTrackStreamId().equals(mainTrackId)) {
-				subtracks.add(broadcast.getStreamId());
-			}
-		}
-		return subtracks;
 	}
 }

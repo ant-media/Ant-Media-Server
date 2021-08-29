@@ -1039,15 +1039,4 @@ public class InMemoryDataStore extends DataStore {
 		}  
 		return totalWebRTCViewerCount;
 	}
-
-	@Override
-	public List<String> getSubtracks(String mainTrackId) {
-		ArrayList<String> subtracks = new ArrayList<String>();
-		for (Broadcast broadcast : broadcastMap.values()) {
-			if(broadcast.getMainTrackStreamId() != null && broadcast.getMainTrackStreamId().equals(mainTrackId)) {
-				subtracks.add(broadcast.getStreamId());
-			}
-		}
-		return subtracks;
-	}
 }

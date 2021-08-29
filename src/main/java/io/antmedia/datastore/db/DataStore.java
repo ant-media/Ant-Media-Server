@@ -917,14 +917,6 @@ public abstract class DataStore {
 	 */
 	public abstract int getTotalWebRTCViewersCount();
 
-	/**
-	 * This is used to get track Ids that set the input parameter as main track id 
-	 * @param mainTrackId
-	 * 
-	 * @returns list of subtrack Id list
-	 */
-	public abstract List<String> getSubtracks(String mainTrackId);
-
 	//**************************************
 	//ATTENTION: Write function descriptions while adding new functions
 	//**************************************	

@@ -1508,21 +1508,4 @@ public class MongoStore extends DataStore {
 		}
 		return totalWebRTCViewerCount;
 	}
-	
-	@Override
-	public List<String> getSubtracks(String mainTrackId) {
-		ArrayList<String> subtracks = new ArrayList<String>();
-		synchronized(this) {
-			try {
-				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field("mainTrackStreamId").equal(mainTrackId);
-				List<Broadcast> broadcasts = query.find().toList();
-				for (Broadcast broadcast : broadcasts) {
-					subtracks.add(broadcast.getStreamId());
-				}
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return subtracks;
-	}
 }

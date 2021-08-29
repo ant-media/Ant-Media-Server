@@ -86,6 +86,7 @@ public class DBStoresUnitTest {
 
 		DataStore dataStore = new MapDBStore("testdb");
 		
+		
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);
 		
@@ -124,7 +125,6 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-		testGetSubTracks(dataStore);
 
 	}
 
@@ -170,7 +170,6 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-		testGetSubTracks(dataStore);
 
 	}
 
@@ -192,6 +191,7 @@ public class DBStoresUnitTest {
 		store = ((MongoStore)dataStore).getVodDatastore();
 		Query<VoD> deleteVodQuery = store.find(VoD.class);
 		store.delete(deleteVodQuery);
+
 
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);		
@@ -232,7 +232,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-		testGetSubTracks(dataStore);
+
 	}
 	
 	@Test
@@ -2721,48 +2721,4 @@ public class DBStoresUnitTest {
 			.pollDelay(1000, TimeUnit.MILLISECONDS)
 			.until(() -> (finalTotal == dataStore.getTotalWebRTCViewersCount()));
 	}	
-	
-	public void testGetSubTracks(DataStore dataStore) {
-
-		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
-		String subTrackId1 = RandomStringUtils.randomAlphanumeric(8);
-		String subTrackId2 = RandomStringUtils.randomAlphanumeric(8);
-		String nonSubTrackId = RandomStringUtils.randomAlphanumeric(8);
-
-
-		Broadcast subtrack1 = new Broadcast();
-		try {
-			subtrack1.setStreamId(subTrackId1);
-			subtrack1.setMainTrackStreamId(mainTrackId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		Broadcast subtrack2 = new Broadcast();
-		try {
-			subtrack2.setStreamId(subTrackId2);
-			subtrack2.setMainTrackStreamId(mainTrackId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		
-		Broadcast nonSubtrack = new Broadcast();
-		try {
-			nonSubtrack.setStreamId(nonSubTrackId);
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		dataStore.save(subtrack1);
-		dataStore.save(subtrack2);
-		dataStore.save(nonSubtrack);
-
-		List<String> subtracks = dataStore.getSubtracks(mainTrackId);
-		assertEquals(2, subtracks.size());
-			
-		assertTrue(subtracks.contains(subtrack1.getStreamId()));
-		assertTrue(subtracks.contains(subtrack2.getStreamId()));
-		assertFalse(subtracks.contains(nonSubtrack.getStreamId()));
-
-	}
 }
