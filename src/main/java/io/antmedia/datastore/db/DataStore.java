@@ -621,10 +621,11 @@ public abstract class DataStore {
 		broadcast.setUserAgent(newBroadcast.getUserAgent());
 		broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
 		broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
+		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 	}
 
 	/**
-	 * This method returns the local active broadcast count.
+	 * This method returns the local active broadcast count.ro
 	 * Mongodb implementation is different because of cluster.
 	 * Other implementations just return active broadcasts in db
 	 * @return
