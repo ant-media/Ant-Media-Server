@@ -52,6 +52,7 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
@@ -1160,17 +1161,24 @@ public class AntMediaApplicationAdaptorUnitTest {
 		IContext context = mock(IContext.class);
 		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
 		
+		when(context.getBean(IDataStoreFactory.BEAN_NAME)).thenReturn(dsf);
+		
 		
 		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
 		when(context.getApplicationContext()).thenReturn(appContext);
 		
 		
-		IApplicationAdaptorFactory appFactor = Mockito.mock(IApplicationAdaptorFactory.class);
+		Application appFactor = Mockito.mock(Application.class);
 		when(appFactor.getAppAdaptor()).thenReturn(spyAdapter);
+		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.setAppSettings(new AppSettings());
+		spyAdapter.setDataStore(dataStore);
+		
 		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appFactor);
 		
+		when(appContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
-		
+				
 		when(scope.getContext()).thenReturn(context);
 		spyAdapter.setDataStoreFactory(dsf);
 		
