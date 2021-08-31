@@ -371,7 +371,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 				stopPublishingSocialEndpoints(broadcast);
 
 				if (broadcast.isZombi()) {
-					if(!broadcast.getMainTrackStreamId().isEmpty()) {
+					if(broadcast.getMainTrackStreamId() != null && !broadcast.getMainTrackStreamId().isEmpty()) {
 						updateMainBroadcast(broadcast);
 					}
 					getDataStore().delete(streamName);
