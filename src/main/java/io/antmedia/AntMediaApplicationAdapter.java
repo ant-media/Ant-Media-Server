@@ -938,7 +938,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	{		
 		Result result = new Result(false);
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))  {
+				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
+				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)
+				)  {
 			result = getStreamFetcherManager().startStreaming(broadcast);
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
