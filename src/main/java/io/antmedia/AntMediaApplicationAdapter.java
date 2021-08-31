@@ -393,7 +393,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public void updateMainBroadcast(Broadcast broadcast) {
 		Broadcast mainBroadcast = getDataStore().get(broadcast.getMainTrackStreamId());
 		mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
-		if(mainBroadcast.getSubTrackStreamIds().isEmpty() || mainBroadcast.isZombi()) {
+		if(mainBroadcast.getSubTrackStreamIds().isEmpty() && mainBroadcast.isZombi()) {
 			getDataStore().delete(mainBroadcast.getStreamId());
 		}
 		else {
