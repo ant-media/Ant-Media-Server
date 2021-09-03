@@ -1,3 +1,1 @@
-# Pull Request
-
-This PR fixes #__Enter issue number__
+https://github.com/ant-media/Ant-Media-Server/issues/{__Enter issue number__}

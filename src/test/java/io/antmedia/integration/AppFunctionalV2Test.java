@@ -73,7 +73,7 @@ public class AppFunctionalV2Test {
 	
 
 	private BroadcastRestService restService = null;
-	private static final String SERVER_ADDR = ServerSettings.getLocalHostAddress(); 
+	public static final String SERVER_ADDR = ServerSettings.getLocalHostAddress(); 
 	protected static Logger logger = LoggerFactory.getLogger(AppFunctionalV2Test.class);
 
 	public static Process process;

@@ -52,6 +52,8 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 	public static final int LINUX = 1;
 	public static final int WINDOWS = 2;
 	
+	public static final String BIG_BUNNY_MP4_URL = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+	
 	private static int OS_TYPE;
 	
 	static {
@@ -154,6 +156,8 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		return appSettings;
 	}
 	
+	
+	
 	@Test
 	public void testUpdateStreamSource() {
 		RestServiceV2Test restService = new RestServiceV2Test();
@@ -186,6 +190,65 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		}
 	
 	
+	}
+	
+	@Test
+	public void testVoDFetchAndRTMPPush() {
+		//create a stream fetcher broadcast with VoD type by pointing to the following url 
+		//BIG_BUNNY_MP4_URL
+		RestServiceV2Test restService = new RestServiceV2Test();
+		String name = "test";
+		String streamUrl = BIG_BUNNY_MP4_URL;
+		//"rtsp://wowzaec2demo.streamlock.net/vod/mp4:BigBuckBunny_115k.mov"; 
+		String type = AntMediaApplicationAdapter.VOD; //AntMediaApplicationAdapter.STREAM_SOURCE;
+		Broadcast streamSource = restService.createBroadcast("test", type, streamUrl, null);
+		
+		assertNotNull(streamSource);
+		
+		//start streaming
+		Result result = restService.startStreaming(streamSource.getStreamId());
+		assertTrue(result.isSuccess());
+		
+		//check that m3u8 file is created and working
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://" + AppFunctionalV2Test.SERVER_ADDR + ":5080/LiveApp/streams/" + streamSource.getStreamId() + ".m3u8");
+		});
+		
+		//add rtmp endpoint 
+		Endpoint endpoint = new Endpoint();
+		String endpointStreamId = "endpoint_" + (int)(Math.random()*10000);
+		endpoint.setRtmpUrl("rtmp://localhost/LiveApp/" + endpointStreamId); 
+		try 
+		{
+			result = RestServiceV2Test.addEndpointV2(streamSource.getStreamId(), endpoint);
+			assertTrue(result.isSuccess());
+			String endpointId = result.getDataId();
+			//check that rtmp endpoint is streaming
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + AppFunctionalV2Test.SERVER_ADDR + ":5080/LiveApp/streams/" + endpointStreamId + ".m3u8");
+			});
+			
+			//remove rtmp endpoint
+			result = RestServiceV2Test.removeEndpointV2(streamSource.getStreamId(), endpointId);
+			
+			//check that rtmp endpoint is not streaming
+			assertTrue(result.isSuccess());
+			
+			//stop VoD streaming
+			result = restService.stopStreaming(streamSource.getStreamId());
+			assertTrue(result.isSuccess());
+			
+			result = restService.callDeleteBroadcast(streamSource.getStreamId());
+			assertTrue(result.isSuccess());
+			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
 	}
 	
 	
