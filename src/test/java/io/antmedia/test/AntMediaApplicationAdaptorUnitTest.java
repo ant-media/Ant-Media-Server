@@ -26,6 +26,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -1325,8 +1326,56 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(4)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
 		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
+	}
 	
+	@Test
+	public void testUpdateMainBroadcast() {
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		spyAdapter.setDataStore(dataStore);
+		
+		
+		Broadcast subTrack1 = new Broadcast();
+		try {
+			subTrack1.setStreamId("subtrack1");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		Broadcast subTrack2 = new Broadcast();
+		try {
+			subTrack2.setStreamId("subtrack2");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		Broadcast mainTrack = new Broadcast();
+		try {
+			mainTrack.setStreamId("maintrack");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		mainTrack.setZombi(true);
+		
+		subTrack1.setMainTrackStreamId(mainTrack.getStreamId());
+		subTrack2.setMainTrackStreamId(mainTrack.getStreamId());
+
+		mainTrack.getSubTrackStreamIds().add(subTrack1.getStreamId());
+		mainTrack.getSubTrackStreamIds().add(subTrack2.getStreamId());
+
+		
+		dataStore.save(subTrack1);
+		dataStore.save(subTrack1);
+		dataStore.save(mainTrack);
+		
+		spyAdapter.updateMainBroadcast(subTrack1);
+		assertNotNull(dataStore.get(mainTrack.getStreamId()));
+		
+		spyAdapter.updateMainBroadcast(subTrack2);
+		assertNull(dataStore.get(mainTrack.getStreamId()));
 		
 	}
+	
+	
 
 }
