@@ -333,8 +333,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 					if (webxml.exists() && webxml.canRead()) {
 						try {
 							DocumentBuilderFactory docBuilderFactory = DocumentBuilderFactory.newInstance();
-							docBuilderFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, ""); // Compliant
-							docBuilderFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, ""); // compliant
+							//NOTE: Removed DTD and schema from docbuilder because we don't use them anyway in web.xml and they create exception with the javaConfig.
 							DocumentBuilder docBuilder = docBuilderFactory.newDocumentBuilder();
 							Document doc = docBuilder.parse(webxml);
 							// normalize text representation
