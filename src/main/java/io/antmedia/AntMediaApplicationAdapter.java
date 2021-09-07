@@ -1558,6 +1558,13 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setEnableTimeTokenForPublish(newSettings.isEnableTimeTokenForPublish());
 		appSettings.setEnableTimeTokenForPlay(newSettings.isEnableTimeTokenForPlay());
 
+		appSettings.setSamlAudience(newSettings.getSamlAudience());
+		appSettings.setSamlDefaultIdp(newSettings.getSamlDefaultIdp());
+		appSettings.setSamlKeystoreAlias(newSettings.getSamlKeystoreAlias());
+		appSettings.setSamlKeystoreLocation(newSettings.getSamlKeystoreLocation());
+		appSettings.setSamlKeystorePassword(newSettings.getSamlKeystorePassword());
+		appSettings.setSamlMetadata(newSettings.getSamlMetadata());
+
 		appSettings.setJwtStreamSecretKey(newSettings.getJwtStreamSecretKey());
 		appSettings.setPlayJwtControlEnabled(newSettings.isPlayJwtControlEnabled());
 		appSettings.setPublishJwtControlEnabled(newSettings.isPublishJwtControlEnabled());
