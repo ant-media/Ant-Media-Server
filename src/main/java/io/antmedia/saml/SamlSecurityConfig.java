@@ -77,10 +77,6 @@ public class SamlSecurityConfig {
     private final MultiThreadedHttpConnectionManager multiThreadedHttpConnectionManager
             = new MultiThreadedHttpConnectionManager();
 
-    public SamlSecurityConfig(){
-        logger.info("***********************");
-    }
-
     public AppSettings getAppSettings() {
         return appSettings;
     }
@@ -204,7 +200,6 @@ public class SamlSecurityConfig {
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     public KeyManager keyManager() {
-        logger.info("anannnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn");
         samlKeystoreLocation = appSettings.getSamlKeystoreLocation();
         samlKeystorePassword = appSettings.getSamlKeystorePassword();
         samlKeystoreAlias = appSettings.getSamlKeystoreAlias();
@@ -260,7 +255,7 @@ public class SamlSecurityConfig {
     @Qualifier("okta")
     public ExtendedMetadataDelegate oktaExtendedMetadataProvider() throws MetadataProviderException {
         metadataUrl = appSettings.getSamlMetadata();
-        logger.info("-********* metadata = " + metadataUrl);
+        logger.info("Provided metadata = {} ",metadataUrl);
         HTTPMetadataProvider metadataProvider
                 = new HTTPMetadataProvider(this.backgroundTaskTimer, httpClient(), metadataUrl);
         metadataProvider.setParserPool(parserPool());

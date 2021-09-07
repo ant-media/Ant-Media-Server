@@ -117,7 +117,6 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter implements D
     //Metadata generator for SP metadata
     public MetadataGenerator metadataGenerator() {
         if(checkEnable()){
-            logger.info("%%%%%%%%%%%%%%%%%%%%%%%%%");
             samlAudience = appSettings.getSamlAudience();
             MetadataGenerator metadataGenerator = new MetadataGenerator();
             metadataGenerator.setEntityId(samlAudience);
