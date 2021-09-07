@@ -184,6 +184,10 @@ public interface IWebRTCClient {
 	 */
 	public void removeTracksOnTheFly(String trackId);
 
-
-	public IWebRTCMuxer getWebRTCMuxer();
+	/**
+	 * Get the muxer
+	 * @param trackId
+	 * @return the muxer belongs to the trackId
+	 */
+	public IWebRTCMuxer getWebRTCMuxer(String trackId);
 }
