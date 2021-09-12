@@ -118,6 +118,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected boolean dashMuxingEnabled;
 	protected boolean objectDetectionEnabled;
 
+	protected AtomicBoolean endpointFailed = new AtomicBoolean(false);
+	protected AtomicBoolean republishProcessStarted = new AtomicBoolean(false);
+	protected AtomicBoolean healthCheckProcessStarted = new AtomicBoolean(false);
+	private AtomicInteger errorCount = new AtomicInteger(0);
+	protected String status;
+
 	protected boolean webRTCEnabled = false;
 	protected StorageClient storageClient;
 	protected String hlsTime;
@@ -1596,14 +1602,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.warn("Start rtmp streaming return false for stream:{} because stream is being prepared", streamId);
 			return false;
 		}
-
+		logger.info("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		logger.info("start rtmp streaming for stream id:{} to {} with requested resolution height{} stream resolution:{}", streamId, rtmpUrl, resolutionHeight, height);
 		boolean result = false;
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
 			RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
 			rtmpMuxer.setStatusListener(this);
-
+			endpointStatusHealthCheck(rtmpUrl);
+			logger.info("ORAYI GECTIKKKKKKKKKKKKKK");
 			result = prepareMuxer(rtmpMuxer);
 			if (!result) {
 				logger.error("RTMP prepare returned false so that rtmp pushing to {} for {} didn't started ", rtmpUrl, streamId);
@@ -1611,6 +1618,30 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		return result;
+	}
+
+	@Override
+	public void endpointStatusHealthCheck(String url){
+		long timerId = vertx.setPeriodic(2000, id ->
+		{
+			logger.info("Checking the endpoint health: {} ", this.status);
+			if(this.status == IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING ){
+				logger.info("Clear health check process since endpoint is broadcasting");
+				healthCheckProcessStarted.set(false);
+				vertx.cancelTimer(id);
+			}
+			else if(this.status == IAntMediaStreamHandler.BROADCAST_STATUS_ERROR){
+				if(errorCount.get() < 3){
+					//error arttır
+					logger.info("Endpoint check returned error for {} times", errorCount.incrementAndGet());
+				}
+				else{
+					logger.info("Health check process failed, trying to republish to the endpoint: {}", url);
+					republishProcessStarted.set(true);
+					//republishToRtmpEndpoint()
+				}
+			}
+		});
 	}
 
 	@Override
@@ -1623,6 +1654,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		 */
 		endpointStatusUpdateMap.put(url, status);
 
+		this.status = status;
+
+		if(status == IAntMediaStreamHandler.BROADCAST_STATUS_ERROR && !healthCheckProcessStarted.get()){
+			endpointStatusHealthCheck(url);
+			healthCheckProcessStarted.set(true);
+		}
 
 		if (endpointStatusUpdaterTimer.get() == -1) 
 		{
