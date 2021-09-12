@@ -549,8 +549,7 @@ public class RtmpMuxer extends Muxer {
 							av_strerror(ret, data, data.length);
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 							if (time2log % 100 == 0) {
-								//LOG LEVELI DEĞİŞTİR VE SAYIYI YAZ FRAME
-						   		logger.info("couldn't write {} video frame to muxer. Error: {} stream: {} pkt.dts: {}", time2log, new String(data, 0, data.length), file != null ? file.getName() : " no name", tmpPacket.dts());
+						   		logger.error("couldn't write {} video frame to muxer. Error: {} stream: {} pkt.dts: {}", time2log, new String(data, 0, data.length), file != null ? file.getName() : " no name", tmpPacket.dts());
 								time2log = 0;
 							}
 							time2log++;
@@ -561,7 +560,7 @@ public class RtmpMuxer extends Muxer {
 					}
 					else {
 						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-						logger.info("Header is not written yet for writing video packet for stream: {}", file.getName());
+						logger.warn("Header is not written yet for writing video packet for stream: {}", file.getName());
 					}
 				}
 			}
@@ -573,7 +572,7 @@ public class RtmpMuxer extends Muxer {
 					av_strerror(ret, data, data.length);
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 					if (time2log % 100 == 0) {
-						logger.info("couldn't write {} video frame to muxer. Error: {} stream: {} pkt.dts: {}", time2log, new String(data, 0, data.length), file != null ? file.getName() : " no name", tmpPacket.dts());
+						logger.error("couldn't write {} video frame to muxer. Error: {} stream: {} pkt.dts: {}", time2log, new String(data, 0, data.length), file != null ? file.getName() : " no name", tmpPacket.dts());
 						time2log = 0;
 					}
 					time2log++;
@@ -593,7 +592,7 @@ public class RtmpMuxer extends Muxer {
 				av_strerror(ret, data, data.length);
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 				if (time2log % 100 == 0) {
-					logger.info("couldn't write {} audio frame to muxer. Error: {} stream: {} codec type: {} index: {} pkt.dts:{}", time2log, new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index(), pkt.dts());
+					logger.error("couldn't write {} audio frame to muxer. Error: {} stream: {} codec type: {} index: {} pkt.dts:{}", time2log, new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index(), pkt.dts());
 					time2log = 0;
 				}
 				time2log++;
