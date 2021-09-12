@@ -79,83 +79,80 @@ public class TokenFilterManager extends AbstractFilter   {
 		 */
 		String clusterToken = (String) request.getAttribute(TokenGenerator.INTERNAL_COMMUNICATION_TOKEN_NAME);
 
-		if (HttpMethod.PUT.equals(method) || HttpMethod.POST.equals(method) || HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) {
 
-			if ((HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) ) 
-			{
+		if (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) 
+		{
 
-				if (tokenGenerator == null || clusterToken == null || clusterToken.equals(tokenGenerator.getGenetaredToken())) {
-					//if it enters this block, it means 
-					// 1. server may be is in cluster mode and this is origin node
-					// 2. server in standalone mode
+			if (tokenGenerator == null || clusterToken == null || clusterToken.equals(tokenGenerator.getGenetaredToken())) {
+				//if it enters this block, it means 
+				// 1. server may be is in cluster mode and this is origin node
+				// 2. server in standalone mode
 
-					if(appSettings.isTimeTokenSubscriberOnly() || appSettings.isEnableTimeTokenForPlay() || appSettings.isEnableTimeTokenForPublish()) {
-						ITokenService tokenServiceTmp = getTokenService();
+				if(appSettings.isTimeTokenSubscriberOnly() || appSettings.isEnableTimeTokenForPlay() || appSettings.isEnableTimeTokenForPublish()) {
+					ITokenService tokenServiceTmp = getTokenService();
 
-						if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
-							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Time Based subscriber id or code is invalid");
-							logger.warn("subscriber request for subscriberIDor subscriberCode is not valid");
-							return; 					
+					if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
+						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Time Based subscriber id or code is invalid");
+						logger.warn("subscriber request for subscriberIDor subscriberCode is not valid");
+						return; 					
+					}
+				}
+
+				if(appSettings.isPlayTokenControlEnabled()) 
+				{
+
+					ITokenService tokenServiceTmp = getTokenService();
+					if (tokenServiceTmp != null) 
+					{
+						if (!tokenServiceTmp.checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
+							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Token");
+							logger.warn("token {} is not valid", tokenId);
+							return; 
 						}
 					}
+					else {
+						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
+						logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+						return;
+					}
+				}
 
-					if(appSettings.isPlayTokenControlEnabled()) 
+				if (appSettings.isHashControlPlayEnabled()) 
+				{
+					ITokenService tokenServiceTmp = getTokenService();
+					if (tokenServiceTmp != null) 
 					{
-
-						ITokenService tokenServiceTmp = getTokenService();
-						if (tokenServiceTmp != null) 
-						{
-							if (!tokenServiceTmp.checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
-								httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Token");
-								logger.warn("token {} is not valid", tokenId);
-								return; 
-							}
-						}
-						else {
-							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
-							logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
-							return;
+						if (!tokenServiceTmp.checkHash(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
+							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Hash");
+							logger.warn("hash {} is not valid", tokenId);
+							return; 
 						}
 					}
+					else {
+						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
+						logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+						return;
+					}
+				}
 
-					if (appSettings.isHashControlPlayEnabled()) 
+				if (appSettings.isPlayJwtControlEnabled()) 
+				{
+					ITokenService tokenServiceTmp = getTokenService();
+					if (tokenServiceTmp != null) 
 					{
-						ITokenService tokenServiceTmp = getTokenService();
-						if (tokenServiceTmp != null) 
-						{
-							if (!tokenServiceTmp.checkHash(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
-								httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Hash");
-								logger.warn("hash {} is not valid", tokenId);
-								return; 
-							}
-						}
-						else {
-							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
-							logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
-							return;
+						if (!tokenServiceTmp.checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN)) {
+							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid JWT Token");
+							logger.warn("JWT token is not valid");
+							return; 
 						}
 					}
-
-					if (appSettings.isPlayJwtControlEnabled()) 
-					{
-						ITokenService tokenServiceTmp = getTokenService();
-						if (tokenServiceTmp != null) 
-						{
-							if (!tokenServiceTmp.checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN)) {
-								httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid JWT Token");
-								logger.warn("JWT token is not valid");
-								return; 
-							}
-						}
-						else {
-							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
-							logger.warn("JWT Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
-							return;
-						}
+					else {
+						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
+						logger.warn("JWT Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+						return;
 					}
 				}
 			}
-			
 			chain.doFilter(request, response);	
 		}
 		else {
