@@ -155,13 +155,12 @@ public class TokenFilterManager extends AbstractFilter   {
 					}
 				}
 			}
-			else {
-				httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
-				logger.warn("Invalid method type({}) for stream: {} and request uri: {}", method, streamId, httpRequest.getRequestURI());
-				return;
-			}
 			
 			chain.doFilter(request, response);	
+		}
+		else {
+			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
+			logger.warn("Invalid method type({}) for stream: {} and request uri: {}", method, streamId, httpRequest.getRequestURI());
 		}
 	}
 
