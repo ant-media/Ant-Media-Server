@@ -78,85 +78,90 @@ public class TokenFilterManager extends AbstractFilter   {
 		 * then check it here to bypass token control.
 		 */
 		String clusterToken = (String) request.getAttribute(TokenGenerator.INTERNAL_COMMUNICATION_TOKEN_NAME);
-		if ((HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method) || HttpMethod.PUT.equals(method)) ) 
-		{
 
-			if (tokenGenerator == null || clusterToken == null || clusterToken.equals(tokenGenerator.getGenetaredToken())) {
-				//if it enters this block, it means 
-				// 1. server may be is in cluster mode and this is origin node
-				// 2. server in standalone mode
-				
-				if(appSettings.isTimeTokenSubscriberOnly() || appSettings.isEnableTimeTokenForPlay() || appSettings.isEnableTimeTokenForPublish()) {
-					ITokenService tokenServiceTmp = getTokenService();
+		if (HttpMethod.PUT.equals(method) || HttpMethod.POST.equals(method) || HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) {
 
-					if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
-						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Time Based subscriber id or code is invalid");
-						logger.warn("subscriber request for subscriberIDor subscriberCode is not valid");
-						return; 					
-					}
-				}
+			if ((HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) ) 
+			{
 
-				if(appSettings.isPlayTokenControlEnabled()) 
-				{
+				if (tokenGenerator == null || clusterToken == null || clusterToken.equals(tokenGenerator.getGenetaredToken())) {
+					//if it enters this block, it means 
+					// 1. server may be is in cluster mode and this is origin node
+					// 2. server in standalone mode
 
-					ITokenService tokenServiceTmp = getTokenService();
-					if (tokenServiceTmp != null) 
-					{
-						if (!tokenServiceTmp.checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
-							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Token");
-							logger.warn("token {} is not valid", tokenId);
-							return; 
+					if(appSettings.isTimeTokenSubscriberOnly() || appSettings.isEnableTimeTokenForPlay() || appSettings.isEnableTimeTokenForPublish()) {
+						ITokenService tokenServiceTmp = getTokenService();
+
+						if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
+							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Time Based subscriber id or code is invalid");
+							logger.warn("subscriber request for subscriberIDor subscriberCode is not valid");
+							return; 					
 						}
 					}
-					else {
-						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
-						logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
-						return;
-					}
-				}
 
-				if (appSettings.isHashControlPlayEnabled()) 
-				{
-					ITokenService tokenServiceTmp = getTokenService();
-					if (tokenServiceTmp != null) 
+					if(appSettings.isPlayTokenControlEnabled()) 
 					{
-						if (!tokenServiceTmp.checkHash(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
-							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Hash");
-							logger.warn("hash {} is not valid", tokenId);
-							return; 
+
+						ITokenService tokenServiceTmp = getTokenService();
+						if (tokenServiceTmp != null) 
+						{
+							if (!tokenServiceTmp.checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
+								httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Token");
+								logger.warn("token {} is not valid", tokenId);
+								return; 
+							}
+						}
+						else {
+							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
+							logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+							return;
 						}
 					}
-					else {
-						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
-						logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
-						return;
-					}
-				}
 
-				if (appSettings.isPlayJwtControlEnabled()) 
-				{
-					ITokenService tokenServiceTmp = getTokenService();
-					if (tokenServiceTmp != null) 
+					if (appSettings.isHashControlPlayEnabled()) 
 					{
-						if (!tokenServiceTmp.checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN)) {
-							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid JWT Token");
-							logger.warn("JWT token is not valid");
-							return; 
+						ITokenService tokenServiceTmp = getTokenService();
+						if (tokenServiceTmp != null) 
+						{
+							if (!tokenServiceTmp.checkHash(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
+								httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Hash");
+								logger.warn("hash {} is not valid", tokenId);
+								return; 
+							}
+						}
+						else {
+							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
+							logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+							return;
 						}
 					}
-					else {
-						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
-						logger.warn("JWT Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
-						return;
+
+					if (appSettings.isPlayJwtControlEnabled()) 
+					{
+						ITokenService tokenServiceTmp = getTokenService();
+						if (tokenServiceTmp != null) 
+						{
+							if (!tokenServiceTmp.checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN)) {
+								httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid JWT Token");
+								logger.warn("JWT token is not valid");
+								return; 
+							}
+						}
+						else {
+							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
+							logger.warn("JWT Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+							return;
+						}
 					}
 				}
 			}
+			else {
+				httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
+				logger.warn("Invalid method type({}) for stream: {} and request uri: {}", method, streamId, httpRequest.getRequestURI());
+				return;
+			}
 			
 			chain.doFilter(request, response);	
-		}
-		else {
-			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
-			logger.warn("Invalid method type for stream: {}", streamId);
 		}
 	}
 
@@ -196,10 +201,10 @@ public class TokenFilterManager extends AbstractFilter   {
 			requestURI = requestURI.split("streams")[1];
 		}
 		else if(requestURI.contains("chunked")) {
-				requestURI = requestURI.split("chunked")[1];
-				startIndex = requestURI.indexOf("/");
-				endIndex = requestURI.lastIndexOf("/");
-				return requestURI.substring(startIndex+1, endIndex);
+			requestURI = requestURI.split("chunked")[1];
+			startIndex = requestURI.indexOf("/");
+			endIndex = requestURI.lastIndexOf("/");
+			return requestURI.substring(startIndex+1, endIndex);
 		}
 
 		//if request is adaptive file (ending with _adaptive.m3u8)
@@ -227,13 +232,13 @@ public class TokenFilterManager extends AbstractFilter   {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
 			return requestURI.substring(startIndex+1, endIndex);
 		}
-		
+
 		//streamId_underline_test-2021-05-18_11-26-26.842.mp4 and streamId_underline_test-2021-05-18_11-26-26.842_360p.mp4 
 		String mp4Regex1 = "(.*)+(-20)[0-9][0-9]+(-)+([0-9][0-9])+(.*).mp4$"; 
 		if (requestURI.matches(mp4Regex1)) {
 			endIndex = requestURI.lastIndexOf('_'); //if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
 			//_480p regex
- 			String mp4resolutionRegex = "(.*)+_[0-9]+p+(.*)"; 
+			String mp4resolutionRegex = "(.*)+_[0-9]+p+(.*)"; 
 			if(requestURI.matches(mp4resolutionRegex)) {
 				endIndex = requestURI.substring(startIndex, endIndex).lastIndexOf('.');
 				//Remove -2021-05-18_11-26-26 character size
