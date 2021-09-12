@@ -332,8 +332,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		bufferTimeMs = appSettingsLocal.getRtmpIngestBufferTimeMs();
 		dataChannelWebHookURL = appSettingsLocal.getDataChannelWebHook();
 
-		//retryLimit = appSettingsLocal.getRepublishRetryLimit();
-		retryLimit = 3;
+		retryLimit = appSettingsLocal.getEndpointRepublishLimit();
+		healthCheckPeriodMS = appSettingsLocal.getEndpointHealthCheckPeriodMs();
 	}
 
 	public void initStorageClient() {
