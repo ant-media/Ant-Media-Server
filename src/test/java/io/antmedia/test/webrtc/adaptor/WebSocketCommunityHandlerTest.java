@@ -521,4 +521,13 @@ public class WebSocketCommunityHandlerTest {
 		}
 	}
 	
+	@Test
+	public void testUserAgent() {
+		assertEquals("N/A", wsHandler.getUserAgent());
+		
+		String userAgent = "dummy agent";
+		wsHandler.setUserAgent(userAgent);
+		assertEquals(userAgent, wsHandler.getUserAgent());
+	}
+	
 }
