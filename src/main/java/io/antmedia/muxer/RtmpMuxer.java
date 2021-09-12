@@ -214,7 +214,8 @@ public class RtmpMuxer extends Muxer {
 			return true;
 		}
 		preparedIO.set(true);
-		this.vertx.executeBlocking(b -> {
+		this.vertx.executeBlocking(b -> 
+		{
 
 			if (initializeOutputFormatContextIO()) 
 			{
@@ -660,7 +661,8 @@ public class RtmpMuxer extends Muxer {
 			else {
 				videoIndex = outStream.index();
 			}
-
+			
+			outStream.codecpar().codec_tag(0);
 			result = true;
 		}
 		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {

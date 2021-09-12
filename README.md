@@ -79,7 +79,7 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 
 ## Releases
 
-### [Ant Media Server Community 2.4.0 (Aug 24, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.4.0/ant-media-server-2.4.0-community-2.4.0-20210824_1041.zip)
+### [Ant Media Server Community 2.4.0.2 (Sep 5, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.4.0.2/ant-media-server-community-2.4.0.2-20210905_1340.zip)
 
 - Plugin Architecture 
 - Implementing MCU Plugin(audio-only supported) and providing it as a  built-in plugin -> Quick test: https://SERVER:5443/WebRTCAppEE/mcu.html

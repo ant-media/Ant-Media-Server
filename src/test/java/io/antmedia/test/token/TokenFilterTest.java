@@ -445,6 +445,13 @@ public class TokenFilterTest {
 		
 		assertEquals("streamId_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test" +".m3u8"));
 		
+		// Tests for CMAF
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/chunked/"+streamId+"/media_1.m3u8"));
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/chunked/"+streamId+"/master.m3u8"));
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/chunked/"+streamId+"/media_0.m3u8"));		
+		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".m3u8"));
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_480p_1"+".mp4")); 
@@ -472,6 +479,13 @@ public class TokenFilterTest {
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8"));
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+".m3u8"));
+		
+		// Tests for CMAF
+		assertEquals("test_test_" + streamId, TokenFilterManager.getStreamId("/live_app/chunked/test_test_" + streamId+"/media_1.m3u8"));
+		
+		assertEquals("test_test_" + streamId, TokenFilterManager.getStreamId("/live_app/chunked/test_test_"+ streamId+"/master.m3u8"));
+		
+		assertEquals("test_test_" + streamId, TokenFilterManager.getStreamId("/live_app/chunked/test_test_" + streamId+"/media_0.m3u8"));		
 
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+".mp4"));
 		

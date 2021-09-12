@@ -228,7 +228,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private BytePointer videoExtraDataPointer;
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
 	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();	
-	
+
 	protected PacketFeeder packetFeeder;
 
 
@@ -730,8 +730,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		return appAdapter;
 	}
-	
-	
+
+
 
 	public AppSettings getAppSettings() {
 
@@ -999,11 +999,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		try {
 			prepare();
 			isRecording.set(true);
-			
+
 			//Calling startPublish to here is critical. It's called after encoders are ready and isRecording is true
 			//the above prepare method is overriden in EncoderAdaptor so that we resolve calling startPublish just here
 			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), PUBLISH_TYPE_RTMP);
-			
+
 		}
 		catch(Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -1063,10 +1063,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public void closeRtmpConnection() {
-		getBroadcastStream().stop();
-		IStreamCapableConnection connection = getBroadcastStream().getConnection();
-		if (connection != null) {
-			connection.close();
+
+		ClientBroadcastStream clientBroadcastStream = getBroadcastStream();
+		if (clientBroadcastStream != null) {
+			clientBroadcastStream.stop();
+			IStreamCapableConnection connection = clientBroadcastStream.getConnection();
+			if (connection != null) {
+				connection.close();
+			}
 		}
 	}
 
@@ -1592,20 +1596,20 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.warn("Start rtmp streaming return false for stream:{} because stream is being prepared", streamId);
 			return false;
 		}
-		
+
 		logger.info("start rtmp streaming for stream id:{} to {} with requested resolution height{} stream resolution:{}", streamId, rtmpUrl, resolutionHeight, height);
 		boolean result = false;
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
 			RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
 			rtmpMuxer.setStatusListener(this);
-	
+
 			result = prepareMuxer(rtmpMuxer);
 			if (!result) {
 				logger.error("RTMP prepare returned false so that rtmp pushing to {} for {} didn't started ", rtmpUrl, streamId);
 			}
 		}
-		
+
 		return result;
 	}
 
@@ -1772,7 +1776,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public LinkedList<PacketTime> getPacketTimeList() {
 		return packetTimeList;
 	}
-	
+
 	public int getVideoStreamIndex() {
 		return videoStreamIndex;
 	}
@@ -1799,16 +1803,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		StreamParametersInfo audioInfo = new StreamParametersInfo();
 		audioInfo.codecParameters = getAudioCodecParameters();
 		audioInfo.timeBase = getAudioTimeBase();
-		
+
 		listener.setVideoStreamInfo(streamId, videoInfo);
 		listener.setAudioStreamInfo(streamId, audioInfo);
 		packetFeeder.addListener(listener);
 	}
-	
+
 	public void removePacketListener(IPacketListener listener) {
 		packetFeeder.removeListener(listener);
 	}
-	
+
 	public void setVideoCodecParameter(AVCodecParameters videoCodecParameters) {
 		this.videoCodecParameters = videoCodecParameters;
 	}
@@ -1820,11 +1824,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public AVRational getVideoTimeBase() {
 		return TIME_BASE_FOR_MS;
 	}
-	
+
 	public AVRational getAudioTimeBase() {
 		return TIME_BASE_FOR_MS;
 	}
-	
+
 	public Vertx getVertx() {
 		return vertx;
 	}

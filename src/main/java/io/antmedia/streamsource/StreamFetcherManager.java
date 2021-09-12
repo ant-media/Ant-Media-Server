@@ -228,7 +228,7 @@ public class StreamFetcherManager {
 		Broadcast playlist = datastore.get(streamId);
 
 		//Check playlist is not deleted and not stopped
-		if(playlist != null && !AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus()))
+		if(playlist != null && !IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus()))
 		{
 			playlist = skipNextPlaylistQueue(playlist);
 
