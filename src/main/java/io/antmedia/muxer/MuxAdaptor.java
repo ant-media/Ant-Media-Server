@@ -1098,7 +1098,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		synchronized (muxerList)
 		{
-			packetFeeder.writePacket(pkt);
+			packetFeeder.writePacket(pkt, stream.codecpar().codec_type());
 			for (Muxer muxer : muxerList) {
 				muxer.writePacket(pkt, stream);
 			}
