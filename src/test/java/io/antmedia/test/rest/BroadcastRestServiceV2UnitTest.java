@@ -1525,6 +1525,119 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
+	public void testDeleteBroadcasts() {
+		AppSettings settings = mock(AppSettings.class);
+		String serverName = "fully.qualified.domain.name";
+		restServiceReal.setAppSettings(settings);
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
+
+
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		restServiceReal.setScope(scope);
+
+		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
+		IClientBroadcastStream broadcastStream = mock(IClientBroadcastStream.class);
+		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
+
+		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
+		Mockito.doReturn(broadcastStream).when(appAdaptor).getBroadcastStream(Mockito.any(), Mockito.anyString());
+
+		restServiceReal.setApplication(appAdaptor);
+
+		int streamCount = 15;
+		for (int i = 0; i < streamCount; i++) {
+			Broadcast broadcast = new Broadcast(null, "name");
+			Broadcast broadcastCreated = (Broadcast) restServiceReal.createBroadcast(broadcast, null, false).getEntity();
+			assertNotNull(broadcastCreated.getStreamId());
+
+			Broadcast broadcast2 = (Broadcast) restServiceReal.getBroadcast(broadcastCreated.getStreamId()).getEntity();
+			assertNotNull(broadcast2.getStreamId());
+		}
+
+		List<Broadcast> broadcastList = restServiceReal.getBroadcastList(0, 20, null, null, null, null);
+		assertEquals(streamCount, broadcastList.size());
+
+		for (Broadcast item: broadcastList) {
+			Result result = restServiceReal.deleteBroadcasts(item.getStreamId());
+			assertTrue(result.isSuccess());
+		}
+
+		Mockito.verify(streamCapableConnection, Mockito.times(streamCount)).close();
+
+		// Add test for Cluster
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(true);
+
+		// isCluster true / broadcast origin address != server host address / status = broadcasting
+		{
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			store.save(broadcast);
+
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+
+			Result result = restServiceReal.deleteBroadcasts(broadcast.getStreamId());
+			assertFalse(result.isSuccess());
+		}
+
+		// isCluster true / broadcast origin address == server host address / status = broadcasting
+		{
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			store.save(broadcast);
+
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
+
+			Result result = restServiceReal.deleteBroadcasts(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+		}
+
+		// isCluster true / broadcast origin address != server host address / status = finished
+		{
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			store.save(broadcast);
+
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+
+			Result result = restServiceReal.deleteBroadcasts(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+		}
+
+		// isCluster true / broadcast origin address == server host address / status = finished
+		{
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			store.save(broadcast);
+
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
+
+			Result result = restServiceReal.deleteBroadcasts(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+		}
+
+	}
+
+	@Test
 	public void testGetVersion() {
 		RootRestService rootRestService = new RootRestService();
 		Version version = rootRestService.getVersion();

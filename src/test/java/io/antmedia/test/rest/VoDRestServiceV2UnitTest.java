@@ -214,6 +214,54 @@ public class VoDRestServiceV2UnitTest {
 
 
 	@Test
+	public void testDeleteVoDs() {
+		InMemoryDataStore datastore = new InMemoryDataStore("datastore");
+		restServiceReal.setDataStore(datastore);
+
+		String vodId = RandomStringUtils.randomNumeric(24);
+
+		VoD streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD, vodId);
+		datastore.addVod(streamVod);
+
+		assertNotNull(datastore.getVoD(vodId));
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "junit";
+		when(scope.getName()).thenReturn(scopeName);
+
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(app.getScope()).thenReturn(scope);
+
+		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
+			@Override
+			public AntMediaApplicationAdapter getAppAdaptor() {
+				return app;
+			}
+		};
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+
+		restServiceReal.setAppCtx(context);
+
+		VoD voD = restServiceReal.getVoD(vodId);
+		assertEquals(vodId, voD.getVodId());
+		assertEquals(streamVod.getStreamId(), voD.getStreamId());
+		assertEquals(streamVod.getVodName(), voD.getVodName());
+		assertEquals(streamVod.getFilePath(), voD.getFilePath());
+
+		assertEquals(1, restServiceReal.getVodList(0, 50, null, null, null, null).size());
+
+		restServiceReal.deleteVoDs(vodId);
+
+		assertEquals(0, restServiceReal.getVodList(0, 50, null, null, null, null).size());
+
+		assertNull(datastore.getVoD(vodId));
+
+	}
+
+
+	@Test
 	public void testUploadVodFile() {
 
 		String fileName = RandomStringUtils.randomAlphabetic(11) + ".mp4"; 

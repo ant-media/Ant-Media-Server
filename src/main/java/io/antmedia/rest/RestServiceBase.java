@@ -390,8 +390,6 @@ public abstract class RestServiceBase {
 
 	protected Result deleteBroadcasts(String streamIds) {
 
-		Result result = new Result (false);
-		boolean stopResult = false;
 		Broadcast broadcast = null;
 		String message = "";
 		String[] streams = StringUtils.split(streamIds,",");
