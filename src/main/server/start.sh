@@ -167,7 +167,11 @@ then
     mkdir /var/log/antmedia 
 fi
 
-ln -sf /var/log/antmedia ${RED5_HOME}/log
+#create soft link if not exists
+if [ ! -L  "${RED5_HOME}/log" ]
+then 
+  ln -sf /var/log/antmedia ${RED5_HOME}/log
+fi
 
 
 # start Ant Media Server

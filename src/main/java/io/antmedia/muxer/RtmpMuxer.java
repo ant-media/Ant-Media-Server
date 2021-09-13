@@ -214,7 +214,8 @@ public class RtmpMuxer extends Muxer {
 			return true;
 		}
 		preparedIO.set(true);
-		this.vertx.executeBlocking(b -> {
+		this.vertx.executeBlocking(b -> 
+		{
 
 			if (initializeOutputFormatContextIO()) 
 			{
@@ -582,7 +583,7 @@ public class RtmpMuxer extends Muxer {
 				byte[] data = new byte[128];
 				av_strerror(ret, data, data.length);
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-				logger.info("cannot write frame to muxer(not video). Error: {} stream: {} codec type: {} index: {} pkt.dts:{}", new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index(), pkt.dts());
+				logger.info("cannot write audio frame to muxer. Error: {} stream: {} codec type: {} index: {} pkt.dts:{}", new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index(), pkt.dts());
 			}
 			else {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -660,7 +661,8 @@ public class RtmpMuxer extends Muxer {
 			else {
 				videoIndex = outStream.index();
 			}
-
+			
+			outStream.codecpar().codec_tag(0);
 			result = true;
 		}
 		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {

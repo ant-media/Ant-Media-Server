@@ -1,7 +1,6 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
-import java.util.regex.Pattern;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -79,14 +78,16 @@ public class TokenFilterManager extends AbstractFilter   {
 		 * then check it here to bypass token control.
 		 */
 		String clusterToken = (String) request.getAttribute(TokenGenerator.INTERNAL_COMMUNICATION_TOKEN_NAME);
-		if ((HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method))) 
+
+
+		if (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) 
 		{
 
 			if (tokenGenerator == null || clusterToken == null || clusterToken.equals(tokenGenerator.getGenetaredToken())) {
 				//if it enters this block, it means 
 				// 1. server may be is in cluster mode and this is origin node
 				// 2. server in standalone mode
-				
+
 				if(appSettings.isTimeTokenSubscriberOnly() || appSettings.isEnableTimeTokenForPlay() || appSettings.isEnableTimeTokenForPublish()) {
 					ITokenService tokenServiceTmp = getTokenService();
 
@@ -152,12 +153,11 @@ public class TokenFilterManager extends AbstractFilter   {
 					}
 				}
 			}
-			
 			chain.doFilter(request, response);	
 		}
 		else {
 			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
-			logger.warn("Invalid method type for stream: {}", streamId);
+			logger.warn("Invalid method type({}) for stream: {} and request uri: {}", method, streamId, httpRequest.getRequestURI());
 		}
 	}
 
@@ -193,7 +193,15 @@ public class TokenFilterManager extends AbstractFilter   {
 		int endIndex;
 		int startIndex = requestURI.indexOf('/');
 
-		requestURI = requestURI.split("streams")[1];
+		if(requestURI.contains("streams")) {
+			requestURI = requestURI.split("streams")[1];
+		}
+		else if(requestURI.contains("chunked")) {
+			requestURI = requestURI.split("chunked")[1];
+			startIndex = requestURI.indexOf("/");
+			endIndex = requestURI.lastIndexOf("/");
+			return requestURI.substring(startIndex+1, endIndex);
+		}
 
 		//if request is adaptive file (ending with _adaptive.m3u8)
 		endIndex = requestURI.lastIndexOf(MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8");
@@ -220,13 +228,13 @@ public class TokenFilterManager extends AbstractFilter   {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
 			return requestURI.substring(startIndex+1, endIndex);
 		}
-		
+
 		//streamId_underline_test-2021-05-18_11-26-26.842.mp4 and streamId_underline_test-2021-05-18_11-26-26.842_360p.mp4 
 		String mp4Regex1 = "(.*)+(-20)[0-9][0-9]+(-)+([0-9][0-9])+(.*).mp4$"; 
 		if (requestURI.matches(mp4Regex1)) {
 			endIndex = requestURI.lastIndexOf('_'); //if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
 			//_480p regex
- 			String mp4resolutionRegex = "(.*)+_[0-9]+p+(.*)"; 
+			String mp4resolutionRegex = "(.*)+_[0-9]+p+(.*)"; 
 			if(requestURI.matches(mp4resolutionRegex)) {
 				endIndex = requestURI.substring(startIndex, endIndex).lastIndexOf('.');
 				//Remove -2021-05-18_11-26-26 character size

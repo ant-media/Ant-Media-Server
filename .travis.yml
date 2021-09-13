@@ -45,13 +45,14 @@ before_install:
   - (if [ $(git ls-remote https://github.com/ant-media/StreamApp.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
      then 
        echo " $TRAVIS_BRANCH branch found";  
-       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/StreamApp.git; 
-       cd StreamApp; 
-       mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet;
-       cd ..;
+       git clone --depth=1 -b $TRAVIS_BRANCH https://github.com/ant-media/StreamApp.git;        
      else
-       echo "branch not found. Using version in sonatype"; 
+       echo "branch not found. Checking out master"; 
+        git clone --depth=1 https://github.com/ant-media/StreamApp.git; 
     fi)
+  - cd StreamApp; 
+  - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet;
+  - cd ..;
 
   # get Angular app
   - npm install -g @angular/cli@10.0.5 
