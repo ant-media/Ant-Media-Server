@@ -388,7 +388,7 @@ public class AppSettings {
 	 * For example in case we tried to republish 3 times and still got an error
 	 * We conclude that the endpoint is dead and close it.
 	 */
-	@Value( "${"+SETTINGS_ENDPOINT_REPUBLISH_LIMIT+":3" )
+	@Value( "${"+SETTINGS_ENDPOINT_REPUBLISH_LIMIT+":3}" )
 	private int endpointRepublishLimit;
 	
 	/**
