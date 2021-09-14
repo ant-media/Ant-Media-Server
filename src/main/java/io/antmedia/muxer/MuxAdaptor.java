@@ -118,10 +118,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected boolean dashMuxingEnabled;
 	protected boolean objectDetectionEnabled;
 
-	private ConcurrentHashMap<String, Boolean> isHealthCheckGoing = new ConcurrentHashMap<>();
-	private ConcurrentHashMap<String, Integer> errorCountMap = new ConcurrentHashMap<>();
-	private ConcurrentHashMap<String, Integer> retryCounter = new ConcurrentHashMap<>();
-	private ConcurrentHashMap<String, String> statusMap = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<String, Boolean> isHealthCheckGoing = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<String, Integer> errorCountMap = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<String, Integer> retryCounter = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<String, String> statusMap = new ConcurrentHashMap<>();
 	protected int retryLimit;
 	protected int healthCheckPeriodMS;
 
@@ -1626,12 +1626,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		long timerId = vertx.setPeriodic(healthCheckPeriodMS, id ->
 		{
 			logger.info("Checking the endpoint health for: {} ", url);
-			if(statusMap.get(url) == IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING ){
+			if(statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)){
 				logger.info("Health check process finished since endpoint {} is broadcasting", url);
 				isHealthCheckGoing.remove(url);
 				vertx.cancelTimer(id);
 			}
-			else if(statusMap.get(url) == IAntMediaStreamHandler.BROADCAST_STATUS_ERROR){
+			else if(statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR)){
 				int tmp = errorCountMap.getValueOrDefault(url, 1);
 				if(tmp < 3){
 					errorCountMap.put(url,tmp +1);
@@ -1671,7 +1671,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		statusMap.put(url,status);
 
-		if(status == IAntMediaStreamHandler.BROADCAST_STATUS_ERROR && !isHealthCheckGoing.getValueOrDefault(url, false)){
+		if((status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED)) && !isHealthCheckGoing.getValueOrDefault(url, false)){
 			endpointStatusHealthCheck(url);
 			isHealthCheckGoing.put(url, true);
 		}
@@ -1889,6 +1889,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public Map<String, String> getEndpointStatusUpdateMap() {
 		return endpointStatusUpdateMap;
 	}
+
+	public Map<String, Boolean> getIsHealthCheckGoing(){ return isHealthCheckGoing;}
+
 
 
 	public void setHeight(int height) {
