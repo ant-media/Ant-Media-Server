@@ -1639,7 +1639,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 				else{
 					int tmpRetryCount = retryCounter.getValueOrDefault(url, 1);
-					if( tmpRetryCount < retryLimit){
+					if( tmpRetryCount <= retryLimit){
 						logger.info("Health check process failed, trying to republish to the endpoint: {}", url);
 						stopRtmpStreaming(url, 0);
 						startRtmpStreaming(url, height);
@@ -1891,7 +1891,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public Map<String, Boolean> getIsHealthCheckGoing(){ return isHealthCheckGoing;}
-
 
 
 	public void setHeight(int height) {
