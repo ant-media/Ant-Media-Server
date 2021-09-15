@@ -815,7 +815,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-
 	@Test
 	public void testMuxAdaptorEnableSettingsPreviewCreatePeriod() {
 
@@ -2163,6 +2162,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
+	}
+	@Test
+	public void testLogs(){
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
+		byte[] data = new byte[0];
+		for(int i = 0; i < 110; i++){
+			rtmpMuxer.logIntervals("video", data );
+		}
 	}
 
 

@@ -548,11 +548,7 @@ public class RtmpMuxer extends Muxer {
 							byte[] data = new byte[128];
 							av_strerror(ret, data, data.length);
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-							if (time2log % 100 == 0) {
-						   		logger.error("couldn't write {} video frame to muxer. Error: {} stream: {} pkt.dts: {}", time2log, new String(data, 0, data.length), file != null ? file.getName() : " no name", tmpPacket.dts());
-								time2log = 0;
-							}
-							time2log++;
+							logIntervals("video", data);
 						}
 						else{
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -571,11 +567,7 @@ public class RtmpMuxer extends Muxer {
 					byte[] data = new byte[128];
 					av_strerror(ret, data, data.length);
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-					if (time2log % 100 == 0) {
-						logger.error("couldn't write {} video frame to muxer. Error: {} stream: {} pkt.dts: {}", time2log, new String(data, 0, data.length), file != null ? file.getName() : " no name", tmpPacket.dts());
-						time2log = 0;
-					}
-					time2log++;
+					logIntervals("video", data);
 				}
 				else {
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -591,11 +583,7 @@ public class RtmpMuxer extends Muxer {
 				byte[] data = new byte[128];
 				av_strerror(ret, data, data.length);
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-				if (time2log % 100 == 0) {
-					logger.error("couldn't write {} audio frame to muxer. Error: {} stream: {} codec type: {} index: {} pkt.dts:{}", time2log, new String(data, 0, data.length), file != null ? file.getName() : "no name", codecType, pkt.stream_index(), pkt.dts());
-					time2log = 0;
-				}
-				time2log++;
+				logIntervals("audio",data);
 			}
 			else {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -606,6 +594,14 @@ public class RtmpMuxer extends Muxer {
 		pkt.dts(dts);
 		pkt.duration(duration);
 		pkt.pos(pos);
+	}
+
+	public void logIntervals(String type, byte[] data){
+		time2log++;
+		if (time2log % 100 == 0) {
+			logger.error("couldn't write {} {} frame to muxer. Error: {} stream: {} pkt.dts: {}", time2log, type, new String(data, 0, data.length), file != null ? file.getName() : " no name", tmpPacket.dts());
+			time2log = 0;
+		}
 	}
 
 	@Override
