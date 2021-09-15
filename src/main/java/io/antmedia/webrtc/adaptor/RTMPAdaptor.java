@@ -389,6 +389,12 @@ public class RTMPAdaptor extends Adaptor {
 				}
 			}
 		}
+		// if the stream is audio only, the recorder is not initialized by default
+		else {
+			// create a dummy video frame to start audio publish
+			recorder = getNewRecorder(outputURL, 0, height, format);
+
+		}
 
 	}
 
