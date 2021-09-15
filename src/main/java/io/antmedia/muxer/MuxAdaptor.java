@@ -118,11 +118,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected boolean dashMuxingEnabled;
 	protected boolean objectDetectionEnabled;
 
-	protected ConcurrentHashMap<String, Boolean> isHealthCheckGoing = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<String, Boolean> isHealthCheckStartedMap = new ConcurrentHashMap<>();
 	protected ConcurrentHashMap<String, Integer> errorCountMap = new ConcurrentHashMap<>();
 	protected ConcurrentHashMap<String, Integer> retryCounter = new ConcurrentHashMap<>();
 	protected ConcurrentHashMap<String, String> statusMap = new ConcurrentHashMap<>();
-	protected int retryLimit;
+	protected int rtmpEndpointRetryLimit;
 	protected int healthCheckPeriodMS;
 
 	protected boolean webRTCEnabled = false;
@@ -332,7 +332,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		bufferTimeMs = appSettingsLocal.getRtmpIngestBufferTimeMs();
 		dataChannelWebHookURL = appSettingsLocal.getDataChannelWebHook();
 
-		retryLimit = appSettingsLocal.getEndpointRepublishLimit();
+		rtmpEndpointRetryLimit = appSettingsLocal.getEndpointRepublishLimit();
 		healthCheckPeriodMS = appSettingsLocal.getEndpointHealthCheckPeriodMs();
 	}
 
@@ -1621,17 +1621,23 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return result;
 	}
 
-	@Override
+	/**
+	 * Periodically check the endpoint health status every 2 seconds
+	 * If each check returned failed, try to republish to the endpoint
+	 * @param url is the URL of the endpoint
+	 */
 	public void endpointStatusHealthCheck(String url){
 		long timerId = vertx.setPeriodic(healthCheckPeriodMS, id ->
 		{
 			logger.info("Checking the endpoint health for: {} ", url);
 			if(statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)){
 				logger.info("Health check process finished since endpoint {} is broadcasting", url);
-				isHealthCheckGoing.remove(url);
+				isHealthCheckStartedMap.remove(url);
+				errorCountMap.remove(url);
+				retryCounter.remove(url);
 				vertx.cancelTimer(id);
 			}
-			else if(statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR)){
+			else if(statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED) ){
 				int tmp = errorCountMap.getValueOrDefault(url, 1);
 				if(tmp < 3){
 					errorCountMap.put(url,tmp +1);
@@ -1639,7 +1645,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 				else{
 					int tmpRetryCount = retryCounter.getValueOrDefault(url, 1);
-					if( tmpRetryCount <= retryLimit){
+					if( tmpRetryCount <= rtmpEndpointRetryLimit){
 						logger.info("Health check process failed, trying to republish to the endpoint: {}", url);
 						stopRtmpStreaming(url, 0);
 						startRtmpStreaming(url, height);
@@ -1651,7 +1657,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						retryCounter.remove(url);
 					}
 					//Clear the data and cancel timer to free memory and CPU.
-					isHealthCheckGoing.remove(url);
+					isHealthCheckStartedMap.remove(url);
 					errorCountMap.remove(url);
 					vertx.cancelTimer(id);
 				}
@@ -1671,9 +1677,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		statusMap.put(url,status);
 
-		if((status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED)) && !isHealthCheckGoing.getValueOrDefault(url, false)){
+		if((status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED)) && !isHealthCheckStartedMap.getValueOrDefault(url, false)){
 			endpointStatusHealthCheck(url);
-			isHealthCheckGoing.put(url, true);
+			isHealthCheckStartedMap.put(url, true);
 		}
 
 		if (endpointStatusUpdaterTimer.get() == -1) 
@@ -1890,7 +1896,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return endpointStatusUpdateMap;
 	}
 
-	public Map<String, Boolean> getIsHealthCheckGoing(){ return isHealthCheckGoing;}
+	public Map<String, Boolean> getIsHealthCheckStartedMap(){ return isHealthCheckStartedMap;}
 
 
 	public void setHeight(int height) {

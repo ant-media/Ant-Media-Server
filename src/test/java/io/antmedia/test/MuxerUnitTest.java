@@ -615,15 +615,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 
-		assertTrue(muxAdaptor.getIsHealthCheckGoing().get(rtmpUrl));
+		assertTrue(muxAdaptor.getIsHealthCheckStartedMap().get(rtmpUrl));
 
 		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			Broadcast broadcastLocal = muxAdaptor.getDataStore().get(broadcast.getStreamId());
-			return muxAdaptor.getIsHealthCheckGoing().getOrDefault(rtmpUrl, false) == false;
+			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
 		});
 
-
+		//ERROR SCENARIO
 		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
@@ -631,11 +631,35 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			return IAntMediaStreamHandler.BROADCAST_STATUS_ERROR.equals(broadcastLocal.getEndPointList().get(0).getStatus());
 		});
 
-		assertTrue(muxAdaptor.getIsHealthCheckGoing().get(rtmpUrl));
+		assertTrue(muxAdaptor.getIsHealthCheckStartedMap().get(rtmpUrl));
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
-			return muxAdaptor.getIsHealthCheckGoing().getOrDefault(rtmpUrl, false) == false;
+			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
 		});
 
+		//SET BROADCASTING AGAIN
+		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+			Broadcast broadcastLocal = muxAdaptor.getDataStore().get(broadcast.getStreamId());
+			return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcastLocal.getEndPointList().get(0).getStatus());
+		});
+
+		//FAILED SCENARIO
+		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+			Broadcast broadcastLocal = muxAdaptor.getDataStore().get(broadcast.getStreamId());
+			return IAntMediaStreamHandler.BROADCAST_STATUS_FAILED.equals(broadcastLocal.getEndPointList().get(0).getStatus());
+		});
+
+		assertTrue(muxAdaptor.getIsHealthCheckStartedMap().get(rtmpUrl));
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
+		});
+
+
+		//RETRY LIMIT EXCEEDED SCENARIO
 		getAppSettings().setEndpointRepublishLimit(0);
 
 		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
@@ -645,9 +669,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			return IAntMediaStreamHandler.BROADCAST_STATUS_ERROR.equals(broadcastLocal.getEndPointList().get(0).getStatus());
 		});
 
-		assertTrue(muxAdaptor.getIsHealthCheckGoing().get(rtmpUrl));
+		assertTrue(muxAdaptor.getIsHealthCheckStartedMap().get(rtmpUrl));
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
-			return muxAdaptor.getIsHealthCheckGoing().getOrDefault(rtmpUrl, false) == false;
+			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
 		});
 
 	}

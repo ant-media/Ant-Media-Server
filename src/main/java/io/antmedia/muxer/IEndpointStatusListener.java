@@ -14,11 +14,4 @@ public interface IEndpointStatusListener
 	 * @param status is the current status of the rtmp endpoint
 	 */
     public void endpointStatusUpdated(String url, String status);
-
-    /**
-     * Periodically check the endpoint health status every 2 seconds
-	 * If each check returned failed, try to republish to the endpoint
-	 * @param url is the URL of the endpoint
-     */
-    public void endpointStatusHealthCheck(String url);
 }
