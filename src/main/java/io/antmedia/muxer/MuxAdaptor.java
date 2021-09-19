@@ -1800,9 +1800,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		StreamParametersInfo videoInfo = new StreamParametersInfo();
 		videoInfo.codecParameters = getVideoCodecParameters();
 		videoInfo.timeBase = getVideoTimeBase();
+		videoInfo.enabled = enableVideo;
 		StreamParametersInfo audioInfo = new StreamParametersInfo();
 		audioInfo.codecParameters = getAudioCodecParameters();
 		audioInfo.timeBase = getAudioTimeBase();
+		audioInfo.enabled = enableAudio;
 
 		listener.setVideoStreamInfo(streamId, videoInfo);
 		listener.setAudioStreamInfo(streamId, audioInfo);

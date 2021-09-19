@@ -1665,6 +1665,18 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			}
 		}
 	}
+	
+	public void removePacketListener(String streamId, IPacketListener listener) {
+		List<MuxAdaptor> muxAdaptors = getMuxAdaptors();
+		for (MuxAdaptor muxAdaptor : muxAdaptors) 
+		{
+			if (streamId.equals(muxAdaptor.getStreamId())) 
+			{
+				muxAdaptor.removePacketListener(listener);
+				break;
+			}
+		}
+	}
 
 	public void addFrameListener(String streamId, IFrameListener listener) {
 		//for enterprise
