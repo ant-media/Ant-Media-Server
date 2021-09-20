@@ -11,6 +11,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
+
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -19,6 +21,7 @@ import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,6 +29,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -40,6 +44,7 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.red5.compatibility.flex.messaging.io.ArrayCollection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.stream.ClientBroadcastStream;
@@ -59,6 +64,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
@@ -1325,6 +1331,33 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(4)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
 		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
+	
+		
+	}
+	
+	@Test
+	public void testAddRemovePacketListener() {
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		MuxAdaptor mockAdaptor = mock(MuxAdaptor.class);
+		String streamId = "stream_"+RandomUtils.nextInt(0, 1000);
+		
+		
+		List<MuxAdaptor>  muxAdaptors = new ArrayList<MuxAdaptor>();
+		muxAdaptors.add(mockAdaptor);
+		
+		when(mockAdaptor.getStreamId()).thenReturn(streamId);
+		doReturn(muxAdaptors).when(spyAdapter).getMuxAdaptors();
+		
+		
+		IPacketListener listener = mock(IPacketListener.class);
+		spyAdapter.addPacketListener(streamId, listener);
+		
+		verify(mockAdaptor, times(1)).addPacketListener(listener);
+		
+		spyAdapter.removePacketListener(streamId, listener);
+		verify(mockAdaptor, times(1)).removePacketListener(listener);
+
 	
 		
 	}
