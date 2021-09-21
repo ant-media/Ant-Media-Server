@@ -1359,7 +1359,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(mockAdaptor, times(1)).removePacketListener(listener);
 
 	
-		
 	}
 
 }
