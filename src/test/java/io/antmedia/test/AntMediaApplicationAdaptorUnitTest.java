@@ -1350,8 +1350,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		muxAdaptors.add(mockAdaptor2);
 
 		
-		when(mockAdaptor.getStreamId()).thenReturn(streamId);
 		when(mockAdaptor2.getStreamId()).thenReturn("dummy");
+		when(mockAdaptor.getStreamId()).thenReturn(streamId);
 
 		doReturn(muxAdaptors).when(spyAdapter).getMuxAdaptors();
 		
