@@ -223,7 +223,7 @@ public class HLSMuxer extends Muxer  {
 	}
 
 
-	private  void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
+	private  void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType, boolean packetReady)
 	{
 
 		if (outputFormatContext == null || !isRunning.get())  {
@@ -457,7 +457,7 @@ public class HLSMuxer extends Muxer  {
 		}
 		AVStream outStream = outputFormatContext.streams(pkt.stream_index());
 		AVRational codecTimebase = codecTimeBaseMap.get(pkt.stream_index());
-		writePacket(pkt, codecTimebase,  outStream.time_base(), outStream.codecpar().codec_type());
+		writePacket(pkt, codecTimebase,  outStream.time_base(), outStream.codecpar().codec_type(), packetReady);
 
 	}
 
@@ -720,7 +720,7 @@ public class HLSMuxer extends Muxer  {
 		AVStream outStream = getOutputFormatContext().streams(streamIndex);
 		int index = avpacket.stream_index();
 		avpacket.stream_index(streamIndex);
-		writePacket(avpacket, inStream.time_base(),  outStream.time_base(), outStream.codecpar().codec_type());
+		writePacket(avpacket, inStream.time_base(),  outStream.time_base(), outStream.codecpar().codec_type(), true);
 		avpacket.stream_index(index);
 
 	}
