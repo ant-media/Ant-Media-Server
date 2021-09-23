@@ -1342,11 +1342,17 @@ public class AntMediaApplicationAdaptorUnitTest {
 		MuxAdaptor mockAdaptor = mock(MuxAdaptor.class);
 		String streamId = "stream_"+RandomUtils.nextInt(0, 1000);
 		
+		MuxAdaptor mockAdaptor2 = mock(MuxAdaptor.class);
+
 		
 		List<MuxAdaptor>  muxAdaptors = new ArrayList<MuxAdaptor>();
 		muxAdaptors.add(mockAdaptor);
+		muxAdaptors.add(mockAdaptor2);
+
 		
 		when(mockAdaptor.getStreamId()).thenReturn(streamId);
+		when(mockAdaptor2.getStreamId()).thenReturn("dummy");
+
 		doReturn(muxAdaptors).when(spyAdapter).getMuxAdaptors();
 		
 		
