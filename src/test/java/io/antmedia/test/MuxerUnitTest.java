@@ -658,6 +658,18 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
 		});
 
+		//FINISHED SCENARIO
+		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+			Broadcast broadcastLocal = muxAdaptor.getDataStore().get(broadcast.getStreamId());
+			return IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(broadcastLocal.getEndPointList().get(0).getStatus());
+		});
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
+		});
+
 
 		//RETRY LIMIT EXCEEDED SCENARIO
 		getAppSettings().setEndpointRepublishLimit(0);

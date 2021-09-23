@@ -381,7 +381,7 @@ public class AppSettings {
 	 * if each of them fails it will try to republish in 3rd check.
 	 */
 	@Value( "${"+SETTINGS_ENDPOINT_HEALTH_CHECK_PERIOD_MS+":2000}" )
-	private int endpointHealthCheckPeriod;
+	private int endpointHealthCheckPeriodMs;
 
 	/**
 	 * This limit is for republishing to a certain endpoint for how many times
@@ -1443,10 +1443,10 @@ public class AppSettings {
 		this.endpointRepublishLimit = endpointRepublishLimit;
 	}
 	public int getEndpointHealthCheckPeriodMs(){
-		return endpointHealthCheckPeriod;
+		return endpointHealthCheckPeriodMs;
 	}
-	public void setEndpointHealthCheckPeriodMs(int endpointHealthCheckPeriod){
-		this.endpointHealthCheckPeriod = endpointHealthCheckPeriod;
+	public void setEndpointHealthCheckPeriodMs(int endpointHealthCheckPeriodMs){
+		this.endpointHealthCheckPeriodMs = endpointHealthCheckPeriodMs;
 	}
 
 	public String getHlsPlayListType() {

@@ -1554,7 +1554,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setAddDateTimeToMp4FileName(newSettings.isAddDateTimeToMp4FileName());
 		appSettings.setHlsMuxingEnabled(newSettings.isHlsMuxingEnabled());
 		appSettings.setDashMuxingEnabled(newSettings.isDashMuxingEnabled());
-		
+
+		appSettings.setEndpointRepublishLimit(newSettings.getEndpointRepublishLimit());
+		appSettings.setEndpointHealthCheckPeriodMs(newSettings.getEndpointHealthCheckPeriodMs());
+
 		appSettings.setHlsEnabledViaDash(newSettings.isHlsEnabledViaDash());
 		appSettings.setlLHLSEnabled(newSettings.islLHLSEnabled());
 		appSettings.setlLDashEnabled(newSettings.islLDashEnabled());

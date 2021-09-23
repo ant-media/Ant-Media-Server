@@ -2227,10 +2227,12 @@ public class ConsoleAppRestServiceTest{
 	public static Result callSetAppSettings(String appName, AppSettings appSettingsModel) throws Exception {
 		
 		String url = ROOT_SERVICE_URL + "/applications/settings/" + appName;
+		System.out.println("************* = " + appSettingsModel.getEndpointHealthCheckPeriodMs());
 		try (CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build())
 		{
 			Gson gson = new Gson();
+			System.out.println("---------------------------" + gson.toJson(appSettingsModel));
 
 			HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.setEntity(new StringEntity(gson.toJson(appSettingsModel))).build();

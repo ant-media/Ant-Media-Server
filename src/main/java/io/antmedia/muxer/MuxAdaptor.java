@@ -1627,17 +1627,29 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * @param url is the URL of the endpoint
 	 */
 	public void endpointStatusHealthCheck(String url){
+		rtmpEndpointRetryLimit = appSettings.getEndpointRepublishLimit();
+		healthCheckPeriodMS = appSettings.getEndpointHealthCheckPeriodMs();
 		long timerId = vertx.setPeriodic(healthCheckPeriodMS, id ->
 		{
 			logger.info("Checking the endpoint health for: {} ", url);
-			if(statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)){
+			String status = statusMap.getValueOrDefault(url, null);
+
+			//Broadcast might get deleted in the process of checking
+			if( status.equals(null) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)){
+				logger.info("Endpoint trailer is written or broadcast deleted for: {} ", url);
+				isHealthCheckStartedMap.remove(url);
+				errorCountMap.remove(url);
+				retryCounter.remove(url);
+				vertx.cancelTimer(id);
+			}
+			if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)){
 				logger.info("Health check process finished since endpoint {} is broadcasting", url);
 				isHealthCheckStartedMap.remove(url);
 				errorCountMap.remove(url);
 				retryCounter.remove(url);
 				vertx.cancelTimer(id);
 			}
-			else if(statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED) ){
+			else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED) ){
 				int tmp = errorCountMap.getValueOrDefault(url, 1);
 				if(tmp < 3){
 					errorCountMap.put(url,tmp +1);
@@ -1680,6 +1692,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if((status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED)) && !isHealthCheckStartedMap.getValueOrDefault(url, false)){
 			endpointStatusHealthCheck(url);
 			isHealthCheckStartedMap.put(url, true);
+		}
+
+		if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && retryCounter.getValueOrDefault(url, null) != null){
+			retryCounter.remove(url);
 		}
 
 		if (endpointStatusUpdaterTimer.get() == -1) 
@@ -1750,6 +1766,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
 			if (rtmpMuxer != null) {
 				muxerList.remove(rtmpMuxer);
+				statusMap.remove(rtmpUrl);
 				rtmpMuxer.writeTrailer();
 				result = true;
 			}

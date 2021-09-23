@@ -1495,6 +1495,150 @@ public class RestServiceV2Test {
 	}
 
 	@Test
+	public void testEndpointRepublish(){
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result;
+
+		try{
+			List<Broadcast> broadcastList = callGetBroadcastList();
+			int size = broadcastList.size();
+			Broadcast broadcast = createBroadcast(null);
+
+			String streamId = RandomStringUtils.randomAlphabetic(6);
+
+			String rtmpUrl = "rtmp://localhost/LiveApp/" + streamId;
+
+			Endpoint endpoint = new Endpoint();
+			endpoint.setRtmpUrl(rtmpUrl);
+
+			//GET SETTINGS
+			result = ConsoleAppRestServiceTest.callisFirstLogin();
+
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+
+			//Change settings for republish to simulate scenario where the republish limit reached
+			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+
+			// add generic endpoint
+			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
+
+			// check that it is successfull
+			assertTrue(result.isSuccess());
+
+			// get endpoint list
+			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			String finalBroadcastStreamId = broadcast.getStreamId();
+
+			// check that 1 element exist
+			assertNotNull(broadcast.getEndPointList());
+			assertEquals(1, broadcast.getEndPointList().size());
+
+			broadcastList = callGetBroadcastList();
+			assertEquals(size+1, broadcastList.size());
+
+			//check endpoint status
+			Broadcast tmp = getBroadcast(broadcast.getStreamId());
+			assertEquals(1, broadcast.getEndPointList().size());
+			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, broadcast.getEndPointList().get(0).getStatus());
+
+			Process execute = execute(
+					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
+							+ broadcast.getStreamId());
+
+			appSettingsModel.setEndpointRepublishLimit(9);
+			appSettingsModel.setEndpointHealthCheckPeriodMs(2000);
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+
+			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				//size should +2 because we restream again into the server
+				return size+2 == callGetBroadcastList().size();
+			});
+
+			//Check if the endpoint started broadcasting
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+
+			//Delete the endpoint stream from the server to replicate issue on the endpoint that the server is not responsive and endpoint is not deleted from original stream
+			result = callDeleteBroadcast(streamId);
+
+			//Check if the endpoint goes error since we deleted its stream
+			//Republish process must be triggered with the default settings
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				//this is the endpoint running
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_ERROR.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+
+			//Original broadcast should retry publishing to the unresponsive endpoint
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				//this is the endpoint running
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+
+			appSettingsModel.setEndpointRepublishLimit(0);
+
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+			result = callDeleteBroadcast(streamId);
+
+			//There will be no republish attempt because of the setting
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				//this is the endpoint running
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_ERROR.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+
+
+			//It will stop publishing to the endpoint depending on the retry limit
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				//this is the endpoint running
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+
+
+			//add non existin rtmp url bugfix test - issue #3032
+			String rtmpUrl2 = "rtmp://nonexisting.com/abcdef";
+			Endpoint endpoint2 = new Endpoint();
+			endpoint2.setRtmpUrl(rtmpUrl2);
+			// add generic endpoint
+			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint2);
+			// check that it is successfull
+			assertTrue(result.isSuccess());
+
+			appSettingsModel.setEndpointRepublishLimit(1);
+
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+			//It will be failed since there is no url
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				//this is the endpoint running
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_FAILED.equals(tmp2.getEndPointList().get(1).getStatus());
+			});
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+
+	@Test
 	public void testAddEndpointCrossCheckV2() {
 		try {
 			////////////////////////////////////////////////////////////
