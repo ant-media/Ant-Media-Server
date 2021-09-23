@@ -1032,7 +1032,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return 0;
 	}
 
-	private void updateQualityParameters(long pts, AVRational timebase) {
+	public void updateQualityParameters(long pts, AVRational timebase) {
 
 
 		long packetTime = av_rescale_q(pts, timebase, TIME_BASE_FOR_MS);
