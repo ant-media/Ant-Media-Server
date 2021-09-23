@@ -117,6 +117,7 @@ import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
 import io.antmedia.muxer.parser.SpsParser;
+import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.storage.StorageClient;
@@ -2630,6 +2631,24 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(listener, Mockito.times(1)).onAudioPacket(streamId, pkt);
 
 		muxAdaptor.removePacketListener(listener);
+		
+	}
+	
+	@Test
+	public void testPacketFeeder() {
+		String streamId = "stream"+RandomUtils.nextInt(1, 1000);
+		PacketFeeder packetFeeder = new PacketFeeder(streamId);
+		IPacketListener listener = mock(IPacketListener.class);
+		packetFeeder.addListener(listener);
+		
+		ByteBuffer encodedVideoFrame = ByteBuffer.allocate(100); 
+		packetFeeder.writeVideoBuffer(encodedVideoFrame, 50, 0, 0, false, 0, 50);
+		verify(listener, Mockito.times(1)).onVideoPacket(eq(streamId), any());
+
+		ByteBuffer audioFrame = ByteBuffer.allocate(100); 
+		packetFeeder.writeAudioBuffer(audioFrame, 1, 50);
+		verify(listener, Mockito.times(1)).onAudioPacket(eq(streamId), any());
+		
 		
 	}
 	
