@@ -1635,7 +1635,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			String status = statusMap.getValueOrDefault(url, null);
 
 			//Broadcast might get deleted in the process of checking
-			if( status.equals(null) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)){
+			if( status == null || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)){
 				logger.info("Endpoint trailer is written or broadcast deleted for: {} ", url);
 				isHealthCheckStartedMap.remove(url);
 				errorCountMap.remove(url);
