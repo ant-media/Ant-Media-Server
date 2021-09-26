@@ -1631,6 +1631,19 @@ public class RestServiceV2Test {
 				return IAntMediaStreamHandler.BROADCAST_STATUS_FAILED.equals(tmp2.getEndPointList().get(1).getStatus());
 			});
 
+			execute.destroy();
+
+			result = callDeleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+
+			Awaitility.await().atMost(45, TimeUnit.SECONDS)
+					.pollInterval(1, TimeUnit.SECONDS).until(() ->
+					{
+						int broadcastListSize = callGetBroadcastList().size();
+						logger.info("broadcast list size: {} and it should be:{}", broadcastListSize, size);
+						return size == callGetBroadcastList().size();
+					});
+
 		}
 		catch (Exception e) {
 			e.printStackTrace();
