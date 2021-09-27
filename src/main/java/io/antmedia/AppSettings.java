@@ -218,7 +218,9 @@ public class AppSettings {
 	public static final String DATA_CHANNEL_PLAYER_TO_ALL = "all";
 
 	private static final String SETTINGS_HLS_FLAGS = "settings.hlsflags";
-	
+
+	public static final String SETTINGS_RTSP_TIMEOUT_DURATION_MS = "settings.rtspTimeoutDurationMs";
+
 	public static final String SETTINGS_RTMP_INGEST_BUFFER_TIME_MS = "settings.rtmpIngestBufferTimeMs";
 	
 	public static final String SETTINGS_ACCEPT_ONLY_ROOMS_IN_DATA_STORE = "settings.acceptOnlyRoomsInDataStore";
@@ -1057,6 +1059,13 @@ public class AppSettings {
 	 */
 	@Value("${" + SETTINGS_RTSP_PULL_TRANSPORT_TYPE+ ":tcp}")
 	private String rtspPullTransportType;
+
+	/**
+	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
+	 * It can be tcp or udp
+	 */
+	@Value("${" + SETTINGS_RTSP_TIMEOUT_DURATION_MS+ ":5000}")
+	private int rtspTimeoutDurationMs;
 	
 	/**
 	 * Max FPS value in RTMP streams
@@ -2187,6 +2196,13 @@ public class AppSettings {
 
 	public void setRtspPullTransportType(String rtspPullTransportType) {
 		this.rtspPullTransportType = rtspPullTransportType;
+	}
+	public String getRtspTimeoutDurationMs() {
+		return rtspTimeoutDurationMs;
+	}
+
+	public void setRtspTimeoutDurationMs(int rtspTimeoutDurationMs) {
+		this.rtspTimeoutDurationMs = rtspTimeoutDurationMs;
 	}
 	
 	public int getMaxResolutionAccept() {

@@ -134,8 +134,8 @@ public class StreamFetcher {
 	}
 
 	public Result prepareInput(AVFormatContext inputFormatContext) {
-
-		setConnectionTimeout(5000);
+		int timeout = appSettings.getRtspTimeoutDurationMs();
+		setConnectionTimeout(timeout);
 
 		Result result = new Result(false);
 		if (inputFormatContext == null) {
