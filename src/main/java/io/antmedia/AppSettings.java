@@ -2197,7 +2197,7 @@ public class AppSettings {
 	public void setRtspPullTransportType(String rtspPullTransportType) {
 		this.rtspPullTransportType = rtspPullTransportType;
 	}
-	public String getRtspTimeoutDurationMs() {
+	public int getRtspTimeoutDurationMs() {
 		return rtspTimeoutDurationMs;
 	}
 
