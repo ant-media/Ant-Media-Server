@@ -113,11 +113,11 @@ public class StreamFetcherManager {
 		result.setDataId(streamScheduler.getStreamId());
 		if (!licenseService.isLicenceSuspended()) {
 			streamScheduler.startStream();
-	
+
 			if(!streamFetcherList.contains(streamScheduler)) {
 				streamFetcherList.add(streamScheduler);
 			}
-	
+
 			if (streamFetcherScheduleJobName == -1) {
 				scheduleStreamFetcherJob();
 			}
@@ -271,15 +271,15 @@ public class StreamFetcherManager {
 		}
 		else if (playListItemList != null && !playListItemList.isEmpty()) 
 		{
-						
+
 			// Get current stream in Playlist
 			if (playlist.getCurrentPlayIndex() >= playlist.getPlayListItemList().size() || playlist.getCurrentPlayIndex() < 0) {
 				logger.warn("Resetting current play index to 0 because it's not in correct range for id: {}", playlist.getStreamId());
 				playlist.setCurrentPlayIndex(0);
 			}
-			
+
 			PlayListItem playlistBroadcastItem = playlist.getPlayListItemList().get(playlist.getCurrentPlayIndex());
-			
+
 			if(checkStreamUrlWithHTTP(playlistBroadcastItem.getStreamUrl()).isSuccess()) 
 			{
 
@@ -487,26 +487,27 @@ public class StreamFetcherManager {
 	public Result stopPlayList(String streamId) 
 	{
 		logger.info("Stopping playlist for stream: {}", streamId);
-		
-		Result stopStreaming = stopStreaming(streamId);
-		if (!stopStreaming.isSuccess()) {
-			logger.warn("Stop streamming returned false for stream:{} message:{}", streamId, stopStreaming.getMessage());
-		}
-		
-		Result result = new Result(false);
-		Broadcast broadcast = datastore.get(streamId);
-		if (broadcast != null && AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) 
+
+		Result result = stopStreaming(streamId);
+		if (result.isSuccess()) 
 		{
-			//set both playlist and broadcast status to finish 
-			broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-			broadcast.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-			result.setSuccess(datastore.updateBroadcastFields(streamId, broadcast));
+			result = new Result(false);
+			Broadcast broadcast = datastore.get(streamId);
+			if (broadcast != null && AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) 
+			{
+				broadcast.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+				result.setSuccess(datastore.updateBroadcastFields(streamId, broadcast));
+			}
+			else {
+				String msg = "Broadcast's type is not play list for stream:" + streamId;
+				result.setMessage(msg);
+				result.setDataId(streamId);
+				logger.error(msg);
+			}
 		}
 		else {
-			String msg = "Broadcast's type is not play list for stream:" + streamId;
-			result.setMessage(msg);
-			result.setDataId(streamId);
-			logger.error(msg);
+			logger.warn("Stop streamming returned false for stream:{} message:{}", streamId, result.getMessage());
+
 		}
 
 		return result;
