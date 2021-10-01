@@ -487,12 +487,17 @@ public class StreamFetcherManager {
 	public Result stopPlayList(String streamId) 
 	{
 		logger.info("Stopping playlist for stream: {}", streamId);
+		
+		Result stopStreaming = stopStreaming(streamId);
+		if (!stopStreaming.isSuccess()) {
+			logger.warn("Stop streamming returned false for stream:{} message:{}", streamId, stopStreaming.getMessage());
+		}
+		
 		Result result = new Result(false);
-		stopStreaming(streamId);
 		Broadcast broadcast = datastore.get(streamId);
 		if (broadcast != null && AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) 
 		{
-			broadcast.setPlayListStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			broadcast.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 			result.setSuccess(datastore.updateBroadcastFields(streamId, broadcast));
 		}
 		else {

@@ -953,7 +953,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public Result stopStreaming(Broadcast broadcast) 
 	{
 		Result result = new Result(false);
-
+		logger.info("stopStreaming is called for stream:{}", broadcast.getStreamId());
 		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) 

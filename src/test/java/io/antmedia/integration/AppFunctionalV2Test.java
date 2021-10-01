@@ -244,6 +244,7 @@ public class AppFunctionalV2Test {
 			broadcast2 = RestServiceV2Test.getBroadcast(broadcast.getStreamId());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast2.getStatus());
 
+			logger.info("Waiting playlist to switch to next item for stream: {}", broadcast.getStreamId());
 			//wait play list switch to next item
 			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				 Broadcast tmp = RestServiceV2Test.getBroadcast(broadcast.getStreamId());
@@ -251,11 +252,12 @@ public class AppFunctionalV2Test {
 			});
 			
 			
-			//play the play list
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			//play the play list with delay to make sure it's playing the next item
+			Awaitility.await().pollDelay(10, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
 			});
 			
+			logger.info("Stop Broadcast service is calling for stream: {}", broadcast.getStreamId());
 			//stop the play list
 			boolean stopBroadcast = RestServiceV2Test.callStopBroadcastService(broadcast.getStreamId());
 			assertTrue(stopBroadcast);
