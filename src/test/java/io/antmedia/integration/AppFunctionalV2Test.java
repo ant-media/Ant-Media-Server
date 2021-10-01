@@ -253,7 +253,7 @@ public class AppFunctionalV2Test {
 			
 			
 			//play the play list with delay to make sure it's playing the next item
-			Awaitility.await().pollDelay(10, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Awaitility.await().pollDelay(10, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
 			});
 			

@@ -497,6 +497,8 @@ public class StreamFetcherManager {
 		Broadcast broadcast = datastore.get(streamId);
 		if (broadcast != null && AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) 
 		{
+			//set both playlist and broadcast status to finish 
+			broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 			broadcast.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 			result.setSuccess(datastore.updateBroadcastFields(streamId, broadcast));
 		}
