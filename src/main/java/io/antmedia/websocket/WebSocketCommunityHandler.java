@@ -41,6 +41,8 @@ public class WebSocketCommunityHandler {
 
 	private AntMediaApplicationAdapter appAdaptor;
 	
+	protected String userAgent = "N/A";
+	
 	public WebSocketCommunityHandler(ApplicationContext appContext, Session session) {
 		this.appContext = appContext;
 		this.session = session;
@@ -437,5 +439,13 @@ public class WebSocketCommunityHandler {
 	public void setSession(Session session) {
 		this.session = session;
 		
+	}
+
+	public String getUserAgent() {
+		return userAgent;
+	}
+
+	public void setUserAgent(String userAgent) {
+		this.userAgent = userAgent;
 	}
 }

@@ -970,7 +970,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public Result stopStreaming(Broadcast broadcast) 
 	{
 		Result result = new Result(false);
-
+		logger.info("stopStreaming is called for stream:{}", broadcast.getStreamId());
 		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) 
@@ -1492,7 +1492,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_HLS_ENABLE_LOW_LATENCY, String.valueOf(newAppsettings.islLHLSEnabled()));
 		store.put(AppSettings.SETTINGS_DASH_ENABLE_LOW_LATENCY, String.valueOf(newAppsettings.islLDashEnabled()));
 
-		
+		store.put(AppSettings.SETTINGS_RTSP_TIMEOUT_DURATION_MS, String.valueOf(newAppsettings.getRtspTimeoutDurationMs()));
+
 		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(newAppsettings.isAcceptOnlyStreamsInDataStore()));
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
 		store.put(AppSettings.SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishTokenControlEnabled()));
@@ -1500,6 +1501,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY, String.valueOf(newAppsettings.isTimeTokenSubscriberOnly()));
 		store.put(AppSettings.SETTINGS_ENABLE_TIME_TOKEN_PLAY, String.valueOf(newAppsettings.isEnableTimeTokenForPlay()));
 		store.put(AppSettings.SETTINGS_ENABLE_TIME_TOKEN_PUBLISH, String.valueOf(newAppsettings.isEnableTimeTokenForPublish()));
+
+		store.put(AppSettings.SETTINGS_ENDPOINT_HEALTH_CHECK_PERIOD_MS, String.valueOf(newAppsettings.getEndpointHealthCheckPeriodMs()));
+		store.put(AppSettings.SETTINGS_ENDPOINT_REPUBLISH_LIMIT, String.valueOf(newAppsettings.getEndpointRepublishLimit()));
 
 
 		store.put(AppSettings.SETTINGS_PUBLISH_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishJwtControlEnabled()));
@@ -1568,7 +1572,12 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setAddDateTimeToMp4FileName(newSettings.isAddDateTimeToMp4FileName());
 		appSettings.setHlsMuxingEnabled(newSettings.isHlsMuxingEnabled());
 		appSettings.setDashMuxingEnabled(newSettings.isDashMuxingEnabled());
-		
+
+		appSettings.setEndpointRepublishLimit(newSettings.getEndpointRepublishLimit());
+		appSettings.setEndpointHealthCheckPeriodMs(newSettings.getEndpointHealthCheckPeriodMs());
+
+		appSettings.setRtspTimeoutDurationMs(newSettings.getRtspTimeoutDurationMs());
+
 		appSettings.setHlsEnabledViaDash(newSettings.isHlsEnabledViaDash());
 		appSettings.setlLHLSEnabled(newSettings.islLHLSEnabled());
 		appSettings.setlLDashEnabled(newSettings.islLDashEnabled());

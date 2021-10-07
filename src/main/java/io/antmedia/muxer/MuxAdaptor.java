@@ -118,6 +118,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected boolean dashMuxingEnabled;
 	protected boolean objectDetectionEnabled;
 
+	protected ConcurrentHashMap<String, Boolean> isHealthCheckStartedMap = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<String, Integer> errorCountMap = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<String, Integer> retryCounter = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<String, String> statusMap = new ConcurrentHashMap<>();
+	protected int rtmpEndpointRetryLimit;
+	protected int healthCheckPeriodMS;
+
 	protected boolean webRTCEnabled = false;
 	protected StorageClient storageClient;
 	protected String hlsTime;
@@ -324,6 +331,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		previewHeight = appSettingsLocal.getPreviewHeight();
 		bufferTimeMs = appSettingsLocal.getRtmpIngestBufferTimeMs();
 		dataChannelWebHookURL = appSettingsLocal.getDataChannelWebHook();
+
+		rtmpEndpointRetryLimit = appSettingsLocal.getEndpointRepublishLimit();
+		healthCheckPeriodMS = appSettingsLocal.getEndpointHealthCheckPeriodMs();
 	}
 
 	public void initStorageClient() {
@@ -1609,14 +1619,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.warn("Start rtmp streaming return false for stream:{} because stream is being prepared", streamId);
 			return false;
 		}
-
 		logger.info("start rtmp streaming for stream id:{} to {} with requested resolution height{} stream resolution:{}", streamId, rtmpUrl, resolutionHeight, height);
 		boolean result = false;
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
 			RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
 			rtmpMuxer.setStatusListener(this);
-
 			result = prepareMuxer(rtmpMuxer);
 			if (!result) {
 				logger.error("RTMP prepare returned false so that rtmp pushing to {} for {} didn't started ", rtmpUrl, streamId);
@@ -1624,6 +1632,62 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		return result;
+	}
+
+	/**
+	 * Periodically check the endpoint health status every 2 seconds
+	 * If each check returned failed, try to republish to the endpoint
+	 * @param url is the URL of the endpoint
+	 */
+	public void endpointStatusHealthCheck(String url){
+		rtmpEndpointRetryLimit = appSettings.getEndpointRepublishLimit();
+		healthCheckPeriodMS = appSettings.getEndpointHealthCheckPeriodMs();
+		long timerId = vertx.setPeriodic(healthCheckPeriodMS, id ->
+		{
+			logger.info("Checking the endpoint health for: {} ", url);
+			String status = statusMap.getValueOrDefault(url, null);
+
+			//Broadcast might get deleted in the process of checking
+			if( status == null || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)){
+				logger.info("Endpoint trailer is written or broadcast deleted for: {} ", url);
+				isHealthCheckStartedMap.remove(url);
+				errorCountMap.remove(url);
+				retryCounter.remove(url);
+				vertx.cancelTimer(id);
+			}
+			if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)){
+				logger.info("Health check process finished since endpoint {} is broadcasting", url);
+				isHealthCheckStartedMap.remove(url);
+				errorCountMap.remove(url);
+				retryCounter.remove(url);
+				vertx.cancelTimer(id);
+			}
+			else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED) ){
+				int tmp = errorCountMap.getValueOrDefault(url, 1);
+				if(tmp < 3){
+					errorCountMap.put(url,tmp +1);
+					logger.info("Endpoint check returned error for {} times for endpoint {}", tmp , url);
+				}
+				else{
+					int tmpRetryCount = retryCounter.getValueOrDefault(url, 1);
+					if( tmpRetryCount <= rtmpEndpointRetryLimit){
+						logger.info("Health check process failed, trying to republish to the endpoint: {}", url);
+						stopRtmpStreaming(url, 0);
+						startRtmpStreaming(url, height);
+						retryCounter.put(url, tmpRetryCount + 1);
+					}
+					else{
+						logger.info("Exceeded republish retry limit, endpoint {} can't be reached and will be closed" , url);
+						stopRtmpStreaming(url, 0);
+						retryCounter.remove(url);
+					}
+					//Clear the data and cancel timer to free memory and CPU.
+					isHealthCheckStartedMap.remove(url);
+					errorCountMap.remove(url);
+					vertx.cancelTimer(id);
+				}
+			}
+		});
 	}
 
 	@Override
@@ -1636,6 +1700,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		 */
 		endpointStatusUpdateMap.put(url, status);
 
+		statusMap.put(url,status);
+
+		if((status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED)) && !isHealthCheckStartedMap.getValueOrDefault(url, false)){
+			endpointStatusHealthCheck(url);
+			isHealthCheckStartedMap.put(url, true);
+		}
+
+		if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && retryCounter.getValueOrDefault(url, null) != null){
+			retryCounter.remove(url);
+		}
 
 		if (endpointStatusUpdaterTimer.get() == -1) 
 		{
@@ -1705,6 +1779,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
 			if (rtmpMuxer != null) {
 				muxerList.remove(rtmpMuxer);
+				statusMap.remove(rtmpUrl);
 				rtmpMuxer.writeTrailer();
 				result = true;
 			}
@@ -1850,6 +1925,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public Map<String, String> getEndpointStatusUpdateMap() {
 		return endpointStatusUpdateMap;
 	}
+
+	public Map<String, Boolean> getIsHealthCheckStartedMap(){ return isHealthCheckStartedMap;}
 
 
 	public void setHeight(int height) {
