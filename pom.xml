@@ -632,6 +632,7 @@
                             </plugins>
                         </configuration>
                     </plugin>
+                    <!--  ENABLE THIS
                     <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
@@ -643,6 +644,7 @@
                             </execution>
                         </executions>
                     </plugin>
+                    -->
                     <plugin>
                         <artifactId>maven-dependency-plugin</artifactId>
                         <version>${maven-dependency-plugin.version}</version>
@@ -900,6 +902,7 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <!-- ENABLE THIS
                      <plugin>
                         <groupId>org.owasp</groupId>
                         <artifactId>dependency-check-maven</artifactId>
@@ -911,6 +914,7 @@
                             </execution>
                         </executions>
                     </plugin>
+                     -->
                     <plugin>
 			            <groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>
