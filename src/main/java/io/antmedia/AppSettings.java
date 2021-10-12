@@ -219,6 +219,8 @@ public class AppSettings {
 
 	private static final String SETTINGS_HLS_FLAGS = "settings.hlsflags";
 
+	public static final String SETTINGS_UPLOAD_EXTENSIONS_TO_S3 = "settings.uploadExtensionsToS3";
+
 	public static final String SETTINGS_RTSP_TIMEOUT_DURATION_MS = "settings.rtspTimeoutDurationMs";
 
 	public static final String SETTINGS_RTMP_INGEST_BUFFER_TIME_MS = "settings.rtmpIngestBufferTimeMs";
@@ -374,6 +376,17 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_HLS_TIME+":#{null}}" )
 	private String hlsTime;
+
+	/**
+	 * Binary entity for uploading the extensions
+	 * 0 means does not upload, 1 means upload
+	 * First digit switches mp4 files upload to s3
+	 * Second digit switches HLS files upload to s3
+	 * Example: 10 means upload mp4 but not HLS
+	 * HLS files still will be saved on the server if deleteHLSFilesOnEnded flag is false
+	 */
+	@Value( "${"+SETTINGS_UPLOAD_EXTENSIONS_TO_S3+":11}" )
+	private String uploadExtensionsToS3;
 
 	/**
 	 * Endpoint will try to republish if error occurs,
@@ -1464,6 +1477,14 @@ public class AppSettings {
 
 	public void setHlsPlayListType(String hlsPlayListType) {
 		this.hlsPlayListType = hlsPlayListType;
+	}
+
+	public void setUploadExtensionsToS3(String uploadExtensionsToS3){
+		this.uploadExtensionsToS3 = uploadExtensionsToS3;
+	}
+
+	public String getUploadExtensionsToS3(){
+		return this.uploadExtensionsToS3;
 	}
 
 	public String getHlsTime() {

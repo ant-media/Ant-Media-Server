@@ -439,7 +439,7 @@ public abstract class RecordMuxer extends Muxer {
 				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
 
 
-				if (appSettings.isS3RecordingEnabled()) {
+				if (appSettings.isS3RecordingEnabled() && appSettings.getUploadExtensionsToS3().substring(0,1).equals("1")) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
 					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, getFile().getName(), storageClient);
 				}
