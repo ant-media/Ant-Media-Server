@@ -133,7 +133,7 @@ public class MongoStore extends DataStore {
 		}
 		try {
 			String streamId = null;
-			if (broadcast.getStreamId() == null) {
+			if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
 				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
 				broadcast.setStreamId(streamId);
 			}
