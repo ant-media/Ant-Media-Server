@@ -15,6 +15,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -158,17 +159,32 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "Only effective if stream is IP Camera or Stream Source. If it's true, it starts automatically pulling stream. Its value is false by default", required = false, defaultValue="false") @QueryParam("autoStart") boolean autoStart) {
 
 
-		if (broadcast != null && broadcast.getStreamId() != null && !broadcast.getStreamId().isEmpty()) {
-			// make sure stream id is not set on rest service
-			Broadcast broadcastTmp = getDataStore().get(broadcast.getStreamId());
-			if (broadcastTmp != null) 
-			{
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. Please change stream id or keep it empty")).build();
+
+		if (broadcast != null && broadcast.getStreamId() != null) {
+
+			try {
+				broadcast.setStreamId(broadcast.getStreamId().trim());
+
+				if (!broadcast.getStreamId().isEmpty()) 
+				{
+					// make sure stream id is not set on rest service
+					Broadcast broadcastTmp = getDataStore().get(broadcast.getStreamId());
+					if (broadcastTmp != null) 
+					{
+						return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. Please change stream id or keep it empty")).build();
+					}
+					else if (!StreamIdValidator.isStreamIdValid(broadcast.getStreamId())) 
+					{
+						return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid.")).build();
+					}
+				}
 			}
-			else if (!StreamIdValidator.isStreamIdValid(broadcast.getStreamId())) 
+			catch (Exception e) 
 			{
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid.")).build();
+				logger.error(ExceptionUtils.getStackTrace(e));
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id set generated exception")).build(); 
 			}
+
 
 		}
 
@@ -373,7 +389,7 @@ public class BroadcastRestService extends RestServiceBase{
 					if (!result.isSuccess()) 
 					{
 						result.setMessage("Rtmp endpoint is not added to stream: " + id);
-						
+
 					}
 					logRtmpEndpointInfo(id, endpoint, result.isSuccess());
 				}
@@ -443,7 +459,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 			rtmpUrl = getRtmpUrlFromList(endpointServiceId, rtmpUrl, broadcast);
 			if (rtmpUrl != null) {
-			
+
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
 				{
 					result = processRTMPEndpoint(result, broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, false, resolutionHeight);
@@ -458,7 +474,7 @@ public class BroadcastRestService extends RestServiceBase{
 				}
 			}
 
-			
+
 		} 
 		if (logger.isInfoEnabled()) 
 		{ 
