@@ -84,6 +84,8 @@ public abstract class RecordMuxer extends Muxer {
 	protected AVPacket videoPkt;
 	protected int rotation;
 
+	protected String uploadMP4ToS3 = "1";
+
 	private String subFolder = null;
 
 	/**
@@ -438,8 +440,11 @@ public abstract class RecordMuxer extends Muxer {
 
 				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
 
+				if(appSettings.getUploadExtensionsToS3().length() > 1){
+					this.uploadMP4ToS3 = appSettings.getUploadExtensionsToS3().substring(0,1);
+				}
 
-				if (appSettings.isS3RecordingEnabled() && appSettings.getUploadExtensionsToS3().substring(0,1).equals("1")) {
+				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3.equals("1")) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
 					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, getFile().getName(), storageClient);
 				}

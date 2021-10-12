@@ -382,7 +382,8 @@ public class AppSettings {
 	 * 0 means does not upload, 1 means upload
 	 * First digit switches mp4 files upload to s3
 	 * Second digit switches HLS files upload to s3
-	 * Example: 10 means upload mp4 but not HLS
+	 * Third digit switches PNG files upload to s3
+	 * Example: 100 means upload mp4 but not HLS and PNG
 	 * HLS files still will be saved on the server if deleteHLSFilesOnEnded flag is false
 	 */
 	@Value( "${"+SETTINGS_UPLOAD_EXTENSIONS_TO_S3+":11}" )
