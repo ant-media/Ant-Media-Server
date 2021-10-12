@@ -10,7 +10,7 @@ domain=""
 password=
 renew_flag='false'
 
-while getopts i:d:p:f:rc: option
+while getopts i:d:v:p:f:rc: option
 do
   case "${option}" in
     f) FULL_CHAIN_FILE=${OPTARG};;
@@ -18,6 +18,7 @@ do
     p) PRIVATE_KEY_FILE=${OPTARG};;
     i) INSTALL_DIRECTORY=${OPTARG};;
     d) domain=${OPTARG};;
+    v) dns_validate='true';;
     r) renew_flag='true';;
    esac
 done
@@ -155,7 +156,13 @@ get_new_certificate(){
     # Install required libraries
 
     #Get certificate
-    $SUDO certbot certonly --standalone --non-interactive --agree-tos --email letsencrypt@antmedia.io -d $domain
+
+    if [ "$dns_validate" == "true" ]; then
+      $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
+    else
+      $SUDO certbot certonly --standalone --non-interactive --agree-tos --email letsencrypt@antmedia.io -d $domain
+    fi
+
     output
 
     file="/etc/letsencrypt/live/$domain/keystore.jks"
