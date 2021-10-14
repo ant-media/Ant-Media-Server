@@ -18,7 +18,7 @@ do
     p) PRIVATE_KEY_FILE=${OPTARG};;
     i) INSTALL_DIRECTORY=${OPTARG};;
     d) domain=${OPTARG};;
-    v) dns_validate='true';;
+    v) dns_validate=${OPTARG};;
     r) renew_flag='true';;
    esac
 done
@@ -28,6 +28,7 @@ ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Pleas
 usage() {
   echo "Usage:"
   echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
+  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-v {route53 or custom}]"
   echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -c {CHAIN_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
   echo " "
   echo -e "If you have any question, send e-mail to contact@antmedia.io\n"
@@ -144,7 +145,7 @@ get_new_certificate(){
         $SUDO apt-get update -qq -y
         output
 
-        $SUDO apt-get install certbot -qq -y
+        $SUDO apt-get install certbot python3-certbot-dns-route53 -qq -y
         output
 
       elif [ "$ID" == "centos" ]; then
@@ -157,10 +158,13 @@ get_new_certificate(){
 
     #Get certificate
 
-    if [ "$dns_validate" == "true" ]; then
+    if [ "$dns_validate" == "route53" ]; then
+      echo -e "\033[0;31mPlease make sure you have entered the AWS access key and secret key.\033[0m"
+      $SUDO certbot certonly --dns-route53 --agree-tos --register-unsafely-without-email -d $domain
+    elif [ "$dns_validate" == "custom" ]; then
       $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
     else
-      $SUDO certbot certonly --standalone --non-interactive --agree-tos --email letsencrypt@antmedia.io -d $domain
+      $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
     fi
 
     output
