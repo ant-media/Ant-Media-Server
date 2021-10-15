@@ -223,7 +223,7 @@ public class HLSMuxer extends Muxer  {
 	}
 
 
-	private  void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType, boolean packetReady)
+	private  void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
 
 		if (outputFormatContext == null || !isRunning.get())  {
@@ -331,8 +331,6 @@ public class HLSMuxer extends Muxer  {
 					logger.info("cannot write video frame to muxer. Error: {} stream: {}", new String(data, 0, data.length), file.getName());
 				}
 			}
-
-			packetReady = false;
 			av_packet_unref(tmpPacket);
 		}
 		else {
@@ -457,8 +455,13 @@ public class HLSMuxer extends Muxer  {
 		}
 		AVStream outStream = outputFormatContext.streams(pkt.stream_index());
 		AVRational codecTimebase = codecTimeBaseMap.get(pkt.stream_index());
-		writePacket(pkt, codecTimebase,  outStream.time_base(), outStream.codecpar().codec_type(), packetReady);
-
+		if(codecContext == null){
+			this.packetReady = true;
+		}
+		else{
+			this.packetReady = false;
+		}
+		writePacket(pkt, codecTimebase,  outStream.time_base(), outStream.codecpar().codec_type());
 	}
 
 
@@ -720,7 +723,8 @@ public class HLSMuxer extends Muxer  {
 		AVStream outStream = getOutputFormatContext().streams(streamIndex);
 		int index = avpacket.stream_index();
 		avpacket.stream_index(streamIndex);
-		writePacket(avpacket, inStream.time_base(),  outStream.time_base(), outStream.codecpar().codec_type(), true);
+		this.packetReady = true;
+		writePacket(avpacket, inStream.time_base(),  outStream.time_base(), outStream.codecpar().codec_type());
 		avpacket.stream_index(index);
 
 	}
@@ -753,7 +757,7 @@ public class HLSMuxer extends Muxer  {
 
 	@Override
 	public void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,
-			boolean isKeyFrame,long firstFrameTimeStamp, long pts) {
+								 boolean isKeyFrame,long firstFrameTimeStamp, long pts) {
 		/*
 		 * this control is necessary to prevent server from a native crash
 		 * in case of initiation and preparation takes long.
@@ -768,39 +772,6 @@ public class HLSMuxer extends Muxer  {
 			return;
 		}
 
-		encodedVideoFrame.rewind();
-		ByteBuffer buffer;
-
-		if (isKeyFrame)
-		{
-
-			if (encodedVideoFrame.limit() > 4)
-			{
-				byte nalType = (byte)(encodedVideoFrame.get(4) & 0x1F);
-				if (nalType != 7 && extradata != null) {
-					//It means it's not SPS
-					//then we need to add extra data
-					buffer = ByteBuffer.allocateDirect(extradata.length + encodedVideoFrame.limit());
-					buffer.put(extradata);
-				}
-				else {
-					buffer = ByteBuffer.allocateDirect(encodedVideoFrame.limit());
-				}
-			}
-			else {
-				buffer = ByteBuffer.allocateDirect(encodedVideoFrame.limit());
-			}
-
-		}
-		else {
-			buffer = ByteBuffer.allocateDirect(encodedVideoFrame.limit());
-
-		}
-
-		buffer.put(encodedVideoFrame);
-
-		buffer.rewind();
-
 		videoPkt.stream_index(streamIndex);
 		videoPkt.pts(pts);
 		videoPkt.dts(dts);
@@ -810,12 +781,12 @@ public class HLSMuxer extends Muxer  {
 			videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 		}
 
-		BytePointer bytePointer = new BytePointer(buffer);
+		BytePointer bytePointer = new BytePointer(encodedVideoFrame);
 		videoPkt.data(bytePointer);
-		videoPkt.size(buffer.limit());
+		videoPkt.size(encodedVideoFrame.limit());
 		videoPkt.position(0);
 
-		packetReady = true;
+
 		writePacket(videoPkt, (AVCodecContext)null);
 
 		av_packet_unref(videoPkt);
