@@ -77,7 +77,7 @@ public abstract class RecordMuxer extends Muxer {
 	protected int audioIndex;
 	protected int resolution;
 	protected AVBSFContext bsfExtractdataContext = null;
-	protected boolean packetReady = false;
+	protected boolean packetReady;
 
 	private byte[] extradata = null;
 
@@ -359,42 +359,6 @@ public abstract class RecordMuxer extends Muxer {
 		}
 
 		/*
-		* Add extra data in case it is necessary
-		 */
-		encodedVideoFrame.rewind();
-		ByteBuffer buffer;
-
-		if (isKeyFrame)
-		{
-
-			if (encodedVideoFrame.limit() > 4)
-			{
-				byte nalType = (byte)(encodedVideoFrame.get(4) & 0x1F);
-				if (nalType != 7 && extradata != null) {
-					//It means it's not SPS
-					//then we need to add extra data
-					buffer = ByteBuffer.allocateDirect(extradata.length + encodedVideoFrame.limit());
-					buffer.put(extradata);
-				}
-				else {
-					buffer = ByteBuffer.allocateDirect(encodedVideoFrame.limit());
-				}
-			}
-			else {
-				buffer = ByteBuffer.allocateDirect(encodedVideoFrame.limit());
-			}
-
-		}
-		else {
-			buffer = ByteBuffer.allocateDirect(encodedVideoFrame.limit());
-
-		}
-
-		buffer.put(encodedVideoFrame);
-
-		buffer.rewind();
-
-		/*
 		 * Rotation field is used add metadata to the mp4.
 		 * this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
 		 */
@@ -406,10 +370,10 @@ public abstract class RecordMuxer extends Muxer {
 			videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 		}
 
-		videoPkt.data(new BytePointer(buffer));
-		videoPkt.size(buffer.limit());
+		encodedVideoFrame.rewind();
+		videoPkt.data(new BytePointer(encodedVideoFrame));
+		videoPkt.size(encodedVideoFrame.limit());
 		videoPkt.position(0);
-		packetReady = true;
 		writePacket(videoPkt, (AVCodecContext)null);
 
 		av_packet_unref(videoPkt);
@@ -626,6 +590,7 @@ public abstract class RecordMuxer extends Muxer {
 		int index = pkt.stream_index();
 		pkt.stream_index(streamIndex);
 
+		packetReady = true;
 		writePacket(pkt, stream.time_base(),  outStream.time_base(), outStream.codecpar().codec_type());
 
 		pkt.stream_index(index);
@@ -642,6 +607,12 @@ public abstract class RecordMuxer extends Muxer {
 			{
 				logger.warn("Not writing packet for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
 				time2log = 0;
+			}
+			if(codecContext == null){
+				packetReady = true;
+			}
+			else{
+				packetReady = false;
 			}
 			time2log++;
 			return;
@@ -776,7 +747,6 @@ public abstract class RecordMuxer extends Muxer {
 		    }
 
 			writeVideoFrame(tmpPacket, context);
-			packetReady = false;
 			av_packet_unref(tmpPacket);
 		}
 		else {
