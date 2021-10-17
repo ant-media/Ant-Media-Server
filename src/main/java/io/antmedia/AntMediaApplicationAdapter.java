@@ -265,6 +265,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		storageClient.setSecretKey(appSettings.getS3SecretKey());
 		storageClient.setEnabled(appSettings.isS3RecordingEnabled());
 		storageClient.setEndpoint(appSettings.getS3Endpoint());
+		storageClient.setPermission(appSettings.getS3Permission());
 
 
 
@@ -1535,7 +1536,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
 		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
 		store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
-
+		store.put(AppSettings.SETTINGS_S3_PERMISSION, newAppsettings.getS3Permission() != null ? newAppsettings.getS3Permission() : "");
 
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
@@ -1629,6 +1630,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		storageClient.setSecretKey(newSettings.getS3SecretKey());
 		storageClient.setRegion(newSettings.getS3RegionName());
 		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
+		storageClient.setPermission(newSettings.getS3Permission());
 		storageClient.reset();
 		
 		

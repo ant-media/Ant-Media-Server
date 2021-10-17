@@ -14,6 +14,7 @@ import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -294,6 +295,7 @@ public class AppSettings {
 	public static final String SETTINGS_S3_REGION_NAME = "settings.s3RegionName";
 	public static final String SETTINGS_S3_BUCKET_NAME = "settings.s3BucketName";
 	public static final String SETTINGS_S3_ENDPOINT = "settings.s3Endpoint";
+	public static final String SETTINGS_S3_PERMISSION = "settings.s3Permission";
 	public static final String SETTINGS_ENABLE_TIME_TOKEN_PLAY = "settings.enableTimeTokenForPlay";
 	public static final String SETTINGS_ENABLE_TIME_TOKEN_PUBLISH = "settings.enableTimeTokenForPublish";
 	
@@ -304,6 +306,8 @@ public class AppSettings {
 	public static final String SETTINGS_WEBHOOK_AUTHENTICATE_URL = "settings.webhookAuthenticateURL";
 
 	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
+
+	
 
 
 	@JsonIgnore
@@ -1343,6 +1347,22 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_S3_ENDPOINT+":#{null}}" )
 	private String s3Endpoint;
+	
+	/*
+	 * The permission to use in uploading the files to the S3. 
+	 * Following values are accepted. Default value is public-read
+	 * public-read
+	 * private
+	 * public-read-write
+	 * authenticated-read
+	 * log-delivery-write
+	 * bucket-owner-read
+	 * bucket-owner-full-control
+	 * aws-exec-read
+	 * 
+	 */
+	@Value( "${"+SETTINGS_S3_PERMISSION+":'public-read'}" )
+	private String s3Permission;
 	
 	/**
 	 *  HLS Encryption key info file full path.
@@ -2706,5 +2726,13 @@ public class AppSettings {
 	public void setForceAspectRatioInTranscoding(boolean forceAspectRatioInTranscoding) {
 		this.forceAspectRatioInTranscoding = forceAspectRatioInTranscoding;
 
+	}
+
+	public String getS3Permission() {
+		return s3Permission;
+	}
+
+	public void setS3Permission(String s3Permission) {
+		this.s3Permission = s3Permission;
 	}
 }
