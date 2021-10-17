@@ -1361,7 +1361,7 @@ public class AppSettings {
 	 * aws-exec-read
 	 * 
 	 */
-	@Value( "${"+SETTINGS_S3_PERMISSION+":'public-read'}" )
+	@Value( "${"+SETTINGS_S3_PERMISSION+":public-read}" )
 	private String s3Permission;
 	
 	/**

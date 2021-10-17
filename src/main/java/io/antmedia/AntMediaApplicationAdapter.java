@@ -1622,6 +1622,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setS3BucketName(newSettings.getS3BucketName());
 		appSettings.setS3RegionName(newSettings.getS3RegionName());
 		appSettings.setS3Endpoint(newSettings.getS3Endpoint());
+		appSettings.setS3Permission(newSettings.getS3Permission());
 
 
 		storageClient.setEndpoint(newSettings.getS3Endpoint());
