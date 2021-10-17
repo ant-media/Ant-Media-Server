@@ -242,7 +242,6 @@ public abstract class RecordMuxer extends Muxer {
 				BytePointer extraDataPointer = codecParameters.extradata();
 				extraDataPointer.get(extradata).close();
 				extraDataPointer.close();
-				logger.info("extra data 0: {}  1: {}, 2:{}, 3:{}, 4:{}", extradata[0], extradata[1], extradata[2], extradata[3], extradata[4]);
 			}
 
 			if (codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO)
