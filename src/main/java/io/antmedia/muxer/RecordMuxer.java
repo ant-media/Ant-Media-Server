@@ -607,14 +607,15 @@ public abstract class RecordMuxer extends Muxer {
 				logger.warn("Not writing packet for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
 				time2log = 0;
 			}
-			if(codecContext == null){
-				packetReady = true;
-			}
-			else{
-				packetReady = false;
-			}
 			time2log++;
 			return;
+		}
+
+		if(codecContext == null){
+			packetReady = true;
+		}
+		else{
+			packetReady = false;
 		}
 
 		AVStream outStream = outputFormatContext.streams(pkt.stream_index());
