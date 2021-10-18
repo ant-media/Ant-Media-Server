@@ -590,6 +590,109 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 	}
+
+	@Test
+	public void testRTMPHealthCheckProcess(){
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		logger.info("Application / web scope: {}", appScope);
+		assertTrue(appScope.getDepth() == 1);
+
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId("test");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		getAppSettings().setEndpointRepublishLimit(1);
+		getAppSettings().setEndpointHealthCheckPeriodMs(2000);
+
+		muxAdaptor.setBroadcast(broadcast);
+		Endpoint rtmpEndpoint = new Endpoint();
+		String rtmpUrl = "rtmp://localhost/LiveApp/test12";
+		rtmpEndpoint.setRtmpUrl(rtmpUrl);
+		List<Endpoint> endpointList = new ArrayList<>();
+		endpointList.add(rtmpEndpoint);
+
+		broadcast.setEndPointList(endpointList);
+		boolean result = muxAdaptor.init(appScope, "test", false);
+		muxAdaptor.getDataStore().save(broadcast);
+
+		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
+
+		assertTrue(muxAdaptor.getIsHealthCheckStartedMap().get(rtmpUrl));
+
+		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			Broadcast broadcastLocal = muxAdaptor.getDataStore().get(broadcast.getStreamId());
+			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
+		});
+
+		//ERROR SCENARIO
+		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+			Broadcast broadcastLocal = muxAdaptor.getDataStore().get(broadcast.getStreamId());
+			return IAntMediaStreamHandler.BROADCAST_STATUS_ERROR.equals(broadcastLocal.getEndPointList().get(0).getStatus());
+		});
+
+		assertTrue(muxAdaptor.getIsHealthCheckStartedMap().get(rtmpUrl));
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
+		});
+
+		//SET BROADCASTING AGAIN
+		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+			Broadcast broadcastLocal = muxAdaptor.getDataStore().get(broadcast.getStreamId());
+			return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcastLocal.getEndPointList().get(0).getStatus());
+		});
+
+		//FAILED SCENARIO
+		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+			Broadcast broadcastLocal = muxAdaptor.getDataStore().get(broadcast.getStreamId());
+			return IAntMediaStreamHandler.BROADCAST_STATUS_FAILED.equals(broadcastLocal.getEndPointList().get(0).getStatus());
+		});
+
+		assertTrue(muxAdaptor.getIsHealthCheckStartedMap().get(rtmpUrl));
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
+		});
+
+		//FINISHED SCENARIO
+		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+			Broadcast broadcastLocal = muxAdaptor.getDataStore().get(broadcast.getStreamId());
+			return IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(broadcastLocal.getEndPointList().get(0).getStatus());
+		});
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
+		});
+
+
+		//RETRY LIMIT EXCEEDED SCENARIO
+		getAppSettings().setEndpointRepublishLimit(0);
+
+		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+			Broadcast broadcastLocal = muxAdaptor.getDataStore().get(broadcast.getStreamId());
+			return IAntMediaStreamHandler.BROADCAST_STATUS_ERROR.equals(broadcastLocal.getEndPointList().get(0).getStatus());
+		});
+
+		assertTrue(muxAdaptor.getIsHealthCheckStartedMap().get(rtmpUrl));
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
+		});
+
+	}
 	@Test
 	public void testRTMPWriteCrash(){
 
@@ -753,7 +856,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 	}
-
 
 	@Test
 	public void testMuxAdaptorEnableSettingsPreviewCreatePeriod() {
@@ -2102,6 +2204,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
+	}
+	@Test
+	public void testLogs(){
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
+		byte[] data = new byte[0];
+		for(int i = 0; i < 110; i++){
+			rtmpMuxer.logIntervals("video", data );
+		}
 	}
 
 

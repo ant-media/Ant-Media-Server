@@ -196,6 +196,10 @@ public class AppSettings {
 	
 	public static final String SETTINGS_AUDIO_BITRATE_SFU = "settings.audioBitrateSFU";
 
+	public static final String SETTINGS_ENDPOINT_REPUBLISH_LIMIT = "settings.endpoint.republishLimit";
+
+	public static final String SETTINGS_ENDPOINT_HEALTH_CHECK_PERIOD_MS = "settings.endpoint.healthCheckPeriodMs";
+
 	
 	/**
 	 * In data channel, player messages are delivered to nobody,
@@ -214,7 +218,9 @@ public class AppSettings {
 	public static final String DATA_CHANNEL_PLAYER_TO_ALL = "all";
 
 	private static final String SETTINGS_HLS_FLAGS = "settings.hlsflags";
-	
+
+	public static final String SETTINGS_RTSP_TIMEOUT_DURATION_MS = "settings.rtspTimeoutDurationMs";
+
 	public static final String SETTINGS_RTMP_INGEST_BUFFER_TIME_MS = "settings.rtmpIngestBufferTimeMs";
 	
 	public static final String SETTINGS_ACCEPT_ONLY_ROOMS_IN_DATA_STORE = "settings.acceptOnlyRoomsInDataStore";
@@ -368,6 +374,24 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_HLS_TIME+":#{null}}" )
 	private String hlsTime;
+
+	/**
+	 * Endpoint will try to republish if error occurs,
+	 * however the error might get fixed internally in case of small issues without republishing
+	 * This value is the check time for endpoint in 3 trials
+	 * For example for 2 seconds, there will be 2 checks in 2 second intervals,
+	 * if each of them fails it will try to republish in 3rd check.
+	 */
+	@Value( "${"+SETTINGS_ENDPOINT_HEALTH_CHECK_PERIOD_MS+":2000}" )
+	private int endpointHealthCheckPeriodMs;
+
+	/**
+	 * This limit is for republishing to a certain endpoint for how many times
+	 * For example in case we tried to republish 3 times and still got an error
+	 * We conclude that the endpoint is dead and close it.
+	 */
+	@Value( "${"+SETTINGS_ENDPOINT_REPUBLISH_LIMIT+":3}" )
+	private int endpointRepublishLimit;
 	
 	/**
 	 * Duration of segments in mpd files,
@@ -1035,6 +1059,13 @@ public class AppSettings {
 	 */
 	@Value("${" + SETTINGS_RTSP_PULL_TRANSPORT_TYPE+ ":tcp}")
 	private String rtspPullTransportType;
+
+	/**
+	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
+	 * It can be tcp or udp
+	 */
+	@Value("${" + SETTINGS_RTSP_TIMEOUT_DURATION_MS+ ":5000}")
+	private int rtspTimeoutDurationMs;
 	
 	/**
 	 * Max FPS value in RTMP streams
@@ -1412,6 +1443,19 @@ public class AppSettings {
 
 	public void setDashMuxingEnabled(boolean dashMuxingEnabled) {
 		this.dashMuxingEnabled = dashMuxingEnabled;
+	}
+
+	public int getEndpointRepublishLimit(){
+		return endpointRepublishLimit;
+	}
+	public void setEndpointRepublishLimit(int endpointRepublishLimit){
+		this.endpointRepublishLimit = endpointRepublishLimit;
+	}
+	public int getEndpointHealthCheckPeriodMs(){
+		return endpointHealthCheckPeriodMs;
+	}
+	public void setEndpointHealthCheckPeriodMs(int endpointHealthCheckPeriodMs){
+		this.endpointHealthCheckPeriodMs = endpointHealthCheckPeriodMs;
 	}
 
 	public String getHlsPlayListType() {
@@ -2152,6 +2196,13 @@ public class AppSettings {
 
 	public void setRtspPullTransportType(String rtspPullTransportType) {
 		this.rtspPullTransportType = rtspPullTransportType;
+	}
+	public int getRtspTimeoutDurationMs() {
+		return rtspTimeoutDurationMs;
+	}
+
+	public void setRtspTimeoutDurationMs(int rtspTimeoutDurationMs) {
+		this.rtspTimeoutDurationMs = rtspTimeoutDurationMs;
 	}
 	
 	public int getMaxResolutionAccept() {
