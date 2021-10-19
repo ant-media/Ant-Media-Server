@@ -824,4 +824,8 @@ public abstract class RecordMuxer extends Muxer {
 	public boolean isDynamic() {
 		return dynamic;
 	}
+
+	public void setExtradataForTest(){
+		extradata = "test".getBytes();
+	}
 }

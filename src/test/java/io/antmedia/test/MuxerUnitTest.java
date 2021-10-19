@@ -1,8 +1,7 @@
 package io.antmedia.test;
 
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
@@ -57,6 +56,7 @@ import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
 import org.bytedeco.ffmpeg.avutil.AVRational;
+import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
@@ -104,6 +104,7 @@ import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.HLSMuxer;
+import io.antmedia.muxer.RecordMuxer;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
@@ -1903,6 +1904,163 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			return MuxingTest.testFile("webapps/junit/streams/" + streamName + ".mp4", 10000);
 		});
 
+
+	}
+
+	/**
+	 * Real functional test is under enterprise test repo
+	 * It is called testReinitializeEncoderContext
+	 */
+	@Test
+	public void testHLSMuxingWithDirectParams() {
+		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
+		assertNotNull(vertx);
+
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), null, null, null, null, null, "streams");
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		String streamName = "stream_name_" + (int) (Math.random() * 10000);
+		//init
+		hlsMuxer.init(appScope, streamName, 0, null);
+
+		//add stream
+		int width = 640;
+		int height = 480;
+		boolean addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
+		assertTrue(addStreamResult);
+
+		//prepare io
+		boolean prepareIOresult = hlsMuxer.prepareIO();
+		assertTrue(prepareIOresult);
+
+		try {
+			FileInputStream fis = new FileInputStream("src/test/resources/frame0");
+			byte[] byteArray = IOUtils.toByteArray(fis);
+
+			fis.close();
+
+			long now = System.currentTimeMillis();
+			ByteBuffer encodedVideoFrame = ByteBuffer.wrap(byteArray);
+
+			AVPacket videoPkt = avcodec.av_packet_alloc();
+			av_init_packet(videoPkt);
+
+			for (int i = 0; i < 100; i++) {
+
+				/*
+				 * Rotation field is used add metadata to the mp4.
+				 * this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
+				 */
+				//HLSMuxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0,  now + i* 100);
+				videoPkt.stream_index(0);
+				videoPkt.pts(now + i* 100);
+				videoPkt.dts(now + i * 100);
+
+				encodedVideoFrame.rewind();
+
+				/*if () {
+					videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
+				}*/
+				videoPkt.data(new BytePointer(encodedVideoFrame));
+				videoPkt.size(encodedVideoFrame.limit());
+				videoPkt.position(0);
+				videoPkt.duration(5);
+				hlsMuxer.writePacket(videoPkt, new AVCodecContext());
+
+				av_packet_unref(videoPkt);
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+		//write trailer
+		hlsMuxer.writeTrailer();
+
+	}
+
+	/**
+	 * Real functional test is under enterprise test repo
+	 * It is called testReinitializeEncoderContext
+	 */
+	@Test
+	public void testRecordMuxingWithDirectParams() {
+		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
+		assertNotNull(vertx);
+
+		Mp4Muxer hlsMuxer = new Mp4Muxer(null, vertx, "streams");
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		String streamName = "stream_name_" + (int) (Math.random() * 10000);
+		//init
+		hlsMuxer.init(appScope, streamName, 0, null);
+
+		//add stream
+		int width = 640;
+		int height = 480;
+		boolean addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
+		assertTrue(addStreamResult);
+
+		//prepare io
+		boolean prepareIOresult = hlsMuxer.prepareIO();
+		assertTrue(prepareIOresult);
+
+		try {
+			FileInputStream fis = new FileInputStream("src/test/resources/frame0");
+			byte[] byteArray = IOUtils.toByteArray(fis);
+
+			fis.close();
+
+			long now = System.currentTimeMillis();
+			ByteBuffer encodedVideoFrame = ByteBuffer.wrap(byteArray);
+
+			AVPacket videoPkt = avcodec.av_packet_alloc();
+			av_init_packet(videoPkt);
+
+			for (int i = 0; i < 100; i++) {
+
+				/*
+				 * Rotation field is used add metadata to the mp4.
+				 * this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
+				 */
+				//HLSMuxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0,  now + i* 100);
+				videoPkt.stream_index(0);
+				videoPkt.pts(now + i* 100);
+				videoPkt.dts(now + i * 100);
+
+				encodedVideoFrame.rewind();
+
+				if (i == 0) {
+					hlsMuxer.setExtradataForTest();
+					videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
+				}
+				videoPkt.data(new BytePointer(encodedVideoFrame));
+				videoPkt.size(encodedVideoFrame.limit());
+				videoPkt.position(0);
+				videoPkt.duration(5);
+				hlsMuxer.writePacket(videoPkt, new AVCodecContext());
+
+				av_packet_unref(videoPkt);
+			}
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+		//write trailer
+		hlsMuxer.writeTrailer();
 
 	}
 
