@@ -1752,6 +1752,31 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNotNull(createBroadcast.getName());
 		assertNotNull(createBroadcast.getStatus());
 		assertNull(createBroadcast.getListenerHookURL());
+		
+		
+		broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId("  12345 ");
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		createBroadcast = (Broadcast) restServiceReal.createBroadcast(broadcast, null, false).getEntity();
+		assertEquals("12345", createBroadcast.getStreamId());
+		
+		
+		try {
+			broadcast = Mockito.spy(new Broadcast());
+			broadcast.setStreamId("111");
+			Mockito.doThrow(NullPointerException.class).when(broadcast).setStreamId(Mockito.anyString());
+			Result result = (Result) restServiceReal.createBroadcast(broadcast, null, false).getEntity();
+			assertFalse(result.isSuccess());
+			
+		}
+		catch (Exception e) {
+			fail(e.getMessage());
+		}
 
 		Broadcast createBroadcast2 = (Broadcast) restServiceReal.createBroadcast(null, null, false).getEntity();
 

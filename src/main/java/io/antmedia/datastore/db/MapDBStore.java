@@ -141,7 +141,7 @@ public class MapDBStore extends DataStore {
 		synchronized (this) {
 			if (broadcast != null) {
 				try {
-					if (broadcast.getStreamId() == null) {
+					if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
 						streamId = RandomStringUtils.randomNumeric(24);
 						broadcast.setStreamId(streamId);
 					}

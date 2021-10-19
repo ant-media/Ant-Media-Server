@@ -133,8 +133,8 @@ public class RestServiceV2Test {
 		avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
-		
-		
+
+
 		//delete broadcast in the db before starting
 		List<Broadcast> broadcastList = callGetBroadcastList();
 		for (Broadcast broadcast : broadcastList) {
@@ -168,7 +168,7 @@ public class RestServiceV2Test {
 		if (streamUrl != null) {
 			broadcast.setStreamUrl(streamUrl);
 		}
-		
+
 		if(subFolder != null)
 			broadcast.setSubFolder(subFolder);
 
@@ -196,12 +196,62 @@ public class RestServiceV2Test {
 		}
 		return null;
 	}
-	
-	
+
+
 	public Result startStreaming(String streamId) {
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + streamId + "/start";
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+		HttpUriRequest post = RequestBuilder.post().setUri(url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.build();
+		try {
+			HttpResponse response = client.execute(post);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Result tmp = gson.fromJson(result.toString(), Result.class);
+
+			return tmp;
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 		return null;
 	}
 	
+	public Result stopStreaming(String streamId) {
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/" + streamId + "/stop";
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+		HttpUriRequest post = RequestBuilder.post().setUri(url)
+				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.build();
+		try {
+			HttpResponse response = client.execute(post);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Result tmp = gson.fromJson(result.toString(), Result.class);
+
+			return tmp;
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		return null;
+	}
+
 
 	public Result updateBroadcast(String id, String name, String description, String socialNetworks, String streamUrl) {
 
@@ -1311,7 +1361,7 @@ public class RestServiceV2Test {
 	public Result addSocialEndpoint(String broadcastId, String serviceId) throws Exception 
 	{
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/social-endpoints/" + serviceId;
-		
+
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
 
 		HttpUriRequest post = RequestBuilder.post().setUri(url)
@@ -1437,11 +1487,168 @@ public class RestServiceV2Test {
 		return tmpExec;
 	}
 
-	
+
 
 	@Test
 	public void testAddEndpointV2() {
 		assertTrue("This test is moved to #testAddEndpointCrossCheckV2", true);
+	}
+
+	@Test
+	public void testEndpointRepublish(){
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result;
+
+		try{
+			List<Broadcast> broadcastList = callGetBroadcastList();
+			int size = broadcastList.size();
+			Broadcast broadcast = createBroadcast(null);
+
+			String streamId = RandomStringUtils.randomAlphabetic(6);
+
+			String rtmpUrl = "rtmp://localhost/LiveApp/" + streamId;
+
+			Endpoint endpoint = new Endpoint();
+			endpoint.setRtmpUrl(rtmpUrl);
+
+			//GET SETTINGS
+			result = ConsoleAppRestServiceTest.callisFirstLogin();
+
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+
+			//Change settings for republish to simulate scenario where the republish limit reached
+			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+
+			// add generic endpoint
+			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint);
+
+			// check that it is successfull
+			assertTrue(result.isSuccess());
+
+			// get endpoint list
+			broadcast = getBroadcast(broadcast.getStreamId().toString());
+			String finalBroadcastStreamId = broadcast.getStreamId();
+
+			// check that 1 element exist
+			assertNotNull(broadcast.getEndPointList());
+			assertEquals(1, broadcast.getEndPointList().size());
+
+			broadcastList = callGetBroadcastList();
+			assertEquals(size+1, broadcastList.size());
+
+			//check endpoint status
+			Broadcast tmp = getBroadcast(broadcast.getStreamId());
+			assertEquals(1, broadcast.getEndPointList().size());
+			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, broadcast.getEndPointList().get(0).getStatus());
+
+			Process execute = execute(
+					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
+							+ broadcast.getStreamId());
+
+			appSettingsModel.setEndpointRepublishLimit(9);
+			appSettingsModel.setEndpointHealthCheckPeriodMs(2000);
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+
+			Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
+				//size should +2 because we restream again into the server
+				return size+2 == callGetBroadcastList().size();
+			});
+
+			//Check if the endpoint started broadcasting
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+
+			//Delete the endpoint stream from the server to replicate issue on the endpoint that the server is not responsive and endpoint is not deleted from original stream
+			result = callDeleteBroadcast(streamId);
+
+			//Check if the endpoint goes error since we deleted its stream
+			//Republish process must be triggered with the default settings
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				//this is the endpoint running
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_ERROR.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+
+			//Original broadcast should retry publishing to the unresponsive endpoint
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				//this is the endpoint running
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+
+			appSettingsModel.setEndpointRepublishLimit(0);
+
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+			result = callDeleteBroadcast(streamId);
+
+			//There will be no republish attempt because of the setting
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				//this is the endpoint running
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_ERROR.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+
+
+			//It will stop publishing to the endpoint depending on the retry limit
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				//this is the endpoint running
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(tmp2.getEndPointList().get(0).getStatus());
+			});
+
+
+			//add non existin rtmp url bugfix test - issue #3032
+			String rtmpUrl2 = "rtmp://nonexisting.com/abcdef";
+			Endpoint endpoint2 = new Endpoint();
+			endpoint2.setRtmpUrl(rtmpUrl2);
+			// add generic endpoint
+			result = addEndpointV2(broadcast.getStreamId().toString(), endpoint2);
+			// check that it is successfull
+			assertTrue(result.isSuccess());
+
+			appSettingsModel.setEndpointRepublishLimit(1);
+
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+			//It will be failed since there is no url
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+				//this is the endpoint running
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_FAILED.equals(tmp2.getEndPointList().get(1).getStatus());
+			});
+
+			execute.destroy();
+
+			result = callDeleteBroadcast(broadcast.getStreamId());
+			assertTrue(result.isSuccess());
+
+			Awaitility.await().atMost(45, TimeUnit.SECONDS)
+					.pollInterval(1, TimeUnit.SECONDS).until(() ->
+					{
+						int broadcastListSize = callGetBroadcastList().size();
+						logger.info("broadcast list size: {} and it should be:{}", broadcastListSize, size);
+						return size == callGetBroadcastList().size();
+					});
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 
 	@Test
@@ -1450,7 +1657,7 @@ public class RestServiceV2Test {
 			////////////////////////////////////////////////////////////
 			//this test assumes that MP4 recording is enabled by default
 			////////////////////////////////////////////////////////////
-			
+
 			List<Broadcast> broadcastList = callGetBroadcastList();
 			int size = broadcastList.size();
 			Broadcast broadcast = createBroadcast(null);
@@ -1510,13 +1717,13 @@ public class RestServiceV2Test {
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile(endpointURLM3u8);
 			});
-			
-			
+
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
 				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
 				return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(0).getStatus());
 			});
-			
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
 				//this is the endpoint running 
 				Broadcast tmp2 = getBroadcast(streamId);
@@ -1532,57 +1739,57 @@ public class RestServiceV2Test {
 				Endpoint dynamicEndpoint = new Endpoint();
 				dynamicEndpoint.setRtmpUrl(dynamicRtmpURL);
 				Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
-					 //if stream is being prepared, it may return false, so try again 
-					 Result tmpRes = addEndpointV2(finalBroadcastStreamId, dynamicEndpoint);
-					 return tmpRes.isSuccess();
+					//if stream is being prepared, it may return false, so try again 
+					Result tmpRes = addEndpointV2(finalBroadcastStreamId, dynamicEndpoint);
+					return tmpRes.isSuccess();
 				});
-				
-				 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-				 .until(() -> { 
-						 Broadcast tmpBroadcast = callGetBroadcast(streamIdDynamic);
-						 if (tmpBroadcast != null) {
-							 return tmpBroadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING); 
-						 }
-						 return false;
-				 	});
-				 
-				 Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
-						Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
-						
-						//we're checking endpoint list index:0 and index:2 because index:1 is "rtmp://nonexisting.com/abcdef";
-						return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(0).getStatus())
-								&& IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(2).getStatus());
-					});
-				 
-				 broadcast = getBroadcast(finalBroadcastStreamId);
-				 //remove dynamic endpoint
-				 result = removeEndpointV2(finalBroadcastStreamId, broadcast.getEndPointList().get(2).getEndpointServiceId());
-				 assertTrue(result.isSuccess());
-				 
-				 Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-				 .until(() -> callGetBroadcast(streamIdDynamic) == null );
-			
+
+				Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> { 
+					Broadcast tmpBroadcast = callGetBroadcast(streamIdDynamic);
+					if (tmpBroadcast != null) {
+						return tmpBroadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING); 
+					}
+					return false;
+				});
+
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3,  TimeUnit.SECONDS).until(()-> {
+					Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+
+					//we're checking endpoint list index:0 and index:2 because index:1 is "rtmp://nonexisting.com/abcdef";
+					return IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(0).getStatus())
+							&& IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmp2.getEndPointList().get(2).getStatus());
+				});
+
+				broadcast = getBroadcast(finalBroadcastStreamId);
+				//remove dynamic endpoint
+				result = removeEndpointV2(finalBroadcastStreamId, broadcast.getEndPointList().get(2).getEndpointServiceId());
+				assertTrue(result.isSuccess());
+
+				Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> callGetBroadcast(streamIdDynamic) == null );
+
 			}
-			
+
 			execute.destroy();
-			
-			
+
+
 			String endpointURL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId + ".mp4";
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile(endpointURL);
 			});
-			
+
 			String originMP4URL = "http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + finalBroadcastStreamId + ".mp4";
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile(originMP4URL);
 			});
-			
-			
+
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(() -> {
 				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
 				return IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(tmp2.getEndPointList().get(0).getStatus());
 			});
-			
+
 			result = callDeleteBroadcast(broadcast.getStreamId());
 			assertTrue(result.isSuccess());
 
@@ -1620,7 +1827,7 @@ public class RestServiceV2Test {
 
 			//define invalid stream url
 			broadcast.setStreamUrl("rrtsp://admin:Admin12345@71.234.93.90:5011/12");
-			
+
 			try {
 				gson.fromJson(callAddStreamSource(broadcast), Result.class);
 				//it should throw exceptionbecause url is invalid
@@ -1722,7 +1929,7 @@ public class RestServiceV2Test {
 
 	@Test
 	public void testVoDIdListByStreamId() {
-		
+
 		ConsoleAppRestServiceTest.resetCookieStore();
 		Result result;
 		try {

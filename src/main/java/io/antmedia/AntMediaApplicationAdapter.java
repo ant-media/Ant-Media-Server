@@ -266,6 +266,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		storageClient.setSecretKey(appSettings.getS3SecretKey());
 		storageClient.setEnabled(appSettings.isS3RecordingEnabled());
 		storageClient.setEndpoint(appSettings.getS3Endpoint());
+		storageClient.setPermission(appSettings.getS3Permission());
 
 
 
@@ -939,7 +940,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	{		
 		Result result = new Result(false);
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))  {
+				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
+				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)
+				)  {
 			result = getStreamFetcherManager().startStreaming(broadcast);
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
@@ -952,7 +955,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public Result stopStreaming(Broadcast broadcast) 
 	{
 		Result result = new Result(false);
-
+		logger.info("stopStreaming is called for stream:{}", broadcast.getStreamId());
 		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) 
@@ -1470,6 +1473,12 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_DASH_MUXING_ENABLED, String.valueOf(newAppsettings.isDashMuxingEnabled()));
 		store.put(AppSettings.SETTINGS_DELETE_DASH_FILES_ON_ENDED, String.valueOf(newAppsettings.isDeleteDASHFilesOnEnded()));
 
+		store.put(AppSettings.SETTINGS_HLS_ENABLED_VIA_DASH_LOW_LATENCY, String.valueOf(newAppsettings.isHlsEnabledViaDash()));
+		store.put(AppSettings.SETTINGS_HLS_ENABLE_LOW_LATENCY, String.valueOf(newAppsettings.islLHLSEnabled()));
+		store.put(AppSettings.SETTINGS_DASH_ENABLE_LOW_LATENCY, String.valueOf(newAppsettings.islLDashEnabled()));
+
+		store.put(AppSettings.SETTINGS_RTSP_TIMEOUT_DURATION_MS, String.valueOf(newAppsettings.getRtspTimeoutDurationMs()));
+
 		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(newAppsettings.isAcceptOnlyStreamsInDataStore()));
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
 		store.put(AppSettings.SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishTokenControlEnabled()));
@@ -1477,6 +1486,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY, String.valueOf(newAppsettings.isTimeTokenSubscriberOnly()));
 		store.put(AppSettings.SETTINGS_ENABLE_TIME_TOKEN_PLAY, String.valueOf(newAppsettings.isEnableTimeTokenForPlay()));
 		store.put(AppSettings.SETTINGS_ENABLE_TIME_TOKEN_PUBLISH, String.valueOf(newAppsettings.isEnableTimeTokenForPublish()));
+
+		store.put(AppSettings.SETTINGS_ENDPOINT_HEALTH_CHECK_PERIOD_MS, String.valueOf(newAppsettings.getEndpointHealthCheckPeriodMs()));
+		store.put(AppSettings.SETTINGS_ENDPOINT_REPUBLISH_LIMIT, String.valueOf(newAppsettings.getEndpointRepublishLimit()));
 
 
 		store.put(AppSettings.SETTINGS_PUBLISH_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishJwtControlEnabled()));
@@ -1525,7 +1537,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
 		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
 		store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
-
+		store.put(AppSettings.SETTINGS_S3_PERMISSION, newAppsettings.getS3Permission() != null ? newAppsettings.getS3Permission() : "");
 
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
@@ -1545,6 +1557,16 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setAddDateTimeToMp4FileName(newSettings.isAddDateTimeToMp4FileName());
 		appSettings.setHlsMuxingEnabled(newSettings.isHlsMuxingEnabled());
 		appSettings.setDashMuxingEnabled(newSettings.isDashMuxingEnabled());
+
+		appSettings.setEndpointRepublishLimit(newSettings.getEndpointRepublishLimit());
+		appSettings.setEndpointHealthCheckPeriodMs(newSettings.getEndpointHealthCheckPeriodMs());
+
+		appSettings.setRtspTimeoutDurationMs(newSettings.getRtspTimeoutDurationMs());
+
+		appSettings.setHlsEnabledViaDash(newSettings.isHlsEnabledViaDash());
+		appSettings.setlLHLSEnabled(newSettings.islLHLSEnabled());
+		appSettings.setlLDashEnabled(newSettings.islLDashEnabled());
+
 		appSettings.setDeleteDASHFilesOnEnded(newSettings.isDeleteDASHFilesOnEnded());
 		appSettings.setObjectDetectionEnabled(newSettings.isObjectDetectionEnabled());
 		appSettings.setHlsListSize(String.valueOf(newSettings.getHlsListSize()));
@@ -1595,13 +1617,13 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setJwtControlEnabled(newSettings.isJwtControlEnabled());
 		appSettings.setJwtSecretKey(newSettings.getJwtSecretKey());
 
-
 		appSettings.setS3RecordingEnabled(newSettings.isS3RecordingEnabled());
 		appSettings.setS3AccessKey(newSettings.getS3AccessKey());
 		appSettings.setS3SecretKey(newSettings.getS3SecretKey());
 		appSettings.setS3BucketName(newSettings.getS3BucketName());
 		appSettings.setS3RegionName(newSettings.getS3RegionName());
 		appSettings.setS3Endpoint(newSettings.getS3Endpoint());
+		appSettings.setS3Permission(newSettings.getS3Permission());
 
 
 		storageClient.setEndpoint(newSettings.getS3Endpoint());
@@ -1610,6 +1632,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		storageClient.setSecretKey(newSettings.getS3SecretKey());
 		storageClient.setRegion(newSettings.getS3RegionName());
 		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
+		storageClient.setPermission(newSettings.getS3Permission());
 		storageClient.reset();
 		
 		
@@ -1620,7 +1643,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setJwksURL(newSettings.getJwksURL());
 		appSettings.setWebhookAuthenticateURL(newSettings.getWebhookAuthenticateURL());
 		appSettings.setUpdateTime(System.currentTimeMillis());
-
+		
 		logger.warn("app settings updated for {}", getScope().getName());	
 	}
 

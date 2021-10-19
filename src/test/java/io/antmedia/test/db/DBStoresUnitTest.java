@@ -90,7 +90,7 @@ public class DBStoresUnitTest {
 
 		DataStore dataStore = new MapDBStore("testdb");
 		
-		
+		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);
 		
@@ -129,6 +129,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
+		
 
 	}
 
@@ -136,6 +137,7 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() {
 		DataStore dataStore = new InMemoryDataStore("testdb");
 		
+		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);
 		
@@ -197,6 +199,7 @@ public class DBStoresUnitTest {
 		store.delete(deleteVodQuery);
 
 
+		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);		
 		testBugGetExternalStreamsList(dataStore);
@@ -409,6 +412,25 @@ public class DBStoresUnitTest {
 
 		//check that no active broadcast
 		assertEquals(0, dataStore.getActiveBroadcastCount());
+	}
+	
+	
+	public void testBugFreeStreamId(DataStore datastore) {
+		// add ip camera 
+		Broadcast broadcast = new Broadcast();
+		
+		try 
+		{
+			broadcast.setStreamId("");
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		String streamId = datastore.save(broadcast);
+		assertNotEquals("", streamId);
+		
+		
 	}
 
 

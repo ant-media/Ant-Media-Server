@@ -73,7 +73,7 @@ public class AppFunctionalV2Test {
 	
 
 	private BroadcastRestService restService = null;
-	private static final String SERVER_ADDR = ServerSettings.getLocalHostAddress(); 
+	public static final String SERVER_ADDR = ServerSettings.getLocalHostAddress(); 
 	protected static Logger logger = LoggerFactory.getLogger(AppFunctionalV2Test.class);
 
 	public static Process process;
@@ -244,6 +244,7 @@ public class AppFunctionalV2Test {
 			broadcast2 = RestServiceV2Test.getBroadcast(broadcast.getStreamId());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast2.getStatus());
 
+			logger.info("Waiting playlist to switch to next item for stream: {}", broadcast.getStreamId());
 			//wait play list switch to next item
 			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				 Broadcast tmp = RestServiceV2Test.getBroadcast(broadcast.getStreamId());
@@ -251,11 +252,12 @@ public class AppFunctionalV2Test {
 			});
 			
 			
-			//play the play list
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			//play the play list with delay to make sure it's playing the next item
+			Awaitility.await().pollDelay(10, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
 			});
 			
+			logger.info("Stop Broadcast service is calling for stream: {}", broadcast.getStreamId());
 			//stop the play list
 			boolean stopBroadcast = RestServiceV2Test.callStopBroadcastService(broadcast.getStreamId());
 			assertTrue(stopBroadcast);
@@ -784,8 +786,8 @@ public class AppFunctionalV2Test {
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(0, broadcastStatistics.totalHLSWatchersCount); 
 			assertEquals(0, broadcastStatistics.totalRTMPWatchersCount);
-			//we disable webrtc in starting the tests
-			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount); 
+			//we get webrtc watcher count from database
+			assertEquals(0, broadcastStatistics.totalWebRTCWatchersCount); 
 			
 			BroadcastStatistics totalBroadcastStatistics = restService.callGetTotalBroadcastStatistics();
 			assertEquals(-1, totalBroadcastStatistics.totalRTMPWatchersCount); 
@@ -801,14 +803,11 @@ public class AppFunctionalV2Test {
 
 			destroyProcess();
 
-			Thread.sleep(1000);
-
-			broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
-			assertNotNull(broadcastStatistics);
-			assertEquals(-1, broadcastStatistics.totalHLSWatchersCount);
-			assertEquals(-1, broadcastStatistics.totalRTMPWatchersCount);
-			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
-
+			Awaitility.await().pollInterval(2, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
+				BroadcastStatistics localStats = restService.callGetBroadcastStatistics(streamId);
+				return localStats != null && -1 == localStats.totalHLSWatchersCount && -1 == localStats.totalRTMPWatchersCount
+						&& -1 == localStats.totalWebRTCWatchersCount;
+			});
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				return 0 == restService.callGetLiveStatistics();

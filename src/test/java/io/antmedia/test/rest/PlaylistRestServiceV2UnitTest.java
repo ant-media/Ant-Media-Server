@@ -482,7 +482,7 @@ public class PlaylistRestServiceV2UnitTest {
 		// Playlist current broadcast is empty scenario
 		result = restServiceReal.stopStreamingV2(playlist.getStreamId());	
 
-		assertEquals(true, result.isSuccess());
+		assertEquals(false, result.isSuccess());
 
 		// Playlist ID is null scenario
 
@@ -500,7 +500,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		result = restServiceReal.stopStreamingV2(playlist.getStreamId());		
 
-		assertEquals(true, result.isSuccess());
+		assertEquals(false, result.isSuccess());
 
 		// Playlist is stop normal scenario
 		// Pllaylist current broadcast ID change back
@@ -514,7 +514,7 @@ public class PlaylistRestServiceV2UnitTest {
 		when(restServiceSpy.getApplication()).thenReturn(mock(AntMediaApplicationAdapter.class));
 		when(restServiceSpy.getApplication().stopStreaming(Mockito.any())).thenReturn(result);
 		result = restServiceReal.stopStreamingV2(playlist.getStreamId());	
-		//it's still created because it's not started
+		//it's created because it's not started
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, playlist.getStatus());
 
 	}
