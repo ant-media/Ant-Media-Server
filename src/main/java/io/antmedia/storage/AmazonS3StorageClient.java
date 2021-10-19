@@ -30,14 +30,14 @@ public class AmazonS3StorageClient extends StorageClient {
 
 	protected static Logger logger = LoggerFactory.getLogger(AmazonS3StorageClient.class);
 
-	
+
 	public AmazonS3 getAmazonS3() {
 		if (amazonS3 == null) {
 			amazonS3 = initAmazonS3();
 		}
 		return amazonS3; 
 	}
-	
+
 	public AmazonS3 initAmazonS3() {
 		AmazonS3ClientBuilder builder = AmazonS3ClientBuilder.standard();
 
@@ -86,7 +86,7 @@ public class AmazonS3StorageClient extends StorageClient {
 		}
 		return false;
 	}
-	
+
 	public void save(final File file, String type) {
 		save(type + "/" + file.getName(), file);
 	}
@@ -151,12 +151,12 @@ public class AmazonS3StorageClient extends StorageClient {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 	}
-	
+
 	@Override
 	public void reset() {
 		this.amazonS3 = null;
 	}
-	
+
 
 	public CannedAccessControlList getCannedAcl() 
 	{
@@ -178,6 +178,8 @@ public class AmazonS3StorageClient extends StorageClient {
 			return CannedAccessControlList.BucketOwnerFullControl;
 		case "aws-exec-read":
 			return CannedAccessControlList.AwsExecRead;
+		default: 
+			break;
 		}
 		return CannedAccessControlList.PublicRead;
 	}
