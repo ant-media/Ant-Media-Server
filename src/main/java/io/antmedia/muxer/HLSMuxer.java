@@ -833,4 +833,8 @@ public class HLSMuxer extends Muxer  {
 	public void setDeleteFileOnExit(boolean deleteFileOnExist) {
 		this.deleteFileOnExit = deleteFileOnExist;
 	}
+
+	public void setExtradataForTest(){
+		extradata = "test".getBytes();
+	}
 }

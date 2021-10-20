@@ -1956,16 +1956,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				 * Rotation field is used add metadata to the mp4.
 				 * this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
 				 */
-				//HLSMuxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0,  now + i* 100);
 				videoPkt.stream_index(0);
 				videoPkt.pts(now + i* 100);
 				videoPkt.dts(now + i * 100);
 
 				encodedVideoFrame.rewind();
 
-				/*if () {
+				if (i==0) {
+					hlsMuxer.setExtradataForTest();
 					videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
-				}*/
+				}
 				videoPkt.data(new BytePointer(encodedVideoFrame));
 				videoPkt.size(encodedVideoFrame.limit());
 				videoPkt.position(0);
@@ -1994,7 +1994,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
 		assertNotNull(vertx);
 
-		Mp4Muxer hlsMuxer = new Mp4Muxer(null, vertx, "streams");
+		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -2004,16 +2004,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamName = "stream_name_" + (int) (Math.random() * 10000);
 		//init
-		hlsMuxer.init(appScope, streamName, 0, null);
+		mp4Muxer.init(appScope, streamName, 0, null);
 
 		//add stream
 		int width = 640;
 		int height = 480;
-		boolean addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
+		boolean addStreamResult = mp4Muxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
 		assertTrue(addStreamResult);
 
 		//prepare io
-		boolean prepareIOresult = hlsMuxer.prepareIO();
+		boolean prepareIOresult = mp4Muxer.prepareIO();
 		assertTrue(prepareIOresult);
 
 		try {
@@ -2034,7 +2034,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				 * Rotation field is used add metadata to the mp4.
 				 * this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
 				 */
-				//HLSMuxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0,  now + i* 100);
 				videoPkt.stream_index(0);
 				videoPkt.pts(now + i* 100);
 				videoPkt.dts(now + i * 100);
@@ -2042,14 +2041,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				encodedVideoFrame.rewind();
 
 				if (i == 0) {
-					hlsMuxer.setExtradataForTest();
+					mp4Muxer.setExtradataForTest();
 					videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 				}
 				videoPkt.data(new BytePointer(encodedVideoFrame));
 				videoPkt.size(encodedVideoFrame.limit());
 				videoPkt.position(0);
 				videoPkt.duration(5);
-				hlsMuxer.writePacket(videoPkt, new AVCodecContext());
+				mp4Muxer.writePacket(videoPkt, new AVCodecContext());
 
 				av_packet_unref(videoPkt);
 			}
@@ -2060,7 +2059,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		//write trailer
-		hlsMuxer.writeTrailer();
+		mp4Muxer.writeTrailer();
 
 	}
 
