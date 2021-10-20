@@ -1039,4 +1039,9 @@ public class InMemoryDataStore extends DataStore {
 		}  
 		return totalWebRTCViewerCount;
 	}
+
+	@Override
+	public void delete() {
+		// No need to implement.
+	}
 }
