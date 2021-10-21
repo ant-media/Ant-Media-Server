@@ -1,7 +1,9 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -52,6 +54,7 @@ public class MapDBStore extends DataStore {
 
 	private Gson gson;
 	private String dbName;
+	private Iterable<String> dbFiles;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "BROADCAST";
 	private static final String VOD_MAP_NAME = "VOD";
@@ -512,6 +515,7 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public void close() {
+		dbFiles = db.getStore().getAllFiles();
 		synchronized (this) {
 			available = false;
 			db.close();
@@ -1476,5 +1480,21 @@ public class MapDBStore extends DataStore {
 			totalWebRTCViewerCountLastUpdateTime = now;
 		}  
 		return totalWebRTCViewerCount;
+	}
+
+
+
+	@Override
+	public void delete() {
+		for (String fileName : dbFiles) {
+			File file = new File(fileName);
+			if (file.exists()) {
+				try {
+					Files.delete(file.toPath());
+				} catch (IOException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
 	}
 }

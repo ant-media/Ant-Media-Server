@@ -46,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -1722,6 +1723,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void removeStreamListener(IStreamListener listener) {
 		streamListeners.remove(listener);
+	}
+
+	public void deleteDBInSeconds() {
+		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l->getDataStore().delete());
 	}
 
 }

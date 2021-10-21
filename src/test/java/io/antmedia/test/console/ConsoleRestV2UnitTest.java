@@ -357,17 +357,17 @@ public class ConsoleRestV2UnitTest {
     	 Mockito.doReturn("").when(restServiceSpy).changeSettings(Mockito.any(), Mockito.any());
     	 Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
     	 
-    	 Result result = restServiceSpy.deleteApplication("test");
+    	 Result result = restServiceSpy.deleteApplication("test", true);
     	 assertFalse(result.isSuccess());
     	 
     	 
-    	 Mockito.when(adminApp.deleteApplication(Mockito.anyString())).thenReturn(true);
-    	 result = restServiceSpy.deleteApplication("test");
+    	 Mockito.when(adminApp.deleteApplication(Mockito.anyString(),Mockito.eq(true))).thenReturn(true);
+    	 result = restServiceSpy.deleteApplication("test", true);
     	 assertTrue(result.isSuccess());
     	 
     	 
     	 Mockito.doReturn(null).when(restServiceSpy).getAppAdaptor(Mockito.any());
-    	 result = restServiceSpy.deleteApplication("test");
+    	 result = restServiceSpy.deleteApplication("test", true);
     	 assertFalse(result.isSuccess());
     	 
     	
