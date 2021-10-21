@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -48,6 +49,7 @@ import org.springframework.context.ApplicationContext;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.DataStore;
@@ -1327,6 +1329,14 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
 	
 		
+	}
+	
+	@Test
+	public void testAppDeletion() {
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("test"));
+		adapter.setDataStore(dataStore);
+		adapter.deleteDBInSeconds();
+		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).delete();
 	}
 
 }
