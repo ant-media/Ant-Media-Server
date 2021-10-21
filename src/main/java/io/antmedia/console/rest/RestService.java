@@ -580,9 +580,9 @@ public class RestService extends CommonRestService {
 	@Path("/applications/{appName}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result deleteApplication(@PathParam("appName") String appName) {
+	public Result deleteApplication(@PathParam("appName") String appName, @QueryParam("deleteDB") boolean deleteDB) {
 
-		return super.deleteApplication(appName);
+		return super.deleteApplication(appName, deleteDB);
 	}
 
 

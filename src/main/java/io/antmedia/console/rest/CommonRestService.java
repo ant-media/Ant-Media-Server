@@ -643,7 +643,7 @@ public class CommonRestService {
 
 	public String changeSettings(@PathParam("appname") String appname, AppSettings newSettings){
 		AntMediaApplicationAdapter adapter = ((IApplicationAdaptorFactory) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
-		return gson.toJson(new Result(adapter.updateSettings(newSettings, true)));
+		return gson.toJson(new Result(adapter.updateSettings(newSettings, true, false)));
 	}
 
 
@@ -1077,7 +1077,7 @@ public class CommonRestService {
 	}
 
 
-	public Result deleteApplication(String appName) {
+	public Result deleteApplication(String appName, boolean deleteDB) {
 		appName = appName.replaceAll("[\n\r\t]", "_");
 		logger.info("delete application http request:{}", appName);
 		AppSettings appSettings = getSettings(appName);
@@ -1089,7 +1089,7 @@ public class CommonRestService {
 			if (!isClusterMode()) {
 				//if it's not in cluster mode, delete application
 				//In cluster mode, it's deleted by synchronization
-				result = getApplication().deleteApplication(appName);
+				result = getApplication().deleteApplication(appName, deleteDB);
 			}
 		}
 		else {

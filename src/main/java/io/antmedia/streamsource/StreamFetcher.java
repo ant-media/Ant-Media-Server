@@ -41,8 +41,6 @@ import io.vertx.core.Vertx;
 
 public class StreamFetcher {
 
-	private static final String STREAM_TYPE_VOD = "VoD";
-
 	protected static Logger logger = LoggerFactory.getLogger(StreamFetcher.class);
 	private WorkerThread thread;
 	/**
@@ -136,8 +134,8 @@ public class StreamFetcher {
 	}
 
 	public Result prepareInput(AVFormatContext inputFormatContext) {
-
-		setConnectionTimeout(5000);
+		int timeout = appSettings.getRtspTimeoutDurationMs();
+		setConnectionTimeout(timeout);
 
 		Result result = new Result(false);
 		if (inputFormatContext == null) {
@@ -379,8 +377,9 @@ public class StreamFetcher {
 							}
 							else {
 
-								if(STREAM_TYPE_VOD.equals(streamType)) {
+								if(AntMediaApplicationAdapter.VOD.equals(streamType)) {
 
+									
 									if(firstPacketTime == 0) {
 										int streamIndex = pkt.stream_index();
 										firstPacketTime = System.currentTimeMillis();
@@ -404,6 +403,7 @@ public class StreamFetcher {
 										durationInMs = System.currentTimeMillis() - firstPacketTime;
 										Thread.sleep(1);
 									}
+									
 								}
 
 								muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);

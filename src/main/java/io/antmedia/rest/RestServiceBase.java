@@ -1510,13 +1510,8 @@ public abstract class RestServiceBase {
 			Broadcast broadcast = getDataStore().get(id);
 			if (broadcast != null) {
 				totalHLSViewer = broadcast.getHlsViewerCount();
-			}
-
-			IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
-
-			if (webRTCAdaptor != null) {
-				totalWebRTCViewer = webRTCAdaptor.getNumberOfViewers(id);
-			}
+				totalWebRTCViewer = broadcast.getWebRTCViewerCount();
+			}			
 		}
 
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);

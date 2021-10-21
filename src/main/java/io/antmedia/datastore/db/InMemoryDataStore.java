@@ -58,7 +58,7 @@ public class InMemoryDataStore extends DataStore {
 		if (broadcast != null) {
 
 			try {
-				if (broadcast.getStreamId() == null) {
+				if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
 					streamId = RandomStringUtils.randomNumeric(24);
 					broadcast.setStreamId(streamId);
 				}
@@ -1038,5 +1038,10 @@ public class InMemoryDataStore extends DataStore {
 			totalWebRTCViewerCountLastUpdateTime = now;
 		}  
 		return totalWebRTCViewerCount;
+	}
+
+	@Override
+	public void delete() {
+		// No need to implement.
 	}
 }
