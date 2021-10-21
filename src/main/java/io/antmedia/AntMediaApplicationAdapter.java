@@ -1454,7 +1454,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 
-	private boolean updateAppSettingsFile(String appName, AppSettings newAppsettings) 
+	public static boolean updateAppSettingsFile(String appName, AppSettings newAppsettings) 
 	{
 		/*
 		 * Remember remember the 23th of November
@@ -1543,7 +1543,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
 
 		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE, newAppsettings.getHlsEncryptionKeyInfoFile() != null ? newAppsettings.getHlsEncryptionKeyInfoFile() : "");
-		store.put(AppSettings.SETTINGS_WEBHOOK_AUTHENTICATE_URL, String.valueOf(newAppsettings.getWebhookAuthenticateURL()));
+		store.put(AppSettings.SETTINGS_WEBHOOK_AUTHENTICATE_URL, newAppsettings.getWebhookAuthenticateURL() != null ? String.valueOf(newAppsettings.getWebhookAuthenticateURL()) : "");
 
 		store.put(AppSettings.SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING, String.valueOf(newAppsettings.isForceAspectRatioInTranscoding()));
 		return store.save();

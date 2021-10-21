@@ -48,11 +48,10 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 			appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
 		}
 		final String webhookAuthURL = appSettings.getWebhookAuthenticateURL();
-		if (webhookAuthURL != null && !webhookAuthURL.isEmpty())
+		if (webhookAuthURL != null && webhookAuthURL.startsWith("http"))
 		{
 			try (CloseableHttpClient client = getHttpClient())
 			{
-				//Broadcast broadcast = getDatastore().get(name);
 				JsonObject instance = new JsonObject();
 
 				instance.addProperty("name", name);
@@ -69,19 +68,19 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 				HttpResponse response= client.execute(post);
 
 				int statuscode = response.getStatusLine().getStatusCode();
-				logger.info("Response from webhook is: {}", statuscode);
+				logger.info("Response from webhook is: {} for stream:{}", statuscode, name);
 
 				result.set(statuscode==200);
 
 			}
 			catch (Exception e) {
-				logger.error("Couldn't connect Webhook for Stream Authentication " , ExceptionUtils.getStackTrace(e));
+				logger.error("Couldn't connect Webhook for Stream Authentication {} " , ExceptionUtils.getStackTrace(e));
 			}
 
 		}
 		else
 		{
-			logger.info("AcceptOnlyStreamsWithWebhook is not activated. Accepting all streams {}", name);
+			logger.info("AcceptOnlyStreamsWithWebhook is not activated for stream {} webhook url: {}", name, webhookAuthURL);
 			result.set(true);
 		}
 
