@@ -1250,7 +1250,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		.until(() ->
 		appAdaptor.getDataStore().get(streamId).getAbsoluteStartTimeMs() == absoluteTimeMS);
 
-		spyAdaptor.stopPublish(stream.getName());
+		spyAdaptor.stopPublish(stream.getPublishedName());
 
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -1304,7 +1304,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//this zombi trick will let us have a proper await method
 		broadcast.setZombi(true);
-		appAdaptor.stopPublish(stream.getName());
+		appAdaptor.stopPublish(stream.getPublishedName());
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> appAdaptor.getDataStore().get(broadcast.getStreamId()) == null);
 
