@@ -707,31 +707,17 @@ public abstract class RecordMuxer extends Muxer {
 			 */
 			if(!packetReady) {
 
-				ByteBuffer byteBuffer;
-				
-				if (isKeyFrame) {
-					byteBuffer = ByteBuffer.allocateDirect(extradata.length + pkt.size());
-					byteBuffer.put(extradata);
-					logger.debug("Adding extradata to record muxer packet");
-					byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+				ByteBuffer byteBuffer = addExtraDataIfKeyFrame(isKeyFrame, extradata, pkt);
 
-				} else {
-					byteBuffer = ByteBuffer.allocateDirect(pkt.size());
-					byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
-				}
 				byteBuffer.position(0);
 
-				int streamIndex = pkt.stream_index();
-				int flag = pkt.flags();
-				long position = pkt.position();
-
 				//Started to manually packet the frames because we want to add the extra data.
-				tmpPacket.stream_index(streamIndex);
+				tmpPacket.stream_index(pkt.stream_index());
 				tmpPacket.data(new BytePointer(byteBuffer));
 				tmpPacket.size(byteBuffer.limit());
 				tmpPacket.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
-				tmpPacket.position(position);
-				tmpPacket.flags(flag);
+				tmpPacket.position(pkt.position());
+				tmpPacket.flags(pkt.flags());
 				tmpPacket.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
 			}
 

@@ -200,6 +200,20 @@ public abstract class Muxer {
 	 */
 	public abstract void writePacket(AVPacket avpacket, AVCodecContext codecContext);
 
+	public ByteBuffer addExtraDataIfKeyFrame(boolean isKeyFrame, byte[] extradata, AVPacket pkt){
+		ByteBuffer byteBuffer;
+		if (isKeyFrame) {
+			byteBuffer = ByteBuffer.allocateDirect(extradata.length + pkt.size());
+			byteBuffer.put(extradata);
+			logger.debug("Adding extradata to record muxer packet");
+			byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+		} else {
+			byteBuffer = ByteBuffer.allocateDirect(pkt.size());
+			byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+		}
+		return byteBuffer;
+	}
+
 
 	public void setBitstreamFilter(String bsfName) {
 		this.bsfName = bsfName;

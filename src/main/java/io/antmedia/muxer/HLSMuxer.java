@@ -273,28 +273,17 @@ public class HLSMuxer extends Muxer  {
 			 * To prevent memory issues and crashes we don't repacket if the packet is ready to use from SFU forwarder
 			 */
 			if(!packetReady) {
-				if (isKeyFrame) {
-					byteBuffer = ByteBuffer.allocateDirect(extradata.length + pkt.size());
-					byteBuffer.put(extradata);
-					logger.debug("Adding extradata to record muxer packet");
-					byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
-				} else {
-					byteBuffer = ByteBuffer.allocateDirect(pkt.size());
-					byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
-				}
+				byteBuffer = addExtraDataIfKeyFrame(isKeyFrame, extradata, pkt);
+
 				byteBuffer.position(0);
 
-				int streamIndex = pkt.stream_index();
-				int flag = pkt.flags();
-				long position = pkt.position();
-
 				//Started to manually packet the frames because we want to add the extra data.
-				tmpPacket.stream_index(streamIndex);
+				tmpPacket.stream_index(pkt.stream_index());
 				tmpPacket.data(new BytePointer(byteBuffer));
 				tmpPacket.size(byteBuffer.limit());
 				tmpPacket.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
-				tmpPacket.position(position);
-				tmpPacket.flags(flag);
+				tmpPacket.position(pkt.position());
+				tmpPacket.flags(pkt.flags());
 				tmpPacket.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF | AV_ROUND_PASS_MINMAX));
 			}
 			else{
@@ -483,17 +472,6 @@ public class HLSMuxer extends Muxer  {
 			outStream.codecpar().codec_type(AVMEDIA_TYPE_VIDEO);
 			outStream.codecpar().format(AV_PIX_FMT_YUV420P);
 			outStream.codecpar().codec_tag(0);
-
-			if(codecpar != null){
-				extradata = new byte[codecpar.extradata_size()];
-
-				if(extradata.length > 0) {
-					BytePointer extraDataPointer = codecpar.extradata();
-					extraDataPointer.get(extradata).close();
-					extraDataPointer.close();
-					logger.info("extra data 0: {}  1: {}, 2:{}, 3:{}, 4:{}", extradata[0], extradata[1], extradata[2], extradata[3], extradata[4]);
-				}
-			}
 
 			AVRational timeBase = new AVRational();
 			timeBase.num(1).den(1000);
