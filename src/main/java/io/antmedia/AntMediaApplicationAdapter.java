@@ -46,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -265,6 +266,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		storageClient.setSecretKey(appSettings.getS3SecretKey());
 		storageClient.setEnabled(appSettings.isS3RecordingEnabled());
 		storageClient.setEndpoint(appSettings.getS3Endpoint());
+		storageClient.setPermission(appSettings.getS3Permission());
 
 
 
@@ -1537,7 +1539,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
 		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
 		store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
-
+		store.put(AppSettings.SETTINGS_S3_PERMISSION, newAppsettings.getS3Permission() != null ? newAppsettings.getS3Permission() : "");
 
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
@@ -1625,6 +1627,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setS3BucketName(newSettings.getS3BucketName());
 		appSettings.setS3RegionName(newSettings.getS3RegionName());
 		appSettings.setS3Endpoint(newSettings.getS3Endpoint());
+		appSettings.setS3Permission(newSettings.getS3Permission());
 
 
 		storageClient.setEndpoint(newSettings.getS3Endpoint());
@@ -1633,6 +1636,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		storageClient.setSecretKey(newSettings.getS3SecretKey());
 		storageClient.setRegion(newSettings.getS3RegionName());
 		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
+		storageClient.setPermission(newSettings.getS3Permission());
 		storageClient.reset();
 		
 		
@@ -1723,6 +1727,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void removeStreamListener(IStreamListener listener) {
 		streamListeners.remove(listener);
+	}
+
+	public void deleteDBInSeconds() {
+		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l->getDataStore().delete());
 	}
 
 }

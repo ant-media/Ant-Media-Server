@@ -786,8 +786,8 @@ public class AppFunctionalV2Test {
 			BroadcastStatistics broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
 			assertEquals(0, broadcastStatistics.totalHLSWatchersCount); 
 			assertEquals(0, broadcastStatistics.totalRTMPWatchersCount);
-			//we disable webrtc in starting the tests
-			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount); 
+			//we get webrtc watcher count from database
+			assertEquals(0, broadcastStatistics.totalWebRTCWatchersCount); 
 			
 			BroadcastStatistics totalBroadcastStatistics = restService.callGetTotalBroadcastStatistics();
 			assertEquals(-1, totalBroadcastStatistics.totalRTMPWatchersCount); 
@@ -803,14 +803,11 @@ public class AppFunctionalV2Test {
 
 			destroyProcess();
 
-			Thread.sleep(1000);
-
-			broadcastStatistics = restService.callGetBroadcastStatistics(streamId);
-			assertNotNull(broadcastStatistics);
-			assertEquals(-1, broadcastStatistics.totalHLSWatchersCount);
-			assertEquals(-1, broadcastStatistics.totalRTMPWatchersCount);
-			assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
-
+			Awaitility.await().pollInterval(2, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
+				BroadcastStatistics localStats = restService.callGetBroadcastStatistics(streamId);
+				return localStats != null && -1 == localStats.totalHLSWatchersCount && -1 == localStats.totalRTMPWatchersCount
+						&& -1 == localStats.totalWebRTCWatchersCount;
+			});
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 				return 0 == restService.callGetLiveStatistics();
