@@ -1205,7 +1205,7 @@ public abstract class RestServiceBase {
 
 					StorageClient storageClient = (StorageClient) appContext.getBean(StorageClient.BEAN_NAME);
 
-					storageClient.delete(getAppSettings().getS3StreamsFolderPath() + File.separator + finalFileName + ".mp4");
+					storageClient.delete(getAppSettings().getS3StreamsFolderPath() + File.separator + fileName);
 					storageClient.delete(getAppSettings().getS3PreviewsFolderPath() + File.separator + finalFileName + ".png");
 
 				}
