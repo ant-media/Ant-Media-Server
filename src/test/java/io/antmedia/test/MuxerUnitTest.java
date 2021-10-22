@@ -7,6 +7,8 @@ import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
@@ -45,6 +47,7 @@ import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.antmedia.storage.AmazonS3StorageClient;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
 import org.awaitility.Awaitility;
@@ -54,6 +57,7 @@ import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVInputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
 import org.bytedeco.ffmpeg.avutil.AVRational;
@@ -485,7 +489,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(mp4Muxer.getRegisteredStreamIndexList().contains(5));
 
 
-		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), null, null, null, null, null, "streams", "00");
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), null, null, null, null, null, "streams", 0);
 		hlsMuxer.init(appScope, "test", 0, null);
 		hlsMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
@@ -1779,6 +1783,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setAddDateTimeToMp4FileName(true);
 		getAppSettings().setHlsMuxingEnabled(true);
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		getAppSettings().setUploadExtensionsToS3(2);
 
 
 		if (appScope == null) {
@@ -1832,6 +1837,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			// if there is listenerHookURL, a task will be scheduled, so wait a little to make the call happen
 			Thread.sleep(200);
 
+			List<Muxer> muxerList = muxAdaptor.getMuxerList();
+			Mp4Muxer mp4Muxer = null;
+			for (Muxer muxer : muxerList) {
+				if (muxer instanceof Mp4Muxer) {
+					mp4Muxer = (Mp4Muxer) muxer;
+					break;
+				}
+			}
+			assertFalse(mp4Muxer.isUploadingToS3());
+
 			int duration = 146401;
 
 			assertTrue(MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), duration));
@@ -1846,6 +1861,130 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testHLSNormal() {
 		testHLSMuxing("hlsmuxing_test");
+	}
+
+	@Test
+	public void testUploadExtensions(){
+		//av_log_set_level (40);
+		int hlsListSize = 3;
+		int hlsTime = 2;
+		String name = "streamtestExtensions";
+
+		getAppSettings().setMp4MuxingEnabled(true);
+		getAppSettings().setAddDateTimeToMp4FileName(false);
+		getAppSettings().setHlsMuxingEnabled(true);
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		getAppSettings().setHlsTime(String.valueOf(hlsTime));
+		getAppSettings().setHlsListSize(String.valueOf(hlsListSize));
+		getAppSettings().setUploadExtensionsToS3(3);
+		getAppSettings().setS3RecordingEnabled(true);
+
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream.setCodecInfo(info);
+
+		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
+		assertNotNull(vertx);
+
+		StorageClient client = Mockito.mock(AmazonS3StorageClient.class);
+		HLSMuxer hlsMuxerTester = new HLSMuxer(vertx, client, null, null, null, null, null, "streams",1);
+		assertFalse(hlsMuxerTester.isUploadingToS3());
+
+
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		muxAdaptor.setStorageClient(client);
+
+		File file = null;
+		try {
+
+			file = new File("src/test/resources/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+			final FLVReader flvReader = new FLVReader(file);
+
+			logger.info("f path:" + file.getAbsolutePath());
+			assertTrue(file.exists());
+			Broadcast broadcast = new Broadcast();
+			try {
+				broadcast.setStreamId(name);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+
+			muxAdaptor.setBroadcast(broadcast);
+			boolean result = muxAdaptor.init(appScope, name, false);
+			assert (result);
+
+			muxAdaptor.start();
+
+			feedMuxAdaptor(flvReader, Arrays.asList(muxAdaptor), info);
+
+			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
+
+			muxAdaptor.stop(true);
+
+			flvReader.close();
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+
+			Thread.sleep(10000);
+
+			List<Muxer> muxerList = muxAdaptor.getMuxerList();
+			HLSMuxer hlsMuxer = null;
+			Mp4Muxer mp4Muxer = null;
+			for (Muxer muxer : muxerList) {
+				if (muxer instanceof HLSMuxer) {
+					hlsMuxer = (HLSMuxer) muxer;
+					break;
+				}
+			}
+			for (Muxer muxer : muxerList) {
+				if (muxer instanceof Mp4Muxer) {
+					mp4Muxer = (Mp4Muxer) muxer;
+					break;
+				}
+			}
+			assertNotNull(hlsMuxer);
+			assertNotNull(mp4Muxer);
+			File hlsFile = hlsMuxer.getFile();
+
+			String hlsFilePath = hlsFile.getAbsolutePath();
+			int lastIndex = hlsFilePath.lastIndexOf(".m3u8");
+
+			String mp4Filename = hlsFilePath.substring(0, lastIndex) + ".mp4";
+
+			//just check mp4 file is not created
+			File mp4File = new File(mp4Filename);
+			assertTrue(mp4File.exists());
+
+			assertTrue(MuxingTest.testFile(hlsFile.getAbsolutePath()));
+
+			//The setting is given 3 (011) so both enabled true
+			assertTrue(hlsMuxer.isUploadingToS3());
+			assertTrue(mp4Muxer.isUploadingToS3());
+
+			File dir = new File(hlsFile.getAbsolutePath()).getParentFile();
+			File[] files = dir.listFiles(new FilenameFilter() {
+				@Override
+				public boolean accept(File dir, String name) {
+					return name.endsWith(".ts");
+				}
+			});
+
+			System.out.println("ts file count:" + files.length);
+
+			assertTrue(files.length > 0);
+			assertTrue(files.length < (int) Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 
 	@Test
@@ -2096,6 +2235,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setDeleteHLSFilesOnEnded(true);
 		getAppSettings().setHlsTime(String.valueOf(hlsTime));
 		getAppSettings().setHlsListSize(String.valueOf(hlsListSize));
+		getAppSettings().setUploadExtensionsToS3(2);
 
 
 		if (appScope == null) {

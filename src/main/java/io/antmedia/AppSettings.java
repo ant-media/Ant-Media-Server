@@ -380,14 +380,14 @@ public class AppSettings {
 	/**
 	 * Binary entity for uploading the extensions
 	 * 0 means does not upload, 1 means upload
-	 * First digit switches mp4 files upload to s3
+	 * Least significant digit switches mp4 files upload to s3
 	 * Second digit switches HLS files upload to s3
-	 * Third digit switches PNG files upload to s3
-	 * Example: 100 means upload mp4 but not HLS and PNG
+	 * Most significant digit switches PNG files upload to s3
+	 * Example: 5 ( 101 in binary ) means upload mp4 and PNG but not HLS
 	 * HLS files still will be saved on the server if deleteHLSFilesOnEnded flag is false
 	 */
-	@Value( "${"+SETTINGS_UPLOAD_EXTENSIONS_TO_S3+":11}" )
-	private String uploadExtensionsToS3;
+	@Value( "${"+SETTINGS_UPLOAD_EXTENSIONS_TO_S3+":7}" )
+	private int uploadExtensionsToS3;
 
 	/**
 	 * Endpoint will try to republish if error occurs,
@@ -1480,11 +1480,11 @@ public class AppSettings {
 		this.hlsPlayListType = hlsPlayListType;
 	}
 
-	public void setUploadExtensionsToS3(String uploadExtensionsToS3){
+	public void setUploadExtensionsToS3(int uploadExtensionsToS3){
 		this.uploadExtensionsToS3 = uploadExtensionsToS3;
 	}
 
-	public String getUploadExtensionsToS3(){
+	public int getUploadExtensionsToS3(){
 		return this.uploadExtensionsToS3;
 	}
 
