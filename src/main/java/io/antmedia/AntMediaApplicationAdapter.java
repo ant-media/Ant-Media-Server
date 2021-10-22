@@ -345,14 +345,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		return result;
 	}
 
-	public void streamBroadcastClose(IBroadcastStream stream) {
-		String streamName = stream.getPublishedName();
-		vertx.executeBlocking(future ->  { 
-			closeBroadcast(streamName); 
-			future.complete();
-		}, null);
-	}
-
 	public void closeBroadcast(String streamName) {
 
 		try {
@@ -1727,6 +1719,10 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void deleteDBInSeconds() {
 		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l->getDataStore().delete());
+	}
+
+	public void stopPublish(String streamId) {
+		closeBroadcast(streamId);
 	}
 
 }
