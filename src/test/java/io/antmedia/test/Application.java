@@ -173,4 +173,10 @@ public class Application extends MultiThreadedApplicationAdapter implements IAnt
 	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType){
 		getAppAdaptor().startPublish(streamName, absoluteStartTimeMs, publishType);
 	}
+	
+	@Override
+	public void stopPublish(String streamId) {
+		getAppAdaptor().stopPublish(streamId);
+		
+	}
 }
