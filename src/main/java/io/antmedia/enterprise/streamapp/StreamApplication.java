@@ -175,4 +175,8 @@ public class StreamApplication extends MultiThreadedApplicationAdapter implement
 	public void stopPublish(String streamId) {
 		appAdaptor.stopPublish(streamId);
 	}
+	
+	public void setAppAdaptor(AntMediaApplicationAdapter appAdaptor) {
+		this.appAdaptor = appAdaptor;
+	}
 }

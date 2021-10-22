@@ -1356,7 +1356,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Application app =  (Application) applicationContext.getBean("web.handler");
 		AntMediaApplicationAdapter appAdaptorReal = app.getAppAdaptor();
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy(appAdaptorReal);
-		app.setAdaptor(appAdaptor);
+		app.setAppAdaptor(appAdaptor);
 		doReturn(new StringBuilder("")).when(appAdaptor).notifyHook(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
 		assertNotNull(appAdaptor);
 
@@ -1400,7 +1400,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//we do not save duration of the finished live streams
 		//assertEquals((long)broadcast.getDuration(), 10080L);
 
-		app.setAdaptor(appAdaptorReal);
+		app.setAppAdaptor(appAdaptorReal);
 	}
 
 	@Test
