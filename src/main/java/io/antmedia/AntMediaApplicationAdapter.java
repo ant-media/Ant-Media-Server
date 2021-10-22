@@ -1721,7 +1721,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 	public void stopPublish(String streamId) {
-		closeBroadcast(streamId);
+		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
+		
 	}
 
 }
