@@ -48,7 +48,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 			appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
 		}
 		final String webhookAuthURL = appSettings.getWebhookAuthenticateURL();
-		if (webhookAuthURL != null && webhookAuthURL.startsWith("http"))
+		if (webhookAuthURL != null && !webhookAuthURL.isEmpty())
 		{
 			try (CloseableHttpClient client = getHttpClient())
 			{
