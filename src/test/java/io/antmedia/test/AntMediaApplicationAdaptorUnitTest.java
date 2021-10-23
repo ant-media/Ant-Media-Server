@@ -1394,10 +1394,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		streamApplication.streamSubscriberClose(Mockito.mock(ISubscriberStream.class));
 		verify(appAdaptor).streamSubscriberClose(Mockito.any());
-		
-		streamApplication.streamPublishStart(new ClientBroadcastStream());
-		verify(appAdaptor).streamPublishStart(Mockito.any());
-		
+				
 		assertFalse(streamApplication.isServerShuttingDown());
 		verify(appAdaptor).isServerShuttingDown();
 		
