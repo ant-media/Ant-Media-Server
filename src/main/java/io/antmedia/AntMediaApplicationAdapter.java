@@ -1704,10 +1704,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		this.storageClient = storageClient;
 	}
 
-	public void streamPublishStart(IBroadcastStream stream) {
-		saveBroadcast(stream.getPublishedName(), ((ClientBroadcastStream)stream).getAbsoluteStartTimeMs() , MuxAdaptor.PUBLISH_TYPE_RTMP, getDataStore().get(stream.getPublishedName()));
-	}
-
 	public void addStreamListener(IStreamListener listener) {
 		streamListeners.add(listener);
 	}
