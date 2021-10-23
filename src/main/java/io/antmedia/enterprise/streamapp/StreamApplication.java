@@ -50,10 +50,9 @@ public class StreamApplication extends MultiThreadedApplicationAdapter implement
 		appAdaptor.setAppSettings(getAppSettings());
 		appAdaptor.setStreamPublishSecurityList(getStreamPublishSecurityList());
 		
-		if (getStreamPublishSecurityList() != null) {
-			for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
-				registerStreamPublishSecurity(streamPublishSecurity);
-			}
+		
+		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
+			registerStreamPublishSecurity(streamPublishSecurity);
 		}
 		
 		appAdaptor.setStreamAcceptFilter(getStreamAcceptFilter());
@@ -91,10 +90,6 @@ public class StreamApplication extends MultiThreadedApplicationAdapter implement
 	public void streamPublishStart(final IBroadcastStream stream) {
 		super.streamPublishStart(stream);
 		appAdaptor.streamPublishStart(stream);
-	}
-
-	public ApplicationContext getAppContx() {
-		return appContx;
 	}
 
 	public void setAppContx(ApplicationContext appContx) {
