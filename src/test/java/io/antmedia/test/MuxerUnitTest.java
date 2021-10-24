@@ -1250,7 +1250,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		.until(() ->
 		appAdaptor.getDataStore().get(streamId).getAbsoluteStartTimeMs() == absoluteTimeMS);
 
-		spyAdaptor.streamBroadcastClose(stream);
+		spyAdaptor.stopPublish(stream.getPublishedName());
 
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -1304,7 +1304,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//this zombi trick will let us have a proper await method
 		broadcast.setZombi(true);
-		appAdaptor.streamBroadcastClose(stream);
+		appAdaptor.stopPublish(stream.getPublishedName());
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> appAdaptor.getDataStore().get(broadcast.getStreamId()) == null);
 
@@ -1356,7 +1356,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Application app =  (Application) applicationContext.getBean("web.handler");
 		AntMediaApplicationAdapter appAdaptorReal = app.getAppAdaptor();
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy(appAdaptorReal);
-		app.setAdaptor(appAdaptor);
+		app.setAppAdaptor(appAdaptor);
 		doReturn(new StringBuilder("")).when(appAdaptor).notifyHook(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
 		assertNotNull(appAdaptor);
 
@@ -1400,7 +1400,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//we do not save duration of the finished live streams
 		//assertEquals((long)broadcast.getDuration(), 10080L);
 
-		app.setAdaptor(appAdaptorReal);
+		app.setAppAdaptor(appAdaptorReal);
 	}
 
 	@Test
