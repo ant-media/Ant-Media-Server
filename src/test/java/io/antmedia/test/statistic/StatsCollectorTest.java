@@ -484,8 +484,8 @@ public class StatsCollectorTest {
 		assertNull(StatsCollector.getAppAdaptor(appContext));
 		
 		Mockito.when(appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(true);
-		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(new Object());
-		assertNull(StatsCollector.getAppAdaptor(appContext));
+		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(new AntMediaApplicationAdapter());
+		assertNotNull(StatsCollector.getAppAdaptor(appContext));
 		
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adaptor);
