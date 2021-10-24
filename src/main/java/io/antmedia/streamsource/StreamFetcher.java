@@ -236,7 +236,7 @@ public class StreamFetcher {
 			try {
 				inputFormatContext = new AVFormatContext(null); 
 				pkt = avcodec.av_packet_alloc();
-				logger.info("Preparing the StreamFetcher for {}", streamUrl);
+				logger.info("Preparing the StreamFetcher for {} for streamId:{}", streamUrl, streamId);
 				Result result = prepare(inputFormatContext);
 
 
@@ -446,7 +446,7 @@ public class StreamFetcher {
 			if (muxAdaptor != null) {
 				logger.info("Writing trailer in Muxadaptor {}", streamId);
 				muxAdaptor.writeTrailer();
-				appInstance.muxAdaptorRemoved(muxAdaptor);
+				getInstance().muxAdaptorRemoved(muxAdaptor);
 				muxAdaptor = null;
 			}
 
