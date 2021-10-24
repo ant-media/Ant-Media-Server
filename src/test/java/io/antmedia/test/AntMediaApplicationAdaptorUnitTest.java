@@ -20,6 +20,7 @@ import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -254,6 +255,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
 		spyAdapter.setScope(scope);
 		spyAdapter.setAppSettings(new AppSettings());
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
 		
 		
 		// Add 1. Broadcast
@@ -1138,6 +1140,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		settings.setStartStreamFetcherAutomatically(true);
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
+		
 		spyAdapter.appStart(scope);
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
@@ -1255,6 +1259,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		settings.setStartStreamFetcherAutomatically(false);
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
+		
 		spyAdapter.appStart(scope);
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
@@ -1299,7 +1305,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(clusterStore.getSettings(Mockito.any())).thenReturn(null);
 		when(context.getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME)).thenReturn(Mockito.mock(AcceptOnlyStreamsInDataStore.class));
 		spyAdapter.setServerSettings(new ServerSettings());
-		
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
 		
 		spyAdapter.appStart(scope);
 		
