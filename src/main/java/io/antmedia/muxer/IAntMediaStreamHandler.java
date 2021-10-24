@@ -79,4 +79,10 @@ public interface IAntMediaStreamHandler {
 	 */
 	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType);
 	
+	/**
+	 * Notify the handler that is stream is stopped
+	 * @param streamId
+	 */
+	public void stopPublish(String streamId);
+	
 }
