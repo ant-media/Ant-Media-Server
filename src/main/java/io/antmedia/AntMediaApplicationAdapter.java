@@ -121,7 +121,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	private StreamAcceptFilter streamAcceptFilter;
 	private AppSettings appSettings;
 	private Vertx vertx;
-	private IScope scope;
 
 	protected List<String> encoderBlockedStreams = new ArrayList<>();
 	private int numberOfEncoderNotOpenedErrors = 0;
@@ -360,7 +359,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					logger.info("Setting timer to call live stream ended hook for stream:{}",streamId );
-					vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null));
+					vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null));
 				}
 
 				stopPublishingSocialEndpoints(broadcast);
@@ -463,19 +462,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return null;
 	}
 
-
-	public void streamPlayItemPlay(IPlayItem item, boolean isLive) {
+	@Override
+	public void streamPlayItemPlay(ISubscriberStream stream, IPlayItem item, boolean isLive) {
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(item.getName(), true));
 	}
-
-	public void streamPlayItemStop(IPlayItem item) {
+	@Override
+	public void streamPlayItemStop(ISubscriberStream stream, IPlayItem item) {
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(item.getName(), false));
 	}
 
+	@Override
 	public void streamSubscriberClose(ISubscriberStream stream) {
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false));
 	}
 
+	@Override
 	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType) {
 		vertx.executeBlocking( handler -> {
 			try {
@@ -603,9 +604,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
-
-
-
 	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
@@ -678,7 +676,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			final String baseName = vodName.substring(0, index);
 			String finalListenerHookURL = listenerHookURL;
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			vertx.setTimer(10, e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId));
+			vertx.runOnContext(e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId));
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
@@ -978,18 +976,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	public IBroadcastStream getBroadcastStream(IScope scope, String name) {
-		IStreamService service = (IStreamService) ScopeUtils.getScopeService(scope, IStreamService.class,
-				StreamService.class);
-		if (service instanceof StreamService) {
-			IBroadcastScope bs = ((StreamService) service).getBroadcastScope(scope, name);
-			if (bs != null) {
-				return bs.getClientBroadcastStream();
-			}
-		}
-		return null;
-	}
-
 	public OnvifCamera getOnvifCamera(String id) {
 		OnvifCamera onvifCamera = onvifCameraList.get(id);
 		if (onvifCamera == null) {
@@ -1284,17 +1270,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return muxAdaptors;
 	}
 
-	public IScope getScope() {
-		return scope;
-	}
-
-
-	public void setScope(IScope scope) {
-		this.scope = scope;
-	}
-
-
-
+	
 	/**
 	 * Number of encoders blocked. 
 	 * @return
@@ -1693,8 +1669,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public void removeFrameListener(String streamId, IFrameListener listener) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
@@ -1706,6 +1680,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.storageClient = storageClient;
 	}
 
+	@Override
 	public void streamPublishStart(IBroadcastStream stream) {
 		saveBroadcast(stream.getPublishedName(), ((ClientBroadcastStream)stream).getAbsoluteStartTimeMs() , MuxAdaptor.PUBLISH_TYPE_RTMP, getDataStore().get(stream.getPublishedName()));
 	}
