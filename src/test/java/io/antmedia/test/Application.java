@@ -1,25 +1,11 @@
 package io.antmedia.test;
 
 import java.io.File;
-import java.util.List;
-
-import org.bytedeco.ffmpeg.avcodec.AVPacket;
-import org.bytedeco.ffmpeg.avformat.AVFormatContext;
-import org.red5.server.adapter.MultiThreadedApplicationAdapter;
-import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.IStreamPublishSecurity;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.enterprise.streamapp.StreamApplication;
-import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.settings.ServerSettings;
 
-public class Application extends StreamApplication implements IAntMediaStreamHandler, IApplicationAdaptorFactory {
+public class Application extends AntMediaApplicationAdapter implements IAntMediaStreamHandler {
 
 	public static String id = null;
 	public static File file = null;

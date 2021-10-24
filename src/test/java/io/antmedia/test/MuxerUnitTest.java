@@ -93,7 +93,6 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -1169,7 +1168,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testApplicationStreamLimit()
 	{
-		AntMediaApplicationAdapter appAdaptor = Mockito.spy(((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor());
+		AntMediaApplicationAdapter appAdaptor = Mockito.spy((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
 		assertNotNull(appAdaptor);
 
 		String streamId = "stream " + (int)(Math.random()*10000);
@@ -1228,7 +1227,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testAbsoluteStartTimeMs()
 	{
-		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
+		AntMediaApplicationAdapter appAdaptor = ((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
 		assertNotNull(appAdaptor);
 
 		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(appAdaptor);
@@ -1263,7 +1262,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testPublishAndUnpublishSocialEndpoints() {
-		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
+		AntMediaApplicationAdapter appAdaptor = ((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
 		assertNotNull(appAdaptor);
 
 
@@ -1319,7 +1318,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testVideoServiceEndpoint() {
-		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
+		AntMediaApplicationAdapter appAdaptor = ((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
 		assertNotNull(appAdaptor);
 
 		VideoServiceEndpoint endpointService = Mockito.mock(VideoServiceEndpoint.class);
@@ -1354,9 +1353,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testMp4MuxingAndNotifyCallback() {
 
 		Application app =  (Application) applicationContext.getBean("web.handler");
-		AntMediaApplicationAdapter appAdaptorReal = app.getAppAdaptor();
-		AntMediaApplicationAdapter appAdaptor = Mockito.spy(appAdaptorReal);
-		app.setAppAdaptor(appAdaptor);
+		AntMediaApplicationAdapter appAdaptor = Mockito.spy(app);
 		doReturn(new StringBuilder("")).when(appAdaptor).notifyHook(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
 		assertNotNull(appAdaptor);
 
@@ -1400,7 +1397,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//we do not save duration of the finished live streams
 		//assertEquals((long)broadcast.getDuration(), 10080L);
 
-		app.setAppAdaptor(appAdaptorReal);
 	}
 
 	@Test

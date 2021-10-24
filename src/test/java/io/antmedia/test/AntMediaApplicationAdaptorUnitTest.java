@@ -8,8 +8,8 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,7 +20,6 @@ import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,18 +42,12 @@ import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
-import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.IPlayItem;
-import org.red5.server.api.stream.ISubscriberStream;
-import org.red5.server.net.rtmp.RTMPConnection;
 import org.red5.server.stream.ClientBroadcastStream;
-import org.red5.server.stream.IProviderService;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IClusterStore;
@@ -64,10 +57,8 @@ import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.enterprise.streamapp.StreamApplication;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
-import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -1178,13 +1169,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(context.getApplicationContext()).thenReturn(appContext);
 		
 		
-		Application appFactor = Mockito.mock(Application.class);
-		when(appFactor.getAppAdaptor()).thenReturn(spyAdapter);
+		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 		spyAdapter.setServerSettings(new ServerSettings());
 		spyAdapter.setAppSettings(new AppSettings());
 		spyAdapter.setDataStore(dataStore);
 		
-		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appFactor);
+		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
 		
 		when(appContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
@@ -1347,60 +1337,5 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).delete();
 	}
 	
-	@Test
-	public void testStreamApplicationCallbacks() {
-		StreamApplication streamApplication = new StreamApplication();
-		IScope scope = mock(IScope.class);
-		when(scope.getName()).thenReturn("junit");
-		IContext context = mock(IContext.class);
-		when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
-		when(scope.getContext()).thenReturn(context);
-		
-		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
-		when(appContext.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
-		when(context.getApplicationContext()).thenReturn(appContext);
-
-		
-		when(context.getBean(IProviderService.BEAN_NAME)).thenReturn(Mockito.mock(IProviderService.class));
-		
-		StorageClient storageClient = Mockito.mock(StorageClient.class);
-		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
-		
-		DataStore dataStore = new InMemoryDataStore("dbname");
-		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
-		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-		
-		streamApplication.setDataStoreFactory(dsf);
-		AppSettings settings = new AppSettings();
-		streamApplication.setAppSettings(settings);
-		
-		streamApplication.setStreamPublishSecurityList(new ArrayList<>());
-		
-		streamApplication.setScope(scope);
-		streamApplication.appStart(scope);
-		AntMediaApplicationAdapter appAdaptor = Mockito.spy(streamApplication.getAppAdaptor());
-		streamApplication.setAppAdaptor(appAdaptor);
-		
-		IPlayItem playItem = Mockito.mock(IPlayItem.class);
-		when(playItem.getName()).thenReturn("test");
-		
-		Red5.setConnectionLocal(Mockito.mock(RTMPConnection.class));
-		
-		streamApplication.streamPlayItemPlay(Mockito.mock(ISubscriberStream.class), playItem, true);
-		verify(appAdaptor).streamPlayItemPlay(Mockito.any(), Mockito.anyBoolean());
-		
-		streamApplication.streamPlayItemStop(Mockito.mock(ISubscriberStream.class), playItem);
-		verify(appAdaptor).streamPlayItemStop(Mockito.any());
-		
-		streamApplication.streamSubscriberClose(Mockito.mock(ISubscriberStream.class));
-		verify(appAdaptor).streamSubscriberClose(Mockito.any());
-		
-		streamApplication.streamPublishStart(new ClientBroadcastStream());
-		verify(appAdaptor).streamPublishStart(Mockito.any());
-		
-		assertFalse(streamApplication.isServerShuttingDown());
-		verify(appAdaptor).isServerShuttingDown();
-		
-	}
 
 }

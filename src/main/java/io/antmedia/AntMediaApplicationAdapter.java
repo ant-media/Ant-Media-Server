@@ -27,6 +27,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
@@ -81,10 +82,7 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
 
-public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
-
-	//TODO: We don't need @link StreamApplication and AntMediaApplicationAdapter at the same time
-	//We can refactor the code and remove the StreamApplication
+public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 	
 	public static final String BEAN_NAME = "web.handler";
 
@@ -148,8 +146,12 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	protected ArrayList<IStreamListener> streamListeners = new ArrayList<IStreamListener>();
 
+	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
+		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
+			registerStreamPublishSecurity(streamPublishSecurity);
+		}
 		vertx = (Vertx) app.getContext().getBean(VERTX_BEAN_NAME);
 
 		//initalize to access the data store directly in the code
