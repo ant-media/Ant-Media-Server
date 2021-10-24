@@ -1193,16 +1193,19 @@ public abstract class RestServiceBase {
 						message = "vod deleted";
 					}
 
+
 					String fileName = videoFile.getName();
-					String[] splitFileName = StringUtils.split(fileName,".");
+					int indexOfFileExtension = fileName.lastIndexOf(".");
+					String finalFileName = fileName.substring(0,indexOfFileExtension);
+
 					//delete preview file if exists
-					File previewFile = Muxer.getPreviewFile(getScope(), splitFileName[0], ".png");
+					File previewFile = Muxer.getPreviewFile(getScope(), finalFileName, ".png");
 					Files.deleteIfExists(previewFile.toPath());
 
 					StorageClient storageClient = (StorageClient) appContext.getBean(StorageClient.BEAN_NAME);
 
-					storageClient.delete(getAppSettings().getS3StreamsFolderPath() + File.separator + splitFileName[0] + ".mp4");
-					storageClient.delete(getAppSettings().getS3PreviewsFolderPath() + File.separator + splitFileName[0] + ".png");
+					storageClient.delete(getAppSettings().getS3StreamsFolderPath() + File.separator + fileName);
+					storageClient.delete(getAppSettings().getS3PreviewsFolderPath() + File.separator + finalFileName + ".png");
 
 				}
 				catch (Exception e) {
