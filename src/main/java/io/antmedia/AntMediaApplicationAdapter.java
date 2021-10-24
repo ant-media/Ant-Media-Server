@@ -15,10 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-import java.util.regex.Pattern;
 
-
-import io.antmedia.storage.StorageClient;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -44,13 +41,11 @@ import org.red5.server.stream.StreamService;
 import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -78,6 +73,7 @@ import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
+import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
@@ -87,6 +83,9 @@ import io.vertx.ext.dropwizard.MetricsService;
 
 public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
+	//TODO: We don't need @link StreamApplication and AntMediaApplicationAdapter at the same time
+	//We can refactor the code and remove the StreamApplication
+	
 	public static final String BEAN_NAME = "web.handler";
 
 	public static final int BROADCAST_STATS_RESET = 0;
@@ -343,14 +342,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			}
 		}
 		return result;
-	}
-
-	public void streamBroadcastClose(IBroadcastStream stream) {
-		String streamName = stream.getPublishedName();
-		vertx.executeBlocking(future ->  { 
-			closeBroadcast(streamName); 
-			future.complete();
-		}, null);
 	}
 
 	public void closeBroadcast(String streamName) {
@@ -1454,7 +1445,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 
-	private boolean updateAppSettingsFile(String appName, AppSettings newAppsettings) 
+	public static boolean updateAppSettingsFile(String appName, AppSettings newAppsettings) 
 	{
 		/*
 		 * Remember remember the 23th of November
@@ -1545,7 +1536,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
 
 		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE, newAppsettings.getHlsEncryptionKeyInfoFile() != null ? newAppsettings.getHlsEncryptionKeyInfoFile() : "");
-		store.put(AppSettings.SETTINGS_WEBHOOK_AUTHENTICATE_URL, String.valueOf(newAppsettings.getWebhookAuthenticateURL()));
+		store.put(AppSettings.SETTINGS_WEBHOOK_AUTHENTICATE_URL, newAppsettings.getWebhookAuthenticateURL() != null ? String.valueOf(newAppsettings.getWebhookAuthenticateURL()) : "");
 
 		store.put(AppSettings.SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING, String.valueOf(newAppsettings.isForceAspectRatioInTranscoding()));
 		return store.save();
@@ -1731,6 +1722,11 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void deleteDBInSeconds() {
 		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l->getDataStore().delete());
+	}
+
+	public void stopPublish(String streamId) {
+		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
+		
 	}
 
 }
