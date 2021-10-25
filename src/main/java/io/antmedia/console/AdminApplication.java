@@ -5,12 +5,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
-import org.red5.server.api.IClient;
 import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IBroadcastScope;
@@ -25,8 +27,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.IApplicationAdaptorFactory;
-import io.antmedia.SystemUtils;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.DataStore;
@@ -143,7 +143,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	public AntMediaApplicationAdapter getApplicationAdaptor(IScope appScope) 
 	{
-		return ((IApplicationAdaptorFactory) appScope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+		return (AntMediaApplicationAdapter) appScope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
 	}
 
 	private long getStorage(String name) {
@@ -151,17 +151,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return FileUtils.sizeOfDirectory(appFolder);
 	}
 
-	private int getVoDCount(IScope appScope) {
+	public int getVoDCount(IScope appScope) {
 		int size = 0;
 		if (appScope != null ){
-			Object adapter = ((IApplicationAdaptorFactory) appScope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
-			if (adapter instanceof AntMediaApplicationAdapter)
-			{
-				DataStore dataStore = ((AntMediaApplicationAdapter)adapter).getDataStore();
-				if (dataStore != null) {
-					size =  (int) dataStore.getTotalVodNumber();
-				}
-			}
+			size = (int)getApplicationAdaptor(appScope).getDataStore().getTotalVodNumber();
 		}
 
 		return size;
@@ -275,14 +268,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	public int getAppLiveStreamCount(IScope appScope) {
 		int size = 0;
 		if (appScope != null) {
-			Object adapter = ((IApplicationAdaptorFactory) appScope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
-			if (adapter instanceof AntMediaApplicationAdapter) 
-			{
-				DataStore dataStore = ((AntMediaApplicationAdapter)adapter).getDataStore();
-				if (dataStore != null) {
-					size =  (int) dataStore.getActiveBroadcastCount();
-				}
-			}
+			size = (int)getApplicationAdaptor(appScope).getDataStore().getActiveBroadcastCount();
 		}
 		return size;
 	}
@@ -316,7 +302,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		if(deleteDB) {
 			getApplicationAdaptor(appScope).deleteDBInSeconds();
 		}
-		
+
 		boolean success = runDeleteAppScript(appName);
 		warDeployer.undeploy(appName);
 
