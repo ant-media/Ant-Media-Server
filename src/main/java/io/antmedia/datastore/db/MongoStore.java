@@ -40,6 +40,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
@@ -1527,5 +1528,63 @@ public class MongoStore extends DataStore {
 			mongoClient.getDatabase(detectionMap.getDB().getName()).drop();
 			mongoClient.getDatabase(conferenceRoomDatastore.getDB().getName()).drop();
 		}
+	}
+
+	@Override
+	public void saveViewerInfo(WebRTCViewerInfo info) {
+		if (info == null) {
+			return;
+		}
+		try {
+			synchronized(this) {
+				datastore.save(info);
+			}
+			return;
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return;
+	}
+
+	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
+			String search) {
+		synchronized(this) {
+			try {
+				Query<WebRTCViewerInfo> query = datastore.createQuery(WebRTCViewerInfo.class);
+
+				if (size > MAX_ITEM_IN_ONE_LIST) {
+					size = MAX_ITEM_IN_ONE_LIST;
+				}
+
+				if (sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
+					query = query.order(orderBy.equals("desc") ? Sort.descending(sortBy) : Sort.ascending(sortBy));
+				}
+				if (search != null && !search.isEmpty()) {
+					logger.info("Server side search is called for WebRTCViewerInfo = {}", search);
+					Pattern regexp = Pattern.compile(search, Pattern.CASE_INSENSITIVE);
+					query.criteria("viewerId").containsIgnoreCase(search);
+					return query.find(new FindOptions().skip(offset).limit(size)).toList();
+				}
+				return query.find(new FindOptions().skip(offset).limit(size)).toList();
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public boolean deleteWebRTCViewerInfo(String viewerId) {
+		synchronized(this) {
+			try {
+				Query<WebRTCViewerInfo> query = datastore.createQuery(WebRTCViewerInfo.class).field("viewerId").equal(viewerId);
+				WriteResult delete = datastore.delete(query);
+				return delete.getN() == 1;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
 	}
 }

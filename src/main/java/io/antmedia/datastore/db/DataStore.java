@@ -23,6 +23,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 
 public abstract class DataStore {
 
@@ -923,6 +924,93 @@ public abstract class DataStore {
 	 * @returns total number of WebRTC viewers
 	 */
 	public abstract int getTotalWebRTCViewersCount();
+
+	protected ArrayList<WebRTCViewerInfo> searchOnWebRTCViewerInfo(ArrayList<WebRTCViewerInfo> list, String search) {
+		if(search != null && !search.isEmpty()) {
+			for (Iterator<WebRTCViewerInfo> i = list.iterator(); i.hasNext(); ) {
+				WebRTCViewerInfo item = i.next();
+				if(item.getViewerId() != null) {
+					if (item.getViewerId().toLowerCase().contains(search.toLowerCase()))
+						continue;
+					else i.remove();
+				}
+			}
+		}
+		return list;
+	}
+
+	protected List<WebRTCViewerInfo> sortAndCropWebRTCViewerInfoList(List<WebRTCViewerInfo> list, int offset, int size, String sortBy, String orderBy) {
+		if("viewerId".equals(sortBy)) 
+		{
+			Collections.sort(list, (viewer1, viewer2) -> {
+				Comparable c1 = null;
+				Comparable c2 = null;
+
+				if (sortBy.equals("viewerId")) 
+				{
+					c1 = viewer1.getViewerId().toLowerCase();
+					c2 = viewer2.getViewerId().toLowerCase();
+				} 
+
+				int result = 0;
+				if (c1 != null && c2 != null) 
+				{
+					if ("desc".equals(orderBy)) {
+						result = c2.compareTo(c1);
+					}
+					else {
+						result = c1.compareTo(c2);
+					}
+				}
+				return result;
+			});
+		}
+
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
+		}
+		if (offset < 0 ) {
+			offset = 0;
+		}
+
+		int toIndex =  Math.min(offset+size, list.size());
+		if (offset >= toIndex)
+		{
+			return new ArrayList<>();
+		}
+		else {
+			return list.subList(offset,toIndex);
+		}
+	}
+	
+	/**
+	 * This is used to save WebRTC Viewer Info to datastore 
+	 *
+	 * @param info information for the WebRTC Viewer
+	 */
+	public abstract void saveViewerInfo(WebRTCViewerInfo info);
+
+	/**
+	 * Get list of webrtc viewers
+	 *
+	 * @param offset
+	 * @param size
+	 * @param search 
+	 * @param orderBy 
+	 * @param sortBy 
+	 *
+	 * @return list of webrtc viewers
+	 */
+	public abstract List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy, String search);
+	
+	
+	/**
+	 * This is used to delete a WebRTC Viewer Info from datastore 
+	 *
+	 * @param viewerId WebRTC Viewer Id
+	 */
+	public abstract boolean deleteWebRTCViewerInfo(String viewerId);
+	
 
 	//**************************************
 	//ATTENTION: Write function descriptions while adding new functions

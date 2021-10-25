@@ -1729,4 +1729,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l->getDataStore().delete());
 	}
 
+	public boolean stopPlaying(String viewerId) {
+		return false;
+	}
+
 }

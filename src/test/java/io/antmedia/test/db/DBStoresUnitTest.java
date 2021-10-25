@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -53,6 +54,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
@@ -129,8 +131,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-		
-
+		testWebRTCViewerOperations(dataStore);
 	}
 
 	@Test
@@ -176,7 +177,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-
+		testWebRTCViewerOperations(dataStore);
 	}
 
 	@Test
@@ -239,7 +240,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-
+		testWebRTCViewerOperations(dataStore);
 	}
 	
 	@Test
@@ -2779,4 +2780,41 @@ public class DBStoresUnitTest {
 		assertFalse(dbNames.contains(dbName));
 
 	}
+	
+	
+	public void testWebRTCViewerOperations(DataStore dataStore) {
+		
+		ArrayList<String> idList = new ArrayList<String>();
+		
+		int total = RandomUtils.nextInt(10, 50);
+		for (int i = 0; i < total; i++) {
+			WebRTCViewerInfo info = new WebRTCViewerInfo();
+			String streamId = RandomStringUtils.randomAlphabetic(5);
+			info.setStreamId(streamId);
+			String id = RandomStringUtils.randomAlphabetic(5);
+			info.setViewerId(id);
+			
+			dataStore.saveViewerInfo(info);
+			
+			idList.add(id);
+		}
+		
+		List<WebRTCViewerInfo> returningList = dataStore.getWebRTCViewerList(0, total, "viewerId", "asc", "");
+		assertEquals(total,  returningList.size());	
+		
+		
+	    Collections.sort(idList, String.CASE_INSENSITIVE_ORDER);
+	    
+	    for (int i = 0; i < total; i++) {
+			assertEquals(idList.get(i),  returningList.get(i).getViewerId());	
+		}
+		
+	    int deleted = 0;
+	    for (String id : idList) {
+			dataStore.deleteWebRTCViewerInfo(id);
+		    List<WebRTCViewerInfo> tempList = dataStore.getWebRTCViewerList(0, total, "viewerId", "asc", "");
+		    
+			assertEquals(total - (++deleted),  tempList.size());	
+		}
+	}	
 }
