@@ -12,6 +12,8 @@ import org.openqa.selenium.logging.LoggingPreferences;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
@@ -31,14 +33,37 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
     public class FrontEndTest {
+
+        public static final int MAC_OS_X = 0;
+        public static final int LINUX = 1;
+        public static final int WINDOWS = 2;
+
         protected static Logger logger = LoggerFactory.getLogger(FrontEndTest.class);
         protected WebDriver driver;
-        public boolean driverRunning = false;
         protected final String url = "http://localhost:5080/LiveApp/";
+
+        private static int OS_TYPE;
+        public static Process process;
+        private static Process tmpExec;
+
+        public static String ffmpegPath = "ffmpeg";
+        static {
+            String osName = System.getProperty("os.name", "").toLowerCase();
+            if (osName.startsWith("mac os x") || osName.startsWith("darwin")) {
+                OS_TYPE = MAC_OS_X;
+            } else if (osName.startsWith("windows")) {
+                OS_TYPE = WINDOWS;
+            } else if (osName.startsWith("linux")) {
+                OS_TYPE = LINUX;
+            }
+        }
 
         @BeforeClass
         public static void beforeClass(){
             WebDriverManager.chromedriver().setup();
+            if (OS_TYPE == MAC_OS_X) {
+                ffmpegPath = "/usr/local/bin/ffmpeg";
+            }
         }
 
         @After
@@ -46,7 +71,6 @@ import static org.junit.Assert.fail;
             delay(3);
             logger.info("Closing the driver");
             this.driver.quit();
-            this.driverRunning = false;
         }
 
         @Test
@@ -94,6 +118,56 @@ import static org.junit.Assert.fail;
             assertTrue(checkLogsForKeyword("publish finished", entry));
 
         }
+
+        @Test
+        public void testPlayerPageStartStopPlay(){
+
+            Process rtmpSendingProcess = execute(ffmpegPath
+                    + " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+                    + "stream1");
+
+            ChromeOptions chrome_options = new ChromeOptions();
+            chrome_options.addArguments("--disable-extensions");
+            chrome_options.addArguments("--disable-gpu");
+            chrome_options.addArguments("--headless");
+            chrome_options.addArguments("--no-sandbox");
+            chrome_options.addArguments("--log-level=1");
+            LoggingPreferences logPrefs = new LoggingPreferences();
+            //To get console log
+            logPrefs.enable(LogType.BROWSER, Level.ALL);
+            chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
+
+            this.driver = new ChromeDriver(chrome_options);
+            this.driver.get(this.url+"player.html");
+
+            //Check we landed on the page
+            String title = this.driver.getTitle();
+            assertEquals("Ant Media Server WebRTC Player", title);
+            System.out.println(this.url + " " + this.driver + " " + title);
+
+            delay(3);
+            assertTrue(checkAlert());
+
+            this.driver.findElement(By.xpath("//*[@id='start_play_button']")).click();
+
+            delay(3);
+            assertTrue(checkAlert());
+            LogEntries entry = driver.manage().logs().get(LogType.BROWSER);
+            assertTrue(checkLogsForKeyword("play started", entry));
+
+            delay(3);
+            assertTrue(checkAlert());
+            this.driver.findElement(By.xpath("//*[@id='stop_play_button']")).click();
+
+            delay(3);
+            assertTrue(checkAlert());
+            entry = driver.manage().logs().get(LogType.BROWSER);
+            assertTrue(checkLogsForKeyword("play finished", entry));
+
+            delay(3);
+
+            rtmpSendingProcess.destroy();
+        }
         public boolean checkLogsForKeyword(String keyword, LogEntries entry){
             // Retrieving all log
             List<LogEntry> logs= entry.getAll();
@@ -119,8 +193,8 @@ import static org.junit.Assert.fail;
                     this.driver.switchTo().alert().accept();
                     return false;
                 }
-                else if(alert.equalsIgnoreCase("There is no stream available in the room")){
-                    logger.info("No stream available to rebroadcast");
+                else if(alert.equalsIgnoreCase("no_stream_exist")){
+                    logger.info("No stream available check the publishing");
                     this.driver.switchTo().alert().accept();
                     return false;
                 }
@@ -143,6 +217,38 @@ import static org.junit.Assert.fail;
                 logger.warn("Delay is interrupted, destroying process");
                 stop();
             }
+        }
+
+        public static Process execute(final String command) {
+            tmpExec = null;
+            new Thread() {
+                public void run() {
+                    try {
+
+                        tmpExec = Runtime.getRuntime().exec(command);
+                        InputStream errorStream = tmpExec.getErrorStream();
+                        byte[] data = new byte[1024];
+                        int length = 0;
+
+                        while ((length = errorStream.read(data, 0, data.length)) > 0) {
+                            System.out.println(new String(data, 0, length));
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                };
+            }.start();
+
+            while (tmpExec == null) {
+                try {
+                    System.out.println("Waiting for exec get initialized...");
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            return tmpExec;
         }
 
 
