@@ -744,8 +744,9 @@ public class CommonRestService {
 
 		for (String appName : appNames) {
 			//Check apps shutdown properly
-			if(!((AntMediaApplicationAdapter) getApplication().getApplicationContext(appName).getBean(AntMediaApplicationAdapter.BEAN_NAME)).isShutdownProperly()) {
-				((AntMediaApplicationAdapter) getApplication().getApplicationContext(appName).getBean(AntMediaApplicationAdapter.BEAN_NAME)).setShutdownProperly(true);
+			AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appName);
+			if (appAdaptor != null) {
+				appAdaptor.setShutdownProperly(true);
 			}
 		}
 
@@ -847,8 +848,11 @@ public class CommonRestService {
 
 	public Result resetBroadcast(@PathParam("appname") String appname) 
 	{
-		AntMediaApplicationAdapter appAdaptor = (AntMediaApplicationAdapter) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME);
-		return appAdaptor.resetBroadcasts();
+		AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appname);
+		if (appAdaptor != null) {
+			return appAdaptor.resetBroadcasts();
+		}
+		return new Result(false, "No application adaptor with this name " + appname);
 	}
 
 	public void setDataStore(AbstractConsoleDataStore dataStore) {

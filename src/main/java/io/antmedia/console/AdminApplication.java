@@ -151,14 +151,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return FileUtils.sizeOfDirectory(appFolder);
 	}
 
-	private int getVoDCount(IScope appScope) {
+	public int getVoDCount(IScope appScope) {
 		int size = 0;
 		if (appScope != null ){
-			AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter) appScope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
-			DataStore dataStore = adapter.getDataStore();
-			if (dataStore != null) {
-				size =  (int) dataStore.getTotalVodNumber();
-			}
+			size = (int)getApplicationAdaptor(appScope).getDataStore().getTotalVodNumber();
 		}
 
 		return size;
@@ -272,12 +268,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	public int getAppLiveStreamCount(IScope appScope) {
 		int size = 0;
 		if (appScope != null) {
-			AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter) appScope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
-			DataStore dataStore = adapter.getDataStore();
-			if (dataStore != null) {
-				size =  (int) dataStore.getActiveBroadcastCount();
-			}
-
+			size = (int)getApplicationAdaptor(appScope).getDataStore().getActiveBroadcastCount();
 		}
 		return size;
 	}
