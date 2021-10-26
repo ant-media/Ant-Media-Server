@@ -948,8 +948,8 @@ public abstract class DataStore {
 
 				if (sortBy.equals("viewerId")) 
 				{
-					c1 = viewer1.getViewerId().toLowerCase();
-					c2 = viewer2.getViewerId().toLowerCase();
+					c1 = viewer1.getViewerId();
+					c2 = viewer2.getViewerId();
 				} 
 
 				int result = 0;

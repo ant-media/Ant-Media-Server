@@ -2803,7 +2803,7 @@ public class DBStoresUnitTest {
 		assertEquals(total,  returningList.size());	
 		
 		
-	    Collections.sort(idList, String.CASE_INSENSITIVE_ORDER);
+	    Collections.sort(idList);
 	    
 	    for (int i = 0; i < total; i++) {
 			assertEquals(idList.get(i),  returningList.get(i).getViewerId());	

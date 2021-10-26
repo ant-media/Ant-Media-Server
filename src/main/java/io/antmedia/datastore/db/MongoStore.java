@@ -1557,11 +1557,11 @@ public class MongoStore extends DataStore {
 				}
 
 				if (sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
-					query = query.order(orderBy.equals("desc") ? Sort.descending(sortBy) : Sort.ascending(sortBy));
+					String sortString = (orderBy.equals("desc") ? "-" : "")+"viewerId";
+					query = query.order(sortString);
 				}
 				if (search != null && !search.isEmpty()) {
 					logger.info("Server side search is called for WebRTCViewerInfo = {}", search);
-					Pattern regexp = Pattern.compile(search, Pattern.CASE_INSENSITIVE);
 					query.criteria("viewerId").containsIgnoreCase(search);
 					return query.find(new FindOptions().skip(offset).limit(size)).toList();
 				}
