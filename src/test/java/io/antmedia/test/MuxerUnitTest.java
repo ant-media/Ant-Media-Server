@@ -17,6 +17,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -74,6 +75,7 @@ import org.red5.codec.IVideoStreamCodec;
 import org.red5.codec.StreamCodecInfo;
 import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
+import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
@@ -86,6 +88,7 @@ import org.red5.server.stream.ClientBroadcastStream;
 import org.red5.server.stream.VideoCodecFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -93,7 +96,6 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -108,6 +110,7 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.muxer.RecordMuxer;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.muxer.parser.AACConfigParser;
@@ -1068,69 +1071,69 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Application.resetFields();
 
-		assertEquals(null, Application.id);
-		assertEquals(null, Application.file);
-		assertEquals(0, Application.duration);
+		assertTrue(Application.id.isEmpty());
+		assertTrue(Application.file.isEmpty());
+		assertTrue(Application.duration.isEmpty());
 
 		File file = testMp4Muxing("test_test");
 		assertEquals("test_test.mp4", file.getName());
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
-			return "test_test".equals(Application.id);
+			return "test_test".equals(Application.id.get(0));
 		});
 
-		assertEquals("test_test", Application.id);
+		assertEquals("test_test", Application.id.get(0));
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
-			return "test_test.mp4".equals(Application.file.getName());
+			return "test_test.mp4".equals(Application.file.get(0).getName());
 		});
 
-		assertEquals("test_test.mp4", Application.file.getName());
-		assertNotEquals(0L, Application.duration);
+		assertEquals("test_test.mp4", Application.file.get(0).getName());
+		assertNotEquals(0L, (long)Application.duration.get(0));
 
 		Application.resetFields();
 
-		assertEquals(null, Application.id);
-		assertEquals(null, Application.file);
-		assertEquals(0, Application.duration);
-
+		assertTrue(Application.id.isEmpty());
+		assertTrue(Application.file.isEmpty());
+		assertTrue(Application.duration.isEmpty());
+		
 		file = testMp4Muxing("test_test");
 		assertEquals("test_test_1.mp4", file.getName());
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
-			return "test_test".equals(Application.id);
+			return "test_test".equals(Application.id.get(0));
 		});
 
-		assertEquals("test_test", Application.id);
+		assertEquals("test_test", Application.id.get(0));
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
-			return "test_test_1.mp4".equals(Application.file.getName());
+			return "test_test_1.mp4".equals(Application.file.get(0).getName());
 		});
 
-		assertEquals("test_test_1.mp4", Application.file.getName());
+		assertEquals("test_test_1.mp4", Application.file.get(0).getName());
 		assertNotEquals(0L, Application.duration);
 
 		Application.resetFields();
 
-		assertEquals(null, Application.id);
-		assertEquals(null, Application.file);
-		assertEquals(0, Application.duration);
+		assertTrue(Application.id.isEmpty());
+		assertTrue(Application.file.isEmpty());
+		assertTrue(Application.duration.isEmpty());
 
 		file = testMp4Muxing("test_test");
 		assertEquals("test_test_2.mp4", file.getName());
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
-			return "test_test".equals(Application.id);
+			return "test_test".equals(Application.id.get(0));
 		});
 
-		assertEquals("test_test", Application.id);
+		assertEquals("test_test", Application.id.get(0));
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
-			return "test_test_2.mp4".equals(Application.file.getName());
+			return "test_test_2.mp4".equals(Application.file.get(0).getName());
 		});
 
-		assertEquals("test_test_2.mp4", Application.file.getName());
-		assertNotEquals(0L, Application.duration);
+		assertEquals("test_test_2.mp4", Application.file.get(0).getName());
+		assertNotEquals(0L, (long)Application.duration.get(0));
 
 		logger.info("leaving testMp4MuxingWithSameName");
 	}
@@ -1169,7 +1172,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testApplicationStreamLimit()
 	{
-		AntMediaApplicationAdapter appAdaptor = Mockito.spy(((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor());
+		AntMediaApplicationAdapter appAdaptor = Mockito.spy((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
 		assertNotNull(appAdaptor);
 
 		String streamId = "stream " + (int)(Math.random()*10000);
@@ -1228,7 +1231,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testAbsoluteStartTimeMs()
 	{
-		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
+		AntMediaApplicationAdapter appAdaptor = ((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
 		assertNotNull(appAdaptor);
 
 		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(appAdaptor);
@@ -1250,7 +1253,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		.until(() ->
 		appAdaptor.getDataStore().get(streamId).getAbsoluteStartTimeMs() == absoluteTimeMS);
 
-		spyAdaptor.streamBroadcastClose(stream);
+		spyAdaptor.stopPublish(stream.getPublishedName());
 
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
@@ -1263,7 +1266,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testPublishAndUnpublishSocialEndpoints() {
-		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
+		AntMediaApplicationAdapter appAdaptor = ((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
 		assertNotNull(appAdaptor);
 
 
@@ -1304,7 +1307,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//this zombi trick will let us have a proper await method
 		broadcast.setZombi(true);
-		appAdaptor.streamBroadcastClose(stream);
+		appAdaptor.stopPublish(stream.getPublishedName());
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> appAdaptor.getDataStore().get(broadcast.getStreamId()) == null);
 
@@ -1319,7 +1322,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testVideoServiceEndpoint() {
-		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
+		AntMediaApplicationAdapter appAdaptor = ((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
 		assertNotNull(appAdaptor);
 
 		VideoServiceEndpoint endpointService = Mockito.mock(VideoServiceEndpoint.class);
@@ -1354,9 +1357,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testMp4MuxingAndNotifyCallback() {
 
 		Application app =  (Application) applicationContext.getBean("web.handler");
-		AntMediaApplicationAdapter appAdaptorReal = app.getAppAdaptor();
-		AntMediaApplicationAdapter appAdaptor = Mockito.spy(appAdaptorReal);
-		app.setAdaptor(appAdaptor);
+		AntMediaApplicationAdapter appAdaptor = Mockito.spy(app);
+		
 		doReturn(new StringBuilder("")).when(appAdaptor).notifyHook(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
 		assertNotNull(appAdaptor);
 
@@ -1368,39 +1370,60 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		broadcast.setListenerHookURL(hookUrl);
 		String streamId = appAdaptor.getDataStore().save(broadcast);
 
+		Application.resetFields();
 		testMp4Muxing(streamId, false, true);
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
-			return streamId.equals(Application.id);
+			return streamId.equals(Application.id.get(0));
 		});
 
-		assertEquals(Application.id, streamId);
-		assertEquals(Application.file.getName(), streamId + ".mp4");
-		assertTrue(Math.abs(697202l - Application.duration) < 250);
+		assertTrue(Application.id.contains(streamId));
+		assertEquals(Application.file.get(0).getName(), streamId + ".mp4");
+		assertTrue(Math.abs(697202l - Application.duration.get(0)) < 250);
 
 		broadcast = appAdaptor.getDataStore().get(streamId);
 		//we do not save duration of the finished live streams
 		//assertEquals((long)broadcast.getDuration(), 697132L);
 
-		verify(appAdaptor,  timeout(1000).times(1)).notifyHook(eq(hookUrl), eq(streamId), eq(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY), eq(null), eq(null), eq(streamId), anyString());
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+			return Application.notifyHookAction.contains(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY);
+		});
+		
+		assertTrue(Application.notifyId.contains(streamId));
+		assertTrue(Application.notitfyURL.contains(hookUrl));
+		assertTrue(Application.notifyHookAction.contains(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY));
+		assertTrue(Application.notifyVodName.contains(streamId));
+		
 		Application.resetFields();
+		assertTrue(Application.notifyId.isEmpty());
+		assertTrue(Application.notitfyURL.isEmpty());
+		assertTrue(Application.notifyHookAction.isEmpty());
+		
 		//test with same id again
 		testMp4Muxing(streamId, true, true);
 
-		verify(appAdaptor, timeout(1000).times(1)).notifyHook(eq(hookUrl), eq(streamId), eq(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY), eq(null), eq(null), eq(streamId+"_1"), anyString());
-
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
-			return streamId.equals(Application.id);
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+			return Application.notifyHookAction.contains(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY);
 		});
-		assertEquals(Application.id, streamId);
-		assertEquals(Application.file.getName(), streamId + "_1.mp4");
-		assertEquals(10040L, Application.duration);
+		
+		assertTrue(Application.notifyId.contains(streamId));
+		assertTrue(Application.notitfyURL.contains(hookUrl));
+		assertTrue(Application.notifyHookAction.contains(AntMediaApplicationAdapter.HOOK_ACTION_VOD_READY));
+		assertTrue(Application.notifyVodName.contains(streamId+"_1"));
+		
+		
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			return Application.id.contains(streamId);
+		});
+		assertEquals(Application.id.get(0), streamId);
+		assertEquals(Application.file.get(0).getName(), streamId + "_1.mp4");
+		assertEquals(10040L, (long)Application.duration.get(0));
 
 		broadcast = appAdaptor.getDataStore().get(streamId);
 		//we do not save duration of the finished live streams
 		//assertEquals((long)broadcast.getDuration(), 10080L);
 
-		app.setAdaptor(appAdaptorReal);
 	}
 
 	@Test

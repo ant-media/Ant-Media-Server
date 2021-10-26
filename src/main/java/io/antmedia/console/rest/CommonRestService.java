@@ -17,7 +17,9 @@ import java.util.Queue;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.*;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -38,14 +40,13 @@ import com.google.gson.JsonObject;
 import ch.qos.logback.classic.Level;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.SystemUtils;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.AdminApplication;
 import io.antmedia.console.AdminApplication.ApplicationInfo;
 import io.antmedia.console.AdminApplication.BroadcastInfo;
-import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
+import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.licence.ILicenceService;
@@ -642,7 +643,7 @@ public class CommonRestService {
 
 
 	public String changeSettings(@PathParam("appname") String appname, AppSettings newSettings){
-		AntMediaApplicationAdapter adapter = ((IApplicationAdaptorFactory) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+		AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		return gson.toJson(new Result(adapter.updateSettings(newSettings, true, false)));
 	}
 
@@ -682,11 +683,7 @@ public class CommonRestService {
 			ApplicationContext context = application.getApplicationContext(appName);
 			if (context != null) 
 			{
-				IApplicationAdaptorFactory adaptorFactory = (IApplicationAdaptorFactory) context.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-				if (adaptorFactory != null) 
-				{
-					appAdaptor = adaptorFactory.getAppAdaptor();
-				}
+				appAdaptor = (AntMediaApplicationAdapter) context.getBean(AntMediaApplicationAdapter.BEAN_NAME);
 			}
 		}
 		return appAdaptor;
@@ -747,8 +744,9 @@ public class CommonRestService {
 
 		for (String appName : appNames) {
 			//Check apps shutdown properly
-			if(!((IApplicationAdaptorFactory) getApplication().getApplicationContext(appName).getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor().isShutdownProperly()) {
-				((IApplicationAdaptorFactory) getApplication().getApplicationContext(appName).getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor().setShutdownProperly(true);
+			AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appName);
+			if (appAdaptor != null) {
+				appAdaptor.setShutdownProperly(true);
 			}
 		}
 
@@ -850,8 +848,11 @@ public class CommonRestService {
 
 	public Result resetBroadcast(@PathParam("appname") String appname) 
 	{
-		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
-		return appAdaptor.resetBroadcasts();
+		AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appname);
+		if (appAdaptor != null) {
+			return appAdaptor.resetBroadcasts();
+		}
+		return new Result(false, "No application adaptor with this name " + appname);
 	}
 
 	public void setDataStore(AbstractConsoleDataStore dataStore) {
