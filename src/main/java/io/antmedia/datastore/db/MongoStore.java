@@ -46,6 +46,7 @@ import io.antmedia.muxer.MuxAdaptor;
 
 public class MongoStore extends DataStore {
 
+	private static final String VIEWER_ID = "viewerId";
 	private static final String TOKEN_ID = "tokenId";
 	private static final String STREAM_ID = "streamId";
 	private Morphia morphia;
@@ -1532,20 +1533,15 @@ public class MongoStore extends DataStore {
 
 	@Override
 	public void saveViewerInfo(WebRTCViewerInfo info) {
-		if (info == null) {
-			return;
-		}
-		try {
-			synchronized(this) {
-				datastore.save(info);
+		synchronized(this) {
+			if (info == null) {
+				return;
 			}
-			return;
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
+			datastore.save(info);
 		}
-		return;
 	}
 
+	@SuppressWarnings("deprecation") //BK: added this because alternative method is also deprecated
 	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
 			String search) {
 		synchronized(this) {
@@ -1556,12 +1552,12 @@ public class MongoStore extends DataStore {
 			}
 
 			if (sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
-				String sortString = (orderBy.equals("desc") ? "-" : "")+"viewerId";
+				String sortString = (orderBy.equals("desc") ? "-" : "")+VIEWER_ID;
 				query = query.order(sortString);
 			}
 			if (search != null && !search.isEmpty()) {
 				logger.info("Server side search is called for WebRTCViewerInfo = {}", search);
-				query.criteria("viewerId").containsIgnoreCase(search);
+				query.criteria(VIEWER_ID).containsIgnoreCase(search);
 				return query.find(new FindOptions().skip(offset).limit(size)).toList();
 			}
 			return query.find(new FindOptions().skip(offset).limit(size)).toList();
@@ -1571,7 +1567,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public boolean deleteWebRTCViewerInfo(String viewerId) {
 		synchronized(this) {
-			Query<WebRTCViewerInfo> query = datastore.createQuery(WebRTCViewerInfo.class).field("viewerId").equal(viewerId);
+			Query<WebRTCViewerInfo> query = datastore.createQuery(WebRTCViewerInfo.class).field(VIEWER_ID).equal(viewerId);
 			WriteResult delete = datastore.delete(query);
 			return delete.getN() == 1;
 		}

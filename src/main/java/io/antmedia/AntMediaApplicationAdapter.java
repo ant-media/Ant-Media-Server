@@ -1698,7 +1698,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public boolean stopPlaying(String viewerId) {
-		logger.info("Nothing will be done for {}", viewerId);
 		return false;
   }
   public void stopPublish(String streamId) {

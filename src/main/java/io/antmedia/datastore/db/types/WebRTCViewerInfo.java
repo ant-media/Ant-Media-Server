@@ -13,7 +13,7 @@ import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 @ApiModel(value="WebRTCViewerInfo", description="Stores the info for a WebRTC viewer")
-@Entity(value = "WebRTCViewerInfo", noClassnameStored = true)
+@Entity(value = "WebRTCViewerInfo")
 @Indexes({ @Index(fields = @Field("viewerId")) })
 public class WebRTCViewerInfo {
 

@@ -929,10 +929,8 @@ public abstract class DataStore {
 		if(search != null && !search.isEmpty()) {
 			for (Iterator<WebRTCViewerInfo> i = list.iterator(); i.hasNext(); ) {
 				WebRTCViewerInfo item = i.next();
-				if(item.getViewerId() != null) {
-					if (!item.getViewerId().toLowerCase().contains(search.toLowerCase())) {
-						i.remove();
-					}
+				if(item.getViewerId() != null && !item.getViewerId().toLowerCase().contains(search.toLowerCase())) {
+					i.remove();
 				}
 			}
 		}
