@@ -2786,7 +2786,7 @@ public class DBStoresUnitTest {
 		
 		ArrayList<String> idList = new ArrayList<String>();
 		
-		int total = RandomUtils.nextInt(10, 50);
+		int total = RandomUtils.nextInt(10, DataStore.MAX_ITEM_IN_ONE_LIST);
 		for (int i = 0; i < total; i++) {
 			WebRTCViewerInfo info = new WebRTCViewerInfo();
 			String streamId = RandomStringUtils.randomAlphabetic(5);
@@ -2799,7 +2799,7 @@ public class DBStoresUnitTest {
 			idList.add(id);
 		}
 		
-		List<WebRTCViewerInfo> returningList = dataStore.getWebRTCViewerList(0, total, "viewerId", "asc", "");
+		List<WebRTCViewerInfo> returningList = dataStore.getWebRTCViewerList(0, DataStore.MAX_ITEM_IN_ONE_LIST+10, "viewerId", "asc", "");
 		assertEquals(total,  returningList.size());	
 		
 		

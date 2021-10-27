@@ -1550,11 +1550,9 @@ public class MapDBStore extends DataStore {
 		{		
 			boolean result = false;
 
-			if (viewerId != null && !viewerId.isEmpty()) {
-				result = webRTCViewerMap.remove(viewerId) != null;
-				if (result) {
-					db.commit();
-				}
+			result = webRTCViewerMap.remove(viewerId) != null;
+			if (result) {
+				db.commit();
 			}
 			return result;
 		}

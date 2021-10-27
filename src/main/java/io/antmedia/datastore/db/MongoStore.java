@@ -1549,42 +1549,31 @@ public class MongoStore extends DataStore {
 	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
 			String search) {
 		synchronized(this) {
-			try {
-				Query<WebRTCViewerInfo> query = datastore.createQuery(WebRTCViewerInfo.class);
+			Query<WebRTCViewerInfo> query = datastore.createQuery(WebRTCViewerInfo.class);
 
-				if (size > MAX_ITEM_IN_ONE_LIST) {
-					size = MAX_ITEM_IN_ONE_LIST;
-				}
-
-				if (sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
-					String sortString = (orderBy.equals("desc") ? "-" : "")+"viewerId";
-					query = query.order(sortString);
-				}
-				if (search != null && !search.isEmpty()) {
-					logger.info("Server side search is called for WebRTCViewerInfo = {}", search);
-					query.criteria("viewerId").containsIgnoreCase(search);
-					return query.find(new FindOptions().skip(offset).limit(size)).toList();
-				}
-				return query.find(new FindOptions().skip(offset).limit(size)).toList();
-
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
 			}
+
+			if (sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
+				String sortString = (orderBy.equals("desc") ? "-" : "")+"viewerId";
+				query = query.order(sortString);
+			}
+			if (search != null && !search.isEmpty()) {
+				logger.info("Server side search is called for WebRTCViewerInfo = {}", search);
+				query.criteria("viewerId").containsIgnoreCase(search);
+				return query.find(new FindOptions().skip(offset).limit(size)).toList();
+			}
+			return query.find(new FindOptions().skip(offset).limit(size)).toList();
 		}
-		return null;
 	}
 
 	@Override
 	public boolean deleteWebRTCViewerInfo(String viewerId) {
 		synchronized(this) {
-			try {
-				Query<WebRTCViewerInfo> query = datastore.createQuery(WebRTCViewerInfo.class).field("viewerId").equal(viewerId);
-				WriteResult delete = datastore.delete(query);
-				return delete.getN() == 1;
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
+			Query<WebRTCViewerInfo> query = datastore.createQuery(WebRTCViewerInfo.class).field("viewerId").equal(viewerId);
+			WriteResult delete = datastore.delete(query);
+			return delete.getN() == 1;
 		}
-		return false;
 	}
 }

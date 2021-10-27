@@ -930,9 +930,9 @@ public abstract class DataStore {
 			for (Iterator<WebRTCViewerInfo> i = list.iterator(); i.hasNext(); ) {
 				WebRTCViewerInfo item = i.next();
 				if(item.getViewerId() != null) {
-					if (item.getViewerId().toLowerCase().contains(search.toLowerCase()))
-						continue;
-					else i.remove();
+					if (!item.getViewerId().toLowerCase().contains(search.toLowerCase())) {
+						i.remove();
+					}
 				}
 			}
 		}
@@ -943,26 +943,10 @@ public abstract class DataStore {
 		if("viewerId".equals(sortBy)) 
 		{
 			Collections.sort(list, (viewer1, viewer2) -> {
-				Comparable c1 = null;
-				Comparable c2 = null;
+				Comparable c1 = viewer1.getViewerId();
+				Comparable c2 = viewer2.getViewerId();
 
-				if (sortBy.equals("viewerId")) 
-				{
-					c1 = viewer1.getViewerId();
-					c2 = viewer2.getViewerId();
-				} 
-
-				int result = 0;
-				if (c1 != null && c2 != null) 
-				{
-					if ("desc".equals(orderBy)) {
-						result = c2.compareTo(c1);
-					}
-					else {
-						result = c1.compareTo(c2);
-					}
-				}
-				return result;
+				return "desc".equals(orderBy) ? c2.compareTo(c1) : c1.compareTo(c2);
 			});
 		}
 

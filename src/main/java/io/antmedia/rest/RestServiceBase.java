@@ -2137,10 +2137,4 @@ public abstract class RestServiceBase {
 
 		return new Result(result, message);
 	}
-
-	public Result stopPlaying(String viewerId) {
-		boolean result = getApplication().stopPlaying(viewerId);
-		return new Result(result);
-	}
-
 }

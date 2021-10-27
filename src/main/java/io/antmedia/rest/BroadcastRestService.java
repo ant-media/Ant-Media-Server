@@ -1236,7 +1236,8 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result stopPlaying(@ApiParam(value = "the id of the webrtc viewer.", required = true) @PathParam("webrtc-viewer-id") String viewerId) 
 	{
-		return super.stopPlaying(viewerId);
+		boolean result = getApplication().stopPlaying(viewerId);
+		return new Result(result);
 	}
 	
 
