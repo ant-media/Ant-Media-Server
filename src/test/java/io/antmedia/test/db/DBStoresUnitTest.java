@@ -2808,6 +2808,12 @@ public class DBStoresUnitTest {
 	    for (int i = 0; i < total; i++) {
 			assertEquals(idList.get(i),  returningList.get(i).getViewerId());	
 		}
+	    
+		List<WebRTCViewerInfo> returningList2 = dataStore.getWebRTCViewerList(0, total, "viewerId", "asc", "a");
+		for (WebRTCViewerInfo webRTCViewerInfo : returningList2) {
+			assertTrue(webRTCViewerInfo.getViewerId().contains("a")||webRTCViewerInfo.getViewerId().contains("A"));
+		}
+	    
 		
 	    int deleted = 0;
 	    for (String id : idList) {
