@@ -17,7 +17,6 @@ import org.webrtc.SessionDescription.Type;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.IAntMediaStreamHandler;
@@ -47,7 +46,7 @@ public class WebSocketCommunityHandler {
 		this.appContext = appContext;
 		this.session = session;
 		appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
-		appAdaptor = ((IApplicationAdaptorFactory)appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+		appAdaptor = ((AntMediaApplicationAdapter)appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME));
 		
 		appName = appAdaptor.getScope().getName();
 	}

@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -237,7 +236,7 @@ public class StreamFetcher {
 			try {
 				inputFormatContext = new AVFormatContext(null); 
 				pkt = avcodec.av_packet_alloc();
-				logger.info("Preparing the StreamFetcher for {}", streamUrl);
+				logger.info("Preparing the StreamFetcher for {} for streamId:{}", streamUrl, streamId);
 				Result result = prepare(inputFormatContext);
 
 
@@ -447,7 +446,7 @@ public class StreamFetcher {
 			if (muxAdaptor != null) {
 				logger.info("Writing trailer in Muxadaptor {}", streamId);
 				muxAdaptor.writeTrailer();
-				appInstance.muxAdaptorRemoved(muxAdaptor);
+				getInstance().muxAdaptorRemoved(muxAdaptor);
 				muxAdaptor = null;
 			}
 
@@ -730,7 +729,7 @@ public class StreamFetcher {
 
 	public AntMediaApplicationAdapter getInstance() {
 		if (appInstance == null) {
-			appInstance = ((IApplicationAdaptorFactory) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+			appInstance = (AntMediaApplicationAdapter) scope.getContext().getApplicationContext().getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		}
 		return appInstance;
 	}

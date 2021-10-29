@@ -47,7 +47,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.SystemUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
@@ -587,11 +586,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		
 		if (appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)) 
 		{
-			Object bean = appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-			if (bean instanceof IApplicationAdaptorFactory) 
-			{
-				adaptor = ((IApplicationAdaptorFactory) bean).getAppAdaptor();
-			}
+			adaptor = (AntMediaApplicationAdapter)appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		}
 		
 		return adaptor;

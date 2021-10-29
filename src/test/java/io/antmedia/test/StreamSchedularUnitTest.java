@@ -369,7 +369,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		BroadcastRestService service = new BroadcastRestService();
 
-		service.setApplication(app.getAppAdaptor());
+		service.setApplication(app);
 		
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
@@ -388,14 +388,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		service.setDataStore(dataStore);
 		service.setAppCtx(context);
 		
-		app.getAppAdaptor().setDataStore(dataStore);
+		app.setDataStore(dataStore);
 		
 		
 		//create a stream Manager
 		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
 		//app.getAppAdaptor().getStreamFetcherManager();
 		
-		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
+		app.setStreamFetcherManager(streamFetcherManager);
 
 		//create a broadcast
 		PlayListItem broadcastItem1 = new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
@@ -567,7 +567,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		service.setAppCtx(context);
 		when(context.containsBean(Mockito.any())).thenReturn(false);
 
-		service.setApplication(app.getAppAdaptor());
+		service.setApplication(app);
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 
@@ -580,7 +580,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//create a stream fetcher
 		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
 
-		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
+		app.setStreamFetcherManager(streamFetcherManager);
 
 
 		Application.enableSourceHealthUpdate = true;
@@ -637,7 +637,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		BroadcastRestService service = new BroadcastRestService();
 
-		service.setApplication(app.getAppAdaptor());
+		service.setApplication(app);
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 
@@ -650,7 +650,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//create a stream fetcher
 		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
 
-		app.getAppAdaptor().setStreamFetcherManager(streamFetcherManager);
+		app.setStreamFetcherManager(streamFetcherManager);
 
 
 		Application.enableSourceHealthUpdate = true;
@@ -779,7 +779,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				e.printStackTrace();
 			}
 		}
-		DataStore dataStore = app.getAppAdaptor().getDataStore(); //new MapDBStore("target/test.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
+		DataStore dataStore = app.getDataStore(); //new MapDBStore("target/test.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
 		//assertNotNull(dataStore);
 
@@ -789,7 +789,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
 		// object updates the reference in inmemorydatastore
-		app.getAppAdaptor().getStreamFetcherManager().setDatastore(dataStore);
+		app.getStreamFetcherManager().setDatastore(dataStore);
 
 
 		logger.info("running testBandwidth");
@@ -820,10 +820,10 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		streams.add(newZombiSource);
 
 		//let stream fetching start
-		app.getAppAdaptor().getStreamFetcherManager().setStreamCheckerInterval(5000);
+		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
 		//do not restart if it fails
-		app.getAppAdaptor().getStreamFetcherManager().setRestartStreamAutomatically(false);
-		app.getAppAdaptor().getStreamFetcherManager().startStreams(streams);
+		app.getStreamFetcherManager().setRestartStreamAutomatically(false);
+		app.getStreamFetcherManager().startStreams(streams);
 
 
 
@@ -876,11 +876,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		resetNetworkInterface(findActiveInterface());
 
 		for (Broadcast broadcast: broadcastList) {
-			app.getAppAdaptor().getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
+			app.getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
 		}
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			return app.getAppAdaptor().getStreamFetcherManager().getStreamFetcherList().size() == 0;
+			return app.getStreamFetcherManager().getStreamFetcherList().size() == 0;
 		});
 
 		//list size should be zero
@@ -1086,7 +1086,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			
 			existingBroadcast.setStreamId(existingStreamSource);
 
-			DataStore dataStore = app.getAppAdaptor().getDataStore();
+			DataStore dataStore = app.getDataStore();
 			dataStore.save(existingBroadcast);
 			
 			StreamFetcherManager fetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
