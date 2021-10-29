@@ -1188,6 +1188,14 @@ public abstract class RestServiceBase {
 					if (!result) {
 						logger.warn("File is not deleted because it does not exist {}", videoFile.getAbsolutePath());
 					}
+					String thumbnailPath = voD.getThumbnailFilePath();
+					if(thumbnailPath != null){
+						File tmp = new File(thumbnailPath);
+						boolean resultThumbnail = Files.deleteIfExists(tmp.toPath());
+						if (!resultThumbnail) {
+							logger.warn("Preview is not deleted because it does not exist {}", tmp.getAbsolutePath());
+						}
+					}
 					success = getDataStore().deleteVod(id);
 					if (success) {
 						message = "vod deleted";
@@ -1263,7 +1271,7 @@ public abstract class RestServiceBase {
 					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
 
 					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
-							VoD.UPLOADED_VOD, vodId);
+							VoD.UPLOADED_VOD, vodId, null);
 
 					id = getDataStore().addVod(newVod);
 

@@ -368,7 +368,7 @@ public class InMemoryDataStore extends DataStore {
 
 					String vodId = RandomStringUtils.randomNumeric(24);
 					VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-							VoD.USER_VOD, vodId);
+							VoD.USER_VOD, vodId, null);
 
 					addVod(newVod);
 					numberOfSavedFiles++;

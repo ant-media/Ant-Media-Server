@@ -128,6 +128,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	private List<String> publishTimeoutStreamsList = new ArrayList<>();
 	private boolean shutdownProperly = true;
 
+	public String previewPath;
+
 	protected WebRTCVideoReceiveStats webRTCVideoReceiveStats = new WebRTCVideoReceiveStats();
 
 	protected WebRTCAudioReceiveStats webRTCAudioReceiveStats = new WebRTCAudioReceiveStats();
@@ -634,6 +636,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return null;
 	}
 
+	public void setPreviewPathForVod(String path){
+		this.previewPath = path;
+	}
+
 	@Override
 	public void muxingFinished(final String streamId, File file, long duration, int resolution) {
 		String vodName = file.getName();
@@ -660,7 +666,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		String vodId = RandomStringUtils.randomNumeric(24);
-		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId);
+		VoD newVod;
+		if(appSettings.isGeneratePreview()){
+			newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId, this.previewPath);
+		}
+		else{
+			newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId, null);
+		}
 
 		if (getDataStore().addVod(newVod) == null) {
 			logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
