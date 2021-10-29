@@ -93,12 +93,13 @@ public class HLSMuxer extends Muxer  {
 	private String subFolder = null;
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
+	private int S3_CONSTANT = 0b010;
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile, String s3StreamsFolderPath, int uploadExtensionsToS3) {
 		super(vertx);
 		this.storageClient = storageClient;
 
-		if((0b010 & uploadExtensionsToS3) == 0){
+		if((S3_CONSTANT& uploadExtensionsToS3) == 0){
 			uploadHLSToS3 = false;
 		}
 

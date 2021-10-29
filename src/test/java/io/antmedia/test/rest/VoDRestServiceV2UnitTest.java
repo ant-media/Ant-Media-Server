@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.bytedeco.javacpp.BytePointer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -31,7 +30,6 @@ import dev.morphia.Datastore;
 import dev.morphia.query.Query;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
@@ -184,15 +182,8 @@ public class VoDRestServiceV2UnitTest {
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
 		when(app.getScope()).thenReturn(scope);
 		
-		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
-			@Override
-			public AntMediaApplicationAdapter getAppAdaptor() {
-				return app;
-			}
-		};
-
 		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
 		restServiceReal.setAppCtx(context);
 
@@ -311,15 +302,8 @@ public class VoDRestServiceV2UnitTest {
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
 		when(app.getScope()).thenReturn(scope);
 		
-		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
-			@Override
-			public AntMediaApplicationAdapter getAppAdaptor() {
-				return app;
-			}
-		};
-
 		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
 		restServiceReal.setAppCtx(context);
 		
