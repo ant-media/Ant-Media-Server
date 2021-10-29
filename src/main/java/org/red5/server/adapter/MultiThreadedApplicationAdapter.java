@@ -573,7 +573,9 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 *         otherwise
 	 */
 	public boolean appStart(IScope app) {
-
+		if (log == null) {
+			log = Red5LoggerFactory.getLogger(this.getClass());
+		}
 		log.debug("appStart: {}", app);
 		for (IApplication listener : listeners) {
 			if (!listener.appStart(app)) {
