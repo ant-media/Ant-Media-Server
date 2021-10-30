@@ -11,6 +11,8 @@
 package org.webrtc.audio;
 
 import java.nio.ByteBuffer;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 
@@ -95,8 +97,8 @@ public class WebRtcAudioRecord {
 
   private IAudioRecordListener audioRecordListener;
   
-  private ByteBuffer encodedByteBuffer;
-
+  private Map<String, ByteBuffer> encodedByteBuffers = new LinkedHashMap<String, ByteBuffer>();
+ 
   /**
    * Audio thread which keeps calling ByteBuffer.read() waiting for audio
    * to be recorded. Feeds recorded data to the native counterpart as a
@@ -270,9 +272,6 @@ public class WebRtcAudioRecord {
 		// the native class cache the address to the memory once.
 		nativeCacheDirectBufferAddress(nativeAudioRecord, byteBuffer);
 
-		encodedByteBuffer = ByteBuffer.allocateDirect(byteBuffer.capacity()*10);
-		nativeCacheDirectBufferAddressForEncodedAudio(nativeAudioRecord, encodedByteBuffer);
-
 		return framesPerBuffer;
   }
 
@@ -313,9 +312,9 @@ public class WebRtcAudioRecord {
   private native void nativeDataIsRecorded(long nativeAudioRecordJni, int bytes);
   
   private native void nativeCacheDirectBufferAddressForEncodedAudio(
-			long nativeAudioRecordJni, ByteBuffer byteBuffer);
+			long nativeAudioRecordJni, String trackId, ByteBuffer byteBuffer);
 
-  private native void nativeEncodedDataIsReady(long nativeAudioRecordJni, int bytes);
+  public native void nativeEncodedDataIsReady(long nativeAudioRecordJni, String trackId, int bytes);
 
 
   // Sets all recorded samples to zero if |mute| is true, i.e., ensures that
@@ -496,15 +495,26 @@ public class WebRtcAudioRecord {
   /**
 	 * @param audio => 20ms of encoded audio data
 	 */
-	public void notifyEncodedData(ByteBuffer audio) {
+	public void notifyEncodedData(String trackId, ByteBuffer audio) {
+		ByteBuffer encodedByteBuffer = getEncodedByteBuffers().get(trackId);
+		if(encodedByteBuffer == null) {
+			encodedByteBuffer = ByteBuffer.allocateDirect(byteBuffer.capacity()*10);
+			nativeCacheDirectBufferAddressForEncodedAudio(nativeAudioRecord, trackId, encodedByteBuffer);
+			getEncodedByteBuffers().put(trackId, encodedByteBuffer);
+		}
+		
 		if (audio.limit() <= encodedByteBuffer.capacity()) {
 			encodedByteBuffer.clear();
 			audio.rewind();
 			encodedByteBuffer.put(audio);
-			nativeEncodedDataIsReady(nativeAudioRecord, audio.limit());
+			nativeEncodedDataIsReady(nativeAudioRecord, trackId, audio.limit());
 		}
 		else {
 			 logger.warn("Discarding audio packet because audio packet size({}) is bigger than buffer capacity{} and limit {}", audio.limit(), encodedByteBuffer.capacity(), encodedByteBuffer.limit());
 		}
+	}
+
+	public Map<String, ByteBuffer> getEncodedByteBuffers() {
+		return encodedByteBuffers;
 	}
 }

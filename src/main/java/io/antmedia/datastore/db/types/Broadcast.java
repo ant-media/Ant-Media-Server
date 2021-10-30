@@ -1,5 +1,6 @@
 package io.antmedia.datastore.db.types;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.types.ObjectId;
@@ -305,7 +306,7 @@ public class Broadcast {
 	private String mainTrackStreamId;
 
 	@ApiModelProperty(value = "If this broadcast is main track. This variable hold sub track ids.")
-	private List<String> subTrackStreamIds;
+	private List<String> subTrackStreamIds = new ArrayList<String>();
 
 	@ApiModelProperty(value = "Absolute start time in milliseconds - unix timestamp. It's used for measuring the absolute latency")
 	private long absoluteStartTimeMs;
