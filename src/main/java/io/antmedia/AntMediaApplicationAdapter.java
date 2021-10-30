@@ -15,10 +15,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-import java.util.regex.Pattern;
 
-
-import io.antmedia.storage.StorageClient;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -30,6 +27,7 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
+import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
@@ -44,12 +42,11 @@ import org.red5.server.stream.StreamService;
 import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 
+import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
@@ -77,6 +74,7 @@ import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
+import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
@@ -84,8 +82,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
 
-public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
-
+public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
+	
 	public static final String BEAN_NAME = "web.handler";
 
 	public static final int BROADCAST_STATS_RESET = 0;
@@ -123,7 +121,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	private StreamAcceptFilter streamAcceptFilter;
 	private AppSettings appSettings;
 	private Vertx vertx;
-	private IScope scope;
 
 	protected List<String> encoderBlockedStreams = new ArrayList<>();
 	private int numberOfEncoderNotOpenedErrors = 0;
@@ -148,8 +145,12 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	protected ArrayList<IStreamListener> streamListeners = new ArrayList<IStreamListener>();
 
+	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
+		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
+			registerStreamPublishSecurity(streamPublishSecurity);
+		}
 		vertx = (Vertx) app.getContext().getBean(VERTX_BEAN_NAME);
 
 		//initalize to access the data store directly in the code
@@ -265,6 +266,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		storageClient.setSecretKey(appSettings.getS3SecretKey());
 		storageClient.setEnabled(appSettings.isS3RecordingEnabled());
 		storageClient.setEndpoint(appSettings.getS3Endpoint());
+		storageClient.setPermission(appSettings.getS3Permission());
 
 
 
@@ -272,7 +274,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 		return true;
 	}
-
+	
 	/**
 	 * This method is called after ungraceful shutdown
 	 * @return
@@ -343,14 +345,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		return result;
 	}
 
-	public void streamBroadcastClose(IBroadcastStream stream) {
-		String streamName = stream.getPublishedName();
-		vertx.executeBlocking(future ->  { 
-			closeBroadcast(streamName); 
-			future.complete();
-		}, null);
-	}
-
 	public void closeBroadcast(String streamName) {
 
 		try {
@@ -365,7 +359,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					logger.info("Setting timer to call live stream ended hook for stream:{}",streamId );
-					vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null));
+					vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null));
 				}
 
 				stopPublishingSocialEndpoints(broadcast);
@@ -468,19 +462,21 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		return null;
 	}
 
-
-	public void streamPlayItemPlay(IPlayItem item, boolean isLive) {
+	@Override
+	public void streamPlayItemPlay(ISubscriberStream stream, IPlayItem item, boolean isLive) {
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(item.getName(), true));
 	}
-
-	public void streamPlayItemStop(IPlayItem item) {
+	@Override
+	public void streamPlayItemStop(ISubscriberStream stream, IPlayItem item) {
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(item.getName(), false));
 	}
 
+	@Override
 	public void streamSubscriberClose(ISubscriberStream stream) {
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(stream.getBroadcastStreamPublishName(), false));
 	}
 
+	@Override
 	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType) {
 		vertx.executeBlocking( handler -> {
 			try {
@@ -608,9 +604,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		}
 	}
 
-
-
-
 	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
@@ -683,7 +676,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			final String baseName = vodName.substring(0, index);
 			String finalListenerHookURL = listenerHookURL;
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			vertx.setTimer(10, e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId));
+			vertx.runOnContext(e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId));
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
@@ -953,7 +946,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	public Result stopStreaming(Broadcast broadcast) 
 	{
 		Result result = new Result(false);
-
+		logger.info("stopStreaming is called for stream:{}", broadcast.getStreamId());
 		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) 
@@ -981,18 +974,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 			}
 		}
 		return result;
-	}
-
-	public IBroadcastStream getBroadcastStream(IScope scope, String name) {
-		IStreamService service = (IStreamService) ScopeUtils.getScopeService(scope, IStreamService.class,
-				StreamService.class);
-		if (service instanceof StreamService) {
-			IBroadcastScope bs = ((StreamService) service).getBroadcastScope(scope, name);
-			if (bs != null) {
-				return bs.getClientBroadcastStream();
-			}
-		}
-		return null;
 	}
 
 	public OnvifCamera getOnvifCamera(String id) {
@@ -1289,17 +1270,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		return muxAdaptors;
 	}
 
-	public IScope getScope() {
-		return scope;
-	}
-
-
-	public void setScope(IScope scope) {
-		this.scope = scope;
-	}
-
-
-
+	
 	/**
 	 * Number of encoders blocked. 
 	 * @return
@@ -1452,7 +1423,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 
-	private boolean updateAppSettingsFile(String appName, AppSettings newAppsettings) 
+	public static boolean updateAppSettingsFile(String appName, AppSettings newAppsettings) 
 	{
 		/*
 		 * Remember remember the 23th of November
@@ -1475,7 +1446,8 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_HLS_ENABLE_LOW_LATENCY, String.valueOf(newAppsettings.islLHLSEnabled()));
 		store.put(AppSettings.SETTINGS_DASH_ENABLE_LOW_LATENCY, String.valueOf(newAppsettings.islLDashEnabled()));
 
-		
+		store.put(AppSettings.SETTINGS_RTSP_TIMEOUT_DURATION_MS, String.valueOf(newAppsettings.getRtspTimeoutDurationMs()));
+
 		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(newAppsettings.isAcceptOnlyStreamsInDataStore()));
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
 		store.put(AppSettings.SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishTokenControlEnabled()));
@@ -1483,6 +1455,9 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY, String.valueOf(newAppsettings.isTimeTokenSubscriberOnly()));
 		store.put(AppSettings.SETTINGS_ENABLE_TIME_TOKEN_PLAY, String.valueOf(newAppsettings.isEnableTimeTokenForPlay()));
 		store.put(AppSettings.SETTINGS_ENABLE_TIME_TOKEN_PUBLISH, String.valueOf(newAppsettings.isEnableTimeTokenForPublish()));
+
+		store.put(AppSettings.SETTINGS_ENDPOINT_HEALTH_CHECK_PERIOD_MS, String.valueOf(newAppsettings.getEndpointHealthCheckPeriodMs()));
+		store.put(AppSettings.SETTINGS_ENDPOINT_REPUBLISH_LIMIT, String.valueOf(newAppsettings.getEndpointRepublishLimit()));
 
 
 		store.put(AppSettings.SETTINGS_PUBLISH_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishJwtControlEnabled()));
@@ -1531,13 +1506,13 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
 		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
 		store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
-
+		store.put(AppSettings.SETTINGS_S3_PERMISSION, newAppsettings.getS3Permission() != null ? newAppsettings.getS3Permission() : "");
 
 		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
 		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
 
 		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE, newAppsettings.getHlsEncryptionKeyInfoFile() != null ? newAppsettings.getHlsEncryptionKeyInfoFile() : "");
-		store.put(AppSettings.SETTINGS_WEBHOOK_AUTHENTICATE_URL, String.valueOf(newAppsettings.getWebhookAuthenticateURL()));
+		store.put(AppSettings.SETTINGS_WEBHOOK_AUTHENTICATE_URL, newAppsettings.getWebhookAuthenticateURL() != null ? String.valueOf(newAppsettings.getWebhookAuthenticateURL()) : "");
 
 		store.put(AppSettings.SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING, String.valueOf(newAppsettings.isForceAspectRatioInTranscoding()));
 		return store.save();
@@ -1551,7 +1526,12 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setAddDateTimeToMp4FileName(newSettings.isAddDateTimeToMp4FileName());
 		appSettings.setHlsMuxingEnabled(newSettings.isHlsMuxingEnabled());
 		appSettings.setDashMuxingEnabled(newSettings.isDashMuxingEnabled());
-		
+
+		appSettings.setEndpointRepublishLimit(newSettings.getEndpointRepublishLimit());
+		appSettings.setEndpointHealthCheckPeriodMs(newSettings.getEndpointHealthCheckPeriodMs());
+
+		appSettings.setRtspTimeoutDurationMs(newSettings.getRtspTimeoutDurationMs());
+
 		appSettings.setHlsEnabledViaDash(newSettings.isHlsEnabledViaDash());
 		appSettings.setlLHLSEnabled(newSettings.islLHLSEnabled());
 		appSettings.setlLDashEnabled(newSettings.islLDashEnabled());
@@ -1612,6 +1592,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		appSettings.setS3BucketName(newSettings.getS3BucketName());
 		appSettings.setS3RegionName(newSettings.getS3RegionName());
 		appSettings.setS3Endpoint(newSettings.getS3Endpoint());
+		appSettings.setS3Permission(newSettings.getS3Permission());
 
 
 		storageClient.setEndpoint(newSettings.getS3Endpoint());
@@ -1620,6 +1601,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		storageClient.setSecretKey(newSettings.getS3SecretKey());
 		storageClient.setRegion(newSettings.getS3RegionName());
 		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
+		storageClient.setPermission(newSettings.getS3Permission());
 		storageClient.reset();
 		
 		
@@ -1687,8 +1669,6 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 	}
 
 	public void removeFrameListener(String streamId, IFrameListener listener) {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override
@@ -1700,6 +1680,7 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 		this.storageClient = storageClient;
 	}
 
+	@Override
 	public void streamPublishStart(IBroadcastStream stream) {
 		saveBroadcast(stream.getPublishedName(), ((ClientBroadcastStream)stream).getAbsoluteStartTimeMs() , MuxAdaptor.PUBLISH_TYPE_RTMP, getDataStore().get(stream.getPublishedName()));
 	}
@@ -1710,6 +1691,15 @@ public class AntMediaApplicationAdapter implements IAntMediaStreamHandler, IShut
 
 	public void removeStreamListener(IStreamListener listener) {
 		streamListeners.remove(listener);
+	}
+
+	public void deleteDBInSeconds() {
+		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l->getDataStore().delete());
+	}
+
+	public void stopPublish(String streamId) {
+		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
+		
 	}
 
 }

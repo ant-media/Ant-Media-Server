@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -19,6 +20,7 @@ import java.io.InputStream;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +49,7 @@ import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.DataStore;
@@ -253,6 +255,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
 		spyAdapter.setScope(scope);
 		spyAdapter.setAppSettings(new AppSettings());
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
 		
 		
 		// Add 1. Broadcast
@@ -1137,6 +1140,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		settings.setStartStreamFetcherAutomatically(true);
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
+		
 		spyAdapter.appStart(scope);
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
@@ -1168,13 +1173,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(context.getApplicationContext()).thenReturn(appContext);
 		
 		
-		Application appFactor = Mockito.mock(Application.class);
-		when(appFactor.getAppAdaptor()).thenReturn(spyAdapter);
+		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 		spyAdapter.setServerSettings(new ServerSettings());
 		spyAdapter.setAppSettings(new AppSettings());
 		spyAdapter.setDataStore(dataStore);
 		
-		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appFactor);
+		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
 		
 		when(appContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
@@ -1255,6 +1259,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		settings.setStartStreamFetcherAutomatically(false);
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
+		
 		spyAdapter.appStart(scope);
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
@@ -1299,7 +1305,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(clusterStore.getSettings(Mockito.any())).thenReturn(null);
 		when(context.getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME)).thenReturn(Mockito.mock(AcceptOnlyStreamsInDataStore.class));
 		spyAdapter.setServerSettings(new ServerSettings());
-		
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
 		
 		spyAdapter.appStart(scope);
 		
@@ -1328,5 +1334,14 @@ public class AntMediaApplicationAdaptorUnitTest {
 	
 		
 	}
+	
+	@Test
+	public void testAppDeletion() {
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("test"));
+		adapter.setDataStore(dataStore);
+		adapter.deleteDBInSeconds();
+		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).delete();
+	}
+	
 
 }

@@ -609,9 +609,10 @@ public class RestServiceV2 extends CommonRestService {
 	@Path("/applications/{appName}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result deleteApplication(@ApiParam(value = "Name of the application to delete", required = true) @PathParam("appName") String appName) {
+	public Result deleteApplication(@ApiParam(value = "Name of the application to delete", required = true) @PathParam("appName") String appName, 
+			@QueryParam("deleteDB") boolean deleteDB) {
 		if (appName != null) {
-			return super.deleteApplication(appName);
+			return super.deleteApplication(appName, deleteDB);
 		}
 		return new Result(false, "Application name is not defined");
 	}

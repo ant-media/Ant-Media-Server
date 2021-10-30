@@ -59,7 +59,6 @@ import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -436,16 +435,9 @@ public class BroadcastRestServiceV2UnitTest {
 
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
 		when(app.getScope()).thenReturn(scope);
-		
-		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
-			@Override
-			public AntMediaApplicationAdapter getAppAdaptor() {
-				return app;
-			}
-		};
 
 		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 		restServiceReal.setAppCtx(context);
 
 		InMemoryDataStore dataStore = new InMemoryDataStore("testdb");
@@ -1752,6 +1744,31 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNotNull(createBroadcast.getName());
 		assertNotNull(createBroadcast.getStatus());
 		assertNull(createBroadcast.getListenerHookURL());
+		
+		
+		broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId("  12345 ");
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		createBroadcast = (Broadcast) restServiceReal.createBroadcast(broadcast, null, false).getEntity();
+		assertEquals("12345", createBroadcast.getStreamId());
+		
+		
+		try {
+			broadcast = Mockito.spy(new Broadcast());
+			broadcast.setStreamId("111");
+			Mockito.doThrow(NullPointerException.class).when(broadcast).setStreamId(Mockito.anyString());
+			Result result = (Result) restServiceReal.createBroadcast(broadcast, null, false).getEntity();
+			assertFalse(result.isSuccess());
+			
+		}
+		catch (Exception e) {
+			fail(e.getMessage());
+		}
 
 		Broadcast createBroadcast2 = (Broadcast) restServiceReal.createBroadcast(null, null, false).getEntity();
 

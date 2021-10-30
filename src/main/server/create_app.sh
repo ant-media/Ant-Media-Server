@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "Please use the POST REST method (/applications/{appName}) to create an application."
+
 usage() {
   echo "Usage:"
   echo "$0 -n APPLICATION_NAME [-p INSTALLATION_PATH] [-w true|false] [-c true|false]"

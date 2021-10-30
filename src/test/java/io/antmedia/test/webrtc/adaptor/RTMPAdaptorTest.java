@@ -39,13 +39,12 @@ import org.webrtc.JavaI420Buffer;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
-import org.webrtc.VideoFrame;
 import org.webrtc.SessionDescription.Type;
+import org.webrtc.VideoFrame;
 import org.webrtc.audio.WebRtcAudioTrack;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.recorder.FFmpegFrameRecorder;
 import io.antmedia.recorder.Frame;
@@ -300,14 +299,12 @@ public class RTMPAdaptorTest {
 		
 		ApplicationContext context = mock(ApplicationContext.class);
 		
-		IApplicationAdaptorFactory appFactory = Mockito.mock(IApplicationAdaptorFactory.class);
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
-		when(appFactory.getAppAdaptor()).thenReturn(adaptor);
 		IScope scope = Mockito.mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
 
 		when(adaptor.getScope()).thenReturn(scope);
-		when(context.getBean("web.handler")).thenReturn(appFactory);
+		when(context.getBean("web.handler")).thenReturn(adaptor);
 
 		
 		
