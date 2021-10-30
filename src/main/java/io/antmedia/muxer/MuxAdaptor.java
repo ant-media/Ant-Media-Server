@@ -891,6 +891,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					logger.warn("closing adaptor for {} ", streamId);
 					closeResources();
 					logger.warn("closed adaptor for {}", streamId);
+					getStreamHandler().stopPublish(streamId);
 					isPipeReaderJobRunning.compareAndSet(true, false);
 					return;
 
@@ -1010,6 +1011,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.warn("closing adaptor for {} ", streamId);
 				closeResources();
 				logger.warn("closed adaptor for {}", streamId);
+				getStreamHandler().stopPublish(streamId);
 			}	
 
 

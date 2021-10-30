@@ -439,7 +439,6 @@ public class MongoStore extends DataStore {
 	public void close() {
 		synchronized(this) {
 			available = false;
-			datastore.getMongo().close();
 		}
 	}
 
@@ -1512,5 +1511,22 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return totalWebRTCViewerCount;
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public void delete() {
+		synchronized(this) {
+			
+			MongoClient mongoClient = tokenDatastore.getMongo();
+			
+			mongoClient.getDatabase(tokenDatastore.getDB().getName()).drop();
+			mongoClient.getDatabase(subscriberDatastore.getDB().getName()).drop();
+			mongoClient.getDatabase(datastore.getDB().getName()).drop();
+			mongoClient.getDatabase(vodDatastore.getDB().getName()).drop();
+			mongoClient.getDatabase(endpointCredentialsDS.getDB().getName()).drop();
+			mongoClient.getDatabase(detectionMap.getDB().getName()).drop();
+			mongoClient.getDatabase(conferenceRoomDatastore.getDB().getName()).drop();
+		}
 	}
 }

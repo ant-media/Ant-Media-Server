@@ -147,6 +147,7 @@ public class StreamFetcherManager {
 			try {
 				streamScheduler = make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(restartStreamAutomatically);
+				streamScheduler.setDataStore(getDatastore());
 
 				result = startStreamScheduler(streamScheduler);
 			}

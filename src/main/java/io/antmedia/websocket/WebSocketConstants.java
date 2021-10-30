@@ -310,7 +310,7 @@ public class WebSocketConstants {
 	 * Error definition, it's send when remote description is not set, it's generally due to 
 	 * encoder incompatibilities
 	 */
-	public static final Object NOT_SET_REMOTE_DESCRIPTION = "notSetRemoteDescription";
+	public static final String NOT_SET_REMOTE_DESCRIPTION = "notSetRemoteDescription";
 	
 	/**
 	 * P2P Mode used in session user parameters
@@ -420,5 +420,10 @@ public class WebSocketConstants {
 	 * It's sent for conference in legacy mode
 	 */
 	public static final String LEGACY = "legacy";
+
+	/**
+	 * It's sent for the restored webrtc publish sessions
+	 */
+	public static final String SESSION_RESTORED_DESCRIPTION = "session_restored";
 
 }

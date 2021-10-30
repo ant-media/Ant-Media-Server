@@ -2,10 +2,19 @@ package io.antmedia.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.List;
 
 import org.apache.catalina.util.NetMask;
@@ -18,6 +27,7 @@ import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.rest.RestServiceBase;
@@ -61,6 +71,39 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
 		System.out.println("allowedCIDRList ->" + allowedCIDRList.size());
+	}
+	
+	@Test
+	public void testAppSettingsFileWebhookAuthenticateURL() {
+		AppSettings appSettings = new AppSettings();
+		
+		File f = new File("webapps/junit/WEB-INF/");
+		f.mkdirs();
+		File propertiesFile = new File(f.getAbsolutePath(), "red5-web.properties");
+		propertiesFile.delete();
+		
+		
+		try {
+			f.createNewFile();
+			AntMediaApplicationAdapter.updateAppSettingsFile("junit", appSettings);
+			BufferedReader br = new BufferedReader(new FileReader(propertiesFile.getAbsolutePath()));
+			
+			String readLine=null;
+			while ((readLine = br.readLine()) != null) {
+				assertNotEquals("settings.webhookAuthenticateURL=null", readLine);
+			}
+			
+			br.close();
+			
+			
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
 	}
 	
 	/*
