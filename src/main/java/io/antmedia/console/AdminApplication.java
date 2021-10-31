@@ -353,7 +353,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 
 
-	public boolean runCommand(String command) {
+	public static boolean runCommand(String command) {
 
 		boolean result = false;
 		try {

@@ -208,6 +208,7 @@ public class SupportRestService {
 		catch (IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		} 
+		
 	}
 
 	public static void appendErrorFromJournal(List<String> files, String journalErrorLogFile) {
