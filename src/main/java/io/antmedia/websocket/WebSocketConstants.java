@@ -389,6 +389,12 @@ public class WebSocketConstants {
 	 * It's sent when license is suspended
 	 */
 	public static final String LICENCE_SUSPENDED = "license_suspended_please_renew_license";
+	
+	/**
+	 * It's sent to determine mainTrackId if exists
+	 */
+	public static final String MAIN_TRACK = "mainTrack";
+
 
 	/**
 	 * It's sent as parameter conference mode
@@ -404,6 +410,11 @@ public class WebSocketConstants {
 	 * It's sent for conference in Audio Only MCU mode
 	 */
 	public static final String AMCU = "amcu";
+	
+	/**
+	 * It's sent for conference in MCU mode
+	 */
+	public static final String MULTI_TRACK = "multitrack";
 	
 	/**
 	 * It's sent for conference in legacy mode
