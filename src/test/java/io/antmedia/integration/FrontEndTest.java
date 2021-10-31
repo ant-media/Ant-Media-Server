@@ -126,7 +126,8 @@ public class FrontEndTest {
     @After
     public void stop(){
         logger.info("Closing the driver");
-        this.driver.quit();
+        if(this.driver != null)
+            this.driver.quit();
     }
 
     @Test
