@@ -136,10 +136,9 @@ public class FrontEndTest {
         ChromeOptions chrome_options = new ChromeOptions();
         chrome_options.addArguments("--disable-extensions");
         chrome_options.addArguments("--disable-gpu");
-        chrome_options.addArguments("--headless");
+        //chrome_options.addArguments("--headless");
         chrome_options.addArguments("--use-fake-ui-for-media-stream",
-                "--use-fake-device-for-media-stream",
-                "--use-file-for-fake-video-capture=src/test/resources/bunny.mjpeg");
+                "--use-fake-device-for-media-stream");
         chrome_options.addArguments("--no-sandbox");
         chrome_options.addArguments("--log-level=1");
         LoggingPreferences logPrefs = new LoggingPreferences();
