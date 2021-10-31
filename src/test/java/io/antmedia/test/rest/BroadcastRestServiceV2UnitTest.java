@@ -2894,7 +2894,7 @@ public class BroadcastRestServiceV2UnitTest {
 		datastore.save(subtrack);
 		broadcastRestService.setDataStore(datastore);
 
-		assertNull(mainTrack.getSubTrackStreamIds());
+		assertTrue(mainTrack.getSubTrackStreamIds().isEmpty());
 		assertNull(subtrack.getMainTrackStreamId());
 		
 		broadcastRestService.addSubTrack(mainTrackId, subTrackId);

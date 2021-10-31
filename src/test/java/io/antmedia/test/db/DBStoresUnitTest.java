@@ -2666,7 +2666,7 @@ public class DBStoresUnitTest {
 		dataStore.save(mainTrack);
 		dataStore.save(subtrack);
 
-		assertNull(mainTrack.getSubTrackStreamIds());
+		assertTrue(mainTrack.getSubTrackStreamIds().isEmpty());
 		assertNull(subtrack.getMainTrackStreamId());
 
 		subtrack.setMainTrackStreamId(mainTrackId);

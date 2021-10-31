@@ -310,7 +310,7 @@ public class WebSocketConstants {
 	 * Error definition, it's send when remote description is not set, it's generally due to 
 	 * encoder incompatibilities
 	 */
-	public static final Object NOT_SET_REMOTE_DESCRIPTION = "notSetRemoteDescription";
+	public static final String NOT_SET_REMOTE_DESCRIPTION = "notSetRemoteDescription";
 	
 	/**
 	 * P2P Mode used in session user parameters
@@ -389,6 +389,12 @@ public class WebSocketConstants {
 	 * It's sent when license is suspended
 	 */
 	public static final String LICENCE_SUSPENDED = "license_suspended_please_renew_license";
+	
+	/**
+	 * It's sent to determine mainTrackId if exists
+	 */
+	public static final String MAIN_TRACK = "mainTrack";
+
 
 	/**
 	 * It's sent as parameter conference mode
@@ -406,8 +412,18 @@ public class WebSocketConstants {
 	public static final String AMCU = "amcu";
 	
 	/**
+	 * It's sent for conference in MCU mode
+	 */
+	public static final String MULTI_TRACK = "multitrack";
+	
+	/**
 	 * It's sent for conference in legacy mode
 	 */
 	public static final String LEGACY = "legacy";
+
+	/**
+	 * It's sent for the restored webrtc publish sessions
+	 */
+	public static final String SESSION_RESTORED_DESCRIPTION = "session_restored";
 
 }
