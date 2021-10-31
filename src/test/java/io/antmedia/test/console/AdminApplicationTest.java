@@ -93,15 +93,12 @@ public class AdminApplicationTest {
 	public void testRunCommand() {
 		MockedStatic<AdminApplication> app = Mockito.mockStatic(AdminApplication.class);// Mockito.spy(new AdminApplication());
 
-
 		Process process = Mockito.mock(Process.class);
-
 
 		app.when(()->AdminApplication.getProcess(Mockito.anyString())).thenThrow(new IOException());
 
 		boolean runCommand = AdminApplication.runCommand("");
 		assertFalse(runCommand);
-
 
 		app.when(()->AdminApplication.getProcess(Mockito.anyString())).thenReturn(process);
 

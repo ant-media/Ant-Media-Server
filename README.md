@@ -94,7 +94,7 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 - Upgrade Tomcat to 8.5.69 and don't use native Tomcat libraries(Because it causes crash in some cases)
 - Support re-connecting to the same session in a specific timeout after the publisher is disconnected. 
 
-[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.4.0)
+[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.4.0.2)
 
 
 
