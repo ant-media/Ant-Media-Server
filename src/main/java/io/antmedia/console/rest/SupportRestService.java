@@ -7,6 +7,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -39,6 +41,7 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 import com.google.gson.Gson;
 
 import io.antmedia.SystemUtils;
+import io.antmedia.console.AdminApplication;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
@@ -169,15 +172,21 @@ public class SupportRestService {
 
 		List<String> files = new ArrayList<>();
 
-		File serverLogFile = new File("log/ant-media-server.log");
-		File errorLogFile = new File("log/antmedia-error.log");
+		String serverLogFile = "log/ant-media-server.log";
+		String errorLogFile = "log/antmedia-error.log";
+		String journalErrorLogFile = "log/antmedia-error-journalctl.log";
+		
+		if(Files.exists(Paths.get(serverLogFile))) {
+			files.add(serverLogFile);
+		}
 
-		if(serverLogFile.exists()) {
-			files.add("log/ant-media-server.log");
+		if(Files.exists(Paths.get(errorLogFile))) {
+			files.add(errorLogFile);
 		}
-		if(errorLogFile.exists()) {
-			files.add("log/antmedia-error.log");
-		}
+
+		//get journalctl output
+		appendErrorFromJournal(files, journalErrorLogFile); 
+
 
 		// your directory
 		File f = new File(".");
@@ -189,7 +198,7 @@ public class SupportRestService {
 
 
 		try ( FileOutputStream fos = new FileOutputStream(LOG_FILE);
-			  ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(fos))) 
+				ZipOutputStream zipOut = new ZipOutputStream(new BufferedOutputStream(fos))) 
 		{
 			for(String filePath:files){
 				File input = new File(filePath);
@@ -199,6 +208,27 @@ public class SupportRestService {
 		catch (IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		} 
+	}
+
+	public static void appendErrorFromJournal(List<String> files, String journalErrorLogFile) {
+		try {
+
+			Process process = AdminApplication.getProcess("/bin/bash journalctl -u antmedia.service -S -3d -o short-full > " + journalErrorLogFile);
+			process.waitFor();
+
+			if (Files.exists(Paths.get(journalErrorLogFile))) {
+				files.add(journalErrorLogFile);
+			}
+
+
+		} catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		catch (InterruptedException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			Thread.currentThread().interrupt();
+
+		}
 	}
 
 	private static void addZipEntry(ZipOutputStream zipOut, File input) {

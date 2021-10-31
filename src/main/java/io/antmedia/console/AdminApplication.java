@@ -370,7 +370,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return result;
 	}
 
-	public Process getProcess(String command) throws IOException {
+	public static Process getProcess(String command) throws IOException {
 		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
 		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
 		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
