@@ -201,6 +201,22 @@ public class VoDRestServiceV2UnitTest {
 
 		assertNull(datastore.getVoD(vodId));
 
+		vodId = RandomStringUtils.randomNumeric(24);
+		//Preview does not exist path
+		streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD, vodId, "/fake/path/doesnotexist");
+		datastore.addVod(streamVod);
+
+		assertNotNull(datastore.getVoD(vodId));
+
+		voD = restServiceReal.getVoD(vodId);
+		assertEquals(streamVod.getThumbnailFilePath(), voD.getThumbnailFilePath());
+
+		assertEquals(1, restServiceReal.getVodList(0, 50, null, null, null, null).size());
+
+		restServiceReal.deleteVoD(vodId);
+
+		assertEquals(0, restServiceReal.getVodList(0, 50, null, null, null, null).size());
+
 	}
 
 

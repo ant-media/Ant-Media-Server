@@ -364,10 +364,48 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
+	public void testMuxingFinishedWithPreview(){
+		AppSettings appSettings = new AppSettings();
+		appSettings.setGeneratePreview(true);
+		appSettings.setMuxerFinishScript("src/test/resources/echo.sh");
+
+		adapter.setAppSettings(appSettings);
+		File f = new File ("src/test/resources/hello_script");
+
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		adapter.setDataStoreFactory(dsf);
+
+		adapter.setVertx(vertx);
+
+		File anyFile = new File("src/test/resources/sample_MP4_480.mp4");
+
+		File preview = new File("src/test/resources/preview.png");
+
+		assertFalse(f.exists());
+
+		adapter.setPreviewPathForVod("src/test/resources/sample_MP4_480.mp4");
+
+		adapter.muxingFinished("streamId", anyFile, 100, 480);
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
+
+		try {
+			Files.delete(f.toPath());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+
+	@Test
 	public void testMuxingFinished() {
 
 		AppSettings appSettings = new AppSettings();
 		appSettings.setMuxerFinishScript("src/test/resources/echo.sh");
+
 		adapter.setAppSettings(appSettings);
 		File f = new File ("src/test/resources/hello_script");
 
