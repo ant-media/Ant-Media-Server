@@ -367,6 +367,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				stopPublishingSocialEndpoints(broadcast);
 
 				if (broadcast.isZombi()) {
+					if(broadcast.getMainTrackStreamId() != null && !broadcast.getMainTrackStreamId().isEmpty()) {
+						updateMainBroadcast(broadcast);
+					}
 					getDataStore().delete(streamName);
 				}
 				else {
@@ -380,6 +383,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+	}
+
+	public void updateMainBroadcast(Broadcast broadcast) {
+		Broadcast mainBroadcast = getDataStore().get(broadcast.getMainTrackStreamId());
+		mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
+		if(mainBroadcast.getSubTrackStreamIds().isEmpty() && mainBroadcast.isZombi()) {
+			getDataStore().delete(mainBroadcast.getStreamId());
+		}
+		else {
+			getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
 		}
 	}
 
@@ -607,12 +621,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType) {		
+		return saveUndefinedBroadcast(streamId, streamName, appAdapter, streamStatus, absoluteStartTimeMs, publishType, "");
+	}
+
+	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
 		newBroadcast.setStartTime(now);
 		newBroadcast.setZombi(true);
 		newBroadcast.setName(streamName);
+		newBroadcast.setMainTrackStreamId(mainTrackStreamId);
 		try {
 			newBroadcast.setStreamId(streamId);
 			newBroadcast.setPublishType(publishType);

@@ -879,7 +879,8 @@ public class MongoStore extends DataStore {
 				ops.set("userAgent", broadcast.getUserAgent());
 				ops.set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit());
 				ops.set("hlsViewerLimit", broadcast.getHlsViewerLimit());
-				
+				ops.set("subTrackStreamIds", broadcast.getSubTrackStreamIds());
+
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
 			} catch (Exception e) {
