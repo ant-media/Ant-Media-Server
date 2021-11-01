@@ -353,7 +353,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 
 
-	public static boolean runCommand(String command) {
+	public boolean runCommand(String command) {
 
 		boolean result = false;
 		try {
@@ -370,7 +370,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return result;
 	}
 
-	public static Process getProcess(String command) throws IOException {
+	public Process getProcess(String command) throws IOException {
 		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
 		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
 		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);

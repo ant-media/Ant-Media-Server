@@ -9,7 +9,6 @@ import java.io.IOException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
@@ -23,20 +22,20 @@ import io.antmedia.datastore.db.types.VoD;
 import io.vertx.core.Vertx;
 
 public class AdminApplicationTest {
-
+	
 	static Vertx vertx;
-
+	
 	@BeforeClass
 	public static void beforeClass() {
 		vertx = Vertx.vertx();
 	}
-
+	
 	@AfterClass
 	public static void afterClass() {
 		vertx.close();
 	}
-
-
+	
+	
 	@Test
 	public void testCreateDeleteApplication() 
 	{
@@ -46,24 +45,24 @@ public class AdminApplicationTest {
 		WarDeployer warDeployer = Mockito.mock(WarDeployer.class);
 		app.setWarDeployer(warDeployer);
 		app.createApplication("test");
-
+		
 		Mockito.verify(app).runCreateAppScript("test");
 		Mockito.verify(warDeployer, Mockito.timeout(4000)).deploy(true);
-
-
+		
+		
 		//delete application
 		WebScope rootScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(rootScope).when(app).getRootScope();
-
+		
 		WebScope appScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(appScope).when(rootScope).getScope(Mockito.anyString());
-
+		
 		AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adapter).when(app).getApplicationAdaptor(Mockito.any());
-
+		
 		boolean result = app.deleteApplication("test", true);
 		assertFalse(result);
-
+		
 		Mockito.verify(adapter).serverShuttingdown();
 		try {
 			Mockito.verify(appScope).destroy();
@@ -74,8 +73,8 @@ public class AdminApplicationTest {
 		Mockito.verify(adapter).deleteDBInSeconds();
 		Mockito.verify(warDeployer).undeploy("test");
 
-
-
+		
+		
 		try {
 			Mockito.doThrow(new Exception()).when(appScope).destroy();
 		} catch (Exception e) {
@@ -83,84 +82,95 @@ public class AdminApplicationTest {
 			fail(e.getMessage());
 		}
 		Mockito.doReturn(true).when(app).runDeleteAppScript(Mockito.any());
-
+		
 		result = app.deleteApplication("test", false);
 		assertFalse(result);
-
+		
 	}
-
+	
 	@Test
 	public void testRunCommand() {
-		MockedStatic<AdminApplication> app = Mockito.mockStatic(AdminApplication.class);// Mockito.spy(new AdminApplication());
-
+		AdminApplication app = Mockito.spy(new AdminApplication());
+		
 		Process process = Mockito.mock(Process.class);
-
-		app.when(()->AdminApplication.getProcess(Mockito.anyString())).thenThrow(new IOException());
-
-		boolean runCommand = AdminApplication.runCommand("");
+		
+		
+		try {
+			Mockito.doThrow(new IOException()).when(app).getProcess(Mockito.anyString());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		boolean runCommand = app.runCommand("");
 		assertFalse(runCommand);
-
-		app.when(()->AdminApplication.getProcess(Mockito.anyString())).thenReturn(process);
-
-
+		
+		
+		try {
+			Mockito.doReturn(process).when(app).getProcess(Mockito.anyString());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
 		try {
 			Mockito.doThrow(new InterruptedException()).when(process).waitFor();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-
-		runCommand = AdminApplication.runCommand("");
+		
+		runCommand = app.runCommand("");
 		assertFalse(runCommand);
-
+			
 	}
-
+	
 	@Test
 	public void testLiveStreamCount() {
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 		AdminApplication adminApplication = Mockito.spy(new AdminApplication());
-
+		
 		Mockito.doReturn(adaptor).when(adminApplication).getApplicationAdaptor(Mockito.any());
 		InMemoryDataStore dataStore = new InMemoryDataStore("junit");
 		Mockito.when(adaptor.getDataStore()).thenReturn(dataStore);
 		assertEquals(0, adminApplication.getAppLiveStreamCount(Mockito.mock(IScope.class)));
-
-
+		
+		
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		String id = dataStore.save(broadcast);
 		assertEquals(1, dataStore.getActiveBroadcastCount());
-
+		
 		assertEquals(1, adminApplication.getAppLiveStreamCount(Mockito.mock(IScope.class)));
-
+		
 		dataStore.save(new Broadcast());
 		assertEquals(1, adminApplication.getAppLiveStreamCount(Mockito.mock(IScope.class)));
-
+		
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 		dataStore.updateBroadcastFields(id, broadcast);
-
+		
 		assertEquals(0, adminApplication.getAppLiveStreamCount(Mockito.mock(IScope.class)));
-
-
+		
+		
 	}
-
+	
 	@Test
 	public void testVodCount() {
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 		AdminApplication adminApplication = Mockito.spy(new AdminApplication());
-
+		
 		Mockito.doReturn(adaptor).when(adminApplication).getApplicationAdaptor(Mockito.any());
 		InMemoryDataStore dataStore = new InMemoryDataStore("junit");
 		Mockito.when(adaptor.getDataStore()).thenReturn(dataStore);
-
+		
 		assertEquals(0, adminApplication.getVoDCount(Mockito.mock(IScope.class)));
-
+		
 		String id = dataStore.addVod(Mockito.mock(VoD.class));
-
+		
 		assertEquals(1, adminApplication.getVoDCount(Mockito.mock(IScope.class)));
-
+		
 		dataStore.deleteVod(id);
-
+		
 		assertEquals(0, adminApplication.getVoDCount(Mockito.mock(IScope.class)));
 	}
 

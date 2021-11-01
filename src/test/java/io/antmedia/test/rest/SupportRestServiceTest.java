@@ -14,6 +14,8 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Test;
+
+import io.antmedia.console.AdminApplication;
 import io.antmedia.console.rest.SupportRestService;
 
 public class SupportRestServiceTest {
@@ -39,7 +41,10 @@ public class SupportRestServiceTest {
 		String logFile = "log/antmedia-error-journalctl.log";
 		File f = new File(logFile);
 		f.getParentFile().mkdirs();
-		SupportRestService.appendErrorFromJournal(files, logFile);
+		
+		AdminApplication app = new AdminApplication();
+		
+		SupportRestService.appendErrorFromJournal(files, logFile, app);
 
 		try {
 			byte[] bytes = Files.readAllBytes(Paths.get(logFile));
@@ -56,6 +61,7 @@ public class SupportRestServiceTest {
 	@Test
 	public void testZipFile() 
 	{
+		AdminApplication app = new AdminApplication();
 		File f = new File(SupportRestService.LOG_FILE);
 		try { 
 			Files.deleteIfExists(f.toPath()); 
@@ -67,7 +73,7 @@ public class SupportRestServiceTest {
 
 		{
 			assertFalse(f.exists());
-			SupportRestService.zipFile();
+			SupportRestService.zipFile(app);
 			assertTrue(f.exists());
 
 		}		
@@ -96,7 +102,7 @@ public class SupportRestServiceTest {
 
 		{
 			assertFalse(f.exists());
-			SupportRestService.zipFile();
+			SupportRestService.zipFile(app);
 			assertTrue(f.exists());
 		}	
 
@@ -118,7 +124,7 @@ public class SupportRestServiceTest {
 				fail(e.getMessage());
 			}
 			assertFalse(f.exists());
-			SupportRestService.zipFile();
+			SupportRestService.zipFile(app);
 			assertTrue(f.exists());
 		}	
 
