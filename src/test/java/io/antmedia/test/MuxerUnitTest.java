@@ -32,6 +32,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,8 +43,10 @@ import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -52,6 +55,7 @@ import io.antmedia.storage.AmazonS3StorageClient;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
 import org.awaitility.Awaitility;
+import org.bouncycastle.util.Times;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -2852,5 +2856,38 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//it should be false because there is no video and audio in the stream.
 		assertFalse(muxAdaptor.isRecording());
 
+	}
+	
+	@Test
+	public void testRegisterRTMPStreamToMainTrack() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		ClientBroadcastStream clientBroadcastStream1 = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream1.setCodecInfo(info);
+		Map<String, String> params1 = new HashMap<String, String>();
+		params1.put("mainTrack", "someExistingStreamId");
+		clientBroadcastStream1.setParameters(params1);
+		MuxAdaptor muxAdaptor1 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream1, false, appScope));
+		muxAdaptor1.setStreamId("stream1");
+		DataStore ds1 = mock(DataStore.class);
+		doReturn(ds1).when(muxAdaptor1).getDataStore();
+		doReturn(new Broadcast()).when(muxAdaptor1).getBroadcast();
+		muxAdaptor1.registerToMainTrackIfExists();
+		verify(ds1, times(1)).updateBroadcastFields(anyString(), any());
+
+		
+		ClientBroadcastStream clientBroadcastStream2 = new ClientBroadcastStream();
+		clientBroadcastStream2.setCodecInfo(info);
+		MuxAdaptor muxAdaptor2 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream2, false, appScope));
+		muxAdaptor2.setStreamId("stream2");
+		DataStore ds2 = mock(DataStore.class);
+		doReturn(ds2).when(muxAdaptor2).getDataStore();
+		muxAdaptor2.registerToMainTrackIfExists();
+		verify(ds2, never()).updateBroadcastFields(anyString(), any());
 	}
 }

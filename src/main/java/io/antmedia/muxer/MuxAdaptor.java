@@ -582,8 +582,21 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		prepareMuxerIO();
-
+		
+		registerToMainTrackIfExists();
 		return true;
+	}
+
+
+	public void registerToMainTrackIfExists() {
+		if(broadcastStream.getParameters() != null) {
+			String mainTrack = broadcastStream.getParameters().get("mainTrack");
+			if(mainTrack != null) {
+				Broadcast broadcastLocal = getBroadcast();
+				broadcastLocal.setMainTrackStreamId(mainTrack);
+				getDataStore().updateBroadcastFields(streamId, broadcastLocal);
+			}
+		}
 	}
 
 
