@@ -153,6 +153,9 @@ public class StreamFetcher {
 		String timeoutStr = String.valueOf(this.timeout);
 		av_dict_set(optionsDictionary, "stimeout", timeoutStr, 0);
 
+		String analyzeDuration = String.valueOf(appSettings.getMaxAnalyzeDurationMS());
+		av_dict_set(optionsDictionary, "analyzeduration", analyzeDuration, 0);
+
 		int ret;
 
 		logger.debug("stream url: {}  " , streamUrl);
