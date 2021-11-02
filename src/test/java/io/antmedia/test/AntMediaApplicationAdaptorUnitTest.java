@@ -420,7 +420,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			assertFalse(f.exists());
 
-			adapter.muxingFinished("streamId", anyFile, 100, 480);
+			adapter.muxingFinished("streamId", anyFile, 100, 480, null);
 
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
 
@@ -438,7 +438,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			assertFalse(f.exists());
 
-			adapter.muxingFinished("streamId", anyFile, 100, 480);
+			adapter.muxingFinished("streamId", anyFile, 100, 480, "");
 
 			Awaitility.await().pollDelay(3, TimeUnit.SECONDS).atMost(4, TimeUnit.SECONDS).until(()-> !f.exists());
 		}
@@ -603,7 +603,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ArgumentCaptor<String> captureVodId = ArgumentCaptor.forClass(String.class);
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);
+		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480, null);
 
 		//verify that notifyHook is never called
 		verify(spyAdaptor, never()).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
@@ -623,7 +623,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.updateBroadcastFields(streamId, broadcast);
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
+		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480, null);
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -656,7 +656,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.delete(streamId);
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
+		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480, null);
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -685,7 +685,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		appSettings.setListenerHookURL("listenerHookURL");
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
+		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480, null);
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
