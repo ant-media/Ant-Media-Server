@@ -86,6 +86,8 @@ public abstract class RecordMuxer extends Muxer {
 
 	protected boolean uploadMP4ToS3 = true;
 
+	protected String previewPath;
+
 	private String subFolder = null;
 
 	private int S3_CONSTANT = 0b001;
@@ -395,6 +397,9 @@ public abstract class RecordMuxer extends Muxer {
 		av_packet_unref(audioPkt);
 
 	}
+	public void setPreviewPath(String path){
+		this.previewPath = path;
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -433,7 +438,7 @@ public abstract class RecordMuxer extends Muxer {
 				IContext context = RecordMuxer.this.scope.getContext();
 				ApplicationContext appCtx = context.getApplicationContext();
 				AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-				adaptor.muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
+				adaptor.muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution, previewPath);
 
 				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
 

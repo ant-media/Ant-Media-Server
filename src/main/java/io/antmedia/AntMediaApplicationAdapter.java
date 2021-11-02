@@ -655,12 +655,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return null;
 	}
 
-	public void setPreviewPathForVod(String path){
-		this.previewPath = path;
-	}
-
 	@Override
-	public void muxingFinished(final String streamId, File file, long duration, int resolution) {
+	public void muxingFinished(final String streamId, File file, long duration, int resolution, String path) {
 		String vodName = file.getName();
 		String filePath = file.getPath();
 		long fileSize = file.length();
@@ -687,7 +683,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		String vodId = RandomStringUtils.randomNumeric(24);
 		VoD newVod;
 		if(appSettings.isGeneratePreview()){
-			newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId, this.previewPath);
+			newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId, path);
 		}
 		else{
 			newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, duration, fileSize, VoD.STREAM_VOD, vodId, null);
