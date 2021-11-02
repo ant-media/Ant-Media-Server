@@ -385,9 +385,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		assertFalse(f.exists());
 
-		adapter.setPreviewPathForVod("src/test/resources/sample_MP4_480.mp4");
-
-		adapter.muxingFinished("streamId", anyFile, 100, 480);
+		adapter.muxingFinished("streamId", anyFile, 100, 480, "src/test/resources/preview.png");
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
 
