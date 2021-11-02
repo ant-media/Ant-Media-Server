@@ -18,7 +18,8 @@ before_install:
   - openssl aes-256-cbc -K $encrypted_5fef4fa28306_key -iv $encrypted_5fef4fa28306_iv -in codesigning.asc.enc -out codesigning.asc -d
   - export GPG_TTY=$(tty) #-> https://github.com/keybase/keybase-issues/issues/2798
   - gpg2 --batch --fast-import codesigning.asc
-  - sudo apt-get install gnupg
+  - sudo apt purge mongodb-org*
+  - sudo apt autoremove
   #- sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
   - wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
   - echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
