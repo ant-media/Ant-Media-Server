@@ -90,6 +90,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
 	public static final String HOOK_ACTION_VOD_READY = "vodReady";
+	public static final String HOOK_ACTION_PUBLISH_TIMEOUT_ERROR = "publishTimeoutError";
+	public static final String HOOK_ACTION_ENCODER_NOT_OPENED_ERROR =  "encoderNotOpenedError";
+	public static final String HOOK_ACTION_ENDPOINT_FAILED = "endpointFailed";
 
 	public static final String DEFAULT_LOCALHOST = "127.0.0.1";
 
@@ -1308,8 +1311,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-	public synchronized void incrementEncoderNotOpenedError() {
+	public synchronized void incrementEncoderNotOpenedError(String streamId) {
 		numberOfEncoderNotOpenedErrors ++;
+
+		Broadcast broadcast = getDataStore().get(streamId);
+
+		if (broadcast != null) {
+			final String listenerHookURL = broadcast.getListenerHookURL();
+			if (listenerHookURL != null && listenerHookURL.length() > 0) {
+				final String name = broadcast.getName();
+				final String category = broadcast.getCategory();
+				logger.info("Setting timer to call live stream ended hook for stream:{}", streamId);
+				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_ENCODER_NOT_OPENED_ERROR, name, category, null, null));
+			}
+		}
 	}
 
 	public int getNumberOfEncoderNotOpenedErrors() {
@@ -1323,6 +1338,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public synchronized void publishTimeoutError(String streamId) {
 		publishTimeoutStreams++;
 		publishTimeoutStreamsList.add(streamId);
+		Broadcast broadcast = getDataStore().get(streamId);
+
+		if (broadcast != null) {
+			final String listenerHookURL = broadcast.getListenerHookURL();
+			if (listenerHookURL != null && listenerHookURL.length() > 0) {
+				final String name = broadcast.getName();
+				final String category = broadcast.getCategory();
+				logger.info("Setting timer to call live stream ended hook for stream:{}", streamId);
+				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_PUBLISH_TIMEOUT_ERROR, name, category, null, null));
+			}
+		}
 	}
 
 	public WebRTCAudioReceiveStats getWebRTCAudioReceiveStats() {
@@ -1676,6 +1702,19 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			{
 				muxAdaptor.addPacketListener(listener);
 				break;
+			}
+		}
+	}
+	public void endpointFailedUpdate(String streamId){
+		Broadcast broadcast = getDataStore().get(streamId);
+
+		if (broadcast != null) {
+			final String listenerHookURL = broadcast.getListenerHookURL();
+			if (listenerHookURL != null && listenerHookURL.length() > 0) {
+				final String name = broadcast.getName();
+				final String category = broadcast.getCategory();
+				logger.info("Setting timer to call live stream ended hook for stream:{}", streamId);
+				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_ENDPOINT_FAILED, name, category, null, null));
 			}
 		}
 	}

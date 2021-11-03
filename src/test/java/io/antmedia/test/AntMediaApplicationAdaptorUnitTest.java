@@ -530,6 +530,117 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 
 	}
+	@Test
+	public void testNotifyHookErrors(){
+		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		AppSettings appSettings = new AppSettings();
+		spyAdaptor.setAppSettings(appSettings);
+
+		DataStore dataStore = new InMemoryDataStore("testHook");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		spyAdaptor.setDataStoreFactory(dsf);
+
+		//get sample mp4 file from test resources
+		File anyFile = new File("src/test/resources/sample_MP4_480.mp4");
+
+		//create new broadcast
+		Broadcast broadcast = new Broadcast();
+
+		broadcast.setListenerHookURL("listenerHookURL");
+		broadcast.setName("name");
+
+		//save this broadcast to db
+		String streamId = dataStore.save(broadcast);
+
+		ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureId = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureAction = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureStreamName = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureCategory = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureVodName = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureVodId = ArgumentCaptor.forClass(String.class);
+
+		/*
+		 * PUBLISH TIMEOUT ERROR
+		 */
+
+		spyAdaptor.publishTimeoutError(broadcast.getStreamId());
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			boolean called = false;
+			try {
+
+				//verify that notifyHook is called 1 time
+				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(),
+						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture());
+
+				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
+				assertEquals(captureId.getValue(), broadcast.getStreamId());
+				assertEquals(captureAction.getValue(), "publishTimeoutError");
+
+				called = true;
+			} catch (Exception e) {
+				e.printStackTrace();
+
+			}
+			return called;
+		});
+
+		/*
+		 * ENCODER NOT OPENED ERROR
+		 */
+
+		spyAdaptor.incrementEncoderNotOpenedError(broadcast.getStreamId());
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			boolean called = false;
+			try {
+
+				//verify that notifyHook is called 1 time
+				verify(spyAdaptor, times(2)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(),
+						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture());
+
+				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
+				assertEquals(captureId.getValue(), broadcast.getStreamId());
+
+				called = true;
+			} catch (Exception e) {
+				e.printStackTrace();
+
+			}
+			return called;
+		});
+
+		/*
+		 * ENDPOINT FAILED
+		 */
+
+		spyAdaptor.endpointFailedUpdate(broadcast.getStreamId());
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+			boolean called = false;
+			try {
+
+				//verify that notifyHook is called 1 time
+				verify(spyAdaptor, times(3)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(),
+						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture());
+
+				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
+				assertEquals(captureId.getValue(), broadcast.getStreamId());
+
+				called = true;
+			} catch (Exception e) {
+				e.printStackTrace();
+
+			}
+			return called;
+		});
+
+		assertEquals(captureAction.getAllValues().get(3), "publishTimeoutError");
+		assertEquals(captureAction.getAllValues().get(4), "encoderNotOpenedError");
+		assertEquals(captureAction.getAllValues().get(5), "endpointFailed");
+	}
 
 	@Test
 	public void testNotifyHookFromMuxingFinished() {
@@ -848,9 +959,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(0, adapter.getNumberOfEncodersBlocked());
 		assertEquals(0, adapter.getNumberOfEncoderNotOpenedErrors());
 
-		adapter.incrementEncoderNotOpenedError();
-		adapter.incrementEncoderNotOpenedError();
-		adapter.incrementEncoderNotOpenedError();
+		adapter.incrementEncoderNotOpenedError("");
+		adapter.incrementEncoderNotOpenedError("");
+		adapter.incrementEncoderNotOpenedError("");
 
 		assertEquals(3, adapter.getNumberOfEncoderNotOpenedErrors());
 	}
