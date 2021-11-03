@@ -2145,5 +2145,4 @@ public abstract class RestServiceBase {
 
 		return new Result(result, message);
 	}
-
 }

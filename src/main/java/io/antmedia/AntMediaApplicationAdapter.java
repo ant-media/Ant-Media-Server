@@ -1728,9 +1728,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l->getDataStore().delete());
 	}
 
-	public void stopPublish(String streamId) {
+	public boolean stopPlaying(String viewerId) {
+		return false;
+  }
+  public void stopPublish(String streamId) {
 		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
-		
 	}
 
 }
