@@ -561,7 +561,7 @@
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
-            <version>${mockito-core.version}</version>
+            <version>4.0.0</version>
             <scope>test</scope>
         </dependency>
         <dependency>
