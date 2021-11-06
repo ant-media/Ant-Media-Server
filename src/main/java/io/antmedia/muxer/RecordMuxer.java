@@ -63,6 +63,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
@@ -72,7 +73,6 @@ public abstract class RecordMuxer extends Muxer {
 	protected static Logger logger = LoggerFactory.getLogger(RecordMuxer.class);
 	protected File fileTmp;
 	protected StorageClient storageClient = null;
-	protected String streamId;
 	protected int videoIndex;
 	protected int audioIndex;
 	protected int resolution;
@@ -84,7 +84,11 @@ public abstract class RecordMuxer extends Muxer {
 	protected AVPacket videoPkt;
 	protected int rotation;
 
+	protected boolean uploadMP4ToS3 = true;
+
 	private String subFolder = null;
+
+	private int S3_CONSTANT = 0b001;
 
 	/**
 	 * By default first video key frame should be checked
@@ -409,10 +413,7 @@ public abstract class RecordMuxer extends Muxer {
 
 		av_write_trailer(outputFormatContext);
 
-		logger.info("Clearing resources for stream: {}", streamId);
 		clearResource();
-
-		logger.info("Resources are cleaned for stream: {}", streamId);
 
 		isRecording = false;
 
@@ -431,15 +432,16 @@ public abstract class RecordMuxer extends Muxer {
 
 				IContext context = RecordMuxer.this.scope.getContext();
 				ApplicationContext appCtx = context.getApplicationContext();
-				Object bean = appCtx.getBean("web.handler");
-				if (bean instanceof IAntMediaStreamHandler) {
-					((IAntMediaStreamHandler)bean).muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
-				}
+				AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+				adaptor.muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
 
 				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
 
+				if((appSettings.getUploadExtensionsToS3()&S3_CONSTANT) == 0){
+					this.uploadMP4ToS3 = false;
+				}
 
-				if (appSettings.isS3RecordingEnabled()) {
+				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3 ) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
 					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, getFile().getName(), storageClient);
 				}
@@ -764,4 +766,6 @@ public abstract class RecordMuxer extends Muxer {
 	public boolean isDynamic() {
 		return dynamic;
 	}
+
+	public boolean isUploadingToS3(){return uploadMP4ToS3;}
 }

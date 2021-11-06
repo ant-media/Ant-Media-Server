@@ -1,7 +1,9 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
+import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,6 +36,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
@@ -48,10 +51,12 @@ public class MapDBStore extends DataStore {
 	private BTreeMap<String, String> tokenMap;
 	private BTreeMap<String, String> subscriberMap;
 	private BTreeMap<String, String> conferenceRoomMap;
+	private BTreeMap<String, String> webRTCViewerMap;
 
 
 	private Gson gson;
 	private String dbName;
+	private Iterable<String> dbFiles;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "BROADCAST";
 	private static final String VOD_MAP_NAME = "VOD";
@@ -60,6 +65,7 @@ public class MapDBStore extends DataStore {
 	private static final String SUBSCRIBER = "SUBSCRIBER";
 	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
 	private static final String CONFERENCE_ROOM_MAP_NAME = "CONFERENCE_ROOM";
+	private static final String WEBRTC_VIEWER = "WEBRTC_VIEWER";
 
 
 	public MapDBStore(String dbName) {
@@ -96,6 +102,9 @@ public class MapDBStore extends DataStore {
 				.counterEnable().createOrOpen();
 		
 		conferenceRoomMap = db.treeMap(CONFERENCE_ROOM_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
+		
+		webRTCViewerMap = db.treeMap(WEBRTC_VIEWER).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
@@ -512,6 +521,7 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public void close() {
+		dbFiles = db.getStore().getAllFiles();
 		synchronized (this) {
 			available = false;
 			db.close();
@@ -1476,5 +1486,75 @@ public class MapDBStore extends DataStore {
 			totalWebRTCViewerCountLastUpdateTime = now;
 		}  
 		return totalWebRTCViewerCount;
+	}
+
+
+
+	@Override
+	public void delete() {
+		for (String fileName : dbFiles) {
+			File file = new File(fileName);
+			if (file.exists()) {
+				try {
+					Files.delete(file.toPath());
+				} catch (IOException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
+	}
+
+
+
+	@Override
+	public void saveViewerInfo(WebRTCViewerInfo info) {
+		synchronized (this) {
+			if (info != null) {
+				try {
+					webRTCViewerMap.put(info.getViewerId(), gson.toJson(info));
+					db.commit();
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
+	}
+
+
+
+	@Override
+	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
+			String search) {
+
+		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
+		synchronized (this) {
+			Collection<String> webRTCViewers = webRTCViewerMap.getValues();
+			for (String infoString : webRTCViewers)
+			{
+				WebRTCViewerInfo info = gson.fromJson(infoString, WebRTCViewerInfo.class);
+				list.add(info);
+			}
+		}
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for Conference Room = {}", search);
+			list = searchOnWebRTCViewerInfo(list, search);
+		}
+		return sortAndCropWebRTCViewerInfoList(list, offset, size, sortBy, orderBy);
+	}
+
+
+
+	@Override
+	public boolean deleteWebRTCViewerInfo(String viewerId) {
+		synchronized (this) 
+		{		
+			boolean result = false;
+
+			result = webRTCViewerMap.remove(viewerId) != null;
+			if (result) {
+				db.commit();
+			}
+			return result;
+		}
 	}
 }

@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,7 +53,7 @@ import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
+import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IClusterStore;
 import io.antmedia.datastore.db.DataStore;
@@ -259,6 +260,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
 		spyAdapter.setScope(scope);
 		spyAdapter.setAppSettings(new AppSettings());
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
 		
 		
 		// Add 1. Broadcast
@@ -1143,6 +1145,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		settings.setStartStreamFetcherAutomatically(true);
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
+		
 		spyAdapter.appStart(scope);
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
@@ -1174,13 +1178,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(context.getApplicationContext()).thenReturn(appContext);
 		
 		
-		Application appFactor = Mockito.mock(Application.class);
-		when(appFactor.getAppAdaptor()).thenReturn(spyAdapter);
+		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 		spyAdapter.setServerSettings(new ServerSettings());
 		spyAdapter.setAppSettings(new AppSettings());
 		spyAdapter.setDataStore(dataStore);
 		
-		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appFactor);
+		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
 		
 		when(appContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
@@ -1261,6 +1264,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		settings.setStartStreamFetcherAutomatically(false);
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setServerSettings(new ServerSettings());
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
+		
 		spyAdapter.appStart(scope);
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
@@ -1305,7 +1310,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(clusterStore.getSettings(Mockito.any())).thenReturn(null);
 		when(context.getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME)).thenReturn(Mockito.mock(AcceptOnlyStreamsInDataStore.class));
 		spyAdapter.setServerSettings(new ServerSettings());
-		
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
 		
 		spyAdapter.appStart(scope);
 		
@@ -1331,10 +1336,56 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(4)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
 		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
-	
-		
 	}
 	
+	@Test
+	public void testUpdateMainBroadcast() {
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		spyAdapter.setDataStore(dataStore);
+		
+		
+		Broadcast subTrack1 = new Broadcast();
+		try {
+			subTrack1.setStreamId("subtrack1");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		Broadcast subTrack2 = new Broadcast();
+		try {
+			subTrack2.setStreamId("subtrack2");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		Broadcast mainTrack = new Broadcast();
+		try {
+			mainTrack.setStreamId("maintrack");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		mainTrack.setZombi(true);
+		
+		subTrack1.setMainTrackStreamId(mainTrack.getStreamId());
+		subTrack2.setMainTrackStreamId(mainTrack.getStreamId());
+
+		mainTrack.getSubTrackStreamIds().add(subTrack1.getStreamId());
+		mainTrack.getSubTrackStreamIds().add(subTrack2.getStreamId());
+
+		
+		dataStore.save(subTrack1);
+		dataStore.save(subTrack1);
+		dataStore.save(mainTrack);
+		
+		spyAdapter.updateMainBroadcast(subTrack1);
+		assertNotNull(dataStore.get(mainTrack.getStreamId()));
+		
+		spyAdapter.updateMainBroadcast(subTrack2);
+		assertNull(dataStore.get(mainTrack.getStreamId()));
+		
+	}
+
 	@Test
 	public void testAddRemovePacketListener() {
 		
@@ -1366,5 +1417,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	
 	}
+
+	@Test
+	public void testAppDeletion() {
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("test"));
+		adapter.setDataStore(dataStore);
+		adapter.deleteDBInSeconds();
+		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).delete();
+	}	
 
 }

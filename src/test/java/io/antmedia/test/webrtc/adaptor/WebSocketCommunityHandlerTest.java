@@ -32,10 +32,8 @@ import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 
-
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -88,15 +86,13 @@ public class WebSocketCommunityHandlerTest {
 	public void before() {
 		appContext = Mockito.mock(ApplicationContext.class);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
-		IApplicationAdaptorFactory appFactory = Mockito.mock(IApplicationAdaptorFactory.class);
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
-		when(appFactory.getAppAdaptor()).thenReturn(adaptor);
 		IScope scope = Mockito.mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
 
 		when(adaptor.getScope()).thenReturn(scope);
 	
-		when(appContext.getBean("web.handler")).thenReturn(appFactory);
+		when(appContext.getBean("web.handler")).thenReturn(adaptor);
 		
 		wsHandlerReal = new WebSocketEndpoint(appContext);
 		wsHandlerReal.setAppAdaptor(adaptor);

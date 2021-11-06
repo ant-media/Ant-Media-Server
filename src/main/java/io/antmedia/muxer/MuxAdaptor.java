@@ -365,7 +365,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (hlsMuxingEnabled) {
 
-			HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags(), getAppSettings().getHlsEncryptionKeyInfoFile(), getAppSettings().getS3StreamsFolderPath());
+			HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags(), getAppSettings().getHlsEncryptionKeyInfoFile(), getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3());
 			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
 			addMuxer(hlsMuxer);
 			logger.info("adding HLS Muxer for {}", streamId);
@@ -582,8 +582,21 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		prepareMuxerIO();
-
+		
+		registerToMainTrackIfExists();
 		return true;
+	}
+
+
+	public void registerToMainTrackIfExists() {
+		if(broadcastStream.getParameters() != null) {
+			String mainTrack = broadcastStream.getParameters().get("mainTrack");
+			if(mainTrack != null) {
+				Broadcast broadcastLocal = getBroadcast();
+				broadcastLocal.setMainTrackStreamId(mainTrack);
+				getDataStore().updateBroadcastFields(streamId, broadcastLocal);
+			}
+		}
 	}
 
 
@@ -878,6 +891,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					logger.warn("closing adaptor for {} ", streamId);
 					closeResources();
 					logger.warn("closed adaptor for {}", streamId);
+					getStreamHandler().stopPublish(streamId);
 					isPipeReaderJobRunning.compareAndSet(true, false);
 					return;
 
@@ -997,6 +1011,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.warn("closing adaptor for {} ", streamId);
 				closeResources();
 				logger.warn("closed adaptor for {}", streamId);
+				getStreamHandler().stopPublish(streamId);
 			}	
 
 

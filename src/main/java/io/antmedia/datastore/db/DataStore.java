@@ -23,6 +23,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 
 public abstract class DataStore {
 
@@ -123,8 +124,15 @@ public abstract class DataStore {
 	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
 
 	public abstract List<Broadcast> getExternalStreamsList();
-
+	
 	public abstract void close();
+	
+	/**
+	 * This is used to close data store on shutdown
+	 * 
+	 * @param deleteDBAfterClose - set true to delete files or collection
+	 */
+	public abstract void delete();
 
 	/**
 	 * Returns the VoD List in order
@@ -621,10 +629,11 @@ public abstract class DataStore {
 		broadcast.setUserAgent(newBroadcast.getUserAgent());
 		broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
 		broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
+		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 	}
 
 	/**
-	 * This method returns the local active broadcast count.
+	 * This method returns the local active broadcast count.ro
 	 * Mongodb implementation is different because of cluster.
 	 * Other implementations just return active broadcasts in db
 	 * @return
@@ -916,6 +925,75 @@ public abstract class DataStore {
 	 * @returns total number of WebRTC viewers
 	 */
 	public abstract int getTotalWebRTCViewersCount();
+
+	protected ArrayList<WebRTCViewerInfo> searchOnWebRTCViewerInfo(ArrayList<WebRTCViewerInfo> list, String search) {
+		if(search != null && !search.isEmpty()) {
+			for (Iterator<WebRTCViewerInfo> i = list.iterator(); i.hasNext(); ) {
+				WebRTCViewerInfo item = i.next();
+				if(item.getViewerId() != null && !item.getViewerId().toLowerCase().contains(search.toLowerCase())) {
+					i.remove();
+				}
+			}
+		}
+		return list;
+	}
+
+	protected List<WebRTCViewerInfo> sortAndCropWebRTCViewerInfoList(List<WebRTCViewerInfo> list, int offset, int size, String sortBy, String orderBy) {
+		if("viewerId".equals(sortBy)) 
+		{
+			Collections.sort(list, (viewer1, viewer2) -> {
+				Comparable c1 = viewer1.getViewerId();
+				Comparable c2 = viewer2.getViewerId();
+
+				return "desc".equals(orderBy) ? c2.compareTo(c1) : c1.compareTo(c2);
+			});
+		}
+
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
+		}
+		if (offset < 0 ) {
+			offset = 0;
+		}
+
+		int toIndex =  Math.min(offset+size, list.size());
+		if (offset >= toIndex)
+		{
+			return new ArrayList<>();
+		}
+		else {
+			return list.subList(offset,toIndex);
+		}
+	}
+	
+	/**
+	 * This is used to save WebRTC Viewer Info to datastore 
+	 *
+	 * @param info information for the WebRTC Viewer
+	 */
+	public abstract void saveViewerInfo(WebRTCViewerInfo info);
+
+	/**
+	 * Get list of webrtc viewers
+	 *
+	 * @param offset
+	 * @param size
+	 * @param search 
+	 * @param orderBy 
+	 * @param sortBy 
+	 *
+	 * @return list of webrtc viewers
+	 */
+	public abstract List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy, String search);
+	
+	
+	/**
+	 * This is used to delete a WebRTC Viewer Info from datastore 
+	 *
+	 * @param viewerId WebRTC Viewer Id
+	 */
+	public abstract boolean deleteWebRTCViewerInfo(String viewerId);
+	
 
 	//**************************************
 	//ATTENTION: Write function descriptions while adding new functions

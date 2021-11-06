@@ -43,16 +43,16 @@ change_server_mode() {
     sed -i $SED_COMPATIBILITY -E -e 's/(<!-- cluster end -->|cluster end -->)/cluster end -->/g' $AMS_INSTALL_LOCATION/conf/jee-container.xml
   fi
 
-  sed -i $SED_COMPATIBILITY 's#clusterdb.host=.*#clusterdb.host='$MONGO_SERVER_IP'#' $AMS_INSTALL_LOCATION/conf/red5.properties
-  sed -i $SED_COMPATIBILITY 's/clusterdb.user=.*/clusterdb.user='$3'/' $AMS_INSTALL_LOCATION/conf/red5.properties
-  sed -i $SED_COMPATIBILITY 's/clusterdb.password=.*/clusterdb.password='$4'/' $AMS_INSTALL_LOCATION/conf/red5.properties
+  sed -i $SED_COMPATIBILITY "/clusterdb.host=/c\clusterdb.host=$MONGO_SERVER_IP" $AMS_INSTALL_LOCATION/conf/red5.properties
+  sed -i $SED_COMPATIBILITY "/clusterdb.user=/c\clusterdb.user=$3" $AMS_INSTALL_LOCATION/conf/red5.properties
+  sed -i $SED_COMPATIBILITY "/clusterdb.password=/c\clusterdb.password=$4" $AMS_INSTALL_LOCATION/conf/red5.properties
 
   for i in $LIST_APPS; do 
 
-    sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $i/WEB-INF/red5-web.properties
-    sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$MONGO_SERVER_IP'#' $i/WEB-INF/red5-web.properties  
-    sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$3'/' $i/WEB-INF/red5-web.properties
-    sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$4'/' $i/WEB-INF/red5-web.properties
+    sed -i $SED_COMPATIBILITY "/db.type=/c\db.type=$DB_TYPE" $i/WEB-INF/red5-web.properties
+    sed -i $SED_COMPATIBILITY "/db.host=/c\db.host=$MONGO_SERVER_IP" $i/WEB-INF/red5-web.properties  
+    sed -i $SED_COMPATIBILITY "/db.user=/c\db.user=$3" $i/WEB-INF/red5-web.properties
+    sed -i $SED_COMPATIBILITY "/db.password=/c\db.password=$4" $i/WEB-INF/red5-web.properties
   done
   
   if [ "$OS_NAME" != "Darwin" ]; then

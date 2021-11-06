@@ -59,7 +59,6 @@ import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -74,6 +73,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.DeviceDiscovery;
 import io.antmedia.muxer.HLSMuxer;
@@ -436,16 +436,9 @@ public class BroadcastRestServiceV2UnitTest {
 
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
 		when(app.getScope()).thenReturn(scope);
-		
-		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
-			@Override
-			public AntMediaApplicationAdapter getAppAdaptor() {
-				return app;
-			}
-		};
 
 		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 		restServiceReal.setAppCtx(context);
 
 		InMemoryDataStore dataStore = new InMemoryDataStore("testdb");
@@ -2901,7 +2894,7 @@ public class BroadcastRestServiceV2UnitTest {
 		datastore.save(subtrack);
 		broadcastRestService.setDataStore(datastore);
 
-		assertNull(mainTrack.getSubTrackStreamIds());
+		assertTrue(mainTrack.getSubTrackStreamIds().isEmpty());
 		assertNull(subtrack.getMainTrackStreamId());
 		
 		broadcastRestService.addSubTrack(mainTrackId, subTrackId);
@@ -3146,6 +3139,36 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.deleteStreamFromTheRoom("testroom","stream1");
 		assertEquals(0,store.getConferenceRoom("testroom").getRoomStreamList().size());
+	}
+	
+	
+	@Test
+	public void testWebRTCViewerRestOperations(){
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		assertEquals(0, restServiceSpy.getWebRTCViewerList(0, 5, "", "", "").size());
+		
+		WebRTCViewerInfo wwi = new WebRTCViewerInfo();
+		String streamId = "stream"+RandomStringUtils.randomAlphanumeric(5);
+		String viewerId = "viewer"+RandomStringUtils.randomAlphanumeric(5);
+		String edgeAddress = RandomStringUtils.randomAlphanumeric(10);
+		wwi.setStreamId(streamId);
+		wwi.setViewerId(viewerId);
+		wwi.setEdgeAddress(edgeAddress);
+		
+		store.saveViewerInfo(wwi);
+		List<WebRTCViewerInfo> wwiList = restServiceSpy.getWebRTCViewerList(0, 5, "", "", "");
+		assertEquals(1, wwiList.size());
+		
+		assertEquals(streamId, wwiList.get(0).getStreamId());
+		assertEquals(viewerId, wwiList.get(0).getViewerId());
+		assertEquals(edgeAddress, wwiList.get(0).getEdgeAddress());
+		
+		AntMediaApplicationAdapter testApp = Mockito.spy(new AntMediaApplicationAdapter());
+		restServiceSpy.setApplication(testApp);
+		restServiceSpy.stopPlaying(viewerId);
+		verify(testApp, times(1)).stopPlaying(viewerId);
 	}
 	
 }

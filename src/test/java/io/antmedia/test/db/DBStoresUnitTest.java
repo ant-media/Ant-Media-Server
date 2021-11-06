@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -27,6 +28,10 @@ import org.junit.Test;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
+import com.mongodb.client.MongoDatabase;
 
 import dev.morphia.Datastore;
 import dev.morphia.query.Query;
@@ -49,6 +54,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
@@ -125,8 +131,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-		
-
+		testWebRTCViewerOperations(dataStore);
 	}
 
 	@Test
@@ -172,7 +177,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-
+		testWebRTCViewerOperations(dataStore);
 	}
 
 	@Test
@@ -235,7 +240,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-
+		testWebRTCViewerOperations(dataStore);
 	}
 	
 	@Test
@@ -2661,7 +2666,7 @@ public class DBStoresUnitTest {
 		dataStore.save(mainTrack);
 		dataStore.save(subtrack);
 
-		assertNull(mainTrack.getSubTrackStreamIds());
+		assertTrue(mainTrack.getSubTrackStreamIds().isEmpty());
 		assertNull(subtrack.getMainTrackStreamId());
 
 		subtrack.setMainTrackStreamId(mainTrackId);
@@ -2742,5 +2747,80 @@ public class DBStoresUnitTest {
 		Awaitility.await().atMost(DataStore.TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME+1100, TimeUnit.MILLISECONDS)
 			.pollDelay(1000, TimeUnit.MILLISECONDS)
 			.until(() -> (finalTotal == dataStore.getTotalWebRTCViewersCount()));
+	}	
+	
+	@Test
+	public void testDeleteMapDB() {
+		String dbName = "deleteMapdb";
+		DataStore dataStore = new MapDBStore(dbName);
+		assertTrue(new File(dbName).exists());
+		dataStore.close();
+		dataStore.delete();
+		assertFalse(new File(dbName).exists());
+	}
+	
+	@Test
+	public void testDeleteMongoDBCollection() {
+		String dbName = "deleteMapdb";
+		MongoStore dataStore = new MongoStore("localhost", "", "", dbName);
+		
+		MongoClientURI mongoUri = new MongoClientURI(dataStore.getMongoConnectionUri("localhost", "", ""));
+		MongoClient client = new MongoClient(mongoUri);
+		
+		
+		ArrayList<String> dbNames = new ArrayList<String>();
+		client.listDatabaseNames().forEach(c-> dbNames.add(c));
+		assertTrue(dbNames.contains(dbName));
+		
+		dataStore.close();
+		dataStore.delete();
+
+		dbNames.clear();
+		client.listDatabaseNames().forEach(c-> dbNames.add(c));
+		assertFalse(dbNames.contains(dbName));
+
+	}
+	
+	
+	public void testWebRTCViewerOperations(DataStore dataStore) {
+		
+		ArrayList<String> idList = new ArrayList<String>();
+		
+		int total = RandomUtils.nextInt(10, DataStore.MAX_ITEM_IN_ONE_LIST);
+		for (int i = 0; i < total; i++) {
+			WebRTCViewerInfo info = new WebRTCViewerInfo();
+			String streamId = RandomStringUtils.randomAlphabetic(5);
+			info.setStreamId(streamId);
+			String id = RandomStringUtils.randomAlphabetic(5);
+			info.setViewerId(id);
+			
+			dataStore.saveViewerInfo(info);
+			
+			idList.add(id);
+		}
+		
+		List<WebRTCViewerInfo> returningList = dataStore.getWebRTCViewerList(0, DataStore.MAX_ITEM_IN_ONE_LIST+10, "viewerId", "asc", "");
+		assertEquals(total,  returningList.size());	
+		
+		
+	    Collections.sort(idList);
+	    
+	    for (int i = 0; i < total; i++) {
+			assertEquals(idList.get(i),  returningList.get(i).getViewerId());	
+		}
+	    
+		List<WebRTCViewerInfo> returningList2 = dataStore.getWebRTCViewerList(0, total, "viewerId", "asc", "a");
+		for (WebRTCViewerInfo webRTCViewerInfo : returningList2) {
+			assertTrue(webRTCViewerInfo.getViewerId().contains("a")||webRTCViewerInfo.getViewerId().contains("A"));
+		}
+	    
+		
+	    int deleted = 0;
+	    for (String id : idList) {
+			dataStore.deleteWebRTCViewerInfo(id);
+		    List<WebRTCViewerInfo> tempList = dataStore.getWebRTCViewerList(0, total, "viewerId", "asc", "");
+		    
+			assertEquals(total - (++deleted),  tempList.size());	
+		}
 	}	
 }

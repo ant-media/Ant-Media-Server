@@ -1,5 +1,7 @@
 #!/bin/bash
 
+echo "Please use the DELETE REST method (/applications/{appName}) to delete an application."
+
 usage() {
   echo "Usage:"
   echo "$0 -n APPLICATION_NAME [-p INSTALLATION_PATH]"
