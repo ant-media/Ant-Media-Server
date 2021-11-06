@@ -8,12 +8,20 @@ import org.bytedeco.ffmpeg.avcodec.AVPacket;
  */
 public interface IPacketListener {
 	/*
-	 * AMS feeds the plugins with encoded video/audio packets with this method.
+	 * AMS feeds the plugins with encoded video packets with this method.
 	 * @param streamId is the id of the stream
 	 * @param packet is AVPacket type defined in javacpp ffmpeg wrapper
 	 * @returns AVPacket this should be same with the input
 	 */
-	AVPacket onPacket(String streamId, AVPacket packet);
+	AVPacket onVideoPacket(String streamId, AVPacket packet);
+	
+	/*
+	 * AMS feeds the plugins with encoded audio packets with this method.
+	 * @param streamId is the id of the stream
+	 * @param packet is AVPacket type defined in javacpp ffmpeg wrapper
+	 * @returns AVPacket this should be same with the input
+	 */
+	AVPacket onAudioPacket(String streamId, AVPacket packet);
 	
 	/*
 	 * AMS calls this method when the listening stream finishes
