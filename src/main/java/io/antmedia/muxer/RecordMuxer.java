@@ -84,7 +84,11 @@ public abstract class RecordMuxer extends Muxer {
 	protected AVPacket videoPkt;
 	protected int rotation;
 
+	protected boolean uploadMP4ToS3 = true;
+
 	private String subFolder = null;
+
+	private int S3_CONSTANT = 0b001;
 
 	/**
 	 * By default first video key frame should be checked
@@ -433,7 +437,11 @@ public abstract class RecordMuxer extends Muxer {
 
 				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
 
-				if (appSettings.isS3RecordingEnabled()) {
+				if((appSettings.getUploadExtensionsToS3()&S3_CONSTANT) == 0){
+					this.uploadMP4ToS3 = false;
+				}
+
+				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3 ) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
 					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, getFile().getName(), storageClient);
 				}
@@ -758,4 +766,6 @@ public abstract class RecordMuxer extends Muxer {
 	public boolean isDynamic() {
 		return dynamic;
 	}
+
+	public boolean isUploadingToS3(){return uploadMP4ToS3;}
 }
