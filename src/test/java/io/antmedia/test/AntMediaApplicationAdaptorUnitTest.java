@@ -974,6 +974,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 	public void testPublishTimeout() {
 		assertEquals(0, adapter.getNumberOfPublishTimeoutError());
 
+		DataStore dataStore = mock(DataStore.class);
+		DataStoreFactory dataStoreFactory = mock(DataStoreFactory.class);
+		when(dataStoreFactory.getDataStore()).thenReturn(dataStore);
+
+		adapter.setDataStoreFactory(dataStoreFactory);
+
 		adapter.publishTimeoutError("streamId");
 
 		assertEquals(1, adapter.getNumberOfPublishTimeoutError());
