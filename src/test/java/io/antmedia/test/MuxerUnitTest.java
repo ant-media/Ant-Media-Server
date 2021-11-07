@@ -452,11 +452,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
 		Mp4Muxer mp4Muxer = new Mp4Muxer(null, null, "streams");
-		mp4Muxer.init(appScope, "test", 0, null);
+		mp4Muxer.init(appScope, "test", 0, null, 0);
 
 
 		WebMMuxer webMMuxer = new WebMMuxer(null, null, "streams");
-		webMMuxer.init(appScope, "test", 0, null);
+		webMMuxer.init(appScope, "test", 0, null, 0);
 
 
 		assertFalse(webMMuxer.isCodecSupported(AV_CODEC_ID_H264));
@@ -473,7 +473,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		mp4Muxer.init(appScope, "test", 0, null);
+		mp4Muxer.init(appScope, "test", 0, null, 0);
 
 		SpsParser spsParser = new SpsParser(extradata_original, 5);
 
@@ -496,14 +496,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(mp4Muxer.getRegisteredStreamIndexList().contains(5));
 
 
-		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), null, null, null, null, null, "streams", 0);
-		hlsMuxer.init(appScope, "test", 0, null);
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), null, null, null, null, null, "streams", 0, 0);
+		hlsMuxer.init(appScope, "test", 0, null,0);
 		hlsMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
 
 
 		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
-		rtmpMuxer.init(appScope, "test", 0, null);
+		rtmpMuxer.init(appScope, "test", 0, null, 0);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
 
 	}
@@ -719,7 +719,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
 
-		rtmpMuxer.init(appScope, "test", 0, null);
+		rtmpMuxer.init(appScope, "test", 0, null, 0);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(rtmpMuxer.initializeOutputFormatContextIO());
 
@@ -747,7 +747,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
 
-		mp4Muxer.init(appScope, "test", 0, null);
+		mp4Muxer.init(appScope, "test", 0, null, 0);
 
 
 		SpsParser spsParser = new SpsParser(extradata_original, 5);
@@ -1921,7 +1921,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(vertx);
 
 		StorageClient client = Mockito.mock(AmazonS3StorageClient.class);
-		HLSMuxer hlsMuxerTester = new HLSMuxer(vertx, client, null, null, null, null, null, "streams",1);
+		HLSMuxer hlsMuxerTester = new HLSMuxer(vertx, client, null, null, null, null, null, "streams",1, 0);
 		assertFalse(hlsMuxerTester.isUploadingToS3());
 
 
@@ -2029,7 +2029,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamName = "stream_name_" + (int) (Math.random() * 10000);
 		//init
-		mp4Muxer.init(appScope, streamName, 0, null);
+		mp4Muxer.init(appScope, streamName, 0, null, 0);
 
 		//add stream
 		int width = 640;
@@ -2757,7 +2757,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		doReturn(existingTempFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_1"), eq(".mp4"+Muxer.TEMP_EXTENSION), eq(null));
 		doReturn(nonExistingTempFile_2).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_2"), eq(".mp4"+Muxer.TEMP_EXTENSION), eq(null));
 
-		mp4Muxer.init(scope, streamId, 0, false, null);
+		mp4Muxer.init(scope, streamId, 0, false, null, 0);
 
 		assertEquals(nonExistingFile_2, mp4Muxer.getFile());
 
@@ -2803,7 +2803,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		doReturn(existingTempFile).when(mp4Muxer).getResourceFile(any(), eq(streamId), eq(".mp4"+Muxer.TEMP_EXTENSION), eq(null));
 		doReturn(nonExistingTempFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_1"), eq(".mp4"+Muxer.TEMP_EXTENSION), eq(null));
 
-		mp4Muxer.init(scope, streamId, 0, false, null);
+		mp4Muxer.init(scope, streamId, 0, false, null, 0);
 
 		assertEquals(nonExistingFile_1, mp4Muxer.getFile());
 

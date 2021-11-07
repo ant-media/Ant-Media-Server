@@ -224,21 +224,21 @@ public abstract class Muxer {
 	 * Inits the file to write. Multiple encoders can init the muxer. It is
 	 * redundant to init multiple times.
 	 */
-	public void init(IScope scope, String name, int resolution, String subFolder) {
+	public void init(IScope scope, String name, int resolution, String subFolder, int bitrate) {
 		this.streamId = name;
-		init(scope, name, resolution, true, subFolder);
+		init(scope, name, resolution, true, subFolder, bitrate);
 	}
 
 	/**
 	 * Init file name
 	 *
-	 * file format is NAME[-{DATETIME}][_{RESOLUTION_HEIGHT}p].{EXTENSION}
+	 * file format is NAME[-{DATETIME}][_{RESOLUTION_HEIGHT}p_{BITRATE}kbps].{EXTENSION}
 	 *
 	 * Datetime format is yyyy-MM-dd_HH-mm
 	 *
 	 * We are using "-" instead of ":" in HH:mm -> Stream filename must not contain ":" character.
 	 *
-	 * sample naming -> stream1-yyyy-MM-dd_HH-mm_480p.mp4 if datetime is added
+	 * sample naming -> stream1-yyyy-MM-dd_HH-mm_480p_500kbps.mp4 if datetime is added
 	 * stream1_480p.mp4 if no datetime
 	 *
 	 * @param scope
@@ -249,9 +249,12 @@ public abstract class Muxer {
 	 *            be added to resource name
 	 * @param overrideIfExist
 	 *            whether override if a file exists with the same name
+	 * @param bitrate
+	 * 			  bitrate of the stream, if it is zero, no bitrate will
+	 * 			  be added to resource name
 	 */
-	public void init(IScope scope, final String name, int resolution, boolean overrideIfExist, String subFolder) {
-
+	public void init(IScope scope, final String name, int resolution, boolean overrideIfExist, String subFolder, int bitrate) {
+		int bitrateKbps = bitrate / 1000;
 		if (!isInitialized) {
 			isInitialized = true;
 			this.scope = scope;
@@ -271,8 +274,8 @@ public abstract class Muxer {
 			}
 
 			// add resolution height parameter if it is different than 0
-			if (resolution != 0) {
-				resourceName += "_" + resolution + "p";
+			if (resolution != 0 && bitrate != 0) {
+				resourceName += "_" + resolution + "p" + "_" + bitrateKbps + "kbps";
 			}
 
 			file = getResourceFile(scope, resourceName, extension, subFolder);

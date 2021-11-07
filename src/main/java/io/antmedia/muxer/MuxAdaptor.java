@@ -365,7 +365,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (hlsMuxingEnabled) {
 
-			HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags(), getAppSettings().getHlsEncryptionKeyInfoFile(), getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3());
+			HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags(), getAppSettings().getHlsEncryptionKeyInfoFile(), getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(),0);
 			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
 			addMuxer(hlsMuxer);
 			logger.info("adding HLS Muxer for {}", streamId);
@@ -377,7 +377,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		for (Muxer muxer : muxerList) {
-			muxer.init(scope, streamId, 0, broadcast.getSubFolder());
+			muxer.init(scope, streamId, 0, broadcast.getSubFolder(), 0);
 		}
 		getStreamHandler().muxAdaptorAdded(this);
 		return true;
@@ -1534,7 +1534,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public boolean prepareMuxer(Muxer muxer) {
 		boolean prepared;
-		muxer.init(scope, streamId, 0, broadcast != null ? broadcast.getSubFolder(): null);
+		muxer.init(scope, streamId, 0, broadcast != null ? broadcast.getSubFolder(): null, 0);
 		logger.info("prepareMuxer for stream:{} muxer:{}", streamId, muxer.getClass().getSimpleName());
 
 		if (streamSourceInputFormatContext != null) {
