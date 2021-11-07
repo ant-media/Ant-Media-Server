@@ -1705,7 +1705,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		}
 	}
-	public void endpointFailedUpdate(String streamId){
+	public void endpointFailedUpdate(String streamId) {
 		Broadcast broadcast = getDataStore().get(streamId);
 
 		if (broadcast != null) {
@@ -1715,6 +1715,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				final String category = broadcast.getCategory();
 				logger.info("Setting timer to call live stream ended hook for stream:{}", streamId);
 				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_ENDPOINT_FAILED, name, category, null, null));
+			}
+		}
+	}
+
+	public void removePacketListener(String streamId, IPacketListener listener) {
+		for (MuxAdaptor muxAdaptor : getMuxAdaptors()) 
+		{
+			if (streamId.equals(muxAdaptor.getStreamId())) 
+			{
+				muxAdaptor.removePacketListener(listener);
+				break;
+
 			}
 		}
 	}

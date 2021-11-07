@@ -1058,7 +1058,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return 0;
 	}
 
-	private void updateQualityParameters(long pts, AVRational timebase) {
+	public void updateQualityParameters(long pts, AVRational timebase) {
 
 
 		long packetTime = av_rescale_q(pts, timebase, TIME_BASE_FOR_MS);
@@ -1124,7 +1124,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		synchronized (muxerList)
 		{
-			packetFeeder.writePacket(pkt);
+			packetFeeder.writePacket(pkt, stream.codecpar().codec_type());
 			for (Muxer muxer : muxerList) {
 				muxer.writePacket(pkt, stream);
 			}
@@ -1900,9 +1900,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		StreamParametersInfo videoInfo = new StreamParametersInfo();
 		videoInfo.codecParameters = getVideoCodecParameters();
 		videoInfo.timeBase = getVideoTimeBase();
+		videoInfo.enabled = enableVideo;
 		StreamParametersInfo audioInfo = new StreamParametersInfo();
 		audioInfo.codecParameters = getAudioCodecParameters();
 		audioInfo.timeBase = getAudioTimeBase();
+		audioInfo.enabled = enableAudio;
 
 		listener.setVideoStreamInfo(streamId, videoInfo);
 		listener.setAudioStreamInfo(streamId, audioInfo);
