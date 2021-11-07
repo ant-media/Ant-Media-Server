@@ -1679,6 +1679,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		}
 	}
+	
+	public void removePacketListener(String streamId, IPacketListener listener) {
+		for (MuxAdaptor muxAdaptor : getMuxAdaptors()) 
+		{
+			if (streamId.equals(muxAdaptor.getStreamId())) 
+			{
+				muxAdaptor.removePacketListener(listener);
+				break;
+			}
+		}
+	}
 
 	public void addFrameListener(String streamId, IFrameListener listener) {
 		//for enterprise
