@@ -156,12 +156,10 @@ public class HLSMuxer extends Muxer  {
 				options.put("hls_key_info_file", hlsEncryptionKeyInfoFile);
 			}
 
-
 			logger.info("hls time: {}, hls list size: {}", hlsTime, hlsListSize);
 
 			String segmentFilename = file.getParentFile() + "/" + name +"_" + resolutionHeight +"p_" + bitrate + "%04d.ts";
 
-			logger.info("SEGMENT FILE NAME = " + segmentFilename + " bitrate = " + bitrate);
 			options.put("hls_segment_filename", segmentFilename);
 
 			if (hlsPlayListType != null && (hlsPlayListType.equals("event") || hlsPlayListType.equals("vod"))) {
@@ -173,7 +171,6 @@ public class HLSMuxer extends Muxer  {
 			}
 			tmpPacket = avcodec.av_packet_alloc();
 			av_init_packet(tmpPacket);
-
 
 			videoPkt = avcodec.av_packet_alloc();
 			av_init_packet(videoPkt);
