@@ -960,6 +960,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	@Test
 	public void testEncoderBlocked() {
+		DataStore dataStore = mock(DataStore.class);
+		DataStoreFactory dataStoreFactory = mock(DataStoreFactory.class);
+		when(dataStoreFactory.getDataStore()).thenReturn(dataStore);
+
+		adapter.setDataStoreFactory(dataStoreFactory);
+
 		assertEquals(0, adapter.getNumberOfEncodersBlocked());
 		assertEquals(0, adapter.getNumberOfEncoderNotOpenedErrors());
 
