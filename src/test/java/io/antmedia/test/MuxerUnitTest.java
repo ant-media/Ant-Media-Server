@@ -3,6 +3,7 @@ package io.antmedia.test;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
@@ -48,9 +49,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
+import org.apache.commons.lang3.RandomUtils;
 import io.antmedia.storage.AmazonS3StorageClient;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
@@ -124,6 +126,8 @@ import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
 import io.antmedia.muxer.parser.SpsParser;
+import io.antmedia.plugin.PacketFeeder;
+import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.test.utils.VideoInfo;
@@ -2859,6 +2863,71 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	@Test
+	public void testMuxAdaptorPacketListener() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.info("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		String streamId = "stream"+RandomUtils.nextInt(1, 1000);
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		muxAdaptor.setBroadcast(broadcast);
+		muxAdaptor.init(appScope, streamId, false);
+		doNothing().when(muxAdaptor).updateQualityParameters(Mockito.anyLong(), any());
+		
+		
+		IPacketListener listener = mock(IPacketListener.class);
+		muxAdaptor.addPacketListener(listener);
+		
+		verify(listener, Mockito.times(1)).setVideoStreamInfo(eq(muxAdaptor.getStreamId()), any());
+		verify(listener, Mockito.times(1)).setAudioStreamInfo(eq(muxAdaptor.getStreamId()), any());
+		
+		AVStream stream = mock(AVStream.class);
+		AVCodecParameters codecParameters = mock(AVCodecParameters.class);
+		when(stream.codecpar()).thenReturn(codecParameters);
+		when(codecParameters.codec_type()).thenReturn(AVMEDIA_TYPE_VIDEO);
+		
+		AVPacket pkt = mock(AVPacket.class);
+		when(pkt.flags()).thenReturn(AV_PKT_FLAG_KEY);
+		
+		muxAdaptor.writePacket(stream, pkt);
+		verify(listener, Mockito.times(1)).onVideoPacket(streamId, pkt);
+		
+		when(codecParameters.codec_type()).thenReturn(AVMEDIA_TYPE_AUDIO);
+		muxAdaptor.writePacket(stream, pkt);
+		verify(listener, Mockito.times(1)).onAudioPacket(streamId, pkt);
+
+		muxAdaptor.removePacketListener(listener);
+		
+	}
+	
+	@Test
+	public void testPacketFeeder() {
+		String streamId = "stream"+RandomUtils.nextInt(1, 1000);
+		PacketFeeder packetFeeder = new PacketFeeder(streamId);
+		IPacketListener listener = mock(IPacketListener.class);
+		packetFeeder.addListener(listener);
+		
+		ByteBuffer encodedVideoFrame = ByteBuffer.allocate(100); 
+		packetFeeder.writeVideoBuffer(encodedVideoFrame, 50, 0, 0, false, 0, 50);
+		verify(listener, Mockito.times(1)).onVideoPacket(eq(streamId), any());
+
+		ByteBuffer audioFrame = ByteBuffer.allocate(100); 
+		packetFeeder.writeAudioBuffer(audioFrame, 1, 50);
+		verify(listener, Mockito.times(1)).onAudioPacket(eq(streamId), any());
+		
+		
+	}
+	
+  @Test
 	public void testRegisterRTMPStreamToMainTrack() {
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
