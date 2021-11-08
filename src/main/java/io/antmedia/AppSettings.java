@@ -1546,6 +1546,9 @@ public class AppSettings {
 			encoderJSON.put(EncoderSettings.VIDEO_BITRATE, encoderSettings.getVideoBitrate());
 			encoderJSON.put(EncoderSettings.AUDIO_BITRATE, encoderSettings.getAudioBitrate());
 			encoderJSON.put(EncoderSettings.FORCE_ENCODE, encoderSettings.isForceEncode());
+			encoderJSON.put(EncoderSettings.ENC_PROFILE, encoderSettings.getProfile());
+			encoderJSON.put(EncoderSettings.ENC_TUNE, encoderSettings.getTune());
+			encoderJSON.put(EncoderSettings.ENC_PRESET, encoderSettings.getPreset());
 			jsonArray.add(encoderJSON);
 		}
 		return jsonArray.toJSONString();
@@ -1560,6 +1563,9 @@ public class AppSettings {
 		int videoBitrate;
 		int audioBitrate;
 		boolean forceEncode;
+		String profile = null;
+		String preset = null;
+		String tune = null;
 		List<EncoderSettings> encoderSettingsList = new ArrayList<>();
 		
 		try {
@@ -1573,7 +1579,18 @@ public class AppSettings {
 				videoBitrate = Integer.parseInt(jsObject.get(EncoderSettings.VIDEO_BITRATE).toString());
 				audioBitrate = Integer.parseInt(jsObject.get(EncoderSettings.AUDIO_BITRATE).toString());
 				forceEncode = (boolean)jsObject.get(EncoderSettings.FORCE_ENCODE);
-				encoderSettingsList.add(new EncoderSettings(height,videoBitrate,audioBitrate,forceEncode));
+				if(jsObject.get(EncoderSettings.ENC_PROFILE) != null){
+					profile = jsObject.get(EncoderSettings.ENC_PROFILE).toString();
+				}
+
+				if(jsObject.get(EncoderSettings.ENC_TUNE) != null){
+					tune = jsObject.get(EncoderSettings.ENC_TUNE).toString();
+				}
+				if(jsObject.get(EncoderSettings.ENC_PRESET) != null){
+					preset = jsObject.get(EncoderSettings.ENC_PRESET).toString();
+				}
+
+				encoderSettingsList.add(new EncoderSettings(height,videoBitrate,audioBitrate,forceEncode, profile, tune, preset));
 			}
 		}
 		catch (ParseException e) {
@@ -1587,7 +1604,7 @@ public class AppSettings {
 					videoBitrate = Integer.parseInt(values[i]);
 					i++;
 					 audioBitrate = Integer.parseInt(values[i]);
-					encoderSettingsList.add(new EncoderSettings(height, videoBitrate, audioBitrate,true));
+					encoderSettingsList.add(new EncoderSettings(height, videoBitrate, audioBitrate,true, null, null, null));
 				}
 			}
 		}

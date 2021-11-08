@@ -93,6 +93,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public static final String DEFAULT_LOCALHOST = "127.0.0.1";
 
+	public static final String[] POSSIBLE_TUNE_LIST = new String[]{"zerolatency", "film", "animation", "grain", "stillimage", "fastdecode", "psnr", "ssim"};
+	public static final String[] POSSIBLE_PRESET_LIST = new String[]{"ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "ll"};
+	public static final String[] POSSIBLE_PROFILE_LIST = new String[]{"main", "high", "baseline"};
+
+
+
 	protected static Logger logger = LoggerFactory.getLogger(AntMediaApplicationAdapter.class);
 	private ServerSettings serverSettings;
 	public static final String VOD = "VoD";
@@ -1420,6 +1426,40 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				{
 					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
 					return false;
+				}
+				if(encoderSettings.getTune() != null && !encoderSettings.getTune().isEmpty()){
+					for(int i = 0; i < POSSIBLE_TUNE_LIST.length; i++){
+						if(encoderSettings.getTune().equals(POSSIBLE_TUNE_LIST[i])){
+							break;
+						}
+						if(i == (POSSIBLE_TUNE_LIST.length - 1) ) {
+							logger.error("Unexpected encoder parameter. Tune can't be {}", encoderSettings.getTune());
+							return false;
+						}
+					}
+				}
+				if(encoderSettings.getPreset() != null && !encoderSettings.getPreset().isEmpty()){
+					for(int i = 0; i < POSSIBLE_PRESET_LIST.length; i++){
+						if(encoderSettings.getPreset().equals(POSSIBLE_PRESET_LIST[i])){
+							break;
+						}
+						if(i == (POSSIBLE_PRESET_LIST.length - 1) ){
+							logger.error("Unexpected encoder parameter. Preset can't be {}", encoderSettings.getPreset());
+							return false;
+						}
+					}
+				}
+
+				if(encoderSettings.getProfile() != null && !encoderSettings.getProfile().isEmpty()){
+					for(int i = 0; i < POSSIBLE_PROFILE_LIST.length; i++){
+						if(encoderSettings.getProfile().equals(POSSIBLE_PROFILE_LIST[i])){
+							break;
+						}
+						if(i == (POSSIBLE_PROFILE_LIST.length - 1) ) {
+							logger.error("Unexpected encoder parameter. Profile can't be {}", encoderSettings.getProfile());
+							return false;
+						}
+					}
 				}
 			}
 		}

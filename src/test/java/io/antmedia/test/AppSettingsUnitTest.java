@@ -144,6 +144,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		int videoBitrate1= 500000;
 		int audioBitrate1 = 128000;
 		boolean forceEncode1 = false;
+		String profile1 = "baseline";
+		String tune1 = "zerolatency";
+		String preset1 = "fast";
 		
 		int height2 = 360;
 		int videoBitrate2 = 400000;
@@ -157,7 +160,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 			
 		//Try with new format settings
-		String newFormatEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceEncode\":"+forceEncode1+",\"audioBitrate\":"+audioBitrate1+",\"height\":"+height1+"},{\"videoBitrate\":"+videoBitrate2+",\"forceEncode\":"+forceEncode2+",\"audioBitrate\":"+audioBitrate2+",\"height\":"+height2+"},{\"videoBitrate\":"+videoBitrate3+",\"forceEncode\":"+forceEncode3+",\"audioBitrate\":"+audioBitrate3+",\"height\":"+height3+"}]";
+		String newFormatEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceEncode\":"+forceEncode1+",\"audioBitrate\":"+audioBitrate1+",\"height\":"+height1+",\"profile\":"+profile1+",\"tune\":"+tune1+",\"preset\":"+preset1+"},{\"videoBitrate\":"+videoBitrate2+",\"forceEncode\":"+forceEncode2+",\"audioBitrate\":"+audioBitrate2+",\"height\":"+height2+"},{\"videoBitrate\":"+videoBitrate3+",\"forceEncode\":"+forceEncode3+",\"audioBitrate\":"+audioBitrate3+",\"height\":"+height3+"}]";
 		
 		List<EncoderSettings> list = AppSettings.encodersStr2List(newFormatEncoderSettingString);
 		
@@ -165,7 +168,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(480, list.get(0).getHeight());
 		assertEquals(500000, list.get(0).getVideoBitrate());
 		assertEquals(128000, list.get(0).getAudioBitrate());
-		
+		assertEquals(profile1, list.get(0).getProfile());
+		assertEquals(preset1, list.get(0).getPreset());
+		assertEquals(tune1, list.get(0).getTune());
+
 		assertEquals(360, list.get(1).getHeight());
 		assertEquals(400000, list.get(1).getVideoBitrate());
 		assertEquals(64000, list.get(1).getAudioBitrate());

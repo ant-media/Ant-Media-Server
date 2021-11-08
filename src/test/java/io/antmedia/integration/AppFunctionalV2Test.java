@@ -385,7 +385,7 @@ public class AppFunctionalV2Test {
 
 
 			List<EncoderSettings> settingsList = new ArrayList<>();
-			settingsList.add(new EncoderSettings(240, 300000, 64000,true));
+			settingsList.add(new EncoderSettings(240, 300000, 64000,true, null, null, null));
 			appSettingsModel.setEncoderSettings(settingsList);
 			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
@@ -464,7 +464,7 @@ public class AppFunctionalV2Test {
 				appSettingsModel.setMp4MuxingEnabled(true);
 
 				List<EncoderSettings> settingsList = new ArrayList<>();
-				settingsList.add(new EncoderSettings(240, 300000, 64000,true));
+				settingsList.add(new EncoderSettings(240, 300000, 64000,true, null, null,null));
 				appSettingsModel.setEncoderSettings(settingsList);
 				result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
 				assertTrue(result.isSuccess());
