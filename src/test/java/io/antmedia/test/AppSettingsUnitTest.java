@@ -160,7 +160,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 			
 		//Try with new format settings
-		String newFormatEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceEncode\":"+forceEncode1+",\"audioBitrate\":"+audioBitrate1+",\"height\":"+height1+",\"profile\":"+profile1+",\"tune\":"+tune1+",\"preset\":"+preset1+"},{\"videoBitrate\":"+videoBitrate2+",\"forceEncode\":"+forceEncode2+",\"audioBitrate\":"+audioBitrate2+",\"height\":"+height2+"},{\"videoBitrate\":"+videoBitrate3+",\"forceEncode\":"+forceEncode3+",\"audioBitrate\":"+audioBitrate3+",\"height\":"+height3+"}]";
+		String newFormatEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceEncode\":"+forceEncode1+",\"profile\":\""+profile1+"\",\"preset\":\""+preset1+"\",\"audioBitrate\":"+audioBitrate1+",\"tune\":\""+tune1+"\",\"height\":"+height1+"},{\"videoBitrate\":"+videoBitrate2+",\"forceEncode\":"+forceEncode2+",\"profile\":\""+profile1+"\",\"preset\":\""+preset1+"\",\"audioBitrate\":"+audioBitrate2+",\"tune\":\""+tune1+"\",\"height\":"+height2+"},{\"videoBitrate\":"+videoBitrate3+",\"forceEncode\":"+forceEncode3+",\"profile\":\""+profile1+"\",\"preset\":\""+preset1+"\",\"audioBitrate\":"+audioBitrate3+",\"tune\":\""+tune1+"\",\"height\":"+height3+"}]";
 		
 		List<EncoderSettings> list = AppSettings.encodersStr2List(newFormatEncoderSettingString);
 		
@@ -175,10 +175,17 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(360, list.get(1).getHeight());
 		assertEquals(400000, list.get(1).getVideoBitrate());
 		assertEquals(64000, list.get(1).getAudioBitrate());
-		
+		assertEquals(profile1, list.get(1).getProfile());
+		assertEquals(preset1, list.get(1).getPreset());
+		assertEquals(tune1, list.get(1).getTune());
+
+
 		assertEquals(240, list.get(2).getHeight());
 		assertEquals(300000, list.get(2).getVideoBitrate());
 		assertEquals(32000, list.get(2).getAudioBitrate());
+		assertEquals(profile1, list.get(2).getProfile());
+		assertEquals(preset1, list.get(2).getPreset());
+		assertEquals(tune1, list.get(2).getTune());
 		
 		assertEquals(newFormatEncoderSettingString, appSettings.encodersList2Str(list));
 		
@@ -200,7 +207,14 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(240, list.get(2).getHeight());
 		assertEquals(300000, list.get(2).getVideoBitrate());
 		assertEquals(32000, list.get(2).getAudioBitrate());
-		
+
+		//There are no setting for encoder options in old format so make it null
+		profile1 = null;
+		tune1 = null;
+		preset1 = null;
+		newFormatEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceEncode\":"+forceEncode1+",\"profile\":"+profile1+",\"preset\":"+preset1+",\"audioBitrate\":"+audioBitrate1+",\"tune\":"+tune1+",\"height\":"+height1+"},{\"videoBitrate\":"+videoBitrate2+",\"forceEncode\":"+forceEncode2+",\"profile\":"+profile1+",\"preset\":"+preset1+",\"audioBitrate\":"+audioBitrate2+",\"tune\":"+tune1+",\"height\":"+height2+"},{\"videoBitrate\":"+videoBitrate3+",\"forceEncode\":"+forceEncode3+",\"profile\":"+profile1+",\"preset\":"+preset1+",\"audioBitrate\":"+audioBitrate3+",\"tune\":"+tune1+",\"height\":"+height3+"}]";
+
+
 		//It will convert new json format
 		list.get(0).setForceEncode(false);
 		list.get(1).setForceEncode(true);
