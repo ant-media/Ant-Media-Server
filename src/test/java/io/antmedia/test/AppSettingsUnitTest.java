@@ -188,7 +188,31 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(tune1, list.get(2).getTune());
 		
 		assertEquals(newFormatEncoderSettingString, appSettings.encodersList2Str(list));
-		
+
+		EncoderSettings encSettings = new EncoderSettings(height1,videoBitrate1, audioBitrate1, forceEncode1, profile1,tune1,preset1);
+		assertEquals(480, encSettings.getHeight());
+		assertEquals(500000, encSettings.getVideoBitrate());
+		assertEquals(128000, encSettings.getAudioBitrate());
+		assertEquals(profile1, encSettings.getProfile());
+		assertEquals(preset1, encSettings.getPreset());
+		assertEquals(tune1, encSettings.getTune());
+
+		encSettings.setAudioBitrate(audioBitrate2);
+		encSettings.setForceEncode(forceEncode2);
+		encSettings.setHeight(height2);
+		encSettings.setPreset("veryfast");
+		encSettings.setProfile("high");
+		encSettings.setTune("film");
+		encSettings.setVideoBitrate(videoBitrate2);
+
+		assertEquals(360, encSettings.getHeight());
+		assertEquals(400000, encSettings.getVideoBitrate());
+		assertEquals(64000, encSettings.getAudioBitrate());
+		assertEquals("high", encSettings.getProfile());
+		assertEquals("veryfast", encSettings.getPreset());
+		assertEquals("film", encSettings.getTune());
+
+
 		//Try with old format settings
 		String oldFormatEncoderSettingString = height1+"," + videoBitrate1 + "," + audioBitrate1
 				+ "," + height2 +"," + videoBitrate2 + "," + audioBitrate2
