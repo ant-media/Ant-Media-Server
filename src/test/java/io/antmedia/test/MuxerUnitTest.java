@@ -500,7 +500,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(mp4Muxer.getRegisteredStreamIndexList().contains(5));
 
 
-		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), null, null, null, null, null, "streams", 0, 0);
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0);
+		hlsMuxer.setHlsParameters( null, null, null, null, null);
 		hlsMuxer.init(appScope, "test", 0, null,0);
 		hlsMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
@@ -1925,7 +1926,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(vertx);
 
 		StorageClient client = Mockito.mock(AmazonS3StorageClient.class);
-		HLSMuxer hlsMuxerTester = new HLSMuxer(vertx, client, null, null, null, null, null, "streams",1, 0);
+		HLSMuxer hlsMuxerTester = new HLSMuxer(vertx, client, "streams",1);
+		hlsMuxerTester.setHlsParameters(null, null, null, null, null);
 		assertFalse(hlsMuxerTester.isUploadingToS3());
 
 

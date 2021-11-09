@@ -95,7 +95,7 @@ public class HLSMuxer extends Muxer  {
 	private boolean uploadHLSToS3 = true;
 	private int S3_CONSTANT = 0b010;
 
-	public HLSMuxer(Vertx vertx, StorageClient storageClient, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile, String s3StreamsFolderPath, int uploadExtensionsToS3, int bitrate) {
+	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3) {
 		super(vertx);
 		this.storageClient = storageClient;
 
@@ -106,8 +106,14 @@ public class HLSMuxer extends Muxer  {
 		extension = ".m3u8";
 		format = "hls";
 
-		this.bitrate=bitrate;
+		avRationalTimeBase = new AVRational();
+		avRationalTimeBase.num(1);
+		avRationalTimeBase.den(1);
 
+		this.s3StreamsFolderPath  = s3StreamsFolderPath;
+	}
+
+	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile){
 		if (hlsListSize != null) {
 			this.hlsListSize = hlsListSize;
 		}
@@ -126,16 +132,9 @@ public class HLSMuxer extends Muxer  {
 		else {
 			this.hlsFlags = "";
 		}
-
 		if (hlsEncryptionKeyInfoFile != null && !hlsEncryptionKeyInfoFile.isEmpty()) {
 			this.hlsEncryptionKeyInfoFile = hlsEncryptionKeyInfoFile;
-		}		
-
-		avRationalTimeBase = new AVRational();
-		avRationalTimeBase.num(1);
-		avRationalTimeBase.den(1);
-
-		this.s3StreamsFolderPath  = s3StreamsFolderPath;
+		}
 	}
 
 	/**
@@ -155,6 +154,8 @@ public class HLSMuxer extends Muxer  {
 			if(hlsEncryptionKeyInfoFile != null) {
 				options.put("hls_key_info_file", hlsEncryptionKeyInfoFile);
 			}
+
+			this.bitrate=bitrate;
 
 			logger.info("hls time: {}, hls list size: {}", hlsTime, hlsListSize);
 
