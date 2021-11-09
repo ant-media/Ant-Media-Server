@@ -254,29 +254,11 @@ public abstract class Muxer {
 	 * 			  be added to resource name
 	 */
 	public void init(IScope scope, final String name, int resolution, boolean overrideIfExist, String subFolder, int bitrate) {
-		int bitrateKbps = bitrate / 1000;
 		if (!isInitialized) {
 			isInitialized = true;
 			this.scope = scope;
 
-			// set default name
-			String resourceName = name;
-
-			// add date time parameter to resource name if it is set
-			if (addDateTimeToResourceName) {
-
-				LocalDateTime ldt =  LocalDateTime.now();
-
-				resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
-				if (logger.isInfoEnabled()) {
-					logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
-				}
-			}
-
-			// add resolution height parameter if it is different than 0
-			if (resolution != 0 && bitrate != 0) {
-				resourceName += "_" + resolution + "p" + "_" + bitrateKbps + "kbps";
-			}
+			String resourceName = getExtendedName(name, resolution, bitrate);
 
 			file = getResourceFile(scope, resourceName, extension, subFolder);
 
@@ -306,6 +288,28 @@ public abstract class Muxer {
 			av_init_packet(audioPkt);
 
 		}
+	}
+	public String getExtendedName(String name, int resolution, int bitrate){
+		// set default name
+		String resourceName = name;
+		int bitrateKbps = bitrate / 1000;
+
+		// add date time parameter to resource name if it is set
+		if (addDateTimeToResourceName) {
+
+			LocalDateTime ldt =  LocalDateTime.now();
+
+			resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
+			if (logger.isInfoEnabled()) {
+				logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
+			}
+		}
+
+		// add resolution height parameter if it is different than 0
+		if (resolution != 0 && bitrate != 0) {
+			resourceName += "_" + resolution + "p" + "_" + bitrateKbps + "kbps";
+		}
+		return resourceName;
 	}
 
 	public File getResourceFile(IScope scope, String name, String extension, String subFolder) {
