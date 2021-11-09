@@ -1,6 +1,7 @@
 package io.antmedia.test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -30,6 +31,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.EncoderSettings;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
@@ -210,9 +212,63 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setStorageClient(storageClient);
 		
 		spyAdapter.setAppSettings(settings);
+
+		//Test Not Updating the settings because of the wrong encoder settings
+		//----------------------------------------------------------------------
+		int height1 = 480;
+		int videoBitrate1= 500000;
+		int audioBitrate1 = 128000;
+		boolean forceEncode1 = false;
+		String profile1 = "baseline";
+		//Provide wrong tune
+		String tune1 = "zeroatency";
+		String preset1 = "fast";
+
+		//Try with new format settings
+		String newFormatEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceEncode\":"+forceEncode1+",\"profile\":\""+profile1+"\",\"preset\":\""+preset1+"\",\"audioBitrate\":"+audioBitrate1+",\"tune\":\""+tune1+"\",\"height\":"+height1+"}]";
+		List<EncoderSettings> list = AppSettings.encodersStr2List(newFormatEncoderSettingString);
+		newSettings.setEncoderSettings(list);
+
 		spyAdapter.setScope(scope);
-		spyAdapter.updateSettings(newSettings, true, false);
-		
+		boolean result = spyAdapter.updateSettings(newSettings, true, false);
+
+		assertFalse(result);
+		AppSettings set = spyAdapter.getAppSettings();
+		assertNotEquals(set.getEncoderSettings(), list);
+
+		profile1 = "baseline";
+		tune1 = "zerolatency";
+		preset1 = "fart";
+
+		newFormatEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceEncode\":"+forceEncode1+",\"profile\":\""+profile1+"\",\"preset\":\""+preset1+"\",\"audioBitrate\":"+audioBitrate1+",\"tune\":\""+tune1+"\",\"height\":"+height1+"}]";
+		list = AppSettings.encodersStr2List(newFormatEncoderSettingString);
+		newSettings.setEncoderSettings(list);
+
+		spyAdapter.setScope(scope);
+		result = spyAdapter.updateSettings(newSettings, true, false);
+
+		assertFalse(result);
+		set = spyAdapter.getAppSettings();
+		assertNotEquals(set.getEncoderSettings(), list);
+
+		profile1 = "baselie";
+		tune1 = "zerolatency";
+		preset1 = "fast";
+
+		newFormatEncoderSettingString ="[{\"videoBitrate\":"+videoBitrate1+",\"forceEncode\":"+forceEncode1+",\"profile\":\""+profile1+"\",\"preset\":\""+preset1+"\",\"audioBitrate\":"+audioBitrate1+",\"tune\":\""+tune1+"\",\"height\":"+height1+"}]";
+		list = AppSettings.encodersStr2List(newFormatEncoderSettingString);
+		newSettings.setEncoderSettings(list);
+
+		spyAdapter.setScope(scope);
+		result = spyAdapter.updateSettings(newSettings, true, false);
+
+		assertFalse(result);
+		set = spyAdapter.getAppSettings();
+		assertNotEquals(set.getEncoderSettings(), list);
+
+		newSettings.setEncoderSettingsString("");
+
+		//----------------------------------------------------------------------
 		
 
 		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);

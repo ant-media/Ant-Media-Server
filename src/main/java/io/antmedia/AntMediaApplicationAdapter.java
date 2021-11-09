@@ -93,9 +93,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public static final String DEFAULT_LOCALHOST = "127.0.0.1";
 
-	public static final String[] POSSIBLE_TUNE_LIST = new String[]{"zerolatency", "film", "animation", "grain", "stillimage", "fastdecode", "psnr", "ssim"};
-	public static final String[] POSSIBLE_PRESET_LIST = new String[]{"ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "ll"};
-	public static final String[] POSSIBLE_PROFILE_LIST = new String[]{"main", "high", "baseline"};
+	protected static final String[] POSSIBLE_TUNE_LIST = new String[]{"zerolatency", "film", "animation", "grain", "stillimage", "fastdecode", "psnr", "ssim"};
+	protected static final String[] POSSIBLE_PRESET_LIST = new String[]{"ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow", "ll"};
+	protected static final String[] POSSIBLE_PROFILE_LIST = new String[]{"main", "high", "baseline"};
 
 
 
