@@ -495,7 +495,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.executeBlocking( handler -> {
 			try {
 
-				Broadcast broadcast = saveBroadcast(streamName, absoluteStartTimeMs, publishType, getDataStore().get(streamName));
+				Broadcast broadcast = updateBroadcastStatus(streamName, absoluteStartTimeMs, publishType, getDataStore().get(streamName));
 
 				final String listenerHookURL = broadcast.getListenerHookURL();
 				final String streamId = broadcast.getStreamId();
@@ -570,7 +570,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-	private Broadcast saveBroadcast(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
+	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
 		if (broadcast == null) 
 		{
 
@@ -1712,11 +1712,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void setStorageClient(StorageClient storageClient) {
 		this.storageClient = storageClient;
-	}
-
-	@Override
-	public void streamPublishStart(IBroadcastStream stream) {
-		saveBroadcast(stream.getPublishedName(), ((ClientBroadcastStream)stream).getAbsoluteStartTimeMs() , MuxAdaptor.PUBLISH_TYPE_RTMP, getDataStore().get(stream.getPublishedName()));
 	}
 
 	public void addStreamListener(IStreamListener listener) {
