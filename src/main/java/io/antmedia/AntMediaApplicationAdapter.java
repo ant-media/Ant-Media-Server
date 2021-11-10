@@ -1714,11 +1714,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.storageClient = storageClient;
 	}
 
-	@Override
-	public void streamPublishStart(IBroadcastStream stream) {
-		saveBroadcast(stream.getPublishedName(), ((ClientBroadcastStream)stream).getAbsoluteStartTimeMs() , MuxAdaptor.PUBLISH_TYPE_RTMP, getDataStore().get(stream.getPublishedName()));
-	}
-
 	public void addStreamListener(IStreamListener listener) {
 		streamListeners.add(listener);
 	}
