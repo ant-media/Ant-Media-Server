@@ -599,6 +599,37 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 
 	}
+	
+	@Test
+	public void testBroadcastHasBeenDeleted() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		logger.info("Application / web scope: {}", appScope);
+		assertTrue(appScope.getDepth() == 1);
+
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+
+		String rtmpUrl = "rtmp://localhost/LiveApp/test12";
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId("test");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		getAppSettings().setEndpointRepublishLimit(1);
+		getAppSettings().setEndpointHealthCheckPeriodMs(2000);
+		muxAdaptor.setBroadcast(broadcast);
+		
+		boolean result = muxAdaptor.init(appScope, "test", false);
+		
+		muxAdaptor.endpointStatusUpdated(rtmpUrl, IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
+		
+		muxAdaptor.setBroadcast(null);
+		Mockito.verify(muxAdaptor, timeout(3000)).clearCounterMapsAndCancelTimer(Mockito.anyString(), Mockito.anyLong());
+		
+		
+		
+	}
 
 	@Test
 	public void testRTMPHealthCheckProcess(){
