@@ -53,6 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.RecordType;
@@ -75,7 +76,6 @@ import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
-	public static final String PUBLISH_TYPE_RTMP = "RTMP";
 	public static final String ADAPTIVE_SUFFIX = "_adaptive";
 	private static Logger logger = LoggerFactory.getLogger(MuxAdaptor.class);
 
@@ -350,6 +350,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		packetFeeder = new PacketFeeder(streamId);
 
 		getDataStore();
+		
+		//TODO: Refactor -> saving broadcast is called two times in RTMP ingesting. It should be one time
+		getStreamHandler().updateBroadcastStatus(streamId, startTimeMs, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, getDataStore().get(streamId));
+		
 		enableSettings();
 		initServerSettings();
 		initStorageClient();
@@ -749,7 +753,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			IContext context = MuxAdaptor.this.scope.getContext();
 			ApplicationContext appCtx = context.getApplicationContext();
 			//this returns the StreamApplication instance
-			appAdapter = (IAntMediaStreamHandler) appCtx.getBean("web.handler");
+			appAdapter = (IAntMediaStreamHandler) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		}
 		return appAdapter;
 	}
@@ -1027,7 +1031,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			//Calling startPublish to here is critical. It's called after encoders are ready and isRecording is true
 			//the above prepare method is overriden in EncoderAdaptor so that we resolve calling startPublish just here
-			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), PUBLISH_TYPE_RTMP);
+			getStreamHandler().startPublish(streamId, broadcastStream.getAbsoluteStartTimeMs(), IAntMediaStreamHandler.PUBLISH_TYPE_RTMP);
 
 		}
 		catch(Exception e) {
