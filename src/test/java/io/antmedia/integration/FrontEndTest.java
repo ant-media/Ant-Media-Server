@@ -1,5 +1,6 @@
 package io.antmedia.integration;
 
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
@@ -24,6 +25,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.Duration;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -36,12 +38,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+
+import static org.junit.Assert.*;
 
 public class FrontEndTest {
 
@@ -185,102 +183,6 @@ public class FrontEndTest {
         entry = driver.manage().logs().get(LogType.BROWSER);
         assertTrue(checkLogsForKeyword("publish finished", entry));
 
-    }
-
-    @Test
-    public void testPlayerPageStartStopPlay(){
-        try{
-            ConsoleAppRestServiceTest.resetCookieStore();
-            Result result = ConsoleAppRestServiceTest.callisFirstLogin();
-            if (result.isSuccess()) {
-                Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
-                assertTrue(createInitialUser.isSuccess());
-            }
-
-            result = ConsoleAppRestServiceTest.authenticateDefaultUser();
-            assertTrue(result.isSuccess());
-
-            Result isEnterpriseEdition = ConsoleAppRestServiceTest.callIsEnterpriseEdition();
-            if (!isEnterpriseEdition.isSuccess()) {
-                //if it's not enterprise return
-                return;
-            }
-
-            RestServiceV2Test restService = new RestServiceV2Test();
-
-            Random r = new Random();
-            String streamId = "streamId" + r.nextInt();
-
-            Broadcast broadcast=restService.createBroadcast(streamId);
-            assertNotNull(broadcast);
-
-            Process rtmpSendingProcess = execute(ffmpegPath
-                    + " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://localhost/LiveApp/"
-                    + broadcast.getStreamId());
-
-            ChromeOptions chrome_options = new ChromeOptions();
-            chrome_options.addArguments("--disable-extensions");
-            chrome_options.addArguments("--disable-gpu");
-            chrome_options.addArguments("--headless");
-            chrome_options.addArguments("--no-sandbox");
-            chrome_options.addArguments("--log-level=1");
-            LoggingPreferences logPrefs = new LoggingPreferences();
-            //To get console log
-            logPrefs.enable(LogType.BROWSER, Level.ALL);
-            chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
-
-            this.driver = new ChromeDriver(chrome_options);
-            this.driver.manage().timeouts().pageLoadTimeout(20, TimeUnit.SECONDS);
-            this.driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-            this.driver.get(this.url+"player.html?id=" + broadcast.getStreamId());
-            WebDriverWait wait = new WebDriverWait(driver,20);
-
-            //Check we landed on the page
-            String title = this.driver.getTitle();
-            assertEquals("Ant Media Server WebRTC Player", title);
-            System.out.println(this.url + " " + this.driver + " " + title);
-
-            Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-                return MuxingTest.testFile("http://localhost:5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
-            });
-
-            assertTrue(checkAlert());
-
-            //Waiting until the element is clickable or 20 seconds as timeout.
-            wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='start_play_button']")));
-
-            this.driver.findElement(By.xpath("//*[@id='start_play_button']")).click();
-
-            assertTrue(checkAlert());
-
-            Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-                return restService.callGetBroadcast(broadcast.getStreamId()).getWebRTCViewerCount() == 1 ;
-            });
-
-            LogEntries entry = driver.manage().logs().get(LogType.BROWSER);
-            assertTrue(checkLogsForKeyword("play started", entry));
-
-            wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='stop_play_button']")));
-
-            this.driver.findElement(By.xpath("//*[@id='stop_play_button']")).click();
-
-
-            Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-                return restService.callGetBroadcast(broadcast.getStreamId()).getWebRTCViewerCount() == 0 ;
-            });
-
-            assertTrue(checkAlert());
-            entry = driver.manage().logs().get(LogType.BROWSER);
-            assertTrue(checkLogsForKeyword("play finished", entry));
-
-            rtmpSendingProcess.destroy();
-
-            restService.callDeleteBroadcast(broadcast.getStreamId());
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-            fail(e.getMessage());
-        }
     }
 
     @Test
