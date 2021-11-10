@@ -1641,61 +1641,74 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * If each check returned failed, try to republish to the endpoint
 	 * @param url is the URL of the endpoint
 	 */
-	public void endpointStatusHealthCheck(String url){
+	public void endpointStatusHealthCheck(String url)
+	{
 		rtmpEndpointRetryLimit = appSettings.getEndpointRepublishLimit();
 		healthCheckPeriodMS = appSettings.getEndpointHealthCheckPeriodMs();
-		long timerId = vertx.setPeriodic(healthCheckPeriodMS, id ->
+		vertx.setPeriodic(healthCheckPeriodMS, id ->
 		{
-			logger.info("Checking the endpoint health for: {} ", url);
+			
 			String status = statusMap.getValueOrDefault(url, null);
-
+			logger.info("Checking the endpoint health for: {} and status: {} ", url, status);
 			//Broadcast might get deleted in the process of checking
-			if( status == null || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)){
+			if(broadcast == null || status == null || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)){
 				logger.info("Endpoint trailer is written or broadcast deleted for: {} ", url);
-				isHealthCheckStartedMap.remove(url);
-				errorCountMap.remove(url);
-				retryCounter.remove(url);
-				vertx.cancelTimer(id);
+				clearCounterMapsAndCancelTimer(url, id);
 			}
 			if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)){
 				logger.info("Health check process finished since endpoint {} is broadcasting", url);
-				isHealthCheckStartedMap.remove(url);
-				errorCountMap.remove(url);
-				retryCounter.remove(url);
-				vertx.cancelTimer(id);
+				clearCounterMapsAndCancelTimer(url, id);
 			}
-			else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED) ){
-				int tmp = errorCountMap.getValueOrDefault(url, 1);
-				if(tmp < 3){
-					errorCountMap.put(url,tmp +1);
-					logger.info("Endpoint check returned error for {} times for endpoint {}", tmp , url);
-				}
-				else{
-					int tmpRetryCount = retryCounter.getValueOrDefault(url, 1);
-					if( tmpRetryCount <= rtmpEndpointRetryLimit){
-						logger.info("Health check process failed, trying to republish to the endpoint: {}", url);
-						stopRtmpStreaming(url, 0);
-						startRtmpStreaming(url, height);
-						retryCounter.put(url, tmpRetryCount + 1);
-					}
-					else{
-						logger.info("Exceeded republish retry limit, endpoint {} can't be reached and will be closed" , url);
-						stopRtmpStreaming(url, 0);
-						retryCounter.remove(url);
-					}
-					//Clear the data and cancel timer to free memory and CPU.
-					isHealthCheckStartedMap.remove(url);
-					errorCountMap.remove(url);
-					vertx.cancelTimer(id);
-				}
+			else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || statusMap.get(url).equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED) )
+			{
+				tryToRepublish(url, id);
 			}
 		});
+	}
+
+
+	public void clearCounterMapsAndCancelTimer(String url, Long id) {
+		isHealthCheckStartedMap.remove(url);
+		errorCountMap.remove(url);
+		retryCounter.remove(url);
+		vertx.cancelTimer(id);
+	}
+
+
+	private void tryToRepublish(String url, Long id) {
+		int errorCount = errorCountMap.getValueOrDefault(url, 1);
+		if(errorCount < 3)
+		{
+			errorCountMap.put(url, errorCount+1);
+			logger.info("Endpoint check returned error for {} times for endpoint {}", errorCount , url);
+		}
+		else
+		{
+			int tmpRetryCount = retryCounter.getValueOrDefault(url, 1);
+			if( tmpRetryCount <= rtmpEndpointRetryLimit){
+				logger.info("Health check process failed, trying to republish to the endpoint: {}", url);
+				
+				//TODO: 0 as second parameter may cause a problem
+				stopRtmpStreaming(url, 0);
+				startRtmpStreaming(url, height);
+				retryCounter.put(url, tmpRetryCount + 1);
+			}
+			else{
+				logger.info("Exceeded republish retry limit, endpoint {} can't be reached and will be closed" , url);
+				stopRtmpStreaming(url, 0);
+				retryCounter.remove(url);
+			}
+			//Clear the data and cancel timer to free memory and CPU.
+			isHealthCheckStartedMap.remove(url);
+			errorCountMap.remove(url);
+			vertx.cancelTimer(id);
+		}
 	}
 
 	@Override
 	public void endpointStatusUpdated(String url, String status)
 	{
-		logger.info("Endpoint status updated to {}  for streamId: {} for url: {}", status, broadcast.getStreamId(), url);
+		logger.info("Endpoint status updated to {}  for streamId: {} for url: {}", status, streamId, url);
 
 		/**
 		 * Below code snippet updates the database at max 3 seconds interval
@@ -1722,24 +1735,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					//update broadcast object
 					broadcast = getDataStore().get(broadcast.getStreamId());
 
-					if (broadcast != null) {
-						for (Iterator iterator = broadcast.getEndPointList().iterator(); iterator.hasNext();) 
-						{
-							Endpoint endpoint = (Endpoint) iterator.next();
-							String statusUpdate = endpointStatusUpdateMap.getValueOrDefault(endpoint.getRtmpUrl(), null);
-							if (statusUpdate != null) {
-								endpoint.setStatus(statusUpdate);
-							}
-							else {
-								logger.warn("Endpoint is not found to update its status to {} for rtmp url:{}", statusUpdate, endpoint.getRtmpUrl());
-							}
-						}
-						getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
-
-					}
-					else {
-						logger.info("Broadcast with streamId:{} is not found to update its endpoint status. It's likely a zombi stream", streamId);
-					}
+					updateBroadcastRecord();
 					endpointStatusUpdateMap.clear();
 
 
@@ -1751,6 +1747,28 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			endpointStatusUpdaterTimer.set(timerId);
 		}
 
+	}
+
+
+	private void updateBroadcastRecord() {
+		if (broadcast != null) {
+			for (Iterator iterator = broadcast.getEndPointList().iterator(); iterator.hasNext();) 
+			{
+				Endpoint endpoint = (Endpoint) iterator.next();
+				String statusUpdate = endpointStatusUpdateMap.getValueOrDefault(endpoint.getRtmpUrl(), null);
+				if (statusUpdate != null) {
+					endpoint.setStatus(statusUpdate);
+				}
+				else {
+					logger.warn("Endpoint is not found to update its status to {} for rtmp url:{}", statusUpdate, endpoint.getRtmpUrl());
+				}
+			}
+			getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
+
+		}
+		else {
+			logger.info("Broadcast with streamId:{} is not found to update its endpoint status. It's likely a zombi stream", streamId);
+		}
 	}
 
 	public RtmpMuxer getRtmpMuxer(String rtmpUrl)
