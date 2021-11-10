@@ -33,6 +33,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
@@ -288,7 +289,7 @@ public class StreamFetcher {
 								long currentTime = System.currentTimeMillis();
 								muxAdaptor.setStartTime(currentTime);
 
-								getInstance().startPublish(streamId, 0, "Pull");
+								getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL);
 
 								if (bufferTime > 0) {
 									packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l-> 

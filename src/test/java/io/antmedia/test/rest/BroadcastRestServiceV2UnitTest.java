@@ -73,6 +73,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.DeviceDiscovery;
 import io.antmedia.muxer.HLSMuxer;
@@ -3138,6 +3139,36 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.deleteStreamFromTheRoom("testroom","stream1");
 		assertEquals(0,store.getConferenceRoom("testroom").getRoomStreamList().size());
+	}
+	
+	
+	@Test
+	public void testWebRTCViewerRestOperations(){
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		assertEquals(0, restServiceSpy.getWebRTCViewerList(0, 5, "", "", "").size());
+		
+		WebRTCViewerInfo wwi = new WebRTCViewerInfo();
+		String streamId = "stream"+RandomStringUtils.randomAlphanumeric(5);
+		String viewerId = "viewer"+RandomStringUtils.randomAlphanumeric(5);
+		String edgeAddress = RandomStringUtils.randomAlphanumeric(10);
+		wwi.setStreamId(streamId);
+		wwi.setViewerId(viewerId);
+		wwi.setEdgeAddress(edgeAddress);
+		
+		store.saveViewerInfo(wwi);
+		List<WebRTCViewerInfo> wwiList = restServiceSpy.getWebRTCViewerList(0, 5, "", "", "");
+		assertEquals(1, wwiList.size());
+		
+		assertEquals(streamId, wwiList.get(0).getStreamId());
+		assertEquals(viewerId, wwiList.get(0).getViewerId());
+		assertEquals(edgeAddress, wwiList.get(0).getEdgeAddress());
+		
+		AntMediaApplicationAdapter testApp = Mockito.spy(new AntMediaApplicationAdapter());
+		restServiceSpy.setApplication(testApp);
+		restServiceSpy.stopPlaying(viewerId);
+		verify(testApp, times(1)).stopPlaying(viewerId);
 	}
 	
 }

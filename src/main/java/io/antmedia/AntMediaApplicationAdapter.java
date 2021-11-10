@@ -495,7 +495,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.executeBlocking( handler -> {
 			try {
 
-				Broadcast broadcast = saveBroadcast(streamName, absoluteStartTimeMs, publishType, getDataStore().get(streamName));
+				Broadcast broadcast = updateBroadcastStatus(streamName, absoluteStartTimeMs, publishType, getDataStore().get(streamName));
 
 				final String listenerHookURL = broadcast.getListenerHookURL();
 				final String streamId = broadcast.getStreamId();
@@ -570,7 +570,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-	private Broadcast saveBroadcast(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
+	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
 		if (broadcast == null) 
 		{
 
@@ -1679,6 +1679,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		}
 	}
+	
+	public void removePacketListener(String streamId, IPacketListener listener) {
+		for (MuxAdaptor muxAdaptor : getMuxAdaptors()) 
+		{
+			if (streamId.equals(muxAdaptor.getStreamId())) 
+			{
+				muxAdaptor.removePacketListener(listener);
+				break;
+			}
+		}
+	}
 
 	public void addFrameListener(String streamId, IFrameListener listener) {
 		//for enterprise
@@ -1703,11 +1714,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.storageClient = storageClient;
 	}
 
-	@Override
-	public void streamPublishStart(IBroadcastStream stream) {
-		saveBroadcast(stream.getPublishedName(), ((ClientBroadcastStream)stream).getAbsoluteStartTimeMs() , MuxAdaptor.PUBLISH_TYPE_RTMP, getDataStore().get(stream.getPublishedName()));
-	}
-
 	public void addStreamListener(IStreamListener listener) {
 		streamListeners.add(listener);
 	}
@@ -1720,9 +1726,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l->getDataStore().delete());
 	}
 
-	public void stopPublish(String streamId) {
+	public boolean stopPlaying(String viewerId) {
+		return false;
+  }
+  public void stopPublish(String streamId) {
 		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
-		
 	}
 
 }
