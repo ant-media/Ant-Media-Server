@@ -73,7 +73,7 @@ public abstract class RecordMuxer extends Muxer {
 	protected static Logger logger = LoggerFactory.getLogger(RecordMuxer.class);
 	protected File fileTmp;
 	protected StorageClient storageClient = null;
-	protected int videoIndex;
+	protected int videoIndex = -1;
 	protected int audioIndex;
 	protected int resolution;
 	protected AVBSFContext bsfExtractdataContext = null;
@@ -619,7 +619,7 @@ public abstract class RecordMuxer extends Muxer {
 			}
 		}
 		//added for audio video sync
-		if(firstKeyFrameReceivedChecked) {
+		if(firstKeyFrameReceivedChecked || videoIndex < 0) {
 			writePacket(pkt, codecTimebase,  outStream.time_base(), codecType);
 		}
 
