@@ -618,7 +618,10 @@ public abstract class RecordMuxer extends Muxer {
 				return;
 			}
 		}
-		writePacket(pkt, codecTimebase,  outStream.time_base(), codecType);
+		//added for audio video sync
+		if(firstKeyFrameReceivedChecked) {
+			writePacket(pkt, codecTimebase,  outStream.time_base(), codecType);
+		}
 
 	}
 
