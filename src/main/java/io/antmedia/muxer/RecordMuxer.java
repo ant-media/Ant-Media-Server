@@ -73,7 +73,7 @@ public abstract class RecordMuxer extends Muxer {
 	protected static Logger logger = LoggerFactory.getLogger(RecordMuxer.class);
 	protected File fileTmp;
 	protected StorageClient storageClient = null;
-	protected int videoIndex = -1;
+	protected int videoIndex;
 	protected int audioIndex;
 	protected int resolution;
 	protected AVBSFContext bsfExtractdataContext = null;
@@ -117,6 +117,7 @@ public abstract class RecordMuxer extends Muxer {
 	protected int[] SUPPORTED_CODECS;
 	private long firstAudioDts = -1;
 	private long firstVideoDts = -1;
+	private boolean audioOnly;
 
 	public boolean isCodecSupported(int codecId) {
 		for (int i=0; i< SUPPORTED_CODECS.length; i++) {
@@ -619,7 +620,7 @@ public abstract class RecordMuxer extends Muxer {
 			}
 		}
 		//added for audio video sync
-		if(firstKeyFrameReceivedChecked || videoIndex < 0) {
+		if(firstKeyFrameReceivedChecked || audioOnly) {
 			writePacket(pkt, codecTimebase,  outStream.time_base(), codecType);
 		}
 
@@ -771,4 +772,8 @@ public abstract class RecordMuxer extends Muxer {
 	}
 
 	public boolean isUploadingToS3(){return uploadMP4ToS3;}
+	
+	public void setAudioOnly(boolean audioOnly) {
+		this.audioOnly = audioOnly;
+	}
 }
