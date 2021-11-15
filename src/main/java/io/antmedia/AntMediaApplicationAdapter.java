@@ -1696,7 +1696,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public IFrameListener createCustomBroadcast(String streamId) {
-		return null;
+		throw new IllegalStateException("This method is not implemented in Community Edition");
 	}
 
 	public void stopCustomBroadcast(String streamId) {
