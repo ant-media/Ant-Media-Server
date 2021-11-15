@@ -154,8 +154,8 @@ public class StreamFetcher {
 		String timeoutStr = String.valueOf(this.timeout);
 		av_dict_set(optionsDictionary, "stimeout", timeoutStr, 0);
 
-		int analyzeDurationMs = appSettings.getMaxAnalyzeDurationMS() * 1000;
-		String analyzeDuration = String.valueOf(analyzeDurationMs);
+		int analyzeDurationUs = appSettings.getMaxAnalyzeDurationMS() * 1000;
+		String analyzeDuration = String.valueOf(analyzeDurationUs);
 		av_dict_set(optionsDictionary, "analyzeduration", analyzeDuration, 0);
 
 		int ret;
