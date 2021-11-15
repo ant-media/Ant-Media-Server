@@ -33,7 +33,7 @@ public class PacketFeeder{
 
 	public void writeTrailer() {
 		for (IPacketListener listener : listeners) {
-			listener.writeTrailer();
+			listener.writeTrailer(streamId);
 		}
 	}
 

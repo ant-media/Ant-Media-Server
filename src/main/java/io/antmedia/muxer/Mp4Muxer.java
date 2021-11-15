@@ -315,5 +315,4 @@ public class Mp4Muxer extends RecordMuxer {
 		}
 	}
 
-
 }

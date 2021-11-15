@@ -46,7 +46,7 @@ public class StreamFetcher {
 	/**
 	 * Connection setup timeout value
 	 */
-	private int timeout;
+	private int timeoutMicroSeconds;
 	private boolean exceptionInThread = false;
 
 	/**
@@ -151,7 +151,7 @@ public class StreamFetcher {
 			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
 		}
 
-		String timeoutStr = String.valueOf(this.timeout);
+		String timeoutStr = String.valueOf(this.timeoutMicroSeconds);
 		av_dict_set(optionsDictionary, "stimeout", timeoutStr, 0);
 
 		int analyzeDurationUs = appSettings.getMaxAnalyzeDurationMS() * 1000;
@@ -703,7 +703,7 @@ public class StreamFetcher {
 	 * @param timeoutMs in ms
 	 */
 	public void setConnectionTimeout(int timeoutMs) {
-		this.timeout = timeoutMs * 1000;
+		this.timeoutMicroSeconds = timeoutMs * 1000;
 	}
 
 	public boolean isExceptionInThread() {
