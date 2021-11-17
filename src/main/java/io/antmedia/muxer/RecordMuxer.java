@@ -88,7 +88,7 @@ public abstract class RecordMuxer extends Muxer {
 
 	private String subFolder = null;
 
-	private int S3_CONSTANT = 0b001;
+	private static final int S3_CONSTANT = 0b001;
 
 	/**
 	 * By default first video key frame should be checked
@@ -117,7 +117,6 @@ public abstract class RecordMuxer extends Muxer {
 	protected int[] SUPPORTED_CODECS;
 	private long firstAudioDts = -1;
 	private long firstVideoDts = -1;
-	private boolean audioOnly;
 
 	public boolean isCodecSupported(int codecId) {
 		for (int i=0; i< SUPPORTED_CODECS.length; i++) {
@@ -539,21 +538,11 @@ public abstract class RecordMuxer extends Muxer {
 	@Override
 	public synchronized void writePacket(AVPacket pkt, AVStream stream) {
 
-		if (!firstKeyFrameReceivedChecked && stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
-			//we set start time here because we start recording with key frame and drop the other
-			//setting here improves synch between audio and video
-			//setVideoStartTime(pkt.pts());
-			int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
-			if (keyFrame == 1) {
-				firstKeyFrameReceivedChecked = true;
-				logger.warn("First key frame received for stream: {}", streamId);
-			} else {
-				logger.warn("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
-				// return if firstKeyFrameReceived is not received
-				// below return is important otherwise it does not work with like some encoders(vidiu)
-				return;
-			}
+		if (checkToDropPacket(pkt, stream.codecpar().codec_type())) {
+			//drop packet 
+			return;
 		}
+	
 
 		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index())) {
 			if (time2log  % 100 == 0) {
@@ -605,7 +594,21 @@ public abstract class RecordMuxer extends Muxer {
 		AVRational codecTimebase = codecTimeBaseMap.get(pkt.stream_index());
 		int codecType = outStream.codecpar().codec_type();
 
-		if (!firstKeyFrameReceivedChecked && codecType == AVMEDIA_TYPE_VIDEO) {
+		
+		if (!checkToDropPacket(pkt, codecType)) {
+			//added for audio video sync
+			writePacket(pkt, codecTimebase,  outStream.time_base(), codecType);
+		}
+
+	}
+
+	private boolean checkToDropPacket(AVPacket pkt, int codecType) {
+		if (!firstKeyFrameReceivedChecked && codecType == AVMEDIA_TYPE_VIDEO) 
+		{
+			if(firstVideoDts == -1) {
+				firstVideoDts = pkt.dts();
+			}
+			
 			int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
 			//we set start time here because we start recording with key frame and drop the other
 			//setting here improves synch between audio and video
@@ -616,14 +619,14 @@ public abstract class RecordMuxer extends Muxer {
 				logger.info("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
 				// return if firstKeyFrameReceived is not received
 				// below return is important otherwise it does not work with like some encoders(vidiu)
-				return;
+				return true;
+				
 			}
 		}
-		//added for audio video sync
-		if(firstKeyFrameReceivedChecked || audioOnly) {
-			writePacket(pkt, codecTimebase,  outStream.time_base(), codecType);
-		}
-
+		//don't drop packet because it's either audio packet or key frame is received
+		return false;
+		
+		
 	}
 
 
@@ -676,9 +679,8 @@ public abstract class RecordMuxer extends Muxer {
 		}
 		else if (codecType == AVMEDIA_TYPE_VIDEO)
 		{
-			if(firstVideoDts == -1) {
-				firstVideoDts = pkt.dts();
-			}
+			//we set the firstVideoDts in checkToDropPacket Method to not have audio/video synch issue
+			
 			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames
 			// until the first key frame
 			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
@@ -772,8 +774,4 @@ public abstract class RecordMuxer extends Muxer {
 	}
 
 	public boolean isUploadingToS3(){return uploadMP4ToS3;}
-	
-	public void setAudioOnly(boolean audioOnly) {
-		this.audioOnly = audioOnly;
-	}
 }
