@@ -1485,11 +1485,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		this.previewHeight = previewHeight;
 	}
 
-	private Mp4Muxer createMp4Muxer() {
+	public Mp4Muxer createMp4Muxer() {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(storageClient, vertx, appSettings.getS3StreamsFolderPath());
 		mp4Muxer.setAddDateTimeToSourceName(addDateTimeToMp4FileName);
 		mp4Muxer.setBitstreamFilter(mp4Filtername);
-		mp4Muxer.setAudioOnly(enableAudio && !enableVideo);
 		return mp4Muxer;
 	}
 
