@@ -61,7 +61,7 @@ public abstract class Muxer {
 	protected String format;
 	protected boolean isInitialized = false;
 
-	protected Map<String, String> options = new HashMap();
+	protected Map<String, String> options = new HashMap<>();
 	private static Logger logger = LoggerFactory.getLogger(Muxer.class);
 
 	protected AVFormatContext outputFormatContext;
