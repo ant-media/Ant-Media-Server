@@ -132,8 +132,8 @@ public abstract class RecordMuxer extends Muxer {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void init(IScope scope, final String name, int resolutionHeight, String subFolder) {
-		super.init(scope, name, resolutionHeight, false, subFolder);
+	public void init(IScope scope, final String name, int resolutionHeight, String subFolder, int bitrate) {
+		super.init(scope, name, resolutionHeight, false, subFolder, bitrate);
 
 		this.streamId = name;
 		this.resolution = resolutionHeight;
