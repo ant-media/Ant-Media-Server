@@ -58,11 +58,13 @@ import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
+import io.vertx.core.Vertx;
 
 public class DBStoresUnitTest {
 
 	protected static Logger logger = LoggerFactory.getLogger(DBStoresUnitTest.class);
 
+	private Vertx vertx = Vertx.vertx();
 
 	@Before
 	public void before() {
@@ -90,7 +92,8 @@ public class DBStoresUnitTest {
 	@Test
 	public void testMapDBStore() {
 
-		DataStore dataStore = new MapDBStore("testdb");
+		DataStore dataStore = new MapDBStore("testdb", vertx);
+		
 		
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -132,6 +135,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
+		
 	}
 
 	@Test
@@ -246,7 +250,7 @@ public class DBStoresUnitTest {
 	@Test
 	public void testBug() {
 		
-		MapDBStore dataStore = new MapDBStore("src/test/resources/damaged_webrtcappee.db");
+		MapDBStore dataStore = new MapDBStore("src/test/resources/damaged_webrtcappee.db", vertx);
 		
 		//Following methods does not return before the bug is fixed
 		dataStore.fetchUserVodList(new File(""));
@@ -2752,7 +2756,7 @@ public class DBStoresUnitTest {
 	@Test
 	public void testDeleteMapDB() {
 		String dbName = "deleteMapdb";
-		DataStore dataStore = new MapDBStore(dbName);
+		DataStore dataStore = new MapDBStore(dbName, vertx);
 		assertTrue(new File(dbName).exists());
 		dataStore.close();
 		dataStore.delete();

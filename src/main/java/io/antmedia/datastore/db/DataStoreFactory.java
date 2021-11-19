@@ -9,6 +9,7 @@ import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
 import io.antmedia.settings.ServerSettings;
+import io.vertx.core.Vertx;
 
 public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAware{
 
@@ -53,6 +54,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	@Value( "${"+SETTINGS_DB_PASS+":#{null}}" )
 	private String dbPassword;
 	private String hostAddress;
+	private Vertx vertx;
 	
 	public String getDbName() {
 		return dbName;
@@ -102,7 +104,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		}
 		else if(dbType .contentEquals(DB_TYPE_MAPDB))
 		{
-			dataStore = new MapDBStore(dbName+".db");
+			dataStore = new MapDBStore(dbName+".db", vertx);
 		}
 		else if(dbType .contentEquals(DB_TYPE_MEMORYDB))
 		{
@@ -140,6 +142,11 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		hostAddress = serverSettings.getHostAddress();
 		init();
+	}
+
+	public void setVertx(Vertx vertx) {
+		this.vertx = vertx;
+		
 	}
 
 }
