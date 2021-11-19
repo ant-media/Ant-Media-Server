@@ -398,7 +398,7 @@ public class AppSettings {
 	/**
 	 * Delete files from local after uploading them to S3
 	 */
-	@Value( "${"+SETTINGS_DELETE_FILE_AFTER_S3_UPLOAD+":7}" )
+	@Value( "${"+SETTINGS_DELETE_FILE_AFTER_S3_UPLOAD+":true}" )
 	private boolean deleteFileAfterS3Upload;
 
 	/**
