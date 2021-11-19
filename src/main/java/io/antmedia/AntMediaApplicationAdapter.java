@@ -1029,7 +1029,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		//vertx should be initialized before calling this method
 		if(dataStore == null)
 		{
-			dataStoreFactory.setVertx(getVertx());
 			dataStore = dataStoreFactory.getDataStore();
 		}
 		return dataStore;

@@ -8,6 +8,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
@@ -54,6 +55,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	@Value( "${"+SETTINGS_DB_PASS+":#{null}}" )
 	private String dbPassword;
 	private String hostAddress;
+	
 	private Vertx vertx;
 	
 	public String getDbName() {
@@ -139,14 +141,11 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		vertx = (Vertx)applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+		
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		hostAddress = serverSettings.getHostAddress();
 		init();
-	}
-
-	public void setVertx(Vertx vertx) {
-		this.vertx = vertx;
-		
 	}
 
 }
