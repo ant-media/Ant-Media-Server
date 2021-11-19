@@ -205,7 +205,7 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	private boolean isCodecSupported(int codecId) {
-		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC || codecId == AV_CODEC_ID_MP3 || codecId == AV_CODEC_ID_H265);
+		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC || codecId == AV_CODEC_ID_MP3 || codecId == AV_CODEC_ID_H265 || codecId == AV_CODEC_ID_PCM_ALAW);
 	}
 
 	/**
@@ -555,7 +555,6 @@ public class HLSMuxer extends Muxer  {
 				}
 				outStream.codecpar().codec_tag(0);
 			}
-
 
 			outStream.time_base(timebase);
 			codecTimeBaseMap.put(outStream.index(), timebase);
