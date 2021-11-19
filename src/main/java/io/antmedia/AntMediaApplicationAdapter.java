@@ -1468,6 +1468,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		store.put(AppSettings.SETTINGS_RTSP_TIMEOUT_DURATION_MS, String.valueOf(newAppsettings.getRtspTimeoutDurationMs()));
 
 		store.put(AppSettings.SETTINGS_UPLOAD_EXTENSIONS_TO_S3, String.valueOf(newAppsettings.getUploadExtensionsToS3()));
+		store.put(AppSettings.SETTINGS_UPLOAD_EXTENSIONS_TO_S3, String.valueOf(newAppsettings.getDeleteFileAfterS3Upload()));
 
 		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(newAppsettings.isAcceptOnlyStreamsInDataStore()));
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
@@ -1552,6 +1553,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		appSettings.setEndpointHealthCheckPeriodMs(newSettings.getEndpointHealthCheckPeriodMs());
 
 		appSettings.setUploadExtensionsToS3(newSettings.getUploadExtensionsToS3());
+		appSettings.setDeleteFileAfterS3Upload(newSettings.getDeleteFileAfterS3Upload());
+
 
 		appSettings.setRtspTimeoutDurationMs(newSettings.getRtspTimeoutDurationMs());
 
