@@ -306,8 +306,11 @@ public abstract class Muxer {
 		}
 
 		// add resolution height parameter if it is different than 0
-		if (resolution != 0 && bitrate != 0) {
-			resourceName += "_" + resolution + "p" + "_" + bitrateKbps + "kbps";
+		if (resolution != 0) {
+			resourceName += "_" + resolution + "p" ;
+			if(bitrate != 0){
+				resourceName += "_" + bitrateKbps + "kbps";
+			}
 		}
 		return resourceName;
 	}
