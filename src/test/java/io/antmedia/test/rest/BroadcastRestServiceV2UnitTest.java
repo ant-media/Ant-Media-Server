@@ -515,25 +515,6 @@ public class BroadcastRestServiceV2UnitTest {
 		assertFalse(object.isSuccess());
 		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
 
-		//make client id and clien secret null for periscope
-		when(settings.getPeriscopeClientId()).thenReturn(null);
-		when(settings.getPeriscopeClientSecret()).thenReturn(null);
-
-		//get device auth parameter for periscope
-		object = (Result)restServiceReal.getDeviceAuthParametersV2("periscope");
-
-		//it should be client id and client secret missing
-		assertFalse(object.isSuccess());
-		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID, object.getErrorId());
-
-		//make client id and client secret have value for periscope
-		when(settings.getPeriscopeClientId()).thenReturn("121212");
-		when(settings.getPeriscopeClientSecret()).thenReturn("121212");
-
-		//it should be different error because client id and cleint secret is not correct
-		object  = (Result) restServiceReal.getDeviceAuthParametersV2("periscope");
-		assertFalse(object.isSuccess());
-		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS, object.getErrorId());
 	}
 
 
