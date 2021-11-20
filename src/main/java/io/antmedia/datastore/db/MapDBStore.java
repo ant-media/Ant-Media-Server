@@ -30,7 +30,6 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -48,7 +47,6 @@ public class MapDBStore extends DataStore {
 	private BTreeMap<String, String> map;
 	private BTreeMap<String, String> vodMap;
 	private BTreeMap<String, String> detectionMap;
-	private BTreeMap<String, String> socialEndpointsCredentialsMap;
 	private BTreeMap<String, String> tokenMap;
 	private BTreeMap<String, String> subscriberMap;
 	private BTreeMap<String, String> conferenceRoomMap;
@@ -92,9 +90,6 @@ public class MapDBStore extends DataStore {
 		
 		detectionMap = db.treeMap(DETECTION_MAP_NAME).keySerializer(Serializer.STRING)
 				.valueSerializer(Serializer.STRING).counterEnable().createOrOpen();
-
-		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
-				.counterEnable().createOrOpen();
 
 		tokenMap = db.treeMap(TOKEN).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
@@ -656,106 +651,6 @@ public class MapDBStore extends DataStore {
 			}
 		}
 		return result;
-	}
-
-	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
-		SocialEndpointCredentials addedCredential = null;
-		synchronized (this) {
-
-			if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
-					&& credentials.getServiceName() != null) 
-			{
-				if (credentials.getId() == null) {
-					//create new id if id is not set
-					String id = RandomStringUtils.randomAlphanumeric(6);
-					credentials.setId(id);
-					socialEndpointsCredentialsMap.put(id, gson.toJson(credentials));
-					addedCredential = credentials;
-				}	
-				else {
-
-					if(socialEndpointsCredentialsMap.get(credentials.getId()) != null) 
-					{
-						//replace the field if id exists
-						socialEndpointsCredentialsMap.put(credentials.getId(), gson.toJson(credentials));
-						addedCredential = credentials;
-					}
-					else {
-						logger.error("Credentials Map for social endpoint is null");
-					}
-					//if id is not matched with any value, do not record
-				}
-			}
-			else {
-				if (credentials != null) 
-				{
-					logger.error("Some of Credentials parameters are null. Accoutn name is null:{} token is null:{}, serviceName is null:{}",
-						 credentials.getAccountName() == null, credentials.getAccessToken() == null , 
-						 credentials.getServiceName() == null);
-				}
-				else {
-					logger.error("Credentials are null");
-				}
-			}
-		}
-		return addedCredential;
-	}
-
-	@Override
-	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
-
-		List<SocialEndpointCredentials> list = new ArrayList<>();
-
-		synchronized (this) {
-			Collection<String> values = socialEndpointsCredentialsMap.values();
-			int t = 0;
-			int itemCount = 0;
-			if (size > MAX_ITEM_IN_ONE_LIST) {
-				size = MAX_ITEM_IN_ONE_LIST;
-			}
-			if (offset < 0) {
-				offset = 0;
-			}
-
-			for (String credentialString : values) {
-				if (t < offset) {
-					t++;
-					continue;
-				}
-				list.add(gson.fromJson(credentialString, SocialEndpointCredentials.class));
-				itemCount++;
-
-				if (itemCount >= size) {
-					break;
-				}
-
-			}
-		}
-		return list;
-	}
-
-	@Override
-	public boolean removeSocialEndpointCredentials(String id) {
-		boolean result = false;
-		synchronized (this) {
-			result = socialEndpointsCredentialsMap.remove(id) != null;
-		}
-		return result;
-	}
-
-	@Override
-	public SocialEndpointCredentials getSocialEndpointCredentials(String id) {
-		SocialEndpointCredentials credential = null;
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = socialEndpointsCredentialsMap.get(id);
-				if (jsonString != null) {
-					credential = gson.fromJson(jsonString, SocialEndpointCredentials.class);
-				}
-			}
-		}
-		return credential;
-
 	}
 
 	@Override

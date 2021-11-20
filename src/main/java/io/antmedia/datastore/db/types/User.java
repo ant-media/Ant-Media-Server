@@ -1,12 +1,21 @@
-package io.antmedia.rest.model;
+package io.antmedia.datastore.db.types;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
+import dev.morphia.annotations.Entity;
+import dev.morphia.annotations.Field;
+import dev.morphia.annotations.Index;
+import dev.morphia.annotations.Indexes;
+import dev.morphia.utils.IndexType;
+import io.antmedia.rest.model.UserType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 @ApiModel(value="User", description="The basic user class")
+@Entity(value = "user")
+@Indexes({ @Index(fields = @Field("email")), @Index(fields = @Field("fullName")), @Index(fields = @Field(value = "$**", type = IndexType.TEXT)) })
+
 public class User {
 	
 	/**

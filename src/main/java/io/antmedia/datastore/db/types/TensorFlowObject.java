@@ -7,6 +7,7 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
+import dev.morphia.utils.IndexType;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -15,7 +16,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 @Entity("detection")
 
-@Indexes({ @Index(fields = @Field("dbId")) })
+@Indexes({ @Index(fields = @Field("dbId")), @Index(fields = @Field(value = "$**", type = IndexType.TEXT)) })
 
 @ApiModel(value="TensorFlowObject", description="The TensorFlow detected object class")
 public class TensorFlowObject {

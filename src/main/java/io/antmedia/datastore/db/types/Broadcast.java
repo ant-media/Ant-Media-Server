@@ -5,22 +5,21 @@ import java.util.List;
 
 import org.bson.types.ObjectId;
 
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import dev.morphia.annotations.Embedded;
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
+import dev.morphia.utils.IndexType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 
 @ApiModel(value="Broadcast", description="The basic broadcast class")
-@Entity(value = "broadcast", noClassnameStored = true)
-@Indexes({ @Index(fields = @Field("name")), @Index(fields = @Field("streamId")) })
+@Entity(value = "broadcast")
+@Indexes({ @Index(fields = @Field("name")), @Index(fields = @Field("streamId")), @Index(fields = @Field(value = "$**", type = IndexType.TEXT)) })
 public class Broadcast {
 
 
@@ -108,12 +107,10 @@ public class Broadcast {
 	private long duration;
 
 	@ApiModelProperty(value = "the list of endpoints such as Facebook, Twitter or custom RTMP endpoints  ")
-	@Embedded
 	private List<Endpoint> endPointList;
 
 
 	@ApiModelProperty(value = "the list broadcasts of Playlist Items. This list has values when the broadcast type is playlist")
-	@Embedded
 	private List<PlayListItem> playListItemList;
 
 	/**
@@ -203,6 +200,7 @@ public class Broadcast {
 	@ApiModelProperty(value = "WebM muxing whether enabled or not for the stream, 1 means enabled, -1 means disabled, 0 means no settings for the stream")
 	private int webMEnabled = 0;
 
+	@Entity
 	public static class PlayListItem
 	{
 		String streamUrl;

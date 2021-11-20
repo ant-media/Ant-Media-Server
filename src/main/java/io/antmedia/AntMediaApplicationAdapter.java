@@ -28,18 +28,14 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
-import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IPlayItem;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamPublishSecurity;
-import org.red5.server.api.stream.IStreamService;
 import org.red5.server.api.stream.ISubscriberStream;
 import org.red5.server.stream.ClientBroadcastStream;
-import org.red5.server.stream.StreamService;
-import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,8 +44,6 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.filter.StreamAcceptFilter;
@@ -65,8 +59,6 @@ import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.shutdown.IShutdownListener;
-import io.antmedia.social.endpoint.VideoServiceEndpoint;
-import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
@@ -100,15 +92,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String STREAM_SOURCE = "streamSource";
 	public static final String PLAY_LIST = "playlist";
 	protected static final int END_POINT_LIMIT = 20;
-	public static final String FACEBOOK = "facebook";
-	public static final String YOUTUBE = "youtube";
-	public static final String FACEBOOK_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.FacebookEndpoint";
-	public static final String YOUTUBE_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.YoutubeEndpoint";
 	public static final String WEBAPPS_PATH = "webapps/";
 
 
-	private Map<String, VideoServiceEndpoint> videoServiceEndpoints = new HashMap<>();
-	private List<VideoServiceEndpoint> videoServiceEndpointsHavingError = new ArrayList<>();
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
 	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<>();
 	protected StreamFetcherManager streamFetcherManager;
@@ -212,28 +198,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
 				logger.info("Stream source size: {}", streams.size());
 				streamFetcherManager.startStreams(streams);
-			}
-
-			List<SocialEndpointCredentials> socialEndpoints = getDataStore().getSocialEndpoints(0, END_POINT_LIMIT);
-
-			logger.info("socialEndpoints size: {}", socialEndpoints.size());
-
-			for (SocialEndpointCredentials socialEndpointCredentials : socialEndpoints) 
-			{
-				VideoServiceEndpoint endPointService = null;
-				if (socialEndpointCredentials.getServiceName().equals(FACEBOOK)) 
-				{
-					endPointService = getEndpointService(FACEBOOK_ENDPOINT_CLASS, socialEndpointCredentials, appSettings.getFacebookClientId(), appSettings.getFacebookClientSecret());
-				}
-				else if (socialEndpointCredentials.getServiceName().equals(YOUTUBE)) 
-				{
-					endPointService = getEndpointService(YOUTUBE_ENDPOINT_CLASS, socialEndpointCredentials, appSettings.getYoutubeClientId(), appSettings.getYoutubeClientSecret());
-				}
-
-				if (endPointService != null) {
-					endPointService.setCollectInteractivity(appSettings.isCollectSocialMediaActivity());
-					videoServiceEndpoints.put(endPointService.getCredentials().getId(), endPointService);
-				}
 			}
 
 			synchUserVoDFolder(null, appSettings.getVodFolder());
@@ -357,8 +321,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null));
 				}
 
-				stopPublishingSocialEndpoints(broadcast);
-
 				if (broadcast.isZombi()) {
 					if(broadcast.getMainTrackStreamId() != null && !broadcast.getMainTrackStreamId().isEmpty()) {
 						updateMainBroadcast(broadcast);
@@ -397,78 +359,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				hlsViewerStats.resetHLSViewerMap(streamId);
 			}
 		}
-	}
-
-	public void stopPublishingSocialEndpoints(Broadcast broadcast) 
-	{
-		List<Endpoint> endPointList = broadcast.getEndPointList();
-		if (endPointList != null) {
-			for (Endpoint endpoint : endPointList) {
-				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
-				if (videoServiceEndPoint != null) {
-					try {
-						videoServiceEndPoint.stopBroadcast(endpoint);
-					} catch (Exception e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
-				}
-			}
-			// recreate endpoints for social media
-			recreateEndpointsForSocialMedia(broadcast, endPointList);
-		}
-	}
-
-	public void recreateEndpointsForSocialMedia(Broadcast broadcast, List<Endpoint> endPointList) {
-		//below removeList and addList is due to avoid concurrent exception
-		List<Endpoint> removeList = new ArrayList<>();
-		List<Endpoint> addList = new ArrayList<>();
-		for (Endpoint endpoint : endPointList) {
-
-			if (!"".equals(endpoint.getType())) 
-			{
-				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
-				if (videoServiceEndPoint != null) 
-				{
-					Endpoint newEndpoint;
-					try {
-						newEndpoint = videoServiceEndPoint.createBroadcast(broadcast.getName(),
-								broadcast.getDescription(), broadcast.getStreamId(), broadcast.isIs360(), broadcast.isPublicStream(), 2160, true);
-						removeList.add(endpoint);
-						addList.add(newEndpoint);
-
-					} catch (Exception e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
-
-				}
-			}
-		}
-		for (Endpoint endpoint : removeList) {
-			getDataStore().removeEndpoint(broadcast.getStreamId(), endpoint, true);
-		}
-
-		for (Endpoint endpoint : addList) {
-			getDataStore().addEndpoint(broadcast.getStreamId(), endpoint);
-		}
-
-	}
-
-	public VideoServiceEndpoint getEndpointService(String className, 
-			SocialEndpointCredentials socialEndpointCredentials, String clientId, String clientSecret)
-	{
-		try {
-			VideoServiceEndpoint endPointService;
-			Class endpointClass = Class.forName(className);
-
-			endPointService = (VideoServiceEndpoint) endpointClass.getConstructor(String.class, String.class, DataStore.class, SocialEndpointCredentials.class, Vertx.class)
-					.newInstance(clientId, clientSecret, getDataStore(), socialEndpointCredentials, vertx);
-			endPointService.setCollectInteractivity(appSettings.isCollectSocialMediaActivity());
-			return endPointService;
-		}
-		catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		return null;
 	}
 
 	@Override
@@ -511,10 +401,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					logger.info("Active broadcast count({}) is more than ingesting stream limit:{} so stopping broadcast:{}", activeBroadcastNumber, ingestingStreamLimit, broadcast.getStreamId());
 					stopStreaming(broadcast);
 				}
-				else 
-				{
-					publishSocialEndpoints(broadcast.getEndPointList());
-				}
+				
 
 				for (IStreamListener listener : streamListeners) {
 					listener.streamStarted(broadcast.getStreamId());
@@ -595,24 +482,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-	public void publishSocialEndpoints(List<Endpoint> endPointList) 
-	{
-		if (endPointList != null) 
-		{
-			for (Endpoint endpoint : endPointList) {
-				VideoServiceEndpoint videoServiceEndPoint = getVideoServiceEndPoint(endpoint.getEndpointServiceId());
-				if (videoServiceEndPoint != null) {
-					try {
-						videoServiceEndPoint.publishBroadcast(endpoint);
-						logger.info("publish broadcast called for {}" , videoServiceEndPoint.getName());
-					} catch (Exception e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
-				}
-			}
-		}
-	}
-
 	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType) {		
 		return saveUndefinedBroadcast(streamId, streamName, appAdapter, streamStatus, absoluteStartTimeMs, publishType, "");
 	}
@@ -639,14 +508,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		return null;
-	}
-
-	public VideoServiceEndpoint getVideoServiceEndPoint(String id) {
-		if (videoServiceEndpoints != null) {
-			return videoServiceEndpoints.get(id);
-		}
-		return null;
-	}
+	}	
 
 	@Override
 	public void muxingFinished(final String streamId, File file, long duration, int resolution) {
@@ -732,74 +594,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		return relativePath.toString();
 	}
-
-	private static class AuthCheckJob {
-
-		private int count;
-		private VideoServiceEndpoint videoServiceEndpoint;
-		private int interval;
-		private AntMediaApplicationAdapter appAdapter;
-
-		public AuthCheckJob(int count, int interval, VideoServiceEndpoint videoServiceEndpoint, AntMediaApplicationAdapter adapter) {
-			this.count = count;
-			this.videoServiceEndpoint = videoServiceEndpoint;
-			this.interval = interval;
-			this.appAdapter = adapter;
-		}
-
-		public void execute() {
-			try {
-				if (!videoServiceEndpoint.askIfDeviceAuthenticated()) {
-					count++;
-					if (count < 10) {
-						if (videoServiceEndpoint.getError() == null) {
-							appAdapter.getVertx().setTimer(interval, l->{
-								new AuthCheckJob(count, interval, videoServiceEndpoint, appAdapter).execute();
-							});
-							logger.info("Asking authetnication for {}", videoServiceEndpoint.getName());
-						}
-						else {
-							//there is an error so do not ask again
-							this.appAdapter.getVideoServiceEndpointsHavingError().add(videoServiceEndpoint);
-						}
-					}
-					else {
-						videoServiceEndpoint.setError(VideoServiceEndpoint.AUTHENTICATION_TIMEOUT);
-						this.appAdapter.getVideoServiceEndpointsHavingError().add(videoServiceEndpoint);
-						logger.info("Not authenticated for {} and will not try again", videoServiceEndpoint.getName());
-					}
-				}
-				else {
-					logger.info("Authenticated, adding video service endpoint type: {} with id: {} to the app", videoServiceEndpoint.getName(), videoServiceEndpoint.getCredentials().getId());
-					this.appAdapter.getVideoServiceEndpoints().put(videoServiceEndpoint.getCredentials().getId(), videoServiceEndpoint);
-
-				}
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-	}
-
-	public void startDeviceAuthStatusPolling(VideoServiceEndpoint videoServiceEndpoint,
-			DeviceAuthParameters askDeviceAuthParameters) {
-		int timeDelta = askDeviceAuthParameters.interval * 1000;
-		getVertx().setTimer(timeDelta, l->{
-			new AuthCheckJob(0, timeDelta, videoServiceEndpoint, this).execute();
-		});
-	}
-
-	public Map<String, VideoServiceEndpoint> getVideoServiceEndpoints() {
-		return videoServiceEndpoints;
-	}
-
-	public List<VideoServiceEndpoint> getVideoServiceEndpointsHavingError(){
-		return videoServiceEndpointsHavingError ;
-	}
-
-	public void setVideoServiceEndpoints(Map<String, VideoServiceEndpoint> videoServiceEndpoints) {
-		this.videoServiceEndpoints = videoServiceEndpoints;
-	}
-
+	
 	/**
 	 * Notify hook with parameters below
 	 * 

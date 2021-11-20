@@ -13,11 +13,12 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
+import dev.morphia.utils.IndexType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 @Entity("ConferenceRoom")
-@Indexes({ @Index(fields = @Field("roomId")) })
+@Indexes({ @Index(fields = @Field("roomId")), @Index(fields = @Field(value = "$**", type = IndexType.TEXT)) })
 @ApiModel(value="ConferenceRoom", description="The Conference Room class")
 public class ConferenceRoom {
 	
