@@ -23,6 +23,7 @@ import com.mongodb.client.result.UpdateResult;
 import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
 import dev.morphia.Morphia;
+import dev.morphia.UpdateOptions;
 import dev.morphia.query.FindOptions;
 import dev.morphia.query.Query;
 import dev.morphia.query.Sort;
@@ -91,9 +92,14 @@ public class MongoStore extends DataStore {
 		//do not create data store for each type as we do above
 		//*************************************************
 
+		
+		tokenDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
+		subscriberDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
 		datastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
-
-
+		vodDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
+		detectionMap.getMapper().mapPackage("io.antmedia.datastore.db.types");
+		conferenceRoomDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
+		
 		tokenDatastore.ensureIndexes();
 		subscriberDatastore.ensureIndexes();
 		datastore.ensureIndexes();
@@ -1289,6 +1295,7 @@ public class MongoStore extends DataStore {
 					.getDeletedCount();
 
 
+
 			//reset the broadcasts viewer numbers
 			totalOperationCount += datastore.find(Broadcast.class)
 					.filter(Filters.or(
@@ -1296,12 +1303,13 @@ public class MongoStore extends DataStore {
 								Filters.exists(ORIGIN_ADDRESS).not()
 								)
 							)
-					.update(UpdateOperators.set(WEBRTC_VIEWER_COUNT, 0),
+					.update(
+							UpdateOperators.set(WEBRTC_VIEWER_COUNT, 0),
 							UpdateOperators.set(HLS_VIEWER_COUNT, 0),
 							UpdateOperators.set(RTMP_VIEWER_COUNT, 0),
 							UpdateOperators.set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)
 							)
-					.execute()
+					.execute(new UpdateOptions().multi(true))
 					.getModifiedCount();
 
 
