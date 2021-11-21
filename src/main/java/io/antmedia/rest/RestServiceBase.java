@@ -67,7 +67,6 @@ import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.social.LiveComment;
-import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.statistic.HlsViewerStats;
@@ -1348,17 +1347,6 @@ public abstract class RestServiceBase {
 				missingClientIdAndSecret = true;
 			}
 
-		}
-		else if (serviceName.equals(AntMediaApplicationAdapter.PERISCOPE)) 
-		{
-			String clientId = getAppSettings().getPeriscopeClientId();
-			String clientSecret = getAppSettings().getPeriscopeClientSecret();
-
-			videoServiceEndpoint = getApplication().getEndpointService(PeriscopeEndpoint.class.getName(), null, clientId, clientSecret);
-
-			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret))  {
-				missingClientIdAndSecret = true;
-			}
 		}
 
 		try {

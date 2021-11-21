@@ -163,7 +163,8 @@
    		factory-method="vertx">
    		<constructor-arg>
    			<bean class="io.vertx.core.VertxOptions">
-   				<!--property name="eventLoopPoolSize" value="20"></property-->
+   				<property name="eventLoopPoolSize" value="64"></property>
+   				<property name="workerPoolSize" value="64"></property>
 				<property name="metricsOptions" ref="vertxMetricOptions"></property>
 				<property name="maxWorkerExecuteTime" value="10000000000"></property> <!--  make max worker execute time 10 seconds -->
    			</bean>
@@ -174,6 +175,8 @@
     <bean id="webRTCVertx" class="io.vertx.core.Vertx" factory-method="vertx">
     	<constructor-arg>
     		<bean class="io.vertx.core.VertxOptions">
+    			<property name="eventLoopPoolSize" value="64"></property>
+   				<property name="workerPoolSize" value="64"></property>
     			<property name="metricsOptions" ref="vertxMetricOptions"></property>
     			<property name="maxWorkerExecuteTime" value="2000000000"></property> <!-- make max worker execute time 2 seconds -->
     		</bean>

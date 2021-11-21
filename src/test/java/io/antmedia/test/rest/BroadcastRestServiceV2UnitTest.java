@@ -95,7 +95,6 @@ import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.social.LiveComment;
 import io.antmedia.social.ResourceOrigin;
-import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.statistic.HlsViewerStats;
@@ -516,25 +515,6 @@ public class BroadcastRestServiceV2UnitTest {
 		assertFalse(object.isSuccess());
 		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT, object.getErrorId());
 
-		//make client id and clien secret null for periscope
-		when(settings.getPeriscopeClientId()).thenReturn(null);
-		when(settings.getPeriscopeClientSecret()).thenReturn(null);
-
-		//get device auth parameter for periscope
-		object = (Result)restServiceReal.getDeviceAuthParametersV2("periscope");
-
-		//it should be client id and client secret missing
-		assertFalse(object.isSuccess());
-		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID, object.getErrorId());
-
-		//make client id and client secret have value for periscope
-		when(settings.getPeriscopeClientId()).thenReturn("121212");
-		when(settings.getPeriscopeClientSecret()).thenReturn("121212");
-
-		//it should be different error because client id and cleint secret is not correct
-		object  = (Result) restServiceReal.getDeviceAuthParametersV2("periscope");
-		assertFalse(object.isSuccess());
-		assertEquals(RestServiceBase.ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS, object.getErrorId());
 	}
 
 
@@ -1270,126 +1250,6 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 
-	@Test
-	public void testGetSocialEndpoints() {
-		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
-		AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
-		Map<String, VideoServiceEndpoint> endpointMap = new HashMap<>();
-
-		PeriscopeEndpoint endpoint = mock(PeriscopeEndpoint.class);
-		String endpointId =  RandomStringUtils.randomAlphabetic(5);
-		endpointMap.put(endpointId, endpoint);
-
-		PeriscopeEndpoint endpoint2 = mock(PeriscopeEndpoint.class);
-		String endpointId2 =  RandomStringUtils.randomAlphabetic(5);
-		endpointMap.put(endpointId2, endpoint2);
-
-		when(application.getVideoServiceEndpoints()).thenReturn(endpointMap);
-
-		when(restServiceSpy.getApplication()).thenReturn(application);
-
-		List<SocialEndpointCredentials> list = restServiceSpy.getSocialEndpointsV2(0, 100);
-		assertEquals(2, list.size());
-	}
-
-	@Test
-	public void testCheckDeviceAuthStatus() {
-		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
-
-		AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
-		Map<String, VideoServiceEndpoint> endpointMap = new HashMap<>();
-
-		PeriscopeEndpoint endpoint = mock(PeriscopeEndpoint.class);
-		String endpointId =  RandomStringUtils.randomAlphabetic(5);
-		endpointMap.put(endpointId, endpoint);
-		DeviceAuthParameters auth = new DeviceAuthParameters();
-		String userCode = RandomStringUtils.randomAlphabetic(14);
-		auth.user_code = userCode;
-
-		SocialEndpointCredentials credentials = getSocialEndpointCrendential();
-		credentials.setId(endpointId);
-		when(endpoint.getCredentials()).thenReturn(credentials);
-		when(endpoint.getAuthParameters()).thenReturn(auth);
-		when(application.getVideoServiceEndpoints()).thenReturn(endpointMap);
-
-		when(restServiceSpy.getApplication()).thenReturn(application);
-
-		Result checkDeviceAuthStatus = restServiceSpy.checkDeviceAuthStatusV2(userCode);
-		assertTrue(checkDeviceAuthStatus.isSuccess());
-
-
-		checkDeviceAuthStatus = restServiceSpy.checkDeviceAuthStatusV2(userCode + "spoiler");
-		assertFalse(checkDeviceAuthStatus.isSuccess());
-
-		List<VideoServiceEndpoint> endpointErrorList = new ArrayList<>();
-		PeriscopeEndpoint endpointError = mock(PeriscopeEndpoint.class);
-
-		DeviceAuthParameters auth2 = new DeviceAuthParameters();
-		userCode = RandomStringUtils.randomAlphabetic(14);
-		auth2.user_code = userCode;
-
-		when(endpointError.getAuthParameters()).thenReturn(auth2);
-
-		endpointErrorList.add(endpointError);
-		when(application.getVideoServiceEndpointsHavingError()).thenReturn(endpointErrorList);
-		checkDeviceAuthStatus = restServiceSpy.checkDeviceAuthStatusV2(userCode);
-		assertFalse(checkDeviceAuthStatus.isSuccess());
-
-		assertEquals(0, application.getVideoServiceEndpointsHavingError().size());
-
-	}
-
-
-	@Test
-	public void testGetInteractionsFromEndpoint() {
-		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
-
-		AntMediaApplicationAdapter application = mock(AntMediaApplicationAdapter.class);
-
-		SocialEndpointCredentials credentials = getSocialEndpointCrendential();
-		credentials.setId(String.valueOf((int)(Math.random() * 1000)));
-
-		PeriscopeEndpoint endpoint = mock(PeriscopeEndpoint.class);
-		when(application.getVideoServiceEndPoint(credentials.getId())).thenReturn(endpoint);
-
-		when(restServiceSpy.getApplication()).thenReturn(application);
-
-		String streamId =  "name"   + (int)(Math.random() * 1000);
-		ArrayList<LiveComment> liveCommentList = new ArrayList<>();
-		liveCommentList.add(new LiveComment("id", "message", new User(), ResourceOrigin.PERISCOPE, System.currentTimeMillis()));
-		when(endpoint.getComments(streamId, 0, 10)).thenReturn(liveCommentList);
-
-		when(endpoint.getTotalCommentsCount(streamId)).thenReturn(124);
-
-		Result liveCommentsCount = restServiceSpy.getLiveCommentsCountV2(credentials.getId(), streamId);
-		assertEquals(124, Integer.valueOf(liveCommentsCount.getMessage()).intValue());
-
-		liveCommentsCount = restServiceSpy.getLiveCommentsCountV2(credentials.getId(), streamId + "dd");
-		assertEquals(0, Integer.valueOf(liveCommentsCount.getMessage()).intValue());
-
-		liveCommentsCount = restServiceSpy.getLiveCommentsCountV2(credentials.getId() + "spoiler", streamId);
-		assertEquals(0, Integer.valueOf(liveCommentsCount.getMessage()).intValue());
-
-		List<LiveComment> liveComments = restServiceSpy.getLiveCommentsFromEndpointV2(credentials.getId(), streamId, 0, 10);
-		assertEquals(1, liveComments.size());
-
-		Result viewerCountFromEndpoint = restServiceSpy.getViewerCountFromEndpointV2(credentials.getId(), streamId + "spoiler");
-		assertEquals(0, Integer.valueOf(viewerCountFromEndpoint.getMessage()).intValue());
-
-
-		when(endpoint.getLiveViews(streamId)).thenReturn((long) 234);
-		viewerCountFromEndpoint = restServiceSpy.getViewerCountFromEndpointV2(credentials.getId(), streamId);
-		assertEquals(234, Integer.valueOf(viewerCountFromEndpoint.getMessage()).intValue());
-
-		Interaction interaction = new Interaction();
-		interaction.setAngryCount(23);
-		interaction.setLikeCount(33);
-		when(endpoint.getInteraction(streamId)).thenReturn(interaction);
-		Interaction interactionFromEndpoint = restServiceSpy.getInteractionFromEndpointV2(credentials.getId(), streamId);
-		assertEquals(23, interactionFromEndpoint.getAngryCount());
-		assertEquals(33, interactionFromEndpoint.getLikeCount());
-
-	}
 
 	public SocialEndpointCredentials getSocialEndpointCrendential() {
 		String name = "name"  + (int)(Math.random() * 1000);

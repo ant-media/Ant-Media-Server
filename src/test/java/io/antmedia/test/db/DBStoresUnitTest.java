@@ -25,13 +25,13 @@ import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
-import com.mongodb.client.MongoDatabase;
 
 import dev.morphia.Datastore;
 import dev.morphia.query.Query;
@@ -58,11 +58,13 @@ import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
+import io.vertx.core.Vertx;
 
 public class DBStoresUnitTest {
 
 	protected static Logger logger = LoggerFactory.getLogger(DBStoresUnitTest.class);
 
+	private Vertx vertx = Vertx.vertx();
 
 	@Before
 	public void before() {
@@ -86,11 +88,12 @@ public class DBStoresUnitTest {
 			}
 		}
 	}
-
+	
 	@Test
 	public void testMapDBStore() {
 
-		DataStore dataStore = new MapDBStore("testdb");
+		DataStore dataStore = new MapDBStore("testdb", vertx);
+		
 		
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -132,6 +135,36 @@ public class DBStoresUnitTest {
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
+				
+	}
+	
+	@Test
+	public void testMapDBPersistent() {
+		DataStore dataStore = new MapDBStore("testdb", vertx);
+		
+		Broadcast broadcast = new Broadcast(null, null);
+		String key = dataStore.save(broadcast);
+		
+		assertNotNull(key);
+		assertNotNull(broadcast.getStreamId());
+
+		assertEquals(broadcast.getStreamId().toString(), key);
+		assertNull(dataStore.get(broadcast.getStreamId()).getQuality());
+
+		Broadcast broadcast2 = dataStore.get(key);
+		assertEquals(broadcast.getStreamId(), broadcast2.getStreamId());
+		assertTrue(broadcast2.isPublish());
+		
+		
+		dataStore.close();
+		
+		dataStore = new MapDBStore("testdb", vertx);
+		Broadcast broadcast3 = dataStore.get(key);
+		assertEquals(broadcast.getStreamId(), broadcast3.getStreamId());
+		assertTrue(broadcast3.isPublish());
+		
+		dataStore.close();
+		
 	}
 
 	@Test
@@ -246,7 +279,7 @@ public class DBStoresUnitTest {
 	@Test
 	public void testBug() {
 		
-		MapDBStore dataStore = new MapDBStore("src/test/resources/damaged_webrtcappee.db");
+		MapDBStore dataStore = new MapDBStore("src/test/resources/damaged_webrtcappee.db", vertx);
 		
 		//Following methods does not return before the bug is fixed
 		dataStore.fetchUserVodList(new File(""));
@@ -1329,6 +1362,8 @@ public class DBStoresUnitTest {
 		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
 
 	}
+	
+
 
 	public void testSimpleOperations(DataStore dataStore) {
 		try {
@@ -2130,11 +2165,15 @@ public class DBStoresUnitTest {
 
 	private DataStore createDB(String type, boolean writeStats) {
 		DataStoreFactory dsf = new DataStoreFactory();
+		
 		dsf.setWriteStatsToDatastore(writeStats);
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
 		dsf.setDbHost("localhost");
-		dsf.init();
+		ApplicationContext context = Mockito.mock(ApplicationContext.class);
+		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());			
+		dsf.setApplicationContext(context);
 		return dsf.getDataStore();
 	}
 
@@ -2752,7 +2791,7 @@ public class DBStoresUnitTest {
 	@Test
 	public void testDeleteMapDB() {
 		String dbName = "deleteMapdb";
-		DataStore dataStore = new MapDBStore(dbName);
+		DataStore dataStore = new MapDBStore(dbName, vertx);
 		assertTrue(new File(dbName).exists());
 		dataStore.close();
 		dataStore.delete();

@@ -43,6 +43,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.vertx.core.Vertx;
 
 public class MongoStore extends DataStore {
 
@@ -82,7 +83,7 @@ public class MongoStore extends DataStore {
 
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = morphia.createDatastore(client, dbName);
-		vodDatastore=morphia.createDatastore(client, dbName+"VoD");
+		vodDatastore = morphia.createDatastore(client, dbName+"VoD");
 		endpointCredentialsDS = morphia.createDatastore(client, dbName+"_endpointCredentials");
 		tokenDatastore = morphia.createDatastore(client, dbName + "_token");
 		subscriberDatastore = morphia.createDatastore(client, dbName + "_subscriber");

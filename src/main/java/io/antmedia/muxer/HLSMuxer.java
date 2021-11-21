@@ -93,9 +93,9 @@ public class HLSMuxer extends Muxer  {
 	private String subFolder = null;
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
-	private int S3_CONSTANT = 0b010;
+	private static final int S3_CONSTANT = 0b010;
 
-	public HLSMuxer(Vertx vertx, StorageClient storageClient, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile, String s3StreamsFolderPath, int uploadExtensionsToS3) {
+	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3) {
 		super(vertx);
 		this.storageClient = storageClient;
 
@@ -106,6 +106,14 @@ public class HLSMuxer extends Muxer  {
 		extension = ".m3u8";
 		format = "hls";
 
+		avRationalTimeBase = new AVRational();
+		avRationalTimeBase.num(1);
+		avRationalTimeBase.den(1);
+
+		this.s3StreamsFolderPath  = s3StreamsFolderPath;
+	}
+
+	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile){
 		if (hlsListSize != null) {
 			this.hlsListSize = hlsListSize;
 		}
@@ -124,26 +132,19 @@ public class HLSMuxer extends Muxer  {
 		else {
 			this.hlsFlags = "";
 		}
-
 		if (hlsEncryptionKeyInfoFile != null && !hlsEncryptionKeyInfoFile.isEmpty()) {
 			this.hlsEncryptionKeyInfoFile = hlsEncryptionKeyInfoFile;
-		}		
-
-		avRationalTimeBase = new AVRational();
-		avRationalTimeBase.num(1);
-		avRationalTimeBase.den(1);
-
-		this.s3StreamsFolderPath  = s3StreamsFolderPath;
+		}
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void init(IScope scope, String name, int resolutionHeight, String subFolder) {
+	public void init(IScope scope, String name, int resolutionHeight, String subFolder, int bitrate) {
 		if (!isInitialized) {
 
-			super.init(scope, name, resolutionHeight, subFolder);
+			super.init(scope, name, resolutionHeight, subFolder, bitrate);
 
 			streamId = name;
 			this.subFolder = subFolder;
@@ -154,10 +155,12 @@ public class HLSMuxer extends Muxer  {
 				options.put("hls_key_info_file", hlsEncryptionKeyInfoFile);
 			}
 
+			this.bitrate=bitrate;
 
 			logger.info("hls time: {}, hls list size: {}", hlsTime, hlsListSize);
 
-			String segmentFilename = file.getParentFile() + "/" + name +"_" + resolutionHeight +"p"+ "%04d.ts";
+			String segmentFilename = file.getParentFile() + "/" + name +"_" + resolutionHeight +"p_" + bitrate + "%04d.ts";
+
 			options.put("hls_segment_filename", segmentFilename);
 
 			if (hlsPlayListType != null && (hlsPlayListType.equals("event") || hlsPlayListType.equals("vod"))) {
@@ -169,7 +172,6 @@ public class HLSMuxer extends Muxer  {
 			}
 			tmpPacket = avcodec.av_packet_alloc();
 			av_init_packet(tmpPacket);
-
 
 			videoPkt = avcodec.av_packet_alloc();
 			av_init_packet(videoPkt);
