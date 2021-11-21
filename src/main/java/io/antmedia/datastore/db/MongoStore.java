@@ -4,7 +4,6 @@ import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -14,7 +13,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.mongodb.AggregationOptions;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.result.DeleteResult;
@@ -91,11 +89,12 @@ public class MongoStore extends DataStore {
 		//*************************************************
 		//do not create data store for each type as we do above
 		//*************************************************
-
+		datastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
 		
+		
+		//TODO: only map related class not all of them
 		tokenDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
 		subscriberDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
-		datastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
 		vodDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
 		detectionMap.getMapper().mapPackage("io.antmedia.datastore.db.types");
 		conferenceRoomDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");

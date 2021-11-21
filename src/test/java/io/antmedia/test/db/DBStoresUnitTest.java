@@ -210,22 +210,25 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 	}
+	
+	@Test
+	public void testMongoFix() {
+		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
+		
+		testBroadcastListSorting(dataStore);
+	}
 
 	@Test
 	public void testMongoStore() {
 
 		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
 		Datastore store = ((MongoStore) dataStore).getDataStore();
-		Query<Broadcast> deleteQuery = store.find(Broadcast.class);
-		store.delete(deleteQuery);
+		store.find(Broadcast.class).delete(new DeleteOptions().multi(true));
 
-		Query<TensorFlowObject> detectedObjects = store.find(TensorFlowObject.class);
-		store.delete(detectedObjects);
+		store.find(TensorFlowObject.class).delete(new DeleteOptions().multi(true));
 
 		store = ((MongoStore)dataStore).getVodDatastore();
-		Query<VoD> deleteVodQuery = store.find(VoD.class);
-		store.delete(deleteVodQuery);
-
+		store.find(VoD.class).delete(new DeleteOptions().multi(true));;
 
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
