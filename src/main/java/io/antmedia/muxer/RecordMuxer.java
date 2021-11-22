@@ -443,7 +443,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3 ) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
-					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, getFile().getName(), storageClient);
+					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, getFile().getName(), storageClient,appSettings.getS3StorageClass()!=null ? appSettings.getS3StorageClass() : "Standard");
 				}
 			} catch (Exception e) {
 				logger.error(e.getMessage());
@@ -453,7 +453,7 @@ public abstract class RecordMuxer extends Muxer {
 
 	}
 
-	public static void saveToStorage(String prefix, File fileToUpload, String fileName, StorageClient storageClient) {
+	public static void saveToStorage(String prefix, File fileToUpload, String fileName, StorageClient storageClient, String storageClass) {
 
 		// Check file exist in S3 and change file names. In this way, new file is created after the file name changed.
 
@@ -470,7 +470,7 @@ public abstract class RecordMuxer extends Muxer {
 			} while (storageClient.fileExist(prefix + fileName));
 		}
 
-		storageClient.save(prefix + fileName, fileToUpload);
+		storageClient.save(prefix + fileName, fileToUpload, storageClass);
 	}
 
 

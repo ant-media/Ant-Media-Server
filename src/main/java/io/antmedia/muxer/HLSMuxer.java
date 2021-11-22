@@ -94,10 +94,12 @@ public class HLSMuxer extends Muxer  {
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
 	private static final int S3_CONSTANT = 0b010;
+	private String s3StorageClass;
 
-	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3) {
+	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String s3StorageClass) {
 		super(vertx);
 		this.storageClient = storageClient;
+		this.s3StorageClass = s3StorageClass;
 
 		if((S3_CONSTANT& uploadExtensionsToS3) == 0){
 			uploadHLSToS3 = false;
@@ -375,7 +377,7 @@ public class HLSMuxer extends Muxer  {
 							continue;
 						}
 						if(uploadHLSToS3){
-							storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], false);
+							storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], false, s3StorageClass != null ? s3StorageClass : "Standard");
 						}
 						
 						if (deleteFileOnExit) {
@@ -389,7 +391,7 @@ public class HLSMuxer extends Muxer  {
 			if (file.exists()) {
 				try {
 					if(uploadHLSToS3) {
-						storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "") + file.getName(), file, false);
+						storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "") + file.getName(), file, false, s3StorageClass != null ? s3StorageClass : "Standard");
 					}
 					if (deleteFileOnExit) {
 						Files.delete(file.toPath());

@@ -55,7 +55,7 @@ public abstract class StorageClient {
 	 * @param file
 	 * @param deleteLocalFile
 	 */
-	public abstract void save(String key, File file, boolean deleteLocalFile);
+	public abstract void save(String key, File file, boolean deleteLocalFile , String storageClass);
 	
 	/**
 	 * Save file to storage and delete the local file 
@@ -63,8 +63,8 @@ public abstract class StorageClient {
 	 * @param key
 	 * @param file
 	 */
-	public void save(String key, File file) {
-		save(key, file, true);
+	public void save(String key, File file, String storageClass) {
+		save(key, file, true, storageClass);
 	}
 
 	/**

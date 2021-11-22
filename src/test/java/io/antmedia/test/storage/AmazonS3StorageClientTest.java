@@ -63,7 +63,7 @@ public class AmazonS3StorageClientTest {
 		
 		File f = new File("src/test/resources/test.flv");
 		storage.setEnabled(true);
-		storage.save("streams" + "/" + f.getName() , f);
+		storage.save("streams" + "/" + f.getName() , f, "Standard");
 		
 		Mockito.verify(storage).getTransferManager();
 	}
@@ -79,7 +79,7 @@ public class AmazonS3StorageClientTest {
 			
 			storage.fileExist("streams/any_file");
 						
-			storage.save("streams/any_file", new File("any_file"));
+			storage.save("streams/any_file", new File("any_file"), "Standard");
 			
 		}
 		catch (Exception e) {
@@ -100,7 +100,7 @@ public class AmazonS3StorageClientTest {
 		
 		{
 			ArgumentCaptor<ProgressListener> listener = ArgumentCaptor.forClass(ProgressListener.class);
-			storage.save("key", new File("filename"), false);
+			storage.save("key", new File("filename"), false, "Standard");
 			Mockito.verify(upload).addProgressListener(listener.capture());
 			ProgressListener progressListener = listener.getValue();
 			progressListener.progressChanged(new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT));
@@ -110,7 +110,7 @@ public class AmazonS3StorageClientTest {
 		{
 			ArgumentCaptor<ProgressListener> listener = ArgumentCaptor.forClass(ProgressListener.class);
 			
-			storage.save("key", new File("filename"), true);
+			storage.save("key", new File("filename"), true, "Standard");
 			Mockito.verify(upload, Mockito.times(2)).addProgressListener(listener.capture());
 			ProgressListener progressListener = listener.getValue();
 			progressListener.progressChanged(new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT));
@@ -125,7 +125,7 @@ public class AmazonS3StorageClientTest {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			storage.save("key", file, true);
+			storage.save("key", file, true, "Standard");
 			Mockito.verify(upload, Mockito.times(3)).addProgressListener(listener.capture());
 			ProgressListener progressListener = listener.getValue();
 			progressListener.progressChanged(new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT));

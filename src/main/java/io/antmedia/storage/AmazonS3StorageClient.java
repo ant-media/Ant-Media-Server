@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
+import com.amazonaws.services.s3.model.AmazonS3Exception;
+import com.amazonaws.services.s3.model.StorageClass;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,16 +90,28 @@ public class AmazonS3StorageClient extends StorageClient {
 	}
 
 	public void save(final File file, String type) {
-		save(type + "/" + file.getName(), file);
+		save(type + "/" + file.getName(), file, "Standard");
 	}
 
-	public void save(String key, File file, boolean deleteLocalFile)
+	public void save(String key, File file, boolean deleteLocalFile, String s3StorageClass)
 	{	
 		if (isEnabled()) {
 			TransferManager tm = getTransferManager();
 
 			PutObjectRequest putRequest = new PutObjectRequest(getStorageName(), key, file);
 			putRequest.setCannedAcl(getCannedAcl());
+
+			logger.debug("Requested storage class = " + s3StorageClass);
+			//All of the inputs are upper case and case sensitive like GLACIER
+			for(int i = 0; i < StorageClass.values().length; i++){
+				s3StorageClass = s3StorageClass.toUpperCase();
+				if(s3StorageClass.equals(StorageClass.values()[i])){
+					putRequest.withStorageClass(s3StorageClass);
+					break;
+				}
+			}
+
+
 
 			Upload upload = tm.upload(putRequest);
 			// TransferManager processes all transfers asynchronously,
