@@ -157,12 +157,24 @@ public class HLSMuxer extends Muxer  {
 
 			this.bitrate=bitrate;
 
-			logger.info("hls time: {}, hls list size: {}", hlsTime, hlsListSize);
+			logger.info("hls time: {}, hls list size: {} for stream:{}", hlsTime, hlsListSize, streamId);
 
 			int bitrateKbps = bitrate / 1000;
 
-			String segmentFilename = file.getParentFile() + File.separator + name +"_" + resolutionHeight +"p_" + bitrateKbps + "kbps" + "%04d.ts";
-
+			String segmentFilename = file.getParentFile() + File.separator + name +"_" ;
+			
+			if (resolutionHeight != 0) 
+			{
+				segmentFilename += resolutionHeight +"p";
+				
+				if (bitrate != 0) 
+				{
+					segmentFilename +=  bitrateKbps + "kbps";
+				}
+			}
+			
+			segmentFilename += "%04d.ts";
+					
 			options.put("hls_segment_filename", segmentFilename);
 
 			if (hlsPlayListType != null && (hlsPlayListType.equals("event") || hlsPlayListType.equals("vod"))) {
