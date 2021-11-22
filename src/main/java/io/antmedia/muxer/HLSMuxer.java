@@ -161,7 +161,7 @@ public class HLSMuxer extends Muxer  {
 
 			int bitrateKbps = bitrate / 1000;
 
-			String segmentFilename = file.getParentFile() + "/" + name +"_" + resolutionHeight +"p_" + bitrateKbps + "kbps" + "%04d.ts";
+			String segmentFilename = file.getParentFile() + File.separator + name +"_" + resolutionHeight +"p_" + bitrateKbps + "kbps" + "%04d.ts";
 
 			options.put("hls_segment_filename", segmentFilename);
 
@@ -360,54 +360,52 @@ public class HLSMuxer extends Muxer  {
 
 		outputFormatContext = null;
 
-		logger.info("Delete File onexit:{} upload to S3:{} stream:{} ", deleteFileOnExit, uploadHLSToS3, streamId);
+		logger.info("Delete File onexit:{} upload to S3:{} stream:{} hls time:{} hlslist size:{} ", deleteFileOnExit, uploadHLSToS3, streamId, hlsTime, hlsListSize);
 
-		if (uploadHLSToS3 || deleteFileOnExit) 
-		{
-			logger.info("Scheduling the task to upload and/or delete. HLS time: {}, hlsListSize:{} streamId:{}", hlsTime, hlsListSize, streamId);
-			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
-				final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
-	
-				File[] files = file.getParentFile().listFiles((dir, name) -> name.contains(filenameWithoutExtension) && name.endsWith(".ts"));
-	
-				if (files != null)
-				{
-	
-					for (int i = 0; i < files.length; i++) {
-						try {
-							if (!files[i].exists()) {
-								continue;
-							}
-							if(uploadHLSToS3){
-								storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], false);
-							}
-							
-							if (deleteFileOnExit) {
-								Files.delete(files[i].toPath());
-							}
-						} catch (IOException e) {
-							logger.error(e.getMessage());
-						}
-					}
-				}
-				if (file.exists()) {
+
+		vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
+			final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
+
+			File[] files = file.getParentFile().listFiles((dir, name) -> name.contains(filenameWithoutExtension) && name.endsWith(".ts"));
+
+			if (files != null)
+			{
+
+				for (int i = 0; i < files.length; i++) {
 					try {
-						if(uploadHLSToS3) {
-							storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "") + file.getName(), file, false);
+						if (!files[i].exists()) {
+							continue;
 						}
+						if(uploadHLSToS3){
+							storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], false);
+						}
+
 						if (deleteFileOnExit) {
-							Files.delete(file.toPath());
+							Files.delete(files[i].toPath());
 						}
 					} catch (IOException e) {
 						logger.error(e.getMessage());
 					}
 				}
-			});
-		}
+			}
+			if (file.exists()) {
+				try {
+					if(uploadHLSToS3) {
+						storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "") + file.getName(), file, false);
+					}
+					if (deleteFileOnExit) {
+						Files.delete(file.toPath());
+					}
+				} catch (IOException e) {
+					logger.error(e.getMessage());
+				}
+			}
+		});
+
 
 		isRecording = false;	
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
