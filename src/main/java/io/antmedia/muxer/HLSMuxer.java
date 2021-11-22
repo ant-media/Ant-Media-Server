@@ -159,7 +159,9 @@ public class HLSMuxer extends Muxer  {
 
 			logger.info("hls time: {}, hls list size: {}", hlsTime, hlsListSize);
 
-			String segmentFilename = file.getParentFile() + "/" + name +"_" + resolutionHeight +"p_" + bitrate + "%04d.ts";
+			int bitrateKbps = bitrate / 1000;
+
+			String segmentFilename = file.getParentFile() + File.separator + name +"_" + resolutionHeight +"p_" + bitrateKbps + "kbps" + "%04d.ts";
 
 			options.put("hls_segment_filename", segmentFilename);
 
@@ -358,9 +360,9 @@ public class HLSMuxer extends Muxer  {
 
 		outputFormatContext = null;
 
-		logger.info("Delete File onexit:{}", deleteFileOnExit);
+		logger.info("Delete File onexit:{} upload to S3:{} stream:{} hls time:{} hlslist size:{} ", deleteFileOnExit, uploadHLSToS3, streamId, hlsTime, hlsListSize);
 
-		logger.info("Scheduling the task to upload and/or delete. HLS time: {}, hlsListSize:{}", hlsTime, hlsListSize);
+
 		vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
 			final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
 
@@ -377,7 +379,7 @@ public class HLSMuxer extends Muxer  {
 						if(uploadHLSToS3){
 							storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], false);
 						}
-						
+
 						if (deleteFileOnExit) {
 							Files.delete(files[i].toPath());
 						}
@@ -400,9 +402,10 @@ public class HLSMuxer extends Muxer  {
 			}
 		});
 
+
 		isRecording = false;	
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
