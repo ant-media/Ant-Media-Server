@@ -93,6 +93,7 @@ public class HLSMuxer extends Muxer  {
 	private String subFolder = null;
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
+	private String segmentFilename;
 	private static final int S3_CONSTANT = 0b010;
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3) {
@@ -161,7 +162,7 @@ public class HLSMuxer extends Muxer  {
 
 			int bitrateKbps = bitrate / 1000;
 
-			String segmentFilename = file.getParentFile() + File.separator + name +"_" ;
+			segmentFilename = file.getParentFile() + File.separator + name +"_" ;
 			
 			if (resolutionHeight != 0) 
 			{
@@ -772,5 +773,9 @@ public class HLSMuxer extends Muxer  {
 
 	public boolean isUploadingToS3(){
 		return uploadHLSToS3;
+	}
+
+	public String getSegmentFilename() {
+		return segmentFilename;
 	}
 }
