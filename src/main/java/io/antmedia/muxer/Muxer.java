@@ -309,7 +309,7 @@ public abstract class Muxer {
 		if (resolution != 0) {
 			resourceName += "_" + resolution + "p" ;
 			if(bitrate != 0){
-				resourceName += "_" + bitrateKbps + "kbps";
+				resourceName += bitrateKbps + "kbps";
 			}
 		}
 		return resourceName;

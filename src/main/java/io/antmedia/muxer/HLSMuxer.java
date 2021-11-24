@@ -93,6 +93,7 @@ public class HLSMuxer extends Muxer  {
 	private String subFolder = null;
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
+	private String segmentFilename;
 	private static final int S3_CONSTANT = 0b010;
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3) {
@@ -157,12 +158,24 @@ public class HLSMuxer extends Muxer  {
 
 			this.bitrate=bitrate;
 
-			logger.info("hls time: {}, hls list size: {}", hlsTime, hlsListSize);
+			logger.info("hls time: {}, hls list size: {} for stream:{}", hlsTime, hlsListSize, streamId);
 
 			int bitrateKbps = bitrate / 1000;
 
-			String segmentFilename = file.getParentFile() + File.separator + name +"_" + resolutionHeight +"p_" + bitrateKbps + "kbps" + "%04d.ts";
-
+			segmentFilename = file.getParentFile() + File.separator + name +"_" ;
+			
+			if (resolutionHeight != 0) 
+			{
+				segmentFilename += resolutionHeight +"p";
+				
+				if (bitrate != 0) 
+				{
+					segmentFilename +=  bitrateKbps + "kbps";
+				}
+			}
+			
+			segmentFilename += "%04d.ts";
+					
 			options.put("hls_segment_filename", segmentFilename);
 
 			if (hlsPlayListType != null && (hlsPlayListType.equals("event") || hlsPlayListType.equals("vod"))) {
@@ -760,5 +773,9 @@ public class HLSMuxer extends Muxer  {
 
 	public boolean isUploadingToS3(){
 		return uploadHLSToS3;
+	}
+
+	public String getSegmentFilename() {
+		return segmentFilename;
 	}
 }
