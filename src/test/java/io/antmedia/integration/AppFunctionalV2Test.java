@@ -517,14 +517,14 @@ public class AppFunctionalV2Test {
 			boolean isEnterprise = callIsEnterpriseEdition().getMessage().contains("Enterprise");
 			if(isEnterprise) {
 
-				assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.m3u8"));
-				assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastWithSubFolder.getSubFolder()+ "/" +  broadcastWithSubFolder.getStreamId() + "_240p.m3u8"));
+				assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p300kbps.m3u8"));
+				assertTrue(MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastWithSubFolder.getSubFolder()+ "/" +  broadcastWithSubFolder.getStreamId() + "_240p300kbps.m3u8"));
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p.mp4");
+					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcast.getStreamId() + "_240p300kbps.mp4");
 				});
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastWithSubFolder.getSubFolder()+ "/" +   broadcastWithSubFolder.getStreamId() + "_240p.mp4");
+					return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + broadcastWithSubFolder.getSubFolder()+ "/" +   broadcastWithSubFolder.getStreamId() + "_240p300kbps.mp4");
 				});
 				Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() -> {
 
@@ -595,7 +595,7 @@ public class AppFunctionalV2Test {
 					if (voD.getFilePath().equals("streams/"+broadcast.getStreamId() + ".mp4")) {
 						vod1 = voD;
 					}
-					else if (voD.getFilePath().equals("streams/"+broadcast.getStreamId() + "_240p.mp4")) {
+					else if (voD.getFilePath().equals("streams/"+broadcast.getStreamId() + "_240p300kbps.mp4")) {
 						vod2 = voD;
 					}
 
@@ -607,7 +607,7 @@ public class AppFunctionalV2Test {
 					if (voD.getFilePath().equals("streams/" + broadcastWithSubFolder.getSubFolder() + "/" + broadcastWithSubFolder.getStreamId() + ".mp4")) {
 						vod3 = voD;
 					}
-					else if (voD.getFilePath().equals("streams/" + broadcastWithSubFolder.getSubFolder() + "/" + broadcastWithSubFolder.getStreamId() + "_240p.mp4")) {
+					else if (voD.getFilePath().equals("streams/" + broadcastWithSubFolder.getSubFolder() + "/" + broadcastWithSubFolder.getStreamId() + "_240p300kbps.mp4")) {
 						vod4 = voD;
 					}
 
