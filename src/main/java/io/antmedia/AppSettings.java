@@ -85,8 +85,6 @@ public class AppSettings {
 	public static final String SETTINGS_HLS_PLAY_LIST_TYPE = "settings.hlsPlayListType";
 	public static final String FACEBOOK_CLIENT_ID = "facebook.clientId";
 	public static final String FACEBOOK_CLIENT_SECRET = "facebook.clientSecret";
-	public static final String PERISCOPE_CLIENT_ID = "periscope.clientId";
-	public static final String PERISCOPE_CLIENT_SECRET = "periscope.clientSecret";
 	public static final String YOUTUBE_CLIENT_ID = "youtube.clientId";
 	public static final String YOUTUBE_CLIENT_SECRET = "youtube.clientSecret";
 	public static final String SETTINGS_VOD_FOLDER = "settings.vodFolder";
@@ -612,20 +610,6 @@ public class AppSettings {
 	 */
 	@Value( "${"+FACEBOOK_CLIENT_SECRET+"}" )
 	private String facebookClientSecret;
-
-	/**
-	 * Periscope app client id
-	 * This is client id provided by Periscope to broadcast streams to Periscope.
-	 */
-	@Value( "${"+PERISCOPE_CLIENT_ID+"}" )
-	private String  periscopeClientId;
-
-	/**
-	 * Periscope app client secret
-	 * Secret key for the Periscope client id.
-	 */
-	@Value( "${"+PERISCOPE_CLIENT_SECRET+"}" )
-	private String  periscopeClientSecret;
 
 	/**
 	 * Youtube client id
@@ -1665,22 +1649,6 @@ public class AppSettings {
 
 	public void setYoutubeClientId(String youtubeClientId) {
 		this.youtubeClientId = youtubeClientId;
-	}
-
-	public String getPeriscopeClientSecret() {
-		return periscopeClientSecret;
-	}
-
-	public void setPeriscopeClientSecret(String periscopeClientSecret) {
-		this.periscopeClientSecret = periscopeClientSecret;
-	}
-
-	public String getPeriscopeClientId() {
-		return periscopeClientId;
-	}
-
-	public void setPeriscopeClientId(String periscopeClientId) {
-		this.periscopeClientId = periscopeClientId;
 	}
 
 	public String getFacebookClientSecret() {

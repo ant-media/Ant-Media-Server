@@ -50,7 +50,6 @@ public class InMemoryDataStore extends DataStore {
 
 
 	public InMemoryDataStore(String dbName) {
-		
 		available = true;
 	}
 

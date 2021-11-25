@@ -274,7 +274,7 @@ public class VoDRestServiceV2UnitTest {
 		InMemoryDataStore imDatastore = new InMemoryDataStore("datastore");
 		vodSorting(imDatastore);
 		
-		MapDBStore mapDataStore = new MapDBStore("testdb");
+		MapDBStore mapDataStore = new MapDBStore("testdb", vertx);
 		vodSorting(mapDataStore);
 		
 		DataStore mongoDataStore = new MongoStore("localhost", "", "", "testdb");
