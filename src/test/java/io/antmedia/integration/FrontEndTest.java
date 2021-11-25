@@ -145,11 +145,10 @@ public class FrontEndTest {
         chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
 
         this.driver = new ChromeDriver(chrome_options);
-        this.driver.manage().timeouts().pageLoadTimeout(15, TimeUnit.SECONDS);
-        this.driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
-        this.driver.manage().timeouts().setScriptTimeout(10, TimeUnit.SECONDS);
+        this.driver.manage().timeouts().pageLoadTimeout( Duration.ofSeconds(10));
+        this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
         this.driver.get(this.url+"index.html");
-        WebDriverWait wait = new WebDriverWait(driver,30);
+        WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(15));
 
         //Check we landed on the page
         String title = this.driver.getTitle();
@@ -161,12 +160,14 @@ public class FrontEndTest {
 
         this.driver.findElement(By.xpath("//*[@id='start_publish_button']")).click();
 
-        assertTrue(checkAlert());
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[@id=\"broadcastingInfo\"]")));
 
         //wait for creating  files
-        Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+        Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
             return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/stream1.m3u8");
         });
+
+        assertTrue(checkAlert());
 
         //Check logs if publish started
         LogEntries entry = driver.manage().logs().get(LogType.BROWSER);
@@ -219,8 +220,8 @@ public class FrontEndTest {
         });
 
         this.driver = new ChromeDriver(chrome_options);
-        this.driver.manage().timeouts().pageLoadTimeout(20, TimeUnit.SECONDS);
-        this.driver.manage().timeouts().implicitlyWait(10, TimeUnit.SECONDS);
+        this.driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(10));
+        this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
 
         //Test HLS
         this.driver.get(this.url+"play.html?id="+broadcast.getStreamId()+"&playOrder=hls");
