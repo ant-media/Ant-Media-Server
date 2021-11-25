@@ -162,16 +162,16 @@ public class FrontEndTest {
 
         wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[@id=\"broadcastingInfo\"]")));
 
+        //Check logs if publish started
+        LogEntries entry = driver.manage().logs().get(LogType.BROWSER);
+        checkLogsForKeyword("publish started", entry);
+
         //wait for creating  files
         Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
             return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/stream1.m3u8");
         });
 
         assertTrue(checkAlert());
-
-        //Check logs if publish started
-        LogEntries entry = driver.manage().logs().get(LogType.BROWSER);
-        checkLogsForKeyword("publish started", entry);
 
         wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='stop_publish_button']")));
 
