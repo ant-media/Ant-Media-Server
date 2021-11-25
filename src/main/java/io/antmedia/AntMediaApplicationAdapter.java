@@ -65,7 +65,6 @@ import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.shutdown.IShutdownListener;
-import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.statistic.HlsViewerStats;
@@ -102,7 +101,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String PLAY_LIST = "playlist";
 	protected static final int END_POINT_LIMIT = 20;
 	public static final String FACEBOOK = "facebook";
-	public static final String PERISCOPE = "periscope";
 	public static final String YOUTUBE = "youtube";
 	public static final String FACEBOOK_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.FacebookEndpoint";
 	public static final String YOUTUBE_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.YoutubeEndpoint";
@@ -151,7 +149,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
 			registerStreamPublishSecurity(streamPublishSecurity);
 		}
-		vertx = (Vertx) app.getContext().getBean(VERTX_BEAN_NAME);
+		//init vertx
+		getVertx();
 
 		//initalize to access the data store directly in the code
 		getDataStore();
@@ -225,10 +224,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (socialEndpointCredentials.getServiceName().equals(FACEBOOK)) 
 				{
 					endPointService = getEndpointService(FACEBOOK_ENDPOINT_CLASS, socialEndpointCredentials, appSettings.getFacebookClientId(), appSettings.getFacebookClientSecret());
-				}
-				else if (socialEndpointCredentials.getServiceName().equals(PERISCOPE)) 
-				{
-					endPointService = getEndpointService(PeriscopeEndpoint.class.getName(), socialEndpointCredentials, appSettings.getPeriscopeClientId(), appSettings.getPeriscopeClientSecret());
 				}
 				else if (socialEndpointCredentials.getServiceName().equals(YOUTUBE)) 
 				{
@@ -365,6 +360,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				stopPublishingSocialEndpoints(broadcast);
 
 				if (broadcast.isZombi()) {
+					if(broadcast.getMainTrackStreamId() != null && !broadcast.getMainTrackStreamId().isEmpty()) {
+						updateMainBroadcast(broadcast);
+					}
 					getDataStore().delete(streamName);
 				}
 				else {
@@ -378,6 +376,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+	}
+
+	public void updateMainBroadcast(Broadcast broadcast) {
+		Broadcast mainBroadcast = getDataStore().get(broadcast.getMainTrackStreamId());
+		mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
+		if(mainBroadcast.getSubTrackStreamIds().isEmpty() && mainBroadcast.isZombi()) {
+			getDataStore().delete(mainBroadcast.getStreamId());
+		}
+		else {
+			getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
 		}
 	}
 
@@ -481,7 +490,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.executeBlocking( handler -> {
 			try {
 
-				Broadcast broadcast = saveBroadcast(streamName, absoluteStartTimeMs, publishType, getDataStore().get(streamName));
+				Broadcast broadcast = updateBroadcastStatus(streamName, absoluteStartTimeMs, publishType, getDataStore().get(streamName));
 
 				final String listenerHookURL = broadcast.getListenerHookURL();
 				final String streamId = broadcast.getStreamId();
@@ -556,7 +565,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-	private Broadcast saveBroadcast(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
+	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
 		if (broadcast == null) 
 		{
 
@@ -605,12 +614,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType) {		
+		return saveUndefinedBroadcast(streamId, streamName, appAdapter, streamStatus, absoluteStartTimeMs, publishType, "");
+	}
+
+	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
 		newBroadcast.setStartTime(now);
 		newBroadcast.setZombi(true);
 		newBroadcast.setName(streamName);
+		newBroadcast.setMainTrackStreamId(mainTrackStreamId);
 		try {
 			newBroadcast.setStreamId(streamId);
 			newBroadcast.setPublishType(publishType);
@@ -1012,6 +1026,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public DataStore getDataStore() {
+		//vertx should be initialized before calling this method
 		if(dataStore == null)
 		{
 			dataStore = dataStoreFactory.getDataStore();
@@ -1323,6 +1338,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	} 
 
 	public Vertx getVertx() {
+		if (vertx == null) {
+			vertx = (Vertx) getScope().getContext().getBean(VERTX_BEAN_NAME);
+		}
 		return vertx;
 	}
 
@@ -1448,6 +1466,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		store.put(AppSettings.SETTINGS_RTSP_TIMEOUT_DURATION_MS, String.valueOf(newAppsettings.getRtspTimeoutDurationMs()));
 
+		store.put(AppSettings.SETTINGS_UPLOAD_EXTENSIONS_TO_S3, String.valueOf(newAppsettings.getUploadExtensionsToS3()));
+
 		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(newAppsettings.isAcceptOnlyStreamsInDataStore()));
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
 		store.put(AppSettings.SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishTokenControlEnabled()));
@@ -1529,6 +1549,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		appSettings.setEndpointRepublishLimit(newSettings.getEndpointRepublishLimit());
 		appSettings.setEndpointHealthCheckPeriodMs(newSettings.getEndpointHealthCheckPeriodMs());
+
+		appSettings.setUploadExtensionsToS3(newSettings.getUploadExtensionsToS3());
 
 		appSettings.setRtspTimeoutDurationMs(newSettings.getRtspTimeoutDurationMs());
 
@@ -1656,13 +1678,24 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		}
 	}
+	
+	public void removePacketListener(String streamId, IPacketListener listener) {
+		for (MuxAdaptor muxAdaptor : getMuxAdaptors()) 
+		{
+			if (streamId.equals(muxAdaptor.getStreamId())) 
+			{
+				muxAdaptor.removePacketListener(listener);
+				break;
+			}
+		}
+	}
 
 	public void addFrameListener(String streamId, IFrameListener listener) {
 		//for enterprise
 	}
 
 	public IFrameListener createCustomBroadcast(String streamId) {
-		return null;
+		throw new IllegalStateException("This method is not implemented in Community Edition");
 	}
 
 	public void stopCustomBroadcast(String streamId) {
@@ -1680,11 +1713,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.storageClient = storageClient;
 	}
 
-	@Override
-	public void streamPublishStart(IBroadcastStream stream) {
-		saveBroadcast(stream.getPublishedName(), ((ClientBroadcastStream)stream).getAbsoluteStartTimeMs() , MuxAdaptor.PUBLISH_TYPE_RTMP, getDataStore().get(stream.getPublishedName()));
-	}
-
 	public void addStreamListener(IStreamListener listener) {
 		streamListeners.add(listener);
 	}
@@ -1697,9 +1725,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l->getDataStore().delete());
 	}
 
-	public void stopPublish(String streamId) {
+	public boolean stopPlaying(String viewerId) {
+		return false;
+  }
+  public void stopPublish(String streamId) {
 		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
-		
 	}
 
 }

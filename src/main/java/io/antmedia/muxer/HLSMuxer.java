@@ -95,14 +95,29 @@ public class HLSMuxer extends Muxer  {
 	protected StorageClient storageClient = null;
 	private String subFolder = null;
 	private String s3StreamsFolderPath = "streams";
+	private boolean uploadHLSToS3 = true;
+	private String segmentFilename;
+	private static final int S3_CONSTANT = 0b010;
 
-
-	public HLSMuxer(Vertx vertx, StorageClient storageClient, String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile, String s3StreamsFolderPath) {
+	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3) {
 		super(vertx);
 		this.storageClient = storageClient;
+
+		if((S3_CONSTANT& uploadExtensionsToS3) == 0){
+			uploadHLSToS3 = false;
+		}
+
 		extension = ".m3u8";
 		format = "hls";
 
+		avRationalTimeBase = new AVRational();
+		avRationalTimeBase.num(1);
+		avRationalTimeBase.den(1);
+
+		this.s3StreamsFolderPath  = s3StreamsFolderPath;
+	}
+
+	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile){
 		if (hlsListSize != null) {
 			this.hlsListSize = hlsListSize;
 		}
@@ -121,26 +136,19 @@ public class HLSMuxer extends Muxer  {
 		else {
 			this.hlsFlags = "";
 		}
-
 		if (hlsEncryptionKeyInfoFile != null && !hlsEncryptionKeyInfoFile.isEmpty()) {
 			this.hlsEncryptionKeyInfoFile = hlsEncryptionKeyInfoFile;
-		}		
-
-		avRationalTimeBase = new AVRational();
-		avRationalTimeBase.num(1);
-		avRationalTimeBase.den(1);
-
-		this.s3StreamsFolderPath  = s3StreamsFolderPath;
+		}
 	}
 
 	/**
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void init(IScope scope, String name, int resolutionHeight, String subFolder) {
+	public void init(IScope scope, String name, int resolutionHeight, String subFolder, int bitrate) {
 		if (!isInitialized) {
 
-			super.init(scope, name, resolutionHeight, subFolder);
+			super.init(scope, name, resolutionHeight, subFolder, bitrate);
 
 			streamId = name;
 			this.subFolder = subFolder;
@@ -151,10 +159,26 @@ public class HLSMuxer extends Muxer  {
 				options.put("hls_key_info_file", hlsEncryptionKeyInfoFile);
 			}
 
+			this.bitrate=bitrate;
 
-			logger.info("hls time: {}, hls list size: {}", hlsTime, hlsListSize);
+			logger.info("hls time: {}, hls list size: {} for stream:{}", hlsTime, hlsListSize, streamId);
 
-			String segmentFilename = file.getParentFile() + "/" + name +"_" + resolutionHeight +"p"+ "%04d.ts";
+			int bitrateKbps = bitrate / 1000;
+
+			segmentFilename = file.getParentFile() + File.separator + name +"_" ;
+			
+			if (resolutionHeight != 0) 
+			{
+				segmentFilename += resolutionHeight +"p";
+				
+				if (bitrate != 0) 
+				{
+					segmentFilename +=  bitrateKbps + "kbps";
+				}
+			}
+			
+			segmentFilename += "%04d.ts";
+					
 			options.put("hls_segment_filename", segmentFilename);
 
 			if (hlsPlayListType != null && (hlsPlayListType.equals("event") || hlsPlayListType.equals("vod"))) {
@@ -166,7 +190,6 @@ public class HLSMuxer extends Muxer  {
 			}
 			tmpPacket = avcodec.av_packet_alloc();
 			av_init_packet(tmpPacket);
-
 
 			videoPkt = avcodec.av_packet_alloc();
 			av_init_packet(videoPkt);
@@ -385,12 +408,10 @@ public class HLSMuxer extends Muxer  {
 
 		outputFormatContext = null;
 
-		logger.info("Delete File onexit:{}", deleteFileOnExit);
+		logger.info("Delete File onexit:{} upload to S3:{} stream:{} hls time:{} hlslist size:{} ", deleteFileOnExit, uploadHLSToS3, streamId, hlsTime, hlsListSize);
 
 
-		logger.info("Scheduling the task to upload and/or delete. HLS time: {}, hlsListSize:{}", hlsTime, hlsListSize);
 		vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
-
 			final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
 
 			File[] files = file.getParentFile().listFiles((dir, name) -> name.contains(filenameWithoutExtension) && name.endsWith(".ts"));
@@ -403,8 +424,9 @@ public class HLSMuxer extends Muxer  {
 						if (!files[i].exists()) {
 							continue;
 						}
-
-						storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], false);
+						if(uploadHLSToS3){
+							storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], false);
+						}
 
 						if (deleteFileOnExit) {
 							Files.delete(files[i].toPath());
@@ -416,7 +438,9 @@ public class HLSMuxer extends Muxer  {
 			}
 			if (file.exists()) {
 				try {
-					storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + file.getName(), file, false);
+					if(uploadHLSToS3) {
+						storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "") + file.getName(), file, false);
+					}
 					if (deleteFileOnExit) {
 						Files.delete(file.toPath());
 					}
@@ -426,9 +450,10 @@ public class HLSMuxer extends Muxer  {
 			}
 		});
 
+
 		isRecording = false;	
 	}
-	
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -812,7 +837,16 @@ public class HLSMuxer extends Muxer  {
 		this.deleteFileOnExit = deleteFileOnExist;
 	}
 
-	public void setExtradataForTest(){
+	public void setExtradataForTest() {
 		extradata = "test".getBytes();
+	}
+
+	public boolean isUploadingToS3(){
+		return uploadHLSToS3;
+	}
+
+	public String getSegmentFilename() {
+		return segmentFilename;
+
 	}
 }

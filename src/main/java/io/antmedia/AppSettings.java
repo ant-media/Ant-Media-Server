@@ -85,8 +85,6 @@ public class AppSettings {
 	public static final String SETTINGS_HLS_PLAY_LIST_TYPE = "settings.hlsPlayListType";
 	public static final String FACEBOOK_CLIENT_ID = "facebook.clientId";
 	public static final String FACEBOOK_CLIENT_SECRET = "facebook.clientSecret";
-	public static final String PERISCOPE_CLIENT_ID = "periscope.clientId";
-	public static final String PERISCOPE_CLIENT_SECRET = "periscope.clientSecret";
 	public static final String YOUTUBE_CLIENT_ID = "youtube.clientId";
 	public static final String YOUTUBE_CLIENT_SECRET = "youtube.clientSecret";
 	public static final String SETTINGS_VOD_FOLDER = "settings.vodFolder";
@@ -219,6 +217,8 @@ public class AppSettings {
 	public static final String DATA_CHANNEL_PLAYER_TO_ALL = "all";
 
 	private static final String SETTINGS_HLS_FLAGS = "settings.hlsflags";
+
+	public static final String SETTINGS_UPLOAD_EXTENSIONS_TO_S3 = "settings.uploadExtensionsToS3";
 
 	public static final String SETTINGS_RTSP_TIMEOUT_DURATION_MS = "settings.rtspTimeoutDurationMs";
 
@@ -378,6 +378,18 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_HLS_TIME+":#{null}}" )
 	private String hlsTime;
+
+	/**
+	 * Binary entity for uploading the extensions
+	 * 0 means does not upload, 1 means upload
+	 * Least significant digit switches mp4 files upload to s3
+	 * Second digit switches HLS files upload to s3
+	 * Most significant digit switches PNG files upload to s3
+	 * Example: 5 ( 101 in binary ) means upload mp4 and PNG but not HLS
+	 * HLS files still will be saved on the server if deleteHLSFilesOnEnded flag is false
+	 */
+	@Value( "${"+SETTINGS_UPLOAD_EXTENSIONS_TO_S3+":7}" )
+	private int uploadExtensionsToS3;
 
 	/**
 	 * Endpoint will try to republish if error occurs,
@@ -598,20 +610,6 @@ public class AppSettings {
 	 */
 	@Value( "${"+FACEBOOK_CLIENT_SECRET+"}" )
 	private String facebookClientSecret;
-
-	/**
-	 * Periscope app client id
-	 * This is client id provided by Periscope to broadcast streams to Periscope.
-	 */
-	@Value( "${"+PERISCOPE_CLIENT_ID+"}" )
-	private String  periscopeClientId;
-
-	/**
-	 * Periscope app client secret
-	 * Secret key for the Periscope client id.
-	 */
-	@Value( "${"+PERISCOPE_CLIENT_SECRET+"}" )
-	private String  periscopeClientSecret;
 
 	/**
 	 * Youtube client id
@@ -1486,6 +1484,14 @@ public class AppSettings {
 		this.hlsPlayListType = hlsPlayListType;
 	}
 
+	public void setUploadExtensionsToS3(int uploadExtensionsToS3){
+		this.uploadExtensionsToS3 = uploadExtensionsToS3;
+	}
+
+	public int getUploadExtensionsToS3(){
+		return this.uploadExtensionsToS3;
+	}
+
 	public String getHlsTime() {
 		return hlsTime;
 	}
@@ -1643,22 +1649,6 @@ public class AppSettings {
 
 	public void setYoutubeClientId(String youtubeClientId) {
 		this.youtubeClientId = youtubeClientId;
-	}
-
-	public String getPeriscopeClientSecret() {
-		return periscopeClientSecret;
-	}
-
-	public void setPeriscopeClientSecret(String periscopeClientSecret) {
-		this.periscopeClientSecret = periscopeClientSecret;
-	}
-
-	public String getPeriscopeClientId() {
-		return periscopeClientId;
-	}
-
-	public void setPeriscopeClientId(String periscopeClientId) {
-		this.periscopeClientId = periscopeClientId;
 	}
 
 	public String getFacebookClientSecret() {

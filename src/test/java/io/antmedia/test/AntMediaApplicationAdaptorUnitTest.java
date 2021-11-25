@@ -12,6 +12,8 @@ import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doReturn;
+
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -28,6 +30,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -42,6 +45,7 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.red5.compatibility.flex.messaging.io.ArrayCollection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.stream.ClientBroadcastStream;
@@ -61,6 +65,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
@@ -1331,17 +1336,94 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(4)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
 		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
-	
-		
 	}
 	
+	@Test
+	public void testUpdateMainBroadcast() {
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		spyAdapter.setDataStore(dataStore);
+		
+		
+		Broadcast subTrack1 = new Broadcast();
+		try {
+			subTrack1.setStreamId("subtrack1");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		Broadcast subTrack2 = new Broadcast();
+		try {
+			subTrack2.setStreamId("subtrack2");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		Broadcast mainTrack = new Broadcast();
+		try {
+			mainTrack.setStreamId("maintrack");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		mainTrack.setZombi(true);
+		
+		subTrack1.setMainTrackStreamId(mainTrack.getStreamId());
+		subTrack2.setMainTrackStreamId(mainTrack.getStreamId());
+
+		mainTrack.getSubTrackStreamIds().add(subTrack1.getStreamId());
+		mainTrack.getSubTrackStreamIds().add(subTrack2.getStreamId());
+
+		
+		dataStore.save(subTrack1);
+		dataStore.save(subTrack1);
+		dataStore.save(mainTrack);
+		
+		spyAdapter.updateMainBroadcast(subTrack1);
+		assertNotNull(dataStore.get(mainTrack.getStreamId()));
+		
+		spyAdapter.updateMainBroadcast(subTrack2);
+		assertNull(dataStore.get(mainTrack.getStreamId()));
+		
+	}
+
+	@Test
+	public void testAddRemovePacketListener() {
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		MuxAdaptor mockAdaptor = mock(MuxAdaptor.class);
+		String streamId = "stream_"+RandomUtils.nextInt(0, 1000);
+		
+		MuxAdaptor mockAdaptor2 = mock(MuxAdaptor.class);
+
+		
+		List<MuxAdaptor>  muxAdaptors = new ArrayList<MuxAdaptor>();
+		muxAdaptors.add(mockAdaptor);
+		muxAdaptors.add(mockAdaptor2);
+
+		
+		when(mockAdaptor2.getStreamId()).thenReturn("dummy");
+		when(mockAdaptor.getStreamId()).thenReturn(streamId);
+
+		doReturn(muxAdaptors).when(spyAdapter).getMuxAdaptors();
+		
+		
+		IPacketListener listener = mock(IPacketListener.class);
+		spyAdapter.addPacketListener(streamId, listener);
+		
+		verify(mockAdaptor, times(1)).addPacketListener(listener);
+		
+		spyAdapter.removePacketListener(streamId, listener);
+		verify(mockAdaptor, times(1)).removePacketListener(listener);
+
+	
+	}
+
 	@Test
 	public void testAppDeletion() {
 		DataStore dataStore = Mockito.spy(new InMemoryDataStore("test"));
 		adapter.setDataStore(dataStore);
 		adapter.deleteDBInSeconds();
 		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).delete();
-	}
-	
+	}	
 
 }

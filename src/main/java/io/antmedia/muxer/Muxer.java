@@ -61,7 +61,7 @@ public abstract class Muxer {
 	protected String format;
 	protected boolean isInitialized = false;
 
-	protected Map<String, String> options = new HashMap();
+	protected Map<String, String> options = new HashMap<>();
 	private static Logger logger = LoggerFactory.getLogger(Muxer.class);
 
 	protected AVFormatContext outputFormatContext;
@@ -238,21 +238,21 @@ public abstract class Muxer {
 	 * Inits the file to write. Multiple encoders can init the muxer. It is
 	 * redundant to init multiple times.
 	 */
-	public void init(IScope scope, String name, int resolution, String subFolder) {
+	public void init(IScope scope, String name, int resolution, String subFolder, int bitrate) {
 		this.streamId = name;
-		init(scope, name, resolution, true, subFolder);
+		init(scope, name, resolution, true, subFolder, bitrate);
 	}
 
 	/**
 	 * Init file name
 	 *
-	 * file format is NAME[-{DATETIME}][_{RESOLUTION_HEIGHT}p].{EXTENSION}
+	 * file format is NAME[-{DATETIME}][_{RESOLUTION_HEIGHT}p_{BITRATE}kbps].{EXTENSION}
 	 *
 	 * Datetime format is yyyy-MM-dd_HH-mm
 	 *
 	 * We are using "-" instead of ":" in HH:mm -> Stream filename must not contain ":" character.
 	 *
-	 * sample naming -> stream1-yyyy-MM-dd_HH-mm_480p.mp4 if datetime is added
+	 * sample naming -> stream1-yyyy-MM-dd_HH-mm_480p_500kbps.mp4 if datetime is added
 	 * stream1_480p.mp4 if no datetime
 	 *
 	 * @param scope
@@ -263,31 +263,16 @@ public abstract class Muxer {
 	 *            be added to resource name
 	 * @param overrideIfExist
 	 *            whether override if a file exists with the same name
+	 * @param bitrate
+	 * 			  bitrate of the stream, if it is zero, no bitrate will
+	 * 			  be added to resource name
 	 */
-	public void init(IScope scope, final String name, int resolution, boolean overrideIfExist, String subFolder) {
-
+	public void init(IScope scope, final String name, int resolution, boolean overrideIfExist, String subFolder, int bitrate) {
 		if (!isInitialized) {
 			isInitialized = true;
 			this.scope = scope;
 
-			// set default name
-			String resourceName = name;
-
-			// add date time parameter to resource name if it is set
-			if (addDateTimeToResourceName) {
-
-				LocalDateTime ldt =  LocalDateTime.now();
-
-				resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
-				if (logger.isInfoEnabled()) {
-					logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
-				}
-			}
-
-			// add resolution height parameter if it is different than 0
-			if (resolution != 0) {
-				resourceName += "_" + resolution + "p";
-			}
+			String resourceName = getExtendedName(name, resolution, bitrate);
 
 			file = getResourceFile(scope, resourceName, extension, subFolder);
 
@@ -317,6 +302,31 @@ public abstract class Muxer {
 			av_init_packet(audioPkt);
 
 		}
+	}
+	public String getExtendedName(String name, int resolution, int bitrate){
+		// set default name
+		String resourceName = name;
+		int bitrateKbps = bitrate / 1000;
+
+		// add date time parameter to resource name if it is set
+		if (addDateTimeToResourceName) {
+
+			LocalDateTime ldt =  LocalDateTime.now();
+
+			resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
+			if (logger.isInfoEnabled()) {
+				logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
+			}
+		}
+
+		// add resolution height parameter if it is different than 0
+		if (resolution != 0) {
+			resourceName += "_" + resolution + "p" ;
+			if(bitrate != 0){
+				resourceName += bitrateKbps + "kbps";
+			}
+		}
+		return resourceName;
 	}
 
 	public File getResourceFile(IScope scope, String name, String extension, String subFolder) {

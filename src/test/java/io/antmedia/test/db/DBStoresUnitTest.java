@@ -13,6 +13,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
@@ -24,13 +25,13 @@ import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
-import com.mongodb.client.MongoDatabase;
 
 import dev.morphia.Datastore;
 import dev.morphia.query.Query;
@@ -53,14 +54,17 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
+import io.vertx.core.Vertx;
 
 public class DBStoresUnitTest {
 
 	protected static Logger logger = LoggerFactory.getLogger(DBStoresUnitTest.class);
 
+	private Vertx vertx = Vertx.vertx();
 
 	@Before
 	public void before() {
@@ -84,11 +88,12 @@ public class DBStoresUnitTest {
 			}
 		}
 	}
-
+	
 	@Test
 	public void testMapDBStore() {
 
-		DataStore dataStore = new MapDBStore("testdb");
+		DataStore dataStore = new MapDBStore("testdb", vertx);
+		
 		
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -129,8 +134,37 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
+		testWebRTCViewerOperations(dataStore);
+				
+	}
+	
+	@Test
+	public void testMapDBPersistent() {
+		DataStore dataStore = new MapDBStore("testdb", vertx);
 		
+		Broadcast broadcast = new Broadcast(null, null);
+		String key = dataStore.save(broadcast);
+		
+		assertNotNull(key);
+		assertNotNull(broadcast.getStreamId());
 
+		assertEquals(broadcast.getStreamId().toString(), key);
+		assertNull(dataStore.get(broadcast.getStreamId()).getQuality());
+
+		Broadcast broadcast2 = dataStore.get(key);
+		assertEquals(broadcast.getStreamId(), broadcast2.getStreamId());
+		assertTrue(broadcast2.isPublish());
+		
+		
+		dataStore.close();
+		
+		dataStore = new MapDBStore("testdb", vertx);
+		Broadcast broadcast3 = dataStore.get(key);
+		assertEquals(broadcast.getStreamId(), broadcast3.getStreamId());
+		assertTrue(broadcast3.isPublish());
+		
+		dataStore.close();
+		
 	}
 
 	@Test
@@ -176,7 +210,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-
+		testWebRTCViewerOperations(dataStore);
 	}
 
 	@Test
@@ -239,13 +273,13 @@ public class DBStoresUnitTest {
 		testConferenceRoomSorting(dataStore);
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
-
+		testWebRTCViewerOperations(dataStore);
 	}
 	
 	@Test
 	public void testBug() {
 		
-		MapDBStore dataStore = new MapDBStore("src/test/resources/damaged_webrtcappee.db");
+		MapDBStore dataStore = new MapDBStore("src/test/resources/damaged_webrtcappee.db", vertx);
 		
 		//Following methods does not return before the bug is fixed
 		dataStore.fetchUserVodList(new File(""));
@@ -1328,6 +1362,8 @@ public class DBStoresUnitTest {
 		assertTrue(broadcast2.getEndPointList() == null || broadcast2.getEndPointList().size() == 0);
 
 	}
+	
+
 
 	public void testSimpleOperations(DataStore dataStore) {
 		try {
@@ -2129,11 +2165,15 @@ public class DBStoresUnitTest {
 
 	private DataStore createDB(String type, boolean writeStats) {
 		DataStoreFactory dsf = new DataStoreFactory();
+		
 		dsf.setWriteStatsToDatastore(writeStats);
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
 		dsf.setDbHost("localhost");
-		dsf.init();
+		ApplicationContext context = Mockito.mock(ApplicationContext.class);
+		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());			
+		dsf.setApplicationContext(context);
 		return dsf.getDataStore();
 	}
 
@@ -2665,7 +2705,7 @@ public class DBStoresUnitTest {
 		dataStore.save(mainTrack);
 		dataStore.save(subtrack);
 
-		assertNull(mainTrack.getSubTrackStreamIds());
+		assertTrue(mainTrack.getSubTrackStreamIds().isEmpty());
 		assertNull(subtrack.getMainTrackStreamId());
 
 		subtrack.setMainTrackStreamId(mainTrackId);
@@ -2751,7 +2791,7 @@ public class DBStoresUnitTest {
 	@Test
 	public void testDeleteMapDB() {
 		String dbName = "deleteMapdb";
-		DataStore dataStore = new MapDBStore(dbName);
+		DataStore dataStore = new MapDBStore(dbName, vertx);
 		assertTrue(new File(dbName).exists());
 		dataStore.close();
 		dataStore.delete();
@@ -2779,4 +2819,47 @@ public class DBStoresUnitTest {
 		assertFalse(dbNames.contains(dbName));
 
 	}
+	
+	
+	public void testWebRTCViewerOperations(DataStore dataStore) {
+		
+		ArrayList<String> idList = new ArrayList<String>();
+		
+		int total = RandomUtils.nextInt(10, DataStore.MAX_ITEM_IN_ONE_LIST);
+		for (int i = 0; i < total; i++) {
+			WebRTCViewerInfo info = new WebRTCViewerInfo();
+			String streamId = RandomStringUtils.randomAlphabetic(5);
+			info.setStreamId(streamId);
+			String id = RandomStringUtils.randomAlphabetic(5);
+			info.setViewerId(id);
+			
+			dataStore.saveViewerInfo(info);
+			
+			idList.add(id);
+		}
+		
+		List<WebRTCViewerInfo> returningList = dataStore.getWebRTCViewerList(0, DataStore.MAX_ITEM_IN_ONE_LIST+10, "viewerId", "asc", "");
+		assertEquals(total,  returningList.size());	
+		
+		
+	    Collections.sort(idList);
+	    
+	    for (int i = 0; i < total; i++) {
+			assertEquals(idList.get(i),  returningList.get(i).getViewerId());	
+		}
+	    
+		List<WebRTCViewerInfo> returningList2 = dataStore.getWebRTCViewerList(0, total, "viewerId", "asc", "a");
+		for (WebRTCViewerInfo webRTCViewerInfo : returningList2) {
+			assertTrue(webRTCViewerInfo.getViewerId().contains("a")||webRTCViewerInfo.getViewerId().contains("A"));
+		}
+	    
+		
+	    int deleted = 0;
+	    for (String id : idList) {
+			dataStore.deleteWebRTCViewerInfo(id);
+		    List<WebRTCViewerInfo> tempList = dataStore.getWebRTCViewerList(0, total, "viewerId", "asc", "");
+		    
+			assertEquals(total - (++deleted),  tempList.size());	
+		}
+	}	
 }
