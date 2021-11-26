@@ -292,7 +292,7 @@ public abstract class RecordMuxer extends Muxer {
 
 		AVFormatContext context = getOutputFormatContext();
 		if (!(addedStream.get())) {
-			logger.info("*****************");
+			logger.warn("There are no streams on Record Muxer for stream : {}", streamId);
 			return false;
 		}
 		if (context == null || context.pb() != null) {

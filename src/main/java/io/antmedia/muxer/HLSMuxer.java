@@ -220,7 +220,7 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	private boolean isCodecSupported(int codecId) {
-		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC || codecId == AV_CODEC_ID_MP3 || codecId == AV_CODEC_ID_H265 || codecId == AV_CODEC_ID_PCM_ALAW);
+		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC || codecId == AV_CODEC_ID_MP3 || codecId == AV_CODEC_ID_H265);
 	}
 
 	/**
@@ -592,7 +592,7 @@ public class HLSMuxer extends Muxer  {
 		 * In addStream for example, if we don't check this we end up removing the muxer completely if one of the operations fail.
 		 */
 		if (isRunning.get() || !(addedStream.get())) {
-			//return false if it is already prepared
+			logger.warn("Either there are no streams on HLS Muxer or Muxer is not running for stream : {}", streamId);
 			return false;
 		}
 
