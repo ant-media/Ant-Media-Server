@@ -70,6 +70,8 @@ public abstract class Muxer {
 
 	protected File file;
 
+	protected String resourceName;
+
 	protected boolean isRecording;
 
 	protected Vertx vertx;
@@ -258,7 +260,7 @@ public abstract class Muxer {
 			isInitialized = true;
 			this.scope = scope;
 
-			String resourceName = getExtendedName(name, resolution, bitrate);
+			resourceName = getExtendedName(name, resolution, bitrate);
 
 			file = getResourceFile(scope, resourceName, extension, subFolder);
 

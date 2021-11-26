@@ -43,6 +43,7 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
@@ -57,6 +58,7 @@ import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.javacpp.BytePointer;
+import org.glassfish.jersey.jaxb.internal.XmlJaxbElementProvider;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -421,21 +423,18 @@ public abstract class RecordMuxer extends Muxer {
 			try {
 
 
-				String absolutePath = fileTmp.getAbsolutePath();
-
-				String origFileName = absolutePath.replace(TEMP_EXTENSION, "");
-
-				final File f = new File(origFileName);
-
-				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
-				finalizeRecordFile(f);
-
 				IContext context = RecordMuxer.this.scope.getContext();
 				ApplicationContext appCtx = context.getApplicationContext();
 				AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-				adaptor.muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
 
 				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
+
+				final File f = getFinalMp4FileName(appSettings.isS3RecordingEnabled());
+
+				adaptor.muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
+
+				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
+				finalizeRecordFile(f);
 
 				if((appSettings.getUploadExtensionsToS3()&S3_CONSTANT) == 0){
 					this.uploadMP4ToS3 = false;
@@ -443,7 +442,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3 ) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
-					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, getFile().getName(), storageClient, appSettings.getDeleteFileAfterS3Upload());
+					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, f.getName(), storageClient, appSettings.getDeleteFileAfterS3Upload());
 				}
 			} catch (Exception e) {
 				logger.error(e.getMessage());
@@ -453,22 +452,38 @@ public abstract class RecordMuxer extends Muxer {
 
 	}
 
-	public static void saveToStorage(String prefix, File fileToUpload, String fileName, StorageClient storageClient, boolean deleteFileAfterUpload) {
+	public File getFinalMp4FileName(boolean isS3Enabled){
+		String absolutePath = fileTmp.getAbsolutePath();
 
-		// Check file exist in S3 and change file names. In this way, new file is created after the file name changed.
+		String origFileName = absolutePath.replace(TEMP_EXTENSION, "");
 
+		String prefix = s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" );
 
-		if (storageClient.fileExist(prefix + fileName)) {
+		String fileName = getFile().getName();
 
-			String tmpName =  fileName;
+		File f = new File(origFileName);
 
-			int i = 0;
-			do {
-				i++;
-				fileName = tmpName.replace(".", "_"+ i +".");
+		if ( isS3Enabled && this.uploadMP4ToS3 ) {
+			if (storageClient.fileExist(prefix + fileName)) {
 
-			} while (storageClient.fileExist(prefix + fileName));
+				String tmpName = resourceName + ".mp4";
+				String previousNamingIndex = fileName.substring(fileName.lastIndexOf("_") + 1, fileName.indexOf("."));
+				int i = 0;
+				if (previousNamingIndex.toLowerCase().matches(".*[a-z].*") == false) {
+					i = Integer.parseInt(previousNamingIndex);
+				}
+
+				do {
+					i++;
+					fileName = tmpName.replace(".", "_" + i + ".");
+					origFileName = origFileName.substring(0, origFileName.lastIndexOf("/") + 1) + fileName;
+					f = new File(origFileName);
+				} while (storageClient.fileExist(prefix + fileName) || f.exists() || f.isDirectory());
+			}
 		}
+		return f;
+	}
+	public static void saveToStorage(String prefix, File fileToUpload, String fileName, StorageClient storageClient, boolean deleteFileAfterUpload) {
 
 		storageClient.save(prefix + fileName, fileToUpload, deleteFileAfterUpload);
 	}
