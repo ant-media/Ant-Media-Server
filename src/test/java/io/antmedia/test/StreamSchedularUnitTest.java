@@ -314,7 +314,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
-		DataStore dataStore = new MapDBStore("target/testAddCamera.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
+		DataStore dataStore = new MapDBStore("target/testAddCamera.db", vertx); //applicationContext.getBean(IDataStore.BEAN_NAME);
 
 		assertNotNull(dataStore);
 		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
@@ -580,7 +580,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 		//create a test db
-		DataStore dataStore = new MapDBStore("target/testDelete.db"); 
+		DataStore dataStore = new MapDBStore("target/testDelete.db", vertx); 
 		service.setDataStore(dataStore);
 
 		//create a stream fetcher
@@ -650,7 +650,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 		//create a test db
-		DataStore dataStore = new MapDBStore("target/testStop.db"); 
+		DataStore dataStore = new MapDBStore("target/testStop.db", vertx); 
 		service.setDataStore(dataStore);
 
 		//create a stream fetcher

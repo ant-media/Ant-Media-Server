@@ -10,6 +10,8 @@ import java.io.File;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.DataStore;
@@ -17,23 +19,34 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.VoDRestService;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.security.ExpireStreamPublishSecurity;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.HlsViewerStats;
+import io.vertx.core.Vertx;
 
 public class DataStoreFactoryUnitTest {
 	private DataStoreFactory dsf;
+	Vertx vertx = Vertx.vertx();
 
 	@Before
-	public void before() {
+	public void before() 
+	{
 		deleteMapDB();
 		dsf =  new DataStoreFactory();
 		dsf.setDbName("myDB");
 		dsf.setDbHost("localhost");
 		dsf.setDbUser(null);
 		dsf.setDbPassword("myPass");
+		dsf.setDbType("memorydb");
+		ApplicationContext context = Mockito.mock(ApplicationContext.class);
+		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());			
+		dsf.setApplicationContext(context);
+		dsf.setDataStore(null);
 	}
 
 	@After
