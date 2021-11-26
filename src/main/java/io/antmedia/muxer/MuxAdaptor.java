@@ -700,16 +700,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				if (!muxer.addStream(codecParameters, rat, streamIndex)) 
 				{
-					iterator.remove();
-					logger.warn("addStream returns false {} for stream: {}", muxer.getFormat(), streamId);
+					logger.warn("addStream returns false {} for stream: {} for {}", muxer.getFormat(), streamId, codecParameters.codec_type() == 0 ? "video" : "audio");
 				}
 			}
-
 		}
 
 		startTime = System.currentTimeMillis();
 	}
-
 
 	public void prepareMuxerIO() 
 	{
@@ -780,7 +777,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public void writeStreamPacket(IStreamPacket packet) {
-
 		long dts = packet.getTimestamp() & 0xffffffffL;
 		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA)
 		{
