@@ -733,6 +733,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
 		});
 
+		verify(muxAdaptor, Mockito.timeout(5000)).sendEndpointErrorNotifyHook();
+
 	}
 	@Test
 	public void testRTMPWriteCrash(){

@@ -1710,6 +1710,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			else{
 				logger.info("Exceeded republish retry limit, endpoint {} can't be reached and will be closed" , url);
 				stopRtmpStreaming(url, 0);
+				sendEndpointErrorNotifyHook();
 				retryCounter.remove(url);
 			}
 			//Clear the data and cancel timer to free memory and CPU.
