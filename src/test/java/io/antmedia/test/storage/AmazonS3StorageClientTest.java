@@ -62,6 +62,10 @@ public class AmazonS3StorageClientTest {
 		storage.save("streams" + "/" + f.getName() , f, "Standard");
 		
 		Mockito.verify(storage).getTransferManager();
+
+		storage.save("streams" + "/" + f.getName() , f, "test");
+
+		Mockito.verify(storage).getTransferManager();
 	}
 	
 	@Test

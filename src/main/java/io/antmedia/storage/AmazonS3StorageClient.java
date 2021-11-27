@@ -102,7 +102,7 @@ public class AmazonS3StorageClient extends StorageClient {
 			putRequest.setCannedAcl(getCannedAcl());
 
 			if(checkStorageClass(s3StorageClass)){
-				putRequest.withStorageClass(s3StorageClass);
+				putRequest.withStorageClass(s3StorageClass.toUpperCase());
 			}
 
 			Upload upload = tm.upload(putRequest);
