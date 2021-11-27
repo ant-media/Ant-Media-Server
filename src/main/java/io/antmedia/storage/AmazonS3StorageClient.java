@@ -101,17 +101,9 @@ public class AmazonS3StorageClient extends StorageClient {
 			PutObjectRequest putRequest = new PutObjectRequest(getStorageName(), key, file);
 			putRequest.setCannedAcl(getCannedAcl());
 
-			logger.debug("Requested storage class = " + s3StorageClass);
-			//All of the inputs are upper case and case sensitive like GLACIER
-			for(int i = 0; i < StorageClass.values().length; i++){
-				s3StorageClass = s3StorageClass.toUpperCase();
-				if(s3StorageClass.equals(StorageClass.values()[i])){
-					putRequest.withStorageClass(s3StorageClass);
-					break;
-				}
+			if(checkStorageClass(s3StorageClass)){
+				putRequest.withStorageClass(s3StorageClass);
 			}
-
-
 
 			Upload upload = tm.upload(putRequest);
 			// TransferManager processes all transfers asynchronously,
@@ -149,7 +141,17 @@ public class AmazonS3StorageClient extends StorageClient {
 		else {
 			logger.debug("S3 is not enabled to save the file: {}", key);
 		}
-
+	}
+	public boolean checkStorageClass(String s3StorageClass){
+		logger.debug("Requested storage class = " + s3StorageClass);
+		//All of the inputs are upper case and case sensitive like GLACIER
+		for(int i = 0; i < StorageClass.values().length; i++){
+			s3StorageClass = s3StorageClass.toUpperCase();
+			if(s3StorageClass.equals(StorageClass.values()[i].toString())){
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public TransferManager getTransferManager() {
