@@ -65,7 +65,6 @@ import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.shutdown.IShutdownListener;
-import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.statistic.HlsViewerStats;
@@ -105,7 +104,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String PLAY_LIST = "playlist";
 	protected static final int END_POINT_LIMIT = 20;
 	public static final String FACEBOOK = "facebook";
-	public static final String PERISCOPE = "periscope";
 	public static final String YOUTUBE = "youtube";
 	public static final String FACEBOOK_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.FacebookEndpoint";
 	public static final String YOUTUBE_ENDPOINT_CLASS = "io.antmedia.enterprise.social.endpoint.YoutubeEndpoint";
@@ -154,7 +152,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		for (IStreamPublishSecurity streamPublishSecurity : getStreamPublishSecurityList()) {
 			registerStreamPublishSecurity(streamPublishSecurity);
 		}
-		vertx = (Vertx) app.getContext().getBean(VERTX_BEAN_NAME);
+		//init vertx
+		getVertx();
 
 		//initalize to access the data store directly in the code
 		getDataStore();
@@ -228,10 +227,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (socialEndpointCredentials.getServiceName().equals(FACEBOOK)) 
 				{
 					endPointService = getEndpointService(FACEBOOK_ENDPOINT_CLASS, socialEndpointCredentials, appSettings.getFacebookClientId(), appSettings.getFacebookClientSecret());
-				}
-				else if (socialEndpointCredentials.getServiceName().equals(PERISCOPE)) 
-				{
-					endPointService = getEndpointService(PeriscopeEndpoint.class.getName(), socialEndpointCredentials, appSettings.getPeriscopeClientId(), appSettings.getPeriscopeClientSecret());
 				}
 				else if (socialEndpointCredentials.getServiceName().equals(YOUTUBE)) 
 				{
@@ -1034,6 +1029,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public DataStore getDataStore() {
+		//vertx should be initialized before calling this method
 		if(dataStore == null)
 		{
 			dataStore = dataStoreFactory.getDataStore();
@@ -1368,6 +1364,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	} 
 
 	public Vertx getVertx() {
+		if (vertx == null) {
+			vertx = (Vertx) getScope().getContext().getBean(VERTX_BEAN_NAME);
+		}
 		return vertx;
 	}
 
