@@ -79,7 +79,9 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 
 ## Releases
 
-Ant Media Server Community Edition Releases are automatically deployed [here](https://github.com/ant-media/Ant-Media-Server/releases) with auto-generated changelog. Ant Media Server Enterprise Editions are available through Cloud Marketplace(AWS, Azure, DO) or through subscription on [antmedia.io](https://antmedia.io)   
+Ant Media Server Community Edition Releases are [automatically deployed here](https://github.com/ant-media/Ant-Media-Server/releases) with auto-generated changelog. 
+
+Ant Media Server Enterprise Editions are available through Cloud Marketplace(AWS, Azure, DO) or to download through subscription on [antmedia.io](https://antmedia.io)   
 
 ## Contact
 
