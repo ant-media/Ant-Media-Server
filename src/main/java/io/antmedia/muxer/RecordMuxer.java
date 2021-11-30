@@ -171,7 +171,6 @@ public abstract class RecordMuxer extends Muxer {
 			codecTimeBaseMap.put(streamIndex, timeBase);
 			result = true;
 		}
-		addedStream.set(result);
 		return result;
 	}
 
@@ -252,7 +251,6 @@ public abstract class RecordMuxer extends Muxer {
 		else {
 			logger.warn("Stream is not added for muxing to {} for stream:{}", getFileName(), streamId);
 		}
-		addedStream.set(result);
 		return result;
 	}
 
@@ -291,10 +289,6 @@ public abstract class RecordMuxer extends Muxer {
 
 
 		AVFormatContext context = getOutputFormatContext();
-		if (!(addedStream.get())) {
-			logger.warn("There are no streams on Record Muxer for stream : {}", streamId);
-			return false;
-		}
 		if (context == null || context.pb() != null) {
 			//return false if it is already prepared
 			return false;

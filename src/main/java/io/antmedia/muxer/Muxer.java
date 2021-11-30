@@ -80,8 +80,6 @@ public abstract class Muxer {
 
 	protected AtomicBoolean isRunning = new AtomicBoolean(false);
 
-	protected AtomicBoolean addedStream = new AtomicBoolean(false);
-
 	public static final String TEMP_EXTENSION = ".tmp_extension";
 
 	protected int time2log = 0;

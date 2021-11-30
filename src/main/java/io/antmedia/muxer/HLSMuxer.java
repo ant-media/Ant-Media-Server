@@ -506,7 +506,6 @@ public class HLSMuxer extends Muxer  {
 				codecContext.flags( codecContext.flags() | AV_CODEC_FLAG_GLOBAL_HEADER);
 
 		}
-		addedStream.set(true);
 		return true;
 	}
 
@@ -576,7 +575,6 @@ public class HLSMuxer extends Muxer  {
 			registeredStreamIndexList.add(streamIndex);
 			result = true;
 		}
-		addedStream.set(true);
 		return result;
 	}
 
@@ -591,7 +589,7 @@ public class HLSMuxer extends Muxer  {
 		 * We need to extract addedStream information in some cases because we treat audio and video separate
 		 * In addStream for example, if we don't check this we end up removing the muxer completely if one of the operations fail.
 		 */
-		if (isRunning.get() || !(addedStream.get())) {
+		if (isRunning.get()) {
 			logger.warn("Either there are no streams on HLS Muxer or Muxer is not running for stream : {}", streamId);
 			return false;
 		}
