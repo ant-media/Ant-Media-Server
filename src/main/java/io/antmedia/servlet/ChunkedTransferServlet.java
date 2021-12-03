@@ -35,7 +35,7 @@ import io.antmedia.servlet.cmafutils.ICMAFChunkListener;
 import io.antmedia.servlet.cmafutils.IParser;
 
 
-public class ChunkedTransferServlet extends DefaultServlet {
+public class ChunkedTransferServlet extends HttpServlet {
 
 
 	public static final String STREAMS = "/streams";
