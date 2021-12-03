@@ -21,6 +21,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.catalina.connector.ClientAbortException;
+import org.apache.catalina.servlets.DefaultServlet;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,7 +35,7 @@ import io.antmedia.servlet.cmafutils.ICMAFChunkListener;
 import io.antmedia.servlet.cmafutils.IParser;
 
 
-public class ChunkedTransferServlet extends HttpServlet {
+public class ChunkedTransferServlet extends DefaultServlet {
 
 
 	public static final String STREAMS = "/streams";
@@ -128,6 +129,8 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 			File finalFile = new File(filepath);
 
+			
+			
 			String tmpFilepath = filepath + ".tmp"; 
 			File tmpFile = new File(tmpFilepath);
 
@@ -152,10 +155,10 @@ public class ChunkedTransferServlet extends HttpServlet {
 						//don't parse atom for mpd files because they are text files
 						atomparser = new MockAtomParser();
 					}
-					else {
+					else 
+					{
 						atomparser = new AtomParser(completeChunk -> 
-						cacheManager.append(finalFile.getAbsolutePath(), completeChunk)
-								);
+							cacheManager.append(finalFile.getAbsolutePath(), completeChunk));
 					}
 
 
@@ -166,7 +169,6 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 					InputStream inputStream = asyncContext.getRequest().getInputStream();
 					asyncContext.start(() -> 
-					
 						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream, statusListener)
 					);
 				}
@@ -349,7 +351,11 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 			File file = new File(WEBAPPS + File.separator + req.getRequestURI());
 
-			try {
+			try 
+			{    
+				//set the mime type
+				resp.setContentType(req.getServletContext().getMimeType(file.getName()));
+				
 				if (file.exists()) 
 				{
 					logger.trace("File exists: {}", file.getAbsolutePath());
@@ -372,9 +378,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 						ChunkListener chunkListener = new ChunkListener();
 						cacheManager.registerChunkListener(file.getAbsolutePath(), chunkListener);
 						asyncContext.start(() ->  
-
 							writeChunks(file, cacheManager, asyncContext, chunkListener)
-
 						);
 
 					}
