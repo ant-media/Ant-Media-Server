@@ -431,10 +431,12 @@ public abstract class RecordMuxer extends Muxer {
 
 				final File f = getFinalMp4FileName(appSettings.isS3RecordingEnabled());
 
+				finalizeRecordFile(f);
+
 				adaptor.muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
 
 				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
-				finalizeRecordFile(f);
+
 
 				if((appSettings.getUploadExtensionsToS3()&S3_CONSTANT) == 0){
 					this.uploadMP4ToS3 = false;
