@@ -2056,7 +2056,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
 		assertNotNull(vertx);
 
-		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "streams");
+		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -2111,70 +2111,216 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testMp4FinalName() {
-		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
-		assertNotNull(vertx);
+		{
+			Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
+			assertNotNull(vertx);
 
-		String streamName = "stream_name_s" + (int) (Math.random() * 10000);
+			String streamName = "stream_name_s" + (int) (Math.random() * 10000);
 
-		getAppSettings().setMp4MuxingEnabled(true);
-		getAppSettings().setUploadExtensionsToS3(7);
-		getAppSettings().setS3RecordingEnabled(true);
+			getAppSettings().setMp4MuxingEnabled(true);
+			getAppSettings().setUploadExtensionsToS3(7);
+			getAppSettings().setS3RecordingEnabled(true);
 
-		StorageClient client = Mockito.mock(StorageClient.class);
+			StorageClient client = Mockito.mock(StorageClient.class);
 
-		doReturn(false).when(client).fileExist(Mockito.any());
+			doReturn(false).when(client).fileExist(Mockito.any());
 
-		doReturn(true).when(client).fileExist("streams/" + streamName + ".mp4");
+			doReturn(true).when(client).fileExist("streams/" + streamName + ".mp4");
 
-		Mp4Muxer mp4Muxer = new Mp4Muxer(client , vertx, "streams");
+			Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
 
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
-
-
-		//init
-		mp4Muxer.init(appScope, streamName, 0, null, 0);
-
-		//add stream
-		int width = 640;
-		int height = 480;
-		boolean addStreamResult = mp4Muxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
-		assertTrue(addStreamResult);
-
-		//prepare io
-		boolean prepareIOresult = mp4Muxer.prepareIO();
-		assertTrue(prepareIOresult);
-
-		try {
-			FileInputStream fis = new FileInputStream("src/test/resources/frame0");
-			byte[] byteArray = IOUtils.toByteArray(fis);
-
-			fis.close();
-
-			long now = System.currentTimeMillis();
-			ByteBuffer encodedVideoFrame = ByteBuffer.wrap(byteArray);
-
-			for (int i = 0; i < 100; i++) {
-				//add packet
-				mp4Muxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0,  now + i* 100);
+			if (appScope == null) {
+				appScope = (WebScope) applicationContext.getBean("web.scope");
+				logger.debug("Application / web scope: {}", appScope);
+				assertTrue(appScope.getDepth() == 1);
 			}
 
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
+
+			//init
+			mp4Muxer.init(appScope, streamName, 0, null, 0);
+
+			//add stream
+			int width = 640;
+			int height = 480;
+			boolean addStreamResult = mp4Muxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
+			assertTrue(addStreamResult);
+
+			//prepare io
+			boolean prepareIOresult = mp4Muxer.prepareIO();
+			assertTrue(prepareIOresult);
+
+			try {
+				FileInputStream fis = new FileInputStream("src/test/resources/frame0");
+				byte[] byteArray = IOUtils.toByteArray(fis);
+
+				fis.close();
+
+				long now = System.currentTimeMillis();
+				ByteBuffer encodedVideoFrame = ByteBuffer.wrap(byteArray);
+
+				for (int i = 0; i < 100; i++) {
+					//add packet
+					mp4Muxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0, now + i * 100);
+				}
+
+			} catch (IOException e) {
+				e.printStackTrace();
+				fail(e.getMessage());
+			}
+
+			//write trailer
+			mp4Muxer.writeTrailer();
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS)
+					.pollInterval(1, TimeUnit.SECONDS)
+					.until(() -> {
+						return MuxingTest.testFile("webapps/junit/streams/" + streamName + "_1.mp4", 10000);
+					});
 		}
 
-		//write trailer
-		mp4Muxer.writeTrailer();
+		{
+			Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
+			assertNotNull(vertx);
 
-		Awaitility.await().atMost(20, TimeUnit.SECONDS)
-				.pollInterval(1, TimeUnit.SECONDS)
-				.until(() -> {
-					return MuxingTest.testFile("webapps/junit/streams/" + streamName + "_1.mp4", 10000);
-				});
+			String streamName = "stream_name_s" + (int) (Math.random() * 10000);
+
+			getAppSettings().setMp4MuxingEnabled(true);
+			getAppSettings().setUploadExtensionsToS3(7);
+			getAppSettings().setS3RecordingEnabled(true);
+
+			StorageClient client = Mockito.mock(StorageClient.class);
+
+			doReturn(false).when(client).fileExist(Mockito.any());
+
+			doReturn(true).when(client).fileExist("streams/" + streamName + ".mp4");
+
+			File exist = new File("webapps/junit/streams/" + streamName + "_1.mp4");
+
+			Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
+
+			if (appScope == null) {
+				appScope = (WebScope) applicationContext.getBean("web.scope");
+				logger.debug("Application / web scope: {}", appScope);
+				assertTrue(appScope.getDepth() == 1);
+			}
+
+
+			//init
+			mp4Muxer.init(appScope, streamName, 0, null, 0);
+
+			//add stream
+			int width = 640;
+			int height = 480;
+			boolean addStreamResult = mp4Muxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
+			assertTrue(addStreamResult);
+
+			//prepare io
+			boolean prepareIOresult = mp4Muxer.prepareIO();
+			assertTrue(prepareIOresult);
+
+			try {
+				assertTrue(exist.createNewFile());
+				FileInputStream fis = new FileInputStream("src/test/resources/frame0");
+				byte[] byteArray = IOUtils.toByteArray(fis);
+
+				fis.close();
+
+				long now = System.currentTimeMillis();
+				ByteBuffer encodedVideoFrame = ByteBuffer.wrap(byteArray);
+
+				for (int i = 0; i < 100; i++) {
+					//add packet
+					mp4Muxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0, now + i * 100);
+				}
+
+			} catch (IOException e) {
+				e.printStackTrace();
+				fail(e.getMessage());
+			}
+
+			//write trailer
+			mp4Muxer.writeTrailer();
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS)
+					.pollInterval(1, TimeUnit.SECONDS)
+					.until(() -> {
+						return MuxingTest.testFile("webapps/junit/streams/" + streamName + "_2.mp4", 10000);
+					});
+		}
+
+		{
+			Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
+			assertNotNull(vertx);
+
+			String streamName = "stream_name_s" + (int) (Math.random() * 10000);
+
+			getAppSettings().setMp4MuxingEnabled(true);
+			getAppSettings().setUploadExtensionsToS3(7);
+			getAppSettings().setS3RecordingEnabled(true);
+
+			StorageClient client = Mockito.mock(StorageClient.class);
+
+			doReturn(false).when(client).fileExist(Mockito.any());
+
+			doReturn(true).when(client).fileExist("streams/" + streamName + ".mp4");
+
+			File exist = new File("webapps/junit/streams/" + streamName + "_1.mp4");
+
+			doReturn(true).when(client).fileExist("streams/" + streamName + "_2.mp4");
+
+
+			Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
+
+			if (appScope == null) {
+				appScope = (WebScope) applicationContext.getBean("web.scope");
+				logger.debug("Application / web scope: {}", appScope);
+				assertTrue(appScope.getDepth() == 1);
+			}
+
+
+			//init
+			mp4Muxer.init(appScope, streamName, 0, null, 0);
+
+			//add stream
+			int width = 640;
+			int height = 480;
+			boolean addStreamResult = mp4Muxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
+			assertTrue(addStreamResult);
+
+			//prepare io
+			boolean prepareIOresult = mp4Muxer.prepareIO();
+			assertTrue(prepareIOresult);
+
+			try {
+				assertTrue(exist.createNewFile());
+				FileInputStream fis = new FileInputStream("src/test/resources/frame0");
+				byte[] byteArray = IOUtils.toByteArray(fis);
+
+				fis.close();
+
+				long now = System.currentTimeMillis();
+				ByteBuffer encodedVideoFrame = ByteBuffer.wrap(byteArray);
+
+				for (int i = 0; i < 100; i++) {
+					//add packet
+					mp4Muxer.writeVideoBuffer(encodedVideoFrame, now + i * 100, 0, 0, true, 0, now + i * 100);
+				}
+
+			} catch (IOException e) {
+				e.printStackTrace();
+				fail(e.getMessage());
+			}
+
+			//write trailer
+			mp4Muxer.writeTrailer();
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS)
+					.pollInterval(1, TimeUnit.SECONDS)
+					.until(() -> {
+						return MuxingTest.testFile("webapps/junit/streams/" + streamName + "_3.mp4", 10000);
+					});
+		}
+
 	}
 
 
