@@ -456,7 +456,7 @@ public abstract class RecordMuxer extends Muxer {
 
 	public File getFinalMp4FileName(boolean isS3Enabled){
 		String absolutePath = fileTmp.getAbsolutePath();
-
+		logger.info("88888888888888888888888888888888");
 		String origFileName = absolutePath.replace(TEMP_EXTENSION, "");
 
 		String prefix = s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" );
@@ -465,9 +465,8 @@ public abstract class RecordMuxer extends Muxer {
 
 		File f = new File(origFileName);
 
-		if ( isS3Enabled && this.uploadMP4ToS3 ) {
+		if ( isS3Enabled && this.uploadMP4ToS3 && storageClient != null ) {
 			if (storageClient.fileExist(prefix + fileName)) {
-
 				String tmpName = resourceName + ".mp4";
 				String previousNamingIndex = fileName.substring(fileName.lastIndexOf("_") + 1, fileName.indexOf("."));
 				int i = 0;

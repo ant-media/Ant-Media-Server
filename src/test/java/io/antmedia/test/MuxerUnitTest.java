@@ -2056,7 +2056,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
 		assertNotNull(vertx);
 
-		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
+		getAppSettings().setMp4MuxingEnabled(true);
+		getAppSettings().setUploadExtensionsToS3(0);
+
+		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "streams");
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -2100,7 +2103,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//write trailer
 		mp4Muxer.writeTrailer();
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS)
+		Awaitility.await().atMost(20, TimeUnit.SECONDS)
 		.pollInterval(1, TimeUnit.SECONDS)
 		.until(() -> {
 			return MuxingTest.testFile("webapps/junit/streams/" + streamName + ".mp4", 10000);
