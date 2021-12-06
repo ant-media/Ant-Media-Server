@@ -144,6 +144,35 @@ public class FrontEndTest {
         logPrefs.enable(LogType.BROWSER, Level.ALL);
         chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
 
+        ConsoleAppRestServiceTest.resetCookieStore();
+        Result result;
+        try {
+            result = ConsoleAppRestServiceTest.callisFirstLogin();
+
+            if (result.isSuccess()) {
+                Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+                assertTrue(createInitialUser.isSuccess());
+            }
+
+            result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+            assertTrue(result.isSuccess());
+            Random r = new Random();
+            String streamId = "streamId" + r.nextInt();
+
+            AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+            appSettingsModel.setMp4MuxingEnabled(true);
+            appSettingsModel.setHlsMuxingEnabled(true);
+
+            result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+            assertTrue(result.isSuccess());
+
+        }
+        catch (Exception e){
+            fail();
+            System.out.println(ExceptionUtils.getStackTrace(e));
+        }
+
         this.driver = new ChromeDriver(chrome_options);
         this.driver.manage().timeouts().pageLoadTimeout( Duration.ofSeconds(10));
         this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
@@ -189,6 +218,35 @@ public class FrontEndTest {
     @Test
     public void testEmbeddedPlayPage(){
         RestServiceV2Test restService = new RestServiceV2Test();
+
+        ConsoleAppRestServiceTest.resetCookieStore();
+        Result result;
+        try {
+            result = ConsoleAppRestServiceTest.callisFirstLogin();
+
+            if (result.isSuccess()) {
+                Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+                assertTrue(createInitialUser.isSuccess());
+            }
+
+            result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+            assertTrue(result.isSuccess());
+            Random r = new Random();
+            String streamId = "streamId" + r.nextInt();
+
+            AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+            appSettingsModel.setHlsMuxingEnabled(true);
+
+            result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+            assertTrue(result.isSuccess());
+
+        }
+        catch (Exception e){
+            fail();
+            System.out.println(ExceptionUtils.getStackTrace(e));
+        }
+
 
         Random r = new Random();
         String streamId = "streamId" + r.nextInt();
