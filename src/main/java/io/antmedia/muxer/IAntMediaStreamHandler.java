@@ -2,6 +2,8 @@ package io.antmedia.muxer;
 
 import java.io.File;
 
+import io.antmedia.datastore.db.types.Broadcast;
+
 public interface IAntMediaStreamHandler {
 	
 	public static final String VERTX_BEAN_NAME = "vertxCore";
@@ -12,6 +14,10 @@ public interface IAntMediaStreamHandler {
 	public static final String BROADCAST_STATUS_PREPARING = "preparing";
 	public static final String BROADCAST_STATUS_ERROR = "error";
 	public static final String BROADCAST_STATUS_FAILED = "failed";
+	
+	public static final String PUBLISH_TYPE_PULL = "Pull";
+	public static final String PUBLISH_TYPE_RTMP = "RTMP";
+	public static final String PUBLISH_TYPE_WEBRTC = "WebRTC";
 	
 	/**
 	 * Called by some muxer like MP4Muxer
@@ -78,5 +84,23 @@ public interface IAntMediaStreamHandler {
 	 * @param publishType
 	 */
 	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType);
+	
+	/**
+	 * Notify the handler that is stream is stopped
+	 * @param streamId
+	 */
+	public void stopPublish(String streamId);
+	
+	/**
+	 * Update broadcast status to BROADCASTING
+	 * 
+	 * @param streamId is the id of the stream.
+	 * @param absoluteStartTimeMs: It's the absolute start time if available
+	 * @param publishType: It's RTMP, WebRTC, StreamSource
+	 * @param broadcast: It's the broadcast object. If it's null, a new record will be created
+	 * 
+	 * @return broadcast object from database
+	 */
+	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast);
 	
 }

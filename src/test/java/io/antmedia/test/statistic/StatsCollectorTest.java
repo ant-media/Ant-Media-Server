@@ -39,14 +39,13 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.SystemUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils;
-import io.antmedia.statistic.StatsCollector;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
+import io.antmedia.statistic.StatsCollector;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.vertx.core.Vertx;
@@ -485,13 +484,11 @@ public class StatsCollectorTest {
 		assertNull(StatsCollector.getAppAdaptor(appContext));
 		
 		Mockito.when(appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(true);
-		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(new Object());
-		assertNull(StatsCollector.getAppAdaptor(appContext));
+		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(new AntMediaApplicationAdapter());
+		assertNotNull(StatsCollector.getAppAdaptor(appContext));
 		
-		IApplicationAdaptorFactory appFactory = Mockito.mock(IApplicationAdaptorFactory.class);
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
-		Mockito.when(appFactory.getAppAdaptor()).thenReturn(adaptor);
-		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appFactory);
+		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adaptor);
 		assertEquals(adaptor, StatsCollector.getAppAdaptor(appContext));
 		
 		

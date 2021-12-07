@@ -6,9 +6,9 @@
 
 ## Basic Overview
 
-Ant Media Server is designed to provide live video streaming technology infrastructure with ultra-low latency(WebRTC) and low-latency(HLS, CMAF available in v2.2+). It can be used to enable streaming any type of live or on demand video to any devices including mobiles, PCs or IPTV boxes.
+Ant Media Server is a streaming engine software that provides adaptive, ultra low latency streaming by using WebRTC technology with ~0.5 seconds latency or low latency by using HLS or CMAF. Ant Media Server is highly scalable both horizontally and vertically. It can run on-premise or on-cloud.
 
-### 3867 Running Instances in 129 Countries 
+## 4157 Running Instances in 129 Countries 
 
 
 ## Ant Media Server Features
@@ -79,72 +79,9 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 
 ## Releases
 
-### [Ant Media Server Community 2.4.0.2 (Sep 5, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.4.0.2/ant-media-server-community-2.4.0.2-20210905_1340.zip)
+Ant Media Server Community Edition Releases are [automatically deployed here](https://github.com/ant-media/Ant-Media-Server/releases) with auto-generated changelog. 
 
-- Plugin Architecture 
-- Implementing MCU Plugin(audio-only supported) and providing it as a  built-in plugin -> Quick test: https://SERVER:5443/WebRTCAppEE/mcu.html
-- H265 Support in Ingesting WebRTC(H265 encoder is available in some Android devices)
-- Support HLS AES-Encryption
-- Support QuickSync in Hardware Transcoding
-- Configure `X-Forwarded-For` support as built-in for REST API.
-- Send specific resolutions to the RTMP endpoints via REST API
-- Add JWKS support for JWT Filter
-- Provide option to force adaptive bitrate all time or use whenever the source resolution is higher
-- Fix random bad name issue in RTMP Ingest (This was a common issue. Thank you God, it seems it's fixed :))
-- Upgrade Tomcat to 8.5.69 and don't use native Tomcat libraries(Because it causes crash in some cases)
-- Support re-connecting to the same session in a specific timeout after the publisher is disconnected. 
-
-[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.4.0)
-
-
-
-### [Ant Media Server Community 2.3.3 (June 6, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.2/ant-media-server-2.3.2-community-2.3.2-20210422_0754.zip)
-
-- Check existence of audio sync issue for RTMP to WebRTC case #3229
-- Let web panel block the user logging in for 5 minutes if username and password is wrong for 3 times #3246
-- H265 Support in WebRTC Ingesting for the supported devices #1817
-- Audio & Video Sync in RTMP re-publish & Increased Audio RTT #3231
-- Audio distortion/buzzing noises in 2.3.2 EE #3196
-- Hash-Based token doesn't work properly in HLS Stream with Adaptive Streaming #2259
-- Make Tensorflow solution downloadable #2965
-- Support ARM architecture #2607
-- Some threads may get blocked infinitely when an unexpected event occurs #3202
-- Stream audio-only to RTMP #3132
-- Add S3 configuration to Dashboard #3087
-
-[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.3.3) 
-
-
-### [Ant Media Server Community 2.3.2 (April 22, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.2/ant-media-server-2.3.2-community-2.3.2-20210422_0754.zip)
- - Increase buffer size - fixes Chrome 90 issue #3164 
- - Synch video according to audio in SFU mode
- - Fix during audio stream adding RTMP Endpoint 
- - Stop timers(native stats, measuring bitrate) in signaling thread 
- - Fix pts and dts base timing in the incoming packets
- - Remove jsvc 
-
-### [Ant Media Server Community 2.3.1 (April 14, 2021)](https://github.com/ant-media/Ant-Media-Server/releases/download/ams-v2.3.1/ant-media-server-2.3.1-community-2.3.1-20210414_1212.zip)
-- Problem in fragment.size() Check #3053
-- Audio intermittently cuts out. #3035
-- Webm start - stop recording does not work #3096
-- Fix analyze time in EncoderAdaptor #2939
-- P2P NoSpaceForNewPeer error  #2954
-- Create app is not working on the fly in standalone mode #3033
-- Sorted Application List Would Be Good #2783
-- Web Panel does not show vod ID #3006
-- Import external js files into the package #2943
-- Get MD5 of password in Angular app #3075
-- Provide configuration option to push CMAF and HLS to any Http Endpoint  #3071
-- Create and delete apps via web panel #3064
-- Update FFmpeg(4.3.2) and CUDA(11.2) #3047
-- Audio/Video sync issue in 2.3 with ABR #3088
-
-
-[Full ChangeLog](https://github.com/ant-media/Ant-Media-Server/releases/tag/ams-v2.3.0) 
-
-
-Previous releases
-https://github.com/ant-media/Ant-Media-Server/releases/
+Ant Media Server Enterprise Editions are available through Cloud Marketplace(AWS, Azure, DO) or to download through subscription on [antmedia.io](https://antmedia.io)   
 
 ## Contact
 

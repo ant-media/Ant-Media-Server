@@ -40,11 +40,14 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.vertx.core.Vertx;
 
 public class MongoStore extends DataStore {
 
+	private static final String VIEWER_ID = "viewerId";
 	private static final String TOKEN_ID = "tokenId";
 	private static final String STREAM_ID = "streamId";
 	private Morphia morphia;
@@ -80,7 +83,7 @@ public class MongoStore extends DataStore {
 
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = morphia.createDatastore(client, dbName);
-		vodDatastore=morphia.createDatastore(client, dbName+"VoD");
+		vodDatastore = morphia.createDatastore(client, dbName+"VoD");
 		endpointCredentialsDS = morphia.createDatastore(client, dbName+"_endpointCredentials");
 		tokenDatastore = morphia.createDatastore(client, dbName + "_token");
 		subscriberDatastore = morphia.createDatastore(client, dbName + "_subscriber");
@@ -103,6 +106,10 @@ public class MongoStore extends DataStore {
 	}
 	
 	public static String getMongoConnectionUri(String host, String username, String password) {
+		//If it is DNS seed name, no need to check for username and password since it needs to be integrated to the given uri.
+		//Mongodb Atlas users will have such syntax and won't need to enter seperate username and password to the script since it is already in the uri.
+		if(host.indexOf("mongodb+srv") == 0)
+			return host;
 		String credential = "";
 		if(username != null && !username.isEmpty()) {
 			credential = username+":"+password+"@";
@@ -129,7 +136,7 @@ public class MongoStore extends DataStore {
 		}
 		try {
 			String streamId = null;
-			if (broadcast.getStreamId() == null) {
+			if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
 				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
 				broadcast.setStreamId(streamId);
 			}
@@ -435,7 +442,6 @@ public class MongoStore extends DataStore {
 	public void close() {
 		synchronized(this) {
 			available = false;
-			datastore.getMongo().close();
 		}
 	}
 
@@ -876,7 +882,8 @@ public class MongoStore extends DataStore {
 				ops.set("userAgent", broadcast.getUserAgent());
 				ops.set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit());
 				ops.set("hlsViewerLimit", broadcast.getHlsViewerLimit());
-				
+				ops.set("subTrackStreamIds", broadcast.getSubTrackStreamIds());
+
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
 			} catch (Exception e) {
@@ -1507,5 +1514,64 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return totalWebRTCViewerCount;
+	}
+
+	@SuppressWarnings("deprecation")
+	@Override
+	public void delete() {
+		synchronized(this) {
+			
+			MongoClient mongoClient = tokenDatastore.getMongo();
+			
+			mongoClient.getDatabase(tokenDatastore.getDB().getName()).drop();
+			mongoClient.getDatabase(subscriberDatastore.getDB().getName()).drop();
+			mongoClient.getDatabase(datastore.getDB().getName()).drop();
+			mongoClient.getDatabase(vodDatastore.getDB().getName()).drop();
+			mongoClient.getDatabase(endpointCredentialsDS.getDB().getName()).drop();
+			mongoClient.getDatabase(detectionMap.getDB().getName()).drop();
+			mongoClient.getDatabase(conferenceRoomDatastore.getDB().getName()).drop();
+		}
+	}
+
+	@Override
+	public void saveViewerInfo(WebRTCViewerInfo info) {
+		synchronized(this) {
+			if (info == null) {
+				return;
+			}
+			datastore.save(info);
+		}
+	}
+
+	@SuppressWarnings("deprecation") //BK: added this because alternative method is also deprecated
+	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
+			String search) {
+		synchronized(this) {
+			Query<WebRTCViewerInfo> query = datastore.createQuery(WebRTCViewerInfo.class);
+
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
+
+			if (sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
+				String sortString = (orderBy.equals("desc") ? "-" : "")+VIEWER_ID;
+				query = query.order(sortString);
+			}
+			if (search != null && !search.isEmpty()) {
+				logger.info("Server side search is called for WebRTCViewerInfo = {}", search);
+				query.criteria(VIEWER_ID).containsIgnoreCase(search);
+				return query.find(new FindOptions().skip(offset).limit(size)).toList();
+			}
+			return query.find(new FindOptions().skip(offset).limit(size)).toList();
+		}
+	}
+
+	@Override
+	public boolean deleteWebRTCViewerInfo(String viewerId) {
+		synchronized(this) {
+			Query<WebRTCViewerInfo> query = datastore.createQuery(WebRTCViewerInfo.class).field(VIEWER_ID).equal(viewerId);
+			WriteResult delete = datastore.delete(query);
+			return delete.getN() == 1;
+		}
 	}
 }

@@ -15,6 +15,7 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -31,6 +32,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.model.BasicStreamInfo;
@@ -158,17 +160,32 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "Only effective if stream is IP Camera or Stream Source. If it's true, it starts automatically pulling stream. Its value is false by default", required = false, defaultValue="false") @QueryParam("autoStart") boolean autoStart) {
 
 
-		if (broadcast != null && broadcast.getStreamId() != null && !broadcast.getStreamId().isEmpty()) {
-			// make sure stream id is not set on rest service
-			Broadcast broadcastTmp = getDataStore().get(broadcast.getStreamId());
-			if (broadcastTmp != null) 
-			{
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. Please change stream id or keep it empty")).build();
+
+		if (broadcast != null && broadcast.getStreamId() != null) {
+
+			try {
+				broadcast.setStreamId(broadcast.getStreamId().trim());
+
+				if (!broadcast.getStreamId().isEmpty()) 
+				{
+					// make sure stream id is not set on rest service
+					Broadcast broadcastTmp = getDataStore().get(broadcast.getStreamId());
+					if (broadcastTmp != null) 
+					{
+						return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. Please change stream id or keep it empty")).build();
+					}
+					else if (!StreamIdValidator.isStreamIdValid(broadcast.getStreamId())) 
+					{
+						return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid.")).build();
+					}
+				}
 			}
-			else if (!StreamIdValidator.isStreamIdValid(broadcast.getStreamId())) 
+			catch (Exception e) 
 			{
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid.")).build();
+				logger.error(ExceptionUtils.getStackTrace(e));
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id set generated exception")).build(); 
 			}
+
 
 		}
 
@@ -373,7 +390,7 @@ public class BroadcastRestService extends RestServiceBase{
 					if (!result.isSuccess()) 
 					{
 						result.setMessage("Rtmp endpoint is not added to stream: " + id);
-						
+
 					}
 					logRtmpEndpointInfo(id, endpoint, result.isSuccess());
 				}
@@ -443,7 +460,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 			rtmpUrl = getRtmpUrlFromList(endpointServiceId, rtmpUrl, broadcast);
 			if (rtmpUrl != null) {
-			
+
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
 				{
 					result = processRTMPEndpoint(result, broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, false, resolutionHeight);
@@ -458,7 +475,7 @@ public class BroadcastRestService extends RestServiceBase{
 				}
 			}
 
-			
+
 		} 
 		if (logger.isInfoEnabled()) 
 		{ 
@@ -1199,5 +1216,29 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId){
 		return new Result(RestServiceBase.removeStreamFromRoom(roomId,streamId,getDataStore()));
 	}
+	
+	@GET
+	@Path("/webrtc-viewers/list/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<WebRTCViewerInfo> getWebRTCViewerList(@ApiParam(value = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
+			@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
+			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
+			@ApiParam(value = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
+			) {
+		return getDataStore().getWebRTCViewerList(offset, size ,sortBy, orderBy, search);
+	}
+	
+	@ApiOperation(value = "Stop player with a specified id", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/webrtc-viewers/{webrtc-viewer-id}/stop")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result stopPlaying(@ApiParam(value = "the id of the webrtc viewer.", required = true) @PathParam("webrtc-viewer-id") String viewerId) 
+	{
+		boolean result = getApplication().stopPlaying(viewerId);
+		return new Result(result);
+	}
+	
 
 }

@@ -8,7 +8,6 @@ import static org.junit.Assert.fail;
 import java.io.File;
 import java.io.IOException;
 import java.util.List;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -34,14 +33,12 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
-import io.antmedia.test.StreamFetcherUnitTest;
 import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "../test/test.xml" })
@@ -136,7 +133,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		if (app == null) 
 		{
 
-			app = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
+			app = ((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
@@ -226,6 +223,10 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 			//check that rtmp endpoint is streaming
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return RestServiceV2Test.callGetBroadcast(endpointStreamId) != null;
+			});
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + AppFunctionalV2Test.SERVER_ADDR + ":5080/LiveApp/streams/" + endpointStreamId + ".m3u8");
 			});
 			
@@ -235,12 +236,21 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 			//check that rtmp endpoint is not streaming
 			assertTrue(result.isSuccess());
 			
-			//stop VoD streaming
+			//stop pulling stream source streaming
 			result = restService.stopStreaming(streamSource.getStreamId());
 			assertTrue(result.isSuccess());
 			
-			result = restService.callDeleteBroadcast(streamSource.getStreamId());
+			result = RestServiceV2Test.callDeleteBroadcast(streamSource.getStreamId());
 			assertTrue(result.isSuccess());
+			
+			//end point should be null because it is deleted
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return RestServiceV2Test.callGetBroadcast(endpointStreamId) == null;
+			});
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return RestServiceV2Test.callGetBroadcast(streamSource.getStreamId()) == null;
+			});
 			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
@@ -322,7 +332,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 			return restService.getBroadcast(streamId) == null;
 		});	
 		
-		assertEquals(restService.callGetBroadcastList().size(), broadcastList.size());
+		assertEquals(broadcastList.size(), restService.callGetBroadcastList().size());
 		
 	}
 	

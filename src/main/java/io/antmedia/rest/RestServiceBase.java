@@ -41,7 +41,6 @@ import org.springframework.web.context.support.WebApplicationContextUtils;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
@@ -68,7 +67,6 @@ import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.social.LiveComment;
-import io.antmedia.social.endpoint.PeriscopeEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint;
 import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.statistic.HlsViewerStats;
@@ -231,7 +229,7 @@ public abstract class RestServiceBase {
 		if (appInstance == null) {
 			ApplicationContext appContext = getAppContext();
 			if (appContext != null) {
-				appInstance = ((IApplicationAdaptorFactory) appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+				appInstance = (AntMediaApplicationAdapter) appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
 			}
 		}
 		return appInstance;
@@ -1194,16 +1192,19 @@ public abstract class RestServiceBase {
 						message = "vod deleted";
 					}
 
+
 					String fileName = videoFile.getName();
-					String[] splitFileName = StringUtils.split(fileName,".");
+					int indexOfFileExtension = fileName.lastIndexOf(".");
+					String finalFileName = fileName.substring(0,indexOfFileExtension);
+
 					//delete preview file if exists
-					File previewFile = Muxer.getPreviewFile(getScope(), splitFileName[0], ".png");
+					File previewFile = Muxer.getPreviewFile(getScope(), finalFileName, ".png");
 					Files.deleteIfExists(previewFile.toPath());
 
 					StorageClient storageClient = (StorageClient) appContext.getBean(StorageClient.BEAN_NAME);
 
-					storageClient.delete(getAppSettings().getS3StreamsFolderPath() + File.separator + splitFileName[0] + ".mp4");
-					storageClient.delete(getAppSettings().getS3PreviewsFolderPath() + File.separator + splitFileName[0] + ".png");
+					storageClient.delete(getAppSettings().getS3StreamsFolderPath() + File.separator + fileName);
+					storageClient.delete(getAppSettings().getS3PreviewsFolderPath() + File.separator + finalFileName + ".png");
 
 				}
 				catch (Exception e) {
@@ -1338,17 +1339,6 @@ public abstract class RestServiceBase {
 				missingClientIdAndSecret = true;
 			}
 
-		}
-		else if (serviceName.equals(AntMediaApplicationAdapter.PERISCOPE)) 
-		{
-			String clientId = getAppSettings().getPeriscopeClientId();
-			String clientSecret = getAppSettings().getPeriscopeClientSecret();
-
-			videoServiceEndpoint = getApplication().getEndpointService(PeriscopeEndpoint.class.getName(), null, clientId, clientSecret);
-
-			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret))  {
-				missingClientIdAndSecret = true;
-			}
 		}
 
 		try {
@@ -1507,13 +1497,8 @@ public abstract class RestServiceBase {
 			Broadcast broadcast = getDataStore().get(id);
 			if (broadcast != null) {
 				totalHLSViewer = broadcast.getHlsViewerCount();
-			}
-
-			IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
-
-			if (webRTCAdaptor != null) {
-				totalWebRTCViewer = webRTCAdaptor.getNumberOfViewers(id);
-			}
+				totalWebRTCViewer = broadcast.getWebRTCViewerCount();
+			}			
 		}
 
 		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
@@ -2140,5 +2125,4 @@ public abstract class RestServiceBase {
 
 		return new Result(result, message);
 	}
-
 }

@@ -7,12 +7,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.bytedeco.ffmpeg.global.avcodec.*;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -46,12 +43,10 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
@@ -128,7 +123,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		if (app == null)
 		{
-			app = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
+			app = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
@@ -693,7 +688,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(null, null, "streams"));
 
-		mp4Muxer.init(appScope, "test", 480, null);
+		mp4Muxer.init(appScope, "test", 480, null, 750);
 
 
 		Mockito.doReturn(true).when(mp4Muxer).isCodecSupported(Mockito.anyInt());
@@ -1041,7 +1036,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public AntMediaApplicationAdapter getInstance() {
 		if (appInstance == null) {
-			appInstance = ((IApplicationAdaptorFactory) applicationContext.getBean("web.handler")).getAppAdaptor();
+			appInstance = (AntMediaApplicationAdapter) applicationContext.getBean("web.handler");
 		}
 		return appInstance;
 	}

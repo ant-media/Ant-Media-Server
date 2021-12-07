@@ -14,6 +14,7 @@ import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 
+import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -84,8 +85,6 @@ public class AppSettings {
 	public static final String SETTINGS_HLS_PLAY_LIST_TYPE = "settings.hlsPlayListType";
 	public static final String FACEBOOK_CLIENT_ID = "facebook.clientId";
 	public static final String FACEBOOK_CLIENT_SECRET = "facebook.clientSecret";
-	public static final String PERISCOPE_CLIENT_ID = "periscope.clientId";
-	public static final String PERISCOPE_CLIENT_SECRET = "periscope.clientSecret";
 	public static final String YOUTUBE_CLIENT_ID = "youtube.clientId";
 	public static final String YOUTUBE_CLIENT_SECRET = "youtube.clientSecret";
 	public static final String SETTINGS_VOD_FOLDER = "settings.vodFolder";
@@ -203,6 +202,10 @@ public class AppSettings {
 	
 	public static final String SETTINGS_AUDIO_BITRATE_SFU = "settings.audioBitrateSFU";
 
+	public static final String SETTINGS_ENDPOINT_REPUBLISH_LIMIT = "settings.endpoint.republishLimit";
+
+	public static final String SETTINGS_ENDPOINT_HEALTH_CHECK_PERIOD_MS = "settings.endpoint.healthCheckPeriodMs";
+
 	
 	/**
 	 * In data channel, player messages are delivered to nobody,
@@ -221,7 +224,11 @@ public class AppSettings {
 	public static final String DATA_CHANNEL_PLAYER_TO_ALL = "all";
 
 	private static final String SETTINGS_HLS_FLAGS = "settings.hlsflags";
-	
+
+	public static final String SETTINGS_UPLOAD_EXTENSIONS_TO_S3 = "settings.uploadExtensionsToS3";
+
+	public static final String SETTINGS_RTSP_TIMEOUT_DURATION_MS = "settings.rtspTimeoutDurationMs";
+
 	public static final String SETTINGS_RTMP_INGEST_BUFFER_TIME_MS = "settings.rtmpIngestBufferTimeMs";
 	
 	public static final String SETTINGS_ACCEPT_ONLY_ROOMS_IN_DATA_STORE = "settings.acceptOnlyRoomsInDataStore";
@@ -295,6 +302,7 @@ public class AppSettings {
 	public static final String SETTINGS_S3_REGION_NAME = "settings.s3RegionName";
 	public static final String SETTINGS_S3_BUCKET_NAME = "settings.s3BucketName";
 	public static final String SETTINGS_S3_ENDPOINT = "settings.s3Endpoint";
+	public static final String SETTINGS_S3_PERMISSION = "settings.s3Permission";
 	public static final String SETTINGS_ENABLE_TIME_TOKEN_PLAY = "settings.enableTimeTokenForPlay";
 	public static final String SETTINGS_ENABLE_TIME_TOKEN_PUBLISH = "settings.enableTimeTokenForPublish";
 	
@@ -305,6 +313,8 @@ public class AppSettings {
 	public static final String SETTINGS_WEBHOOK_AUTHENTICATE_URL = "settings.webhookAuthenticateURL";
 
 	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
+
+	
 
 
 	@JsonIgnore
@@ -375,6 +385,36 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_HLS_TIME+":#{null}}" )
 	private String hlsTime;
+
+	/**
+	 * Binary entity for uploading the extensions
+	 * 0 means does not upload, 1 means upload
+	 * Least significant digit switches mp4 files upload to s3
+	 * Second digit switches HLS files upload to s3
+	 * Most significant digit switches PNG files upload to s3
+	 * Example: 5 ( 101 in binary ) means upload mp4 and PNG but not HLS
+	 * HLS files still will be saved on the server if deleteHLSFilesOnEnded flag is false
+	 */
+	@Value( "${"+SETTINGS_UPLOAD_EXTENSIONS_TO_S3+":7}" )
+	private int uploadExtensionsToS3;
+
+	/**
+	 * Endpoint will try to republish if error occurs,
+	 * however the error might get fixed internally in case of small issues without republishing
+	 * This value is the check time for endpoint in 3 trials
+	 * For example for 2 seconds, there will be 2 checks in 2 second intervals,
+	 * if each of them fails it will try to republish in 3rd check.
+	 */
+	@Value( "${"+SETTINGS_ENDPOINT_HEALTH_CHECK_PERIOD_MS+":2000}" )
+	private int endpointHealthCheckPeriodMs;
+
+	/**
+	 * This limit is for republishing to a certain endpoint for how many times
+	 * For example in case we tried to republish 3 times and still got an error
+	 * We conclude that the endpoint is dead and close it.
+	 */
+	@Value( "${"+SETTINGS_ENDPOINT_REPUBLISH_LIMIT+":3}" )
+	private int endpointRepublishLimit;
 	
 	/**
 	 * Duration of segments in mpd files,
@@ -619,20 +659,6 @@ public class AppSettings {
 	 */
 	@Value( "${"+FACEBOOK_CLIENT_SECRET+"}" )
 	private String facebookClientSecret;
-
-	/**
-	 * Periscope app client id
-	 * This is client id provided by Periscope to broadcast streams to Periscope.
-	 */
-	@Value( "${"+PERISCOPE_CLIENT_ID+"}" )
-	private String  periscopeClientId;
-
-	/**
-	 * Periscope app client secret
-	 * Secret key for the Periscope client id.
-	 */
-	@Value( "${"+PERISCOPE_CLIENT_SECRET+"}" )
-	private String  periscopeClientSecret;
 
 	/**
 	 * Youtube client id
@@ -1084,6 +1110,13 @@ public class AppSettings {
 	 */
 	@Value("${" + SETTINGS_RTSP_PULL_TRANSPORT_TYPE+ ":tcp}")
 	private String rtspPullTransportType;
+
+	/**
+	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
+	 * It can be tcp or udp
+	 */
+	@Value("${" + SETTINGS_RTSP_TIMEOUT_DURATION_MS+ ":5000}")
+	private int rtspTimeoutDurationMs;
 	
 	/**
 	 * Max FPS value in RTMP streams
@@ -1362,6 +1395,22 @@ public class AppSettings {
 	@Value( "${"+SETTINGS_S3_ENDPOINT+":#{null}}" )
 	private String s3Endpoint;
 	
+	/*
+	 * The permission to use in uploading the files to the S3. 
+	 * Following values are accepted. Default value is public-read
+	 * public-read
+	 * private
+	 * public-read-write
+	 * authenticated-read
+	 * log-delivery-write
+	 * bucket-owner-read
+	 * bucket-owner-full-control
+	 * aws-exec-read
+	 * 
+	 */
+	@Value( "${"+SETTINGS_S3_PERMISSION+":public-read}" )
+	private String s3Permission;
+	
 	/**
 	 *  HLS Encryption key info file full path.
 	 *  Format of the file
@@ -1463,12 +1512,33 @@ public class AppSettings {
 		this.dashMuxingEnabled = dashMuxingEnabled;
 	}
 
+	public int getEndpointRepublishLimit(){
+		return endpointRepublishLimit;
+	}
+	public void setEndpointRepublishLimit(int endpointRepublishLimit){
+		this.endpointRepublishLimit = endpointRepublishLimit;
+	}
+	public int getEndpointHealthCheckPeriodMs(){
+		return endpointHealthCheckPeriodMs;
+	}
+	public void setEndpointHealthCheckPeriodMs(int endpointHealthCheckPeriodMs){
+		this.endpointHealthCheckPeriodMs = endpointHealthCheckPeriodMs;
+	}
+
 	public String getHlsPlayListType() {
 		return hlsPlayListType;
 	}
 
 	public void setHlsPlayListType(String hlsPlayListType) {
 		this.hlsPlayListType = hlsPlayListType;
+	}
+
+	public void setUploadExtensionsToS3(int uploadExtensionsToS3){
+		this.uploadExtensionsToS3 = uploadExtensionsToS3;
+	}
+
+	public int getUploadExtensionsToS3(){
+		return this.uploadExtensionsToS3;
 	}
 
 	public String getHlsTime() {
@@ -1672,22 +1742,6 @@ public class AppSettings {
 
 	public void setYoutubeClientId(String youtubeClientId) {
 		this.youtubeClientId = youtubeClientId;
-	}
-
-	public String getPeriscopeClientSecret() {
-		return periscopeClientSecret;
-	}
-
-	public void setPeriscopeClientSecret(String periscopeClientSecret) {
-		this.periscopeClientSecret = periscopeClientSecret;
-	}
-
-	public String getPeriscopeClientId() {
-		return periscopeClientId;
-	}
-
-	public void setPeriscopeClientId(String periscopeClientId) {
-		this.periscopeClientId = periscopeClientId;
 	}
 
 	public String getFacebookClientSecret() {
@@ -2246,6 +2300,13 @@ public class AppSettings {
 	public void setRtspPullTransportType(String rtspPullTransportType) {
 		this.rtspPullTransportType = rtspPullTransportType;
 	}
+	public int getRtspTimeoutDurationMs() {
+		return rtspTimeoutDurationMs;
+	}
+
+	public void setRtspTimeoutDurationMs(int rtspTimeoutDurationMs) {
+		this.rtspTimeoutDurationMs = rtspTimeoutDurationMs;
+	}
 	
 	public int getMaxResolutionAccept() {
 		return maxResolutionAccept;
@@ -2748,5 +2809,13 @@ public class AppSettings {
 	public void setForceAspectRatioInTranscoding(boolean forceAspectRatioInTranscoding) {
 		this.forceAspectRatioInTranscoding = forceAspectRatioInTranscoding;
 
+	}
+
+	public String getS3Permission() {
+		return s3Permission;
+	}
+
+	public void setS3Permission(String s3Permission) {
+		this.s3Permission = s3Permission;
 	}
 }

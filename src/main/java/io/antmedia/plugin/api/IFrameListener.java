@@ -34,7 +34,7 @@ public interface IFrameListener {
 	 * AMS calls this method when the listening stream finishes
 	 * 
 	 */
-	void writeTrailer();
+	void writeTrailer(String streamId);
 	
 	/*
 	 * AMS calls this method when plugin registers itself to a stream

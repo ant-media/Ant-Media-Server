@@ -31,6 +31,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
@@ -45,9 +46,10 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, Subscriber> subscriberMap = new LinkedHashMap<>();
 	private Map<String, ConferenceRoom> roomMap = new LinkedHashMap<>();
 	private Map<String, Playlist> playlistMap = new LinkedHashMap<>();
+	private Map<String, WebRTCViewerInfo> webRTCViewerMap = new LinkedHashMap<>();
+
 
 	public InMemoryDataStore(String dbName) {
-		
 		available = true;
 	}
 
@@ -58,7 +60,7 @@ public class InMemoryDataStore extends DataStore {
 		if (broadcast != null) {
 
 			try {
-				if (broadcast.getStreamId() == null) {
+				if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
 					streamId = RandomStringUtils.randomNumeric(24);
 					broadcast.setStreamId(streamId);
 				}
@@ -1038,5 +1040,41 @@ public class InMemoryDataStore extends DataStore {
 			totalWebRTCViewerCountLastUpdateTime = now;
 		}  
 		return totalWebRTCViewerCount;
+	}
+
+	@Override
+	public void delete() {
+		// No need to implement.
+	}
+
+	@Override
+	public void saveViewerInfo(WebRTCViewerInfo info) {
+		webRTCViewerMap.put(info.getViewerId(), info);
+	}
+
+	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
+			String search) {
+
+		Collection<WebRTCViewerInfo> values = webRTCViewerMap.values();
+
+		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
+
+
+		for (WebRTCViewerInfo info : values)
+		{
+			list.add(info);
+		}
+
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for Conference Room = {}", search);
+			list = searchOnWebRTCViewerInfo(list, search);
+		}
+		return sortAndCropWebRTCViewerInfoList(list, offset, size, sortBy, orderBy);
+	}
+
+	@Override
+	public boolean deleteWebRTCViewerInfo(String viewerId) {
+		webRTCViewerMap.remove(viewerId);
+		return true;
 	}
 }
