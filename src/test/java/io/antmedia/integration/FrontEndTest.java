@@ -161,8 +161,9 @@ public class FrontEndTest {
 
             AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 
-            appSettingsModel.setMp4MuxingEnabled(true);
+            appSettingsModel.setMp4MuxingEnabled(false);
             appSettingsModel.setHlsMuxingEnabled(true);
+            appSettingsModel.setEncoderSettings(null);
 
             result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
             assertTrue(result.isSuccess());
@@ -237,6 +238,7 @@ public class FrontEndTest {
             AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 
             appSettingsModel.setHlsMuxingEnabled(true);
+            appSettingsModel.setEncoderSettings(null);
 
             result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
             assertTrue(result.isSuccess());
