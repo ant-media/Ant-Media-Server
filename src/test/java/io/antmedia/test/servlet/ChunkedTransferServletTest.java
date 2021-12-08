@@ -338,6 +338,10 @@ public class ChunkedTransferServletTest {
 			Mockito.when(appContext.isRunning()).thenReturn(true);
 			servlet.handleGetRequest(req, resp);
 			Mockito.verify(resp).setStatus(HttpServletResponse.SC_NOT_FOUND);
+			Mockito.verify(resp).setContentType(null);
+			
+			File file = new File("/junit/streams/" + streamId);
+			Mockito.verify(servletContext).getMimeType(file.getName());
 			
 			
 			File f = new File(ChunkedTransferServlet.WEBAPPS + "/junit" + ChunkedTransferServlet.STREAMS + "/" + streamId);
