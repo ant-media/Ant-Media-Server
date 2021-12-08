@@ -609,7 +609,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						mainBroadcast.setStreamId(mainTrack);
 					} catch (Exception e) {
 						logger.error(ExceptionUtils.getStackTrace(e));
-					};
+					}
 					mainBroadcast.setZombi(true);
 					mainBroadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
 					mainBroadcast.getSubTrackStreamIds().add(streamId);

@@ -3000,9 +3000,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		clientBroadcastStream1.setParameters(params1);
 		MuxAdaptor muxAdaptor1 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream1, false, appScope));
 		
-		String sub1 = "stream1";
+		String sub1 = "subtrack1"+RandomUtils.nextInt(0, 10000);;
 		muxAdaptor1.setStreamId(sub1);
-		DataStore ds1 = mock(DataStore.class);
+		DataStore ds1 = spy(new InMemoryDataStore("testdb"));
 		doReturn(ds1).when(muxAdaptor1).getDataStore();
 		doReturn(new Broadcast()).when(muxAdaptor1).getBroadcast();
 		muxAdaptor1.registerToMainTrackIfExists();
@@ -3013,13 +3013,32 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(mainTrackId, argument.getValue().getStreamId());
 		assertTrue(argument.getValue().getSubTrackStreamIds().contains(sub1));
 		
+		String sub2 = "subtrack2"+RandomUtils.nextInt(0, 10000);;
 		ClientBroadcastStream clientBroadcastStream2 = new ClientBroadcastStream();
 		clientBroadcastStream2.setCodecInfo(info);
+		clientBroadcastStream2.setParameters(params1);
 		MuxAdaptor muxAdaptor2 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream2, false, appScope));
-		muxAdaptor2.setStreamId("stream2");
-		DataStore ds2 = mock(DataStore.class);
-		doReturn(ds2).when(muxAdaptor2).getDataStore();
+		muxAdaptor2.setStreamId(sub2);
+		doReturn(new Broadcast()).when(muxAdaptor2).getBroadcast();
+		doReturn(ds1).when(muxAdaptor2).getDataStore();
 		muxAdaptor2.registerToMainTrackIfExists();
+		
+		ArgumentCaptor<Broadcast> argument2 = ArgumentCaptor.forClass(Broadcast.class);
+		verify(ds1, times(1)).save(argument2.capture());
+		assertEquals(mainTrackId, argument2.getValue().getStreamId());
+		assertTrue(argument2.getValue().getSubTrackStreamIds().contains(sub1));
+		
+		Broadcast mainBroadcast = ds1.get(mainTrackId);
+		assertEquals(2, mainBroadcast.getSubTrackStreamIds().size());
+		
+		ClientBroadcastStream clientBroadcastStream3 = new ClientBroadcastStream();
+		clientBroadcastStream3.setCodecInfo(info);
+		MuxAdaptor muxAdaptor3 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream3, false, appScope));
+		muxAdaptor3.setStreamId("stream3");
+		DataStore ds2 = mock(DataStore.class);
+		doReturn(ds2).when(muxAdaptor3).getDataStore();
+		muxAdaptor3.registerToMainTrackIfExists();
 		verify(ds2, never()).updateBroadcastFields(anyString(), any());
+		
 	}
 }
