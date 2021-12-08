@@ -187,7 +187,6 @@ public class TokenFilterManager extends AbstractFilter   {
 
 
 	public static String getStreamId(String requestURI) {
-
 		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
 
 		int endIndex;
@@ -265,8 +264,44 @@ public class TokenFilterManager extends AbstractFilter   {
 			return requestURI.substring(startIndex+1, endIndex);
 		}
 
+		//streamId_underline_test-2021-05-18_11-26-26.842.mp4 and streamId_underline_test-2021-05-18_11-26-26.842_360p.webm
+		String webmRegex1 = "(.*)+(-20)[0-9][0-9]+(-)+([0-9][0-9])+(.*).webm$";
+		if (requestURI.matches(webmRegex1)) {
+			endIndex = requestURI.lastIndexOf('_'); //if multiple files with same id requested such as : 541211332342978513714151_480p_1.webm
+			//_480p regex
+			String webmResolutionRegex = "(.*)+_[0-9]+p+(.*)";
+			if(requestURI.matches(webmResolutionRegex)) {
+				endIndex = requestURI.substring(startIndex, endIndex).lastIndexOf('.');
+				//Remove -2021-05-18_11-26-26 character size
+				endIndex-=Muxer.DATE_TIME_PATTERN.length()-3;
+			}
+			else {
+				//Remove -2021-05-18 character size
+				endIndex-=Muxer.DATE_TIME_PATTERN.length()-12;
+			}
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+
+		//if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 or 541211332342978513714151_480p.mp4
+		String webmRegex2 = "(.*)+(_[0-9]+p+_[0-9]|_|_[0-9])+.webm$";
+		if (requestURI.matches(webmRegex2)) {
+			endIndex = requestURI.lastIndexOf('_'); //if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4
+			//_480p regex
+			String webmResolutionRegex = "(.*)+_[0-9]+p[0-9]+kbps$";
+			if(requestURI.substring(startIndex+1, endIndex).matches(webmResolutionRegex)) {
+				endIndex = requestURI.substring(startIndex, endIndex).lastIndexOf('_');
+			}
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+
 		//if default mp4 file requested such as: 541211332342978513714151.mp4
 		endIndex = requestURI.lastIndexOf(".mp4");
+		if (endIndex != -1) {
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+
+		//if default webm file requested such as: 541211332342978513714151.mp4
+		endIndex = requestURI.lastIndexOf(".webm");
 		if (endIndex != -1) {
 			return requestURI.substring(startIndex+1, endIndex);
 		}
