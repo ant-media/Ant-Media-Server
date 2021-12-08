@@ -1,6 +1,7 @@
 package io.antmedia.integration;
 
 import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService;
@@ -146,6 +147,7 @@ public class FrontEndTest {
 
         ConsoleAppRestServiceTest.resetCookieStore();
         Result result;
+        List<EncoderSettings> encoderSettings = null;
         try {
             result = ConsoleAppRestServiceTest.callisFirstLogin();
 
@@ -161,7 +163,8 @@ public class FrontEndTest {
 
             AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 
-            appSettingsModel.setMp4MuxingEnabled(false);
+            encoderSettings = appSettingsModel.getEncoderSettings();
+
             appSettingsModel.setHlsMuxingEnabled(true);
             appSettingsModel.setEncoderSettings(null);
 
@@ -214,6 +217,21 @@ public class FrontEndTest {
         entry = driver.manage().logs().get(LogType.BROWSER);
         assertTrue(checkLogsForKeyword("publish finished", entry));
 
+        try {
+            AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+            appSettingsModel.setEncoderSettings(encoderSettings);
+
+            result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+            assertTrue(result.isSuccess());
+
+        }
+        catch (Exception e){
+            fail();
+            System.out.println(ExceptionUtils.getStackTrace(e));
+        }
+
+
     }
 
     @Test
@@ -222,6 +240,7 @@ public class FrontEndTest {
 
         ConsoleAppRestServiceTest.resetCookieStore();
         Result result;
+        List<EncoderSettings> encoderSettings = null;
         try {
             result = ConsoleAppRestServiceTest.callisFirstLogin();
 
@@ -236,6 +255,8 @@ public class FrontEndTest {
             String streamId = "streamId" + r.nextInt();
 
             AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+            encoderSettings = appSettingsModel.getEncoderSettings();
 
             appSettingsModel.setHlsMuxingEnabled(true);
             appSettingsModel.setEncoderSettings(null);
@@ -300,6 +321,20 @@ public class FrontEndTest {
         });
 
         rtmpSendingProcess.destroy();
+
+        try {
+            AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+            appSettingsModel.setEncoderSettings(encoderSettings);
+
+            result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+            assertTrue(result.isSuccess());
+
+        }
+        catch (Exception e){
+            fail();
+            System.out.println(ExceptionUtils.getStackTrace(e));
+        }
 
     }
 
