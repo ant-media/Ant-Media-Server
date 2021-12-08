@@ -79,6 +79,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.codec.IAudioStreamCodec;
 import org.red5.codec.IVideoStreamCodec;
@@ -113,6 +114,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SocialEndpointCredentials;
+import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.HLSMuxer;
@@ -2993,16 +2995,23 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream1.setCodecInfo(info);
 		Map<String, String> params1 = new HashMap<String, String>();
-		params1.put("mainTrack", "someExistingStreamId");
+		String mainTrackId = "mainTrack"+RandomUtils.nextInt(0, 10000);
+		params1.put("mainTrack", mainTrackId);
 		clientBroadcastStream1.setParameters(params1);
 		MuxAdaptor muxAdaptor1 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream1, false, appScope));
-		muxAdaptor1.setStreamId("stream1");
+		
+		String sub1 = "stream1";
+		muxAdaptor1.setStreamId(sub1);
 		DataStore ds1 = mock(DataStore.class);
 		doReturn(ds1).when(muxAdaptor1).getDataStore();
 		doReturn(new Broadcast()).when(muxAdaptor1).getBroadcast();
 		muxAdaptor1.registerToMainTrackIfExists();
 		verify(ds1, times(1)).updateBroadcastFields(anyString(), any());
 
+		ArgumentCaptor<Broadcast> argument = ArgumentCaptor.forClass(Broadcast.class);
+		verify(ds1, times(1)).save(argument.capture());
+		assertEquals(mainTrackId, argument.getValue().getStreamId());
+		assertTrue(argument.getValue().getSubTrackStreamIds().contains(sub1));
 		
 		ClientBroadcastStream clientBroadcastStream2 = new ClientBroadcastStream();
 		clientBroadcastStream2.setCodecInfo(info);
