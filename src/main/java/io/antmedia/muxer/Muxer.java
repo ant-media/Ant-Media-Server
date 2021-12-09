@@ -293,7 +293,7 @@ public abstract class Muxer {
 	}
 	public String getExtendedName(String name, int resolution, int bitrate){
 		// set default name
-		String resourceName = name;
+		String tmpName = name;
 		int bitrateKbps = bitrate / 1000;
 
 		// add date time parameter to resource name if it is set
@@ -301,7 +301,7 @@ public abstract class Muxer {
 
 			LocalDateTime ldt =  LocalDateTime.now();
 
-			resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
+			tmpName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
 			if (logger.isInfoEnabled()) {
 				logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
 			}
@@ -309,12 +309,12 @@ public abstract class Muxer {
 
 		// add resolution height parameter if it is different than 0
 		if (resolution != 0) {
-			resourceName += "_" + resolution + "p" ;
+			tmpName += "_" + resolution + "p" ;
 			if(bitrate != 0){
-				resourceName += bitrateKbps + "kbps";
+				tmpName += bitrateKbps + "kbps";
 			}
 		}
-		return resourceName;
+		return tmpName;
 	}
 
 	public File getResourceFile(IScope scope, String name, String extension, String subFolder) {

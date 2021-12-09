@@ -43,7 +43,6 @@ import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
@@ -58,7 +57,6 @@ import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.javacpp.BytePointer;
-import org.glassfish.jersey.jaxb.internal.XmlJaxbElementProvider;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -464,24 +462,26 @@ public abstract class RecordMuxer extends Muxer {
 
 		File f = new File(origFileName);
 
-		if ( isS3Enabled && this.uploadMP4ToS3 && storageClient != null ) {
-			if (storageClient.fileExist(prefix + fileName)) {
-				String tmpName = resourceName + ".mp4";
-				String previousNamingIndex = fileName.substring(fileName.lastIndexOf("_") + 1, fileName.indexOf("."));
-				int i = 0;
-				if (previousNamingIndex.toLowerCase().matches(".*[a-z].*") == false) {
-					i = Integer.parseInt(previousNamingIndex);
-				}
-
-				do {
-					i++;
-					fileName = tmpName.replace(".", "_" + i + ".");
-					origFileName = origFileName.substring(0, origFileName.lastIndexOf("/") + 1) + fileName;
-					f = new File(origFileName);
-				} while (storageClient.fileExist(prefix + fileName) || f.exists() || f.isDirectory());
+		if ( isS3Enabled && this.uploadMP4ToS3 && storageClient != null && doesFileExistInS3(storageClient, prefix+fileName)) {
+			String tmpName = resourceName + ".mp4";
+			String previousNamingIndex = fileName.substring(fileName.lastIndexOf("_") + 1, fileName.indexOf("."));
+			int i = 0;
+			if (!(previousNamingIndex.toLowerCase().matches(".*[a-z].*"))) {
+				i = Integer.parseInt(previousNamingIndex);
 			}
+
+			do {
+				i++;
+				fileName = tmpName.replace(".", "_" + i + ".");
+				origFileName = origFileName.substring(0, origFileName.lastIndexOf("/") + 1) + fileName;
+				f = new File(origFileName);
+			} while (doesFileExistInS3(storageClient, prefix+fileName) || f.exists() || f.isDirectory());
 		}
 		return f;
+	}
+
+	private static boolean doesFileExistInS3(StorageClient storageClient, String name) {
+		return storageClient.fileExist(name);
 	}
 	public static void saveToStorage(String prefix, File fileToUpload, String fileName, StorageClient storageClient, boolean deleteFileAfterUpload) {
 
