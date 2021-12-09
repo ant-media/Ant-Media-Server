@@ -339,8 +339,16 @@ public class TokenFilterTest {
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p300kbps.m3u8"));
 		
 		assertNull(TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".u8"));
-		
-		
+
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".webm"));
+
+		assertEquals(streamId+"_tahir_diyen_kedi_adaptive_123_480p", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_tahir_diyen_kedi_adaptive_123_480p_1.webm"));
+
+		assertEquals(streamId+"_tahir_diyen_kedi_adaptive_123_480p", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_tahir_diyen_kedi_adaptive_123_480p_1.mp4"));
+
+		assertEquals(streamId+"_tahir_diyen_kedi_adaptive_12", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_tahir_diyen_kedi_adaptive_12.webm"));
+
+
 		//below test case
 		streamId = "AgTWuHxp";
 		String requestURI = "/LiveApp/streams/"+ streamId + ".m3u8"; 
