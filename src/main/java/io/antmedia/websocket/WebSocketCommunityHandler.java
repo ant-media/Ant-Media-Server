@@ -212,9 +212,9 @@ public class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	public  void sendSDPConfiguration(String description, String type, String streamId, Session session) {
+	public  void sendSDPConfiguration(String description, String type, String streamId, Session session, Map<String, String> midSidMap) {
 
-		sendMessage(getSDPConfigurationJSON (description, type,  streamId).toJSONString(), session);
+		sendMessage(getSDPConfigurationJSON (description, type,  streamId, midSidMap).toJSONString(), session);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -369,13 +369,24 @@ public class WebSocketCommunityHandler {
 		return jsonObject;
 	}
 
-	public static JSONObject getSDPConfigurationJSON(String description, String type, String streamId) {
+	public static JSONObject getSDPConfigurationJSON(String description, String type, String streamId, Map<String, String> midSidMap) {
 
 		JSONObject jsonResponseObject = new JSONObject();
 		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
 		jsonResponseObject.put(WebSocketConstants.SDP, description);
 		jsonResponseObject.put(WebSocketConstants.TYPE, type);
 		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		if(midSidMap != null) {
+			JSONObject jsonIdMappingObject = new JSONObject();
+
+			for (String mid : midSidMap.keySet()) {
+				jsonIdMappingObject.put(mid, midSidMap.get(mid));
+			}
+			jsonResponseObject.put(WebSocketConstants.ID_MAPPING, jsonIdMappingObject);
+		}
+
 
 		return jsonResponseObject;
 	}
