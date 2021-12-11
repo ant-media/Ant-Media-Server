@@ -86,13 +86,16 @@ public class AppSettingsTest {
 		
 		
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
-		encoderSettings.add(new EncoderSettings(720, 2500000, 128000,true)); //correct 
-		encoderSettings.add(new EncoderSettings(0, 2500000, 128000,true)); //wrong setting
-		encoderSettings.add(new EncoderSettings(720, 0, 128000,true)); //wrong setting
-		encoderSettings.add(new EncoderSettings(720, 2500000, 0,true)); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 128000,true, "baseline", "zerolatency", "veryfast")); //correct
+		encoderSettings.add(new EncoderSettings(0, 2500000, 128000,true, "baseline", "zerolatency", "veryfast")); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 0, 128000,true, "baseline", "zerolatency", "veryfast")); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 0,true, "baseline", "zerolatency", "veryfast")); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 12800,true, "base", "zerolatency", "veryfast")); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 12800,true, "baseline", "zeratency", "veryfast")); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 12800,true, "baseline", "zerolatency", "veryfa")); //wrong setting
+
 		settings.setEncoderSettings(encoderSettings);
-		
-		
+
 		assertFalse(mockApplicationAdapter.updateSettings(settings, false, false));
 		
 		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
@@ -155,10 +158,14 @@ public class AppSettingsTest {
 		settings.setHlsTime("17");
 		settings.setHlsPlayListType("event");
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
-		encoderSettings.add(new EncoderSettings(720, 2500000, 128000,true)); //correct 
-		encoderSettings.add(new EncoderSettings(0, 2500000, 128000,true)); //wrong setting
-		encoderSettings.add(new EncoderSettings(720, 0, 128000,true)); //wrong setting
-		encoderSettings.add(new EncoderSettings(720, 2500000, 0,true)); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 128000,true, "baseline", "zerolatency", "veryfast")); //correct
+		encoderSettings.add(new EncoderSettings(0, 2500000, 128000,true, "baseline", "zerolatency", "veryfast")); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 0, 128000,true, "baseline", "zerolatency", "veryfast")); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 0,true, "baseline", "zerolatency", "veryfast")); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 128000,true, "baseine", "zerolatency", "veryfast")); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 128000,true, "baseline", "zelatency", "veryfast")); //wrong setting
+		encoderSettings.add(new EncoderSettings(720, 2500000, 128000,true, "baseline", "zerolatency", "verast")); //wrong setting
+
 		settings.setEncoderSettings(encoderSettings);
 		settings.setPreviewOverwrite(false);
 		
@@ -176,7 +183,7 @@ public class AppSettingsTest {
 		
 		
 		encoderSettings = new ArrayList<>();
-		encoderSettings.add(new EncoderSettings(720, 2500000, 128000,true)); //correct 
+		encoderSettings.add(new EncoderSettings(720, 2500000, 128000,true, null, null, null)); //correct
 		settings.setEncoderSettings(encoderSettings);
 		settings.setPreviewOverwrite(false);
 		
