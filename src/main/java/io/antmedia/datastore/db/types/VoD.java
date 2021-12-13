@@ -19,7 +19,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 @Entity("vod")
 
-@Indexes({ @Index(fields = @Field("vodId")), @Index(fields = @Field("vodName")), @Index(fields = @Field("streamId")), @Index(fields = @Field("streamName")), @Index(fields = @Field(value = "$**", type = IndexType.TEXT)) })
+@Indexes({ @Index(fields = @Field("vodId")), @Index(fields = @Field("vodName")), @Index(fields = @Field("streamId")), @Index(fields = @Field("streamName")) })
 @ApiModel(value="VoD", description="The recorded video-on-demand object class")
 public class VoD implements Serializable {
 

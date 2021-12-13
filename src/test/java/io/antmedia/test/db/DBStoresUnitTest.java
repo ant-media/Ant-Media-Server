@@ -212,10 +212,20 @@ public class DBStoresUnitTest {
 	}
 	
 	@Test
-	public void testMongoFix() {
+	public void testMongoFix() {		
 		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
+		Datastore store = ((MongoStore) dataStore).getDataStore();
+		store.find(Broadcast.class).delete(new DeleteOptions().multi(true));
+
+		store.find(TensorFlowObject.class).delete(new DeleteOptions().multi(true));
+
+		store = ((MongoStore)dataStore).getVodDatastore();
+		store.find(VoD.class).delete(new DeleteOptions().multi(true));;
 		
-		testBroadcastListSorting(dataStore);
+		
+		//testBroadcastListSorting(dataStore);
+		
+		testTotalWebRTCViewerCount(dataStore);
 	}
 
 	@Test
@@ -1143,6 +1153,7 @@ public class DBStoresUnitTest {
 		assertEquals(broadcastList.get(1).getStreamId(), broadcast1.getStreamId());
 		assertEquals(broadcastList.get(2).getStreamId(), broadcast2.getStreamId());
 
+		//case insensitive test
 		broadcastList = dataStore.getBroadcastList(0, 50, null, "name", "desc", "str");
 		assertEquals(3, broadcastList.size());
 		assertEquals(broadcastList.get(0).getStreamId(), broadcast3.getStreamId());

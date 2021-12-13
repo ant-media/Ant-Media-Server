@@ -16,7 +16,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 @Entity("detection")
 
-@Indexes({ @Index(fields = @Field("dbId")), @Index(fields = @Field(value = "$**", type = IndexType.TEXT)) })
+@Indexes({ @Index(fields = @Field("dbId")) })
 
 @ApiModel(value="TensorFlowObject", description="The TensorFlow detected object class")
 public class TensorFlowObject {

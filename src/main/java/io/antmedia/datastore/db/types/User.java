@@ -14,7 +14,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 @ApiModel(value="User", description="The basic user class")
 @Entity(value = "user")
-@Indexes({ @Index(fields = @Field("email")), @Index(fields = @Field("fullName")), @Index(fields = @Field(value = "$**", type = IndexType.TEXT)) })
+@Indexes({ @Index(fields = @Field("email")), @Index(fields = @Field("fullName")) })
 
 public class User {
 	

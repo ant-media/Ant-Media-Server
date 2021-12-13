@@ -22,6 +22,12 @@ import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
 import dev.morphia.Morphia;
 import dev.morphia.UpdateOptions;
+import dev.morphia.aggregation.experimental.expressions.impls.Expression;
+import dev.morphia.aggregation.experimental.stages.Group;
+import dev.morphia.annotations.Entity;
+
+import static dev.morphia.aggregation.experimental.expressions.AccumulatorExpressions.sum;
+import static dev.morphia.aggregation.experimental.expressions.Expressions.field;
 import dev.morphia.query.FindOptions;
 import dev.morphia.query.Query;
 import dev.morphia.query.Sort;
@@ -30,6 +36,7 @@ import dev.morphia.query.experimental.filters.Filter;
 import dev.morphia.query.experimental.filters.Filters;
 import dev.morphia.query.experimental.updates.UpdateOperator;
 import dev.morphia.query.experimental.updates.UpdateOperators;
+import dev.morphia.query.MorphiaCursor;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -375,7 +382,14 @@ public class MongoStore extends DataStore {
 				if(search != null && !search.isEmpty())
 				{
 					logger.info("Server side search in broadcast for the text -> {}", search);
-					query.filter(Filters.text(search));
+					query.filter(Filters.or(
+										Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
+										Filters.regex("name").caseInsensitive().pattern(".*" + search + ".*")
+										)
+							    );
+					
+					
+					
 				}
 
 				if(type != null && !type.isEmpty()) {
@@ -1323,8 +1337,8 @@ public class MongoStore extends DataStore {
 		return totalOperationCount;
 	}
 
-
-	static class Summation {
+	@Entity
+	public static class Summation {
 		private int total;
 		public int getTotal() {
 			return total;
@@ -1340,20 +1354,19 @@ public class MongoStore extends DataStore {
 		long now = System.currentTimeMillis();
 		if(now - totalWebRTCViewerCountLastUpdateTime > TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME) {
 			synchronized(this) {
+				
 				int total = 0;
-				/*
-				Query<Broadcast> query = datastore.find(Broadcast.class)
-						.filter(Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING));
+				
+				MorphiaCursor<Summation> cursor = datastore.aggregate(Broadcast.class)
+					.match(Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+					.group(Group.group().field("total", sum(field(WEBRTC_VIEWER_COUNT))))
+					.execute(Summation.class);
+				
 
-				Iterator<Summation> result = datastore.createAggregation(Broadcast.class)
-						.match(query)
-						.group("AllBroadcasts", Group.grouping("total", Group.sum(WEBRTC_VIEWER_COUNT)))
-						.aggregate(Summation.class, AggregationOptions.builder().build());
-
-				if(result.hasNext()) {
-					total = ((Summation) result.next()).getTotal();
+				if(cursor.hasNext()) {
+					total = ((Summation) cursor.next()).getTotal();
 				}
-				*/
+				
 
 				totalWebRTCViewerCount = total;
 				totalWebRTCViewerCountLastUpdateTime = now;
