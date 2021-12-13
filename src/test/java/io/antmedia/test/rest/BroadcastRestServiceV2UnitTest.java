@@ -2501,6 +2501,10 @@ public class BroadcastRestServiceV2UnitTest {
 		source2.setIs360(false);
 		source2.setPublicStream(false);
 		source2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		Endpoint endpoint = new Endpoint();
+		endpoint.setRtmpUrl("rtmp://127.0.0.1");
+		
+		source2.setEndPointList(Arrays.asList(endpoint));
 
 		result = streamSourceRest.addStreamSource(source2);
 		assertEquals(1, source2.getEndPointList().size());
@@ -2510,11 +2514,18 @@ public class BroadcastRestServiceV2UnitTest {
 		source3.setIs360(false);
 		source3.setPublicStream(false);
 		source3.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		Endpoint endpoint2 = new Endpoint();
+		endpoint2.setRtmpUrl("rtmp://127.0.0.1");
+		
+		source3.setEndPointList(Arrays.asList(endpoint, endpoint2));
 
 		//When there is two endpoints defined
 		result = streamSourceRest.addStreamSource(source3);
 		assertEquals(2, source3.getEndPointList().size());
 
+		
+		source.setEndPointList(Arrays.asList(endpoint));
+		assertEquals(1, source.getEndPointList().size());
 		//update first source now. At the moment we have endpoint_1
 		result = streamSourceRest.updateBroadcast(source.getStreamId(), source);
 		assertEquals(1, source.getEndPointList().size());

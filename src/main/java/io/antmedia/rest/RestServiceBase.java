@@ -438,8 +438,6 @@ public abstract class RestServiceBase {
 
 				if(result) {
 					Broadcast fetchedBroadcast = getDataStore().get(streamId);
-					getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
-
 					getApplication().startStreaming(fetchedBroadcast);
 				}
 			}
