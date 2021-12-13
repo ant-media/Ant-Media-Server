@@ -64,20 +64,19 @@ public class MongoStore extends AbstractConsoleDataStore {
 	}
 
 	@Override
-	public boolean addUser(String username, String password, UserType userType) {
+	public boolean addUser(User user) {
 		synchronized(this) {
 			boolean result = false;
 
-			if (username != null && password != null && userType != null) {
-				User existingUser = datastore.find(User.class).field("email").equal(username).get();
+			if (user != null) {
+				User existingUser = datastore.find(User.class).field("email").equal(user.getEmail()).get();
 				if (existingUser == null) 
 				{
-					User user = new User(username, password, userType);
 					datastore.save(user);
 					result = true;
 				}
 				else {
-					logger.warn("user with {} already exist", username);
+					logger.warn("user with {} already exist", user.getEmail());
 				}
 			}
 			return result;
@@ -85,9 +84,12 @@ public class MongoStore extends AbstractConsoleDataStore {
 	}
 
 	@Override
-	public boolean editUser(String username, String password, UserType userType) {
+	public boolean editUser(User user) {
 		synchronized(this) {
 			try {
+				String username = user.getEmail();
+				String password = user.getPassword();
+				UserType userType = user.getUserType();
 				Query<User> query = datastore.createQuery(User.class).field("email").equal(username);
 				UpdateOperations<User> ops = datastore.createUpdateOperations(User.class).set("email", username)
 						.set("password", password).set("userType", userType);

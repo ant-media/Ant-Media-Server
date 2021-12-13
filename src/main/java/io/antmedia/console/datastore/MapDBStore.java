@@ -47,20 +47,19 @@ public class MapDBStore extends AbstractConsoleDataStore {
 	}
 
 
-	public boolean addUser(String username, String password, UserType userType) {
+	public boolean addUser(User user) {
 		synchronized (this) {
 			boolean result = false;
-			if (username != null && password != null && userType != null) {
+			if (user != null) {
 				try {
-					if (!userMap.containsKey(username)) 
+					if (!userMap.containsKey(user.getEmail()))
 					{
-						User user = new User(username, password, userType);
-						userMap.put(username, gson.toJson(user));
+						userMap.put(user.getEmail(), gson.toJson(user));
 						db.commit();
 						result = true;
 					}
 					else {
-						logger.warn("user with " + username + " already exist");
+						logger.warn("user with " + user.getEmail() + " already exist");
 					}
 				}
 				catch (Exception e) {
@@ -72,13 +71,13 @@ public class MapDBStore extends AbstractConsoleDataStore {
 		}
 	}
 
-	public boolean editUser(String username, String password, UserType userType) {
+	public boolean editUser(User user) {
 		synchronized (this) {
 			boolean result = false;
-			if (username != null && password != null && userType != null)  {
+			if (user != null)  {
 				try {
+					String username = user.getEmail();
 					if (userMap.containsKey(username)) {
-						User user = new User(username, password, userType);
 						userMap.put(username, gson.toJson(user));
 						db.commit();
 						result = true;

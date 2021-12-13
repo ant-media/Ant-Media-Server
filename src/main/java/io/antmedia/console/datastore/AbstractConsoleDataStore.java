@@ -19,9 +19,9 @@ public abstract class AbstractConsoleDataStore {
 
 	private Map<String, Boolean> isBlockedMap = new HashMap<>();
 
-	public abstract boolean addUser(String username, String password, UserType userType);
+	public abstract boolean addUser(User user);
 
-	public abstract boolean editUser(String username, String password, UserType userType);
+	public abstract boolean editUser(User user);
 
 	public abstract boolean deleteUser(String username);
 	

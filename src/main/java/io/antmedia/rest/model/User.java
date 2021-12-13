@@ -27,6 +27,13 @@ public class User {
 	 */
 	@ApiModelProperty(value = "the type of the user", allowableValues = "facebook_user, periscope_user, youtube_user, admin, read-only")
 	private UserType userType;
+
+	/**
+	 * Application permissions for user, all for every app
+	 */
+	@ApiModelProperty(value = "App permissions for user, all for everything")
+	private String allowedApp;
+
 	
 	/**
 	 * New password of the user, below field is not set  for all user types
@@ -57,6 +64,7 @@ public class User {
 		this.email = email;
 		this.password = password;
 		this.userType = userType;
+		//this.allowedApp = allowedApp;
 	}
 	
 	public User(String id, String name, String picture, UserType userType) {
@@ -65,8 +73,7 @@ public class User {
 		this.picture = picture;
 		this.userType = userType;
 	}
-	
-	
+
 	public User() {
 		
 	}
@@ -76,9 +83,16 @@ public class User {
 		return email;
 	}
 
-
 	public void setEmail(String email) {
 		this.email = email;
+	}
+
+	public String getAllowedApp() {
+		return allowedApp;
+	}
+
+	public void setAllowedApp(String allowedApp) {
+		this.allowedApp = allowedApp;
 	}
 
 
