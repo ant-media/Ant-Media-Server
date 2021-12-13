@@ -193,6 +193,8 @@ public class CommonRestService {
 		boolean result = false;
 		int errorId = -1;
 		user.setPassword(getMD5Hash(user.getPassword()));
+		user.setUserType(UserType.ADMIN);
+		user.setAllowedApp("all");
 		if (getDataStore().getNumberOfUserRecords() == 0) {
 			result = getDataStore().addUser(user);
 		}
@@ -293,6 +295,17 @@ public class CommonRestService {
 		return new Result(false, "User is not admin");
 	}
 
+	public Result hasPermission(String appName) {
+		HttpSession session = servletRequest.getSession();
+		if(isAuthenticated(session)) {
+			User currentUser = getDataStore().getUser(session.getAttribute(USER_EMAIL).toString());
+			if (currentUser.getAllowedApp().equalsIgnoreCase("all") || currentUser.getAllowedApp().equalsIgnoreCase(appName)) {
+				return new Result(true, "User is allowed to reach this app");
+			}
+		}
+		return new Result(false, "User is not allowed");
+	}
+
 	public Result editUser(User user) 
 	{
 		boolean result = false;
@@ -308,6 +321,7 @@ public class CommonRestService {
 				getDataStore().deleteUser(user.getEmail());
 				if(user.getNewPassword() != null && !user.getNewPassword().isEmpty()) {
 					logger.info("Changing password of user: {}",  user.getEmail());
+					user.setPassword(getMD5Hash(user.getNewPassword()));
 					result = getDataStore().addUser(user);
 				}
 				else {
@@ -650,7 +664,6 @@ public class CommonRestService {
 		AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		return gson.toJson(new Result(adapter.updateSettings(newSettings, true, false)));
 	}
-
 
 
 	public boolean getShutdownStatus(@QueryParam("appNames") String appNamesArray){

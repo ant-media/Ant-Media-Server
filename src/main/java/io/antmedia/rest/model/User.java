@@ -60,11 +60,11 @@ public class User {
 	@ApiModelProperty(value = "the id of the user")
 	private String id;
 	
-	public User(String email, String password, UserType userType) {
+	public User(String email, String password, UserType userType, String allowedApp) {
 		this.email = email;
 		this.password = password;
 		this.userType = userType;
-		//this.allowedApp = allowedApp;
+		this.allowedApp = allowedApp;
 	}
 	
 	public User(String id, String name, String picture, UserType userType) {
