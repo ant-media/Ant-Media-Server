@@ -315,9 +315,8 @@ public class CommonRestService {
 
 		if (user != null && user.getEmail() != null && getDataStore().doesUsernameExist(user.getEmail())) 
 		{
-			if (!userEmail.equals(user.getEmail())) 
+			if (!userEmail.equals(user.getEmail()))
 			{
-				User oldUser = getDataStore().getUser(user.getEmail());
 				getDataStore().deleteUser(user.getEmail());
 				if(user.getNewPassword() != null && !user.getNewPassword().isEmpty()) {
 					logger.info("Changing password of user: {}",  user.getEmail());

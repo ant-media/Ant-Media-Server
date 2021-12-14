@@ -67,19 +67,17 @@ public class MongoStore extends AbstractConsoleDataStore {
 	public boolean addUser(User user) {
 		synchronized(this) {
 			boolean result = false;
-
-			if (user != null) {
-				User existingUser = datastore.find(User.class).field("email").equal(user.getEmail()).get();
-				if (existingUser == null) 
-				{
-					datastore.save(user);
-					result = true;
-				}
-				else {
-					logger.warn("user with {} already exist", user.getEmail());
-				}
+			User existingUser = datastore.find(User.class).field("email").equal(user.getEmail()).get();
+			if (existingUser == null)
+			{
+				datastore.save(user);
+				result = true;
 			}
-			return result;
+			else {
+				logger.warn("user with {} already exist", user.getEmail());
+			}
+
+		return result;
 		}
 	}
 

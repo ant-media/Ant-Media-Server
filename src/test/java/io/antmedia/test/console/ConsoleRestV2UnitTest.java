@@ -169,10 +169,6 @@ public class ConsoleRestV2UnitTest {
             assertTrue(restService.hasPermission("WebRTCAppEE").isSuccess());
             assertFalse(restService.hasPermission("all").isSuccess());
         }
-
-
-
-
     }
 
     @Test
@@ -218,6 +214,9 @@ public class ConsoleRestV2UnitTest {
         result = restService.addUser(user);
         assertTrue(result.isSuccess());
 
+        result = restService.addUser(null);
+
+        assertFalse(result.isSuccess());
     }
 
     private volatile boolean err;
@@ -366,8 +365,7 @@ public class ConsoleRestV2UnitTest {
         assertEquals(restService.getMD5Hash(user2.getNewPassword()), dbStore.getUser(userName2).getPassword());
 
         //Null check
-        user2 = null;
-        result = restService.editUser(user2);
+        result = restService.editUser(null);
         assertFalse(result.isSuccess());
     }
 

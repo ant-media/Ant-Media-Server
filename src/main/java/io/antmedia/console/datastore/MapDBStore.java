@@ -3,10 +3,6 @@ package io.antmedia.console.datastore;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
-
-import io.antmedia.datastore.db.types.Broadcast;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.mapdb.DB;
@@ -17,12 +13,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import io.antmedia.cluster.ClusterNode;
 import io.antmedia.rest.model.User;
-import io.antmedia.rest.model.UserType;
-import kotlin.jvm.functions.Function1;
+
 
 
 public class MapDBStore extends AbstractConsoleDataStore {
@@ -50,42 +42,39 @@ public class MapDBStore extends AbstractConsoleDataStore {
 	public boolean addUser(User user) {
 		synchronized (this) {
 			boolean result = false;
-			if (user != null) {
-				try {
-					if (!userMap.containsKey(user.getEmail()))
-					{
-						userMap.put(user.getEmail(), gson.toJson(user));
-						db.commit();
-						result = true;
-					}
-					else {
-						logger.warn("user with " + user.getEmail() + " already exist");
-					}
+			try {
+				if (!userMap.containsKey(user.getEmail()))
+				{
+					userMap.put(user.getEmail(), gson.toJson(user));
+					db.commit();
+					result = true;
 				}
-				catch (Exception e) {
-					e.printStackTrace();
-					result = false;
+				else {
+					logger.warn("user with {} already exist", user.getEmail());
 				}
 			}
-			return result;
+			catch (Exception e) {
+				e.printStackTrace();
+				result = false;
+			}
+
+		return result;
 		}
 	}
 
 	public boolean editUser(User user) {
 		synchronized (this) {
 			boolean result = false;
-			if (user != null)  {
-				try {
-					String username = user.getEmail();
-					if (userMap.containsKey(username)) {
-						userMap.put(username, gson.toJson(user));
-						db.commit();
-						result = true;
-					}
+			try {
+				String username = user.getEmail();
+				if (userMap.containsKey(username)) {
+					userMap.put(username, gson.toJson(user));
+					db.commit();
+					result = true;
 				}
-				catch (Exception e) {
-					result = false;
-				}
+			}
+			catch (Exception e) {
+				result = false;
 			}
 			return result;
 		}
