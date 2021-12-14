@@ -211,34 +211,13 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 	}
 	
-	@Test
-	public void testMongoFix() {		
-		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
-		Datastore store = ((MongoStore) dataStore).getDataStore();
-		store.find(Broadcast.class).delete(new DeleteOptions().multi(true));
-
-		store.find(TensorFlowObject.class).delete(new DeleteOptions().multi(true));
-
-		store = ((MongoStore)dataStore).getVodDatastore();
-		store.find(VoD.class).delete(new DeleteOptions().multi(true));;
-		
-		
-		//testBroadcastListSorting(dataStore);
-		
-		testTotalWebRTCViewerCount(dataStore);
-	}
 
 	@Test
 	public void testMongoStore() {
 
 		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
-		Datastore store = ((MongoStore) dataStore).getDataStore();
-		store.find(Broadcast.class).delete(new DeleteOptions().multi(true));
-
-		store.find(TensorFlowObject.class).delete(new DeleteOptions().multi(true));
-
-		store = ((MongoStore)dataStore).getVodDatastore();
-		store.find(VoD.class).delete(new DeleteOptions().multi(true));;
+		
+		dataStore.delete();
 
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);

@@ -25,6 +25,9 @@ import dev.morphia.UpdateOptions;
 import dev.morphia.aggregation.experimental.expressions.impls.Expression;
 import dev.morphia.aggregation.experimental.stages.Group;
 import dev.morphia.annotations.Entity;
+import dev.morphia.annotations.Field;
+import dev.morphia.annotations.Index;
+import dev.morphia.annotations.Indexes;
 
 import static dev.morphia.aggregation.experimental.expressions.AccumulatorExpressions.sum;
 import static dev.morphia.aggregation.experimental.expressions.Expressions.field;
@@ -352,7 +355,10 @@ public class MongoStore extends DataStore {
 				if (search != null && !search.isEmpty()) 
 				{
 					logger.info("Server side search is called for Conference Rooom = {}", search);
-					query.filter(Filters.text(search));
+					query.filter(
+							Filters.regex("roomId").caseInsensitive().pattern(".*" + search + ".*")
+							
+				    );
 				}
 				return query.iterator(findingOptions).toList();
 
@@ -492,7 +498,14 @@ public class MongoStore extends DataStore {
 			if(search != null && !search.isEmpty())
 			{
 				logger.info("Server side search is called for VoD, searchString =  {}", search);
-				query.filter(Filters.text(search));
+				
+				query.filter(Filters.or(
+						Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex("streamName").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex("vodId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex("vodName").caseInsensitive().pattern(".*" + search + ".*")
+						)
+			    );
 
 			}
 			return query.iterator(findOptions).toList();
@@ -610,7 +623,11 @@ public class MongoStore extends DataStore {
 			if (search != null && !search.isEmpty()) 
 			{
 				logger.info("Server side search is called for {}", search);
-				query.filter(Filters.text(search));
+				query.filter(Filters.or(
+						Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex("name").caseInsensitive().pattern(".*" + search + ".*")
+						)
+			    );
 			}
 
 			return query.count();
@@ -625,7 +642,12 @@ public class MongoStore extends DataStore {
 			if (search != null && !search.isEmpty()) 
 			{
 				logger.info("Server side search is called for {}", search);
-				query.filter(Filters.text(search));
+				query.filter(Filters.or(
+						Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex("streamName").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex("vodId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex("vodName").caseInsensitive().pattern(".*" + search + ".*")
+						));
 			}
 			return query.count();
 		}
@@ -1416,7 +1438,10 @@ public class MongoStore extends DataStore {
 			}
 			if (search != null && !search.isEmpty()) {
 				logger.info("Server side search is called for WebRTCViewerInfo = {}", search);
-				query.filter(Filters.text(search));
+				
+				query.filter(
+						Filters.regex(VIEWER_ID).caseInsensitive().pattern(".*" + search + ".*")
+			    );
 
 			}
 			return query.iterator(findOptions).toList();
