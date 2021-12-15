@@ -2,6 +2,7 @@ package io.antmedia.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -211,9 +212,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setScope(scope);
+		assertNotEquals("", settings.getHlsPlayListType());
 		spyAdapter.updateSettings(newSettings, true, false);
 		
-		
+		assertEquals("", settings.getHlsPlayListType());
+		assertEquals(newSettings.getHlsPlayListType(), settings.getHlsPlayListType());
 
 		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
 

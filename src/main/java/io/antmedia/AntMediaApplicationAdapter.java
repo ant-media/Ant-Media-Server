@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -1336,81 +1338,38 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	private void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
 	{
-		appSettings.setMp4MuxingEnabled(newSettings.isMp4MuxingEnabled());
-		appSettings.setWebMMuxingEnabled(newSettings.isWebMMuxingEnabled());
-		appSettings.setAddDateTimeToMp4FileName(newSettings.isAddDateTimeToMp4FileName());
-		appSettings.setHlsMuxingEnabled(newSettings.isHlsMuxingEnabled());
-		appSettings.setDashMuxingEnabled(newSettings.isDashMuxingEnabled());
+		
+		Field[] declaredFields = appSettings.getClass().getDeclaredFields();
+		
+		for (Field field : declaredFields) {
+		     
+            try {
+            	
+            	if (!Modifier.isFinal(field.getModifiers()) && !Modifier.isStatic(field.getModifiers())) {
 
-		appSettings.setEndpointRepublishLimit(newSettings.getEndpointRepublishLimit());
-		appSettings.setEndpointHealthCheckPeriodMs(newSettings.getEndpointHealthCheckPeriodMs());
-
-		appSettings.setUploadExtensionsToS3(newSettings.getUploadExtensionsToS3());
-
-		appSettings.setRtspTimeoutDurationMs(newSettings.getRtspTimeoutDurationMs());
-
-		appSettings.setHlsEnabledViaDash(newSettings.isHlsEnabledViaDash());
-		appSettings.setlLHLSEnabled(newSettings.islLHLSEnabled());
-		appSettings.setlLDashEnabled(newSettings.islLDashEnabled());
-
-		appSettings.setDeleteDASHFilesOnEnded(newSettings.isDeleteDASHFilesOnEnded());
-		appSettings.setObjectDetectionEnabled(newSettings.isObjectDetectionEnabled());
-		appSettings.setHlsListSize(String.valueOf(newSettings.getHlsListSize()));
-		appSettings.setHlsTime(String.valueOf(newSettings.getHlsTime()));
-		appSettings.setHlsPlayListType(newSettings.getHlsPlayListType());
-		appSettings.setAcceptOnlyStreamsInDataStore(newSettings.isAcceptOnlyStreamsInDataStore());
-		appSettings.setPublishTokenControlEnabled(newSettings.isPublishTokenControlEnabled());
-		appSettings.setPlayTokenControlEnabled(newSettings.isPlayTokenControlEnabled());
-		appSettings.setTimeTokenSubscriberOnly(newSettings.isTimeTokenSubscriberOnly());
-		appSettings.setEnableTimeTokenForPublish(newSettings.isEnableTimeTokenForPublish());
-		appSettings.setEnableTimeTokenForPlay(newSettings.isEnableTimeTokenForPlay());
-
-		appSettings.setJwtStreamSecretKey(newSettings.getJwtStreamSecretKey());
-		appSettings.setPlayJwtControlEnabled(newSettings.isPlayJwtControlEnabled());
-		appSettings.setPublishJwtControlEnabled(newSettings.isPublishJwtControlEnabled());
-
-		appSettings.setWebRTCEnabled(newSettings.isWebRTCEnabled());
-		appSettings.setWebRTCFrameRate(newSettings.getWebRTCFrameRate());
-		appSettings.setHashControlPublishEnabled(newSettings.isHashControlPublishEnabled());
-		appSettings.setHashControlPlayEnabled(newSettings.isHashControlPlayEnabled());
-		appSettings.setTokenHashSecret(newSettings.getTokenHashSecret());
-
-		appSettings.setRemoteAllowedCIDR(newSettings.getRemoteAllowedCIDR());
-
-		appSettings.setEncoderSettings(newSettings.getEncoderSettings());
-
+	            	if (field.trySetAccessible()) 
+	            	{	            		
+	            		field.set(appSettings, field.get(newSettings));
+	            		field.setAccessible(false);
+	            	}
+	            	else {
+	            		logger.warn("Cannot set the value this field: {}", field.getName());
+	            	}
+            	}
+			} 
+            catch (IllegalArgumentException e) 
+            {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			} 
+            catch (IllegalAccessException e) {
+            	logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		
+		appSettings.setUpdateTime(System.currentTimeMillis());
+		
 		String oldVodFolder = appSettings.getVodFolder();
-
-		appSettings.setAllowedPublisherCIDR(newSettings.getAllowedPublisherCIDR());
-		appSettings.setVodFolder(newSettings.getVodFolder());
-		appSettings.setPreviewOverwrite(newSettings.isPreviewOverwrite());
-
 		synchUserVoDFolder(oldVodFolder, newSettings.getVodFolder());
-
-		appSettings.setH264Enabled(newSettings.isH264Enabled());
-		appSettings.setVp8Enabled(newSettings.isVp8Enabled());
-		appSettings.setH265Enabled(newSettings.isH265Enabled());
-
-		appSettings.setDataChannelEnabled(newSettings.isDataChannelEnabled());
-		appSettings.setDataChannelPlayerDistribution(newSettings.getDataChannelPlayerDistribution());
-
-		appSettings.setMaxResolutionAccept(newSettings.getMaxResolutionAccept());
-
-		appSettings.setListenerHookURL(newSettings.getListenerHookURL());
-
-		appSettings.setRestartStreamFetcherPeriod(newSettings.getRestartStreamFetcherPeriod());
-		appSettings.setIpFilterEnabled(newSettings.isIpFilterEnabled());
-		appSettings.setJwtControlEnabled(newSettings.isJwtControlEnabled());
-		appSettings.setJwtSecretKey(newSettings.getJwtSecretKey());
-
-		appSettings.setS3RecordingEnabled(newSettings.isS3RecordingEnabled());
-		appSettings.setS3AccessKey(newSettings.getS3AccessKey());
-		appSettings.setS3SecretKey(newSettings.getS3SecretKey());
-		appSettings.setS3BucketName(newSettings.getS3BucketName());
-		appSettings.setS3RegionName(newSettings.getS3RegionName());
-		appSettings.setS3Endpoint(newSettings.getS3Endpoint());
-		appSettings.setS3Permission(newSettings.getS3Permission());
-
 
 		storageClient.setEndpoint(newSettings.getS3Endpoint());
 		storageClient.setStorageName(newSettings.getS3BucketName());
@@ -1421,16 +1380,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		storageClient.setPermission(newSettings.getS3Permission());
 		storageClient.reset();
 		
-		
-		appSettings.setForceAspectRatioInTranscoding(newSettings.isForceAspectRatioInTranscoding());
-
-		appSettings.setGeneratePreview(newSettings.isGeneratePreview());
-		appSettings.setHlsEncryptionKeyInfoFile(newSettings.getHlsEncryptionKeyInfoFile());
-		appSettings.setJwksURL(newSettings.getJwksURL());
-		appSettings.setWebhookAuthenticateURL(newSettings.getWebhookAuthenticateURL());
-		appSettings.setUpdateTime(System.currentTimeMillis());
-		
 		logger.warn("app settings updated for {}", getScope().getName());	
+		
 	}
 
 	public void setServerSettings(ServerSettings serverSettings) {
