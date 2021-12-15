@@ -1,10 +1,14 @@
 package io.antmedia.datastore.db.types;
 
+import org.bson.types.ObjectId;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
+import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import dev.morphia.utils.IndexType;
@@ -15,7 +19,6 @@ import io.swagger.annotations.ApiModelProperty;
 @ApiModel(value="User", description="The basic user class")
 @Entity(value = "user")
 @Indexes({ @Index(fields = @Field("email")), @Index(fields = @Field("fullName")) })
-
 public class User {
 	
 	/**
@@ -59,19 +62,15 @@ public class User {
 	/**
 	 * ID of the user
 	 */
+	@JsonIgnore
 	@ApiModelProperty(value = "the id of the user")
-	private String id;
+	@Id
+	private ObjectId id;
+
 	
 	public User(String email, String password, UserType userType) {
 		this.email = email;
 		this.password = password;
-		this.userType = userType;
-	}
-	
-	public User(String id, String name, String picture, UserType userType) {
-		this.id = id;
-		this.fullName = name;
-		this.picture = picture;
 		this.userType = userType;
 	}
 	
@@ -135,15 +134,6 @@ public class User {
 	public void setPicture(String picture) {
 		this.picture = picture;
 	}
-
-	public String getId() {
-		return id;
-	}
-
-	public void setId(String id) {
-		this.id = id;
-	}
-
 
 
 
