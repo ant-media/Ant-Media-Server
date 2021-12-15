@@ -1966,6 +1966,7 @@ public class AppSettings {
 		this.remoteAllowedCIDR = remoteAllowedCIDR;	
 	}
 
+	@JsonIgnore
 	public synchronized List<NetMask> getAllowedCIDRList() 
 	{
 		List<NetMask> allowedCIDRList = new ArrayList<>();
@@ -1982,6 +1983,7 @@ public class AppSettings {
 		this.allowedPublisherCIDR = allowedPublisherCIDR;	
 	}
 
+	@JsonIgnore
 	public synchronized List<NetMask> getAllowedPublisherCIDRList() 
 	{
 		List<NetMask> allowedPublisherCIDRList = new ArrayList<>();
