@@ -569,16 +569,16 @@ public abstract class RestServiceBase {
 		return !isCluster || originAddress.equals(getServerSettings().getHostAddress());
 	}
 
-	public Result processRTMPEndpoint(Result result, String streamId, String originAddress, String rtmpUrl, boolean addEndpoint, int resolution) {
-		boolean resultBoolean = false;
-		if(isInSameNodeInCluster(originAddress)) {
+	public Result processRTMPEndpoint(String streamId, String originAddress, String rtmpUrl, boolean addEndpoint, int resolution) {
+		Result result = new Result(false);
+		if(isInSameNodeInCluster(originAddress)) 
+		{
 			if(addEndpoint) {
-				resultBoolean = getMuxAdaptor(streamId).startRtmpStreaming(rtmpUrl, resolution);
+				result = getMuxAdaptor(streamId).startRtmpStreaming(rtmpUrl, resolution);
 			}
 			else {
-				resultBoolean = getMuxAdaptor(streamId).stopRtmpStreaming(rtmpUrl, resolution);
+				result = getMuxAdaptor(streamId).stopRtmpStreaming(rtmpUrl, resolution);
 			}
-			result.setSuccess(resultBoolean);
 		}
 		else {
 			logger.error("Please send a RTMP Endpoint request to the {} node or {} RTMP Endpoint in a stopped broadcast.", originAddress, addEndpoint ? "add" : "remove");

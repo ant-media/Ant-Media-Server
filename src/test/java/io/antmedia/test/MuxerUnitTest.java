@@ -118,6 +118,7 @@ import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
 import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
+import io.antmedia.rest.model.Result;
 import io.antmedia.storage.AmazonS3StorageClient;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.test.utils.VideoInfo;
@@ -516,16 +517,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		String rtmpUrl = "rtmp://localhost";
 		int resolutionHeight = 480;
-		boolean result = muxAdaptor.startRtmpStreaming(rtmpUrl, resolutionHeight);
-		assertFalse(result);
+		Result result = muxAdaptor.startRtmpStreaming(rtmpUrl, resolutionHeight);
+		assertFalse(result.isSuccess());
 		
 		muxAdaptor.setHeight(480);
 		result = muxAdaptor.startRtmpStreaming(rtmpUrl, resolutionHeight);
-		assertTrue(result);
+		assertTrue(result.isSuccess());
 		
 		
 		result = muxAdaptor.startRtmpStreaming(rtmpUrl, 0);
-		assertTrue(result);
+		assertTrue(result.isSuccess());
 		
 		
 		

@@ -709,7 +709,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(streamId);
 			
-			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(true);
+			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(new Result(true));
 			
 			String endpointURL = "rtmp://test.endpoint.url/test";
 			Result result = restServiceSpy.addEndpointV2(streamId, endpointURL);
@@ -815,7 +815,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(streamId);
 			
-			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(true);
+			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(new Result(true));
 			
 			
 			String endpointURL = "rtmp://test.endpoint.url/test";
@@ -848,7 +848,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(streamId);
 			
-			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(true);
+			Mockito.when(muxAdaptor.stopRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(new Result(true));
 			String endpointURL = "rtmp://test.endpoint.url/test";
 					
 			Endpoint endpoint = new Endpoint();
@@ -925,7 +925,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(broadcast.getStreamId());
 			
-			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(true);
+			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(new Result(true));
 			
 			store.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			assertTrue(restServiceSpy.addEndpointV2(streamId, "rtmp://test.endpoint.url/any_stream_test").isSuccess());
@@ -997,7 +997,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(broadcast.getStreamId());
 			
-			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(true);
+			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(new Result(true));
 			
 			Endpoint endpoint3 = new Endpoint();
 			endpoint3.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
@@ -1016,7 +1016,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(broadcast.getStreamId());
 			
-			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(true);
+			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(new Result(true));
 			
 			Endpoint endpoint3 = new Endpoint();
 			//This is already in the endpoints list, so it won't be added.
@@ -1045,7 +1045,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(broadcast.getStreamId());
 			
-			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(true);
+			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(new Result(true));
 			
 			Endpoint endpoint4 = new Endpoint();
 			//This is already in the endpoints list, so it won't be added.
@@ -1073,7 +1073,7 @@ public class BroadcastRestServiceV2UnitTest {
 			
 			Mockito.doReturn(muxAdaptor).when(restServiceSpy).getMuxAdaptor(broadcast.getStreamId());
 			
-			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(true);
+			Mockito.when(muxAdaptor.startRtmpStreaming(Mockito.anyString(), Mockito.eq(0))).thenReturn(new Result(true));
 			
 			Endpoint endpoint5 = new Endpoint();
 			endpoint5.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
