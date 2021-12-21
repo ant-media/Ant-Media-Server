@@ -1085,13 +1085,10 @@ public class CommonRestService {
 		boolean result = false;
 		if (appSettings != null) {
 			appSettings.setToBeDeleted(true);
+			//change settings on the db to let undeploy the app
 			changeSettings(appName, appSettings);
-			result = true;
-			if (!isClusterMode()) {
-				//if it's not in cluster mode, delete application
-				//In cluster mode, it's deleted by synchronization
-				result = getApplication().deleteApplication(appName, deleteDB);
-			}
+			
+			result = getApplication().deleteApplication(appName, deleteDB);
 		}
 		else {
 			logger.info("App settings is not available for app name:{}. App may be initializing", appName);
