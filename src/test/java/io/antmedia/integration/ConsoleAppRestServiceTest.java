@@ -291,12 +291,12 @@ public class ConsoleAppRestServiceTest{
 		Applications applications = getApplications();
 		int appCount = applications.applications.length;
 		
-		String appName = RandomString.make(10);
+		String appName = RandomString.make(20);
 		log.info("app:{} will be created", appName);
-		boolean result = createApplication(appName);
-		assertTrue(result);
+		Result result = createApplication(appName);
+		assertTrue(result.isSuccess());
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
 			.until(() ->  {
 				Applications tmpApplications = getApplications();
 				return tmpApplications.applications.length == appCount + 1;
@@ -304,7 +304,7 @@ public class ConsoleAppRestServiceTest{
 		
 		
 		result = deleteApplication(appName);
-		assertTrue(result);
+		assertTrue(result.isSuccess());
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
@@ -315,9 +315,9 @@ public class ConsoleAppRestServiceTest{
 		//create the application again with the same name because there was a bug for that
 		
 		//just wait for 5+ seconds to make sure cluster is synched
-		Awaitility.await().pollInterval(6, TimeUnit.SECONDS).until(() -> true);;
+		Awaitility.await().pollInterval(6, TimeUnit.SECONDS).until(() -> true);
 		result = createApplication(appName);
-		assertTrue(result);
+		assertTrue(result.isSuccess());
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
@@ -325,7 +325,7 @@ public class ConsoleAppRestServiceTest{
 			return tmpApplications.applications.length == appCount + 1;
 		});
 		result = deleteApplication(appName);
-		assertTrue(result);
+		assertTrue(result.isSuccess());
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
@@ -2575,15 +2575,16 @@ public class ConsoleAppRestServiceTest{
 		ConsoleAppRestServiceTest.httpCookieStore = httpCookieStore;
 	}
 	
-	public static boolean createApplication(String appName) {
-		boolean result = false;
+	public static Result createApplication(String appName) {
+		Result result = new Result(false);
 
 		try {
-			HttpUriRequest post = RequestBuilder.post().setUri(ROOT_SERVICE_URL+"/applications/"+appName)
+			String url = ROOT_SERVICE_URL+"/applications/"+appName;
+			HttpUriRequest post = RequestBuilder.post().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.build();
 			
-			System.out.println("url:"+ROOT_SERVICE_URL+"/applications?appName="+appName);
+			System.out.println("url:"+ url);
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 					.setDefaultCookieStore(httpCookieStore).build();
@@ -2591,11 +2592,12 @@ public class ConsoleAppRestServiceTest{
 
 			String content = EntityUtils.toString(response.getEntity());
 
-			if (response.getStatusLine().getStatusCode() != 200) {
+			//if (response.getStatusLine().getStatusCode() != 200) 
+			{
 				System.out.println(response.getStatusLine()+content);
 			}
 
-			result = (response.getStatusLine().getStatusCode() == 200);
+			result = gson.fromJson(content, Result.class);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -2604,8 +2606,8 @@ public class ConsoleAppRestServiceTest{
 
 	}
 	
-	public static boolean deleteApplication(String appName) {
-		boolean result = false;
+	public static Result deleteApplication(String appName) {
+		Result result = new Result(false);
 
 		try {
 
@@ -2623,7 +2625,7 @@ public class ConsoleAppRestServiceTest{
 				System.out.println(response.getStatusLine()+content);
 			}
 
-			result = (response.getStatusLine().getStatusCode() == 200);
+			result = gson.fromJson(content, Result.class);
 
 		} catch (Exception e) {
 			e.printStackTrace();
