@@ -319,7 +319,7 @@ public class ConsoleAppRestServiceTest{
 		result = createApplication(appName);
 		assertTrue(result.isSuccess());
 		
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
 			Applications tmpApplications = getApplications();
 			return tmpApplications.applications.length == appCount + 1;
