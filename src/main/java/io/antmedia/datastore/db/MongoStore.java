@@ -448,6 +448,7 @@ public class MongoStore extends DataStore {
 	public void close() {
 		synchronized(this) {
 			available = false;
+			mongoClient.close();
 		}
 	}
 
