@@ -569,7 +569,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (broadcast == null) 
 		{
 
-			broadcast = saveUndefinedBroadcast(streamId, null, this, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, absoluteStartTimeMs, publishType);
+			broadcast = saveUndefinedBroadcast(streamId, null, this, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, absoluteStartTimeMs, publishType, "", "");
 		} 
 		else {
 
@@ -613,11 +613,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType) {		
-		return saveUndefinedBroadcast(streamId, streamName, appAdapter, streamStatus, absoluteStartTimeMs, publishType, "");
-	}
-
-	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId) {		
+	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId,  String metaData) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
@@ -625,6 +621,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		newBroadcast.setZombi(true);
 		newBroadcast.setName(streamName);
 		newBroadcast.setMainTrackStreamId(mainTrackStreamId);
+		newBroadcast.setMetaData(metaData);
 		try {
 			newBroadcast.setStreamId(streamId);
 			newBroadcast.setPublishType(publishType);

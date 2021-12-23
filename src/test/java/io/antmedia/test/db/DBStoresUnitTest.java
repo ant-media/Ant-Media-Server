@@ -135,7 +135,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
-				
+		testUpdateMetaData(dataStore);
 	}
 	
 	@Test
@@ -211,6 +211,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
+		testUpdateMetaData(dataStore);
 	}
 
 	@Test
@@ -274,6 +275,7 @@ public class DBStoresUnitTest {
 		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
+		testUpdateMetaData(dataStore);
 	}
 	
 	@Test
@@ -2862,4 +2864,28 @@ public class DBStoresUnitTest {
 			assertEquals(total - (++deleted),  tempList.size());	
 		}
 	}	
+	
+	public void testUpdateMetaData(DataStore dataStore) {
+
+		final String INITIAL_DATA  = "initial meta data";
+		final String UPDATED_DATA  = "updated meta data";
+
+		String id = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast broadcast= new Broadcast();
+		try {
+			broadcast.setStreamId(id);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		broadcast.setMetaData(INITIAL_DATA);
+		dataStore.save(broadcast);
+
+		assertEquals(INITIAL_DATA, dataStore.get(id).getMetaData());
+		
+		assertTrue(dataStore.updateStreamMetaData(id, UPDATED_DATA));
+		
+		assertEquals(UPDATED_DATA, dataStore.get(id).getMetaData());
+	}
 }

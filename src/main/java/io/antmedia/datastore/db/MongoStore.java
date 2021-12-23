@@ -71,6 +71,7 @@ public class MongoStore extends DataStore {
 	private static final String RTMP_VIEWER_COUNT = "rtmpViewerCount";
 	private static final String HLS_VIEWER_COUNT = "hlsViewerCount";
 	private static final String WEBRTC_VIEWER_COUNT = "webRTCViewerCount";
+	private static final String META_DATA = "metaData";
 	
 	public MongoStore(String host, String username, String password, String dbName) {
 		morphia = new Morphia();
@@ -883,6 +884,7 @@ public class MongoStore extends DataStore {
 				ops.set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit());
 				ops.set("hlsViewerLimit", broadcast.getHlsViewerLimit());
 				ops.set("subTrackStreamIds", broadcast.getSubTrackStreamIds());
+				ops.set("metaData", broadcast.getMetaData());
 
 				UpdateResults update = datastore.update(query, ops);
 				return update.getUpdatedCount() == 1;
@@ -1573,5 +1575,24 @@ public class MongoStore extends DataStore {
 			WriteResult delete = datastore.delete(query);
 			return delete.getN() == 1;
 		}
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean updateStreamMetaData(String streamId, String metaData) {
+		synchronized(this) {
+			try {
+				Query<Broadcast> query = datastore.createQuery(Broadcast.class).field(STREAM_ID).equal(streamId);
+				UpdateOperations<Broadcast> ops = datastore.createUpdateOperations(Broadcast.class).set(META_DATA, metaData);
+
+				UpdateResults update = datastore.update(query, ops);
+				return update.getUpdatedCount() == 1;
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+			}
+		}
+		return false;
 	}
 }

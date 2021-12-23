@@ -431,5 +431,14 @@ public class WebSocketConstants {
 	 */
 	public static final String ID_MAPPING = "idMapping";
 
+	/**
+	 * It can be used to add some meta data to a broadcast
+	 */
+	public static final String META_DATA = "metaData";
+	
+	/**
+	 * Command to update the meta data for a broadcast
+	 */
+	public static final String UPDATE_STREAM_META_DATA_COMMAND = "updateStreamMetaData";
 
 }

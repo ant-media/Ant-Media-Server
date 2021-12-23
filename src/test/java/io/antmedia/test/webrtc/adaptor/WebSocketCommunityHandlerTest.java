@@ -457,7 +457,7 @@ public class WebSocketCommunityHandlerTest {
 		
 		wsHandler.setSession(session);
 		
-		wsHandler.sendJoinedRoomMessage(roomId, streamId, streamDetailsMap);
+		wsHandler.sendJoinedRoomMessage(roomId, streamId, streamDetailsMap, new HashMap<>());
 		
 		
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
