@@ -1335,7 +1335,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()-80000);
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(4)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
-		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
+		verify(spyAdapter, times(1)).updateSettings(settings, true, false);
 	}
 	
 	@Test
