@@ -689,8 +689,6 @@ public class CommonRestService {
 		return appAdaptor;
 	}
 
-
-
 	public Response isShutdownProperly(@QueryParam("appNames") String appNamesArray)
 	{
 		boolean appShutdownProblemExists = false;
@@ -926,8 +924,6 @@ public class CommonRestService {
 			rootLogger.setLevel(currentLevelDetect(logLevel));
 
 			store.put(LOG_LEVEL, logLevel);
-
-
 		}
 
 		return gson.toJson(new Result(store.save()));
@@ -966,7 +962,6 @@ public class CommonRestService {
 		}
 
 	}
-
 
 	public String getLogFile(@PathParam("charSize") int charSize, @QueryParam("logType") String logType,
 			@PathParam("offsetSize") long offsetSize) throws IOException {
@@ -1074,6 +1069,17 @@ public class CommonRestService {
 
 
 	public Result createApplication(String appName) {
+		if (isClusterMode()) 
+		{
+			//If there is a record in database, just delete it in order to start from scratch
+			IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
+			long deletedRecordCount = clusterNotifier.getClusterStore().deleteAppSettings(appName);
+			if (deletedRecordCount > 0) {
+				logger.info("App detected in the database. It's likely the app with the same name {} is re-creating. ", appName);
+			}
+			
+		}
+		
 		return new Result(getApplication().createApplication(appName));
 	}
 
@@ -1083,6 +1089,7 @@ public class CommonRestService {
 		logger.info("delete application http request:{}", appName);
 		AppSettings appSettings = getSettings(appName);
 		boolean result = false;
+		String message = "";
 		if (appSettings != null) {
 			appSettings.setToBeDeleted(true);
 			//change settings on the db to let undeploy the app
@@ -1092,8 +1099,9 @@ public class CommonRestService {
 		}
 		else {
 			logger.info("App settings is not available for app name:{}. App may be initializing", appName);
+			message = "AppSettings is not available for app: " + appName + ". It's not available or it's being initialized";
 		}
-		return new Result(result);
+		return new Result(result, message);
 	}
 
 	public boolean isClusterMode() {

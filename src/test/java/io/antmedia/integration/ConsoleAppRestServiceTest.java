@@ -2584,7 +2584,7 @@ public class ConsoleAppRestServiceTest{
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.build();
 			
-			System.out.println("url:"+ url);
+			System.out.println("create app url:"+ url);
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 					.setDefaultCookieStore(httpCookieStore).build();

@@ -169,22 +169,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			{
 				//if storedSettings is null, it means app is just created
 
-				logger.warn("There is a stored settings for the app:{} and it's status to be deleted. Probably, application with the same name is deleted/created again", app.getName());
+				logger.warn("There is not a stored settings for the app:{}. It will update the database for app settings", app.getName());
 
 				storedSettings = appSettings;
 				updateClusterSettings = true;
 			}
-			else if (storedSettings.isToBeDeleted() && 
-					(System.currentTimeMillis() - storedSettings.getUpdateTime()) > 60000) {
-				//if storedSettings isToBeDeleted and update time is older 60 seconds, 
-				//it means that app with the same name is re-created
-				logger.info("App:{} exists in datastore and re-creating because latest update time is older than 60 seconds", app.getName());
-				storedSettings = appSettings;
-				updateClusterSettings = true;
-
-				//if update time is earlier than 60 seconds, 
-				//it means that user just created and deleted the app in 60 seconds
-			}
+	
 
 			logger.info("Updating settings while app({}) is being started. AppSettings will be saved to Cluster db? Answer -> {}", app.getName(), updateClusterSettings ? "yes" : "no");
 			updateSettings(storedSettings, updateClusterSettings, false);

@@ -68,6 +68,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	private WarDeployer warDeployer;
 	private boolean isCluster = false;
 
+
+	private IClusterNotifier clusterNotifier;
+
 	@Override
 	public boolean appStart(IScope app) {
 		isCluster = app.getContext().hasBean(IClusterNotifier.BEAN_NAME);
@@ -76,7 +79,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		warDeployer = (WarDeployer) app.getContext().getBean("warDeployer");
 
 		if(isCluster) {
-			IClusterNotifier clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
+			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
 			clusterNotifier.registerCreateAppListener(appName -> {
 				log.info("Creating application with name {}", appName);
 				return createApplication(appName);
@@ -351,7 +354,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return runCommand(command);
 	}
 
-
+	public IClusterNotifier getClusterNotifier() {
+		return clusterNotifier;
+	}
 
 	public boolean runCommand(String command) {
 
