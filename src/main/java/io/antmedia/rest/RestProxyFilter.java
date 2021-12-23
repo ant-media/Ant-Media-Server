@@ -53,7 +53,12 @@ public class RestProxyFilter extends AbstractFilter {
     }
 
     public String getStreamId(String reqURI){
-        reqURI = reqURI.split("broadcasts/")[1];
+        try{
+            reqURI = reqURI.split("broadcasts/")[1];
+        }
+        catch (ArrayIndexOutOfBoundsException e){
+            return reqURI;
+        }
         if(reqURI.contains("/"))
             reqURI = reqURI.substring(0, reqURI.indexOf("/"));
         return reqURI;
