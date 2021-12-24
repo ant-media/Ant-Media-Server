@@ -1635,6 +1635,14 @@ public class ConsoleAppRestServiceTest{
 			appSettings.setHlsMuxingEnabled(true);
 			Result result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
+			
+			
+			//check app settings in await because there may be some updates from cluster 
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+			.until(() -> {
+				AppSettings appSettingsTmp = callGetAppSettings("LiveApp");
+				return !appSettingsTmp.isMp4MuxingEnabled();
+			});
 
 
 
