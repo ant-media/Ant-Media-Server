@@ -1414,10 +1414,25 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
-	public void testAppDeletion() {
+	public void testAppDeletion() 
+	{
 		DataStore dataStore = Mockito.spy(new InMemoryDataStore("test"));
 		adapter.setDataStore(dataStore);
-		adapter.deleteDBInSeconds();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		IContext context = mock(IContext.class);
+		ApplicationContext appContext = mock(ApplicationContext.class);
+		when(context.getApplicationContext()).thenReturn(appContext);
+		when(appContext.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
+		
+		when(scope.getContext()).thenReturn(context);
+		
+		
+		adapter.setScope(scope);
+		
+		adapter.stopApplication(true);
 		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).delete();
 	}	
 

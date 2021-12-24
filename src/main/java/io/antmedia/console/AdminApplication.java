@@ -305,10 +305,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		
 		if (appScope != null) 
 		{
-			getApplicationAdaptor(appScope).serverShuttingdown();
-			if(deleteDB) {
-				getApplicationAdaptor(appScope).deleteDBInSeconds();
-			}
+			getApplicationAdaptor(appScope).stopApplication(deleteDB);
 	
 			success = runDeleteAppScript(appName);
 			warDeployer.undeploy(appName);
