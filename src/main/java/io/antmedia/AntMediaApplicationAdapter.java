@@ -160,7 +160,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
 
-				updateSettings(settings, false, false);
+				updateSettings(settings, false, true);
 			});
 			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
 
@@ -1143,7 +1143,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		boolean result = false;
 		
-		if (!isIncomingTimeValid(newSettings, checkUpdateTime)) {
+		if (checkUpdateTime && !isIncomingTimeValid(newSettings)) {
 			//if current app settings update time is bigger than the newSettings, don't update the bean
 			//it may happen in cluster mode, app settings may be updated locally then a new update just may come instantly from cluster settings.
 			logger.warn("Not saving the settings because current appsettings update time({}) is later than incoming settings update time({}) ", appSettings.getUpdateTime(), newSettings.getUpdateTime() );
@@ -1216,9 +1216,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * @param checkUpdateTime
 	 * @return true if timing is valid, false if it is invalid
 	 */
-	public boolean isIncomingTimeValid(AppSettings newSettings, boolean checkUpdateTime) {
-		return !(checkUpdateTime && appSettings.getUpdateTime() != 0 && newSettings.getUpdateTime() != 0 
-				&& appSettings.getUpdateTime() > newSettings.getUpdateTime());
+	public boolean isIncomingTimeValid(AppSettings newSettings) 
+	{
+		return appSettings.getUpdateTime() != 0 && newSettings.getUpdateTime() != 0 
+				&& appSettings.getUpdateTime() < newSettings.getUpdateTime();
 	}
 
 	public void setClusterNotifier(IClusterNotifier clusterNotifier) {
@@ -1420,7 +1421,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		appSettings.setWebhookAuthenticateURL(newSettings.getWebhookAuthenticateURL());
 		appSettings.setUpdateTime(System.currentTimeMillis());
 		
-		logger.warn("app settings updated for {}", getScope().getName());	
+		logger.warn("app settings bean updated for {}", getScope().getName());	
 	}
 
 	public void setServerSettings(ServerSettings serverSettings) {

@@ -143,7 +143,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	@Test
 	public void testIsIncomingTimeValid() {
-		AppSettings settings = new AppSettings();
+		AppSettings newSettings = new AppSettings();
 		
 		IScope scope = mock(IScope.class);
 
@@ -158,27 +158,24 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.doReturn(mock(DataStore.class)).when(spyAdapter).getDataStore();
 		
 		
-		settings = new AppSettings();
+		newSettings = new AppSettings();
 		
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
+				
+		newSettings.setUpdateTime(1000);
 		
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
-		
-		settings.setUpdateTime(1000);
-		
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
+		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
 		
 		appSettings.setUpdateTime(900);
 		
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
+		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
 		
 		appSettings.setUpdateTime(2000);
 		
-		assertFalse(spyAdapter.isIncomingTimeValid(settings, true));
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
 		
-		settings.setUpdateTime(3000);
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		newSettings.setUpdateTime(3000);
+		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
 		
 		
 		
@@ -213,8 +210,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setScope(scope);
 		spyAdapter.updateSettings(newSettings, true, false);
 		
-		
-
 		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
 
 		IClusterStore clusterStore = mock(IClusterStore.class);
