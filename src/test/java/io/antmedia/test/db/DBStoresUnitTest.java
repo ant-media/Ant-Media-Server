@@ -155,14 +155,14 @@ public class DBStoresUnitTest {
 		assertTrue(broadcast2.isPublish());
 		
 		
-		dataStore.close();
+		dataStore.close(false);
 		
 		dataStore = new MapDBStore("testdb", vertx);
 		Broadcast broadcast3 = dataStore.get(key);
 		assertEquals(broadcast.getStreamId(), broadcast3.getStreamId());
 		assertTrue(broadcast3.isPublish());
 		
-		dataStore.close();
+		dataStore.close(false);
 		
 	}
 
@@ -216,8 +216,10 @@ public class DBStoresUnitTest {
 	public void testMongoStore() {
 
 		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
+		//delete db
+		dataStore.close(true);
 		
-		dataStore.delete();
+		dataStore = new MongoStore("localhost", "", "", "testdb");
 
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -2640,8 +2642,7 @@ public class DBStoresUnitTest {
 		String dbName = "deleteMapdb";
 		DataStore dataStore = new MapDBStore(dbName, vertx);
 		assertTrue(new File(dbName).exists());
-		dataStore.close();
-		dataStore.delete();
+		dataStore.close(true);
 		assertFalse(new File(dbName).exists());
 	}
 	
@@ -2658,8 +2659,7 @@ public class DBStoresUnitTest {
 		client.listDatabaseNames().forEach(c-> dbNames.add(c));
 		assertTrue(dbNames.contains(dbName));
 		
-		dataStore.close();
-		dataStore.delete();
+		dataStore.close(true);
 
 		dbNames.clear();
 		client.listDatabaseNames().forEach(c-> dbNames.add(c));

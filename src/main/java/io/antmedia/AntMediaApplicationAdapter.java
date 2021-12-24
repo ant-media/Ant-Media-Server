@@ -939,10 +939,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	@Override
 	public void serverShuttingdown() {
 		stopApplication(false);
-		
+
 	}
-	
-	
+
+
 	public void stopApplication(boolean deleteDB) {
 		logger.info("{} is closing streams", getScope().getName());
 		serverShuttingDown = true;
@@ -954,17 +954,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		createShutdownFile(getScope().getName());
 
-		if(deleteDB) 
-		{
-			vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l-> { 
-				getDataStore().delete(); 
-				getDataStore().close();
-			});
+		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l-> { 
+			getDataStore().close(deleteDB);
+		});
 
-		}
-		else {
-			getDataStore().close();
-		}
 	}
 
 

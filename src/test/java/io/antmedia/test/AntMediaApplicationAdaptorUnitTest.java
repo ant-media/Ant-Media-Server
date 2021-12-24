@@ -1433,7 +1433,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.setScope(scope);
 		
 		adapter.stopApplication(true);
-		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).delete();
+		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).close(true);
 	}	
 
 }

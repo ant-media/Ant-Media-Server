@@ -123,14 +123,11 @@ public abstract class DataStore {
 
 	public abstract List<Broadcast> getExternalStreamsList();
 	
-	public abstract void close();
-	
 	/**
-	 * This is used to close data store on shutdown
-	 * 
-	 * @param deleteDBAfterClose - set true to delete files or collection
+	 * Closes the database
+	 * @param deleteDB if it's true, it also deletes the db and closes
 	 */
-	public abstract void delete();
+	public abstract void close(boolean deleteDB);
 
 	/**
 	 * Returns the VoD List in order

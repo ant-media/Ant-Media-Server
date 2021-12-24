@@ -445,9 +445,17 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public void close() {
+	public void close(boolean deleteDB) {
 		synchronized(this) {
 			available = false;
+			if (deleteDB) {
+				mongoClient.getDatabase(tokenDatastore.getDatabase().getName()).drop();
+				mongoClient.getDatabase(subscriberDatastore.getDatabase().getName()).drop();
+				mongoClient.getDatabase(datastore.getDatabase().getName()).drop();
+				mongoClient.getDatabase(vodDatastore.getDatabase().getName()).drop();
+				mongoClient.getDatabase(detectionMap.getDatabase().getName()).drop();
+				mongoClient.getDatabase(conferenceRoomDatastore.getDatabase().getName()).drop();
+			}
 			mongoClient.close();
 		}
 	}
@@ -1398,19 +1406,6 @@ public class MongoStore extends DataStore {
 		return totalWebRTCViewerCount;
 	}
 
-	@SuppressWarnings("deprecation")
-	@Override
-	public void delete() {
-		synchronized(this) {
-			mongoClient.getDatabase(tokenDatastore.getDatabase().getName()).drop();
-			mongoClient.getDatabase(subscriberDatastore.getDatabase().getName()).drop();
-			mongoClient.getDatabase(datastore.getDatabase().getName()).drop();
-			mongoClient.getDatabase(vodDatastore.getDatabase().getName()).drop();
-			mongoClient.getDatabase(detectionMap.getDatabase().getName()).drop();
-			mongoClient.getDatabase(conferenceRoomDatastore.getDatabase().getName()).drop();
-		}
-	}
-
 	@Override
 	public void saveViewerInfo(WebRTCViewerInfo info) {
 		synchronized(this) {
@@ -1421,7 +1416,6 @@ public class MongoStore extends DataStore {
 		}
 	}
 
-	@SuppressWarnings("deprecation") //BK: added this because alternative method is also deprecated
 	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
 			String search) {
 		synchronized(this) {
