@@ -1069,6 +1069,7 @@ public class CommonRestService {
 
 
 	public Result createApplication(String appName) {
+		appName = appName.replaceAll("[\n\r\t]", "_");
 		if (isClusterMode()) 
 		{
 			//If there is a record in database, just delete it in order to start from scratch
