@@ -1336,7 +1336,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-	private void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
+	public void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
 	{
 		
 		Field[] declaredFields = appSettings.getClass().getDeclaredFields();
