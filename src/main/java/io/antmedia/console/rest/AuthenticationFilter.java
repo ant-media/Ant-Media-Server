@@ -16,8 +16,8 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
+import io.antmedia.datastore.db.types.User;
 import io.antmedia.filter.AbstractFilter;
-import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.UserType;
 
 public class AuthenticationFilter extends AbstractFilter {
