@@ -1335,35 +1335,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return store.save();
 	}
 
-
+	
+	
+	
 	public void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
 	{
 		
 		Field[] declaredFields = appSettings.getClass().getDeclaredFields();
 		
-		for (Field field : declaredFields) {
-		     
-            try {
-            	
-            	if (!Modifier.isFinal(field.getModifiers()) && !Modifier.isStatic(field.getModifiers())) {
-
-	            	if (field.trySetAccessible()) 
-	            	{	            		
-	            		field.set(appSettings, field.get(newSettings));
-	            		field.setAccessible(false);
-	            	}
-	            	else {
-	            		logger.warn("Cannot set the value this field: {}", field.getName());
-	            	}
-            	}
-			} 
-            catch (IllegalArgumentException e) 
-            {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			} 
-            catch (IllegalAccessException e) {
-            	logger.error(ExceptionUtils.getStackTrace(e));
-			}
+		for (Field field : declaredFields) 
+		{     
+            setAppSettingsFieldValue(appSettings, newSettings, field); 
 		}
 		
 		appSettings.setUpdateTime(System.currentTimeMillis());
@@ -1382,6 +1364,31 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		
 		logger.warn("app settings bean updated for {}", getScope().getName());	
 
+	}
+
+	public static boolean setAppSettingsFieldValue(AppSettings appSettings, AppSettings newSettings, Field field) {
+		boolean result = false;
+		try {
+			
+			if (!Modifier.isFinal(field.getModifiers()) && !Modifier.isStatic(field.getModifiers())) {
+
+		    	if (field.trySetAccessible()) 
+		    	{	            		
+		    		field.set(appSettings, field.get(newSettings));
+		    		field.setAccessible(false);
+		    		result = true;
+		    	}
+		    	else 
+		    	{
+		    		logger.warn("Cannot set the value this field: {}", field.getName());
+		    	}
+			}
+		} 
+		catch (IllegalArgumentException | IllegalAccessException e) 
+		{
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return result;
 	}
 
 	public void setServerSettings(ServerSettings serverSettings) {
