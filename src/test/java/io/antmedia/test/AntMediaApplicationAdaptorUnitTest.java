@@ -143,7 +143,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	@Test
 	public void testIsIncomingTimeValid() {
-		AppSettings settings = new AppSettings();
+		AppSettings newSettings = new AppSettings();
 		
 		IScope scope = mock(IScope.class);
 
@@ -158,27 +158,24 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.doReturn(mock(DataStore.class)).when(spyAdapter).getDataStore();
 		
 		
-		settings = new AppSettings();
+		newSettings = new AppSettings();
 		
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
+				
+		newSettings.setUpdateTime(1000);
 		
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
-		
-		settings.setUpdateTime(1000);
-		
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
+		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
 		
 		appSettings.setUpdateTime(900);
 		
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
+		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
 		
 		appSettings.setUpdateTime(2000);
 		
-		assertFalse(spyAdapter.isIncomingTimeValid(settings, true));
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
 		
-		settings.setUpdateTime(3000);
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		newSettings.setUpdateTime(3000);
+		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
 		
 		
 		
@@ -213,8 +210,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setScope(scope);
 		spyAdapter.updateSettings(newSettings, true, false);
 		
-		
-
 		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
 
 		IClusterStore clusterStore = mock(IClusterStore.class);
@@ -1335,7 +1330,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()-80000);
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(4)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
-		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
+		verify(spyAdapter, times(1)).updateSettings(settings, true, false);
 	}
 	
 	@Test
@@ -1419,11 +1414,26 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
-	public void testAppDeletion() {
+	public void testAppDeletion() 
+	{
 		DataStore dataStore = Mockito.spy(new InMemoryDataStore("test"));
 		adapter.setDataStore(dataStore);
-		adapter.deleteDBInSeconds();
-		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).delete();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		IContext context = mock(IContext.class);
+		ApplicationContext appContext = mock(ApplicationContext.class);
+		when(context.getApplicationContext()).thenReturn(appContext);
+		when(appContext.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
+		
+		when(scope.getContext()).thenReturn(context);
+		
+		
+		adapter.setScope(scope);
+		
+		adapter.stopApplication(true);
+		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).close(true);
 	}	
 
 }

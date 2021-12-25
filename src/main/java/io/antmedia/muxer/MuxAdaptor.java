@@ -67,6 +67,7 @@ import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.plugin.api.StreamParametersInfo;
+import io.antmedia.rest.model.Result;
 import io.antmedia.settings.IServerSettings;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
@@ -1615,22 +1616,31 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
-	public boolean startRtmpStreaming(String rtmpUrl, int resolutionHeight)
+	public Result startRtmpStreaming(String rtmpUrl, int resolutionHeight)
 	{
+		Result result = new Result(false);
 		rtmpUrl = rtmpUrl.replaceAll("[\n\r\t]", "_");
-		if (!isRecording.get()) {
+		
+		if (!isRecording.get()) 
+		{
 			logger.warn("Start rtmp streaming return false for stream:{} because stream is being prepared", streamId);
-			return false;
+			result.setMessage("Start rtmp streaming return false for stream:"+ streamId +" because stream is being prepared. Try again");			
+			return result;
 		}
 		logger.info("start rtmp streaming for stream id:{} to {} with requested resolution height{} stream resolution:{}", streamId, rtmpUrl, resolutionHeight, height);
-		boolean result = false;
+		
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
 			RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
 			rtmpMuxer.setStatusListener(this);
-			result = prepareMuxer(rtmpMuxer);
-			if (!result) {
+			if (prepareMuxer(rtmpMuxer)) 
+			{
+				result.setSuccess(true);
+			}
+			else 
+			{
 				logger.error("RTMP prepare returned false so that rtmp pushing to {} for {} didn't started ", rtmpUrl, streamId);
+				result.setMessage("RTMP prepare returned false so that rtmp pushing to " + rtmpUrl + " for "+ streamId +" didn't started ");
 			}
 		}
 
@@ -1792,9 +1802,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return rtmpMuxer;
 	}
 
-	public boolean stopRtmpStreaming(String rtmpUrl, int resolutionHeight)
+	public Result stopRtmpStreaming(String rtmpUrl, int resolutionHeight)
 	{
-		boolean result = false;
+		Result result = new Result(false);
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
 			RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
@@ -1802,7 +1812,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				muxerList.remove(rtmpMuxer);
 				statusMap.remove(rtmpUrl);
 				rtmpMuxer.writeTrailer();
-				result = true;
+				result.setSuccess(true);
 			}
 		}
 		return result;

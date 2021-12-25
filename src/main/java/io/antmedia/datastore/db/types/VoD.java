@@ -9,6 +9,8 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
+import dev.morphia.utils.IndexType;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.swagger.annotations.ApiModel;
@@ -16,7 +18,6 @@ import io.swagger.annotations.ApiModelProperty;
 
 
 @Entity("vod")
-
 @Indexes({ @Index(fields = @Field("vodId")), @Index(fields = @Field("vodName")), @Index(fields = @Field("streamId")), @Index(fields = @Field("streamName")) })
 @ApiModel(value="VoD", description="The recorded video-on-demand object class")
 public class VoD implements Serializable {
