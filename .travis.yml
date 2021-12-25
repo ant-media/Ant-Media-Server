@@ -115,6 +115,8 @@ script:
   - echo $RELEASE_VERSION
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package  org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
 # option to add above (-Dtest="MuxerUnitTest")  for running custom tests
+  - mvn org.owasp:dependency-check-maven:check
+#depedency vulnerability check
 
 
 cache:

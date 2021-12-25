@@ -62,11 +62,10 @@ public class User {
 	/**
 	 * ID of the user
 	 */
-	@JsonIgnore
 	@ApiModelProperty(value = "the id of the user")
+	@JsonIgnore
 	@Id
 	private ObjectId id;
-
 	
 	public User(String email, String password, UserType userType) {
 		this.email = email;
@@ -133,9 +132,5 @@ public class User {
 
 	public void setPicture(String picture) {
 		this.picture = picture;
-	}
-
-
-
-	
+	}	
 }

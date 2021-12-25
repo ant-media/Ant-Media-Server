@@ -76,7 +76,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
 
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
-	
+
 	public static final String BEAN_NAME = "web.handler";
 
 	public static final int BROADCAST_STATS_RESET = 0;
@@ -162,7 +162,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
 			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
 
-				updateSettings(settings, false, false);
+				updateSettings(settings, false, true);
 			});
 			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
 
@@ -171,22 +171,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			{
 				//if storedSettings is null, it means app is just created
 
-				logger.warn("There is a stored settings for the app:{} and it's status to be deleted. Probably, application with the same name is deleted/created again", app.getName());
+				logger.warn("There is not a stored settings for the app:{}. It will update the database for app settings", app.getName());
 
 				storedSettings = appSettings;
 				updateClusterSettings = true;
 			}
-			else if (storedSettings.isToBeDeleted() && 
-					(System.currentTimeMillis() - storedSettings.getUpdateTime()) > 60000) {
-				//if storedSettings isToBeDeleted and update time is older 60 seconds, 
-				//it means that app with the same name is re-created
-				logger.info("App:{} exists in datastore and re-creating because latest update time is older than 60 seconds", app.getName());
-				storedSettings = appSettings;
-				updateClusterSettings = true;
 
-				//if update time is earlier than 60 seconds, 
-				//it means that user just created and deleted the app in 60 seconds
-			}
 
 			logger.info("Updating settings while app({}) is being started. AppSettings will be saved to Cluster db? Answer -> {}", app.getName(), updateClusterSettings ? "yes" : "no");
 			updateSettings(storedSettings, updateClusterSettings, false);
@@ -235,7 +225,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		return true;
 	}
-	
+
 	/**
 	 * This method is called after ungraceful shutdown
 	 * @return
@@ -403,7 +393,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					logger.info("Active broadcast count({}) is more than ingesting stream limit:{} so stopping broadcast:{}", activeBroadcastNumber, ingestingStreamLimit, broadcast.getStreamId());
 					stopStreaming(broadcast);
 				}
-				
+
 
 				for (IStreamListener listener : streamListeners) {
 					listener.streamStarted(broadcast.getStreamId());
@@ -596,7 +586,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		return relativePath.toString();
 	}
-	
+
 	/**
 	 * Notify hook with parameters below
 	 * 
@@ -950,6 +940,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	@Override
 	public void serverShuttingdown() {
+		stopApplication(false);
+
+	}
+
+
+	public void stopApplication(boolean deleteDB) {
 		logger.info("{} is closing streams", getScope().getName());
 		serverShuttingDown = true;
 		closeStreamFetchers();
@@ -960,9 +956,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		createShutdownFile(getScope().getName());
 
-		getDataStore().close();
+		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l-> { 
+			getDataStore().close(deleteDB);
+		});
+
 	}
-	
+
 
 	public Result createInitializationProcess(String appName){
 
@@ -1008,7 +1007,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				// This case happens when app is created but not deployed for some reason
 				createInitializationFile(appName, result, initializedFile);
 				Files.deleteIfExists(closedFile.toPath());
-				
+
 			}
 
 
@@ -1082,7 +1081,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return muxAdaptors;
 	}
 
-	
+
 	/**
 	 * Number of encoders blocked. 
 	 * @return
@@ -1154,21 +1153,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public synchronized boolean updateSettings(AppSettings newSettings, boolean notifyCluster, boolean checkUpdateTime) {
 
 		boolean result = false;
-		
-		if (!isIncomingTimeValid(newSettings, checkUpdateTime)) {
+
+		if (checkUpdateTime && !isIncomingTimeValid(newSettings)) {
 			//if current app settings update time is bigger than the newSettings, don't update the bean
 			//it may happen in cluster mode, app settings may be updated locally then a new update just may come instantly from cluster settings.
 			logger.warn("Not saving the settings because current appsettings update time({}) is later than incoming settings update time({}) ", appSettings.getUpdateTime(), newSettings.getUpdateTime() );
 			return result;
 		}
-		
+
 
 		//if there is any wrong encoder settings, return false
 		List<EncoderSettings> encoderSettingsList = newSettings.getEncoderSettings();
 		if (!isEncoderSettingsValid(encoderSettingsList)) {
 			return result;
 		}
-		
+
 		//synch again because of string to list mapping- TODO: There is a better way for string to list mapping
 		//in properties files
 		newSettings.setEncoderSettings(encoderSettingsList);
@@ -1228,9 +1227,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * @param checkUpdateTime
 	 * @return true if timing is valid, false if it is invalid
 	 */
-	public boolean isIncomingTimeValid(AppSettings newSettings, boolean checkUpdateTime) {
-		return !(checkUpdateTime && appSettings.getUpdateTime() != 0 && newSettings.getUpdateTime() != 0 
-				&& appSettings.getUpdateTime() > newSettings.getUpdateTime());
+	public boolean isIncomingTimeValid(AppSettings newSettings) 
+	{
+		return appSettings.getUpdateTime() != 0 && newSettings.getUpdateTime() != 0 
+				&& appSettings.getUpdateTime() < newSettings.getUpdateTime();
 	}
 
 	public void setClusterNotifier(IClusterNotifier clusterNotifier) {
@@ -1380,8 +1380,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		storageClient.setPermission(newSettings.getS3Permission());
 		storageClient.reset();
 		
-		logger.warn("app settings updated for {}", getScope().getName());	
-		
+		logger.warn("app settings bean updated for {}", getScope().getName());	
+
 	}
 
 	public void setServerSettings(ServerSettings serverSettings) {
@@ -1424,7 +1424,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		}
 	}
-	
+
 	public void removePacketListener(String streamId, IPacketListener listener) {
 		for (MuxAdaptor muxAdaptor : getMuxAdaptors()) 
 		{
@@ -1467,14 +1467,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		streamListeners.remove(listener);
 	}
 
-	public void deleteDBInSeconds() {
-		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l->getDataStore().delete());
-	}
-
 	public boolean stopPlaying(String viewerId) {
 		return false;
-  }
-  public void stopPublish(String streamId) {
+	}
+	public void stopPublish(String streamId) {
 		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
 	}
 

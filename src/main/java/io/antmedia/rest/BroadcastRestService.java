@@ -292,9 +292,6 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	
-
-	
-
 	@Deprecated
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -309,8 +306,7 @@ public class BroadcastRestService extends RestServiceBase{
 			String status = getDataStore().get(id).getStatus();
 			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
-				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl, 0);
-				result.setSuccess(started);
+				result = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl, 0);
 			}
 		}
 		else {
@@ -347,7 +343,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 					{
-						result = processRTMPEndpoint(result, broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, true, resolutionHeight);
+						result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, true, resolutionHeight);
 						if (result.isSuccess()) 
 						{
 							result = super.addEndpoint(id, endpoint);
@@ -398,8 +394,7 @@ public class BroadcastRestService extends RestServiceBase{
 			String status = getDataStore().get(id).getStatus();
 			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
-				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl, 0);
-				result.setSuccess(started);
+				result = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl, 0);
 			}
 		}
 		else {	
@@ -435,7 +430,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
 				{
-					result = processRTMPEndpoint(result, broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, false, resolutionHeight);
+					result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, false, resolutionHeight);
 					if (result.isSuccess()) 
 					{
 						result = super.removeRTMPEndpoint(id, endpointServiceId);
