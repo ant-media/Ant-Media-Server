@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import javax.servlet.AsyncContext;
@@ -443,6 +445,22 @@ public class ChunkedTransferServletTest {
 			fail(e.getMessage());
 		}
 
+	}
+	
+	@Test
+	public void testLogHeaders() {
+		HttpServletResponse response = Mockito.mock(HttpServletResponse.class);
+		
+		ChunkedTransferServlet.logHeaders(response);
+		
+		Mockito.when(response.getHeaderNames()).thenReturn(Arrays.asList("header1","header2", "header3"));
+		Mockito.when(response.getHeader(Mockito.anyString())).thenReturn("header value");
+		
+		ChunkedTransferServlet.logHeaders(response);
+		
+		Mockito.when(response.getHeader(Mockito.anyString())).thenThrow(new NullPointerException("exception"));
+		
+		ChunkedTransferServlet.logHeaders(response);
 	}
 
 

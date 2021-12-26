@@ -340,15 +340,19 @@ public class ChunkedTransferServlet extends HttpServlet {
 		{
 			logger.error("Exception in writing the following file:{} total written byte:{} stacktrace:{}", file.getName(), total, ExceptionUtils.getStackTrace(e));
 			//Below statement for debugging an error that cannot be reproduced easily
-			Collection<String> headerNames = resp.getHeaderNames();
-			for (String name : headerNames) {
-				try {
+			logHeaders(resp);
+		}
+	}
+
+	public static void logHeaders(HttpServletResponse resp) {
+		Collection<String> headerNames = resp.getHeaderNames();
+		for (String name : headerNames) {
+			try {
 				logger.info("Header name:{}", name);
 				logger.info("Header value:{}", resp.getHeader(name));
-				}
-				catch (Exception te) {
-					logger.error(ExceptionUtils.getStackTrace(te));
-				}
+			}
+			catch (Exception te) {
+				logger.error(ExceptionUtils.getStackTrace(te));
 			}
 		}
 	}
