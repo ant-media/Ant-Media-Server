@@ -727,7 +727,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			return muxAdaptor.getIsHealthCheckStartedMap().getOrDefault(rtmpUrl, false) == false;
 		});
 
-		verify(muxAdaptor, Mockito.timeout(5000)).sendEndpointErrorNotifyHook();
+		verify(muxAdaptor, Mockito.timeout(5000)).sendEndpointErrorNotifyHook(rtmpUrl);
 
 	}
 	@Test
@@ -1323,7 +1323,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Application app =  (Application) applicationContext.getBean("web.handler");
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy(app);
 		
-		doReturn(new StringBuilder("")).when(appAdaptor).notifyHook(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+		doReturn(new StringBuilder("")).when(appAdaptor).notifyHook(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
 		assertNotNull(appAdaptor);
 
 		//just check below value that it is not null, this is not related to this case but it should be tested

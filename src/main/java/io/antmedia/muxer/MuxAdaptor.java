@@ -1679,12 +1679,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return result;
 	}
 
-	public void sendEndpointErrorNotifyHook(){
+	public void sendEndpointErrorNotifyHook(String url){
 		IContext context = MuxAdaptor.this.scope.getContext();
 		ApplicationContext appCtx = context.getApplicationContext();
 		AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-		adaptor.endpointFailedUpdate(this.streamId);
-
+		adaptor.endpointFailedUpdate(this.streamId, url);
 	}
 
 	/**
@@ -1747,7 +1746,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			else{
 				logger.info("Exceeded republish retry limit, endpoint {} can't be reached and will be closed" , url);
 				stopRtmpStreaming(url, 0);
-				sendEndpointErrorNotifyHook();
+				sendEndpointErrorNotifyHook(url);
 				retryCounter.remove(url);
 			}
 			//Clear the data and cancel timer to free memory and CPU.
