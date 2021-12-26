@@ -8,7 +8,10 @@ import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
@@ -1084,6 +1087,18 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setHlsMuxingEnabled(true);
 
 	}
+	
+	@Test
+	public void testMuxerStreamType() 
+	{
+		assertEquals("video", MuxAdaptor.getStreamType(AVMEDIA_TYPE_VIDEO));
+		assertEquals("audio", MuxAdaptor.getStreamType(AVMEDIA_TYPE_AUDIO));
+		assertEquals("data", MuxAdaptor.getStreamType(AVMEDIA_TYPE_DATA));
+		assertEquals("subtitle", MuxAdaptor.getStreamType(AVMEDIA_TYPE_SUBTITLE));
+		assertEquals("attachment", MuxAdaptor.getStreamType(AVMEDIA_TYPE_ATTACHMENT));	
+		assertEquals("not_known", MuxAdaptor.getStreamType(55));	
+	}
+
 
 	@Test
 	public void testMp4MuxingWithWithMultipleDepth() {
@@ -2261,6 +2276,22 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			feedMuxAdaptor(flvReader, Arrays.asList(muxAdaptor), info);
 
 			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
+			
+			
+			HLSMuxer hlsMuxer = null;
+			{
+				List<Muxer> muxerList = muxAdaptor.getMuxerList();
+				
+				for (Muxer muxer : muxerList) {
+					if (muxer instanceof HLSMuxer) {
+						hlsMuxer = (HLSMuxer) muxer;
+						break;
+					}
+				}
+				assertNotNull(hlsMuxer);
+				//Call it separately for an unexpected case. It increases coverage and it checks not to crash
+				hlsMuxer.prepareIO();
+			}
 
 			muxAdaptor.stop(true);
 
@@ -2268,15 +2299,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
 
-			List<Muxer> muxerList = muxAdaptor.getMuxerList();
-			HLSMuxer hlsMuxer = null;
-			for (Muxer muxer : muxerList) {
-				if (muxer instanceof HLSMuxer) {
-					hlsMuxer = (HLSMuxer) muxer;
-					break;
-				}
-			}
-			assertNotNull(hlsMuxer);
+			
 			File hlsFile = hlsMuxer.getFile();
 
 			String hlsFilePath = hlsFile.getAbsolutePath();

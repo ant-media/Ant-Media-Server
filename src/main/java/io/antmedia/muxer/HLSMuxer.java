@@ -245,7 +245,6 @@ public class HLSMuxer extends Muxer  {
 
 	private  void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
-
 		if (outputFormatContext == null || !isRunning.get())  {
 			logger.error("OutputFormatContext is not initialized correctly for {}", file.getName());
 			return;
@@ -276,7 +275,6 @@ public class HLSMuxer extends Muxer  {
 		pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 		pkt.duration(av_rescale_q(pkt.duration(), inputTimebase, outputTimebase));
 		pkt.pos(-1);
-
 
 		if (codecType ==  AVMEDIA_TYPE_VIDEO)
 		{
@@ -513,11 +511,11 @@ public class HLSMuxer extends Muxer  {
 
 
 	@Override
-
 	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
+		logger.debug("Codec type = {} - Codec tag = {} - Codec id = {} ", codecParameters.codec_type(),codecParameters.codec_tag(), codecParameters.codec_id());
 		if (outputContext != null && isCodecSupported(codecParameters.codec_id()))
 		{
 			AVStream outStream = avformat_new_stream(outputContext, null);
@@ -572,16 +570,13 @@ public class HLSMuxer extends Muxer  {
 				outStream.codecpar().codec_tag(0);
 			}
 
-
 			outStream.time_base(timebase);
 			codecTimeBaseMap.put(outStream.index(), timebase);
 			registeredStreamIndexList.add(streamIndex);
 			result = true;
 		}
-
 		return result;
 	}
-
 
 	/**
 	 * {@inheritDoc}
@@ -589,8 +584,13 @@ public class HLSMuxer extends Muxer  {
 	@Override
 	public synchronized boolean prepareIO() {
 		AVFormatContext context = getOutputFormatContext();
+
+		/**
+		 * We need to extract addedStream information in some cases because we treat audio and video separate
+		 * In addStream for example, if we don't check this we end up removing the muxer completely if one of the operations fail.
+		 */
 		if (isRunning.get()) {
-			//return false if it is already prepared
+			logger.warn("HLS Muxer is already running for stream: {} so it's not preparing io again and returning", streamId);
 			return false;
 		}
 
