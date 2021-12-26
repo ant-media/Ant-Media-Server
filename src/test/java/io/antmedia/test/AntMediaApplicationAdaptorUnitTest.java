@@ -2,11 +2,13 @@ package io.antmedia.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockitoSession;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
@@ -19,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -180,6 +183,68 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		
 	}
+	
+	public static class AppSettingsChild extends AppSettings {
+		
+		public String field = "field";
+		public static String fieldStatic = "fieldStatic";
+		
+		public static final String fieldFinalStatic = "fieldFinalStatic";
+	}
+	
+	@Test
+	public void testFieldValue() {
+
+		AppSettingsChild settings = new AppSettingsChild();
+		AppSettingsChild newSettings = new AppSettingsChild();
+		
+		settings.field = "field";
+		newSettings.field = "field2";
+		
+		Field field;
+		try {
+			field = settings.getClass().getDeclaredField("field");
+			boolean result = AntMediaApplicationAdapter.setAppSettingsFieldValue(settings, newSettings, field);
+			assertTrue(result);
+			assertEquals(settings.field, newSettings.field);
+			
+
+			field = settings.getClass().getDeclaredField("fieldStatic");
+			result = AntMediaApplicationAdapter.setAppSettingsFieldValue(settings, newSettings, field);
+			assertFalse(result);
+			
+			field = settings.getClass().getDeclaredField("fieldFinalStatic");
+			result = AntMediaApplicationAdapter.setAppSettingsFieldValue(settings, newSettings, field);
+			assertFalse(result);
+			
+			
+			AppSettings settings2 = new AppSettings();
+			AppSettings newSettings2 = new AppSettings();
+			settings2.setAcceptOnlyStreamsInDataStore(true);
+			newSettings2.setAcceptOnlyStreamsInDataStore(false);
+			
+			field = settings2.getClass().getDeclaredField("acceptOnlyRoomsInDataStore");
+			result = AntMediaApplicationAdapter.setAppSettingsFieldValue(settings2, newSettings2, field);
+			assertTrue(result);
+			assertEquals(settings2.isAcceptOnlyRoomsInDataStore(), newSettings2.isAcceptOnlyRoomsInDataStore());
+			
+			
+			
+			
+			
+			
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (SecurityException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+			
+		
+	}
+	
 
 	@Test
 	public void testAppSettings() 
@@ -208,8 +273,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setScope(scope);
+		assertNotEquals("", settings.getHlsPlayListType());
 		spyAdapter.updateSettings(newSettings, true, false);
 		
+		assertEquals("", settings.getHlsPlayListType());
+		assertEquals(newSettings.getHlsPlayListType(), settings.getHlsPlayListType());
+
+
 		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
 
 		IClusterStore clusterStore = mock(IClusterStore.class);

@@ -19,7 +19,6 @@ import io.swagger.annotations.ApiModelProperty;
 @ApiModel(value="User", description="The basic user class")
 @Entity(value = "user")
 @Indexes({ @Index(fields = @Field("email")), @Index(fields = @Field("fullName")) })
-
 public class User {
 	
 	/**
@@ -72,7 +71,8 @@ public class User {
 		this.email = email;
 		this.password = password;
 		this.userType = userType;
-	}	
+	}
+	
 	
 	public User() {
 		
@@ -132,6 +132,5 @@ public class User {
 
 	public void setPicture(String picture) {
 		this.picture = picture;
-	}
-	
+	}	
 }
