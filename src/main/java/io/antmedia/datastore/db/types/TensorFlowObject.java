@@ -7,6 +7,7 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
+import dev.morphia.utils.IndexType;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 

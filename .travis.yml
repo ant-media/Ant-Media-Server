@@ -115,6 +115,8 @@ script:
   - echo $RELEASE_VERSION
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package  org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
 # option to add above (-Dtest="MuxerUnitTest")  for running custom tests
+  - mvn org.owasp:dependency-check-maven:check
+#depedency vulnerability check
 
 
 cache:
@@ -144,25 +146,3 @@ deploy:
       #deploy to maven if it is a release tagged
       tags: true
       condition: $TRAVIS_TAG =~ ^ams-v 
-  
-  - provider: script
-    script: "curl -g --ftp-create-dirs -T target/swagger/swagger.json -u $SWAGGER_FTP_USERNAME:$SWAGGER_FTP_PASSWORD $SWAGGER_FTP_URL/$RELEASE_VERSION/"
-    cleanup: true
-    on:
-      #deploy to website if it is a release tagged
-      tags: true
-      condition: $TRAVIS_TAG =~ ^ams-v
-  
-  - provider: releases
-    api_key: $GITHUB_OAUTH_TOKEN
-    file_glob: true
-    file: "target/ant-media-server-community*.zip"
-    skip_cleanup: true
-    name: "Ant Media Server Community $(date +'%F-%T')"
-    prerelease: true
-    on:
-      #deploy to github if it is a release tagged
-      tags: true
-      condition: $TRAVIS_TAG =~ ^ams-v
-      
-#above configuration prevents deploying a new release(not snapshot) if it is not tagged       

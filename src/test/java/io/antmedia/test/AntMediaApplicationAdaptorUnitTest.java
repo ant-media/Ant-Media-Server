@@ -2,11 +2,13 @@ package io.antmedia.test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockitoSession;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
@@ -19,6 +21,7 @@ import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -143,7 +146,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 	@Test
 	public void testIsIncomingTimeValid() {
-		AppSettings settings = new AppSettings();
+		AppSettings newSettings = new AppSettings();
 		
 		IScope scope = mock(IScope.class);
 
@@ -158,31 +161,90 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.doReturn(mock(DataStore.class)).when(spyAdapter).getDataStore();
 		
 		
-		settings = new AppSettings();
+		newSettings = new AppSettings();
 		
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
+				
+		newSettings.setUpdateTime(1000);
 		
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
-		
-		settings.setUpdateTime(1000);
-		
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
+		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
 		
 		appSettings.setUpdateTime(900);
 		
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, true));
+		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
 		
 		appSettings.setUpdateTime(2000);
 		
-		assertFalse(spyAdapter.isIncomingTimeValid(settings, true));
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
 		
-		settings.setUpdateTime(3000);
-		assertTrue(spyAdapter.isIncomingTimeValid(settings, false));
+		newSettings.setUpdateTime(3000);
+		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
 		
 		
 		
 	}
+	
+	public static class AppSettingsChild extends AppSettings {
+		
+		public String field = "field";
+		public static String fieldStatic = "fieldStatic";
+		
+		public static final String fieldFinalStatic = "fieldFinalStatic";
+	}
+	
+	@Test
+	public void testFieldValue() {
+
+		AppSettingsChild settings = new AppSettingsChild();
+		AppSettingsChild newSettings = new AppSettingsChild();
+		
+		settings.field = "field";
+		newSettings.field = "field2";
+		
+		Field field;
+		try {
+			field = settings.getClass().getDeclaredField("field");
+			boolean result = AntMediaApplicationAdapter.setAppSettingsFieldValue(settings, newSettings, field);
+			assertTrue(result);
+			assertEquals(settings.field, newSettings.field);
+			
+
+			field = settings.getClass().getDeclaredField("fieldStatic");
+			result = AntMediaApplicationAdapter.setAppSettingsFieldValue(settings, newSettings, field);
+			assertFalse(result);
+			
+			field = settings.getClass().getDeclaredField("fieldFinalStatic");
+			result = AntMediaApplicationAdapter.setAppSettingsFieldValue(settings, newSettings, field);
+			assertFalse(result);
+			
+			
+			AppSettings settings2 = new AppSettings();
+			AppSettings newSettings2 = new AppSettings();
+			settings2.setAcceptOnlyStreamsInDataStore(true);
+			newSettings2.setAcceptOnlyStreamsInDataStore(false);
+			
+			field = settings2.getClass().getDeclaredField("acceptOnlyRoomsInDataStore");
+			result = AntMediaApplicationAdapter.setAppSettingsFieldValue(settings2, newSettings2, field);
+			assertTrue(result);
+			assertEquals(settings2.isAcceptOnlyRoomsInDataStore(), newSettings2.isAcceptOnlyRoomsInDataStore());
+			
+			
+			
+			
+			
+			
+		} catch (NoSuchFieldException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (SecurityException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+			
+		
+	}
+	
 
 	@Test
 	public void testAppSettings() 
@@ -211,9 +273,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setScope(scope);
+		assertNotEquals("", settings.getHlsPlayListType());
 		spyAdapter.updateSettings(newSettings, true, false);
 		
-		
+		assertEquals("", settings.getHlsPlayListType());
+		assertEquals(newSettings.getHlsPlayListType(), settings.getHlsPlayListType());
+
 
 		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
 
@@ -355,8 +420,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		//test.flv
 		//sample_MP4_480.mp4
 		//high_profile_delayed_video.flv
+		//test_video_360p_pcm_audio.mkv
 		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, null);
-		assertEquals(6, vodList.size());
+		assertEquals(7, vodList.size());
 
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/" + voD.getVodName(), voD.getFilePath());
@@ -1458,7 +1524,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()-80000);
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(4)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
-		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
+		verify(spyAdapter, times(1)).updateSettings(settings, true, false);
 	}
 	
 	@Test
@@ -1542,11 +1608,26 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
-	public void testAppDeletion() {
+	public void testAppDeletion() 
+	{
 		DataStore dataStore = Mockito.spy(new InMemoryDataStore("test"));
 		adapter.setDataStore(dataStore);
-		adapter.deleteDBInSeconds();
-		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).delete();
+		
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		
+		IContext context = mock(IContext.class);
+		ApplicationContext appContext = mock(ApplicationContext.class);
+		when(context.getApplicationContext()).thenReturn(appContext);
+		when(appContext.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
+		
+		when(scope.getContext()).thenReturn(context);
+		
+		
+		adapter.setScope(scope);
+		
+		adapter.stopApplication(true);
+		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).close(true);
 	}	
 
 }

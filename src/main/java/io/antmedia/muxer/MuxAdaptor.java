@@ -3,7 +3,10 @@ package io.antmedia.muxer;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
@@ -68,6 +71,7 @@ import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.plugin.api.StreamParametersInfo;
+import io.antmedia.rest.model.Result;
 import io.antmedia.settings.IServerSettings;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
@@ -689,6 +693,33 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
+	public static String getStreamType(int codecType) 
+	{
+		String streamType = "not_known";
+		
+		if (codecType == AVMEDIA_TYPE_VIDEO) 
+		{
+			streamType = "video";
+		}
+		else if (codecType == AVMEDIA_TYPE_AUDIO) 
+		{
+			streamType = "audio";
+		}
+		else if (codecType == AVMEDIA_TYPE_DATA) 
+		{
+			streamType = "data";
+		}
+		else if (codecType == AVMEDIA_TYPE_SUBTITLE) 
+		{
+			streamType = "subtitle";
+		}
+		else if (codecType == AVMEDIA_TYPE_ATTACHMENT) 
+		{
+			streamType = "attachment";
+		}
+	
+		return streamType;
+	}
 
 	public void addStream2Muxers(AVCodecParameters codecParameters, AVRational rat, int streamIndex) 
 	{
@@ -701,16 +732,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				if (!muxer.addStream(codecParameters, rat, streamIndex)) 
 				{
-					iterator.remove();
-					logger.warn("addStream returns false {} for stream: {}", muxer.getFormat(), streamId);
+					
+					logger.warn("addStream returns false {} for stream: {} for {} stream", muxer.getFormat(), streamId, getStreamType(codecParameters.codec_type()));
 				}
 			}
-
 		}
 
 		startTime = System.currentTimeMillis();
 	}
-
 
 	public void prepareMuxerIO() 
 	{
@@ -781,7 +810,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public void writeStreamPacket(IStreamPacket packet) {
-
 		long dts = packet.getTimestamp() & 0xffffffffL;
 		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA)
 		{
@@ -1620,22 +1648,31 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
-	public boolean startRtmpStreaming(String rtmpUrl, int resolutionHeight)
+	public Result startRtmpStreaming(String rtmpUrl, int resolutionHeight)
 	{
+		Result result = new Result(false);
 		rtmpUrl = rtmpUrl.replaceAll("[\n\r\t]", "_");
-		if (!isRecording.get()) {
+		
+		if (!isRecording.get()) 
+		{
 			logger.warn("Start rtmp streaming return false for stream:{} because stream is being prepared", streamId);
-			return false;
+			result.setMessage("Start rtmp streaming return false for stream:"+ streamId +" because stream is being prepared. Try again");			
+			return result;
 		}
 		logger.info("start rtmp streaming for stream id:{} to {} with requested resolution height{} stream resolution:{}", streamId, rtmpUrl, resolutionHeight, height);
-		boolean result = false;
+		
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
 			RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
 			rtmpMuxer.setStatusListener(this);
-			result = prepareMuxer(rtmpMuxer);
-			if (!result) {
+			if (prepareMuxer(rtmpMuxer)) 
+			{
+				result.setSuccess(true);
+			}
+			else 
+			{
 				logger.error("RTMP prepare returned false so that rtmp pushing to {} for {} didn't started ", rtmpUrl, streamId);
+				result.setMessage("RTMP prepare returned false so that rtmp pushing to " + rtmpUrl + " for "+ streamId +" didn't started ");
 			}
 		}
 
@@ -1806,9 +1843,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return rtmpMuxer;
 	}
 
-	public boolean stopRtmpStreaming(String rtmpUrl, int resolutionHeight)
+	public Result stopRtmpStreaming(String rtmpUrl, int resolutionHeight)
 	{
-		boolean result = false;
+		Result result = new Result(false);
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
 			RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
@@ -1816,7 +1853,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				muxerList.remove(rtmpMuxer);
 				statusMap.remove(rtmpUrl);
 				rtmpMuxer.writeTrailer();
-				result = true;
+				result.setSuccess(true);
 			}
 		}
 		return result;
