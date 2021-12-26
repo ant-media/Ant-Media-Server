@@ -171,7 +171,6 @@ public abstract class RecordMuxer extends Muxer {
 			codecTimeBaseMap.put(streamIndex, timeBase);
 			result = true;
 		}
-
 		return result;
 	}
 
@@ -252,7 +251,6 @@ public abstract class RecordMuxer extends Muxer {
 		else {
 			logger.warn("Stream is not added for muxing to {} for stream:{}", getFileName(), streamId);
 		}
-
 		return result;
 	}
 
