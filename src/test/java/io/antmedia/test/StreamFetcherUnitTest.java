@@ -641,7 +641,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.info("error:   "+str3);
 
 			assertNull(fetcher3.getCameraError().getMessage());
-			assertTrue(fetcher3.isStreamAlive());
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return fetcher3.isStreamAlive();
+			});
 
 			fetcher3.stopStream();
 

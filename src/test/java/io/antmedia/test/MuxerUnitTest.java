@@ -8,8 +8,6 @@ import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
-import static org.bytedeco.ffmpeg.global.avcodec.*;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
@@ -20,7 +18,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -29,11 +26,12 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -49,22 +47,19 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.commons.lang3.RandomUtils;
-import io.antmedia.storage.AmazonS3StorageClient;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
 import org.awaitility.Awaitility;
-import org.bouncycastle.util.Times;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVInputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
-import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
 import org.bytedeco.ffmpeg.avutil.AVRational;
@@ -85,9 +80,7 @@ import org.red5.codec.IVideoStreamCodec;
 import org.red5.codec.StreamCodecInfo;
 import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
-import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamPacket;
 import org.red5.server.net.rtmp.message.Constants;
@@ -98,7 +91,6 @@ import org.red5.server.stream.ClientBroadcastStream;
 import org.red5.server.stream.VideoCodecFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -112,7 +104,6 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.HLSMuxer;
@@ -120,7 +111,6 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
-import io.antmedia.muxer.RecordMuxer;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.muxer.parser.AACConfigParser;
@@ -128,7 +118,8 @@ import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
 import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
-import io.antmedia.social.endpoint.VideoServiceEndpoint;
+import io.antmedia.rest.model.Result;
+import io.antmedia.storage.AmazonS3StorageClient;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.test.utils.VideoInfo;
 import io.antmedia.test.utils.VideoProber;
@@ -526,16 +517,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		String rtmpUrl = "rtmp://localhost";
 		int resolutionHeight = 480;
-		boolean result = muxAdaptor.startRtmpStreaming(rtmpUrl, resolutionHeight);
-		assertFalse(result);
+		Result result = muxAdaptor.startRtmpStreaming(rtmpUrl, resolutionHeight);
+		assertFalse(result.isSuccess());
 		
 		muxAdaptor.setHeight(480);
 		result = muxAdaptor.startRtmpStreaming(rtmpUrl, resolutionHeight);
-		assertTrue(result);
+		assertTrue(result.isSuccess());
 		
 		
 		result = muxAdaptor.startRtmpStreaming(rtmpUrl, 0);
-		assertTrue(result);
+		assertTrue(result.isSuccess());
 		
 		
 		
@@ -1308,95 +1299,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
-	public void testPublishAndUnpublishSocialEndpoints() {
-		AntMediaApplicationAdapter appAdaptor = ((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
-		assertNotNull(appAdaptor);
-
-
-		Broadcast broadcast = new Broadcast();
-		broadcast.setListenerHookURL("any_url");
-		appAdaptor.getDataStore().save(broadcast);
-		broadcast.setWebRTCViewerCount(10);
-		broadcast.setHlsViewerCount(20);
-		IBroadcastStream stream = Mockito.mock(IBroadcastStream.class);
-		Mockito.when(stream.getPublishedName()).thenReturn(broadcast.getStreamId());
-
-		VideoServiceEndpoint endpointService = Mockito.mock(VideoServiceEndpoint.class);
-		String endpointServiceId = "" + (Math.random()*10000);
-		appAdaptor.getVideoServiceEndpoints().put(endpointServiceId, endpointService);
-
-		Endpoint endpoint = new Endpoint(null, broadcast.getStreamId(), "name", "rtmp url", null, endpointServiceId, null);
-
-		appAdaptor.getDataStore().addEndpoint(broadcast.getStreamId(), endpoint);
-
-		appAdaptor.startPublish(stream.getPublishedName(),broadcast.getAbsoluteStartTimeMs(), "RTMP");
-
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-		.until(() ->
-		appAdaptor.getDataStore().get(broadcast.getStreamId())
-		.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
-
-		assertEquals("RTMP",broadcast.getPublishType());
-		Broadcast dtBroadcast = appAdaptor.getDataStore().get(broadcast.getStreamId()); 
-		assertEquals(0, dtBroadcast.getWebRTCViewerCount());
-		assertEquals(0, dtBroadcast.getHlsViewerCount());
-
-		try {
-			Mockito.verify(endpointService).publishBroadcast(endpoint);
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-		//this zombi trick will let us have a proper await method
-		broadcast.setZombi(true);
-		appAdaptor.stopPublish(stream.getPublishedName());
-
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> appAdaptor.getDataStore().get(broadcast.getStreamId()) == null);
-
-		try {
-			Mockito.verify(endpointService).stopBroadcast(endpoint);
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-
-	}
-
-	@Test
-	public void testVideoServiceEndpoint() {
-		AntMediaApplicationAdapter appAdaptor = ((AntMediaApplicationAdapter) applicationContext.getBean("web.handler"));
-		assertNotNull(appAdaptor);
-
-		VideoServiceEndpoint endpointService = Mockito.mock(VideoServiceEndpoint.class);
-		SocialEndpointCredentials credentials = Mockito.mock(SocialEndpointCredentials.class);
-		String id = "" + (Math.random() * 10000);
-		Mockito.when(credentials.getId()).thenReturn(id);
-
-		appAdaptor.getVideoServiceEndpoints().put(id, endpointService);
-
-		Mockito.when(endpointService.getCredentials()).thenReturn(credentials);
-
-		String id2 = "" + (Math.random() * 10000);
-		VideoServiceEndpoint endpointService2 = Mockito.mock(VideoServiceEndpoint.class);
-		SocialEndpointCredentials credentials2 = Mockito.mock(SocialEndpointCredentials.class);
-		Mockito.when(credentials2.getId()).thenReturn(id2);
-		Mockito.when(endpointService2.getCredentials()).thenReturn(credentials2);
-
-		appAdaptor.getVideoServiceEndpoints().put(id2, endpointService2);
-
-		VideoServiceEndpoint videoServiceEndPoint = appAdaptor.getVideoServiceEndPoint(id);
-		assertNotNull(videoServiceEndPoint);
-		assertEquals(endpointService, videoServiceEndPoint);
-
-		videoServiceEndPoint = appAdaptor.getVideoServiceEndPoint(id2);
-		assertNotNull(videoServiceEndPoint);
-		assertEquals(endpointService2, videoServiceEndPoint);
-
-
-	}
-
+	
 	@Test
 	public void testMp4MuxingAndNotifyCallback() {
 
@@ -1407,7 +1310,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(appAdaptor);
 
 		//just check below value that it is not null, this is not related to this case but it should be tested
-		assertNotNull(appAdaptor.getVideoServiceEndpoints());
 		String hookUrl = "http://google.com";
 		String name = "namer123";
 		Broadcast broadcast = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, name);

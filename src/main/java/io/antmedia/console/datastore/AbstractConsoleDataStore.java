@@ -1,6 +1,6 @@
 package io.antmedia.console.datastore;
 
-import io.antmedia.rest.model.User;
+import io.antmedia.datastore.db.types.User;
 import io.antmedia.rest.model.UserType;
 
 import java.util.HashMap;

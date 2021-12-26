@@ -34,6 +34,7 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
 import dev.morphia.Datastore;
+import dev.morphia.DeleteOptions;
 import dev.morphia.query.Query;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.DataStore;
@@ -47,7 +48,6 @@ import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.SubscriberStats;
@@ -109,7 +109,6 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
-		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
@@ -156,14 +155,14 @@ public class DBStoresUnitTest {
 		assertTrue(broadcast2.isPublish());
 		
 		
-		dataStore.close();
+		dataStore.close(false);
 		
 		dataStore = new MapDBStore("testdb", vertx);
 		Broadcast broadcast3 = dataStore.get(key);
 		assertEquals(broadcast.getStreamId(), broadcast3.getStreamId());
 		assertTrue(broadcast3.isPublish());
 		
-		dataStore.close();
+		dataStore.close(false);
 		
 	}
 
@@ -185,7 +184,6 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
-		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
@@ -212,26 +210,16 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 	}
+	
 
 	@Test
 	public void testMongoStore() {
 
 		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
-		Datastore store = ((MongoStore) dataStore).getDataStore();
-		Query<Broadcast> deleteQuery = store.find(Broadcast.class);
-		store.delete(deleteQuery);
-
-		Query<TensorFlowObject> detectedObjects = store.find(TensorFlowObject.class);
-		store.delete(detectedObjects);
-
-		store = ((MongoStore) dataStore).getEndpointCredentialsDS();
-		Query<SocialEndpointCredentials> deleteQuery2 = store.find(SocialEndpointCredentials.class);
-		store.delete(deleteQuery2);
-
-		store = ((MongoStore)dataStore).getVodDatastore();
-		Query<VoD> deleteVodQuery = store.find(VoD.class);
-		store.delete(deleteVodQuery);
-
+		//delete db
+		dataStore.close(true);
+		
+		dataStore = new MongoStore("localhost", "", "", "testdb");
 
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -246,7 +234,6 @@ public class DBStoresUnitTest {
 		testStreamWithId(dataStore);
 		//testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
-		testAddSocialEndpointCredentials(dataStore);
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
@@ -1147,6 +1134,7 @@ public class DBStoresUnitTest {
 		assertEquals(broadcastList.get(1).getStreamId(), broadcast1.getStreamId());
 		assertEquals(broadcastList.get(2).getStreamId(), broadcast2.getStreamId());
 
+		//case insensitive test
 		broadcastList = dataStore.getBroadcastList(0, 50, null, "name", "desc", "str");
 		assertEquals(3, broadcastList.size());
 		assertEquals(broadcastList.get(0).getStreamId(), broadcast3.getStreamId());
@@ -1477,7 +1465,11 @@ public class DBStoresUnitTest {
 			assertNotNull(broadcast3.getQuality());
 			dataStore.save(broadcast3);
 			
-			result = dataStore.updateSourceQualityParameters(broadcast3.getStreamId(), null, 0, 0);
+			logger.info("Saved id {}", broadcast3.getStreamId());
+			
+			assertEquals(broadcast3.getStreamId(), dataStore.get(broadcast3.getStreamId()).getStreamId());
+			
+			result = dataStore.updateSourceQualityParameters(broadcast3.getStreamId(), null, 0.1, 0);
 			assertTrue(result);
 			//it's poor because it's not updated because of null
 			assertEquals("poor", dataStore.get(broadcast3.getStreamId()).getQuality());
@@ -1694,151 +1686,6 @@ public class DBStoresUnitTest {
 
 
 	}
-
-
-	public void testAddSocialEndpointCredentials(DataStore dataStore) 
-	{
-		// add social endpoint credential 
-
-		assertNull(dataStore.addSocialEndpointCredentials(null));
-
-		String name = "name" + (int)(Math.random()*10000000);
-		String serviceName = "serviceName"  + (int)(Math.random()*10000000);
-		String authTime = "authtime" + (int)(Math.random()*10000000);
-		String expireTimeInSeconds = "expireTimeInSeconds" + (int)(Math.random()*10000000);
-		String tokenType = "tokenType" + (int)(Math.random()*10000000);
-		String accessToken = "accessToken" + (int)(Math.random()*10000000);
-		String refreshToken = "refreshToken" + (int)(Math.random()*10000000);
-		SocialEndpointCredentials credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);
-
-
-		SocialEndpointCredentials addedCredential = dataStore.addSocialEndpointCredentials(credentials);
-
-		assertNotNull(addedCredential);
-		assertNotNull(addedCredential.getId());
-		assertTrue(addedCredential.getId().length() >= 6);
-
-		credentials.setServiceName(null);
-		assertNull(dataStore.addSocialEndpointCredentials(credentials));
-		//restore service name because it is used below to check values
-		credentials.setServiceName(serviceName);
-
-		// get id of the social endpoint
-		SocialEndpointCredentials socialEndpointCredentials = dataStore.getSocialEndpointCredentials(addedCredential.getId());
-
-		assertNotNull(socialEndpointCredentials);
-		// check fields
-		assertEquals(socialEndpointCredentials.getAccountName(), credentials.getAccountName());
-		assertEquals(socialEndpointCredentials.getServiceName(), credentials.getServiceName());
-		assertEquals(socialEndpointCredentials.getId(), addedCredential.getId());
-		assertEquals(socialEndpointCredentials.getAccessToken(), credentials.getAccessToken());
-		assertEquals(socialEndpointCredentials.getRefreshToken(), credentials.getRefreshToken());
-		assertEquals(socialEndpointCredentials.getTokenType(), credentials.getTokenType());
-		assertEquals(socialEndpointCredentials.getExpireTimeInSeconds(), credentials.getExpireTimeInSeconds());
-		assertEquals(socialEndpointCredentials.getAuthTimeInMilliseconds(), credentials.getAuthTimeInMilliseconds());
-
-		// add social endpoint 
-		name = "name" + (int)(Math.random()*10000000);
-		serviceName = "serviceName"  + (int)(Math.random()*10000000);
-		authTime = "authtime" + (int)(Math.random()*10000000);
-		expireTimeInSeconds = "expireTimeInSeconds" + (int)(Math.random()*10000000);
-		tokenType = null;
-		accessToken = "accessToken" + (int)(Math.random()*10000000);
-		refreshToken = null;
-		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);
-
-		addedCredential = dataStore.addSocialEndpointCredentials(credentials);
-
-		assertNotNull(addedCredential);
-		assertNotNull(addedCredential.getId());
-		assertTrue(addedCredential.getId().length() >= 6);
-
-		//get credentials
-		socialEndpointCredentials = dataStore.getSocialEndpointCredentials(addedCredential.getId());
-
-		// check fields
-		assertEquals(socialEndpointCredentials.getAccountName(), credentials.getAccountName());
-		assertEquals(socialEndpointCredentials.getServiceName(), credentials.getServiceName());
-		assertEquals(socialEndpointCredentials.getId(), addedCredential.getId());
-		assertEquals(socialEndpointCredentials.getAccessToken(), credentials.getAccessToken());
-		assertEquals(socialEndpointCredentials.getRefreshToken(), credentials.getRefreshToken());
-		assertEquals(socialEndpointCredentials.getTokenType(), credentials.getTokenType());
-		assertEquals(socialEndpointCredentials.getExpireTimeInSeconds(), credentials.getExpireTimeInSeconds());
-		assertEquals(socialEndpointCredentials.getAuthTimeInMilliseconds(), credentials.getAuthTimeInMilliseconds());
-
-		// add other social endpoint
-		name = "name" + (int)(Math.random()*10000000);
-		serviceName = "serviceName"  + (int)(Math.random()*10000000);
-		authTime = "authtime" + (int)(Math.random()*10000000);
-		expireTimeInSeconds = "expireTimeInSeconds" + (int)(Math.random()*10000000);
-		tokenType = "tokenType" + (int)(Math.random()*10000000);
-		accessToken = "accessToken" + (int)(Math.random()*10000000);
-		refreshToken = "refreshToken" + (int)(Math.random()*10000000);
-		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);
-
-		addedCredential = dataStore.addSocialEndpointCredentials(credentials);
-
-		assertNotNull(addedCredential);
-		assertNotNull(addedCredential.getId());
-		assertTrue(addedCredential.getId().length() >= 6);
-
-		//it should not accept credential having id because there is already one in the db
-		assertNotNull(dataStore.addSocialEndpointCredentials(credentials));
-
-		//get credentials
-		socialEndpointCredentials = dataStore.getSocialEndpointCredentials(addedCredential.getId());
-
-		// check fields
-		assertEquals(socialEndpointCredentials.getAccountName(), credentials.getAccountName());
-		assertEquals(socialEndpointCredentials.getServiceName(), credentials.getServiceName());
-		assertEquals(socialEndpointCredentials.getId(), addedCredential.getId());
-		assertEquals(socialEndpointCredentials.getAccessToken(), credentials.getAccessToken());
-		assertEquals(socialEndpointCredentials.getRefreshToken(), credentials.getRefreshToken());
-		assertEquals(socialEndpointCredentials.getTokenType(), credentials.getTokenType());
-		assertEquals(socialEndpointCredentials.getExpireTimeInSeconds(), credentials.getExpireTimeInSeconds());
-		assertEquals(socialEndpointCredentials.getAuthTimeInMilliseconds(), credentials.getAuthTimeInMilliseconds());
-
-		//it should not save
-		credentials = new SocialEndpointCredentials(name, serviceName, authTime, expireTimeInSeconds, tokenType, accessToken, refreshToken);
-		credentials.setId("not_id_in_db");
-		assertNull(dataStore.addSocialEndpointCredentials(credentials));
-
-
-		// get list of the social endpoint
-		List<SocialEndpointCredentials> socialEndpoints = dataStore.getSocialEndpoints(0, 10);
-
-		// check the count
-		assertEquals(3, socialEndpoints.size());
-
-		// remove social endpoint
-		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
-
-		//remove same social endpoint
-		assertFalse(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
-
-		assertFalse(dataStore.removeSocialEndpointCredentials("any_id_not_exist"));
-
-		// get list of the social endpoint
-		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
-
-		// check that the count
-		assertEquals(2, socialEndpoints.size());
-
-		// remove social endpoint
-		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
-		// get list of the social endpoint
-		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
-		// check that the count
-		assertEquals(1, socialEndpoints.size());
-
-		// remove social endpoint
-		assertTrue(dataStore.removeSocialEndpointCredentials(socialEndpoints.get(0).getId()));
-		// get list of the social endpoint
-		socialEndpoints = dataStore.getSocialEndpoints(0, 10);
-		// check that the count
-		assertEquals(0, socialEndpoints.size());
-	}
-
 
 	public void testSaveDetection(DataStore dataStore){
 		String item1 = "item1";
@@ -2227,7 +2074,7 @@ public class DBStoresUnitTest {
 		dataStore.save(broadcast4);
 		
 		assertEquals(4, dataStore.getBroadcastCount());
-
+		
 		dataStore.resetBroadcasts(ServerSettings.getLocalHostAddress());
 
 		assertEquals(2, dataStore.getBroadcastCount());
@@ -2288,6 +2135,7 @@ public class DBStoresUnitTest {
 	public void testMongoDBSaveStreamInfo() {
 		MongoStore dataStore = new MongoStore("localhost", "", "", "testdb");
 		deleteStreamInfos(dataStore);
+		assertEquals(0, dataStore.getDataStore().find(StreamInfo.class).count());
 
 		//same ports different host => there will be 2 SIs
 		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host2", 1000, 2000, 0);
@@ -2337,14 +2185,15 @@ public class DBStoresUnitTest {
 		
 	}
 
-	public void deleteStreamInfos(MongoStore dataStore) {
-		Query<StreamInfo> deleteQuery = dataStore.getDataStore().find(StreamInfo.class);
-		dataStore.getDataStore().delete(deleteQuery);
+	public void deleteStreamInfos(MongoStore datastore) {
+		datastore.getDataStore().find(StreamInfo.class).delete(new DeleteOptions()
+                .multi(true));
+		
 	}
 	
 	public void deleteBroadcast(MongoStore dataStore) {
-		Query<Broadcast> deleteQuery = dataStore.getDataStore().find(Broadcast.class);
-		dataStore.getDataStore().delete(deleteQuery);
+		dataStore.getDataStore().find(Broadcast.class).delete(new DeleteOptions()
+                .multi(true));
 	}
 
 	public void saveStreamInfo(DataStore dataStore, String host1, int videoPort1, int audioPort1, int dataPort1,
@@ -2793,8 +2642,7 @@ public class DBStoresUnitTest {
 		String dbName = "deleteMapdb";
 		DataStore dataStore = new MapDBStore(dbName, vertx);
 		assertTrue(new File(dbName).exists());
-		dataStore.close();
-		dataStore.delete();
+		dataStore.close(true);
 		assertFalse(new File(dbName).exists());
 	}
 	
@@ -2811,8 +2659,7 @@ public class DBStoresUnitTest {
 		client.listDatabaseNames().forEach(c-> dbNames.add(c));
 		assertTrue(dbNames.contains(dbName));
 		
-		dataStore.close();
-		dataStore.delete();
+		dataStore.close(true);
 
 		dbNames.clear();
 		client.listDatabaseNames().forEach(c-> dbNames.add(c));

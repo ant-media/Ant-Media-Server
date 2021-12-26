@@ -6,7 +6,7 @@
 # - First parameter is the mode of the cluster. It can be standalone or cluster
 # if the first parameter is cluster than the following parameter should also be given
 #
-# - Second parameter is the host of the mongodb. 
+# - Second parameter is the host of the mongodb.
 # - Third parameter is the username of the mongodb
 # - Fourth parameter is the password of the mongodb
 #
@@ -43,14 +43,14 @@ change_server_mode() {
     sed -i $SED_COMPATIBILITY -E -e 's/(<!-- cluster end -->|cluster end -->)/cluster end -->/g' $AMS_INSTALL_LOCATION/conf/jee-container.xml
   fi
 
-  sed -i $SED_COMPATIBILITY "/clusterdb.host=/c\clusterdb.host=$MONGO_SERVER_IP" $AMS_INSTALL_LOCATION/conf/red5.properties
+  #The c\ command is used to handle the & character in the mongo server url. & character mentions the matched line in s/ command
+  sed -i $SED_COMPATIBILITY "/clusterdb.host=/c\clusterdb.host=${MONGO_SERVER_IP}" $AMS_INSTALL_LOCATION/conf/red5.properties
   sed -i $SED_COMPATIBILITY "/clusterdb.user=/c\clusterdb.user=$3" $AMS_INSTALL_LOCATION/conf/red5.properties
   sed -i $SED_COMPATIBILITY "/clusterdb.password=/c\clusterdb.password=$4" $AMS_INSTALL_LOCATION/conf/red5.properties
 
-  for i in $LIST_APPS; do 
-
+  for i in $LIST_APPS; do
     sed -i $SED_COMPATIBILITY "/db.type=/c\db.type=$DB_TYPE" $i/WEB-INF/red5-web.properties
-    sed -i $SED_COMPATIBILITY "/db.host=/c\db.host=$MONGO_SERVER_IP" $i/WEB-INF/red5-web.properties  
+    sed -i $SED_COMPATIBILITY "/db.host=/c\db.host=${MONGO_SERVER_IP}" $i/WEB-INF/red5-web.properties
     sed -i $SED_COMPATIBILITY "/db.user=/c\db.user=$3" $i/WEB-INF/red5-web.properties
     sed -i $SED_COMPATIBILITY "/db.password=/c\db.password=$4" $i/WEB-INF/red5-web.properties
   done
@@ -61,14 +61,14 @@ change_server_mode() {
     HOST_LINE="$LOCAL_IPv4 $HOST_NAME"
 
     # Change /etc/hosts file
-    # In docker changing /etc/hosts produces device or resource busy error. 
+    # In docker changing /etc/hosts produces device or resource busy error.
     # Above commands takes care the changing host file
 
-    # temp hosts file  
+    # temp hosts file
     NEW_HOST_FILE=~/.hosts.new
     # cp hosts file
-    cp /etc/hosts $NEW_HOST_FILE  
-    # delete hostname line from the file  
+    cp /etc/hosts $NEW_HOST_FILE
+    # delete hostname line from the file
     sed -i '/'$HOST_NAME'/d' $NEW_HOST_FILE
     # add host line to the file
     echo  "$HOST_LINE" | tee -a $NEW_HOST_FILE
@@ -79,3 +79,4 @@ change_server_mode() {
   fi
 
 }
+
