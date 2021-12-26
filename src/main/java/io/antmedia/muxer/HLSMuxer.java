@@ -590,7 +590,7 @@ public class HLSMuxer extends Muxer  {
 		 * In addStream for example, if we don't check this we end up removing the muxer completely if one of the operations fail.
 		 */
 		if (isRunning.get()) {
-			logger.warn("Either there are no streams on HLS Muxer or Muxer is not running for stream : {}", streamId);
+			logger.warn("HLS Muxer is already running for stream: {} so it's not preparing io again and returning", streamId);
 			return false;
 		}
 

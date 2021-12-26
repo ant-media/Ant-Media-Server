@@ -3,7 +3,10 @@ package io.antmedia.muxer;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
@@ -689,6 +692,33 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
+	public static String getStreamType(int codecType) 
+	{
+		String streamType = "not_known";
+		
+		if (codecType == AVMEDIA_TYPE_VIDEO) 
+		{
+			streamType = "video";
+		}
+		else if (codecType == AVMEDIA_TYPE_AUDIO) 
+		{
+			streamType = "audio";
+		}
+		else if (codecType == AVMEDIA_TYPE_DATA) 
+		{
+			streamType = "data";
+		}
+		else if (codecType == AVMEDIA_TYPE_SUBTITLE) 
+		{
+			streamType = "subtitle";
+		}
+		else if (codecType == AVMEDIA_TYPE_ATTACHMENT) 
+		{
+			streamType = "attachment";
+		}
+	
+		return streamType;
+	}
 
 	public void addStream2Muxers(AVCodecParameters codecParameters, AVRational rat, int streamIndex) 
 	{
@@ -701,7 +731,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				if (!muxer.addStream(codecParameters, rat, streamIndex)) 
 				{
-					logger.warn("addStream returns false {} for stream: {} for {}", muxer.getFormat(), streamId, codecParameters.codec_type() == 0 ? "video" : "audio");
+					
+					logger.warn("addStream returns false {} for stream: {} for {} stream", muxer.getFormat(), streamId, getStreamType(codecParameters.codec_type()));
 				}
 			}
 		}
