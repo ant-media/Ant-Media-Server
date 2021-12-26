@@ -705,7 +705,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
 				JSONObject jsObject = (JSONObject) new JSONParser().parse(captureMetadata.getValue());
 				assertTrue(jsObject.containsKey("rtmp-url"));
-				assertEquals(rtmpUrl, jsObject.containsKey("rtmp-url"));
+				assertEquals(rtmpUrl, jsObject.get("rtmp-url"));
 
 				called = true;
 			} catch (Exception e) {
