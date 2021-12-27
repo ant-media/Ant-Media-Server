@@ -719,6 +719,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		testFetchStreamSources("src/test/resources/test.m3u8", false, false);
 		logger.info("leaving testHLSSource");
 	}
+	
+	@Test
+	public void testH264VideoPCMAudio() {
+		logger.info("running testTSSource");
+		//test h264 video and pcm audio
+		testFetchStreamSources("src/test/resources/test_video_360p_pcm_audio.mkv", false, false);
+		logger.info("leaving testTSSource");
+	}
 
 
 	@Test
