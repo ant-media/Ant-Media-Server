@@ -36,13 +36,9 @@ public class EndpointProxy extends ProxyServlet {
     @Override
     protected void service(HttpServletRequest servletRequest, HttpServletResponse servletResponse)
             throws ServletException, IOException {
-        if (servletRequest.getAttribute(ATTR_TARGET_URI) == null) {
-            servletRequest.setAttribute(ATTR_TARGET_URI, this.targetUri);
-        }
 
-        if (servletRequest.getAttribute(ATTR_TARGET_HOST) == null) {
-            servletRequest.setAttribute(ATTR_TARGET_HOST, this.targetHost);
-        }
+        servletRequest.setAttribute(ATTR_TARGET_URI, this.targetUri);
+        servletRequest.setAttribute(ATTR_TARGET_HOST, this.targetHost);
 
         String method = servletRequest.getMethod();
         String proxyRequestUri = this.rewriteUrlFromRequest(servletRequest);
@@ -55,7 +51,7 @@ public class EndpointProxy extends ProxyServlet {
         }
 
         this.copyRequestHeaders(servletRequest, (HttpRequest)proxyRequest);
-        this.setXForwardedForHeader(servletRequest, (HttpRequest)proxyRequest);
+        this.setXForwardedFor(servletRequest, (HttpRequest)proxyRequest);
         HttpResponse proxyResponse = null;
 
         try {
@@ -89,7 +85,7 @@ public class EndpointProxy extends ProxyServlet {
         this.proxyClient = this.createHttpClient();
     }
 
-    public void setXForwardedForHeader(HttpServletRequest servletRequest, HttpRequest proxyRequest) {
+    public void setXForwardedFor(HttpServletRequest servletRequest, HttpRequest proxyRequest) {
 
         String forHeaderName = "X-Forwarded-For";
         String forHeader = servletRequest.getRemoteAddr();
@@ -118,10 +114,7 @@ public class EndpointProxy extends ProxyServlet {
 
     @Override
     public HttpResponse doExecute(HttpServletRequest servletRequest, HttpServletResponse servletResponse, HttpRequest proxyRequest) throws IOException {
-        if (this.doLog) {
-            this.log("proxy " + servletRequest.getMethod() + " uri: " + servletRequest.getRequestURI() + " -- " + proxyRequest.getRequestLine().getUri());
-        }
-
+        log.debug("proxy {} uri: {} -- {}", servletRequest.getMethod(), servletRequest.getRequestURI(), proxyRequest.getRequestLine().getUri());
         return this.proxyClient.execute(this.getTargetHost(servletRequest), proxyRequest);
     }
 

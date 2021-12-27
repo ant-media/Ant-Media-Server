@@ -138,5 +138,18 @@ public class RestProxyTest {
 
         restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
         assertEquals(501, httpServletResponse.getStatus());
+
+        httpServletRequest.setQueryString("query string");
+        restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
+        assertEquals(501, httpServletResponse.getStatus());
+
+        httpServletRequest.addHeader("X-Forwarded-For", "170.0.0.0");
+        restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
+        assertEquals(501, httpServletResponse.getStatus());
+
+        httpServletRequest.setRequestURI("/v2/broadcasts/stream12314_239/rtmp-endpoint");
+        restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
+        assertEquals(501, httpServletResponse.getStatus());
+
     }
 }
