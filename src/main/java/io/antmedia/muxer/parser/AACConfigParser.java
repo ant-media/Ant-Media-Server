@@ -41,9 +41,6 @@ public class AACConfigParser extends Parser {
 	protected static final int SAMPLE_RATE_8000 = 11; 
 	protected static final int SAMPLE_RATE_7350 = 12; 
 	
-
-	
-	
 	
 	private int sampleRate;
 	
@@ -126,12 +123,16 @@ public class AACConfigParser extends Parser {
 	
 	private AudioObjectTypes objectType;
 
-
 	private int frameSize;
-	
 
-	public AACConfigParser(byte[] data, int offset) {
+	public AACConfigParser(byte[] data, int offset) 
+	{
 		super(data, offset);
+		
+		for (int i=0; i<data.length; i++) 
+		{
+			logger.info("byte {} -> {}", i, data[i]);
+		}
 	}
 
 	protected void parse() {
@@ -146,11 +147,11 @@ public class AACConfigParser extends Parser {
 		var bits: AOT Specific Config
 		*/
 		
+		
 		int objectTypeIndex = readBits(5);
 		
 		if (objectTypeIndex == AudioObjectTypes.NULL.value) {
 			objectType = AudioObjectTypes.NULL;
-			
 		}
 		else if (objectTypeIndex == AudioObjectTypes.AAC_MAIN.value) {
 			objectType = AudioObjectTypes.AAC_MAIN;
@@ -172,6 +173,14 @@ public class AACConfigParser extends Parser {
 		}
 		else {
 			logger.error("Cannot determine the AAC object type:{} ", objectTypeIndex);
+			errorOccured = true;
+			return;
+		}
+		
+		if (objectType == AudioObjectTypes.NULL) {
+			errorOccured = true;
+			logger.error("Cannot determine the AAC object type it's null ");
+			return;
 		}
 		
 		logger.info("AAC object type:{} ", objectType);
@@ -219,16 +228,18 @@ public class AACConfigParser extends Parser {
 		}
 		else {
 			logger.error("Cannot determine the AAC Sample Rate:{} ", sampleRateIndex);
+			errorOccured = true;
+			return;
 		}
 		
 		logger.info("AAC Sample rate:{} ", sampleRate);
-		
-		
 		
 		channelCount = readBits(4);
 		
 		if (channelCount == 0 || channelCount > 7) {
 			logger.error("Cannot determine the channel count: {}", channelCount);
+			errorOccured = true;
+			return;
 		}
 		
 		if (channelCount == 7) {
@@ -236,7 +247,6 @@ public class AACConfigParser extends Parser {
 		}
 		
 		frameSize = readBit() == 0x00 ? 1024 : 960;
-		
 	}
 
 	public AudioObjectTypes getObjectType() {
