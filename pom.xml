@@ -248,6 +248,9 @@
               <groupId>org.owasp</groupId>
               <artifactId>dependency-check-maven</artifactId>
               <version>${owasp.version}</version>
+			  <configuration>
+				 <failBuildOnCVSS>9.2</failBuildOnCVSS>
+			   </configuration>
               <executions>
                 <execution>
                   <phase>compile</phase>

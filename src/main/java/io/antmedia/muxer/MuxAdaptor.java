@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
@@ -1678,6 +1679,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return result;
 	}
 
+	public void sendEndpointErrorNotifyHook(String url){
+		IContext context = MuxAdaptor.this.scope.getContext();
+		ApplicationContext appCtx = context.getApplicationContext();
+		AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		adaptor.endpointFailedUpdate(this.streamId, url);
+	}
+
 	/**
 	 * Periodically check the endpoint health status every 2 seconds
 	 * If each check returned failed, try to republish to the endpoint
@@ -1738,6 +1746,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			else{
 				logger.info("Exceeded republish retry limit, endpoint {} can't be reached and will be closed" , url);
 				stopRtmpStreaming(url, 0);
+				sendEndpointErrorNotifyHook(url);
 				retryCounter.remove(url);
 			}
 			//Clear the data and cancel timer to free memory and CPU.
