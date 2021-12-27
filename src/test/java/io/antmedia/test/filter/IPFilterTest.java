@@ -1,17 +1,20 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletException;
 
+import io.antmedia.cluster.ClusterNode;
+import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.rest.RestProxyFilter;
+import io.antmedia.settings.ServerSettings;
+import org.apache.catalina.ha.tcp.SimpleTcpCluster;
 import org.awaitility.Awaitility;
 import org.junit.Rule;
 import org.junit.Test;
@@ -32,6 +35,8 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.filter.IPFilter;
+
+import static org.junit.Assert.*;
 
 public class IPFilterTest {
 	
@@ -107,7 +112,27 @@ public class IPFilterTest {
 		 assertNull(ipFilter.getAppContext());
 		 
 	}
-	
+
+    @Test
+    public void testIsCluster(){
+        IPFilter ipFilter = Mockito.spy(new IPFilter());
+
+        List<ClusterNode> nodes = new ArrayList<ClusterNode>();
+
+        nodes.add(new ClusterNode("172.0.0.0", "node1"));
+        nodes.add(new ClusterNode("10.0.0.0", "node2"));
+
+        ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);
+        Mockito.doReturn(webAppContext).when(ipFilter).getAppContext();
+        Mockito.doReturn(false).when(webAppContext).containsBean(IClusterNotifier.BEAN_NAME);
+
+        assertFalse(ipFilter.isComingFromCluser("1000000"));
+
+        assertTrue(ipFilter.checkClusterIps("172.0.0.0", nodes));
+        assertTrue(ipFilter.checkClusterIps("10.0.0.0", nodes));
+        assertFalse(ipFilter.checkClusterIps("172341", nodes));
+
+    }
 	
     @Test
     public void testDoFilterPass() throws IOException, ServletException {

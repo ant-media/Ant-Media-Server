@@ -1,7 +1,6 @@
 package io.antmedia.rest;
 
 import io.antmedia.AppSettings;
-import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -15,27 +14,21 @@ import org.springframework.context.ApplicationContext;
 
 import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Enumeration;
-import java.util.List;
 
 public class RestProxyFilter extends AbstractFilter {
 
     protected static Logger log = LoggerFactory.getLogger(RestProxyFilter.class);
 
     private DataStore dataStore;
-    private AppSettings settings;
-    private IClusterNotifier clusterNotifier;
 
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletRequest httpReq = (HttpServletRequest) request;
         String reqURI = httpReq.getRequestURI();
-        settings = getAppSettings();
+        AppSettings settings = getAppSettings();
         String streamId = getStreamId(reqURI);
         Broadcast broadcast = getDataStore().get(streamId);
         log.debug("STREAM ID = {} BROADCAST = {} ", streamId, broadcast);
-
 
         //If it is not related with the broadcast, we can skip this filter
         if (isInSameNodeInCluster(request.getRemoteAddr()) || broadcast == null) {
@@ -67,7 +60,6 @@ public class RestProxyFilter extends AbstractFilter {
     public  boolean isInSameNodeInCluster(String originAddress) {
         ApplicationContext context = getAppContext();
         boolean isCluster = context.containsBean(IClusterNotifier.BEAN_NAME);
-
         return !isCluster || originAddress.equals(getServerSetting().getHostAddress());
     }
 

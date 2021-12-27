@@ -1,16 +1,13 @@
 package io.antmedia.rest.servlet;
 
-import io.antmedia.rest.RestProxyFilter;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.message.BasicHeader;
 import org.apache.http.message.BasicHttpRequest;
 import org.apache.http.util.EntityUtils;
 import org.mitre.dsmiley.httpproxy.ProxyServlet;
-import org.mitre.dsmiley.httpproxy.URITemplateProxyServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,7 +19,7 @@ import java.net.URI;
 
 public class EndpointProxy extends ProxyServlet {
 
-    private HttpClient proxyClient;
+    private static HttpClient proxyClient;
 
     protected static Logger log = LoggerFactory.getLogger(EndpointProxy.class);
 
@@ -41,12 +38,10 @@ public class EndpointProxy extends ProxyServlet {
             throws ServletException, IOException {
         if (servletRequest.getAttribute(ATTR_TARGET_URI) == null) {
             servletRequest.setAttribute(ATTR_TARGET_URI, this.targetUri);
-            System.out.println("targetURI = " + this.targetUri);
         }
 
         if (servletRequest.getAttribute(ATTR_TARGET_HOST) == null) {
             servletRequest.setAttribute(ATTR_TARGET_HOST, this.targetHost);
-            System.out.println("targetURI = " + this.targetHost);
         }
 
         String method = servletRequest.getMethod();
@@ -94,7 +89,7 @@ public class EndpointProxy extends ProxyServlet {
         this.proxyClient = this.createHttpClient();
     }
 
-    private void setXForwardedForHeader(HttpServletRequest servletRequest, HttpRequest proxyRequest) {
+    public void setXForwardedForHeader(HttpServletRequest servletRequest, HttpRequest proxyRequest) {
 
         String forHeaderName = "X-Forwarded-For";
         String forHeader = servletRequest.getRemoteAddr();
@@ -122,7 +117,7 @@ public class EndpointProxy extends ProxyServlet {
     }
 
     @Override
-    protected HttpResponse doExecute(HttpServletRequest servletRequest, HttpServletResponse servletResponse, HttpRequest proxyRequest) throws IOException {
+    public HttpResponse doExecute(HttpServletRequest servletRequest, HttpServletResponse servletResponse, HttpRequest proxyRequest) throws IOException {
         if (this.doLog) {
             this.log("proxy " + servletRequest.getMethod() + " uri: " + servletRequest.getRequestURI() + " -- " + proxyRequest.getRequestLine().getUri());
         }
@@ -130,6 +125,7 @@ public class EndpointProxy extends ProxyServlet {
         return this.proxyClient.execute(this.getTargetHost(servletRequest), proxyRequest);
     }
 
+    @Override
     protected String rewriteUrlFromRequest(HttpServletRequest servletRequest) {
         StringBuilder uri = new StringBuilder(500);
         uri.append(this.getTargetUri(servletRequest));

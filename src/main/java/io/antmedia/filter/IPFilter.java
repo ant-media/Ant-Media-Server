@@ -22,7 +22,6 @@ import org.springframework.context.ApplicationContext;
 public class IPFilter extends AbstractFilter {
 
 	protected static Logger log = LoggerFactory.getLogger(IPFilter.class);
-	private IClusterNotifier clusterNotifier;
 
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
 		if (isAllowed(request.getRemoteAddr()) || isComingFromCluser(request.getRemoteAddr())) {
@@ -42,7 +41,7 @@ public class IPFilter extends AbstractFilter {
 		boolean isCluster = context.containsBean(IClusterNotifier.BEAN_NAME);
 		boolean isClusterNode = false;
 		if(isCluster){
-			clusterNotifier = (IClusterNotifier) context.getBean(IClusterNotifier.BEAN_NAME);
+			IClusterNotifier clusterNotifier = (IClusterNotifier) context.getBean(IClusterNotifier.BEAN_NAME);
 			isClusterNode = checkClusterIps(originAddress, clusterNotifier.getClusterStore().getClusterNodes(0,1000));
 		}
 		return isClusterNode;
