@@ -37,9 +37,6 @@
         <property name="dropLiveFuture" value="${rtmpt.encoder_drop_live_future}" />
     </bean>
 
-    <!-- Remoting calls codec factory -->
-    <bean id="remotingCodecFactory" class="org.red5.server.net.remoting.codec.RemotingCodecFactory" autowire="byType" init-method="init"/>
-
     <!-- Streamable file factory -->
     <bean id="streamableFileFactory" class="org.red5.server.stream.StreamableFileFactory">
         <property name="services">
@@ -51,22 +48,6 @@
                 <bean id="mp4FileService" class="org.red5.server.service.mp4.impl.MP4Service"/>
                 <bean id="m4aFileService" class="org.red5.server.service.m4a.impl.M4AService"/>
             </list>
-        </property>
-    </bean>
-
-    <!-- Handles creation / lookup of shared objects -->
-    <bean id="sharedObjectService" class="org.red5.server.so.SharedObjectService">
-        <property name="maximumEventsPerUpdate" value="${so.max.events.per.update}"/>
-        <property name="persistenceClassName">
-            <value>org.red5.server.persistence.FilePersistence</value>
-        </property>
-        <property name="scheduler">
-            <bean class="org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler">
-                <property name="poolSize" value="${so.scheduler.pool_size}" />  
-                <property name="waitForTasksToCompleteOnShutdown" value="false"/>
-                <property name="daemon" value="true"/>
-                <property name="threadNamePrefix" value="SharedObjectScheduler-"/>
-            </bean>
         </property>
     </bean>
 
@@ -82,11 +63,6 @@
     <!-- Scheduling service -->
     <bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService">
         <property name="configFile" value="${red5.root}/conf/quartz.properties"/>   
-    </bean>
-
-    <!-- Use injection to setup thread pool for remoting clients -->
-    <bean id="remotingClient" class="org.red5.server.net.remoting.RemotingClient">
-        <property name="poolSize" value="1"/>
     </bean>
 
     <!--

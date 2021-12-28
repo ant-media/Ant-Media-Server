@@ -38,7 +38,6 @@
         <property name="name" value="default" />
         <property name="context" ref="global.context" />
         <property name="handler" ref="global.handler" />
-        <property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
     </bean>
     <!-- Application stuff from red5-web.xml -->
     <bean id="web.context" autowire="byType" class="org.red5.server.Context" />
@@ -47,7 +46,6 @@
         <property name="parent" ref="global.scope" />
         <property name="context" ref="web.context" />
         <property name="handler" ref="web.handler" />
-        <property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
         <property name="contextPath" value="/junit" />
         <property name="virtualHosts" value="*" />
     </bean>
