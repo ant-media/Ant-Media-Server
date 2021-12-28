@@ -2,6 +2,7 @@ package io.antmedia.rest.servlet;
 
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -119,7 +120,7 @@ public class EndpointProxy extends ProxyServlet {
             log.debug("proxy {} uri: {} -- {}", servletRequest.getMethod(), servletRequest.getRequestURI(), proxyRequest.getRequestLine().getUri());
             return this.proxyClient.execute(this.getTargetHost(servletRequest), proxyRequest);
         }
-        catch (UnknownHostException uhex){
+        catch (Exception e){
             log.error("Can't execute the request to forward in cluster");
             return null;
         }
