@@ -167,7 +167,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		// Test already created playlist Id  
 
-		javax.ws.rs.core.Response response = restServiceReal.createBroadcast(playlist, "", false);
+		javax.ws.rs.core.Response response = restServiceReal.createBroadcast(playlist, false);
 		
 		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
 		// Test already invalid created playlist Id  
@@ -175,7 +175,7 @@ public class PlaylistRestServiceV2UnitTest {
 		try {
 			playlist.setStreamId(" asd asd _ ?/assa s");
 	
-			response = restServiceReal.createBroadcast(playlist, "", false);
+			response = restServiceReal.createBroadcast(playlist, false);
 	
 			assertEquals(Status.BAD_REQUEST.getStatusCode() , response.getStatus());
 	
@@ -187,7 +187,7 @@ public class PlaylistRestServiceV2UnitTest {
 			when(monitor.enoughResource()).thenReturn(false);
 			when(context.getBean(StatsCollector.BEAN_NAME)).thenReturn(monitor);
 	
-			response = restServiceReal.createBroadcast(playlist2, "", false);
+			response = restServiceReal.createBroadcast(playlist2, false);
 			
 			Broadcast broadcast = (Broadcast) response.getEntity();
 	
@@ -200,7 +200,7 @@ public class PlaylistRestServiceV2UnitTest {
 			broadcastList.clear();
 			playlist.setPlayListItemList(broadcastList);
 	
-			response = restServiceReal.createBroadcast(playlist2, "", false);
+			response = restServiceReal.createBroadcast(playlist2, false);
 			broadcast = (Broadcast) response.getEntity();
 	
 			assertEquals(Status.OK.getStatusCode(), response.getStatus());
@@ -340,13 +340,13 @@ public class PlaylistRestServiceV2UnitTest {
 
 		// getPlaylistId = null & playlistId = null
 
-		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist, "");
+		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist);
 
 		assertEquals(true, result.isSuccess());
 
 		// getPlaylistId = null & playlistId != null		
 
-		result = restServiceReal.updateBroadcast("test123", playlist, "");
+		result = restServiceReal.updateBroadcast("test123", playlist);
 
 		assertEquals(false, result.isSuccess());
 
@@ -359,7 +359,7 @@ public class PlaylistRestServiceV2UnitTest {
 			fail(e.getMessage());
 		}
 
-		result = restServiceReal.updateBroadcast(null, playlist, "");
+		result = restServiceReal.updateBroadcast(null, playlist);
 
 		// getPlaylistId != null & playlistId != null
 		try {
@@ -373,7 +373,7 @@ public class PlaylistRestServiceV2UnitTest {
 		playlist.setName("afterTestPlaylistName");
 		dataStore.save(playlist);
 		
-		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist, "");
+		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist);
 
 		assertEquals(true, result.isSuccess());
 
@@ -388,7 +388,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		playlist.setPlayListItemList(broadcastList);
 
-		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist, "");
+		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist);
 
 		assertEquals(true, result.isSuccess());
 

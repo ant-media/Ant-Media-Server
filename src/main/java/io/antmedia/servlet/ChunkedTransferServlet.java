@@ -9,6 +9,8 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.servlet.AsyncContext;
@@ -145,7 +147,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 				try {
 					IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
 
-					logger.info("doPut key:{}", finalFile.getAbsolutePath());
+					logger.debug("doPut key:{}", finalFile.getAbsolutePath());
 
 					cacheManager.addCache(finalFile.getAbsolutePath());
 					IParser atomparser;
@@ -174,6 +176,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 				}
 				catch (BeansException | IllegalStateException | IOException e) 
 				{
+					logger.error("Exception in handleIncomingStream for the chunk:{} ",finalFile.getAbsolutePath());
 					logger.error(ExceptionUtils.getStackTrace(e));
 					writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
 				} 
@@ -225,9 +228,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 				}
 			}
 			
-			
 			Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-			
 		}
 		catch (ClientAbortException e) {
 			logger.warn("Client aborted - Reading input stream for file: {}", finalFile.getAbsolutePath());
@@ -245,7 +246,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 		
 		cacheManager.removeCache(finalFile.getAbsolutePath());
 		
-		logger.info("doPut done key:{}", finalFile.getAbsolutePath());
+		logger.debug("doPut done key:{}", finalFile.getAbsolutePath());
 	}
 
 
@@ -316,24 +317,43 @@ public class ChunkedTransferServlet extends HttpServlet {
 	}
 
 
-	public void writeOutputStream(File file, AsyncContext asyncContext, OutputStream ostream ) 
+	public void writeOutputStream(File file, AsyncContext asyncContext, HttpServletResponse resp) 
 	{
-		try (FileInputStream fis = new FileInputStream(file)) {
-
+		int total = 0;
+		try (FileInputStream fis = new FileInputStream(file)) 
+		{
+			OutputStream ostream = asyncContext.getResponse().getOutputStream();
 			int length = 0;
 			byte[] data = new byte[2048];
 
+			
 			while ((length = fis.read(data, 0, data.length)) > 0) {
 				ostream.write(data, 0, length);
+				total += length;
 			}
-			
-			ostream.flush();
+		
+			ostream.flush(); 
 			asyncContext.complete();
 
 		} 
-		catch (IOException e) 
+		catch (Exception e) 
 		{
-			logger.error(ExceptionUtils.getStackTrace(e));
+			logger.error("Exception in writing the following file:{} total written byte:{} stacktrace:{}", file.getName(), total, ExceptionUtils.getStackTrace(e));
+			//Below statement for debugging an error that cannot be reproduced easily
+			logHeaders(resp);
+		}
+	}
+
+	public static void logHeaders(HttpServletResponse resp) {
+		Collection<String> headerNames = resp.getHeaderNames();
+		for (String name : headerNames) {
+			try {
+				logger.info("Header name:{}", name);
+				logger.info("Header value:{}", resp.getHeader(name));
+			}
+			catch (Exception te) {
+				logger.error(ExceptionUtils.getStackTrace(te));
+			}
 		}
 	}
 
@@ -354,15 +374,15 @@ public class ChunkedTransferServlet extends HttpServlet {
 			try 
 			{    
 				//set the mime type
-				resp.setContentType(req.getServletContext().getMimeType(file.getName()));
+				String mimeType = req.getServletContext().getMimeType(file.getName());
+				
+				resp.setContentType(mimeType);
+				
 				
 				if (file.exists()) 
 				{
-					logger.trace("File exists: {}", file.getAbsolutePath());
-
 					AsyncContext asyncContext = req.startAsync();
-					ServletOutputStream outputStream = asyncContext.getResponse().getOutputStream();
-					asyncContext.start(() -> writeOutputStream(file, asyncContext, outputStream));
+					asyncContext.start(() -> writeOutputStream(file, asyncContext, resp));
 				}
 				else 
 				{
@@ -370,9 +390,9 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 					boolean cacheAvailable = cacheManager.hasCache(file.getAbsolutePath());
 
-					if (cacheAvailable ) 
+					if (cacheAvailable) 
 					{
-
+						logger.info("File is being generated and getting from cache:{}", file.getAbsolutePath());
 						AsyncContext asyncContext = req.startAsync();
 
 						ChunkListener chunkListener = new ChunkListener();
@@ -390,7 +410,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 				}
 			} 
-			catch (BeansException | IllegalStateException | IOException e) 
+			catch (BeansException | IllegalStateException e) 
 			{
 				logger.error(ExceptionUtils.getStackTrace(e));
 				writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
@@ -437,11 +457,11 @@ public class ChunkedTransferServlet extends HttpServlet {
 			exceptionOccured = true;
 		}
 		catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
+			logger.error("InterruptedException - writing chunks for file: {} stacktrace:{}", filePath, ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
 		}
 		catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
+			logger.error("Exception - writing chunks for file: {} stacktrace:{}", filePath, ExceptionUtils.getStackTrace(e));
 			exceptionOccured = true;
 		} 
 		

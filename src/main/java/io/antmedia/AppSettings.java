@@ -14,7 +14,6 @@ import org.json.simple.parser.ParseException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 
-import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -23,7 +22,6 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
-import dev.morphia.annotations.NotSaved;
 
 /**
  * Application Settings for each application running in Ant Media Server.
@@ -52,11 +50,11 @@ import dev.morphia.annotations.NotSaved;
 @PropertySource("/WEB-INF/red5-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AppSettings {
-	
+
 	@JsonIgnore
 	@Id
 	private ObjectId dbId;
-	
+
 	public static final String PROPERTIES_FILE_PATH = "/WEB-INF/red5-web.properties";
 
 	private static final String SETTINGS_ENCODING_SPECIFIC = "settings.encoding.specific";
@@ -130,37 +128,37 @@ public class AppSettings {
 	 */
 	public static final String SETTINGS_GENERATE_PREVIEW = "settings.previewGenerate";
 
-    public static final String SETTINGS_REMOTE_ALLOWED_CIDR = "settings.remoteAllowedCIDR";
-	
-    public static final String SETTINGS_WRITE_STATS_TO_DATASTORE = "settings.writeStatsToDatastore";
-    
-    
-    public static final String SETTINGS_ENCODER_SELECTION_PREFERENCE = "settings.encoderSelectionPreference";
+	public static final String SETTINGS_REMOTE_ALLOWED_CIDR = "settings.remoteAllowedCIDR";
 
-    public static final String SETTINGS_ALLOWED_PUBLISHER_IPS = "settings.allowedPublisherCIDR";
-    
-    public static final String BEAN_NAME = "app.settings";
-    
+	public static final String SETTINGS_WRITE_STATS_TO_DATASTORE = "settings.writeStatsToDatastore";
+
+
+	public static final String SETTINGS_ENCODER_SELECTION_PREFERENCE = "settings.encoderSelectionPreference";
+
+	public static final String SETTINGS_ALLOWED_PUBLISHER_IPS = "settings.allowedPublisherCIDR";
+
+	public static final String BEAN_NAME = "app.settings";
+
 	private static final String SETTINGS_EXCESSIVE_BANDWIDTH_THRESHOLD = "settings.excessiveBandwidth.threshold";
-	
+
 	private static final String SETTINGS_EXCESSIVE_BANDWIDTH_CALL_THRESHOLD = "settings.excessiveBandwidth.call.threshold";
-	
+
 	private static final String SETTINGS_PORT_ALLOCATOR_FLAGS = "settings.portAllocator.flags";
-	
+
 	private static final String SETTINGS_EXCESSIVE_BANDWIDTH_TRY_COUNT_BEFORE_SWITCH_BACK = "settings.excessiveBandwith.tryCount.beforeSwitchback";
-	
+
 	private static final String SETTINGS_EXCESSIVE_BANDWIDTH_ENABLED = "settings.excessiveBandwidth_enabled";
-	
+
 	private static final String SETTINGS_EXCESSIVE_BANDWIDTH_PACKET_LOSS_DIFF_THRESHOLD_FOR_SWITCH_BACK = "settings.excessiveBandwidth.packetLossDiffThreshold.forSwitchback";
-	
+
 	private static final String SETTINGS_EXCESSIVE_BANDWIDTH_RTT_MEASUREMENT_THRESHOLD_FOR_SWITCH_BACK = "settings.excessiveBandwidth.rttMeasurementDiffThreshold.forSwitchback";
-	
+
 	private static final String SETTINGS_REPLACE_CANDIDATE_ADDR_WITH_SERVER_ADDR = "settings.replaceCandidateAddrWithServerAddr";
-	
+
 	public static final String SETTINGS_DB_APP_NAME = "db.app.name";
-	
+
 	public static final String SETTINGS_ENCODING_TIMEOUT = "settings.encoding.timeout";
-	
+
 	public static final String SETTINGS_WEBRTC_CLIENT_START_TIMEOUT = "settings.webrtc.client.start.timeoutMs";
 
 	public static final String SETTINGS_DEFAULT_DECODERS_ENABLED = "settings.defaultDecodersEnabled";
@@ -180,9 +178,9 @@ public class AppSettings {
 	public static final String SETTINGS_H264_ENABLED = "settings.h264Enabled";
 
 	public static final String SETTINGS_VP8_ENABLED = "settings.vp8Enabled";
-	
+
 	public static final String SETTINGS_H265_ENABLED = "settings.h265Enabled";
-  
+
 	public static final String SETTINGS_MAX_FPS_ACCEPT = "settings.maxFpsAccept";
 
 	public static final String SETTINGS_DATA_CHANNEL_ENABLED = "settings.dataChannelEnabled";
@@ -190,27 +188,27 @@ public class AppSettings {
 	public static final String SETTINGS_DATA_CHANNEL_PLAYER_DISTRIBUTION = "settings.dataChannelPlayerDistrubution";
 
 	public static final String SETTINGS_MAX_RESOLUTION_ACCEPT = "settings.maxResolutionAccept";
-	
+
 	public static final String SETTINGS_MAX_BITRATE_ACCEPT = "settings.maxBitrateAccept";
-	
+
 	public static final String SETTINGS_AUDIO_BITRATE_SFU = "settings.audioBitrateSFU";
 
 	public static final String SETTINGS_ENDPOINT_REPUBLISH_LIMIT = "settings.endpoint.republishLimit";
 
 	public static final String SETTINGS_ENDPOINT_HEALTH_CHECK_PERIOD_MS = "settings.endpoint.healthCheckPeriodMs";
 
-	
+
 	/**
 	 * In data channel, player messages are delivered to nobody,
 	 * In order words, player cannot send messages
 	 */
 	public static final String DATA_CHANNEL_PLAYER_TO_NONE = "none";
-	
+
 	/**
 	 * In data channel, player messages are delivered to only publisher
 	 */
 	public static final String DATA_CHANNEL_PLAYER_TO_PUBLISHER = "publisher";
-	
+
 	/**
 	 * In data channel, player messages are delivered to everyone both publisher and all players
 	 */
@@ -223,16 +221,16 @@ public class AppSettings {
 	public static final String SETTINGS_RTSP_TIMEOUT_DURATION_MS = "settings.rtspTimeoutDurationMs";
 
 	public static final String SETTINGS_RTMP_INGEST_BUFFER_TIME_MS = "settings.rtmpIngestBufferTimeMs";
-	
+
 	public static final String SETTINGS_ACCEPT_ONLY_ROOMS_IN_DATA_STORE = "settings.acceptOnlyRoomsInDataStore";
-	
+
 	public static final String SETTINGS_DATA_CHANNEL_WEBHOOK_URL = "settings.dataChannelWebHook";
-	
+
 	/**
 	 * WebRTC SDP Semantics:PLAN B
 	 */
 	public static final String SDP_SEMANTICS_PLAN_B = "planB";
-	
+
 	/**
 	 * WebRTC SDP Semantics:UNIFIED PLAN
 	 */
@@ -253,23 +251,23 @@ public class AppSettings {
 	private static final String SETTINGS_CONSTANT_RATE_FACTOR = "settings.constantRateFactor";
 
 	private static final String SETTINGS_WEBRTC_VIEWER_LIMIT = "settings.webRTCViewerLimit";
-	
+
 	public static final String SETTINGS_JWT_SECRET_KEY = "settings.jwtSecretKey";
-	
+
 	public static final String SETTINGS_JWT_CONTROL_ENABLED = "settings.jwtControlEnabled";
-	
+
 	public static final String SETTINGS_IP_FILTER_ENABLED = "settings.ipFilterEnabled";
 
 	private static final String SETTINGS_INGESTING_STREAM_LIMIT = "settings.ingestingStreamLimit";
-	
+
 	private static final String SETTINGS_WEBRTC_KEYFRAME_TIME = "settings.webRTCKeyframeTime";
-	
+
 	public static final String SETTINGS_JWT_STREAM_SECRET_KEY = "settings.jwtStreamSecretKey";
-	
+
 	public static final String SETTINGS_PLAY_JWT_CONTROL_ENABLED = "settings.playJwtControlEnabled";
-	
+
 	public static final String SETTINGS_PUBLISH_JWT_CONTROL_ENABLED = "settings.publishJwtControlEnabled";
-	
+
 	public static final String SETTINGS_DASH_ENABLE_LOW_LATENCY = "settings.dash.llEnabled";
 
 	public static final String SETTINGS_HLS_ENABLE_LOW_LATENCY = "settings.dash.llHlsEnabled";
@@ -279,13 +277,13 @@ public class AppSettings {
 	private static final String SETTINGS_USE_TIMELINE_DASH_MUXING = "settings.dash.useTimeline";
 
 	private static final String SETTINGS_DASH_HTTP_STREAMING = "settings.dash.httpStreaming";
-	
+
 	private static final String SETTINGS_S3_STREAMS_FOLDER_PATH = "settings.s3.streams.folder.path";
-	
+
 	private static final String SETTINGS_S3_PREVIEWS_FOLDER_PATH = "settings.s3.previews.folder.path";
-	
+
 	private static final String SETTINGS_DASH_HTTP_ENDPOINT = "settings.dash.httpEndpoint";
-	
+
 	private static final String SETTINGS_FORCE_DECODING = "settings.forceDecoding";
 
 	public static final String SETTINGS_S3_RECORDING_ENABLED = "settings.s3RecordingEnabled";
@@ -298,26 +296,14 @@ public class AppSettings {
 	public static final String SETTINGS_S3_PERMISSION = "settings.s3Permission";
 	public static final String SETTINGS_ENABLE_TIME_TOKEN_PLAY = "settings.enableTimeTokenForPlay";
 	public static final String SETTINGS_ENABLE_TIME_TOKEN_PUBLISH = "settings.enableTimeTokenForPublish";
-	
+
 	public static final String SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE = "settings.hlsEncryptionKeyInfoFile";
-	
+
 
 	public static final String SETTINGS_JWKS_URL = "settings.jwksURL";
 	public static final String SETTINGS_WEBHOOK_AUTHENTICATE_URL = "settings.webhookAuthenticateURL";
 
 	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
-
-	
-
-
-	@JsonIgnore
-	@NotSaved
-	private List<NetMask> allowedCIDRList = new ArrayList<>();
-	
-	/**
-	 * This object is used for synchronizaiton of CIDR operations
-	 */
-	private Object cidrLock = new Object();
 
 
 	/**
@@ -325,7 +311,7 @@ public class AppSettings {
 	 * Allowed IP addresses to reach REST API, It must be in CIDR format as a.b.c.d/x
 	 */
 	@Value("${"+SETTINGS_REMOTE_ALLOWED_CIDR+":127.0.0.1}")
-    private String remoteAllowedCIDR;
+	private String remoteAllowedCIDR;
 
 	/**
 	 * It's mandatory, If it is set true then a mp4 file is created into <APP_DIR>/streams directory
@@ -333,19 +319,19 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_MP4_MUXING_ENABLED+":false}" )
 	private boolean mp4MuxingEnabled;
-	
+
 	/**
 	 * Enable/Disable WebM recording
 	 */
 	@Value( "${"+SETTINGS_WEBM_MUXING_ENABLED+":false}" )
 	private boolean webMMuxingEnabled;
-	
+
 	/**
 	 * It's mandatory, Date and time are added to created .mp4 file name, Default value is false
 	 */
 	@Value( "${"+SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME+":false}" )
 	private boolean addDateTimeToMp4FileName;
-	
+
 	/**
 	 * Enable/disable hls recording
 	 *  If it is set true then HLS files are created into <APP_DIR>/streams and HLS playing is enabled,
@@ -353,7 +339,7 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_HLS_MUXING_ENABLED+":true}" )
 	private boolean hlsMuxingEnabled;
-	
+
 	/**
 	 * Encoder settings in comma separated format
 	 * This must be set for adaptive streaming,
@@ -363,14 +349,14 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_ENCODER_SETTINGS_STRING+"}" )
 	private String encoderSettingsString;
-	
+
 	/**
 	 * Number of segments(chunks) in m3u8 files
 	 * Set the maximum number of playlist entries, If 0 the list file will contain all the segments,
 	 */
 	@Value( "${"+SETTINGS_HLS_LIST_SIZE+":#{null}}" )
 	private String hlsListSize;
-	
+
 	/**
 	 * Duration of segments in m3u8 files
 	 * Target segment length in seconds,
@@ -408,7 +394,7 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_ENDPOINT_REPUBLISH_LIMIT+":3}" )
 	private int endpointRepublishLimit;
-	
+
 	/**
 	 * Duration of segments in mpd files,
 	 * Segments are a property of DASH. A segment is the minimal download unit.
@@ -416,21 +402,21 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_DASH_SEG_DURATION+":6}" )
 	private String dashSegDuration;
-	
+
 	/**
 	 * Fragments are a property of fragmented MP4 files, Typically a fragment consists of moof + mdat.
 	 *
 	 */
 	@Value( "${"+SETTINGS_DASH_FRAGMENT_DURATION+":0.5}" )
 	private String dashFragmentDuration;
-	
-	
+
+
 	/**
 	 * Latency of the DASH streaming,
 	 */
 	@Value( "${"+SETTINGS_DASH_TARGET_LATENCY+":3.5}" )
 	private String targetLatency;
-	
+
 	/**
 	 * DASH window size, Number of files in manifest
 	 */
@@ -442,38 +428,38 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_DASH_EXTRA_WINDOW_SIZE+":5}" )
 	private String dashExtraWindowSize;
-	
+
 	/**
 	 * Enable low latency dash, This settings is effective if dash is enabled
 	 */
 	@Value( "${"+SETTINGS_DASH_ENABLE_LOW_LATENCY+":true}" )
 	private boolean lLDashEnabled;
-	
+
 	/**
 	 * Enable low latency hls via dash muxer, LLHLS is effective if dash is enabled.
 	 */
 	@Value( "${"+SETTINGS_HLS_ENABLE_LOW_LATENCY+":false}" )
 	private boolean lLHLSEnabled;
-	
+
 	/**
 	 * Enable hls through DASH muxer, LLHLS is effective if dash is enabled.
 	 */
 	@Value( "${"+SETTINGS_HLS_ENABLED_VIA_DASH_LOW_LATENCY+":false}" )
 	private boolean hlsEnabledViaDash;
-	
+
 	/**
 	 * Use timeline in dash muxing.
 	 */
 	@Value( "${"+SETTINGS_USE_TIMELINE_DASH_MUXING+":false}" )
 	private boolean useTimelineDashMuxing;
-	
+
 	/**
 	 * Enable/disable webrtc,
 	 * It's mandatory, If it is set true then WebRTC playing is enabled, Default value is false
 	 */
 	@Value( "${"+SETTINGS_WEBRTC_ENABLED+":true}" )
 	private boolean webRTCEnabled;
-	
+
 	/**
 	 * The flag that sets using the original webrtc stream in streaming,
 	 * This setting is effective if there is any adaptive bitrate setting,
@@ -492,7 +478,7 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_DELETE_HLS_FILES_ON_ENDED+":true}" )
 	private boolean deleteHLSFilesOnEnded = true;
-	
+
 	/**
 	 * If this value is true, dash files(mpd and m4s files) are deleted after the broadcasting
 	 * has finished.
@@ -553,7 +539,7 @@ public class AppSettings {
 	 * It's mandatory,
 	 * Check for details: https://antmedia.io/secure-video-streaming/. Default value is false.
 	 */
-	
+
 	@Value("#{'${"+ SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED +":${" + SETTINGS_TOKEN_CONTROL_ENABLED +":false}}'}") 
 	private boolean publishTokenControlEnabled ;
 	// check old SETTINGS_TOKEN_CONTROL_ENABLED for backward compatibility
@@ -583,13 +569,13 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_ENABLE_TIME_TOKEN_PUBLISH+":false}" )
 	private boolean enableTimeTokenForPublish;
-	
+
 	/**
 	 * period for the generated time token 
 	 */
 	@Value( "${"+SETTINGS_TIME_TOKEN_PERIOD+":60}" )
 	private int timeTokenPeriod;	
-	
+
 	/**
 	 * It can be event: or vod, Check HLS documentation for EXT-X-PLAYLIST-TYPE.
 	 *
@@ -671,10 +657,10 @@ public class AppSettings {
 	@Value( "${"+SETTINGS_OBJECT_DETECTION_ENABLED+":false}" )
 	private boolean objectDetectionEnabled;
 	/**
-	* It's mandatory,
-	* This determines the period (milliseconds) of preview (png) file creation,
-	* This file is created into <APP_DIR>/preview directory. Default value is 5000.
-	*/
+	 * It's mandatory,
+	 * This determines the period (milliseconds) of preview (png) file creation,
+	 * This file is created into <APP_DIR>/preview directory. Default value is 5000.
+	 */
 
 	@Value( "${"+SETTINGS_CREATE_PREVIEW_PERIOD+":5000}" )
 	private int createPreviewPeriod;
@@ -693,7 +679,7 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_STREAM_FETCHER_AUTO_START+":true}" )
 	private boolean startStreamFetcherAutomatically;
-	
+
 	/**
 	 * It's mandatory,
 	 * Stream fetcher buffer time in milliseconds,
@@ -737,7 +723,7 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_WEBRTC_FRAME_RATE+":30}" )
 	private int webRTCFrameRate;
-	
+
 	/**
 	 * Min port number of the port range of WebRTC, It's effective when user publishes stream,
 	 * This value should be less than the {@link #webRTCPortRangeMax}
@@ -745,7 +731,7 @@ public class AppSettings {
 	 */
 	@Value( "${" + SETTINGS_WEBRTC_PORT_RANGE_MIN +":0}")
 	private int webRTCPortRangeMin;
-	
+
 	/**
 	 * Max port number of the port range of WebRTC, It's effective when user publishes stream
 	 * In order to port range port this value should be higher than {@link #webRTCPortRangeMin} 
@@ -772,20 +758,20 @@ public class AppSettings {
 	 */
 	@Value( "${" + SETTINGS_WEBRTC_TCP_CANDIDATE_ENABLED +":false}")
 	private boolean webRTCTcpCandidatesEnabled;
-	
+
 	/**
 	 * WebRTC SDP Semantics
 	 * It can "planB" or "unifiedPlan"
 	 */
 	@Value( "${" + SETTINGS_WEBRTC_SDP_SEMANTICS +":" + SDP_SEMANTICS_UNIFIED_PLAN + "}")
 	private String webRTCSdpSemantics;
-	
-	
+
+
 	/**
 	 * Port Allocator Flags for WebRTC
 	 * PORTALLOCATOR_DISABLE_UDP = 0x01,
-  	 * PORTALLOCATOR_DISABLE_STUN = 0x02,
-  	 * PORTALLOCATOR_DISABLE_RELAY = 0x04,
+	 * PORTALLOCATOR_DISABLE_STUN = 0x02,
+	 * PORTALLOCATOR_DISABLE_RELAY = 0x04,
 	 */
 	@Value( "${" + SETTINGS_PORT_ALLOCATOR_FLAGS +":0}")
 	private int portAllocatorFlags;
@@ -793,7 +779,7 @@ public class AppSettings {
 	 * If it's enabled, interactivity(like, comment, etc.) is collected from social media channel,
 	 * Default value is false.
 	 */
-    @Value( "${" + SETTINGS_COLLECT_SOCIAL_MEDIA_ACTIVITY_ENABLED +":false}")
+	@Value( "${" + SETTINGS_COLLECT_SOCIAL_MEDIA_ACTIVITY_ENABLED +":false}")
 	private boolean collectSocialMediaActivity;
 
 	/**
@@ -807,7 +793,7 @@ public class AppSettings {
 	 */
 	@Value( "${" + SETTINGS_ENCODING_ENCODER_NAME +":#{null}}")
 	private String encoderName;
-	
+
 	/**
 	 * Encoder's preset value in adaptive bitrate
 	 * Libx264 presets are there
@@ -817,26 +803,26 @@ public class AppSettings {
 	 */
 	@Value( "${" + SETTINGS_ENCODING_PRESET +":#{null}}")
 	private String encoderPreset;
-	
+
 	/**
 	 * Encoder profile in adaptive bitrate,
 	 * It's baseline by default.
 	 */
 	@Value( "${" + SETTINGS_ENCODING_PROFILE +":#{null}}")
 	private String encoderProfile;
-	
+
 	/**
 	 * Encoder level in adaptive bitrate
 	 */
 	@Value( "${" + SETTINGS_ENCODING_LEVEL +":#{null}}")
 	private String encoderLevel;
-	
+
 	/**
 	 * Encoding rate control in adaptive bitrate
 	 */
 	@Value( "${" + SETTINGS_ENCODING_RC +":#{null}}")
 	private String encoderRc;
-	
+
 	/**
 	 * Encoder specific configuration for libx264 in adaptive bitrate,
 	 * This is the x264-params in ffmpeg
@@ -845,13 +831,13 @@ public class AppSettings {
 	 */
 	@Value( "${" + SETTINGS_ENCODING_SPECIFIC +":#{null}}")
 	private String encoderSpecific;
-	
+
 	/**
 	 * Encoder thread count.
 	 */
 	@Value( "${" + SETTINGS_ENCODING_THREAD_COUNT +":0}")
 	private int encoderThreadCount;
-	
+
 	/**
 	 * Encoder thread type
 	 * 0: auto
@@ -860,13 +846,13 @@ public class AppSettings {
 	 */
 	@Value( "${" + SETTINGS_ENCODING_THREAD_TYPE +":0}")
 	private int encoderThreadType;
-	
+
 	/**
 	 * Set quality/speed ratio modifier, Higher values speed up the encode at the cost of quality.
 	 */
 	@Value( "${" + SETTINGS_ENCODING_VP8_SPEED +":4}")
 	private int vp8EncoderSpeed;
-	
+
 	/**
 	 * VP8 Encoder deadline:
 	 *  best
@@ -875,13 +861,13 @@ public class AppSettings {
 	 */ 
 	@Value( "${" + SETTINGS_ENCODING_VP8_DEADLINE +":realtime}")
 	private String vp8EncoderDeadline;
-	
+
 	/**
 	 * VP8 Encoder thread count.
 	 */
 	@Value( "${" + SETTINGS_ENCODING_VP8_THREAD_COUNT +":1}")
 	private int vp8EncoderThreadCount;
-  
+
 	/**
 	 * It's mandatory,
 	 * Determines the height of preview file,
@@ -890,7 +876,7 @@ public class AppSettings {
 
 	@Value( "${" + SETTINGS_PREVIEW_HEIGHT +":480}")
 	private int previewHeight;
-	
+
 	/**
 	 * Generate preview if there is any adaptive settings,
 	 * 
@@ -898,10 +884,10 @@ public class AppSettings {
 	 */
 	@Value( "${" + SETTINGS_GENERATE_PREVIEW+":false}")
 	private boolean generatePreview;
-	
+
 	@Value( "${" + SETTINGS_WRITE_STATS_TO_DATASTORE +":true}")
 	private boolean writeStatsToDatastore;
-	
+
 	/**
 	 * Can be "gpu_and_cpu" or "only_gpu"
 	 * 
@@ -914,14 +900,14 @@ public class AppSettings {
 	 */
 	@Value( "${" + SETTINGS_ENCODER_SELECTION_PREFERENCE+":'gpu_and_cpu'}")
 	private String encoderSelectionPreference;
-	
+
 	/**
 	 * Comma separated CIDR that server accepts/ingests RTMP streams from,
 	 * Default value is null which means that it accepts/ingests stream from everywhere
 	 */
 	@Value( "${" + SETTINGS_ALLOWED_PUBLISHER_IPS+":#{null}}")
 	private String allowedPublisherCIDR;
-	
+
 	/**
 	 * *******************************************************
 	 * What is Excessive Bandwidth Algorithm?
@@ -946,7 +932,7 @@ public class AppSettings {
 	 * If network fluctuates too much or not consistent, quality of the video changes also fluctuates too much for the viewers
 	 * *********************************************************
 	 */
-	
+
 	/**
 	 *  The excessive bandwidth threshold value
 	 */
@@ -958,17 +944,17 @@ public class AppSettings {
 	 */
 	@Value("${" + SETTINGS_EXCESSIVE_BANDWIDTH_CALL_THRESHOLD + ":3}")
 	private int excessiveBandwidthCallThreshold;
-	
-	
+
+
 	@Value("${" + SETTINGS_EXCESSIVE_BANDWIDTH_TRY_COUNT_BEFORE_SWITCH_BACK + ":4}")
 	private int excessiveBandwithTryCountBeforeSwitchback;
-	
+
 	/**
 	 * Enable or disable excessive bandwidth algorithm
 	 */
 	@Value("${" + SETTINGS_EXCESSIVE_BANDWIDTH_ENABLED+ ":false}")
 	private boolean excessiveBandwidthAlgorithmEnabled;
-	
+
 	/**
 	 * packet loss threshold if packetLoss is bigger than this value in ExcessiveBandwidth
 	 * algorithm, it switches back to lower quality without try every attempts {@link #excessiveBandwithTryCountBeforeSwitchback}
@@ -983,7 +969,7 @@ public class AppSettings {
 	 */
 	@Value("${" + SETTINGS_EXCESSIVE_BANDWIDTH_RTT_MEASUREMENT_THRESHOLD_FOR_SWITCH_BACK+ ":20}")
 	private int rttMeasurementDiffThresholdForSwitchback;
-	
+
 	/**
 	 * Replace candidate addr with server addr,
 	 * In order to use it you should set serverName in conf/red5.properties
@@ -991,27 +977,27 @@ public class AppSettings {
 	@Value("${" + SETTINGS_REPLACE_CANDIDATE_ADDR_WITH_SERVER_ADDR+ ":false}")
 	private boolean replaceCandidateAddrWithServerAddr;
 
-	
+
 	/**
 	 * Applicaiton name for the data store which should exist so that no default value
 	 * such as LiveApp, WebRTCApp etc.
 	 */
 	@Value("${" + SETTINGS_DB_APP_NAME +"}")
 	private String appName;
-	
+
 	/**
 	 * Timeout for encoding
 	 * If encoder cannot encode a frame in this timeout, streaming is finished by server. 
 	 */
 	@Value("${" + SETTINGS_ENCODING_TIMEOUT +":5000}")
 	private int encodingTimeout;
-	
+
 	/**
 	 * If webrtc client is not started in this time, it'll close automatically
 	 */
 	@Value("${" + SETTINGS_WEBRTC_CLIENT_START_TIMEOUT +":5000}")
 	private int webRTCClientStartTimeoutMs;
-	
+
 	/**
 	 * Set true to enable WebRTC default decoders(such as VP8, VP9) 
 	 * Set false to only enable h264 decoder
@@ -1025,9 +1011,10 @@ public class AppSettings {
 	@Value("${" + SETTINGS_DEFAULT_DECODERS_ENABLED+ ":false}")
 	private boolean defaultDecodersEnabled;
 
+	/**
+	 * Update time of the setting in the cluster
+	 */
 	private long updateTime = 0;
-
-	private List<EncoderSettings> encoderSettings;
 
 	/**
 	 * Forwards the http requests with this extension to {@link #httpForwardingBaseURL}
@@ -1036,7 +1023,7 @@ public class AppSettings {
 	 */
 	@Value("${" + SETTINGS_HTTP_FORWARDING_EXTENSION+ ":''}")
 	private String httpForwardingExtension;
-	
+
 	/**
 	 * Forward the incoming http request to this base url
 	 */
@@ -1048,13 +1035,13 @@ public class AppSettings {
 	 */
 	@Value("${" + SETTINGS_RTMP_MAX_ANALYZE_DURATION_MS+ ":1500}")
 	private int maxAnalyzeDurationMS;
-	
+
 	/**
 	 * Enable/Disable IPv6 Candidates for WebRTC It's disabled by default
 	 */
 	@Value("${" + SETTINGS_DISABLE_IPV6_CANDIDATES+ ":true}")
 	private boolean disableIPv6Candidates;
-	
+
 	/**
 	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
 	 * It can be tcp or udp
@@ -1068,36 +1055,31 @@ public class AppSettings {
 	 */
 	@Value("${" + SETTINGS_RTSP_TIMEOUT_DURATION_MS+ ":5000}")
 	private int rtspTimeoutDurationMs;
-	
+
 	/**
 	 * Max FPS value in RTMP streams
 	 */
 	@Value("${" + SETTINGS_MAX_FPS_ACCEPT+":0}")
 	private int maxFpsAccept;
-	
+
 	/**
 	 * Max Resolution value in RTMP streams
 	 */
 	@Value("${" + SETTINGS_MAX_RESOLUTION_ACCEPT+":0}")
 	private int maxResolutionAccept;
-	
+
 	/**
 	 * Max Bitrate value in RTMP streams
 	 */
 	@Value("${" + SETTINGS_MAX_BITRATE_ACCEPT+":0}")
 	private int maxBitrateAccept;
 
-	@JsonIgnore
-	@NotSaved
-	private List<NetMask> allowedPublisherCIDRList = new ArrayList<>();
-	
-	
 	/**
 	 * Enable/Disable h264 encoding It's enabled by default
 	 */
 	@Value("${" + SETTINGS_H264_ENABLED+ ":true}")
 	private boolean h264Enabled = true;
-	
+
 	/**
 	 * Enable/Disable vp8 encoding It's disabled by default
 	 */
@@ -1109,16 +1091,16 @@ public class AppSettings {
 	 */
 	@Value("${" + SETTINGS_H265_ENABLED+ ":false}")
 	private boolean h265Enabled;
-	
-	
+
+
 	/**
 	 * Enable/Disable data channel It's disabled by default
 	 * When data channel is enabled, publisher can send messages to the players
 	 */
 	@Value("${" + SETTINGS_DATA_CHANNEL_ENABLED+ ":false}")
 	private boolean dataChannelEnabled;
-	
-	
+
+
 	/**
 	 * Defines the distribution list for player messages
 	 * it can be  none/publisher/all
@@ -1161,7 +1143,7 @@ public class AppSettings {
 	 */
 	@Value( "${" + SETTINGS_HEIGHT_RTMP_FORWARDING+":360}")
 	private int heightRtmpForwarding;
-  
+
 	/**
 	 * In SFU mode we still transcode the audio to opus and aac
 	 * This settings determines the audio bitrate for opus and aac
@@ -1180,12 +1162,12 @@ public class AppSettings {
 	/** 
 	 * If aacEncodingEnabled is true, aac encoding will be active even if mp4 or hls muxing is not enabled,
 	 * If aacEncodingEnabled is false, aac encoding is only activated if mp4 or hls muxing is enabled in the settings,
-     *
+	 *
 	 * This value should be true if you're sending stream to RTMP endpoints or enable/disable mp4 recording on the fly
 	 */
 	@Value( "${"+SETTINGS_AAC_ENCODING_ENABLED+":true}" )
 	private boolean aacEncodingEnabled;
-	
+
 	/**
 	 * GOP size, AKA key frame interval,
 	 * GOP size is group of pictures that encoder sends key frame for each group,
@@ -1207,13 +1189,13 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_CONSTANT_RATE_FACTOR+":23}" )
 	private String constantRateFactor;
-	
+
 	/**
 	 * Application level WebRTC viewer limit
 	 */
 	@Value( "${"+SETTINGS_WEBRTC_VIEWER_LIMIT+":-1}" )
 	private int webRTCViewerLimit = -1;
-	
+
 	/*
 	 * Set to true when you want to delete an application 
 	 */
@@ -1225,38 +1207,38 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_JWT_SECRET_KEY+":#{null}}" )
 	private String jwtSecretKey;
-	
+
 	/**
 	 * Application JWT Control Enabled
 	 */
 	@Value( "${"+SETTINGS_JWT_CONTROL_ENABLED+":false}" )
 	private boolean jwtControlEnabled;
-	
+
 	/**
 	 * Application IP Filter Enabled
 	 */
 	@Value( "${"+SETTINGS_IP_FILTER_ENABLED+":true}" )
 	private boolean ipFilterEnabled;
-	
+
 	/**
 	 * Application level total incoming stream limit
 	 */
 	@Value( "${"+SETTINGS_INGESTING_STREAM_LIMIT+":-1}" )
 	private int ingestingStreamLimit;
-	
+
 	/**
 	 * WebRTC Keyframe Time, Ant Media Server asks key frame for every webRTCKeyframeTime in SFU mode,
 	 * It's in milliseconds
 	 */
 	@Value( "${"+SETTINGS_WEBRTC_KEYFRAME_TIME+":2000}" )
 	private int webRTCKeyframeTime;
-	
+
 	/**
 	 * Application JWT stream secret key
 	 */
 	@Value( "${"+SETTINGS_JWT_STREAM_SECRET_KEY+":#{null}}" )
 	private String jwtStreamSecretKey;
-	
+
 	/**
 	 * The settings for enabling jwt token filter mechanism for accessing resources and publishing
 	 */
@@ -1268,7 +1250,7 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_PLAY_JWT_CONTROL_ENABLED+":false}" )
 	private boolean playJwtControlEnabled;
-	
+
 	/**
 	 * Use http streaming in Low Latency Dash,
 	 * If it's true, it sends files through http
@@ -1278,8 +1260,8 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_DASH_HTTP_STREAMING+":true}" )
 	private boolean dashHttpStreaming;
-	
-	
+
+
 	/**
 	 * It's S3 streams MP4, WEBM  and HLS files storage name . 
 	 * It's streams by default.
@@ -1295,20 +1277,20 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_S3_PREVIEWS_FOLDER_PATH+":previews}" )
 	private String  s3PreviewsFolderPath;
-	
+
 	/*
 	 * Use http endpoint  in CMAF/HLS. 
 	 * It's configurable to send any stream in HTTP Endpoint with this option
 	 */
 	@Value( "${"+SETTINGS_DASH_HTTP_ENDPOINT+":#{null}}" )
 	private String dashHttpEndpoint;
-	
+
 	/**
 	 * Force stream decoding even if there is no adaptive setting
 	 */
 	@Value("${" + SETTINGS_FORCE_DECODING+ ":false}")
 	private boolean forceDecoding;
-	
+
 
 	/**
 	 * Application JWT Control Enabled
@@ -1345,7 +1327,7 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_S3_ENDPOINT+":#{null}}" )
 	private String s3Endpoint;
-	
+
 	/*
 	 * The permission to use in uploading the files to the S3. 
 	 * Following values are accepted. Default value is public-read
@@ -1361,7 +1343,7 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_S3_PERMISSION+":public-read}" )
 	private String s3Permission;
-	
+
 	/**
 	 *  HLS Encryption key info file full path.
 	 *  Format of the file
@@ -1389,17 +1371,17 @@ public class AppSettings {
 	 */
 	@Value( "${" + SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE +":#{null}}")
 	private String hlsEncryptionKeyInfoFile;
-	
+
 	/*
 	 * JWKS URL - it's effective if {@link#jwtControlEnabled} is true
 	 * 
 	 * It's null by default. If it's not null, JWKS is used to filter. 
 	 * Otherwise it uses JWT
 	 */
-	
+
 	@Value( "${" + SETTINGS_JWKS_URL +":#{null}}")
 	private String jwksURL;
-	
+
 	/**
 	 * This settings forces the aspect ratio to match the incoming aspect ratio perfectly.
 	 * For instance, if the incoming source is 1280x720 and there is an adaptive bitrate with 480p
@@ -1454,7 +1436,7 @@ public class AppSettings {
 	public void setHlsMuxingEnabled(boolean hlsMuxingEnabled) {
 		this.hlsMuxingEnabled = hlsMuxingEnabled;
 	}
-	
+
 	public boolean isDashMuxingEnabled() {
 		return dashMuxingEnabled;
 	}
@@ -1521,7 +1503,7 @@ public class AppSettings {
 		if(encoderSettingsList == null) {
 			return "";
 		}
-		
+
 		JSONArray jsonArray = new JSONArray();
 
 		for (EncoderSettings encoderSettings : encoderSettingsList) {
@@ -1539,18 +1521,18 @@ public class AppSettings {
 		if(encoderSettingsString == null) {
 			return null;
 		}
-		
+
 		int height;
 		int videoBitrate;
 		int audioBitrate;
 		boolean forceEncode;
 		List<EncoderSettings> encoderSettingsList = new ArrayList<>();
-		
+
 		try {
 			JSONParser jsonParser = new JSONParser();
 			JSONArray jsonArray = (JSONArray) jsonParser.parse(encoderSettingsString);
 			JSONObject jsObject;
-			
+
 			for (int i = 0; i < jsonArray.size(); i++) {
 				jsObject =  (JSONObject)jsonArray.get(i);
 				height = Integer.parseInt(jsObject.get(EncoderSettings.HEIGHT).toString());
@@ -1570,7 +1552,7 @@ public class AppSettings {
 					i++;
 					videoBitrate = Integer.parseInt(values[i]);
 					i++;
-					 audioBitrate = Integer.parseInt(values[i]);
+					audioBitrate = Integer.parseInt(values[i]);
 					encoderSettingsList.add(new EncoderSettings(height, videoBitrate, audioBitrate,true));
 				}
 			}
@@ -1581,14 +1563,13 @@ public class AppSettings {
 	public String getEncoderSettingsString() {
 		return encoderSettingsString;
 	}
-	
+
 	public List<EncoderSettings> getEncoderSettings() {
 		return encodersStr2List(encoderSettingsString);
 	}
-	
+
 	public void setEncoderSettings(List<EncoderSettings> settings) {
 		encoderSettingsString = encodersList2Str(settings);
-		this.encoderSettings = settings;
 	}
 
 	public void setEncoderSettingsString(String encoderSettingsString) {
@@ -1618,7 +1599,7 @@ public class AppSettings {
 	public void setAcceptOnlyStreamsInDataStore(boolean acceptOnlyStreamsInDataStore) {
 		this.acceptOnlyStreamsInDataStore = acceptOnlyStreamsInDataStore;
 	}
-	
+
 	public boolean isAcceptOnlyRoomsInDataStore() {
 		return acceptOnlyRoomsInDataStore;
 	}
@@ -1757,7 +1738,7 @@ public class AppSettings {
 	public void setPublishTokenControlEnabled(boolean publishTokenControlEnabled) {
 		this.publishTokenControlEnabled = publishTokenControlEnabled;
 	}
-	
+
 	public boolean isPlayTokenControlEnabled() {
 		return playTokenControlEnabled;
 	}
@@ -1765,7 +1746,7 @@ public class AppSettings {
 	public void setPlayTokenControlEnabled(boolean playTokenControlEnabled) {
 		this.playTokenControlEnabled = playTokenControlEnabled;
 	}
-	
+
 	/**
 	 * @Deprecated Please use {@link #isEnableTimeTokenForPlay()} or {@link #isEnableTimeTokenForPublish()}
 	 * @return
@@ -1774,7 +1755,7 @@ public class AppSettings {
 	public boolean isTimeTokenSubscriberOnly() {
 		return timeTokenSubscriberOnly;
 	}
-	
+
 	@Deprecated
 	public void setTimeTokenSubscriberOnly(boolean timeTokenSubscriberOnly) {
 		this.timeTokenSubscriberOnly = timeTokenSubscriberOnly;
@@ -1794,7 +1775,7 @@ public class AppSettings {
 	public void setEnableTimeTokenForPublish(boolean enableTimeTokenForPublish) {
 		this.enableTimeTokenForPublish = enableTimeTokenForPublish;
 	}
-	
+
 	public String getMuxerFinishScript() {
 		return muxerFinishScript;
 	}
@@ -1907,7 +1888,7 @@ public class AppSettings {
 	public void setWebRTCTcpCandidatesEnabled(boolean webRTCTcpCandidatesEnabled) {
 		this.webRTCTcpCandidatesEnabled = webRTCTcpCandidatesEnabled;
 	}
-	
+
 	public String getEncoderName() {
 		return encoderName;
 	}
@@ -1963,7 +1944,7 @@ public class AppSettings {
 	public void setPreviewHeight(int previewHeight) {
 		this.previewHeight = previewHeight;
 	}
-	
+
 	public boolean isUseOriginalWebRTCEnabled() {
 		return useOriginalWebRTCEnabled;
 	}
@@ -1972,61 +1953,45 @@ public class AppSettings {
 		this.useOriginalWebRTCEnabled = useOriginalWebRTCEnabled;
 	}
 
-	public String getRemoteAllowedCIDR() {
-		synchronized (cidrLock) 
-		{
-			return remoteAllowedCIDR;
-		}	
+	public synchronized String getRemoteAllowedCIDR() {
+		return remoteAllowedCIDR;
 	}
-	
+
 	/**
 	 * the getAllowedCIDRList and setAllowedCIDRList are synchronized
 	 * because ArrayList may throw concurrent modification
 	 * @param remoteAllowedCIDR
 	 */
-	public void setRemoteAllowedCIDR(String remoteAllowedCIDR) {
-		synchronized(cidrLock) {
-			this.remoteAllowedCIDR = remoteAllowedCIDR;
-			allowedCIDRList = new ArrayList<>();
-			fillFromInput(remoteAllowedCIDR, allowedCIDRList);
-		}
+	public synchronized void setRemoteAllowedCIDR(String remoteAllowedCIDR) {
+		this.remoteAllowedCIDR = remoteAllowedCIDR;	
 	}
 
-	public List<NetMask> getAllowedCIDRList() {
-		synchronized(cidrLock) {
-			if (allowedCIDRList.isEmpty()) {
-				fillFromInput(remoteAllowedCIDR, allowedCIDRList);
-			}
-			return allowedCIDRList;
-		}
+	@JsonIgnore
+	public synchronized List<NetMask> getAllowedCIDRList() 
+	{
+		List<NetMask> allowedCIDRList = new ArrayList<>();
+		fillFromInput(remoteAllowedCIDR, allowedCIDRList);
+		return allowedCIDRList;
 	}
-	
+
 	public String getAllowedPublisherCIDR() {
 		return allowedPublisherCIDR;
 	}
 
 	public void setAllowedPublisherCIDR(String allowedPublisherCIDR) 
 	{
-		synchronized (cidrLock) 
-		{
-			this.allowedPublisherCIDR = allowedPublisherCIDR;
-			allowedPublisherCIDRList = new ArrayList<>();
-			fillFromInput(allowedPublisherCIDR, allowedPublisherCIDRList);
-		}
+		this.allowedPublisherCIDR = allowedPublisherCIDR;	
 	}
-	
-	public List<NetMask> getAllowedPublisherCIDRList() 
+
+	@JsonIgnore
+	public synchronized List<NetMask> getAllowedPublisherCIDRList() 
 	{
-		synchronized (cidrLock) 
-		{
-			if (allowedPublisherCIDRList.isEmpty()) {
-				fillFromInput(allowedPublisherCIDR, allowedPublisherCIDRList);
-			}
-		}
+		List<NetMask> allowedPublisherCIDRList = new ArrayList<>();
+		fillFromInput(allowedPublisherCIDR, allowedPublisherCIDRList);
 		return allowedPublisherCIDRList;
 	}
-	
-	
+
+
 	/**
 	 * Fill a {@link NetMask} list from a string input containing a
 	 * comma-separated list of (hopefully valid) {@link NetMask}s.
@@ -2059,7 +2024,7 @@ public class AppSettings {
 	public String getEncoderSelectionPreference() {
 		return encoderSelectionPreference;
 	}
-	
+
 	public void setEncoderSelectionPreference(String encoderSelectionPreference) {
 		this.encoderSelectionPreference = encoderSelectionPreference;
 	}
@@ -2083,7 +2048,7 @@ public class AppSettings {
 	public int getPortAllocatorFlags() {
 		return portAllocatorFlags;
 	}
-	
+
 	public void setPortAllocatorFlags(int flags) {
 		this.portAllocatorFlags = flags;
 	}
@@ -2123,7 +2088,7 @@ public class AppSettings {
 	public boolean isReplaceCandidateAddrWithServerAddr() {
 		return this.replaceCandidateAddrWithServerAddr;
 	}
-	
+
 	public void setReplaceCandidateAddrWithServerAddr(boolean replaceCandidateAddrWithServerAddr) {
 		this.replaceCandidateAddrWithServerAddr = replaceCandidateAddrWithServerAddr;
 	}
@@ -2135,15 +2100,15 @@ public class AppSettings {
 	public void setUpdateTime(long updateTime) {
 		this.updateTime = updateTime;
 	}
-	
+
 	public void setAppName(String appName) {
 		this.appName = appName;
 	}
-	
+
 	public String getAppName() {
 		return appName;
 	}
-	
+
 	public int getEncodingTimeout() {
 		return encodingTimeout;
 	}
@@ -2179,7 +2144,7 @@ public class AppSettings {
 	public int getMaxAnalyzeDurationMS() {
 		return maxAnalyzeDurationMS;
 	}
-	
+
 	public void setMaxAnalyzeDurationMS(int maxAnalyzeDurationMS) {
 		this.maxAnalyzeDurationMS = maxAnalyzeDurationMS;
 	}
@@ -2214,7 +2179,7 @@ public class AppSettings {
 	public void setRtspTimeoutDurationMs(int rtspTimeoutDurationMs) {
 		this.rtspTimeoutDurationMs = rtspTimeoutDurationMs;
 	}
-	
+
 	public int getMaxResolutionAccept() {
 		return maxResolutionAccept;
 	}
@@ -2242,11 +2207,11 @@ public class AppSettings {
 	public boolean isH265Enabled() {
 		return h265Enabled;
 	}
-	
+
 	public void setH265Enabled(boolean h265Enabled) {
 		this.h265Enabled = h265Enabled;
 	}
-	
+
 	public boolean isDataChannelEnabled() {
 		return dataChannelEnabled;
 	}
@@ -2266,7 +2231,7 @@ public class AppSettings {
 	public long getRtmpIngestBufferTimeMs() {
 		return rtmpIngestBufferTimeMs;
 	}
-	
+
 	public void setRtmpIngestBufferTimeMs(long rtmpIngestBufferTimeMs) {
 		this.rtmpIngestBufferTimeMs = rtmpIngestBufferTimeMs;
 	}
@@ -2274,7 +2239,7 @@ public class AppSettings {
 	public String getDataChannelWebHook() {
 		return dataChannelWebHookURL;
 	}
-	
+
 	public void setDataChannelWebHookURL(String dataChannelWebHookURL) {
 		this.dataChannelWebHookURL = dataChannelWebHookURL;
 	}
@@ -2298,7 +2263,7 @@ public class AppSettings {
 	public int getWebRTCClientStartTimeoutMs() {
 		return webRTCClientStartTimeoutMs;
 	}
-	
+
 	public void setWebRTCClientStartTimeoutMs(int webRTCClientStartTimeout) {
 		this.webRTCClientStartTimeoutMs = webRTCClientStartTimeout;
 	}
@@ -2390,7 +2355,7 @@ public class AppSettings {
 	public void setStartStreamFetcherAutomatically(boolean startStreamFetcherAutomatically) {
 		this.startStreamFetcherAutomatically = startStreamFetcherAutomatically;
 	}
-	
+
 	public boolean isDeleteDASHFilesOnEnded() {
 		return deleteDASHFilesOnEnded;
 	}
@@ -2398,7 +2363,7 @@ public class AppSettings {
 	public void setDeleteDASHFilesOnEnded(boolean deleteDASHFilesOnEnded) {
 		this.deleteDASHFilesOnEnded = deleteDASHFilesOnEnded;
 	}
-	
+
 	public String getTargetLatency() {
 		return targetLatency;
 	}
@@ -2422,7 +2387,7 @@ public class AppSettings {
 	public void setAudioBitrateSFU(int audioBitrateSFU) {
 		this.audioBitrateSFU = audioBitrateSFU;
 	}
-  
+
 	public void setAacEncodingEnabled(boolean aacEncodingEnabled){
 		this.aacEncodingEnabled=aacEncodingEnabled;
 	}
@@ -2442,7 +2407,7 @@ public class AppSettings {
 	public String getConstantRateFactor() {
 		return constantRateFactor;
 	}
-	
+
 	public void setConstantRateFactor(String constantRateFactor) {
 		this.constantRateFactor = constantRateFactor;
 	}
@@ -2486,7 +2451,7 @@ public class AppSettings {
 	public void setDashExtraWindowSize(String dashExtraWindowSize) {
 		this.dashExtraWindowSize = dashExtraWindowSize;
 	}
-	
+
 	public String getJwtSecretKey() {
 		return jwtSecretKey;
 	}
@@ -2494,7 +2459,7 @@ public class AppSettings {
 	public void setJwtSecretKey(String jwtSecretKey) {
 		this.jwtSecretKey = jwtSecretKey;
 	}
-	
+
 	public boolean isJwtControlEnabled() {
 		return jwtControlEnabled;
 	}
@@ -2502,7 +2467,7 @@ public class AppSettings {
 	public void setJwtControlEnabled(boolean jwtControlEnabled) {
 		this.jwtControlEnabled = jwtControlEnabled;
 	}
-	
+
 	public boolean isIpFilterEnabled() {
 		return ipFilterEnabled;
 	}
@@ -2534,7 +2499,7 @@ public class AppSettings {
 	public void setToBeDeleted(boolean toBeDeleted) {
 		this.toBeDeleted = toBeDeleted;
 	}
-	
+
 	public int getWebRTCKeyframeTime() {
 		return webRTCKeyframeTime;
 	}
@@ -2542,7 +2507,7 @@ public class AppSettings {
 	public void setWebRTCKeyframeTime(int webRTCKeyframeTime) {
 		this.webRTCKeyframeTime = webRTCKeyframeTime;
 	}
-	
+
 	public String getJwtStreamSecretKey() {
 		return jwtStreamSecretKey;
 	}
@@ -2550,7 +2515,7 @@ public class AppSettings {
 	public void setJwtStreamSecretKey(String jwtStreamSecretKey) {
 		this.jwtStreamSecretKey = jwtStreamSecretKey;
 	}
-	
+
 	public boolean isPublishJwtControlEnabled() {
 		return publishJwtControlEnabled;
 	}
@@ -2606,15 +2571,15 @@ public class AppSettings {
 	public void setDashHttpStreaming(boolean dashHttpStreaming) {
 		this.dashHttpStreaming = dashHttpStreaming;
 	}
-	
+
 	public String getS3StreamsFolderPath() {
 		return s3StreamsFolderPath;
 	}
-	
+
 	public String getDashHttpEndpoint() {
 		return dashHttpEndpoint;
 	}
-	
+
 
 	public boolean isS3RecordingEnabled() { return s3RecordingEnabled; }
 
@@ -2663,7 +2628,7 @@ public class AppSettings {
 	public void setDashHttpEndpoint(String dashHttpEndpoint) {
 		this.dashHttpEndpoint = dashHttpEndpoint;
 	}
-	
+
 	public String getHlsEncryptionKeyInfoFile() {
 		return hlsEncryptionKeyInfoFile;
 	}
@@ -2691,7 +2656,7 @@ public class AppSettings {
 	public void setForceDecoding(boolean forceDecoding) {
 		this.forceDecoding = forceDecoding;
 	}
-	
+
 	public String getJwksURL() {
 		return jwksURL;
 	}

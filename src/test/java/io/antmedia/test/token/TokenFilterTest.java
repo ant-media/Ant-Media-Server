@@ -437,13 +437,13 @@ public class TokenFilterTest {
 
 	@Test
 	public void testGetStreamId() {
-		String streamId = "streamId";
+		String streamId = "stream_Id";
 		
-		assertEquals("test_streamId_davut_diyen_kedi", TokenFilterManager.getStreamId("/liveapp/streams/"+"test_"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
+		assertEquals("test_stream_Id_davut_diyen_kedi", TokenFilterManager.getStreamId("/liveapp/streams/"+"test_"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
 
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX +".m3u8"));
 		
-		assertEquals("streamId_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test" +".m3u8"));
+		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test" +".m3u8"));
 		
 		// Tests for CMAF
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/chunked/"+streamId+"/media_1.m3u8"));
@@ -462,7 +462,7 @@ public class TokenFilterTest {
 		
 		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test-2021-05-18_11-26-26.842"+".mp4")); 
 		
-		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test-2021-05-18_11-26-26.842_240p"+".mp4")); 
+		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test-2021-05-18_11-26-26.842_240p500kbps"+".mp4")); 
 
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p300kbps.m3u8"));
 		
@@ -474,7 +474,7 @@ public class TokenFilterTest {
 		
 		// Add "_" in appname and stream Id
 		
-		assertEquals("test_streamId_davut_diyen_kedi", TokenFilterManager.getStreamId("/live_app/streams/"+"test_" + streamId+"_davut_diyen_kedi_adaptive.m3u8"));
+		assertEquals("test_stream_Id_davut_diyen_kedi", TokenFilterManager.getStreamId("/live_app/streams/"+"test_" + streamId+"_davut_diyen_kedi_adaptive.m3u8"));
 
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8"));
 		
@@ -509,6 +509,26 @@ public class TokenFilterTest {
 
 		assertNull(TokenFilterManager.getStreamId("/live_app/streams/"+streamId+".u8"));
 		
+		
+						
+		assertNull(TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".u8"));
+
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_1.webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"-2021-12-26_19-13-12.371.webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"-2021-12-26_19-13-39.524_240p500kbps.webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p500kbps.mp4"));
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p500kbps.webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p500kbps_1.webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p500kbps_2.webm"));
+		
+
+		assertEquals(streamId+"_tahir_diyen_kedi_adaptive_123", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_tahir_diyen_kedi_adaptive_123_480p600kbps_1.mp4"));
+
+		assertEquals(streamId+"_tahir_diyen_kedi_adaptive", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_tahir_diyen_kedi_adaptive_12.webm"));
+
+
 		//below test case
 		streamId = "AgTWuHxp";
 		String requestURI = "/LiveApp/streams/"+ streamId + ".m3u8"; 
