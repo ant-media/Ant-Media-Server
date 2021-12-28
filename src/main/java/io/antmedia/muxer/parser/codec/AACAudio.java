@@ -86,7 +86,6 @@ public class AACAudio implements IAudioStreamCodec {
                     // back to the beginning
                     data.rewind();
                     blockDataAACDCR = new byte[data.remaining()];
-                    
                     data.get(blockDataAACDCR);
                 }
             }
@@ -107,18 +106,4 @@ public class AACAudio implements IAudioStreamCodec {
         result.rewind();
         return result;
     }
-
-    @SuppressWarnings("unused")
-    private static long sample2TC(long time, int sampleRate) {
-        return (time * 1000L / sampleRate);
-    }
-
-    //private final byte[] getAACSpecificConfig() {		
-    //	byte[] b = new byte[] { 
-    //			(byte) (0x10 | /*((profile > 2) ? 2 : profile << 3) | */((sampleRateIndex >> 1) & 0x03)),
-    //			(byte) (((sampleRateIndex & 0x01) << 7) | ((channels & 0x0F) << 3))
-    //		};
-    //	log.debug("SpecificAudioConfig {}", HexDump.toHexString(b));
-    //	return b;	
-    //}    
 }

@@ -483,12 +483,6 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
             case TYPE_AGGREGATE:
                 message = decodeAggregate(in);
                 break;
-            case TYPE_FLEX_SHARED_OBJECT: // represents an SO in an AMF3 container
-               // message = decodeFlexSharedObject(in);
-                break;
-            case TYPE_SHARED_OBJECT:
-               // message = decodeSharedObject(in);
-                break;
             case TYPE_FLEX_MESSAGE:
                 message = decodeFlexMessage(in);
                 break;
@@ -532,12 +526,18 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
             case TYPE_ABORT:
                 message = decodeAbort(in);
                 break;
+            case TYPE_FLEX_SHARED_OBJECT:
+            case TYPE_SHARED_OBJECT:// represents an SO in an AMF3 container
+            	log.warn("shared object is not supported");
+            	message = decodeUnknown(dataType, in);
+            	break;
             default:
                 log.warn("Unknown object type: {}", dataType);
                 message = decodeUnknown(dataType, in);
                 break;
         }
         // add the header to the message
+        
         message.setHeader(header);
         return message;
     }

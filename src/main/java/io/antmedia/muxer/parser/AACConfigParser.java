@@ -226,7 +226,7 @@ public class AACConfigParser extends Parser {
 			errorOccured = true;
 			return;
 		}
-		
+				
 		logger.info("AAC Sample rate:{} ", sampleRate);
 		
 		channelCount = readBits(4);
