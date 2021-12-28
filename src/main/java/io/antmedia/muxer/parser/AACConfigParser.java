@@ -128,11 +128,6 @@ public class AACConfigParser extends Parser {
 	public AACConfigParser(byte[] data, int offset) 
 	{
 		super(data, offset);
-		
-		for (int i=0; i<data.length; i++) 
-		{
-			logger.info("byte {} -> {}", i, data[i]);
-		}
 	}
 
 	protected void parse() {

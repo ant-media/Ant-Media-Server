@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -275,15 +276,19 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testParseAACConfig() {
-
+	public void testParseAACConfig() 
+	{
 
 		AACConfigParser aacParser = new AACConfigParser(aacConfig, 0);
-
 		assertEquals(44100, aacParser.getSampleRate());
 		assertEquals(2, aacParser.getChannelCount());
 		assertEquals(AACConfigParser.AudioObjectTypes.AAC_LC, aacParser.getObjectType());
 		assertEquals(1024, aacParser.getFrameSize());;
+		assertFalse(aacParser.isErrorOccured());
+		
+		
+		aacParser = new AACConfigParser(new byte[] {0, 0}, 0);
+		assertTrue(aacParser.isErrorOccured());
 
 	}
 
@@ -505,6 +510,32 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		rtmpMuxer.init(appScope, "test", 0, null, 0);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
 
+	}
+	
+	@Test
+	public void testGetAudioCodecParameters() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		logger.info("Application / web scope: {}", appScope);
+		assertEquals(1, appScope.getDepth());
+		
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class), false, appScope));
+		muxAdaptor.setAudioDataConf(new byte[] {0, 0});
+		
+		assertNull(muxAdaptor.getAudioCodecParameters());
+		
+		try {
+			muxAdaptor.setEnableAudio(true);
+			assertTrue(muxAdaptor.isEnableAudio());
+			
+			muxAdaptor.prepare();
+			
+			assertFalse(muxAdaptor.isEnableAudio());
+		} 
+		catch (Exception e) 
+		{
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 	
 	@Test

@@ -463,6 +463,10 @@ public class AppFunctionalV2Test {
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" +  streamId + ".m3u8"));
 
+			
+			assertTrue(MuxingTest.videoExists);
+			assertTrue(MuxingTest.audioExists);
+			
 			rtmpSendingProcess.destroy();
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {

@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import io.antmedia.AntMediaApplicationAdapter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
@@ -38,9 +37,9 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.javacpp.BytePointer;
-import org.red5.codec.AACAudio;
 import org.red5.codec.AVCVideo;
 import org.red5.codec.IAudioStreamCodec;
+import org.red5.codec.IStreamCodecInfo;
 import org.red5.codec.IVideoStreamCodec;
 import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
@@ -67,6 +66,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
+import io.antmedia.muxer.parser.codec.AACAudio;
 import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
@@ -512,8 +512,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				audioCodecParameters.codec_tag(0);
 			}
 			else {
-				logger.warn("Cannot parse AAC header succesfully for stream:{} Disabling audio", streamId);
-				enableAudio = false;
+				logger.warn("Cannot parse AAC header succesfully for stream:{}", streamId);
 			}
 		}
 		return audioCodecParameters;
@@ -553,32 +552,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	public boolean prepare() throws Exception {
 
-		if (enableVideo) {
-			IVideoStreamCodec videoCodec = broadcastStream.getCodecInfo().getVideoCodec();
-			if (videoCodec instanceof AVCVideo)
-			{
-				IoBuffer videoBuffer = videoCodec.getDecoderConfiguration();
-				videoDataConf = new byte[videoBuffer.limit()-5];
-				videoBuffer.position(5).get(videoDataConf);
-			}
-			else {
-				logger.warn("Video codec is not AVC(H264) for stream: {}", streamId);
-			}
-		}
-
-		if (enableAudio) {
-			IAudioStreamCodec audioCodec = broadcastStream.getCodecInfo().getAudioCodec();
-			if (audioCodec instanceof AACAudio) 
-			{
-				IoBuffer audioBuffer = audioCodec.getDecoderConfiguration();
-				audioDataConf = new byte[audioBuffer.limit()-2];
-				audioBuffer.position(2).get(audioDataConf);
-			}
-			else {
-				logger.warn("Audio codec is not AAC for stream: {}", streamId);
-			}
-		}
-
 		int streamIndex = 0;
 		AVCodecParameters codecParameters = getVideoCodecParameters();
 		if (codecParameters != null) {
@@ -587,12 +560,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			videoStreamIndex = streamIndex;
 			streamIndex++;
 		}
-
+		
 
 		AVCodecParameters parameters = getAudioCodecParameters();
 		if (parameters != null) {
 			addStream2Muxers(parameters, TIME_BASE_FOR_MS, streamIndex);
 			audioStreamIndex = streamIndex;
+		}
+		else {
+			logger.info("There is no audio in the stream or not received AAC Sequence header for stream:{} muting the audio", streamId);
+			enableAudio = false;
 		}
 
 		prepareMuxerIO();
@@ -935,10 +912,18 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					return;
 
 				}
-
-				enableVideo = broadcastStream.getCodecInfo().hasVideo();
-				enableAudio = broadcastStream.getCodecInfo().hasAudio();
-				if (enableVideo && enableAudio)
+				
+				IStreamCodecInfo codecInfo = broadcastStream.getCodecInfo();
+				enableVideo = codecInfo.hasVideo();
+				enableAudio = codecInfo.hasAudio();
+				
+				getVideoDataConf(codecInfo);
+				getAudioDataConf(codecInfo);
+				
+				// Sometimes AAC Sequenece Header is received later 
+				// so that we check if we get the audio codec parameters correctly
+				
+				if (enableVideo && enableAudio && getAudioCodecParameters() != null)
 				{
 					logger.info("Video and audio is enabled in stream:{} queue size: {}", streamId, queueSize.get());
 					prepareParameters();
@@ -1056,6 +1041,41 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 			isPipeReaderJobRunning.compareAndSet(true, false);
+		}
+	}
+
+
+	private void getVideoDataConf(IStreamCodecInfo codecInfo) {
+		if (enableVideo) {
+			IVideoStreamCodec videoCodec = codecInfo.getVideoCodec();
+			if (videoCodec instanceof AVCVideo)
+			{
+				IoBuffer videoBuffer = videoCodec.getDecoderConfiguration();
+				videoDataConf = new byte[videoBuffer.limit()-5];
+				videoBuffer.position(5).get(videoDataConf);
+			}
+			else {
+				logger.warn("Video codec is not AVC(H264) for stream: {}", streamId);
+			}
+		}
+	}
+
+
+	private void getAudioDataConf(IStreamCodecInfo codecInfo) {
+		if (enableAudio) 
+		{
+			IAudioStreamCodec audioCodec = codecInfo.getAudioCodec();
+			if (audioCodec instanceof AACAudio) 
+			{
+				IoBuffer audioBuffer = ((AACAudio)audioCodec).getDecoderConfiguration();
+				if (audioBuffer != null) {
+					audioDataConf = new byte[audioBuffer.limit()-2];
+					audioBuffer.position(2).get(audioDataConf);
+				}
+			}
+			else {
+				logger.warn("Audio codec is not AAC for stream: {}", streamId);
+			}
 		}
 	}
 
@@ -2013,6 +2033,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void setIsRecording(boolean isRecording) {
 		this.isRecording.set(isRecording);
+	}
+
+
+	public void setAudioDataConf(byte[] audioDataConf) {
+		this.audioDataConf = audioDataConf;
 	}
 
 }
