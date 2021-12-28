@@ -27,13 +27,16 @@ import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 
 import dev.morphia.Datastore;
+import dev.morphia.DeleteOptions;
 import dev.morphia.query.Query;
+import dev.morphia.query.experimental.filters.Filters;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
@@ -279,8 +282,8 @@ public class VoDRestServiceV2UnitTest {
 		
 		DataStore mongoDataStore = new MongoStore("localhost", "", "", "testdb");
 		Datastore store = ((MongoStore) mongoDataStore).getVodDatastore();
-		Query<VoD> deleteQuery = store.find(VoD.class);
-		store.delete(deleteQuery);
+		
+		store.find(VoD.class).delete(new DeleteOptions().multi(true));
 		vodSorting(mongoDataStore);
 	}
 	
