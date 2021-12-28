@@ -16,6 +16,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
+import java.net.UnknownHostException;
 
 public class EndpointProxy extends ProxyServlet {
 
@@ -114,8 +115,14 @@ public class EndpointProxy extends ProxyServlet {
 
     @Override
     public HttpResponse doExecute(HttpServletRequest servletRequest, HttpServletResponse servletResponse, HttpRequest proxyRequest) throws IOException {
-        log.debug("proxy {} uri: {} -- {}", servletRequest.getMethod(), servletRequest.getRequestURI(), proxyRequest.getRequestLine().getUri());
-        return this.proxyClient.execute(this.getTargetHost(servletRequest), proxyRequest);
+        try{
+            log.debug("proxy {} uri: {} -- {}", servletRequest.getMethod(), servletRequest.getRequestURI(), proxyRequest.getRequestLine().getUri());
+            return this.proxyClient.execute(this.getTargetHost(servletRequest), proxyRequest);
+        }
+        catch (UnknownHostException uhex){
+            log.error("Can't execute the request to forward in cluster");
+            return null;
+        }
     }
 
     @Override
