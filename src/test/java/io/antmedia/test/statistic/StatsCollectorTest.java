@@ -40,6 +40,7 @@ import com.google.gson.JsonObject;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.SystemUtils;
+import io.antmedia.console.AdminApplication;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
 import io.antmedia.settings.ServerSettings;
@@ -90,6 +91,25 @@ public class StatsCollectorTest {
 		
 		monitor.addCpuMeasurement(11);
 		assertEquals(9, monitor.getCpuLoad());
+	}
+	
+	@Test
+	public void testClassCastException() 
+	{		
+		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
+		
+		Mockito.when(appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(true);
+		
+		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(new AdminApplication());
+		
+		assertNull(StatsCollector.getAppAdaptor(appContext));
+		
+		Mockito.when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(new AntMediaApplicationAdapter());
+		
+		assertNotNull(StatsCollector.getAppAdaptor(appContext));
+		
+		Mockito.when(appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(false);
+		assertNull(StatsCollector.getAppAdaptor(appContext));
 	}
 	
 	
