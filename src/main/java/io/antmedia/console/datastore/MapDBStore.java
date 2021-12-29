@@ -7,6 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.User;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.mapdb.DB;
@@ -20,7 +21,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import io.antmedia.cluster.ClusterNode;
-import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.UserType;
 import kotlin.jvm.functions.Function1;
 

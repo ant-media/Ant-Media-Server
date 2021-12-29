@@ -38,7 +38,6 @@ import org.red5.server.api.scope.IBasicScope;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.Scope;
-import org.red5.server.so.SharedObjectScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -468,16 +467,7 @@ public abstract class BaseConnection extends AttributeStore implements IConnecti
         basicScope.addEventListener(this);
     }
 
-    /**
-     * Registers basic scope
-     * 
-     * @param basicScope
-     *            Basic scope to register
-     */
-    public void registerBasicScope(SharedObjectScope basicScope) {
-        basicScopes.add(basicScope);
-        basicScope.addEventListener(this);
-    }
+   
 
     /**
      * Unregister basic scope
@@ -486,7 +476,7 @@ public abstract class BaseConnection extends AttributeStore implements IConnecti
      *            Unregister basic scope
      */
     public void unregisterBasicScope(IBasicScope basicScope) {
-        if (basicScope instanceof IBroadcastScope || basicScope instanceof SharedObjectScope) {
+        if (basicScope instanceof IBroadcastScope) {
             basicScopes.remove(basicScope);
             basicScope.removeEventListener(this);
         }

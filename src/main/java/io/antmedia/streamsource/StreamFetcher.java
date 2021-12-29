@@ -33,6 +33,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
@@ -45,7 +46,7 @@ public class StreamFetcher {
 	/**
 	 * Connection setup timeout value
 	 */
-	private int timeout;
+	private int timeoutMicroSeconds;
 	private boolean exceptionInThread = false;
 
 	/**
@@ -150,8 +151,12 @@ public class StreamFetcher {
 			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
 		}
 
-		String timeoutStr = String.valueOf(this.timeout);
+		String timeoutStr = String.valueOf(this.timeoutMicroSeconds);
 		av_dict_set(optionsDictionary, "stimeout", timeoutStr, 0);
+
+		int analyzeDurationUs = appSettings.getMaxAnalyzeDurationMS() * 1000;
+		String analyzeDuration = String.valueOf(analyzeDurationUs);
+		av_dict_set(optionsDictionary, "analyzeduration", analyzeDuration, 0);
 
 		int ret;
 
@@ -285,7 +290,7 @@ public class StreamFetcher {
 								long currentTime = System.currentTimeMillis();
 								muxAdaptor.setStartTime(currentTime);
 
-								getInstance().startPublish(streamId, 0, "Pull");
+								getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL);
 
 								if (bufferTime > 0) {
 									packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l-> 
@@ -698,7 +703,7 @@ public class StreamFetcher {
 	 * @param timeoutMs in ms
 	 */
 	public void setConnectionTimeout(int timeoutMs) {
-		this.timeout = timeoutMs * 1000;
+		this.timeoutMicroSeconds = timeoutMs * 1000;
 	}
 
 	public boolean isExceptionInThread() {

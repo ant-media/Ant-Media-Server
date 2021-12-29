@@ -4,40 +4,39 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Iterator;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 
 public abstract class DataStore {
 
 
 	//Do not forget to write function descriptions especially if you are adding new functions
 
-	public static final int MAX_ITEM_IN_ONE_LIST = 50;
+	public static final int MAX_ITEM_IN_ONE_LIST = 250;
 
 	private boolean writeStatsToDatastore = true;
 
 	protected volatile boolean available = false;
 
 	protected static Logger logger = LoggerFactory.getLogger(DataStore.class);
-
-
+	
+	
 	public abstract String save(Broadcast broadcast);
 
 	/**
@@ -124,14 +123,11 @@ public abstract class DataStore {
 
 	public abstract List<Broadcast> getExternalStreamsList();
 	
-	public abstract void close();
-	
 	/**
-	 * This is used to close data store on shutdown
-	 * 
-	 * @param deleteDBAfterClose - set true to delete files or collection
+	 * Closes the database
+	 * @param deleteDB if it's true, it also deletes the db and closes
 	 */
-	public abstract void delete();
+	public abstract void close(boolean deleteDB);
 
 	/**
 	 * Returns the VoD List in order
@@ -364,46 +360,6 @@ public abstract class DataStore {
 	 * @return number of files that are saved to datastore
 	 */
 	public abstract int fetchUserVodList(File filedir);
-
-	/**
-	 * Add social endpoint credentials to data store
-	 * Do not add id to the credentials, it will be added by data store
-	 * @param credentials
-	 * The credentials that will be stored to datastore
-	 *
-	 * @return SocialEndpointCredentials by settings id of the credentials
-	 * null if it is not saved to datastore
-	 *
-	 */
-	public abstract SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials);
-
-	/**
-	 * Get list of social endpoints
-	 *
-	 * @param offset
-	 * @param size
-	 *
-	 * @return list of social endpoints
-	 */
-	public abstract List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size);
-
-	/**
-	 * Remove social endpoint from data store
-	 * @param id , this is the id of the credential
-	 *
-	 * @return true if it is removed from datastore
-	 * false if it is not removed
-	 */
-	public abstract boolean removeSocialEndpointCredentials(String id);
-
-	/**
-	 * Return social endpoint credential that having the id
-	 *
-	 * @param id the id of the credential to be returns
-	 * @return {@link SocialEndpointCredentials} if there is a matching credential with the id
-	 * <code>null</code> if there is no matching id
-	 */
-	public abstract SocialEndpointCredentials getSocialEndpointCredentials(String id);
 
 	/**
 	 * Return the number of active broadcasts in the server
@@ -924,6 +880,75 @@ public abstract class DataStore {
 	 * @returns total number of WebRTC viewers
 	 */
 	public abstract int getTotalWebRTCViewersCount();
+
+	protected ArrayList<WebRTCViewerInfo> searchOnWebRTCViewerInfo(ArrayList<WebRTCViewerInfo> list, String search) {
+		if(search != null && !search.isEmpty()) {
+			for (Iterator<WebRTCViewerInfo> i = list.iterator(); i.hasNext(); ) {
+				WebRTCViewerInfo item = i.next();
+				if(item.getViewerId() != null && !item.getViewerId().toLowerCase().contains(search.toLowerCase())) {
+					i.remove();
+				}
+			}
+		}
+		return list;
+	}
+
+	protected List<WebRTCViewerInfo> sortAndCropWebRTCViewerInfoList(List<WebRTCViewerInfo> list, int offset, int size, String sortBy, String orderBy) {
+		if("viewerId".equals(sortBy)) 
+		{
+			Collections.sort(list, (viewer1, viewer2) -> {
+				Comparable c1 = viewer1.getViewerId();
+				Comparable c2 = viewer2.getViewerId();
+
+				return "desc".equals(orderBy) ? c2.compareTo(c1) : c1.compareTo(c2);
+			});
+		}
+
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
+		}
+		if (offset < 0 ) {
+			offset = 0;
+		}
+
+		int toIndex =  Math.min(offset+size, list.size());
+		if (offset >= toIndex)
+		{
+			return new ArrayList<>();
+		}
+		else {
+			return list.subList(offset,toIndex);
+		}
+	}
+	
+	/**
+	 * This is used to save WebRTC Viewer Info to datastore 
+	 *
+	 * @param info information for the WebRTC Viewer
+	 */
+	public abstract void saveViewerInfo(WebRTCViewerInfo info);
+
+	/**
+	 * Get list of webrtc viewers
+	 *
+	 * @param offset
+	 * @param size
+	 * @param search 
+	 * @param orderBy 
+	 * @param sortBy 
+	 *
+	 * @return list of webrtc viewers
+	 */
+	public abstract List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy, String search);
+	
+	
+	/**
+	 * This is used to delete a WebRTC Viewer Info from datastore 
+	 *
+	 * @param viewerId WebRTC Viewer Id
+	 */
+	public abstract boolean deleteWebRTCViewerInfo(String viewerId);
+	
 
 	//**************************************
 	//ATTENTION: Write function descriptions while adding new functions

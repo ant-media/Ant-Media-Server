@@ -19,16 +19,10 @@
 		<listener-class>org.red5.logging.ContextLoggingListener
 		</listener-class>
 	</listener>
-
-	<filter>
-		<filter-name>LoggerContextFilter</filter-name>
-		<filter-class>org.red5.logging.LoggerContextFilter</filter-class>
-	</filter>
-
-	<filter-mapping>
-		<filter-name>LoggerContextFilter</filter-name>
-		<url-pattern>/*</url-pattern>
-	</filter-mapping>
+	<context-param>
+        <param-name>logbackDisableServletContainerInitializer</param-name>
+        <param-value>true</param-value>
+    </context-param>
 
 	<servlet>
 		<servlet-name>jersey-serlvet</servlet-name>

@@ -49,8 +49,6 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.SocialEndpointChannel;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -61,15 +59,10 @@ import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.muxer.RecordMuxer;
-import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
-import io.antmedia.social.LiveComment;
-import io.antmedia.social.endpoint.PeriscopeEndpoint;
-import io.antmedia.social.endpoint.VideoServiceEndpoint;
-import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.storage.StorageClient;
@@ -167,43 +160,6 @@ public abstract class RestServiceBase {
 
 	private ServerSettings serverSettings;
 
-	protected boolean addSocialEndpoints(Broadcast broadcast, String socialEndpointIds) {	
-		boolean success = false;
-		Map<String, VideoServiceEndpoint> endPointServiceList = getApplication().getVideoServiceEndpoints();
-
-		String[] endpointIds = socialEndpointIds.split(",");
-
-		if (endPointServiceList != null) {
-			for (String endpointId : endpointIds) {
-				VideoServiceEndpoint videoServiceEndpoint = endPointServiceList.get(endpointId);
-				if (videoServiceEndpoint != null) {
-					success = addSocialEndpoint(broadcast, videoServiceEndpoint);
-				}
-				else {
-					String id = endpointId != null ? endpointId.replaceAll(REPLACE_CHARS, "_") : null;
-					logger.warn("{} endpoint does not exist in this app.", id);
-				}
-			}
-		}
-		else {
-			logger.warn("endPointServiceList is null");
-		}
-		return success;
-	}
-
-	protected boolean addSocialEndpoint(Broadcast broadcast, VideoServiceEndpoint socialEndpoint) {
-		Endpoint endpoint;
-		try {
-			endpoint = socialEndpoint.createBroadcast(broadcast.getName(),
-					broadcast.getDescription(), broadcast.getStreamId(), broadcast.isIs360(), broadcast.isPublicStream(),
-					2160, true);
-			return getDataStore().addEndpoint(broadcast.getStreamId(), endpoint);
-
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		return false;
-	}
 
 	public void setAppCtx(ApplicationContext appCtx) {
 		this.appCtx = appCtx;
@@ -270,10 +226,6 @@ public abstract class RestServiceBase {
 
 	public void setDataStoreFactory(DataStoreFactory dataStoreFactory) {
 		this.dataStoreFactory = dataStoreFactory;
-	}
-
-	protected Map<String, VideoServiceEndpoint> getEndpointList() {
-		return getApplication().getVideoServiceEndpoints();
 	}
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
@@ -421,45 +373,26 @@ public abstract class RestServiceBase {
 		return room;
 	}
 
-	protected Result updateBroadcast(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
-
+	protected Result updateBroadcast(String streamId, Broadcast broadcast) {
 
 		removeEmptyPlayListItems(broadcast);
 
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
-		StringBuilder message = new StringBuilder();
-		int errorId = 0;
-		if (result) {
-			Broadcast fetchedBroadcast = getDataStore().get(streamId);
-			getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
-
-			if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
-				String[] socialNetworks = socialNetworksToPublish.split(",");
-
-				for (String networkName : socialNetworks) {
-					Result addSocialEndpoint = addSocialEndpoint(streamId, networkName);
-					if (!addSocialEndpoint.isSuccess()) {
-						result = false;
-						message.append(networkName).append(" ");
-						errorId = -1;
-						break;
-					}
-				}
-			}
-		}
-		if (message.length() > 0) {
-			message.append(" endpoint cannot be added");
-		}
-		return new Result(result, message.toString(), errorId);
+		
+		return new Result(result);
 	}
 
-	private static void removeEmptyPlayListItems(Broadcast broadcast) {
+	private static void removeEmptyPlayListItems(Broadcast broadcast) 
+	{
 		List<PlayListItem> playListItemList = broadcast.getPlayListItemList();
-		if (playListItemList != null) {
+		if (playListItemList != null) 
+		{
 			Iterator<PlayListItem> iterator = playListItemList.iterator();
-			while (iterator.hasNext()) {
+			while (iterator.hasNext()) 
+			{
 				PlayListItem listItem = iterator.next();
-				if (listItem.getStreamUrl() == null || listItem.getStreamUrl().isEmpty()) {
+				if (listItem.getStreamUrl() == null || listItem.getStreamUrl().isEmpty()) 
+				{
 					iterator.remove();
 				}
 			}
@@ -472,7 +405,7 @@ public abstract class RestServiceBase {
 	 * @param socialNetworksToPublish
 	 * @return
 	 */
-	protected Result updateStreamSource(String streamId, Broadcast broadcast, String socialNetworksToPublish) {
+	protected Result updateStreamSource(String streamId, Broadcast broadcast) {
 
 		boolean result = false;
 
@@ -505,12 +438,6 @@ public abstract class RestServiceBase {
 
 				if(result) {
 					Broadcast fetchedBroadcast = getDataStore().get(streamId);
-					getDataStore().removeAllEndpoints(fetchedBroadcast.getStreamId());
-
-					if (socialNetworksToPublish != null && socialNetworksToPublish.length() > 0) {
-						addSocialEndpoints(fetchedBroadcast, socialNetworksToPublish);
-					}
-
 					getApplication().startStreaming(fetchedBroadcast);
 				}
 			}
@@ -566,43 +493,7 @@ public abstract class RestServiceBase {
 		return true;
 	}
 
-	protected Result addSocialEndpoint(String id, String endpointServiceId) 
-	{
-		Broadcast broadcast = lookupBroadcast(id);
 
-		boolean success = false;
-		String message = "";
-		if (broadcast != null) 
-		{
-			success = addSocialEndpoints(broadcast, endpointServiceId);
-			if(!success) {
-				message  = endpointServiceId+" endpoint can not be added to "+id;
-			}
-		}
-		return new Result(success, message);
-	}
-
-	protected Result revokeSocialNetwork(String endpointId) {
-		Map<String, VideoServiceEndpoint> endPointServiceMap = getEndpointList();
-		String message = null;
-		boolean result = false;
-		if (endPointServiceMap != null) {
-
-			VideoServiceEndpoint videoServiceEndpoint = endPointServiceMap.get(endpointId);
-			if (videoServiceEndpoint != null) {
-				videoServiceEndpoint.resetCredentials();
-				endPointServiceMap.remove(endpointId);
-				result = true;
-			}
-			else {
-				message = "Service with the name specified is not found in this app";
-			}
-		} 
-		else {
-			message = "No endpoint is defined for this app";
-		}
-		return new Result(result, message);
-	}
 
 	@Deprecated
 	public Result addEndpoint(String id, String rtmpUrl) {
@@ -678,16 +569,16 @@ public abstract class RestServiceBase {
 		return !isCluster || originAddress.equals(getServerSettings().getHostAddress());
 	}
 
-	public Result processRTMPEndpoint(Result result, String streamId, String originAddress, String rtmpUrl, boolean addEndpoint, int resolution) {
-		boolean resultBoolean = false;
-		if(isInSameNodeInCluster(originAddress)) {
+	public Result processRTMPEndpoint(String streamId, String originAddress, String rtmpUrl, boolean addEndpoint, int resolution) {
+		Result result = new Result(false);
+		if(isInSameNodeInCluster(originAddress)) 
+		{
 			if(addEndpoint) {
-				resultBoolean = getMuxAdaptor(streamId).startRtmpStreaming(rtmpUrl, resolution);
+				result = getMuxAdaptor(streamId).startRtmpStreaming(rtmpUrl, resolution);
 			}
 			else {
-				resultBoolean = getMuxAdaptor(streamId).stopRtmpStreaming(rtmpUrl, resolution);
+				result = getMuxAdaptor(streamId).stopRtmpStreaming(rtmpUrl, resolution);
 			}
-			result.setSuccess(resultBoolean);
 		}
 		else {
 			logger.error("Please send a RTMP Endpoint request to the {} node or {} RTMP Endpoint in a stopped broadcast.", originAddress, addEndpoint ? "add" : "remove");
@@ -915,7 +806,7 @@ public abstract class RestServiceBase {
 		return adaptor;
 	}
 
-	public Result addIPCamera(Broadcast stream, String socialEndpointIds) {
+	public Result addIPCamera(Broadcast stream) {
 
 		Result connResult = new Result(false);
 
@@ -937,10 +828,6 @@ public abstract class RestServiceBase {
 
 				Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
 
-				if (socialEndpointIds != null && socialEndpointIds.length()>0) {
-					addSocialEndpoints(savedBroadcast, socialEndpointIds);
-				}
-
 				connResult = getApplication().startStreaming(savedBroadcast);
 				//if IP Camera is not being started while adding, do not record it to datastore
 				if (!connResult.isSuccess()) 
@@ -956,7 +843,7 @@ public abstract class RestServiceBase {
 		return connResult;
 	}
 
-	public Result addStreamSource(Broadcast stream, String socialEndpointIds) {
+	public Result addStreamSource(Broadcast stream) {
 
 		Result result = new Result(false);
 
@@ -965,10 +852,10 @@ public abstract class RestServiceBase {
 		if(monitor.enoughResource()) 
 		{
 			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
-				result = addIPCamera(stream, socialEndpointIds);
+				result = addIPCamera(stream);
 			}
 			else if (stream.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ) {
-				result = addSource(stream, socialEndpointIds);
+				result = addSource(stream);
 			}
 			else{
 				result.setMessage("Auto start query needs an IP camera or stream source.");
@@ -1109,7 +996,7 @@ public abstract class RestServiceBase {
 		return streamUrlControl;
 	}
 
-	protected Result addSource(Broadcast stream, String socialEndpointIds) {
+	protected Result addSource(Broadcast stream) {
 		Result result=new Result(false);
 
 		if(checkStreamUrl(stream.getStreamUrl())) {
@@ -1120,10 +1007,6 @@ public abstract class RestServiceBase {
 
 
 			Broadcast savedBroadcast = saveBroadcast(stream, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(), getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
-
-			if (socialEndpointIds != null && socialEndpointIds.length()>0) {
-				addSocialEndpoints(savedBroadcast, socialEndpointIds);
-			}
 
 			result = getApplication().startStreaming(savedBroadcast);
 
@@ -1308,119 +1191,6 @@ public abstract class RestServiceBase {
 		return new Result(result, message, errorId);
 	}
 
-	protected Object getDeviceAuthParameters(String serviceName) {
-		String message = null;
-		boolean missingClientIdAndSecret = false;
-
-		int errorId = -1;
-		VideoServiceEndpoint videoServiceEndpoint = null;
-		if (serviceName.equals(AntMediaApplicationAdapter.FACEBOOK)) 
-		{
-			String clientId = getAppSettings().getFacebookClientId();
-			String clientSecret = getAppSettings().getFacebookClientSecret();
-
-			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.FACEBOOK_ENDPOINT_CLASS, null, clientId, clientSecret);
-
-			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret)) 
-			{
-				missingClientIdAndSecret = true;
-			}
-
-		}
-		else if (serviceName.equals(AntMediaApplicationAdapter.YOUTUBE)) 
-		{
-
-			String clientId = getAppSettings().getYoutubeClientId();
-			String clientSecret = getAppSettings().getYoutubeClientSecret();
-
-			videoServiceEndpoint = getApplication().getEndpointService(AntMediaApplicationAdapter.YOUTUBE_ENDPOINT_CLASS, null, clientId, clientSecret);
-
-			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret)) 
-			{
-				missingClientIdAndSecret = true;
-			}
-
-		}
-		else if (serviceName.equals(AntMediaApplicationAdapter.PERISCOPE)) 
-		{
-			String clientId = getAppSettings().getPeriscopeClientId();
-			String clientSecret = getAppSettings().getPeriscopeClientSecret();
-
-			videoServiceEndpoint = getApplication().getEndpointService(PeriscopeEndpoint.class.getName(), null, clientId, clientSecret);
-
-			if (isClientIdMissing(videoServiceEndpoint, clientId, clientSecret))  {
-				missingClientIdAndSecret = true;
-			}
-		}
-
-		try {
-
-			if (missingClientIdAndSecret) {
-				errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_CLIENT_ID;
-				message = "Please enter service client id and client secret in app configuration";
-			}
-			else if (videoServiceEndpoint == null) {
-				errorId = ERROR_SOCIAL_ENDPOINT_UNDEFINED_ENDPOINT;
-				message = "Service with the name specified is not found in this app";
-			}
-			else {
-				DeviceAuthParameters askDeviceAuthParameters = videoServiceEndpoint.askDeviceAuthParameters();
-
-				getApplication().startDeviceAuthStatusPolling(videoServiceEndpoint,
-						askDeviceAuthParameters);
-				return askDeviceAuthParameters;
-			}
-		}
-		catch (Exception e) {
-			errorId = ERROR_SOCIAL_ENDPOINT_EXCEPTION_IN_ASKING_AUTHPARAMS;
-			message = "Exception in asking parameters";
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-
-		return new Result(false, message, errorId);
-	}
-
-	protected boolean isClientIdMissing(VideoServiceEndpoint videoServiceEndpoint, String clientId, String clientSecret) {
-		boolean result = false;
-		if ((videoServiceEndpoint != null) && 
-				(clientId == null || clientSecret == null || 
-				clientId.length() == 0 || clientSecret.length() == 0)) {
-			result = true;
-		}
-		return result;
-	}
-
-	protected Result checkDeviceAuthStatus(String userCode) {
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-		String message = null;
-		boolean authenticated = false;
-		String endpointId = null;
-		if (endPointMap != null) {
-			for (VideoServiceEndpoint videoServiceEndpoint : endPointMap.values()) {
-				//if there is an endpoint added to the list with same user code,
-				//it means it is authenticated
-				DeviceAuthParameters authParameters = videoServiceEndpoint.getAuthParameters();
-				if (authParameters != null && authParameters.user_code.equals(userCode)) {
-					authenticated = true;
-					endpointId = videoServiceEndpoint.getCredentials().getId();
-					break;
-				}
-			}
-		}
-		if (!authenticated) {
-			List<VideoServiceEndpoint> endPointList = getEndpointsHavingErrorList();
-			for (VideoServiceEndpoint videoServiceEndpoint : endPointList) {
-				DeviceAuthParameters authParameters = videoServiceEndpoint.getAuthParameters();
-				if (authParameters != null && authParameters.user_code.equals(userCode)) {
-					message = videoServiceEndpoint.getError();
-					endPointList.remove(videoServiceEndpoint);
-					break;
-				}
-			}
-
-		}
-		return new Result(authenticated, endpointId, message);
-	}
 
 	public MuxAdaptor getMuxAdaptor(String streamId) 
 	{
@@ -1488,11 +1258,6 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	protected List<VideoServiceEndpoint> getEndpointsHavingErrorList(){
-		return getApplication().getVideoServiceEndpointsHavingError();
-	}
-
-
 	protected BroadcastStatistics getBroadcastStatistics(String id) {
 
 		int totalRTMPViewer = -1;
@@ -1538,51 +1303,6 @@ public abstract class RestServiceBase {
 		int activeBroadcastCount = (int)getDataStore().getActiveBroadcastCount();
 
 		return new AppBroadcastStatistics(-1, totalHLSViewer, totalWebRTCViewer, activeBroadcastCount);
-	}
-
-	protected List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
-		List<SocialEndpointCredentials> endPointCredentials = new ArrayList<>();
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-		if (endPointMap != null) {
-			for (VideoServiceEndpoint videoServiceEndpoint : endPointMap.values()) {
-				endPointCredentials.add(videoServiceEndpoint.getCredentials());
-			}
-		}
-		return endPointCredentials;
-	}
-
-	protected SocialEndpointChannel getSocialNetworkChannel(String endpointId) {
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
-		SocialEndpointChannel channel = null;
-		if (endPoint != null) {
-			channel = endPoint.getChannel();
-		}
-		return channel;
-	}
-
-	protected List<SocialEndpointChannel> getSocialNetworkChannelList(String endpointId, String type) {
-
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
-		List<SocialEndpointChannel>  channelList = null;
-		if (endPoint != null) {
-			channelList = endPoint.getChannelList();
-		}
-		return channelList;
-	}
-
-
-	protected Result setSocialNetworkChannelList(String endpointId, String type, String channelId) {
-		boolean result = false;
-		Map<String, VideoServiceEndpoint> endPointMap = getEndpointList();
-
-		VideoServiceEndpoint endPoint = endPointMap.get(endpointId);
-
-		if (endPoint != null) {
-			result = endPoint.setActiveChannel(type, channelId);
-		}
-		return new Result(result, null);
 	}
 
 
@@ -1737,45 +1457,6 @@ public abstract class RestServiceBase {
 			result = camera.moveContinous(valueX, valueY, valueZoom);
 		}
 		return result;
-	}
-
-	protected Result getViewerCountFromEndpoint(String endpointServiceId, String streamId) 
-	{
-		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
-		long liveViews = 0;
-		if (videoServiceEndPoint != null) {
-			liveViews = videoServiceEndPoint.getLiveViews(streamId);
-		}
-		return new Result(true, String.valueOf(liveViews));
-	}
-
-	protected Result getLiveCommentsCount(String endpointServiceId, String streamId) {
-		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
-		int commentCount = 0;
-		if (videoServiceEndPoint != null) {
-			commentCount = videoServiceEndPoint.getTotalCommentsCount(streamId);
-		}
-		return new Result(true, String.valueOf(commentCount));
-	}
-
-	protected Interaction getInteractionFromEndpoint(String endpointServiceId, String streamId) {
-		Interaction interaction = null;
-		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
-		if (videoServiceEndPoint != null) {
-			interaction = videoServiceEndPoint.getInteraction(streamId);
-		}
-		return interaction;
-	}
-
-	protected List<LiveComment> getLiveCommentsFromEndpoint(String endpointServiceId, String streamId, int offset, int batch) 
-	{
-
-		VideoServiceEndpoint videoServiceEndPoint = getApplication().getVideoServiceEndPoint(endpointServiceId);
-		List<LiveComment> liveComment = null;
-		if (videoServiceEndPoint != null) {
-			liveComment = videoServiceEndPoint.getComments(streamId, offset, batch);
-		}
-		return liveComment;
 	}
 
 	protected List<TensorFlowObject> getDetectionList(String id, int offset, int size) {
@@ -2137,5 +1818,4 @@ public abstract class RestServiceBase {
 
 		return new Result(result, message);
 	}
-
 }
