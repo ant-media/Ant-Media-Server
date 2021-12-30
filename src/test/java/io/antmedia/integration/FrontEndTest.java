@@ -296,7 +296,9 @@ public class FrontEndTest {
             return MuxingTest.testFile("http://localhost:5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
         });
 
-        Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+        //Decreasing to zero may take some time
+        //TODO: Find a better to decrease the test duration
+        Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
             return restService.callGetBroadcast(broadcast.getStreamId()).getHlsViewerCount() == 0 ;
         });
 
