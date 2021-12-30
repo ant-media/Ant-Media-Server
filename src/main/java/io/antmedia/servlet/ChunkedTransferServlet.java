@@ -229,6 +229,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 			}
 			
 			Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+			logger.info("File:{} was generated ", finalFile.getName());
 		}
 		catch (ClientAbortException e) {
 			logger.warn("Client aborted - Reading input stream for file: {}", finalFile.getAbsolutePath());
@@ -378,8 +379,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 				
 				resp.setContentType(mimeType);
 				
-				
-				if (file.exists()) 
+				if (Files.exists(file.toPath())) 
 				{
 					AsyncContext asyncContext = req.startAsync();
 					asyncContext.start(() -> writeOutputStream(file, asyncContext, resp));
@@ -392,7 +392,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 					if (cacheAvailable) 
 					{
-						logger.info("File is being generated and getting from cache:{}", file.getAbsolutePath());
+						logger.info("File:{} is being generated on the fly so getting from cache", file.getAbsolutePath());
 						AsyncContext asyncContext = req.startAsync();
 
 						ChunkListener chunkListener = new ChunkListener();
