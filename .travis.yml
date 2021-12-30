@@ -27,7 +27,7 @@ before_install:
   - sudo apt-get update -qq
   #install mongodb ffmpeg wondershaper 
   - sudo apt-get install mongodb-org ffmpeg wondershaper -y
-  - sudo mongod --dbpath /var/lib/mongodb &>/dev/null # start mongo db - don' write log
+  - sudo mongod --dbpath /var/lib/mongodb &>/dev/null & # start mongo db - don' write log
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
     # get parent project
   - (if [ $(git ls-remote https://github.com/ant-media/ant-media-server-parent.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
