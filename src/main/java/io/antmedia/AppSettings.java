@@ -81,10 +81,6 @@ public class AppSettings {
 	public static final String SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY = "settings.timeTokenSubscriberOnly";
 	public static final String SETTINGS_TIME_TOKEN_PERIOD = "settings.timeTokenPeriod";
 	public static final String SETTINGS_HLS_PLAY_LIST_TYPE = "settings.hlsPlayListType";
-	public static final String FACEBOOK_CLIENT_ID = "facebook.clientId";
-	public static final String FACEBOOK_CLIENT_SECRET = "facebook.clientSecret";
-	public static final String YOUTUBE_CLIENT_ID = "youtube.clientId";
-	public static final String YOUTUBE_CLIENT_SECRET = "youtube.clientSecret";
 	public static final String SETTINGS_VOD_FOLDER = "settings.vodFolder";
 	public static final String SETTINGS_PREVIEW_OVERWRITE = "settings.previewOverwrite";
 	private static final String SETTINGS_STALKER_DB_SERVER = "settings.stalkerDBServer";
@@ -582,33 +578,6 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_HLS_PLAY_LIST_TYPE+":#{null}}" )
 	private String hlsPlayListType;
-
-	/**
-	 * Facebook client id
-	 * This is client id provided by Facebook to broadcast streams to Facebook.
-	 */
-	@Value( "${"+FACEBOOK_CLIENT_ID+"}" )
-	private String facebookClientId;
-
-	/**
-	 * Facebook client secret
-	 * Secret key for the Facebook client id.
-	 */
-	@Value( "${"+FACEBOOK_CLIENT_SECRET+"}" )
-	private String facebookClientSecret;
-
-	/**
-	 * Youtube client id
-	 * This is client id provided by YouTube to broadcast streams to YouTube.
-	 */
-	@Value( "${"+YOUTUBE_CLIENT_ID+"}" )
-	private String youtubeClientId;
-
-	/**
-	 * Youtube client secret for youtube client id
-	 */
-	@Value( "${"+YOUTUBE_CLIENT_SECRET+"}" )
-	private String youtubeClientSecret;
 
 	/**
 	 * The path for manually saved used VoDs
@@ -1615,39 +1584,6 @@ public class AppSettings {
 	public void setObjectDetectionEnabled(Boolean objectDetectionEnabled) {
 		this.objectDetectionEnabled = objectDetectionEnabled;
 	}
-
-	public String getYoutubeClientSecret() {
-		return youtubeClientSecret;
-	}
-
-	public void setYoutubeClientSecret(String youtubeClientSecret) {
-		this.youtubeClientSecret = youtubeClientSecret;
-	}
-
-	public String getYoutubeClientId() {
-		return youtubeClientId;
-	}
-
-	public void setYoutubeClientId(String youtubeClientId) {
-		this.youtubeClientId = youtubeClientId;
-	}
-
-	public String getFacebookClientSecret() {
-		return facebookClientSecret;
-	}
-
-	public void setFacebookClientSecret(String facebookClientSecret) {
-		this.facebookClientSecret = facebookClientSecret;
-	}
-
-	public String getFacebookClientId() {
-		return facebookClientId;
-	}
-
-	public void setFacebookClientId(String facebookClientId) {
-		this.facebookClientId = facebookClientId;
-	}
-
 
 	public String getVodFolder() {
 		return vodFolder;
