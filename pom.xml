@@ -244,6 +244,22 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+              <groupId>org.owasp</groupId>
+              <artifactId>dependency-check-maven</artifactId>
+              <version>${owasp.version}</version>
+			  <configuration>
+				 <failBuildOnCVSS>9.2</failBuildOnCVSS>
+			   </configuration>
+              <executions>
+                <execution>
+                  <phase>compile</phase>
+                  <goals>
+                    <goal>check</goal>
+                  </goals>
+                </execution>
+              </executions>
+            </plugin>
 
             <!-- >>>>>>> master <plugin> <groupId>com.webcohesion.enunciate</groupId>
                 <artifactId>enunciate-maven-plugin</artifactId> <version>${enunciate.version}</version>
@@ -382,7 +398,7 @@
 		</dependency>
 		<dependency>
 		    <groupId>dev.morphia.morphia</groupId>
-		    <artifactId>core</artifactId>
+		    <artifactId>morphia-core</artifactId>
 		    <version>${morphia.version}</version>
 		</dependency>
 		<dependency>
@@ -515,17 +531,6 @@
 			<artifactId>gson</artifactId>
 			<version>2.8.0</version>
 		</dependency>
-        <!-- https://mvnrepository.com/artifact/com.restfb/restfb -->
-        <dependency>
-            <groupId>com.restfb</groupId>
-            <artifactId>restfb</artifactId>
-            <version>${restfb.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.apis</groupId>
-            <artifactId>google-api-services-youtube</artifactId>
-            <version>${youtube.api.version}</version>
-        </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
             <artifactId>jersey-container-servlet</artifactId>
@@ -649,19 +654,6 @@
                             </plugins>
                         </configuration>
                     </plugin>
-                    <!--  ENABLE THIS
-                    <plugin>
-                        <groupId>org.owasp</groupId>
-                        <artifactId>dependency-check-maven</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                    -->
                     <plugin>
                         <artifactId>maven-dependency-plugin</artifactId>
                         <version>${maven-dependency-plugin.version}</version>
@@ -919,19 +911,7 @@
                             </execution>
                         </executions>
                     </plugin>
-                    <!-- ENABLE THIS
-                     <plugin>
-                        <groupId>org.owasp</groupId>
-                        <artifactId>dependency-check-maven</artifactId>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-                     -->
+                   
                     <plugin>
 			            <groupId>org.codehaus.mojo</groupId>
 						<artifactId>exec-maven-plugin</artifactId>

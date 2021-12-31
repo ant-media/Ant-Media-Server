@@ -21,7 +21,6 @@ package org.red5.server.net.rtmp.codec;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.io.object.Output;
@@ -56,13 +55,10 @@ import org.red5.server.net.rtmp.event.VideoData.FrameType;
 import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.net.rtmp.message.Header;
 import org.red5.server.net.rtmp.message.Packet;
-import org.red5.server.net.rtmp.message.SharedObjectTypeMapping;
 import org.red5.server.net.rtmp.status.Status;
 import org.red5.server.net.rtmp.status.StatusCodes;
 import org.red5.server.net.rtmp.status.StatusObject;
 import org.red5.server.service.Call;
-import org.red5.server.so.ISharedObjectEvent;
-import org.red5.server.so.ISharedObjectMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -578,9 +574,9 @@ public class RTMPProtocolEncoder implements Constants, IEventEncoder {
                 log.trace("Encode video message");
                 return encodeVideoData((VideoData) message);
             case TYPE_FLEX_SHARED_OBJECT:
-                return encodeFlexSharedObject((ISharedObjectMessage) message);
+              //  return encodeFlexSharedObject((ISharedObjectMessage) message);
             case TYPE_SHARED_OBJECT:
-                return encodeSharedObject((ISharedObjectMessage) message);
+             //   return encodeSharedObject((ISharedObjectMessage) message);
             case TYPE_SERVER_BANDWIDTH:
                 return encodeServerBW((ServerBW) message);
             case TYPE_CLIENT_BANDWIDTH:
@@ -627,158 +623,6 @@ public class RTMPProtocolEncoder implements Constants, IEventEncoder {
         final IoBuffer out = IoBuffer.allocate(4);
         out.putInt(chunkSize.getSize());
         return out;
-    }
-
-    /** {@inheritDoc} */
-    public IoBuffer encodeFlexSharedObject(ISharedObjectMessage so) {
-        final IoBuffer out = IoBuffer.allocate(128);
-        out.setAutoExpand(true);
-        out.put((byte) 0x00); // unknown (not AMF version)
-        doEncodeSharedObject(so, out);
-        return out;
-    }
-
-    /** {@inheritDoc} */
-    public IoBuffer encodeSharedObject(ISharedObjectMessage so) {
-        final IoBuffer out = IoBuffer.allocate(128);
-        out.setAutoExpand(true);
-        doEncodeSharedObject(so, out);
-        return out;
-    }
-
-    /**
-     * Perform the actual encoding of the shared object contents.
-     *
-     * @param so
-     *            shared object
-     * @param out
-     *            output buffer
-     */
-    private void doEncodeSharedObject(ISharedObjectMessage so, IoBuffer out) {
-        final Encoding encoding = Red5.getConnectionLocal().getEncoding();
-        final Output output = new org.red5.io.amf.Output(out);
-        final Output amf3output = new org.red5.io.amf3.Output(out);
-        output.putString(so.getName());
-        // SO version
-        out.putInt(so.getVersion());
-        // Encoding (this always seems to be 2 for persistent shared objects)
-        out.putInt(so.isPersistent() ? 2 : 0);
-        // unknown field
-        out.putInt(0);
-        int mark, len;
-        for (final ISharedObjectEvent event : so.getEvents()) {
-            final ISharedObjectEvent.Type eventType = event.getType();
-            byte type = SharedObjectTypeMapping.toByte(eventType);
-            switch (eventType) {
-                case SERVER_CONNECT:
-                case CLIENT_INITIAL_DATA:
-                case CLIENT_CLEAR_DATA:
-                    out.put(type);
-                    out.putInt(0);
-                    break;
-                case SERVER_DELETE_ATTRIBUTE:
-                case CLIENT_DELETE_DATA:
-                case CLIENT_UPDATE_ATTRIBUTE:
-                    out.put(type);
-                    mark = out.position();
-                    out.skip(4); // we will be back
-                    output.putString(event.getKey());
-                    len = out.position() - mark - 4;
-                    out.putInt(mark, len);
-                    break;
-                case SERVER_SET_ATTRIBUTE:
-                case CLIENT_UPDATE_DATA:
-                    if (event.getKey() == null) {
-                        // Update multiple attributes in one request
-                        Map<?, ?> initialData = (Map<?, ?>) event.getValue();
-                        for (Object o : initialData.keySet()) {
-                            out.put(type);
-                            mark = out.position();
-                            out.skip(4); // we will be back
-                            String key = (String) o;
-                            output.putString(key);
-                            if (encoding == Encoding.AMF3) {
-                                Serializer.serialize(amf3output, initialData.get(key));
-                            } else {
-                                Serializer.serialize(output, initialData.get(key));
-                            }
-                            len = out.position() - mark - 4;
-                            out.putInt(mark, len);
-                        }
-                    } else {
-                        out.put(type);
-                        mark = out.position();
-                        out.skip(4); // we will be back
-                        output.putString(event.getKey());
-                        if (encoding == Encoding.AMF3) {
-                            Serializer.serialize(amf3output, event.getValue());
-                        } else {
-                            Serializer.serialize(output, event.getValue());
-                        }
-                        len = out.position() - mark - 4;
-                        out.putInt(mark, len);
-                    }
-                    break;
-                case CLIENT_SEND_MESSAGE:
-                case SERVER_SEND_MESSAGE:
-                    // Send method name and value
-                    out.put(type);
-                    mark = out.position();
-                    out.skip(4);
-                    // Serialize name of the handler to call...
-                    Serializer.serialize(output, event.getKey());
-                    try {
-                        List<?> arguments = (List<?>) event.getValue();
-                        if (arguments != null) {
-                            // ...and the arguments
-                            for (Object arg : arguments) {
-                                if (encoding == Encoding.AMF3) {
-                                    Serializer.serialize(amf3output, arg);
-                                } else {
-                                    Serializer.serialize(output, arg);
-                                }
-                            }
-                        } else {
-                            // serialize a null as the arguments
-                            if (encoding == Encoding.AMF3) {
-                                Serializer.serialize(amf3output, null);
-                            } else {
-                                Serializer.serialize(output, null);
-                            }
-                        }
-                    } catch (Exception ex) {
-                        log.warn("Exception encoding args for event: {}", event, ex);
-                    }
-                    len = out.position() - mark - 4;
-                    //log.debug(len);
-                    out.putInt(mark, len);
-                    //log.info(out.getHexDump());
-                    break;
-                case CLIENT_STATUS:
-                    out.put(type);
-                    final String status = event.getKey();
-                    final String message = (String) event.getValue();
-                    out.putInt(message.length() + status.length() + 4);
-                    output.putString(message);
-                    output.putString(status);
-                    break;
-                default:
-                    log.warn("Unknown event: {}", eventType);
-                    // XXX: need to make this work in server or client mode
-                    out.put(type);
-                    mark = out.position();
-                    out.skip(4); // we will be back
-                    output.putString(event.getKey());
-                    if (encoding == Encoding.AMF3) {
-                        Serializer.serialize(amf3output, event.getValue());
-                    } else {
-                        Serializer.serialize(output, event.getValue());
-                    }
-                    len = out.position() - mark - 4;
-                    out.putInt(mark, len);
-                    break;
-            }
-        }
     }
 
     /** {@inheritDoc} */

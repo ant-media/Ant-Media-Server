@@ -26,8 +26,6 @@ import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.SocialEndpointChannel;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
@@ -36,9 +34,7 @@ import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.model.BasicStreamInfo;
-import io.antmedia.rest.model.Interaction;
 import io.antmedia.rest.model.Result;
-import io.antmedia.social.LiveComment;
 import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
@@ -156,7 +152,6 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/create")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createBroadcast(@ApiParam(value = "Broadcast object. Set the required fields, it may be null as well.", required = false) Broadcast broadcast,
-			@ApiParam(value = "Comma separated social network IDs, they must in comma separated and IDs must match with the defined IDs.", required = false) @QueryParam("socialNetworks") String socialEndpointIds,
 			@ApiParam(value = "Only effective if stream is IP Camera or Stream Source. If it's true, it starts automatically pulling stream. Its value is false by default", required = false, defaultValue="false") @QueryParam("autoStart") boolean autoStart) {
 
 
@@ -197,7 +192,7 @@ public class BroadcastRestService extends RestServiceBase{
 			//so if it's true, it should be IP Camera or Stream Soruce
 			//otherwise wrong parameter
 			if (broadcast != null) {
-				returnObject = addStreamSource(broadcast, socialEndpointIds);
+				returnObject = addStreamSource(broadcast);
 			}
 		}
 		else {
@@ -214,15 +209,8 @@ public class BroadcastRestService extends RestServiceBase{
 				if(broadcast.getSubFolder().contains(".."))
 					return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Subfolder is not valid. ")).build();
 			}
-			Broadcast createdBroadcast = createBroadcastWithStreamID(broadcast);
-			if (createdBroadcast.getStreamId() != null && socialEndpointIds != null) {
-				String[] endpointIds = socialEndpointIds.split(",");
-				for (String endpointId : endpointIds) {
-					addSocialEndpoint(createdBroadcast.getStreamId(), endpointId);
-				}
-			}
-			returnObject = createdBroadcast;
-
+			returnObject = createBroadcastWithStreamID(broadcast);
+			
 		}
 
 		return Response.status(Status.OK).entity(returnObject).build();
@@ -284,8 +272,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result updateBroadcast(@ApiParam(value="Broadcast id", required = true) @PathParam("id") String id, 
-			@ApiParam(value="Broadcast object with the updates") Broadcast broadcast,
-			@ApiParam(value = "Comma separated social network IDs, they must in comma separated and IDs must match with the defined IDs", required = true) @QueryParam("socialNetworks") String socialNetworksToPublish) {
+			@ApiParam(value="Broadcast object with the updates") Broadcast broadcast) {
 		Result result = new Result(false);
 		if (id != null && broadcast != null) 
 		{
@@ -293,36 +280,18 @@ public class BroadcastRestService extends RestServiceBase{
 					(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || 
 							broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))) 
 			{
-				result = super.updateStreamSource(id, broadcast, socialNetworksToPublish);
+				result = super.updateStreamSource(id, broadcast);
 			}
 			else 
 			{
-				result = super.updateBroadcast(id, broadcast, socialNetworksToPublish);
+				result = super.updateBroadcast(id, broadcast);
 			}
 
 		}
 		return result;
 	}
 
-	@ApiOperation(value = "Revoke authorization from a social network account that is authorized before", notes = "", response = Result.class)
-	@DELETE
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/social-networks/{endpointId}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result revokeSocialNetworkV2(@ApiParam(value = "Endpoint id", required = true) @PathParam("endpointId") String endpointId) {
-		return super.revokeSocialNetwork(endpointId);
-	}
-
-	@ApiOperation(value = "Add social endpoint to a stream for the specified service id. ", notes = "", response = Result.class)
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/social-endpoints/{endpointServiceId}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result addSocialEndpointJSONV2(@ApiParam(value = "Stream id", required = true) @PathParam("id") String id,
-			@ApiParam(value = "the id of the service in order to have successfull operation. Social network must be authorized in advance", required = true) @PathParam("endpointServiceId") String endpointServiceId) {
-		return addSocialEndpoint(id, endpointServiceId);
-	}
-
+	
 	@Deprecated
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -337,8 +306,7 @@ public class BroadcastRestService extends RestServiceBase{
 			String status = getDataStore().get(id).getStatus();
 			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
-				boolean started = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl, 0);
-				result.setSuccess(started);
+				result = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl, 0);
 			}
 		}
 		else {
@@ -375,7 +343,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 					{
-						result = processRTMPEndpoint(result, broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, true, resolutionHeight);
+						result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, true, resolutionHeight);
 						if (result.isSuccess()) 
 						{
 							result = super.addEndpoint(id, endpoint);
@@ -426,8 +394,7 @@ public class BroadcastRestService extends RestServiceBase{
 			String status = getDataStore().get(id).getStatus();
 			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 			{
-				boolean started = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl, 0);
-				result.setSuccess(started);
+				result = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl, 0);
 			}
 		}
 		else {	
@@ -463,7 +430,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
 				{
-					result = processRTMPEndpoint(result, broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, false, resolutionHeight);
+					result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, false, resolutionHeight);
 					if (result.isSuccess()) 
 					{
 						result = super.removeRTMPEndpoint(id, endpointServiceId);
@@ -493,52 +460,6 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return rtmpUrl;
 	}
-
-	@ApiOperation(value = "Returns live comments from a specific endpoint like Facebook, Youtube, PSCP, etc. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "Notes here", responseContainer = "List", response = LiveComment.class)
-	@GET
-	@Path("/{id}/social-endpoints/{endpointServiceId}/live-comments/{offset}/{batch}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public List<LiveComment> getLiveCommentsFromEndpointV2(@ApiParam(value = "This is the id of the endpoint service", required = true)
-	@PathParam("endpointServiceId") String endpointServiceId,
-	@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String streamId,
-	@ApiParam(value = "this is the start offset where to start getting comment", required = true) @PathParam("offset") int offset,
-	@ApiParam(value = "number of items to be returned", required = true) @PathParam("batch") int batch) 
-	{
-
-		return super.getLiveCommentsFromEndpoint(endpointServiceId, streamId, offset, batch);
-	}
-
-
-	@ApiOperation(value = "Return the number of live views in specified video service endpoint. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "", response = Result.class)
-	@GET
-	@Path("/{id}/social-endpoints/{endpointServiceId}/live-views-count")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result getViewerCountFromEndpointV2(@ApiParam(value = "the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
-			@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId) 
-	{
-		return super.getViewerCountFromEndpoint(endpointServiceId, streamId);
-	}
-
-
-	@ApiOperation(value = "Returns the number of live comment count from a specific video service endpoint. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "", response = Result.class)
-	@GET
-	@Path("/{id}/social-endpoints/{endpointServiceId}/live-comments-count")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result getLiveCommentsCountV2(@ApiParam(value = " the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
-			@ApiParam(value = "the id of the stream", required = true)  @PathParam("id") String streamId) {
-		return super.getLiveCommentsCount(endpointServiceId, streamId);
-	}
-
-
-	@ApiOperation(value = "Return the interaction from a specific endpoint like Facebook, Youtube, PSCP, etc. It works If interactivity is collected which can be enabled/disabled by properties file.", notes = "", response = Interaction.class)
-	@GET
-	@Path("/{id}/social-endpoints/{endpointServiceId}/interaction")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Interaction getInteractionFromEndpointV2(@ApiParam(value = "the id of the endpoint", required = true) @PathParam("endpointServiceId") String endpointServiceId,
-			@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId) {
-		return super.getInteractionFromEndpoint(endpointServiceId, streamId);
-	}
-
 
 
 	@ApiOperation(value = "Get detected objects from the stream based on offset and size", notes = "",responseContainer = "List", response = TensorFlowObject.class)
@@ -833,75 +754,6 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy
 			) {
 		return getDataStore().getBroadcastList(offset, size, type, sortBy, orderBy, null);
-	}
-
-
-	@ApiOperation(value = "Get device parameters for social network authorization.", notes = "", response = Object.class)
-	@POST
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/social-networks/{serviceName}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Object getDeviceAuthParametersV2(@ApiParam(value = "Name of the service, like Facebook, Youtube, Periscope", required = true) @PathParam("serviceName") String serviceName) {
-		return super.getDeviceAuthParameters(serviceName);
-	}
-
-	@ApiOperation(value = "Check if device is authenticated in the social network. In authorization phase, " +
-			"this function may be polled periodically until it returns success." +
-			"Server checks social network service for about 1 minute so that if user" +
-			"does not enter DeviceAuthParameters in a 1 minute, this function will" +
-			"never return true", notes = "", response = Result.class)
-	@GET
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/social-network-status/{userCode}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result checkDeviceAuthStatusV2(@ApiParam(value = "Code of social media account", required = true) @PathParam("userCode") String userCode) {
-		return super.checkDeviceAuthStatus(userCode);
-	}
-
-	@ApiOperation(value = "Get Credentials of Social Endpoints", notes = "", responseContainer = "List",response = SocialEndpointCredentials.class)
-	@GET
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/social-endpoints/{offset}/{size}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public List<SocialEndpointCredentials> getSocialEndpointsV2(@ApiParam(value = "the starting point of the list", required = true) @PathParam("offset") int offset,
-			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
-		return super.getSocialEndpoints(offset, size);
-	}
-
-	@ApiOperation(value = "Some social networks have different channels especially for facebook," +
-			"Live stream can be published on Facebook Page or Personal account, this" +
-			"service returns the related information about that.", notes = "", response = SocialEndpointChannel.class)
-	@GET
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/social-networks-channel/{endpointId}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public SocialEndpointChannel getSocialNetworkChannelV2(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId) {
-		return super.getSocialNetworkChannel(endpointId);
-	}
-
-
-	@ApiOperation(value = "Returns available social network channels for the specific service", notes = "",responseContainer = "List",response = SocialEndpointChannel.class)
-	@GET
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/social-networks-channel-lists/{endpointId}/{type}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public List<SocialEndpointChannel> getSocialNetworkChannelListV2(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId,
-			@ApiParam(value = "This is very service specific, it may be page for Facebook", required = true) @PathParam("type") String type) {
-		return super.getSocialNetworkChannelList(endpointId, type);
-	}
-
-
-	@ApiOperation(value = "If there are multiple channels in a social network," +
-			"this method sets specific channel for that endpoint" +
-			"If a user has pages in Facebook, this method sets the specific page to publish live stream to", notes = "", response = Result.class)
-	@PUT
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/social-networks-channels/{endpointId}/{type}/{id}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result setSocialNetworkChannelListV2(@ApiParam(value = "endpointId", required = true) @PathParam("endpointId") String endpointId,
-			@ApiParam(value = "type", required = true) @PathParam("type") String type,
-			@ApiParam(value = "id", required = true) @PathParam("id") String channelId) {
-		return super.setSocialNetworkChannelList(endpointId, type, channelId);
 	}
 
 
