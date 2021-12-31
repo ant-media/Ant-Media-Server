@@ -214,8 +214,6 @@ public class AppSettings {
 
 	public static final String SETTINGS_UPLOAD_EXTENSIONS_TO_S3 = "settings.uploadExtensionsToS3";
 
-	public static final String SETTINGS_DELETE_FILE_AFTER_S3_UPLOAD = "settings.deleteFileAfterS3Upload";
-
 	public static final String SETTINGS_RTSP_TIMEOUT_DURATION_MS = "settings.rtspTimeoutDurationMs";
 
 	public static final String SETTINGS_RTMP_INGEST_BUFFER_TIME_MS = "settings.rtmpIngestBufferTimeMs";
@@ -374,12 +372,6 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_UPLOAD_EXTENSIONS_TO_S3+":7}" )
 	private int uploadExtensionsToS3;
-
-	/**
-	 * Delete files from local after uploading them to S3
-	 */
-	@Value( "${"+SETTINGS_DELETE_FILE_AFTER_S3_UPLOAD+":true}" )
-	private boolean deleteFileAfterS3Upload;
 
 	/**
 	 * Endpoint will try to republish if error occurs,
@@ -1449,14 +1441,6 @@ public class AppSettings {
 
 	public int getUploadExtensionsToS3(){
 		return this.uploadExtensionsToS3;
-	}
-
-	public void setDeleteFileAfterS3Upload(boolean deleteFileAfterS3Upload){
-		this.deleteFileAfterS3Upload = deleteFileAfterS3Upload;
-	}
-
-	public boolean getDeleteFileAfterS3Upload(){
-		return this.deleteFileAfterS3Upload;
 	}
 
 	public String getHlsTime() {
