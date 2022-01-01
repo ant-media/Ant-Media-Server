@@ -17,7 +17,9 @@ import java.util.Queue;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.*;
+import javax.ws.rs.FormParam;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
@@ -38,20 +40,19 @@ import com.google.gson.JsonObject;
 import ch.qos.logback.classic.Level;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.SystemUtils;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.AdminApplication;
 import io.antmedia.console.AdminApplication.ApplicationInfo;
 import io.antmedia.console.AdminApplication.BroadcastInfo;
-import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
+import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.types.Licence;
+import io.antmedia.datastore.db.types.User;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
-import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.StatsCollector;
@@ -642,7 +643,7 @@ public class CommonRestService {
 
 
 	public String changeSettings(@PathParam("appname") String appname, AppSettings newSettings){
-		AntMediaApplicationAdapter adapter = ((IApplicationAdaptorFactory) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
+		AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		return gson.toJson(new Result(adapter.updateSettings(newSettings, true, false)));
 	}
 
@@ -682,17 +683,11 @@ public class CommonRestService {
 			ApplicationContext context = application.getApplicationContext(appName);
 			if (context != null) 
 			{
-				IApplicationAdaptorFactory adaptorFactory = (IApplicationAdaptorFactory) context.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-				if (adaptorFactory != null) 
-				{
-					appAdaptor = adaptorFactory.getAppAdaptor();
-				}
+				appAdaptor = (AntMediaApplicationAdapter) context.getBean(AntMediaApplicationAdapter.BEAN_NAME);
 			}
 		}
 		return appAdaptor;
 	}
-
-
 
 	public Response isShutdownProperly(@QueryParam("appNames") String appNamesArray)
 	{
@@ -747,8 +742,9 @@ public class CommonRestService {
 
 		for (String appName : appNames) {
 			//Check apps shutdown properly
-			if(!((IApplicationAdaptorFactory) getApplication().getApplicationContext(appName).getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor().isShutdownProperly()) {
-				((IApplicationAdaptorFactory) getApplication().getApplicationContext(appName).getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor().setShutdownProperly(true);
+			AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appName);
+			if (appAdaptor != null) {
+				appAdaptor.setShutdownProperly(true);
 			}
 		}
 
@@ -850,8 +846,11 @@ public class CommonRestService {
 
 	public Result resetBroadcast(@PathParam("appname") String appname) 
 	{
-		AntMediaApplicationAdapter appAdaptor = ((IApplicationAdaptorFactory) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME)).getAppAdaptor();
-		return appAdaptor.resetBroadcasts();
+		AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appname);
+		if (appAdaptor != null) {
+			return appAdaptor.resetBroadcasts();
+		}
+		return new Result(false, "No application adaptor with this name " + appname);
 	}
 
 	public void setDataStore(AbstractConsoleDataStore dataStore) {
@@ -925,8 +924,6 @@ public class CommonRestService {
 			rootLogger.setLevel(currentLevelDetect(logLevel));
 
 			store.put(LOG_LEVEL, logLevel);
-
-
 		}
 
 		return gson.toJson(new Result(store.save()));
@@ -965,7 +962,6 @@ public class CommonRestService {
 		}
 
 	}
-
 
 	public String getLogFile(@PathParam("charSize") int charSize, @QueryParam("logType") String logType,
 			@PathParam("offsetSize") long offsetSize) throws IOException {
@@ -1073,29 +1069,40 @@ public class CommonRestService {
 
 
 	public Result createApplication(String appName) {
+		appName = appName.replaceAll("[\n\r\t]", "_");
+		if (isClusterMode()) 
+		{
+			//If there is a record in database, just delete it in order to start from scratch
+			IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
+			long deletedRecordCount = clusterNotifier.getClusterStore().deleteAppSettings(appName);
+			if (deletedRecordCount > 0) {
+				logger.info("App detected in the database. It's likely the app with the same name {} is re-creating. ", appName);
+			}
+			
+		}
+		
 		return new Result(getApplication().createApplication(appName));
 	}
 
 
-	public Result deleteApplication(String appName) {
+	public Result deleteApplication(String appName, boolean deleteDB) {
 		appName = appName.replaceAll("[\n\r\t]", "_");
 		logger.info("delete application http request:{}", appName);
 		AppSettings appSettings = getSettings(appName);
 		boolean result = false;
+		String message = "";
 		if (appSettings != null) {
 			appSettings.setToBeDeleted(true);
+			//change settings on the db to let undeploy the app
 			changeSettings(appName, appSettings);
-			result = true;
-			if (!isClusterMode()) {
-				//if it's not in cluster mode, delete application
-				//In cluster mode, it's deleted by synchronization
-				result = getApplication().deleteApplication(appName);
-			}
+			
+			result = getApplication().deleteApplication(appName, deleteDB);
 		}
 		else {
 			logger.info("App settings is not available for app name:{}. App may be initializing", appName);
+			message = "AppSettings is not available for app: " + appName + ". It's not available or it's being initialized";
 		}
-		return new Result(result);
+		return new Result(result, message);
 	}
 
 	public boolean isClusterMode() {

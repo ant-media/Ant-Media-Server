@@ -35,8 +35,8 @@ import javax.management.ObjectName;
 import javax.management.StandardMBean;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
-import org.red5.codec.AACAudio;
 import org.red5.codec.AVCVideo;
 import org.red5.codec.IAudioStreamCodec;
 import org.red5.codec.IStreamCodecInfo;
@@ -92,6 +92,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.RtmpMuxer;
+import io.antmedia.muxer.parser.codec.AACAudio;
 import io.vertx.core.Vertx;
 
 /**
@@ -970,7 +971,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 
 		MuxAdaptor localMuxAdaptor = MuxAdaptor.initializeMuxAdaptor(this, false, conn.getScope());
 
-		
+
 		
 
 		try {
@@ -983,7 +984,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			localMuxAdaptor.init(conn, publishedName, false);
 			
 			addStreamListener(localMuxAdaptor);
-			this.muxAdaptor = new WeakReference<MuxAdaptor>(localMuxAdaptor);
+			this.muxAdaptor = new WeakReference<>(localMuxAdaptor);
 			if (!this.muxAdaptor.get().getStreamHandler().isServerShuttingDown()) {
 				localMuxAdaptor.start();
 			}
@@ -997,7 +998,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			}
 		}
 		catch (Exception e) {
-			e.printStackTrace();
+			log.error(ExceptionUtils.getStackTrace(e));
 		}
 	}
 

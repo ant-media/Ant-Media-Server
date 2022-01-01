@@ -63,6 +63,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
@@ -72,7 +73,6 @@ public abstract class RecordMuxer extends Muxer {
 	protected static Logger logger = LoggerFactory.getLogger(RecordMuxer.class);
 	protected File fileTmp;
 	protected StorageClient storageClient = null;
-	protected String streamId;
 	protected int videoIndex;
 	protected int audioIndex;
 	protected int resolution;
@@ -84,7 +84,11 @@ public abstract class RecordMuxer extends Muxer {
 	protected AVPacket videoPkt;
 	protected int rotation;
 
+	protected boolean uploadMP4ToS3 = true;
+
 	private String subFolder = null;
+
+	private static final int S3_CONSTANT = 0b001;
 
 	/**
 	 * By default first video key frame should be checked
@@ -128,8 +132,8 @@ public abstract class RecordMuxer extends Muxer {
 	 * {@inheritDoc}
 	 */
 	@Override
-	public void init(IScope scope, final String name, int resolutionHeight, String subFolder) {
-		super.init(scope, name, resolutionHeight, false, subFolder);
+	public void init(IScope scope, final String name, int resolutionHeight, String subFolder, int bitrate) {
+		super.init(scope, name, resolutionHeight, false, subFolder, bitrate);
 
 		this.streamId = name;
 		this.resolution = resolutionHeight;
@@ -167,7 +171,6 @@ public abstract class RecordMuxer extends Muxer {
 			codecTimeBaseMap.put(streamIndex, timeBase);
 			result = true;
 		}
-
 		return result;
 	}
 
@@ -248,7 +251,6 @@ public abstract class RecordMuxer extends Muxer {
 		else {
 			logger.warn("Stream is not added for muxing to {} for stream:{}", getFileName(), streamId);
 		}
-
 		return result;
 	}
 
@@ -409,10 +411,7 @@ public abstract class RecordMuxer extends Muxer {
 
 		av_write_trailer(outputFormatContext);
 
-		logger.info("Clearing resources for stream: {}", streamId);
 		clearResource();
-
-		logger.info("Resources are cleaned for stream: {}", streamId);
 
 		isRecording = false;
 
@@ -420,28 +419,28 @@ public abstract class RecordMuxer extends Muxer {
 			try {
 
 
-				String absolutePath = fileTmp.getAbsolutePath();
-
-				String origFileName = absolutePath.replace(TEMP_EXTENSION, "");
-
-				final File f = new File(origFileName);
-
-				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
-				finalizeRecordFile(f);
-
 				IContext context = RecordMuxer.this.scope.getContext();
 				ApplicationContext appCtx = context.getApplicationContext();
-				Object bean = appCtx.getBean("web.handler");
-				if (bean instanceof IAntMediaStreamHandler) {
-					((IAntMediaStreamHandler)bean).muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
-				}
+				AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
 
 				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
 
+				File f = getFinalFileName(appSettings.isS3RecordingEnabled());
 
-				if (appSettings.isS3RecordingEnabled()) {
+				finalizeRecordFile(f);
+
+				adaptor.muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
+
+				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
+
+
+				if((appSettings.getUploadExtensionsToS3()&S3_CONSTANT) == 0){
+					this.uploadMP4ToS3 = false;
+				}
+
+				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3 ) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
-					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, getFile().getName(), storageClient);
+					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, f.getName(), storageClient);
 				}
 			} catch (Exception e) {
 				logger.error(e.getMessage());
@@ -451,22 +450,36 @@ public abstract class RecordMuxer extends Muxer {
 
 	}
 
-	public static void saveToStorage(String prefix, File fileToUpload, String fileName, StorageClient storageClient) {
+	public File getFinalFileName(boolean isS3Enabled)
+	{
+		String absolutePath = fileTmp.getAbsolutePath();
+		String origFileName = absolutePath.replace(TEMP_EXTENSION, "");
 
-		// Check file exist in S3 and change file names. In this way, new file is created after the file name changed.
+		String prefix = s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" );
 
+		String fileName = getFile().getName();
 
-		if (storageClient.fileExist(prefix + fileName)) {
+		File f = new File(origFileName);
 
-			String tmpName =  fileName;
-
+		if ( isS3Enabled && this.uploadMP4ToS3 && storageClient != null && doesFileExistInS3(storageClient, prefix+fileName)) 
+		{
 			int i = 0;
+
 			do {
 				i++;
-				fileName = tmpName.replace(".", "_"+ i +".");
-
-			} while (storageClient.fileExist(prefix + fileName));
+				fileName = initialResourceNameWithoutExtension + "_" + i + extension;
+				
+				origFileName = origFileName.substring(0, origFileName.lastIndexOf("/") + 1) + fileName;
+				f = new File(origFileName);
+			} while (doesFileExistInS3(storageClient, prefix+fileName) || f.exists() || f.isDirectory());
 		}
+		return f;
+	}
+
+	private static boolean doesFileExistInS3(StorageClient storageClient, String name) {
+		return storageClient.fileExist(name);
+	}
+	public static void saveToStorage(String prefix, File fileToUpload, String fileName, StorageClient storageClient) {
 
 		storageClient.save(prefix + fileName, fileToUpload);
 	}
@@ -536,21 +549,11 @@ public abstract class RecordMuxer extends Muxer {
 	@Override
 	public synchronized void writePacket(AVPacket pkt, AVStream stream) {
 
-		if (!firstKeyFrameReceivedChecked && stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
-			//we set start time here because we start recording with key frame and drop the other
-			//setting here improves synch between audio and video
-			//setVideoStartTime(pkt.pts());
-			int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
-			if (keyFrame == 1) {
-				firstKeyFrameReceivedChecked = true;
-				logger.warn("First key frame received for stream: {}", streamId);
-			} else {
-				logger.warn("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
-				// return if firstKeyFrameReceived is not received
-				// below return is important otherwise it does not work with like some encoders(vidiu)
-				return;
-			}
+		if (checkToDropPacket(pkt, stream.codecpar().codec_type())) {
+			//drop packet 
+			return;
 		}
+	
 
 		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index())) {
 			if (time2log  % 100 == 0) {
@@ -602,7 +605,21 @@ public abstract class RecordMuxer extends Muxer {
 		AVRational codecTimebase = codecTimeBaseMap.get(pkt.stream_index());
 		int codecType = outStream.codecpar().codec_type();
 
-		if (!firstKeyFrameReceivedChecked && codecType == AVMEDIA_TYPE_VIDEO) {
+		
+		if (!checkToDropPacket(pkt, codecType)) {
+			//added for audio video sync
+			writePacket(pkt, codecTimebase,  outStream.time_base(), codecType);
+		}
+
+	}
+
+	private boolean checkToDropPacket(AVPacket pkt, int codecType) {
+		if (!firstKeyFrameReceivedChecked && codecType == AVMEDIA_TYPE_VIDEO) 
+		{
+			if(firstVideoDts == -1) {
+				firstVideoDts = pkt.dts();
+			}
+			
 			int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
 			//we set start time here because we start recording with key frame and drop the other
 			//setting here improves synch between audio and video
@@ -613,11 +630,14 @@ public abstract class RecordMuxer extends Muxer {
 				logger.info("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
 				// return if firstKeyFrameReceived is not received
 				// below return is important otherwise it does not work with like some encoders(vidiu)
-				return;
+				return true;
+				
 			}
 		}
-		writePacket(pkt, codecTimebase,  outStream.time_base(), codecType);
-
+		//don't drop packet because it's either audio packet or key frame is received
+		return false;
+		
+		
 	}
 
 
@@ -670,9 +690,8 @@ public abstract class RecordMuxer extends Muxer {
 		}
 		else if (codecType == AVMEDIA_TYPE_VIDEO)
 		{
-			if(firstVideoDts == -1) {
-				firstVideoDts = pkt.dts();
-			}
+			//we set the firstVideoDts in checkToDropPacket Method to not have audio/video synch issue
+			
 			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames
 			// until the first key frame
 			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
@@ -764,4 +783,6 @@ public abstract class RecordMuxer extends Muxer {
 	public boolean isDynamic() {
 		return dynamic;
 	}
+
+	public boolean isUploadingToS3(){return uploadMP4ToS3;}
 }

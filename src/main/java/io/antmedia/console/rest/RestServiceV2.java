@@ -19,8 +19,8 @@ import org.springframework.stereotype.Component;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Licence;
+import io.antmedia.datastore.db.types.User;
 import io.antmedia.rest.model.Result;
-import io.antmedia.rest.model.User;
 import io.antmedia.settings.ServerSettings;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -609,9 +609,10 @@ public class RestServiceV2 extends CommonRestService {
 	@Path("/applications/{appName}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result deleteApplication(@ApiParam(value = "Name of the application to delete", required = true) @PathParam("appName") String appName) {
+	public Result deleteApplication(@ApiParam(value = "Name of the application to delete", required = true) @PathParam("appName") String appName, 
+			@QueryParam("deleteDB") boolean deleteDB) {
 		if (appName != null) {
-			return super.deleteApplication(appName);
+			return super.deleteApplication(appName, deleteDB);
 		}
 		return new Result(false, "Application name is not defined");
 	}

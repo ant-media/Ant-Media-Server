@@ -18,11 +18,6 @@
 	<!-- Server bean -->
 	<bean id="red5.server" class="org.red5.server.Server" />
 
-	<!-- Handles creation / lookup of shared objects -->
-	<bean id="sharedObjectService" class="org.red5.server.so.SharedObjectService">
-		<property name="persistenceClassName" value="org.red5.server.persistence.RamPersistence" />
-	</bean>
-
 	<bean id="providerService" class="org.red5.server.stream.ProviderService" />
 	<bean id="consumerService" class="org.red5.server.stream.ConsumerService" />
 	<!-- <bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService" 
@@ -55,7 +50,6 @@
 		<property name="name" value="default" />
 		<property name="context" ref="global.context" />
 		<property name="handler" ref="global.handler" />
-		<property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
 	</bean>
 
 	<bean id="red5.scopeResolver" class="org.red5.server.scope.ScopeResolver">
@@ -72,7 +66,6 @@
 		<property name="parent" ref="global.scope" />
 		<property name="context" ref="web.context" />
 		<property name="handler" ref="web.handler" />
-		<property name="persistenceClass" value="org.red5.server.persistence.RamPersistence" />
 		<property name="contextPath" value="/junit" />
 		<property name="virtualHosts" value="*" />
 	</bean>
@@ -99,7 +92,6 @@
 	<bean id="web.handler" class="io.antmedia.test.Application">
 		<property name="dataStoreFactory" ref="dataStoreFactory" />
 		<property name="appSettings" ref="app.settings" />
-		<property name="serverSettings" ref="ant.media.server.settings"/>
 		<property name="streamAcceptFilter" ref="streamAcceptFilter"/>
 		<property name="streamPublishSecurityList">
 			<list>

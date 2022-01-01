@@ -324,32 +324,6 @@ public class TokenFilterTest {
 		}
 	}	
 	
-	
-	@Test
-	public void testGetStreamId() {
-		String streamId = "streamId";
-		assertEquals(streamId+"_davut_diyen_kedi", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
-		
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".m3u8"));
-		
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".mp4"));
-		
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8"));
-		
-		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p.m3u8"));
-		
-		assertNull(TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".u8"));
-		
-		
-		//below test case
-		streamId = "AgTWuHxp";
-		String requestURI = "/LiveApp/streams/"+ streamId + ".m3u8"; 
-		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
-		
-		
-		
-	}
-	
 	@Test
 	public void testTokenGenerator() {
 		
