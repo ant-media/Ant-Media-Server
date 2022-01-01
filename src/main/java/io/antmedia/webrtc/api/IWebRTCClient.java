@@ -29,7 +29,7 @@ public interface IWebRTCClient {
 	 * Send audio packet to connected client
 	 * @param audioPacket
 	 */
-	public void sendAudioPacket(ByteBuffer audioPacket, long timestamp);
+	public void sendAudioPacket(ByteBuffer audioPacket, long timestamp, String trackId);
 	
 	
 	
@@ -44,12 +44,12 @@ public interface IWebRTCClient {
 	
 	public void setVideoResolution(int width, int height);
 
-
-	public void setWebRTCMuxer(IWebRTCMuxer webRTCMuxer);
+	public void addWebRTCMuxer(IWebRTCMuxer webRTCMuxer);
 	
-	public IWebRTCMuxer getWebRTCMuxer();
+	public void removeWebRTCMuxer(IWebRTCMuxer webRTCMuxer);
 	
 	public void stop();
+	
 
 
 	/**
@@ -177,4 +177,17 @@ public interface IWebRTCClient {
 	 * @return free text client info
 	 */
 	public String getClientInfo();
+
+	/**
+	 * Remove a track
+	 * @param trackId
+	 */
+	public void removeTracksOnTheFly(String trackId);
+
+	/**
+	 * Get the muxer
+	 * @param trackId
+	 * @return the muxer belongs to the trackId
+	 */
+	public IWebRTCMuxer getWebRTCMuxer(String trackId);
 }

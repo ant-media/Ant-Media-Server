@@ -24,7 +24,6 @@ import org.springframework.test.context.ContextConfiguration;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
@@ -152,17 +151,11 @@ public class PlaylistRestServiceV2UnitTest {
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
 		when(app.getScope()).thenReturn(scope);
 
-		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
-			@Override
-			public AntMediaApplicationAdapter getAppAdaptor() {
-				return app;
-			}
-		};
 
 		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
 		restServiceReal.setServerSettings(serverSettings);
 
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
 		//when(restServiceSpy.getApplication()).thenReturn(adptr);
 
@@ -174,7 +167,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		// Test already created playlist Id  
 
-		javax.ws.rs.core.Response response = restServiceReal.createBroadcast(playlist, "", false);
+		javax.ws.rs.core.Response response = restServiceReal.createBroadcast(playlist, false);
 		
 		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
 		// Test already invalid created playlist Id  
@@ -182,7 +175,7 @@ public class PlaylistRestServiceV2UnitTest {
 		try {
 			playlist.setStreamId(" asd asd _ ?/assa s");
 	
-			response = restServiceReal.createBroadcast(playlist, "", false);
+			response = restServiceReal.createBroadcast(playlist, false);
 	
 			assertEquals(Status.BAD_REQUEST.getStatusCode() , response.getStatus());
 	
@@ -194,7 +187,7 @@ public class PlaylistRestServiceV2UnitTest {
 			when(monitor.enoughResource()).thenReturn(false);
 			when(context.getBean(StatsCollector.BEAN_NAME)).thenReturn(monitor);
 	
-			response = restServiceReal.createBroadcast(playlist2, "", false);
+			response = restServiceReal.createBroadcast(playlist2, false);
 			
 			Broadcast broadcast = (Broadcast) response.getEntity();
 	
@@ -207,7 +200,7 @@ public class PlaylistRestServiceV2UnitTest {
 			broadcastList.clear();
 			playlist.setPlayListItemList(broadcastList);
 	
-			response = restServiceReal.createBroadcast(playlist2, "", false);
+			response = restServiceReal.createBroadcast(playlist2, false);
 			broadcast = (Broadcast) response.getEntity();
 	
 			assertEquals(Status.OK.getStatusCode(), response.getStatus());
@@ -254,14 +247,7 @@ public class PlaylistRestServiceV2UnitTest {
 		when(app.getScope()).thenReturn(scope);
 		app.setDataStore(dataStore);
 
-		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
-			@Override
-			public AntMediaApplicationAdapter getAppAdaptor() {
-				return app;
-			}
-		};
-
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
 		when(restServiceSpy.getApplication()).thenReturn(adptr);
 
@@ -354,13 +340,13 @@ public class PlaylistRestServiceV2UnitTest {
 
 		// getPlaylistId = null & playlistId = null
 
-		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist, "");
+		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist);
 
 		assertEquals(true, result.isSuccess());
 
 		// getPlaylistId = null & playlistId != null		
 
-		result = restServiceReal.updateBroadcast("test123", playlist, "");
+		result = restServiceReal.updateBroadcast("test123", playlist);
 
 		assertEquals(false, result.isSuccess());
 
@@ -373,7 +359,7 @@ public class PlaylistRestServiceV2UnitTest {
 			fail(e.getMessage());
 		}
 
-		result = restServiceReal.updateBroadcast(null, playlist, "");
+		result = restServiceReal.updateBroadcast(null, playlist);
 
 		// getPlaylistId != null & playlistId != null
 		try {
@@ -387,7 +373,7 @@ public class PlaylistRestServiceV2UnitTest {
 		playlist.setName("afterTestPlaylistName");
 		dataStore.save(playlist);
 		
-		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist, "");
+		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist);
 
 		assertEquals(true, result.isSuccess());
 
@@ -402,7 +388,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		playlist.setPlayListItemList(broadcastList);
 
-		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist, "");
+		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist);
 
 		assertEquals(true, result.isSuccess());
 
@@ -459,14 +445,7 @@ public class PlaylistRestServiceV2UnitTest {
 		app.setDataStore(dataStore);
 		when(app.getScope()).thenReturn(scope);
 
-		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
-			@Override
-			public AntMediaApplicationAdapter getAppAdaptor() {
-				return app;
-			}
-		};
-
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 		try {
 			playlist.setStreamId("testPlaylistId");
 		}
@@ -482,7 +461,7 @@ public class PlaylistRestServiceV2UnitTest {
 		// Playlist current broadcast is empty scenario
 		result = restServiceReal.stopStreamingV2(playlist.getStreamId());	
 
-		assertEquals(true, result.isSuccess());
+		assertEquals(false, result.isSuccess());
 
 		// Playlist ID is null scenario
 
@@ -500,7 +479,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		result = restServiceReal.stopStreamingV2(playlist.getStreamId());		
 
-		assertEquals(true, result.isSuccess());
+		assertEquals(false, result.isSuccess());
 
 		// Playlist is stop normal scenario
 		// Pllaylist current broadcast ID change back
@@ -514,7 +493,7 @@ public class PlaylistRestServiceV2UnitTest {
 		when(restServiceSpy.getApplication()).thenReturn(mock(AntMediaApplicationAdapter.class));
 		when(restServiceSpy.getApplication().stopStreaming(Mockito.any())).thenReturn(result);
 		result = restServiceReal.stopStreamingV2(playlist.getStreamId());	
-		//it's still created because it's not started
+		//it's created because it's not started
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, playlist.getStatus());
 
 	}
@@ -571,14 +550,7 @@ public class PlaylistRestServiceV2UnitTest {
 		//init stream fetcher
 		app.getStreamFetcherManager();
 
-		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
-			@Override
-			public AntMediaApplicationAdapter getAppAdaptor() {
-				return app;
-			}
-		};
-
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 		IStatsCollector collector = mock(IStatsCollector.class);
 		when(collector.enoughResource()).thenReturn(true);
 		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(collector);

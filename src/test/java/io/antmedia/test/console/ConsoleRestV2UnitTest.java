@@ -5,9 +5,9 @@ import io.antmedia.AppSettings;
 import io.antmedia.console.AdminApplication;
 import io.antmedia.console.datastore.MapDBStore;
 import io.antmedia.console.rest.RestServiceV2;
+import io.antmedia.datastore.db.types.User;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
-import io.antmedia.rest.model.User;
 import io.antmedia.rest.model.UserType;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
@@ -20,12 +20,14 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
+import org.springframework.context.ApplicationContext;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.Arrays;
 
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertNotNull;
@@ -357,19 +359,56 @@ public class ConsoleRestV2UnitTest {
     	 Mockito.doReturn("").when(restServiceSpy).changeSettings(Mockito.any(), Mockito.any());
     	 Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
     	 
-    	 Result result = restServiceSpy.deleteApplication("test");
+    	 Result result = restServiceSpy.deleteApplication("test", true);
     	 assertFalse(result.isSuccess());
     	 
     	 
-    	 Mockito.when(adminApp.deleteApplication(Mockito.anyString())).thenReturn(true);
-    	 result = restServiceSpy.deleteApplication("test");
+    	 Mockito.when(adminApp.deleteApplication(Mockito.anyString(),Mockito.eq(true))).thenReturn(true);
+    	 result = restServiceSpy.deleteApplication("test", true);
     	 assertTrue(result.isSuccess());
     	 
     	 
     	 Mockito.doReturn(null).when(restServiceSpy).getAppAdaptor(Mockito.any());
-    	 result = restServiceSpy.deleteApplication("test");
+    	 result = restServiceSpy.deleteApplication("test", true);
     	 assertFalse(result.isSuccess());
     	 
     	
     }
+    
+    @Test
+    public void testResetBroadcast() {
+    	 RestServiceV2 restServiceSpy = Mockito.spy(restService);
+    	 
+    	 AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
+    	 AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+    	 Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+    	 
+    	 restServiceSpy.resetBroadcast("junit");
+    	 Mockito.verify(adapter, Mockito.never()).resetBroadcasts();
+    	 
+    	 ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
+    	 Mockito.when(adminApp.getApplicationContext(Mockito.any())).thenReturn(appContext);
+    	 restServiceSpy.resetBroadcast("junit");
+    	 Mockito.verify(adapter, Mockito.never()).resetBroadcasts();
+    	 
+    	 
+    	 Mockito.when(appContext.getBean(Mockito.anyString())).thenReturn(adapter);
+    	 restServiceSpy.resetBroadcast("junit");
+    	 Mockito.verify(adapter).resetBroadcasts();
+    	
+    	
+    }
+    
+    @Test
+    public void testShutDownStatus() {
+    	 RestServiceV2 restServiceSpy = Mockito.spy(restService);
+    	 AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+    	 
+    	 Mockito.doReturn(adaptor).when(restServiceSpy).getAppAdaptor("app1");
+    	 Mockito.doReturn(null).when(restServiceSpy).getAppAdaptor("app2");
+    	 restServiceSpy.setShutdownStatus("app1,app2");
+    	 
+    	 Mockito.verify(adaptor).setShutdownProperly(true);
+    }
+    
 }

@@ -12,7 +12,8 @@ import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.javacpp.BytePointer;
 
 import io.antmedia.plugin.api.IPacketListener;
-
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 
 public class PacketFeeder{
 
@@ -32,13 +33,18 @@ public class PacketFeeder{
 
 	public void writeTrailer() {
 		for (IPacketListener listener : listeners) {
-			listener.writeTrailer();
+			listener.writeTrailer(streamId);
 		}
 	}
 
-	public void writePacket(AVPacket packet) {
+	public void writePacket(AVPacket packet, int type) {
 		for (IPacketListener listener : listeners) {
-			listener.onPacket(streamId, packet);
+			if(type == AVMEDIA_TYPE_VIDEO) {
+				listener.onVideoPacket(streamId, packet);
+			}
+			else if(type == AVMEDIA_TYPE_AUDIO) {
+				listener.onAudioPacket(streamId, packet);
+			}
 		}
 	}
 
@@ -62,7 +68,7 @@ public class PacketFeeder{
 			audioPkt.size(audioFrame.limit());
 			audioPkt.position(0);
 
-			writePacket(audioPkt);
+			writePacket(audioPkt, AVMEDIA_TYPE_AUDIO);
 
 			av_packet_unref(audioPkt);
 		}
@@ -86,7 +92,7 @@ public class PacketFeeder{
 			videoPkt.position(0);
 
 
-			writePacket(videoPkt);
+			writePacket(videoPkt, AVMEDIA_TYPE_VIDEO);
 
 			av_packet_unref(videoPkt);
 		}

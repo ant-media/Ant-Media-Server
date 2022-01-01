@@ -50,7 +50,7 @@ public class FrameFeeder {
 	
 	public void writeTrailer() {
 		for (IFrameListener iFrameListener : listeners) {
-			iFrameListener.writeTrailer();
+			iFrameListener.writeTrailer(streamId);
 		}
 	}
 

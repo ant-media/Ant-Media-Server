@@ -48,10 +48,6 @@ import org.red5.server.api.service.IStreamSecurityService;
 import org.red5.server.api.service.IStreamableFileService;
 import org.red5.server.api.service.ISubscriberStreamService;
 import org.red5.server.api.service.ServiceUtils;
-import org.red5.server.api.so.ISharedObject;
-import org.red5.server.api.so.ISharedObjectSecurity;
-import org.red5.server.api.so.ISharedObjectSecurityService;
-import org.red5.server.api.so.ISharedObjectService;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IOnDemandStream;
 import org.red5.server.api.stream.IPlayItem;
@@ -69,7 +65,6 @@ import org.red5.server.plugin.PluginDescriptor;
 import org.red5.server.plugin.PluginRegistry;
 import org.red5.server.plugin.Red5Plugin;
 import org.red5.server.scheduling.QuartzSchedulingService;
-import org.red5.server.so.SharedObjectService;
 import org.red5.server.stream.IProviderService;
 import org.red5.server.stream.PlaylistSubscriberStream;
 import org.red5.server.stream.ProviderService;
@@ -120,9 +115,9 @@ import org.slf4j.LoggerFactory;
  * @author Paul Gregoire (mondain@gmail.com)
  * @author Michael Klishin
  */
-public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapter implements ISharedObjectService,
+public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapter implements
 		IBroadcastStreamService, IOnDemandStreamService, ISubscriberStreamService, ISchedulingService,
-		IStreamSecurityService, ISharedObjectSecurityService, IStreamAwareScopeHandler, ApplicationMXBean {
+		IStreamSecurityService, IStreamAwareScopeHandler, ApplicationMXBean {
 
 	/**
 	 * Logger object
@@ -150,11 +145,6 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 * List of handlers that protect stream playback.
 	 */
 	private Set<IStreamPlaybackSecurity> playbackSecurity = new HashSet<IStreamPlaybackSecurity>();
-
-	/**
-	 * List of handlers that protect shared objects.
-	 */
-	private Set<ISharedObjectSecurity> sharedObjectSecurity = new HashSet<ISharedObjectSecurity>();
 
 	/**
 	 * Register a listener that will get notified about application events.
@@ -214,21 +204,6 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	/** {@inheritDoc} */
 	public Set<IStreamPlaybackSecurity> getStreamPlaybackSecurity() {
 		return playbackSecurity;
-	}
-
-	/** {@inheritDoc} */
-	public void registerSharedObjectSecurity(ISharedObjectSecurity handler) {
-		sharedObjectSecurity.add(handler);
-	}
-
-	/** {@inheritDoc} */
-	public void unregisterSharedObjectSecurity(ISharedObjectSecurity handler) {
-		sharedObjectSecurity.remove(handler);
-	}
-
-	/** {@inheritDoc} */
-	public Set<ISharedObjectSecurity> getSharedObjectSecurity() {
-		return sharedObjectSecurity;
 	}
 
 	/**
@@ -573,7 +548,9 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 	 *         otherwise
 	 */
 	public boolean appStart(IScope app) {
-
+		if (log == null) {
+			log = Red5LoggerFactory.getLogger(this.getClass());
+		}
 		log.debug("appStart: {}", app);
 		for (IApplication listener : listeners) {
 			if (!listener.appStart(app)) {
@@ -812,100 +789,6 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 		ServiceUtils.invokeOnConnection(conn, "onBWDone", new Object[] {});
 	}
 
-	/* Wrapper around ISharedObjectService */
-
-	/**
-	 * Creates a new shared object for given scope. Server-side shared objects
-	 * (also known as Remote SO) are special kind of objects those variable are
-	 * synchronized between clients. To get an instance of RSO at client-side,
-	 * use
-	 * 
-	 * <code>
-	 * SharedObject.getRemote()
-	 * </code>
-	 * 
-	 * . SharedObjects can be persistent and transient. Persistent RSO are
-	 * stateful, i.e. store their data between sessions. If you need to store
-	 * some data on server while clients go back and forth use persistent SO
-	 * (just use
-	 * 
-	 * <code>
-	 * true
-	 * </code>
-	 * 
-	 * ), otherwise prefer usage of transient for extra performance.
-	 * 
-	 * @param scope
-	 *            Scope that shared object belongs to
-	 * @param name
-	 *            Name of SharedObject
-	 * @param persistent
-	 *            Whether SharedObject instance should be persistent or not
-	 * @return true if SO was created, false otherwise
-	 */
-	public boolean createSharedObject(IScope scope, String name, boolean persistent) {
-		ISharedObjectService service = (ISharedObjectService) ScopeUtils.getScopeService(scope,
-				ISharedObjectService.class, SharedObjectService.class, false);
-		return service.createSharedObject(scope, name, persistent);
-	}
-
-	/**
-	 * Returns shared object from given scope by name.
-	 * 
-	 * @param scope
-	 *            Scope that shared object belongs to
-	 * @param name
-	 *            Name of SharedObject
-	 * @return Shared object instance with name given
-	 */
-	public ISharedObject getSharedObject(IScope scope, String name) {
-		ISharedObjectService service = (ISharedObjectService) ScopeUtils.getScopeService(scope,
-				ISharedObjectService.class, SharedObjectService.class, false);
-		return service.getSharedObject(scope, name);
-	}
-
-	/**
-	 * Returns shared object from given scope by name.
-	 * 
-	 * @param scope
-	 *            Scope that shared object belongs to
-	 * @param name
-	 *            Name of SharedObject
-	 * @param persistent
-	 *            Whether SharedObject instance should be persistent or not
-	 * @return Shared object instance with name given
-	 */
-	public ISharedObject getSharedObject(IScope scope, String name, boolean persistent) {
-		ISharedObjectService service = (ISharedObjectService) ScopeUtils.getScopeService(scope,
-				ISharedObjectService.class, SharedObjectService.class, false);
-		return service.getSharedObject(scope, name, persistent);
-	}
-
-	/**
-	 * Returns available SharedObject names as List
-	 * 
-	 * @param scope
-	 *            Scope that SO belong to
-	 */
-	public Set<String> getSharedObjectNames(IScope scope) {
-		ISharedObjectService service = (ISharedObjectService) ScopeUtils.getScopeService(scope,
-				ISharedObjectService.class, SharedObjectService.class, false);
-		return service.getSharedObjectNames(scope);
-	}
-
-	/**
-	 * Checks whether there's a SO with given scope and name
-	 * 
-	 * @param scope
-	 *            Scope that SO belong to
-	 * @param name
-	 *            Name of SharedObject
-	 */
-	public boolean hasSharedObject(IScope scope, String name) {
-		ISharedObjectService service = (ISharedObjectService) ScopeUtils.getScopeService(scope,
-				ISharedObjectService.class, SharedObjectService.class, false);
-		return service.hasSharedObject(scope, name);
-	}
 
 	/* Wrapper around the stream interfaces */
 
@@ -1162,13 +1045,6 @@ public class MultiThreadedApplicationAdapter extends StatefulScopeWrappingAdapte
 			file = null;
 		}
 		return duration;
-	}
-
-	/** {@inheritDoc} */
-	public boolean clearSharedObjects(IScope scope, String name) {
-		ISharedObjectService service = (ISharedObjectService) ScopeUtils.getScopeService(scope,
-				ISharedObjectService.class, SharedObjectService.class, false);
-		return service.clearSharedObjects(scope, name);
 	}
 
 	/**

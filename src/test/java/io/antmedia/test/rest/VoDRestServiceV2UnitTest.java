@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.bytedeco.javacpp.BytePointer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -28,14 +27,16 @@ import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 
 import dev.morphia.Datastore;
+import dev.morphia.DeleteOptions;
 import dev.morphia.query.Query;
+import dev.morphia.query.experimental.filters.Filters;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.IApplicationAdaptorFactory;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
@@ -184,15 +185,8 @@ public class VoDRestServiceV2UnitTest {
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
 		when(app.getScope()).thenReturn(scope);
 		
-		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
-			@Override
-			public AntMediaApplicationAdapter getAppAdaptor() {
-				return app;
-			}
-		};
-
 		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
 		restServiceReal.setAppCtx(context);
 
@@ -331,13 +325,13 @@ public class VoDRestServiceV2UnitTest {
 		InMemoryDataStore imDatastore = new InMemoryDataStore("datastore");
 		vodSorting(imDatastore);
 		
-		MapDBStore mapDataStore = new MapDBStore("testdb");
+		MapDBStore mapDataStore = new MapDBStore("testdb", vertx);
 		vodSorting(mapDataStore);
 		
 		DataStore mongoDataStore = new MongoStore("localhost", "", "", "testdb");
 		Datastore store = ((MongoStore) mongoDataStore).getVodDatastore();
-		Query<VoD> deleteQuery = store.find(VoD.class);
-		store.delete(deleteQuery);
+		
+		store.find(VoD.class).delete(new DeleteOptions().multi(true));
 		vodSorting(mongoDataStore);
 	}
 	
@@ -359,15 +353,8 @@ public class VoDRestServiceV2UnitTest {
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
 		when(app.getScope()).thenReturn(scope);
 		
-		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
-			@Override
-			public AntMediaApplicationAdapter getAppAdaptor() {
-				return app;
-			}
-		};
-
 		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
 		restServiceReal.setAppCtx(context);
 		

@@ -19,8 +19,8 @@ import org.springframework.stereotype.Component;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Licence;
+import io.antmedia.datastore.db.types.User;
 import io.antmedia.rest.model.Result;
-import io.antmedia.rest.model.User;
 import io.antmedia.settings.ServerSettings;
 
 @Component
@@ -580,9 +580,9 @@ public class RestService extends CommonRestService {
 	@Path("/applications/{appName}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result deleteApplication(@PathParam("appName") String appName) {
+	public Result deleteApplication(@PathParam("appName") String appName, @QueryParam("deleteDB") boolean deleteDB) {
 
-		return super.deleteApplication(appName);
+		return super.deleteApplication(appName, deleteDB);
 	}
 
 
