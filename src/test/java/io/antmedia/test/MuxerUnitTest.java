@@ -288,23 +288,23 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		aacParser = new AACConfigParser(new byte[] {0, 0}, 0);
 		assertTrue(aacParser.isErrorOccured());		
-		
-		
+
+
 		aacParser = new AACConfigParser(new byte[] {(byte) 0x80, 0}, 0);
 		assertTrue(aacParser.isErrorOccured());	
-		
+
 		aacParser = new AACConfigParser(new byte[] {(byte) 0x17, 0}, 0);
 		assertTrue(aacParser.isErrorOccured());
-		
+
 		aacParser = new AACConfigParser(new byte[] {(byte) 0x12, (byte)0x77}, 0);
 		assertTrue(aacParser.isErrorOccured());
-		
+
 		aacParser = new AACConfigParser(new byte[] {(byte) 0x12, (byte)0x17}, 0);
 		assertFalse(aacParser.isErrorOccured());
-		
+
 		aacParser = new AACConfigParser(new byte[] {(byte) 0x12, (byte)0x38}, 0);
 		assertFalse(aacParser.isErrorOccured());
-		
+
 	}
 
 	@Test
@@ -317,10 +317,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		result.setAutoExpand(true);
 		result.put(aacConfig);
 		result.rewind();
-		
+
 		assertFalse(aacAudio.canHandleData(result));
 		result.limit(0);
-		
+
 		assertFalse(aacAudio.canHandleData(result));
 		assertTrue(aacAudio.addData(result));
 		assertNull(aacAudio.getDecoderConfiguration());
@@ -2084,7 +2084,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//write trailer
 		mp4Muxer.writeTrailer();
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS)
+		Awaitility.await().atMost(20, TimeUnit.SECONDS)
 		.pollInterval(1, TimeUnit.SECONDS)
 		.until(() -> {
 			return MuxingTest.testFile("webapps/junit/streams/" + streamName + ".mp4", 10000);
@@ -2092,6 +2092,139 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 	}
+
+	@Test
+	public void testMp4FinalName() {
+		{
+			//Scenario 1
+			//1. The file does not exist on local disk -> stream1.mp4
+			//2. The same file exists on storage -> stream1.mp4
+			//3. The uploaded file should be to the storage should be -> stream1_1.mp4
+			
+			Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
+			assertNotNull(vertx);
+			String streamName = "stream_name_s" + (int) (Math.random() * 10000);
+			getAppSettings().setMp4MuxingEnabled(true);
+			getAppSettings().setUploadExtensionsToS3(7);
+			getAppSettings().setS3RecordingEnabled(true);
+
+			StorageClient client = Mockito.mock(StorageClient.class);
+			doReturn(false).when(client).fileExist(Mockito.any());
+			doReturn(true).when(client).fileExist("streams/" + streamName + ".mp4");
+
+			if (appScope == null) {
+				appScope = (WebScope) applicationContext.getBean("web.scope");
+				logger.debug("Application / web scope: {}", appScope);
+				assertTrue(appScope.getDepth() == 1);
+			}
+			
+			//scenario 1
+			//1. The file does not exist on local disk -> stream1.mp4
+			//2. The same file exists on storage -> stream1.mp4
+			//3. The uploaded file should be to the storage should be -> stream1_1.mp4
+			{
+				Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
+				//init
+				mp4Muxer.init(appScope, streamName, 0, null, 0);
+				
+				//initialize tmp file
+				mp4Muxer.getOutputFormatContext();
+	
+				File finalFileName = mp4Muxer.getFinalFileName(true);
+				assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+"_1.mp4"));
+			}
+			
+			//Scenario 2
+			//1. The file exists on local disk -> stream1.mp4
+			//2. The file does not exist on storage -> stream1.mp4
+			//3. The uploaded file should be  -> stream1_1.mp4
+			{
+				
+				try {
+					File file1 = new File("webapps/junit/streams/" + streamName + ".mp4");
+					file1.createNewFile();
+					
+					doReturn(false).when(client).fileExist("streams/" + streamName + ".mp4");
+			
+				
+					Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
+					//init
+					mp4Muxer.init(appScope, streamName, 0, null, 0);
+					
+					//initialize tmp file
+					mp4Muxer.getOutputFormatContext();
+					
+					File finalFileName = mp4Muxer.getFinalFileName(true);
+					assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+"_1.mp4"));
+					
+					finalFileName = mp4Muxer.getFinalFileName(false);
+					assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+"_1.mp4"));
+					
+					file1.delete();
+					
+								
+				} 
+				catch (IOException e) 
+				{
+					e.printStackTrace();
+					fail(e.getMessage());
+				}
+				
+				
+			}
+			
+			//Scenario 3
+			//1. The file does not exists on local disk -> stream1.mp4
+			//2. The file does exist on storage -> stream1.mp4, stream1_1.mp4, stream1_2.mp4
+			//3. The uploaded file should be  -> stream1_3.mp4
+			{
+				doReturn(true).when(client).fileExist("streams/" + streamName + ".mp4");
+				doReturn(true).when(client).fileExist("streams/" + streamName + "_1.mp4");
+				doReturn(true).when(client).fileExist("streams/" + streamName + "_2.mp4");
+				
+				
+				Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
+				//init
+				mp4Muxer.init(appScope, streamName, 0, null, 0);
+				
+				//initialize tmp file
+				mp4Muxer.getOutputFormatContext();
+				
+				File finalFileName = mp4Muxer.getFinalFileName(true);
+				assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+"_3.mp4"));
+				
+				finalFileName = mp4Muxer.getFinalFileName(false);
+				assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+".mp4"));
+			}
+			
+			//Scenario 4
+			//1. The file does not exists on local disk -> stream1.webm
+			//2. The file does exist on storage -> stream1.webm, stream1_1.webm, stream1_2.webm
+			//3. The uploaded file should be  -> stream1_3.mp4
+			{
+				doReturn(true).when(client).fileExist("streams/" + streamName + ".webm");
+				doReturn(true).when(client).fileExist("streams/" + streamName + "_1.webm");
+				doReturn(true).when(client).fileExist("streams/" + streamName + "_2.webm");
+				
+				
+				WebMMuxer webMMuxer = new WebMMuxer(client, vertx, "streams");
+				//init
+				webMMuxer.init(appScope, streamName, 0, null, 0);
+				
+				//initialize tmp file
+				webMMuxer.getOutputFormatContext();
+				
+				File finalFileName = webMMuxer.getFinalFileName(true);
+				assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+"_3.webm"));
+				
+				finalFileName = webMMuxer.getFinalFileName(false);
+				assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+".webm"));
+			}
+				
+		}
+
+	}
+
 
 	@Test
 	public void testHLSMuxingWithinChildScope() {

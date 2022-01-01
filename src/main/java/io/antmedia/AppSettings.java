@@ -1477,7 +1477,7 @@ public class AppSettings {
 
 		for (EncoderSettings encoderSettings : encoderSettingsList) {
 			JSONObject encoderJSON = new JSONObject();
-			encoderJSON.put(EncoderSettings.HEIGHT, encoderSettings.getHeight());
+			encoderJSON.put(EncoderSettings.RESOLUTION_HEIGHT, encoderSettings.getHeight());
 			encoderJSON.put(EncoderSettings.VIDEO_BITRATE, encoderSettings.getVideoBitrate());
 			encoderJSON.put(EncoderSettings.AUDIO_BITRATE, encoderSettings.getAudioBitrate());
 			encoderJSON.put(EncoderSettings.FORCE_ENCODE, encoderSettings.isForceEncode());
@@ -1504,7 +1504,7 @@ public class AppSettings {
 
 			for (int i = 0; i < jsonArray.size(); i++) {
 				jsObject =  (JSONObject)jsonArray.get(i);
-				height = Integer.parseInt(jsObject.get(EncoderSettings.HEIGHT).toString());
+				height = Integer.parseInt(jsObject.get(EncoderSettings.RESOLUTION_HEIGHT).toString());
 				videoBitrate = Integer.parseInt(jsObject.get(EncoderSettings.VIDEO_BITRATE).toString());
 				audioBitrate = Integer.parseInt(jsObject.get(EncoderSettings.AUDIO_BITRATE).toString());
 				forceEncode = (boolean)jsObject.get(EncoderSettings.FORCE_ENCODE);
