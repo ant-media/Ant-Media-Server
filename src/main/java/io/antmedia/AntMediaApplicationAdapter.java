@@ -214,15 +214,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
-
-		storageClient.setStorageName(appSettings.getS3BucketName());
-		storageClient.setRegion(appSettings.getS3RegionName());
-		storageClient.setAccessKey(appSettings.getS3AccessKey());
-		storageClient.setSecretKey(appSettings.getS3SecretKey());
-		storageClient.setEnabled(appSettings.isS3RecordingEnabled());
-		storageClient.setEndpoint(appSettings.getS3Endpoint());
-		storageClient.setPermission(appSettings.getS3Permission());
-
+		
+		setStorageclientSettings(appSettings);
 
 
 		logger.info("{} started", app.getName());
@@ -1383,17 +1376,22 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		String oldVodFolder = appSettings.getVodFolder();
 		synchUserVoDFolder(oldVodFolder, newSettings.getVodFolder());
 
-		storageClient.setEndpoint(newSettings.getS3Endpoint());
-		storageClient.setStorageName(newSettings.getS3BucketName());
-		storageClient.setAccessKey(newSettings.getS3AccessKey());
-		storageClient.setSecretKey(newSettings.getS3SecretKey());
-		storageClient.setRegion(newSettings.getS3RegionName());
-		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
-		storageClient.setPermission(newSettings.getS3Permission());
-		storageClient.reset();
+		
+		setStorageclientSettings(newSettings);
 		
 		logger.warn("app settings bean updated for {}", getScope().getName());	
 
+	}
+
+	private void setStorageclientSettings(AppSettings settings) {
+		storageClient.setEndpoint(settings.getS3Endpoint());
+		storageClient.setStorageName(settings.getS3BucketName());
+		storageClient.setAccessKey(settings.getS3AccessKey());
+		storageClient.setSecretKey(settings.getS3SecretKey());
+		storageClient.setRegion(settings.getS3RegionName());
+		storageClient.setEnabled(settings.isS3RecordingEnabled());
+		storageClient.setPermission(settings.getS3Permission());
+		storageClient.reset();
 	}
 
 	public static boolean setAppSettingsFieldValue(AppSettings appSettings, AppSettings newSettings, Field field) {
