@@ -226,15 +226,9 @@ public class VoDRestServiceV2UnitTest {
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
 		when(app.getScope()).thenReturn(scope);
 
-		IApplicationAdaptorFactory application = new IApplicationAdaptorFactory() {
-			@Override
-			public AntMediaApplicationAdapter getAppAdaptor() {
-				return app;
-			}
-		};
 
 		ApplicationContext context = mock(ApplicationContext.class);
-		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(application);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 
 		restServiceReal.setAppCtx(context);
 

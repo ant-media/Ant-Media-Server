@@ -1239,7 +1239,7 @@ public class BroadcastRestServiceV2UnitTest {
 		int streamCount = 15;
 		for (int i = 0; i < streamCount; i++) {
 			Broadcast broadcast = new Broadcast(null, "name");
-			Broadcast broadcastCreated = (Broadcast) restServiceReal.createBroadcast(broadcast, null, false).getEntity();
+			Broadcast broadcastCreated = (Broadcast) restServiceReal.createBroadcast(broadcast, false).getEntity();
 			assertNotNull(broadcastCreated.getStreamId());
 
 			Broadcast broadcast2 = (Broadcast) restServiceReal.getBroadcast(broadcastCreated.getStreamId()).getEntity();
