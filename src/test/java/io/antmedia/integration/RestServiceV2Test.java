@@ -20,6 +20,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +29,8 @@ import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
 import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
@@ -1864,6 +1867,7 @@ public class RestServiceV2Test {
 			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 
 			appSettingsModel.setMp4MuxingEnabled(true);
+			appSettingsModel.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 32000, true)));
 
 			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
