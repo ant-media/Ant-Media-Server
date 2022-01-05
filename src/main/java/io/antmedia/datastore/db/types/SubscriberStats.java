@@ -3,12 +3,12 @@ package io.antmedia.datastore.db.types;
 import java.util.ArrayList;
 import java.util.List;
 
-import dev.morphia.annotations.Embedded;
-
+import dev.morphia.annotations.Entity;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 @ApiModel(value="SubscriberStats", description="Statistics for each subsciber to the stream")
+@Entity
 public class SubscriberStats {
 	
 	/**
@@ -27,7 +27,6 @@ public class SubscriberStats {
 	 * connection events happened for this subscriber
 	 */
 	@ApiModelProperty(value = "list of connection events")
-	@Embedded
 	private List<ConnectionEvent> connectionEvents = new ArrayList<>();
 
 	/**

@@ -68,6 +68,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	private WarDeployer warDeployer;
 	private boolean isCluster = false;
 
+
+	private IClusterNotifier clusterNotifier;
+
 	@Override
 	public boolean appStart(IScope app) {
 		isCluster = app.getContext().hasBean(IClusterNotifier.BEAN_NAME);
@@ -76,7 +79,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		warDeployer = (WarDeployer) app.getContext().getBean("warDeployer");
 
 		if(isCluster) {
-			IClusterNotifier clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
+			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
 			clusterNotifier.registerCreateAppListener(appName -> {
 				log.info("Creating application with name {}", appName);
 				return createApplication(appName);
@@ -297,20 +300,25 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	public boolean deleteApplication(String appName, boolean deleteDB) {
 
+		boolean success = false;
 		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
-		getApplicationAdaptor(appScope).serverShuttingdown();
-		if(deleteDB) {
-			getApplicationAdaptor(appScope).deleteDBInSeconds();
+		
+		if (appScope != null) 
+		{
+			getApplicationAdaptor(appScope).stopApplication(deleteDB);
+	
+			success = runDeleteAppScript(appName);
+			warDeployer.undeploy(appName);
+	
+			try {
+				appScope.destroy();
+			} catch (Exception e) {
+				log.error(ExceptionUtils.getStackTrace(e));
+				success = false;
+			}
 		}
-
-		boolean success = runDeleteAppScript(appName);
-		warDeployer.undeploy(appName);
-
-		try {
-			appScope.destroy();
-		} catch (Exception e) {
-			log.error(ExceptionUtils.getStackTrace(e));
-			success = false;
+		else {
+			logger.info("Application scope for app:{} is not available to delete.", appName);
 		}
 
 		return success;
@@ -351,7 +359,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return runCommand(command);
 	}
 
-
+	public IClusterNotifier getClusterNotifier() {
+		return clusterNotifier;
+	}
 
 	public boolean runCommand(String command) {
 

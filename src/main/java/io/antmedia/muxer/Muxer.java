@@ -93,16 +93,20 @@ public abstract class Muxer {
 	protected String bsfName = null;
 
 	protected String streamId = null;
+	
+	/**
+	 * This is the initial original resource name without any suffix such _1, _2, or .mp4, .webm
+	 */
+	protected String initialResourceNameWithoutExtension;
 
-	public Muxer(Vertx vertx) {
+	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
 	}
 
 	public static File getPreviewFile(IScope scope, String name, String extension) {
 		String appScopeName = ScopeUtils.findApplication(scope).getName();
-		File file = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
+		return new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
 				"previews/" + name + extension));
-		return file;
 	}
 	public static File getRecordFile(IScope scope, String name, String extension, String subFolder) {
 		// get stream filename generator
@@ -120,7 +124,7 @@ public abstract class Muxer {
 					file = resource.getFile();
 					logger.debug("File exists: {} writable: {}", file.exists(), file.canWrite());
 				} catch (IOException ioe) {
-					logger.error("File error: {}", ioe);
+					logger.error("File error: {}", ExceptionUtils.getStackTrace(ioe));
 				}
 			} else {
 				String appScopeName = ScopeUtils.findApplication(scope).getName();
@@ -133,11 +137,8 @@ public abstract class Muxer {
 
 	public static File getUserRecordFile(IScope scope, String userVoDFolder, String name) {
 		String appScopeName = ScopeUtils.findApplication(scope).getName();
-		File file = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
+		return new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
 				"streams/" + userVoDFolder + "/" + name ));
-
-
-		return file;
 	}
 
 	/**
@@ -272,10 +273,10 @@ public abstract class Muxer {
 			isInitialized = true;
 			this.scope = scope;
 
-			String resourceName = getExtendedName(name, resolution, bitrate);
+			initialResourceNameWithoutExtension = getExtendedName(name, resolution, bitrate);
 
-			file = getResourceFile(scope, resourceName, extension, subFolder);
-
+			file = getResourceFile(scope, initialResourceNameWithoutExtension, extension, subFolder);
+			
 			File parentFile = file.getParentFile();
 
 			if (!parentFile.exists()) {
@@ -284,15 +285,15 @@ public abstract class Muxer {
 			} else {
 				// if parent file exists,
 				// check overrideIfExist and file.exists
-				File tempFile = getResourceFile(scope, resourceName, extension+TEMP_EXTENSION, subFolder);
+				File tempFile = getResourceFile(scope, initialResourceNameWithoutExtension, extension+TEMP_EXTENSION, subFolder);
 
 				if (!overrideIfExist && (file.exists() || tempFile.exists())) {
-					String tmpName = resourceName;
+					String tmpName = initialResourceNameWithoutExtension;
 					int i = 1;
 					do {
 						tempFile = getResourceFile(scope, tmpName, extension+TEMP_EXTENSION, subFolder);
 						file = getResourceFile(scope, tmpName, extension, subFolder);
-						tmpName = resourceName + "_" + i;
+						tmpName = initialResourceNameWithoutExtension + "_" + i;
 						i++;
 					} while (file.exists() || tempFile.exists());
 				}
@@ -309,10 +310,9 @@ public abstract class Muxer {
 		int bitrateKbps = bitrate / 1000;
 
 		// add date time parameter to resource name if it is set
-		if (addDateTimeToResourceName) {
-
+		if (addDateTimeToResourceName) 
+		{
 			LocalDateTime ldt =  LocalDateTime.now();
-
 			resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
 			if (logger.isInfoEnabled()) {
 				logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
@@ -320,7 +320,8 @@ public abstract class Muxer {
 		}
 
 		// add resolution height parameter if it is different than 0
-		if (resolution != 0) {
+		if (resolution != 0) 
+		{
 			resourceName += "_" + resolution + "p" ;
 			if(bitrate != 0){
 				resourceName += bitrateKbps + "kbps";

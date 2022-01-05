@@ -27,7 +27,6 @@ import org.red5.server.net.rtmp.event.FlexMessage;
 import org.red5.server.net.rtmp.event.Ping;
 import org.red5.server.net.rtmp.event.Unknown;
 import org.red5.server.net.rtmp.event.VideoData;
-import org.red5.server.so.ISharedObjectMessage;
 
 /**
  * Event decoder decodes event objects from incoming byte buffer.
@@ -53,24 +52,6 @@ public interface IEventDecoder {
      * @return ChunkSize event
      */
     public abstract ChunkSize decodeChunkSize(IoBuffer in);
-
-    /**
-     * Decodes shared object message event.
-     * 
-     * @param in
-     *            Byte buffer to decode
-     * @return ISharedObjectMessage event
-     */
-    public abstract ISharedObjectMessage decodeSharedObject(IoBuffer in);
-
-    /**
-     * Decodes shared object message event from AMF3 encoding.
-     * 
-     * @param in
-     *            Byte buffer to decode
-     * @return ISharedObjectMessage event
-     */
-    public abstract ISharedObjectMessage decodeFlexSharedObject(IoBuffer in);
 
     /**
      * Decodes ping event.

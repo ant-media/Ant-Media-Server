@@ -61,14 +61,9 @@ import org.red5.server.net.rtmp.message.ChunkHeader;
 import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.net.rtmp.message.Header;
 import org.red5.server.net.rtmp.message.Packet;
-import org.red5.server.net.rtmp.message.SharedObjectTypeMapping;
 import org.red5.server.net.rtmp.status.Status;
 import org.red5.server.net.rtmp.status.StatusCodes;
 import org.red5.server.service.PendingCall;
-import org.red5.server.so.FlexSharedObjectMessage;
-import org.red5.server.so.ISharedObjectEvent;
-import org.red5.server.so.ISharedObjectMessage;
-import org.red5.server.so.SharedObjectMessage;
 import org.red5.server.stream.StreamService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -474,7 +469,7 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
      * @return RTMP event
      */
     public IRTMPEvent decodeMessage(RTMPConnection conn, Header header, IoBuffer in) {
-        IRTMPEvent message;
+        IRTMPEvent message = null;
         byte dataType = header.getDataType();
         switch (dataType) {
             case TYPE_AUDIO_DATA:
@@ -487,12 +482,6 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
                 break;
             case TYPE_AGGREGATE:
                 message = decodeAggregate(in);
-                break;
-            case TYPE_FLEX_SHARED_OBJECT: // represents an SO in an AMF3 container
-                message = decodeFlexSharedObject(in);
-                break;
-            case TYPE_SHARED_OBJECT:
-                message = decodeSharedObject(in);
                 break;
             case TYPE_FLEX_MESSAGE:
                 message = decodeFlexMessage(in);
@@ -537,12 +526,18 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
             case TYPE_ABORT:
                 message = decodeAbort(in);
                 break;
+            case TYPE_FLEX_SHARED_OBJECT:
+            case TYPE_SHARED_OBJECT:// represents an SO in an AMF3 container
+            	log.warn("shared object is not supported");
+            	message = decodeUnknown(dataType, in);
+            	break;
             default:
                 log.warn("Unknown object type: {}", dataType);
                 message = decodeUnknown(dataType, in);
                 break;
         }
         // add the header to the message
+        
         message.setHeader(header);
         return message;
     }
@@ -591,128 +586,6 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
         int chunkSize = in.getInt();
         log.debug("Decoded chunk size: {}", chunkSize);
         return new ChunkSize(chunkSize);
-    }
-
-    /** {@inheritDoc} */
-    public ISharedObjectMessage decodeFlexSharedObject(IoBuffer in) {
-        byte encoding = in.get();
-        Input input;
-        if (encoding == 0) {
-            input = new org.red5.io.amf.Input(in);
-        } else if (encoding == 3) {
-            input = new org.red5.io.amf3.Input(in);
-        } else {
-            throw new RuntimeException("Unknown SO encoding: " + encoding);
-        }
-        String name = input.getString();
-        // Read version of SO to modify
-        int version = in.getInt();
-        // Read persistence informations
-        boolean persistent = in.getInt() == 2;
-        // Skip unknown bytes
-        in.skip(4);
-        // create our shared object message
-        final SharedObjectMessage so = new FlexSharedObjectMessage(null, name, version, persistent);
-        doDecodeSharedObject(so, in, input);
-        return so;
-    }
-
-    /** {@inheritDoc} */
-    public ISharedObjectMessage decodeSharedObject(IoBuffer in) {
-        final Input input = new org.red5.io.amf.Input(in);
-        String name = input.getString();
-        // Read version of SO to modify
-        int version = in.getInt();
-        // Read persistence informations
-        boolean persistent = in.getInt() == 2;
-        // Skip unknown bytes
-        in.skip(4);
-        // create our shared object message
-        final SharedObjectMessage so = new SharedObjectMessage(null, name, version, persistent);
-        doDecodeSharedObject(so, in, input);
-        return so;
-    }
-
-    /**
-     * Perform the actual decoding of the shared object contents.
-     * 
-     * @param so
-     *            Shared object message
-     * @param in
-     *            input buffer
-     * @param input
-     *            Input object to be processed
-     */
-    protected void doDecodeSharedObject(SharedObjectMessage so, IoBuffer in, Input input) {
-        // Parse request body
-        Input amf3Input = new org.red5.io.amf3.Input(in);
-        while (in.hasRemaining()) {
-            final ISharedObjectEvent.Type type = SharedObjectTypeMapping.toType(in.get());
-            if (type == null) {
-                in.skip(in.remaining());
-                return;
-            }
-            String key = null;
-            Object value = null;
-            final int length = in.getInt();
-            if (type == ISharedObjectEvent.Type.CLIENT_STATUS) {
-                // Status code
-                key = input.getString();
-                // Status level
-                value = input.getString();
-            } else if (type == ISharedObjectEvent.Type.CLIENT_UPDATE_DATA) {
-                key = null;
-                // Map containing new attribute values
-                final Map<String, Object> map = new HashMap<String, Object>();
-                final int start = in.position();
-                while (in.position() - start < length) {
-                    String tmp = input.getString();
-                    map.put(tmp, Deserializer.deserialize(input, Object.class));
-                }
-                value = map;
-            } else if (type != ISharedObjectEvent.Type.SERVER_SEND_MESSAGE && type != ISharedObjectEvent.Type.CLIENT_SEND_MESSAGE) {
-                if (length > 0) {
-                    key = input.getString();
-                    if (length > key.length() + 2) {
-                        // determine if the object is encoded with amf3
-                        byte objType = in.get();
-                        in.position(in.position() - 1);
-                        Input propertyInput;
-                        if (objType == AMF.TYPE_AMF3_OBJECT && !(input instanceof org.red5.io.amf3.Input)) {
-                            // The next parameter is encoded using AMF3
-                            propertyInput = amf3Input;
-                        } else {
-                            // The next parameter is encoded using AMF0
-                            propertyInput = input;
-                        }
-                        value = Deserializer.deserialize(propertyInput, Object.class);
-                    }
-                }
-            } else {
-                final int start = in.position();
-                // the "send" event seems to encode the handler name as complete AMF string including the string type byte
-                key = Deserializer.deserialize(input, String.class);
-                // read parameters
-                final List<Object> list = new LinkedList<Object>();
-                while (in.position() - start < length) {
-                    byte objType = in.get();
-                    in.position(in.position() - 1);
-                    // determine if the object is encoded with amf3
-                    Input propertyInput;
-                    if (objType == AMF.TYPE_AMF3_OBJECT && !(input instanceof org.red5.io.amf3.Input)) {
-                        // The next parameter is encoded using AMF3
-                        propertyInput = amf3Input;
-                    } else {
-                        // The next parameter is encoded using AMF0
-                        propertyInput = input;
-                    }
-                    Object tmp = Deserializer.deserialize(propertyInput, Object.class);
-                    list.add(tmp);
-                }
-                value = list;
-            }
-            so.addEvent(type, key, value);
-        }
     }
 
     /**
