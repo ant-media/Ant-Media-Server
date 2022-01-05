@@ -28,7 +28,6 @@ import org.red5.server.net.rtmp.event.Notify;
 import org.red5.server.net.rtmp.event.Ping;
 import org.red5.server.net.rtmp.event.Unknown;
 import org.red5.server.net.rtmp.event.VideoData;
-import org.red5.server.so.ISharedObjectMessage;
 
 /**
  * Encodes events to byte buffer.
@@ -115,21 +114,5 @@ public interface IEventEncoder {
      */
     public abstract IoBuffer encodeChunkSize(ChunkSize chunkSize);
 
-    /**
-     * Encodes SharedObjectMessage event to byte buffer.
-     *
-     * @param so
-     *            ISharedObjectMessage event
-     * @return Byte buffer
-     */
-    public abstract IoBuffer encodeSharedObject(ISharedObjectMessage so);
 
-    /**
-     * Encodes SharedObjectMessage event to byte buffer using AMF3 encoding.
-     *
-     * @param so
-     *            ISharedObjectMessage event
-     * @return Byte buffer
-     */
-    public IoBuffer encodeFlexSharedObject(ISharedObjectMessage so);
 }

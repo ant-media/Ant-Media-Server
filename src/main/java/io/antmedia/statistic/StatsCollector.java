@@ -581,12 +581,17 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		return jsonObject;
 	}
 
-	public static AntMediaApplicationAdapter getAppAdaptor(ApplicationContext appContext) {
+	public static AntMediaApplicationAdapter getAppAdaptor(ApplicationContext appContext) 
+	{
 		AntMediaApplicationAdapter adaptor = null;
 		
 		if (appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)) 
 		{
-			adaptor = (AntMediaApplicationAdapter)appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+			Object appHandler =appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+			if (appHandler instanceof  AntMediaApplicationAdapter) 
+			{
+				adaptor = (AntMediaApplicationAdapter) appHandler;
+			}
 		}
 		
 		return adaptor;

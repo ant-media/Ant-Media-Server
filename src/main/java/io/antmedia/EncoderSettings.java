@@ -15,7 +15,7 @@ public class EncoderSettings implements Serializable{
  */
 	private boolean  forceEncode = true;
 	
-	public static final String HEIGHT = "height";
+	public static final String RESOLUTION_HEIGHT = "height";
 	public static final String VIDEO_BITRATE = "videoBitrate";
 	public static final String AUDIO_BITRATE = "audioBitrate";
 	public static final String FORCE_ENCODE = "forceEncode";

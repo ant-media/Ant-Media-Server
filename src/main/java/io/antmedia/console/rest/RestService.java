@@ -19,8 +19,8 @@ import org.springframework.stereotype.Component;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Licence;
+import io.antmedia.datastore.db.types.User;
 import io.antmedia.rest.model.Result;
-import io.antmedia.rest.model.User;
 import io.antmedia.settings.ServerSettings;
 
 @Component

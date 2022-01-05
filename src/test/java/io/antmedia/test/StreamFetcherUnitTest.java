@@ -641,7 +641,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.info("error:   "+str3);
 
 			assertNull(fetcher3.getCameraError().getMessage());
-			assertTrue(fetcher3.isStreamAlive());
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+				return fetcher3.isStreamAlive();
+			});
 
 			fetcher3.stopStream();
 
@@ -715,6 +718,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//test HLS Source
 		testFetchStreamSources("src/test/resources/test.m3u8", false, false);
 		logger.info("leaving testHLSSource");
+	}
+	
+	@Test
+	public void testH264VideoPCMAudio() {
+		logger.info("running testTSSource");
+		//test h264 video and pcm audio
+		testFetchStreamSources("src/test/resources/test_video_360p_pcm_audio.mkv", false, false);
+		logger.info("leaving testTSSource");
 	}
 
 

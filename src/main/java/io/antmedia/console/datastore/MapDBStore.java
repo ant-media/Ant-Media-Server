@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import io.antmedia.datastore.db.types.User;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
@@ -13,9 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
-import io.antmedia.rest.model.User;
-
-
 
 public class MapDBStore extends AbstractConsoleDataStore {
 

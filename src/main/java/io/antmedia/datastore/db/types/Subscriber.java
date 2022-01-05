@@ -46,7 +46,6 @@ public class Subscriber {
 	 * statistics for this subscriber
 	 */
 	@ApiModelProperty(value = "stats for this subscriber")
-	@Embedded
 	private SubscriberStats stats = new SubscriberStats();
 	
 	@JsonProperty(access = Access.WRITE_ONLY)

@@ -20,8 +20,6 @@ package org.red5.server.api.statistics;
 
 import java.util.Set;
 
-import org.red5.server.api.scope.IScope;
-import org.red5.server.api.so.ISharedObject;
 import org.red5.server.exception.ScopeNotFoundException;
 import org.red5.server.exception.SharedObjectException;
 
@@ -61,23 +59,6 @@ import org.red5.server.exception.SharedObjectException;
  */
 public interface IStatisticsService {
 
-    /**
-     * Return the shared object that will be used to keep scope statistics.
-     * 
-     * @param scope
-     *            A scope to return the shared object for.
-     * @return the shared object containing scope statistics
-     */
-    public ISharedObject getScopeStatisticsSO(IScope scope);
-
-    /**
-     * Return the shared object that will be used to keep SO statistics.
-     * 
-     * @param scope
-     *            A scope to return the shared object for.
-     * @return the shared object containing SO statistics
-     */
-    public ISharedObject getSharedObjectStatisticsSO(IScope scope);
 
     /**
      * Return a list of all scopes that currently exist on the server.
@@ -97,37 +78,7 @@ public interface IStatisticsService {
      */
     public Set<String> getScopes(String path) throws ScopeNotFoundException;
 
-    /**
-     * Update statistics for a given scope.
-     * 
-     * @param path
-     *            Path to scope to update.
-     * @throws ScopeNotFoundException
-     *             if the given scope doesn't exist
-     */
-    public void updateScopeStatistics(String path) throws ScopeNotFoundException;
+  
 
-    /**
-     * Return informations about shared objects for a given scope.
-     * 
-     * @param path
-     *            Path to scope to return shared object names for.
-     * @return list of informations about shared objects
-     */
-    public Set<ISharedObjectStatistics> getSharedObjects(String path);
-
-    /**
-     * Update informations about a shared object in a given scope.
-     * 
-     * @param path
-     *            Path to scope that contains the shared object.
-     * @param name
-     *            Name of shared object to update.
-     * @throws ScopeNotFoundException
-     *             if the given scope doesn't exist
-     * @throws SharedObjectException
-     *             if no shared object with the given name exists
-     */
-    public void updateSharedObjectStatistics(String path, String name) throws ScopeNotFoundException, SharedObjectException;
-
+   
 }
