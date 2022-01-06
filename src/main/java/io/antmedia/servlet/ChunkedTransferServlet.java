@@ -324,6 +324,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 		int total = 0;
 		try (FileInputStream fis = new FileInputStream(file)) 
 		{
+			//it seems that headers should be set in the same thread.
 			ServletResponse response = asyncContext.getResponse();
 			response.setContentType(mimeType);
 			
@@ -429,6 +430,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 		String filePath = file.getAbsolutePath();
 		boolean exceptionOccured = false;
 		try {
+			//it seems that headers should be set in the same thread.
 			ServletResponse response = asyncContext.getResponse();
 			response.setContentType(mimeType);
 			
