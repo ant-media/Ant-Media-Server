@@ -18,6 +18,7 @@ import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -318,12 +319,16 @@ public class ChunkedTransferServlet extends HttpServlet {
 	}
 
 
-	public void writeOutputStream(File file, AsyncContext asyncContext, HttpServletResponse resp) 
+	public void writeOutputStream(File file, AsyncContext asyncContext, String mimeType) 
 	{
 		int total = 0;
 		try (FileInputStream fis = new FileInputStream(file)) 
 		{
-			OutputStream ostream = asyncContext.getResponse().getOutputStream();
+			//it seems that headers should be set in the same thread.
+			ServletResponse response = asyncContext.getResponse();
+			response.setContentType(mimeType);
+			
+			OutputStream ostream = response.getOutputStream();
 			int length = 0;
 			byte[] data = new byte[2048];
 
@@ -340,8 +345,6 @@ public class ChunkedTransferServlet extends HttpServlet {
 		catch (Exception e) 
 		{
 			logger.error("Exception in writing the following file:{} total written byte:{} stacktrace:{}", file.getName(), total, ExceptionUtils.getStackTrace(e));
-			//Below statement for debugging an error that cannot be reproduced easily
-			logHeaders(resp);
 		}
 	}
 
@@ -377,12 +380,10 @@ public class ChunkedTransferServlet extends HttpServlet {
 				//set the mime type
 				String mimeType = req.getServletContext().getMimeType(file.getName());
 				
-				resp.setContentType(mimeType);
-				
 				if (Files.exists(file.toPath())) 
 				{
 					AsyncContext asyncContext = req.startAsync();
-					asyncContext.start(() -> writeOutputStream(file, asyncContext, resp));
+					asyncContext.start(() -> writeOutputStream(file, asyncContext, mimeType));
 				}
 				else 
 				{
@@ -398,7 +399,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 						ChunkListener chunkListener = new ChunkListener();
 						cacheManager.registerChunkListener(file.getAbsolutePath(), chunkListener);
 						asyncContext.start(() ->  
-							writeChunks(file, cacheManager, asyncContext, chunkListener)
+							writeChunks(file, cacheManager, asyncContext, chunkListener, mimeType)
 						);
 
 					}
@@ -424,11 +425,16 @@ public class ChunkedTransferServlet extends HttpServlet {
 	}
 
 	public void writeChunks(File file, IChunkedCacheManager cacheManager, AsyncContext asyncContext,
-			ChunkListener chunkListener) {
+			ChunkListener chunkListener, String mimeType) 
+	{
 		String filePath = file.getAbsolutePath();
 		boolean exceptionOccured = false;
 		try {
-			ServletOutputStream oStream = asyncContext.getResponse().getOutputStream();
+			//it seems that headers should be set in the same thread.
+			ServletResponse response = asyncContext.getResponse();
+			response.setContentType(mimeType);
+			
+			ServletOutputStream oStream = response.getOutputStream();
 			byte[] chunk;
 			while ((chunk = chunkListener.getChunksQueue().take()).length > 0) {
 				int offset = 0;
