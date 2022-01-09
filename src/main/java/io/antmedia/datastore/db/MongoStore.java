@@ -1466,7 +1466,7 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
-				return query.update(UpdateOperators.set(META_DATA, META_DATA)).execute().getMatchedCount() == 1;
+				return query.update(UpdateOperators.set(META_DATA, metaData)).execute().getMatchedCount() == 1;
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
