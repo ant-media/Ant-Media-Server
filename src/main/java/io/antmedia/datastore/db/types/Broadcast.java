@@ -3,22 +3,18 @@ package io.antmedia.datastore.db.types;
 import java.util.ArrayList;
 import java.util.List;
 
+import dev.morphia.annotations.*;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import dev.morphia.annotations.Entity;
-import dev.morphia.annotations.Field;
-import dev.morphia.annotations.Id;
-import dev.morphia.annotations.Index;
-import dev.morphia.annotations.Indexes;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 
 @ApiModel(value="Broadcast", description="The basic broadcast class")
 @Entity(value = "broadcast")
-@Indexes({ @Index(fields = @Field("name")), @Index(fields = @Field("streamId")) })
+@Indexes({ @Index(fields = @Field("name")), @Index(fields = @Field("streamId"),  options = @IndexOptions(unique = true)) })
 public class Broadcast {
 
 
