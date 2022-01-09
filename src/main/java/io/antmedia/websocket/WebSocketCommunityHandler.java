@@ -2,6 +2,7 @@ package io.antmedia.websocket;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.websocket.Session;
 
@@ -378,13 +379,12 @@ public class WebSocketCommunityHandler {
 		jsonResponseObject.put(WebSocketConstants.SDP, description);
 		jsonResponseObject.put(WebSocketConstants.TYPE, type);
 		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
-		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
 		
 		if(midSidMap != null) {
 			JSONObject jsonIdMappingObject = new JSONObject();
 
-			for (String mid : midSidMap.keySet()) {
-				jsonIdMappingObject.put(mid, midSidMap.get(mid));
+			for (Entry<String, String> entry : midSidMap.entrySet()) {
+				jsonIdMappingObject.put(entry.getKey(), entry.getValue());
 			}
 			jsonResponseObject.put(WebSocketConstants.ID_MAPPING, jsonIdMappingObject);
 		}

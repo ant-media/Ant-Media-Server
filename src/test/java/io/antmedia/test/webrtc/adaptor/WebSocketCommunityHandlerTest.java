@@ -9,11 +9,15 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
 
 import javax.websocket.RemoteEndpoint;
 import javax.websocket.RemoteEndpoint.Basic;
 import javax.websocket.Session;
 
+import org.apache.commons.lang.math.RandomUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -527,5 +531,30 @@ public class WebSocketCommunityHandlerTest {
 		wsHandler.setUserAgent(userAgent);
 		assertEquals(userAgent, wsHandler.getUserAgent());
 	}
+	
+	@Test
+	public void testGetSDP() {
+		String description = "dummyDescripton";
+		String type = "dummyType";
+		String streamId = "dummyStreamId";
+		
+		int trackSize = RandomUtils.nextInt(5)+1;
+		Map<String, String> midSidMap = new HashMap<>();
+		for (int i = 0; i < trackSize; i++) {
+			midSidMap.put("mid"+i, "sid"+i);
+		}
+		JSONObject json = WebSocketCommunityHandler.getSDPConfigurationJSON(description, type, streamId, midSidMap);
+		
+		assertEquals(WebSocketConstants.TAKE_CONFIGURATION_COMMAND, json.get(WebSocketConstants.COMMAND));
+		assertEquals(description, json.get(WebSocketConstants.SDP));
+		assertEquals(type, json.get(WebSocketConstants.TYPE));
+		assertEquals(streamId, json.get(WebSocketConstants.STREAM_ID));
+		
+		JSONObject jsonMap = (JSONObject) json.get(WebSocketConstants.ID_MAPPING);
+		for (int i = 0; i < trackSize; i++) {
+			assertEquals("sid"+i, jsonMap.get("mid"+i));
+		}
+	}
+	
 	
 }

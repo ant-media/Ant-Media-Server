@@ -2735,5 +2735,8 @@ public class DBStoresUnitTest {
 		assertTrue(dataStore.updateStreamMetaData(id, UPDATED_DATA));
 		
 		assertEquals(UPDATED_DATA, dataStore.get(id).getMetaData());
+		
+		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.randomAlphanumeric(8), UPDATED_DATA));
+
 	}
 }
