@@ -427,6 +427,7 @@ public class WebSocketCommunityHandlerTest {
         	JSONObject jsStreamObject = new JSONObject();
         	jsStreamObject.put(WebSocketConstants.STREAM_ID, e.getKey());
         	jsStreamObject.put(WebSocketConstants.STREAM_NAME, e.getValue());
+        	jsStreamObject.put(WebSocketConstants.META_DATA, null);
         	jsonStreamNameArray.add(jsStreamObject);
         }
 		
