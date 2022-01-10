@@ -202,16 +202,13 @@ public class CommonRestService {
 		return operationResult;
 	}
 
-	protected Result uploadApplicationFile(String appName, InputStream inputStream) {
+	protected Result uploadApplicationFile(String appName, String fileName, InputStream inputStream) {
 		boolean success = false;
 		String message = "";
-		String id= null;
-		String fileExtension = FilenameUtils.getExtension(appName);
-		logger.info("************************* = " + fileExtension + " " + appName);
+		String fileExtension = FilenameUtils.getExtension(fileName);
+
 		try {
-
 			if ("war".equalsIgnoreCase(fileExtension)) {
-
 
 				File streamsDirectory = new File(
 						getWebAppsDirectory());
@@ -220,7 +217,7 @@ public class CommonRestService {
 				if (!streamsDirectory.exists()) {
 					streamsDirectory.mkdirs();
 				}
-				File savedFile = new File(String.format("%s/webapps/%s", System.getProperty("red5.root"), appName + "." + fileExtension));
+				File savedFile = new File(String.format("%s/%s", System.getProperty("red5.root"), appName + "." + fileExtension));
 
 				int read = 0;
 				byte[] bytes = new byte[2048];
@@ -238,9 +235,9 @@ public class CommonRestService {
 					String path = savedFile.getPath();
 
 					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
-					logger.info("War file uploaded for application, filesize = {}", fileSize);
+					logger.info("War file uploaded for application, filesize = {} path = {}", fileSize, path);
 
-					return createApplication(appName, path);
+					return new Result(getApplication().createApplication(appName, fileName));
 				}
 			}
 			else {
@@ -1129,10 +1126,9 @@ public class CommonRestService {
 	}
 
 
-	public Result createApplication(String appName, String warFilePath) {
+	public Result createApplication(String appName) {
 		appName = appName.replaceAll("[\n\r\t]", "_");
-		logger.info("Creating application = " + warFilePath);
-		if (isClusterMode()) 
+		if (isClusterMode())
 		{
 			//If there is a record in database, just delete it in order to start from scratch
 			IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
@@ -1142,8 +1138,7 @@ public class CommonRestService {
 			}
 			
 		}
-		
-		return new Result(getApplication().createApplication(appName, warFilePath));
+		return new Result(getApplication().createApplication(appName, null));
 	}
 
 

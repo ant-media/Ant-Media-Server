@@ -276,21 +276,21 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return size;
 	}
 
-	public boolean createApplication(String appName, String warFilePath) {
+	public boolean createApplication(String appName, String warFileName) {
 		boolean success = false;
-		logger.info("Running create appp = " + warFilePath);
+		logger.info("Running create appp = " + warFileName);
 
 		if(isCluster) {
 			String mongoHost = getDataStoreFactory().getDbHost();
 			String mongoUser = getDataStoreFactory().getDbUser();
 			String mongoPass = getDataStoreFactory().getDbPassword();
 
-			boolean result = runCreateAppScript(appName, true, mongoHost, mongoUser, mongoPass, warFilePath);
+			boolean result = runCreateAppScript(appName, true, mongoHost, mongoUser, mongoPass, warFileName);
 			success = result;
 		}
 		else {
-			logger.info("Running create app script = " + warFilePath);
-			boolean result = runCreateAppScript(appName, warFilePath);
+			logger.info("Running create app script = " + warFileName);
+			boolean result = runCreateAppScript(appName, warFileName);
 			success = result;
 		}
 
@@ -358,7 +358,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 					+ " -p "+webappsPath
 					+ " -c "+isCluster;
 		}
-
 		if(isCluster) {
 			command += " -m "+mongoHost
 					+ " -u "+mongoUser

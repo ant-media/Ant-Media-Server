@@ -416,12 +416,13 @@ public class RestServiceV2 extends CommonRestService {
 	@ApiOperation(value = "Upload external application war file to Ant Media Server", notes = "", response = Result.class)
 	@POST
 	@Consumes({MediaType.MULTIPART_FORM_DATA})
-	@Path("/create/{appName}")
+	@Path("/create/{appName}/{fileName}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result uploadApplicationFile(@ApiParam(value = "the name of the Application", required = true) @PathParam("appName") String appName,
+										@ApiParam(value = "the name of the Application", required = true) @PathParam("fileName") String fileName,
 								@ApiParam(value = "file", required = true) @FormDataParam("file") InputStream inputStream) {
-		return super.uploadApplicationFile(appName, inputStream);
+		return super.uploadApplicationFile(appName, fileName, inputStream);
 	}
 
 	/**
