@@ -322,6 +322,12 @@ public class Broadcast {
 	 */
 	@ApiModelProperty(value = "Current playing index for playlist types")
 	private int currentPlayIndex = 0;
+	
+	/**
+	 * Meta data filed for the custom usage
+	 */
+	@ApiModelProperty(value = "Meta data filed for the custom usage")
+	private String metaData = "";
 
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
@@ -747,5 +753,13 @@ public class Broadcast {
 
 	public void setPublishType(String publishType) {
 		this.publishType = publishType;
+	}
+
+	public String getMetaData() {
+		return metaData;
+	}
+
+	public void setMetaData(String metaData) {
+		this.metaData = metaData;
 	}
 }
