@@ -1,10 +1,6 @@
 package io.antmedia.console.rest;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -25,7 +21,13 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.RecordMuxer;
+import io.swagger.annotations.ApiParam;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -198,6 +200,65 @@ public class CommonRestService {
 		Result operationResult = new Result(result);
 		operationResult.setErrorId(errorId);
 		return operationResult;
+	}
+
+	protected Result uploadApplicationFile(String appName, InputStream inputStream) {
+		boolean success = false;
+		String message = "";
+		String id= null;
+		String fileExtension = FilenameUtils.getExtension(appName);
+		logger.info("************************* = " + fileExtension + " " + appName);
+		try {
+
+			if ("war".equalsIgnoreCase(fileExtension)) {
+
+
+				File streamsDirectory = new File(
+						getWebAppsDirectory());
+
+				// if the directory does not exist, create it
+				if (!streamsDirectory.exists()) {
+					streamsDirectory.mkdirs();
+				}
+				File savedFile = new File(String.format("%s/webapps/%s", System.getProperty("red5.root"), appName + "." + fileExtension));
+
+				int read = 0;
+				byte[] bytes = new byte[2048];
+				try (OutputStream outpuStream = new FileOutputStream(savedFile))
+				{
+
+					while ((read = inputStream.read(bytes)) != -1) {
+						outpuStream.write(bytes, 0, read);
+					}
+					outpuStream.flush();
+
+					long fileSize = savedFile.length();
+					long unixTime = System.currentTimeMillis();
+
+					String path = savedFile.getPath();
+
+					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
+					logger.info("War file uploaded for application, filesize = {}", fileSize);
+
+					return createApplication(appName, path);
+				}
+			}
+			else {
+				message = "notWarFile";
+			}
+
+		}
+		catch (IOException iox) {
+			logger.info("*************************************************************");
+			logger.error(iox.getMessage());
+		}
+
+
+		return new Result(success, appName, message);
+	}
+
+	protected String getWebAppsDirectory() {
+		return String.format("%s/webapps", System.getProperty("red5.root"));
 	}
 
 
@@ -1068,8 +1129,9 @@ public class CommonRestService {
 	}
 
 
-	public Result createApplication(String appName) {
+	public Result createApplication(String appName, String warFilePath) {
 		appName = appName.replaceAll("[\n\r\t]", "_");
+		logger.info("Creating application = " + warFilePath);
 		if (isClusterMode()) 
 		{
 			//If there is a record in database, just delete it in order to start from scratch
@@ -1081,7 +1143,7 @@ public class CommonRestService {
 			
 		}
 		
-		return new Result(getApplication().createApplication(appName));
+		return new Result(getApplication().createApplication(appName, warFilePath));
 	}
 
 

@@ -571,9 +571,9 @@ public class RestService extends CommonRestService {
 	@Path("/applications")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result createApplication(@QueryParam("appName") String appName) {
+	public Result createApplication(@QueryParam("appName") String appName, @QueryParam("warFilePath") String warFilePath) {
 
-		return super.createApplication(appName);
+		return super.createApplication(appName, null);
 	}
 	
 	@DELETE

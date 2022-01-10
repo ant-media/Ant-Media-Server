@@ -82,7 +82,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
 			clusterNotifier.registerCreateAppListener(appName -> {
 				log.info("Creating application with name {}", appName);
-				return createApplication(appName);
+				return createApplication(appName, null);
 			});
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
@@ -276,19 +276,21 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return size;
 	}
 
-	public boolean createApplication(String appName) {
+	public boolean createApplication(String appName, String warFilePath) {
 		boolean success = false;
+		logger.info("Running create appp = " + warFilePath);
 
 		if(isCluster) {
 			String mongoHost = getDataStoreFactory().getDbHost();
 			String mongoUser = getDataStoreFactory().getDbUser();
 			String mongoPass = getDataStoreFactory().getDbPassword();
 
-			boolean result = runCreateAppScript(appName, true, mongoHost, mongoUser, mongoPass);
+			boolean result = runCreateAppScript(appName, true, mongoHost, mongoUser, mongoPass, warFilePath);
 			success = result;
 		}
 		else {
-			boolean result = runCreateAppScript(appName);
+			logger.info("Running create app script = " + warFilePath);
+			boolean result = runCreateAppScript(appName, warFilePath);
 			success = result;
 		}
 
@@ -325,20 +327,37 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 
+	public boolean runCreateAppScript(String appName, String warFilePath) {
+		return runCreateAppScript(appName, false, null, null, null, warFilePath);
+	}
+
 	public boolean runCreateAppScript(String appName) {
-		return runCreateAppScript(appName, false, null, null, null);
+		return runCreateAppScript(appName, false, null, null, null, null);
 	}
 
 	public boolean runCreateAppScript(String appName, boolean isCluster, 
-			String mongoHost, String mongoUser, String mongoPass) {
+			String mongoHost, String mongoUser, String mongoPass, String warFilePath) {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
-		String command = "/bin/bash create_app.sh"
-				+ " -n "+appName
-				+ " -w true"
-				+ " -p "+webappsPath
-				+ " -c "+isCluster;
+		String command;
+		logger.info("***************WAR PATH = " + warFilePath);
+
+		if(warFilePath != null || !warFilePath.isEmpty()){
+			command = "/bin/bash create_app.sh"
+					+ " -n "+appName
+					+ " -w true"
+					+ " -p "+webappsPath
+					+ " -c "+isCluster
+					+ " -f " +warFilePath;
+
+		}else{
+			command = "/bin/bash create_app.sh"
+					+ " -n "+appName
+					+ " -w true"
+					+ " -p "+webappsPath
+					+ " -c "+isCluster;
+		}
 
 		if(isCluster) {
 			command += " -m "+mongoHost
