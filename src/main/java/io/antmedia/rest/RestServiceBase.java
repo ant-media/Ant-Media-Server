@@ -343,7 +343,7 @@ public abstract class RestServiceBase {
 
 		Result result = new Result(false);
 
-		if(streamIds != null && streamIds.length > 0)
+		if(streamIds != null)
 		{
 			for (String id : streamIds) 
 			{
@@ -1127,7 +1127,7 @@ public abstract class RestServiceBase {
 	protected Result deleteVoDs(String[] vodIds) 
 	{
 		Result result = new Result(false);
-		if(vodIds != null && vodIds.length > 0)
+		if(vodIds != null)
 		{
 			for (String id : vodIds) 
 			{

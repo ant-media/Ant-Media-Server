@@ -1310,6 +1310,14 @@ public class BroadcastRestServiceV2UnitTest {
 			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
 			assertTrue(result.isSuccess());
 		}
+		
+		{
+			Result result = restServiceReal.deleteBroadcasts(new String[] {});
+			assertFalse(result.isSuccess());
+			
+			result = restServiceReal.deleteBroadcasts(null);
+			assertFalse(result.isSuccess());
+		}
 
 	}
 
