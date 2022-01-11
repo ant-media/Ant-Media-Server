@@ -339,29 +339,28 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	protected Result deleteBroadcasts(String streamIds) {
+	protected Result deleteBroadcasts(String[] streamIds) {
 
-		Broadcast broadcast = null;
-		String message = "";
-		String[] streams = StringUtils.split(streamIds,",");
+		Result result = new Result(false);
 
-		if(streamIds != null && !streamIds.isEmpty()){
-			for (String id : streams) {
-				deleteBroadcast(id);
-			}
-
-			for (String id : streams) {
-				broadcast = getDataStore().get(id);
-				if (broadcast != null) {
-					return new Result(false, message);
+		if(streamIds != null && streamIds.length > 0)
+		{
+			for (String id : streamIds) 
+			{
+				result = deleteBroadcast(id);
+				if (!result.isSuccess()) 
+				{
+					logger.warn("It cannot delete {} and breaking the loop", id);
+					break;
 				}
 			}
 		}
-		else{
+		else
+		{
 			logger.warn("Requested deletion for Stream Ids is empty");
 		}
 
-		return new Result(true, message);
+		return result;
 	}
 
 	protected boolean stopBroadcastInternal(Broadcast broadcast) {
@@ -403,7 +402,7 @@ public abstract class RestServiceBase {
 		removeEmptyPlayListItems(broadcast);
 
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
-		
+
 		return new Result(result);
 	}
 
@@ -1125,33 +1124,27 @@ public abstract class RestServiceBase {
 		return new Result(success, message);
 	}
 
-	protected Result deleteVoDs(String vodIds) {
-		boolean success = false;
-		String message = "";
-		ApplicationContext appContext = getAppContext();
-		String[] splitFileName = StringUtils.split(vodIds,",");
-
-		if (appContext != null ) {
-			if(vodIds != null && !vodIds.isEmpty()){
-				for (String id : splitFileName) {
-					deleteVoD(id);
+	protected Result deleteVoDs(String[] vodIds) 
+	{
+		Result result = new Result(false);
+		if(vodIds != null && vodIds.length > 0)
+		{
+			for (String id : vodIds) 
+			{
+				result = deleteVoD(id);
+				
+				if (!result.isSuccess()) 
+				{
+					logger.warn("VoD:{} cannot be deleted and breaking the loop", id);
+					break;
 				}
-
-				for (String checkVod : splitFileName) {
-					VoD voD = getDataStore().getVoD(checkVod);
-					if (voD != null) {
-						return new Result(success, message);
-					}
-				}
-			}
-			else{
-				logger.warn("Requested deletion for VoD Ids is empty");
 			}
 		}
-		success = true;
-		message = "VoDs are deleted";
-
-		return new Result(success, message);
+		else 
+		{
+			logger.warn("Requested deletion for VoD Ids is empty");
+		}
+		return result;
 	}
 
 	protected String getStreamsDirectory(String appScopeName) {

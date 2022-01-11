@@ -240,7 +240,7 @@ public class VoDRestServiceV2UnitTest {
 
 		assertEquals(1, restServiceReal.getVodList(0, 50, null, null, null, null).size());
 
-		restServiceReal.deleteVoDs(vodId);
+		restServiceReal.deleteVoDs(new String[] {vodId});
 
 		assertEquals(0, restServiceReal.getVodList(0, 50, null, null, null, null).size());
 

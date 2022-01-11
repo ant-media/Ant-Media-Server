@@ -231,10 +231,11 @@ public class BroadcastRestService extends RestServiceBase{
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "If it's deleted, success is true. If it's not deleted, success if false.") })
 	@DELETE
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/bulk/{streamIds}")
+	@Path("/bulk")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result deleteBroadcasts(@ApiParam(value = " Id of the broadcast", required = true) @PathParam("streamIds") String streamIds) {
+	public Result deleteBroadcasts(@ApiParam(value = " Id of the broadcast", required = true) String[] streamIds) 
+	{
 		return super.deleteBroadcasts(streamIds);
 	}
 

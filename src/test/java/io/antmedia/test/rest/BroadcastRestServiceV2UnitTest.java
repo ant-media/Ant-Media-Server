@@ -7,8 +7,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -18,7 +16,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -26,9 +23,7 @@ import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -1250,7 +1245,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(streamCount, broadcastList.size());
 
 		for (Broadcast item: broadcastList) {
-			Result result = restServiceReal.deleteBroadcasts(item.getStreamId());
+			Result result = restServiceReal.deleteBroadcasts(new String[] {item.getStreamId()});
 			assertTrue(result.isSuccess());
 		}
 
@@ -1269,7 +1264,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
 
-			Result result = restServiceReal.deleteBroadcasts(broadcast.getStreamId());
+			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
 			assertFalse(result.isSuccess());
 		}
 
@@ -1282,7 +1277,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
 
-			Result result = restServiceReal.deleteBroadcasts(broadcast.getStreamId());
+			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
 			assertTrue(result.isSuccess());
 		}
 
@@ -1297,7 +1292,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
 
-			Result result = restServiceReal.deleteBroadcasts(broadcast.getStreamId());
+			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
 			assertTrue(result.isSuccess());
 		}
 
@@ -1312,7 +1307,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
 
-			Result result = restServiceReal.deleteBroadcasts(broadcast.getStreamId());
+			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
 			assertTrue(result.isSuccess());
 		}
 

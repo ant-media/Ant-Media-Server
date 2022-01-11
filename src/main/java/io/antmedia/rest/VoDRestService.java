@@ -111,10 +111,10 @@ public class VoDRestService extends RestServiceBase{
 	@ApiOperation(value = "Delete bulk VoD Files based on Vod Id", response = Result.class)
 	@DELETE
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/bulk/{vodIds}")
+	@Path("/bulk")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result deleteVoDs(@ApiParam(value = "the ids of the VoD file", required = true) @PathParam("vodIds") String vodIds) {
+	public Result deleteVoDs(@ApiParam(value = "the ids of the VoD file", required = true) String[] vodIds) {
 		return super.deleteVoDs(vodIds);
 	}
 	
