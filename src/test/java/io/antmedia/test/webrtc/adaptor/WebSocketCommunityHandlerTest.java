@@ -172,7 +172,7 @@ public class WebSocketCommunityHandlerTest {
 		dataStore.save(broadcast);
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
-		verify(wsHandler).sendStreamIdInUse(session);
+		verify(wsHandler).sendStreamIdInUse(streamId, session);
 		
 		
 		//case status preparing
@@ -190,7 +190,7 @@ public class WebSocketCommunityHandlerTest {
 		
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
-		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(session);
+		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(streamId, session);
 		
 		
 		// case no status
@@ -207,7 +207,7 @@ public class WebSocketCommunityHandlerTest {
 		
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
-		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(session);
+		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(streamId, session);
 		
 		
 		
@@ -218,7 +218,7 @@ public class WebSocketCommunityHandlerTest {
 		
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
-		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(session);
+		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(streamId, session);
 				
 		
 	}
@@ -380,7 +380,7 @@ public class WebSocketCommunityHandlerTest {
 		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
 		wsHandler.onMessage(session, publishObject.toJSONString());
 		
-		verify(wsHandler, Mockito.never()).sendInvalidStreamNameError(Mockito.any());
+		verify(wsHandler, Mockito.never()).sendInvalidStreamNameError(Mockito.anyString(), Mockito.any());
 		
 		String streamId2 = "streamId_" + (int)(Math.random()*1000);
 		JSONObject publishObject2 = new JSONObject();
@@ -388,7 +388,7 @@ public class WebSocketCommunityHandlerTest {
 		publishObject2.put(WebSocketConstants.STREAM_ID, streamId2);
 		wsHandler.onMessage(session, publishObject2.toJSONString());
 		
-		verify(wsHandler, Mockito.never()).sendInvalidStreamNameError(Mockito.any());
+		verify(wsHandler, Mockito.never()).sendInvalidStreamNameError(Mockito.anyString(), Mockito.any());
 		
 		streamId2 = "streamId_:?" + (int)(Math.random()*1000);
 		publishObject2 = new JSONObject();
@@ -396,7 +396,7 @@ public class WebSocketCommunityHandlerTest {
 		publishObject2.put(WebSocketConstants.STREAM_ID, streamId2);
 		wsHandler.onMessage(session, publishObject2.toJSONString());
 		
-		verify(wsHandler, Mockito.timeout(1)).sendInvalidStreamNameError(Mockito.any());
+		verify(wsHandler, Mockito.timeout(1)).sendInvalidStreamNameError(Mockito.anyString(), Mockito.any());
 	}
 	
 	@Test
