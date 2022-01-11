@@ -365,15 +365,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	@Override
-	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType) {
+	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType) {
 		vertx.executeBlocking( handler -> {
 			try {
 
-				Broadcast broadcast = updateBroadcastStatus(streamName, absoluteStartTimeMs, publishType, getDataStore().get(streamName));
+				Broadcast broadcast = updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, getDataStore().get(streamId));
 
 				final String listenerHookURL = broadcast.getListenerHookURL();
-				final String streamId = broadcast.getStreamId();
-				if (listenerHookURL != null && !listenerHookURL.isEmpty()) 
+				if (listenerHookURL != null && !listenerHookURL.isEmpty())
 				{
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
@@ -410,34 +409,34 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		{
 			vertx.setTimer(2000, h -> 
 			{
-				IBroadcastStream broadcastStream = getBroadcastStream(getScope(), streamName);
+				IBroadcastStream broadcastStream = getBroadcastStream(getScope(), streamId);
 				if (broadcastStream instanceof ClientBroadcastStream) 
 				{
 					long absoluteStarTime = ((ClientBroadcastStream)broadcastStream).getAbsoluteStartTimeMs();
 					if (absoluteStarTime != 0) 
 					{
-						Broadcast broadcast = getDataStore().get(streamName);
+						Broadcast broadcast = getDataStore().get(streamId);
 						if (broadcast != null) 
 						{
 							broadcast.setAbsoluteStartTimeMs(absoluteStarTime);
 
 							getDataStore().save(broadcast);
-							logger.info("Updating broadcast absolute time {} ms for stream:{}", absoluteStarTime, streamName);
+							logger.info("Updating broadcast absolute time {} ms for stream:{}", absoluteStarTime, streamId);
 						}
 						else {
-							logger.info("Broadcast is not available in the database to update the absolute start time for stream:{}", streamName);
+							logger.info("Broadcast is not available in the database to update the absolute start time for stream:{}", streamId);
 						}
 
 					}
 					else {
-						logger.info("Broadcast absolute time is not available for stream:{}", streamName);
+						logger.info("Broadcast absolute time is not available for stream:{}", streamId);
 					}
 
 				}
 			});
 		}
 
-		logger.info("start publish leaved for stream:{}", streamName);
+		logger.info("start publish leaved for stream:{}", streamId);
 	}
 
 
@@ -508,14 +507,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		String streamName = file.getName();
 
 		Broadcast broadcast = getDataStore().get(streamId);
-		if (broadcast != null && broadcast.getName() != null) {
-			streamName = broadcast.getName();
-			listenerHookURL = broadcast.getListenerHookURL();
-			if (resolution != 0) {
-				streamName = streamName + " (" + resolution + "p)";
 
+		if(broadcast != null){
+			listenerHookURL = broadcast.getListenerHookURL();
+			if(broadcast.getName() != null){
+				streamName =  resolution != 0 ? broadcast.getName() + " (" + resolution + "p)" : broadcast.getName();
 			}
 		}
+
 		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
 			// if hook URL is not defined for stream specific, then try to get common one from app
 			listenerHookURL = appSettings.getListenerHookURL();
@@ -1463,7 +1462,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (broadcast != null) 
 		{
 			final String listenerHookURL = broadcast.getListenerHookURL();
-			if (listenerHookURL != null && listenerHookURL.length() > 0) 
+			if (listenerHookURL != null && listenerHookURL.length() > 0)
 			{
 				final String name = broadcast.getName();
 				final String category = broadcast.getCategory();
