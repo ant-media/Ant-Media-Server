@@ -732,7 +732,7 @@ public class AppSettings {
 	 * WebRTC SDP Semantics
 	 * It can "planB" or "unifiedPlan"
 	 */
-	@Value( "${" + SETTINGS_WEBRTC_SDP_SEMANTICS +":" + SDP_SEMANTICS_PLAN_B + "}")
+	@Value( "${" + SETTINGS_WEBRTC_SDP_SEMANTICS +":" + SDP_SEMANTICS_UNIFIED_PLAN + "}")
 	private String webRTCSdpSemantics;
 
 

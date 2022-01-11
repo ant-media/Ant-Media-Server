@@ -146,7 +146,7 @@ public abstract class Adaptor implements Observer, SdpObserver
 			type = "offer";
 		}
 
-		webSocketCommunityHandler.sendSDPConfiguration(sdp.description, type, streamId, session);
+		webSocketCommunityHandler.sendSDPConfiguration(sdp.description, type, streamId, session, null);
 
 	}
 
