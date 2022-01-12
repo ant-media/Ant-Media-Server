@@ -17,7 +17,6 @@ Ant Media’s main product is real-time streaming engine, called Ant Media Serve
 
 **Community Edition**
 
- * Free (Community Edition) and paid (Enterprise Edition) versions
  * RTMP ingesting
  * WebRTC to RTMP adapter
  * IP camera support
@@ -51,16 +50,6 @@ Please see a [comparison table for Community and Enterprise Edition](https://git
  <a href="https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1"><img src="https://i1.wp.com/antmedia.io/wp-content/uploads/2019/01/azure-e1548153434609.png" width=130/></a>
 
  
-### Links
-
- * [Documentation](http://docs.antmedia.io/)
- * [Web site](https://antmedia.io)
- * [Community Edition vs. Enterprise Edition](https://github.com/ant-media/Ant-Media-Server/wiki#community-edition--enterprise-edition) 
- * [Your Scalable, Real-Time Video Streaming Platform Ready in 5 Minutes](https://www.youtube.com/watch?v=y7bP0u0jQRQ)
- 
-  [![Your Scalable, Real-Time Video Streaming Platform Ready in 5 Minutes](https://img.youtube.com/vi/y7bP0u0jQRQ/0.jpg)](https://www.youtube.com/watch?v=y7bP0u0jQRQ)
-
- 
 ## Usage Scenarios
 ### Education
 Ant Media can provide virtual classrooms with teachers as many as it is required and it might be presented and viewed separately with ultra-low latency.
@@ -89,8 +78,18 @@ Ant Media Server Community Edition Releases are [automatically deployed here](ht
 
 Ant Media Server Enterprise Editions are available through Cloud Marketplace(AWS, Azure, DO) or to download through subscription on [antmedia.io](https://antmedia.io)   
 
+
+### Links
+
+* [Web site](https://antmedia.io)
+* [Documentation](https://github.com/ant-media/Ant-Media-Server/wiki)
+* [We're hiring](https://angel.co/company/ant-media-1)
+* [Community Edition vs. Enterprise Edition](https://github.com/ant-media/Ant-Media-Server/wiki#community-edition--enterprise-edition) 
+* [Your Scalable, Real-Time Video Streaming Platform Ready in 5 Minutes](https://www.youtube.com/watch?v=y7bP0u0jQRQ)
+ 
+  [![Your Scalable, Real-Time Video Streaming Platform Ready in 5 Minutes](https://img.youtube.com/vi/y7bP0u0jQRQ/0.jpg)](https://www.youtube.com/watch?v=y7bP0u0jQRQ)
+
 ## Contact
 
- For more information and blog posts visit [antmedia.io](https://antmedia.io)
-
- [contact@antmedia.io](mailto:contact@antmedia.io)
+* For more information and blog posts visit [antmedia.io](https://antmedia.io/blog/)
+* For general inquiries, [contact@antmedia.io](mailto:contact@antmedia.io)
