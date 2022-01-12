@@ -18,10 +18,10 @@ Ant Media’s main product is real-time streaming engine, called Ant Media Serve
 **Community Edition**
 
  * RTMP ingesting
- * RTMP, RTSP, MP4 and HLS Support	
+ * RTMP, RTSP, MP4 and HLS support	
  * WebRTC to RTMP adapter
  * IP camera support
- * 360 Degree Live & VoD Streams
+ * 360 Degree Live & VoD streams
  * Intuitive web management dashboard
  * Recording live streams (MP4 and HLS)
  * iOS & Android RTMP SDKs
@@ -60,24 +60,30 @@ Please see a [comparison table for Community and Enterprise Edition](https://git
  <a href="https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1"><img src="https://i1.wp.com/antmedia.io/wp-content/uploads/2019/01/azure-e1548153434609.png" width=130/></a>
 
  
-## Usage Scenarios
+## Usage scenarios
 ### Education
-Ant Media can provide virtual classrooms with teachers as many as it is required and it might be presented and viewed separately with ultra-low latency.
+Ant Media can provide virtual classrooms to teachers, using ultra-low latency technology, enabling teachers connect with the audience using 1-1 or 1-many connection types.
+
 ### IP camera streaming
-Watch and Monitor IP Cameras with Ultra Low Latency on Web Browser with Ant Media Server. You can embed ONVIF IP camera streams into your websites and mobile applications.
-### Webinar
-Ant Media Server supports N-N live video/audio conferencing by using WebRTC protocol that allows you to achieve ultra-low latency which is around 0.5 sec. Ant Media Server also provides scalability that can help you to scale up your solution dynamically.
-### Mobile Streaming Application
-Easy to Integrate and Scalable Streaming Infrastructure Solutions for your Mobile Application Projects. You can build fast ve stable streaming applications with Ant Media API’s and SDK’s.
-### Live Game Show
-Scale Number of Viewers As Much As You Need. Live Video Experience has the significant role in Live Game Shows’ success. It must be scalable, low latency and adaptive.  Ant Media Server provides scalable, ultra-low latency and adaptive streaming.
-### E-sports Betting
-Due to the biggest grow at esports, there is a tremendous demand for betting more   than normal sports and video streaming with ultra-low latency is a game changer for  that industry.
-### Auction and Bidding Streaming
-Live Auction should be streamed with ultra sub second latency in order to get bids on
-time. Otherwise, your items get sold for a lower price. Ant Media Server provides sub-second  latency streaming.
-### Video Game Streaming
-Gamers are generally complaining about interaction problems. Ant Media Server resolves this problem by ultra low latency streaming(0.5 second) via WebRTC.
+Watch and Monitor IP cameras with ultra low latency on a web browser with Ant Media Server. You can embed ONVIF IP camera streams into your websites and mobile applications.
+
+### Webinars
+Ant Media Server supports N-N live video/audio conferencing by using WebRTC, allowing you to achieve ultra-low latency (~ 0.5 sec). Ant Media Server also provides scalability that can help you to scale up your solution dynamically.
+
+### Mobile streaming application
+Using our SDKs, you can integrate your mobile application solutions with Ant Media Server, and build a fast, reliable and stable streaming platform with AMS APIs and SDKs.
+
+### Live game shows
+Live video experience has a significant role in live game show success, with a strong requirement of being scalable, low latency and adaptive for which Ant Media provides.
+
+### E-sports & betting streaming
+Due to the evergrowing esports domain, there is a tremendous demand for video streaming with ultra-low latency.
+
+### Auction and bidding streaming
+Live auctions should be streamed with ultra sub second latency in order to get bids ontime.
+
+### Video game streaming
+Ant Media Server resolves interactivity and scalability issues by providing ultra low latency streaming via WebRTC.
 
 <br/>
 <br/>
@@ -93,6 +99,7 @@ Ant Media Server Enterprise Editions are available through Cloud Marketplace (AW
 
 * [Web site](https://antmedia.io)
 * [Documentation](https://github.com/ant-media/Ant-Media-Server/wiki)
+* [How do companies use Ant Media?](https://antmedia.io/case-studies/)
 * [We're hiring](https://angel.co/company/ant-media-1)
 * [Community Edition vs. Enterprise Edition](https://github.com/ant-media/Ant-Media-Server/wiki#community-edition--enterprise-edition) 
 * [Your Scalable, Real-Time Video Streaming Platform Ready in 5 Minutes](https://www.youtube.com/watch?v=y7bP0u0jQRQ)
