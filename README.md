@@ -51,38 +51,38 @@ Please see a [comparison table for Community and Enterprise Edition](https://git
 
 ## Quick launch
 
-<b>Launch in [Amazon Web Services](https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Ant+Media+Server&page=1&ref_=nav_search_box)</b>
+Ant Media server is available in your favorite cloud platform:
 
- <a href="https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Ant+Media+Server&page=1&ref_=nav_search_box"><img src="https://i1.wp.com/antmedia.io/wp-content/uploads/2019/06/1200px-Amazon_Web_Services_Logo.svg-300x180.png" width=90/></a>
-
-<b>Launch in [Microsoft Azure](https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1)</b> (Wait a few seconds for listings appear)
-
- <a href="https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1"><img src="https://i1.wp.com/antmedia.io/wp-content/uploads/2019/01/azure-e1548153434609.png" width=130/></a>
+* ([AWS](https://aws.amazon.com/marketplace/pp/prodview-464ritgzkzod6?sr=0-1&ref_=beagle&applicationId=AWSMPContessa)
+* [Azure](https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1)
+* [Alibaba](https://marketplace.alibabacloud.com/products/56712002/Ant_Media_Server_Enterprise_2_2_1-sgcmjj00025347.html)
+* [Digital Ocean](https://marketplace.digitalocean.com/apps/antmedia-server-enterprise-edition-3) 
+* [Linode](https://www.linode.com/marketplace/apps/ant-media/ant-media-community-edition/))
 
  
 ## Usage scenarios
-### Education
+### 👨🏽‍💻 Education
 Ant Media can provide virtual classrooms to teachers, using ultra-low latency technology, enabling teachers connect with the audience using 1-1 or 1-many connection types.
 
-### IP camera streaming
+### 🤖 IP camera streaming
 Watch and Monitor IP cameras with ultra low latency on a web browser with Ant Media Server. You can embed ONVIF IP camera streams into your websites and mobile applications.
 
-### Webinars
+### 🙇 Webinars
 Ant Media Server supports N-N live video/audio conferencing by using WebRTC, allowing you to achieve ultra-low latency (~ 0.5 sec). Ant Media Server also provides scalability that can help you to scale up your solution dynamically.
 
-### Mobile streaming application
+### 👾 Mobile streaming application
 Using our SDKs, you can integrate your mobile application solutions with Ant Media Server, and build a fast, reliable and stable streaming platform with AMS APIs and SDKs.
 
-### Live game shows
+### 📺 Live game shows
 Live video experience has a significant role in live game show success, with a strong requirement of being scalable, low latency and adaptive for which Ant Media provides.
 
-### E-sports & betting streaming
+### 🎯 E-sports & betting streaming
 Due to the evergrowing esports domain, there is a tremendous demand for video streaming with ultra-low latency.
 
-### Auction and bidding streaming
+### 🎭 Auction and bidding streaming
 Live auctions should be streamed with ultra sub second latency in order to get bids ontime.
 
-### Video game streaming
+### ✨ Video game streaming
 Ant Media Server resolves interactivity and scalability issues by providing ultra low latency streaming via WebRTC.
 
 <br/>
@@ -92,7 +92,7 @@ Ant Media Server resolves interactivity and scalability issues by providing ultr
 
 Ant Media Server Community Edition Releases are [automatically deployed here](https://github.com/ant-media/Ant-Media-Server/releases), with auto-generated changelog. 
 
-Ant Media Server Enterprise Editions are available through Cloud Marketplace ([AWS](https://aws.amazon.com/marketplace/pp/prodview-464ritgzkzod6?sr=0-1&ref_=beagle&applicationId=AWSMPContessa), [Azure](https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1), [Alibaba](https://marketplace.alibabacloud.com/products/56712002/Ant_Media_Server_Enterprise_2_2_1-sgcmjj00025347.html), [Digital Ocean](https://marketplace.digitalocean.com/apps/antmedia-server-enterprise-edition-3) and [Linode](https://www.linode.com/marketplace/apps/ant-media/ant-media-community-edition/)). You can also download Enterprise Edition via subscription on [antmedia.io](https://antmedia.io)
+Ant Media Server Enterprise Editions are available through several cloud marketplaces ([AWS](https://aws.amazon.com/marketplace/pp/prodview-464ritgzkzod6?sr=0-1&ref_=beagle&applicationId=AWSMPContessa), [Azure](https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1), [Alibaba](https://marketplace.alibabacloud.com/products/56712002/Ant_Media_Server_Enterprise_2_2_1-sgcmjj00025347.html), [Digital Ocean](https://marketplace.digitalocean.com/apps/antmedia-server-enterprise-edition-3) and [Linode](https://www.linode.com/marketplace/apps/ant-media/ant-media-community-edition/)). You can also download Enterprise Edition via subscription on [antmedia.io](https://antmedia.io)
 
 
 ## 🌱 Links
