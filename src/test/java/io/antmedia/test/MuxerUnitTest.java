@@ -78,6 +78,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.codec.IAudioStreamCodec;
 import org.red5.codec.IVideoStreamCodec;
@@ -108,6 +109,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.HLSMuxer;
@@ -288,23 +290,23 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		aacParser = new AACConfigParser(new byte[] {0, 0}, 0);
 		assertTrue(aacParser.isErrorOccured());		
-		
-		
+
+
 		aacParser = new AACConfigParser(new byte[] {(byte) 0x80, 0}, 0);
 		assertTrue(aacParser.isErrorOccured());	
-		
+
 		aacParser = new AACConfigParser(new byte[] {(byte) 0x17, 0}, 0);
 		assertTrue(aacParser.isErrorOccured());
-		
+
 		aacParser = new AACConfigParser(new byte[] {(byte) 0x12, (byte)0x77}, 0);
 		assertTrue(aacParser.isErrorOccured());
-		
+
 		aacParser = new AACConfigParser(new byte[] {(byte) 0x12, (byte)0x17}, 0);
 		assertFalse(aacParser.isErrorOccured());
-		
+
 		aacParser = new AACConfigParser(new byte[] {(byte) 0x12, (byte)0x38}, 0);
 		assertFalse(aacParser.isErrorOccured());
-		
+
 	}
 
 	@Test
@@ -317,10 +319,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		result.setAutoExpand(true);
 		result.put(aacConfig);
 		result.rewind();
-		
+
 		assertFalse(aacAudio.canHandleData(result));
 		result.limit(0);
-		
+
 		assertFalse(aacAudio.canHandleData(result));
 		assertTrue(aacAudio.addData(result));
 		assertNull(aacAudio.getDecoderConfiguration());
@@ -2084,7 +2086,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//write trailer
 		mp4Muxer.writeTrailer();
 
-		Awaitility.await().atMost(10, TimeUnit.SECONDS)
+		Awaitility.await().atMost(20, TimeUnit.SECONDS)
 		.pollInterval(1, TimeUnit.SECONDS)
 		.until(() -> {
 			return MuxingTest.testFile("webapps/junit/streams/" + streamName + ".mp4", 10000);
@@ -2092,6 +2094,139 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 	}
+
+	@Test
+	public void testMp4FinalName() {
+		{
+			//Scenario 1
+			//1. The file does not exist on local disk -> stream1.mp4
+			//2. The same file exists on storage -> stream1.mp4
+			//3. The uploaded file should be to the storage should be -> stream1_1.mp4
+			
+			Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
+			assertNotNull(vertx);
+			String streamName = "stream_name_s" + (int) (Math.random() * 10000);
+			getAppSettings().setMp4MuxingEnabled(true);
+			getAppSettings().setUploadExtensionsToS3(7);
+			getAppSettings().setS3RecordingEnabled(true);
+
+			StorageClient client = Mockito.mock(StorageClient.class);
+			doReturn(false).when(client).fileExist(Mockito.any());
+			doReturn(true).when(client).fileExist("streams/" + streamName + ".mp4");
+
+			if (appScope == null) {
+				appScope = (WebScope) applicationContext.getBean("web.scope");
+				logger.debug("Application / web scope: {}", appScope);
+				assertTrue(appScope.getDepth() == 1);
+			}
+			
+			//scenario 1
+			//1. The file does not exist on local disk -> stream1.mp4
+			//2. The same file exists on storage -> stream1.mp4
+			//3. The uploaded file should be to the storage should be -> stream1_1.mp4
+			{
+				Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
+				//init
+				mp4Muxer.init(appScope, streamName, 0, null, 0);
+				
+				//initialize tmp file
+				mp4Muxer.getOutputFormatContext();
+	
+				File finalFileName = mp4Muxer.getFinalFileName(true);
+				assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+"_1.mp4"));
+			}
+			
+			//Scenario 2
+			//1. The file exists on local disk -> stream1.mp4
+			//2. The file does not exist on storage -> stream1.mp4
+			//3. The uploaded file should be  -> stream1_1.mp4
+			{
+				
+				try {
+					File file1 = new File("webapps/junit/streams/" + streamName + ".mp4");
+					file1.createNewFile();
+					
+					doReturn(false).when(client).fileExist("streams/" + streamName + ".mp4");
+			
+				
+					Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
+					//init
+					mp4Muxer.init(appScope, streamName, 0, null, 0);
+					
+					//initialize tmp file
+					mp4Muxer.getOutputFormatContext();
+					
+					File finalFileName = mp4Muxer.getFinalFileName(true);
+					assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+"_1.mp4"));
+					
+					finalFileName = mp4Muxer.getFinalFileName(false);
+					assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+"_1.mp4"));
+					
+					file1.delete();
+					
+								
+				} 
+				catch (IOException e) 
+				{
+					e.printStackTrace();
+					fail(e.getMessage());
+				}
+				
+				
+			}
+			
+			//Scenario 3
+			//1. The file does not exists on local disk -> stream1.mp4
+			//2. The file does exist on storage -> stream1.mp4, stream1_1.mp4, stream1_2.mp4
+			//3. The uploaded file should be  -> stream1_3.mp4
+			{
+				doReturn(true).when(client).fileExist("streams/" + streamName + ".mp4");
+				doReturn(true).when(client).fileExist("streams/" + streamName + "_1.mp4");
+				doReturn(true).when(client).fileExist("streams/" + streamName + "_2.mp4");
+				
+				
+				Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
+				//init
+				mp4Muxer.init(appScope, streamName, 0, null, 0);
+				
+				//initialize tmp file
+				mp4Muxer.getOutputFormatContext();
+				
+				File finalFileName = mp4Muxer.getFinalFileName(true);
+				assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+"_3.mp4"));
+				
+				finalFileName = mp4Muxer.getFinalFileName(false);
+				assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+".mp4"));
+			}
+			
+			//Scenario 4
+			//1. The file does not exists on local disk -> stream1.webm
+			//2. The file does exist on storage -> stream1.webm, stream1_1.webm, stream1_2.webm
+			//3. The uploaded file should be  -> stream1_3.mp4
+			{
+				doReturn(true).when(client).fileExist("streams/" + streamName + ".webm");
+				doReturn(true).when(client).fileExist("streams/" + streamName + "_1.webm");
+				doReturn(true).when(client).fileExist("streams/" + streamName + "_2.webm");
+				
+				
+				WebMMuxer webMMuxer = new WebMMuxer(client, vertx, "streams");
+				//init
+				webMMuxer.init(appScope, streamName, 0, null, 0);
+				
+				//initialize tmp file
+				webMMuxer.getOutputFormatContext();
+				
+				File finalFileName = webMMuxer.getFinalFileName(true);
+				assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+"_3.webm"));
+				
+				finalFileName = webMMuxer.getFinalFileName(false);
+				assertTrue(finalFileName.getAbsolutePath().endsWith(streamName+".webm"));
+			}
+				
+		}
+
+	}
+
 
 	@Test
 	public void testHLSMuxingWithinChildScope() {
@@ -2985,24 +3120,50 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream1.setCodecInfo(info);
 		Map<String, String> params1 = new HashMap<String, String>();
-		params1.put("mainTrack", "someExistingStreamId");
+		String mainTrackId = "mainTrack"+RandomUtils.nextInt(0, 10000);
+		params1.put("mainTrack", mainTrackId);
 		clientBroadcastStream1.setParameters(params1);
 		MuxAdaptor muxAdaptor1 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream1, false, appScope));
-		muxAdaptor1.setStreamId("stream1");
-		DataStore ds1 = mock(DataStore.class);
+		
+		String sub1 = "subtrack1"+RandomUtils.nextInt(0, 10000);;
+		muxAdaptor1.setStreamId(sub1);
+		DataStore ds1 = spy(new InMemoryDataStore("testdb"));
 		doReturn(ds1).when(muxAdaptor1).getDataStore();
 		doReturn(new Broadcast()).when(muxAdaptor1).getBroadcast();
 		muxAdaptor1.registerToMainTrackIfExists();
 		verify(ds1, times(1)).updateBroadcastFields(anyString(), any());
 
+		ArgumentCaptor<Broadcast> argument = ArgumentCaptor.forClass(Broadcast.class);
+		verify(ds1, times(1)).save(argument.capture());
+		assertEquals(mainTrackId, argument.getValue().getStreamId());
+		assertTrue(argument.getValue().getSubTrackStreamIds().contains(sub1));
 
+		String sub2 = "subtrack2"+RandomUtils.nextInt(0, 10000);;
 		ClientBroadcastStream clientBroadcastStream2 = new ClientBroadcastStream();
 		clientBroadcastStream2.setCodecInfo(info);
+		clientBroadcastStream2.setParameters(params1);
 		MuxAdaptor muxAdaptor2 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream2, false, appScope));
-		muxAdaptor2.setStreamId("stream2");
-		DataStore ds2 = mock(DataStore.class);
-		doReturn(ds2).when(muxAdaptor2).getDataStore();
+		muxAdaptor2.setStreamId(sub2);
+		doReturn(new Broadcast()).when(muxAdaptor2).getBroadcast();
+		doReturn(ds1).when(muxAdaptor2).getDataStore();
 		muxAdaptor2.registerToMainTrackIfExists();
+		
+		ArgumentCaptor<Broadcast> argument2 = ArgumentCaptor.forClass(Broadcast.class);
+		verify(ds1, times(1)).save(argument2.capture());
+		assertEquals(mainTrackId, argument2.getValue().getStreamId());
+		assertTrue(argument2.getValue().getSubTrackStreamIds().contains(sub1));
+		
+		Broadcast mainBroadcast = ds1.get(mainTrackId);
+		assertEquals(2, mainBroadcast.getSubTrackStreamIds().size());
+		
+		ClientBroadcastStream clientBroadcastStream3 = new ClientBroadcastStream();
+		clientBroadcastStream3.setCodecInfo(info);
+		MuxAdaptor muxAdaptor3 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream3, false, appScope));
+		muxAdaptor3.setStreamId("stream3");
+		DataStore ds2 = mock(DataStore.class);
+		doReturn(ds2).when(muxAdaptor3).getDataStore();
+		muxAdaptor3.registerToMainTrackIfExists();
 		verify(ds2, never()).updateBroadcastFields(anyString(), any());
+		
 	}
 }

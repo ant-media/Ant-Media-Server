@@ -81,10 +81,6 @@ public class AppSettings {
 	public static final String SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY = "settings.timeTokenSubscriberOnly";
 	public static final String SETTINGS_TIME_TOKEN_PERIOD = "settings.timeTokenPeriod";
 	public static final String SETTINGS_HLS_PLAY_LIST_TYPE = "settings.hlsPlayListType";
-	public static final String FACEBOOK_CLIENT_ID = "facebook.clientId";
-	public static final String FACEBOOK_CLIENT_SECRET = "facebook.clientSecret";
-	public static final String YOUTUBE_CLIENT_ID = "youtube.clientId";
-	public static final String YOUTUBE_CLIENT_SECRET = "youtube.clientSecret";
 	public static final String SETTINGS_VOD_FOLDER = "settings.vodFolder";
 	public static final String SETTINGS_PREVIEW_OVERWRITE = "settings.previewOverwrite";
 	private static final String SETTINGS_STALKER_DB_SERVER = "settings.stalkerDBServer";
@@ -584,33 +580,6 @@ public class AppSettings {
 	private String hlsPlayListType;
 
 	/**
-	 * Facebook client id
-	 * This is client id provided by Facebook to broadcast streams to Facebook.
-	 */
-	@Value( "${"+FACEBOOK_CLIENT_ID+"}" )
-	private String facebookClientId;
-
-	/**
-	 * Facebook client secret
-	 * Secret key for the Facebook client id.
-	 */
-	@Value( "${"+FACEBOOK_CLIENT_SECRET+"}" )
-	private String facebookClientSecret;
-
-	/**
-	 * Youtube client id
-	 * This is client id provided by YouTube to broadcast streams to YouTube.
-	 */
-	@Value( "${"+YOUTUBE_CLIENT_ID+"}" )
-	private String youtubeClientId;
-
-	/**
-	 * Youtube client secret for youtube client id
-	 */
-	@Value( "${"+YOUTUBE_CLIENT_SECRET+"}" )
-	private String youtubeClientSecret;
-
-	/**
 	 * The path for manually saved used VoDs
 	 * Determines the directory to store VOD files.
 	 */
@@ -763,7 +732,7 @@ public class AppSettings {
 	 * WebRTC SDP Semantics
 	 * It can "planB" or "unifiedPlan"
 	 */
-	@Value( "${" + SETTINGS_WEBRTC_SDP_SEMANTICS +":" + SDP_SEMANTICS_PLAN_B + "}")
+	@Value( "${" + SETTINGS_WEBRTC_SDP_SEMANTICS +":" + SDP_SEMANTICS_UNIFIED_PLAN + "}")
 	private String webRTCSdpSemantics;
 
 
@@ -1508,7 +1477,7 @@ public class AppSettings {
 
 		for (EncoderSettings encoderSettings : encoderSettingsList) {
 			JSONObject encoderJSON = new JSONObject();
-			encoderJSON.put(EncoderSettings.HEIGHT, encoderSettings.getHeight());
+			encoderJSON.put(EncoderSettings.RESOLUTION_HEIGHT, encoderSettings.getHeight());
 			encoderJSON.put(EncoderSettings.VIDEO_BITRATE, encoderSettings.getVideoBitrate());
 			encoderJSON.put(EncoderSettings.AUDIO_BITRATE, encoderSettings.getAudioBitrate());
 			encoderJSON.put(EncoderSettings.FORCE_ENCODE, encoderSettings.isForceEncode());
@@ -1535,7 +1504,7 @@ public class AppSettings {
 
 			for (int i = 0; i < jsonArray.size(); i++) {
 				jsObject =  (JSONObject)jsonArray.get(i);
-				height = Integer.parseInt(jsObject.get(EncoderSettings.HEIGHT).toString());
+				height = Integer.parseInt(jsObject.get(EncoderSettings.RESOLUTION_HEIGHT).toString());
 				videoBitrate = Integer.parseInt(jsObject.get(EncoderSettings.VIDEO_BITRATE).toString());
 				audioBitrate = Integer.parseInt(jsObject.get(EncoderSettings.AUDIO_BITRATE).toString());
 				forceEncode = (boolean)jsObject.get(EncoderSettings.FORCE_ENCODE);
@@ -1615,39 +1584,6 @@ public class AppSettings {
 	public void setObjectDetectionEnabled(Boolean objectDetectionEnabled) {
 		this.objectDetectionEnabled = objectDetectionEnabled;
 	}
-
-	public String getYoutubeClientSecret() {
-		return youtubeClientSecret;
-	}
-
-	public void setYoutubeClientSecret(String youtubeClientSecret) {
-		this.youtubeClientSecret = youtubeClientSecret;
-	}
-
-	public String getYoutubeClientId() {
-		return youtubeClientId;
-	}
-
-	public void setYoutubeClientId(String youtubeClientId) {
-		this.youtubeClientId = youtubeClientId;
-	}
-
-	public String getFacebookClientSecret() {
-		return facebookClientSecret;
-	}
-
-	public void setFacebookClientSecret(String facebookClientSecret) {
-		this.facebookClientSecret = facebookClientSecret;
-	}
-
-	public String getFacebookClientId() {
-		return facebookClientId;
-	}
-
-	public void setFacebookClientId(String facebookClientId) {
-		this.facebookClientId = facebookClientId;
-	}
-
 
 	public String getVodFolder() {
 		return vodFolder;
