@@ -105,7 +105,12 @@ public abstract class RecordMuxer extends Muxer {
 	protected boolean dynamic = false;
 
 	private String s3FolderPath = "streams";
-
+	
+	/**
+	 * Millisecond timestamp with record muxer initialization.
+	 * It will be define when record muxer is called by anywhere
+	 */
+	private long startTime = 0;
 
 
 	public RecordMuxer(StorageClient storageClient, Vertx vertx, String s3FolderPath) {
@@ -139,6 +144,8 @@ public abstract class RecordMuxer extends Muxer {
 		this.resolution = resolutionHeight;
 		this.subFolder = subFolder;
 
+		this.startTime = System.currentTimeMillis();
+		
 		tmpPacket = avcodec.av_packet_alloc();
 		av_init_packet(tmpPacket);
 
@@ -429,7 +436,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				finalizeRecordFile(f);
 
-				adaptor.muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
+				adaptor.muxingFinished(streamId, f, startTime, getDurationInMs(f,streamId), resolution);
 
 				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
 

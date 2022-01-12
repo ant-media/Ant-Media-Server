@@ -1192,7 +1192,7 @@ public abstract class RestServiceBase {
 
 					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
 
-					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
+					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
 							VoD.UPLOADED_VOD, vodId);
 
 					id = getDataStore().addVod(newVod);

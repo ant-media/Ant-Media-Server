@@ -634,7 +634,7 @@ public class MapDBStore extends DataStore {
 
 						String vodId = RandomStringUtils.randomNumeric(24);
 
-						VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
+						VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, 0, fileSize,
 								VoD.USER_VOD, vodId);
 						addVod(newVod);
 						numberOfSavedFiles++;

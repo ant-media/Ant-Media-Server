@@ -30,7 +30,7 @@ public interface IAntMediaStreamHandler {
 	 * @param duration of the video in milliseconds
 	 * @param resolution height of the video 
 	 */
-	public void muxingFinished(String id, File file, long duration , int resolution);
+	public void muxingFinished(String id, File file, long startTime, long duration , int resolution);
 	
 	
 	/**
