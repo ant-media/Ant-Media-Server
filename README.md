@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.org/ant-media/Ant-Media-Server.svg?branch=master)](https://travis-ci.org/ant-media/Ant-Media-Server)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=io.antmedia%3Aant-media-server&metric=alert_status)](https://sonarcloud.io/dashboard?id=io.antmedia%3Aant-media-server)
+<a href="https://twitter.com/antmedia_io" ><img src="https://img.shields.io/twitter/follow/antmedia_io.svg?style=social" /> </a>
 
 ![image](https://user-images.githubusercontent.com/54481799/95862105-16cb0e00-0d6b-11eb-9087-88888889825d.png)
 
@@ -72,14 +73,14 @@ Gamers are generally complaining about interaction problems. Ant Media Server re
 <br/>
 <br/>
 
-## Releases
+## ⚡ Releases
 
-Ant Media Server Community Edition Releases are [automatically deployed here](https://github.com/ant-media/Ant-Media-Server/releases) with auto-generated changelog. 
+Ant Media Server Community Edition Releases are [automatically deployed here](https://github.com/ant-media/Ant-Media-Server/releases), with auto-generated changelog. 
 
-Ant Media Server Enterprise Editions are available through Cloud Marketplace(AWS, Azure, DO) or to download through subscription on [antmedia.io](https://antmedia.io)   
+Ant Media Server Enterprise Editions are available through Cloud Marketplace (AWS, Azure, OVH, Digital Ocean and Linode). You can also download Enterprise Edition via subscription on [antmedia.io](https://antmedia.io)
 
 
-### Links
+## 🌱 Links
 
 * [Web site](https://antmedia.io)
 * [Documentation](https://github.com/ant-media/Ant-Media-Server/wiki)
@@ -87,9 +88,8 @@ Ant Media Server Enterprise Editions are available through Cloud Marketplace(AWS
 * [Community Edition vs. Enterprise Edition](https://github.com/ant-media/Ant-Media-Server/wiki#community-edition--enterprise-edition) 
 * [Your Scalable, Real-Time Video Streaming Platform Ready in 5 Minutes](https://www.youtube.com/watch?v=y7bP0u0jQRQ)
  
-  [![Your Scalable, Real-Time Video Streaming Platform Ready in 5 Minutes](https://img.youtube.com/vi/y7bP0u0jQRQ/0.jpg)](https://www.youtube.com/watch?v=y7bP0u0jQRQ)
 
-## Contact
+## 📫 Contact
 
 * For more information and blog posts visit [antmedia.io](https://antmedia.io/blog/)
 * For general inquiries, [contact@antmedia.io](mailto:contact@antmedia.io)
