@@ -92,7 +92,7 @@ Ant Media Server resolves interactivity and scalability issues by providing ultr
 
 Ant Media Server Community Edition Releases are [automatically deployed here](https://github.com/ant-media/Ant-Media-Server/releases), with auto-generated changelog. 
 
-Ant Media Server Enterprise Editions are available through Cloud Marketplace (AWS, Azure, OVH, Digital Ocean and Linode). You can also download Enterprise Edition via subscription on [antmedia.io](https://antmedia.io)
+Ant Media Server Enterprise Editions are available through Cloud Marketplace ([AWS](https://aws.amazon.com/marketplace/pp/prodview-464ritgzkzod6?sr=0-1&ref_=beagle&applicationId=AWSMPContessa), [Azure](https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1), [Alibaba](https://marketplace.alibabacloud.com/products/56712002/Ant_Media_Server_Enterprise_2_2_1-sgcmjj00025347.html), [Digital Ocean](https://marketplace.digitalocean.com/apps/antmedia-server-enterprise-edition-3) and [Linode](https://www.linode.com/marketplace/apps/ant-media/ant-media-community-edition/)). You can also download Enterprise Edition via subscription on [antmedia.io](https://antmedia.io)
 
 
 ## 🌱 Links
