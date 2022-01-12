@@ -13,26 +13,35 @@ We help create high-performing organizations by supporting them with their low l
 
 Ant Media’s main product is real-time streaming engine, called Ant Media Server. Currently, 6000+ Ant Media Server instances run in over 120 countries. Apart from the flagship product, Ant Media Enterprise Edition, startups can also enjoy the open source Community Edition, downloadable from this repo. 
 
-
 ## Ant Media Server Features
 
 **Community Edition**
 
  * RTMP ingesting
+ * RTMP, RTSP, MP4 and HLS Support	
  * WebRTC to RTMP adapter
  * IP camera support
+ * 360 Degree Live & VoD Streams
+ * Intuitive web management dashboard
  * Recording live streams (MP4 and HLS)
+ * iOS & Android RTMP SDKs
+ * Javascript SDK
 
 **Enterprise Edition**
 
+In addition to what Community Edition has to offer, the Enterprise Edition has the following features: 
+
  * Ultra low latency adaptive one to many WebRTC live streaming 
- * Adaptive bitrate for live streams (WebRTC, MP4, HLS) in 
- * VP8 & H264 Support in WebRTC 
- * Data Channel Support in WebRTC
- * Horizontal(Clustering) and Vertical Scaling 
- * SFU in One to Many WebRTC Streams in 
- * Live Stream Publishing from RTMP to WebRTC 
+ * Scalable to hundreds of thousands of simultaneous viewers
+ * Adaptive bitrate for live streams (WebRTC, MP4, HLS)
+ * VP8 & H264 support in WebRTC 
+ * Data channel support in WebRTC
+ * CMAF support
+ * Horizontal(Clustering) and vertical scaling 
+ * SFU in one to many WebRTC Streams
+ * Live stream publishing from RTMP to WebRTC 
  * Restream to social media simultaneously to Facebook and Youtube
+ * Hardware encoding (Nvidia GPU, QuickSync)
  * One-Time token control
  * Object detection via Tensorflow
  
