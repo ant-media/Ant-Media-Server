@@ -32,18 +32,18 @@ Ant Media’s main product is real-time streaming engine, called Ant Media Serve
 In addition to what Community Edition has to offer, the Enterprise Edition has the following features: 
 
  * Ultra low latency adaptive one to many WebRTC live streaming 
- * Scalable to hundreds of thousands of simultaneous viewers
- * Adaptive bitrate for live streams (WebRTC, MP4, HLS)
- * VP8 & H264 support in WebRTC 
- * Data channel support in WebRTC
- * CMAF support
- * Horizontal(Clustering) and vertical scaling 
+ * Scalable to [hundreds of thousands of simultaneous viewers](https://antmedia.io/ultimate-guide-for-webrtc-hero-with-ant-media-server/)
+ * [Adaptive bitrate](https://antmedia.io/adaptive-bitrate-streaming/) for live streams (WebRTC, MP4, HLS)
+ * [VP8 & H264 support in WebRTC](https://antmedia.io/webrtc-vp8-data-channel-and-4k-60fps-support/)
+ * [Data channel support](https://antmedia.io/exchange-data-easily-using-webrtc-data-channels/) in WebRTC
+ * [CMAF streaming support](https://antmedia.io/cmaf-streaming/)
+ * Horizontal clustering and vertical scaling 
  * SFU in one to many WebRTC Streams
- * Live stream publishing from RTMP to WebRTC 
- * Restream to social media simultaneously to Facebook and Youtube
- * Hardware encoding (Nvidia GPU, QuickSync)
- * One-Time token control
- * Object detection via Tensorflow
+ * [Live stream publishing from RTMP to WebRTC](https://antmedia.io/start-your-live-video-stream-with-webrtc-and-make-it-available-to-watch-with-dash-and-hls/)
+ * [Restream to social media simultaneously](https://antmedia.io/how-to-publish-live-stream-in-social-media/) (e.g Facebook and Youtube)
+ * [Hardware encoding](https://antmedia.io/unknown-5-webrtc-stream-features/) (Nvidia GPU, QuickSync)
+ * [Secure video streaming](https://antmedia.io/secure-video-streaming/) using one-time token control
+ * Object detection via [Tensorflow](https://antmedia.io/object-detection-with-tensorflow/)
  
 Ant Media Server is bundled with Android, iOS and JavaScript SDKs. SDKs are available for [free](https://antmedia.io/free-webrtc-android-ios-sdk/).
 
@@ -106,7 +106,7 @@ Ant Media Server Enterprise Editions are available through several cloud marketp
 * For more information and blog posts visit [antmedia.io](https://antmedia.io/blog/)
 * For general inquiries, [contact@antmedia.io](mailto:contact@antmedia.io)
 
-## Supporting Ant Media Server
+## ⭐️ Supporting Ant Media Server
 
 If you would like to say thank you or/and support active development of Ant Media Server: 
 
