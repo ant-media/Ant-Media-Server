@@ -6,35 +6,41 @@
 
 ## Basic Overview
 
-Ant Media Server is a streaming engine software that provides adaptive, ultra low latency streaming by using WebRTC technology with ~0.5 seconds latency or low latency by using HLS or CMAF. Ant Media Server is highly scalable both horizontally and vertically. It can run on-premise or on-cloud.
+Ant Media Server is a streaming engine software that provides adaptive, ultra low latency streaming by using WebRTC technology with ~0.5 seconds latency or low latency by using HLS or CMAF. Ant Media Server is highly scalable both horizontally and vertically, running on-premises or on any cloud provider of your choice.
 
-## 4157 Running Instances in 129 Countries 
+We help create high-performing organizations by supporting them with their low latency streaming infrastructure. This way, we're solving the video streaming and delivery headache, a huge problem for companies seeking low latency, adaptive video streaming, by making it simple and on-demand.
+
+Ant Media’s main product is real-time streaming engine, called Ant Media Server. Currently, 6000+ Ant Media Server instances run in over 120 countries. Apart from the flagship product, Ant Media Enterprise Edition, startups can also enjoy the open source Community Edition, downloadable from this repo. 
 
 
 ## Ant Media Server Features
- * Ant Media Server is an open source media server:
- * Ant Media Server is available with Free (Community) and Paid (Enterprise) versions.
- * Ultra Low Latency Adaptive One to Many WebRTC Live Streaming in **Enterprise Edition**
- * Adaptive Bitrate for Live Streams (WebRTC, MP4, HLS) in **Enterprise Edition**
- * VP8 & H264 Support in WebRTC **Enterprise Edition**
- * Data Channel Support in WebRTC **Enterprise Edition**
- * Horizontal(Clustering) and Vertical Scaling **Enterprise Edition**
- * SFU in One to Many WebRTC Streams in **Enterprise Edition**
- * Live Stream Publishing from RTMP to WebRTC **Enterprise Edition**
- * RTMP Ingesting
- * WebRTC to RTMP Adapter
- * IP Camera Support
- * Recording Live Streams (MP4 and HLS)
- * Restream to Social Media Simultaneously(Facebook and Youtube in **Enterprise Edition**)
- * One-Time Token Control in **Enterprise Edition**
- * Object Detection in **Enterprise Edition**
- * Ant Media Server is bundled with Android, iOS and JavaScript SDKs. SDKs are available for [free](https://antmedia.io/free-webrtc-android-ios-sdk/).
 
- [Comparison table for Community and Enterprise Edition](https://github.com/ant-media/Ant-Media-Server/wiki#community-edition--enterprise-edition)
+**Community Edition**
 
- ![image](https://user-images.githubusercontent.com/54481799/95864676-64954580-0d6e-11eb-94d0-d661746d49af.png)
+ * Free (Community Edition) and paid (Enterprise Edition) versions
+ * RTMP ingesting
+ * WebRTC to RTMP adapter
+ * IP camera support
+ * Recording live streams (MP4 and HLS)
+
+**Enterprise Edition**
+
+ * Ultra low latency adaptive one to many WebRTC live streaming 
+ * Adaptive bitrate for live streams (WebRTC, MP4, HLS) in 
+ * VP8 & H264 Support in WebRTC 
+ * Data Channel Support in WebRTC
+ * Horizontal(Clustering) and Vertical Scaling 
+ * SFU in One to Many WebRTC Streams in 
+ * Live Stream Publishing from RTMP to WebRTC 
+ * Restream to social media simultaneously to Facebook and Youtube
+ * One-Time token control
+ * Object detection via Tensorflow
  
-## Quick Launch
+Ant Media Server is bundled with Android, iOS and JavaScript SDKs. SDKs are available for [free](https://antmedia.io/free-webrtc-android-ios-sdk/).
+
+Please see a [comparison table for Community and Enterprise Edition](https://github.com/ant-media/Ant-Media-Server/wiki#community-edition--enterprise-edition) here.
+
+## Quick launch
 
 <b>Launch in [Amazon Web Services](https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Ant+Media+Server&page=1&ref_=nav_search_box)</b>
 
