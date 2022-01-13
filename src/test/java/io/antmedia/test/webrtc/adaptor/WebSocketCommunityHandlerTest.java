@@ -172,8 +172,8 @@ public class WebSocketCommunityHandlerTest {
 		dataStore.save(broadcast);
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
-		verify(wsHandler).sendStreamIdInUse(streamId, session);
-		
+		verify(wsHandler).sendStreamIdInUse(Mockito.anyString(), Mockito.any());
+
 		
 		//case status preparing
 		streamId = "streamId" + (int)(Math.random()*10000);
@@ -190,7 +190,7 @@ public class WebSocketCommunityHandlerTest {
 		
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
-		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(streamId, session);
+		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(Mockito.anyString(), Mockito.any());
 		
 		
 		// case no status
@@ -207,7 +207,7 @@ public class WebSocketCommunityHandlerTest {
 		
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
-		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(streamId, session);
+		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(Mockito.anyString(), Mockito.any());
 		
 		
 		
@@ -218,7 +218,7 @@ public class WebSocketCommunityHandlerTest {
 		
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
-		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(streamId, session);
+		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(Mockito.anyString(), Mockito.any());
 				
 		
 	}
