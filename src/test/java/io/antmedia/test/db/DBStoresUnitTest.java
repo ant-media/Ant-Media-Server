@@ -33,9 +33,7 @@ import org.springframework.context.ApplicationContext;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
-import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
-import dev.morphia.query.Query;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -601,6 +599,10 @@ public class DBStoresUnitTest {
 		assertEquals(streamVod.getFilePath(), voD.getFilePath());
 		assertEquals(streamVod.getStreamId(), voD.getStreamId());
 		assertEquals(streamVod.getStreamName(), voD.getStreamName());
+		assertEquals(streamVod.getStartTime(), voD.getStartTime());
+		assertEquals(streamVod.getDuration(), voD.getDuration());
+		assertEquals(streamVod.getFileSize(), voD.getFileSize());
+		assertEquals(streamVod.getCreationDate(), voD.getCreationDate());
 		assertEquals(streamVod.getType(), voD.getType());
 
 		//add uservod
@@ -616,6 +618,10 @@ public class DBStoresUnitTest {
 		assertEquals(userVod.getFilePath(), voD.getFilePath());
 		assertEquals(userVod.getStreamId(), voD.getStreamId());
 		assertEquals(userVod.getStreamName(), voD.getStreamName());
+		assertEquals(streamVod.getStartTime(), voD.getStartTime());
+		assertEquals(streamVod.getDuration(), voD.getDuration());
+		assertEquals(streamVod.getFileSize(), voD.getFileSize());
+		assertEquals(streamVod.getCreationDate(), voD.getCreationDate());
 		assertEquals(userVod.getType(), voD.getType());
 
 		//delete streamVod
