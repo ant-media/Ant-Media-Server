@@ -996,4 +996,16 @@ public class InMemoryDataStore extends DataStore {
 		webRTCViewerMap.remove(viewerId);
 		return true;
 	}
+	
+	@Override
+	public boolean updateStreamMetaData(String streamId, String metaData) {
+		Broadcast broadcast = broadcastMap.get(streamId);
+		boolean result = false;
+		if (broadcast != null) {
+			broadcast.setMetaData(metaData);;
+			broadcastMap.put(streamId, broadcast);
+			result = true;
+		}
+		return result;
+	}
 }

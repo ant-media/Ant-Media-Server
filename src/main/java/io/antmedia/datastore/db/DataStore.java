@@ -948,6 +948,14 @@ public abstract class DataStore {
 	 * @param viewerId WebRTC Viewer Id
 	 */
 	public abstract boolean deleteWebRTCViewerInfo(String viewerId);
+
+	/**
+	 * This is used to update meta data for a bradcast 
+	 *
+	 * @param streamId id for the broadcast
+	 * @param metaData new meta data
+	 */
+	public abstract boolean updateStreamMetaData(String streamId, String metaData);
 	
 
 	//**************************************
