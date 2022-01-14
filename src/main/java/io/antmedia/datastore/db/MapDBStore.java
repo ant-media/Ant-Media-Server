@@ -30,14 +30,15 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.vertx.core.Vertx;
 
 
 public class MapDBStore extends DataStore {
@@ -46,15 +47,17 @@ public class MapDBStore extends DataStore {
 	private BTreeMap<String, String> map;
 	private BTreeMap<String, String> vodMap;
 	private BTreeMap<String, String> detectionMap;
-	private BTreeMap<String, String> socialEndpointsCredentialsMap;
 	private BTreeMap<String, String> tokenMap;
 	private BTreeMap<String, String> subscriberMap;
 	private BTreeMap<String, String> conferenceRoomMap;
+	private BTreeMap<String, String> webRTCViewerMap;
 
 
 	private Gson gson;
 	private String dbName;
 	private Iterable<String> dbFiles;
+	private Vertx vertx;
+	private long timerId;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "BROADCAST";
 	private static final String VOD_MAP_NAME = "VOD";
@@ -63,49 +66,61 @@ public class MapDBStore extends DataStore {
 	private static final String SUBSCRIBER = "SUBSCRIBER";
 	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
 	private static final String CONFERENCE_ROOM_MAP_NAME = "CONFERENCE_ROOM";
+	private static final String WEBRTC_VIEWER = "WEBRTC_VIEWER";
 
 
-	public MapDBStore(String dbName) {
-
+	public MapDBStore(String dbName, Vertx vertx) {
+		this.vertx = vertx;
 		this.dbName = dbName;
 		db = DBMaker
 				.fileDB(dbName)
 				.fileMmapEnableIfSupported()
 				/*.transactionEnable() we disable this because under load, it causes exception.
 					//In addition, we already commit and synch methods. So it seems that we don't need this one
-				*/
+				 */
 				.checksumHeaderBypass()
 				.make();
 
-		
+
 		map = db.treeMap(MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING).counterEnable()
 				.createOrOpen();
-		
-		
-		
+
 		vodMap = db.treeMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
-		
+
 		detectionMap = db.treeMap(DETECTION_MAP_NAME).keySerializer(Serializer.STRING)
 				.valueSerializer(Serializer.STRING).counterEnable().createOrOpen();
-
-		socialEndpointsCredentialsMap = db.treeMap(SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
-				.counterEnable().createOrOpen();
 
 		tokenMap = db.treeMap(TOKEN).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		subscriberMap = db.treeMap(SUBSCRIBER).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
-		
+
 		conferenceRoomMap = db.treeMap(CONFERENCE_ROOM_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
+
+		webRTCViewerMap = db.treeMap(WEBRTC_VIEWER).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.create();
-		
-		available = true;
 
+		timerId = vertx.setPeriodic(5000, id -> 
+
+		vertx.executeBlocking(b -> {
+
+			synchronized (this) 
+			{
+				if (available) {
+					db.commit();
+				}
+			}
+
+		}, false, null)
+				);
+
+		available = true;
 	}
 
 
@@ -156,7 +171,6 @@ public class MapDBStore extends DataStore {
 						broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
 					}
 					map.put(streamId, gson.toJson(broadcast));
-					db.commit();
 				} catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
 					streamId = null;
@@ -210,10 +224,9 @@ public class MapDBStore extends DataStore {
 						broadcast.setWebRTCViewerCount(0);
 						broadcast.setHlsViewerCount(0);
 					}
-					
+
 					String jsonVal = gson.toJson(broadcast);
 					String previousValue = map.replace(id, jsonVal);
-					db.commit();
 					logger.debug("updateStatus replacing id {} having value {} to {}", id, previousValue, jsonVal);
 					result = true;
 				}
@@ -233,7 +246,6 @@ public class MapDBStore extends DataStore {
 					broadcast.setDuration(duration);
 					String jsonVal = gson.toJson(broadcast);
 					String previousValue = map.replace(id, jsonVal);
-					db.commit();
 					result = true;
 					logger.debug("updateStatus replacing id {} having value {} to {}", id, previousValue, jsonVal);
 				}
@@ -257,7 +269,6 @@ public class MapDBStore extends DataStore {
 					endPointList.add(endpoint);
 					broadcast.setEndPointList(endPointList);
 					map.replace(id, gson.toJson(broadcast));
-					db.commit();
 					result = true;
 				}
 			}
@@ -295,7 +306,6 @@ public class MapDBStore extends DataStore {
 						if (result) {
 							broadcast.setEndPointList(endPointList);
 							map.replace(id, gson.toJson(broadcast));
-							db.commit();
 						}
 					}
 				}
@@ -315,15 +325,14 @@ public class MapDBStore extends DataStore {
 					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 					broadcast.setEndPointList(null);
 					map.replace(id, gson.toJson(broadcast));
-					db.commit();
 					result = true;
 				}
 			}
 		}
 		return result;
 	}
-	
-	
+
+
 	/**
 	 * Use getTotalBroadcastNumber
 	 * @deprecated
@@ -357,7 +366,6 @@ public class MapDBStore extends DataStore {
 		synchronized (this) {
 			result = map.remove(id) != null;
 			if (result) {
-				db.commit();
 			}
 		}
 		return result;
@@ -472,7 +480,6 @@ public class MapDBStore extends DataStore {
 				}
 				id = vod.getVodId();
 				vodMap.put(vod.getVodId(), gson.toJson(vod));
-				db.commit();
 				logger.warn("VoD is saved to DB {} with voID {}", vod.getVodName(), id);
 
 			} catch (Exception e) {
@@ -514,11 +521,31 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public void close() {
+	public void close(boolean deleteDB) {
+		//get db file before closing. They can be used in delete method
 		dbFiles = db.getStore().getAllFiles();
 		synchronized (this) {
+			vertx.cancelTimer(timerId);
+			db.commit();
 			available = false;
 			db.close();
+		}
+
+		if (deleteDB) 
+		{
+			for (String fileName : dbFiles) 
+			{
+				File file = new File(fileName);
+				if (file.exists()) 
+				{
+					try {
+						Files.delete(file.toPath());
+					} catch (IOException e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+				}
+			}
+
 		}
 	}
 
@@ -529,9 +556,7 @@ public class MapDBStore extends DataStore {
 
 		synchronized (this) {
 			result = vodMap.remove(id) != null;
-			if (result) {
-				db.commit();
-			}
+
 		}
 		return result;
 	}
@@ -560,13 +585,13 @@ public class MapDBStore extends DataStore {
 
 		synchronized (this) {
 			int i = 0;
-			
+
 			Collection<String> vodFiles = vodMap.values();
-			
+
 			int size = vodFiles.size();
-			
+
 			List<VoD> vodList = new ArrayList<>();
-			
+
 			for (String vodString : vodFiles)  {
 				i++;
 				vodList.add(gson.fromJson((String) vodString, VoD.class));
@@ -575,21 +600,18 @@ public class MapDBStore extends DataStore {
 					break;
 				}
 			}
-			
+
 			boolean result = false;
 			for (VoD vod : vodList) 
 			{	
 				if (vod.getType().equals(VoD.USER_VOD)) {
 					result = vodMap.remove(vod.getVodId()) != null;
-					if (result) {
-						db.commit();
-					}
-					else {
+					if (!result) {
 						logger.error("MapDB VoD is not synchronized. It's likely db files({}) is damaged", dbName);
 					}
 				}
 			}
-			
+
 			File[] listOfFiles = userfile.listFiles();
 
 			if (listOfFiles != null) 
@@ -639,119 +661,13 @@ public class MapDBStore extends DataStore {
 					}
 					broadcast.setPendingPacketSize(pendingPacketQueue);
 					map.replace(id, gson.toJson(broadcast));
-					
-					db.commit();
+
 					result = true;
 
 				}
 			}
 		}
 		return result;
-	}
-
-	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
-		SocialEndpointCredentials addedCredential = null;
-		synchronized (this) {
-
-			if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
-					&& credentials.getServiceName() != null) 
-			{
-				if (credentials.getId() == null) {
-					//create new id if id is not set
-					String id = RandomStringUtils.randomAlphanumeric(6);
-					credentials.setId(id);
-					socialEndpointsCredentialsMap.put(id, gson.toJson(credentials));
-					db.commit();
-					addedCredential = credentials;
-				}	
-				else {
-
-					if(socialEndpointsCredentialsMap.get(credentials.getId()) != null) 
-					{
-						//replace the field if id exists
-						socialEndpointsCredentialsMap.put(credentials.getId(), gson.toJson(credentials));
-						db.commit();
-						addedCredential = credentials;
-					}
-					else {
-						logger.error("Credentials Map for social endpoint is null");
-					}
-					//if id is not matched with any value, do not record
-				}
-			}
-			else {
-				if (credentials != null) 
-				{
-					logger.error("Some of Credentials parameters are null. Accoutn name is null:{} token is null:{}, serviceName is null:{}",
-						 credentials.getAccountName() == null, credentials.getAccessToken() == null , 
-						 credentials.getServiceName() == null);
-				}
-				else {
-					logger.error("Credentials are null");
-				}
-			}
-		}
-		return addedCredential;
-	}
-
-	@Override
-	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) {
-
-		List<SocialEndpointCredentials> list = new ArrayList<>();
-
-		synchronized (this) {
-			Collection<String> values = socialEndpointsCredentialsMap.values();
-			int t = 0;
-			int itemCount = 0;
-			if (size > MAX_ITEM_IN_ONE_LIST) {
-				size = MAX_ITEM_IN_ONE_LIST;
-			}
-			if (offset < 0) {
-				offset = 0;
-			}
-
-			for (String credentialString : values) {
-				if (t < offset) {
-					t++;
-					continue;
-				}
-				list.add(gson.fromJson(credentialString, SocialEndpointCredentials.class));
-				itemCount++;
-
-				if (itemCount >= size) {
-					break;
-				}
-
-			}
-		}
-		return list;
-	}
-
-	@Override
-	public boolean removeSocialEndpointCredentials(String id) {
-		boolean result = false;
-		synchronized (this) {
-			result = socialEndpointsCredentialsMap.remove(id) != null;
-			if (result) {
-				db.commit();
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public SocialEndpointCredentials getSocialEndpointCredentials(String id) {
-		SocialEndpointCredentials credential = null;
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = socialEndpointsCredentialsMap.get(id);
-				if (jsonString != null) {
-					credential = gson.fromJson(jsonString, SocialEndpointCredentials.class);
-				}
-			}
-		}
-		return credential;
-
 	}
 
 	@Override
@@ -775,7 +691,6 @@ public class MapDBStore extends DataStore {
 						tensorFlowObject.setDetectionTime(timeElapsed);
 					}
 					detectionMap.put(id, gson.toJson(detectedObjects));
-					db.commit();
 				}
 			} catch (Exception e) {
 				logger.error(e.getMessage());
@@ -873,7 +788,6 @@ public class MapDBStore extends DataStore {
 					updateStreamInfo(oldBroadcast, broadcast);
 					map.replace(streamId, gson.toJson(oldBroadcast));
 
-					db.commit();
 					result = true;
 				}
 			} catch (Exception e) {
@@ -889,7 +803,7 @@ public class MapDBStore extends DataStore {
 	protected synchronized boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
 		boolean result = false;
 		synchronized (this) {
-			
+
 			if (streamId != null) {
 				Broadcast broadcast = get(streamId);
 				if (broadcast != null) {
@@ -897,7 +811,6 @@ public class MapDBStore extends DataStore {
 					hlsViewerCount += diffCount;
 					broadcast.setHlsViewerCount(hlsViewerCount);
 					map.replace(streamId, gson.toJson(broadcast));
-					db.commit();
 					result = true;
 				}
 			}
@@ -979,7 +892,6 @@ public class MapDBStore extends DataStore {
 
 				try {
 					tokenMap.put(token.getTokenId(), gson.toJson(token));
-					db.commit();
 					result = true;
 				} catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
@@ -1002,14 +914,12 @@ public class MapDBStore extends DataStore {
 
 					if( fetchedToken.getType().equals(token.getType())
 							&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
-						
+
 						if(token.getRoomId() == null || token.getRoomId().isEmpty() ) {
 							if(fetchedToken.getStreamId().equals(token.getStreamId())) {
 
-								boolean result = tokenMap.remove(token.getTokenId()) != null;
-								if (result) {
-									db.commit();
-								}
+								tokenMap.remove(token.getTokenId());
+
 							}
 							else{
 								fetchedToken = null;
@@ -1046,7 +956,7 @@ public class MapDBStore extends DataStore {
 						break;
 					}
 				}
-				db.commit();
+
 			}
 		}
 		return result;
@@ -1154,7 +1064,7 @@ public class MapDBStore extends DataStore {
 
 					try {
 						subscriberMap.put(subscriber.getSubscriberKey(), gson.toJson(subscriber));
-						db.commit();
+
 						result = true;
 					} catch (Exception e) {
 						logger.error(ExceptionUtils.getStackTrace(e));
@@ -1175,9 +1085,6 @@ public class MapDBStore extends DataStore {
 		synchronized (this) {
 			try {
 				result = subscriberMap.remove(Subscriber.getDBKey(streamId, subscriberId)) != null;
-				if (result) {
-					db.commit();
-				}
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1206,13 +1113,13 @@ public class MapDBStore extends DataStore {
 						break;
 					}
 				}
-				db.commit();
+
 			}
 		}
-		
+
 		return result;
 	}
-	
+
 	@Override
 	public Subscriber getSubscriber(String streamId, String subscriberId) {
 		Subscriber subscriber = null;
@@ -1226,7 +1133,7 @@ public class MapDBStore extends DataStore {
 		}
 		return subscriber;	
 	}		
-	
+
 	@Override
 	public boolean resetSubscribersConnectedStatus() {
 		synchronized (this) {
@@ -1243,7 +1150,7 @@ public class MapDBStore extends DataStore {
 					}
 				}
 
-				db.commit();
+
 				return true;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -1251,7 +1158,7 @@ public class MapDBStore extends DataStore {
 			}
 		}
 	}
-	
+
 	@Override
 	public boolean setMp4Muxing(String streamId, int enabled) {
 		boolean result = false;
@@ -1264,7 +1171,7 @@ public class MapDBStore extends DataStore {
 					broadcast.setMp4Enabled(enabled);
 					map.replace(streamId, gson.toJson(broadcast));
 
-					db.commit();
+
 					result = true;
 				}
 			}
@@ -1284,14 +1191,14 @@ public class MapDBStore extends DataStore {
 					broadcast.setWebMEnabled(enabled);
 					map.replace(streamId, gson.toJson(broadcast));
 
-					db.commit();
+
 					result = true;
 				}
 			}
 		}
 		return result;
 	}
-	
+
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		//no need to implement this method, it is used in cluster mode
@@ -1306,7 +1213,7 @@ public class MapDBStore extends DataStore {
 
 			if (room != null && room.getRoomId() != null) {
 				conferenceRoomMap.put(room.getRoomId(), gson.toJson(room));
-				db.commit();
+
 				result = true;
 			}
 
@@ -1321,9 +1228,6 @@ public class MapDBStore extends DataStore {
 
 			if (roomId != null && room != null && room.getRoomId() != null) {
 				result = conferenceRoomMap.replace(roomId, gson.toJson(room)) != null;
-				if (result) {
-					db.commit();
-				}
 			}
 			return result;
 		}
@@ -1337,9 +1241,6 @@ public class MapDBStore extends DataStore {
 
 			if (roomId != null && !roomId.isEmpty()) {
 				result = conferenceRoomMap.remove(roomId) != null;
-				if (result) {
-					db.commit();
-				}
 			}
 			return result;
 		}
@@ -1365,9 +1266,6 @@ public class MapDBStore extends DataStore {
 
 		synchronized (this) {
 			result = tokenMap.remove(tokenId) != null;
-			if (result) {
-				db.commit();
-			}
 		}
 		return result;
 	}
@@ -1386,7 +1284,7 @@ public class MapDBStore extends DataStore {
 		return token;
 
 	}	
-	
+
 	@Override
 	public boolean createP2PConnection(P2PConnection conn) {
 		// No need to implement. It used in cluster mode
@@ -1398,13 +1296,13 @@ public class MapDBStore extends DataStore {
 		// No need to implement. It used in cluster mode
 		return false;
 	}
-	
+
 	@Override
 	public P2PConnection getP2PConnection(String streamId) {
 		// No need to implement. It used in cluster mode
 		return null;
 	}
-	
+
 	@Override
 	public boolean addSubTrack(String mainTrackId, String subTrackId) {
 		boolean result = false;
@@ -1418,7 +1316,6 @@ public class MapDBStore extends DataStore {
 			subTracks.add(subTrackId);
 			mainTrack.setSubTrackStreamIds(subTracks);
 			map.replace(mainTrackId, gson.toJson(mainTrack));
-			db.commit();
 			result = true;
 		}
 
@@ -1429,7 +1326,7 @@ public class MapDBStore extends DataStore {
 	public int resetBroadcasts(String hostAddress) 
 	{
 		synchronized (this) {
-			
+
 			Collection<String> broadcastsRawJSON = map.values();
 			int size = broadcastsRawJSON.size();
 			int updateOperations = 0;
@@ -1452,15 +1349,14 @@ public class MapDBStore extends DataStore {
 						map.put(broadcast.getStreamId(), gson.toJson(broadcast));
 					}
 				}
-				
+
 				if (i > size) {
 					logger.error("Inconsistency in DB found in resetting broadcasts. It's likely db file({}) is damaged", dbName);
 					break;
 				}
 			}
 			logger.info("Reset broadcasts result in deleting {} zombi streams and {} update operations", zombieStreamCount, updateOperations );
-			
-			db.commit();
+
 			return updateOperations + zombieStreamCount;
 		}
 	}
@@ -1482,19 +1378,67 @@ public class MapDBStore extends DataStore {
 		return totalWebRTCViewerCount;
 	}
 
-
-
 	@Override
-	public void delete() {
-		for (String fileName : dbFiles) {
-			File file = new File(fileName);
-			if (file.exists()) {
+	public void saveViewerInfo(WebRTCViewerInfo info) {
+		synchronized (this) {
+			if (info != null) {
 				try {
-					Files.delete(file.toPath());
-				} catch (IOException e) {
+					webRTCViewerMap.put(info.getViewerId(), gson.toJson(info));
+				} catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
 		}
+	}
+
+
+
+	@Override
+	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
+			String search) {
+
+		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
+		synchronized (this) {
+			Collection<String> webRTCViewers = webRTCViewerMap.getValues();
+			for (String infoString : webRTCViewers)
+			{
+				WebRTCViewerInfo info = gson.fromJson(infoString, WebRTCViewerInfo.class);
+				list.add(info);
+			}
+		}
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for Conference Room = {}", search);
+			list = searchOnWebRTCViewerInfo(list, search);
+		}
+		return sortAndCropWebRTCViewerInfoList(list, offset, size, sortBy, orderBy);
+	}
+
+
+
+	@Override
+	public boolean deleteWebRTCViewerInfo(String viewerId) {
+		synchronized (this) 
+		{		
+			return webRTCViewerMap.remove(viewerId) != null;
+		}
+	}
+	
+	@Override
+	public boolean updateStreamMetaData(String streamId, String metaData) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				String jsonString = map.get(streamId);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					broadcast.setMetaData(metaData);
+					String jsonVal = gson.toJson(broadcast);
+					String previousValue = map.replace(streamId, jsonVal);
+					result = true;
+					logger.debug("updateStatus replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
+				}
+			}
+		}
+		return result;
 	}
 }

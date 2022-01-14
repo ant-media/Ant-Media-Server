@@ -20,6 +20,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
@@ -28,6 +29,8 @@ import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
 import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
@@ -71,13 +74,11 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService.SimpleStat;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
-import io.antmedia.social.endpoint.VideoServiceEndpoint.DeviceAuthParameters;
 
 public class RestServiceV2Test {
 
@@ -402,39 +403,6 @@ public class RestServiceV2Test {
 			System.out.println("result string: " + result.toString());
 			assertFalse(result.toString().contains("dbId"));
 			Broadcast tmp2 = gson.fromJson(result.toString(), Broadcast.class);
-			return tmp2;
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-		return null;
-	}
-
-	public List<SocialEndpointCredentials> getSocialEndpointServices() {
-		try {
-			/// get broadcast
-			String url = ROOT_SERVICE_URL + "/v2/broadcasts/social-endpoints/0/10";
-
-			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-			Gson gson = new Gson();
-
-			HttpUriRequest get = RequestBuilder.get().setUri(url)
-					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
-					// .setEntity(new StringEntity(gson.toJson(broadcast)))
-					.build();
-
-			CloseableHttpResponse response = client.execute(get);
-
-			StringBuffer result = readResponse(response);
-
-			if (response.getStatusLine().getStatusCode() != 200) {
-				throw new Exception(result.toString());
-			}
-			System.out.println("result string: " + result.toString());
-			assertFalse(result.toString().contains("dbId"));
-			Type listType = new TypeToken<List<SocialEndpointCredentials>>() {
-			}.getType();
-			List<SocialEndpointCredentials> tmp2 = gson.fromJson(result.toString(), listType);
 			return tmp2;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1381,55 +1349,6 @@ public class RestServiceV2Test {
 		return tmp;
 	}
 
-	private DeviceAuthParameters getDeviceAuthParameters(String serviceName) throws Exception {
-		
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/social-networks/" + serviceName;
-		
-		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-
-		HttpUriRequest post = RequestBuilder.post().setUri(url)
-				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
-
-		CloseableHttpResponse response = client.execute(post);
-
-		StringBuffer result = readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new Exception(result.toString());
-		}
-
-		Gson gson = new Gson();
-		System.out.println("result string: " + result.toString());
-		DeviceAuthParameters tmp = gson.fromJson(result.toString(), DeviceAuthParameters.class);
-
-		return tmp;
-
-	}
-
-	private Result checkDeviceAuthStatus(String code) throws Exception 
-	{
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/social-network-status/" + code;
-		
-		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-
-		HttpUriRequest post = RequestBuilder.get().setUri(url)
-				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
-
-		CloseableHttpResponse response = client.execute(post);
-
-		StringBuffer result = readResponse(response);
-
-		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new Exception(result.toString());
-		}
-		Gson gson = new Gson();
-		System.out.println("result string: " + result.toString());
-		Result tmp = gson.fromJson(result.toString(), Result.class);
-
-		return tmp;
-
-	}
-
 	// check that social endpoints are added correctly
 
 	@Test
@@ -1948,6 +1867,7 @@ public class RestServiceV2Test {
 			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 
 			appSettingsModel.setMp4MuxingEnabled(true);
+			appSettingsModel.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 32000, true)));
 
 			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());

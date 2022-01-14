@@ -11,26 +11,22 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
-
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.api.services.youtube.model.Playlist;
-
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
@@ -40,14 +36,13 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
 	private Map<String, VoD> vodMap = new LinkedHashMap<>();
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
-	private Map<String, SocialEndpointCredentials> socialEndpointCredentialsMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 	private Map<String, Subscriber> subscriberMap = new LinkedHashMap<>();
 	private Map<String, ConferenceRoom> roomMap = new LinkedHashMap<>();
-	private Map<String, Playlist> playlistMap = new LinkedHashMap<>();
+	private Map<String, WebRTCViewerInfo> webRTCViewerMap = new LinkedHashMap<>();
+
 
 	public InMemoryDataStore(String dbName) {
-		
 		available = true;
 	}
 
@@ -246,7 +241,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public void close() {
+	public void close(boolean deleteDB) {
 		//no need to implement 
 		available = false;
 	}
@@ -398,75 +393,6 @@ public class InMemoryDataStore extends DataStore {
 			}
 		}
 		return result;
-	}
-
-
-	public SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials) {
-		SocialEndpointCredentials addedCredential = null;
-		if (credentials != null && credentials.getAccountName() != null && credentials.getAccessToken() != null
-				&& credentials.getServiceName() != null) 
-		{
-			if (credentials.getId() == null) {
-				//create new id if id is not set
-				String id = RandomStringUtils.randomAlphanumeric(6);
-				credentials.setId(id);
-				socialEndpointCredentialsMap.put(id, credentials);
-				addedCredential = credentials;
-			}
-			else {
-
-				if(socialEndpointCredentialsMap.get(credentials.getId()) != null) 
-				{
-					//replace the field if id exists
-					socialEndpointCredentialsMap.put(credentials.getId(), credentials);
-					addedCredential = credentials;
-				}
-				//if id is not matched with any value, do not record
-			}
-		}
-		return addedCredential;
-	}
-
-	@Override
-	public List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size) 
-	{
-		Collection<SocialEndpointCredentials> values = socialEndpointCredentialsMap.values();
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
-		List<SocialEndpointCredentials> list = new ArrayList<>();
-		for (SocialEndpointCredentials credential : values) {
-			if (t < offset) {
-				t++;
-				continue;
-			}
-			list.add(credential);
-			itemCount++;
-
-			if (itemCount >= size) {
-				break;
-			}
-		}
-		return list;
-	}
-
-	@Override
-	public boolean removeSocialEndpointCredentials(String id) {
-		return socialEndpointCredentialsMap.remove(id) != null;
-	}
-
-	@Override
-	public SocialEndpointCredentials getSocialEndpointCredentials(String id) {
-		SocialEndpointCredentials credential = null;
-		if (id != null) {
-			credential = socialEndpointCredentialsMap.get(id);
-		}
-		return credential;
 	}
 
 	@Override
@@ -1041,7 +967,45 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public void delete() {
-		// No need to implement.
+	public void saveViewerInfo(WebRTCViewerInfo info) {
+		webRTCViewerMap.put(info.getViewerId(), info);
+	}
+
+	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
+			String search) {
+
+		Collection<WebRTCViewerInfo> values = webRTCViewerMap.values();
+
+		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
+
+
+		for (WebRTCViewerInfo info : values)
+		{
+			list.add(info);
+		}
+
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for Conference Room = {}", search);
+			list = searchOnWebRTCViewerInfo(list, search);
+		}
+		return sortAndCropWebRTCViewerInfoList(list, offset, size, sortBy, orderBy);
+	}
+
+	@Override
+	public boolean deleteWebRTCViewerInfo(String viewerId) {
+		webRTCViewerMap.remove(viewerId);
+		return true;
+	}
+	
+	@Override
+	public boolean updateStreamMetaData(String streamId, String metaData) {
+		Broadcast broadcast = broadcastMap.get(streamId);
+		boolean result = false;
+		if (broadcast != null) {
+			broadcast.setMetaData(metaData);;
+			broadcastMap.put(streamId, broadcast);
+			result = true;
+		}
+		return result;
 	}
 }

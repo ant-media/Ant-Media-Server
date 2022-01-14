@@ -9,6 +9,8 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.concurrent.LinkedBlockingQueue;
 
 import javax.servlet.AsyncContext;
@@ -16,11 +18,13 @@ import javax.servlet.AsyncEvent;
 import javax.servlet.AsyncListener;
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.catalina.connector.ClientAbortException;
+import org.apache.catalina.servlets.DefaultServlet;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -128,6 +132,8 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 			File finalFile = new File(filepath);
 
+			
+			
 			String tmpFilepath = filepath + ".tmp"; 
 			File tmpFile = new File(tmpFilepath);
 
@@ -142,7 +148,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 				try {
 					IChunkedCacheManager cacheManager = (IChunkedCacheManager) appContext.getBean(IChunkedCacheManager.BEAN_NAME);
 
-					logger.info("doPut key:{}", finalFile.getAbsolutePath());
+					logger.debug("doPut key:{}", finalFile.getAbsolutePath());
 
 					cacheManager.addCache(finalFile.getAbsolutePath());
 					IParser atomparser;
@@ -152,10 +158,10 @@ public class ChunkedTransferServlet extends HttpServlet {
 						//don't parse atom for mpd files because they are text files
 						atomparser = new MockAtomParser();
 					}
-					else {
+					else 
+					{
 						atomparser = new AtomParser(completeChunk -> 
-						cacheManager.append(finalFile.getAbsolutePath(), completeChunk)
-								);
+							cacheManager.append(finalFile.getAbsolutePath(), completeChunk));
 					}
 
 
@@ -166,12 +172,12 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 					InputStream inputStream = asyncContext.getRequest().getInputStream();
 					asyncContext.start(() -> 
-					
 						readInputStream(finalFile, tmpFile, cacheManager, atomparser, asyncContext, inputStream, statusListener)
 					);
 				}
 				catch (BeansException | IllegalStateException | IOException e) 
 				{
+					logger.error("Exception in handleIncomingStream for the chunk:{} ",finalFile.getAbsolutePath());
 					logger.error(ExceptionUtils.getStackTrace(e));
 					writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
 				} 
@@ -223,9 +229,8 @@ public class ChunkedTransferServlet extends HttpServlet {
 				}
 			}
 			
-			
 			Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-			
+			logger.info("File:{} was generated ", finalFile.getName());
 		}
 		catch (ClientAbortException e) {
 			logger.warn("Client aborted - Reading input stream for file: {}", finalFile.getAbsolutePath());
@@ -243,7 +248,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 		
 		cacheManager.removeCache(finalFile.getAbsolutePath());
 		
-		logger.info("doPut done key:{}", finalFile.getAbsolutePath());
+		logger.debug("doPut done key:{}", finalFile.getAbsolutePath());
 	}
 
 
@@ -314,24 +319,45 @@ public class ChunkedTransferServlet extends HttpServlet {
 	}
 
 
-	public void writeOutputStream(File file, AsyncContext asyncContext, OutputStream ostream ) 
+	public void writeOutputStream(File file, AsyncContext asyncContext, String mimeType) 
 	{
-		try (FileInputStream fis = new FileInputStream(file)) {
-
+		int total = 0;
+		try (FileInputStream fis = new FileInputStream(file)) 
+		{
+			//it seems that headers should be set in the same thread.
+			ServletResponse response = asyncContext.getResponse();
+			response.setContentType(mimeType);
+			
+			OutputStream ostream = response.getOutputStream();
 			int length = 0;
 			byte[] data = new byte[2048];
 
+			
 			while ((length = fis.read(data, 0, data.length)) > 0) {
 				ostream.write(data, 0, length);
+				total += length;
 			}
-			
-			ostream.flush();
+		
+			ostream.flush(); 
 			asyncContext.complete();
 
 		} 
-		catch (IOException e) 
+		catch (Exception e) 
 		{
-			logger.error(ExceptionUtils.getStackTrace(e));
+			logger.error("Exception in writing the following file:{} total written byte:{} stacktrace:{}", file.getName(), total, ExceptionUtils.getStackTrace(e));
+		}
+	}
+
+	public static void logHeaders(HttpServletResponse resp) {
+		Collection<String> headerNames = resp.getHeaderNames();
+		for (String name : headerNames) {
+			try {
+				logger.info("Header name:{}", name);
+				logger.info("Header value:{}", resp.getHeader(name));
+			}
+			catch (Exception te) {
+				logger.error(ExceptionUtils.getStackTrace(te));
+			}
 		}
 	}
 
@@ -349,14 +375,15 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 			File file = new File(WEBAPPS + File.separator + req.getRequestURI());
 
-			try {
-				if (file.exists()) 
+			try 
+			{    
+				//set the mime type
+				String mimeType = req.getServletContext().getMimeType(file.getName());
+				
+				if (Files.exists(file.toPath())) 
 				{
-					logger.trace("File exists: {}", file.getAbsolutePath());
-
 					AsyncContext asyncContext = req.startAsync();
-					ServletOutputStream outputStream = asyncContext.getResponse().getOutputStream();
-					asyncContext.start(() -> writeOutputStream(file, asyncContext, outputStream));
+					asyncContext.start(() -> writeOutputStream(file, asyncContext, mimeType));
 				}
 				else 
 				{
@@ -364,17 +391,15 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 					boolean cacheAvailable = cacheManager.hasCache(file.getAbsolutePath());
 
-					if (cacheAvailable ) 
+					if (cacheAvailable) 
 					{
-
+						logger.info("File:{} is being generated on the fly so getting from cache", file.getAbsolutePath());
 						AsyncContext asyncContext = req.startAsync();
 
 						ChunkListener chunkListener = new ChunkListener();
 						cacheManager.registerChunkListener(file.getAbsolutePath(), chunkListener);
 						asyncContext.start(() ->  
-
-							writeChunks(file, cacheManager, asyncContext, chunkListener)
-
+							writeChunks(file, cacheManager, asyncContext, chunkListener, mimeType)
 						);
 
 					}
@@ -386,7 +411,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 
 				}
 			} 
-			catch (BeansException | IllegalStateException | IOException e) 
+			catch (BeansException | IllegalStateException e) 
 			{
 				logger.error(ExceptionUtils.getStackTrace(e));
 				writeInternalError(resp, HttpServletResponse.SC_INTERNAL_SERVER_ERROR, null);
@@ -400,11 +425,16 @@ public class ChunkedTransferServlet extends HttpServlet {
 	}
 
 	public void writeChunks(File file, IChunkedCacheManager cacheManager, AsyncContext asyncContext,
-			ChunkListener chunkListener) {
+			ChunkListener chunkListener, String mimeType) 
+	{
 		String filePath = file.getAbsolutePath();
 		boolean exceptionOccured = false;
 		try {
-			ServletOutputStream oStream = asyncContext.getResponse().getOutputStream();
+			//it seems that headers should be set in the same thread.
+			ServletResponse response = asyncContext.getResponse();
+			response.setContentType(mimeType);
+			
+			ServletOutputStream oStream = response.getOutputStream();
 			byte[] chunk;
 			while ((chunk = chunkListener.getChunksQueue().take()).length > 0) {
 				int offset = 0;
@@ -433,11 +463,11 @@ public class ChunkedTransferServlet extends HttpServlet {
 			exceptionOccured = true;
 		}
 		catch (InterruptedException e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
+			logger.error("InterruptedException - writing chunks for file: {} stacktrace:{}", filePath, ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
 		}
 		catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
+			logger.error("Exception - writing chunks for file: {} stacktrace:{}", filePath, ExceptionUtils.getStackTrace(e));
 			exceptionOccured = true;
 		} 
 		

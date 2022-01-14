@@ -33,10 +33,6 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.api.scope.IScopeHandler;
 import org.red5.server.api.service.IPendingServiceCall;
 import org.red5.server.api.service.IServiceCall;
-import org.red5.server.api.so.ISharedObject;
-import org.red5.server.api.so.ISharedObjectSecurity;
-import org.red5.server.api.so.ISharedObjectSecurityService;
-import org.red5.server.api.so.ISharedObjectService;
 import org.red5.server.api.stream.IClientBroadcastStream;
 import org.red5.server.api.stream.IClientStream;
 import org.red5.server.api.stream.IStreamService;
@@ -57,10 +53,6 @@ import org.red5.server.net.rtmp.status.Status;
 import org.red5.server.net.rtmp.status.StatusObject;
 import org.red5.server.net.rtmp.status.StatusObjectService;
 import org.red5.server.service.Call;
-import org.red5.server.so.ISharedObjectEvent;
-import org.red5.server.so.SharedObjectEvent;
-import org.red5.server.so.SharedObjectMessage;
-import org.red5.server.so.SharedObjectService;
 import org.red5.server.stream.StreamService;
 import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
@@ -575,90 +567,6 @@ public class RTMPHandler extends BaseRTMPHandler {
                 break;
             default:
                 log.warn("Unhandled ping: {}", ping);
-        }
-    }
-
-    /**
-     * Create and send SO message stating that a SO could not be created.
-     * 
-     * @param conn
-     * @param message
-     *            Shared object message that incurred the failure
-     */
-    private void sendSOCreationFailed(RTMPConnection conn, SharedObjectMessage message) {
-        log.debug("sendSOCreationFailed - message: {} conn: {}", message, conn);
-        // reset the object so we can re-use it
-        message.reset();
-        // add the error event
-        message.addEvent(new SharedObjectEvent(ISharedObjectEvent.Type.CLIENT_STATUS, "error", SO_CREATION_FAILED));
-        if (conn.isChannelUsed(3)) {
-            // XXX Paul: I dont like this direct write stuff, need to move to event-based
-            conn.getChannel(3).write(message);
-        } else {
-            log.warn("Channel is not in-use and cannot handle SO event: {}", message, new Exception("SO event handling failure"));
-            // XXX Paul: I dont like this direct write stuff, need to move to event-based
-            conn.getChannel(3).write(message);
-        }
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    protected void onSharedObject(RTMPConnection conn, Channel channel, Header source, SharedObjectMessage message) {
-        if (log.isDebugEnabled()) {
-            log.debug("onSharedObject - conn: {} channel: {} so message: {}", new Object[] { conn.getSessionId(), channel.getId(), message });
-        }
-        final IScope scope = conn.getScope();
-        if (scope != null) {
-            // so name
-            String name = message.getName();
-            // whether or not the incoming so is persistent
-            boolean persistent = message.isPersistent();
-            // shared object service
-            ISharedObjectService sharedObjectService = (ISharedObjectService) ScopeUtils.getScopeService(scope, ISharedObjectService.class, SharedObjectService.class, false);
-            if (!sharedObjectService.hasSharedObject(scope, name)) {
-                log.debug("Shared object service doesnt have requested object, creation will be attempted");
-                ISharedObjectSecurityService security = (ISharedObjectSecurityService) ScopeUtils.getScopeService(scope, ISharedObjectSecurityService.class);
-                if (security != null) {
-                    // Check handlers to see if creation is allowed
-                    for (ISharedObjectSecurity handler : security.getSharedObjectSecurity()) {
-                        if (!handler.isCreationAllowed(scope, name, persistent)) {
-                            log.debug("Shared object create failed, creation is not allowed");
-                            sendSOCreationFailed(conn, message);
-                            return;
-                        }
-                    }
-                }
-                if (!sharedObjectService.createSharedObject(scope, name, persistent)) {
-                    log.debug("Shared object create failed");
-                    sendSOCreationFailed(conn, message);
-                    return;
-                }
-            }
-            ISharedObject so = sharedObjectService.getSharedObject(scope, name);
-            if (so != null) {
-                if (so.isPersistent() == persistent) {
-                    log.debug("Dispatch persistent shared object");
-                    so.dispatchEvent(message);
-                } else {
-                    log.warn("Shared object persistence mismatch - current: {} incoming: {}", so.isPersistent(), persistent);
-                    // reset the object so we can re-use it
-                    message.reset();
-                    // add the error event
-                    message.addEvent(new SharedObjectEvent(ISharedObjectEvent.Type.CLIENT_STATUS, "error", SO_PERSISTENCE_MISMATCH));
-                    conn.getChannel(3).write(message);
-                }
-            } else {
-                log.warn("Shared object lookup returned null for {} in {}", name, scope.getName());
-                // reset the object so we can re-use it
-                message.reset();
-                // add the error event
-                message.addEvent(new SharedObjectEvent(ISharedObjectEvent.Type.CLIENT_STATUS, "error", NC_CALL_FAILED));
-                conn.getChannel(3).write(message);
-            }
-        } else {
-            // The scope already has been deleted
-            log.debug("Shared object scope was not found");
-            sendSOCreationFailed(conn, message);
         }
     }
 

@@ -1,11 +1,12 @@
 package io.antmedia.datastore.db.types;
 
+import dev.morphia.annotations.Entity;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.IEndpointStatusListener;
 
 @ApiModel(value="Endpoint", description="The endpoint class, such as Facebook, Twitter or custom RTMP endpoints")
+@Entity
 public class Endpoint 
 {
 
