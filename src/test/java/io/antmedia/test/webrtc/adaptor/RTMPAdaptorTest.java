@@ -2,6 +2,7 @@ package io.antmedia.test.webrtc.adaptor;
 
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -159,6 +160,24 @@ public class RTMPAdaptorTest {
 		testEncode(480, 360);
 	}
 	
+	@Test
+	public void testAudioOnlyInitialization() 
+	{
+		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
+		RTMPAdaptor adaptor = new RTMPAdaptor(f.getAbsolutePath(), null, 360);
+		
+		assertTrue(adaptor.isEnableVideo());
+		adaptor.encodeAudio();
+		assertNull(adaptor.getRecorder());
+		
+		
+		adaptor.setEnableVideo(false);
+		assertFalse(adaptor.isEnableVideo());
+		adaptor.encodeAudio();
+		assertNotNull(adaptor.getRecorder());
+		
+	}
+	
 	public void testEncode(int width, int height) {
 		//Create FFmpegFRameRecoder
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
@@ -227,7 +246,7 @@ public class RTMPAdaptorTest {
 		
 		VideoFrame frame = new VideoFrame(JavaI420Buffer.allocate(360, 240), 0, 0);
 		
-		assertNull(adaptor.getRecorder());
+		//assertNull(adaptor.getRecorder()); not needed for audio only streams for community edition
 		videoSink.onFrame(frame);
 		
 		adaptor.getAudioFrameQueue().offer(new AudioFrame(ByteBuffer.allocateDirect(1024), 1, 16000));
