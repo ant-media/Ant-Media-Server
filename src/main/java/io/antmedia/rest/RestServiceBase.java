@@ -339,6 +339,30 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
+	protected Result deleteBroadcasts(String[] streamIds) {
+
+		Result result = new Result(false);
+
+		if(streamIds != null)
+		{
+			for (String id : streamIds) 
+			{
+				result = deleteBroadcast(id);
+				if (!result.isSuccess()) 
+				{
+					logger.warn("It cannot delete {} and breaking the loop", id);
+					break;
+				}
+			}
+		}
+		else
+		{
+			logger.warn("Requested deletion for Stream Ids is empty");
+		}
+
+		return result;
+	}
+
 	protected boolean stopBroadcastInternal(Broadcast broadcast) {
 		boolean result = false;
 		if (broadcast != null) {
@@ -378,7 +402,7 @@ public abstract class RestServiceBase {
 		removeEmptyPlayListItems(broadcast);
 
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
-		
+
 		return new Result(result);
 	}
 
@@ -1106,6 +1130,29 @@ public abstract class RestServiceBase {
 
 		}
 		return new Result(success, message);
+	}
+
+	protected Result deleteVoDs(String[] vodIds) 
+	{
+		Result result = new Result(false);
+		if(vodIds != null)
+		{
+			for (String id : vodIds) 
+			{
+				result = deleteVoD(id);
+				
+				if (!result.isSuccess()) 
+				{
+					logger.warn("VoD:{} cannot be deleted and breaking the loop", id);
+					break;
+				}
+			}
+		}
+		else 
+		{
+			logger.warn("Requested deletion for VoD Ids is empty");
+		}
+		return result;
 	}
 
 	protected String getStreamsDirectory(String appScopeName) {

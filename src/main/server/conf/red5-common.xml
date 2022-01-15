@@ -31,12 +31,6 @@
     <!-- Deals with StatusObjects representing statuses like NetConnection.Connect.Success status -->
     <bean id="statusObjectService" class="org.red5.server.net.rtmp.status.StatusObjectService" autowire="byType" /> 
 
-    <!-- RTMPT codec factory -->
-    <bean id="rtmptCodecFactory" class="org.red5.server.net.rtmpt.codec.RTMPTCodecFactory" autowire="byType" init-method="init">
-        <property name="baseTolerance" value="${rtmpt.encoder_base_tolerance}" />
-        <property name="dropLiveFuture" value="${rtmpt.encoder_drop_live_future}" />
-    </bean>
-
     <!-- Streamable file factory -->
     <bean id="streamableFileFactory" class="org.red5.server.stream.StreamableFileFactory">
         <property name="services">

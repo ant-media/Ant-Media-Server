@@ -216,15 +216,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
-
-		storageClient.setStorageName(appSettings.getS3BucketName());
-		storageClient.setRegion(appSettings.getS3RegionName());
-		storageClient.setAccessKey(appSettings.getS3AccessKey());
-		storageClient.setSecretKey(appSettings.getS3SecretKey());
-		storageClient.setEnabled(appSettings.isS3RecordingEnabled());
-		storageClient.setEndpoint(appSettings.getS3Endpoint());
-		storageClient.setPermission(appSettings.getS3Permission());
-
+		
+		setStorageclientSettings(appSettings);
 
 
 		logger.info("{} started", app.getName());
@@ -374,15 +367,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	@Override
-	public void startPublish(String streamName, long absoluteStartTimeMs, String publishType) {
+	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType) {
 		vertx.executeBlocking( handler -> {
 			try {
 
-				Broadcast broadcast = updateBroadcastStatus(streamName, absoluteStartTimeMs, publishType, getDataStore().get(streamName));
+				Broadcast broadcast = updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, getDataStore().get(streamId));
 
 				final String listenerHookURL = broadcast.getListenerHookURL();
-				final String streamId = broadcast.getStreamId();
-				if (listenerHookURL != null && !listenerHookURL.isEmpty()) 
+				if (listenerHookURL != null && !listenerHookURL.isEmpty())
 				{
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
@@ -419,34 +411,34 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		{
 			vertx.setTimer(2000, h -> 
 			{
-				IBroadcastStream broadcastStream = getBroadcastStream(getScope(), streamName);
+				IBroadcastStream broadcastStream = getBroadcastStream(getScope(), streamId);
 				if (broadcastStream instanceof ClientBroadcastStream) 
 				{
 					long absoluteStarTime = ((ClientBroadcastStream)broadcastStream).getAbsoluteStartTimeMs();
 					if (absoluteStarTime != 0) 
 					{
-						Broadcast broadcast = getDataStore().get(streamName);
+						Broadcast broadcast = getDataStore().get(streamId);
 						if (broadcast != null) 
 						{
 							broadcast.setAbsoluteStartTimeMs(absoluteStarTime);
 
 							getDataStore().save(broadcast);
-							logger.info("Updating broadcast absolute time {} ms for stream:{}", absoluteStarTime, streamName);
+							logger.info("Updating broadcast absolute time {} ms for stream:{}", absoluteStarTime, streamId);
 						}
 						else {
-							logger.info("Broadcast is not available in the database to update the absolute start time for stream:{}", streamName);
+							logger.info("Broadcast is not available in the database to update the absolute start time for stream:{}", streamId);
 						}
 
 					}
 					else {
-						logger.info("Broadcast absolute time is not available for stream:{}", streamName);
+						logger.info("Broadcast absolute time is not available for stream:{}", streamId);
 					}
 
 				}
 			});
 		}
 
-		logger.info("start publish leaved for stream:{}", streamName);
+		logger.info("start publish leaved for stream:{}", streamId);
 	}
 
 
@@ -454,7 +446,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (broadcast == null) 
 		{
 
-			broadcast = saveUndefinedBroadcast(streamId, null, this, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, absoluteStartTimeMs, publishType);
+			broadcast = saveUndefinedBroadcast(streamId, null, this, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, absoluteStartTimeMs, publishType, "", "");
 		} 
 		else {
 
@@ -480,11 +472,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType) {		
-		return saveUndefinedBroadcast(streamId, streamName, appAdapter, streamStatus, absoluteStartTimeMs, publishType, "");
-	}
-
-	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId) {		
+	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId,  String metaData) {		
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
@@ -492,6 +480,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		newBroadcast.setZombi(true);
 		newBroadcast.setName(streamName);
 		newBroadcast.setMainTrackStreamId(mainTrackStreamId);
+		newBroadcast.setMetaData(metaData);
 		try {
 			newBroadcast.setStreamId(streamId);
 			newBroadcast.setPublishType(publishType);
@@ -520,14 +509,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		String streamName = file.getName();
 
 		Broadcast broadcast = getDataStore().get(streamId);
-		if (broadcast != null && broadcast.getName() != null) {
-			streamName = broadcast.getName();
-			listenerHookURL = broadcast.getListenerHookURL();
-			if (resolution != 0) {
-				streamName = streamName + " (" + resolution + "p)";
 
+		if(broadcast != null){
+			listenerHookURL = broadcast.getListenerHookURL();
+			if(broadcast.getName() != null){
+				streamName =  resolution != 0 ? broadcast.getName() + " (" + resolution + "p)" : broadcast.getName();
 			}
 		}
+
 		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
 			// if hook URL is not defined for stream specific, then try to get common one from app
 			listenerHookURL = appSettings.getListenerHookURL();
@@ -1303,6 +1292,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		store.put(AppSettings.SETTINGS_RTSP_TIMEOUT_DURATION_MS, String.valueOf(newAppsettings.getRtspTimeoutDurationMs()));
 
 		store.put(AppSettings.SETTINGS_UPLOAD_EXTENSIONS_TO_S3, String.valueOf(newAppsettings.getUploadExtensionsToS3()));
+		store.put(AppSettings.SETTINGS_S3_STORAGE_CLASS, String.valueOf(newAppsettings.getS3StorageClass()));
+
 
 		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(newAppsettings.isAcceptOnlyStreamsInDataStore()));
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
@@ -1374,9 +1365,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return store.save();
 	}
 
-	
-	
-	
+		
 	public void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
 	{		
 		Field[] declaredFields = appSettings.getClass().getDeclaredFields();
@@ -1391,17 +1380,23 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		String oldVodFolder = appSettings.getVodFolder();
 		synchUserVoDFolder(oldVodFolder, newSettings.getVodFolder());
 
-		storageClient.setEndpoint(newSettings.getS3Endpoint());
-		storageClient.setStorageName(newSettings.getS3BucketName());
-		storageClient.setAccessKey(newSettings.getS3AccessKey());
-		storageClient.setSecretKey(newSettings.getS3SecretKey());
-		storageClient.setRegion(newSettings.getS3RegionName());
-		storageClient.setEnabled(newSettings.isS3RecordingEnabled());
-		storageClient.setPermission(newSettings.getS3Permission());
-		storageClient.reset();
+		
+		setStorageclientSettings(newSettings);
 		
 		logger.warn("app settings bean updated for {}", getScope().getName());	
 
+	}
+
+	private void setStorageclientSettings(AppSettings settings) {
+		storageClient.setEndpoint(settings.getS3Endpoint());
+		storageClient.setStorageName(settings.getS3BucketName());
+		storageClient.setAccessKey(settings.getS3AccessKey());
+		storageClient.setSecretKey(settings.getS3SecretKey());
+		storageClient.setRegion(settings.getS3RegionName());
+		storageClient.setEnabled(settings.isS3RecordingEnabled());
+		storageClient.setPermission(settings.getS3Permission());
+		storageClient.setStorageClass(settings.getS3StorageClass());
+		storageClient.reset();
 	}
 
 	public static boolean setAppSettingsFieldValue(AppSettings appSettings, AppSettings newSettings, Field field) {
@@ -1476,7 +1471,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (broadcast != null) 
 		{
 			final String listenerHookURL = broadcast.getListenerHookURL();
-			if (listenerHookURL != null && listenerHookURL.length() > 0) 
+			if (listenerHookURL != null && listenerHookURL.length() > 0)
 			{
 				final String name = broadcast.getName();
 				final String category = broadcast.getCategory();

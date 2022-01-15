@@ -1,6 +1,8 @@
 package io.antmedia.websocket;
 
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import javax.websocket.Session;
 
@@ -106,8 +108,12 @@ public class WebSocketCommunityHandler {
 					}
 				}
 				
+				//Get if enableVideo is true or false
+				boolean enableVideo = jsonObject.containsKey(WebSocketConstants.VIDEO) ? (boolean) jsonObject.get(WebSocketConstants.VIDEO) : true;
+				//audio is by default true 
+				
 				//get scope and use its name
-				startRTMPAdaptor(session, streamId);
+				startRTMPAdaptor(session, streamId, enableVideo);
 			}
 			else if (cmd.equals(WebSocketConstants.TAKE_CONFIGURATION_COMMAND))  
 			{
@@ -156,7 +162,7 @@ public class WebSocketCommunityHandler {
 	
 	
 
-	private void startRTMPAdaptor(Session session, final String streamId) {
+	private void startRTMPAdaptor(Session session, final String streamId, boolean enableVideo) {
 
 		//get scope and use its name
 		String outputURL = "rtmp://127.0.0.1/"+ appName +"/" + streamId;
@@ -170,7 +176,7 @@ public class WebSocketCommunityHandler {
 		connectionContext.setPortRange(appSettings.getWebRTCPortRangeMin(), appSettings.getWebRTCPortRangeMax());
 		connectionContext.setStunServerUri(appSettings.getStunServerURI());
 		connectionContext.setTcpCandidatesEnabled(appSettings.isWebRTCTcpCandidatesEnabled());
-		
+		connectionContext.setEnableVideo(enableVideo);	
 		connectionContext.start();
 	}
 
@@ -212,9 +218,9 @@ public class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	public  void sendSDPConfiguration(String description, String type, String streamId, Session session) {
+	public  void sendSDPConfiguration(String description, String type, String streamId, Session session, Map<String, String> midSidMap) {
 
-		sendMessage(getSDPConfigurationJSON (description, type,  streamId).toJSONString(), session);
+		sendMessage(getSDPConfigurationJSON (description, type,  streamId, midSidMap).toJSONString(), session);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -312,7 +318,7 @@ public class WebSocketCommunityHandler {
 		JSONArray jsonStreamIdArray = new JSONArray();
 		JSONArray jsonStreamListArray = new JSONArray();
 		
-		prepareStreamListJSON(streamIdNameMap, jsonStreamIdArray, jsonStreamListArray);
+		prepareStreamListJSON(streamIdNameMap, jsonStreamIdArray, jsonStreamListArray, new HashMap<String, String>());
         
 		jsObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ROOM_INFORMATION_NOTIFICATION);
 		jsObject.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamIdArray);
@@ -325,24 +331,25 @@ public class WebSocketCommunityHandler {
 	}
 
 	private void prepareStreamListJSON(Map<String, String> streamIdNameMap, JSONArray jsonStreamIdArray,
-			JSONArray jsonStreamListArray) {
+			JSONArray jsonStreamListArray, HashMap<String, String> streamMetaDataMap) {
 		if(streamIdNameMap != null) {
 			for (Map.Entry<String, String> e : streamIdNameMap.entrySet()) {
 				jsonStreamIdArray.add(e.getKey());
 				JSONObject jsStreamObject = new JSONObject();
 				jsStreamObject.put(WebSocketConstants.STREAM_ID, e.getKey());
 				jsStreamObject.put(WebSocketConstants.STREAM_NAME, e.getValue());
+				jsStreamObject.put(WebSocketConstants.META_DATA, streamMetaDataMap.get(e.getKey()));
 				jsonStreamListArray.add(jsStreamObject);
 			}
 		}
 	}
 	
-	public void sendJoinedRoomMessage(String room, String newStreamId, Map<String,String> streamIdNameMap ) {
+	public void sendJoinedRoomMessage(String room, String newStreamId, Map<String,String> streamIdNameMap, HashMap<String, String> streamMetaDataMap ) {
 		JSONObject jsonResponse = new JSONObject();
 		JSONArray jsonStreamIdArray = new JSONArray();
 		JSONArray jsonStreamListArray = new JSONArray();
 		
-		prepareStreamListJSON(streamIdNameMap, jsonStreamIdArray, jsonStreamListArray);
+		prepareStreamListJSON(streamIdNameMap, jsonStreamIdArray, jsonStreamListArray, streamMetaDataMap);
 		
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.JOINED_THE_ROOM);
@@ -369,13 +376,23 @@ public class WebSocketCommunityHandler {
 		return jsonObject;
 	}
 
-	public static JSONObject getSDPConfigurationJSON(String description, String type, String streamId) {
+	public static JSONObject getSDPConfigurationJSON(String description, String type, String streamId, Map<String, String> midSidMap) {
 
 		JSONObject jsonResponseObject = new JSONObject();
 		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
 		jsonResponseObject.put(WebSocketConstants.SDP, description);
 		jsonResponseObject.put(WebSocketConstants.TYPE, type);
 		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		if(midSidMap != null) {
+			JSONObject jsonIdMappingObject = new JSONObject();
+
+			for (Entry<String, String> entry : midSidMap.entrySet()) {
+				jsonIdMappingObject.put(entry.getKey(), entry.getValue());
+			}
+			jsonResponseObject.put(WebSocketConstants.ID_MAPPING, jsonIdMappingObject);
+		}
+
 
 		return jsonResponseObject;
 	}

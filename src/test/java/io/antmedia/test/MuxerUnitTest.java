@@ -78,6 +78,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.codec.IAudioStreamCodec;
 import org.red5.codec.IVideoStreamCodec;
@@ -108,6 +109,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.HLSMuxer;
@@ -2419,6 +2421,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7);
 		hlsMuxer.init(appScope, "test", 300, "", 0);
 		assertEquals("./webapps/junit/streams/test_300p%04d.ts", hlsMuxer.getSegmentFilename());
+		
 
 		hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7);
 		hlsMuxer.init(appScope, "test", 300, "", 400000);
@@ -3119,24 +3122,50 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream1.setCodecInfo(info);
 		Map<String, String> params1 = new HashMap<String, String>();
-		params1.put("mainTrack", "someExistingStreamId");
+		String mainTrackId = "mainTrack"+RandomUtils.nextInt(0, 10000);
+		params1.put("mainTrack", mainTrackId);
 		clientBroadcastStream1.setParameters(params1);
 		MuxAdaptor muxAdaptor1 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream1, false, appScope));
-		muxAdaptor1.setStreamId("stream1");
-		DataStore ds1 = mock(DataStore.class);
+		
+		String sub1 = "subtrack1"+RandomUtils.nextInt(0, 10000);;
+		muxAdaptor1.setStreamId(sub1);
+		DataStore ds1 = spy(new InMemoryDataStore("testdb"));
 		doReturn(ds1).when(muxAdaptor1).getDataStore();
 		doReturn(new Broadcast()).when(muxAdaptor1).getBroadcast();
 		muxAdaptor1.registerToMainTrackIfExists();
 		verify(ds1, times(1)).updateBroadcastFields(anyString(), any());
 
+		ArgumentCaptor<Broadcast> argument = ArgumentCaptor.forClass(Broadcast.class);
+		verify(ds1, times(1)).save(argument.capture());
+		assertEquals(mainTrackId, argument.getValue().getStreamId());
+		assertTrue(argument.getValue().getSubTrackStreamIds().contains(sub1));
 
+		String sub2 = "subtrack2"+RandomUtils.nextInt(0, 10000);;
 		ClientBroadcastStream clientBroadcastStream2 = new ClientBroadcastStream();
 		clientBroadcastStream2.setCodecInfo(info);
+		clientBroadcastStream2.setParameters(params1);
 		MuxAdaptor muxAdaptor2 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream2, false, appScope));
-		muxAdaptor2.setStreamId("stream2");
-		DataStore ds2 = mock(DataStore.class);
-		doReturn(ds2).when(muxAdaptor2).getDataStore();
+		muxAdaptor2.setStreamId(sub2);
+		doReturn(new Broadcast()).when(muxAdaptor2).getBroadcast();
+		doReturn(ds1).when(muxAdaptor2).getDataStore();
 		muxAdaptor2.registerToMainTrackIfExists();
+		
+		ArgumentCaptor<Broadcast> argument2 = ArgumentCaptor.forClass(Broadcast.class);
+		verify(ds1, times(1)).save(argument2.capture());
+		assertEquals(mainTrackId, argument2.getValue().getStreamId());
+		assertTrue(argument2.getValue().getSubTrackStreamIds().contains(sub1));
+		
+		Broadcast mainBroadcast = ds1.get(mainTrackId);
+		assertEquals(2, mainBroadcast.getSubTrackStreamIds().size());
+		
+		ClientBroadcastStream clientBroadcastStream3 = new ClientBroadcastStream();
+		clientBroadcastStream3.setCodecInfo(info);
+		MuxAdaptor muxAdaptor3 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream3, false, appScope));
+		muxAdaptor3.setStreamId("stream3");
+		DataStore ds2 = mock(DataStore.class);
+		doReturn(ds2).when(muxAdaptor3).getDataStore();
+		muxAdaptor3.registerToMainTrackIfExists();
 		verify(ds2, never()).updateBroadcastFields(anyString(), any());
+		
 	}
 }

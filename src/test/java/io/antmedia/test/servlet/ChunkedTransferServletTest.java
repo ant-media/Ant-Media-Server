@@ -340,7 +340,7 @@ public class ChunkedTransferServletTest {
 			Mockito.when(appContext.isRunning()).thenReturn(true);
 			servlet.handleGetRequest(req, resp);
 			Mockito.verify(resp).setStatus(HttpServletResponse.SC_NOT_FOUND);
-			Mockito.verify(resp).setContentType(null);
+			Mockito.verify(resp, Mockito.never()).setContentType(null);
 
 			File file = new File("/junit/streams/" + streamId);
 			Mockito.verify(servletContext).getMimeType(file.getName());
@@ -396,14 +396,14 @@ public class ChunkedTransferServletTest {
 
 			File f = new File("webapps/junit/streams");
 			f.getParentFile().mkdirs();
-			chunkedTransferServlet.writeChunks(f, cacheManager, asynContext, listener);
+			chunkedTransferServlet.writeChunks(f, cacheManager, asynContext, listener, "text");
 
 			Mockito.verify(outputStream).write(data, 0, 1024);
 			Mockito.verify(asynContext).complete();
 
 			Mockito.doThrow(ClientAbortException.class).when(outputStream).flush();
 			listener.chunkCompleted(data);
-			chunkedTransferServlet.writeChunks(f, cacheManager, asynContext, listener);
+			chunkedTransferServlet.writeChunks(f, cacheManager, asynContext, listener, "text");
 
 			Mockito.verify(cacheManager, Mockito.times(2)).removeChunkListener(f.getAbsolutePath(), listener);
 
@@ -436,7 +436,7 @@ public class ChunkedTransferServletTest {
 
 			Mockito.when(asyncContext.getResponse()).thenReturn(response);
 
-			servlet.writeOutputStream(istream, asyncContext, response);
+			servlet.writeOutputStream(istream, asyncContext, "text");
 
 			Mockito.verify(asyncContext).complete();
 

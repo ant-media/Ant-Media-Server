@@ -1422,4 +1422,23 @@ public class MapDBStore extends DataStore {
 			return webRTCViewerMap.remove(viewerId) != null;
 		}
 	}
+	
+	@Override
+	public boolean updateStreamMetaData(String streamId, String metaData) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				String jsonString = map.get(streamId);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					broadcast.setMetaData(metaData);
+					String jsonVal = gson.toJson(broadcast);
+					String previousValue = map.replace(streamId, jsonVal);
+					result = true;
+					logger.debug("updateStatus replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
+				}
+			}
+		}
+		return result;
+	}
 }

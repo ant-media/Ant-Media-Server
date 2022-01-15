@@ -214,6 +214,8 @@ public class AppSettings {
 
 	public static final String SETTINGS_UPLOAD_EXTENSIONS_TO_S3 = "settings.uploadExtensionsToS3";
 
+	public static final String SETTINGS_S3_STORAGE_CLASS= "settings.s3StorageClass";
+
 	public static final String SETTINGS_RTSP_TIMEOUT_DURATION_MS = "settings.rtspTimeoutDurationMs";
 
 	public static final String SETTINGS_RTMP_INGEST_BUFFER_TIME_MS = "settings.rtmpIngestBufferTimeMs";
@@ -373,6 +375,16 @@ public class AppSettings {
 	@Value( "${"+SETTINGS_UPLOAD_EXTENSIONS_TO_S3+":7}" )
 	private int uploadExtensionsToS3;
 
+	/*
+	 * S3 Storage classes. Possible values are 
+	 * 		STANDARD, REDUCED_REDUNDANCY, GLACIER, STANDARD_IA, ONEZONE_IA, INTELLIGENT_TIERING, DEEP_ARCHIVE
+	 * 
+	 * Case sensitivity is important. 
+	 * 
+	 * More information is available at AWS S3 -> https://www.amazonaws.cn/en/s3/storage-classes/
+	 */
+	@Value( "${"+SETTINGS_S3_STORAGE_CLASS+": STANDARD}" )
+	private String s3StorageClass;
 	/**
 	 * Endpoint will try to republish if error occurs,
 	 * however the error might get fixed internally in case of small issues without republishing
@@ -732,7 +744,7 @@ public class AppSettings {
 	 * WebRTC SDP Semantics
 	 * It can "planB" or "unifiedPlan"
 	 */
-	@Value( "${" + SETTINGS_WEBRTC_SDP_SEMANTICS +":" + SDP_SEMANTICS_PLAN_B + "}")
+	@Value( "${" + SETTINGS_WEBRTC_SDP_SEMANTICS +":" + SDP_SEMANTICS_UNIFIED_PLAN + "}")
 	private String webRTCSdpSemantics;
 
 
@@ -1441,6 +1453,13 @@ public class AppSettings {
 
 	public int getUploadExtensionsToS3(){
 		return this.uploadExtensionsToS3;
+	}
+
+	public void setS3StorageClass(String s3StorageClass){
+		this.s3StorageClass = s3StorageClass;
+	}
+	public String getS3StorageClass(){
+		return this.s3StorageClass;
 	}
 
 	public String getHlsTime() {
