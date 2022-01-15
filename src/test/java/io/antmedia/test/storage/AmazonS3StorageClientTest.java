@@ -1,6 +1,9 @@
 package io.antmedia.test.storage;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.spy;
 
 import java.io.File;
@@ -56,6 +59,7 @@ public class AmazonS3StorageClientTest {
 		storage.setSecretKey(SECRET_KEY);
 		storage.setRegion("eu-west-1");
 		storage.setStorageName(BUCKET_NAME);
+		storage.setStorageClass("STANDARD");
 		
 		File f = new File("src/test/resources/test.flv");
 		storage.setEnabled(true);
@@ -105,6 +109,7 @@ public class AmazonS3StorageClientTest {
 		Upload upload = Mockito.mock(Upload.class);
 		Mockito.when(tm.upload(Mockito.any())).thenReturn(upload);
 		storage.setEnabled(true);
+		storage.setStorageClass("STANDARD");
 		
 		{
 			ArgumentCaptor<ProgressListener> listener = ArgumentCaptor.forClass(ProgressListener.class);

@@ -4,13 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-import com.amazonaws.services.s3.model.AmazonS3Exception;
-import com.amazonaws.services.s3.model.StorageClass;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -22,6 +19,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
@@ -102,7 +100,7 @@ public class AmazonS3StorageClient extends StorageClient {
 			putRequest.setCannedAcl(getCannedAcl());
 
 			if(checkStorageClass(getStorageClass())){
-				putRequest.withStorageClass(getStorageClass());
+				putRequest.withStorageClass(getStorageClass().toUpperCase());
 			}
 
 			Upload upload = tm.upload(putRequest);
