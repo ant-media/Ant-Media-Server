@@ -108,8 +108,12 @@ public class WebSocketCommunityHandler {
 					}
 				}
 				
+				//Get if enableVideo is true or false
+				boolean enableVideo = jsonObject.containsKey(WebSocketConstants.VIDEO) ? (boolean) jsonObject.get(WebSocketConstants.VIDEO) : true;
+				//audio is by default true 
+				
 				//get scope and use its name
-				startRTMPAdaptor(session, streamId);
+				startRTMPAdaptor(session, streamId, enableVideo);
 			}
 			else if (cmd.equals(WebSocketConstants.TAKE_CONFIGURATION_COMMAND))  
 			{
@@ -158,7 +162,7 @@ public class WebSocketCommunityHandler {
 	
 	
 
-	private void startRTMPAdaptor(Session session, final String streamId) {
+	private void startRTMPAdaptor(Session session, final String streamId, boolean enableVideo) {
 
 		//get scope and use its name
 		String outputURL = "rtmp://127.0.0.1/"+ appName +"/" + streamId;
@@ -172,7 +176,7 @@ public class WebSocketCommunityHandler {
 		connectionContext.setPortRange(appSettings.getWebRTCPortRangeMin(), appSettings.getWebRTCPortRangeMax());
 		connectionContext.setStunServerUri(appSettings.getStunServerURI());
 		connectionContext.setTcpCandidatesEnabled(appSettings.isWebRTCTcpCandidatesEnabled());
-		
+		connectionContext.setEnableVideo(enableVideo);	
 		connectionContext.start();
 	}
 
