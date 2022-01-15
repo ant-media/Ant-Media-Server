@@ -171,7 +171,6 @@ public abstract class RecordMuxer extends Muxer {
 			codecTimeBaseMap.put(streamIndex, timeBase);
 			result = true;
 		}
-
 		return result;
 	}
 
@@ -252,7 +251,6 @@ public abstract class RecordMuxer extends Muxer {
 		else {
 			logger.warn("Stream is not added for muxing to {} for stream:{}", getFileName(), streamId);
 		}
-
 		return result;
 	}
 
@@ -421,21 +419,20 @@ public abstract class RecordMuxer extends Muxer {
 			try {
 
 
-				String absolutePath = fileTmp.getAbsolutePath();
-
-				String origFileName = absolutePath.replace(TEMP_EXTENSION, "");
-
-				final File f = new File(origFileName);
-
-				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
-				finalizeRecordFile(f);
-
 				IContext context = RecordMuxer.this.scope.getContext();
 				ApplicationContext appCtx = context.getApplicationContext();
 				AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-				adaptor.muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
 
 				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
+
+				File f = getFinalFileName(appSettings.isS3RecordingEnabled());
+
+				finalizeRecordFile(f);
+
+				adaptor.muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
+
+				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
+
 
 				if((appSettings.getUploadExtensionsToS3()&S3_CONSTANT) == 0){
 					this.uploadMP4ToS3 = false;
@@ -443,7 +440,8 @@ public abstract class RecordMuxer extends Muxer {
 
 				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3 ) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
-					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, getFile().getName(), storageClient,appSettings.getS3StorageClass()!=null ? appSettings.getS3StorageClass() : "Standard");
+
+					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, f.getName(), storageClient);
 				}
 			} catch (Exception e) {
 				logger.error(e.getMessage());
@@ -453,24 +451,39 @@ public abstract class RecordMuxer extends Muxer {
 
 	}
 
-	public static void saveToStorage(String prefix, File fileToUpload, String fileName, StorageClient storageClient, String storageClass) {
 
-		// Check file exist in S3 and change file names. In this way, new file is created after the file name changed.
+	public File getFinalFileName(boolean isS3Enabled)
+	{
+		String absolutePath = fileTmp.getAbsolutePath();
+		String origFileName = absolutePath.replace(TEMP_EXTENSION, "");
 
+		String prefix = s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" );
 
-		if (storageClient.fileExist(prefix + fileName)) {
+		String fileName = getFile().getName();
 
-			String tmpName =  fileName;
+		File f = new File(origFileName);
 
+		if ( isS3Enabled && this.uploadMP4ToS3 && storageClient != null && doesFileExistInS3(storageClient, prefix+fileName)) 
+		{
 			int i = 0;
+
 			do {
 				i++;
-				fileName = tmpName.replace(".", "_"+ i +".");
-
-			} while (storageClient.fileExist(prefix + fileName));
+				fileName = initialResourceNameWithoutExtension + "_" + i + extension;
+				
+				origFileName = origFileName.substring(0, origFileName.lastIndexOf("/") + 1) + fileName;
+				f = new File(origFileName);
+			} while (doesFileExistInS3(storageClient, prefix+fileName) || f.exists() || f.isDirectory());
 		}
+		return f;
+	}
 
-		storageClient.save(prefix + fileName, fileToUpload, storageClass);
+	private static boolean doesFileExistInS3(StorageClient storageClient, String name) {
+		return storageClient.fileExist(name);
+	}
+	public static void saveToStorage(String prefix, File fileToUpload, String fileName, StorageClient storageClient) {
+
+		storageClient.save(prefix + fileName, fileToUpload);
 	}
 
 

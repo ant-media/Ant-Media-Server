@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.concurrent.ScheduledFuture;
@@ -70,9 +69,6 @@ import org.red5.server.net.rtmp.message.Packet;
 import org.red5.server.net.rtmp.status.Status;
 import org.red5.server.service.Call;
 import org.red5.server.service.PendingCall;
-import org.red5.server.so.FlexSharedObjectMessage;
-import org.red5.server.so.ISharedObjectEvent;
-import org.red5.server.so.SharedObjectMessage;
 import org.red5.server.stream.AbstractClientStream;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.red5.server.stream.OutputStream;
@@ -1551,34 +1547,6 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
             log.trace("Stream id: {} pendingCount: {} total pending videos: {}", streamId, pendingCount, pendingVideos.size());
         }
         return pendingCount != null ? pendingCount.intValue() : 0;
-    }
-
-    /**
-     * Send a shared object message.
-     * 
-     * @param name
-     *            shared object name
-     * @param currentVersion
-     *            the current version
-     * @param persistent
-     *            toggle
-     * @param events
-     *            shared object events
-     */
-    public void sendSharedObjectMessage(String name, int currentVersion, boolean persistent, ConcurrentLinkedQueue<ISharedObjectEvent> events) {
-        // create a new sync message for every client to avoid concurrent access through multiple threads
-        SharedObjectMessage syncMessage = state.getEncoding() == Encoding.AMF3 ? new FlexSharedObjectMessage(null, name, currentVersion, persistent) : new SharedObjectMessage(null, name, currentVersion, persistent);
-        syncMessage.addEvents(events);
-        try {
-            // get the channel for so updates
-            Channel channel = getChannel(3);
-            if (log.isTraceEnabled()) {
-                log.trace("Send to channel: {}", channel);
-            }
-            channel.write(syncMessage);
-        } catch (Exception e) {
-            log.warn("Exception sending shared object", e);
-        }
     }
 
     /** {@inheritDoc} */

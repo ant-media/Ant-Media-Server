@@ -5,6 +5,8 @@ public abstract class Parser {
 	protected int currentBit;
 	protected byte[] data;
 	
+	protected boolean errorOccured = false;
+	
 	public Parser(byte[] data, int offset) {
 		this.data = data;
 		currentBit = offset * 8;
@@ -63,6 +65,10 @@ public abstract class Parser {
 	        r = -(r/2);
 	    }
 	    return r;
+	}
+	
+	public boolean isErrorOccured() {
+		return errorOccured;
 	}
 
 }

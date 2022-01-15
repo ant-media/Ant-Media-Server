@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions
+	xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+	<suppress>
+		<notes><![CDATA[
+      file name: kotlin-stdlib-1.2.71.jar
+      ]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib@.*$
+		</packageUrl>
+		<cve>CVE-2019-10101</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[
+   file name: kotlin-stdlib-1.2.71.jar
+   ]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib@.*$
+		</packageUrl>
+		<cve>CVE-2019-10102</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[
+   file name: kotlin-stdlib-1.2.71.jar
+   ]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib@.*$
+		</packageUrl>
+		<cve>CVE-2019-10103</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[
+   file name: kotlin-stdlib-common-1.2.71.jar
+   ]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib\-common@.*$
+		</packageUrl>
+		<cve>CVE-2019-10101</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[
+   file name: kotlin-stdlib-common-1.2.71.jar
+   ]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib\-common@.*$
+		</packageUrl>
+		<cve>CVE-2019-10102</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[
+   file name: kotlin-stdlib-common-1.2.71.jar
+   ]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin\-stdlib\-common@.*$
+		</packageUrl>
+		<cve>CVE-2019-10103</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[
+   file name: netty-tcnative-classes-2.0.46.Final.jar
+   ]]></notes>
+		<packageUrl regex="true">^pkg:maven/io\.netty/netty\-tcnative\-classes@.*$
+		</packageUrl>
+		<cve>CVE-2019-20445</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[
+   file name: netty-tcnative-classes-2.0.46.Final.jar
+   ]]></notes>
+		<packageUrl regex="true">^pkg:maven/io\.netty/netty\-tcnative\-classes@.*$
+		</packageUrl>
+		<cve>CVE-2019-20444</cve>
+	</suppress>
+	<suppress>
+		<notes><![CDATA[
+   file name: tensorflow-1.15.0.jar
+   ]]></notes>
+		<packageUrl regex="true">^pkg:maven/org\.tensorflow/tensorflow@.*$
+		</packageUrl>
+		<vulnerabilityName>CVE-2021-35958</vulnerabilityName>
+	</suppress>
+</suppressions>

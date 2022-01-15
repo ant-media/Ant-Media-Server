@@ -90,10 +90,10 @@ public class AmazonS3StorageClient extends StorageClient {
 	}
 
 	public void save(final File file, String type) {
-		save(type + "/" + file.getName(), file, "Standard");
+		save(type + "/" + file.getName(), file);
 	}
 
-	public void save(String key, File file, boolean deleteLocalFile, String s3StorageClass)
+	public void save(String key, File file, boolean deleteLocalFile)
 	{	
 		if (isEnabled()) {
 			TransferManager tm = getTransferManager();
@@ -101,14 +101,16 @@ public class AmazonS3StorageClient extends StorageClient {
 			PutObjectRequest putRequest = new PutObjectRequest(getStorageName(), key, file);
 			putRequest.setCannedAcl(getCannedAcl());
 
-			if(checkStorageClass(s3StorageClass)){
-				putRequest.withStorageClass(s3StorageClass.toUpperCase());
+			if(checkStorageClass(getStorageClass())){
+				putRequest.withStorageClass(getStorageClass());
 			}
 
 			Upload upload = tm.upload(putRequest);
-			// TransferManager processes all transfers asynchronously,
-			// so this call returns immediately.
-			//Upload upload = tm.upload(getStorageName(), key, file);
+		
+			/* 
+			 * TransferManager processes all transfers asynchronously, so this call returns immediately.
+			 * Some blocking calls are removed. Please don't block any threads if it's really not necessary
+			 */
 			logger.info("{} upload has started with key: {}", file.getName(), key);
 
 			upload.addProgressListener((ProgressListener)event -> 
@@ -126,28 +128,17 @@ public class AmazonS3StorageClient extends StorageClient {
 			});
 
 
-			// Optionally, wait for the upload to finish before continuing.
-			try {  
-				upload.waitForCompletion();
-
-				logger.info("{} upload completed", file.getName());
-			} catch (AmazonServiceException e1) {
-				logger.error(ExceptionUtils.getStackTrace(e1));
-			} catch (InterruptedException e1) {
-				logger.error(ExceptionUtils.getStackTrace(e1));
-				Thread.currentThread().interrupt();
-			}
+			
 		}
 		else {
 			logger.debug("S3 is not enabled to save the file: {}", key);
 		}
 	}
 	public boolean checkStorageClass(String s3StorageClass){
-		logger.debug("Requested storage class = " + s3StorageClass);
+		logger.debug("Requested storage class = {}" , s3StorageClass);
 		//All of the inputs are upper case and case sensitive like GLACIER
 		for(int i = 0; i < StorageClass.values().length; i++){
-			s3StorageClass = s3StorageClass.toUpperCase();
-			if(s3StorageClass.equals(StorageClass.values()[i].toString())){
+			if(s3StorageClass.equalsIgnoreCase(StorageClass.values()[i].toString())){
 				return true;
 			}
 		}

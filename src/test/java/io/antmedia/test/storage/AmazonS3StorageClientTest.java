@@ -59,11 +59,11 @@ public class AmazonS3StorageClientTest {
 		
 		File f = new File("src/test/resources/test.flv");
 		storage.setEnabled(true);
-		storage.save("streams" + "/" + f.getName() , f, "Standard");
+		storage.save("streams" + "/" + f.getName() , f);
 		
 		Mockito.verify(storage).getTransferManager();
 
-		storage.save("streams" + "/" + f.getName() , f, "test");
+		storage.save("streams" + "/" + f.getName() , f);
 
 		Mockito.verify(storage, Mockito.times(2)).getTransferManager();
 	}
@@ -79,7 +79,7 @@ public class AmazonS3StorageClientTest {
 			
 			storage.fileExist("streams/any_file");
 						
-			storage.save("streams/any_file", new File("any_file"), "Standard");
+			storage.save("streams/any_file", new File("any_file"));
 			
 		}
 		catch (Exception e) {
@@ -108,7 +108,7 @@ public class AmazonS3StorageClientTest {
 		
 		{
 			ArgumentCaptor<ProgressListener> listener = ArgumentCaptor.forClass(ProgressListener.class);
-			storage.save("key", new File("filename"), false, "Standard");
+			storage.save("key", new File("filename"), false);
 			Mockito.verify(upload).addProgressListener(listener.capture());
 			ProgressListener progressListener = listener.getValue();
 			progressListener.progressChanged(new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT));
@@ -118,7 +118,7 @@ public class AmazonS3StorageClientTest {
 		{
 			ArgumentCaptor<ProgressListener> listener = ArgumentCaptor.forClass(ProgressListener.class);
 			
-			storage.save("key", new File("filename"), true, "Standard");
+			storage.save("key", new File("filename"), true);
 			Mockito.verify(upload, Mockito.times(2)).addProgressListener(listener.capture());
 			ProgressListener progressListener = listener.getValue();
 			progressListener.progressChanged(new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT));
@@ -133,7 +133,7 @@ public class AmazonS3StorageClientTest {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			storage.save("key", file, true, "Standard");
+			storage.save("key", file, true);
 			Mockito.verify(upload, Mockito.times(3)).addProgressListener(listener.capture());
 			ProgressListener progressListener = listener.getValue();
 			progressListener.progressChanged(new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT));

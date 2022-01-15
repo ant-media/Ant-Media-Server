@@ -26,6 +26,8 @@ import org.red5.codec.IAudioStreamCodec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.muxer.parser.codec.AACAudio;
+
 /**
  * Factory for audio codecs. Creates and returns audio codecs
  * 
@@ -72,7 +74,7 @@ public class AudioCodecFactory {
             int codecId = (data.get() & 0xf0) >> 4;
             switch (codecId) {
                 case 10: //aac 
-                    result = (IAudioStreamCodec) Class.forName("org.red5.codec.AACAudio").newInstance();
+                    result = new AACAudio();
                     break;
             // TODO add SPEEX support?
             }
