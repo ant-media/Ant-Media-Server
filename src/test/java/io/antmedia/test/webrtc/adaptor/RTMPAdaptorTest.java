@@ -2,6 +2,7 @@ package io.antmedia.test.webrtc.adaptor;
 
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -157,6 +158,24 @@ public class RTMPAdaptorTest {
 		testEncode(640, 480);
 		
 		testEncode(480, 360);
+	}
+	
+	@Test
+	public void testAudioOnlyInitialization() 
+	{
+		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
+		RTMPAdaptor adaptor = new RTMPAdaptor(f.getAbsolutePath(), null, 360);
+		
+		assertTrue(adaptor.isEnableVideo());
+		adaptor.encodeAudio();
+		assertNull(adaptor.getRecorder());
+		
+		
+		adaptor.setEnableVideo(false);
+		assertFalse(adaptor.isEnableVideo());
+		adaptor.encodeAudio();
+		assertNotNull(adaptor.getRecorder());
+		
 	}
 	
 	public void testEncode(int width, int height) {

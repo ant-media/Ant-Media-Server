@@ -374,7 +374,7 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 
-	private void encodeAudio() 
+	public void encodeAudio() 
 	{	
 		//null-check recorder because it's asynch and it may not be initialized in video encoder thread
 		if (recorder != null) 
@@ -614,5 +614,9 @@ public class RTMPAdaptor extends Adaptor {
 
 	public void setEnableVideo(boolean enableVideo) {
 		this.enableVideo = enableVideo;
+	}
+	
+	public boolean isEnableVideo() {
+		return enableVideo;
 	}
 }
