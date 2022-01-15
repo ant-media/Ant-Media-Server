@@ -586,7 +586,7 @@ public class MongoStore extends DataStore {
 						String relativePath = "streams/"+subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 						String vodId = RandomStringUtils.randomNumeric(24);
 						VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-								VoD.USER_VOD,vodId);
+								VoD.USER_VOD,vodId, null);
 
 						addVod(newVod);
 						numberOfSavedFiles++;

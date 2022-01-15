@@ -231,7 +231,7 @@ public class BroadcastRestServiceV2UnitTest {
 		File file = new File(vodFolder, "test_file");
 		String vodId = RandomStringUtils.randomNumeric(24);
 		VoD newVod = new VoD("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 6000,
-				VoD.USER_VOD,vodId);
+				VoD.USER_VOD,vodId, null);
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 

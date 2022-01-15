@@ -531,6 +531,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//mp4Muxer.addVideoStream(spsParser.getWidth(), spsParser.getHeight(), rat, AV_CODEC_ID_H264, 0, true, codecParameters);
 
 		mp4Muxer.addStream(codecParameters, rat, 5);
+		mp4Muxer.setPreviewPath("/path");
 
 		assertTrue(mp4Muxer.getRegisteredStreamIndexList().contains(5));
 
