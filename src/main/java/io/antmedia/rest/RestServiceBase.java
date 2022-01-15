@@ -1095,9 +1095,9 @@ public abstract class RestServiceBase {
 					if (!result) {
 						logger.warn("File is not deleted because it does not exist {}", videoFile.getAbsolutePath());
 					}
-					String thumbnailPath = voD.getThumbnailFilePath();
-					if(thumbnailPath != null){
-						File tmp = new File(thumbnailPath);
+					String previewFilePath = voD.getPreviewFilePath();
+					if(previewFilePath != null){
+						File tmp = new File(previewFilePath);
 						boolean resultThumbnail = Files.deleteIfExists(tmp.toPath());
 						if (!resultThumbnail) {
 							logger.warn("Preview is not deleted because it does not exist {}", tmp.getAbsolutePath());

@@ -212,7 +212,7 @@ public class VoDRestServiceV2UnitTest {
 		assertNotNull(datastore.getVoD(vodId));
 
 		voD = restServiceReal.getVoD(vodId);
-		assertEquals(streamVod.getThumbnailFilePath(), voD.getThumbnailFilePath());
+		assertEquals(streamVod.getPreviewFilePath(), voD.getPreviewFilePath());
 
 		assertEquals(1, restServiceReal.getVodList(0, 50, null, null, null, null).size());
 
@@ -230,7 +230,7 @@ public class VoDRestServiceV2UnitTest {
 
 		String vodId = RandomStringUtils.randomNumeric(24);
 
-		VoD streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD, vodId);
+		VoD streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD, vodId, null);
 		datastore.addVod(streamVod);
 
 		assertNotNull(datastore.getVoD(vodId));
