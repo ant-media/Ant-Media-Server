@@ -39,6 +39,11 @@ public abstract class StorageClient {
 
 	private boolean enabled;
 
+	/**
+	 * Storage type. In S3 there is standard, glacier, etc. 
+	 */
+	private String storageClass;
+
 	
 	/**
 	 * Delete file from storage
@@ -134,5 +139,13 @@ public abstract class StorageClient {
 	
 	public void setEnabled(boolean enabled) {
 		this.enabled = enabled;
+	}
+
+	public void setStorageClass(String storageClass) {
+		this.storageClass = storageClass;		
+	}
+	
+	public String getStorageClass() {
+		return storageClass;
 	}
 }

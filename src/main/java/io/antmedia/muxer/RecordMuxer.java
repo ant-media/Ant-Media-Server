@@ -440,6 +440,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3 ) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
+
 					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, f.getName(), storageClient);
 				}
 			} catch (Exception e) {
@@ -449,6 +450,7 @@ public abstract class RecordMuxer extends Muxer {
 		}, null);
 
 	}
+
 
 	public File getFinalFileName(boolean isS3Enabled)
 	{

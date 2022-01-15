@@ -1284,6 +1284,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		store.put(AppSettings.SETTINGS_RTSP_TIMEOUT_DURATION_MS, String.valueOf(newAppsettings.getRtspTimeoutDurationMs()));
 
 		store.put(AppSettings.SETTINGS_UPLOAD_EXTENSIONS_TO_S3, String.valueOf(newAppsettings.getUploadExtensionsToS3()));
+		store.put(AppSettings.SETTINGS_S3_STORAGE_CLASS, String.valueOf(newAppsettings.getS3StorageClass()));
+
 
 		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(newAppsettings.isAcceptOnlyStreamsInDataStore()));
 		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
@@ -1355,9 +1357,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return store.save();
 	}
 
-	
-	
-	
+		
 	public void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
 	{		
 		Field[] declaredFields = appSettings.getClass().getDeclaredFields();
@@ -1387,6 +1387,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		storageClient.setRegion(settings.getS3RegionName());
 		storageClient.setEnabled(settings.isS3RecordingEnabled());
 		storageClient.setPermission(settings.getS3Permission());
+		storageClient.setStorageClass(settings.getS3StorageClass());
 		storageClient.reset();
 	}
 
