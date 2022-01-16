@@ -44,371 +44,443 @@ import static org.junit.Assert.*;
 
 public class FrontEndTest {
 
-    public static final int MAC_OS_X = 0;
-    public static final int LINUX = 1;
-    public static final int WINDOWS = 2;
-
-    public static final String SERVER_ADDR = ServerSettings.getLocalHostAddress();
-
-    protected static Logger logger = LoggerFactory.getLogger(FrontEndTest.class);
-    protected WebDriver driver;
-    protected final String url = "http://localhost:5080/LiveApp/";
-
-    private RestServiceV2Test restServiceTest;
-    private BroadcastRestService restService = null;
-
-    private static int OS_TYPE;
-    public static Process process;
-    private static Process tmpExec;
-
-    public static String ffmpegPath = "ffmpeg";
-    static {
-        String osName = System.getProperty("os.name", "").toLowerCase();
-        if (osName.startsWith("mac os x") || osName.startsWith("darwin")) {
-            OS_TYPE = MAC_OS_X;
-        } else if (osName.startsWith("windows")) {
-            OS_TYPE = WINDOWS;
-        } else if (osName.startsWith("linux")) {
-            OS_TYPE = LINUX;
-        }
-    }
-
-    @BeforeClass
-    public static void beforeClass(){
-        WebDriverManager.chromedriver().setup();
-        if (OS_TYPE == MAC_OS_X) {
-            ffmpegPath = "/usr/local/bin/ffmpeg";
-        }
-    }
-
-    @Before
-    public void before() {
-        restService = new BroadcastRestService();
-
-        File webApps = new File("webapps");
-        if (!webApps.exists()) {
-            webApps.mkdirs();
-        }
-        File junit = new File(webApps, "junit");
-        if (!junit.exists()) {
-            junit.mkdirs();
-        }
-        restServiceTest = new RestServiceV2Test();
-
-        try {
-            //we use this delete operation because sometimes there are too many vod files and
-            //vod service returns 50 for max and this make some tests fail
-
-            int currentVodNumber = restServiceTest.callTotalVoDNumber();
-            logger.info("current vod number before test {}", String.valueOf(currentVodNumber));
-            if (currentVodNumber > 10) {
-
-
-                //delete vods
-                List<VoD> voDList = restServiceTest.callGetVoDList();
-                if (voDList != null) {
-                    for (VoD voD : voDList) {
-                        RestServiceV2Test.deleteVoD(voD.getVodId());
-                    }
-                }
-
-                currentVodNumber = restServiceTest.callTotalVoDNumber();
-                logger.info("vod number after deletion {}", String.valueOf(currentVodNumber));
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-            fail(ExceptionUtils.getStackTrace(e));
-        }
-    }
-
-    @After
-    public void stop(){
-        logger.info("Closing the driver");
-        if(this.driver != null)
-            this.driver.quit();
-    }
-
-    @Test
-    public void testPublishPageStartStopPublish(){
-
-        ChromeOptions chrome_options = new ChromeOptions();
-        chrome_options.addArguments("--disable-extensions");
-        chrome_options.addArguments("--disable-gpu");
-        chrome_options.addArguments("--headless");
-        chrome_options.addArguments("--use-fake-ui-for-media-stream",
-                "--use-fake-device-for-media-stream");
-        chrome_options.addArguments("--no-sandbox");
-        chrome_options.addArguments("--log-level=1");
-        LoggingPreferences logPrefs = new LoggingPreferences();
-        //To get console log
-        logPrefs.enable(LogType.BROWSER, Level.ALL);
-        chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
-
-        ConsoleAppRestServiceTest.resetCookieStore();
-        Result result;
-        List<EncoderSettings> encoderSettings = null;
-        try {
-            result = ConsoleAppRestServiceTest.callisFirstLogin();
+	public static final int MAC_OS_X = 0;
+	public static final int LINUX = 1;
+	public static final int WINDOWS = 2;
+
+	public static final String SERVER_ADDR = ServerSettings.getLocalHostAddress();
+
+	protected static Logger logger = LoggerFactory.getLogger(FrontEndTest.class);
+	protected WebDriver driver;
+	protected final String url = "http://localhost:5080/LiveApp/";
+
+	private RestServiceV2Test restServiceTest;
+
+	private static int OS_TYPE;
+	public static Process process;
+	private static Process tmpExec;
+
+	public static String ffmpegPath = "ffmpeg";
+	static {
+		String osName = System.getProperty("os.name", "").toLowerCase();
+		if (osName.startsWith("mac os x") || osName.startsWith("darwin")) {
+			OS_TYPE = MAC_OS_X;
+		} else if (osName.startsWith("windows")) {
+			OS_TYPE = WINDOWS;
+		} else if (osName.startsWith("linux")) {
+			OS_TYPE = LINUX;
+		}
+	}
+
+	@BeforeClass
+	public static void beforeClass(){
+		WebDriverManager.chromedriver().setup();
+		if (OS_TYPE == MAC_OS_X) {
+			ffmpegPath = "/usr/local/bin/ffmpeg";
+		}
+	}
+
+	@Before
+	public void before() {
+
+		File webApps = new File("webapps");
+		if (!webApps.exists()) {
+			webApps.mkdirs();
+		}
+		File junit = new File(webApps, "junit");
+		if (!junit.exists()) {
+			junit.mkdirs();
+		}
+		restServiceTest = new RestServiceV2Test();
+
+		try {
+			//we use this delete operation because sometimes there are too many vod files and
+			//vod service returns 50 for max and this make some tests fail
+
+			int currentVodNumber = restServiceTest.callTotalVoDNumber();
+			logger.info("current vod number before test {}", String.valueOf(currentVodNumber));
+			if (currentVodNumber > 10) {
+
+
+				//delete vods
+				List<VoD> voDList = restServiceTest.callGetVoDList();
+				if (voDList != null) {
+					for (VoD voD : voDList) {
+						RestServiceV2Test.deleteVoD(voD.getVodId());
+					}
+				}
+
+				currentVodNumber = restServiceTest.callTotalVoDNumber();
+				logger.info("vod number after deletion {}", String.valueOf(currentVodNumber));
+			}
+
+			ConsoleAppRestServiceTest.resetCookieStore();
+
+			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+
+
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(ExceptionUtils.getStackTrace(e));
+		}
+	}
+
+	@After
+	public void stop(){
+		logger.info("Closing the driver");
+		if(this.driver != null)
+			this.driver.quit();
+	}
 
-            if (result.isSuccess()) {
-                Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
-                assertTrue(createInitialUser.isSuccess());
-            }
+	public ChromeOptions getChromeOptions() {
+		ChromeOptions chrome_options = new ChromeOptions();
+		chrome_options.addArguments("--disable-extensions");
+		chrome_options.addArguments("--disable-gpu");
+		chrome_options.addArguments("--headless");
+		chrome_options.addArguments("--use-fake-ui-for-media-stream",
+				"--use-fake-device-for-media-stream");
+		chrome_options.addArguments("--no-sandbox");
+		chrome_options.addArguments("--log-level=1");
+		LoggingPreferences logPrefs = new LoggingPreferences();
+		//To get console log
+		logPrefs.enable(LogType.BROWSER, Level.ALL);
+		chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
 
-            result = ConsoleAppRestServiceTest.authenticateDefaultUser();
-            assertTrue(result.isSuccess());
-            Random r = new Random();
-            String streamId = "streamId" + r.nextInt();
+		return chrome_options;
+	}
 
-            AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+	//This was a bug for community edition
+	@Test
+	public void testAudioOnlyPublish() {
+		Result result;
+		List<EncoderSettings> encoderSettings = null;
+		try {
 
-            encoderSettings = appSettingsModel.getEncoderSettings();
+			Random r = new Random();
+			String streamId = "streamId" + r.nextInt();
 
-            appSettingsModel.setHlsMuxingEnabled(true);
-            appSettingsModel.setEncoderSettings(null);
+			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 
-            result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
-            assertTrue(result.isSuccess());
+			encoderSettings = appSettingsModel.getEncoderSettings();
 
-        }
-        catch (Exception e){
-            fail();
-            System.out.println(ExceptionUtils.getStackTrace(e));
-        }
+			appSettingsModel.setHlsMuxingEnabled(true);
+			appSettingsModel.setEncoderSettings(null);
 
-        this.driver = new ChromeDriver(chrome_options);
-        this.driver.manage().timeouts().pageLoadTimeout( Duration.ofSeconds(10));
-        this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-        this.driver.get(this.url+"index.html");
-        WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(15));
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
 
-        //Check we landed on the page
-        String title = this.driver.getTitle();
-        assertEquals("Ant Media Server WebRTC Publish", title);
-        System.out.println(this.url + " " + this.driver + " " + title);
+			this.driver = new ChromeDriver(getChromeOptions());
+			this.driver.manage().timeouts().pageLoadTimeout( Duration.ofSeconds(10));
+			this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+			this.driver.get(this.url+"audio_publish.html");
+			WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(15));
 
-        wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='start_publish_button']")));
-        assertTrue(checkAlert());
+			String publishButtonText = "//*[@id='start_publish_button']";
+			wait.until(ExpectedConditions.elementToBeClickable(By.xpath(publishButtonText)));
 
-        this.driver.findElement(By.xpath("//*[@id='start_publish_button']")).click();
+			this.driver.findElement(By.xpath(publishButtonText)).click();
 
-        wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[@id=\"broadcastingInfo\"]")));
+			wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[@id=\"broadcastingInfo\"]")));
 
-        //Check logs if publish started
-        LogEntries entry = driver.manage().logs().get(LogType.BROWSER);
-        checkLogsForKeyword("publish started", entry);
+			//wait for creating  files
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/stream1.m3u8");
+			});
+			
+			assertTrue(MuxingTest.audioExists);
+			assertFalse(MuxingTest.videoExists);
 
-        //wait for creating  files
-        Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-            return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/stream1.m3u8");
-        });
+			String stopPublishButtonText = "//*[@id='stop_publish_button']";
+			wait.until(ExpectedConditions.elementToBeClickable(By.xpath(stopPublishButtonText)));
 
-        assertTrue(checkAlert());
+			this.driver.findElement(By.xpath(stopPublishButtonText)).click();
 
-        wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='stop_publish_button']")));
+			wait.until(ExpectedConditions.elementToBeClickable(By.xpath(publishButtonText)));
 
-        this.driver.findElement(By.xpath("//*[@id='stop_publish_button']")).click();
 
-        wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='start_publish_button']")));
+			//restore settings
+			appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 
-        assertTrue(checkAlert());
+			appSettingsModel.setEncoderSettings(encoderSettings);
 
-        entry = driver.manage().logs().get(LogType.BROWSER);
-        assertTrue(checkLogsForKeyword("publish finished", entry));
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
 
-        try {
-            AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+		}
+		catch (Exception e){
+			logger.error(ExceptionUtils.getStackTrace(e));
+			fail(e.getMessage());
 
-            appSettingsModel.setEncoderSettings(encoderSettings);
+		}
 
-            result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
-            assertTrue(result.isSuccess());
+	}
 
-        }
-        catch (Exception e){
-            fail();
-            System.out.println(ExceptionUtils.getStackTrace(e));
-        }
+	@Test
+	public void testPublishPageStartStopPublish(){
 
+		Result result;
+		List<EncoderSettings> encoderSettings = null;
+		try {
+			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 
-    }
+			encoderSettings = appSettingsModel.getEncoderSettings();
 
-    @Test
-    public void testEmbeddedPlayPage(){
-        RestServiceV2Test restService = new RestServiceV2Test();
+			appSettingsModel.setHlsMuxingEnabled(true);
+			appSettingsModel.setEncoderSettings(null);
 
-        ConsoleAppRestServiceTest.resetCookieStore();
-        Result result;
-        List<EncoderSettings> encoderSettings = null;
-        try {
-            result = ConsoleAppRestServiceTest.callisFirstLogin();
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
 
-            if (result.isSuccess()) {
-                Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
-                assertTrue(createInitialUser.isSuccess());
-            }
+		}
+		catch (Exception e){
+			fail();
+			System.out.println(ExceptionUtils.getStackTrace(e));
+		}
 
-            result = ConsoleAppRestServiceTest.authenticateDefaultUser();
-            assertTrue(result.isSuccess());
-            Random r = new Random();
-            String streamId = "streamId" + r.nextInt();
+		this.driver = new ChromeDriver(getChromeOptions());
+		this.driver.manage().timeouts().pageLoadTimeout( Duration.ofSeconds(10));
+		this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+		this.driver.get(this.url+"index.html");
+		WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(15));
 
-            AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+		//Check we landed on the page
+		String title = this.driver.getTitle();
+		assertEquals("Ant Media Server WebRTC Publish", title);
+		System.out.println(this.url + " " + this.driver + " " + title);
 
-            encoderSettings = appSettingsModel.getEncoderSettings();
+		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='start_publish_button']")));
+		assertTrue(checkAlert());
 
-            appSettingsModel.setHlsMuxingEnabled(true);
-            appSettingsModel.setEncoderSettings(null);
+		this.driver.findElement(By.xpath("//*[@id='start_publish_button']")).click();
 
-            result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
-            assertTrue(result.isSuccess());
+		wait.until(ExpectedConditions.visibilityOfElementLocated(By.xpath("//*[@id=\"broadcastingInfo\"]")));
 
-        }
-        catch (Exception e){
-            fail();
-            System.out.println(ExceptionUtils.getStackTrace(e));
-        }
+		//Check logs if publish started
+		LogEntries entry = driver.manage().logs().get(LogType.BROWSER);
+		checkLogsForKeyword("publish started", entry);
 
+		//wait for creating  files
+		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/stream1.m3u8");
+		});
 
-        Random r = new Random();
-        String streamId = "streamId" + r.nextInt();
-
-        Broadcast broadcast=restService.createBroadcast(streamId);
-        assertNotNull(broadcast);
-
-        Process rtmpSendingProcess = execute(ffmpegPath
-                + " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://localhost/LiveApp/"
-                + broadcast.getStreamId());
-
-        ChromeOptions chrome_options = new ChromeOptions();
-        chrome_options.addArguments("--disable-extensions");
-        chrome_options.addArguments("--disable-gpu");
-        chrome_options.addArguments("--headless");
-        chrome_options.addArguments("--no-sandbox");
-        chrome_options.addArguments("--log-level=1");
-        LoggingPreferences logPrefs = new LoggingPreferences();
-        //To get console log
-        logPrefs.enable(LogType.BROWSER, Level.ALL);
-        chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
-
-        Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-            return MuxingTest.testFile("http://localhost:5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
-        });
-
-        Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-            return restService.callGetBroadcast(broadcast.getStreamId()).getHlsViewerCount() == 0 ;
-        });
-
-        this.driver = new ChromeDriver(chrome_options);
-        this.driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(10));
-        this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-
-        //Test HLS
-        this.driver.get(this.url+"play.html?id="+broadcast.getStreamId()+"&playOrder=hls");
-
-        //Check we landed on the page
-        String title = this.driver.getTitle();
-
-        System.out.println(this.url + " " + this.driver + " " + title);
-        assertEquals("Ant Media Server WebRTC/HLS Player", title);
-
-
-        assertTrue(checkAlert());
-
-        Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-            return restService.callGetBroadcast(broadcast.getStreamId()).getHlsViewerCount() > 0 ;
-        });
-
-        rtmpSendingProcess.destroy();
-
-        try {
-            AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
-
-            appSettingsModel.setEncoderSettings(encoderSettings);
-
-            result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
-            assertTrue(result.isSuccess());
-
-        }
-        catch (Exception e){
-            fail();
-            System.out.println(ExceptionUtils.getStackTrace(e));
-        }
-
-    }
-
-    public boolean checkLogsForKeyword(String keyword, LogEntries entry){
-        // Retrieving all log
-        List<LogEntry> logs= entry.getAll();
-        // Print one by one
-        for(LogEntry e: logs)
-        {
-            if(e.toString().contains(keyword)){
-                logger.info("Found the keyword in = " + e);
-                return true;
-            }
-        }
-        logger.error("Can't find the keyword in console logs");
-        return false;
-    }
-    public boolean checkAlert()
-    {
-        try
-        {
-            String alert = this.driver.switchTo().alert().getText();
-            System.out.println(alert);
-            if(alert.equalsIgnoreCase("HighResourceUsage")){
-                logger.error("High resource usage blocks testing");
-                this.driver.switchTo().alert().accept();
-                return false;
-            }
-            else if(alert.equalsIgnoreCase("no_stream_exist")){
-                logger.info("No stream available check the publishing");
-                this.driver.switchTo().alert().accept();
-                return false;
-            }
-            else{
-                logger.error("Unexpected pop-up alert on browser = {}" , alert);
-                this.driver.switchTo().alert().dismiss();
-                return false;
-            }
-        }
-        catch (NoAlertPresentException e)
-        {
-            return true;
-        }
-    }
-
-    public static Process execute(final String command) {
-        tmpExec = null;
-        new Thread() {
-            public void run() {
-                try {
-
-                    tmpExec = Runtime.getRuntime().exec(command);
-                    InputStream errorStream = tmpExec.getErrorStream();
-                    byte[] data = new byte[1024];
-                    int length = 0;
-
-                    while ((length = errorStream.read(data, 0, data.length)) > 0) {
-                        System.out.println(new String(data, 0, length));
-                    }
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            };
-        }.start();
-
-        while (tmpExec == null) {
-            try {
-                System.out.println("Waiting for exec get initialized...");
-                Thread.sleep(500);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-
-        return tmpExec;
-    }
+		assertTrue(checkAlert());
+
+		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='stop_publish_button']")));
+
+		this.driver.findElement(By.xpath("//*[@id='stop_publish_button']")).click();
+
+		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='start_publish_button']")));
+
+		assertTrue(checkAlert());
+
+		entry = driver.manage().logs().get(LogType.BROWSER);
+		assertTrue(checkLogsForKeyword("publish finished", entry));
+
+		try {
+			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+			appSettingsModel.setEncoderSettings(encoderSettings);
+
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+		}
+		catch (Exception e){
+			fail();
+			System.out.println(ExceptionUtils.getStackTrace(e));
+		}
+
+
+	}
+
+	@Test
+	public void testEmbeddedPlayPage(){
+		RestServiceV2Test restService = new RestServiceV2Test();
+
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result;
+		List<EncoderSettings> encoderSettings = null;
+		try {
+			result = ConsoleAppRestServiceTest.callisFirstLogin();
+
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+			Random r = new Random();
+			String streamId = "streamId" + r.nextInt();
+
+			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+			encoderSettings = appSettingsModel.getEncoderSettings();
+
+			appSettingsModel.setHlsMuxingEnabled(true);
+			appSettingsModel.setEncoderSettings(null);
+
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+		}
+		catch (Exception e){
+			fail();
+			System.out.println(ExceptionUtils.getStackTrace(e));
+		}
+
+
+		Random r = new Random();
+		String streamId = "streamId" + r.nextInt();
+
+		Broadcast broadcast=restService.createBroadcast(streamId);
+		assertNotNull(broadcast);
+
+		Process rtmpSendingProcess = execute(ffmpegPath
+				+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://localhost/LiveApp/"
+				+ broadcast.getStreamId());
+
+		ChromeOptions chrome_options = new ChromeOptions();
+		chrome_options.addArguments("--disable-extensions");
+		chrome_options.addArguments("--disable-gpu");
+		chrome_options.addArguments("--headless");
+		chrome_options.addArguments("--no-sandbox");
+		chrome_options.addArguments("--log-level=1");
+		LoggingPreferences logPrefs = new LoggingPreferences();
+		//To get console log
+		logPrefs.enable(LogType.BROWSER, Level.ALL);
+		chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://localhost:5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
+		});
+
+		//Decreasing to zero may take some time
+		//TODO: Find a better to decrease the test duration
+		Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return restService.callGetBroadcast(broadcast.getStreamId()).getHlsViewerCount() == 0 ;
+		});
+
+		this.driver = new ChromeDriver(chrome_options);
+		this.driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(10));
+		this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+
+		//Test HLS
+		this.driver.get(this.url+"play.html?id="+broadcast.getStreamId()+"&playOrder=hls");
+
+		//Check we landed on the page
+		String title = this.driver.getTitle();
+
+		System.out.println(this.url + " " + this.driver + " " + title);
+		assertEquals("Ant Media Server WebRTC/HLS Player", title);
+
+
+		assertTrue(checkAlert());
+
+		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return restService.callGetBroadcast(broadcast.getStreamId()).getHlsViewerCount() > 0 ;
+		});
+
+		rtmpSendingProcess.destroy();
+
+		try {
+			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+
+			appSettingsModel.setEncoderSettings(encoderSettings);
+
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+		}
+		catch (Exception e){
+			fail();
+			System.out.println(ExceptionUtils.getStackTrace(e));
+		}
+
+	}
+
+	public boolean checkLogsForKeyword(String keyword, LogEntries entry){
+		// Retrieving all log
+		List<LogEntry> logs= entry.getAll();
+		// Print one by one
+		for(LogEntry e: logs)
+		{
+			if(e.toString().contains(keyword)){
+				logger.info("Found the keyword in = " + e);
+				return true;
+			}
+		}
+		logger.error("Can't find the keyword in console logs");
+		return false;
+	}
+	public boolean checkAlert()
+	{
+		try
+		{
+			String alert = this.driver.switchTo().alert().getText();
+			System.out.println(alert);
+			if(alert.equalsIgnoreCase("HighResourceUsage")){
+				logger.error("High resource usage blocks testing");
+				this.driver.switchTo().alert().accept();
+				return false;
+			}
+			else if(alert.equalsIgnoreCase("no_stream_exist")){
+				logger.info("No stream available check the publishing");
+				this.driver.switchTo().alert().accept();
+				return false;
+			}
+			else{
+				logger.error("Unexpected pop-up alert on browser = {}" , alert);
+				this.driver.switchTo().alert().dismiss();
+				return false;
+			}
+		}
+		catch (NoAlertPresentException e)
+		{
+			return true;
+		}
+	}
+
+	public static Process execute(final String command) {
+		tmpExec = null;
+		new Thread() {
+			public void run() {
+				try {
+
+					tmpExec = Runtime.getRuntime().exec(command);
+					InputStream errorStream = tmpExec.getErrorStream();
+					byte[] data = new byte[1024];
+					int length = 0;
+
+					while ((length = errorStream.read(data, 0, data.length)) > 0) {
+						System.out.println(new String(data, 0, length));
+					}
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			};
+		}.start();
+
+		while (tmpExec == null) {
+			try {
+				System.out.println("Waiting for exec get initialized...");
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+
+		return tmpExec;
+	}
 }

@@ -187,7 +187,6 @@ public class TokenFilterManager extends AbstractFilter   {
 
 
 	public static String getStreamId(String requestURI) {
-
 		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
 
 		int endIndex;
@@ -235,41 +234,55 @@ public class TokenFilterManager extends AbstractFilter   {
 			return requestURI.substring(startIndex+1, endIndex);
 		}
 
-		//streamId_underline_test-2021-05-18_11-26-26.842.mp4 and streamId_underline_test-2021-05-18_11-26-26.842_360p.mp4 
-		String mp4Regex1 = "(.*)+(-20)[0-9][0-9]+(-)+([0-9][0-9])+(.*).mp4$"; 
-		if (requestURI.matches(mp4Regex1)) {
+		//streamId_underline_test-2021-05-18_11-26-26.842.mp4 and streamId_underline_test-2021-05-18_11-26-26.842_360p500kbps.mp4 
+		String vodDatetimeRegex = "(.*)+(-20)[0-9][0-9]+(-)+([0-9][0-9])+(.*)";
+		String vodResolutionBitrateRegex = "(.*)+_[0-9]+p+[0-9]+kbps+(.*)";
+		if (requestURI.matches(vodDatetimeRegex)) 
+		{
 			endIndex = requestURI.lastIndexOf('_'); //if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
 			//_480p regex
-			String mp4resolutionRegex = "(.*)+_[0-9]+p+(.*)"; 
-			if(requestURI.matches(mp4resolutionRegex)) {
+			if(requestURI.matches(vodResolutionBitrateRegex)) {
 				endIndex = requestURI.substring(startIndex, endIndex).lastIndexOf('.');
 				//Remove -2021-05-18_11-26-26 character size
-				endIndex-=Muxer.DATE_TIME_PATTERN.length()-3; 
+				endIndex -= Muxer.DATE_TIME_PATTERN.length()-3; 
 			}
 			else {
 				//Remove -2021-05-18 character size
-				endIndex-=Muxer.DATE_TIME_PATTERN.length()-12;
+				endIndex -= Muxer.DATE_TIME_PATTERN.length()-12;
 			}
 			return requestURI.substring(startIndex+1, endIndex);
 		}
 
-		//if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 or 541211332342978513714151_480p.mp4 
-		String mp4Regex2 = "(.*)+(_[0-9]+p+_[0-9]|_|_[0-9])+.mp4$"; 
-		if (requestURI.matches(mp4Regex2)) {
-			endIndex = requestURI.lastIndexOf('_'); //if multiple files with same id requested such as : 541211332342978513714151_480p_1.mp4 
-			//_480p regex
-			String mp4resolutionRegex = "(.*)+_[0-9]+p[0-9]+kbps$"; 
-			if(requestURI.substring(startIndex+1, endIndex).matches(mp4resolutionRegex)) {
+		//if multiple files with same id requested such as : 541211332342978513714151_480p5000kbps_1.mp4 or 541211332342978513714151_480p500kbps.mp4 
+		if (requestURI.matches(vodResolutionBitrateRegex)) 
+		{
+			endIndex = requestURI.lastIndexOf('_'); //if multiple files with same id requested such as : 541211332342978513714151_480p500kbps_1.mp4 
+
+			if(requestURI.substring(startIndex+1, endIndex).matches(vodResolutionBitrateRegex)) 
+			{
 				endIndex = requestURI.substring(startIndex, endIndex).lastIndexOf('_');
 			}
 			return requestURI.substring(startIndex+1, endIndex);
 		}
 
-		//if default mp4 file requested such as: 541211332342978513714151.mp4
+		//if default mp4 file requested such as: 541211332342978513714151.mp4, 541211332342978513714151_23.mp4
+		String underScoreRegex = "(.*)_[0-9]+(.*)";
 		endIndex = requestURI.lastIndexOf(".mp4");
-		if (endIndex != -1) {
+		if (endIndex == -1) 
+		{
+			//if default webm file requested such as: 541211332342978513714151.webm
+			endIndex = requestURI.lastIndexOf(".webm");
+		}
+		
+		if (endIndex != -1) 
+		{
+			if (requestURI.matches(underScoreRegex)) 
+			{
+				endIndex = requestURI.lastIndexOf("_");
+			}
 			return requestURI.substring(startIndex+1, endIndex);
 		}
+
 
 		return null;
 	}

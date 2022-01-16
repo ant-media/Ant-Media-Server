@@ -425,5 +425,20 @@ public class WebSocketConstants {
 	 * It's sent for the restored webrtc publish sessions
 	 */
 	public static final String SESSION_RESTORED_DESCRIPTION = "session_restored";
+	
+	/**
+	 * It's the field that maps sdp mid to stream id
+	 */
+	public static final String ID_MAPPING = "idMapping";
+
+	/**
+	 * It can be used to add some meta data to a broadcast
+	 */
+	public static final String META_DATA = "metaData";
+	
+	/**
+	 * Command to update the meta data for a broadcast
+	 */
+	public static final String UPDATE_STREAM_META_DATA_COMMAND = "updateStreamMetaData";
 
 }

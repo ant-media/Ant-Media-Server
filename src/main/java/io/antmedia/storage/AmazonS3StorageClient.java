@@ -8,7 +8,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -20,6 +19,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
@@ -99,10 +99,16 @@ public class AmazonS3StorageClient extends StorageClient {
 			PutObjectRequest putRequest = new PutObjectRequest(getStorageName(), key, file);
 			putRequest.setCannedAcl(getCannedAcl());
 
+			if(checkStorageClass(getStorageClass())){
+				putRequest.withStorageClass(getStorageClass().toUpperCase());
+			}
+
 			Upload upload = tm.upload(putRequest);
-			// TransferManager processes all transfers asynchronously,
-			// so this call returns immediately.
-			//Upload upload = tm.upload(getStorageName(), key, file);
+		
+			/* 
+			 * TransferManager processes all transfers asynchronously, so this call returns immediately.
+			 * Some blocking calls are removed. Please don't block any threads if it's really not necessary
+			 */
 			logger.info("{} upload has started with key: {}", file.getName(), key);
 
 			upload.addProgressListener((ProgressListener)event -> 
@@ -120,22 +126,21 @@ public class AmazonS3StorageClient extends StorageClient {
 			});
 
 
-			// Optionally, wait for the upload to finish before continuing.
-			try {  
-				upload.waitForCompletion();
-
-				logger.info("{} upload completed", file.getName());
-			} catch (AmazonServiceException e1) {
-				logger.error(ExceptionUtils.getStackTrace(e1));
-			} catch (InterruptedException e1) {
-				logger.error(ExceptionUtils.getStackTrace(e1));
-				Thread.currentThread().interrupt();
-			}
+			
 		}
 		else {
 			logger.debug("S3 is not enabled to save the file: {}", key);
 		}
-
+	}
+	public boolean checkStorageClass(String s3StorageClass){
+		logger.debug("Requested storage class = {}" , s3StorageClass);
+		//All of the inputs are upper case and case sensitive like GLACIER
+		for(int i = 0; i < StorageClass.values().length; i++){
+			if(s3StorageClass.equalsIgnoreCase(StorageClass.values()[i].toString())){
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public TransferManager getTransferManager() {

@@ -107,6 +107,16 @@ public class VoDRestService extends RestServiceBase{
 	public Result deleteVoD(@ApiParam(value = "the id of the VoD file", required = true) @PathParam("id") String id) {
 		return super.deleteVoD(id);
 	}
+
+	@ApiOperation(value = "Delete bulk VoD Files based on Vod Id", response = Result.class)
+	@DELETE
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/bulk")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public Result deleteVoDs(@ApiParam(value = "the ids of the VoD file", required = true) String[] vodIds) {
+		return super.deleteVoDs(vodIds);
+	}
 	
 	@ApiOperation(value = "Upload external VoD file to Ant Media Server", notes = "", response = Result.class)
 	@POST

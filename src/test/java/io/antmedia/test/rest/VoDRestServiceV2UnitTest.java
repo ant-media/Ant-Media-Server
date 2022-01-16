@@ -27,13 +27,16 @@ import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
 
 import dev.morphia.Datastore;
+import dev.morphia.DeleteOptions;
 import dev.morphia.query.Query;
+import dev.morphia.query.experimental.filters.Filters;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
@@ -126,8 +129,8 @@ public class VoDRestServiceV2UnitTest {
 		//Vod vod = new Vod();
 		File file = new File(vodFolder, "test_file");
 		String vodId = RandomStringUtils.randomNumeric(24);
-		VoD newVod = new VoD("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 6000,
-				VoD.USER_VOD,vodId);
+		VoD newVod = new VoD("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 0, 6000,
+				VoD.USER_VOD,vodId,null);
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 
@@ -170,7 +173,7 @@ public class VoDRestServiceV2UnitTest {
 
 		String vodId = RandomStringUtils.randomNumeric(24);
 
-		VoD streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD, vodId);
+		VoD streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.STREAM_VOD, vodId, null);
 		datastore.addVod(streamVod);
 
 		assertNotNull(datastore.getVoD(vodId));
@@ -200,6 +203,75 @@ public class VoDRestServiceV2UnitTest {
 		assertEquals(0, restServiceReal.getVodList(0, 50, null, null, null, null).size());
 
 		assertNull(datastore.getVoD(vodId));
+
+		vodId = RandomStringUtils.randomNumeric(24);
+		//Preview does not exist path
+		streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.STREAM_VOD, vodId, "/fake/path/doesnotexist");
+		datastore.addVod(streamVod);
+
+		assertNotNull(datastore.getVoD(vodId));
+
+		voD = restServiceReal.getVoD(vodId);
+		assertEquals(streamVod.getPreviewFilePath(), voD.getPreviewFilePath());
+
+		assertEquals(1, restServiceReal.getVodList(0, 50, null, null, null, null).size());
+
+		restServiceReal.deleteVoD(vodId);
+
+		assertEquals(0, restServiceReal.getVodList(0, 50, null, null, null, null).size());
+
+	}
+
+
+	@Test
+	public void testDeleteVoDs() {
+		InMemoryDataStore datastore = new InMemoryDataStore("datastore");
+		restServiceReal.setDataStore(datastore);
+
+		String vodId = RandomStringUtils.randomNumeric(24);
+
+		VoD streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.STREAM_VOD, vodId, null);
+		datastore.addVod(streamVod);
+
+		assertNotNull(datastore.getVoD(vodId));
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "junit";
+		when(scope.getName()).thenReturn(scopeName);
+
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(app.getScope()).thenReturn(scope);
+
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+
+		restServiceReal.setAppCtx(context);
+
+		VoD voD = restServiceReal.getVoD(vodId);
+		assertEquals(vodId, voD.getVodId());
+		assertEquals(streamVod.getStreamId(), voD.getStreamId());
+		assertEquals(streamVod.getVodName(), voD.getVodName());
+		assertEquals(streamVod.getFilePath(), voD.getFilePath());
+
+		assertEquals(1, restServiceReal.getVodList(0, 50, null, null, null, null).size());
+
+		restServiceReal.deleteVoDs(new String[] {vodId});
+
+		assertEquals(0, restServiceReal.getVodList(0, 50, null, null, null, null).size());
+
+		assertNull(datastore.getVoD(vodId));
+		
+		
+		Result result = restServiceReal.deleteVoDs(new String[] {});
+		assertFalse(result.isSuccess());
+		
+		result = restServiceReal.deleteVoDs(null);
+		assertFalse(result.isSuccess());
+		
+		result = restServiceReal.deleteVoDs(new String[] {"123" + (int)(Math.random()*10000)});
+		assertFalse(result.isSuccess());
+		
 
 	}
 
@@ -279,17 +351,17 @@ public class VoDRestServiceV2UnitTest {
 		
 		DataStore mongoDataStore = new MongoStore("localhost", "", "", "testdb");
 		Datastore store = ((MongoStore) mongoDataStore).getVodDatastore();
-		Query<VoD> deleteQuery = store.find(VoD.class);
-		store.delete(deleteQuery);
+		
+		store.find(VoD.class).delete(new DeleteOptions().multi(true));
 		vodSorting(mongoDataStore);
 	}
 	
 	public void vodSorting(DataStore datastore) {
 		restServiceReal.setDataStore(datastore);
 
-		VoD vod1 = new VoD("streamName", "streamId", "filePath", "vodName2", 333, 111, 111, VoD.STREAM_VOD, "vod_1");
-		VoD vod2 = new VoD("streamName", "streamId", "filePath", "vodName1", 222, 111, 111, VoD.STREAM_VOD, "vod_2");
-		VoD vod3 = new VoD("streamName", "streamId", "filePath", "vodName3", 111, 111, 111, VoD.STREAM_VOD, "vod_3");
+		VoD vod1 = new VoD("streamName", "streamId", "filePath", "vodName2", 333, 333, 111, 111, VoD.STREAM_VOD, "vod_1", null);
+		VoD vod2 = new VoD("streamName", "streamId", "filePath", "vodName1", 222, 222, 111, 111, VoD.STREAM_VOD, "vod_2",null);
+		VoD vod3 = new VoD("streamName", "streamId", "filePath", "vodName3", 111, 111, 111, 111, VoD.STREAM_VOD, "vod_3", null);
 		
 		datastore.addVod(vod1);
 		datastore.addVod(vod2);
@@ -383,9 +455,9 @@ public class VoDRestServiceV2UnitTest {
 		String vodId1="vod_1";
 		String vodId2="vod_2";
 		String vodId3="vod_3";
-		VoD vod1 = new VoD("streamName", streamId, "filePath", "vodName2", 333, 111, 111, VoD.STREAM_VOD, vodId1);
-		VoD vod2 = new VoD("streamName", streamId, "filePath", "vodName1", 222, 111, 111, VoD.STREAM_VOD, vodId2);
-		VoD vod3 = new VoD("streamName", "streamId123", "filePath", "vodName3", 111, 111, 111, VoD.STREAM_VOD, vodId3);
+		VoD vod1 = new VoD("streamName", streamId, "filePath", "vodName2", 333, 333, 111, 111, VoD.STREAM_VOD, vodId1,null);
+		VoD vod2 = new VoD("streamName", streamId, "filePath", "vodName1", 222, 222, 111, 111, VoD.STREAM_VOD, vodId2,null);
+		VoD vod3 = new VoD("streamName", "streamId123", "filePath", "vodName3", 111, 111, 111, 111, VoD.STREAM_VOD, vodId3,null);
 
 		dataStore.addVod(vod1);
 		dataStore.addVod(vod2);

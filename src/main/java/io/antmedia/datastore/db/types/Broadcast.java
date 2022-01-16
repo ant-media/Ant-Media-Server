@@ -5,10 +5,8 @@ import java.util.List;
 
 import org.bson.types.ObjectId;
 
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import dev.morphia.annotations.Embedded;
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
@@ -19,7 +17,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 
 @ApiModel(value="Broadcast", description="The basic broadcast class")
-@Entity(value = "broadcast", noClassnameStored = true)
+@Entity(value = "broadcast")
 @Indexes({ @Index(fields = @Field("name")), @Index(fields = @Field("streamId")) })
 public class Broadcast {
 
@@ -108,12 +106,10 @@ public class Broadcast {
 	private long duration;
 
 	@ApiModelProperty(value = "the list of endpoints such as Facebook, Twitter or custom RTMP endpoints  ")
-	@Embedded
 	private List<Endpoint> endPointList;
 
 
 	@ApiModelProperty(value = "the list broadcasts of Playlist Items. This list has values when the broadcast type is playlist")
-	@Embedded
 	private List<PlayListItem> playListItemList;
 
 	/**
@@ -203,6 +199,7 @@ public class Broadcast {
 	@ApiModelProperty(value = "WebM muxing whether enabled or not for the stream, 1 means enabled, -1 means disabled, 0 means no settings for the stream")
 	private int webMEnabled = 0;
 
+	@Entity
 	public static class PlayListItem
 	{
 		String streamUrl;
@@ -325,6 +322,12 @@ public class Broadcast {
 	 */
 	@ApiModelProperty(value = "Current playing index for playlist types")
 	private int currentPlayIndex = 0;
+	
+	/**
+	 * Meta data filed for the custom usage
+	 */
+	@ApiModelProperty(value = "Meta data filed for the custom usage")
+	private String metaData = "";
 
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
@@ -750,5 +753,13 @@ public class Broadcast {
 
 	public void setPublishType(String publishType) {
 		this.publishType = publishType;
+	}
+
+	public String getMetaData() {
+		return metaData;
+	}
+
+	public void setMetaData(String metaData) {
+		this.metaData = metaData;
 	}
 }

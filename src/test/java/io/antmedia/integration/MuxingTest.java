@@ -68,6 +68,8 @@ public class MuxingTest {
 	private static String ffmpegPath = "ffmpeg";
 	public static long audioStartTimeMs;
 	public static long videoStartTimeMs;
+	public static boolean audioExists;
+	public static boolean videoExists;
 
 	static {
 		String osName = System.getProperty("os.name", "").toLowerCase();
@@ -130,7 +132,6 @@ public class MuxingTest {
 
 	@Test
 	public void testRtmpAndVODStreaming() {
-
 		assertTrue("duplicate test AppFunctionalV2Test#testSendRTMPStream", true);
 	}
 
@@ -422,6 +423,8 @@ public class MuxingTest {
 
 	public static boolean testFile(String absolutePath, int expectedDurationInMS, boolean fullRead) {
 		int ret;
+		audioExists = false;
+		videoExists = false;
 		System.out.println("Tested File:"+absolutePath);
 
 		//AVDictionary dic = null;
@@ -466,18 +469,20 @@ public class MuxingTest {
 		for (int i = 0; i < streamCount; i++) {
 			AVCodecContext codecContext = inputFormatContext.streams(i).codec();
 
-			if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) {
+			if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) 
+			{
 				assertTrue(codecContext.width() != 0);
 				assertTrue(codecContext.height() != 0);
 				assertTrue(codecContext.pix_fmt() != AV_PIX_FMT_NONE);
 				videoStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 
-
+				videoExists = true;
 				streamExists = true;
-			} else if (codecContext.codec_type() == AVMEDIA_TYPE_AUDIO) {
+			} else if (codecContext.codec_type() == AVMEDIA_TYPE_AUDIO) 
+			{
 				assertTrue(codecContext.sample_rate() != 0);
 				audioStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
-
+				audioExists = true;
 				streamExists = true;
 			}
 		}

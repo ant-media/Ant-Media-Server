@@ -12,6 +12,7 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 	public static List<String> id = new ArrayList<>();
 	public static List<File> file = new ArrayList<>();
 	public static List<Long> duration = new ArrayList<>();
+	public static List<Long> startTime = new ArrayList<>();
 
 	public static List<String> notifyHookAction = new ArrayList<>();
 	public static List<String> notitfyURL = new ArrayList<>();
@@ -26,17 +27,19 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	
 	@Override
-	public void muxingFinished(String id, File file, long duration, int resolution) {
-		super.muxingFinished(id, file, duration, resolution);
+	public void muxingFinished(String id, File file, long startTime, long duration, int resolution, String previewPath) {
+		super.muxingFinished(id, file, startTime, duration, resolution, previewPath);
 		Application.id.add(id);
 		Application.file.add(file);
 		Application.duration.add(duration);
+		Application.startTime.add(startTime);
 	}
 
 	public static void resetFields() {
 		Application.id.clear();
 		Application.file.clear();
 		Application.duration.clear();
+		Application.startTime.clear();
 		notifyHookAction.clear();
 		notitfyURL.clear();
 		notifyId.clear();
@@ -46,8 +49,9 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	}
 
+	@Override
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
-			String vodName, String vodId) {
+			String vodName, String vodId, String metadata) {
 		logger.info("notify hook action: {}", action);
 		notifyHookAction.add(action);
 		notitfyURL.add(url);
