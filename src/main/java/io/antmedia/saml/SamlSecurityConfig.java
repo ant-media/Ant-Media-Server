@@ -47,6 +47,7 @@ import org.springframework.security.web.authentication.logout.LogoutHandler;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.security.saml.storage.EmptyStorageFactory;
 
 import java.util.*;
 
@@ -143,6 +144,8 @@ public class SamlSecurityConfig {
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     public SAMLContextProviderImpl contextProvider() {
+        SAMLContextProviderImpl samlContextProviderImpl = new SAMLContextProviderImpl();
+        samlContextProviderImpl.setStorageFactory(new EmptyStorageFactory());
         return new SAMLContextProviderImpl();
     }
 
