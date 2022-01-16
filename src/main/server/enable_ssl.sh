@@ -28,8 +28,8 @@ ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Pleas
 
 usage() {
   echo "Usage:"
-  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] -e {YOUR_EMAIL}"
-  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-v {route53 or custom}] -e {YOUR_EMAIL}"
+  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-e {YOUR_EMAIL}]"
+  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-v {route53 or custom}] [-e {YOUR_EMAIL}]"
   echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -c {CHAIN_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
   echo " "
   echo -e "If you have any question, send e-mail to contact@antmedia.io\n"
