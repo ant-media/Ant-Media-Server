@@ -86,6 +86,8 @@ public abstract class RecordMuxer extends Muxer {
 
 	protected boolean uploadMP4ToS3 = true;
 
+	protected String previewPath;
+
 	private String subFolder = null;
 
 	private static final int S3_CONSTANT = 0b001;
@@ -400,6 +402,9 @@ public abstract class RecordMuxer extends Muxer {
 		av_packet_unref(audioPkt);
 
 	}
+	public void setPreviewPath(String path){
+		this.previewPath = path;
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -436,7 +441,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				finalizeRecordFile(f);
 
-				adaptor.muxingFinished(streamId, f, startTime, getDurationInMs(f,streamId), resolution);
+				adaptor.muxingFinished(streamId, f, startTime, getDurationInMs(f,streamId), resolution, previewPath);
 
 				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
 
@@ -447,6 +452,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3 ) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
+
 					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, f.getName(), storageClient);
 				}
 			} catch (Exception e) {
@@ -456,6 +462,7 @@ public abstract class RecordMuxer extends Muxer {
 		}, null);
 
 	}
+
 
 	public File getFinalFileName(boolean isS3Enabled)
 	{

@@ -55,13 +55,13 @@ public class VoD implements Serializable {
 	@ApiModelProperty(value = "the creation of the VoD")
 	private long creationDate;
 	
-	@ApiModelProperty(value = "the start time of the VoD")
+	@ApiModelProperty(value = "the time when the VoD is being started to get recorded in milliseconds(UTC- Unix epoch)")
 	private long startTime;
 
 	@ApiModelProperty(value = "the duration of the VoD")
 	private long duration;
 	
-	@ApiModelProperty(value = "the size of the VoD")
+	@ApiModelProperty(value = "the size of the VoD file in bytes")
 	private long fileSize;
 	
 	@ApiModelProperty(value = "the path of the VoD")
@@ -72,6 +72,9 @@ public class VoD implements Serializable {
 	
 	@ApiModelProperty(value = "the type of the VoD, such as userVod, streamVod, uploadedVod")
 	private String type;
+
+	@ApiModelProperty(value = "the type of the VoD, such as userVod, streamVod, uploadedVod")
+	private String previewFilePath;
 	
 
 	public VoD() {
@@ -79,7 +82,7 @@ public class VoD implements Serializable {
 	}
 	
 	public VoD(String streamName, String streamId, String filePath, String vodName, long creationDate, long startTime, long duration,
-			long fileSize, String type, String vodId) {
+			long fileSize, String type, String vodId, String previewFilePath) {
 
 		this.streamName = streamName;
 		this.streamId = streamId;
@@ -91,8 +94,10 @@ public class VoD implements Serializable {
 		this.fileSize = fileSize;
 		this.type = type;
 		this.vodId = vodId;
+		this.previewFilePath = previewFilePath;
 
 	}
+
 
 	public String getType() {
 		return type;
@@ -172,6 +177,14 @@ public class VoD implements Serializable {
 
 	public void setVodId(String vodId) {
 		this.vodId = vodId;
+	}
+
+	public String getPreviewFilePath() {
+		return previewFilePath;
+	}
+
+	public void setPreviewFilePath(String previewFilePath) {
+		this.previewFilePath = previewFilePath;
 	}
 
 }
