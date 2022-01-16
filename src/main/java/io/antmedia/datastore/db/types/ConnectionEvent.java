@@ -3,11 +3,13 @@ package io.antmedia.datastore.db.types;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import dev.morphia.annotations.Entity;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
 
 @ApiModel(value="ConnectionEvent", description="Connection Event for the subscriber")
+@Entity
 public class ConnectionEvent {
 	@JsonIgnore
 	public static final String CONNECTED_EVENT = "connected";

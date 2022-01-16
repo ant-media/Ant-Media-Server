@@ -18,17 +18,11 @@
 
 package org.red5.server.statistics;
 
-import java.util.HashSet;
 import java.util.Set;
 
-import org.red5.server.api.Red5;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.so.ISharedObject;
-import org.red5.server.api.so.ISharedObjectService;
-import org.red5.server.api.statistics.ISharedObjectStatistics;
 import org.red5.server.api.statistics.IStatisticsService;
 import org.red5.server.exception.ScopeNotFoundException;
-import org.red5.server.exception.SharedObjectException;
 import org.red5.server.util.ScopeUtils;
 
 /**
@@ -47,11 +41,6 @@ public class StatisticsService implements IStatisticsService {
 
     public void setGlobalScope(IScope scope) {
         globalScope = scope;
-    }
-
-    public ISharedObject getScopeStatisticsSO(IScope scope) {
-        ISharedObjectService soService = (ISharedObjectService) ScopeUtils.getScopeService(scope, ISharedObjectService.class, false);
-        return soService.getSharedObject(scope, SCOPE_STATS_SO_NAME, false);
     }
 
     private IScope getScope(String path) throws ScopeNotFoundException {
@@ -79,37 +68,6 @@ public class StatisticsService implements IStatisticsService {
         return result;
     }
 
-    public ISharedObject getSharedObjectStatisticsSO(IScope scope) {
-        ISharedObjectService soService = (ISharedObjectService) ScopeUtils.getScopeService(scope, ISharedObjectService.class, false);
-        return soService.getSharedObject(scope, SO_STATS_SO_NAME, false);
-    }
-
-    public Set<ISharedObjectStatistics> getSharedObjects(String path) {
-        IScope scope = getScope(path);
-        ISharedObjectService soService = (ISharedObjectService) ScopeUtils.getScopeService(scope, ISharedObjectService.class, false);
-        Set<ISharedObjectStatistics> result = new HashSet<ISharedObjectStatistics>();
-        for (String name : soService.getSharedObjectNames(scope)) {
-            ISharedObject so = soService.getSharedObject(scope, name);
-            result.add(so.getStatistics());
-        }
-        return result;
-    }
-
-    public void updateScopeStatistics(String path) throws ScopeNotFoundException {
-        IScope scope = getScope(path);
-        ISharedObject so = getScopeStatisticsSO(Red5.getConnectionLocal().getScope());
-        so.setAttribute(path, scope.getAttributes());
-    }
-
-    public void updateSharedObjectStatistics(String path, String name) throws ScopeNotFoundException, SharedObjectException {
-        IScope scope = getScope(path);
-        ISharedObjectService soService = (ISharedObjectService) ScopeUtils.getScopeService(scope, ISharedObjectService.class, false);
-        ISharedObject sourceSO = soService.getSharedObject(scope, name);
-        if (sourceSO == null)
-            throw new SharedObjectException();
-
-        ISharedObject so = getSharedObjectStatisticsSO(Red5.getConnectionLocal().getScope());
-        so.setAttribute(path + '|' + name, sourceSO.getData());
-    }
+   
 
 }

@@ -9,6 +9,8 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
+import dev.morphia.utils.IndexType;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.swagger.annotations.ApiModel;
@@ -16,7 +18,6 @@ import io.swagger.annotations.ApiModelProperty;
 
 
 @Entity("vod")
-
 @Indexes({ @Index(fields = @Field("vodId")), @Index(fields = @Field("vodName")), @Index(fields = @Field("streamId")), @Index(fields = @Field("streamName")) })
 @ApiModel(value="VoD", description="The recorded video-on-demand object class")
 public class VoD implements Serializable {
@@ -68,6 +69,9 @@ public class VoD implements Serializable {
 	
 	@ApiModelProperty(value = "the type of the VoD, such as userVod, streamVod, uploadedVod")
 	private String type;
+
+	@ApiModelProperty(value = "the type of the VoD, such as userVod, streamVod, uploadedVod")
+	private String previewFilePath;
 	
 
 	public VoD() {
@@ -75,7 +79,7 @@ public class VoD implements Serializable {
 	}
 	
 	public VoD(String streamName, String streamId, String filePath, String vodName, long creationDate, long duration,
-			long fileSize, String type, String vodId) {
+			long fileSize, String type, String vodId, String previewFilePath) {
 
 		this.streamName = streamName;
 		this.streamId = streamId;
@@ -86,8 +90,10 @@ public class VoD implements Serializable {
 		this.fileSize = fileSize;
 		this.type = type;
 		this.vodId = vodId;
+		this.previewFilePath = previewFilePath;
 
 	}
+
 
 	public String getType() {
 		return type;
@@ -159,6 +165,14 @@ public class VoD implements Serializable {
 
 	public void setVodId(String vodId) {
 		this.vodId = vodId;
+	}
+
+	public String getPreviewFilePath() {
+		return previewFilePath;
+	}
+
+	public void setPreviewFilePath(String previewFilePath) {
+		this.previewFilePath = previewFilePath;
 	}
 
 }

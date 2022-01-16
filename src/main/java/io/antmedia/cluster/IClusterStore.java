@@ -21,4 +21,11 @@ public interface IClusterStore
 	public AppSettings getSettings(String appName);
 	
 	public List<AppSettings> getAllSettings();
+	
+	/**
+	 * Delete the app settings in the database
+	 * @param appName: Name of the app to be deleted
+	 * @return number of deleted records. It should be 1. 
+	 */
+	public long deleteAppSettings(String appName);
 }

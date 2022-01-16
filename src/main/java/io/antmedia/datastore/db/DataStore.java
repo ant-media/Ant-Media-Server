@@ -4,19 +4,17 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.Iterator;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.SocialEndpointCredentials;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.SubscriberStats;
@@ -24,14 +22,13 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
-import io.vertx.core.Vertx;
 
 public abstract class DataStore {
 
 
 	//Do not forget to write function descriptions especially if you are adding new functions
 
-	public static final int MAX_ITEM_IN_ONE_LIST = 50;
+	public static final int MAX_ITEM_IN_ONE_LIST = 250;
 
 	private boolean writeStatsToDatastore = true;
 
@@ -126,14 +123,11 @@ public abstract class DataStore {
 
 	public abstract List<Broadcast> getExternalStreamsList();
 	
-	public abstract void close();
-	
 	/**
-	 * This is used to close data store on shutdown
-	 * 
-	 * @param deleteDBAfterClose - set true to delete files or collection
+	 * Closes the database
+	 * @param deleteDB if it's true, it also deletes the db and closes
 	 */
-	public abstract void delete();
+	public abstract void close(boolean deleteDB);
 
 	/**
 	 * Returns the VoD List in order
@@ -366,46 +360,6 @@ public abstract class DataStore {
 	 * @return number of files that are saved to datastore
 	 */
 	public abstract int fetchUserVodList(File filedir);
-
-	/**
-	 * Add social endpoint credentials to data store
-	 * Do not add id to the credentials, it will be added by data store
-	 * @param credentials
-	 * The credentials that will be stored to datastore
-	 *
-	 * @return SocialEndpointCredentials by settings id of the credentials
-	 * null if it is not saved to datastore
-	 *
-	 */
-	public abstract SocialEndpointCredentials addSocialEndpointCredentials(SocialEndpointCredentials credentials);
-
-	/**
-	 * Get list of social endpoints
-	 *
-	 * @param offset
-	 * @param size
-	 *
-	 * @return list of social endpoints
-	 */
-	public abstract List<SocialEndpointCredentials> getSocialEndpoints(int offset, int size);
-
-	/**
-	 * Remove social endpoint from data store
-	 * @param id , this is the id of the credential
-	 *
-	 * @return true if it is removed from datastore
-	 * false if it is not removed
-	 */
-	public abstract boolean removeSocialEndpointCredentials(String id);
-
-	/**
-	 * Return social endpoint credential that having the id
-	 *
-	 * @param id the id of the credential to be returns
-	 * @return {@link SocialEndpointCredentials} if there is a matching credential with the id
-	 * <code>null</code> if there is no matching id
-	 */
-	public abstract SocialEndpointCredentials getSocialEndpointCredentials(String id);
 
 	/**
 	 * Return the number of active broadcasts in the server
@@ -994,6 +948,14 @@ public abstract class DataStore {
 	 * @param viewerId WebRTC Viewer Id
 	 */
 	public abstract boolean deleteWebRTCViewerInfo(String viewerId);
+
+	/**
+	 * This is used to update meta data for a bradcast 
+	 *
+	 * @param streamId id for the broadcast
+	 * @param metaData new meta data
+	 */
+	public abstract boolean updateStreamMetaData(String streamId, String metaData);
 	
 
 	//**************************************

@@ -85,16 +85,18 @@ public class ContextLoggingListener implements ServletContextListener {
         }
     }
 
-    public void contextDestroyed(ServletContextEvent event) {
+    public void contextDestroyed(ServletContextEvent event) 
+    {
         ServletContext servletContext = event.getServletContext();
         LoggerContext context = (LoggerContext) servletContext.getAttribute(Red5LoggerFactory.LOGGER_CONTEXT_ATTRIBUTE);
-        if (context != null) {
+        LoggerContext defaultLoggerContext = Red5LoggerFactory.getContextSelector().getDefaultLoggerContext();
+        if (context != null && !context.equals(defaultLoggerContext)) {
             Logger logger = context.getLogger(Logger.ROOT_LOGGER_NAME);
             logger.debug("Shutting down context {}", context.getName());
             context.reset();
             context.stop();
         } else {
-            System.err.printf("No logger context found for %s%n", event.getServletContext().getContextPath());
+            System.out.printf("No logger context found for %s%n", event.getServletContext().getContextPath());
         }
     }
 

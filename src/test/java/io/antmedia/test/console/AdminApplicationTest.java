@@ -63,14 +63,13 @@ public class AdminApplicationTest {
 		boolean result = app.deleteApplication("test", true);
 		assertFalse(result);
 		
-		Mockito.verify(adapter).serverShuttingdown();
 		try {
 			Mockito.verify(appScope).destroy();
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		Mockito.verify(adapter).deleteDBInSeconds();
+		Mockito.verify(adapter).stopApplication(true);
 		Mockito.verify(warDeployer).undeploy("test");
 
 		

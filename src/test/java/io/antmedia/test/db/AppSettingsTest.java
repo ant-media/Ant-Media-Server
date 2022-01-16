@@ -60,12 +60,12 @@ public class AppSettingsTest {
 	@Test
 	public void testZeroEncoderSettings() {
 		
-		AppSettings settings = new AppSettings();
+		AppSettings newSettings = new AppSettings();
 		
-		AppSettings mockSettings = Mockito.spy(new AppSettings());
+		AppSettings appSettings = new AppSettings();
 		
 		AntMediaApplicationAdapter mockApplicationAdapter = Mockito.spy(new AntMediaApplicationAdapter());			
-		mockApplicationAdapter.setAppSettings(mockSettings);
+		mockApplicationAdapter.setAppSettings(appSettings);
 		
 		Mockito.doReturn(new InMemoryDataStore("")).when(mockApplicationAdapter).getDataStore();
 		
@@ -81,8 +81,10 @@ public class AppSettingsTest {
 		mockApplicationAdapter.setStorageClient(storageClient);
 		
 		//null case
-		assertTrue(mockApplicationAdapter.updateSettings(settings, false, false));
-		verify(mockSettings, times(1)).setEncoderSettings(settings.getEncoderSettings());
+		assertTrue(mockApplicationAdapter.updateSettings(newSettings, false, false));
+		verify(mockApplicationAdapter).updateAppSettingsBean(appSettings, newSettings);
+		
+		//verify(mockSettings, times(1)).setEncoderSettingsString(settings.getEncoderSettingsString());
 		
 		
 		List<EncoderSettings> encoderSettings = new ArrayList<>();
@@ -90,24 +92,14 @@ public class AppSettingsTest {
 		encoderSettings.add(new EncoderSettings(0, 2500000, 128000,true)); //wrong setting
 		encoderSettings.add(new EncoderSettings(720, 0, 128000,true)); //wrong setting
 		encoderSettings.add(new EncoderSettings(720, 2500000, 0,true)); //wrong setting
-		settings.setEncoderSettings(encoderSettings);
+		newSettings.setEncoderSettings(encoderSettings);
 		
 		
-		assertFalse(mockApplicationAdapter.updateSettings(settings, false, false));
+		assertFalse(mockApplicationAdapter.updateSettings(newSettings, false, false));
 		
 		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		
 		assertEquals(0, savedSettings.getEncoderSettings().size()); //wrong settings so that none of them is applied, it is 0
-		
-		
-		ArgumentCaptor<List<EncoderSettings>> encoderSettingsCapture = ArgumentCaptor.forClass(List.class);
-		verify(mockSettings, times(1)).setEncoderSettings(encoderSettingsCapture.capture());
-		
-		List<EncoderSettings> encoderSettings2 = encoderSettingsCapture.getValue();
-		
-		assertEquals(0, encoderSettings2.size());
-		
-		
 	}
 	
 	@Test
@@ -117,10 +109,10 @@ public class AppSettingsTest {
 		AppSettings settings = new AppSettings();
 		settings.setMp4MuxingEnabled(true);
 		
-		AppSettings mockSettings = Mockito.spy(new AppSettings());
+		AppSettings currentSettings = new AppSettings();
 		AntMediaApplicationAdapter mockApplicationAdapter = Mockito.spy(new AntMediaApplicationAdapter());	
 		
-		mockApplicationAdapter.setAppSettings(mockSettings);
+		mockApplicationAdapter.setAppSettings(currentSettings);
 		StorageClient storageClient = Mockito.mock(StorageClient.class);
 		mockApplicationAdapter.setStorageClient(storageClient);
 		
@@ -137,7 +129,8 @@ public class AppSettingsTest {
 								
 		mockApplicationAdapter.updateSettings(settings, false, false);
 		
-		verify(mockSettings, times(1)).setMp4MuxingEnabled(settings.isMp4MuxingEnabled());
+		assertEquals(true, currentSettings.isMp4MuxingEnabled());
+		
 		verify(mockApplicationAdapter, times(1)).synchUserVoDFolder(any(), any());
 		assertNotEquals(0, settingsFile.length());
 		

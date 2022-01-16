@@ -26,8 +26,8 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	
 	@Override
-	public void muxingFinished(String id, File file, long duration, int resolution) {
-		super.muxingFinished(id, file, duration, resolution);
+	public void muxingFinished(String id, File file, long duration, int resolution, String previewPath) {
+		super.muxingFinished(id, file, duration, resolution, previewPath);
 		Application.id.add(id);
 		Application.file.add(file);
 		Application.duration.add(duration);
@@ -46,8 +46,9 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	}
 
+	@Override
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
-			String vodName, String vodId) {
+			String vodName, String vodId, String metadata) {
 		logger.info("notify hook action: {}", action);
 		notifyHookAction.add(action);
 		notitfyURL.add(url);
