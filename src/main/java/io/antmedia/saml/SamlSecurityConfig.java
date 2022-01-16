@@ -146,7 +146,7 @@ public class SamlSecurityConfig {
     public SAMLContextProviderImpl contextProvider() {
         SAMLContextProviderImpl samlContextProviderImpl = new SAMLContextProviderImpl();
         samlContextProviderImpl.setStorageFactory(new EmptyStorageFactory());
-        return new SAMLContextProviderImpl();
+        return samlContextProviderImpl;
     }
 
     @Bean
