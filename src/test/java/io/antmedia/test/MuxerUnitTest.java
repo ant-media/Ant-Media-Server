@@ -531,6 +531,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//mp4Muxer.addVideoStream(spsParser.getWidth(), spsParser.getHeight(), rat, AV_CODEC_ID_H264, 0, true, codecParameters);
 
 		mp4Muxer.addStream(codecParameters, rat, 5);
+		mp4Muxer.setPreviewPath("/path");
 
 		assertTrue(mp4Muxer.getRegisteredStreamIndexList().contains(5));
 
@@ -2420,6 +2421,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7);
 		hlsMuxer.init(appScope, "test", 300, "", 0);
 		assertEquals("./webapps/junit/streams/test_300p%04d.ts", hlsMuxer.getSegmentFilename());
+		
 
 		hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7);
 		hlsMuxer.init(appScope, "test", 300, "", 400000);

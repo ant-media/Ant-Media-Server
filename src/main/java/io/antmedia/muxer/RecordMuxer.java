@@ -86,6 +86,8 @@ public abstract class RecordMuxer extends Muxer {
 
 	protected boolean uploadMP4ToS3 = true;
 
+	protected String previewPath;
+
 	private String subFolder = null;
 
 	private static final int S3_CONSTANT = 0b001;
@@ -105,7 +107,12 @@ public abstract class RecordMuxer extends Muxer {
 	protected boolean dynamic = false;
 
 	private String s3FolderPath = "streams";
-
+	
+	/**
+	 * Millisecond timestamp with record muxer initialization.
+	 * It will be define when record muxer is called by anywhere
+	 */
+	private long startTime = 0;
 
 
 	public RecordMuxer(StorageClient storageClient, Vertx vertx, String s3FolderPath) {
@@ -139,6 +146,8 @@ public abstract class RecordMuxer extends Muxer {
 		this.resolution = resolutionHeight;
 		this.subFolder = subFolder;
 
+		this.startTime = System.currentTimeMillis();
+		
 		tmpPacket = avcodec.av_packet_alloc();
 		av_init_packet(tmpPacket);
 
@@ -393,6 +402,9 @@ public abstract class RecordMuxer extends Muxer {
 		av_packet_unref(audioPkt);
 
 	}
+	public void setPreviewPath(String path){
+		this.previewPath = path;
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -429,7 +441,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				finalizeRecordFile(f);
 
-				adaptor.muxingFinished(streamId, f, getDurationInMs(f,streamId), resolution);
+				adaptor.muxingFinished(streamId, f, startTime, getDurationInMs(f,streamId), resolution, previewPath);
 
 				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
 
@@ -440,6 +452,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				if (appSettings.isS3RecordingEnabled() && this.uploadMP4ToS3 ) {
 					logger.info("Storage client is available saving {} to storage", f.getName());
+
 					saveToStorage(s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ), f, f.getName(), storageClient);
 				}
 			} catch (Exception e) {
@@ -449,6 +462,7 @@ public abstract class RecordMuxer extends Muxer {
 		}, null);
 
 	}
+
 
 	public File getFinalFileName(boolean isS3Enabled)
 	{
