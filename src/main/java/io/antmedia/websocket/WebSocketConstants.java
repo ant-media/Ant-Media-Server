@@ -193,7 +193,12 @@ public class WebSocketConstants {
 	 */
 	public static final String FORCE_STREAM_QUALITY = "forceStreamQuality";
 	
-  /**
+	/**
+	 * Command that client stream change resolution notication.
+	 */
+	public static final String RESOLUTION_CHANGE_INFO_COMMAND = "resolutionChangeInfo";
+	
+	/**
 	 * Command that let server returns information about a specific room.
 	 * This info includes stream ID's list in room.
 	 */
