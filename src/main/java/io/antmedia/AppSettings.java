@@ -1165,10 +1165,20 @@ public class AppSettings {
 	@Value( "${"+SETTINGS_WEBRTC_VIEWER_LIMIT+":-1}" )
 	private int webRTCViewerLimit = -1;
 
-	/*
+	/**
 	 * Set to true when you want to delete an application 
 	 */
 	private boolean toBeDeleted = false;
+
+	/**
+	 * Set to true when the app settings are only created for pulling the war file.
+	 */
+	private boolean toDeployApp = false;
+
+	/**
+	 * Address of the original place of the war file.
+	 */
+	private String warLocation;
 
 
 	/**
@@ -2434,6 +2444,22 @@ public class AppSettings {
 
 	public void setToBeDeleted(boolean toBeDeleted) {
 		this.toBeDeleted = toBeDeleted;
+	}
+
+	public boolean isToDeployApp() {
+		return toDeployApp;
+	}
+
+	public void setToDeployApp(boolean toDeployApp) {
+		this.toDeployApp = toDeployApp;
+	}
+
+	public String getWarLocation() {
+		return warLocation;
+	}
+
+	public void setWarLocation(String warLocation) {
+		this.warLocation = warLocation;
 	}
 
 	public int getWebRTCKeyframeTime() {

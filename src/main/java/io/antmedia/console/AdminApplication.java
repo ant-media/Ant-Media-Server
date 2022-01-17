@@ -1,7 +1,10 @@
 package io.antmedia.console;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -87,6 +90,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
 				return deleteApplication(appName, false);
+			});
+			clusterNotifier.registerPullWarFileListener( (appName, warFileUrl) -> {
+				log.info("Pulling war file for creating {} from URL: {}", appName, warFileUrl);
+				return pullWarFile(appName, warFileUrl);
 			});
 		}
 
@@ -298,6 +305,31 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		return success;
 
+	}
+
+	public boolean pullWarFile(String appName, String warFileUrl){
+		try (BufferedInputStream in = new BufferedInputStream(new URL(warFileUrl).openStream())) {
+			String fileExtension = "war";
+			File savedFile = new File(String.format("%s/%s", System.getProperty("red5.root"), appName + "." + fileExtension));
+			FileOutputStream fileOutputStream = new FileOutputStream(savedFile);
+
+			byte dataBuffer[] = new byte[1024];
+			int bytesRead;
+			while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
+				fileOutputStream.write(dataBuffer, 0, bytesRead);
+			}
+			fileOutputStream.flush();
+			long fileSize = savedFile.length();
+
+			String path = savedFile.getPath();
+
+			logger.info("War file pulled from {} for creating application, filesize = {} path = {}", warFileUrl, fileSize, path);
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			return false;
+		}
+		return true;
 	}
 
 	public boolean deleteApplication(String appName, boolean deleteDB) {

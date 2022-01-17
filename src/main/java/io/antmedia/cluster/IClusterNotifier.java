@@ -3,6 +3,7 @@ package io.antmedia.cluster;
 import io.antmedia.IAppSettingsUpdateListener;
 import io.antmedia.ICreateAppListener;
 import io.antmedia.IDeleteAppListener;
+import io.antmedia.IPullWarFileListener;
 
 public interface IClusterNotifier {
 	
@@ -15,5 +16,7 @@ public interface IClusterNotifier {
 	public void registerCreateAppListener(ICreateAppListener createApplistener);
 	
 	public void registerDeleteAppListener(IDeleteAppListener deleteApplistener);
+
+	public void registerPullWarFileListener(IPullWarFileListener pullWarFileListener);
 
 }

@@ -230,7 +230,6 @@ public class CommonRestService {
 					outpuStream.flush();
 
 					long fileSize = savedFile.length();
-					long unixTime = System.currentTimeMillis();
 
 					String path = savedFile.getPath();
 
@@ -246,10 +245,15 @@ public class CommonRestService {
 
 		}
 		catch (IOException iox) {
-			logger.info("*************************************************************");
 			logger.error(iox.getMessage());
 		}
 
+		if(isClusterMode()){
+			AppSettings tempSetting = new AppSettings();
+			tempSetting.setAppName(appName);
+			IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
+			clusterNotifier.getClusterStore().saveSettings(tempSetting);
+		}
 
 		return new Result(success, appName, message);
 	}
@@ -704,8 +708,6 @@ public class CommonRestService {
 		AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		return gson.toJson(new Result(adapter.updateSettings(newSettings, true, false)));
 	}
-
-
 
 	public boolean getShutdownStatus(@QueryParam("appNames") String appNamesArray){
 
