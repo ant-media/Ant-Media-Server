@@ -809,7 +809,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		//define hook URL for stream specific
 		broadcast.setListenerHookURL("listenerHookURL");
-		broadcast.setName("name");
+
+		//(Changed due to a bug) In this scenario broadcast name should be irrelevant for the hook to work so setting it to null tests if it is dependent or not.
+		broadcast.setName(null);
 
 		//update broadcast
 		dataStore.updateBroadcastFields(streamId, broadcast);
@@ -828,6 +830,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
 				assertEquals(captureVodName.getValue()+".mp4", anyFile.getName());
+				assertNull(captureStreamName.capture());
 
 				called = true;
 			}
