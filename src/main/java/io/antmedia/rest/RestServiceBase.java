@@ -339,6 +339,30 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
+	protected Result deleteBroadcasts(String[] streamIds) {
+
+		Result result = new Result(false);
+
+		if(streamIds != null)
+		{
+			for (String id : streamIds) 
+			{
+				result = deleteBroadcast(id);
+				if (!result.isSuccess()) 
+				{
+					logger.warn("It cannot delete {} and breaking the loop", id);
+					break;
+				}
+			}
+		}
+		else
+		{
+			logger.warn("Requested deletion for Stream Ids is empty");
+		}
+
+		return result;
+	}
+
 	protected boolean stopBroadcastInternal(Broadcast broadcast) {
 		boolean result = false;
 		if (broadcast != null) {
@@ -378,7 +402,7 @@ public abstract class RestServiceBase {
 		removeEmptyPlayListItems(broadcast);
 
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
-		
+
 		return new Result(result);
 	}
 
@@ -1071,6 +1095,14 @@ public abstract class RestServiceBase {
 					if (!result) {
 						logger.warn("File is not deleted because it does not exist {}", videoFile.getAbsolutePath());
 					}
+					String previewFilePath = voD.getPreviewFilePath();
+					if(previewFilePath != null){
+						File tmp = new File(previewFilePath);
+						boolean resultThumbnail = Files.deleteIfExists(tmp.toPath());
+						if (!resultThumbnail) {
+							logger.warn("Preview is not deleted because it does not exist {}", tmp.getAbsolutePath());
+						}
+					}
 					success = getDataStore().deleteVod(id);
 					if (success) {
 						message = "vod deleted";
@@ -1098,6 +1130,29 @@ public abstract class RestServiceBase {
 
 		}
 		return new Result(success, message);
+	}
+
+	protected Result deleteVoDs(String[] vodIds) 
+	{
+		Result result = new Result(false);
+		if(vodIds != null)
+		{
+			for (String id : vodIds) 
+			{
+				result = deleteVoD(id);
+				
+				if (!result.isSuccess()) 
+				{
+					logger.warn("VoD:{} cannot be deleted and breaking the loop", id);
+					break;
+				}
+			}
+		}
+		else 
+		{
+			logger.warn("Requested deletion for VoD Ids is empty");
+		}
+		return result;
 	}
 
 	protected String getStreamsDirectory(String appScopeName) {
@@ -1145,8 +1200,8 @@ public abstract class RestServiceBase {
 
 					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
 
-					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
-							VoD.UPLOADED_VOD, vodId);
+					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
+							VoD.UPLOADED_VOD, vodId, null);
 
 					id = getDataStore().addVod(newVod);
 

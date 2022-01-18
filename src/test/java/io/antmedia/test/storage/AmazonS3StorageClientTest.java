@@ -2,8 +2,7 @@ package io.antmedia.test.storage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.spy;
 
@@ -60,12 +59,17 @@ public class AmazonS3StorageClientTest {
 		storage.setSecretKey(SECRET_KEY);
 		storage.setRegion("eu-west-1");
 		storage.setStorageName(BUCKET_NAME);
+		storage.setStorageClass("STANDARD");
 		
 		File f = new File("src/test/resources/test.flv");
 		storage.setEnabled(true);
 		storage.save("streams" + "/" + f.getName() , f);
 		
 		Mockito.verify(storage).getTransferManager();
+
+		storage.save("streams" + "/" + f.getName() , f);
+
+		Mockito.verify(storage, Mockito.times(2)).getTransferManager();
 	}
 	
 	@Test
@@ -87,7 +91,15 @@ public class AmazonS3StorageClientTest {
 			fail(e.getMessage());
 		}
 	}
-	
+	@Test
+	public void testCheckStorageClass(){
+		AmazonS3StorageClient storage = new AmazonS3StorageClient();
+		assertTrue(storage.checkStorageClass("Glacier"));
+		assertFalse(storage.checkStorageClass("WrongInput"));
+		assertTrue(storage.checkStorageClass("standard"));
+		assertTrue(storage.checkStorageClass("REDUCED_REDUNdancy"));
+		assertTrue(storage.checkStorageClass("ONEZONE_IA"));
+	}
 	@Test
 	public void testDeleteLocalFile() {
 		AmazonS3StorageClient storage = spy(new AmazonS3StorageClient());
@@ -97,6 +109,7 @@ public class AmazonS3StorageClientTest {
 		Upload upload = Mockito.mock(Upload.class);
 		Mockito.when(tm.upload(Mockito.any())).thenReturn(upload);
 		storage.setEnabled(true);
+		storage.setStorageClass("STANDARD");
 		
 		{
 			ArgumentCaptor<ProgressListener> listener = ArgumentCaptor.forClass(ProgressListener.class);

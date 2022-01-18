@@ -66,6 +66,8 @@ public class RTMPAdaptor extends Adaptor {
 	private ScheduledExecutorService signallingExecutor;
 	private boolean enableAudio = false;
 
+	private boolean enableVideo = true;
+
 	private volatile int audioFrameCount = 0;
 	private boolean started = false;
 	private ScheduledFuture<?> audioDataSchedulerFuture;
@@ -165,10 +167,10 @@ public class RTMPAdaptor extends Adaptor {
 
 	public FFmpegFrameRecorder getNewRecorder(String outputURL, int width, int height, String format) {
 
-		FFmpegFrameRecorder recorder = initRecorder(outputURL, width, height, format);
+		FFmpegFrameRecorder recorderLocal = initRecorder(outputURL, width, height, format);
 
 		try {
-			recorder.start();
+			recorderLocal.start();
 		} catch (FrameRecorder.Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			webSocketCommunityHandler.sendServerError(getStreamId(), getSession());
@@ -176,7 +178,7 @@ public class RTMPAdaptor extends Adaptor {
 			stop();
 		}
 
-		return recorder;
+		return recorderLocal;
 	}
 
 	public RTMPAdaptor(String outputURL, WebSocketCommunityHandler webSocketHandler, int height) {
@@ -372,7 +374,7 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 
-	private void encodeAudio() 
+	public void encodeAudio() 
 	{	
 		//null-check recorder because it's asynch and it may not be initialized in video encoder thread
 		if (recorder != null) 
@@ -388,6 +390,15 @@ public class RTMPAdaptor extends Adaptor {
 					logger.error("Stream has stopped but audio encoder is running for stream:{}", getStreamId());
 				}
 			}
+		}
+		// if there is no video, init the recorder
+		else if (!enableVideo)
+		{
+			//get recorder with 0x0 resolution to start audio publish. 
+			//if we give resolution 0x0, it does not create video stream
+			logger.info("Initializing the recorder with audio only for stream:{}", outputURL);
+			recorder = getNewRecorder(outputURL, 0, 0, format);
+
 		}
 
 	}
@@ -584,21 +595,28 @@ public class RTMPAdaptor extends Adaptor {
 	public Queue<VideoFrameContext> getVideoFrameQueue() {
 		return videoFrameQueue;
 	}
-	
+
 	public Queue<AudioFrame> getAudioFrameQueue() {
 		return audioFrameQueue;
 	}
-	
+
 	public FFmpegFrameRecorder getRecorder() {
 		return recorder;
 	}
-	
+
 	public ScheduledExecutorService getVideoEncoderExecutor() {
 		return videoEncoderExecutor;
 	}
-	
+
 	public ScheduledExecutorService getAudioEncoderExecutor() {
 		return audioEncoderExecutor;
 	}
+
+	public void setEnableVideo(boolean enableVideo) {
+		this.enableVideo = enableVideo;
+	}
 	
+	public boolean isEnableVideo() {
+		return enableVideo;
+	}
 }
