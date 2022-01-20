@@ -34,12 +34,10 @@ public class JWTServerFilter extends AbstractFilter {
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 		HttpServletRequest httpjwtRequest =(HttpServletRequest)request;
-		String path = ((HttpServletRequest) request).getRequestURI();
 		serverSettings = getServerSetting();
 
-		if(serverSettings != null && !serverSettings.isJwtServerControlEnabled() || (httpjwtRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpjwtRequest.getHeader(JWT_TOKEN)))) {
+		if((serverSettings != null && !serverSettings.isJwtServerControlEnabled()) || (httpjwtRequest.getHeader(JWT_TOKEN) == null) || (httpjwtRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpjwtRequest.getHeader(JWT_TOKEN)))) {
 			chain.doFilter(request, response);
-			logger.info("Request {} is completed",path);
 		}
 		else {
 			HttpServletResponse resp = (HttpServletResponse) response;
@@ -50,7 +48,6 @@ public class JWTServerFilter extends AbstractFilter {
 	private boolean checkJWT( String jwtString) {
 		boolean result = true;
 		try {
-			logger.info("Checking JWT key ");
 			String jwksURL = serverSettings.getJwksURL();
 
 			if (jwksURL != null && !jwksURL.isEmpty()) {
@@ -77,10 +74,4 @@ public class JWTServerFilter extends AbstractFilter {
 		}
 		return result;
 	}
-	@Override
-	public void destroy() {
-
-
-	}
-
 }

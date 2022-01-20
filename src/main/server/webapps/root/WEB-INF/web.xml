@@ -66,7 +66,7 @@
 		<url-pattern>/*</url-pattern>
 	</filter-mapping>
 	
-		<filter>
+	<filter>
 		<filter-name>DashboardPermissionFilter</filter-name>
 		<filter-class>io.antmedia.filter.IPFilterDashboard</filter-class>
 	</filter>
@@ -74,6 +74,16 @@
 		<filter-name>DashboardPermissionFilter</filter-name>
 		<url-pattern>/*</url-pattern>
 	</filter-mapping>
+	
+	<filter>
+ 		<filter-name>JWTServerFilter</filter-name>
+		<filter-class>io.antmedia.console.rest.JWTServerFilter</filter-class>
+ 	</filter>
+
+	 <filter-mapping>
+ 		<filter-name>JWTServerFilter</filter-name>
+ 		<url-pattern>/rest/*</url-pattern>
+ 	</filter-mapping>
 	
 	<filter>
     	<filter-name>AuthenticationFilter</filter-name>

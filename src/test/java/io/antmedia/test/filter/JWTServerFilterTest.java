@@ -1,15 +1,9 @@
 package io.antmedia.test.filter;
 
-import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkException;
-import com.auth0.jwk.JwkProvider;
-import com.auth0.jwk.UrlJwkProvider;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.interfaces.DecodedJWT;
-import io.antmedia.AppSettings;
 import io.antmedia.console.rest.JWTServerFilter;
-import io.antmedia.filter.JWTFilter;
 import io.antmedia.settings.ServerSettings;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -22,14 +16,12 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
-import java.security.interfaces.RSAPublicKey;
 
 import static org.junit.Assert.assertEquals;
 
 public class JWTServerFilterTest {
 
     protected static Logger logger = LoggerFactory.getLogger(JWTServerFilterTest.class);
-    private ServerSettings serverSettings;
 
     @Test
     public void testDoFilterPass() throws IOException, ServletException, JwkException {
@@ -117,6 +109,7 @@ public class JWTServerFilterTest {
         }
 
         // JWT Token enable and null header token scenario
+        // Now it will continue and Authentication filter will check permission again
         {
             //reset filterchains
             filterChain = new MockFilterChain();
@@ -132,7 +125,7 @@ public class JWTServerFilterTest {
             Mockito.doReturn(serverSettings).when(jwtServerFilter).getServerSetting();
 
             jwtServerFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
-            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
+            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());            
         }
         ///// Jwks Tests
         /// correct token

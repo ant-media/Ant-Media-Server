@@ -6,7 +6,6 @@ import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
@@ -19,10 +18,10 @@ import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.filter.AbstractFilter;
 import io.antmedia.rest.model.UserType;
+import io.antmedia.settings.ServerSettings;
 
 public class AuthenticationFilter extends AbstractFilter {
-
-
+	
 	private AbstractConsoleDataStore getDataStore() 
 	{
 		AbstractConsoleDataStore dataStore = null;
@@ -52,9 +51,16 @@ public class AuthenticationFilter extends AbstractFilter {
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 
+		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		String path = ((HttpServletRequest) request).getRequestURI();
+		ServerSettings serverSettings = getServerSetting();
 		
-		if (path.equals("/rest/isAuthenticated") ||
+		// If it's passed from JWT Token then bypass Authentication Filter
+		if (serverSettings != null && serverSettings.isJwtServerControlEnabled()
+				&& (httpRequest.getHeader(JWTServerFilter.JWT_TOKEN) != null)) {
+			chain.doFilter(request, response);
+		}
+		else if (path.equals("/rest/isAuthenticated") ||
 				path.equals("/rest/authenticateUser") || 
 				path.equals("/rest/addInitialUser") ||
 				path.equals("/rest/isFirstLogin") ||
@@ -70,7 +76,6 @@ public class AuthenticationFilter extends AbstractFilter {
 		}
 		else if (CommonRestService.isAuthenticated(((HttpServletRequest)request).getSession()))
 		{
-			HttpServletRequest httpRequest =(HttpServletRequest)request;
 			String method = httpRequest.getMethod();
 			
 			if (HttpMethod.GET.equals(method))  
@@ -108,14 +113,5 @@ public class AuthenticationFilter extends AbstractFilter {
 			HttpServletResponse resp = (HttpServletResponse) response;
 			resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
 		}
-		
-
 	}
-
-	@Override
-	public void destroy() {
-
-
-	}
-
 }
