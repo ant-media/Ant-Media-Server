@@ -100,12 +100,6 @@ public abstract class RecordMuxer extends Muxer {
 	 */
 	protected boolean firstKeyFrameReceivedChecked = false;
 
-	/**
-	 * Dynamic means that this mp4 muxer is added on the fly.
-	 * It means it's started after broadcasting is started and it can be stopped before brodcasting has finished
-	 */
-	protected boolean dynamic = false;
-
 	private String s3FolderPath = "streams";
 	
 	/**
@@ -788,14 +782,6 @@ public abstract class RecordMuxer extends Muxer {
 			av_strerror(ret, data, data.length);
 			logger.info("cannot write audio frame to muxer({}). Error is {} ", file.getName(), new String(data, 0, data.length));
 		}
-	}
-
-	public void setDynamic(boolean dynamic) {
-		this.dynamic = dynamic;
-	}
-
-	public boolean isDynamic() {
-		return dynamic;
 	}
 
 	public boolean isUploadingToS3(){return uploadMP4ToS3;}
