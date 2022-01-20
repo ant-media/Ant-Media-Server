@@ -33,9 +33,7 @@ import org.springframework.context.ApplicationContext;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
-import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
-import dev.morphia.query.Query;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -327,7 +325,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, vodList.size());
 		
 		for (int i = 0; i < 10; i++) {
-			dataStore.addVod(new VoD("stream", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000)));			
+			dataStore.addVod(new VoD("stream", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 111, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000), null));
 		}
 		
 		vodList = dataStore.getVodList(6, 4, null, null, null, null);
@@ -588,7 +586,7 @@ public class DBStoresUnitTest {
 
 		//create a vod
 		String vodId = RandomStringUtils.randomNumeric(24);
-		VoD streamVod=new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD,vodId);
+		VoD streamVod=new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.STREAM_VOD,vodId,null);
 
 		//save stream vod
 
@@ -601,11 +599,15 @@ public class DBStoresUnitTest {
 		assertEquals(streamVod.getFilePath(), voD.getFilePath());
 		assertEquals(streamVod.getStreamId(), voD.getStreamId());
 		assertEquals(streamVod.getStreamName(), voD.getStreamName());
+		assertEquals(streamVod.getStartTime(), voD.getStartTime());
+		assertEquals(streamVod.getDuration(), voD.getDuration());
+		assertEquals(streamVod.getFileSize(), voD.getFileSize());
+		assertEquals(streamVod.getCreationDate(), voD.getCreationDate());
 		assertEquals(streamVod.getType(), voD.getType());
 
 		//add uservod
 		vodId = RandomStringUtils.randomNumeric(24);
-		VoD userVod=new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.USER_VOD,vodId);
+		VoD userVod=new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.USER_VOD,vodId,null);
 
 		datastore.addVod(userVod);
 
@@ -616,6 +618,10 @@ public class DBStoresUnitTest {
 		assertEquals(userVod.getFilePath(), voD.getFilePath());
 		assertEquals(userVod.getStreamId(), voD.getStreamId());
 		assertEquals(userVod.getStreamName(), voD.getStreamName());
+		assertEquals(streamVod.getStartTime(), voD.getStartTime());
+		assertEquals(streamVod.getDuration(), voD.getDuration());
+		assertEquals(streamVod.getFileSize(), voD.getFileSize());
+		assertEquals(streamVod.getCreationDate(), voD.getCreationDate());
 		assertEquals(userVod.getType(), voD.getType());
 
 		//delete streamVod
@@ -1551,11 +1557,11 @@ public class DBStoresUnitTest {
 	private void testVodSearch(DataStore dataStore){
 		clear(dataStore);
 
-		VoD newVod =  new VoD("streamName", "1112233" + (int)(Math.random() * 1000), "path", "aaVod", 1517239908, 17933, 1190425, VoD.STREAM_VOD, "1149253" + (int)(Math.random() * 91000));
-		VoD newVod2 = new VoD("oguz", "123456" + (int)(Math.random() * 1000),  "path", "cCVod", 1517239708, 17933, 1190625, VoD.STREAM_VOD, "11503943" + (int)(Math.random() * 91000));
-		VoD newVod3 = new VoD("ahmet", "2341" + (int)(Math.random() * 1000),  "path", "TahIr", 1517239608, 17933, 1190725, VoD.STREAM_VOD, "11259243" + (int)(Math.random() * 91000));
-		VoD newVod4 = new VoD(null, null,  "path", null, 1517239608, 17933, 1190725, VoD.STREAM_VOD, "11827485" + (int)(Math.random() * 91000));
-		VoD newVod5 = new VoD("denem", null,  "path", null, 1517239608, 17933, 1190725, VoD.STREAM_VOD, null);
+		VoD newVod =  new VoD("streamName", "1112233" + (int)(Math.random() * 1000), "path", "aaVod", 1517239908, 123, 17933, 1190425, VoD.STREAM_VOD, "1149253" + (int)(Math.random() * 91000),null);
+		VoD newVod2 = new VoD("oguz", "123456" + (int)(Math.random() * 1000),  "path", "cCVod", 1517239708, 456, 17933, 1190625, VoD.STREAM_VOD, "11503943" + (int)(Math.random() * 91000),null);
+		VoD newVod3 = new VoD("ahmet", "2341" + (int)(Math.random() * 1000),  "path", "TahIr", 1517239608, 17933, 789, 1190725, VoD.STREAM_VOD, "11259243" + (int)(Math.random() * 91000),null);
+		VoD newVod4 = new VoD(null, null,  "path", null, 1517239608, 345, 17933, 1190725, VoD.STREAM_VOD, "11827485" + (int)(Math.random() * 91000), null);
+		VoD newVod5 = new VoD("denem", null,  "path", null, 1517239608, 678, 17933, 1190725, VoD.STREAM_VOD, null, null);
 
 		dataStore.addVod(newVod);
 		dataStore.addVod(newVod2);
@@ -1646,11 +1652,11 @@ public class DBStoresUnitTest {
 
 		assertEquals(1, returnList.size());
 
-		VoD newVod =  new VoD("streamName", "1112233" + (int)(Math.random() * 1000), "path", "vod", 1517239908, 17933, 1190425, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
-		VoD newVod2 = new VoD("davut", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
-		VoD newVod3 = new VoD("oguz", "11122" + (int)(Math.random() * 1000),  "path", "vod", 1517239708, 17933, 1190625, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
-		VoD newVod4 = new VoD("ahmet", "111" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 17933, 1190725, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
-		VoD newVod5 = new VoD("mehmet", "11" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 17933, 1190825, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000));
+		VoD newVod =  new VoD("streamName", "1112233" + (int)(Math.random() * 1000), "path", "vod", 1517239908, 123, 17933, 1190425, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000), null);
+		VoD newVod2 = new VoD("davut", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 456, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000), null);
+		VoD newVod3 = new VoD("oguz", "11122" + (int)(Math.random() * 1000),  "path", "vod", 1517239708, 789, 17933, 1190625, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000), null);
+		VoD newVod4 = new VoD("ahmet", "111" + (int)(Math.random() * 1000),  "path", "vod", 1517239608, 234, 17933, 1190725, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000), null);
+		VoD newVod5 = new VoD("mehmet", "11" + (int)(Math.random() * 1000), "path", "vod", 1517239508, 567, 17933, 1190825, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000), null);
 
 		String vodId = dataStore.addVod(newVod);
 		assertNotNull(vodId);
@@ -2576,9 +2582,9 @@ public class DBStoresUnitTest {
 		String vodId1="vod_1";
 		String vodId2="vod_2";
 		String vodId3="vod_3";
-		VoD vod1 = new VoD("streamName", streamId, "filePath", "vodName2", 333, 111, 111, VoD.STREAM_VOD, vodId1);
-		VoD vod2 = new VoD("streamName", streamId, "filePath", "vodName1", 222, 111, 111, VoD.STREAM_VOD, vodId2);
-		VoD vod3 = new VoD("streamName", "streamId123", "filePath", "vodName3", 111, 111, 111, VoD.STREAM_VOD, vodId3);
+		VoD vod1 = new VoD("streamName", streamId, "filePath", "vodName2", 333, 111, 111, 111, VoD.STREAM_VOD, vodId1, null);
+		VoD vod2 = new VoD("streamName", streamId, "filePath", "vodName1", 222, 111, 111, 111, VoD.STREAM_VOD, vodId2, null);
+		VoD vod3 = new VoD("streamName", "streamId123", "filePath", "vodName3", 111, 111, 111, 111, VoD.STREAM_VOD, vodId3, null);
 
 		dataStore.addVod(vod1);
 		dataStore.addVod(vod2);

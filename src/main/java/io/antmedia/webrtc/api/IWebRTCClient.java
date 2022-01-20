@@ -190,4 +190,10 @@ public interface IWebRTCClient {
 	 * @return the muxer belongs to the trackId
 	 */
 	public IWebRTCMuxer getWebRTCMuxer(String trackId);
+	
+	/**
+	 * Client stream resolution change notification
+	 * @param streamHeight
+	 */
+	public void notifyWebRTCClient(int streamHeight);
 }

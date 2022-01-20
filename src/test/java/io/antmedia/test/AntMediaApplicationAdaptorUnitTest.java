@@ -438,10 +438,46 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
+	public void testMuxingFinishedWithPreview(){
+		AppSettings appSettings = new AppSettings();
+		appSettings.setGeneratePreview(true);
+		appSettings.setMuxerFinishScript("src/test/resources/echo.sh");
+
+		adapter.setAppSettings(appSettings);
+		File f = new File ("src/test/resources/hello_script");
+
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		adapter.setDataStoreFactory(dsf);
+
+		adapter.setVertx(vertx);
+
+		File anyFile = new File("src/test/resources/sample_MP4_480.mp4");
+
+		File preview = new File("src/test/resources/preview.png");
+
+		assertFalse(f.exists());
+
+		adapter.muxingFinished("streamId", anyFile, 0, 100, 480, "src/test/resources/preview.png");
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
+
+		try {
+			Files.delete(f.toPath());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
+
+	@Test
 	public void testMuxingFinished() {
 
 		AppSettings appSettings = new AppSettings();
 		appSettings.setMuxerFinishScript("src/test/resources/echo.sh");
+
 		adapter.setAppSettings(appSettings);
 		File f = new File ("src/test/resources/hello_script");
 
@@ -458,7 +494,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			assertFalse(f.exists());
 
-			adapter.muxingFinished("streamId", anyFile, 100, 480);
+			adapter.muxingFinished("streamId", anyFile, 0, 100, 480, null);
 
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
 
@@ -476,7 +512,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			assertFalse(f.exists());
 
-			adapter.muxingFinished("streamId", anyFile, 100, 480);
+			adapter.muxingFinished("streamId", anyFile, 0, 100, 480, "");
 
 			Awaitility.await().pollDelay(3, TimeUnit.SECONDS).atMost(4, TimeUnit.SECONDS).until(()-> !f.exists());
 		}
@@ -759,7 +795,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);
+		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null);
 
 		//verify that notifyHook is never called
 		verify(spyAdaptor, never()).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
@@ -773,13 +809,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		//define hook URL for stream specific
 		broadcast.setListenerHookURL("listenerHookURL");
-		broadcast.setName("name");
+
+		//(Changed due to a bug) In this scenario broadcast name should be irrelevant for the hook to work so setting it to null tests if it is dependent or not.
+		broadcast.setName(null);
 
 		//update broadcast
 		dataStore.updateBroadcastFields(streamId, broadcast);
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
+		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null);
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -792,6 +830,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
 				assertEquals(captureVodName.getValue()+".mp4", anyFile.getName());
+				assertNull(captureStreamName.capture());
 
 				called = true;
 			}
@@ -812,7 +851,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.delete(streamId);
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
+		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null);
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -841,7 +880,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		appSettings.setListenerHookURL("listenerHookURL");
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 100, 480);	
+		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null);
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
