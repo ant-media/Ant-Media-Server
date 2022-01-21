@@ -21,6 +21,7 @@ import com.auth0.jwt.JWTVerifier;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
+
 import io.antmedia.filter.AbstractFilter;
 
 
@@ -29,13 +30,18 @@ public class JWTServerFilter extends AbstractFilter {
 	private ServerSettings serverSettings;
 	public static final String JWT_TOKEN = "Authorization";
 
-
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 		HttpServletRequest httpjwtRequest =(HttpServletRequest)request;
 		serverSettings = getServerSetting();
-
+		
+		//It needs for server internal application requests
+		if(httpjwtRequest.getRequestURI().contains("rest/v2/request")) {
+			chain.doFilter(request, response);
+			return;
+		}
+		
 		if((serverSettings != null && !serverSettings.isJwtServerControlEnabled()) || (httpjwtRequest.getHeader(JWT_TOKEN) == null) || (httpjwtRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpjwtRequest.getHeader(JWT_TOKEN)))) {
 			chain.doFilter(request, response);
 		}
