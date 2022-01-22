@@ -113,16 +113,6 @@ public class RestServiceV2 extends CommonRestService {
 		return super.isAdmin();
 	}
 
-	@ApiOperation(value = "Returns whether current user has permission to reach the application", response = Result.class)
-	@GET
-	@Path("/permission/{appName}")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Override
-	public Result hasPermission(@ApiParam(value="App name that user trying to reach") @PathParam("appName") String appName){
-		return super.hasPermission(appName);
-	}
-
 	@ApiOperation(value = "Creates initial user. This is a one time scenario when initial user creation required and shouldn't be used otherwise. User object is required and can't be null", response = Result.class)
 	@POST
 	@Path("/users/initial")

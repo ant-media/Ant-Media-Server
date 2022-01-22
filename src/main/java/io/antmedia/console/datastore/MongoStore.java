@@ -12,6 +12,7 @@ import com.mongodb.client.MongoClients;
 
 import dev.morphia.Datastore;
 import dev.morphia.Morphia;
+import dev.morphia.query.Update;
 import dev.morphia.query.experimental.filters.Filters;
 import dev.morphia.query.experimental.updates.UpdateOperators;
 import io.antmedia.datastore.db.types.User;
@@ -83,9 +84,13 @@ public class MongoStore extends AbstractConsoleDataStore {
 				String username = user.getEmail();
 				String password = user.getPassword();
 				UserType userType = user.getUserType();
+				String scope = user.getScope();
 				return datastore.find(User.class)
 									.filter(Filters.eq("email", username))
-									.update(UpdateOperators.set("password", password), UpdateOperators.set("userType", userType))
+									.update(
+											UpdateOperators.set("password", password),
+											UpdateOperators.set("userType", userType),
+											UpdateOperators.set("scope",scope))
 									.execute()
 									.getMatchedCount() == 1;
 			} catch (Exception e) {

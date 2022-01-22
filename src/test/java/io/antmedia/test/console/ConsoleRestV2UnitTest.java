@@ -113,70 +113,13 @@ public class ConsoleRestV2UnitTest {
         assertEquals(2, restService.getUserList().size());
     }
 
-    @Test
-    public void testAppPermissions(){
-        {
-            String password = "password";
-            String userName = "username" + (int) (Math.random() * 100000);
-            User user = new User(userName, password, UserType.ADMIN, "all");
-
-            HttpSession session = Mockito.mock(HttpSession.class);
-            Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
-            Mockito.when(session.getAttribute(USER_EMAIL)).thenReturn(userName);
-            Mockito.when(session.getAttribute(USER_PASSWORD)).thenReturn(password);
-
-            HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
-
-            Mockito.when(mockRequest.getSession()).thenReturn(session);
-
-            restService.setRequestForTest(mockRequest);
-
-            Result result = restService.addUser(user);
-
-            // System.out.println("error id: " + result.errorId);
-            assertTrue(result.isSuccess());
-            assertEquals(restService.getMD5Hash(password), dbStore.getUser(userName).getPassword());
-            assertEquals(userName, dbStore.getUser(userName).getEmail());
-
-            assertTrue(restService.hasPermission("LiveApp").isSuccess());
-            assertTrue(restService.hasPermission("WebRTCAppEE").isSuccess());
-            assertTrue(restService.hasPermission("all").isSuccess());
-        }
-        {
-            String password = "password";
-            String userName = "username" + (int) (Math.random() * 100000);
-            User user = new User(userName, password, UserType.ADMIN, "WebRTCAppEE");
-
-            HttpSession session = Mockito.mock(HttpSession.class);
-            Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
-            Mockito.when(session.getAttribute(USER_EMAIL)).thenReturn(userName);
-            Mockito.when(session.getAttribute(USER_PASSWORD)).thenReturn(password);
-
-            HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
-
-            Mockito.when(mockRequest.getSession()).thenReturn(session);
-
-            restService.setRequestForTest(mockRequest);
-
-            Result result = restService.addUser(user);
-
-            // System.out.println("error id: " + result.errorId);
-            assertTrue(result.isSuccess());
-            assertEquals(restService.getMD5Hash(password), dbStore.getUser(userName).getPassword());
-            assertEquals(userName, dbStore.getUser(userName).getEmail());
-
-            assertFalse(restService.hasPermission("LiveApp").isSuccess());
-            assertTrue(restService.hasPermission("WebRTCAppEE").isSuccess());
-            assertFalse(restService.hasPermission("all").isSuccess());
-        }
-    }
 
     @Test
     public void testAddUser() {
 
         String password = "password";
         String userName = "username" + (int) (Math.random() * 1000000000);
-        User user = new User(userName, password, UserType.ADMIN, "all");
+        User user = new User(userName, password, UserType.ADMIN, "system");
         Result result = restService.addUser(user);
 
         // System.out.println("error id: " + result.errorId);
@@ -184,7 +127,7 @@ public class ConsoleRestV2UnitTest {
 
         String userName2 = "username" + (int) (Math.random() * 1000000000);
 
-        user = new User(userName2, "second pass", UserType.ADMIN, "all");
+        user = new User(userName2, "second pass", UserType.ADMIN, "system");
 
         user.setPassword("second pass");
         user.setUserType(UserType.READ_ONLY);
@@ -192,7 +135,7 @@ public class ConsoleRestV2UnitTest {
 
         assertTrue(result.isSuccess());
 
-        user = new User(userName, "second pass", UserType.ADMIN, "all");
+        user = new User(userName, "second pass", UserType.ADMIN, "system");
 
         user.setPassword("second pass");
         user.setUserType(UserType.ADMIN);
@@ -200,7 +143,7 @@ public class ConsoleRestV2UnitTest {
 
         assertFalse(result.isSuccess());
 
-        user = new User(userName, "second pass", UserType.ADMIN, "all");
+        user = new User(userName, "second pass", UserType.ADMIN, "system");
 
         user.setPassword("second pass");
         user.setUserType(UserType.READ_ONLY);

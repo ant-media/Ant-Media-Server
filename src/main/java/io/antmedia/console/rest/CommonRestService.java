@@ -133,6 +133,12 @@ public class CommonRestService {
 
 	private static final int ALLOWED_LOGIN_ATTEMPTS = 2 ;
 
+	public static final String SESSION_SCOPE_KEY = "scope";
+	
+	public static final String USER_TYPE = "user-type";
+
+	public static final String SCOPE_SYSTEM = "system";
+
 	public int getAllowedLoginAttempts() {
 		return ALLOWED_LOGIN_ATTEMPTS;
 	}
@@ -194,7 +200,7 @@ public class CommonRestService {
 		int errorId = -1;
 		user.setPassword(getMD5Hash(user.getPassword()));
 		user.setUserType(UserType.ADMIN);
-		user.setAllowedApp("all");
+		user.setScope(SCOPE_SYSTEM);
 		if (getDataStore().getNumberOfUserRecords() == 0) {
 			result = getDataStore().addUser(user);
 		}
@@ -262,6 +268,7 @@ public class CommonRestService {
 				session.setAttribute(IS_AUTHENTICATED, true);
 				session.setAttribute(USER_EMAIL, user.getEmail());
 				session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
+				message = getDataStore().getUser(user.getEmail()).getScope();
 				getDataStore().resetInvalidLoginCount(user.getEmail());
 			} 
 			else 
@@ -295,16 +302,6 @@ public class CommonRestService {
 		return new Result(false, "User is not admin");
 	}
 
-	public Result hasPermission(String appName) {
-		HttpSession session = servletRequest.getSession();
-		if(isAuthenticated(session)) {
-			User currentUser = getDataStore().getUser(session.getAttribute(USER_EMAIL).toString());
-			if (currentUser.getAllowedApp().equalsIgnoreCase("all") || currentUser.getAllowedApp().equalsIgnoreCase(appName)) {
-				return new Result(true, "User is allowed to reach this app");
-			}
-		}
-		return new Result(false, "User is not allowed");
-	}
 
 	public Result editUser(User user) 
 	{
@@ -317,16 +314,21 @@ public class CommonRestService {
 		{
 			if (!userEmail.equals(user.getEmail()))
 			{
-				getDataStore().deleteUser(user.getEmail());
-				if(user.getNewPassword() != null && !user.getNewPassword().isEmpty()) {
+				
+				if(user.getNewPassword() != null && !user.getNewPassword().isEmpty()) 
+				{
 					logger.info("Changing password of user: {}",  user.getEmail());
 					user.setPassword(getMD5Hash(user.getNewPassword()));
-					result = getDataStore().addUser(user);
+					user.setNewPassword(null);
 				}
 				else {
-					logger.info("Changing type of user: {}" , user.getEmail());
-					result = getDataStore().addUser(user);
+					//just keep the password same
+					User userOriginal = getDataStore().getUser(user.getEmail());
+					user.setPassword(userOriginal.getPassword());
 				}
+				
+				result = getDataStore().editUser(user);
+				
 			}
 			else {
 				message = "User cannot edit itself";
