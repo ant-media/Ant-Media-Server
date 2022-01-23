@@ -14,6 +14,7 @@ usage() {
   echo "-u:  Mongo DB user. If it's a cluster, it's mandatory. Otherwise optional"
   echo "-s:  Mongo DB password. If it's a cluster, it's mandatory. Otherwise optional"
   echo "-h: print this usage"
+  echo "-f: war file path for custom app deployment"
   echo " "
   echo "Example: "
   echo "$0 -n live -w"
@@ -23,11 +24,11 @@ usage() {
 
 ERROR_MESSAGE="Error: App is not created. Please check the error in the terminal and take a look at the instructions below"
 
-AMS_DIR=/usr/local/antmedia
+AMS_DIR=/home/tahir/softwares/ant-media-server
 AS_WAR=false
 IS_CLUSTER=false
 
-while getopts 'n:p:w:h:c:m:u:s:' option
+while getopts 'n:p:w:h:c:m:u:s:f:' option
 do
   case "${option}" in
     n) APP_NAME=${OPTARG};;
@@ -37,6 +38,7 @@ do
     m) MONGO_HOST=${OPTARG};;
     u) MONGO_USER=${OPTARG};;
     s) MONGO_PASS=${OPTARG};;
+    f) WAR_FILE=${OPTARG};;
     h) usage 
        exit 1;;
    esac
@@ -65,6 +67,14 @@ if [[ -z "$APP_NAME" ]]; then
     exit 1
 fi
 
+if [[ -z "$WAR_FILE" ]]; then
+    WAR_FILE=StreamApp*.war
+fi
+
+if [[ -z "$AS_WAR" ]]; then
+    AS_WAR="false"
+fi
+
 if [[ "$IS_CLUSTER" == "true" ]]; then
     if [[ -z "$MONGO_HOST" ]]; then
        echo "Please set mongodb host, username and password for cluster mode. "
@@ -83,20 +93,25 @@ APP_DIR=$AMS_DIR/webapps/$APP_NAME
 RED5_PROPERTIES_FILE=$APP_DIR/WEB-INF/red5-web.properties
 WEB_XML_FILE=$APP_DIR/WEB-INF/web.xml
 
+echo "***************************"
+echo $WAR_FILE
+
 mkdir $APP_DIR
 check_result
 
+echo "*************"
+
 echo $AMS_DIR
-cp $AMS_DIR/StreamApp*.war $APP_DIR
+cp $AMS_DIR/$WAR_FILE $APP_DIR
 check_result
 
 cd $APP_DIR
 check_result
 
-jar -xf StreamApp*.war
+jar -xf $WAR_FILE
 check_result
 
-rm StreamApp*.war
+rm $WAR_FILE
 check_result
 
 OS_NAME=`uname`
@@ -124,6 +139,7 @@ if [[ "$IS_CLUSTER" == "true" ]]; then
     sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$MONGO_HOST'#' $RED5_PROPERTIES_FILE  
     sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$MONGO_USER'/' $RED5_PROPERTIES_FILE
     sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$MONGO_PASS'/' $RED5_PROPERTIES_FILE
+    cp $AMS_DIR/$WAR_FILE $AMS_DIR/webapps/root
 else 
     echo "Not cluster mode."    
 fi

@@ -246,6 +246,17 @@ public class CommonRestService {
 					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
 					logger.info("War file uploaded for application, filesize = {} path = {}", fileSize, path);
 
+					if(isClusterMode()){
+						AppSettings tempSetting = new AppSettings();
+						tempSetting.setAppName(appName);
+						tempSetting.setPullWarFile(true);
+						tempSetting.setWarFileAddress(getServerSettingsInternal().getHostAddress());
+
+						IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
+						clusterNotifier.getClusterStore().saveSettings(tempSetting);
+						logger.info("!!!!!!!!!!!!!! SENDING SETTINGS");
+					}
+
 					return new Result(getApplication().createApplication(appName, fileName));
 				}
 			}
@@ -256,13 +267,6 @@ public class CommonRestService {
 		}
 		catch (IOException iox) {
 			logger.error(iox.getMessage());
-		}
-
-		if(isClusterMode()){
-			AppSettings tempSetting = new AppSettings();
-			tempSetting.setAppName(appName);
-			IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
-			clusterNotifier.getClusterStore().saveSettings(tempSetting);
 		}
 
 		return new Result(success, appName, message);

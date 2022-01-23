@@ -1185,12 +1185,12 @@ public class AppSettings {
 	/**
 	 * Set to true when the app settings are only created for pulling the war file.
 	 */
-	private boolean toDeployApp = false;
+	private boolean pullWarFile = false;
 
 	/**
 	 * Address of the original place of the war file.
 	 */
-	private String warLocation;
+	private String warFileAddress;
 
 
 	/**
@@ -2465,20 +2465,20 @@ public class AppSettings {
 		this.toBeDeleted = toBeDeleted;
 	}
 
-	public boolean isToDeployApp() {
-		return toDeployApp;
+	public boolean isPullWarFile() {
+		return pullWarFile;
 	}
 
-	public void setToDeployApp(boolean toDeployApp) {
-		this.toDeployApp = toDeployApp;
+	public void setPullWarFile(boolean pullWarFile) {
+		this.pullWarFile = pullWarFile;
 	}
 
-	public String getWarLocation() {
-		return warLocation;
+	public String getWarFileAddress() {
+		return warFileAddress;
 	}
 
-	public void setWarLocation(String warLocation) {
-		this.warLocation = warLocation;
+	public void setWarFileAddress(String warFileAddress) {
+		this.warFileAddress = warFileAddress;
 	}
 
 	public int getWebRTCKeyframeTime() {

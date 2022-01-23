@@ -83,9 +83,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		if(isCluster) {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
-			clusterNotifier.registerCreateAppListener(appName -> {
+			clusterNotifier.registerCreateAppListener( (appName, warFileName) -> {
 				log.info("Creating application with name {}", appName);
-				return createApplication(appName, null);
+				return createApplication(appName, warFileName);
 			});
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
@@ -375,7 +375,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		String command;
 		logger.info("***************WAR PATH = " + warFilePath);
 
-		if(warFilePath != null || !warFilePath.isEmpty()){
+		if(warFilePath != null && !warFilePath.isEmpty()){
 			command = "/bin/bash create_app.sh"
 					+ " -n "+appName
 					+ " -w true"
