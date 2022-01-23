@@ -50,7 +50,7 @@ public class User {
 	 *   If it's scope is an application, it can CRUD content but cannot change application settings
 	 *      it cannot access the web panel services
 	 */
-	@ApiModelProperty(value = "the type of the user", allowableValues = "facebook_user, periscope_user, youtube_user, admin, read-only")
+	@ApiModelProperty(value = "the type of the user", allowableValues = "ADMIN, READ-ONLY, USER")
 	private UserType userType;
 
 	/**

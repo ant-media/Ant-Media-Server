@@ -385,9 +385,10 @@ public class CommonRestService {
 		if (userMail != null && user.getNewPassword() != null) {
 			result = getDataStore().doesUserExist(userMail, user.getPassword()) || getDataStore().doesUserExist(userMail, getMD5Hash(user.getPassword()));
 			if (result) {
-				user.setPassword(getMD5Hash(user.getNewPassword()));
-				user.setNewPassword(null);
-				result = getDataStore().editUser(user);
+				User userFromDB = getDataStore().getUser(userMail);
+				userFromDB.setPassword(getMD5Hash(user.getNewPassword()));
+				userFromDB.setNewPassword(null);
+				result = getDataStore().editUser(userFromDB);
 
 				if (result) {
 					message = "Success";

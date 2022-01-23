@@ -268,7 +268,7 @@ public class ConsoleRestV2UnitTest {
 
         String password = "password";
         String userName = "username" + (int) (Math.random() * 100000);
-        User user = new User(userName, password, UserType.ADMIN, "all");
+        User user = new User(userName, password, UserType.ADMIN, "system");
 
         HttpSession session = Mockito.mock(HttpSession.class);
         Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
@@ -289,7 +289,7 @@ public class ConsoleRestV2UnitTest {
         //Add second user
         String password2 = "password2";
         String userName2 = "username" + (int) (Math.random() * 100000);
-        User user2 = new User(userName2, password2, UserType.READ_ONLY, "all");
+        User user2 = new User(userName2, password2, UserType.READ_ONLY, "system");
 
         result = restService.addUser(user2);
         assertTrue(result.isSuccess());
@@ -305,7 +305,7 @@ public class ConsoleRestV2UnitTest {
         result = restService.editUser(user2);
         assertTrue(result.isSuccess());
 
-        assertEquals(restService.getMD5Hash(user2.getNewPassword()), dbStore.getUser(userName2).getPassword());
+        assertEquals(restService.getMD5Hash("password2"), dbStore.getUser(userName2).getPassword());
 
         //Null check
         result = restService.editUser(null);
