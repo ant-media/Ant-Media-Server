@@ -235,14 +235,13 @@ public class ConsoleRestV2UnitTest {
         Result result2 = restService.changeUserPasswordInternal(userName, user);
         assertTrue(result2.isSuccess());
 
-        assertNull(user.getNewPassword());
         assertEquals(restService.getMD5Hash("password2"), dbStore.getUser(userName).getPassword());
 
+        user.setPassword("password2");
         user.setNewPassword("12345");
         result2 = restService.changeUserPasswordInternal(userName, user);
         assertTrue(result2.isSuccess());
 
-        assertNull(user.getNewPassword());
         assertEquals(restService.getMD5Hash("12345"), dbStore.getUser(userName).getPassword());
 
         //Does not exist with pass
