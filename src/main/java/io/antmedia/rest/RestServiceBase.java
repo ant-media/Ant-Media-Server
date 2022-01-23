@@ -1802,6 +1802,7 @@ public abstract class RestServiceBase {
 		String status = (enableRecording)?"started":"stopped"; 
 		if (streamId != null) 
 		{
+			
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) 
 			{
@@ -1838,7 +1839,7 @@ public abstract class RestServiceBase {
 							else
 							{
 								logFailedOperation(enableRecording,streamId,(type.equals(RecordType.MP4.toString()))?RecordType.MP4:RecordType.WEBM);
-								message= type +" recording couldn't " + status;
+								message= type +" recording couldn't be " + status;
 							}
 						}
 						else {

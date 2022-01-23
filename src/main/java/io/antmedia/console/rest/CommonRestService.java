@@ -92,7 +92,7 @@ public class CommonRestService {
 
 	private static final String LOG_LEVEL_OFF = "OFF";
 
-	private static final String USER_PASSWORD = "user.password";
+	public static final String USER_PASSWORD = "user.password";
 
 	public static final String USER_EMAIL = "user.email";
 
@@ -135,6 +135,12 @@ public class CommonRestService {
 
 	private static final int ALLOWED_LOGIN_ATTEMPTS = 2 ;
 
+	public static final String SESSION_SCOPE_KEY = "scope";
+	
+	public static final String USER_TYPE = "user-type";
+
+	public static final String SCOPE_SYSTEM = "system";
+
 	public int getAllowedLoginAttempts() {
 		return ALLOWED_LOGIN_ATTEMPTS;
 	}
@@ -167,9 +173,10 @@ public class CommonRestService {
 		String message = "";
 		if (user != null) 
 		{
-			if (!getDataStore().doesUsernameExist(user.getEmail())) 
+			if (!getDataStore().doesUsernameExist(user.getEmail()) && user.getPassword() != null && user.getEmail() != null && user.getUserType() != null)
 			{
-				result = getDataStore().addUser(user.getEmail(), getMD5Hash(user.getPassword()), user.getUserType());
+				user.setPassword(getMD5Hash(user.getPassword()));
+				result = getDataStore().addUser(user);
 				logger.info("added user = {} user type = {} -> {}", user.getEmail() ,user.getUserType(), result);
 			}
 			else {
@@ -193,8 +200,11 @@ public class CommonRestService {
 	public Result addInitialUser(User user) {
 		boolean result = false;
 		int errorId = -1;
+		user.setPassword(getMD5Hash(user.getPassword()));
+		user.setUserType(UserType.ADMIN);
+		user.setScope(SCOPE_SYSTEM);
 		if (getDataStore().getNumberOfUserRecords() == 0) {
-			result = getDataStore().addUser(user.getEmail(), getMD5Hash(user.getPassword()), UserType.ADMIN);
+			result = getDataStore().addUser(user);
 		}
 
 		Result operationResult = new Result(result);
@@ -320,6 +330,7 @@ public class CommonRestService {
 				session.setAttribute(IS_AUTHENTICATED, true);
 				session.setAttribute(USER_EMAIL, user.getEmail());
 				session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
+				message = getDataStore().getUser(user.getEmail()).getScope();
 				getDataStore().resetInvalidLoginCount(user.getEmail());
 			} 
 			else 
@@ -353,6 +364,7 @@ public class CommonRestService {
 		return new Result(false, "User is not admin");
 	}
 
+
 	public Result editUser(User user) 
 	{
 		boolean result = false;
@@ -362,18 +374,23 @@ public class CommonRestService {
 
 		if (user != null && user.getEmail() != null && getDataStore().doesUsernameExist(user.getEmail())) 
 		{
-			if (!userEmail.equals(user.getEmail())) 
+			if (!userEmail.equals(user.getEmail()))
 			{
-				User oldUser = getDataStore().getUser(user.getEmail());
-				getDataStore().deleteUser(user.getEmail());
-				if(user.getNewPassword() != null && !user.getNewPassword().isEmpty()) {
+				
+				if(user.getNewPassword() != null && !user.getNewPassword().isEmpty()) 
+				{
 					logger.info("Changing password of user: {}",  user.getEmail());
-					result = getDataStore().addUser(user.getEmail(), getMD5Hash(user.getNewPassword()), user.getUserType());
+					user.setPassword(getMD5Hash(user.getNewPassword()));
+					user.setNewPassword(null);
 				}
 				else {
-					logger.info("Changing type of user: {}" , user.getEmail());
-					result = getDataStore().addUser(user.getEmail(), oldUser.getPassword(), user.getUserType());
+					//just keep the password same
+					User userOriginal = getDataStore().getUser(user.getEmail());
+					user.setPassword(userOriginal.getPassword());
 				}
+				
+				result = getDataStore().editUser(user);
+				
 			}
 			else {
 				message = "User cannot edit itself";
@@ -430,7 +447,10 @@ public class CommonRestService {
 		if (userMail != null && user.getNewPassword() != null) {
 			result = getDataStore().doesUserExist(userMail, user.getPassword()) || getDataStore().doesUserExist(userMail, getMD5Hash(user.getPassword()));
 			if (result) {
-				result = getDataStore().editUser(userMail, getMD5Hash(user.getNewPassword()), UserType.ADMIN);
+				User userFromDB = getDataStore().getUser(userMail);
+				userFromDB.setPassword(getMD5Hash(user.getNewPassword()));
+				userFromDB.setNewPassword(null);
+				result = getDataStore().editUser(userFromDB);
 
 				if (result) {
 					message = "Success";
@@ -438,7 +458,7 @@ public class CommonRestService {
 					if (session != null) {
 						session.setAttribute(IS_AUTHENTICATED, true);
 						session.setAttribute(USER_EMAIL, userMail);
-						session.setAttribute(USER_PASSWORD, getMD5Hash(user.getNewPassword()));
+						session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
 					}
 				}
 			}
@@ -708,7 +728,7 @@ public class CommonRestService {
 		AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		return gson.toJson(new Result(adapter.updateSettings(newSettings, true, false)));
 	}
-
+	
 	public boolean getShutdownStatus(@QueryParam("appNames") String appNamesArray){
 
 		boolean appShutdownProblemExists = false;
