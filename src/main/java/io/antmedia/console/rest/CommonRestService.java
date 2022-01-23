@@ -90,7 +90,7 @@ public class CommonRestService {
 
 	private static final String LOG_LEVEL_OFF = "OFF";
 
-	private static final String USER_PASSWORD = "user.password";
+	public static final String USER_PASSWORD = "user.password";
 
 	public static final String USER_EMAIL = "user.email";
 

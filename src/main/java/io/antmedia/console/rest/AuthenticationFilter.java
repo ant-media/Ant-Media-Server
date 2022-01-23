@@ -26,9 +26,9 @@ import io.antmedia.rest.model.UserType;
 public class AuthenticationFilter extends AbstractFilter {
 
 
-	private static final String DISPATCH_PATH_URL = "_path";
+	public static final String DISPATCH_PATH_URL = "_path";
 
-	private AbstractConsoleDataStore getDataStore() 
+	public AbstractConsoleDataStore getDataStore() 
 	{
 		AbstractConsoleDataStore dataStore = null;
 
@@ -95,7 +95,7 @@ public class AuthenticationFilter extends AbstractFilter {
 				path.equals("/rest/v2/users/initial") ||
 				path.equals("/rest/v2/first-login-status") ||
 				path.equals("/rest/v2/users/authenticate") ||
-				(path.startsWith("/rest/v2/users") && path.endsWith("blocked"))
+				(path.startsWith("/rest/v2/users/") && path.endsWith("/blocked"))
 				) 
 		{
 			chain.doFilter(request, response);
@@ -127,8 +127,7 @@ public class AuthenticationFilter extends AbstractFilter {
 						}
 						else 
 						{
-							HttpServletResponse resp = (HttpServletResponse) response;
-							resp.sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
+							((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 						}
 
 					}
@@ -143,8 +142,8 @@ public class AuthenticationFilter extends AbstractFilter {
 						else if (scopeAccess) 
 						{
 							
-							//if it's an admin, provide access
-							if (UserType.ADMIN.equals(currentUser.getUserType())) 
+							//if it's an admin, provide access - backward compatible
+							if (UserType.ADMIN.equals(currentUser.getUserType()) || currentUser.getUserType() == null) 
 							{
 								chain.doFilter(request, response);
 							}
@@ -162,7 +161,7 @@ public class AuthenticationFilter extends AbstractFilter {
 						}
 						else {
 							
-							if (UserType.ADMIN.equals(currentUser.getUserType()) && path.startsWith("/rest/v2/applications/settings" + userScope)) 
+							if (UserType.ADMIN.equals(currentUser.getUserType()) && path.startsWith("/rest/v2/applications/settings/" + userScope)) 
 							{
 								//only admin user can access to change the application settings out of its scope
 								chain.doFilter(request, response);
@@ -183,8 +182,7 @@ public class AuthenticationFilter extends AbstractFilter {
 
 		}
 		else {
-			HttpServletResponse resp = (HttpServletResponse) response;
-			resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+			((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not authenticated user");
 		}
 
 
