@@ -12,6 +12,7 @@ import com.mongodb.client.MongoClients;
 
 import dev.morphia.Datastore;
 import dev.morphia.Morphia;
+import dev.morphia.query.Update;
 import dev.morphia.query.experimental.filters.Filters;
 import dev.morphia.query.experimental.updates.UpdateOperators;
 import io.antmedia.datastore.db.types.User;
@@ -58,37 +59,40 @@ public class MongoStore extends AbstractConsoleDataStore {
 	}
 
 	@Override
-	public boolean addUser(String username, String password, UserType userType) {
+	public boolean addUser(User user) {
 		synchronized(this) {
 			boolean result = false;
-
-			if (username != null && password != null && userType != null) {
-				User existingUser = datastore.find(User.class).filter(Filters.eq("email", username)).first();
-						
-				if (existingUser == null) 
-				{
-					User user = new User(username, password, userType);
-					datastore.save(user);
-					result = true;
-				}
-				else {
-					logger.warn("user with {} already exist", username);
-				}
+			User existingUser = datastore.find(User.class).filter(Filters.eq("email", user.getEmail())).first();
+			if (existingUser == null)
+			{
+				datastore.save(user);
+				result = true;
 			}
-			return result;
+			else {
+				logger.warn("user with {} already exist", user.getEmail());
+			}
+
+		return result;
 		}
 	}
 
 	@Override
-	public boolean editUser(String username, String password, UserType userType) {
+	public boolean editUser(User user) {
 		synchronized(this) {
 			try {
+
+				String username = user.getEmail();
+				String password = user.getPassword();
+				UserType userType = user.getUserType();
+				String scope = user.getScope();
 				return datastore.find(User.class)
 									.filter(Filters.eq("email", username))
-									.update(UpdateOperators.set("password", password), UpdateOperators.set("userType", userType))
+									.update(
+											UpdateOperators.set("password", password),
+											UpdateOperators.set("userType", userType),
+											UpdateOperators.set("scope",scope))
 									.execute()
 									.getMatchedCount() == 1;
-				
 			} catch (Exception e) {
 				e.printStackTrace();
 			}
