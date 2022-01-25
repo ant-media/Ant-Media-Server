@@ -1,35 +1,42 @@
 package io.antmedia.test.console;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
-import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import javax.ws.rs.HttpMethod;
 
-import org.apache.catalina.Session;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockFilterChain;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.rest.AuthenticationFilter;
 import io.antmedia.console.rest.CommonRestService;
-import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.rest.model.UserType;
+import io.antmedia.settings.ServerSettings;
 
 public class AuthenticationFilterTest {
-
-
+	
 	@Test
 	public void testCheckPublicMethods() {
 
-		AuthenticationFilter filter = new AuthenticationFilter();
+	    AuthenticationFilter filter = Mockito.spy(new AuthenticationFilter());
+		
+		ServerSettings serverSettings = new ServerSettings();
+		Mockito.doReturn(serverSettings).when(filter).getServerSetting();
 
 		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
 		HttpServletResponse response =  Mockito.mock(HttpServletResponse.class);
@@ -259,9 +266,6 @@ public class AuthenticationFilterTest {
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(6)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 			
-			
-			
-			
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -272,4 +276,75 @@ public class AuthenticationFilterTest {
 		
 	}
 
+	
+	  @Test
+	    public void testJWTFilterPass() throws IOException, ServletException {
+			ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);	
+			when(webAppContext.isRunning()).thenReturn(true);
+	    	
+	    	AuthenticationFilter authenticationFilter = Mockito.spy(new AuthenticationFilter());
+	        
+	        MockHttpServletResponse httpServletResponse;
+	        MockHttpServletRequest httpServletRequest;
+	        MockFilterChain filterChain;
+	        
+	        ServerSettings serverSettings = new ServerSettings();
+	        serverSettings.setJwtServerControlEnabled(true);
+	        Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSetting();
+
+   			AbstractConsoleDataStore store = Mockito.mock(AbstractConsoleDataStore.class);
+   			Mockito.doReturn(store).when(authenticationFilter).getDataStore();
+
+	        // JWT Token null && JWT Server filter enable scenario
+	        {   
+	        	//reset filterchain
+	        	filterChain = new MockFilterChain();
+	        	
+	        	//reset httpServletResponse
+	        	httpServletResponse = new MockHttpServletResponse();
+	        	
+	        	//reset httpServletRequest
+	        	httpServletRequest = new MockHttpServletRequest();
+	        	
+	            authenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+	            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
+	        }
+	        
+	        // JWT Token filled && JWT Server filter enable scenario
+	        {   
+	        	//reset filterchain
+	        	filterChain = new MockFilterChain();
+	        	
+	        	//reset httpServletResponse
+	        	httpServletResponse = new MockHttpServletResponse();
+	        	
+	        	//reset httpServletRequest
+	        	httpServletRequest = new MockHttpServletRequest();
+	        	
+	            httpServletRequest.addHeader("Authorization", "testtest");
+
+	            authenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+	            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
+	        }
+	        
+	        // JWT Token null && JWT Server filter enable && requestURI is "rest/v2/authentication-status" parameters scenario
+	        {   
+	        	//reset filterchain
+	        	filterChain = new MockFilterChain();
+	        	
+	        	//reset httpServletResponse
+	        	httpServletResponse = new MockHttpServletResponse();
+	        	
+	        	//reset httpServletRequest
+	        	httpServletRequest = new MockHttpServletRequest();
+	        	
+		        httpServletRequest.setRequestURI("/rest/v2/authentication-status");
+	        	
+	            serverSettings.setJwtServerControlEnabled(true);
+	            Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSetting();
+	            
+	            authenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+	            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
+	        }  
+	  }
 }
