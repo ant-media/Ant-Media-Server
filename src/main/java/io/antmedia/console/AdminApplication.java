@@ -373,7 +373,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
 		String command;
-		logger.info("***************WAR PATH = " + warFilePath);
 
 		if(warFilePath != null && !warFilePath.isEmpty()){
 			command = "/bin/bash create_app.sh"

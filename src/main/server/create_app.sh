@@ -24,7 +24,7 @@ usage() {
 
 ERROR_MESSAGE="Error: App is not created. Please check the error in the terminal and take a look at the instructions below"
 
-AMS_DIR=/home/tahir/softwares/ant-media-server
+AMS_DIR=/usr/local/antmedia
 AS_WAR=false
 IS_CLUSTER=false
 
@@ -93,13 +93,8 @@ APP_DIR=$AMS_DIR/webapps/$APP_NAME
 RED5_PROPERTIES_FILE=$APP_DIR/WEB-INF/red5-web.properties
 WEB_XML_FILE=$APP_DIR/WEB-INF/web.xml
 
-echo "***************************"
-echo $WAR_FILE
-
 mkdir $APP_DIR
 check_result
-
-echo "*************"
 
 echo $AMS_DIR
 cp $AMS_DIR/$WAR_FILE $APP_DIR

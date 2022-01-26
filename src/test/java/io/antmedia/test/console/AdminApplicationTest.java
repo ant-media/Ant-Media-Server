@@ -46,7 +46,7 @@ public class AdminApplicationTest {
 		app.setWarDeployer(warDeployer);
 		app.createApplication("test", null);
 		
-		Mockito.verify(app).runCreateAppScript("test");
+		Mockito.verify(app).runCreateAppScript("test", null);
 		Mockito.verify(warDeployer, Mockito.timeout(4000)).deploy(true);
 		
 		
