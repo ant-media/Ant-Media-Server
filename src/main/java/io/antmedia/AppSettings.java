@@ -328,7 +328,7 @@ public class AppSettings {
 	/**
 	 * It's mandatory, Date and time are added to created .mp4 file name, Default value is false
 	 */
-	@Value( "${"+SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME+":%r%b}" )
+	@Value( "${"+SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME+":false}" )
 	private boolean addDateTimeToMp4FileName;
 
 	/**
@@ -337,7 +337,7 @@ public class AppSettings {
 	 * To add bitrate like stream1_500kbps, add %b to the string
 	 * Add both for stream1_240p500kbps
 	 */
-	@Value( "${"+SETTINGS_FILE_NAME_FORMAT+":false}" )
+	@Value( "${"+SETTINGS_FILE_NAME_FORMAT+":%r%b}" )
 	private String fileNameFormat;
 
 	/**
