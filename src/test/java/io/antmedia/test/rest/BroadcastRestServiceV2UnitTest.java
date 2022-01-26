@@ -1472,12 +1472,12 @@ public class BroadcastRestServiceV2UnitTest {
 		// Start MP4 Recording && Broadcast Status: Broadcasting, mp4Enabled: 0, it should return false
 		Result result = restServiceReal.enableRecordMuxing(broadcast.getStreamId(), true,"mp4");
 		assertFalse(result.isSuccess());
-		assertEquals("mp4 recording couldn't started",result.getMessage());
+		assertEquals("mp4 recording couldn't be started",result.getMessage());
 		
 		// Stop MP4 Recording && Broadcast Status: Broadcasting, mp4Enabled: 0, it should return false
 		result = restServiceReal.enableRecordMuxing(broadcast.getStreamId(), false,"mp4");
 		assertFalse(result.isSuccess());
-		assertEquals("mp4 recording couldn't stopped",result.getMessage());
+		assertEquals("mp4 recording couldn't be stopped",result.getMessage());
 		
 		Broadcast broadcast2 = new Broadcast(null, "name");
 		store.save(broadcast2);
@@ -1502,7 +1502,7 @@ public class BroadcastRestServiceV2UnitTest {
 		doReturn(false).when(store).setWebMMuxing(Mockito.any(), Mockito.anyInt());
 		result = restServiceReal.enableRecordMuxing(broadcast3.getStreamId(), false,"webm");
 		assertFalse(result.isSuccess());
-		assertEquals("webm recording couldn't stopped",result.getMessage());
+		assertEquals("webm recording couldn't be stopped",result.getMessage());
 		
 		
 		//Check if stream is on another cluster node

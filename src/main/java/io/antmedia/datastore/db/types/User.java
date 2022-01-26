@@ -35,10 +35,35 @@ public class User {
 	private String password;
 	
 	/**
-	 * Type of the user
+	 * ADMIN can do anything in its scope.
+	 *   If it's scope is system, it can CRUD anything
+	 *   If it's scope is an application, it can CRUD anything in the application. 
+	 *      it cannot access the web panel services
+	 * 	  
+	 * READ_ONLY can read anything in its scope.
+	 *   If it's scope is system, it can READ anything 
+	 *   If it's scope is an application, it can only READ anything in the application
+	 *      it cannot access the web panel services
+	 * 
+	 * USER can do anything but cannot change the settings in its scope.
+	 *   If it's scope is system, it can CRUD content but cannot change system settings/application settings
+	 *   If it's scope is an application, it can CRUD content but cannot change application settings
+	 *      it cannot access the web panel services
 	 */
-	@ApiModelProperty(value = "the type of the user", allowableValues = "facebook_user, periscope_user, youtube_user, admin, read-only")
+	@ApiModelProperty(value = "the type of the user", allowableValues = "ADMIN, READ-ONLY, USER")
 	private UserType userType;
+
+	/**
+	 * Scope of the user. If it's scope is system, it can access the stuff in system-level
+	 * It's scope is an application, it can access the stuff in application-level
+	 * 
+	 * It makes more sense with UserType
+	 */
+	@ApiModelProperty(value = "Scope can be 'system' or name of the application. Scope of the user. If it's scope is system, it can "
+			+ "access the stuff in system-level. If it's scope is an application, it can access the stuff in application-level"
+			+ "It makes more sense with UserType")
+	private String scope;
+
 	
 	/**
 	 * New password of the user, below field is not set  for all user types
@@ -67,25 +92,31 @@ public class User {
 	@Id
 	private ObjectId id;
 	
-	public User(String email, String password, UserType userType) {
+	public User(String email, String password, UserType userType, String scope) {
 		this.email = email;
 		this.password = password;
 		this.userType = userType;
+		this.scope = scope;
 	}
-	
-	
+
 	public User() {
 		
 	}
-	
 	
 	public String getEmail() {
 		return email;
 	}
 
-
 	public void setEmail(String email) {
 		this.email = email;
+	}
+
+	public String getScope() {
+		return scope;
+	}
+
+	public void setScope(String scope) {
+		this.scope = scope;
 	}
 
 
