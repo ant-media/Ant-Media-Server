@@ -227,7 +227,16 @@ public class StreamFetcherManager {
 
 		// Get current playlist in database
 		Broadcast playlist = datastore.get(streamId);
-
+		
+		if(playlist != null && !playlist.isPlaylistLoopEnabled() && playlist.getPlayListItemList().size() <= playlist.getCurrentPlayIndex()+1) {
+			playlist.setCurrentPlayIndex(0);
+			playlist.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+			stopPlayList(streamId);
+			// Update Datastore current play broadcast
+			datastore.updateBroadcastFields(streamId, playlist);
+			return;
+		}
+		
 		//Check playlist is not deleted and not stopped
 		if(playlist != null && !IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus()))
 		{

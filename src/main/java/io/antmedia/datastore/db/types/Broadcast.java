@@ -328,6 +328,14 @@ public class Broadcast {
 	 */
 	@ApiModelProperty(value = "Meta data filed for the custom usage")
 	private String metaData = "";
+	
+	/**
+	 * This is play list loop status
+	 * It's enable by default
+	 */
+	@ApiModelProperty(value = "the identifier of playlist loop status")
+	private boolean playlistLoopEnabled = true;
+
 
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
@@ -761,5 +769,13 @@ public class Broadcast {
 
 	public void setMetaData(String metaData) {
 		this.metaData = metaData;
+	}
+	
+	public boolean isPlaylistLoopEnabled() {
+		return playlistLoopEnabled;
+	}
+
+	public void setPlaylistLoopEnabled(boolean playlistLoopEnabled) {
+		this.playlistLoopEnabled = playlistLoopEnabled;
 	}
 }
