@@ -285,7 +285,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	public boolean createApplication(String appName, String warFileName) {
 		boolean success = false;
-		logger.info("Running create appp = " + warFileName);
+		logger.info("Running create app script, war file name (null if default): {}, app name: {} ", warFileName, appName);
 
 		if(isCluster) {
 			String mongoHost = getDataStoreFactory().getDbHost();
@@ -296,7 +296,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			success = result;
 		}
 		else {
-			logger.info("Running create app script = " + warFileName);
 			boolean result = runCreateAppScript(appName, warFileName);
 			success = result;
 		}
@@ -307,7 +306,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	}
 
-	public boolean pullWarFile(String appName, String warFileUrl){
+	public boolean pullWarFile(String appName, String warFileUrl) throws IOException{
 		try (BufferedInputStream in = new BufferedInputStream(new URL(warFileUrl).openStream())) {
 			String fileExtension = "war";
 			File savedFile = new File(String.format("%s/%s", System.getProperty("red5.root"), appName + "." + fileExtension));
@@ -324,12 +323,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			String path = savedFile.getPath();
 
 			logger.info("War file pulled from {} for creating application, filesize = {} path = {}", warFileUrl, fileSize, path);
-
-		} catch (IOException e) {
-			e.printStackTrace();
-			return false;
+			return true;
 		}
-		return true;
 	}
 
 	public boolean deleteApplication(String appName, boolean deleteDB) {
