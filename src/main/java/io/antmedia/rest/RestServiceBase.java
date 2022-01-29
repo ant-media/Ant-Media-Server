@@ -1200,7 +1200,7 @@ public abstract class RestServiceBase {
 
 					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
 
-					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
+					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
 							VoD.UPLOADED_VOD, vodId, null);
 
 					id = getDataStore().addVod(newVod);
@@ -1802,6 +1802,7 @@ public abstract class RestServiceBase {
 		String status = (enableRecording)?"started":"stopped"; 
 		if (streamId != null) 
 		{
+			
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) 
 			{
@@ -1838,7 +1839,7 @@ public abstract class RestServiceBase {
 							else
 							{
 								logFailedOperation(enableRecording,streamId,(type.equals(RecordType.MP4.toString()))?RecordType.MP4:RecordType.WEBM);
-								message= type +" recording couldn't " + status;
+								message= type +" recording couldn't be " + status;
 							}
 						}
 						else {

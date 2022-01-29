@@ -129,7 +129,7 @@ public class VoDRestServiceV2UnitTest {
 		//Vod vod = new Vod();
 		File file = new File(vodFolder, "test_file");
 		String vodId = RandomStringUtils.randomNumeric(24);
-		VoD newVod = new VoD("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 6000,
+		VoD newVod = new VoD("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 0, 6000,
 				VoD.USER_VOD,vodId,null);
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
@@ -173,7 +173,7 @@ public class VoDRestServiceV2UnitTest {
 
 		String vodId = RandomStringUtils.randomNumeric(24);
 
-		VoD streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD, vodId, null);
+		VoD streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.STREAM_VOD, vodId, null);
 		datastore.addVod(streamVod);
 
 		assertNotNull(datastore.getVoD(vodId));
@@ -206,7 +206,7 @@ public class VoDRestServiceV2UnitTest {
 
 		vodId = RandomStringUtils.randomNumeric(24);
 		//Preview does not exist path
-		streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD, vodId, "/fake/path/doesnotexist");
+		streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.STREAM_VOD, vodId, "/fake/path/doesnotexist");
 		datastore.addVod(streamVod);
 
 		assertNotNull(datastore.getVoD(vodId));
@@ -230,7 +230,7 @@ public class VoDRestServiceV2UnitTest {
 
 		String vodId = RandomStringUtils.randomNumeric(24);
 
-		VoD streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, VoD.STREAM_VOD, vodId, null);
+		VoD streamVod = new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.STREAM_VOD, vodId, null);
 		datastore.addVod(streamVod);
 
 		assertNotNull(datastore.getVoD(vodId));
@@ -359,9 +359,9 @@ public class VoDRestServiceV2UnitTest {
 	public void vodSorting(DataStore datastore) {
 		restServiceReal.setDataStore(datastore);
 
-		VoD vod1 = new VoD("streamName", "streamId", "filePath", "vodName2", 333, 111, 111, VoD.STREAM_VOD, "vod_1", null);
-		VoD vod2 = new VoD("streamName", "streamId", "filePath", "vodName1", 222, 111, 111, VoD.STREAM_VOD, "vod_2",null);
-		VoD vod3 = new VoD("streamName", "streamId", "filePath", "vodName3", 111, 111, 111, VoD.STREAM_VOD, "vod_3", null);
+		VoD vod1 = new VoD("streamName", "streamId", "filePath", "vodName2", 333, 333, 111, 111, VoD.STREAM_VOD, "vod_1", null);
+		VoD vod2 = new VoD("streamName", "streamId", "filePath", "vodName1", 222, 222, 111, 111, VoD.STREAM_VOD, "vod_2",null);
+		VoD vod3 = new VoD("streamName", "streamId", "filePath", "vodName3", 111, 111, 111, 111, VoD.STREAM_VOD, "vod_3", null);
 		
 		datastore.addVod(vod1);
 		datastore.addVod(vod2);
@@ -455,9 +455,9 @@ public class VoDRestServiceV2UnitTest {
 		String vodId1="vod_1";
 		String vodId2="vod_2";
 		String vodId3="vod_3";
-		VoD vod1 = new VoD("streamName", streamId, "filePath", "vodName2", 333, 111, 111, VoD.STREAM_VOD, vodId1,null);
-		VoD vod2 = new VoD("streamName", streamId, "filePath", "vodName1", 222, 111, 111, VoD.STREAM_VOD, vodId2,null);
-		VoD vod3 = new VoD("streamName", "streamId123", "filePath", "vodName3", 111, 111, 111, VoD.STREAM_VOD, vodId3,null);
+		VoD vod1 = new VoD("streamName", streamId, "filePath", "vodName2", 333, 333, 111, 111, VoD.STREAM_VOD, vodId1,null);
+		VoD vod2 = new VoD("streamName", streamId, "filePath", "vodName1", 222, 222, 111, 111, VoD.STREAM_VOD, vodId2,null);
+		VoD vod3 = new VoD("streamName", "streamId123", "filePath", "vodName3", 111, 111, 111, 111, VoD.STREAM_VOD, vodId3,null);
 
 		dataStore.addVod(vod1);
 		dataStore.addVod(vod2);
