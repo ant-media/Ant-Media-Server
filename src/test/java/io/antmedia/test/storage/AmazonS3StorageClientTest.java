@@ -61,13 +61,17 @@ public class AmazonS3StorageClientTest {
 		List<String> objects = storage.getObjects("streams");
 		assertEquals(0, objects.size());
 		
-		storage.setAccessKey(ACCESS_KEY);
-		storage.setSecretKey(SECRET_KEY);
-		storage.setRegion("eu-west-1");
-		storage.setStorageName(BUCKET_NAME);
-		storage.setEnabled(true);
-		objects = storage.getObjects("streams");
-		assertEquals(0, objects.size());
+		try {
+			storage.setAccessKey(ACCESS_KEY);
+			storage.setSecretKey(SECRET_KEY);
+			storage.setRegion("eu-west-1");
+			storage.setStorageName(BUCKET_NAME);
+			storage.setEnabled(true);
+			objects = storage.getObjects("streams");
+			fail("it should throw exception above");
+		}
+		catch (Exception e) {
+		}
 		
 		List<String> list = new ArrayList<>();
 		List<S3ObjectSummary> objectSummaries = new ArrayList<>();
