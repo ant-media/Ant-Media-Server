@@ -30,7 +30,7 @@ public class JWTFilter extends AbstractFilter {
 
 	protected static Logger log = LoggerFactory.getLogger(JWTFilter.class);
 
-	public static final String JWT_TOKEN = "Authorization";
+	public static final String JWT_TOKEN = "ProxyAuthorization";
 
 	private AppSettings appSettings;
 

@@ -58,7 +58,7 @@
 		</init-param>
 		 <init-param>
 		 	<param-name>cors.allowed.headers</param-name>
-            <param-value>Accept, Origin, X-Requested-With, Access-Control-Request-Headers, Content-Type, Access-Control-Request-Method, Authorization</param-value>
+            <param-value>Accept, Origin, X-Requested-With, Access-Control-Request-Headers, Content-Type, Access-Control-Request-Method, Authorization, ProxyAuthorization</param-value>
          </init-param>
 	</filter>
 	<filter-mapping>
@@ -75,16 +75,7 @@
 		<url-pattern>/*</url-pattern>
 	</filter-mapping>
 	
-	<filter>
- 		<filter-name>JWTServerFilter</filter-name>
-		<filter-class>io.antmedia.console.rest.JWTServerFilter</filter-class>
- 	</filter>
-
-	 <filter-mapping>
- 		<filter-name>JWTServerFilter</filter-name>
- 		<url-pattern>/rest/*</url-pattern>
- 	</filter-mapping>
-	
+	<!-- JWT Server Filter combined with AuthenticationFilter-->
 	<filter>
     	<filter-name>AuthenticationFilter</filter-name>
    		<filter-class>io.antmedia.console.rest.AuthenticationFilter</filter-class>

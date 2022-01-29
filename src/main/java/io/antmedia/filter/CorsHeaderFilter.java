@@ -156,7 +156,7 @@ public class CorsHeaderFilter extends CorsFilter {
 		// request.getHeader("Authorization") != null -> GET, POST and etc requests with JWT Control
 		// (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("authorization") -> For the option request
 		
-		return origin.equals("http://localhost:4200") || request.getHeader("Authorization") != null || (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("authorization"));
+		return origin.equals("http://localhost:4200") || request.getHeader("Authorization") != null || request.getHeader("ProxyAuthorization") != null || (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("authorization") && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("ProxyAuthorization"));
 	}
 
 	private boolean isOriginAllowedInternal(final String origin) {
