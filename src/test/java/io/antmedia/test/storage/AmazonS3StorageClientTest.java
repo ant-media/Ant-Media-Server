@@ -61,6 +61,7 @@ public class AmazonS3StorageClientTest {
 		List<String> objects = storage.getObjects("streams");
 		assertEquals(0, objects.size());
 		
+		storage.setRegion("eu-west-1");
 		storage.setStorageName(BUCKET_NAME);
 		storage.setEnabled(true);
 		objects = storage.getObjects("streams");
