@@ -113,10 +113,12 @@ public class AmazonS3StorageClient extends StorageClient {
 
 			upload.addProgressListener((ProgressListener)event -> 
 			{
-				if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT){
+				if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)
+				{
 					logger.error("S3 - Error: Upload failed for {} with key {}", file.getName(), key);
 				}
-				else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT){
+				else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT)
+				{	
 					if (deleteLocalFile) 
 					{
 						deleteFile(file);
