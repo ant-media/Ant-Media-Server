@@ -420,7 +420,6 @@ public class RestServiceV2 extends CommonRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result uploadApplicationFile(@ApiParam(value = "the name of the Application", required = true) @PathParam("appName") String appName,
-										@ApiParam(value = "the name of the Application", required = true) @PathParam("fileName") String fileName,
 								@ApiParam(value = "file", required = true) @FormDataParam("file") InputStream inputStream) {
 
 		Result result;
@@ -440,7 +439,7 @@ public class RestServiceV2 extends CommonRestService {
 
 			if (!applicationAlreadyExist)
 			{
-				result = super.uploadApplicationFile(appName, fileName, inputStream);
+				result = super.uploadApplicationFile(appName, inputStream);
 			}
 			else
 			{

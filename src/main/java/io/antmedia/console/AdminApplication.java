@@ -307,10 +307,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	public boolean pullWarFile(String appName, String warFileUrl) throws IOException{
+		FileOutputStream fileOutputStream = null;
 		try (BufferedInputStream in = new BufferedInputStream(new URL(warFileUrl).openStream())) {
 			String fileExtension = "war";
 			File savedFile = new File(String.format("%s/%s", System.getProperty("red5.root"), appName + "." + fileExtension));
-			FileOutputStream fileOutputStream = new FileOutputStream(savedFile);
+			fileOutputStream = new FileOutputStream(savedFile);
 
 			byte dataBuffer[] = new byte[1024];
 			int bytesRead;
@@ -324,6 +325,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 			logger.info("War file pulled from {} for creating application, filesize = {} path = {}", warFileUrl, fileSize, path);
 			return true;
+		}
+		finally{
+			fileOutputStream.close();
 		}
 	}
 
@@ -363,19 +367,19 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	public boolean runCreateAppScript(String appName, boolean isCluster, 
-			String mongoHost, String mongoUser, String mongoPass, String warFilePath) {
+			String mongoHost, String mongoUser, String mongoPass, String warFileName) {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
 		String command;
 
-		if(warFilePath != null && !warFilePath.isEmpty()){
+		if(warFileName != null && !warFileName.isEmpty()){
 			command = "/bin/bash create_app.sh"
 					+ " -n "+appName
 					+ " -w true"
 					+ " -p "+webappsPath
 					+ " -c "+isCluster
-					+ " -f " +warFilePath;
+					+ " -f " +warFileName;
 
 		}else{
 			command = "/bin/bash create_app.sh"

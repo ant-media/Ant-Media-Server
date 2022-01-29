@@ -207,58 +207,50 @@ public class CommonRestService {
 		return operationResult;
 	}
 
-	protected Result uploadApplicationFile(String appName, String fileName, InputStream inputStream) {
+	protected Result uploadApplicationFile(String appName, InputStream inputStream) {
 		boolean success = false;
 		String message = "";
-		String fileExtension = FilenameUtils.getExtension(fileName);
+		String fileExtension = "war";
 
 		try {
-			if ("war".equalsIgnoreCase(fileExtension)) {
+			File streamsDirectory = new File(
+					getWebAppsDirectory());
 
-				File streamsDirectory = new File(
-						getWebAppsDirectory());
-
-				// if the directory does not exist, create it
-				if (!streamsDirectory.exists()) {
-					streamsDirectory.mkdirs();
-				}
-				File savedFile = new File(String.format("%s/%s", System.getProperty("red5.root"), appName + "." + fileExtension));
-
-				int read = 0;
-				byte[] bytes = new byte[2048];
-				try (OutputStream outpuStream = new FileOutputStream(savedFile))
-				{
-
-					while ((read = inputStream.read(bytes)) != -1) {
-						outpuStream.write(bytes, 0, read);
-					}
-					outpuStream.flush();
-
-					long fileSize = savedFile.length();
-
-					String path = savedFile.getPath();
-
-					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
-					logger.info("War file uploaded for application, filesize = {} path = {}", fileSize, path);
-
-					if(isClusterMode()){
-						AppSettings tempSetting = new AppSettings();
-						tempSetting.setAppName(appName);
-						tempSetting.setPullWarFile(true);
-						tempSetting.setWarFileAddress(getServerSettingsInternal().getHostAddress());
-
-						IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
-						clusterNotifier.getClusterStore().saveSettings(tempSetting);
-						logger.info("!!!!!!!!!!!!!! SENDING SETTINGS");
-					}
-
-					return new Result(getApplication().createApplication(appName, fileName));
-				}
+			// if the directory does not exist, create it
+			if (!streamsDirectory.exists()) {
+				streamsDirectory.mkdirs();
 			}
-			else {
-				message = "notWarFile";
-			}
+			File savedFile = new File(String.format("%s/%s", System.getProperty("red5.root"), appName + "." + fileExtension));
 
+			int read = 0;
+			byte[] bytes = new byte[2048];
+			try (OutputStream outpuStream = new FileOutputStream(savedFile))
+			{
+
+				while ((read = inputStream.read(bytes)) != -1) {
+					outpuStream.write(bytes, 0, read);
+				}
+				outpuStream.flush();
+
+				long fileSize = savedFile.length();
+
+				String path = savedFile.getPath();
+
+				String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
+				logger.info("War file uploaded for application, filesize = {} path = {}", fileSize, path);
+
+				if(isClusterMode()){
+					AppSettings tempSetting = new AppSettings();
+					tempSetting.setAppName(appName);
+					tempSetting.setPullWarFile(true);
+					tempSetting.setWarFileAddress(getServerSettingsInternal().getHostAddress());
+
+					IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
+					clusterNotifier.getClusterStore().saveSettings(tempSetting);
+				}
+
+				return new Result(getApplication().createApplication(appName, savedFile.getName()));
+			}
 		}
 		catch (IOException iox) {
 			logger.error(iox.getMessage());
