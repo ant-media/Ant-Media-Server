@@ -3,6 +3,8 @@ package io.antmedia.storage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -18,7 +20,9 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
@@ -63,6 +67,22 @@ public class AmazonS3StorageClient extends StorageClient {
 		return builder.build();
 	}
 
+	public List<String> getObjects(String prefix) 
+	{
+		List<String> list = new ArrayList<>();
+		if (isEnabled()) {
+			AmazonS3 s3 = getAmazonS3();
+			ListObjectsV2Result objects = s3.listObjectsV2(getStorageName(), prefix);
+			
+			List<S3ObjectSummary> objectSummaries = objects.getObjectSummaries();
+			
+			for (S3ObjectSummary s3ObjectSummary : objectSummaries) 
+			{
+				list.add(s3ObjectSummary.getKey());
+			}
+		}
+		return list;
+	}
 
 	public void delete(String key) {
 		if (isEnabled()) 
