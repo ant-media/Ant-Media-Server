@@ -75,6 +75,7 @@ public class AmazonS3StorageClient extends StorageClient {
 			ListObjectsV2Result objects = s3.listObjectsV2(getStorageName(), prefix);
 			
 			convert2List(list, objects.getObjectSummaries());
+			
 		}
 		return list;
 	}
