@@ -74,14 +74,16 @@ public class AmazonS3StorageClient extends StorageClient {
 			AmazonS3 s3 = getAmazonS3();
 			ListObjectsV2Result objects = s3.listObjectsV2(getStorageName(), prefix);
 			
-			List<S3ObjectSummary> objectSummaries = objects.getObjectSummaries();
-			
-			for (S3ObjectSummary s3ObjectSummary : objectSummaries) 
-			{
-				list.add(s3ObjectSummary.getKey());
-			}
+			convert2List(list, objects.getObjectSummaries());
 		}
 		return list;
+	}
+
+	public void convert2List(List<String> list, List<S3ObjectSummary> objectSummaries) {
+		for (S3ObjectSummary s3ObjectSummary : objectSummaries) 
+		{
+			list.add(s3ObjectSummary.getKey());
+		}
 	}
 
 	public void delete(String key) {
