@@ -81,6 +81,14 @@
 		<property name="dbUser" value="" />
 		<property name="dbPassword" value="" />
 	</bean>
+
+	<bean id="saml.config" class="io.antmedia.saml.SamlSecurityConfig">
+		<property name="appSettings" ref="app.settings" />
+	</bean>
+
+	<bean id="saml.webConfig" class="io.antmedia.saml.WebSecurityConfig">
+		<property name="appSettings" ref="app.settings" />
+	</bean>
 	
 	<bean id="app.settings" class="io.antmedia.AppSettings"></bean>
 	
