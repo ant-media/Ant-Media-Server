@@ -396,7 +396,7 @@ public class HLSMuxer extends Muxer  {
 						if (!files[i].exists()) {
 							continue;
 						}
-						if(uploadHLSToS3) 
+						if(uploadHLSToS3 && storageClient.isEnabled()) 
 						{
 							storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], deleteFileOnExit);
 						}
