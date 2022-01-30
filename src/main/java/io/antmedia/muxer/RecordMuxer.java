@@ -487,9 +487,13 @@ public abstract class RecordMuxer extends Muxer {
 	private static boolean doesFileExistInS3(StorageClient storageClient, String name) {
 		return storageClient.fileExist(name);
 	}
+	
 	public static void saveToStorage(String prefix, File fileToUpload, String fileName, StorageClient storageClient) {
-
-		storageClient.save(prefix + fileName, fileToUpload);
+		saveToStorage(prefix, fileToUpload, fileName, storageClient, true);
+	}
+	
+	public static void saveToStorage(String prefix, File fileToUpload, String fileName, StorageClient storageClient, boolean deleteLocalFile) {
+		storageClient.save(prefix + fileName, fileToUpload, deleteLocalFile);
 	}
 
 

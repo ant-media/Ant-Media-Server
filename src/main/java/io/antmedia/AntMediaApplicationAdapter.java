@@ -1378,7 +1378,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	}
 
-	private void setStorageclientSettings(AppSettings settings) {
+	public void setStorageclientSettings(AppSettings settings) {
 		storageClient.setEndpoint(settings.getS3Endpoint());
 		storageClient.setStorageName(settings.getS3BucketName());
 		storageClient.setAccessKey(settings.getS3AccessKey());
@@ -1508,6 +1508,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void setStorageClient(StorageClient storageClient) {
 		this.storageClient = storageClient;
+	}
+	
+	public StorageClient getStorageClient() {
+		return storageClient;
 	}
 
 	public void addStreamListener(IStreamListener listener) {

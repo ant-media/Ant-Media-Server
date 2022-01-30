@@ -275,6 +275,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		StorageClient storageClient = Mockito.mock(StorageClient.class);
 		spyAdapter.setStorageClient(storageClient);
 		
+		assertEquals(storageClient, spyAdapter.getStorageClient());
+		
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setScope(scope);
 		assertNotEquals("", settings.getHlsPlayListType());
