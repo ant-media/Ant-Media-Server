@@ -685,7 +685,7 @@ public class AppSettings {
 	 * Check for details: https://ffmpeg.org/ffmpeg-formats.html#Options-6
 	 * 
 	 */
-	@Value( "${" + SETTINGS_HLS_FLAGS + ":delete_segments}")
+	@Value( "${" + SETTINGS_HLS_FLAGS + ":delete_segments+split_by_time}")
 	private String hlsflags;
 
 	private String mySqlClientPath = "/usr/local/antmedia/mysql";
