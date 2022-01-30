@@ -811,6 +811,9 @@ public class AppFunctionalV2Test {
 			appSettings.setWebRTCEnabled(false);
 			
 			//It's once crashed with following settings so that enabling these one to reproduce the problem
+			
+			//The bug is fixed by changing source code in the dashenc.c. See the build_ffmpeg.md in enterprise to
+			//get more details
 			appSettings.setDashMuxingEnabled(true);
 			appSettings.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 64000, true)));
 			appSettings.setGeneratePreview(true);
