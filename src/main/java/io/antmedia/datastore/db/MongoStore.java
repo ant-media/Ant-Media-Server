@@ -427,9 +427,9 @@ public class MongoStore extends DataStore {
 
 				query.filter(
 						Filters.and(
-								Filters.or(Filters.eq("type", AntMediaApplicationAdapter.IP_CAMERA), Filters.eq("type", AntMediaApplicationAdapter.STREAM_SOURCE))),
+								Filters.or(Filters.eq("type", AntMediaApplicationAdapter.IP_CAMERA), Filters.eq("type", AntMediaApplicationAdapter.STREAM_SOURCE)),
 						Filters.and(Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING), Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-						);
+						));
 
 				List<Broadcast> streamList = query.iterator().toList();
 				Update<Broadcast> update = query.update(UpdateOperators.set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING));
