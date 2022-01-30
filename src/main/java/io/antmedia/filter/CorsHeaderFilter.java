@@ -153,10 +153,15 @@ public class CorsHeaderFilter extends CorsFilter {
 	
 	private boolean internalOriginCheck(String origin, HttpServletRequest request) {
 		// localhost:4200 -> This simplifies angular app development
-		// request.getHeader("Authorization") != null -> GET, POST and etc requests with JWT Control
+		// request.getHeader("Authorization") != null -> GET, POST and etc requests with Server JWT Control
 		// (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("authorization") -> For the option request
 		
-		return origin.equals("http://localhost:4200") || request.getHeader("Authorization") != null || request.getHeader("ProxyAuthorization") != null || (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("authorization") && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("ProxyAuthorization"));
+		// request.getHeader("ProxyAuthorization") != null -> GET, POST and etc requests with App JWT Control
+		// (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("ProxyAuthorization") -> For the option request
+		
+		return origin.equals("http://localhost:4200") 
+				|| (request.getHeader("Authorization") != null || (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null && request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("authorization")) 
+				|| (request.getHeader("ProxyAuthorization") != null || (request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS) != null &&  request.getHeader(REQUEST_HEADER_ACCESS_CONTROL_REQUEST_HEADERS).contains("ProxyAuthorization")))); 
 	}
 
 	private boolean isOriginAllowedInternal(final String origin) {
