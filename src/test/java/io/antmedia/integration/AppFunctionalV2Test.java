@@ -809,6 +809,12 @@ public class AppFunctionalV2Test {
 			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 			//make webrtc enabled false because it's enabled by true
 			appSettings.setWebRTCEnabled(false);
+			
+			//It's once crashed with following settings so that enabling these one to reproduce the problem
+			appSettings.setDashMuxingEnabled(true);
+			appSettings.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 64000, true)));
+			appSettings.setGeneratePreview(true);
+			
 			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 
