@@ -2322,14 +2322,23 @@ public class DBStoresUnitTest {
 		ss5.setType(AntMediaApplicationAdapter.IP_CAMERA);
 		ss5.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
+		Broadcast ss6 = new Broadcast("ss6");
+		ss6.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+		ss6.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+
 		dataStore.save(ss1);
 		dataStore.save(ss2);
 		dataStore.save(ss3);
 		dataStore.save(ss4);
 		dataStore.save(ss5);
+		dataStore.save(ss6);
 
 		List<Broadcast> list = dataStore.getExternalStreamsList();
 		assertEquals(3, list.size());
+
+		assertNotEquals("ss6", list.get(0).getName());
+		assertNotEquals("ss6", list.get(1).getName());
+		assertNotEquals("ss6", list.get(2).getName());
 
 		List<Broadcast> list2 = dataStore.getExternalStreamsList();
 		assertEquals(0, list2.size());
