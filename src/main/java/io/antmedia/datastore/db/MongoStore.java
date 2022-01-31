@@ -431,11 +431,11 @@ public class MongoStore extends DataStore {
 				query.filter(
 						Filters.and(
 								Filters.or(Filters.eq("type", AntMediaApplicationAdapter.IP_CAMERA), Filters.eq("type", AntMediaApplicationAdapter.STREAM_SOURCE)),
-						Filters.and(Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING), Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-						));
+						Filters.and(Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING), Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)))
+						);
 
 				List<Broadcast> streamList = query.iterator().toList();
-				final UpdateResult results = query.update(new UpdateOptions(), set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING));
+				final UpdateResult results = query.update(new UpdateOptions().multi(true), set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING));
 				long updatedCount = results.getModifiedCount();
 				if(updatedCount != streamList.size()) {
 					logger.error("Only {} stream status updated out of {}", updatedCount, streamList.size());
