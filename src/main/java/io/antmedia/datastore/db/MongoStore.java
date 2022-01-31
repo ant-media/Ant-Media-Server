@@ -90,16 +90,24 @@ public class MongoStore extends DataStore {
 
 		mongoClient = MongoClients.create(uri);
 
-		/* Drop Indexes if the database is already created in a mongodb instance.
-		 * This is intended to reduce the version conflicts that may be related to the database indexes.
-		 * They will be created again when the datastore is initialized, no data will be lost because of dropping indexes.
+		/* Drop Index of streamId if the database is already created in a mongodb instance.
+		 * We are adding unique index to streamId and this method is just to ensure backward compatibility for now.
+		 * It can be deleted in later versions, the last version that requires this is 2.4.2
 		 */
 		for( String db : mongoClient.listDatabaseNames()){
 			if(db.equals(dbName) || db.equals(dbName+"VoD") || db.equals(dbName + "_token") || db.equals(dbName + "_subscriber") || db.equals(dbName + "detection") || db.equals(dbName + "room")){
 				MongoDatabase database = mongoClient.getDatabase(db);
 				MongoCollection broadcastCollection = database.getCollection("broadcast");
-				broadcastCollection.dropIndexes();
-				logger.info("Dropping indexes for {} to update them", db);
+				boolean isUnique= false;
+				for(Object index : broadcastCollection.listIndexes()){
+					if(index.toString().contains("unique=true")){
+						isUnique = true;
+					}
+				}
+				if(isUnique != true){
+					logger.info("Dropping stream ID index because it does not have unique label for db: {}", dbName);
+					broadcastCollection.dropIndex("streamId_1");
+				}
 			}
 		}
 
