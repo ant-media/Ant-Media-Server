@@ -7,6 +7,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -90,6 +92,15 @@ public class MongoStore extends DataStore {
 
 
 		mongoClient = MongoClients.create(uri);
+
+		for( String db : mongoClient.listDatabaseNames()){
+			if(db.equals(dbName) || db.equals(dbName+"VoD") || db.equals(dbName + "_token") || db.equals(dbName + "_subscriber") || db.equals(dbName + "detection") || db.equals(dbName + "room")){
+				MongoDatabase database = mongoClient.getDatabase(db);
+				MongoCollection broadcastCollection = database.getCollection("broadcast");
+				broadcastCollection.dropIndex("streamId_1");
+				logger.info("Dropping indexes for {} to update them", db);
+			}
+		}
 
 
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
