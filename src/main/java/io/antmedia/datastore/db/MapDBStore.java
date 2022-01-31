@@ -510,10 +510,13 @@ public class MapDBStore extends DataStore {
 			}
 
 			for (int i = 0; i < broadcastArray.length; i++) {
+				String type = broadcastArray[i].getType();
+				String status = broadcastArray[i].getStatus();
 
-				if (broadcastArray[i].getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || broadcastArray[i].getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
-
+				if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
 					streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					broadcastArray[i].setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+					map.replace(broadcastArray[i].getStreamId(), gson.toJson(broadcastArray[i]));
 				}
 			}
 		}
