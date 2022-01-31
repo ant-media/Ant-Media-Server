@@ -4,6 +4,8 @@ package io.antmedia.console.datastore;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +37,19 @@ public class MongoStore extends AbstractConsoleDataStore {
 		String uri =  io.antmedia.datastore.db.MongoStore.getMongoConnectionUri(dbHost, dbUser, dbPassword);
 
 		mongoClient = MongoClients.create(uri);
+
+		/* Drop Indexes if the database is already created in a mongodb instance.
+		 * This is intended to reduce the version conflicts that may be related to the database indexes.
+		 * They will be created again when the datastore is initialized, no data will be lost because of dropping indexes.
+		 */
+		for( String db : mongoClient.listDatabaseNames()){
+			if(db.equals(dbName) || db.equals(dbName+"VoD") || db.equals(dbName + "_token") || db.equals(dbName + "_subscriber") || db.equals(dbName + "detection") || db.equals(dbName + "room")){
+				MongoDatabase database = mongoClient.getDatabase(db);
+				MongoCollection broadcastCollection = database.getCollection("broadcast");
+				broadcastCollection.dropIndexes();
+				logger.info("Dropping indexes for {} to update them", db);
+			}
+		}
 
 		datastore = Morphia.createDatastore(mongoClient, dbName);
 		datastore.getMapper().mapPackage("io.antmedia.datastore.db.types");

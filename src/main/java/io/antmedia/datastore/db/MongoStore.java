@@ -93,15 +93,18 @@ public class MongoStore extends DataStore {
 
 		mongoClient = MongoClients.create(uri);
 
+		/* Drop Indexes if the database is already created in a mongodb instance.
+		 * This is intended to reduce the version conflicts that may be related to the database indexes.
+		 * They will be created again when the datastore is initialized, no data will be lost because of dropping indexes.
+		 */
 		for( String db : mongoClient.listDatabaseNames()){
 			if(db.equals(dbName) || db.equals(dbName+"VoD") || db.equals(dbName + "_token") || db.equals(dbName + "_subscriber") || db.equals(dbName + "detection") || db.equals(dbName + "room")){
 				MongoDatabase database = mongoClient.getDatabase(db);
 				MongoCollection broadcastCollection = database.getCollection("broadcast");
-				broadcastCollection.dropIndex("streamId_1");
+				broadcastCollection.dropIndexes();
 				logger.info("Dropping indexes for {} to update them", db);
 			}
 		}
-
 
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = Morphia.createDatastore(mongoClient, dbName);
