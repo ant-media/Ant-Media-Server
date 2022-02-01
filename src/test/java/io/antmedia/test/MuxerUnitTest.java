@@ -2412,11 +2412,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7);
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		hlsMuxer.init(appScope, "test", 0, "", 100);
-		assertEquals("./webapps/junit/streams/test_%04d.ts", hlsMuxer.getSegmentFilename());
+		assertEquals("./webapps/junit/streams/test%04d.ts", hlsMuxer.getSegmentFilename());
 
 		hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7);
 		hlsMuxer.init(appScope, "test", 0, "", 0);
-		assertEquals("./webapps/junit/streams/test_%04d.ts", hlsMuxer.getSegmentFilename());
+		assertEquals("./webapps/junit/streams/test%04d.ts", hlsMuxer.getSegmentFilename());
 
 		hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7);
 		hlsMuxer.init(appScope, "test", 300, "", 0);
@@ -2911,7 +2911,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamId = "test";
 		Muxer mp4Muxer = spy(new Mp4Muxer(null, null, "streams"));
-		IScope scope = mock(IScope.class);
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.info("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
 
 		File parent = mock(File.class);
 		when(parent.exists()).thenReturn(true);
@@ -2944,7 +2948,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		doReturn(existingTempFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_1"), eq(".mp4"+Muxer.TEMP_EXTENSION), eq(null));
 		doReturn(nonExistingTempFile_2).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_2"), eq(".mp4"+Muxer.TEMP_EXTENSION), eq(null));
 
-		mp4Muxer.init(scope, streamId, 0, false, null, 0);
+
+		mp4Muxer.init(appScope, streamId, 0, false, null, 0);
 
 		assertEquals(nonExistingFile_2, mp4Muxer.getFile());
 
@@ -2966,7 +2971,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamId = "test";
 		Muxer mp4Muxer = spy(new Mp4Muxer(null, null, "streams"));
-		IScope scope = mock(IScope.class);
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.info("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
 
 		File parent = mock(File.class);
 		when(parent.exists()).thenReturn(true);
@@ -2990,7 +2999,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		doReturn(existingTempFile).when(mp4Muxer).getResourceFile(any(), eq(streamId), eq(".mp4"+Muxer.TEMP_EXTENSION), eq(null));
 		doReturn(nonExistingTempFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId+"_1"), eq(".mp4"+Muxer.TEMP_EXTENSION), eq(null));
 
-		mp4Muxer.init(scope, streamId, 0, false, null, 0);
+		mp4Muxer.init(appScope, streamId, 0, false, null, 0);
 
 		assertEquals(nonExistingFile_1, mp4Muxer.getFile());
 

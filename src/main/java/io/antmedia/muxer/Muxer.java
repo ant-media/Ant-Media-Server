@@ -314,14 +314,14 @@ public abstract class Muxer {
 		}
 		String lowerCaseFormat = fileNameFormat.toLowerCase();
 		// add resolution height parameter if it is different than 0
-		if (resolution != 0 && lowerCaseFormat.contains("%r") && bitrate != 0 && lowerCaseFormat.contains("%b"))
+		if (resolution != 0 && lowerCaseFormat.contains("%r") && bitrateKbps != 0 && lowerCaseFormat.contains("%b"))
 		{
 			resourceName += (lowerCaseFormat.indexOf("r") > lowerCaseFormat.indexOf("b")) ?  "_" + bitrateKbps + "kbps" + resolution + "p" : "_" + resolution + "p" + bitrateKbps + "kbps";
 		}
-		else if(resolution != 0 && lowerCaseFormat.contains("%r") && (bitrate == 0 || !lowerCaseFormat.contains("%b"))){
+		else if(resolution != 0 && lowerCaseFormat.contains("%r") && (bitrateKbps == 0 || !lowerCaseFormat.contains("%b"))){
 			resourceName += "_" + resolution + "p" ;
 		}
-		else if((resolution == 0 || !lowerCaseFormat.contains("%r")) && bitrate != 0 && lowerCaseFormat.contains("%b")){
+		else if((resolution == 0 || !lowerCaseFormat.contains("%r")) && bitrateKbps != 0 && lowerCaseFormat.contains("%b")){
 			resourceName += "_" + bitrateKbps + "kbps" ;
 		}
 		else if( (!lowerCaseFormat.contains("%r") && !lowerCaseFormat.contains("%b")) && resolution != 0){

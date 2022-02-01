@@ -160,11 +160,10 @@ public class HLSMuxer extends Muxer  {
 			this.bitrate=bitrate;
 
 			logger.info("hls time: {}, hls list size: {} for stream:{}", hlsTime, hlsListSize, streamId);
-			
+
 			segmentFilename = file.getParentFile() + File.separator + initialResourceNameWithoutExtension;
 			segmentFilename += SEGMENT_SUFFIX_TS;
 
-					
 			options.put("hls_segment_filename", segmentFilename);
 
 			if (hlsPlayListType != null && (hlsPlayListType.equals("event") || hlsPlayListType.equals("vod"))) {
