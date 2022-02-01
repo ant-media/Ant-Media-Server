@@ -70,8 +70,9 @@ public class Endpoint
 
 	}
 		
-	public Endpoint(String broadcastId, String streamId, String name, String rtmpUrl, String type, String endpointServiceId, String serverStreamId) {
+	public Endpoint(String broadcastId, String streamId, String name, String rtmpUrl, String type, String endpointServiceId, String serverStreamId, String status) {
 		this();
+		this.status = status;
 		this.broadcastId = broadcastId;
 		this.streamId = streamId;
 		this.rtmpUrl = rtmpUrl;
