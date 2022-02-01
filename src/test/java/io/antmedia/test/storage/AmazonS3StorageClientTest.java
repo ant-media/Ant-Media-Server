@@ -8,6 +8,8 @@ import static org.mockito.Mockito.spy;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,6 +24,7 @@ import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.event.ProgressListener;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 
@@ -50,6 +53,34 @@ public class AmazonS3StorageClientTest {
 			System.out.println("Finishing test: " + description.getMethodName());
 		}
 	};
+	
+	@Test
+	public void testListS3Objects() 
+	{
+		AmazonS3StorageClient storage = Mockito.spy(new AmazonS3StorageClient());
+		List<String> objects = storage.getObjects("streams");
+		assertEquals(0, objects.size());
+		
+		try {
+			storage.setAccessKey(ACCESS_KEY);
+			storage.setSecretKey(SECRET_KEY);
+			storage.setRegion("eu-west-1");
+			storage.setStorageName(BUCKET_NAME);
+			storage.setEnabled(true);
+			objects = storage.getObjects("streams");
+			fail("it should throw exception above");
+		}
+		catch (Exception e) {
+		}
+		
+		List<String> list = new ArrayList<>();
+		List<S3ObjectSummary> objectSummaries = new ArrayList<>();
+		objectSummaries.add(new S3ObjectSummary());
+		storage.convert2List(objects, objectSummaries);
+		
+		assertEquals(1, objectSummaries.size());
+		
+	}
 	
 	@Test
 	public void testS3() {

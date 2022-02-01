@@ -233,7 +233,9 @@ public class MuxingTest {
 
 			assertFalse(testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName + ".mp4"));
 
-			assertFalse(rtmpSendingProcess.isAlive());
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> 
+				!rtmpSendingProcess.isAlive()
+			);
 			// stop rtmp streaming
 			rtmpSendingProcess.destroy();
 
