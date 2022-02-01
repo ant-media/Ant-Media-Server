@@ -4,6 +4,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
@@ -196,7 +197,7 @@ public class FrontEndTest {
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/stream1.m3u8");
 			});
-			
+
 			assertTrue(MuxingTest.audioExists);
 			assertFalse(MuxingTest.videoExists);
 
@@ -334,68 +335,55 @@ public class FrontEndTest {
 			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
-		}
-		catch (Exception e){
-			fail();
-			System.out.println(ExceptionUtils.getStackTrace(e));
-		}
+
+			Broadcast broadcast=restService.createBroadcast(streamId);
+			assertNotNull(broadcast);
+
+			Process rtmpSendingProcess = execute(ffmpegPath
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://localhost/LiveApp/"
+					+ broadcast.getStreamId());
+
+			ChromeOptions chrome_options = new ChromeOptions();
+			chrome_options.addArguments("--disable-extensions");
+			chrome_options.addArguments("--disable-gpu");
+			chrome_options.addArguments("--headless");
+			chrome_options.addArguments("--no-sandbox");
+			chrome_options.addArguments("--log-level=1");
+
+			LoggingPreferences logPrefs = new LoggingPreferences();
+			//To get console log
+			logPrefs.enable(LogType.BROWSER, Level.ALL);
+			chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast tmpBroadcast = restService.getBroadcast(broadcast.getStreamId());
+
+				return tmpBroadcast != null && IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmpBroadcast.getStatus());
+			});
+
+			this.driver = new ChromeDriver(chrome_options);
+			this.driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(10));
+			this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+
+			//Test HLS
+			this.driver.get(this.url+"play.html?id="+broadcast.getStreamId()+"&playOrder=hls");
+
+			//Check we landed on the page
+			String title = this.driver.getTitle();
+
+			System.out.println(this.url + " " + this.driver + " " + title);
+			assertEquals("Ant Media Server WebRTC/HLS/DASH Player", title);
+
+			assertTrue(checkAlert());
+
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return restService.callGetBroadcast(broadcast.getStreamId()).getHlsViewerCount() > 0 ;
+			});
+
+			rtmpSendingProcess.destroy();
 
 
-		Random r = new Random();
-		String streamId = "streamId" + r.nextInt();
-
-		Broadcast broadcast=restService.createBroadcast(streamId);
-		assertNotNull(broadcast);
-
-		Process rtmpSendingProcess = execute(ffmpegPath
-				+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://localhost/LiveApp/"
-				+ broadcast.getStreamId());
-
-		ChromeOptions chrome_options = new ChromeOptions();
-		chrome_options.addArguments("--disable-extensions");
-		chrome_options.addArguments("--disable-gpu");
-		chrome_options.addArguments("--headless");
-		chrome_options.addArguments("--no-sandbox");
-		chrome_options.addArguments("--log-level=1");
-		LoggingPreferences logPrefs = new LoggingPreferences();
-		//To get console log
-		logPrefs.enable(LogType.BROWSER, Level.ALL);
-		chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
-
-		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			return MuxingTest.testFile("http://localhost:5080/LiveApp/streams/" + broadcast.getStreamId() + ".m3u8");
-		});
-
-		//Decreasing to zero may take some time
-		//TODO: Find a better to decrease the test duration
-		Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			return restService.callGetBroadcast(broadcast.getStreamId()).getHlsViewerCount() == 0 ;
-		});
-
-		this.driver = new ChromeDriver(chrome_options);
-		this.driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(10));
-		this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-
-		//Test HLS
-		this.driver.get(this.url+"play.html?id="+broadcast.getStreamId()+"&playOrder=hls");
-
-		//Check we landed on the page
-		String title = this.driver.getTitle();
-
-		System.out.println(this.url + " " + this.driver + " " + title);
-		assertEquals("Ant Media Server WebRTC/HLS/DASH Player", title);
-
-
-		assertTrue(checkAlert());
-
-		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			return restService.callGetBroadcast(broadcast.getStreamId()).getHlsViewerCount() > 0 ;
-		});
-
-		rtmpSendingProcess.destroy();
-
-		try {
-			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+			appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 
 			appSettingsModel.setEncoderSettings(encoderSettings);
 
@@ -404,8 +392,20 @@ public class FrontEndTest {
 
 		}
 		catch (Exception e){
-			fail();
 			System.out.println(ExceptionUtils.getStackTrace(e));
+			LogEntries entry = driver.manage().logs().get(LogType.BROWSER);
+
+			//print the logs 
+			List<LogEntry> logs= entry.getAll();
+			// Print logs to debug 
+			for(LogEntry log: logs)
+			{
+				logger.info(log.toString());
+			}
+
+
+			fail(e.getMessage());
+
 		}
 
 	}
