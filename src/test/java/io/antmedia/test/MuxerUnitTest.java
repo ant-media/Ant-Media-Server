@@ -2967,6 +2967,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals( "test",mp4Muxer.getExtendedName("test", 400, 10,"%b"));
 		assertEquals( "test_400p",mp4Muxer.getExtendedName("test", 400, 10,"%r"));
 		assertEquals( "test_400p",mp4Muxer.getExtendedName("test", 400, 10,"%r%b"));
+		assertEquals( "test_1000kbps400p",mp4Muxer.getExtendedName("test", 400, 1000000,"%b%r"));
+		assertEquals( "test_1000kbps",mp4Muxer.getExtendedName("test", 0, 1000000,"%b%r"));
+		assertEquals( "test_400p",mp4Muxer.getExtendedName("test", 400, 0,"%b%r"));
 
 	}
 
