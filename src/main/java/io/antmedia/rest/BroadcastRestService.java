@@ -440,26 +440,33 @@ public class BroadcastRestService extends RestServiceBase{
 			Endpoint endpoint = getRtmpUrlFromList(endpointServiceId, broadcast);
 			if (endpoint != null && endpoint.getRtmpUrl() != null) {
 				rtmpUrl = endpoint.getRtmpUrl();
-				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
-				{
-					result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpoint.getRtmpUrl(), false, resolutionHeight);
-					if (result.isSuccess()) 
-					{
-						result = super.removeRTMPEndpoint(id, endpoint);
-					}
-				}
-				else 
-				{
-					result = super.removeRTMPEndpoint(id, endpoint);
-				}
+				result = removeRTMPEndpointProcess(broadcast, endpoint, resolutionHeight, id);	
 			}
-
-
 		} 
 		if (logger.isInfoEnabled()) 
 		{ 
 			logger.info("Rtmp endpoint({}) removal operation is {} from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , result.isSuccess(), id.replaceAll(REPLACE_CHARS, "_"));
 		}
+		return result;
+	}
+	
+	private Result removeRTMPEndpointProcess(Broadcast broadcast, Endpoint endpoint, int resolutionHeight, String id) {
+		Result result;
+		
+		if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
+		{
+			result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpoint.getRtmpUrl(), false, resolutionHeight);
+			if (result.isSuccess()) 
+			{
+				result = super.removeRTMPEndpoint(id, endpoint);
+			}
+		}
+		else 
+		{
+			result = super.removeRTMPEndpoint(id, endpoint);
+		}
+		
+		
 		return result;
 	}
 
