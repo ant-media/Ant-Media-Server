@@ -2954,6 +2954,21 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(nonExistingFile_2, mp4Muxer.getFile());
 
 	}
+	@Test
+	public void testGetExtendedName(){
+		Muxer mp4Muxer = spy(new Mp4Muxer(null, null, "streams"));
+		assertEquals( "test_400p",mp4Muxer.getExtendedName("test", 400, 1000000 ,""));
+		assertEquals( "test_400p1000kbps",mp4Muxer.getExtendedName("test", 400, 1000000 ,"%r%b"));
+		assertEquals( "test_1000kbps",mp4Muxer.getExtendedName("test", 400, 1000000 ,"%b"));
+		assertEquals( "test_400p",mp4Muxer.getExtendedName("test", 400, 1000000 ,"%r"));
+		assertEquals( "test",mp4Muxer.getExtendedName("test", 0, 1000000 ,"%r"));
+		assertEquals( "test_1000kbps",mp4Muxer.getExtendedName("test", 0, 1000000 ,"%b"));
+		assertEquals( "test_1000kbps",mp4Muxer.getExtendedName("test", 0, 1000000 ,"%r%b"));
+		assertEquals( "test",mp4Muxer.getExtendedName("test", 400, 10,"%b"));
+		assertEquals( "test_400p",mp4Muxer.getExtendedName("test", 400, 10,"%r"));
+		assertEquals( "test_400p",mp4Muxer.getExtendedName("test", 400, 10,"%r%b"));
+
+	}
 
 	@Test
 	public void testMp4MuxingWhileTempFileExist() {

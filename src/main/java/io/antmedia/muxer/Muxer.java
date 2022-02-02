@@ -324,6 +324,7 @@ public abstract class Muxer {
 		else if((resolution == 0 || !lowerCaseFormat.contains("%r")) && bitrateKbps != 0 && lowerCaseFormat.contains("%b")){
 			resourceName += "_" + bitrateKbps + "kbps" ;
 		}
+		//It should add the resolution if no identifier found because the names will be messed up if it does not in adaptive streaming
 		else if( (!lowerCaseFormat.contains("%r") && !lowerCaseFormat.contains("%b")) && resolution != 0){
 			logger.info("No identifier found for file name, adding resolution");
 			resourceName += "_" + resolution + "p" ;
