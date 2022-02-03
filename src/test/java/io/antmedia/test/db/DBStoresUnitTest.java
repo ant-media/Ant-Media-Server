@@ -2127,9 +2127,6 @@ public class DBStoresUnitTest {
 		StreamInfo si2 = new StreamInfo();
 		si2.setHost(ServerSettings.getLocalHostAddress());
 		si2.setStreamId(broadcast.getStreamId());
-		si2.setVideoPort(1000);
-		si2.setAudioPort(1100);
-
 
 		dataStore.saveStreamInfo(si2);
 
@@ -2215,9 +2212,6 @@ public class DBStoresUnitTest {
 
 		StreamInfo si = new StreamInfo();
 		si.setHost(host1);
-		si.setVideoPort(videoPort1);
-		si.setAudioPort(audioPort1);
-		si.setDataChannelPort(dataPort1);
 		si.setStreamId("test1");
 		dataStore.saveStreamInfo(si);
 
@@ -2225,9 +2219,6 @@ public class DBStoresUnitTest {
 
 		si = new StreamInfo();
 		si.setHost(host2);
-		si.setVideoPort(videoPort2);
-		si.setAudioPort(audioPort2);
-		si.setDataChannelPort(dataPort2);
 		si.setStreamId("test2");
 		dataStore.saveStreamInfo(si);
 	}

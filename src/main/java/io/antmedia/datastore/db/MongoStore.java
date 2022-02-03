@@ -903,24 +903,6 @@ public class MongoStore extends DataStore {
 			Query<StreamInfo> query = datastore.find(StreamInfo.class);
 
 			List<Filter> filterList = new ArrayList<>();
-			if (streamInfo.getVideoPort() != 0) {
-
-				filterList.add(Filters.eq("videoPort", streamInfo.getVideoPort()));
-				filterList.add(Filters.eq("audioPort", streamInfo.getVideoPort()));
-				filterList.add(Filters.eq("dataChannelPort", streamInfo.getVideoPort()));
-
-			}
-			if (streamInfo.getAudioPort() != 0) {
-				filterList.add(Filters.eq("videoPort", streamInfo.getAudioPort()));
-				filterList.add(Filters.eq("audioPort", streamInfo.getAudioPort()));
-				filterList.add(Filters.eq("dataChannelPort", streamInfo.getAudioPort()));
-
-			}
-			if (streamInfo.getDataChannelPort() != 0) {
-				filterList.add(Filters.eq("videoPort", streamInfo.getDataChannelPort()));
-				filterList.add(Filters.eq("audioPort", streamInfo.getDataChannelPort()));
-				filterList.add(Filters.eq("dataChannelPort", streamInfo.getDataChannelPort()));
-			}
 
 			if (!filterList.isEmpty()) {
 
@@ -944,8 +926,8 @@ public class MongoStore extends DataStore {
 			
 			if (count > 0) 
 			{
-				logger.error("{} port duplications are detected and deleted for host: {}, video port: {}, audio port:{}",
-						count, streamInfo.getHost(), streamInfo.getVideoPort(), streamInfo.getAudioPort());
+				logger.error("{} port duplications are detected and deleted for host: {}",
+						count, streamInfo.getHost());
 			}
 
 
