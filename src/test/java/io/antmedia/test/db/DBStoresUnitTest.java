@@ -133,6 +133,8 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testStreamSourceList(dataStore);
+
 	}
 	
 	@Test
@@ -208,6 +210,9 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testStreamSourceList(dataStore);
+
+
 	}
 	
 
@@ -1394,6 +1399,8 @@ public class DBStoresUnitTest {
 			tmp.setOriginAdress(ServerSettings.getLocalHostAddress());
 			String subFolder = "test_folder";
 			tmp.setSubFolder(subFolder);
+			String listenerHookURL = "test_listener_hook_url";
+			tmp.setListenerHookURL(listenerHookURL);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -1405,6 +1412,7 @@ public class DBStoresUnitTest {
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast2.getStatus());
 			assertEquals(now, broadcast2.getStartTime());
 			assertEquals(ServerSettings.getLocalHostAddress(), tmp.getOriginAdress());
+			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
 
 			result = dataStore.updateDuration(broadcast.getStreamId().toString(), 100000);
 			assertTrue(result);
@@ -2274,37 +2282,71 @@ public class DBStoresUnitTest {
 
 		assertNull(datastore.getConferenceRoom(editedRoom.getRoomId()));
 	}
-	
-	/*
-	 * This test is written for mongostore
-	 */
+
 	private void testStreamSourceList(DataStore dataStore) {
-		deleteBroadcast((MongoStore) dataStore);
-		
+		if (dataStore instanceof MongoStore) {
+			deleteBroadcast((MongoStore) dataStore);
+			assertEquals(0, dataStore.getBroadcastCount());
+		}
+		else  {
+			long broadcastCount = dataStore.getBroadcastCount();
+			System.out.println("broadcast count: " + broadcastCount);
+			int j = 0;
+			List<Broadcast> broadcastList;
+			while ((broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, null)) != null)
+			{
+				if (broadcastList.size() == 0) {
+					break;
+				}
+				for (Broadcast broadcast : broadcastList) {
+					assertTrue(dataStore.delete(broadcast.getStreamId()));
+
+				}
+			}
+		}
+
 		Broadcast ss1 = new Broadcast("ss1");
 		ss1.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		ss1.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-		
+
 		Broadcast ss2 = new Broadcast("ss2");
 		ss2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		ss2.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		
+
 		Broadcast ss3 = new Broadcast("ss3");
 		ss3.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		ss3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
-		  
+
+		Broadcast ss4 = new Broadcast("ss4");
+		ss4.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		ss4.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+
+		Broadcast ss5 = new Broadcast("ss5");
+		ss5.setType(AntMediaApplicationAdapter.IP_CAMERA);
+		ss5.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+
+		Broadcast ss6 = new Broadcast("ss6");
+		ss6.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+		ss6.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+
 		dataStore.save(ss1);
 		dataStore.save(ss2);
 		dataStore.save(ss3);
-		
+		dataStore.save(ss4);
+		dataStore.save(ss5);
+		dataStore.save(ss6);
+
 		List<Broadcast> list = dataStore.getExternalStreamsList();
-		assertEquals(1, list.size());
+		assertEquals(3, list.size());
+
+		assertNotEquals("ss6", list.get(0).getName());
+		assertNotEquals("ss6", list.get(1).getName());
+		assertNotEquals("ss6", list.get(2).getName());
 
 		List<Broadcast> list2 = dataStore.getExternalStreamsList();
 		assertEquals(0, list2.size());
-
-		
 	}
+
 	private void testUpdateEndpointStatus(DataStore dataStore)
 	{
 		Broadcast broadcast = new Broadcast(null, null);
