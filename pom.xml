@@ -280,7 +280,7 @@
         <dependency>
 		    <groupId>org.mitre.dsmiley.httpproxy</groupId>
 		    <artifactId>smiley-http-proxy-servlet</artifactId>
-		    <version>1.11</version>
+		    <version>1.12.1</version>
 		</dependency>
         <dependency>
             <groupId>org.apache.tomcat</groupId>
