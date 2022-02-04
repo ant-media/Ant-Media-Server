@@ -796,7 +796,7 @@ public class MongoStore extends DataStore {
 					updates.add(set("subFolder", broadcast.getSubFolder()));
 				}
 				
-				if (broadcast.getListenerHookURL() != null) {
+				if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
 					updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
 				}
 
