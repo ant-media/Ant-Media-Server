@@ -651,7 +651,7 @@
                                 <plugin>
                                     <groupId>com.h3xstream.findsecbugs</groupId>
                                     <artifactId>findsecbugs-plugin</artifactId>
-                                    <version>LATEST</version>
+                                    <version>1.11.0</version>
                                 </plugin>
                             </plugins>
                         </configuration>
