@@ -902,23 +902,6 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			Query<StreamInfo> query = datastore.find(StreamInfo.class);
 
-			query.filter(
-					Filters.and(
-							Filters.eq("host", streamInfo.getHost()),
-							Filters.eq("videoCodec", streamInfo.getVideoCodec()),
-							Filters.eq("height", streamInfo.getVideoHeight())
-							)
-					);
-
-			long count = query.delete(new DeleteOptions().multi(true)).getDeletedCount();
-			
-			if (count > 0) 
-			{
-				logger.error("{} port duplications are detected and deleted for host: {}",
-						count, streamInfo.getHost());
-			}
-
-
 			datastore.save(streamInfo);
 		}
 	}
