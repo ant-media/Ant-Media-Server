@@ -902,25 +902,13 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			Query<StreamInfo> query = datastore.find(StreamInfo.class);
 
-			List<Filter> filterList = new ArrayList<>();
-
-			if (!filterList.isEmpty()) {
-
-				Filter[] filterArray = new Filter[filterList.size()];
-				filterList.toArray(filterArray);
-				query.filter(
-						Filters.and(
-								Filters.eq("host", streamInfo.getHost()),
-								Filters.or(filterArray)
-								)
-						);
-			}
-			else {
-				query.filter(
-						Filters.eq("host", streamInfo.getHost())
-						);
-			}
-
+			query.filter(
+					Filters.and(
+							Filters.eq("host", streamInfo.getHost()),
+							Filters.eq("videoCodec", streamInfo.getVideoCodec()),
+							Filters.eq("height", streamInfo.getVideoHeight())
+							)
+					);
 
 			long count = query.delete(new DeleteOptions().multi(true)).getDeletedCount();
 			
