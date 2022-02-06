@@ -1399,6 +1399,8 @@ public class DBStoresUnitTest {
 			tmp.setOriginAdress(ServerSettings.getLocalHostAddress());
 			String subFolder = "test_folder";
 			tmp.setSubFolder(subFolder);
+			String listenerHookURL = "test_listener_hook_url";
+			tmp.setListenerHookURL(listenerHookURL);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -1410,6 +1412,7 @@ public class DBStoresUnitTest {
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast2.getStatus());
 			assertEquals(now, broadcast2.getStartTime());
 			assertEquals(ServerSettings.getLocalHostAddress(), tmp.getOriginAdress());
+			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
 
 			result = dataStore.updateDuration(broadcast.getStreamId().toString(), 100000);
 			assertTrue(result);

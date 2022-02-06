@@ -576,6 +576,9 @@ public abstract class DataStore {
 		if (newBroadcast.getSubFolder() != null) {
 			broadcast.setSubFolder(newBroadcast.getSubFolder());
 		}
+		if (newBroadcast.getListenerHookURL() != null && !newBroadcast.getListenerHookURL().isEmpty()) {
+			broadcast.setListenerHookURL(newBroadcast.getListenerHookURL());
+		}
 
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
