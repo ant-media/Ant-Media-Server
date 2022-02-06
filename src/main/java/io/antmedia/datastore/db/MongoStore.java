@@ -806,6 +806,7 @@ public class MongoStore extends DataStore {
 				updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
 				updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
 				updates.add(set("metaData", broadcast.getMetaData()));
+				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
 
 				
 				UpdateResult updateResult = query.update(updates).execute();

@@ -330,7 +330,8 @@ public class Broadcast {
 	private String metaData = "";
 	
 	/**
-	 * This is play list loop status
+	 * The flag to enable/disable looping playlist. 
+	 * If it's true, playlist will be loop infinitely. If it's false, playlist played once and finished.
 	 * It's enable by default
 	 */
 	@ApiModelProperty(value = "the identifier of playlist loop status")
