@@ -1232,15 +1232,15 @@ public class DBStoresUnitTest {
 		assertEquals(description, broadcast2.getDescription());
 
 		String rtmpUrl = "rtmp:((ksklasjflakjflaskjflsadfkjsal";
-		Endpoint endPoint = new Endpoint(null, null, null, rtmpUrl, "generic", "customEndpointServiceXRiJgU", null, "finished");
+		Endpoint endPoint = new Endpoint(rtmpUrl, "generic", "customEndpointServiceXRiJgU", "finished");
 
 		boolean result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint);
 		assertTrue(result);
 
 		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		String endpointStreamId = "stream id 2";
-		Endpoint endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl,
-				"facebook", null, null, "finished");
+		Endpoint endPoint2 = new Endpoint(rtmpUrl,
+				"facebook", null, "finished");
 
 		result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint2);
 		assertTrue(result);
@@ -1258,11 +1258,11 @@ public class DBStoresUnitTest {
 		assertEquals(1, broadcast2.getEndPointList().size());
 
 		// endpoint2 should be in the list, check stream id
-		assertEquals(broadcast2.getEndPointList().get(0).getStreamId(), endpointStreamId);
+		assertEquals(broadcast2.getEndPointList().get(0).getRtmpUrl(), rtmpUrl);
 
 		//
-		Endpoint endPoint3Clone = new Endpoint(endPoint2.getBroadcastId(), endPoint2.getStreamId(), endPoint2.getName(),
-				endPoint2.getRtmpUrl(), endPoint2.getType(), null, null, "finished");
+		Endpoint endPoint3Clone = new Endpoint(
+				endPoint2.getRtmpUrl(), endPoint2.getType(), null, "finished");
 
 		// remove end point2
 		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone, true);
@@ -1273,13 +1273,13 @@ public class DBStoresUnitTest {
 		// add new enpoints
 		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
-		endPoint = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl, "facebook", null, null, "finished");
+		endPoint = new Endpoint(rtmpUrl, "facebook", null, "finished");
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint));
 
 		String rtmpUrl2 = "rtmp:(sdfsfskmkmkmkmf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
-		endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl2, "facebook", null, null, "finished");
+		endPoint2 = new Endpoint(rtmpUrl2, "facebook", null, "finished");
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint2));
 
@@ -1307,15 +1307,15 @@ public class DBStoresUnitTest {
 		assertEquals(description, broadcast2.getDescription());
 
 		String rtmpUrl = "rtmp:((ksklasjflakjflaskjflsadfkjsal";
-		Endpoint endPoint = new Endpoint("broacdast id", "stream id", null, broadcast2.getName(), rtmpUrl, "generic", null, "finished");
+		Endpoint endPoint = new Endpoint(rtmpUrl, "generic", "test234", "finished");
 
 		boolean result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint);
 		assertTrue(result);
 
 		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		String endpointStreamId = "stream id 2";
-		Endpoint endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl,
-				"facebook", "generic_2", null, "finished");
+		Endpoint endPoint2 = new Endpoint( rtmpUrl,
+				"facebook", "generic_2", "finished");
 
 		result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint2);
 		assertTrue(result);
@@ -1333,11 +1333,11 @@ public class DBStoresUnitTest {
 		assertEquals(1, broadcast2.getEndPointList().size());
 
 		// endpoint2 should be in the list, check stream id
-		assertEquals(broadcast2.getEndPointList().get(0).getStreamId(), endpointStreamId);
+		assertEquals(broadcast2.getEndPointList().get(0).getRtmpUrl(), rtmpUrl);
 
 		//
-		Endpoint endPoint3Clone = new Endpoint(endPoint2.getBroadcastId(), endPoint2.getStreamId(), endPoint2.getName(),
-				endPoint2.getRtmpUrl(), endPoint2.getType(), "generic_2", null, "finished");
+		Endpoint endPoint3Clone = new Endpoint(
+				endPoint2.getRtmpUrl(), endPoint2.getType(), "generic_2", "finished");
 
 		// remove end point2
 		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone, false);
@@ -1348,13 +1348,13 @@ public class DBStoresUnitTest {
 		// add new enpoints
 		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
-		endPoint = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl, "facebook", "generic_2", null, "finished");
+		endPoint = new Endpoint(rtmpUrl, "facebook", "generic_2", "finished");
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint));
 
 		String rtmpUrl2 = "rtmp:(sdfsfskmkmkmkmf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
-		endPoint2 = new Endpoint("broadcast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl2, "facebook", "generic_3", null, "finished");
+		endPoint2 = new Endpoint(rtmpUrl2, "facebook", "generic_3", "finished");
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint2));
 
@@ -1451,7 +1451,7 @@ public class DBStoresUnitTest {
 			assertEquals(null, broadcast2.getEndPointList());
 
 			String rtmpUrl = "rtmp:((ksklasjflakjflaskjflsadfkjsal";
-			Endpoint endPoint = new Endpoint("broacdast id", "stream id", broadcast2.getName(), rtmpUrl, "generic", null, null, "finished");
+			Endpoint endPoint = new Endpoint(rtmpUrl, "generic", null, "finished");
 
 			result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint);
 			assertTrue(result);
@@ -1462,11 +1462,10 @@ public class DBStoresUnitTest {
 			broadcast2 = dataStore.get(key);
 			assertNotNull(broadcast2.getEndPointList());
 			assertEquals(1, broadcast2.getEndPointList().size());
-			assertEquals(broadcast2.getEndPointList().get(0).getName(), broadcast2.getName());
 			assertEquals(broadcast2.getEndPointList().get(0).getRtmpUrl(), rtmpUrl);
 
 			rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
-			endPoint = new Endpoint("broacdast id 2", "stream id 2", broadcast2.getName(), rtmpUrl, "facebook", null, null, "finished");
+			endPoint = new Endpoint(rtmpUrl, "facebook", null, "finished");
 
 			result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint);
 			assertTrue(result);
@@ -1474,7 +1473,6 @@ public class DBStoresUnitTest {
 			broadcast2 = dataStore.get(key);
 			assertNotNull(broadcast2.getEndPointList());
 			assertEquals(2, broadcast2.getEndPointList().size());
-			assertEquals(broadcast2.getEndPointList().get(1).getName(), broadcast2.getName());
 			assertEquals(broadcast2.getEndPointList().get(1).getRtmpUrl(), rtmpUrl);
 
 			Broadcast broadcast3 = new Broadcast("test3");
@@ -2314,21 +2312,21 @@ public class DBStoresUnitTest {
 
 		//add endpoint
 		String rtmpUrl = "rtmp://rtmp1";
-		Endpoint endPoint = new Endpoint("broacdast id",broadcast.getStreamId(), broadcast.getName(), rtmpUrl, "generic", null, null, "finished");
+		Endpoint endPoint = new Endpoint(rtmpUrl, "generic", null, "finished");
 		boolean result = dataStore.addEndpoint(broadcast.getStreamId().toString(), endPoint);
 		assertTrue(result);
 
 		//add endpoint
 		String rtmpUrl2 = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
-		Endpoint endPoint2 = new Endpoint("broacdast id 2", broadcast.getStreamId(), broadcast.getName(), rtmpUrl2,
-				"generic", null, null, "finished");
+		Endpoint endPoint2 = new Endpoint( rtmpUrl2,
+				"generic", null, "finished");
 		result = dataStore.addEndpoint(broadcast.getStreamId().toString(), endPoint2);
 		assertTrue(result);
 
 		//add endpoint
 		String rtmpUrl3 = "rtmp:(sdfsfasafadgsgsf(ksklasjflakjflaskjflsadfkjsal";
-		Endpoint endPoint3 = new Endpoint("broacdast id 3", broadcast.getStreamId(), broadcast.getName(), rtmpUrl3,
-				"generic", null, null, "finished");
+		Endpoint endPoint3 = new Endpoint(rtmpUrl3,
+				"generic", null, "finished");
 
 
 
