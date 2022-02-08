@@ -1401,6 +1401,8 @@ public class DBStoresUnitTest {
 			tmp.setSubFolder(subFolder);
 			String listenerHookURL = "test_listener_hook_url";
 			tmp.setListenerHookURL(listenerHookURL);
+			assertTrue(tmp.isPlaylistLoopEnabled());
+			tmp.setPlaylistLoopEnabled(false);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -1413,6 +1415,7 @@ public class DBStoresUnitTest {
 			assertEquals(now, broadcast2.getStartTime());
 			assertEquals(ServerSettings.getLocalHostAddress(), tmp.getOriginAdress());
 			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
+			assertFalse(broadcast2.isPlaylistLoopEnabled());
 
 			result = dataStore.updateDuration(broadcast.getStreamId().toString(), 100000);
 			assertTrue(result);

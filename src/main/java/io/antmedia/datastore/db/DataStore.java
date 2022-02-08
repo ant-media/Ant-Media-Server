@@ -588,6 +588,7 @@ public abstract class DataStore {
 		broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
 		broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
+		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
 	}
 
 	/**
