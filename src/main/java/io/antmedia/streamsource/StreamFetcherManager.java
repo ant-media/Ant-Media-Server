@@ -229,7 +229,6 @@ public class StreamFetcherManager {
 		Broadcast playlist = datastore.get(streamId);
 
 
-
 		//Check playlist is not deleted and not stopped
 		//
 		if(playlist != null && !IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus())
@@ -347,15 +346,14 @@ public class StreamFetcherManager {
 		if(playlist.getPlayListItemList().size() <= currentStreamIndex) 
 		{
 			//update playlist first broadcast
-			if (playlist.isPlaylistLoopEnabled()) 
+			playlist.setCurrentPlayIndex(0);
+			if (!playlist.isPlaylistLoopEnabled()) 
 			{
-				logger.info("Playlist looping is enabled. Starting from first item again for stream:{}", playlist.getStreamId());
-				playlist.setCurrentPlayIndex(0);
-			}
-			else {
 				logger.info("Play list looping is not enabled. It will be stopped for stream: {}", playlist.getStreamId());
-				stopPlayList(playlist.getStreamId());
-				
+				//streaming is already stopped so that just update the database
+				playlist.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+				datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
+
 				//return null if it's not looping
 				return null;
 			}
