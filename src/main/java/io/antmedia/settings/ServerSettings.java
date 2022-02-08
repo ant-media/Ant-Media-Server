@@ -37,6 +37,8 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 
 	private static final String SETTINGS_USE_GLOBAL_IP = "useGlobalIp";
 
+	private static final String SETTINGS_PROXY_ADDRESS = "proxy.address";
+
 	private static final String SETTINGS_NODE_GROUP = "nodeGroup";
 
 	
@@ -97,6 +99,15 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 
 	@Value( "${"+SETTINGS_USE_GLOBAL_IP+":false}" )
 	private boolean useGlobalIp;
+
+	/**
+	 * The proxy IP address and port.
+	 * If there is a proxy in front of Ant Media Server(reverse proxy) please enter its IP and port
+	 * The format will be <proxy_ip>:<port_number> for example:
+	 * 					 192.168.0.1:3012
+	 */
+	@Value( "${"+SETTINGS_PROXY_ADDRESS+":null}" )
+	private String proxyAddress;
 
 	
 	@Value( "${"+SETTINGS_NODE_GROUP+":"+DEFAULT_NODE_GROUP+"}" )
@@ -297,6 +308,14 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 
 	public void setUseGlobalIp(boolean useGlobalIp) {
 		this.useGlobalIp = useGlobalIp;
+	}
+
+	public void setProxyAddress(String proxyAddress){
+		this.proxyAddress = proxyAddress;
+	}
+
+	public String getProxyAddress(){
+		return proxyAddress;
 	}
 	
 	/**
