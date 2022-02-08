@@ -27,6 +27,10 @@ public interface IServerSettings {
 	 */
 	public String getHostAddress();
 	
-	
+	/**
+	 * The Port number that is used when the server is an origin node.
+	 * @return Port number
+	 */
+	public int getOriginServerPort();
 	
 }

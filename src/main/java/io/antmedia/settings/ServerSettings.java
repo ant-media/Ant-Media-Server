@@ -56,6 +56,8 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 	private static final String SETTINGS_CPU_MEASUREMENT_WINDOW_SIZE = "server.cpu_measurement_window_size";
 
 	private static final String SETTINGS_SERVER_DEFAULT_HTTP_PORT = "http.port";
+	
+	private static final String SETTINGS_ORIGIN_PORT = "server.origin_port";
 
 	private String allowedDashboardCIDR;
 
@@ -176,6 +178,13 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 
 	@Value( "${" + SETTINGS_JWKS_URL +":#{null}}")
 	private String jwksURL;
+	
+	/**
+	 * The port that is opened by origin in cluster mode.
+	 * Edges are connected to the origin through this port.
+	 */
+	@Value( "${"+SETTINGS_ORIGIN_PORT+":5000}" )
+	private int originServerPort;
 
 	public String getJwksURL() {
 		return jwksURL;
@@ -427,5 +436,15 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 	public void setDefaultHttpPort(int defaultHttpPort) {
 		this.defaultHttpPort = defaultHttpPort;
 	}
+	
+	@Override
+	public int getOriginServerPort() {
+		return originServerPort;
+	}
+
+	public void setOriginServerPort(int originServerPort) {
+		this.originServerPort = originServerPort;
+	}
+
 
 }
