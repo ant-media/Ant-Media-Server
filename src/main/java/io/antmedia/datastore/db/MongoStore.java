@@ -795,6 +795,10 @@ public class MongoStore extends DataStore {
 				if (broadcast.getSubFolder() != null) {
 					updates.add(set("subFolder", broadcast.getSubFolder()));
 				}
+				
+				if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
+					updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
+				}
 
 				prepareFields(broadcast, updates);
 
@@ -806,6 +810,7 @@ public class MongoStore extends DataStore {
 				updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
 				updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
 				updates.add(set("metaData", broadcast.getMetaData()));
+				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
 
 				
 				UpdateResult updateResult = query.update(updates).execute();
