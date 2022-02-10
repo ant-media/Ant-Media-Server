@@ -2180,9 +2180,16 @@ public class DBStoresUnitTest {
 		StreamInfo si = new StreamInfo();
 		si.setHost(host1);
 		si.setStreamId("test1");
+		si.setOriginPort(5858);
 		dataStore.saveStreamInfo(si);
+		
 
-		assertEquals(1, dataStore.getStreamInfoList("test1").size());
+		List<StreamInfo> siList = dataStore.getStreamInfoList("test1");
+		assertEquals(1, siList.size());
+		
+		assertEquals(host1, siList.get(0).getHost());
+		assertEquals(5858, siList.get(0).getOriginPort());
+
 
 		si = new StreamInfo();
 		si.setHost(host2);

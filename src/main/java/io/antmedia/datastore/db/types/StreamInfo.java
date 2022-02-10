@@ -31,6 +31,8 @@ public class StreamInfo implements IStreamInfo {
 	private VideoCodec videoCodec;
 	private String nodeGroup;
 	private boolean isGlobalHost;
+	private int originPort;
+
 
 	
 	public StreamInfo(boolean videoEnabled, int height, int width, int videobitrate, boolean audioEnabled, int audiobitrate, int videoRTimebase, int audioRTimebase, VideoCodec codec) {
@@ -163,6 +165,14 @@ public class StreamInfo implements IStreamInfo {
 
 	public void setGlobalHost(boolean isGlobalHost) {
 		this.isGlobalHost = isGlobalHost;
+	}
+
+	public int getOriginPort() {
+		return originPort;
+	}
+
+	public void setOriginPort(int originPort) {
+		this.originPort = originPort;
 	}
 
 }
