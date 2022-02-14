@@ -47,6 +47,7 @@ public class WebSocketCommunityHandler {
 	public WebSocketCommunityHandler(ApplicationContext appContext, Session session) {
 		this.appContext = appContext;
 		this.session = session;
+		logger.info("Gett = " + getAppContext() + " - " + appContext + " - " + this.appContext);
 		appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
 		appAdaptor = ((AntMediaApplicationAdapter)appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME));
 		

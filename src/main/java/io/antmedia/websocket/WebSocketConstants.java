@@ -64,6 +64,10 @@ public class WebSocketConstants {
 
 	public static final String ERROR_CODE = "error_code";
 
+	public static final String REGISTER_ORIGIN_SERVER = "registerOriginServer";
+
+	public static final String REGISTER_EDGE_SERVER = "register_edge_server";
+
 	public static final String NO_STREAM_EXIST = "no_stream_exist";
 
 	public static final String JOIN_ROOM_COMMAND = "joinRoom";

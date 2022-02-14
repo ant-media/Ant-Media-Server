@@ -624,6 +624,12 @@
   			<artifactId>java-jwt</artifactId>
   			<version>3.18.3</version>
 		</dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-websocket</artifactId>
+            <version>4.3.28.RELEASE</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
     <profiles>
         <profile>
