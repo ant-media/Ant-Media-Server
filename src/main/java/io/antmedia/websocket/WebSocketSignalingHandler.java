@@ -284,15 +284,16 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
             takeConfigurationFromTargetHost(sdpDescription, type.toString(), streamId, session);
 
         }
-
         //TODO: IMPLEMENT PLAY SCENARIO, TYPE WILL BE ANSWER
-        /*else
+        else
         {
+
+            logger.info("received type: {} sdp: {}", type, sdpDescription);
             //if it's answer it means this webrtc client
 
             //if it is a viewer as well,
             //user may publish/play stream at the same time
-            Map<String, Queue<WebRTCClient>> webRTCClientsMap = applicationAdaptor.getWebRTCClientsMap();
+            /*Map<String, Queue<WebRTCClient>> webRTCClientsMap = applicationAdaptor.getWebRTCClientsMap();
             Queue<WebRTCClient> webRTCClientList = webRTCClientsMap.get(sessionId);
             if (webRTCClientList != null)
             {
@@ -304,8 +305,8 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
                         break;
                     }
                 }
-            }
-        }*/
+            }*/
+        }
     }
 
     //TODO: Make it dynamic about the origin ID
