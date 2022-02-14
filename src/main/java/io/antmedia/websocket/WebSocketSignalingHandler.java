@@ -55,9 +55,9 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
 
     public static final String USER_ROOM_ID = "USER_ROOM_ID";
 
-    protected static Map<String, String> streamIDtoServerSessionMap;
+    protected static Map<String, Session> streamIDtoServerSessionMap = new Hashtable<>();;
 
-    protected static Map<String, Session> streamIDtoClientSessionMap;
+    protected static Map<String, Session> streamIDtoClientSessionMap = new Hashtable<>();;
 
     protected static Map<String, Session> availableOriginMap = new Hashtable<>();
 
@@ -177,6 +177,11 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
             {
                 processTakeConfigurationCommand(jsonObject, session.getId(), streamId);
             }
+            else if (cmd.equals(WebSocketConstants.TAKE_CANDIDATE_COMMAND))
+            {
+                logger.info("RECEIVED 0000000000000000000000000000000000000000000000000000p");
+                processTakeCandidateCommand(jsonObject, session.getId(), streamId);
+            }
             else if (cmd.equals(WebSocketConstants.REGISTER_ORIGIN_SERVER)){
                 //TODO:
                 registerOriginServerToMap(session);
@@ -228,6 +233,25 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
         sendPublishMessageToOrigin(streamId, enableVideo, enableAudio, tokenId, subscriberId, subscriberCodeText, streamName, mainTrack, metaData);
         //TODO: AFTER START MESSAGE IS SENT, IT NEEDS TO TAKE CONFIGURATION FROM TARGET HOST WHICH WILL ESTABLISH P2P
 
+
+    }
+
+    private void processTakeCandidateCommand(JSONObject jsonObject, String sessionId, String streamId) {
+        String sdpMid = (String) jsonObject.get(WebSocketConstants.CANDIDATE_ID);
+        String sdp = (String) jsonObject.get(WebSocketConstants.CANDIDATE_SDP);
+        long sdpMLineIndex = (long)jsonObject.get(WebSocketConstants.CANDIDATE_LABEL);
+
+        IceCandidate iceCandidate = new IceCandidate(sdpMid, (int)sdpMLineIndex, sdp);
+
+        Session targetSession;
+        if(streamIDtoClientSessionMap.get(streamId).getId().equals(session.getId())){
+            targetSession = streamIDtoServerSessionMap.get(streamId);
+        }
+        else{
+            targetSession = streamIDtoClientSessionMap.get(streamId);
+        }
+
+        sendTakeCandidateMessage(sdpMLineIndex, sdpMid, sdp, streamId, targetSession);
 
     }
 
@@ -317,8 +341,9 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
     //TODO: MAKE IT DYNAMIC ABOUT ORIGIN ID
     public void sendPublishMessageToOrigin(String streamId, boolean enableVideo, boolean enableAudio, String tokenId, String subscriberId, String subscriberCodeText, String streamName, String mainTrack, String metaData){
         logger.info("333333333333333333");
-        //streamIDtoServerSessionMap.put(streamId, "1");
-        //streamIDtoClientSessionMap.put(streamId, session);
+        Session originSession = getOriginSession(streamId);
+        streamIDtoServerSessionMap.put(streamId, originSession);
+        streamIDtoClientSessionMap.put(streamId, session);
         logger.info("333333333333333333");
 
         JSONObject jsonResponse = new JSONObject();
