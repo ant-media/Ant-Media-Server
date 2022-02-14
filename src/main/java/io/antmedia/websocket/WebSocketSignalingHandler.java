@@ -318,6 +318,7 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
     public void sendPublishMessageToOrigin(String streamId, boolean enableVideo, boolean enableAudio, String tokenId, String subscriberId, String subscriberCodeText, String streamName, String mainTrack, String metaData){
         streamIDtoServerSessionMap.put(streamId, "1");
         streamIDtoClientSessionMap.put(streamId, session);
+        logger.info("333333333333333333");
 
         JSONObject jsonResponse = new JSONObject();
         jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
@@ -427,6 +428,7 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
     }
 
     public void sendMessage(String message, final Session session) {
+        logger.info("SENDING = " + message + " - " + session.isOpen());
         synchronized (this) {
             if (session.isOpen()) {
                 logger.info("SENDING = " + message);
