@@ -225,8 +225,6 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
 
         //applicationAdaptor.getPublisherAdaptorList().put(session.getId(), encoderAdaptor);
 
-        sendStartMessage(streamId, session);
-
         sendPublishMessageToOrigin(streamId, enableVideo, enableAudio, tokenId, subscriberId, subscriberCodeText, streamName, mainTrack, metaData);
         //TODO: AFTER START MESSAGE IS SENT, IT NEEDS TO TAKE CONFIGURATION FROM TARGET HOST WHICH WILL ESTABLISH P2P
 
@@ -333,6 +331,7 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
         Session sessionTmp = getOriginSession(streamId);
         sendMessage(jsonResponse.toJSONString(), sessionTmp);
 
+        sendStartMessage(streamId, session);
     }
 
     /**
