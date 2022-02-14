@@ -288,7 +288,12 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
         else
         {
 
-            logger.info("received type: {} sdp: {}", type, sdpDescription);
+            logger.info("received type: {} ***********************************************************", type);
+            Session clientSession = streamIDtoClientSessionMap.get(streamId);
+            if(clientSession != null && clientSession.isOpen()){
+                sendSDPConfiguration(sdpDescription, typeString, streamId, clientSession, null);
+            }
+
             //if it's answer it means this webrtc client
 
             //if it is a viewer as well,
