@@ -23,6 +23,7 @@ import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
 import org.webrtc.VideoCodecInfo;
 
+import javax.annotation.Nonnull;
 import javax.websocket.Session;
 import java.util.Hashtable;
 import java.util.List;
@@ -54,7 +55,9 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
 
     public static final String USER_ROOM_ID = "USER_ROOM_ID";
 
-    Map<String, String> linkedHostAndClientMap;
+    protected static Map<String, String> streamIDtoServerSessionMap;
+
+    protected static Map<String, Session> streamIDtoClientSessionMap;
 
     protected static Map<String, Session> availableOriginMap = new Hashtable<>();
 
@@ -131,6 +134,36 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
                 String mainTrack = null;
                 String metaData = null;
 
+                if(jsonObject.containsKey(WebSocketConstants.TOKEN)) {
+                    tokenId = (String) jsonObject.get(WebSocketConstants.TOKEN);
+                    logger.info("received token:{}",tokenId );
+                }
+
+                if(jsonObject.containsKey(WebSocketConstants.SUBSCRIBER_ID)) {
+                    subscriberId = (String) jsonObject.get(WebSocketConstants.SUBSCRIBER_ID);
+                    logger.info("received subscriber id :{}",subscriberId );
+                }
+
+                if(jsonObject.containsKey(WebSocketConstants.SUBSCRIBER_CODE)) {
+                    subscriberCode = (String) jsonObject.get(WebSocketConstants.SUBSCRIBER_CODE);
+                    logger.info("received subscriber code :{}",subscriberCode );
+                }
+
+                if(jsonObject.containsKey(WebSocketConstants.STREAM_NAME) &&  !((String) jsonObject.get(WebSocketConstants.STREAM_NAME)).isEmpty()) {
+                    streamName = (String) jsonObject.get(WebSocketConstants.STREAM_NAME);
+                    logger.info("received stream name:{}",streamName );
+                }
+
+                if(jsonObject.containsKey(WebSocketConstants.MAIN_TRACK) &&  !((String) jsonObject.get(WebSocketConstants.MAIN_TRACK)).isEmpty()) {
+                    mainTrack = (String) jsonObject.get(WebSocketConstants.MAIN_TRACK);
+                    logger.info("received mainTrack:{}",mainTrack );
+                }
+
+                if(jsonObject.containsKey(WebSocketConstants.META_DATA) &&  !((String) jsonObject.get(WebSocketConstants.META_DATA)).isEmpty()) {
+                    metaData = (String) jsonObject.get(WebSocketConstants.META_DATA);
+                    logger.info("received metaData:{}",metaData);
+                }
+
                 //default value is true
                 boolean enableVideo = jsonObject.containsKey(WebSocketConstants.VIDEO) ? (boolean) jsonObject.get(WebSocketConstants.VIDEO) : true;
                 //default value is true
@@ -157,7 +190,7 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
 
     public void registerOriginServerToMap(Session session){
         String originId = String.valueOf(availableOriginMap.size() + 1);
-        logger.info("***************** = " + session.getRequestURI() + " - " + originId);
+        logger.info("***************** = " + session.getBasicRemote()+ " - " + originId);
         availableOriginMap.put(originId, session);
         logger.info("" + availableOriginMap.get(originId));
         //getDatastore().saveOriginForSignaling(session.getRequestURI());
@@ -192,8 +225,9 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
 
         //applicationAdaptor.getPublisherAdaptorList().put(session.getId(), encoderAdaptor);
 
-
         sendStartMessage(streamId, session);
+
+        sendPublishMessageToOrigin(streamId, enableVideo, enableAudio, tokenId, subscriberId, subscriberCodeText, streamName, mainTrack, metaData);
         //TODO: AFTER START MESSAGE IS SENT, IT NEEDS TO TAKE CONFIGURATION FROM TARGET HOST WHICH WILL ESTABLISH P2P
 
 
@@ -223,7 +257,8 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
 
             // webrtc publish
             SessionDescription sdp = new SessionDescription(type, sdpDescription);
-            Session session = getOriginSession();
+            Session session = getOriginSession(streamId);
+            logger.info("44444444444444444444444444444444 = " + session.getRequestURI());
             takeConfigurationFromTargetHost(sdpDescription, type.toString(), streamId, session);
 
         }
@@ -251,12 +286,55 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
         }*/
     }
 
-    public Session getOriginSession(){
+    //TODO: Make it dynamic about the origin ID
+    public Session getOriginSession(String streamId){
         return availableOriginMap.get("1");
     }
     public void takeConfigurationFromTargetHost(String sdpDescription, String typeString, String streamId, Session session){
         sendSDPConfiguration(sdpDescription, typeString, streamId, session, null);
     }
+
+    public boolean processSignallingTakeConf(String streamId, @Nonnull List<Session> webSocketSessions, String typeString, String sdpDescription)  {
+        //if it is in signalling mode,
+        boolean result = false;
+        if (webSocketSessions.size() == 2)
+        {
+            for (Session sessionTmp : webSocketSessions) {
+                if (!sessionTmp.getId().equals(this.session.getId())) {
+                    sendSDPConfiguration(sdpDescription, typeString, streamId, sessionTmp, null);
+                    result = true;
+                }
+            }
+        }
+        else {
+            JSONObject jsonResponse = new JSONObject();
+            jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+            jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_PEER_ASSOCIATED);
+            sendMessage(jsonResponse.toJSONString(), this.session);
+        }
+        return result;
+
+    }
+
+    //TODO: MAKE IT DYNAMIC ABOUT ORIGIN ID
+    public void sendPublishMessageToOrigin(String streamId, boolean enableVideo, boolean enableAudio, String tokenId, String subscriberId, String subscriberCodeText, String streamName, String mainTrack, String metaData){
+        streamIDtoServerSessionMap.put(streamId, "1");
+        streamIDtoClientSessionMap.put(streamId, session);
+
+        JSONObject jsonResponse = new JSONObject();
+        jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
+        jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
+        jsonResponse.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
+        jsonResponse.put(WebSocketConstants.SUBSCRIBER_CODE, subscriberCodeText);
+        jsonResponse.put(WebSocketConstants.STREAM_NAME, streamName);
+        jsonResponse.put(WebSocketConstants.VIDEO, enableVideo);
+        jsonResponse.put(WebSocketConstants.AUDIO, enableAudio);
+        jsonResponse.put(WebSocketConstants.META_DATA, metaData);
+        Session sessionTmp = getOriginSession(streamId);
+        sendMessage(jsonResponse.toJSONString(), sessionTmp);
+
+    }
+
     /**
      * It will return the configuration (SDP) from the target server which peer needs to connect.
      *
