@@ -1232,15 +1232,15 @@ public class DBStoresUnitTest {
 		assertEquals(description, broadcast2.getDescription());
 
 		String rtmpUrl = "rtmp:((ksklasjflakjflaskjflsadfkjsal";
-		Endpoint endPoint = new Endpoint("broacdast id", "stream id", null, broadcast2.getName(), rtmpUrl, "generic", null);
+		Endpoint endPoint = new Endpoint(rtmpUrl, "generic", "customEndpointServiceXRiJgU", "finished");
 
 		boolean result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint);
 		assertTrue(result);
 
 		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		String endpointStreamId = "stream id 2";
-		Endpoint endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl,
-				"facebook", null, null);
+		Endpoint endPoint2 = new Endpoint(rtmpUrl,
+				"facebook", null, "finished");
 
 		result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint2);
 		assertTrue(result);
@@ -1258,11 +1258,11 @@ public class DBStoresUnitTest {
 		assertEquals(1, broadcast2.getEndPointList().size());
 
 		// endpoint2 should be in the list, check stream id
-		assertEquals(broadcast2.getEndPointList().get(0).getStreamId(), endpointStreamId);
+		assertEquals(broadcast2.getEndPointList().get(0).getRtmpUrl(), rtmpUrl);
 
 		//
-		Endpoint endPoint3Clone = new Endpoint(endPoint2.getBroadcastId(), endPoint2.getStreamId(), endPoint2.getName(),
-				endPoint2.getRtmpUrl(), endPoint2.getType(), null, null);
+		Endpoint endPoint3Clone = new Endpoint(
+				endPoint2.getRtmpUrl(), endPoint2.getType(), null, "finished");
 
 		// remove end point2
 		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone, true);
@@ -1273,13 +1273,13 @@ public class DBStoresUnitTest {
 		// add new enpoints
 		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
-		endPoint = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl, "facebook", null, null);
+		endPoint = new Endpoint(rtmpUrl, "facebook", null, "finished");
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint));
 
 		String rtmpUrl2 = "rtmp:(sdfsfskmkmkmkmf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
-		endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl2, "facebook", null, null);
+		endPoint2 = new Endpoint(rtmpUrl2, "facebook", null, "finished");
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint2));
 
@@ -1307,15 +1307,15 @@ public class DBStoresUnitTest {
 		assertEquals(description, broadcast2.getDescription());
 
 		String rtmpUrl = "rtmp:((ksklasjflakjflaskjflsadfkjsal";
-		Endpoint endPoint = new Endpoint("broacdast id", "stream id", null, broadcast2.getName(), rtmpUrl, "generic", null);
+		Endpoint endPoint = new Endpoint(rtmpUrl, "generic", "test234", "finished");
 
 		boolean result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint);
 		assertTrue(result);
 
 		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		String endpointStreamId = "stream id 2";
-		Endpoint endPoint2 = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl,
-				"facebook", "generic_2", null);
+		Endpoint endPoint2 = new Endpoint( rtmpUrl,
+				"facebook", "generic_2", "finished");
 
 		result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint2);
 		assertTrue(result);
@@ -1333,11 +1333,11 @@ public class DBStoresUnitTest {
 		assertEquals(1, broadcast2.getEndPointList().size());
 
 		// endpoint2 should be in the list, check stream id
-		assertEquals(broadcast2.getEndPointList().get(0).getStreamId(), endpointStreamId);
+		assertEquals(broadcast2.getEndPointList().get(0).getRtmpUrl(), rtmpUrl);
 
 		//
-		Endpoint endPoint3Clone = new Endpoint(endPoint2.getBroadcastId(), endPoint2.getStreamId(), endPoint2.getName(),
-				endPoint2.getRtmpUrl(), endPoint2.getType(), "generic_2", null);
+		Endpoint endPoint3Clone = new Endpoint(
+				endPoint2.getRtmpUrl(), endPoint2.getType(), "generic_2", "finished");
 
 		// remove end point2
 		result = dataStore.removeEndpoint(broadcast2.getStreamId(), endPoint3Clone, false);
@@ -1348,13 +1348,13 @@ public class DBStoresUnitTest {
 		// add new enpoints
 		rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
-		endPoint = new Endpoint("broacdast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl, "facebook", "generic_2", null);
+		endPoint = new Endpoint(rtmpUrl, "facebook", "generic_2", "finished");
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint));
 
 		String rtmpUrl2 = "rtmp:(sdfsfskmkmkmkmf(ksklasjflakjflaskjflsadfkjsal";
 		endpointStreamId = "stream id 2";
-		endPoint2 = new Endpoint("broadcast id 2", endpointStreamId, broadcast2.getName(), rtmpUrl2, "facebook", "generic_3", null);
+		endPoint2 = new Endpoint(rtmpUrl2, "facebook", "generic_3", "finished");
 
 		assertTrue(dataStore.addEndpoint(broadcast2.getStreamId(), endPoint2));
 
@@ -1401,6 +1401,8 @@ public class DBStoresUnitTest {
 			tmp.setSubFolder(subFolder);
 			String listenerHookURL = "test_listener_hook_url";
 			tmp.setListenerHookURL(listenerHookURL);
+			assertTrue(tmp.isPlaylistLoopEnabled());
+			tmp.setPlaylistLoopEnabled(false);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -1413,6 +1415,7 @@ public class DBStoresUnitTest {
 			assertEquals(now, broadcast2.getStartTime());
 			assertEquals(ServerSettings.getLocalHostAddress(), tmp.getOriginAdress());
 			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
+			assertFalse(broadcast2.isPlaylistLoopEnabled());
 
 			result = dataStore.updateDuration(broadcast.getStreamId().toString(), 100000);
 			assertTrue(result);
@@ -1451,7 +1454,7 @@ public class DBStoresUnitTest {
 			assertEquals(null, broadcast2.getEndPointList());
 
 			String rtmpUrl = "rtmp:((ksklasjflakjflaskjflsadfkjsal";
-			Endpoint endPoint = new Endpoint("broacdast id", "stream id", broadcast2.getName(), rtmpUrl, "generic", null, null);
+			Endpoint endPoint = new Endpoint(rtmpUrl, "generic", null, "finished");
 
 			result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint);
 			assertTrue(result);
@@ -1462,11 +1465,10 @@ public class DBStoresUnitTest {
 			broadcast2 = dataStore.get(key);
 			assertNotNull(broadcast2.getEndPointList());
 			assertEquals(1, broadcast2.getEndPointList().size());
-			assertEquals(broadcast2.getEndPointList().get(0).getName(), broadcast2.getName());
 			assertEquals(broadcast2.getEndPointList().get(0).getRtmpUrl(), rtmpUrl);
 
 			rtmpUrl = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
-			endPoint = new Endpoint("broacdast id 2", "stream id 2", broadcast2.getName(), rtmpUrl, "facebook", null, null);
+			endPoint = new Endpoint(rtmpUrl, "facebook", null, "finished");
 
 			result = dataStore.addEndpoint(broadcast2.getStreamId().toString(), endPoint);
 			assertTrue(result);
@@ -1474,7 +1476,6 @@ public class DBStoresUnitTest {
 			broadcast2 = dataStore.get(key);
 			assertNotNull(broadcast2.getEndPointList());
 			assertEquals(2, broadcast2.getEndPointList().size());
-			assertEquals(broadcast2.getEndPointList().get(1).getName(), broadcast2.getName());
 			assertEquals(broadcast2.getEndPointList().get(1).getRtmpUrl(), rtmpUrl);
 
 			Broadcast broadcast3 = new Broadcast("test3");
@@ -2130,9 +2131,6 @@ public class DBStoresUnitTest {
 		StreamInfo si2 = new StreamInfo();
 		si2.setHost(ServerSettings.getLocalHostAddress());
 		si2.setStreamId(broadcast.getStreamId());
-		si2.setVideoPort(1000);
-		si2.setAudioPort(1100);
-
 
 		dataStore.saveStreamInfo(si2);
 
@@ -2162,44 +2160,7 @@ public class DBStoresUnitTest {
 		//different ports same host => there will be 2 SIs
 		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1100, 2100, 0);
 		assertEquals(2, dataStore.getDataStore().find(StreamInfo.class).count());
-		deleteStreamInfos(dataStore);
-
-		//same video ports same host => first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1000, 2100, 0);
-		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
-		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
-		deleteStreamInfos(dataStore);
-
-		//same audio ports same host => first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1100, 2000, 0);
-		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
-		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
-		deleteStreamInfos(dataStore);
-
-		//first video port same with second audio port and same host => first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1100, 1000, 0);
-		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
-		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
-		deleteStreamInfos(dataStore);
-
-		//first audio port same with second video port and same host => first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 2000, 2100, 0);
-		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
-		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
-		deleteStreamInfos(dataStore);
-		
-		//host and port duplication exist so first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, 2100, "host1", 2000, 2100, 3000);
-		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
-		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
-		deleteStreamInfos(dataStore);
-		
-		//host and port duplication exist so first SI should be deleted
-		saveStreamInfo(dataStore, "host1", 1000, 2000, 3000, "host1", 4000, 5000, 1000);
-		assertEquals(1, dataStore.getDataStore().find(StreamInfo.class).count());
-		assertTrue(dataStore.getStreamInfoList("test1").isEmpty());
-		deleteStreamInfos(dataStore);
-		
+		deleteStreamInfos(dataStore);		
 	}
 
 	public void deleteStreamInfos(MongoStore datastore) {
@@ -2218,19 +2179,20 @@ public class DBStoresUnitTest {
 
 		StreamInfo si = new StreamInfo();
 		si.setHost(host1);
-		si.setVideoPort(videoPort1);
-		si.setAudioPort(audioPort1);
-		si.setDataChannelPort(dataPort1);
 		si.setStreamId("test1");
+		si.setOriginPort(5858);
 		dataStore.saveStreamInfo(si);
+		
 
-		assertEquals(1, dataStore.getStreamInfoList("test1").size());
+		List<StreamInfo> siList = dataStore.getStreamInfoList("test1");
+		assertEquals(1, siList.size());
+		
+		assertEquals(host1, siList.get(0).getHost());
+		assertEquals(5858, siList.get(0).getOriginPort());
+
 
 		si = new StreamInfo();
 		si.setHost(host2);
-		si.setVideoPort(videoPort2);
-		si.setAudioPort(audioPort2);
-		si.setDataChannelPort(dataPort2);
 		si.setStreamId("test2");
 		dataStore.saveStreamInfo(si);
 	}
@@ -2360,21 +2322,21 @@ public class DBStoresUnitTest {
 
 		//add endpoint
 		String rtmpUrl = "rtmp://rtmp1";
-		Endpoint endPoint = new Endpoint("broacdast id",broadcast.getStreamId(), broadcast.getName(), rtmpUrl, "generic", null, null);
+		Endpoint endPoint = new Endpoint(rtmpUrl, "generic", null, "finished");
 		boolean result = dataStore.addEndpoint(broadcast.getStreamId().toString(), endPoint);
 		assertTrue(result);
 
 		//add endpoint
 		String rtmpUrl2 = "rtmp:(sdfsfsf(ksklasjflakjflaskjflsadfkjsal";
-		Endpoint endPoint2 = new Endpoint("broacdast id 2", broadcast.getStreamId(), broadcast.getName(), rtmpUrl2,
-				"generic", null, null);
+		Endpoint endPoint2 = new Endpoint( rtmpUrl2,
+				"generic", null, "finished");
 		result = dataStore.addEndpoint(broadcast.getStreamId().toString(), endPoint2);
 		assertTrue(result);
 
 		//add endpoint
 		String rtmpUrl3 = "rtmp:(sdfsfasafadgsgsf(ksklasjflakjflaskjflsadfkjsal";
-		Endpoint endPoint3 = new Endpoint("broacdast id 3", broadcast.getStreamId(), broadcast.getName(), rtmpUrl3,
-				"generic", null, null);
+		Endpoint endPoint3 = new Endpoint(rtmpUrl3,
+				"generic", null, "finished");
 
 
 

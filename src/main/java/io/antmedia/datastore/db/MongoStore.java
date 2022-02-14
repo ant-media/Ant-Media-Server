@@ -810,6 +810,7 @@ public class MongoStore extends DataStore {
 				updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
 				updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
 				updates.add(set("metaData", broadcast.getMetaData()));
+				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
 
 				
 				UpdateResult updateResult = query.update(updates).execute();
@@ -905,53 +906,6 @@ public class MongoStore extends DataStore {
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		synchronized(this) {
 			Query<StreamInfo> query = datastore.find(StreamInfo.class);
-
-			List<Filter> filterList = new ArrayList<>();
-			if (streamInfo.getVideoPort() != 0) {
-
-				filterList.add(Filters.eq("videoPort", streamInfo.getVideoPort()));
-				filterList.add(Filters.eq("audioPort", streamInfo.getVideoPort()));
-				filterList.add(Filters.eq("dataChannelPort", streamInfo.getVideoPort()));
-
-			}
-			if (streamInfo.getAudioPort() != 0) {
-				filterList.add(Filters.eq("videoPort", streamInfo.getAudioPort()));
-				filterList.add(Filters.eq("audioPort", streamInfo.getAudioPort()));
-				filterList.add(Filters.eq("dataChannelPort", streamInfo.getAudioPort()));
-
-			}
-			if (streamInfo.getDataChannelPort() != 0) {
-				filterList.add(Filters.eq("videoPort", streamInfo.getDataChannelPort()));
-				filterList.add(Filters.eq("audioPort", streamInfo.getDataChannelPort()));
-				filterList.add(Filters.eq("dataChannelPort", streamInfo.getDataChannelPort()));
-			}
-
-			if (!filterList.isEmpty()) {
-
-				Filter[] filterArray = new Filter[filterList.size()];
-				filterList.toArray(filterArray);
-				query.filter(
-						Filters.and(
-								Filters.eq("host", streamInfo.getHost()),
-								Filters.or(filterArray)
-								)
-						);
-			}
-			else {
-				query.filter(
-						Filters.eq("host", streamInfo.getHost())
-						);
-			}
-
-
-			long count = query.delete(new DeleteOptions().multi(true)).getDeletedCount();
-			
-			if (count > 0) 
-			{
-				logger.error("{} port duplications are detected and deleted for host: {}, video port: {}, audio port:{}",
-						count, streamInfo.getHost(), streamInfo.getVideoPort(), streamInfo.getAudioPort());
-			}
-
 
 			datastore.save(streamInfo);
 		}

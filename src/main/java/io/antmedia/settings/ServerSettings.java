@@ -37,6 +37,8 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 
 	private static final String SETTINGS_USE_GLOBAL_IP = "useGlobalIp";
 
+	private static final String SETTINGS_PROXY_ADDRESS = "proxy.address";
+
 	private static final String SETTINGS_NODE_GROUP = "nodeGroup";
 
 	
@@ -56,6 +58,8 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 	private static final String SETTINGS_CPU_MEASUREMENT_WINDOW_SIZE = "server.cpu_measurement_window_size";
 
 	private static final String SETTINGS_SERVER_DEFAULT_HTTP_PORT = "http.port";
+	
+	private static final String SETTINGS_ORIGIN_PORT = "server.origin_port";
 
 	private String allowedDashboardCIDR;
 
@@ -97,6 +101,15 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 
 	@Value( "${"+SETTINGS_USE_GLOBAL_IP+":false}" )
 	private boolean useGlobalIp;
+
+	/**
+	 * The proxy IP address and port.
+	 * If there is a proxy in front of Ant Media Server(reverse proxy) please enter its IP and port
+	 * The format will be <proxy_ip>:<port_number> for example:
+	 * 					 192.168.0.1:3012
+	 */
+	@Value( "${"+SETTINGS_PROXY_ADDRESS+":null}" )
+	private String proxyAddress;
 
 	
 	@Value( "${"+SETTINGS_NODE_GROUP+":"+DEFAULT_NODE_GROUP+"}" )
@@ -176,6 +189,13 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 
 	@Value( "${" + SETTINGS_JWKS_URL +":#{null}}")
 	private String jwksURL;
+	
+	/**
+	 * The port that is opened by origin in cluster mode.
+	 * Edges are connected to the origin through this port.
+	 */
+	@Value( "${"+SETTINGS_ORIGIN_PORT+":5000}" )
+	private int originServerPort;
 
 	public String getJwksURL() {
 		return jwksURL;
@@ -297,6 +317,14 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 
 	public void setUseGlobalIp(boolean useGlobalIp) {
 		this.useGlobalIp = useGlobalIp;
+	}
+
+	public void setProxyAddress(String proxyAddress){
+		this.proxyAddress = proxyAddress;
+	}
+
+	public String getProxyAddress(){
+		return proxyAddress;
 	}
 	
 	/**
@@ -427,5 +455,15 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 	public void setDefaultHttpPort(int defaultHttpPort) {
 		this.defaultHttpPort = defaultHttpPort;
 	}
+	
+	@Override
+	public int getOriginServerPort() {
+		return originServerPort;
+	}
+
+	public void setOriginServerPort(int originServerPort) {
+		this.originServerPort = originServerPort;
+	}
+
 
 }
