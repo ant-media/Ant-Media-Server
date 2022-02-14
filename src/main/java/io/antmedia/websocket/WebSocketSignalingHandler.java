@@ -159,7 +159,7 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
         String originId = String.valueOf(availableOriginMap.size() + 1);
         logger.info("***************** = " + session.getRequestURI() + " - " + originId);
         availableOriginMap.put(originId, session);
-        logger.info("" + availableOriginMap.get(String.valueOf(availableOriginMap.size())));
+        logger.info("" + availableOriginMap.get(originId));
         //getDatastore().saveOriginForSignaling(session.getRequestURI());
     }
 
@@ -223,7 +223,8 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
 
             // webrtc publish
             SessionDescription sdp = new SessionDescription(type, sdpDescription);
-            //takeConfigurationFromTargetHost(sdp, hostDestination);
+            Session session = getOriginSession();
+            takeConfigurationFromTargetHost(sdpDescription, type.toString(), streamId, session);
 
         }
 
@@ -248,6 +249,13 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
                 }
             }
         }*/
+    }
+
+    public Session getOriginSession(){
+        return availableOriginMap.get("1");
+    }
+    public void takeConfigurationFromTargetHost(String sdpDescription, String typeString, String streamId, Session session){
+        sendSDPConfiguration(sdpDescription, typeString, streamId, session, null);
     }
     /**
      * It will return the configuration (SDP) from the target server which peer needs to connect.
