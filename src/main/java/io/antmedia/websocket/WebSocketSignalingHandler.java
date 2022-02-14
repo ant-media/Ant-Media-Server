@@ -316,8 +316,9 @@ public class WebSocketSignalingHandler extends WebSocketCommunityHandler {
 
     //TODO: MAKE IT DYNAMIC ABOUT ORIGIN ID
     public void sendPublishMessageToOrigin(String streamId, boolean enableVideo, boolean enableAudio, String tokenId, String subscriberId, String subscriberCodeText, String streamName, String mainTrack, String metaData){
-        streamIDtoServerSessionMap.put(streamId, "1");
-        streamIDtoClientSessionMap.put(streamId, session);
+        logger.info("333333333333333333");
+        //streamIDtoServerSessionMap.put(streamId, "1");
+        //streamIDtoClientSessionMap.put(streamId, session);
         logger.info("333333333333333333");
 
         JSONObject jsonResponse = new JSONObject();
