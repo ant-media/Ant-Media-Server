@@ -303,6 +303,8 @@ public class AppSettings {
 
 	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
 
+	public static final String SETTINGS_MAX_AUDIO_TRACK_COUNT = "settings.maxAudioTrackCount";
+
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -1385,6 +1387,16 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_WEBHOOK_AUTHENTICATE_URL+":}" )
 	private String webhookAuthenticateURL;
+	
+	/**
+	 * The maximum audio track in a multitrack playing connection
+	 * If it is -1 then a new audio track connection is established for each track
+	 * otherwise, audio connections are established as many as this value and
+	 * the limited connections are shared between tracks.
+	 */
+	@Value( "${"+SETTINGS_MAX_AUDIO_TRACK_COUNT+":-1}" )
+	private int maxAudioTrackCount;
+	
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2644,5 +2656,13 @@ public class AppSettings {
 
 	public void setS3Permission(String s3Permission) {
 		this.s3Permission = s3Permission;
+	}
+
+	public int getMaxAudioTrackCount() {
+		return maxAudioTrackCount;
+	}
+
+	public void setMaxAudioTrackCount(int maxAudioTrackCount) {
+		this.maxAudioTrackCount = maxAudioTrackCount;
 	}
 }

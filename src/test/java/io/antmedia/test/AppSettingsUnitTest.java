@@ -234,5 +234,13 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(appSettings.getEncoderSettings());
 		assertEquals(2, appSettings.getEncoderSettings().size());
 	}
+	
+	@Test
+	public void testSettings() {
+		AppSettings appSettings = new AppSettings();
+		appSettings.setMaxAudioTrackCount(5);
+		assertEquals(5, appSettings.getMaxAudioTrackCount());
+	}
+	
 
 }
