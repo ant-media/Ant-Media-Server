@@ -1395,7 +1395,7 @@ public class AppSettings {
 	 * the limited connections are shared between tracks.
 	 */
 	@Value( "${"+SETTINGS_MAX_AUDIO_TRACK_COUNT+":-1}" )
-	private int maxAudioTrackCount;
+	private int maxAudioTrackCount = -1;
 	
 
 	public boolean isWriteStatsToDatastore() {
