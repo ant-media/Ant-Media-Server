@@ -119,7 +119,7 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 	 * This is for using another Ant Media instance as signaling server.
 	 * If your server is behind a NAT it will allow possible connection.
 	 */
-	@Value( "${"+SETTINGS_SIGNALING_ENABLED+":null}" )
+	@Value( "${"+SETTINGS_SIGNALING_ENABLED+":false}" )
 	private boolean signalingEnabled;
 
 	/**
