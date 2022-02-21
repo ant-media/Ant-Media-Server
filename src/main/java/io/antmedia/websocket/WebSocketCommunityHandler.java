@@ -219,9 +219,9 @@ public class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	public  void sendSDPConfiguration(String description, String type, String streamId, Session session, Map<String, String> midSidMap) {
+	public  void sendSDPConfiguration(String description, String type, String streamId, Session session, Map<String, String> midSidMap, String linkedSessionForSignaling) {
 
-		sendMessage(getSDPConfigurationJSON (description, type,  streamId, midSidMap).toJSONString(), session);
+		sendMessage(getSDPConfigurationJSON (description, type,  streamId, midSidMap, linkedSessionForSignaling).toJSONString(), session);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -378,13 +378,14 @@ public class WebSocketCommunityHandler {
 		return jsonObject;
 	}
 
-	public static JSONObject getSDPConfigurationJSON(String description, String type, String streamId, Map<String, String> midSidMap) {
+	public static JSONObject getSDPConfigurationJSON(String description, String type, String streamId, Map<String, String> midSidMap, String linkedSessionForSignaling) {
 
 		JSONObject jsonResponseObject = new JSONObject();
 		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
 		jsonResponseObject.put(WebSocketConstants.SDP, description);
 		jsonResponseObject.put(WebSocketConstants.TYPE, type);
 		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonResponseObject.put(WebSocketConstants.LINK_SESSION, linkedSessionForSignaling);
 		
 		if(midSidMap != null) {
 			JSONObject jsonIdMappingObject = new JSONObject();
