@@ -430,7 +430,7 @@ public class RTMPAdaptorTest {
 
 		rtmpAdaptor.onCreateSuccess(sdp);
 
-		verify(webSocketHandler).sendSDPConfiguration(sdp.description, "offer", streamId, session, null);
+		verify(webSocketHandler).sendSDPConfiguration(sdp.description, "offer", streamId, session, null, null);
 		JSONObject jsonResponseObject = new JSONObject();
 		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
 		jsonResponseObject.put(WebSocketConstants.SDP, sdp.description);
