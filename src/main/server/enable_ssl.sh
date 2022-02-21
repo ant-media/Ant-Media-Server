@@ -371,7 +371,9 @@ fi
 ipt_restore
 
 if ! [ -x "$(command -v systemctl)" ]; then
-  kill -HUP $(pidof java)
+  if ( grep -q docker /proc/1/cgroup ); then
+    echo "Please restart your Docker container to enable SSL"
+  fi
 else
   echo ""
   $SUDO service antmedia stop
