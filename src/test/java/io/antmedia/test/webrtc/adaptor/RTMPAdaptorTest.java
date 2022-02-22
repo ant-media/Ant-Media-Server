@@ -355,7 +355,7 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.onIceCandidate(iceCandidate);
 
 
-		verify(webSocketHandler).sendTakeCandidateMessage(iceCandidate.sdpMLineIndex, iceCandidate.sdpMid, iceCandidate.sdp, streamId, session);
+		verify(webSocketHandler).sendTakeCandidateMessage(iceCandidate.sdpMLineIndex, iceCandidate.sdpMid, iceCandidate.sdp, streamId, session, null);
 
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND,  WebSocketConstants.TAKE_CANDIDATE_COMMAND);

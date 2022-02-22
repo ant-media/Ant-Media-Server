@@ -80,7 +80,7 @@ public abstract class Adaptor implements Observer, SdpObserver
 		log.warn("onIceCandidate");
 
 		webSocketCommunityHandler
-		.sendTakeCandidateMessage(candidate.sdpMLineIndex, candidate.sdpMid, candidate.sdp, streamId, session);
+		.sendTakeCandidateMessage(candidate.sdpMLineIndex, candidate.sdpMid, candidate.sdp, streamId, session, null);
 
 	}
 
