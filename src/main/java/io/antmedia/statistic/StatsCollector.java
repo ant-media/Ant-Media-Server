@@ -47,6 +47,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.FFmpegUtilities;
 import io.antmedia.SystemUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
@@ -140,6 +141,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String GPU_DEVICE_NAME = "deviceName";
 
 	public static final String GPU_USAGE_INFO = "gpuUsageInfo";
+	
+	public static final String FFMPEG_BUILD_INFO = "ffmpegBuildInfo";
 
 	public static final String TOTAL_LIVE_STREAMS = "totalLiveStreamSize";
 
@@ -610,6 +613,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		//add gpu info 
 		jsonObject.add(StatsCollector.GPU_USAGE_INFO, StatsCollector.getGPUInfoJSObject());
+		
+		//add ffmpeg build info 
+		jsonObject.addProperty(StatsCollector.FFMPEG_BUILD_INFO, FFmpegUtilities.getBuildConfiguration());
 
 		int localHlsViewers = 0;
 		int localWebRTCViewers = 0;

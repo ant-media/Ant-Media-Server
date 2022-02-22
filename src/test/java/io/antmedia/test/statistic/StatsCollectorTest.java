@@ -184,6 +184,8 @@ public class StatsCollectorTest {
 		assertTrue(jsObject.has(StatsCollector.LOCAL_WEBRTC_LIVE_STREAMS));
 		assertTrue(jsObject.has(StatsCollector.LOCAL_WEBRTC_VIEWERS));
 		assertTrue(jsObject.has(StatsCollector.LOCAL_HLS_VIEWERS));
+		assertTrue(jsObject.has(StatsCollector.FFMPEG_BUILD_INFO));
+
 		
 		GPUUtils gpuUtils = Mockito.mock(GPUUtils.class);
 		MemoryStatus memoryStatus = Mockito.mock(MemoryStatus.class);
@@ -199,6 +201,10 @@ public class StatsCollectorTest {
 		
 		
 		jsObject = StatsCollector.getThreadInfoJSONObject();
+		assertTrue(jsObject.has(StatsCollector.DEAD_LOCKED_THREAD));
+		assertTrue(jsObject.has(StatsCollector.THREAD_COUNT));
+		assertTrue(jsObject.has(StatsCollector.THREAD_PEEK_COUNT));
+		
 		assertTrue(jsObject.has(StatsCollector.DEAD_LOCKED_THREAD));
 		assertTrue(jsObject.has(StatsCollector.THREAD_COUNT));
 		assertTrue(jsObject.has(StatsCollector.THREAD_PEEK_COUNT));
