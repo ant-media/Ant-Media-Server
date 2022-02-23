@@ -437,24 +437,11 @@ public class BroadcastRestService extends RestServiceBase{
 		if (broadcast != null && endpointServiceId != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty()) 
 		{
 
-			rtmpUrl = getRtmpUrlFromList(endpointServiceId, rtmpUrl, broadcast);
-			if (rtmpUrl != null) {
-
-				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
-				{
-					result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, false, resolutionHeight);
-					if (result.isSuccess()) 
-					{
-						result = super.removeRTMPEndpoint(id, endpointServiceId);
-					}
-				}
-				else 
-				{
-					result = super.removeRTMPEndpoint(id, endpointServiceId);
-				}
+			Endpoint endpoint = getRtmpUrlFromList(endpointServiceId, broadcast);
+			if (endpoint != null && endpoint.getRtmpUrl() != null) {
+				rtmpUrl = endpoint.getRtmpUrl();
+				result = removeRTMPEndpointProcess(broadcast, endpoint, resolutionHeight, id);	
 			}
-
-
 		} 
 		if (logger.isInfoEnabled()) 
 		{ 
@@ -462,15 +449,36 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return result;
 	}
-
-	private String getRtmpUrlFromList(String endpointServiceId, String rtmpUrl, Broadcast broadcast) {
-		for(Endpoint endpoint: broadcast.getEndPointList()) 
+	
+	private Result removeRTMPEndpointProcess(Broadcast broadcast, Endpoint endpoint, int resolutionHeight, String id) {
+		Result result;
+		
+		if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
 		{
-			if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
-				rtmpUrl = endpoint.getRtmpUrl();
+			result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpoint.getRtmpUrl(), false, resolutionHeight);
+			if (result.isSuccess()) 
+			{
+				result = super.removeRTMPEndpoint(id, endpoint);
 			}
 		}
-		return rtmpUrl;
+		else 
+		{
+			result = super.removeRTMPEndpoint(id, endpoint);
+		}
+		
+		
+		return result;
+	}
+
+	private Endpoint getRtmpUrlFromList(String endpointServiceId, Broadcast broadcast) {
+		Endpoint endpoint = null;
+		for(Endpoint selectedEndpoint: broadcast.getEndPointList()) 
+		{
+			if(selectedEndpoint.getEndpointServiceId().equals(endpointServiceId)) {
+				endpoint = selectedEndpoint;
+			}
+		}
+		return endpoint;
 	}
 
 

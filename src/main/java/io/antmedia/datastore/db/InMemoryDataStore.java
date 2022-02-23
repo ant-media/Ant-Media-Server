@@ -232,9 +232,12 @@ public class InMemoryDataStore extends DataStore {
 		List<Broadcast> streamsList = new ArrayList<>();
 		for (Broadcast broadcast : values) {
 			String type = broadcast.getType();
+			String status = broadcast.getStatus();
 
-			if (type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
+			if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
 				streamsList.add(broadcast);
+				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+				broadcastMap.replace(broadcast.getStreamId(), broadcast);
 			}
 		}
 		return streamsList;

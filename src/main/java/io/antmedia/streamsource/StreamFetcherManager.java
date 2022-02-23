@@ -228,10 +228,12 @@ public class StreamFetcherManager {
 		// Get current playlist in database
 		Broadcast playlist = datastore.get(streamId);
 
+
 		//Check playlist is not deleted and not stopped
-		if(playlist != null && !IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus()))
+		//
+		if(playlist != null && !IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus())
+				&& skipNextPlaylistQueue(playlist) != null)
 		{
-			playlist = skipNextPlaylistQueue(playlist);
 
 			// Get Current Playlist Stream Index
 			int currentStreamIndex = playlist.getCurrentPlayIndex();
@@ -332,23 +334,37 @@ public class StreamFetcherManager {
 		return result;
 	}
 
+	/**
+	 * Skips the next item or set to first item in the list. If the looping is disabled, it will not set to first item and return nul
+	 * @param playlist
+	 * @return Broadcast object for the next item. If it's not looping, it will return null
+	 */
 	public Broadcast skipNextPlaylistQueue(Broadcast playlist) {
 
 		// Get Current Playlist Stream Index
 		int currentStreamIndex = playlist.getCurrentPlayIndex()+1;
-
 		if(playlist.getPlayListItemList().size() <= currentStreamIndex) 
 		{
 			//update playlist first broadcast
 			playlist.setCurrentPlayIndex(0);
-		}
+			if (!playlist.isPlaylistLoopEnabled()) 
+			{
+				logger.info("Play list looping is not enabled. It will be stopped for stream: {}", playlist.getStreamId());
+				//streaming is already stopped so that just update the database
+				playlist.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+				datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
 
+				//return null if it's not looping
+				return null;
+			}
+
+		}
 		else {
 			// update playlist currentPlayIndex value.
 			playlist.setCurrentPlayIndex(currentStreamIndex);
+			logger.info("Next index to play in play list is {} for stream: {}", playlist.getCurrentPlayIndex(), playlist.getStreamId());
 		}
-		logger.info("Next index to play in play list is {} for stream: {}", playlist.getCurrentPlayIndex(), playlist.getStreamId());
-		datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
+
 
 		return playlist;
 	}
