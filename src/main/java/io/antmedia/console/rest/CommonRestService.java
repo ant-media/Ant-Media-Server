@@ -343,10 +343,6 @@ public class CommonRestService {
 		servletRequest = testRequest;
 	}
 
-	public void setServletContextForTest(ServletContext servletContext){
-		this.servletContext = servletContext;
-	}
-
 	public Result isAdmin() {
 		HttpSession session = servletRequest.getSession();
 		if(isAuthenticated(session)) {

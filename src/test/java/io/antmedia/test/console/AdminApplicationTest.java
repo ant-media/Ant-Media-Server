@@ -1,9 +1,5 @@
 package io.antmedia.test.console;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
-
 import java.io.IOException;
 
 import org.junit.AfterClass;
@@ -20,6 +16,8 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.vertx.core.Vertx;
+
+import static org.junit.Assert.*;
 
 public class AdminApplicationTest {
 	
@@ -151,6 +149,19 @@ public class AdminApplicationTest {
 		assertEquals(0, adminApplication.getAppLiveStreamCount(Mockito.mock(IScope.class)));
 		
 		
+	}
+	@Test
+	public void testPullWarFile(){
+		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		AdminApplication adminApplication = Mockito.spy(new AdminApplication());
+		try{
+			//Just download something to check if it is downloading, the method only downloads with an http request.
+			assertTrue(adminApplication.pullWarFile("LiveApp", "https://antmedia.io/rest"));
+		}
+		catch(Exception e){
+			e.printStackTrace();
+			fail();
+		}
 	}
 	
 	@Test

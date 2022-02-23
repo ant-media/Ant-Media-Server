@@ -327,7 +327,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			return true;
 		}
 		finally{
-			fileOutputStream.close();
+			if(fileOutputStream != null) {
+				fileOutputStream.close();
+			}
 		}
 	}
 
