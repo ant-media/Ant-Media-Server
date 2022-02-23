@@ -238,12 +238,11 @@ public class CommonRestService {
 
 				String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
 				logger.info("War file uploaded for application, filesize = {} path = {}", fileSize, path);
-
 				if(isClusterMode()){
 					AppSettings tempSetting = new AppSettings();
 					tempSetting.setAppName(appName);
 					tempSetting.setPullWarFile(true);
-					tempSetting.setWarFileAddress(getServerSettingsInternal().getHostAddress());
+					tempSetting.setWarFileAddress(getServerSettings().getHostAddress());
 
 					IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
 					clusterNotifier.getClusterStore().saveSettings(tempSetting);
@@ -342,6 +341,10 @@ public class CommonRestService {
 	}
 	public void setRequestForTest(HttpServletRequest testRequest){
 		servletRequest = testRequest;
+	}
+
+	public void setServletContextForTest(ServletContext servletContext){
+		this.servletContext = servletContext;
 	}
 
 	public Result isAdmin() {
