@@ -47,7 +47,6 @@ public class WebSocketCommunityHandler {
 	public WebSocketCommunityHandler(ApplicationContext appContext, Session session) {
 		this.appContext = appContext;
 		this.session = session;
-		logger.info("Gett = " + getAppContext() + " - " + appContext + " - " + this.appContext);
 		appSettings = (AppSettings) getAppContext().getBean(AppSettings.BEAN_NAME);
 		appAdaptor = ((AntMediaApplicationAdapter)appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME));
 		
@@ -352,7 +351,7 @@ public class WebSocketCommunityHandler {
 		JSONArray jsonStreamListArray = new JSONArray();
 		
 		prepareStreamListJSON(streamIdNameMap, jsonStreamIdArray, jsonStreamListArray, streamMetaDataMap);
-		
+		logger.info("------------------");
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.JOINED_THE_ROOM);
 		jsonResponse.put(WebSocketConstants.STREAM_ID, newStreamId);
