@@ -80,7 +80,7 @@ esac
 
 APP_NAME_LOWER=$(echo $APP_NAME | awk '{print tolower($0)}')
 APP_DIR=$AMS_DIR/webapps/$APP_NAME
-RED5_PROPERTIES_FILE=$APP_DIR/WEB-INF/red5-web.properties
+ANT_PROPERTIES_FILE=$APP_DIR/WEB-INF/ant-web.properties
 WEB_XML_FILE=$APP_DIR/WEB-INF/web.xml
 
 mkdir $APP_DIR
@@ -105,13 +105,13 @@ if [[ "$OS_NAME" == 'Darwin' ]]; then
   SED_COMPATIBILITY='.bak'
 fi
 
-sed -i $SED_COMPATIBILITY 's^webapp.dbName=.*^webapp.dbName='$APP_NAME_LOWER'.db^' $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's^webapp.dbName=.*^webapp.dbName='$APP_NAME_LOWER'.db^' $ANT_PROPERTIES_FILE
 check_result
-sed -i $SED_COMPATIBILITY 's^webapp.contextPath=.*^webapp.contextPath=/'$APP_NAME'^' $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's^webapp.contextPath=.*^webapp.contextPath=/'$APP_NAME'^' $ANT_PROPERTIES_FILE
 check_result
-sed -i $SED_COMPATIBILITY 's^db.app.name=.*^db.app.name='$APP_NAME'^' $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's^db.app.name=.*^db.app.name='$APP_NAME'^' $ANT_PROPERTIES_FILE
 check_result
-sed -i $SED_COMPATIBILITY 's^db.name=.*^db.name='$APP_NAME_LOWER'^' $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's^db.name=.*^db.name='$APP_NAME_LOWER'^' $ANT_PROPERTIES_FILE
 check_result
 sed -i $SED_COMPATIBILITY 's^<display-name>StreamApp^<display-name>'$APP_NAME'^' $WEB_XML_FILE
 check_result
@@ -120,10 +120,10 @@ check_result
 
 if [[ "$IS_CLUSTER" == "true" ]]; then
     echo "Cluster mode"
-	sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $RED5_PROPERTIES_FILE
-    sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$MONGO_HOST'#' $RED5_PROPERTIES_FILE  
-    sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$MONGO_USER'/' $RED5_PROPERTIES_FILE
-    sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$MONGO_PASS'/' $RED5_PROPERTIES_FILE
+	sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $ANT_PROPERTIES_FILE
+    sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$MONGO_HOST'#' $ANT_PROPERTIES_FILE
+    sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$MONGO_USER'/' $ANT_PROPERTIES_FILE
+    sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$MONGO_PASS'/' $ANT_PROPERTIES_FILE
 else 
     echo "Not cluster mode."    
 fi

@@ -9,7 +9,7 @@
 		<property name="locations">
 			<list>
 				<value>file:///${user.dir}/src/main/server/conf/red5.properties</value>
-				<value>file:///${user.dir}/src/test/resources/WEB-INF/red5-web.properties</value>
+				<value>file:///${user.dir}/src/test/resources/WEB-INF/ant-web.properties</value>
 			</list>
 		</property>
 	</bean>
@@ -23,7 +23,7 @@
 	<!-- <bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService" 
 		/> -->
 
-	<!-- Global stuff from red5-default.xml -->
+	<!-- Global stuff from ant-default.xml -->
 	<bean id="global.clientRegistry" class="org.red5.server.ClientRegistry" />
 
 	<bean id="global.serviceInvoker" class="org.red5.server.service.ServiceInvoker">
@@ -58,7 +58,7 @@
 
 
 
-	<!-- Application stuff from red5-web.xml -->
+	<!-- Application stuff from ant-web.xml -->
 	<bean id="web.context" autowire="byType" class="org.red5.server.Context" />
 
 	<bean id="web.scope" class="org.red5.server.scope.WebScope">

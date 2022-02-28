@@ -127,7 +127,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	// Initialize Logging
 	private static Logger log = LoggerFactory.getLogger(TomcatLoader.class);
 
-	public static final String defaultSpringConfigLocation = "/WEB-INF/red5-*.xml";
+	public static final String defaultSpringConfigLocation = "/WEB-INF/ant-*.xml";
 
 	public static final String defaultParentContextKey = "default.context";
 

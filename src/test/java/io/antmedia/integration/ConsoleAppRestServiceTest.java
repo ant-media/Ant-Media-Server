@@ -262,7 +262,7 @@ public class ConsoleAppRestServiceTest{
 			exec.waitFor();
 			
 			
-			File propertiesFile = new File( installLocation + "/webapps/testapp/WEB-INF/red5-web.properties");
+			File propertiesFile = new File( installLocation + "/webapps/testapp/WEB-INF/ant-web.properties");
 	        String content = Files.readString(propertiesFile.toPath());
 	        
 	        content.contains("db.type=mongodb");

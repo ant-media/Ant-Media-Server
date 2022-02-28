@@ -79,7 +79,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		File f = new File("webapps/junit/WEB-INF/");
 		f.mkdirs();
-		File propertiesFile = new File(f.getAbsolutePath(), "red5-web.properties");
+		File propertiesFile = new File(f.getAbsolutePath(), "ant-web.properties");
 		propertiesFile.delete();
 		
 		
@@ -112,7 +112,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		XmlWebApplicationContext applicationContext = new XmlWebApplicationContext();
 		    applicationContext.setConfigLocations(
-		            "red5-web.xml");
+		            "ant-web.xml");
 		    applicationContext.setServletContext(new MockServletContext(new ResourceLoader() {
 				
 				@Override

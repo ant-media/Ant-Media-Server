@@ -80,7 +80,7 @@ replaceCandidateAddressWithServer() {
 LIST_APPS=`ls -d $RED5_HOME/webapps/*/`
 
 for i in $LIST_APPS; do 
-  replaceCandidateAddressWithServer $i/WEB-INF/red5-web.properties $REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME
+  replaceCandidateAddressWithServer $i/WEB-INF/ant-web.properties $REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME
 done
 ################################################
 

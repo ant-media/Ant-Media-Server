@@ -10,7 +10,7 @@
 
 	<context:annotation-config />
 	<!-- Defines a properties file for dereferencing variables -->
-	<context:property-placeholder location="/WEB-INF/red5-web.properties"/>
+	<context:property-placeholder location="/WEB-INF/ant-web.properties"/>
 	
 	<!--
 	Defines the web context

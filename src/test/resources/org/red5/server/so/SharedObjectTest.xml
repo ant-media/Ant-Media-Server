@@ -23,7 +23,7 @@
     <bean id="consumerService" class="org.red5.server.stream.ConsumerService" />
     <bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService" />
 
-    <!-- Global stuff from red5-default.xml -->
+    <!-- Global stuff from ant-default.xml -->
     <bean id="global.clientRegistry" class="org.red5.server.ClientRegistry" />
 
     <bean id="global.serviceInvoker" class="org.red5.server.service.ServiceInvoker" >
@@ -55,7 +55,7 @@
         <property name="globalScope" ref="global.scope" />
     </bean>
 
-    <!-- Application stuff from red5-web.xml -->
+    <!-- Application stuff from ant-web.xml -->
     <bean id="web.context" autowire="byType" class="org.red5.server.Context" />
 
     <bean id="web.scope" class="org.red5.server.scope.WebScope">

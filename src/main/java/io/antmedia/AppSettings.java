@@ -35,11 +35,11 @@ import dev.morphia.annotations.Indexes;
  * reason. Don't patch it with null-check or similar things. Take a look at why server is not started correctly
  *
  *
- * These settings are set for each applications and stored in the file <AMS_DIR>/webapps/<AppName>/WEB_INF/red5-web.properties.
+ * These settings are set for each applications and stored in the file <AMS_DIR>/webapps/<AppName>/WEB_INF/ant-web.properties.
  * Click on any field to see its default value.
  *
  * Example: click on 	aacEncodingEnabled --> The line @Value("${settings.aacEncodingEnabled:true}") means that
- * its default value is true and it can be changed from the file  <AMS_DIR>/webapps/<AppName>/WEB_INF/red5-web.properties
+ * its default value is true and it can be changed from the file  <AMS_DIR>/webapps/<AppName>/WEB_INF/ant-web.properties
  * Be careful about the type of the field. For this case its boolean.
  *
  * @author mekya
@@ -47,7 +47,7 @@ import dev.morphia.annotations.Indexes;
  */
 @Entity("AppSettings")
 @Indexes({ @Index(fields = @Field("appName"))})
-@PropertySource("/WEB-INF/red5-web.properties")
+@PropertySource("/WEB-INF/ant-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AppSettings {
 
@@ -55,7 +55,7 @@ public class AppSettings {
 	@Id
 	private ObjectId dbId;
 
-	public static final String PROPERTIES_FILE_PATH = "/WEB-INF/red5-web.properties";
+	public static final String PROPERTIES_FILE_PATH = "/WEB-INF/ant-web.properties";
 
 	private static final String SETTINGS_ENCODING_SPECIFIC = "settings.encoding.specific";
 	public static final String SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME = "settings.addDateTimeToMp4FileName";
