@@ -19,7 +19,6 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
@@ -33,7 +32,7 @@ import io.antmedia.storage.StorageClient;
 
 public class AppSettingsTest {
 	String appName = "TestApp";
-	String path = "webapps/"+appName+"/WEB-INF/red5-web.properties";
+	String path = "webapps/"+appName+ "/WEB-INF/ant-web.properties";
 	File settingsFile = new File(path);
 	
 	@Before
