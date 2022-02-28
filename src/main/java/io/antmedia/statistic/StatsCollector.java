@@ -145,6 +145,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	public static final String LOCAL_WEBRTC_LIVE_STREAMS = "localWebRTCLiveStreams";
 
+	public static final String LOCAL_LIVE_STREAMS = "localLiveStreams";
+
 	public static final String LOCAL_WEBRTC_VIEWERS = "localWebRTCViewers";
 
 	public static final String LOCAL_HLS_VIEWERS = "localHLSViewers";
@@ -370,7 +372,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
 			IScope scope = iterator.next();
 
-			if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) 
+			if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME))
 			{
 				IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
 				Set<String> streams = webrtcAdaptor.getStreams();
@@ -614,6 +616,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		int localHlsViewers = 0;
 		int localWebRTCViewers = 0;
 		int localWebRTCStreams = 0;
+		int localStreams = 0;
 		int encodersBlocked = 0;
 		int encodersNotOpened = 0;
 		int publishTimeoutError = 0;
@@ -624,22 +627,25 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 				if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) {
 					IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
-					localWebRTCViewers += webrtcAdaptor.getNumberOfTotalViewers();
 					localWebRTCStreams += webrtcAdaptor.getNumberOfLiveStreams();
 				}
 
 				AntMediaApplicationAdapter adaptor = null;
+
 				if ((adaptor = getAppAdaptor(scope.getContext().getApplicationContext())) != null)
 				{
 					encodersBlocked += adaptor.getNumberOfEncodersBlocked();
 					encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
 					publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
+					localStreams += adaptor.getMuxAdaptors().size();
+					localWebRTCViewers += adaptor.getWebRTCClientCount();
 				}
 			}
 		}
 
 		//add local webrtc viewer size
 		jsonObject.addProperty(StatsCollector.LOCAL_WEBRTC_LIVE_STREAMS, localWebRTCStreams);
+		jsonObject.addProperty(StatsCollector.LOCAL_LIVE_STREAMS, localStreams);
 		jsonObject.addProperty(StatsCollector.LOCAL_WEBRTC_VIEWERS, localWebRTCViewers);
 		jsonObject.addProperty(StatsCollector.LOCAL_HLS_VIEWERS, localHlsViewers);	
 		jsonObject.addProperty(StatsCollector.ENCODERS_BLOCKED, encodersBlocked);
