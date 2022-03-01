@@ -370,6 +370,7 @@ fi
 #restore iptables redirect rule
 ipt_restore
 
+<<<<<<< HEAD
 if [ -x "$(command -v systemctl)" ]; then
   echo ""
   $SUDO service antmedia stop
