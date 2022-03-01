@@ -370,9 +370,7 @@ fi
 #restore iptables redirect rule
 ipt_restore
 
-if ! [ -x "$(command -v systemctl)" ]; then
-  kill -HUP $(pidof java)
-else
+if [ -x "$(command -v systemctl)" ]; then
   echo ""
   $SUDO service antmedia stop
   output
