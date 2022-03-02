@@ -835,4 +835,7 @@ public abstract class RecordMuxer extends Muxer {
 	}
 	public boolean isUploadingToS3(){return uploadMP4ToS3;}
 
+	public void setExtradataForTest(){
+		extradata = "test".getBytes();
+	}
 }

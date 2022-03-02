@@ -2111,7 +2111,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
 		assertNotNull(vertx);
 
-		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), null, null, null, null, null, "streams");
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7 );
 
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -2121,7 +2121,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamName = "stream_name_" + (int) (Math.random() * 10000);
 		//init
-		hlsMuxer.init(appScope, streamName, 0, null);
+		hlsMuxer.init(appScope, streamName, 0, null, 0);
 
 		//add stream
 		int width = 640;
@@ -2199,7 +2199,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamName = "stream_name_" + (int) (Math.random() * 10000);
 		//init
-		mp4Muxer.init(appScope, streamName, 0, null);
+		mp4Muxer.init(appScope, streamName, 0, null,0 );
 
 		//add stream
 		int width = 640;
