@@ -510,10 +510,13 @@ public class MapDBStore extends DataStore {
 			}
 
 			for (int i = 0; i < broadcastArray.length; i++) {
+				String type = broadcastArray[i].getType();
+				String status = broadcastArray[i].getStatus();
 
-				if (broadcastArray[i].getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || broadcastArray[i].getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
-
+				if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
 					streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					broadcastArray[i].setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+					map.replace(broadcastArray[i].getStreamId(), gson.toJson(broadcastArray[i]));
 				}
 			}
 		}
@@ -634,8 +637,8 @@ public class MapDBStore extends DataStore {
 
 						String vodId = RandomStringUtils.randomNumeric(24);
 
-						VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-								VoD.USER_VOD, vodId);
+						VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, 0, fileSize,
+								VoD.USER_VOD, vodId, null);
 						addVod(newVod);
 						numberOfSavedFiles++;
 					}
@@ -1421,5 +1424,24 @@ public class MapDBStore extends DataStore {
 		{		
 			return webRTCViewerMap.remove(viewerId) != null;
 		}
+	}
+	
+	@Override
+	public boolean updateStreamMetaData(String streamId, String metaData) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				String jsonString = map.get(streamId);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					broadcast.setMetaData(metaData);
+					String jsonVal = gson.toJson(broadcast);
+					String previousValue = map.replace(streamId, jsonVal);
+					result = true;
+					logger.debug("updateStatus replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
+				}
+			}
+		}
+		return result;
 	}
 }

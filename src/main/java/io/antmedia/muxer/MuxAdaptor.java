@@ -1,5 +1,6 @@
 package io.antmedia.muxer;
 
+import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
@@ -586,6 +587,24 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				Broadcast broadcastLocal = getBroadcast();
 				broadcastLocal.setMainTrackStreamId(mainTrack);
 				getDataStore().updateBroadcastFields(streamId, broadcastLocal);
+
+				Broadcast mainBroadcast = getDataStore().get(mainTrack);
+				if(mainBroadcast == null) {
+					mainBroadcast = new Broadcast();
+					try {
+						mainBroadcast.setStreamId(mainTrack);
+					} catch (Exception e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+					mainBroadcast.setZombi(true);
+					mainBroadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
+					mainBroadcast.getSubTrackStreamIds().add(streamId);
+					getDataStore().save(mainBroadcast);
+				}
+				else {
+					mainBroadcast.getSubTrackStreamIds().add(streamId);
+					getDataStore().updateBroadcastFields(mainTrack, mainBroadcast);
+				}
 			}
 		}
 	}
@@ -1183,8 +1202,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		synchronized (muxerList)
 		{
 			packetFeeder.writePacket(pkt, stream.codecpar().codec_type());
-			for (Muxer muxer : muxerList) {
-				muxer.writePacket(pkt, stream);
+			for (Muxer muxer : muxerList) 
+			{
+				if (!(muxer instanceof WebMMuxer)) 
+				{
+					muxer.writePacket(pkt, stream);
+				}
 			}
 		}
 	}
@@ -1553,6 +1576,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return mp4Muxer;
 	}
 
+	/**
+	 * Start recording is used to start recording on the fly(stream is broadcasting).
+	 * @param recordType
+	 * @return
+	 */
 	public boolean startRecording(RecordType recordType) {
 
 		if (!isRecording.get()) {
@@ -1562,14 +1590,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if(isAlreadyRecording(recordType)) {
 			logger.warn("Record is called while {} is already recording.", streamId);
-			return true;
+			return false;
 		}
 
 
 		Muxer muxer = null;
 		if(recordType == RecordType.MP4) {
 			Mp4Muxer mp4Muxer = createMp4Muxer();
-			mp4Muxer.setDynamic(true);
 			muxer = mp4Muxer;
 		}
 		else if(recordType == RecordType.WEBM) {
@@ -1627,7 +1654,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return prepared;
 	}
 
-	private boolean isAlreadyRecording(RecordType recordType) {
+	public boolean isAlreadyRecording(RecordType recordType) {
 		for (Muxer muxer : muxerList) {
 			if((muxer instanceof Mp4Muxer && recordType == RecordType.MP4)
 					|| (muxer instanceof WebMMuxer && recordType == RecordType.WEBM)) {
@@ -1654,11 +1681,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return null;
 	}
 
+	/**
+	 * Stop recording is called to stop recording when the stream is broadcasting(on the fly)
+	 * 
+	 * @param recordType
+	 * @return
+	 */
 	public boolean stopRecording(RecordType recordType)
 	{
 		boolean result = false;
 		Muxer muxer = findDynamicRecordMuxer(recordType);
-		if (muxer != null)
+		if (muxer != null && recordType == RecordType.MP4)
 		{
 			muxerList.remove(muxer);
 			muxer.writeTrailer();

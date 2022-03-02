@@ -35,7 +35,8 @@ public class ConsoleDataStoreUnitTest {
 		
 		String username = "test";
 		String password = "pass" + (Math.random()*10000);
-		assertTrue(dtStore.addUser(username, password, UserType.ADMIN));
+		User user = new User(username, password, UserType.ADMIN , "system");
+		assertTrue(dtStore.addUser(user));
 		assertEquals(1, dtStore.getNumberOfUserRecords());
 		
 		assertTrue(dtStore.doesUsernameExist(username));
@@ -46,7 +47,7 @@ public class ConsoleDataStoreUnitTest {
 		assertFalse(dtStore.doesUserExist(username, password + "123"));
 		assertFalse(dtStore.doesUserExist(username + "123", password));
 		
-		User user = dtStore.getUser(username);
+		user = dtStore.getUser(username);
 		assertEquals(password, user.getPassword());
 		assertEquals(UserType.ADMIN, user.getUserType());
 		

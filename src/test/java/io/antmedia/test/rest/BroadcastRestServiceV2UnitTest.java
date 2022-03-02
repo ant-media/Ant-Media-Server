@@ -7,8 +7,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -18,7 +16,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -26,9 +23,7 @@ import java.net.UnknownHostException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -235,8 +230,8 @@ public class BroadcastRestServiceV2UnitTest {
 		//Vod vod = new Vod();
 		File file = new File(vodFolder, "test_file");
 		String vodId = RandomStringUtils.randomNumeric(24);
-		VoD newVod = new VoD("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 6000,
-				VoD.USER_VOD,vodId);
+		VoD newVod = new VoD("vodFile", "vodFile", file.getPath(), file.getName(), System.currentTimeMillis(), 0, 0, 6000,
+				VoD.USER_VOD,vodId, null);
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 
@@ -746,7 +741,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast broadcast2 = new Broadcast(null, "name2");
 		Broadcast broadcast3 = new Broadcast(null, "name3");
 		Broadcast broadcast4 = new Broadcast(null, "name4");
-		DataStore store = new InMemoryDataStore("testdb");
+		MongoStore store = new MongoStore("localhost", "", "", "testdb");
 		restServiceReal.setDataStore(store);
 
 		Scope scope = mock(Scope.class);
@@ -776,6 +771,8 @@ public class BroadcastRestServiceV2UnitTest {
 			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 			
 			assertTrue(restServiceReal.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId(), 0).isSuccess());
+			
+			assertEquals(0, store.get(streamId).getEndPointList().size());
 		}
 		
 		// Standallone Remove RTMP Endpoint with different origin and broadcast
@@ -798,6 +795,8 @@ public class BroadcastRestServiceV2UnitTest {
 			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 			
 			assertTrue(restServiceReal.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId(), 0).isSuccess());
+			
+			assertEquals(0, store.get(streamId).getEndPointList().size());
 		}
 		
 		// enable Cluster mode with same origin and broadcast
@@ -835,6 +834,7 @@ public class BroadcastRestServiceV2UnitTest {
 			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 			
 			assertTrue(restServiceSpy.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId(), 0).isSuccess());
+			assertEquals(0, store.get(streamId).getEndPointList().size());
 		}
 		
 		// enable Cluster mode with different origin and broadcast
@@ -866,6 +866,7 @@ public class BroadcastRestServiceV2UnitTest {
 			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 					
 			assertFalse(restServiceSpy.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId(), 0).isSuccess());
+			assertEquals(1, store.get(streamId).getEndPointList().size());
 		}
 				
 		{
@@ -877,6 +878,8 @@ public class BroadcastRestServiceV2UnitTest {
 			endpoint6.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
 			
 			assertFalse(restServiceReal.addEndpointV3("Not_regsitered_stream_id", endpoint6, 0).isSuccess());
+			
+			assertEquals(1, store.get(streamId).getEndPointList().size());
 		}
 
 	}
@@ -1206,6 +1209,127 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
+	public void testDeleteBroadcasts() {
+		AppSettings settings = mock(AppSettings.class);
+		String serverName = "fully.qualified.domain.name";
+		restServiceReal.setAppSettings(settings);
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getServerName()).thenReturn(serverName);
+		restServiceReal.setServerSettings(serverSettings);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
+
+
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "scope";
+		when(scope.getName()).thenReturn(scopeName);
+		restServiceReal.setScope(scope);
+
+		AntMediaApplicationAdapter appAdaptor = Mockito.spy(new AntMediaApplicationAdapter());
+		IClientBroadcastStream broadcastStream = mock(IClientBroadcastStream.class);
+		IStreamCapableConnection streamCapableConnection = mock(IStreamCapableConnection.class);
+
+		when(broadcastStream.getConnection()).thenReturn(streamCapableConnection);
+		Mockito.doReturn(broadcastStream).when(appAdaptor).getBroadcastStream(Mockito.any(), Mockito.anyString());
+
+		restServiceReal.setApplication(appAdaptor);
+
+		int streamCount = 15;
+		for (int i = 0; i < streamCount; i++) {
+			Broadcast broadcast = new Broadcast(null, "name");
+			Broadcast broadcastCreated = (Broadcast) restServiceReal.createBroadcast(broadcast, false).getEntity();
+			assertNotNull(broadcastCreated.getStreamId());
+
+			Broadcast broadcast2 = (Broadcast) restServiceReal.getBroadcast(broadcastCreated.getStreamId()).getEntity();
+			assertNotNull(broadcast2.getStreamId());
+		}
+
+		List<Broadcast> broadcastList = restServiceReal.getBroadcastList(0, 20, null, null, null, null);
+		assertEquals(streamCount, broadcastList.size());
+
+		for (Broadcast item: broadcastList) {
+			Result result = restServiceReal.deleteBroadcasts(new String[] {item.getStreamId()});
+			assertTrue(result.isSuccess());
+		}
+
+		Mockito.verify(streamCapableConnection, Mockito.times(streamCount)).close();
+
+		// Add test for Cluster
+		restServiceReal.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(true);
+
+		// isCluster true / broadcast origin address != server host address / status = broadcasting
+		{
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			store.save(broadcast);
+
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+
+			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
+			assertFalse(result.isSuccess());
+		}
+
+		// isCluster true / broadcast origin address == server host address / status = broadcasting
+		{
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			store.save(broadcast);
+
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
+
+			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
+			assertTrue(result.isSuccess());
+		}
+
+		// isCluster true / broadcast origin address != server host address / status = finished
+		{
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			store.save(broadcast);
+
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+
+			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
+			assertTrue(result.isSuccess());
+		}
+
+		// isCluster true / broadcast origin address == server host address / status = finished
+		{
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
+
+			Broadcast broadcast = new Broadcast();
+			broadcast.setOriginAdress("55.55.55.55");
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+			store.save(broadcast);
+
+			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
+
+			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
+			assertTrue(result.isSuccess());
+		}
+		
+		{
+			Result result = restServiceReal.deleteBroadcasts(new String[] {});
+			assertFalse(result.isSuccess());
+			
+			result = restServiceReal.deleteBroadcasts(null);
+			assertFalse(result.isSuccess());
+		}
+
+	}
+
+	@Test
 	public void testGetVersion() {
 		RootRestService rootRestService = new RootRestService();
 		Version version = rootRestService.getVersion();
@@ -1356,12 +1480,12 @@ public class BroadcastRestServiceV2UnitTest {
 		// Start MP4 Recording && Broadcast Status: Broadcasting, mp4Enabled: 0, it should return false
 		Result result = restServiceReal.enableRecordMuxing(broadcast.getStreamId(), true,"mp4");
 		assertFalse(result.isSuccess());
-		assertEquals("mp4 recording couldn't started",result.getMessage());
+		assertEquals("mp4 recording couldn't be started",result.getMessage());
 		
 		// Stop MP4 Recording && Broadcast Status: Broadcasting, mp4Enabled: 0, it should return false
 		result = restServiceReal.enableRecordMuxing(broadcast.getStreamId(), false,"mp4");
 		assertFalse(result.isSuccess());
-		assertEquals("mp4 recording couldn't stopped",result.getMessage());
+		assertEquals("mp4 recording couldn't be stopped",result.getMessage());
 		
 		Broadcast broadcast2 = new Broadcast(null, "name");
 		store.save(broadcast2);
@@ -1386,7 +1510,7 @@ public class BroadcastRestServiceV2UnitTest {
 		doReturn(false).when(store).setWebMMuxing(Mockito.any(), Mockito.anyInt());
 		result = restServiceReal.enableRecordMuxing(broadcast3.getStreamId(), false,"webm");
 		assertFalse(result.isSuccess());
-		assertEquals("webm recording couldn't stopped",result.getMessage());
+		assertEquals("webm recording couldn't be stopped",result.getMessage());
 		
 		
 		//Check if stream is on another cluster node

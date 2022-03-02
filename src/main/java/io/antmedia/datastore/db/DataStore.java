@@ -576,6 +576,9 @@ public abstract class DataStore {
 		if (newBroadcast.getSubFolder() != null) {
 			broadcast.setSubFolder(newBroadcast.getSubFolder());
 		}
+		if (newBroadcast.getListenerHookURL() != null && !newBroadcast.getListenerHookURL().isEmpty()) {
+			broadcast.setListenerHookURL(newBroadcast.getListenerHookURL());
+		}
 
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
@@ -585,6 +588,7 @@ public abstract class DataStore {
 		broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
 		broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
+		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
 	}
 
 	/**
@@ -948,6 +952,14 @@ public abstract class DataStore {
 	 * @param viewerId WebRTC Viewer Id
 	 */
 	public abstract boolean deleteWebRTCViewerInfo(String viewerId);
+
+	/**
+	 * This is used to update meta data for a bradcast 
+	 *
+	 * @param streamId id for the broadcast
+	 * @param metaData new meta data
+	 */
+	public abstract boolean updateStreamMetaData(String streamId, String metaData);
 	
 
 	//**************************************

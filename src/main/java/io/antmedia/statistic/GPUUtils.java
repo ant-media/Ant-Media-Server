@@ -53,13 +53,16 @@ public class GPUUtils {
 
 	private GPUUtils() {}
 
-	public static GPUUtils getInstance() {
+	/**
+	 * Multiple threads can enter here and may cause an unexpected exception. So it's synch
+	 * @return
+	 */
+	public static synchronized GPUUtils getInstance() {
 		if(instance == null) {
 			instance = new GPUUtils();
 
 			try {
 				Class.forName("org.bytedeco.cuda.global.nvml");
-
 				Loader.load(nvml.class);
 				int result = nvmlInit_v2();
 				if (result == NVML_SUCCESS) {

@@ -55,10 +55,13 @@ public class VoD implements Serializable {
 	@ApiModelProperty(value = "the creation of the VoD")
 	private long creationDate;
 	
+	@ApiModelProperty(value = "the time when the VoD is being started to get recorded in milliseconds(UTC- Unix epoch)")
+	private long startTime;
+
 	@ApiModelProperty(value = "the duration of the VoD")
 	private long duration;
 	
-	@ApiModelProperty(value = "the size of the VoD")
+	@ApiModelProperty(value = "the size of the VoD file in bytes")
 	private long fileSize;
 	
 	@ApiModelProperty(value = "the path of the VoD")
@@ -69,26 +72,32 @@ public class VoD implements Serializable {
 	
 	@ApiModelProperty(value = "the type of the VoD, such as userVod, streamVod, uploadedVod")
 	private String type;
+
+	@ApiModelProperty(value = "the type of the VoD, such as userVod, streamVod, uploadedVod")
+	private String previewFilePath;
 	
 
 	public VoD() {
 		//default constructor is used to return not found vod in rest service 
 	}
 	
-	public VoD(String streamName, String streamId, String filePath, String vodName, long creationDate, long duration,
-			long fileSize, String type, String vodId) {
+	public VoD(String streamName, String streamId, String filePath, String vodName, long creationDate, long startTime, long duration,
+			long fileSize, String type, String vodId, String previewFilePath) {
 
 		this.streamName = streamName;
 		this.streamId = streamId;
 		this.vodName = vodName;
 		this.creationDate = creationDate;
+		this.startTime = startTime;
 		this.duration = duration;
 		this.filePath = filePath;
 		this.fileSize = fileSize;
 		this.type = type;
 		this.vodId = vodId;
+		this.previewFilePath = previewFilePath;
 
 	}
+
 
 	public String getType() {
 		return type;
@@ -145,6 +154,14 @@ public class VoD implements Serializable {
 	public void setCreationDate(long creationDate) {
 		this.creationDate = creationDate;
 	}
+	
+	public long getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(long startTime) {
+		this.startTime = startTime;
+	}
 
 	public long getDuration() {
 		return duration;
@@ -160,6 +177,14 @@ public class VoD implements Serializable {
 
 	public void setVodId(String vodId) {
 		this.vodId = vodId;
+	}
+
+	public String getPreviewFilePath() {
+		return previewFilePath;
+	}
+
+	public void setPreviewFilePath(String previewFilePath) {
+		this.previewFilePath = previewFilePath;
 	}
 
 }

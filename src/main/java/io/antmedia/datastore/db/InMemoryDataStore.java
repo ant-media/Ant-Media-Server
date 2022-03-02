@@ -232,9 +232,12 @@ public class InMemoryDataStore extends DataStore {
 		List<Broadcast> streamsList = new ArrayList<>();
 		for (Broadcast broadcast : values) {
 			String type = broadcast.getType();
+			String status = broadcast.getStatus();
 
-			if (type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) {
+			if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
 				streamsList.add(broadcast);
+				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+				broadcastMap.replace(broadcast.getStreamId(), broadcast);
 			}
 		}
 		return streamsList;
@@ -362,8 +365,8 @@ public class InMemoryDataStore extends DataStore {
 					String relativePath= "streams/" + subDirs[subDirs.length-2] +'/' +subDirs[subDirs.length-1];
 
 					String vodId = RandomStringUtils.randomNumeric(24);
-					VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, fileSize,
-							VoD.USER_VOD, vodId);
+					VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, 0, fileSize,
+							VoD.USER_VOD, vodId, null);
 
 					addVod(newVod);
 					numberOfSavedFiles++;
@@ -995,5 +998,17 @@ public class InMemoryDataStore extends DataStore {
 	public boolean deleteWebRTCViewerInfo(String viewerId) {
 		webRTCViewerMap.remove(viewerId);
 		return true;
+	}
+	
+	@Override
+	public boolean updateStreamMetaData(String streamId, String metaData) {
+		Broadcast broadcast = broadcastMap.get(streamId);
+		boolean result = false;
+		if (broadcast != null) {
+			broadcast.setMetaData(metaData);;
+			broadcastMap.put(streamId, broadcast);
+			result = true;
+		}
+		return result;
 	}
 }

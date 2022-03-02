@@ -223,8 +223,20 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result deleteBroadcast(@ApiParam(value = " Id of the braodcast", required = true) @PathParam("id") String id) {
+	public Result deleteBroadcast(@ApiParam(value = " Id of the broadcast", required = true) @PathParam("id") String id) {
 		return super.deleteBroadcast(id);		
+	}
+
+	@ApiOperation(value = "Delete multiple broadcasts from data store and stop if they are broadcasting", response = Result.class)
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "If it's deleted, success is true. If it's not deleted, success if false.") })
+	@DELETE
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/bulk")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public Result deleteBroadcasts(@ApiParam(value = " Id of the broadcast", required = true) String[] streamIds) 
+	{
+		return super.deleteBroadcasts(streamIds);
 	}
 
 
@@ -425,24 +437,11 @@ public class BroadcastRestService extends RestServiceBase{
 		if (broadcast != null && endpointServiceId != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty()) 
 		{
 
-			rtmpUrl = getRtmpUrlFromList(endpointServiceId, rtmpUrl, broadcast);
-			if (rtmpUrl != null) {
-
-				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
-				{
-					result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, false, resolutionHeight);
-					if (result.isSuccess()) 
-					{
-						result = super.removeRTMPEndpoint(id, endpointServiceId);
-					}
-				}
-				else 
-				{
-					result = super.removeRTMPEndpoint(id, endpointServiceId);
-				}
+			Endpoint endpoint = getRtmpUrlFromList(endpointServiceId, broadcast);
+			if (endpoint != null && endpoint.getRtmpUrl() != null) {
+				rtmpUrl = endpoint.getRtmpUrl();
+				result = removeRTMPEndpointProcess(broadcast, endpoint, resolutionHeight, id);	
 			}
-
-
 		} 
 		if (logger.isInfoEnabled()) 
 		{ 
@@ -450,15 +449,36 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return result;
 	}
-
-	private String getRtmpUrlFromList(String endpointServiceId, String rtmpUrl, Broadcast broadcast) {
-		for(Endpoint endpoint: broadcast.getEndPointList()) 
+	
+	private Result removeRTMPEndpointProcess(Broadcast broadcast, Endpoint endpoint, int resolutionHeight, String id) {
+		Result result;
+		
+		if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
 		{
-			if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
-				rtmpUrl = endpoint.getRtmpUrl();
+			result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpoint.getRtmpUrl(), false, resolutionHeight);
+			if (result.isSuccess()) 
+			{
+				result = super.removeRTMPEndpoint(id, endpoint);
 			}
 		}
-		return rtmpUrl;
+		else 
+		{
+			result = super.removeRTMPEndpoint(id, endpoint);
+		}
+		
+		
+		return result;
+	}
+
+	private Endpoint getRtmpUrlFromList(String endpointServiceId, Broadcast broadcast) {
+		Endpoint endpoint = null;
+		for(Endpoint selectedEndpoint: broadcast.getEndPointList()) 
+		{
+			if(selectedEndpoint.getEndpointServiceId().equals(endpointServiceId)) {
+				endpoint = selectedEndpoint;
+			}
+		}
+		return endpoint;
 	}
 
 
