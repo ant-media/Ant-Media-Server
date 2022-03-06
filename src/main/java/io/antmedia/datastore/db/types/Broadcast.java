@@ -33,6 +33,12 @@ public class Broadcast {
 	private String streamId;
 
 	/**
+	 * id of the output, used for backing up the streams
+	 */
+	@ApiModelProperty(value = "the id of the stream")
+	private String outputId;
+
+	/**
 	 * "finished", "broadcasting", "created"
 	 */
 
@@ -379,6 +385,13 @@ public class Broadcast {
 		this.streamId = id;
 	}
 
+	public String getOutputId() {
+		return outputId;
+	}
+
+	public void setOutputId(String outputId) {
+		this.outputId = outputId;
+	}
 
 	public double getSpeed() {
 		return speed;

@@ -417,6 +417,30 @@ public class MongoStore extends DataStore {
 		return null;
 	}
 
+	@Override
+	public List<Broadcast> getStreamsWithOutputId(String id) {
+		synchronized(this) {
+			try {
+				Query<Broadcast> query = datastore.find(Broadcast.class);
+
+				FindOptions findingOptions = new FindOptions();
+
+				if(id != null && !id.isEmpty())
+				{
+					logger.info("Searching for outputId in broadcasts = {}", id);
+					query.filter(Filters.or(
+									Filters.regex("outputId").caseInsensitive().pattern(".*" + id + ".*")
+							)
+					);
+					return query.iterator(findingOptions).toList();
+				}
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
+	}
+
 	public Datastore getDataStore() {
 		return datastore;
 	}

@@ -222,6 +222,27 @@ public class InMemoryDataStore extends DataStore {
 		return sortAndCropBroadcastList(list, offset, size, sortBy, orderBy);
 	}
 
+	@Override
+	public List<Broadcast> getStreamsWithOutputId(String id) {
+
+		Collection<Broadcast> values = broadcastMap.values();
+
+		ArrayList<Broadcast> list = new ArrayList<>();
+
+		for (Broadcast broadcast : values)
+		{
+			if(broadcast.getOutputId() != null && !broadcast.getOutputId().isEmpty()){
+				list.add(broadcast);
+			}
+		}
+
+		if(id != null && !id.isEmpty()){
+			logger.info("Searching for outputId in broadcasts = {}", id);
+			list = searchForOutputId(list, id);
+		}
+		return list;
+	}
+
 
 
 

@@ -107,6 +107,15 @@ public abstract class DataStore {
 	 */
 	public abstract List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search);
 
+
+	/**
+	 * Return the broadcast in data store, searches with outputId instead of streamId
+	 * @param id
+	 * @return broadcast
+	 */
+	public abstract List<Broadcast> getStreamsWithOutputId(String id);
+
+
 	/**
 	 * Returns the Conference Room List in order
 	 *
@@ -685,6 +694,18 @@ public abstract class DataStore {
 		}
 
 	}
+	protected ArrayList<Broadcast> searchForOutputId(ArrayList<Broadcast> broadcastList, String outputId){
+		if(outputId != null && !outputId.isEmpty()) {
+			for (Iterator<Broadcast> i = broadcastList.iterator(); i.hasNext(); ) {
+				Broadcast item = i.next();
+				if (item.getOutputId() != null && !(item.getOutputId().isEmpty()) && item.getOutputId().equalsIgnoreCase(outputId))
+					continue;
+				else i.remove();
+			}
+		}
+		return broadcastList;
+	}
+
 	protected ArrayList<Broadcast> searchOnServer(ArrayList<Broadcast> broadcastList, String search){
 		if(search != null && !search.isEmpty()) {
 			for (Iterator<Broadcast> i = broadcastList.iterator(); i.hasNext(); ) {
