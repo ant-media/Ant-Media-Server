@@ -120,10 +120,4 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 */
 	void setTryCountBeforeSwitchback(int tryCountBeforeSwitchback);
 
-	/**
-	 * If there is a backup stream this method will find it and start it.
-	 * @param streamId
-	 */
-	void checkBackupStream(String streamId,  IWebRTCClient webRTCClient);
-
 }
