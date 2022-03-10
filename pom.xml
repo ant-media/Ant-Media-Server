@@ -642,7 +642,7 @@
                     <plugin>
                         <groupId>com.github.spotbugs</groupId>
                         <artifactId>spotbugs-maven-plugin</artifactId>
-                        <version>3.1.12.2</version>
+                        <version>4.5.3.0</version>
                         <configuration>
                             <effort>Max</effort>
                             <threshold>Low</threshold>
@@ -833,6 +833,12 @@
                     <version>${project.parent.version}</version>
                     <type>jar</type>
                 </dependency>
+				 <dependency>
+		    		<groupId>org.bytedeco</groupId>
+		    		<artifactId>srt-platform</artifactId>
+		           	<version>${javacpp.srt.version}</version>
+		            <scope>provided</scope>
+        		</dependency>
             </dependencies>
             <build>
                 <plugins>
