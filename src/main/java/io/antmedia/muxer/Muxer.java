@@ -263,6 +263,7 @@ public abstract class Muxer {
 			isInitialized = true;
 			this.scope = scope;
 
+			//Refactor: Getting AppSettings smells here
 			IContext context = this.scope.getContext();
 			ApplicationContext appCtx = context.getApplicationContext();
 			AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);

@@ -106,7 +106,7 @@ public class TokenFilterManager extends AbstractFilter   {
 					{
 						if (!tokenServiceTmp.checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
 							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Token");
-							logger.warn("token {} is not valid", tokenId);
+							logger.warn("token {} is not valid for stream id:{}", tokenId, streamId);
 							return; 
 						}
 					}
@@ -116,7 +116,7 @@ public class TokenFilterManager extends AbstractFilter   {
 						return;
 					}
 				}
-
+				
 				if (appSettings.isHashControlPlayEnabled()) 
 				{
 					ITokenService tokenServiceTmp = getTokenService();
@@ -228,10 +228,10 @@ public class TokenFilterManager extends AbstractFilter   {
 			return requestURI.substring(startIndex+1, endIndex);
 		}
 		
-		tsRegex = "(.*)_[0-9][0-9][0-9][0-9].ts$";  // matches default ts file extension  _[0000].ts
+		tsRegex = "(.*)[0-9][0-9][0-9][0-9].ts$";  // matches default ts file extension  [0000].ts
 		if (requestURI.matches(tsRegex)) {
-			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[0000].ts
-			return requestURI.substring(startIndex+1, endIndex);
+			endIndex = requestURI.lastIndexOf('.'); //because file format is [NAME][0000].ts
+			return requestURI.substring(startIndex+1, endIndex-4);
 		}
 
 		//streamId_underline_test-2021-05-18_11-26-26.842.mp4 and streamId_underline_test-2021-05-18_11-26-26.842_360p500kbps.mp4 
