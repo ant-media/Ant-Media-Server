@@ -839,6 +839,12 @@
                     <version>${project.parent.version}</version>
                     <type>jar</type>
                 </dependency>
+				 <dependency>
+		    		<groupId>org.bytedeco</groupId>
+		    		<artifactId>srt-platform</artifactId>
+		           	<version>${javacpp.srt.version}</version>
+		            <scope>provided</scope>
+        		</dependency>
             </dependencies>
             <build>
                 <plugins>

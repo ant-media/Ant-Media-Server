@@ -159,6 +159,9 @@
        <property name="minFreeRamSize" value="${server.min_free_ram}"/>
    	</bean>
    	
+    <bean id="srtAdaptor" class="#{ T(io.antmedia.rest.RestServiceBase).isEnterprise() ? 'io.antmedia.enterprise.srt.SRTAdaptor' : 'io.antmedia.srt.SRTAdaptor' }">
+	</bean>
+   	
    	
     
 
