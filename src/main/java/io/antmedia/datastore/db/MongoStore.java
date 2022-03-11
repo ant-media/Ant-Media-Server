@@ -7,8 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoDatabase;
+import io.antmedia.console.datastore.CommonDataStoreFunctions;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -90,26 +89,8 @@ public class MongoStore extends DataStore {
 
 		mongoClient = MongoClients.create(uri);
 
-		/* Drop Index of streamId if the database is already created in a mongodb instance.
-		 * We are adding unique index to streamId and this method is just to ensure backward compatibility for now.
-		 * It can be deleted in later versions, the last version that requires this is 2.4.2
-		 */
-		for( String db : mongoClient.listDatabaseNames()){
-			if(db.equals(dbName) || db.equals(dbName+"VoD") || db.equals(dbName + "_token") || db.equals(dbName + "_subscriber") || db.equals(dbName + "detection") || db.equals(dbName + "room")){
-				MongoDatabase database = mongoClient.getDatabase(db);
-				MongoCollection broadcastCollection = database.getCollection("broadcast");
-				boolean isUnique= false;
-				for(Object index : broadcastCollection.listIndexes()){
-					if(index.toString().contains("unique=true")){
-						isUnique = true;
-					}
-				}
-				if(isUnique != true){
-					logger.info("Dropping stream ID index because it does not have unique label for db: {}", dbName);
-					broadcastCollection.dropIndex("streamId_1");
-				}
-			}
-		}
+		CommonDataStoreFunctions handler = new CommonDataStoreFunctions();
+		handler.dropNonUniqueBroadcasts(mongoClient, dbName);
 
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = Morphia.createDatastore(mongoClient, dbName);

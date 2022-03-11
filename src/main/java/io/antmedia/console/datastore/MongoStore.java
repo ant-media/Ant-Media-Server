@@ -38,26 +38,9 @@ public class MongoStore extends AbstractConsoleDataStore {
 
 		mongoClient = MongoClients.create(uri);
 
-		/* Drop Index of streamId if the database is already created in a mongodb instance.
-		 * We are adding unique index to streamId and this method is just to ensure backward compatibility for now.
-		 * It can be deleted in later versions, the last version that requires this is 2.4.2
-		 */
-		for( String db : mongoClient.listDatabaseNames()){
-			if(db.equals(dbName) || db.equals(dbName+"VoD") || db.equals(dbName + "_token") || db.equals(dbName + "_subscriber") || db.equals(dbName + "detection") || db.equals(dbName + "room")){
-				MongoDatabase database = mongoClient.getDatabase(db);
-				MongoCollection broadcastCollection = database.getCollection("broadcast");
-				boolean isUnique= false;
-				for(Object index : broadcastCollection.listIndexes()){
-					if(index.toString().contains("unique=true")){
-						isUnique = true;
-					}
-				}
-				if(isUnique != true){
-					logger.info("Dropping stream ID index because it does not have unique label for db: {}", dbName);
-					broadcastCollection.dropIndex("streamId_1");
-				}
-			}
-		}
+		CommonDataStoreFunctions handler = new CommonDataStoreFunctions();
+
+		handler.dropNonUniqueBroadcasts(mongoClient, dbName);
 
 		datastore = Morphia.createDatastore(mongoClient, dbName);
 		datastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
