@@ -72,4 +72,13 @@ public class ServerSettingsTest {
 		
 	}
 
+	
+	@Test
+	public void testOriginPort() {
+		ServerSettings settings = new ServerSettings();
+		
+		settings.setOriginServerPort(5001);
+		assertEquals(5001,settings.getOriginServerPort());
+		
+	}
 }

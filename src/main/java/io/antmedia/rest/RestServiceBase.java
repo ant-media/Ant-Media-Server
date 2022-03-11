@@ -576,12 +576,8 @@ public abstract class RestServiceBase {
 		return new Result(removed);
 	}
 
-	public Result removeRTMPEndpoint(String id, String endpointServiceId) 
+	public Result removeRTMPEndpoint(String id, Endpoint endpoint) 
 	{
-		Endpoint endpoint = new Endpoint();
-		endpoint.setType(ENDPOINT_GENERIC);
-		endpoint.setEndpointServiceId(endpointServiceId);
-
 		boolean removed = getDataStore().removeEndpoint(id, endpoint, false);
 
 		return new Result(removed);

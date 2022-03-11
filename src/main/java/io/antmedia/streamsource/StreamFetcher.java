@@ -13,7 +13,6 @@ import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
-import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -32,10 +31,8 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
 
@@ -272,11 +269,12 @@ public class StreamFetcher {
 					muxAdaptor.setFirstKeyFrameReceivedChecked(!videoExist); 
 					muxAdaptor.setEnableVideo(videoExist);
 					muxAdaptor.setEnableAudio(audioExist);
-					muxAdaptor.setBroadcast(getDataStore().get(streamId));
+					Broadcast broadcast = getDataStore().get(streamId);
+					muxAdaptor.setBroadcast(broadcast);
 					//if stream is rtsp, then it's not AVC
 					muxAdaptor.setAvc(!streamUrl.toLowerCase().startsWith("rtsp"));
 										
-					setUpEndPoints(streamId, muxAdaptor);
+					MuxAdaptor.setUpEndPoints(muxAdaptor, broadcast, vertx);
 
 					muxAdaptor.init(scope, streamId, false);
 
@@ -497,21 +495,6 @@ public class StreamFetcher {
 			logger.debug("Leaving thread for {}", streamUrl);
 
 			stopRequestReceived = false;
-		}
-
-		private void setUpEndPoints(String publishedName, MuxAdaptor muxAdaptor) {
-			Broadcast broadcast = getDataStore().get(publishedName);
-			if (broadcast != null) {
-				List<Endpoint> endPointList = broadcast.getEndPointList();
-
-				if (endPointList != null && !endPointList.isEmpty()) 
-				{
-					for (Endpoint endpoint : endPointList) {
-						muxAdaptor.addMuxer(new RtmpMuxer(endpoint.getRtmpUrl(), vertx));
-					}
-				}
-			}
-
 		}
 
 		private void writeAllBufferedPackets() 

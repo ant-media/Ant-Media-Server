@@ -146,8 +146,8 @@ public class MongoStore extends DataStore {
 		//If it is DNS seed name, no need to check for username and password since it needs to be integrated to the given uri.
 		//Mongodb Atlas users will have such syntax and won't need to enter seperate username and password to the script since it is already in the uri.
 		
-		//if host includes starts with mongodb or mongodb+srv, let's use the connection string and don't build new one
-		if(host.indexOf("mongodb") == 0)
+		//if host includes starts with mongodb:// or mongodb+srv://, let's use the connection string and don't build new one
+		if(host.indexOf("mongodb://") == 0 || host.indexOf("mongodb+srv://") == 0)
 			return host;
 		String credential = "";
 		if(username != null && !username.isEmpty()) {
@@ -814,6 +814,10 @@ public class MongoStore extends DataStore {
 				if (broadcast.getSubFolder() != null) {
 					updates.add(set("subFolder", broadcast.getSubFolder()));
 				}
+				
+				if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
+					updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
+				}
 
 				prepareFields(broadcast, updates);
 
@@ -825,6 +829,7 @@ public class MongoStore extends DataStore {
 				updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
 				updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
 				updates.add(set("metaData", broadcast.getMetaData()));
+				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
 
 				
 				UpdateResult updateResult = query.update(updates).execute();
@@ -920,53 +925,6 @@ public class MongoStore extends DataStore {
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		synchronized(this) {
 			Query<StreamInfo> query = datastore.find(StreamInfo.class);
-
-			List<Filter> filterList = new ArrayList<>();
-			if (streamInfo.getVideoPort() != 0) {
-
-				filterList.add(Filters.eq("videoPort", streamInfo.getVideoPort()));
-				filterList.add(Filters.eq("audioPort", streamInfo.getVideoPort()));
-				filterList.add(Filters.eq("dataChannelPort", streamInfo.getVideoPort()));
-
-			}
-			if (streamInfo.getAudioPort() != 0) {
-				filterList.add(Filters.eq("videoPort", streamInfo.getAudioPort()));
-				filterList.add(Filters.eq("audioPort", streamInfo.getAudioPort()));
-				filterList.add(Filters.eq("dataChannelPort", streamInfo.getAudioPort()));
-
-			}
-			if (streamInfo.getDataChannelPort() != 0) {
-				filterList.add(Filters.eq("videoPort", streamInfo.getDataChannelPort()));
-				filterList.add(Filters.eq("audioPort", streamInfo.getDataChannelPort()));
-				filterList.add(Filters.eq("dataChannelPort", streamInfo.getDataChannelPort()));
-			}
-
-			if (!filterList.isEmpty()) {
-
-				Filter[] filterArray = new Filter[filterList.size()];
-				filterList.toArray(filterArray);
-				query.filter(
-						Filters.and(
-								Filters.eq("host", streamInfo.getHost()),
-								Filters.or(filterArray)
-								)
-						);
-			}
-			else {
-				query.filter(
-						Filters.eq("host", streamInfo.getHost())
-						);
-			}
-
-
-			long count = query.delete(new DeleteOptions().multi(true)).getDeletedCount();
-			
-			if (count > 0) 
-			{
-				logger.error("{} port duplications are detected and deleted for host: {}, video port: {}, audio port:{}",
-						count, streamInfo.getHost(), streamInfo.getVideoPort(), streamInfo.getAudioPort());
-			}
-
 
 			datastore.save(streamInfo);
 		}
