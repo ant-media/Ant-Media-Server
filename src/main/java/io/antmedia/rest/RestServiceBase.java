@@ -576,12 +576,8 @@ public abstract class RestServiceBase {
 		return new Result(removed);
 	}
 
-	public Result removeRTMPEndpoint(String id, String endpointServiceId) 
+	public Result removeRTMPEndpoint(String id, Endpoint endpoint) 
 	{
-		Endpoint endpoint = new Endpoint();
-		endpoint.setType(ENDPOINT_GENERIC);
-		endpoint.setEndpointServiceId(endpointServiceId);
-
 		boolean removed = getDataStore().removeEndpoint(id, endpoint, false);
 
 		return new Result(removed);
@@ -1095,6 +1091,14 @@ public abstract class RestServiceBase {
 					if (!result) {
 						logger.warn("File is not deleted because it does not exist {}", videoFile.getAbsolutePath());
 					}
+					String previewFilePath = voD.getPreviewFilePath();
+					if(previewFilePath != null){
+						File tmp = new File(previewFilePath);
+						boolean resultThumbnail = Files.deleteIfExists(tmp.toPath());
+						if (!resultThumbnail) {
+							logger.warn("Preview is not deleted because it does not exist {}", tmp.getAbsolutePath());
+						}
+					}
 					success = getDataStore().deleteVod(id);
 					if (success) {
 						message = "vod deleted";
@@ -1192,8 +1196,8 @@ public abstract class RestServiceBase {
 
 					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
 
-					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
-							VoD.UPLOADED_VOD, vodId);
+					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
+							VoD.UPLOADED_VOD, vodId, null);
 
 					id = getDataStore().addVod(newVod);
 
@@ -1794,6 +1798,7 @@ public abstract class RestServiceBase {
 		String status = (enableRecording)?"started":"stopped"; 
 		if (streamId != null) 
 		{
+			
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) 
 			{
@@ -1830,7 +1835,7 @@ public abstract class RestServiceBase {
 							else
 							{
 								logFailedOperation(enableRecording,streamId,(type.equals(RecordType.MP4.toString()))?RecordType.MP4:RecordType.WEBM);
-								message= type +" recording couldn't " + status;
+								message= type +" recording couldn't be " + status;
 							}
 						}
 						else {

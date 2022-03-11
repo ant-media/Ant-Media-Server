@@ -12,11 +12,7 @@ import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.webrtc.VideoCodec;
 
 @Entity("StreamInfo")
-@Indexes({@Index(fields = @Field("streamId")),
-	@Index(fields = @Field("host")),
-	@Index(fields = @Field("videoPort")),
-	@Index(fields = @Field("audioPort")),
-	@Index(fields = @Field("dataChannelPort"))})
+@Indexes({@Index(fields = @Field("streamId"))})
 public class StreamInfo implements IStreamInfo {
 	
 	@Id
@@ -29,15 +25,14 @@ public class StreamInfo implements IStreamInfo {
 	private int videoRTimebase;
 	private int audioRTimebase;
 	private String host;
-	private int videoPort;
-	private int audioPort;
-	private int dataChannelPort;
 	private boolean videoEnabled;
 	private boolean audioEnabled;
 	private boolean dataChannelEnabled;
 	private VideoCodec videoCodec;
 	private String nodeGroup;
 	private boolean isGlobalHost;
+	private int originPort;
+
 
 	
 	public StreamInfo(boolean videoEnabled, int height, int width, int videobitrate, boolean audioEnabled, int audiobitrate, int videoRTimebase, int audioRTimebase, VideoCodec codec) {
@@ -116,22 +111,6 @@ public class StreamInfo implements IStreamInfo {
 		this.streamId = streamId;
 	}
 
-	public int getVideoPort() {
-		return videoPort;
-	}
-
-	public void setVideoPort(int videoPort) {
-		this.videoPort = videoPort;
-	}
-
-	public int getAudioPort() {
-		return audioPort;
-	}
-
-	public void setAudioPort(int audioPort) {
-		this.audioPort = audioPort;
-	}
-
 	public String getHost() {
 		return host;
 	}
@@ -154,14 +133,6 @@ public class StreamInfo implements IStreamInfo {
 
 	public boolean isAudioEnabled() {
 		return this.audioEnabled;
-	}
-
-	public int getDataChannelPort() {
-		return dataChannelPort;
-	}
-
-	public void setDataChannelPort(int dataChannelPort) {
-		this.dataChannelPort = dataChannelPort;
 	}
 
 	public void setDataChannelEnabled(boolean dataChannelEnabled) {
@@ -194,6 +165,14 @@ public class StreamInfo implements IStreamInfo {
 
 	public void setGlobalHost(boolean isGlobalHost) {
 		this.isGlobalHost = isGlobalHost;
+	}
+
+	public int getOriginPort() {
+		return originPort;
+	}
+
+	public void setOriginPort(int originPort) {
+		this.originPort = originPort;
 	}
 
 }

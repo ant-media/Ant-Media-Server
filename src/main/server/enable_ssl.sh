@@ -10,7 +10,7 @@ domain=""
 password=
 renew_flag='false'
 
-while getopts i:d:v:p:f:rc: option
+while getopts i:d:v:p:e:f:rc: option
 do
   case "${option}" in
     f) FULL_CHAIN_FILE=${OPTARG};;
@@ -20,6 +20,7 @@ do
     d) domain=${OPTARG};;
     v) dns_validate=${OPTARG};;
     r) renew_flag='true';;
+    e) email=${OPTARG};;
    esac
 done
 
@@ -27,8 +28,8 @@ ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Pleas
 
 usage() {
   echo "Usage:"
-  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
-  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-v {route53 or custom}]"
+  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-e {YOUR_EMAIL}]"
+  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-v {route53 or custom}] [-e {YOUR_EMAIL}]"
   echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -c {CHAIN_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
   echo " "
   echo -e "If you have any question, send e-mail to contact@antmedia.io\n"
@@ -157,14 +158,24 @@ get_new_certificate(){
     # Install required libraries
 
     #Get certificate
-
-    if [ "$dns_validate" == "route53" ]; then
-      echo -e "\033[0;31mPlease make sure you have entered the AWS access key and secret key.\033[0m"
-      $SUDO certbot certonly --dns-route53 --agree-tos --register-unsafely-without-email -d $domain
-    elif [ "$dns_validate" == "custom" ]; then
-      $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
+    if [ -z "$email" ]; then
+      if [ "$dns_validate" == "route53" ]; then
+        echo -e "\033[0;31mPlease make sure you have entered the AWS access key and secret key.\033[0m"
+        $SUDO certbot certonly --dns-route53 --agree-tos --register-unsafely-without-email -d $domain
+      elif [ "$dns_validate" == "custom" ]; then
+        $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
+      else
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
+      fi
     else
-      $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
+      if [ "$dns_validate" == "route53" ]; then
+        echo -e "\033[0;31mPlease make sure you have entered the AWS access key and secret key.\033[0m"
+        $SUDO certbot certonly --dns-route53 --agree-tos --email $email -d $domain
+      elif [ "$dns_validate" == "custom" ]; then
+        $SUDO certbot --agree-tos --email $email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
+      else
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
+      fi
     fi
 
     output

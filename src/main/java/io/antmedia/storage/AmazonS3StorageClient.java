@@ -3,12 +3,13 @@ package io.antmedia.storage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazonaws.AmazonServiceException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -19,7 +20,10 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.amazonaws.services.s3.model.StorageClass;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
@@ -63,6 +67,25 @@ public class AmazonS3StorageClient extends StorageClient {
 		return builder.build();
 	}
 
+	public List<String> getObjects(String prefix) 
+	{
+		List<String> list = new ArrayList<>();
+		if (isEnabled()) {
+			AmazonS3 s3 = getAmazonS3();
+			ListObjectsV2Result objects = s3.listObjectsV2(getStorageName(), prefix);
+			
+			convert2List(list, objects.getObjectSummaries());
+			
+		}
+		return list;
+	}
+
+	public void convert2List(List<String> list, List<S3ObjectSummary> objectSummaries) {
+		for (S3ObjectSummary s3ObjectSummary : objectSummaries) 
+		{
+			list.add(s3ObjectSummary.getKey());
+		}
+	}
 
 	public void delete(String key) {
 		if (isEnabled()) 
@@ -99,18 +122,26 @@ public class AmazonS3StorageClient extends StorageClient {
 			PutObjectRequest putRequest = new PutObjectRequest(getStorageName(), key, file);
 			putRequest.setCannedAcl(getCannedAcl());
 
+			if(checkStorageClass(getStorageClass())){
+				putRequest.withStorageClass(getStorageClass().toUpperCase());
+			}
+
 			Upload upload = tm.upload(putRequest);
-			// TransferManager processes all transfers asynchronously,
-			// so this call returns immediately.
-			//Upload upload = tm.upload(getStorageName(), key, file);
+		
+			/* 
+			 * TransferManager processes all transfers asynchronously, so this call returns immediately.
+			 * Some blocking calls are removed. Please don't block any threads if it's really not necessary
+			 */
 			logger.info("{} upload has started with key: {}", file.getName(), key);
 
 			upload.addProgressListener((ProgressListener)event -> 
 			{
-				if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT){
+				if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)
+				{
 					logger.error("S3 - Error: Upload failed for {} with key {}", file.getName(), key);
 				}
-				else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT){
+				else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT)
+				{	
 					if (deleteLocalFile) 
 					{
 						deleteFile(file);
@@ -120,22 +151,21 @@ public class AmazonS3StorageClient extends StorageClient {
 			});
 
 
-			// Optionally, wait for the upload to finish before continuing.
-			try {  
-				upload.waitForCompletion();
-
-				logger.info("{} upload completed", file.getName());
-			} catch (AmazonServiceException e1) {
-				logger.error(ExceptionUtils.getStackTrace(e1));
-			} catch (InterruptedException e1) {
-				logger.error(ExceptionUtils.getStackTrace(e1));
-				Thread.currentThread().interrupt();
-			}
+			
 		}
 		else {
 			logger.debug("S3 is not enabled to save the file: {}", key);
 		}
-
+	}
+	public boolean checkStorageClass(String s3StorageClass){
+		logger.debug("Requested storage class = {}" , s3StorageClass);
+		//All of the inputs are upper case and case sensitive like GLACIER
+		for(int i = 0; i < StorageClass.values().length; i++){
+			if(s3StorageClass.equalsIgnoreCase(StorageClass.values()[i].toString())){
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public TransferManager getTransferManager() {

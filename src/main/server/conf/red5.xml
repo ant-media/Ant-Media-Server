@@ -55,20 +55,14 @@
 		<property name="contextLoader" ref="context.loader" />
 	</bean>
 
-	<bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings">
-		<property name="serverName" value="${server.name}" />
-		<property name="licenceKey" value="${server.licence_key}" />
-		<property name="buildForMarket" value="${server.market_build}" />	
-		<property name="logLevel" value="${logLevel}"/>
-		<property name="nativeLogLevel" value="${nativeLogLevel}" />
-		<property name="allowedDashboardCIDR" value="${server.allowed_dashboard_CIDR}"/>
-		<property name="defaultHttpPort" value="${http.port}"/>
-	</bean>
+	<bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings"/>
 	
 
 	<bean id="ant.media.licence.service" class="#{ T(io.antmedia.rest.RestServiceBase).isEnterprise() ? 'io.antmedia.enterprise.licence.LicenceService' : 'io.antmedia.licence.CommunityLicenceService' }"
 	init-method="start">
 		<property name="serverSettings" ref="ant.media.server.settings" />						
 	</bean>
+	
+	
 
 </beans>

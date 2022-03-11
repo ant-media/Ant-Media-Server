@@ -89,7 +89,7 @@ public class WebSocketCommunityHandler {
 			}
 			
 			if(!StreamIdValidator.isStreamIdValid(streamId)) {
-				sendInvalidStreamNameError(session);
+				sendInvalidStreamNameError(streamId, session);
 				return;
 			}
 
@@ -103,13 +103,17 @@ public class WebSocketCommunityHandler {
 							status.endsWith(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) 
 					{
 						logger.error("Sending stream id in use error for stream:{} session:{}", streamId, session.getId());
-						sendStreamIdInUse(session);
+						sendStreamIdInUse(streamId, session);
 						return;
 					}
 				}
 				
+				//Get if enableVideo is true or false
+				boolean enableVideo = jsonObject.containsKey(WebSocketConstants.VIDEO) ? (boolean) jsonObject.get(WebSocketConstants.VIDEO) : true;
+				//audio is by default true 
+				
 				//get scope and use its name
-				startRTMPAdaptor(session, streamId);
+				startRTMPAdaptor(session, streamId, enableVideo);
 			}
 			else if (cmd.equals(WebSocketConstants.TAKE_CONFIGURATION_COMMAND))  
 			{
@@ -158,7 +162,7 @@ public class WebSocketCommunityHandler {
 	
 	
 
-	private void startRTMPAdaptor(Session session, final String streamId) {
+	private void startRTMPAdaptor(Session session, final String streamId, boolean enableVideo) {
 
 		//get scope and use its name
 		String outputURL = "rtmp://127.0.0.1/"+ appName +"/" + streamId;
@@ -172,7 +176,7 @@ public class WebSocketCommunityHandler {
 		connectionContext.setPortRange(appSettings.getWebRTCPortRangeMin(), appSettings.getWebRTCPortRangeMax());
 		connectionContext.setStunServerUri(appSettings.getStunServerURI());
 		connectionContext.setTcpCandidatesEnabled(appSettings.isWebRTCTcpCandidatesEnabled());
-		
+		connectionContext.setEnableVideo(enableVideo);	
 		connectionContext.start();
 	}
 
@@ -235,10 +239,11 @@ public class WebSocketCommunityHandler {
 		sendMessage(jsonObj.toJSONString(), session);
 	}
 	
-	public void sendStreamIdInUse(Session session) {
+	public void sendStreamIdInUse(String streamId, Session session) {
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.STREAM_ID_IN_USE);
+		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
 		sendMessage(jsonResponse.toJSONString(), session);
 	}
 	
@@ -394,10 +399,11 @@ public class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	public void sendInvalidStreamNameError(Session session)  {
+	public void sendInvalidStreamNameError(String streamId, Session session)  {
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.INVALID_STREAM_NAME);
+		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
 		sendMessage(jsonResponse.toJSONString(), session);	
 	}
 
