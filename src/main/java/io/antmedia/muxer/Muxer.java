@@ -15,8 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.AppSettings;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
@@ -26,7 +24,6 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
-import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamFilenameGenerator;
 import org.red5.server.api.stream.IStreamFilenameGenerator.GenerationType;
@@ -34,7 +31,6 @@ import org.red5.server.stream.DefaultStreamFilenameGenerator;
 import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 
 import io.vertx.core.Vertx;
@@ -263,11 +259,7 @@ public abstract class Muxer {
 			isInitialized = true;
 			this.scope = scope;
 
-			IContext context = this.scope.getContext();
-			ApplicationContext appCtx = context.getApplicationContext();
-			AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
-
-			initialResourceNameWithoutExtension = getExtendedName(name, resolution, bitrate, appSettings.getFileNameFormat());
+			initialResourceNameWithoutExtension = getExtendedName(name, resolution, bitrate);
 
 			file = getResourceFile(scope, initialResourceNameWithoutExtension, extension, subFolder);
 			
@@ -298,7 +290,7 @@ public abstract class Muxer {
 
 		}
 	}
-	public String getExtendedName(String name, int resolution, int bitrate, String fileNameFormat){
+	public String getExtendedName(String name, int resolution, int bitrate){
 		// set default name
 		String resourceName = name;
 		int bitrateKbps = bitrate / 1000;
@@ -312,22 +304,14 @@ public abstract class Muxer {
 				logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
 			}
 		}
-		String lowerCaseFormat = fileNameFormat.toLowerCase();
+
 		// add resolution height parameter if it is different than 0
-		if (resolution != 0 && lowerCaseFormat.contains("%r") && bitrateKbps != 0 && lowerCaseFormat.contains("%b"))
+		if (resolution != 0) 
 		{
-			resourceName += (lowerCaseFormat.indexOf("r") > lowerCaseFormat.indexOf("b")) ?  "_" + bitrateKbps + "kbps" + resolution + "p" : "_" + resolution + "p" + bitrateKbps + "kbps";
-		}
-		else if(resolution != 0 && lowerCaseFormat.contains("%r") && (bitrateKbps == 0 || !lowerCaseFormat.contains("%b"))){
 			resourceName += "_" + resolution + "p" ;
-		}
-		else if((resolution == 0 || !lowerCaseFormat.contains("%r")) && bitrateKbps != 0 && lowerCaseFormat.contains("%b")){
-			resourceName += "_" + bitrateKbps + "kbps" ;
-		}
-		//It should add the resolution if no identifier found because the names will be messed up if it does not in adaptive streaming
-		else if( (!lowerCaseFormat.contains("%r") && !lowerCaseFormat.contains("%b")) && resolution != 0){
-			logger.info("No identifier found for file name, adding resolution");
-			resourceName += "_" + resolution + "p" ;
+			if(bitrate != 0){
+				resourceName += bitrateKbps + "kbps";
+			}
 		}
 		return resourceName;
 	}

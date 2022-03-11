@@ -59,7 +59,6 @@ public class AppSettings {
 
 	private static final String SETTINGS_ENCODING_SPECIFIC = "settings.encoding.specific";
 	public static final String SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME = "settings.addDateTimeToMp4FileName";
-	public static final String SETTINGS_FILE_NAME_FORMAT = "settings.fileNameFormat";
 	public static final String SETTINGS_HLS_MUXING_ENABLED = "settings.hlsMuxingEnabled";
 	public static final String SETTINGS_DASH_MUXING_ENABLED = "settings.dashMuxingEnabled";
 	public static final String SETTINGS_DASH_WINDOW_SIZE = "settings.dashWindowSize";
@@ -330,15 +329,6 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME+":false}" )
 	private boolean addDateTimeToMp4FileName;
-
-	/**
-	 * The format of output mp4 and ts files.
-	 * To add resolution like stream1_240p.mp4, add %r to the string
-	 * To add bitrate like stream1_500kbps, add %b to the string
-	 * Add both for stream1_240p500kbps
-	 */
-	@Value( "${"+SETTINGS_FILE_NAME_FORMAT+":%r%b}" )
-	private String fileNameFormat;
 
 	/**
 	 * Enable/disable hls recording
@@ -1410,13 +1400,6 @@ public class AppSettings {
 
 	public void setAddDateTimeToMp4FileName(boolean addDateTimeToMp4FileName) {
 		this.addDateTimeToMp4FileName = addDateTimeToMp4FileName;
-	}
-
-	public void setFileNameFormat(String fileNameFormat) {
-		this.fileNameFormat = fileNameFormat;
-	}
-	public String getFileNameFormat() {
-		return fileNameFormat;
 	}
 
 	public boolean isMp4MuxingEnabled() {
