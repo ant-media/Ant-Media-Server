@@ -10,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -207,61 +208,49 @@ public class CommonRestService {
 		return operationResult;
 	}
 
-	protected Result uploadApplicationFile(String appName, InputStream inputStream) {
-		boolean success = false;
-		String message = "";
+	@Nullable
+	public static File saveWARFile(String appName, InputStream inputStream) 
+	{
+		File file = null;
 		String fileExtension = "war";
 
 		try {
-			File streamsDirectory = new File(
-					getWebAppsDirectory());
-
-			// if the directory does not exist, create it
-			if (!streamsDirectory.exists()) {
-				streamsDirectory.mkdirs();
-			}
-			File savedFile = new File(String.format("%s/%s", System.getProperty("red5.root"), appName + "." + fileExtension));
+			
+			String tmpsDirectory = System.getProperty("java.io.tmpdir");
+			
+			File savedFile = new File(tmpsDirectory + File.separator + appName + "." + fileExtension);
 
 			int read = 0;
 			byte[] bytes = new byte[2048];
 			try (OutputStream outpuStream = new FileOutputStream(savedFile))
 			{
 
-				while ((read = inputStream.read(bytes)) != -1) {
+				while ((read = inputStream.read(bytes)) != -1) 
+				{
 					outpuStream.write(bytes, 0, read);
 				}
 				outpuStream.flush();
 
-				long fileSize = savedFile.length();
-
-				String path = savedFile.getPath();
-
-				String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
-				logger.info("War file uploaded for application, filesize = {} path = {}", fileSize, path);
-				if(isClusterMode()){
-					AppSettings tempSetting = new AppSettings();
-					tempSetting.setAppName(appName);
-					tempSetting.setPullWarFile(true);
-					tempSetting.setWarFileAddress(getServerSettings().getHostAddress());
-
-					IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
-					clusterNotifier.getClusterStore().saveSettings(tempSetting);
-				}
-
-				return new Result(getApplication().createApplication(appName, savedFile.getName()));
+				logger.info("War file uploaded for application, filesize = {} path = {}", savedFile.length(),  savedFile.getPath());
 			}
+			
+			file = savedFile;
+			
 		}
 		catch (IOException iox) {
 			logger.error(iox.getMessage());
 		}
 
-		return new Result(success, appName, message);
+		return file;
 	}
 
-	protected String getWebAppsDirectory() {
+	protected static String getWebAppsDirectory() {
 		return String.format("%s/webapps", System.getProperty("red5.root"));
 	}
 
+	protected static String getTmpDirectory() {
+		return String.format("%s/tmp", System.getProperty("red5.root"));
+	}
 
 	public Result isFirstLogin() 
 	{
@@ -1138,19 +1127,42 @@ public class CommonRestService {
 	}
 
 
-	public Result createApplication(String appName) {
+	public Result createApplication(String appName, InputStream inputStream) 
+	{
 		appName = appName.replaceAll("[\n\r\t]", "_");
+		
+		File warFile = null;
+		if (inputStream != null) 
+		{
+			warFile = saveWARFile(appName, inputStream);
+			
+			if (warFile == null) 
+			{
+				return new Result(false, "Cannot save the WAR file for appName:{}", appName);
+			}
+		}
+						
 		if (isClusterMode())
 		{
 			//If there is a record in database, just delete it in order to start from scratch
 			IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
 			long deletedRecordCount = clusterNotifier.getClusterStore().deleteAppSettings(appName);
-			if (deletedRecordCount > 0) {
+			if (deletedRecordCount > 0) 
+			{
 				logger.info("App detected in the database. It's likely the app with the same name {} is re-creating. ", appName);
 			}
 			
+			if (warFile != null) 
+			{
+				AppSettings tempSetting = new AppSettings();
+				tempSetting.setAppName(appName);
+				tempSetting.setPullWarFile(true);
+				tempSetting.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
+
+				clusterNotifier.getClusterStore().saveSettings(tempSetting);
+			}
 		}
-		return new Result(getApplication().createApplication(appName, null));
+		return new Result(getApplication().createApplication(appName, warFile != null ? warFile.getAbsolutePath() : null));
 	}
 
 

@@ -1190,7 +1190,7 @@ public class AppSettings {
 	/**
 	 * Address of the original place of the war file.
 	 */
-	private String warFileAddress;
+	private String warFileOriginServerAddress;
 
 
 	/**
@@ -2473,14 +2473,6 @@ public class AppSettings {
 		this.pullWarFile = pullWarFile;
 	}
 
-	public String getWarFileAddress() {
-		return warFileAddress;
-	}
-
-	public void setWarFileAddress(String warFileAddress) {
-		this.warFileAddress = warFileAddress;
-	}
-
 	public int getWebRTCKeyframeTime() {
 		return webRTCKeyframeTime;
 	}
@@ -2670,5 +2662,13 @@ public class AppSettings {
 
 	public void setS3Permission(String s3Permission) {
 		this.s3Permission = s3Permission;
+	}
+
+	public String getWarFileOriginServerAddress() {
+		return warFileOriginServerAddress;
+	}
+
+	public void setWarFileOriginServerAddress(String warFileOriginServerAddress) {
+		this.warFileOriginServerAddress = warFileOriginServerAddress;
 	}
 }

@@ -22,6 +22,10 @@ usage() {
   echo "If you have any question, send e-mail to contact@antmedia.io"
 }
 
+echo "all parameters"
+echo $@
+echo "--> \n"
+
 ERROR_MESSAGE="Error: App is not created. Please check the error in the terminal and take a look at the instructions below"
 
 AMS_DIR=/usr/local/antmedia
@@ -68,7 +72,7 @@ if [[ -z "$APP_NAME" ]]; then
 fi
 
 if [[ -z "$WAR_FILE" ]]; then
-    WAR_FILE=StreamApp*.war
+    WAR_FILE=$AMS_DIR/StreamApp*.war
 fi
 
 if [[ -z "$AS_WAR" ]]; then
@@ -97,16 +101,18 @@ mkdir $APP_DIR
 check_result
 
 echo $AMS_DIR
-cp $AMS_DIR/$WAR_FILE $APP_DIR
+cp $WAR_FILE $APP_DIR
 check_result
 
 cd $APP_DIR
 check_result
 
-jar -xf $WAR_FILE
+WAR_FILE_NAME=`basename $WAR_FILE`
+
+jar -xf $WAR_FILE_NAME
 check_result
 
-rm $WAR_FILE
+rm $WAR_FILE_NAME
 check_result
 
 OS_NAME=`uname`
@@ -134,7 +140,7 @@ if [[ "$IS_CLUSTER" == "true" ]]; then
     sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$MONGO_HOST'#' $RED5_PROPERTIES_FILE  
     sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$MONGO_USER'/' $RED5_PROPERTIES_FILE
     sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$MONGO_PASS'/' $RED5_PROPERTIES_FILE
-    cp $AMS_DIR/$WAR_FILE $AMS_DIR/webapps/root
+    ln -s $WAR_FILE $AMS_DIR/webapps/root/$APP_NAME.war
 else 
     echo "Not cluster mode."    
 fi

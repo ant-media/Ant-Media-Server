@@ -32,6 +32,7 @@ import org.springframework.context.ApplicationContext;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
+import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
@@ -83,18 +84,31 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		if(isCluster) {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
-			clusterNotifier.registerCreateAppListener( (appName, warFileName) -> {
+			clusterNotifier.registerCreateAppListener( (appName, warFileURI) -> 
+			{
 				log.info("Creating application with name {}", appName);
-				return createApplication(appName, warFileName);
+				boolean result = false;
+				try {
+					String warFileFullPath = null;
+					if (warFileURI != null && !warFileURI.isEmpty()) 
+					{
+						warFileFullPath = downloadWarFile(appName, warFileURI).getAbsolutePath();
+					}
+
+					result = createApplication(appName, warFileFullPath);
+
+				} 
+				catch (IOException e) 
+				{
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+				return result;
 			});
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
 				return deleteApplication(appName, false);
 			});
-			clusterNotifier.registerPullWarFileListener( (appName, warFileUrl) -> {
-				log.info("Pulling war file for creating {} from URL: {}", appName, warFileUrl);
-				return pullWarFile(appName, warFileUrl);
-			});
+
 		}
 
 		return super.appStart(app);
@@ -283,20 +297,20 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return size;
 	}
 
-	public boolean createApplication(String appName, String warFileName) {
+	public boolean createApplication(String appName, String warFileFullPath) {
 		boolean success = false;
-		logger.info("Running create app script, war file name (null if default): {}, app name: {} ", warFileName, appName);
+		logger.info("Running create app script, war file name (null if default): {}, app name: {} ", warFileFullPath, appName);
 
 		if(isCluster) {
 			String mongoHost = getDataStoreFactory().getDbHost();
 			String mongoUser = getDataStoreFactory().getDbUser();
 			String mongoPass = getDataStoreFactory().getDbPassword();
 
-			boolean result = runCreateAppScript(appName, true, mongoHost, mongoUser, mongoPass, warFileName);
+			boolean result = runCreateAppScript(appName, true, mongoHost, mongoUser, mongoPass, warFileFullPath);
 			success = result;
 		}
 		else {
-			boolean result = runCreateAppScript(appName, warFileName);
+			boolean result = runCreateAppScript(appName, warFileFullPath);
 			success = result;
 		}
 
@@ -306,30 +320,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	}
 
-	public boolean pullWarFile(String appName, String warFileUrl) throws IOException{
-		FileOutputStream fileOutputStream = null;
-		try (BufferedInputStream in = new BufferedInputStream(new URL(warFileUrl).openStream())) {
-			String fileExtension = "war";
-			File savedFile = new File(String.format("%s/%s", System.getProperty("red5.root"), appName + "." + fileExtension));
-			fileOutputStream = new FileOutputStream(savedFile);
-
-			byte dataBuffer[] = new byte[1024];
-			int bytesRead;
-			while ((bytesRead = in.read(dataBuffer, 0, 1024)) != -1) {
-				fileOutputStream.write(dataBuffer, 0, bytesRead);
-			}
-			fileOutputStream.flush();
-			long fileSize = savedFile.length();
-
-			String path = savedFile.getPath();
-
-			logger.info("War file pulled from {} for creating application, filesize = {} path = {}", warFileUrl, fileSize, path);
-			return true;
-		}
-		finally{
-			if(fileOutputStream != null) {
-				fileOutputStream.close();
-			}
+	public static File downloadWarFile(String appName, String warFileUrl) throws IOException
+	{
+		try (BufferedInputStream in = new BufferedInputStream(new URL(warFileUrl).openStream())) 
+		{
+			return CommonRestService.saveWARFile(appName, in);
 		}
 	}
 
@@ -337,14 +332,14 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		boolean success = false;
 		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
-		
+
 		if (appScope != null) 
 		{
 			getApplicationAdaptor(appScope).stopApplication(deleteDB);
-	
+
 			success = runDeleteAppScript(appName);
 			warDeployer.undeploy(appName);
-	
+
 			try {
 				appScope.destroy();
 			} catch (Exception e) {
@@ -375,25 +370,30 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		String command;
 
-		if(warFileName != null && !warFileName.isEmpty()){
+		if(warFileName != null && !warFileName.isEmpty())
+		{
 			command = "/bin/bash create_app.sh"
-					+ " -n "+appName
+					+ " -n " + appName
 					+ " -w true"
-					+ " -p "+webappsPath
-					+ " -c "+isCluster
-					+ " -f " +warFileName;
+					+ " -p " + webappsPath
+					+ " -c " + isCluster
+					+ " -f " + warFileName;
 
-		}else{
-			command = "/bin/bash create_app.sh"
-					+ " -n "+appName
-					+ " -w true"
-					+ " -p "+webappsPath
-					+ " -c "+isCluster;
 		}
-		if(isCluster) {
-			command += " -m "+mongoHost
-					+ " -u "+mongoUser
-					+ " -s "+mongoPass;
+		else
+		{
+			command = "/bin/bash create_app.sh"
+					+ " -n " + appName
+					+ " -w true"
+					+ " -p " + webappsPath
+					+ " -c " + isCluster;
+		} 
+
+		if(isCluster) 
+		{
+			command += " -m " + mongoHost
+					+ " -u "  + mongoUser
+					+ " -s "  + mongoPass;
 		}
 
 		log.info("Creating application with command: {}", command);

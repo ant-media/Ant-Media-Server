@@ -413,46 +413,6 @@ public class RestServiceV2 extends CommonRestService {
 		return super.getApplicationInfo();
 	}
 
-	@ApiOperation(value = "Upload external application war file to Ant Media Server", notes = "", response = Result.class)
-	@POST
-	@Consumes({MediaType.MULTIPART_FORM_DATA})
-	@Path("/create/{appName}/{fileName}")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result uploadApplicationFile(@ApiParam(value = "the name of the Application", required = true) @PathParam("appName") String appName,
-								@ApiParam(value = "file", required = true) @FormDataParam("file") InputStream inputStream) {
-
-		Result result;
-		if (appName != null && appName.matches("^[a-zA-Z0-9]*$"))
-		{
-			List<String> applications = getApplication().getApplications();
-
-			boolean applicationAlreadyExist = false;
-			for (String applicationName : applications)
-			{
-				if (applicationName.equalsIgnoreCase(appName))
-				{
-					applicationAlreadyExist = true;
-					break;
-				}
-			}
-
-			if (!applicationAlreadyExist)
-			{
-				result = super.uploadApplicationFile(appName, inputStream);
-			}
-			else
-			{
-				result = new Result(false, "Application with the same name already exists");
-			}
-		}
-		else {
-			result = new Result(false, "Application name is not alphanumeric. Please provide alphanumeric characters");
-		}
-
-		return result;
-	}
-
 	/**
 	 * Refactor remove this function and use ProxyServlet to get this info
 	 * Before deleting check web panel does not use it
@@ -590,7 +550,6 @@ public class RestServiceV2 extends CommonRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result isInClusterMode(){
-
 		return super.isInClusterMode();
 	}
 
@@ -606,13 +565,31 @@ public class RestServiceV2 extends CommonRestService {
 		return super.getLogFile(charSize,logType, offsetSize);
 	}
 
-
-	@ApiOperation(value = "Creates a new application with given name.", response = Result.class)
+	/**
+	 * Create application. It supports both default or custom app
+	 * 
+	 * How Custom App Creation works
+	 * 1. Save the custom war file to tmp directory
+	 * 2. Install the app from the tmp directory
+	 * 3. If it's in cluster mode, create a symbolic link in root app to let other apps download the app
+	 * 
+	 */
+	@ApiOperation(value = "Creates a new application with given name. It just creates default app", response = Result.class)
 	@POST
+	@Consumes({MediaType.APPLICATION_JSON})
+	@Path("/applications/{appName}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result createApplication(@ApiParam(value = "Name for the new application", required = true) @PathParam("appName") String appName) {
+		return createApplication(appName, null);
+	}
+	
+	@ApiOperation(value = "Creates a new application with given name. It supports uploading custom WAR files", response = Result.class)
+	@PUT
+	@Consumes({MediaType.MULTIPART_FORM_DATA})
 	@Path("/applications/{appName}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result createApplication(@ApiParam(value = "Name for the new application", required = true) @PathParam("appName") String appName)
+	public Result createApplication(@ApiParam(value = "Name for the new application", required = true) @PathParam("appName") String appName, @ApiParam(value = "file", required = true) @FormDataParam("file") InputStream inputStream)
 	{
 		Result result;
 		if (appName != null && appName.matches("^[a-zA-Z0-9]*$")) 
@@ -631,14 +608,15 @@ public class RestServiceV2 extends CommonRestService {
 
 			if (!applicationAlreadyExist) 
 			{
-				result = super.createApplication(appName);
+				result = super.createApplication(appName, inputStream);
 			}
 			else 
 			{
 				result = new Result(false, "Application with the same name already exists");
 			}
 		}
-		else {
+		else 
+		{
 			result = new Result(false, "Application name is not alphanumeric. Please provide alphanumeric characters");
 		}
 

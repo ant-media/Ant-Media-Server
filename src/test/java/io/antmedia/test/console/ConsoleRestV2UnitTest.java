@@ -229,7 +229,7 @@ public class ConsoleRestV2UnitTest {
                 Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
                 Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
 
-                restServiceSpy.uploadApplicationFile("taso", inputStream);
+                restServiceSpy.createApplication("taso", inputStream);
 
                 Mockito.verify(adminApp).createApplication("taso","taso.war");
             }
@@ -245,7 +245,7 @@ public class ConsoleRestV2UnitTest {
                 Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
                 Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
 
-                restServiceSpy.uploadApplicationFile("LiveApp", inputStream);
+                restServiceSpy.createApplication("LiveApp", inputStream);
 
                 Mockito.verify(adminApp, Mockito.never()).createApplication("LiveApp", "LiveApp.war");
             }
@@ -271,7 +271,7 @@ public class ConsoleRestV2UnitTest {
                 Mockito.doReturn(true).when(restServiceSpy).isClusterMode();
                 Mockito.doReturn(settings).when(restServiceSpy).getServerSettings();
 
-                restServiceSpy.uploadApplicationFile("taso", inputStream);
+                restServiceSpy.createApplication("taso", inputStream);
 
                 Mockito.verify(adminApp).createApplication("taso", "taso.war");
             }
@@ -287,7 +287,7 @@ public class ConsoleRestV2UnitTest {
                 Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
                 Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
 
-                restServiceSpy.uploadApplicationFile("*_?", inputStream).isSuccess();
+                restServiceSpy.createApplication("*_?", inputStream).isSuccess();
 
                 Mockito.verify(adminApp, Mockito.never()).createApplication("*_?", "*_?.war");
             }

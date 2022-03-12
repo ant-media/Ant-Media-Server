@@ -156,7 +156,7 @@ public class AdminApplicationTest {
 		AdminApplication adminApplication = Mockito.spy(new AdminApplication());
 		try{
 			//Just download something to check if it is downloading, the method only downloads with an http request.
-			assertTrue(adminApplication.pullWarFile("LiveApp", "https://antmedia.io/rest"));
+			assertNotNull(adminApplication.downloadWarFile("LiveApp", "https://antmedia.io/rest"));
 		}
 		catch(Exception e){
 			e.printStackTrace();

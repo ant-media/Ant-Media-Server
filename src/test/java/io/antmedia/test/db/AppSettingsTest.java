@@ -188,8 +188,8 @@ public class AppSettingsTest {
 
 		settings.setPullWarFile(true);
 		assertTrue(settings.isPullWarFile());
-		settings.setWarFileAddress("address");
-		assertEquals("address", settings.getWarFileAddress());
+		settings.setWarFileOriginServerAddress("address");
+		assertEquals("address", settings.getWarFileOriginServerAddress());
 	}
 	
 	
