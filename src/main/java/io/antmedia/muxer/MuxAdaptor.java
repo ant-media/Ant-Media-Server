@@ -2101,7 +2101,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		this.audioDataConf = audioDataConf;
 	}
 	
-	private boolean isBlacklistCodec(int codecId) {
+	public boolean isBlacklistCodec(int codecId) {
 		return (codecId == AV_CODEC_ID_PNG);
 	}
 
