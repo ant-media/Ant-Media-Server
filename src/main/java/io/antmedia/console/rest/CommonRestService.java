@@ -208,41 +208,7 @@ public class CommonRestService {
 		return operationResult;
 	}
 
-	@Nullable
-	public static File saveWARFile(String appName, InputStream inputStream) 
-	{
-		File file = null;
-		String fileExtension = "war";
-
-		try {
-			
-			String tmpsDirectory = System.getProperty("java.io.tmpdir");
-			
-			File savedFile = new File(tmpsDirectory + File.separator + appName + "." + fileExtension);
-
-			int read = 0;
-			byte[] bytes = new byte[2048];
-			try (OutputStream outpuStream = new FileOutputStream(savedFile))
-			{
-
-				while ((read = inputStream.read(bytes)) != -1) 
-				{
-					outpuStream.write(bytes, 0, read);
-				}
-				outpuStream.flush();
-
-				logger.info("War file uploaded for application, filesize = {} path = {}", savedFile.length(),  savedFile.getPath());
-			}
-			
-			file = savedFile;
-			
-		}
-		catch (IOException iox) {
-			logger.error(iox.getMessage());
-		}
-
-		return file;
-	}
+	
 
 	protected static String getWebAppsDirectory() {
 		return String.format("%s/webapps", System.getProperty("red5.root"));
@@ -1134,7 +1100,7 @@ public class CommonRestService {
 		File warFile = null;
 		if (inputStream != null) 
 		{
-			warFile = saveWARFile(appName, inputStream);
+			warFile = AdminApplication.saveWARFile(appName, inputStream);
 			
 			if (warFile == null) 
 			{

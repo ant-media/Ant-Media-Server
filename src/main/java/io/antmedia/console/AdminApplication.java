@@ -4,6 +4,8 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -12,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
+import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -319,12 +323,48 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return success;
 
 	}
+	
+	@Nullable
+	public static File saveWARFile(String appName, InputStream inputStream) 
+	{
+		File file = null;
+		String fileExtension = "war";
+
+		try {
+			
+			String tmpsDirectory = System.getProperty("java.io.tmpdir");
+			
+			File savedFile = new File(tmpsDirectory + File.separator + appName + "." + fileExtension);
+
+			int read = 0;
+			byte[] bytes = new byte[2048];
+			try (OutputStream outpuStream = new FileOutputStream(savedFile))
+			{
+
+				while ((read = inputStream.read(bytes)) != -1) 
+				{
+					outpuStream.write(bytes, 0, read);
+				}
+				outpuStream.flush();
+
+				logger.info("War file uploaded for application, filesize = {} path = {}", savedFile.length(),  savedFile.getPath());
+			}
+			
+			file = savedFile;
+			
+		}
+		catch (IOException iox) {
+			logger.error(iox.getMessage());
+		}
+
+		return file;
+	}
 
 	public static File downloadWarFile(String appName, String warFileUrl) throws IOException
 	{
 		try (BufferedInputStream in = new BufferedInputStream(new URL(warFileUrl).openStream())) 
 		{
-			return CommonRestService.saveWARFile(appName, in);
+			return saveWARFile(appName, in);
 		}
 	}
 

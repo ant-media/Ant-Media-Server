@@ -175,6 +175,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			{
 				//if storedSettings is null, it means app is just created
 
+				//TODO: How to get the application settings for the custom
+				
 				logger.warn("There is not a stored settings for the app:{}. It will update the database for app settings", app.getName());
 
 				storedSettings = appSettings;

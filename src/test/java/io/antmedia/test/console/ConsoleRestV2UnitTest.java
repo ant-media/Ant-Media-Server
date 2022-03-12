@@ -217,6 +217,7 @@ public class ConsoleRestV2UnitTest {
         FileInputStream inputStream;
         try{
             inputStream = new FileInputStream("src/test/resources/sample_MP4_480.mp4");
+            String tmpsDirectory = System.getProperty("java.io.tmpdir");
 
             {
                 RestServiceV2 restServiceSpy = Mockito.spy(restService);
@@ -230,8 +231,8 @@ public class ConsoleRestV2UnitTest {
                 Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
 
                 restServiceSpy.createApplication("taso", inputStream);
-
-                Mockito.verify(adminApp).createApplication("taso","taso.war");
+               
+                Mockito.verify(adminApp).createApplication("taso",tmpsDirectory + "taso.war");
             }
 
             {
@@ -273,7 +274,7 @@ public class ConsoleRestV2UnitTest {
 
                 restServiceSpy.createApplication("taso", inputStream);
 
-                Mockito.verify(adminApp).createApplication("taso", "taso.war");
+                Mockito.verify(adminApp).createApplication("taso", tmpsDirectory + "taso.war");
             }
 
             {
@@ -293,8 +294,9 @@ public class ConsoleRestV2UnitTest {
             }
         }
         catch(Exception e){
-            //fail();
+            
             e.printStackTrace();
+            fail(e.getMessage());
         }
 
 
