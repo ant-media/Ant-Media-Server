@@ -218,6 +218,9 @@ public class ConsoleRestV2UnitTest {
         try{
             inputStream = new FileInputStream("src/test/resources/sample_MP4_480.mp4");
             String tmpsDirectory = System.getProperty("java.io.tmpdir");
+            if (!tmpsDirectory.endsWith("/")) {
+            	tmpsDirectory += "/";
+            }
 
             {
                 RestServiceV2 restServiceSpy = Mockito.spy(restService);
