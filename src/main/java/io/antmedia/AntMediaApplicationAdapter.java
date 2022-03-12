@@ -172,15 +172,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 			boolean updateClusterSettings = false;
 			if(storedSettings == null) 
-			{
-				//if storedSettings is null, it means app is just created
-
-				//TODO: How to get the application settings for the custom
-				
+			{			
 				logger.warn("There is not a stored settings for the app:{}. It will update the database for app settings", app.getName());
-
 				storedSettings = appSettings;
 				updateClusterSettings = true;
+			}
+			else if (serverSettings.getHostAddress().equals(storedSettings.getWarFileOriginServerAddress())) 
+			{
+				storedSettings = appSettings;
+				updateClusterSettings = true;
+				//keep the settings to let the app distributed to all nodes
+				storedSettings.setPullWarFile(true);
+				storedSettings.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
 			}
 
 
