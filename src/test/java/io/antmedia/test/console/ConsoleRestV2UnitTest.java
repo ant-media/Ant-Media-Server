@@ -237,6 +237,23 @@ public class ConsoleRestV2UnitTest {
                
                 Mockito.verify(adminApp).createApplication("taso",tmpsDirectory + "taso.war");
             }
+            
+            {
+                RestServiceV2 restServiceSpy = Mockito.spy(restService);
+
+                List<String> apps = new ArrayList<>();
+                apps.add("tahirrrr");
+                AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+                Mockito.when(adminApp.getApplications()).thenReturn(apps);
+
+                Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+                Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+
+                restServiceSpy.createApplication("taso", null);
+               
+                Mockito.verify(adminApp).createApplication("taso", null);
+            }
+
 
             {
                 RestServiceV2 restServiceSpy = Mockito.spy(restService);

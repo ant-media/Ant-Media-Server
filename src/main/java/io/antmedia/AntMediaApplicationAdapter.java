@@ -177,12 +177,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				storedSettings = appSettings;
 				updateClusterSettings = true;
 			}
-			else if (serverSettings.getHostAddress().equals(storedSettings.getWarFileOriginServerAddress())) 
+			else if (getServerSettings().getHostAddress().equals(storedSettings.getWarFileOriginServerAddress()) 
+						&& storedSettings.isPullWarFile()) 
 			{
 				storedSettings = appSettings;
 				updateClusterSettings = true;
 				//keep the settings to let the app distributed to all nodes
-				storedSettings.setPullWarFile(true);
+				storedSettings.setPullWarFile(storedSettings.isPullWarFile());
 				storedSettings.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
 			}
 
@@ -466,7 +467,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return broadcast;
 	}
 
-	protected ServerSettings getServerSettings() 
+	public ServerSettings getServerSettings() 
 	{
 		if (serverSettings == null) {
 			serverSettings = (ServerSettings)scope.getContext().getApplicationContext().getBean(ServerSettings.BEAN_NAME);

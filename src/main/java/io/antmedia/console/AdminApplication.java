@@ -89,25 +89,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		if(isCluster) {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
 			clusterNotifier.registerCreateAppListener( (appName, warFileURI) -> 
-			{
-				log.info("Creating application with name {}", appName);
-				boolean result = false;
-				try {
-					String warFileFullPath = null;
-					if (warFileURI != null && !warFileURI.isEmpty()) 
-					{
-						warFileFullPath = downloadWarFile(appName, warFileURI).getAbsolutePath();
-					}
-
-					result = createApplication(appName, warFileFullPath);
-
-				} 
-				catch (IOException e) 
-				{
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-				return result;
-			});
+				createApplicationWithURL(appName, warFileURI)
+			);
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
 				return deleteApplication(appName, false);
@@ -116,6 +99,27 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 
 		return super.appStart(app);
+	}
+
+	public boolean createApplicationWithURL(String appName, String warFileURI) 
+	{
+		log.info("Creating application with name {}", appName);
+		boolean result = false;
+		try {
+			String warFileFullPath = null;
+			if (warFileURI != null && !warFileURI.isEmpty()) 
+			{
+				warFileFullPath = downloadWarFile(appName, warFileURI).getAbsolutePath();
+			}
+
+			result = createApplication(appName, warFileFullPath);
+
+		} 
+		catch (Exception e) 
+		{
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return result;
 	}
 
 	/** {@inheritDoc} */
@@ -353,14 +357,14 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			file = savedFile;
 			
 		}
-		catch (IOException iox) {
+		catch (Exception iox) {
 			logger.error(iox.getMessage());
 		}
 
 		return file;
 	}
 
-	public static File downloadWarFile(String appName, String warFileUrl) throws IOException
+	public File downloadWarFile(String appName, String warFileUrl) throws IOException
 	{
 		try (BufferedInputStream in = new BufferedInputStream(new URL(warFileUrl).openStream())) 
 		{
