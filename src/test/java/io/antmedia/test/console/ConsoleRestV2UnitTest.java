@@ -2,6 +2,8 @@ package io.antmedia.test.console;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.cluster.IClusterStore;
 import io.antmedia.console.AdminApplication;
 import io.antmedia.console.datastore.MapDBStore;
 import io.antmedia.console.rest.RestServiceV2;
@@ -9,25 +11,28 @@ import io.antmedia.datastore.db.types.User;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.UserType;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 import org.bytedeco.ffmpeg.global.avformat;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mapdb.elsa.ElsaSerializerBase;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
 
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertNotNull;
@@ -204,6 +209,116 @@ public class ConsoleRestV2UnitTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+    }
+
+    @Test
+    public void testUploadApplication(){
+        FileInputStream inputStream;
+        try{
+            inputStream = new FileInputStream("src/test/resources/sample_MP4_480.mp4");
+            String tmpsDirectory = System.getProperty("java.io.tmpdir");
+            if (!tmpsDirectory.endsWith("/")) {
+            	tmpsDirectory += "/";
+            }
+
+            {
+                RestServiceV2 restServiceSpy = Mockito.spy(restService);
+
+                List<String> apps = new ArrayList<>();
+                apps.add("tahirrrr");
+                AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+                Mockito.when(adminApp.getApplications()).thenReturn(apps);
+
+                Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+                Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+
+                restServiceSpy.createApplication("taso", inputStream);
+               
+                Mockito.verify(adminApp).createApplication("taso",tmpsDirectory + "taso.war");
+            }
+            
+            {
+                RestServiceV2 restServiceSpy = Mockito.spy(restService);
+
+                List<String> apps = new ArrayList<>();
+                apps.add("tahirrrr");
+                AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+                Mockito.when(adminApp.getApplications()).thenReturn(apps);
+
+                Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+                Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+
+                restServiceSpy.createApplication("taso", null);
+               
+                Mockito.verify(adminApp).createApplication("taso", null);
+            }
+
+
+            {
+                RestServiceV2 restServiceSpy = Mockito.spy(restService);
+
+                List<String> apps = new ArrayList<>();
+                apps.add("LiveApp");
+                AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+                Mockito.when(adminApp.getApplications()).thenReturn(apps);
+
+                Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+                Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+
+                restServiceSpy.createApplication("LiveApp", inputStream);
+
+                Mockito.verify(adminApp, Mockito.never()).createApplication("LiveApp", "LiveApp.war");
+            }
+
+            {
+                RestServiceV2 restServiceSpy = Mockito.spy(restService);
+                ServerSettings settings = new ServerSettings();
+
+                List<String> apps = new ArrayList<>();
+                apps.add("tahirrrr");
+                AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+                Mockito.when(adminApp.getApplications()).thenReturn(apps);
+                IClusterNotifier clusterNotifier = Mockito.mock(IClusterNotifier.class);
+                IClusterStore clusterStore = Mockito.mock(IClusterStore.class);
+
+                Mockito.when(adminApp.getClusterNotifier()).thenReturn(clusterNotifier);
+                Mockito.when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
+                Mockito.when(clusterStore.saveSettings(Mockito.any())).thenReturn(true);
+
+
+
+                Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+                Mockito.doReturn(true).when(restServiceSpy).isClusterMode();
+                Mockito.doReturn(settings).when(restServiceSpy).getServerSettings();
+
+                restServiceSpy.createApplication("taso", inputStream);
+
+                Mockito.verify(adminApp).createApplication("taso", tmpsDirectory + "taso.war");
+            }
+
+            {
+                RestServiceV2 restServiceSpy = Mockito.spy(restService);
+
+                List<String> apps = new ArrayList<>();
+                apps.add("LiveApp");
+                AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+                Mockito.when(adminApp.getApplications()).thenReturn(apps);
+
+                Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+                Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+
+                restServiceSpy.createApplication("*_?", inputStream).isSuccess();
+
+                Mockito.verify(adminApp, Mockito.never()).createApplication("*_?", "*_?.war");
+            }
+        }
+        catch(Exception e){
+            
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
+
 
     }
 
