@@ -78,7 +78,6 @@ public class AcceptOnlyStreamsInDataStoreTest {
 	public void testStreamIdInUseCase() 
 	{
 		AcceptOnlyStreamsInDataStore filter = spy(new AcceptOnlyStreamsInDataStore());
-		doReturn(true).
 		
 		InMemoryDataStore dataStore = new InMemoryDataStore("db");
 		DataStoreFactory factory = Mockito.mock(DataStoreFactory.class);
