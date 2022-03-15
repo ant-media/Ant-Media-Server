@@ -43,8 +43,8 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		{
 			Broadcast broadcast = getDatastore().get(name);
 			result = broadcast != null 
-					&& (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) 
-						|| broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING));
+					&& !broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) 
+					&& !broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 		}	
 		else 
 		{
