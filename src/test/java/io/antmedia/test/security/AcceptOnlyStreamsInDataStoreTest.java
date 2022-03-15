@@ -125,15 +125,13 @@ public class AcceptOnlyStreamsInDataStoreTest {
 			
 			
 			
-			Broadcast dummyBroadcast = new Broadcast();
-			dummyBroadcast.setStreamId("dummyBroadcast");
-			dataStore.save(dummyBroadcast);
-			
 			filter.setEnabled(false);
-			assertFalse(filter.isPublishAllowed(scope, dummyBroadcast.getStreamId(), "mode", null));
 			assertTrue(filter.isPublishAllowed(scope, "notExistent", "mode", null));
 
-			
+			assertFalse(filter.isPublishAllowed(scope, preparingBroadcast.getStreamId(), "mode", null));
+			assertFalse(filter.isPublishAllowed(scope, broadcastingBroadcast.getStreamId(), "mode", null));
+			assertTrue(filter.isPublishAllowed(scope, offlineBroadcast.getStreamId(), "mode", null));
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

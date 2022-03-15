@@ -53,7 +53,10 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 			if(broadcast != null) {
 				logger.warn("Stream Id in use {}", name);
 			}
-			result = broadcast == null;
+			result = broadcast == null
+					|| 
+					(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) 
+					&& !broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING));
 		}
 	
 		if (result) 
