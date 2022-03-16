@@ -1,11 +1,14 @@
 package io.antmedia.test.settings;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.webrtc.Logging;
 
 import io.antmedia.settings.ServerSettings;
+
+import javax.validation.constraints.AssertTrue;
 
 public class ServerSettingsTest {
 	
@@ -70,6 +73,17 @@ public class ServerSettingsTest {
 		settings.setDefaultHttpPort(5090);
 		assertEquals(5090,settings.getDefaultHttpPort());
 		
+	}
+
+	@Test
+	public void testUseAsSignalingSetting(){
+		ServerSettings settings = new ServerSettings();
+
+		settings.setSignalingEnabled(true);
+		assertTrue(settings.isSignalingEnabled());
+
+		settings.setSignalingAddress("192.168.0.1");
+		assertEquals("192.168.0.1",settings.getSignalingAddress());
 	}
 
 	
