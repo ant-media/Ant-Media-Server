@@ -1177,10 +1177,20 @@ public class AppSettings {
 	@Value( "${"+SETTINGS_WEBRTC_VIEWER_LIMIT+":-1}" )
 	private int webRTCViewerLimit = -1;
 
-	/*
+	/**
 	 * Set to true when you want to delete an application 
 	 */
 	private boolean toBeDeleted = false;
+
+	/**
+	 * Set to true when the app settings are only created for pulling the war file.
+	 */
+	private boolean pullWarFile = false;
+
+	/**
+	 * Address of the original place of the war file.
+	 */
+	private String warFileOriginServerAddress;
 
 
 	/**
@@ -2455,6 +2465,14 @@ public class AppSettings {
 		this.toBeDeleted = toBeDeleted;
 	}
 
+	public boolean isPullWarFile() {
+		return pullWarFile;
+	}
+
+	public void setPullWarFile(boolean pullWarFile) {
+		this.pullWarFile = pullWarFile;
+	}
+
 	public int getWebRTCKeyframeTime() {
 		return webRTCKeyframeTime;
 	}
@@ -2644,5 +2662,13 @@ public class AppSettings {
 
 	public void setS3Permission(String s3Permission) {
 		this.s3Permission = s3Permission;
+	}
+
+	public String getWarFileOriginServerAddress() {
+		return warFileOriginServerAddress;
+	}
+
+	public void setWarFileOriginServerAddress(String warFileOriginServerAddress) {
+		this.warFileOriginServerAddress = warFileOriginServerAddress;
 	}
 }
