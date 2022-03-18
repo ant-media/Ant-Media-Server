@@ -1,10 +1,6 @@
 package io.antmedia.console.rest;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -14,6 +10,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -26,6 +23,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.FilenameUtils;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -210,6 +208,15 @@ public class CommonRestService {
 		return operationResult;
 	}
 
+	
+
+	protected static String getWebAppsDirectory() {
+		return String.format("%s/webapps", System.getProperty("red5.root"));
+	}
+
+	protected static String getTmpDirectory() {
+		return String.format("%s/tmp", System.getProperty("red5.root"));
+	}
 
 	public Result isFirstLogin() 
 	{
@@ -666,8 +673,7 @@ public class CommonRestService {
 		AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		return gson.toJson(new Result(adapter.updateSettings(newSettings, true, false)));
 	}
-
-
+	
 	public boolean getShutdownStatus(@QueryParam("appNames") String appNamesArray){
 
 		boolean appShutdownProblemExists = false;
@@ -1087,20 +1093,42 @@ public class CommonRestService {
 	}
 
 
-	public Result createApplication(String appName) {
+	public Result createApplication(String appName, InputStream inputStream) 
+	{
 		appName = appName.replaceAll("[\n\r\t]", "_");
-		if (isClusterMode()) 
+		
+		File warFile = null;
+		if (inputStream != null) 
+		{
+			warFile = AdminApplication.saveWARFile(appName, inputStream);
+			
+			if (warFile == null) 
+			{
+				return new Result(false, "Cannot save the WAR file for appName:{}", appName);
+			}
+		}
+						
+		if (isClusterMode())
 		{
 			//If there is a record in database, just delete it in order to start from scratch
 			IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
 			long deletedRecordCount = clusterNotifier.getClusterStore().deleteAppSettings(appName);
-			if (deletedRecordCount > 0) {
+			if (deletedRecordCount > 0) 
+			{
 				logger.info("App detected in the database. It's likely the app with the same name {} is re-creating. ", appName);
 			}
 			
+			if (warFile != null) 
+			{
+				AppSettings tempSetting = new AppSettings();
+				tempSetting.setAppName(appName);
+				tempSetting.setPullWarFile(true);
+				tempSetting.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
+
+				clusterNotifier.getClusterStore().saveSettings(tempSetting);
+			}
 		}
-		
-		return new Result(getApplication().createApplication(appName));
+		return new Result(getApplication().createApplication(appName, warFile != null ? warFile.getAbsolutePath() : null));
 	}
 
 

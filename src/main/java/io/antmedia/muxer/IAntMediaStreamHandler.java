@@ -18,6 +18,8 @@ public interface IAntMediaStreamHandler {
 	public static final String PUBLISH_TYPE_PULL = "Pull";
 	public static final String PUBLISH_TYPE_RTMP = "RTMP";
 	public static final String PUBLISH_TYPE_WEBRTC = "WebRTC";
+	public static final String PUBLISH_TYPE_SRT = "SRT";
+	
 	
 	/**
 	 * Called by some muxer like MP4Muxer
