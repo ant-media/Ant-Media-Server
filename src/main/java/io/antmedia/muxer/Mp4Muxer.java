@@ -75,7 +75,6 @@ import io.vertx.core.Vertx;
 
 public class Mp4Muxer extends RecordMuxer {
 
-	protected static Logger logger = LoggerFactory.getLogger(Mp4Muxer.class);
 	private AVBSFContext bsfContext;
 	
 	private boolean isAVCConversionRequired = false;
@@ -140,8 +139,8 @@ public class Mp4Muxer extends RecordMuxer {
 	 */
 	@Override
 	protected boolean prepareAudioOutStream(AVStream inStream, AVStream outStream) {
-		if (bsfName != null) {
-			AVBitStreamFilter adtsToAscBsf = av_bsf_get_by_name(this.bsfName);
+		if (bsfVideoName != null) {
+			AVBitStreamFilter adtsToAscBsf = av_bsf_get_by_name(this.bsfVideoName);
 			bsfContext = new AVBSFContext(null);
 
 			int ret = av_bsf_alloc(adtsToAscBsf, bsfContext);

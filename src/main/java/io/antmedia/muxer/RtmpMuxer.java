@@ -1,6 +1,10 @@
 package io.antmedia.muxer;
 
 
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H265;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_INPUT_BUFFER_PADDING_SIZE;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_DATA_NEW_EXTRADATA;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
@@ -139,7 +143,8 @@ public class RtmpMuxer extends Muxer {
 		this.statusListener = listener;
 	}
 
-	private AVFormatContext getOutputFormatContext() {
+	@Override
+	public AVFormatContext getOutputFormatContext() {
 		if (outputFormatContext == null) {
 			logger.info("Creating outputFormatContext");
 			outputFormatContext= new AVFormatContext(null);
@@ -305,10 +310,10 @@ public class RtmpMuxer extends Muxer {
 			logger.info("Not writing trailer because header is not written yet");
 		}
 		setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-		isRecording = false;
 	}
 
-	private synchronized void clearResource() {
+	@Override
+	public synchronized void clearResource() {
 		/* close output */
 		isRunning.set(false);
 		if ((outputFormatContext.flags() & AVFMT_NOFILE) == 0 && outputFormatContext.pb() != null) {
@@ -479,8 +484,8 @@ public class RtmpMuxer extends Muxer {
 		writePacket(pkt, codecTimebase,  outStream.time_base(), outStream.codecpar().codec_type());
 	}
 
-
-	private void writePacket(AVPacket pkt, final AVRational inputTimebase, final AVRational outputTimebase, int codecType)
+	@Override
+	public void writePacket(AVPacket pkt, final AVRational inputTimebase, final AVRational outputTimebase, int codecType)
 	{
 		AVFormatContext context = getOutputFormatContext();
 		if (context.streams(pkt.stream_index()).codecpar().codec_type() ==  AVMEDIA_TYPE_AUDIO && !headerWritten) {
@@ -651,7 +656,7 @@ public class RtmpMuxer extends Muxer {
 
 
 	@Override
-	public boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) {
+	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) {
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
 		if (outputContext != null
@@ -711,6 +716,10 @@ public class RtmpMuxer extends Muxer {
 		av_packet_unref(audioPkt);
 	}
 
+	@Override
+	public boolean isCodecSupported(int codecId) {
+		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC);
+	}
 
 
 
