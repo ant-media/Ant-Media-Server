@@ -423,8 +423,11 @@ public abstract class Muxer {
 
 		ByteBuffer	byteBuffer = ByteBuffer.allocateDirect(extradata.length + pkt.size());
 		byteBuffer.put(extradata);
-		logger.debug("Adding extradata to record muxer packet");
-		byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+		
+		if (pkt.size() > 0) {
+			logger.debug("Adding extradata to record muxer packet pkt size:{}", pkt.size());
+			byteBuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+		}
 
 		return byteBuffer;
 	}
