@@ -309,10 +309,6 @@ public class HLSMuxer extends Muxer  {
 		this.deleteFileOnExit = deleteFileOnExist;
 	}
 
-	public void setExtradataForTest() {
-		extradata = "test".getBytes();
-	}
-
 	public boolean isUploadingToS3(){
 		return uploadHLSToS3;
 	}

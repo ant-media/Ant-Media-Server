@@ -2641,7 +2641,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			feedMuxAdaptor(flvReader, Arrays.asList(muxAdaptor), info);
 
-			Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
+			Awaitility.await().atMost(200, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
 
 
 			HLSMuxer hlsMuxer = null;

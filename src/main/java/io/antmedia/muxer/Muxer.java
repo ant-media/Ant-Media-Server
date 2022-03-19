@@ -134,7 +134,7 @@ public abstract class Muxer {
 	protected Map<Integer, AVRational> inputTimeBaseMap = new ConcurrentHashMap<>();
 	
 	
-	protected AVBSFContext bsfFilterContext = null;
+	protected AVBSFContext videoBsfFilterContext = null;
 	
 	protected int videoWidth;
 	protected int videoHeight;
@@ -145,7 +145,7 @@ public abstract class Muxer {
 	protected String initialResourceNameWithoutExtension;
 	
 	
-	protected byte[] extradata = null;
+	protected byte[] videoExtradata = null;
 	
 	protected AVPacket tmpPacket;
 	
@@ -335,9 +335,9 @@ public abstract class Muxer {
 			audioPkt = null;
 		}
 
-		if (bsfFilterContext != null) {
-			av_bsf_free(bsfFilterContext);
-			bsfFilterContext = null;
+		if (videoBsfFilterContext != null) {
+			av_bsf_free(videoBsfFilterContext);
+			videoBsfFilterContext = null;
 		}
 		
 		/* close output */
@@ -669,6 +669,14 @@ public abstract class Muxer {
 				{
 					int outStreamIndex = inputOutputStreamIndexMap.get(streamIndex);
 					outStream = outputContext.streams(outStreamIndex);
+					
+					videoExtradata = new byte[codecParameters.extradata_size()];
+					if(videoExtradata.length > 0) 
+					{
+						BytePointer extraDataPointer = codecParameters.extradata();
+						extraDataPointer.get(videoExtradata).close();
+						extraDataPointer.close();
+					}
 				}
 			}
 			else 
@@ -680,8 +688,8 @@ public abstract class Muxer {
 				if (bsfVideoName != null && codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
 				{
 					AVBitStreamFilter bsfilter = av_bsf_get_by_name(bsfVideoName);
-					bsfFilterContext = new AVBSFContext(null);
-					int ret = av_bsf_alloc(bsfilter, bsfFilterContext);
+					videoBsfFilterContext = new AVBSFContext(null);
+					int ret = av_bsf_alloc(bsfilter, videoBsfFilterContext);
 					
 					if (ret < 0) 
 					{
@@ -689,21 +697,21 @@ public abstract class Muxer {
 						return false;
 					}
 					
-					ret = avcodec_parameters_copy(bsfFilterContext.par_in(), codecParameters);
+					ret = avcodec_parameters_copy(videoBsfFilterContext.par_in(), codecParameters);
 					if (ret < 0) {
 						logger.info("cannot copy input codec parameters for {}", file.getName());
 						return false;
 					}
 					
-					bsfFilterContext.time_base_in(timebase);
-					ret = av_bsf_init(bsfFilterContext);
+					videoBsfFilterContext.time_base_in(timebase);
+					ret = av_bsf_init(videoBsfFilterContext);
 					if (ret < 0) {
 						logger.info("cannot init bit stream filter context for {}", file.getName());
 						return false;
 					}
 					
-					codecParameters = bsfFilterContext.par_out();
-					timebase = bsfFilterContext.time_base_out();
+					codecParameters = videoBsfFilterContext.par_out();
+					timebase = videoBsfFilterContext.time_base_out();
 					
 				}
 			}
@@ -712,21 +720,12 @@ public abstract class Muxer {
 			{
 				if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
 				{
-					extradata = new byte[codecParameters.extradata_size()];
-					if(extradata.length > 0) 
-					{
-						BytePointer extraDataPointer = codecParameters.extradata();
-						extraDataPointer.get(extradata).close();
-						extraDataPointer.close();
-					}
-					
 					videoWidth = codecParameters.width();
 					videoHeight = codecParameters.height();
-					
 				}
 				
 				avcodec_parameters_copy(outStream.codecpar(), codecParameters);
-				logger.info("Adding timebase to the codec time base map index:{} value: {}/{}", outStream.index(), timebase.num(), timebase.den());
+				logger.info("Adding timebase to the input time base map index:{} value: {}/{}", outStream.index(), timebase.num(), timebase.den());
 				inputTimeBaseMap.put(streamIndex, timebase);
 				inputOutputStreamIndexMap.put(streamIndex, outStream.index());
 				
@@ -908,16 +907,16 @@ public abstract class Muxer {
 			 * However, SFUForwarder calls writeVideoBuffer and the method packets itself there
 			 * To prevent memory issues and crashes we don't repacket if the packet is ready to use from SFU forwarder
 			 */
-			if(extradata != null && extradata.length > 0 && isKeyFrame) {
+			if(videoExtradata != null && videoExtradata.length > 0 && isKeyFrame) {
 
 
-				ByteBuffer byteBuffer = addExtraDataIfKeyFrame(extradata, pkt);
+				//ByteBuffer byteBuffer = addExtraDataIfKeyFrame(extradata, pkt);
 
-				byteBuffer.position(0);
+//				byteBuffer.position(0);
 
 				//Started to manually packet the frames because we want to add the extra data.
-				tmpPacket.data(new BytePointer(byteBuffer));
-				tmpPacket.size(byteBuffer.limit());
+//				tmpPacket.data(new BytePointer(byteBuffer));
+//				tmpPacket.size(byteBuffer.limit());
 			}
 
 			writeVideoFrame(tmpPacket, context);
@@ -950,12 +949,13 @@ public abstract class Muxer {
 	
 	protected void writeVideoFrame(AVPacket pkt, AVFormatContext context) {
 		int ret;
-		if (bsfFilterContext != null) {
-			ret = av_bsf_send_packet(bsfFilterContext, tmpPacket);
+		if (videoBsfFilterContext != null) 
+		{
+			ret = av_bsf_send_packet(videoBsfFilterContext, pkt);
 			if (ret < 0)
 				return;
 
-			while (av_bsf_receive_packet(bsfFilterContext, tmpPacket) == 0)
+			while (av_bsf_receive_packet(videoBsfFilterContext, pkt) == 0)
 			{
 				ret = av_write_frame(context, tmpPacket);
 				if (ret < 0 && logger.isWarnEnabled()) {
@@ -987,6 +987,10 @@ public abstract class Muxer {
 			av_strerror(ret, data, data.length);
 			logger.info("cannot write audio frame to muxer({}). Error is {} ", file.getName(), new String(data, 0, data.length));
 		}
+	}
+	
+	public void setExtradataForTest(){
+		videoExtradata = "test".getBytes();
 	}
 
 }
