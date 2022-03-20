@@ -827,7 +827,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		rtmpMuxer.init(appScope, "test", 0, null, 0);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
-		assertTrue(rtmpMuxer.initializeOutputFormatContextIO());
+		assertTrue(rtmpMuxer.openIO());
 
 		rtmpMuxer.setIsRunning(new AtomicBoolean(true));
 
