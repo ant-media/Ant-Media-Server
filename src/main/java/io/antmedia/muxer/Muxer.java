@@ -99,7 +99,7 @@ public abstract class Muxer {
 	protected boolean isInitialized = false;
 
 	protected Map<String, String> options = new HashMap<>();
-	private Logger logger;
+	protected Logger logger;
 
 	private static Logger loggerStatic = LoggerFactory.getLogger(Muxer.class);
 

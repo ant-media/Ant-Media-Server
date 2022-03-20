@@ -70,8 +70,6 @@ import io.vertx.core.Vertx;
 
 public class RtmpMuxer extends Muxer {
 
-	protected static Logger logger = LoggerFactory.getLogger(RtmpMuxer.class);
-
 	private String url;
 	private volatile boolean headerWritten = false;
 	private volatile boolean trailerWritten = false;
@@ -385,7 +383,7 @@ public class RtmpMuxer extends Muxer {
 	public void logIntervals(String type, byte[] data){
 		time2log++;
 		if (time2log % 100 == 0) {
-			logger.error("couldn't write {} {} frame to muxer. Error: {} stream: {} pkt.dts: {}", time2log, type, new String(data, 0, data.length), file != null ? file.getName() : " no name", tmpPacket.dts());
+			logger.error("couldn't write {} {} frame to muxer. Error: {} stream: {} pkt.dts: {}", time2log, type, new String(data, 0, data.length), file != null ? file.getName() : " no name", tmpPacket != null ? tmpPacket.dts() : null);
 			time2log = 0;
 		}
 	}
