@@ -46,7 +46,6 @@ public class HLSMuxer extends Muxer  {
 	private String hlsTime = "5";
 	private String hlsPlayListType = null;
 
-	private AVRational avRationalTimeBase;
 	private long totalSize;
 	private long startTime;
 	private long currentTime;
@@ -74,10 +73,6 @@ public class HLSMuxer extends Muxer  {
 
 		extension = ".m3u8";
 		format = "hls";
-
-		avRationalTimeBase = new AVRational();
-		avRationalTimeBase.num(1);
-		avRationalTimeBase.den(1);
 
 		this.s3StreamsFolderPath  = s3StreamsFolderPath;
 	}
@@ -208,11 +203,6 @@ public class HLSMuxer extends Muxer  {
 	@Override
 	public synchronized void writeTrailer() {
 		super.writeTrailer();
-		if (avRationalTimeBase != null) {
-			avRationalTimeBase.close();
-			avRationalTimeBase = null;
-		}
-
 		
 		logger.info("Delete File onexit:{} upload to S3:{} stream:{} hls time:{} hlslist size:{} ", deleteFileOnExit, uploadHLSToS3, streamId, hlsTime, hlsListSize);
 

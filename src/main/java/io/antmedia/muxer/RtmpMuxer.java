@@ -71,7 +71,6 @@ import io.vertx.core.Vertx;
 public class RtmpMuxer extends Muxer {
 
 	private String url;
-	private volatile boolean headerWritten = false;
 	private volatile boolean trailerWritten = false;
 	private IEndpointStatusListener statusListener;
 
@@ -177,6 +176,7 @@ public class RtmpMuxer extends Muxer {
 				logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
 			}
 		}, null);
+		
 		return true;
 	}
 
@@ -275,8 +275,8 @@ public class RtmpMuxer extends Muxer {
 	}
 
 	private synchronized void writeFrameInternal(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
-			AVFormatContext context, int codecType) {
-
+			AVFormatContext context, int codecType) 
+	{
 		long pts = pkt.pts();
 		long dts = pkt.dts();
 		long duration = pkt.duration();
@@ -328,11 +328,10 @@ public class RtmpMuxer extends Muxer {
 					if (headerWritten)
 					{
 						ret = av_write_frame(context, tmpPacket);
-						if (ret < 0 && logger.isInfoEnabled()) {
-							byte[] data = new byte[128];
-							av_strerror(ret, data, data.length);
+						if (ret < 0 && logger.isInfoEnabled()) 
+						{
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-							logIntervals("video", data);
+							logIntervals("video", getErrorDefinition(ret));
 						}
 						else{
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -347,11 +346,10 @@ public class RtmpMuxer extends Muxer {
 			else
 			{
 				ret = av_write_frame(context, tmpPacket);
-				if (ret < 0 && logger.isInfoEnabled()) {
-					byte[] data = new byte[128];
-					av_strerror(ret, data, data.length);
+				if (ret < 0 && logger.isInfoEnabled()) 
+				{
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-					logIntervals("video", data);
+					logIntervals("video", getErrorDefinition(ret));
 				}
 				else {
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -364,10 +362,8 @@ public class RtmpMuxer extends Muxer {
 			ret = av_write_frame(context, pkt);
 			if (ret < 0 && logger.isInfoEnabled())
 			{
-				byte[] data = new byte[128];
-				av_strerror(ret, data, data.length);
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-				logIntervals("audio",data);
+				logIntervals("audio", getErrorDefinition(ret));
 			}
 			else {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -380,13 +376,19 @@ public class RtmpMuxer extends Muxer {
 		pkt.pos(pos);
 	}
 
-	public void logIntervals(String type, byte[] data){
+	public void logIntervals(String type, String data){
 		time2log++;
 		if (time2log % 100 == 0) {
-			logger.error("couldn't write {} {} frame to muxer. Error: {} stream: {} pkt.dts: {}", time2log, type, new String(data, 0, data.length), file != null ? file.getName() : " no name", tmpPacket != null ? tmpPacket.dts() : null);
+			logger.error("couldn't write {} {} frame to muxer. Error: {} stream: {} pkt.dts: {}", time2log, type, data, file != null ? file.getName() : " no name", tmpPacket != null ? tmpPacket.dts() : null);
 			time2log = 0;
 		}
 	}
+	
+	public void logIntervals(String type, byte[] data) {
+		logIntervals(type, new String(data, 0, data.length));
+	}
+
+	
 
 	@Override
 	public synchronized void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,

@@ -241,33 +241,6 @@ public abstract class RecordMuxer extends Muxer {
 		logger.info("{} is ready", file.getName());
 	}
 
-	public static long getDurationInMs(File f, String streamId) {
-		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
-		int ret;
-		if (avformat_open_input(inputFormatContext, f.getAbsolutePath(), null, (AVDictionary)null) < 0) {
-			logger.info("cannot open input context for duration for stream: {}", streamId);
-			avformat_close_input(inputFormatContext);
-			return -1L;
-		}
-
-		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary)null);
-		if (ret < 0) {
-			logger.info("Could not find stream information for stream: {}", streamId);
-			avformat_close_input(inputFormatContext);
-			return -1L;
-		}
-		long durationInMS = -1;
-		if (inputFormatContext.duration() != AV_NOPTS_VALUE)
-		{
-			durationInMS = inputFormatContext.duration() / 1000;
-		}
-		avformat_close_input(inputFormatContext);
-		return durationInMS;
-	}
-
-
-
-
 	@Override
 	public boolean checkToDropPacket(AVPacket pkt, int codecType) {
 		if (!firstKeyFrameReceivedChecked && codecType == AVMEDIA_TYPE_VIDEO) 

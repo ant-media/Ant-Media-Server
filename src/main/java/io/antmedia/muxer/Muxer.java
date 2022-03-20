@@ -17,13 +17,17 @@ import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_trailer;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_new_stream;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
 import static org.bytedeco.ffmpeg.global.avformat.avio_closep;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
+import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_PASS_MINMAX;
@@ -116,6 +120,8 @@ public abstract class Muxer {
 	private boolean addDateTimeToResourceName = false;
 
 	protected AtomicBoolean isRunning = new AtomicBoolean(false);
+	
+	
 
 	public static final String TEMP_EXTENSION = ".tmp_extension";
 
@@ -138,6 +144,8 @@ public abstract class Muxer {
 
 	protected int videoWidth;
 	protected int videoHeight;
+	
+	protected volatile boolean headerWritten = false;
 
 	/**
 	 * This is the initial original resource name without any suffix such _1, _2, or .mp4, .webm
@@ -157,6 +165,13 @@ public abstract class Muxer {
 
 
 	protected Map<Integer, Integer> inputOutputStreamIndexMap = new ConcurrentHashMap<>();
+	
+	protected static AVRational avRationalTimeBase;
+	static {
+		avRationalTimeBase = new AVRational();
+		avRationalTimeBase.num(1);
+		avRationalTimeBase.den(1);
+	}
 
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
@@ -304,6 +319,7 @@ public abstract class Muxer {
 			av_dict_free(optionsDictionary);
 		}
 		isRunning.set(true);
+		headerWritten = true;
 		return true;
 	}
 
@@ -931,13 +947,13 @@ public abstract class Muxer {
 			if(videoExtradata != null && videoExtradata.length > 0 && isKeyFrame) {
 
 
-				//ByteBuffer byteBuffer = addExtraDataIfKeyFrame(extradata, pkt);
+				ByteBuffer byteBuffer = addExtraDataIfKeyFrame(videoExtradata, pkt);
 
-				//				byteBuffer.position(0);
+				byteBuffer.position(0);
 
 				//Started to manually packet the frames because we want to add the extra data.
-				//				tmpPacket.data(new BytePointer(byteBuffer));
-				//				tmpPacket.size(byteBuffer.limit());
+				tmpPacket.data(new BytePointer(byteBuffer));
+				tmpPacket.size(byteBuffer.limit());
 			}
 
 			writeVideoFrame(tmpPacket, context);
@@ -1014,4 +1030,34 @@ public abstract class Muxer {
 		videoExtradata = "test".getBytes();
 	}
 
+	
+	public static long getDurationInMs(File f, String streamId) {
+		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
+		int ret;
+		if (avformat_open_input(inputFormatContext, f.getAbsolutePath(), null, (AVDictionary)null) < 0) {
+			loggerStatic.info("cannot open input context for duration for stream: {}", streamId);
+			avformat_close_input(inputFormatContext);
+			return -1L;
+		}
+
+		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary)null);
+		if (ret < 0) {
+			loggerStatic.info("Could not find stream information for stream: {}", streamId);
+			avformat_close_input(inputFormatContext);
+			return -1L;
+		}
+		long durationInMS = -1;
+		if (inputFormatContext.duration() != AV_NOPTS_VALUE)
+		{
+			durationInMS = inputFormatContext.duration() / 1000;
+		}
+		avformat_close_input(inputFormatContext);
+		return durationInMS;
+	}
+	
+	public String getErrorDefinition(int errorCode) {
+		byte[] data = new byte[128];
+		av_strerror(errorCode, data, data.length);
+		return new String(data, 0, data.length);
+	}
 }
