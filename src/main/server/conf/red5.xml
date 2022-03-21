@@ -28,7 +28,7 @@
 	<bean id="red5.core"
 		class="org.red5.spring.Red5ApplicationContext">
 		<property name="configLocation"
-			value="classpath:/red5-core.xml" />
+			value="classpath:/ant-core.xml" />
 		<property name="parent" ref="red5.common" />
 	</bean>
 
