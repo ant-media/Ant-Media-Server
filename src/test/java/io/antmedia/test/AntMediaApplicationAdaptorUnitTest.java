@@ -1530,6 +1530,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(context.hasBean(IClusterNotifier.BEAN_NAME)).thenReturn(true);
 		StorageClient storageClient = Mockito.mock(StorageClient.class);
 		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
+		ServerSettings serverSettings = new ServerSettings();
+		Mockito.doReturn(serverSettings).when(spyAdapter).getServerSettings();
 		
 		
 		IClusterNotifier clusterNotifier = Mockito.mock(IClusterNotifier.class);
@@ -1577,6 +1579,28 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(4)).registerSettingUpdateListener(Mockito.any(), Mockito.any());
 		verify(spyAdapter, times(1)).updateSettings(settings, true, false);
+		verify(spyAdapter, times(3)).updateSettings(clusterStoreSettings, false, false);
+		
+		
+		clusterStoreSettings.setWarFileOriginServerAddress(serverSettings.getHostAddress());
+		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()+80000);
+		clusterStoreSettings.setPullWarFile(true);
+		spyAdapter.appStart(scope);
+		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
+		
+		
+		clusterStoreSettings.setWarFileOriginServerAddress("other address");
+		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()+80000);
+		clusterStoreSettings.setPullWarFile(true);
+		spyAdapter.appStart(scope);
+		verify(spyAdapter, times(4)).updateSettings(clusterStoreSettings, false, false);
+		
+		clusterStoreSettings.setWarFileOriginServerAddress(serverSettings.getHostAddress());
+		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()+80000);
+		clusterStoreSettings.setPullWarFile(false);
+		spyAdapter.appStart(scope);
+		verify(spyAdapter, times(5)).updateSettings(clusterStoreSettings, false, false);
+		
 	}
 	
 	@Test

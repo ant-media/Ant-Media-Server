@@ -140,8 +140,7 @@ public class AppSettingsTest {
 		assertEquals("1", savedSettings.getHlsTime());
 		assertNull(savedSettings.getHlsPlayListType());
 		assertEquals(0, savedSettings.getEncoderSettings().size());
-		
-		
+
 		settings.setHlsListSize("12");
 		settings.setVodFolder("/mnt/storage");
 		settings.setHlsTime("17");
@@ -183,7 +182,13 @@ public class AppSettingsTest {
 		assertEquals(720, savedSettings.getEncoderSettings().get(0).getHeight());
 		assertEquals(2500000, savedSettings.getEncoderSettings().get(0).getVideoBitrate());
 		assertEquals(128000, savedSettings.getEncoderSettings().get(0).getAudioBitrate());
-			
+
+
+
+		settings.setPullWarFile(true);
+		assertTrue(settings.isPullWarFile());
+		settings.setWarFileOriginServerAddress("address");
+		assertEquals("address", settings.getWarFileOriginServerAddress());
 	}
 	
 	
