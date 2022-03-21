@@ -653,6 +653,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				addStream2Muxers(codecpar, stream.time_base(), i);
 				videoStreamIndex = streamIndex;
+				videoCodecParameters = codecpar;
 				streamIndex++;
 
 			}
@@ -662,6 +663,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				addStream2Muxers(codecpar, stream.time_base(), i);
 				audioStreamIndex = streamIndex;
+				audioCodecParameters = codecpar;
 				streamIndex++;
 			}
 		}
