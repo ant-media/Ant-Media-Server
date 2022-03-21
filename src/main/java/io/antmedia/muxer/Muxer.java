@@ -105,7 +105,7 @@ public abstract class Muxer {
 	protected Map<String, String> options = new HashMap<>();
 	protected Logger logger;
 
-	private static Logger loggerStatic = LoggerFactory.getLogger(Muxer.class);
+	protected static Logger loggerStatic = LoggerFactory.getLogger(Muxer.class);
 
 	protected AVFormatContext outputFormatContext;
 

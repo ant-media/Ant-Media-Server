@@ -50,13 +50,10 @@ import io.vertx.core.Vertx;
 
 public abstract class RecordMuxer extends Muxer {
 
-	protected static Logger logger = LoggerFactory.getLogger(RecordMuxer.class);
 	protected File fileTmp;
 	protected StorageClient storageClient = null;
 	protected int resolution;
 	
-	
-
 	protected boolean uploadMP4ToS3 = true;
 
 	protected String previewPath;

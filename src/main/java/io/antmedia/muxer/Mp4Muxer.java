@@ -180,14 +180,14 @@ public class Mp4Muxer extends RecordMuxer {
 		AVFormatContext inputContext = new AVFormatContext(null);
 		int ret;
 		if ((ret = avformat_open_input(inputContext,srcFile, null, null)) < 0) {
-			logger.warn("cannot open input context {} errror code: {}", srcFile, ret);
+			loggerStatic.warn("cannot open input context {} errror code: {}", srcFile, ret);
 			return;
 		}
 
 		ret = avformat_find_stream_info(inputContext, (AVDictionary)null);
 
 		if (ret < 0) {
-			logger.warn("Cannot find stream info {}", srcFile);
+			loggerStatic.warn("Cannot find stream info {}", srcFile);
 			return;
 		}
 
@@ -200,7 +200,7 @@ public class Mp4Muxer extends RecordMuxer {
 			AVStream stream = avformat_new_stream(outputContext, null);
 			ret = avcodec_parameters_copy(stream.codecpar(), inputContext.streams(i).codecpar());
 			if (ret < 0) {
-				logger.warn("Cannot copy codecpar parameters from {} to {} for stream index {}", srcFile, dstFile, i);
+				loggerStatic.warn("Cannot copy codecpar parameters from {} to {} for stream index {}", srcFile, dstFile, i);
 				return;
 			}
 			stream.codecpar().codec_tag(0);
@@ -215,14 +215,14 @@ public class Mp4Muxer extends RecordMuxer {
 		AVIOContext pb = new AVIOContext(null);
 		ret = avio_open(pb, dstFile, AVIO_FLAG_WRITE);
 		if (ret < 0) {
-			logger.warn("Cannot open io context {}", dstFile);
+			loggerStatic.warn("Cannot open io context {}", dstFile);
 			return;
 		}
 		outputContext.pb(pb);
 
 		ret = avformat_write_header(outputContext, (AVDictionary)null);
 		if (ret < 0) {
-			logger.warn("Cannot write header to {}", dstFile);
+			loggerStatic.warn("Cannot write header to {}", dstFile);
 			return;
 		}
 
@@ -270,7 +270,7 @@ public class Mp4Muxer extends RecordMuxer {
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected void clearResource() {
+	protected synchronized void clearResource() {
 		super.clearResource();
 
 		if (bsfContext != null) {
