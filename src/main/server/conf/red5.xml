@@ -19,7 +19,7 @@
 	<bean id="red5.common"
 		class="org.red5.spring.Red5ApplicationContext">
 		<property name="configLocation"
-			value="classpath:/red5-common.xml" />
+			value="classpath:/ant-common.xml" />
 	</bean>
 
 
