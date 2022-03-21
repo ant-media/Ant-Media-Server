@@ -84,7 +84,7 @@ public class Launcher {
 		}
 		// create red5 app context
 		@SuppressWarnings("resource")
-		FileSystemXmlApplicationContext root = new FileSystemXmlApplicationContext(new String[] { "classpath:/red5.xml" }, false);
+		FileSystemXmlApplicationContext root = new FileSystemXmlApplicationContext(new String[] { "classpath:/ant.xml" }, false);
 		// set the current threads classloader as the loader for the factory/appctx
 		root.setClassLoader(Thread.currentThread().getContextClassLoader());
 		root.setId(RED5_ROOT);

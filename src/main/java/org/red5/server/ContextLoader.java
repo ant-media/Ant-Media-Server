@@ -175,7 +175,7 @@ public class ContextLoader implements ApplicationContextAware, InitializingBean,
         } catch (IOException e) {
             log.error("Error looking for config file", e);
         }
-        // add the context to the parent, this will be red5.xml
+        // add the context to the parent, this will be ant.xml
         ConfigurableBeanFactory factory = ((ConfigurableApplicationContext) applicationContext).getBeanFactory();
         if (factory.containsSingleton(name)) {
             log.warn("Singleton {} already exists, try unload first", name);
