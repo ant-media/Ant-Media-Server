@@ -16,7 +16,7 @@
     </bean>
     
     <bean id="placeholderConfig" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
-        <property name="location" value="classpath:/red5.properties" />
+        <property name="location" value="classpath:/ant.properties" />
     </bean>
     
     <!-- RTMP -->

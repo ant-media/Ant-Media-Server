@@ -953,7 +953,7 @@ public class AppSettings {
 
 	/**
 	 * Replace candidate addr with server addr,
-	 * In order to use it you should set serverName in conf/red5.properties
+	 * In order to use it you should set serverName in conf/ant.properties
 	 */
 	@Value("${" + SETTINGS_REPLACE_CANDIDATE_ADDR_WITH_SERVER_ADDR+ ":false}")
 	private boolean replaceCandidateAddrWithServerAddr;

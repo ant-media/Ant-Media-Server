@@ -53,7 +53,7 @@ if [ "$OS_NAME" = "Darwin" ]; then
 fi
 
 # Set use global IP
-sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $RED5_HOME/conf/red5.properties
+sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $RED5_HOME/conf/ant.properties
 
 ################################################
 # Set server name 
@@ -62,7 +62,7 @@ if [ "$USE_PUBLIC_IP_AS_SERVER_NAME" = "true" ]; then
   # get server public ip address
   SERVER_ADDRESS=`curl -s http://checkip.amazonaws.com`
 fi
-sed -i $SED_COMPATIBILITY 's/server.name=.*/server.name='$SERVER_ADDRESS'/' $RED5_HOME/conf/red5.properties
+sed -i $SED_COMPATIBILITY 's/server.name=.*/server.name='$SERVER_ADDRESS'/' $RED5_HOME/conf/ant.properties
 ################################################
 
 ################################################

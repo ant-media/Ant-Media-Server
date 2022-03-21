@@ -26,7 +26,7 @@ import org.webrtc.Logging;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
-@PropertySource("/conf/red5.properties")
+@PropertySource("/conf/ant.properties")
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class ServerSettings implements ApplicationContextAware {
 
@@ -319,7 +319,7 @@ public class ServerSettings implements ApplicationContextAware {
 			long diff = System.currentTimeMillis() - startTime;
 			if (diff > 1000) {
 				logger.warn("Getting host adress took {}ms. it's cached now and will return immediately from now on. You can "
-						+ " alternatively set serverName in conf/red5.properties file ", diff);
+						+ " alternatively set serverName in conf/ant.properties file ", diff);
 			}
 		}
 
