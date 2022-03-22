@@ -2158,7 +2158,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				encodedVideoFrame.rewind();
 
 				if (i==0) {
-					hlsMuxer.setExtradataForTest();
 					videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 				}
 				videoPkt.data(new BytePointer(encodedVideoFrame));
@@ -2236,7 +2235,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				encodedVideoFrame.rewind();
 
 				if (i == 0) {
-					mp4Muxer.setExtradataForTest();
 					videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 				}
 				videoPkt.data(new BytePointer(encodedVideoFrame));

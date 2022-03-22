@@ -120,8 +120,8 @@ public abstract class Muxer {
 	private boolean addDateTimeToResourceName = false;
 
 	protected AtomicBoolean isRunning = new AtomicBoolean(false);
-	
-	
+
+
 
 	public static final String TEMP_EXTENSION = ".tmp_extension";
 
@@ -144,16 +144,13 @@ public abstract class Muxer {
 
 	protected int videoWidth;
 	protected int videoHeight;
-	
+
 	protected volatile boolean headerWritten = false;
 
 	/**
 	 * This is the initial original resource name without any suffix such _1, _2, or .mp4, .webm
 	 */
 	protected String initialResourceNameWithoutExtension;
-
-
-	protected byte[] videoExtradata = null;
 
 	protected AVPacket tmpPacket;
 
@@ -165,7 +162,7 @@ public abstract class Muxer {
 
 
 	protected Map<Integer, Integer> inputOutputStreamIndexMap = new ConcurrentHashMap<>();
-	
+
 	protected static AVRational avRationalTimeBase;
 	static {
 		avRationalTimeBase = new AVRational();
@@ -285,7 +282,7 @@ public abstract class Muxer {
 		}
 
 		boolean result = false;
-		
+
 		if (openIO()) 
 		{
 			result = writeHeader();
@@ -684,6 +681,10 @@ public abstract class Muxer {
 	 */
 	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
+		if (isRunning.get()) {
+			logger.warn("It is already running and cannot add new stream while it's running for stream:{} and output:{}", streamId, getOutputURL());
+			return false;
+		}
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
 		if (outputContext != null 
@@ -691,58 +692,37 @@ public abstract class Muxer {
 				(codecParameters.codec_type() == AVMEDIA_TYPE_AUDIO || codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO)
 				)
 		{
-			AVStream outStream = null;
-			//if it's running, only get the stream
-			if (isRunning.get()) 
+
+			AVStream outStream = avNewStream(outputContext);
+			//if it's not running add to the list
+			registeredStreamIndexList.add(streamIndex);
+
+			if (bsfVideoName != null && codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
 			{
-				if (inputOutputStreamIndexMap.containsKey(streamIndex)) 
+				AVBSFContext videoBitstreamFilter = initVideoBitstreamFilter(codecParameters, timebase);
+				if (videoBitstreamFilter != null) 
 				{
-					int outStreamIndex = inputOutputStreamIndexMap.get(streamIndex);
-					outStream = outputContext.streams(outStreamIndex);
-
-					videoExtradata = new byte[codecParameters.extradata_size()];
-					if(videoExtradata.length > 0) 
-					{
-						BytePointer extraDataPointer = codecParameters.extradata();
-						extraDataPointer.get(videoExtradata).close();
-						extraDataPointer.close();
-					}
-				}
-			}
-			else 
-			{
-				outStream = avNewStream(outputContext);
-				//if it's not running add to the list
-				registeredStreamIndexList.add(streamIndex);
-
-				if (bsfVideoName != null && codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
-				{
-					AVBSFContext videoBitstreamFilter = initVideoBitstreamFilter(codecParameters, timebase);
-					if (videoBitstreamFilter != null) {
-						codecParameters = videoBitstreamFilter.par_out();
-						timebase = videoBitstreamFilter.time_base_out();
-					}
-
-				}
-			}
-
-			if (outStream != null) 
-			{
-				if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
-				{
-					videoWidth = codecParameters.width();
-					videoHeight = codecParameters.height();
+					codecParameters = videoBitstreamFilter.par_out();
+					timebase = videoBitstreamFilter.time_base_out();
 				}
 
-				avcodec_parameters_copy(outStream.codecpar(), codecParameters);
-				logger.info("Adding timebase to the input time base map index:{} value: {}/{}", outStream.index(), timebase.num(), timebase.den());
-				inputTimeBaseMap.put(streamIndex, timebase);
-				inputOutputStreamIndexMap.put(streamIndex, outStream.index());
-
-
-				outStream.codecpar().codec_tag(0);
-				result = true;
 			}
+
+			if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
+			{
+				videoWidth = codecParameters.width();
+				videoHeight = codecParameters.height();
+			}
+
+			avcodec_parameters_copy(outStream.codecpar(), codecParameters);
+			logger.info("Adding timebase to the input time base map index:{} value: {}/{} for stream:{}", 
+					outStream.index(), timebase.num(), timebase.den(), streamId);
+			inputTimeBaseMap.put(streamIndex, timebase);
+			inputOutputStreamIndexMap.put(streamIndex, outStream.index());
+
+			outStream.codecpar().codec_tag(0);
+			result = true;
+
 		}
 		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {
 			//if it's data, do not add and return true
@@ -777,7 +757,7 @@ public abstract class Muxer {
 			logger.info("cannot init bit stream filter context for {}", getOutputURL());
 			return null;
 		}
-		
+
 		return videoBsfFilterContext;
 	}
 
@@ -939,23 +919,6 @@ public abstract class Muxer {
 				return;
 			}
 
-			/*
-			 * We add this check because when encoder calls this method the packet needs extra data inside
-			 * However, SFUForwarder calls writeVideoBuffer and the method packets itself there
-			 * To prevent memory issues and crashes we don't repacket if the packet is ready to use from SFU forwarder
-			 */
-			if(videoExtradata != null && videoExtradata.length > 0 && isKeyFrame) {
-
-
-				ByteBuffer byteBuffer = addExtraDataIfKeyFrame(videoExtradata, pkt);
-
-				byteBuffer.position(0);
-
-				//Started to manually packet the frames because we want to add the extra data.
-				tmpPacket.data(new BytePointer(byteBuffer));
-				tmpPacket.size(byteBuffer.limit());
-			}
-
 			writeVideoFrame(tmpPacket, context);
 			av_packet_unref(tmpPacket);
 		}
@@ -1026,11 +989,6 @@ public abstract class Muxer {
 		}
 	}
 
-	public void setExtradataForTest(){
-		videoExtradata = "test".getBytes();
-	}
-
-	
 	public static long getDurationInMs(File f, String streamId) {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		int ret;
@@ -1054,10 +1012,20 @@ public abstract class Muxer {
 		avformat_close_input(inputFormatContext);
 		return durationInMS;
 	}
-	
+
 	public String getErrorDefinition(int errorCode) {
 		byte[] data = new byte[128];
 		av_strerror(errorCode, data, data.length);
 		return new String(data, 0, data.length);
+	}
+
+	/**
+	 * This is called when the current context will change soon. 
+	 * It's called by encoder and likely due to aspect ratio change
+	 * @param codecContext
+	 * @param streamIndex
+	 */
+	public synchronized void contextWillChange(AVCodecContext codecContext, int streamIndex) {
+		//No need to implement mostly
 	}
 }
