@@ -217,11 +217,10 @@ public abstract class Muxer {
 	}
 
 	/**
-	 * @Deprecated - use {@link #addStream(AVCodecParameters, AVRational, int)}
 	 * Add a new stream with this codec, codecContext and stream Index
 	 * parameters. After adding streams, need to call prepareIO()
 	 *
-	 * This method is generally called when an transcoding is required
+	 * This method is called by encoder. After encoder is opened, it adds codec context to the muxer
 	 *
 	 * @param codec
 	 * @param codecContext
@@ -290,7 +289,7 @@ public abstract class Muxer {
 		return result;
 	}
 
-	protected boolean writeHeader() 
+	public boolean writeHeader() 
 	{
 		AVDictionary optionsDictionary = null;
 
@@ -304,13 +303,17 @@ public abstract class Muxer {
 		}		
 
 		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);		
-		if (ret < 0 && logger.isWarnEnabled()) {
-			byte[] data = new byte[1024];
-			av_strerror(ret, data, data.length);
-			logger.warn("could not write header. File: {} Error: {}", file.getAbsolutePath(), new String(data, 0, data.length));
+		if (ret < 0) {
+			if (logger.isWarnEnabled()) 	{
+				logger.warn("Could not write header. File: {} Error: {}", file.getAbsolutePath(), getErrorDefinition(ret));
+			}
 			clearResource();
 			return false;
 		}
+		else {
+			logger.info("Header is written for stream:{} and url:{}", streamId, getOutputURL());
+		}
+		
 
 		if (optionsDictionary != null) {
 			av_dict_free(optionsDictionary);
@@ -593,8 +596,9 @@ public abstract class Muxer {
 	}
 
 	/**
-	 * @Deprecated - use {@link #addStream(AVCodecParameters, AVRational, int)}
 	 * Add video stream to the muxer with direct parameters. 
+	 * 
+	 * This method is called when there is a WebRTC ingest and there is no adaptive streaming
 	 *
 	 * @param width, video width
 	 * @param height, video height
@@ -631,8 +635,7 @@ public abstract class Muxer {
 	}
 
 	/**
-	 * @Deprecated - use {@link #addStream(AVCodecParameters, AVRational, int)}
-	 * Add audio stream to the muxer
+	 * Add audio stream to the muxer. 
 	 * @param sampleRate
 	 * @param channelLayout
 	 * @param codecId
@@ -673,7 +676,10 @@ public abstract class Muxer {
 	}
 
 	/**
-	 * Add stream to the muxer
+	 * Add stream to the muxer. This method is called by direct muxing. 
+	 * For instance from RTMP, SRT ingest & Stream Pull 
+	 * 	to HLS, MP4, HLS, DASH WebRTC Muxing
+	 * 
 	 * @param codecParameters
 	 * @param timebase
 	 * @param streamIndex, is the stream index of the source. Sometimes source and target stream index do not match
@@ -906,13 +912,6 @@ public abstract class Muxer {
 
 			//we set the firstVideoDts in checkToDropPacket Method to not have audio/video synch issue
 
-			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames
-			// until the first key frame
-			boolean isKeyFrame = false;
-			if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
-				isKeyFrame = true;
-			}
-
 			int ret = av_packet_ref(tmpPacket , pkt);
 			if (ret < 0) {
 				logger.error("Cannot copy video packet for {}", streamId);
@@ -1020,12 +1019,37 @@ public abstract class Muxer {
 	}
 
 	/**
-	 * This is called when the current context will change soon. 
+	 * This is called when the current context will change/deleted soon. 
 	 * It's called by encoder and likely due to aspect ratio change
-	 * @param codecContext
+	 * 
+	 * After this method has been called, this method {@link Muxer#contextChanged(AVCodecContext, int)}
+	 * should be called
+	 * @param codecContext the current context that will be changed/deleted soon 
+	 * 
 	 * @param streamIndex
 	 */
 	public synchronized void contextWillChange(AVCodecContext codecContext, int streamIndex) {
-		//No need to implement mostly
+		
 	}
+	
+	/**
+	 * It's called when the codecContext for the stream index has changed.
+	 * 
+	 * {@link Muxer#contextWillChange(AVCodecContext, int)} is called before this method is called.
+	 * 
+	 * @param codecContext
+	 * @param streamIndex
+	 */
+	public synchronized void contextChanged(AVCodecContext codecContext, int streamIndex) {
+		if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) {
+			videoWidth = codecContext.width();
+			videoHeight = codecContext.height();
+		}
+		
+		
+		inputTimeBaseMap.put(streamIndex, codecContext.time_base());
+		
+	}
+	
+	
 }
