@@ -157,7 +157,7 @@ public abstract class Muxer {
 	protected long firstAudioDts = 0;
 	protected long firstVideoDts = 0;
 
-	private AVPacket videoPkt;
+	protected AVPacket videoPkt;
 	protected int rotation;
 
 
