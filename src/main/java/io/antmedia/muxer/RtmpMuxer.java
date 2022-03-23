@@ -259,7 +259,7 @@ public class RtmpMuxer extends Muxer {
 
 		if (codecType == AVMEDIA_TYPE_VIDEO)
 		{
-			ret = av_packet_ref(tmpPacket , pkt);
+			ret = av_packet_ref(getTmpPacket() , pkt);
 			if (ret < 0) {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 				logger.error("Cannot copy packet for {}", file.getName());
@@ -267,19 +267,19 @@ public class RtmpMuxer extends Muxer {
 			}
 			if (videoBsfFilterContext != null)
 			{
-				ret = av_bsf_send_packet(videoBsfFilterContext, tmpPacket);
+				ret = av_bsf_send_packet(videoBsfFilterContext, getTmpPacket());
 				if (ret < 0) {
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 					logger.warn("cannot send packet to the filter");
 					return;
 				}
 
-				while (av_bsf_receive_packet(videoBsfFilterContext, tmpPacket) == 0)
+				while (av_bsf_receive_packet(videoBsfFilterContext, getTmpPacket()) == 0)
 				{
 					if (!headerWritten)
 					{
 						IntPointer size = new IntPointer(1);
-						BytePointer extradataBytePointer = avcodec.av_packet_get_side_data(tmpPacket, AV_PKT_DATA_NEW_EXTRADATA,  size);
+						BytePointer extradataBytePointer = avcodec.av_packet_get_side_data(getTmpPacket(), AV_PKT_DATA_NEW_EXTRADATA,  size);
 						if (size.get() != 0)
 						{
 							allocatedExtraDataPointer = new BytePointer(avutil.av_malloc(size.get() + AV_INPUT_BUFFER_PADDING_SIZE)).capacity(size.get() + AV_INPUT_BUFFER_PADDING_SIZE);
@@ -301,18 +301,10 @@ public class RtmpMuxer extends Muxer {
 						if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
 							isKeyFrame = true;
 						}
-						if(videoExtradata != null && videoExtradata.length > 0 && isKeyFrame) {
-
-							ByteBuffer byteBuffer = addExtraDataIfKeyFrame(videoExtradata, pkt);
-
-							byteBuffer.position(0);
-
-							//Started to manually packet the frames because we want to add the extra data.
-							tmpPacket.data(new BytePointer(byteBuffer));
-							tmpPacket.size(byteBuffer.limit());
-						}
 						
-						ret = av_write_frame(context, tmpPacket);
+						addExtradataIfRequired(pkt, isKeyFrame);
+						
+						ret = av_write_frame(context, getTmpPacket());
 						if (ret < 0 && logger.isInfoEnabled()) 
 						{
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
@@ -330,7 +322,7 @@ public class RtmpMuxer extends Muxer {
 			}
 			else
 			{
-				ret = av_write_frame(context, tmpPacket);
+				ret = av_write_frame(context, getTmpPacket());
 				if (ret < 0 && logger.isInfoEnabled()) 
 				{
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
@@ -340,7 +332,7 @@ public class RtmpMuxer extends Muxer {
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 				}
 			}
-			av_packet_unref(tmpPacket);
+			av_packet_unref(getTmpPacket());
 		}
 		else if (codecType == AVMEDIA_TYPE_AUDIO && headerWritten)
 		{
@@ -395,7 +387,7 @@ public class RtmpMuxer extends Muxer {
 	public void logIntervals(String type, String data){
 		time2log++;
 		if (time2log % 100 == 0) {
-			logger.error("couldn't write {} frame to muxer. Error: {} stream: {} pkt.dts: {}", type, data, file != null ? file.getName() : " no name", tmpPacket != null ? tmpPacket.dts() : null);
+			logger.error("couldn't write {} frame to muxer. Error: {} stream: {} pkt.dts: {}", type, data, file != null ? file.getName() : " no name", getTmpPacket() != null ? getTmpPacket().dts() : null);
 			time2log = 0;
 		}
 	}

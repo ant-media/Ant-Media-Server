@@ -282,14 +282,14 @@ public class Mp4Muxer extends RecordMuxer {
 			AVFormatContext context, long dts) {
 		int ret;
 		if (bsfContext != null) {
-			ret = av_bsf_send_packet(bsfContext, tmpPacket);
+			ret = av_bsf_send_packet(bsfContext, getTmpPacket());
 			if (ret < 0)
 				return;
 
-			while (av_bsf_receive_packet(bsfContext, tmpPacket) == 0) 
+			while (av_bsf_receive_packet(bsfContext, getTmpPacket()) == 0) 
 			{
 
-				ret = av_write_frame(context, tmpPacket);
+				ret = av_write_frame(context, getTmpPacket());
 				if (ret < 0 && logger.isInfoEnabled()) {
 					byte[] data = new byte[2048];
 					av_strerror(ret, data, data.length);

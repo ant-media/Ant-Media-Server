@@ -299,6 +299,61 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	@Test
+	public void testAddExtradata() 
+	{
+		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		mp4Muxer.init(appScope, "test",0, "", 0);
+		
+		AVCodecContext codecContext = new AVCodecContext();
+		codecContext.width(640);
+		codecContext.height(480);
+		
+		mp4Muxer.contextChanged(codecContext, 0);
+		
+		codecContext.extradata_size(10);
+		codecContext.extradata(new BytePointer(10));
+		
+		mp4Muxer.contextChanged(codecContext, 0);
+		
+		AVPacket pkt = new AVPacket();
+		
+		mp4Muxer.addExtradataIfRequired(pkt, true);
+		
+		assertEquals(10, mp4Muxer.getTmpPacket().size());
+		
+		pkt.data(new BytePointer(15)).size(15);
+		mp4Muxer.addExtradataIfRequired(pkt, false);
+		assertEquals(10, mp4Muxer.getTmpPacket().size());
+		
+		mp4Muxer.addExtradataIfRequired(pkt, true);
+		assertEquals(25, mp4Muxer.getTmpPacket().size());
+	}
+	
+	@Test
+	public void testAddStream() 
+	{
+		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		
+		mp4Muxer.clearResource();
+		
+		mp4Muxer.init(appScope, "test",0, "", 0);
+		
+		AVCodecContext codecContext = new AVCodecContext();
+		codecContext.width(640);
+		codecContext.height(480);
+		
+		assertEquals(0, mp4Muxer.getOutputFormatContext().nb_streams());
+		
+		boolean addStream = mp4Muxer.addStream(null, codecContext, 0);
+		assertTrue(addStream);
+		
+		assertEquals(1, mp4Muxer.getOutputFormatContext().nb_streams());
+		
+	}
+	
+	@Test
 	public void testContextChanged() 
 	{
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
@@ -315,8 +370,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		mp4Muxer.contextChanged(codecContext, 0);
 		assertEquals(1, mp4Muxer.getInputTimeBaseMap().size());
 		
-		assertEquals(640, codecContext.width());
-		assertEquals(480, codecContext.height());
+		assertEquals(640, mp4Muxer.getVideoWidth());
+		assertEquals(480, mp4Muxer.getVideoHeight());
 		
 		codecContext.extradata_size(10);
 		codecContext.extradata(new BytePointer(10));
@@ -755,6 +810,17 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 
+	}
+	
+	@Test
+	public void testRTMPCodecSupport() {
+		RtmpMuxer rtmpMuxer = new RtmpMuxer(null, vertx);
+		
+		assertTrue(rtmpMuxer.isCodecSupported(AV_CODEC_ID_H264));
+		assertTrue(rtmpMuxer.isCodecSupported(AV_CODEC_ID_AAC));
+		
+		assertFalse(rtmpMuxer.isCodecSupported(AV_CODEC_ID_AC3));
+		
 	}
 
 	@Test

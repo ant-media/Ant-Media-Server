@@ -172,9 +172,7 @@ public abstract class Muxer {
 
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
-		if (logger == null) {
-			logger = LoggerFactory.getLogger(this.getClass());
-		}
+		logger = LoggerFactory.getLogger(this.getClass());
 	}
 
 	public static File getPreviewFile(IScope scope, String name, String extension) {
@@ -450,7 +448,7 @@ public abstract class Muxer {
 
 	}
 
-	public ByteBuffer addExtraDataIfKeyFrame(byte[] extradata, AVPacket pkt){
+	public ByteBuffer getPacketBufferWithExtradata(byte[] extradata, AVPacket pkt){
 
 		ByteBuffer	byteBuffer = ByteBuffer.allocateDirect(extradata.length + pkt.size());
 		byteBuffer.put(extradata);
@@ -931,16 +929,7 @@ public abstract class Muxer {
 			 * However, SFUForwarder calls writeVideoBuffer and the method packets itself there
 			 * To prevent memory issues and crashes we don't repacket if the packet is ready to use from SFU forwarder
 			 */
-			if(videoExtradata != null && videoExtradata.length > 0 && isKeyFrame) {
-
-				ByteBuffer byteBuffer = addExtraDataIfKeyFrame(videoExtradata, pkt);
-
-				byteBuffer.position(0);
-
-				//Started to manually packet the frames because we want to add the extra data.
-				tmpPacket.data(new BytePointer(byteBuffer));
-				tmpPacket.size(byteBuffer.limit());
-			}
+			addExtradataIfRequired(pkt, isKeyFrame);
 
 			writeVideoFrame(tmpPacket, context);
 			av_packet_unref(tmpPacket);
@@ -966,6 +955,20 @@ public abstract class Muxer {
 		pkt.duration(duration);
 		pkt.pos(pos);
 
+	}
+
+	public void addExtradataIfRequired(AVPacket pkt, boolean isKeyFrame) 
+	{
+		if(videoExtradata != null && videoExtradata.length > 0 && isKeyFrame) 
+		{
+			ByteBuffer byteBuffer = getPacketBufferWithExtradata(videoExtradata, pkt);
+
+			byteBuffer.position(0);
+
+			//Started to manually packet the frames because we want to add the extra data.
+			tmpPacket.data(new BytePointer(byteBuffer));
+			tmpPacket.size(byteBuffer.limit());
+		}
 	}
 
 	protected void writeVideoFrame(AVPacket pkt, AVFormatContext context) {
@@ -1082,6 +1085,10 @@ public abstract class Muxer {
 	
 	public Map<Integer, AVRational> getInputTimeBaseMap() {
 		return inputTimeBaseMap;
+	}
+
+	public AVPacket getTmpPacket() {
+		return tmpPacket;
 	}
 	
 	
