@@ -265,7 +265,7 @@ public class Mp4Muxer extends RecordMuxer {
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected synchronized void clearResource() {
+	public synchronized void clearResource() {
 		super.clearResource();
 
 		if (bsfContext != null) {

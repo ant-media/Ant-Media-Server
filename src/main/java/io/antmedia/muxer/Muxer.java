@@ -403,6 +403,7 @@ public abstract class Muxer {
 				time2log = 0;
 			}
 			time2log++;
+			
 			return;
 		}
 
@@ -953,9 +954,7 @@ public abstract class Muxer {
 
 			if (ret < 0 && logger.isWarnEnabled()) {
 				if (time2log  % 100 == 0)  {
-					byte[] data = new byte[64];
-					av_strerror(ret, data, data.length);
-					logger.warn("cannot frame to muxer({}) not audio and not video. Error is {} ", file.getName(), new String(data, 0, data.length));
+					logger.warn("cannot frame to muxer({}) not audio and not video. Error is {} ", file.getName(), getErrorDefinition(ret));
 					time2log = 0;
 				}
 				time2log++;
@@ -981,9 +980,7 @@ public abstract class Muxer {
 			{
 				ret = av_write_frame(context, tmpPacket);
 				if (ret < 0 && logger.isWarnEnabled()) {
-					byte[] data = new byte[64];
-					av_strerror(ret, data, data.length);
-					logger.warn("cannot write video frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), new String(data, 0, data.length));
+					logger.warn("cannot write video frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), getErrorDefinition(ret));
 				}
 
 			}
@@ -992,9 +989,7 @@ public abstract class Muxer {
 
 			ret = av_write_frame(context, pkt);
 			if (ret < 0 && logger.isWarnEnabled()) {
-				byte[] data = new byte[64];
-				av_strerror(ret, data, data.length);
-				logger.warn("cannot write video frame to muxer({}). Pts: {} dts:{}  Error is {} ", file.getName(), pkt.pts(), pkt.dts(), new String(data, 0, data.length));
+				logger.warn("cannot write video frame to muxer({}). Pts: {} dts:{}  Error is {} ", file.getName(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
 			}
 		}
 	}
@@ -1004,25 +999,24 @@ public abstract class Muxer {
 		int ret;
 		ret = av_write_frame(context, tmpPacket);
 		if (ret < 0 && logger.isInfoEnabled()) {
-
-			byte[] data = new byte[64];
-			av_strerror(ret, data, data.length);
-			logger.info("cannot write audio frame to muxer({}). Error is {} ", file.getName(), new String(data, 0, data.length));
+			logger.info("cannot write audio frame to muxer({}). Error is {} ", file.getName(), getErrorDefinition(ret));
 		}
 	}
 
 	public static long getDurationInMs(File f, String streamId) {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		int ret;
-		if (avformat_open_input(inputFormatContext, f.getAbsolutePath(), null, (AVDictionary)null) < 0) {
-			loggerStatic.info("cannot open input context for duration for stream: {}", streamId);
+		streamId = streamId.replaceAll("[\n\r\t]", "_");
+		if (avformat_open_input(inputFormatContext, f.getAbsolutePath(), null, (AVDictionary)null) < 0) 
+		{
+			loggerStatic.info("cannot open input context for duration for stream: {} for file:{}", streamId, f.getName());
 			avformat_close_input(inputFormatContext);
 			return -1L;
 		}
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary)null);
 		if (ret < 0) {
-			loggerStatic.info("Could not find stream information for stream: {}", streamId);
+			loggerStatic.info("Could not find stream information for stream: {} for file:{}", streamId, f.getName());
 			avformat_close_input(inputFormatContext);
 			return -1L;
 		}
@@ -1035,7 +1029,7 @@ public abstract class Muxer {
 		return durationInMS;
 	}
 
-	public String getErrorDefinition(int errorCode) {
+	public static String getErrorDefinition(int errorCode) {
 		byte[] data = new byte[128];
 		av_strerror(errorCode, data, data.length);
 		return new String(data, 0, data.length);
@@ -1084,6 +1078,10 @@ public abstract class Muxer {
 		
 		inputTimeBaseMap.put(streamIndex, codecContext.time_base());
 		
+	}
+	
+	public Map<Integer, AVRational> getInputTimeBaseMap() {
+		return inputTimeBaseMap;
 	}
 	
 	

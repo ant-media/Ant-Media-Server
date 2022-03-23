@@ -283,6 +283,63 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(360, spsParser.getHeight());
 
 	}
+	
+	@Test
+	public void testAddAudioStream() 
+	{
+		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		
+		mp4Muxer.init(appScope, "test",0, "", 0);
+		assertEquals(0, mp4Muxer.getOutputFormatContext().nb_streams());
+		assertTrue(mp4Muxer.addAudioStream(44100, 3, AV_CODEC_ID_AAC, 0));
+		
+		assertEquals(1, mp4Muxer.getOutputFormatContext().nb_streams());
+		
+	}
+	
+	@Test
+	public void testContextChanged() 
+	{
+		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		
+		mp4Muxer.init(appScope, "test",0, "", 0);
+		assertEquals(0, mp4Muxer.getOutputFormatContext().nb_streams());
+
+		AVCodecContext codecContext = new AVCodecContext();
+		codecContext.width(640);
+		codecContext.height(480);
+		assertEquals(0,mp4Muxer.getInputTimeBaseMap().size());
+		mp4Muxer.contextWillChange(new AVCodecContext(), 0);
+		mp4Muxer.contextChanged(codecContext, 0);
+		assertEquals(1, mp4Muxer.getInputTimeBaseMap().size());
+		
+		assertEquals(640, codecContext.width());
+		assertEquals(480, codecContext.height());
+		
+		codecContext.extradata_size(10);
+		codecContext.extradata(new BytePointer(10));
+		mp4Muxer.contextWillChange(new AVCodecContext(), 0);
+		mp4Muxer.contextChanged(codecContext, 1);
+		
+		assertEquals(2, mp4Muxer.getInputTimeBaseMap().size());
+		
+		codecContext = new AVCodecContext();
+		codecContext.codec_type(AVMEDIA_TYPE_AUDIO);
+		mp4Muxer.contextWillChange(new AVCodecContext(), 0);
+		mp4Muxer.contextChanged(codecContext, 3);
+		
+		assertEquals(3, mp4Muxer.getInputTimeBaseMap().size());
+		
+	}
+	
+	@Test
+	public void testErrorDefinition() 
+	{
+		String errorDefinition = Muxer.getErrorDefinition(-1);
+		assertNotNull(errorDefinition);
+	}
 
 	@Test
 	public void testParseAACConfig() 

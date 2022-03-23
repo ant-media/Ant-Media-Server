@@ -361,19 +361,6 @@ public class RtmpMuxer extends Muxer {
 		pkt.pos(pos);
 	}
 
-	public void logIntervals(String type, String data){
-		time2log++;
-		if (time2log % 100 == 0) {
-			logger.error("couldn't write {} {} frame to muxer. Error: {} stream: {} pkt.dts: {}", time2log, type, data, file != null ? file.getName() : " no name", tmpPacket != null ? tmpPacket.dts() : null);
-			time2log = 0;
-		}
-	}
-	
-	public void logIntervals(String type, byte[] data) {
-		logIntervals(type, new String(data, 0, data.length));
-	}
-
-	
 
 	@Override
 	public synchronized void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,
@@ -403,6 +390,18 @@ public class RtmpMuxer extends Muxer {
 	@Override
 	public boolean isCodecSupported(int codecId) {
 		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC);
+	}
+	
+	public void logIntervals(String type, String data){
+		time2log++;
+		if (time2log % 100 == 0) {
+			logger.error("couldn't write {} frame to muxer. Error: {} stream: {} pkt.dts: {}", type, data, file != null ? file.getName() : " no name", tmpPacket != null ? tmpPacket.dts() : null);
+			time2log = 0;
+		}
+	}
+	
+	public void logIntervals(String type, byte[] data) {
+		logIntervals(type, new String(data, 0, data.length));
 	}
 
 }
