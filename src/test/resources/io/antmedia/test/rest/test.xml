@@ -8,8 +8,8 @@
 		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
 		<property name="locations">
 			<list>
-				<value>file:///${user.dir}/src/main/server/conf/red5.properties</value>
-				<value>file:///${user.dir}/src/test/resources/WEB-INF/red5-web.properties</value>
+				<value>file:///${user.dir}/src/main/server/conf/ant.properties</value>
+				<value>file:///${user.dir}/src/test/resources/WEB-INF/ant-web.properties</value>
 			</list>
 		</property>
 	</bean>
