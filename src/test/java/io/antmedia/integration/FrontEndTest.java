@@ -95,9 +95,21 @@ public class FrontEndTest {
 		restServiceTest = new RestServiceV2Test();
 
 		try {
+
+			ConsoleAppRestServiceTest.resetCookieStore();
+
+			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+
 			//we use this delete operation because sometimes there are too many vod files and
 			//vod service returns 50 for max and this make some tests fail
-
 			int currentVodNumber = restServiceTest.callTotalVoDNumber();
 			logger.info("current vod number before test {}", String.valueOf(currentVodNumber));
 			if (currentVodNumber > 10) {
@@ -114,21 +126,6 @@ public class FrontEndTest {
 				currentVodNumber = restServiceTest.callTotalVoDNumber();
 				logger.info("vod number after deletion {}", String.valueOf(currentVodNumber));
 			}
-
-			ConsoleAppRestServiceTest.resetCookieStore();
-
-			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
-
-			if (result.isSuccess()) {
-				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
-				assertTrue(createInitialUser.isSuccess());
-			}
-
-			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
-			assertTrue(result.isSuccess());
-
-
-
 		}
 		catch (Exception e) {
 			e.printStackTrace();
