@@ -62,6 +62,7 @@ import org.apache.commons.lang3.RandomUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
 import org.awaitility.Awaitility;
+import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -331,6 +332,23 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	@Test
+	public void testInitVideoBitstreamFilter() 
+	{
+		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		mp4Muxer.init(appScope, "test",0, "", 0);
+		mp4Muxer.getOutputFormatContext();
+		
+		mp4Muxer.setBitstreamFilter("h264_mp4toannexb");
+		AVBSFContext avbsfContext = mp4Muxer.initVideoBitstreamFilter(new AVCodecParameters(), Muxer.avRationalTimeBase);
+		assertNull(avbsfContext);
+		
+		avbsfContext = mp4Muxer.initVideoBitstreamFilter(null, Muxer.avRationalTimeBase);
+		assertNull(avbsfContext);
+
+	}
+	
+	@Test
 	public void testAddStream() 
 	{
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
@@ -338,6 +356,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		mp4Muxer.clearResource();
 		
+		mp4Muxer.init(appScope, "test",0, "", 0);
+		//increase coverage
 		mp4Muxer.init(appScope, "test",0, "", 0);
 		
 		AVCodecContext codecContext = new AVCodecContext();
@@ -355,6 +375,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		addStream = mp4Muxer.addStream(null, codecContext, 0);
 		assertFalse(addStream);
 		
+		//increase coverage
+		mp4Muxer.getIsRunning().set(false);
+		mp4Muxer.writePacket(new AVPacket(), codecContext);
+		
+		//increase coverage
+		mp4Muxer.writeVideoBuffer(null, 0, 0, 0, false, 0, 0);	
+		mp4Muxer.writeAudioBuffer(null, 0, 0);	
+			
 	}
 	
 	@Test
@@ -827,12 +855,16 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 	}
 	
+	
+	
 	@Test
 	public void testHLSAddStream() 
 	{
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7);
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		hlsMuxer.init(appScope, "test", 0, "", 100);
+		
+		assertFalse(hlsMuxer.writeHeader());
 		
 		AVCodecContext codecContext = new AVCodecContext();
 		codecContext.width(640);

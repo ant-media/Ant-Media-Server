@@ -743,7 +743,7 @@ public abstract class Muxer {
 		return result;
 	}
 
-	protected AVBSFContext initVideoBitstreamFilter(AVCodecParameters codecParameters, AVRational timebase) {
+	public AVBSFContext initVideoBitstreamFilter(AVCodecParameters codecParameters, AVRational timebase) {
 		AVBitStreamFilter bsfilter = av_bsf_get_by_name(bsfVideoName);
 		videoBsfFilterContext = new AVBSFContext(null);
 		int ret = av_bsf_alloc(bsfilter, videoBsfFilterContext);
