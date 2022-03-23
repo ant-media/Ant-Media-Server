@@ -259,6 +259,7 @@ public class HLSMuxer extends Muxer  {
 		//call super directly because no need to add bit stream filter 
 		return super.addStream(codecParameter, codecContext.time_base(), streamIndex);
 	}
+	
 
 	@Override
 	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 

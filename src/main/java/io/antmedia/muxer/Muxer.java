@@ -163,7 +163,7 @@ public abstract class Muxer {
 
 	protected Map<Integer, Integer> inputOutputStreamIndexMap = new ConcurrentHashMap<>();
 
-	protected static AVRational avRationalTimeBase;
+	public  static final AVRational avRationalTimeBase;
 	static {
 		avRationalTimeBase = new AVRational();
 		avRationalTimeBase.num(1);
@@ -248,7 +248,7 @@ public abstract class Muxer {
 
 			int ret = avformat.avio_open(pb,  getOutputURL(), AVIO_FLAG_WRITE);
 			if (ret < 0) {
-				logger.warn("Could not open output file: {} ", file.getAbsolutePath());
+				logger.warn("Could not open output url: {} ",  getOutputURL());
 				return false;
 			}
 			getOutputFormatContext().pb(pb);
@@ -396,14 +396,9 @@ public abstract class Muxer {
 			return;
 		}
 
-
-		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index())) {
-			if (time2log  % 100 == 0) {
-				logger.warn("Not writing packet1 for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
-				time2log = 0;
-			}
-			time2log++;
-			
+		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index())) 
+		{
+			logPacketIssue("Not writing packet1 for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
 			return;
 		}
 
@@ -417,6 +412,14 @@ public abstract class Muxer {
 
 		pkt.stream_index(inputStreamIndex);
 	}
+	
+	public void logPacketIssue(String format, Object... arguments) {
+		if (time2log  % 100 == 0) {
+			logger.warn(format, arguments);
+			time2log = 0;
+		}
+		time2log++;
+	}
 
 
 	/**
@@ -427,12 +430,7 @@ public abstract class Muxer {
 	 */
 	public synchronized void writePacket(AVPacket pkt, AVCodecContext codecContext) {
 		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index())) {
-			if (time2log  % 100 == 0)
-			{
-				logger.warn("Not writing packet for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
-				time2log = 0;
-			}
-			time2log++;
+			logPacketIssue("Not writing packet for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
 			return;
 		}
 
@@ -466,6 +464,10 @@ public abstract class Muxer {
 
 	public void setBitstreamFilter(String bsfName) {
 		this.bsfVideoName = bsfName;
+	}
+	
+	public String getBitStreamFilter() {
+		return bsfVideoName;
 	}
 
 	public File getFile() {
@@ -613,7 +615,7 @@ public abstract class Muxer {
 			boolean isAVC, AVCodecParameters codecpar) {
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
-		if (outputContext != null && isCodecSupported(codecId))
+		if (outputContext != null && isCodecSupported(codecId) && !isRunning.get())
 		{
 			registeredStreamIndexList.add(streamIndex);
 			AVStream outStream = avformat_new_stream(outputContext, null);
@@ -776,11 +778,7 @@ public abstract class Muxer {
 		 * because native objects like videoPkt can not be initiated yet
 		 */
 		if (!isRunning.get()) {
-			if (time2log  % 100 == 0) {
-				logger.warn("Not writing VideoBuffer for {} because Is running:{}", streamId, isRunning.get());
-				time2log = 0;
-			}
-			time2log++;
+			logPacketIssue("Not writing VideoBuffer for {} because Is running:{}", streamId, isRunning.get());
 			return;
 		}
 
@@ -807,11 +805,7 @@ public abstract class Muxer {
 
 	public synchronized void writeAudioBuffer(ByteBuffer audioFrame, int streamIndex, long timestamp) {
 		if (!isRunning.get()) {
-			if (time2log  % 100 == 0) {
-				logger.warn("Not writing AudioBuffer for {} because Is running:{}", streamId, isRunning.get());
-				time2log = 0;
-			}
-			time2log++;
+			logPacketIssue("Not writing AudioBuffer for {} because Is running:{}", streamId, isRunning.get());
 			return;
 		}
 
@@ -944,11 +938,7 @@ public abstract class Muxer {
 			int ret = av_write_frame(context, pkt);
 
 			if (ret < 0 && logger.isWarnEnabled()) {
-				if (time2log  % 100 == 0)  {
-					logger.warn("cannot frame to muxer({}) not audio and not video. Error is {} ", file.getName(), getErrorDefinition(ret));
-					time2log = 0;
-				}
-				time2log++;
+				logPacketIssue("cannot frame to muxer({}) not audio and not video. Error is {} ", file.getName(), getErrorDefinition(ret));
 			}
 		}
 
@@ -1091,6 +1081,10 @@ public abstract class Muxer {
 
 	public AVPacket getTmpPacket() {
 		return tmpPacket;
+	}
+	
+	public AtomicBoolean getIsRunning() {
+		return isRunning;
 	}
 	
 	

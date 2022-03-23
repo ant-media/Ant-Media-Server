@@ -122,7 +122,7 @@ public class RtmpMuxer extends Muxer {
 
 		if (preparedIO.get()) {
 			//it means it's already called
-			return true;
+			return false;
 		}
 		preparedIO.set(true);
 		this.vertx.executeBlocking(b ->
@@ -216,7 +216,8 @@ public class RtmpMuxer extends Muxer {
 		if (result) 
 		{
 			AVStream outStream = getOutputFormatContext().streams(inputOutputStreamIndexMap.get(streamIndex));
-			bsfVideoName = "extract_extradata";
+			
+			setBitstreamFilter("extract_extradata");
 			
 			AVBSFContext avbsfContext = initVideoBitstreamFilter(outStream.codecpar(), inputTimeBaseMap.get(streamIndex));
 			
@@ -308,7 +309,8 @@ public class RtmpMuxer extends Muxer {
 						if (ret < 0 && logger.isInfoEnabled()) 
 						{
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-							logIntervals("video", getErrorDefinition(ret));
+							logPacketIssue("Cannot write video packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
+							
 						}
 						else{
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -326,7 +328,8 @@ public class RtmpMuxer extends Muxer {
 				if (ret < 0 && logger.isInfoEnabled()) 
 				{
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-					logIntervals("video", getErrorDefinition(ret));
+					logPacketIssue("Cannot write video packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
+					
 				}
 				else {
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -340,7 +343,7 @@ public class RtmpMuxer extends Muxer {
 			if (ret < 0 && logger.isInfoEnabled())
 			{
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-				logIntervals("audio", getErrorDefinition(ret));
+				logPacketIssue("Cannot write audio packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
 			}
 			else {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -360,12 +363,7 @@ public class RtmpMuxer extends Muxer {
 	{
 
 		if (!isRunning.get() || !registeredStreamIndexList.contains(streamIndex)) {
-			if (time2log % 100 == 0) {
-				logger.warn("Not writing to RTMP muxer because it's not started for {}", url);
-				time2log = 0;
-			}
-			time2log++;
-
+			logPacketIssue("Not writing to RTMP muxer because it's not started for {}", url);
 			return;
 		}
 
@@ -384,16 +382,5 @@ public class RtmpMuxer extends Muxer {
 		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC);
 	}
 	
-	public void logIntervals(String type, String data){
-		time2log++;
-		if (time2log % 100 == 0) {
-			logger.error("couldn't write {} frame to muxer. Error: {} stream: {} pkt.dts: {}", type, data, file != null ? file.getName() : " no name", getTmpPacket() != null ? getTmpPacket().dts() : null);
-			time2log = 0;
-		}
-	}
-	
-	public void logIntervals(String type, byte[] data) {
-		logIntervals(type, new String(data, 0, data.length));
-	}
 
 }

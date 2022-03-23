@@ -92,7 +92,8 @@ public abstract class RecordMuxer extends Muxer {
 
 	@Override
 	public AVFormatContext getOutputFormatContext() {
-		if (outputFormatContext == null) {
+		if (outputFormatContext == null) 
+		{
 			outputFormatContext= new AVFormatContext(null);
 			fileTmp = new File(file.getAbsolutePath() + TEMP_EXTENSION);
 			int ret = avformat_alloc_output_context2(outputFormatContext, null, format, fileTmp.getAbsolutePath());

@@ -351,6 +351,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		assertEquals(1, mp4Muxer.getOutputFormatContext().nb_streams());
 		
+		mp4Muxer.getIsRunning().set(true);
+		addStream = mp4Muxer.addStream(null, codecContext, 0);
+		assertFalse(addStream);
+		
 	}
 	
 	@Test
@@ -822,6 +826,69 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(rtmpMuxer.isCodecSupported(AV_CODEC_ID_AC3));
 		
 	}
+	
+	@Test
+	public void testHLSAddStream() 
+	{
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7);
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		hlsMuxer.init(appScope, "test", 0, "", 100);
+		
+		AVCodecContext codecContext = new AVCodecContext();
+		codecContext.width(640);
+		codecContext.height(480);
+		codecContext.codec_id(AV_CODEC_ID_H264);
+		
+		boolean addStream = hlsMuxer.addStream(null, codecContext, 0);
+		assertTrue(addStream);
+		
+		assertNull(hlsMuxer.getBitStreamFilter());
+	}
+	
+	@Test
+	public void testRTMPAddStream() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx)appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		RtmpMuxer rtmpMuxer = new RtmpMuxer(null, vertx);
+		
+		AVCodecContext codecContext = new AVCodecContext();
+		codecContext.width(640);
+		codecContext.height(480);
+		
+		
+		boolean addStream = rtmpMuxer.addStream(null, codecContext, 0);
+		assertFalse(addStream);
+		
+		
+		codecContext.codec_id(AV_CODEC_ID_H264);
+		addStream = rtmpMuxer.addStream(null, codecContext, BUFFER_SIZE);
+		assertTrue(addStream);
+		
+		
+		addStream = rtmpMuxer.addVideoStream(480, 360, Muxer.avRationalTimeBase, AV_CODEC_ID_H264, 0, true, null);
+		assertTrue(addStream);
+		
+	}
+	
+	@Test
+	public void testRTMPPrepareIO() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx)appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		RtmpMuxer rtmpMuxer = new RtmpMuxer("rtmp://no_server", vertx);
+		
+		rtmpMuxer.prepareIO();
+		
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
+			return rtmpMuxer.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+		});
+		
+		assertFalse(rtmpMuxer.prepareIO());
+		
+	}
+	
+	
 
 	@Test
 	public void testRTMPHealthCheckProcess(){
@@ -2255,6 +2322,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//prepare io
 		boolean prepareIOresult = hlsMuxer.prepareIO();
 		assertTrue(prepareIOresult);
+		
+		addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
+		assertFalse(addStreamResult);
+		
+		addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_HCA, 0, false, null);
+		assertFalse(addStreamResult);
 
 		try {
 			FileInputStream fis = new FileInputStream("src/test/resources/frame0");
@@ -2689,6 +2762,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 		}
 	}
+	
 
 	@Test
 	public void testHLSNaming() {
@@ -2836,14 +2910,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
 	}
-	@Test
-	public void testLogs(){
-		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
-		byte[] data = new byte[0];
-		for(int i = 0; i < 110; i++){
-			rtmpMuxer.logIntervals("video", data );
-		}
-	}
+	
 
 
 	@Test
