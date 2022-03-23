@@ -121,7 +121,7 @@ public abstract class Muxer {
 
 	protected AtomicBoolean isRunning = new AtomicBoolean(false);
 
-
+	protected byte[] videoExtradata = null;
 
 	public static final String TEMP_EXTENSION = ".tmp_extension";
 
@@ -346,7 +346,7 @@ public abstract class Muxer {
 		av_write_trailer(outputFormatContext);
 
 		clearResource();
-
+	
 	}
 
 	protected synchronized void clearResource() {
@@ -912,10 +912,33 @@ public abstract class Muxer {
 
 			//we set the firstVideoDts in checkToDropPacket Method to not have audio/video synch issue
 
+			// we don't set startTimeInVideoTimebase here because we only start with key frame and we drop all frames
+			// until the first key frame
+			boolean isKeyFrame = false;
+			if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
+				isKeyFrame = true;
+			}
+
 			int ret = av_packet_ref(tmpPacket , pkt);
 			if (ret < 0) {
 				logger.error("Cannot copy video packet for {}", streamId);
 				return;
+			}
+
+			/*
+			 * We add this check because when encoder calls this method the packet needs extra data inside
+			 * However, SFUForwarder calls writeVideoBuffer and the method packets itself there
+			 * To prevent memory issues and crashes we don't repacket if the packet is ready to use from SFU forwarder
+			 */
+			if(videoExtradata != null && videoExtradata.length > 0 && isKeyFrame) {
+
+				ByteBuffer byteBuffer = addExtraDataIfKeyFrame(videoExtradata, pkt);
+
+				byteBuffer.position(0);
+
+				//Started to manually packet the frames because we want to add the extra data.
+				tmpPacket.data(new BytePointer(byteBuffer));
+				tmpPacket.size(byteBuffer.limit());
 			}
 
 			writeVideoFrame(tmpPacket, context);
@@ -1041,9 +1064,21 @@ public abstract class Muxer {
 	 * @param streamIndex
 	 */
 	public synchronized void contextChanged(AVCodecContext codecContext, int streamIndex) {
-		if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) {
+		
+		if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) 
+		{
 			videoWidth = codecContext.width();
 			videoHeight = codecContext.height();
+			
+			videoExtradata = new byte[codecContext.extradata_size()];
+
+			if(videoExtradata.length > 0) 
+			{
+				BytePointer extraDataPointer = codecContext.extradata();
+				extraDataPointer.get(videoExtradata).close();
+				extraDataPointer.close();
+				logger.info("extra data 0: {}  1: {}, 2:{}, 3:{}, 4:{}", videoExtradata[0], videoExtradata[1], videoExtradata[2], videoExtradata[3], videoExtradata[4]);
+			}
 		}
 		
 		

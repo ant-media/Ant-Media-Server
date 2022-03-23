@@ -3,68 +3,38 @@ package io.antmedia.muxer;
 
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H265;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_INPUT_BUFFER_PADDING_SIZE;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_DATA_NEW_EXTRADATA;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_alloc;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_free;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_get_by_name;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_init;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_receive_packet;
 import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_send_packet;
-import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_ref;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
-import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_from_context;
-import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
-import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
-import static org.bytedeco.ffmpeg.global.avformat.av_write_trailer;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_new_stream;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
-import static org.bytedeco.ffmpeg.global.avformat.avio_closep;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_PASS_MINMAX;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
-import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
 
 import java.nio.ByteBuffer;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
-import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
-import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
-import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.IntPointer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.vertx.core.Vertx;
 
@@ -73,7 +43,6 @@ public class RtmpMuxer extends Muxer {
 	private String url;
 	private volatile boolean trailerWritten = false;
 	private IEndpointStatusListener statusListener;
-
 
 	private BytePointer allocatedExtraDataPointer = null;
 
@@ -93,7 +62,7 @@ public class RtmpMuxer extends Muxer {
 	public String getOutputURL() {
 		return url;
 	}
-
+	
 	/**
 	 * {@inheritDoc}
 	 */
@@ -327,6 +296,22 @@ public class RtmpMuxer extends Muxer {
 
 					if (headerWritten)
 					{
+						
+						boolean isKeyFrame = false;
+						if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
+							isKeyFrame = true;
+						}
+						if(videoExtradata != null && videoExtradata.length > 0 && isKeyFrame) {
+
+							ByteBuffer byteBuffer = addExtraDataIfKeyFrame(videoExtradata, pkt);
+
+							byteBuffer.position(0);
+
+							//Started to manually packet the frames because we want to add the extra data.
+							tmpPacket.data(new BytePointer(byteBuffer));
+							tmpPacket.size(byteBuffer.limit());
+						}
+						
 						ret = av_write_frame(context, tmpPacket);
 						if (ret < 0 && logger.isInfoEnabled()) 
 						{
