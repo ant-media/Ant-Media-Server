@@ -369,11 +369,13 @@ public abstract class Muxer {
 		}
 
 		/* close output */
-		if ((outputFormatContext.flags() & AVFMT_NOFILE) == 0 && outputFormatContext.pb() != null)
+		if (outputFormatContext != null && (outputFormatContext.flags() & AVFMT_NOFILE) == 0 && outputFormatContext.pb() != null)
 			avio_closep(outputFormatContext.pb());
 
-		avformat_free_context(outputFormatContext);
-		outputFormatContext = null;
+		if (outputFormatContext != null) {
+			avformat_free_context(outputFormatContext);
+			outputFormatContext = null;
+		}
 	}
 
 	/**
