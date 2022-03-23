@@ -2,45 +2,19 @@ package io.antmedia.muxer;
 
 
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_free;
-import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
-import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
-import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
-import static org.bytedeco.ffmpeg.global.avformat.av_write_trailer;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
-import static org.bytedeco.ffmpeg.global.avformat.avio_closep;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.util.Set;
 
-import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
-import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
-import org.bytedeco.ffmpeg.avutil.AVDictionary;
-import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avformat;
-import org.bytedeco.javacpp.BytePointer;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -79,7 +53,7 @@ public abstract class RecordMuxer extends Muxer {
 	private long startTime = 0;
 
 
-	public RecordMuxer(StorageClient storageClient, Vertx vertx, String s3FolderPath) {
+	protected RecordMuxer(StorageClient storageClient, Vertx vertx, String s3FolderPath) {
 		super(vertx);
 		this.storageClient = storageClient;
 		this.s3FolderPath = s3FolderPath;

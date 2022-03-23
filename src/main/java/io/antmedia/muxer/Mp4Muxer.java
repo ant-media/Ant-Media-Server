@@ -53,11 +53,9 @@ import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
 import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
@@ -67,9 +65,6 @@ import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 
