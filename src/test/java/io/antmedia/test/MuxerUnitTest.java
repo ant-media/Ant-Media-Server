@@ -340,11 +340,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		mp4Muxer.getOutputFormatContext();
 		
 		mp4Muxer.setBitstreamFilter("h264_mp4toannexb");
-		AVBSFContext avbsfContext = mp4Muxer.initVideoBitstreamFilter(new AVCodecParameters(), Muxer.avRationalTimeBase);
-		assertNull(avbsfContext);
+		AVCodecParameters codecParameters = new AVCodecParameters();
+		codecParameters.codec_id(AV_CODEC_ID_H264);
+		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
+		AVBSFContext avbsfContext = mp4Muxer.initVideoBitstreamFilter(codecParameters, Muxer.avRationalTimeBase);
+		assertNotNull(avbsfContext);
 		
-		avbsfContext = mp4Muxer.initVideoBitstreamFilter(null, Muxer.avRationalTimeBase);
-		assertNull(avbsfContext);
 
 	}
 	

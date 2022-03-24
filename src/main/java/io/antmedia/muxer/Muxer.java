@@ -748,8 +748,7 @@ public abstract class Muxer {
 		videoBsfFilterContext = new AVBSFContext(null);
 		int ret = av_bsf_alloc(bsfilter, videoBsfFilterContext);
 
-		if (ret < 0) 
-		{
+		if (ret < 0) {
 			logger.info("cannot allocate bsf context for {}", getOutputURL());
 			return null;
 		}
