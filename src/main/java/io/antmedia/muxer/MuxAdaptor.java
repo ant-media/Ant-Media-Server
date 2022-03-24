@@ -1917,7 +1917,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			{
 				Muxer muxer = iterator.next();
 				if (muxer instanceof RtmpMuxer &&
-						((RtmpMuxer)muxer).getURL().equals(rtmpUrl))
+						((RtmpMuxer)muxer).getOutputURL().equals(rtmpUrl))
 				{
 					rtmpMuxer = (RtmpMuxer) muxer;
 					break;
