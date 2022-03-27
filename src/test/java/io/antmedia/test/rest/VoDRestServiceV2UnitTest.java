@@ -13,9 +13,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,6 +36,7 @@ import dev.morphia.query.experimental.filters.Filters;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
@@ -278,6 +282,7 @@ public class VoDRestServiceV2UnitTest {
 
 	@Test
 	public void testUploadVodFile() {
+		AppSettings appSettings = new AppSettings();
 
 		String fileName = RandomStringUtils.randomAlphabetic(11) + ".mp4"; 
 		FileInputStream inputStream;
@@ -293,9 +298,15 @@ public class VoDRestServiceV2UnitTest {
 			MuxingTest.delete(f);
 
 			restServiceReal.setScope(scope);
-
+			restServiceReal.setAppSettings(appSettings);
+			
 			DataStore store = new InMemoryDataStore("testdb");
 			restServiceReal.setDataStore(store);
+			
+			ApplicationContext context = mock(ApplicationContext.class);
+			when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+			
+			restServiceReal.setAppCtx(context);
 
 			assertNull(f.list());
 
@@ -340,6 +351,43 @@ public class VoDRestServiceV2UnitTest {
 		}
 
 	}
+	
+		@Test
+		public void testVoDUploadFinishedScript() {
+			
+			VoDRestService streamSourceRest2 = Mockito.spy(restServiceReal);
+			
+			InMemoryDataStore datastore = new InMemoryDataStore("datastore");
+
+			Scope scope = mock(Scope.class);
+			String scopeName = "junit";
+			when(scope.getName()).thenReturn(scopeName);
+			
+			AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+			when(app.getScope()).thenReturn(scope);
+			
+			ApplicationContext context = mock(ApplicationContext.class);
+			when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+			
+			AppSettings appSettings = new AppSettings();
+			appSettings.setVodUploadFinishScript("src/test/resources/echo.sh");
+			
+			Mockito.doReturn(app).when(streamSourceRest2).getApplication();
+			Mockito.doReturn(datastore).when(streamSourceRest2).getDataStore();
+			Mockito.doReturn(appSettings).when(streamSourceRest2).getAppSettings();
+
+			try {
+				String fileName = RandomStringUtils.randomAlphabetic(11) + ".mp4";
+				FileInputStream inputStream = new FileInputStream("src/test/resources/sample_MP4_480.mp4");
+
+				Result result = streamSourceRest2.uploadVoDFile(fileName, inputStream);				
+				assertTrue(result.isSuccess());
+
+				Mockito.verify(streamSourceRest2.getApplication(),Mockito.times(1)).runScript(Mockito.any());
+			} catch (FileNotFoundException e1) {
+				e1.printStackTrace();
+			}
+		}
 	
 	@Test
 	public void testVoDSorting() {
