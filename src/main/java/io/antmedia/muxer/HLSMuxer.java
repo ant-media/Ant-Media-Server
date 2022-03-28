@@ -212,7 +212,7 @@ public class HLSMuxer extends Muxer  {
 			//SEGMENT_SUFFIX_TS is %04d.ts
 			//convert segmentFileName to regular expression
 			String segmentFileWithoutSuffixTS = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, segmentFilename.indexOf(SEGMENT_SUFFIX_TS));
-			String regularExpression = segmentFileWithoutSuffixTS + "[0-9]{4}\\.ts$";
+			String regularExpression = segmentFileWithoutSuffixTS + "[0-9]*\\.ts$";
 			File[] files = file.getParentFile().listFiles((dir, name) -> 
 			
 				//matches m3u8 file or ts segment file
