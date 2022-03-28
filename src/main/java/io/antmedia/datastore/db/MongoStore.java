@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import io.antmedia.console.datastore.CommonDataStoreFunctions;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -22,12 +23,9 @@ import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
 import dev.morphia.Morphia;
 import dev.morphia.UpdateOptions;
-import dev.morphia.aggregation.experimental.expressions.impls.Expression;
 import dev.morphia.aggregation.experimental.stages.Group;
 import dev.morphia.annotations.Entity;
-import dev.morphia.annotations.Field;
-import dev.morphia.annotations.Index;
-import dev.morphia.annotations.Indexes;
+
 
 import static dev.morphia.aggregation.experimental.expressions.AccumulatorExpressions.sum;
 import static dev.morphia.aggregation.experimental.expressions.Expressions.field;
@@ -91,6 +89,8 @@ public class MongoStore extends DataStore {
 
 		mongoClient = MongoClients.create(uri);
 
+		CommonDataStoreFunctions handler = new CommonDataStoreFunctions();
+		handler.dropNonUniqueBroadcasts(mongoClient, dbName);
 
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = Morphia.createDatastore(mongoClient, dbName);

@@ -4,6 +4,8 @@ package io.antmedia.console.datastore;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoDatabase;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +37,10 @@ public class MongoStore extends AbstractConsoleDataStore {
 		String uri =  io.antmedia.datastore.db.MongoStore.getMongoConnectionUri(dbHost, dbUser, dbPassword);
 
 		mongoClient = MongoClients.create(uri);
+
+		CommonDataStoreFunctions handler = new CommonDataStoreFunctions();
+
+		handler.dropNonUniqueBroadcasts(mongoClient, dbName);
 
 		datastore = Morphia.createDatastore(mongoClient, dbName);
 		datastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
