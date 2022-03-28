@@ -1121,10 +1121,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return publishTimeoutStreams;
 	}
 
-	public int getWebRTCClientCount(){
-		return 0;
-	}
-
 	public synchronized void publishTimeoutError(String streamId) {
 		publishTimeoutStreams++;
 		publishTimeoutStreamsList.add(streamId);

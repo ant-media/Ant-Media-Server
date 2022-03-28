@@ -628,6 +628,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) {
 					IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
 					localWebRTCStreams += webrtcAdaptor.getNumberOfLiveStreams();
+					localWebRTCViewers += webrtcAdaptor.getNumberOfTotalViewers();
 				}
 
 				AntMediaApplicationAdapter adaptor = null;
@@ -638,7 +639,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
 					publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
 					localStreams += adaptor.getMuxAdaptors().size();
-					localWebRTCViewers += adaptor.getWebRTCClientCount();
+					
 				}
 			}
 		}
