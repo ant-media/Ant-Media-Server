@@ -653,6 +653,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				addStream2Muxers(codecpar, stream.time_base(), i);
 				videoStreamIndex = streamIndex;
+				videoCodecParameters = codecpar;
 				streamIndex++;
 
 			}
@@ -662,6 +663,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				addStream2Muxers(codecpar, stream.time_base(), i);
 				audioStreamIndex = streamIndex;
+				audioCodecParameters = codecpar;
 				streamIndex++;
 			}
 		}
@@ -997,7 +999,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						if(!appAdapter.isValidStreamParameters(width, height, fps, 0, streamId)) {
 							logger.info("Stream({}) has not passed specified validity checks so it's stopping", streamId);
 							closeRtmpConnection();
-							return;
+							break;
 						}
 					} else {
 						logger.warn("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);

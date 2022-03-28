@@ -302,7 +302,8 @@ public class AppSettings {
 	public static final String SETTINGS_WEBHOOK_AUTHENTICATE_URL = "settings.webhookAuthenticateURL";
 
 	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
-
+	
+	public static final String SETTINGS_VOD_UPLOAD_FINISH_SCRIPT = "settings.vodUploadFinishScript";
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -1395,6 +1396,13 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_WEBHOOK_AUTHENTICATE_URL+":}" )
 	private String webhookAuthenticateURL;
+	
+	/**
+	 * This is a script file path that is called by Runtime when VoD upload is finished,
+	 * Bash script file path will be called after upload process finishes.
+	 */
+	@Value( "${"+SETTINGS_VOD_UPLOAD_FINISH_SCRIPT+":}" )
+	private String vodUploadFinishScript;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2670,5 +2678,13 @@ public class AppSettings {
 
 	public void setWarFileOriginServerAddress(String warFileOriginServerAddress) {
 		this.warFileOriginServerAddress = warFileOriginServerAddress;
+	}
+	
+	public String getVodFinishScript() {
+		return vodUploadFinishScript;
+	}
+
+	public void setVodUploadFinishScript(String vodUploadFinishScript) {
+		this.vodUploadFinishScript = vodUploadFinishScript;
 	}
 }
