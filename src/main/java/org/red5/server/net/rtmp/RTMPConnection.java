@@ -752,7 +752,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
     /** {@inheritDoc} */
     public IClientBroadcastStream newBroadcastStream(Number streamId) {
         if (isValidStreamId(streamId)) {
-            // get ClientBroadcastStream defined as a prototype in ant-common.xml
+            // get ClientBroadcastStream defined as a prototype in ant-media-common.xml
             ClientBroadcastStream cbs = (ClientBroadcastStream) scope.getContext().getBean("clientBroadcastStream");
             customizeStream(streamId, cbs);
             if (!registerStream(cbs)) {
@@ -766,7 +766,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
     /** {@inheritDoc} */
     public ISingleItemSubscriberStream newSingleItemSubscriberStream(Number streamId) {
         if (isValidStreamId(streamId)) {
-            // get SingleItemSubscriberStream defined as a prototype in ant-common.xml
+            // get SingleItemSubscriberStream defined as a prototype in ant-media-common.xml
             SingleItemSubscriberStream siss = (SingleItemSubscriberStream) scope.getContext().getBean("singleItemSubscriberStream");
             customizeStream(streamId, siss);
             if (!registerStream(siss)) {
@@ -780,7 +780,7 @@ public abstract class RTMPConnection extends BaseConnection implements IStreamCa
     /** {@inheritDoc} */
     public IPlaylistSubscriberStream newPlaylistSubscriberStream(Number streamId) {
         if (isValidStreamId(streamId)) {
-            // get PlaylistSubscriberStream defined as a prototype in ant-common.xml
+            // get PlaylistSubscriberStream defined as a prototype in ant-media-common.xml
             PlaylistSubscriberStream pss = (PlaylistSubscriberStream) scope.getContext().getBean("playlistSubscriberStream");
             customizeStream(streamId, pss);
             if (!registerStream(pss)) {

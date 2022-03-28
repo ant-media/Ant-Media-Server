@@ -46,7 +46,7 @@ fi
 
 change_server_mode $1 $2 $3 $4
 
-sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $AMS_INSTALL_LOCATION/conf/ant.properties
+sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $AMS_INSTALL_LOCATION/conf/ant-web.properties
 
 if [ "$OS_NAME" = "Darwin" ]; then
   echo "You can re-start Ant Media Server on your Macos"

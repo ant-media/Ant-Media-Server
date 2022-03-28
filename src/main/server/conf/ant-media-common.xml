@@ -12,7 +12,7 @@
     <!-- DO NOT FORMAT THIS FILE IN ECLIPSE -->
     
     <bean id="placeholderConfig" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
-        <property name="location" value="classpath:/ant.properties" />
+        <property name="location" value="classpath:/ant-media.properties" />
     </bean>
 
     <!-- This context is shared between all child contexts. -->

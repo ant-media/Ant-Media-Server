@@ -94,7 +94,7 @@ public class Context implements IContext, ApplicationContextAware, ContextMXBean
     private IPersistenceStore persistanceStore;
 
     /**
-     * Initializes core context bean factory using red5.core bean factory from ant.xml context
+     * Initializes core context bean factory using red5.core bean factory from ant-media.xml context
      */
     @ConstructorProperties(value = { "" })
     public Context() {
@@ -231,7 +231,7 @@ public class Context implements IContext, ApplicationContextAware, ContextMXBean
             // standalone core context
             String config = System.getProperty("red5.conf_file");
             if (config == null) {
-                config = "ant.xml";
+                config = "ant-media.xml";
             }
             coreContext = ContextSingletonBeanFactoryLocator.getInstance(config).useBeanFactory("red5.core").getFactory();
         } else {

@@ -1274,7 +1274,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		 * If we know the case above, we will write better codes. 
 		 * 
 		 */
-		PreferenceStore store = new PreferenceStore(WEBAPPS_PATH + appName + "/WEB-INF/ant-web.properties");
+		PreferenceStore store = new PreferenceStore(WEBAPPS_PATH + appName + "/WEB-INF/ant-media-web.properties");
 
 		store.put(AppSettings.SETTINGS_MP4_MUXING_ENABLED, String.valueOf(newAppsettings.isMp4MuxingEnabled()));
 		store.put(AppSettings.SETTINGS_WEBM_MUXING_ENABLED, String.valueOf(newAppsettings.isWebMMuxingEnabled()));

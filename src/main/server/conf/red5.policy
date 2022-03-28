@@ -130,7 +130,7 @@ grant {
 
   permission java.io.FilePermission "file:red5-server.jar", "read";
   permission java.io.FilePermission "file:red5-service.jar", "read";
-  permission java.io.FilePermission "file:conf/ant.properties", "read";
+  permission java.io.FilePermission "file:conf/ant-media.properties", "read";
   
   permission java.io.FilePermission "file:webapps/installer/WEB-INF/cache", "read,write";
   

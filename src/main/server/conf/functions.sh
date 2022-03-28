@@ -44,15 +44,15 @@ change_server_mode() {
   fi
 
   #The c\ command is used to handle the & character in the mongo server url. & character mentions the matched line in s/ command
-  sed -i $SED_COMPATIBILITY "/clusterdb.host=/c\clusterdb.host=${MONGO_SERVER_IP}" $AMS_INSTALL_LOCATION/conf/ant.properties
-  sed -i $SED_COMPATIBILITY "/clusterdb.user=/c\clusterdb.user=$3" $AMS_INSTALL_LOCATION/conf/ant.properties
-  sed -i $SED_COMPATIBILITY "/clusterdb.password=/c\clusterdb.password=$4" $AMS_INSTALL_LOCATION/conf/ant.properties
+  sed -i $SED_COMPATIBILITY "/clusterdb.host=/c\clusterdb.host=${MONGO_SERVER_IP}" $AMS_INSTALL_LOCATION/conf/ant-media.properties
+  sed -i $SED_COMPATIBILITY "/clusterdb.user=/c\clusterdb.user=$3" $AMS_INSTALL_LOCATION/conf/ant-media.properties
+  sed -i $SED_COMPATIBILITY "/clusterdb.password=/c\clusterdb.password=$4" $AMS_INSTALL_LOCATION/conf/ant-media.properties
 
   for i in $LIST_APPS; do
-    sed -i $SED_COMPATIBILITY "/db.type=/c\db.type=$DB_TYPE" $i/WEB-INF/ant-web.properties
-    sed -i $SED_COMPATIBILITY "/db.host=/c\db.host=${MONGO_SERVER_IP}" $i/WEB-INF/ant-web.properties
-    sed -i $SED_COMPATIBILITY "/db.user=/c\db.user=$3" $i/WEB-INF/ant-web.properties
-    sed -i $SED_COMPATIBILITY "/db.password=/c\db.password=$4" $i/WEB-INF/ant-web.properties
+    sed -i $SED_COMPATIBILITY "/db.type=/c\db.type=$DB_TYPE" $i/WEB-INF/ant-media-web.properties
+    sed -i $SED_COMPATIBILITY "/db.host=/c\db.host=${MONGO_SERVER_IP}" $i/WEB-INF/ant-media-web.properties
+    sed -i $SED_COMPATIBILITY "/db.user=/c\db.user=$3" $i/WEB-INF/ant-media-web.properties
+    sed -i $SED_COMPATIBILITY "/db.password=/c\db.password=$4" $i/WEB-INF/ant-media-web.properties
   done
   
   if [ "$OS_NAME" != "Darwin" ]; then

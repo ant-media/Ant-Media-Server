@@ -94,7 +94,7 @@ esac
 
 APP_NAME_LOWER=$(echo $APP_NAME | awk '{print tolower($0)}')
 APP_DIR=$AMS_DIR/webapps/$APP_NAME
-ANT_PROPERTIES_FILE=$APP_DIR/WEB-INF/ant-web.properties
+ANT_PROPERTIES_FILE=$APP_DIR/WEB-INF/ant-media-web.properties
 WEB_XML_FILE=$APP_DIR/WEB-INF/web.xml
 
 mkdir $APP_DIR

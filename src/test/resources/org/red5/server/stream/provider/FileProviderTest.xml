@@ -17,7 +17,7 @@
             </list>
         </property>
     </bean>    
-    <!-- Global stuff from ant-default.xml -->
+    <!-- Global stuff from ant-media-default.xml -->
     <bean id="global.clientRegistry" class="org.red5.server.ClientRegistry" />
     <bean id="global.serviceInvoker" class="org.red5.server.service.ServiceInvoker" >
         <property name="serviceResolvers" >
@@ -39,7 +39,7 @@
         <property name="context" ref="global.context" />
         <property name="handler" ref="global.handler" />
     </bean>
-    <!-- Application stuff from ant-web.xml -->
+    <!-- Application stuff from ant-media-web.xml -->
     <bean id="web.context" autowire="byType" class="org.red5.server.Context" />
     <bean id="web.scope" class="org.red5.server.scope.WebScope">
         <property name="server" ref="red5.server" />

@@ -32,7 +32,7 @@ import io.antmedia.storage.StorageClient;
 
 public class AppSettingsTest {
 	String appName = "TestApp";
-	String path = "webapps/"+appName+ "/WEB-INF/ant-web.properties";
+	String path = "webapps/"+appName+ "/WEB-INF/ant-media-web.properties";
 	File settingsFile = new File(path);
 	
 	@Before

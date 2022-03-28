@@ -11,7 +11,7 @@
         <property name="ignoreUnresolvablePlaceholders" value="true" />
         <property name="locations" >
             <list>
-                <value>file:///${user.dir}/src/main/server/conf/red5.properties</value>
+                <value>file:///${user.dir}/src/main/server/conf/ant-media.properties</value>
             </list>
         </property>
     </bean>
@@ -23,7 +23,7 @@
     <bean id="consumerService" class="org.red5.server.stream.ConsumerService" />
     <bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService" />
 
-    <!-- Global stuff from ant-default.xml -->
+    <!-- Global stuff from ant-media-default.xml -->
     <bean id="global.clientRegistry" class="org.red5.server.ClientRegistry" />
 
     <bean id="global.serviceInvoker" class="org.red5.server.service.ServiceInvoker" >
@@ -55,7 +55,7 @@
         <property name="globalScope" ref="global.scope" />
     </bean>
 
-    <!-- Application stuff from ant-web.xml -->
+    <!-- Application stuff from ant-media-web.xml -->
     <bean id="web.context" autowire="byType" class="org.red5.server.Context" />
 
     <bean id="web.scope" class="org.red5.server.scope.WebScope">

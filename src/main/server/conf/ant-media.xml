@@ -10,7 +10,7 @@
 
 	<bean id="placeholderConfig"
 		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
-		<property name="location" value="classpath:/ant.properties" />
+		<property name="location" value="classpath:/ant-media.properties" />
 	</bean>
 
 	<!-- First we load the common context, its shared between all the other 
@@ -19,7 +19,7 @@
 	<bean id="red5.common"
 		class="org.red5.spring.Red5ApplicationContext">
 		<property name="configLocation"
-			value="classpath:/ant-common.xml" />
+			value="classpath:/ant-media-common.xml" />
 	</bean>
 
 
@@ -28,7 +28,7 @@
 	<bean id="red5.core"
 		class="org.red5.spring.Red5ApplicationContext">
 		<property name="configLocation"
-			value="classpath:/ant-core.xml" />
+			value="classpath:/ant-media-core.xml" />
 		<property name="parent" ref="red5.common" />
 	</bean>
 

@@ -8,8 +8,8 @@
 		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
 		<property name="locations">
 			<list>
-				<value>file:///${user.dir}/src/main/server/conf/ant.properties</value>
-				<value>file:///${user.dir}/src/test/resources/WEB-INF/ant-web.properties</value>
+				<value>file:///${user.dir}/src/main/server/conf/ant-media.properties</value>
+				<value>file:///${user.dir}/src/test/resources/WEB-INF/ant-media-web.properties</value>
 			</list>
 		</property>
 	</bean>
@@ -23,7 +23,7 @@
 	<!-- <bean id="schedulingService" class="org.red5.server.scheduling.QuartzSchedulingService" 
 		/> -->
 
-	<!-- Global stuff from ant-default.xml -->
+	<!-- Global stuff from ant-media-default.xml -->
 	<bean id="global.clientRegistry" class="org.red5.server.ClientRegistry" />
 
 	<bean id="global.serviceInvoker" class="org.red5.server.service.ServiceInvoker">
@@ -58,7 +58,7 @@
 
 
 
-	<!-- Application stuff from ant-web.xml -->
+	<!-- Application stuff from ant-media-web.xml -->
 	<bean id="web.context" autowire="byType" class="org.red5.server.Context" />
 
 	<bean id="web.scope" class="org.red5.server.scope.WebScope">

@@ -108,7 +108,7 @@ public class CommonRestService {
 
 	private static final String LOG_LEVEL = "logLevel";
 
-	private static final String RED5_PROPERTIES_PATH = "conf/ant.properties";
+	private static final String RED5_PROPERTIES_PATH = "conf/ant-media.properties";
 
 	protected static final Logger logger = LoggerFactory.getLogger(CommonRestService.class);
 
