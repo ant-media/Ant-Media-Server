@@ -366,8 +366,8 @@ public class MuxingTest {
 			appSettings.setMp4MuxingEnabled(false);
 			boolean hlsEnabled = appSettings.isHlsMuxingEnabled();
 			appSettings.setHlsMuxingEnabled(true);
-			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
-
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
 
 			// send rtmp stream with ffmpeg to red5
 			String streamName = "live_test"  + (int)(Math.random() * 999999);
