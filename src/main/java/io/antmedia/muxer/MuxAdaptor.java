@@ -1,6 +1,7 @@
 package io.antmedia.muxer;
 
 import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_PNG;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
@@ -644,14 +645,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		{
 			AVStream stream = inputFormatContext.streams(i);
 			AVCodecParameters codecpar = stream.codecpar();
-			if (codecpar.codec_type() == AVMEDIA_TYPE_VIDEO) 
-			{
-				logger.info("Video format width:{} height:{} for stream: {} source index:{} target index:{}", codecpar.width(), codecpar.height(), streamId, i, streamIndex);
+			if (codecpar.codec_type() == AVMEDIA_TYPE_VIDEO && !isBlacklistCodec(codecpar.codec_id())) {
+				
+				logger.info("Video format codec Id: {} width:{} height:{} for stream: {} source index:{} target index:{}", codecpar.codec_id(), codecpar.width(), codecpar.height(), streamId, i, streamIndex);
 				width = codecpar.width();
 				height = codecpar.height();
 
 				addStream2Muxers(codecpar, stream.time_base(), i);
 				videoStreamIndex = streamIndex;
+				videoCodecParameters = codecpar;
 				streamIndex++;
 
 			}
@@ -661,6 +663,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				addStream2Muxers(codecpar, stream.time_base(), i);
 				audioStreamIndex = streamIndex;
+				audioCodecParameters = codecpar;
 				streamIndex++;
 			}
 		}
@@ -996,7 +999,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						if(!appAdapter.isValidStreamParameters(width, height, fps, 0, streamId)) {
 							logger.info("Stream({}) has not passed specified validity checks so it's stopping", streamId);
 							closeRtmpConnection();
-							return;
+							break;
 						}
 					} else {
 						logger.warn("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
@@ -1916,7 +1919,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			{
 				Muxer muxer = iterator.next();
 				if (muxer instanceof RtmpMuxer &&
-						((RtmpMuxer)muxer).getURL().equals(rtmpUrl))
+						((RtmpMuxer)muxer).getOutputURL().equals(rtmpUrl))
 				{
 					rtmpMuxer = (RtmpMuxer) muxer;
 					break;
@@ -2098,6 +2101,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void setAudioDataConf(byte[] audioDataConf) {
 		this.audioDataConf = audioDataConf;
+	}
+	
+	public boolean isBlacklistCodec(int codecId) {
+		return (codecId == AV_CODEC_ID_PNG);
 	}
 
 }

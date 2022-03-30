@@ -302,7 +302,8 @@ public class AppSettings {
 	public static final String SETTINGS_WEBHOOK_AUTHENTICATE_URL = "settings.webhookAuthenticateURL";
 
 	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
-
+	
+	public static final String SETTINGS_VOD_UPLOAD_FINISH_SCRIPT = "settings.vodUploadFinishScript";
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -1177,10 +1178,20 @@ public class AppSettings {
 	@Value( "${"+SETTINGS_WEBRTC_VIEWER_LIMIT+":-1}" )
 	private int webRTCViewerLimit = -1;
 
-	/*
+	/**
 	 * Set to true when you want to delete an application 
 	 */
 	private boolean toBeDeleted = false;
+
+	/**
+	 * Set to true when the app settings are only created for pulling the war file.
+	 */
+	private boolean pullWarFile = false;
+
+	/**
+	 * Address of the original place of the war file.
+	 */
+	private String warFileOriginServerAddress;
 
 
 	/**
@@ -1385,6 +1396,13 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_WEBHOOK_AUTHENTICATE_URL+":}" )
 	private String webhookAuthenticateURL;
+	
+	/**
+	 * This is a script file path that is called by Runtime when VoD upload is finished,
+	 * Bash script file path will be called after upload process finishes.
+	 */
+	@Value( "${"+SETTINGS_VOD_UPLOAD_FINISH_SCRIPT+":}" )
+	private String vodUploadFinishScript;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2455,6 +2473,14 @@ public class AppSettings {
 		this.toBeDeleted = toBeDeleted;
 	}
 
+	public boolean isPullWarFile() {
+		return pullWarFile;
+	}
+
+	public void setPullWarFile(boolean pullWarFile) {
+		this.pullWarFile = pullWarFile;
+	}
+
 	public int getWebRTCKeyframeTime() {
 		return webRTCKeyframeTime;
 	}
@@ -2644,5 +2670,21 @@ public class AppSettings {
 
 	public void setS3Permission(String s3Permission) {
 		this.s3Permission = s3Permission;
+	}
+
+	public String getWarFileOriginServerAddress() {
+		return warFileOriginServerAddress;
+	}
+
+	public void setWarFileOriginServerAddress(String warFileOriginServerAddress) {
+		this.warFileOriginServerAddress = warFileOriginServerAddress;
+	}
+	
+	public String getVodFinishScript() {
+		return vodUploadFinishScript;
+	}
+
+	public void setVodUploadFinishScript(String vodUploadFinishScript) {
+		this.vodUploadFinishScript = vodUploadFinishScript;
 	}
 }

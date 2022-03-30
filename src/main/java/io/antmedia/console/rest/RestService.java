@@ -1,6 +1,7 @@
 package io.antmedia.console.rest;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
@@ -571,9 +572,9 @@ public class RestService extends CommonRestService {
 	@Path("/applications")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result createApplication(@QueryParam("appName") String appName) {
+	public Result createApplication(@QueryParam("appName") String appName, InputStream inputStream) {
 
-		return super.createApplication(appName);
+		return super.createApplication(appName, inputStream);
 	}
 	
 	@DELETE

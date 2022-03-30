@@ -172,13 +172,19 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 			boolean updateClusterSettings = false;
 			if(storedSettings == null) 
-			{
-				//if storedSettings is null, it means app is just created
-
+			{			
 				logger.warn("There is not a stored settings for the app:{}. It will update the database for app settings", app.getName());
-
 				storedSettings = appSettings;
 				updateClusterSettings = true;
+			}
+			else if (getServerSettings().getHostAddress().equals(storedSettings.getWarFileOriginServerAddress()) 
+						&& storedSettings.isPullWarFile()) 
+			{
+				storedSettings = appSettings;
+				updateClusterSettings = true;
+				//keep the settings to let the app distributed to all nodes
+				storedSettings.setPullWarFile(storedSettings.isPullWarFile());
+				storedSettings.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
 			}
 
 
@@ -461,7 +467,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return broadcast;
 	}
 
-	protected ServerSettings getServerSettings() 
+	public ServerSettings getServerSettings() 
 	{
 		if (serverSettings == null) {
 			serverSettings = (ServerSettings)scope.getContext().getApplicationContext().getBean(ServerSettings.BEAN_NAME);
@@ -1354,6 +1360,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		store.put(AppSettings.SETTINGS_WEBHOOK_AUTHENTICATE_URL, newAppsettings.getWebhookAuthenticateURL() != null ? String.valueOf(newAppsettings.getWebhookAuthenticateURL()) : "");
 
 		store.put(AppSettings.SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING, String.valueOf(newAppsettings.isForceAspectRatioInTranscoding()));
+		
+		store.put(AppSettings.SETTINGS_VOD_UPLOAD_FINISH_SCRIPT, newAppsettings.getVodFinishScript() != null ? String.valueOf(newAppsettings.getVodFinishScript()) : "");
+		
 		return store.save();
 	}
 
