@@ -41,7 +41,6 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
-import org.springframework.context.access.ContextSingletonBeanFactoryLocator;
 import org.springframework.core.io.Resource;
 
 /**
@@ -226,18 +225,11 @@ public class Context implements IContext, ApplicationContextAware, ContextMXBean
     public void setApplicationContext(ApplicationContext context) {
         this.applicationContext = context;
         String deploymentType = System.getProperty("red5.deployment.type");
-        logger.debug("Deployment type: " + deploymentType);
-        if (deploymentType == null) {
-            // standalone core context
-            String config = System.getProperty("red5.conf_file");
-            if (config == null) {
-                config = "red5.xml";
-            }
-            coreContext = ContextSingletonBeanFactoryLocator.getInstance(config).useBeanFactory("red5.core").getFactory();
-        } else {
-            logger.info("Setting parent bean factory as core");
-            coreContext = applicationContext.getParentBeanFactory();
-        }
+        
+        logger.info("Deployment type: {}" , deploymentType);
+        
+        coreContext = applicationContext.getParentBeanFactory();
+        
     }
 
     /**
