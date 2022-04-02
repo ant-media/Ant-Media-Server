@@ -295,12 +295,7 @@ public class Context implements IContext, ApplicationContextAware, ContextMXBean
     public Object lookupService(String serviceName) {
         serviceName = getMappingStrategy().mapServiceName(serviceName);
         try {
-            Object bean = applicationContext.getBean(serviceName);
-            if (bean != null) {
-                return bean;
-            } else {
-                throw new ServiceNotFoundException(serviceName);
-            }
+            return applicationContext.getBean(serviceName);
         } catch (NoSuchBeanDefinitionException err) {
             throw new ServiceNotFoundException(serviceName);
         }

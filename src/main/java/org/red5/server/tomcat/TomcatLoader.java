@@ -650,8 +650,9 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 						}
 					}
 					if (log.isDebugEnabled()) {
-						if (appctx.getParent() != null) {
-							log.debug("Parent application context: {}", appctx.getParent().getDisplayName());
+						ApplicationContext parentContext = appctx.getParent();
+						if (parentContext != null) {
+							log.debug("Parent application context: {}", parentContext.getDisplayName());
 						}
 					}
 					// add the servlet context
