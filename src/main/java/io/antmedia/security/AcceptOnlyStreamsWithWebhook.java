@@ -80,7 +80,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 		}
 		else
 		{
-			logger.info("AcceptOnlyStreamsWithWebhook is not activated for stream {} webhook url: {}", name, webhookAuthURL);
+			logger.info("AcceptOnlyStreamsWithWebhook is not activated for stream {}", name);
 			result.set(true);
 		}
 

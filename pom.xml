@@ -417,6 +417,12 @@
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-dropwizard-metrics</artifactId>
 			<version>${vertx-core.version}</version>
+			<exclusions>
+				<exclusion>
+					<groupId>io.netty</groupId>
+					<artifactId>netty-tcnative-classes</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.amazonaws</groupId>
