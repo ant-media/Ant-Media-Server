@@ -649,12 +649,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 							}
 						}
 					}
-					if (log.isDebugEnabled()) {
-						ApplicationContext parentContext = appctx.getParent();
-						if (parentContext != null) {
-							log.debug("Parent application context: {}", parentContext.getDisplayName());
-						}
-					}
+					
 					// add the servlet context
 					appctx.setServletContext(servletContext);
 					// set the root webapp ctx attr on the each servlet context so spring can find it later
