@@ -50,9 +50,7 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		{
 			logger.info("AcceptOnlyStreamsInDataStore is not activated. Accepting all streams {}", name);
 			Broadcast broadcast = getDatastore().get(name);
-			if(broadcast != null) {
-				logger.warn("Stream Id in use {}", name);
-			}
+			
 			result = broadcast == null
 					|| 
 					(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) 
