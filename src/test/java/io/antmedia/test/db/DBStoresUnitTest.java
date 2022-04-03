@@ -2680,6 +2680,15 @@ public class DBStoresUnitTest {
 
 	}
 	
+	@Test
+	public void testCommandScript() {
+		String dbName = "MongoDB"; 
+		String serverIP = "localhost";
+		
+		MongoStore dataStoreSpy = Mockito.spy(new MongoStore(serverIP, "", "", dbName));
+		assertTrue(dataStoreSpy.serverUpdated);
+	}
+	
 	
 	public void testWebRTCViewerOperations(DataStore dataStore) {
 		

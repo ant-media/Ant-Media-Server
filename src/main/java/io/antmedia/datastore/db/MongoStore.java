@@ -44,6 +44,7 @@ import dev.morphia.query.experimental.updates.UpdateOperator;
 import dev.morphia.query.experimental.updates.UpdateOperators;
 import dev.morphia.query.MorphiaCursor;
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.console.AdminApplication;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -83,14 +84,15 @@ public class MongoStore extends DataStore {
 	private static final String HLS_VIEWER_COUNT = "hlsViewerCount";
 	private static final String WEBRTC_VIEWER_COUNT = "webRTCViewerCount";
 	private static final String META_DATA = "metaData";
+	public boolean serverUpdated = false;
 
 	public MongoStore(String host, String username, String password, String dbName) {
 
 		String uri = getMongoConnectionUri(host, username, password);
 
-
 		mongoClient = MongoClients.create(uri);
-
+		
+		updateMongoDb(host, username, password);
 
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = Morphia.createDatastore(mongoClient, dbName);
@@ -140,6 +142,12 @@ public class MongoStore extends DataStore {
 		logger.info("uri:{}",uri);
 
 		return uri;
+	}
+	
+	public void updateMongoDb(String dbHost, String dbUser, String dbPassword) {
+		serverUpdated = true;
+		String command = "/bin/bash update_mongodb.sh " + dbHost + " "+ dbUser + " " + dbPassword;
+		AdminApplication.runCommand(command);
 	}
 
 	/*

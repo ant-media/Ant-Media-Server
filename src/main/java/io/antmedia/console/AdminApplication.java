@@ -457,7 +457,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return clusterNotifier;
 	}
 
-	public boolean runCommand(String command) {
+	public static boolean runCommand(String command) {
 
 		boolean result = false;
 		try {
@@ -466,7 +466,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 		catch (IOException e) {
 			log.error(ExceptionUtils.getStackTrace(e));
-		} 
+		}
 		catch (InterruptedException e) {
 			log.error(ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
@@ -474,7 +474,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return result;
 	}
 
-	public Process getProcess(String command) throws IOException {
+	public static Process getProcess(String command) throws IOException {
 		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
 		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
 		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
