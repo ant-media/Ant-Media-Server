@@ -184,7 +184,9 @@ public class StatsCollectorTest {
 		assertTrue(jsObject.has(StatsCollector.LOCAL_WEBRTC_LIVE_STREAMS));
 		assertTrue(jsObject.has(StatsCollector.LOCAL_WEBRTC_VIEWERS));
 		assertTrue(jsObject.has(StatsCollector.LOCAL_HLS_VIEWERS));
-		
+		assertTrue(jsObject.has(StatsCollector.LOCAL_LIVE_STREAMS));
+
+
 		GPUUtils gpuUtils = Mockito.mock(GPUUtils.class);
 		MemoryStatus memoryStatus = Mockito.mock(MemoryStatus.class);
 		Mockito.when(gpuUtils.getMemoryStatus(0)).thenReturn(memoryStatus);

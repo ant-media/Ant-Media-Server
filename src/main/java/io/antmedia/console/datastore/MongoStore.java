@@ -12,8 +12,8 @@ import com.mongodb.client.MongoClients;
 
 import dev.morphia.Datastore;
 import dev.morphia.Morphia;
-import dev.morphia.query.experimental.filters.Filters;
-import dev.morphia.query.experimental.updates.UpdateOperators;
+import dev.morphia.query.filters.Filters;
+import dev.morphia.query.updates.UpdateOperators;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.rest.model.UserType;
 
