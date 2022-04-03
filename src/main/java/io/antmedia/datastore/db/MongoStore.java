@@ -38,7 +38,7 @@ import dev.morphia.query.filters.Filters;
 import dev.morphia.query.updates.UpdateOperator;
 import dev.morphia.query.updates.UpdateOperators;
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.console.AdminApplication;
+import io.antmedia.ScriptRunUtil;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -78,7 +78,13 @@ public class MongoStore extends DataStore {
 	private static final String HLS_VIEWER_COUNT = "hlsViewerCount";
 	private static final String WEBRTC_VIEWER_COUNT = "webRTCViewerCount";
 	private static final String META_DATA = "metaData";
-	public boolean serverUpdated = false;
+	public boolean dbUpdated = false;
+	
+	public boolean isDbUpdated() {
+		return dbUpdated;
+	}
+
+	ScriptRunUtil scriptUtil = new ScriptRunUtil();
 
 	public MongoStore(String host, String username, String password, String dbName) {
 
@@ -139,9 +145,9 @@ public class MongoStore extends DataStore {
 	}
 	
 	public void updateMongoDb(String dbHost, String dbUser, String dbPassword) {
-		serverUpdated = true;
+		dbUpdated = true;
 		String command = "/bin/bash update_mongodb.sh " + dbHost + " "+ dbUser + " " + dbPassword;
-		AdminApplication.runCommand(command);
+		scriptUtil.runCommand(command);
 	}
 
 	/*

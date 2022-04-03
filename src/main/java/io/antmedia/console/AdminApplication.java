@@ -34,10 +34,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.ScriptRunUtil;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
-import io.antmedia.console.rest.CommonRestService;
-import io.antmedia.datastore.db.DataStore;
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
@@ -78,6 +77,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 
 	private IClusterNotifier clusterNotifier;
+	ScriptRunUtil scriptUtil = new ScriptRunUtil();
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -314,7 +314,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			String mongoUser = getDataStoreFactory().getDbUser();
 			String mongoPass = getDataStoreFactory().getDbPassword();
 
-			boolean result = runCreateAppScript(appName, true, mongoHost, mongoUser, mongoPass, warFileFullPath);
+			boolean result = getScriptUtil().runCreateAppScript(appName, true, mongoHost, mongoUser, mongoPass, warFileFullPath);
 			success = result;
 		}
 		else {
@@ -381,7 +381,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		{
 			getApplicationAdaptor(appScope).stopApplication(deleteDB);
 
-			success = runDeleteAppScript(appName);
+			success = getScriptUtil().runDeleteAppScript(appName);
 			warDeployer.undeploy(appName);
 
 			try {
@@ -400,86 +400,15 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 
 	public boolean runCreateAppScript(String appName, String warFilePath) {
-		return runCreateAppScript(appName, false, null, null, null, warFilePath);
+		return getScriptUtil().runCreateAppScript(appName, false, null, null, null, warFilePath);
 	}
 
 	public boolean runCreateAppScript(String appName) {
-		return runCreateAppScript(appName, false, null, null, null, null);
-	}
-
-	public boolean runCreateAppScript(String appName, boolean isCluster, 
-			String mongoHost, String mongoUser, String mongoPass, String warFileName) {
-		Path currentRelativePath = Paths.get("");
-		String webappsPath = currentRelativePath.toAbsolutePath().toString();
-
-		String command;
-
-		if(warFileName != null && !warFileName.isEmpty())
-		{
-			command = "/bin/bash create_app.sh"
-					+ " -n " + appName
-					+ " -w true"
-					+ " -p " + webappsPath
-					+ " -c " + isCluster
-					+ " -f " + warFileName;
-
-		}
-		else
-		{
-			command = "/bin/bash create_app.sh"
-					+ " -n " + appName
-					+ " -w true"
-					+ " -p " + webappsPath
-					+ " -c " + isCluster;
-		} 
-
-		if(isCluster) 
-		{
-			command += " -m " + mongoHost
-					+ " -u "  + mongoUser
-					+ " -s "  + mongoPass;
-		}
-
-		log.info("Creating application with command: {}", command);
-		return runCommand(command);
-	}
-
-	public boolean runDeleteAppScript(String appName) {
-		Path currentRelativePath = Paths.get("");
-		String webappsPath = currentRelativePath.toAbsolutePath().toString();
-
-		String command = "/bin/bash delete_app.sh -n "+appName+" -p "+webappsPath;
-
-		return runCommand(command);
+		return getScriptUtil().runCreateAppScript(appName, false, null, null, null, null);
 	}
 
 	public IClusterNotifier getClusterNotifier() {
 		return clusterNotifier;
-	}
-
-	public static boolean runCommand(String command) {
-
-		boolean result = false;
-		try {
-			Process process = getProcess(command);
-			result = process.waitFor() == 0;
-		}
-		catch (IOException e) {
-			log.error(ExceptionUtils.getStackTrace(e));
-		}
-		catch (InterruptedException e) {
-			log.error(ExceptionUtils.getStackTrace(e));
-			Thread.currentThread().interrupt();
-		}
-		return result;
-	}
-
-	public static Process getProcess(String command) throws IOException {
-		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
-		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
-		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
-		return pb.start();
-
 	}
 
 	public void setVertx(Vertx vertx) {
@@ -488,5 +417,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	public void setWarDeployer(WarDeployer warDeployer) {
 		this.warDeployer = warDeployer;
+	}
+
+	public ScriptRunUtil getScriptUtil() {
+		return scriptUtil;
 	}
 }
