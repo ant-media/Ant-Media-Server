@@ -478,8 +478,8 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 						final String contextConfigLocation = servletContext.getInitParameter(org.springframework.web.context.ContextLoader.CONFIG_LOCATION_PARAM) == null ? defaultSpringConfigLocation : servletContext.getInitParameter(org.springframework.web.context.ContextLoader.CONFIG_LOCATION_PARAM);
 						log.debug("Spring context config location: {}", contextConfigLocation);
 						// get the (spring) parent context key
-						final String parentContextKey = servletContext.getInitParameter(org.springframework.web.context.ContextLoader.LOCATOR_FACTORY_KEY_PARAM) == null ? defaultParentContextKey : servletContext.getInitParameter(org.springframework.web.context.ContextLoader.LOCATOR_FACTORY_KEY_PARAM);
-						log.debug("Spring parent context key: {}", parentContextKey);
+						final String parentContextKey = servletContext.getInitParameter("parentContextKey") == null ? defaultParentContextKey : servletContext.getInitParameter("parentContextKey");
+						log.info("Spring parent context key: {}", parentContextKey);
 						// set current threads classloader to the webapp classloader
 						Thread.currentThread().setContextClassLoader(webClassLoader);
 						// create a thread to speed-up application loading
@@ -649,11 +649,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 							}
 						}
 					}
-					if (log.isDebugEnabled()) {
-						if (appctx.getParent() != null) {
-							log.debug("Parent application context: {}", appctx.getParent().getDisplayName());
-						}
-					}
+					
 					// add the servlet context
 					appctx.setServletContext(servletContext);
 					// set the root webapp ctx attr on the each servlet context so spring can find it later
