@@ -302,7 +302,9 @@ public class AppSettings {
 	public static final String SETTINGS_WEBHOOK_AUTHENTICATE_URL = "settings.webhookAuthenticateURL";
 
 	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
-
+	
+	public static final String SETTINGS_VOD_UPLOAD_FINISH_SCRIPT = "settings.vodUploadFinishScript";
+	public static final String SETTINGS_FILE_NAME_FORMAT = "settings.fileNameFormat";
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -330,6 +332,15 @@ public class AppSettings {
 	@Value( "${"+SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME+":false}" )
 	private boolean addDateTimeToMp4FileName;
 
+	/**
+	 * The format of output mp4 and ts files.
+	 * To add resolution like stream1_240p.mp4, add %r to the string
+	 * To add bitrate like stream1_500kbps, add %b to the string
+	 * Add both for stream1_240p500kbps
+	 */
+	@Value( "${"+SETTINGS_FILE_NAME_FORMAT+":%r%b}" )
+	private String fileNameFormat;
+	
 	/**
 	 * Enable/disable hls recording
 	 *  If it is set true then HLS files are created into <APP_DIR>/streams and HLS playing is enabled,
@@ -1395,6 +1406,13 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_WEBHOOK_AUTHENTICATE_URL+":}" )
 	private String webhookAuthenticateURL;
+	
+	/**
+	 * This is a script file path that is called by Runtime when VoD upload is finished,
+	 * Bash script file path will be called after upload process finishes.
+	 */
+	@Value( "${"+SETTINGS_VOD_UPLOAD_FINISH_SCRIPT+":}" )
+	private String vodUploadFinishScript;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -1418,6 +1436,13 @@ public class AppSettings {
 
 	public void setMp4MuxingEnabled(boolean mp4MuxingEnabled) {
 		this.mp4MuxingEnabled = mp4MuxingEnabled;
+	}
+	
+	public void setFileNameFormat(String fileNameFormat) {
+		this.fileNameFormat = fileNameFormat;
+	}
+	public String getFileNameFormat() {
+		return fileNameFormat;
 	}
 
 	public boolean isHlsMuxingEnabled() {
@@ -2670,5 +2695,13 @@ public class AppSettings {
 
 	public void setWarFileOriginServerAddress(String warFileOriginServerAddress) {
 		this.warFileOriginServerAddress = warFileOriginServerAddress;
+	}
+	
+	public String getVodFinishScript() {
+		return vodUploadFinishScript;
+	}
+
+	public void setVodUploadFinishScript(String vodUploadFinishScript) {
+		this.vodUploadFinishScript = vodUploadFinishScript;
 	}
 }
