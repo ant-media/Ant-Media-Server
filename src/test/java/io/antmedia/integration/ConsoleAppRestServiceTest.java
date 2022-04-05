@@ -801,7 +801,7 @@ public class ConsoleAppRestServiceTest{
 
 			Awaitility.await()
 			.atMost(10, TimeUnit.SECONDS)
-			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_finished.png"));
 
 
 			//send a short stream with same name again
@@ -822,10 +822,10 @@ public class ConsoleAppRestServiceTest{
 			//check that second preview is created
 			Awaitility.await()
 			.atMost(10, TimeUnit.SECONDS)
-			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_1.png"));
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_finished_1.png"));
 
 
-			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_1.png"));
+			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_finished_1.png"));
 
 			//change settings and make preview overwrite true
 			appSettingsModel.setPreviewOverwrite(true);
@@ -851,7 +851,7 @@ public class ConsoleAppRestServiceTest{
 			//check that preview is created			
 			Awaitility.await()
 			.atMost(10, TimeUnit.SECONDS)
-			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+".png"));
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+"_finished.png"));
 
 
 			//send a short stream with same name again
