@@ -145,9 +145,11 @@ public class MongoStore extends DataStore {
 	}
 	
 	public void updateMongoDb(String dbHost, String dbUser, String dbPassword) {
-		dbUpdated = true;
-		String command = "/bin/bash update_mongodb.sh " + dbHost + " "+ dbUser + " " + dbPassword;
-		scriptUtil.runCommand(command);
+		synchronized(this) {
+			dbUpdated = true;
+			String command = "/bin/bash update_mongodb.sh " + dbHost + " "+ dbUser + " " + dbPassword;
+			scriptUtil.runCommand(command);
+		}
 	}
 
 	/*

@@ -39,13 +39,21 @@ mongocon() {
                 for appsettings in $(seq 0 $(run_mongo "clusterdb" 'db.AppSettings.count()'-1)); do
                                 appName=`run_mongo "clusterdb" 'db.AppSettings.find()['$appsettings'].appName'|tr '[:upper:]' '[:lower:]'`
                                 for broadcast in $(seq 0 $(run_mongo "$appName" 'db.broadcast.count()'-1)); do
-                                        ObjectID=`run_mongo "$appName" 'db.broadcast.find()['$broadcast']._id'`
-                                        run_mongo "$appName" "db.broadcast.updateMany({\"_id\" :$ObjectID}, {\$set : {\"_t\" : \"Broadcast\", \"metaData\" : \"\"}})"
+                                        broadcastObjectId=`run_mongo "$appName" 'db.broadcast.find()['$broadcast']._id'`
+                                        q=$(run_mongo "$appName" 'db.broadcast.find({"_t" : {$ne : "Broadcast"}})')
+                                        if [ "$q" ]; then
+                                                run_mongo $appName "db.broadcast.updateMany({}, {\$unset: {\"className\" : \"\", \"io.antmedia.datastore.db.types.Broadcast\": \"\"}});"
+                                                run_mongo "$appName" "db.broadcast.updateMany({\"_id\" :$broadcastObjectId}, {\$set : {\"_t\" : \"Broadcast\", \"metaData\" : \"\"}})"
+                                        fi
                                 done
+
                                 for vod in $(seq 0 $(run_mongo $appName"VoD" 'db.vod.count()'-1)); do
-                                        ObjectIDVoD=`run_mongo $appName"VoD" "db.vod.find()['$vod']._id"`
-                                        run_mongo $appName"VoD" "db.vod.updateMany({}, {\$unset: {\"className\" : \"\", \"io.antmedia.datastore.db.types.VoD\": \"\"}});"
-                                        run_mongo $appName"VoD" "db.vod.updateMany({\"_id\" :$ObjectIDVoD}, {\$set : {\"_t\" : \"VoD\"}})"
+                                        vodObjectId=`run_mongo $appName"VoD" "db.vod.find()['$vod']._id"`
+                                        q=$(run_mongo $appName"VoD" 'db.vod.find({"_t" : {$ne : "VoD"}})')
+                                        if [ "$q" ]; then
+                                                run_mongo $appName"VoD" "db.vod.updateMany({}, {\$unset: {\"className\" : \"\", \"io.antmedia.datastore.db.types.VoD\": \"\"}});"
+                                                run_mongo $appName"VoD" "db.vod.updateMany({\"_id\" :$vodObjectId}, {\$set : {\"_t\" : \"VoD\"}})"
+                                        fi
                                 done
                 done
 
@@ -65,13 +73,21 @@ mongocon() {
                 for appsettings in $(seq 0 $(run_mongo_auth "clusterdb" 'db.AppSettings.count()'-1)); do
                                 appName=`run_mongo_auth "clusterdb" 'db.AppSettings.find()['$appsettings'].appName'|tr '[:upper:]' '[:lower:]'`
                                 for broadcast in $(seq 0 $(run_mongo_auth "$appName" 'db.broadcast.count()'-1)); do
-                                        ObjectID=`run_mongo_auth "$appName" 'db.broadcast.find()['$broadcast']._id'`
-                                        run_mongo_auth "$appName" "db.broadcast.updateMany({\"_id\" :$ObjectID}, {\$set : {\"_t\" : \"Broadcast\", \"metaData\" : \"\"}})"
+                                        broadcastObjectId=`run_mongo_auth "$appName" 'db.broadcast.find()['$broadcast']._id'`
+                                        q=$(run_mongo_auth "$appName" 'db.broadcast.find({"_t" : {$ne : "Broadcast"}})')
+                                        if [ "$q" ]; then
+                                                run_mongo_auth $appName "db.broadcast.updateMany({}, {\$unset: {\"className\" : \"\", \"io.antmedia.datastore.db.types.Broadcast\": \"\"}});"
+                                                run_mongo_auth "$appName" "db.broadcast.updateMany({\"_id\" :$broadcastObjectId}, {\$set : {\"_t\" : \"Broadcast\", \"metaData\" : \"\"}})"
+                                        fi
                                 done
+
                                 for vod in $(seq 0 $(run_mongo_auth $appName"VoD" 'db.vod.count()'-1)); do
-                                        ObjectIDVoD=`run_mongo_auth $appName"VoD" "db.vod.find()['$vod']._id"`
-                                        run_mongo_auth $appName"VoD" "db.vod.updateMany({}, {\$unset: {\"className\" : \"\", \"io.antmedia.datastore.db.types.VoD\": \"\"}});"
-                                        run_mongo_auth $appName"VoD" "db.vod.updateMany({\"_id\" :$ObjectIDVoD}, {\$set : {\"_t\" : \"VoD\"}})"
+                                        vodObjectId=`run_mongo_auth $appName"VoD" "db.vod.find()['$vod']._id"`
+                                        q=$(run_mongo_auth $appName"VoD" 'db.vod.find({"_t" : {$ne : "VoD"}})')
+                                        if [ "$q" ]; then
+                                                run_mongo_auth $appName"VoD" "db.vod.updateMany({}, {\$unset: {\"className\" : \"\", \"io.antmedia.datastore.db.types.VoD\": \"\"}});"
+                                                run_mongo_auth $appName"VoD" "db.vod.updateMany({\"_id\" :$vodObjectId}, {\$set : {\"_t\" : \"VoD\"}})"
+                                        fi
                                 done
                 done
 
