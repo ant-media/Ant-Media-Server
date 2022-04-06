@@ -53,11 +53,9 @@ import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
 import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
@@ -67,15 +65,11 @@ import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 
 public class Mp4Muxer extends RecordMuxer {
 
-	protected static Logger logger = LoggerFactory.getLogger(Mp4Muxer.class);
 	private AVBSFContext bsfContext;
 	
 	private boolean isAVCConversionRequired = false;
@@ -140,8 +134,8 @@ public class Mp4Muxer extends RecordMuxer {
 	 */
 	@Override
 	protected boolean prepareAudioOutStream(AVStream inStream, AVStream outStream) {
-		if (bsfName != null) {
-			AVBitStreamFilter adtsToAscBsf = av_bsf_get_by_name(this.bsfName);
+		if (bsfVideoName != null) {
+			AVBitStreamFilter adtsToAscBsf = av_bsf_get_by_name(this.bsfVideoName);
 			bsfContext = new AVBSFContext(null);
 
 			int ret = av_bsf_alloc(adtsToAscBsf, bsfContext);
@@ -181,14 +175,14 @@ public class Mp4Muxer extends RecordMuxer {
 		AVFormatContext inputContext = new AVFormatContext(null);
 		int ret;
 		if ((ret = avformat_open_input(inputContext,srcFile, null, null)) < 0) {
-			logger.warn("cannot open input context {} errror code: {}", srcFile, ret);
+			loggerStatic.warn("cannot open input context {} errror code: {}", srcFile, ret);
 			return;
 		}
 
 		ret = avformat_find_stream_info(inputContext, (AVDictionary)null);
 
 		if (ret < 0) {
-			logger.warn("Cannot find stream info {}", srcFile);
+			loggerStatic.warn("Cannot find stream info {}", srcFile);
 			return;
 		}
 
@@ -201,7 +195,7 @@ public class Mp4Muxer extends RecordMuxer {
 			AVStream stream = avformat_new_stream(outputContext, null);
 			ret = avcodec_parameters_copy(stream.codecpar(), inputContext.streams(i).codecpar());
 			if (ret < 0) {
-				logger.warn("Cannot copy codecpar parameters from {} to {} for stream index {}", srcFile, dstFile, i);
+				loggerStatic.warn("Cannot copy codecpar parameters from {} to {} for stream index {}", srcFile, dstFile, i);
 				return;
 			}
 			stream.codecpar().codec_tag(0);
@@ -216,14 +210,14 @@ public class Mp4Muxer extends RecordMuxer {
 		AVIOContext pb = new AVIOContext(null);
 		ret = avio_open(pb, dstFile, AVIO_FLAG_WRITE);
 		if (ret < 0) {
-			logger.warn("Cannot open io context {}", dstFile);
+			loggerStatic.warn("Cannot open io context {}", dstFile);
 			return;
 		}
 		outputContext.pb(pb);
 
 		ret = avformat_write_header(outputContext, (AVDictionary)null);
 		if (ret < 0) {
-			logger.warn("Cannot write header to {}", dstFile);
+			loggerStatic.warn("Cannot write header to {}", dstFile);
 			return;
 		}
 
@@ -271,7 +265,7 @@ public class Mp4Muxer extends RecordMuxer {
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected void clearResource() {
+	public synchronized void clearResource() {
 		super.clearResource();
 
 		if (bsfContext != null) {
@@ -288,14 +282,14 @@ public class Mp4Muxer extends RecordMuxer {
 			AVFormatContext context, long dts) {
 		int ret;
 		if (bsfContext != null) {
-			ret = av_bsf_send_packet(bsfContext, tmpPacket);
+			ret = av_bsf_send_packet(bsfContext, getTmpPacket());
 			if (ret < 0)
 				return;
 
-			while (av_bsf_receive_packet(bsfContext, tmpPacket) == 0) 
+			while (av_bsf_receive_packet(bsfContext, getTmpPacket()) == 0) 
 			{
 
-				ret = av_write_frame(context, tmpPacket);
+				ret = av_write_frame(context, getTmpPacket());
 				if (ret < 0 && logger.isInfoEnabled()) {
 					byte[] data = new byte[2048];
 					av_strerror(ret, data, data.length);

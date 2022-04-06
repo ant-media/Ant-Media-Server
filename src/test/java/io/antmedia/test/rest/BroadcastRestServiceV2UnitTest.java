@@ -741,7 +741,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast broadcast2 = new Broadcast(null, "name2");
 		Broadcast broadcast3 = new Broadcast(null, "name3");
 		Broadcast broadcast4 = new Broadcast(null, "name4");
-		DataStore store = new InMemoryDataStore("testdb");
+		MongoStore store = new MongoStore("localhost", "", "", "testdb");
 		restServiceReal.setDataStore(store);
 
 		Scope scope = mock(Scope.class);
@@ -771,6 +771,8 @@ public class BroadcastRestServiceV2UnitTest {
 			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 			
 			assertTrue(restServiceReal.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId(), 0).isSuccess());
+			
+			assertEquals(0, store.get(streamId).getEndPointList().size());
 		}
 		
 		// Standallone Remove RTMP Endpoint with different origin and broadcast
@@ -793,6 +795,8 @@ public class BroadcastRestServiceV2UnitTest {
 			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 			
 			assertTrue(restServiceReal.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId(), 0).isSuccess());
+			
+			assertEquals(0, store.get(streamId).getEndPointList().size());
 		}
 		
 		// enable Cluster mode with same origin and broadcast
@@ -830,6 +834,7 @@ public class BroadcastRestServiceV2UnitTest {
 			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 			
 			assertTrue(restServiceSpy.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId(), 0).isSuccess());
+			assertEquals(0, store.get(streamId).getEndPointList().size());
 		}
 		
 		// enable Cluster mode with different origin and broadcast
@@ -861,6 +866,7 @@ public class BroadcastRestServiceV2UnitTest {
 			when(serverSettings.getHostAddress()).thenReturn(serverHostAddress);
 					
 			assertFalse(restServiceSpy.removeEndpointV2(streamId, store.get(streamId).getEndPointList().get(0).getEndpointServiceId(), 0).isSuccess());
+			assertEquals(1, store.get(streamId).getEndPointList().size());
 		}
 				
 		{
@@ -872,6 +878,8 @@ public class BroadcastRestServiceV2UnitTest {
 			endpoint6.setRtmpUrl("rtmp://test.endpoint.url/any_stream_test");
 			
 			assertFalse(restServiceReal.addEndpointV3("Not_regsitered_stream_id", endpoint6, 0).isSuccess());
+			
+			assertEquals(1, store.get(streamId).getEndPointList().size());
 		}
 
 	}
