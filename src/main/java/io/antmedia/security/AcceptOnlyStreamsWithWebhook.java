@@ -41,7 +41,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsWithWebhook.class);
 
 	@Override
-	public synchronized boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams) {
+	public synchronized boolean isPublishAllowed(IScope scope, String streamId, String mode, Map<String, String> queryParams) {
 
 		AtomicBoolean result = new AtomicBoolean(false);
 		if (appSettings == null){
@@ -54,7 +54,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 			{
 				JsonObject instance = new JsonObject();
 
-				instance.addProperty("name", name);
+				instance.addProperty("streamId", streamId);
 				instance.addProperty("mode", mode);
 				if(queryParams != null){
 					instance.addProperty("queryParams", queryParams.toString());
@@ -70,7 +70,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 				HttpResponse response= client.execute(post);
 
 				int statuscode = response.getStatusLine().getStatusCode();
-				logger.info("Response from webhook is: {} for stream:{}", statuscode, name);
+				logger.info("Response from webhook is: {} for stream:{}", statuscode, streamId);
 
 				result.set(statuscode==200);
 
@@ -82,7 +82,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 		}
 		else
 		{
-			logger.info("AcceptOnlyStreamsWithWebhook is not activated for stream {}", name);
+			logger.info("AcceptOnlyStreamsWithWebhook is not activated for stream {}", streamId);
 			result.set(true);
 		}
 
@@ -93,7 +93,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 				connectionLocal.close();
 			}
 			else {
-				logger.warn("Connection object is null for {}", name);
+				logger.warn("Connection object is null for {}", streamId);
 			}
 
 		}
