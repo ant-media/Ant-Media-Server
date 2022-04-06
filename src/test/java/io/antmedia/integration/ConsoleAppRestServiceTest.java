@@ -870,7 +870,7 @@ public class ConsoleAppRestServiceTest{
 			//check that second preview with the same created.
 
 			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			.until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+".png"));
+			.until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+"_finished.png"));
 
 			appSettingsModel.setPreviewOverwrite(false);
 			result = callSetAppSettings("LiveApp", appSettingsModel);
