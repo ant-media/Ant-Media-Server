@@ -76,18 +76,6 @@ public class ServerSettingsTest {
 	}
 
 	@Test
-	public void testUseAsSignalingSetting(){
-		ServerSettings settings = new ServerSettings();
-
-		settings.setSignalingEnabled(true);
-		assertTrue(settings.isSignalingEnabled());
-
-		settings.setSignalingAddress("192.168.0.1");
-		assertEquals("192.168.0.1",settings.getSignalingAddress());
-	}
-
-	
-	@Test
 	public void testOriginPort() {
 		ServerSettings settings = new ServerSettings();
 		

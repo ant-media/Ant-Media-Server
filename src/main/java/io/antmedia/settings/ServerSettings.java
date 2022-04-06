@@ -40,10 +40,6 @@ public class ServerSettings implements ApplicationContextAware {
 
 	private static final String SETTINGS_PROXY_ADDRESS = "proxy.address";
 
-	private static final String SETTINGS_SIGNALING_ENABLED = "signaling.enabled";
-
-	private static final String SETTINGS_SIGNALING_ADDRESS = "signaling.address";
-
 	private static final String SETTINGS_NODE_GROUP = "nodeGroup";
 
 	
@@ -139,20 +135,6 @@ public class ServerSettings implements ApplicationContextAware {
 	 */
 	@Value( "${"+SETTINGS_PROXY_ADDRESS+":null}" )
 	private String proxyAddress;
-
-	/**
-	 * This is for using another Ant Media instance as signaling server.
-	 * If your server is behind a NAT it will allow possible connection.
-	 */
-	@Value( "${"+SETTINGS_SIGNALING_ENABLED+":false}" )
-	private boolean signalingEnabled;
-
-	/**
-	 * This is for using another Ant Media instance as signaling server.
-	 * If your server is behind a NAT it will allow possible connection.
-	 */
-	@Value( "${"+SETTINGS_SIGNALING_ADDRESS+":null}" )
-	private String signalingAddress;
 
 
 	@Value( "${"+SETTINGS_NODE_GROUP+":"+DEFAULT_NODE_GROUP+"}" )
@@ -374,22 +356,6 @@ public class ServerSettings implements ApplicationContextAware {
 
 	public String getProxyAddress(){
 		return proxyAddress;
-	}
-
-	public void setSignalingEnabled(boolean signalingEnabled){
-		this.signalingEnabled = signalingEnabled;
-	}
-
-	public boolean isSignalingEnabled(){
-		return signalingEnabled;
-	}
-
-	public void setSignalingAddress(String signalingAddress){
-		this.signalingAddress = signalingAddress;
-	}
-
-	public String getSignalingAddress(){
-		return signalingAddress;
 	}
 	
 	/**

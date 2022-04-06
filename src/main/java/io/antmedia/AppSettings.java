@@ -102,7 +102,10 @@ public class AppSettings {
 	public static final String SETTINGS_WEBRTC_PORT_RANGE_MAX = "settings.webrtc.portRangeMax";
 	public static final String SETTINGS_WEBRTC_STUN_SERVER_URI = "settings.webrtc.stunServerURI";
 	public static final String SETTINGS_WEBRTC_TCP_CANDIDATE_ENABLED = "settings.webrtc.tcpCandidateEnabled"; 
-	public static final String SETTINGS_WEBRTC_SDP_SEMANTICS = "settings.webrtc.sdpSemantics"; 
+	public static final String SETTINGS_WEBRTC_SDP_SEMANTICS = "settings.webrtc.sdpSemantics";
+
+	private static final String SETTINGS_SIGNALING_ENABLED = "signaling.enabled";
+	private static final String SETTINGS_SIGNALING_ADDRESS = "signaling.address";
 
 	private static final String SETTINGS_ENCODING_ENCODER_NAME = "settings.encoding.encoderName";
 	private static final String SETTINGS_ENCODING_PRESET = "settings.encoding.preset";
@@ -358,6 +361,20 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_ENCODER_SETTINGS_STRING+"}" )
 	private String encoderSettingsString;
+
+	/**
+	 * This is for using another Ant Media instance as signaling server.
+	 * If your server is behind a NAT it will allow possible connection.
+	 */
+	@Value( "${"+SETTINGS_SIGNALING_ENABLED+":false}" )
+	private boolean signalingEnabled;
+
+	/**
+	 * This is for using another Ant Media instance as signaling server.
+	 * If your server is behind a NAT it will allow possible connection.
+	 */
+	@Value( "${"+SETTINGS_SIGNALING_ADDRESS+":null}" )
+	private String signalingAddress;
 
 	/**
 	 * Number of segments(chunks) in m3u8 files
@@ -931,6 +948,8 @@ public class AppSettings {
 	@Value("${" + SETTINGS_EXCESSIVE_BANDWIDTH_THRESHOLD + ":300000}")
 	private int excessiveBandwidthValue;
 
+
+
 	/**
 	 * The excessive bandwidth call threshold value
 	 */
@@ -1455,6 +1474,21 @@ public class AppSettings {
 
 	public boolean isDashMuxingEnabled() {
 		return dashMuxingEnabled;
+	}
+
+	public void setSignalingEnabled(boolean signalingEnabled){
+		this.signalingEnabled = signalingEnabled;
+	}
+
+	public boolean isSignalingEnabled(){
+		return signalingEnabled;
+	}
+
+	public void setSignalingAddress(String signalingAddress){
+		this.signalingAddress = signalingAddress;
+	}
+	public String getSignalingAddress(){
+		return signalingAddress;
 	}
 
 	public void setDashMuxingEnabled(boolean dashMuxingEnabled) {
