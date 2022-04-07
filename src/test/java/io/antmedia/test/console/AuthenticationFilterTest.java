@@ -158,7 +158,6 @@ public class AuthenticationFilterTest {
 			//it should not continue, because user scope is not matching
 			Mockito.verify(response, Mockito.times(2)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 			
-			
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -336,7 +335,7 @@ public class AuthenticationFilterTest {
 
 	            Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSetting();
 
-	            httpServletRequest.addHeader("Authorization", validToken);
+	            httpServletRequest.addHeader("ProxyAuthorization", validToken);
 
 	            authenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 	            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
@@ -357,7 +356,7 @@ public class AuthenticationFilterTest {
 	        	//reset httpServletRequest
 	        	httpServletRequest = new MockHttpServletRequest();
 	        	
-	            httpServletRequest.addHeader("Authorization", invalidToken);
+	            httpServletRequest.addHeader("ProxyAuthorization", invalidToken);
 
 	            authenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 	            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
@@ -374,7 +373,7 @@ public class AuthenticationFilterTest {
 	        	//reset httpServletRequest
 	        	httpServletRequest = new MockHttpServletRequest();
 	        	
-	            httpServletRequest.addHeader("Authorization", validToken);
+	            httpServletRequest.addHeader("ProxyAuthorization", validToken);
 
 	            authenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 	            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
@@ -414,7 +413,7 @@ public class AuthenticationFilterTest {
 
 	            Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSetting();
 
-	            httpServletRequest.addHeader("Authorization", jwkstoken);
+	            httpServletRequest.addHeader("ProxyAuthorization", jwkstoken);
 
 	            authenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 	            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
@@ -433,11 +432,11 @@ public class AuthenticationFilterTest {
 
 	            httpServletRequest.setRemoteAddr("11.11.11.11");
 	            serverSettings.setJwksURL("");
-
-	            Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSetting();
 	            serverSettings.setJwtServerSecretKey("random");
 
-	            httpServletRequest.addHeader("Authorization", jwkstoken);
+	            Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSetting();
+
+	            httpServletRequest.addHeader("ProxyAuthorization", jwkstoken);
 
 	            authenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 	            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());

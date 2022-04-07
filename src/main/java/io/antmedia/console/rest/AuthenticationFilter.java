@@ -34,7 +34,7 @@ import io.antmedia.settings.ServerSettings;
 public class AuthenticationFilter extends AbstractFilter {
 
 	public static final String DISPATCH_PATH_URL = "_path";
-	public static final String JWT_TOKEN = "Authorization";
+	public static final String JWT_TOKEN = "ProxyAuthorization";
 
 	public AbstractConsoleDataStore getDataStore()
 	{
@@ -103,16 +103,15 @@ public class AuthenticationFilter extends AbstractFilter {
 		 * Is Token filled or not
 		 * Is JWT Server Token valid or invalid 
 		 */
-		if (serverSettings != null && serverSettings.isJwtServerControlEnabled()
-				&& (httpRequest.getHeader(JWT_TOKEN) != null)
-				&& checkJWT(httpRequest.getHeader(JWT_TOKEN))
-				) {
-			chain.doFilter(request, response);
-		}
-		else if(serverSettings != null && serverSettings.isJwtServerControlEnabled()
-				&& (httpRequest.getHeader(JWT_TOKEN) != null)
-				&& !checkJWT(httpRequest.getHeader(JWT_TOKEN))) {
-			((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid JWT Server Token");
+		if (serverSettings != null 
+				&& serverSettings.isJwtServerControlEnabled()
+				&& httpRequest.getHeader(JWT_TOKEN) != null) {
+			if(checkJWT(httpRequest.getHeader(JWT_TOKEN))) {
+				chain.doFilter(request, response);
+			}
+			else {
+				((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Server JWT Token");
+			}
 		}
 		else if (path.equals("/rest/isAuthenticated") ||
 				path.equals("/rest/authenticateUser") || 
@@ -241,11 +240,12 @@ public class AuthenticationFilter extends AbstractFilter {
 	private boolean checkJWT( String jwtString) {
 		boolean result = true;
 		try {
+
 			String jwksURL = getServerSetting().getJwksURL();
 
 			if (jwksURL != null && !jwksURL.isEmpty()) {
 				DecodedJWT jwt = JWT.decode(jwtString);
-				JwkProvider provider = new UrlJwkProvider(jwksURL);
+				JwkProvider provider = new UrlJwkProvider(getServerSetting().getJwksURL());
 				Jwk jwk = provider.get(jwt.getKeyId());
 				Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
 				algorithm.verify(jwt);
