@@ -71,6 +71,11 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
 		System.out.println("allowedCIDRList ->" + allowedCIDRList.size());
+		
+		assertEquals("%r%b",appSettings.getFileNameFormat());
+		
+		appSettings.setFileNameFormat(null);
+		assertNull(appSettings.getFileNameFormat());
 	}
 	
 	@Test

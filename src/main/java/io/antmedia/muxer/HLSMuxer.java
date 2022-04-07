@@ -121,19 +121,7 @@ public class HLSMuxer extends Muxer  {
 
 			logger.info("hls time: {}, hls list size: {} for stream:{}", hlsTime, hlsListSize, streamId);
 
-			int bitrateKbps = bitrate / 1000;
-
-			segmentFilename = file.getParentFile() + File.separator + name +"_" ;
-			
-			if (resolutionHeight != 0) 
-			{
-				segmentFilename += resolutionHeight +"p";
-				
-				if (bitrate != 0) 
-				{
-					segmentFilename +=  bitrateKbps + "kbps";
-				}
-			}
+			segmentFilename = file.getParentFile() + File.separator + initialResourceNameWithoutExtension;
 			
 			segmentFilename += SEGMENT_SUFFIX_TS;
 					
