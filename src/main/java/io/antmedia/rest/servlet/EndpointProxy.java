@@ -67,7 +67,7 @@ public class EndpointProxy extends ProxyServlet {
                 this.copyResponseEntity(proxyResponse, servletResponse, (HttpRequest)proxyRequest, servletRequest);
             }
         } catch (Exception var11) {
-            this.handleRequestException((HttpRequest)proxyRequest, var11);
+            this.handleRequestException((HttpRequest)proxyRequest, proxyResponse, var11);
         } finally {
             if (proxyResponse != null) {
                 EntityUtils.consumeQuietly(proxyResponse.getEntity());
