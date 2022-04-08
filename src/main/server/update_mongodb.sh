@@ -1,4 +1,8 @@
 #!/bin/bash
+
+# You should run this script if you use MongoDB database and upgrade your server v2.4.1 or below versions to the latest version.
+# Here is the script usage:
+# ./update_mongodb.sh MONGODB_IP MONGODB_USERNAME MONGODB_PASSWORD
   
 MONGODB_IP=$1
 MONGODB_USERNAME=$2

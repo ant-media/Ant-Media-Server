@@ -7,7 +7,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.times;
 
 import java.io.File;
 import java.io.IOException;
@@ -2679,15 +2678,6 @@ public class DBStoresUnitTest {
 		client.listDatabaseNames().forEach(c-> dbNames.add(c));
 		assertFalse(dbNames.contains(dbName));
 
-	}
-	
-	@Test
-	public void testCommandScript() {
-		String dbName = "MongoDB"; 
-		String serverIP = "localhost";
-		
-		MongoStore dataStoreSpy = Mockito.spy(new MongoStore(serverIP, "", "", dbName));
-		assertTrue(dataStoreSpy.isDbUpdated());
 	}
 	
 	

@@ -11,7 +11,6 @@ import org.red5.server.scope.WebScope;
 import org.red5.server.tomcat.WarDeployer;
 
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.ScriptRunUtil;
 import io.antmedia.console.AdminApplication;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -38,12 +37,8 @@ public class AdminApplicationTest {
 	@Test
 	public void testCreateDeleteApplication() 
 	{
-		ScriptRunUtil scriptUtil = Mockito.spy(new ScriptRunUtil());
-		
 		//create application
 		AdminApplication app = Mockito.spy(new AdminApplication());
-		Mockito.doReturn(scriptUtil).when(app).getScriptUtil();
-		
 		app.setVertx(vertx);
 		WarDeployer warDeployer = Mockito.mock(WarDeployer.class);
 		app.setWarDeployer(warDeployer);
@@ -51,6 +46,7 @@ public class AdminApplicationTest {
 
 		Mockito.verify(app).runCreateAppScript("test", null);
 		Mockito.verify(warDeployer, Mockito.timeout(4000)).deploy(true);
+
 
 		//delete application
 		WebScope rootScope = Mockito.mock(WebScope.class);
@@ -82,7 +78,7 @@ public class AdminApplicationTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		Mockito.doReturn(true).when(scriptUtil).runDeleteAppScript(Mockito.any());
+		Mockito.doReturn(true).when(app).runDeleteAppScript(Mockito.any());
 
 		result = app.deleteApplication("test", false);
 		assertFalse(result);
@@ -91,27 +87,24 @@ public class AdminApplicationTest {
 
 	@Test
 	public void testRunCommand() {
-		ScriptRunUtil scriptUtil = Mockito.spy(new ScriptRunUtil());
-		
-		//create application
 		AdminApplication app = Mockito.spy(new AdminApplication());
-		Mockito.doReturn(scriptUtil).when(app).getScriptUtil();
 
 		Process process = Mockito.mock(Process.class);
 
+
 		try {
-			Mockito.doThrow(new IOException()).when(scriptUtil).getProcess(Mockito.anyString());
+			Mockito.doThrow(new IOException()).when(app).getProcess(Mockito.anyString());
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 
-		boolean runCommand = app.getScriptUtil().runCommand("");
+		boolean runCommand = app.runCommand("");
 		assertFalse(runCommand);
 
 
 		try {
-			Mockito.doReturn(process).when(scriptUtil).getProcess(Mockito.anyString());
+			Mockito.doReturn(process).when(app).getProcess(Mockito.anyString());
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -124,7 +117,7 @@ public class AdminApplicationTest {
 			fail(e.getMessage());
 		}
 
-		runCommand = app.getScriptUtil().runCommand("");
+		runCommand = app.runCommand("");
 		assertFalse(runCommand);
 
 	}
