@@ -1,13 +1,28 @@
 #!/bin/bash
 
-# You should run this script if you use MongoDB database and upgrade your server v2.4.1 or below versions to the latest version.
+# In version 2.4.2, the MongoDB driver is updated. 
+# If you use MongoDB database and upgrade your server from v2.4.1 or below versions to the latest version,
+# you should run this script
 # Here is the script usage:
-# ./update_mongodb.sh MONGODB_IP MONGODB_USERNAME MONGODB_PASSWORD
+# ./fix_mongodb_for_upgrading_from_2.4.1_and_earlier.sh MONGODB_IP MONGODB_USERNAME MONGODB_PASSWORD
   
 MONGODB_IP=$1
 MONGODB_USERNAME=$2
 MONGODB_PASSWORD=$3
 TODAY=$(date +"%Y-%m-%d-%H-%M")
+
+
+usage() {
+  #show usage 
+  echo "In version 2.4.2, the MongoDB driver is updated."
+  echo "If you use MongoDB database and upgrade your server "
+  echo "from v2.4.1 or below versions to the latest version, you should run this script"
+  #install mongodb-clients 
+  echo "Usage:"
+  echo "$0 MONGODB_IP MONGODB_USERNAME MONGODB_PASSWORD\n"
+  
+}
+
 
 run_mongo() {
     db=$1
@@ -23,19 +38,22 @@ run_mongo_auth() {
 
 mongo_backup(){
         if [ -z "$MONGODB_USERNAME" ] && [ -z "$MONGODB_PASSWORD" ]; then
-                mongodump --host $MONGODB_IP --quiet --gzip -o /usr/local/antmedia/mongo_dump_$TODAY
+                mongodump --host $MONGODB_IP --gzip -o mongo_dump_$TODAY
         elif [ ! -z "$MONGODB_USERNAME" ] && [ ! -z "$MONGODB_PASSWORD" ]; then
-                mongodump --host $MONGODB_IP --quiet --username $MONGODB_USERNAME --password $MONGODB_PASSWORD --gzip -o /usr/local/antmedia/mongo_dump_$TODAY
+                mongodump --host $MONGODB_IP --username $MONGODB_USERNAME --password $MONGODB_PASSWORD --gzip -o mongo_dump_$TODAY
         fi
 
         if [ $? != 0 ]; then
-           echo "The backup is not completed."
+           echo "The backup is not completed so it does not continue."
+           echo "Please check credentials are correct and you've write permission to current directory: `pwd` "
+           echo "If it's a permission issue, you may need to run this command with sudo"
+           exit 1;
         else
            echo "The backup is completed. Backup Folder: /usr/local/antmedia/mongo_dump_$TODAY"
         fi
 }
 
-mongo_backup
+
 
 
 mongocon() {
@@ -108,5 +126,22 @@ mongocon() {
         fi
 
 }
+
+#check if mongodb IP address is set
+if [ -z "$MONGODB_IP" ]; then
+  echo "Missing parameter. MongoDB IP is not set"
+  usage
+  exit 1
+fi
+
+#check if mongodb client tools is available
+if ! [ -x "$(command -v mongo)" ]; then
+  echo "mongo command is not found. Please install the mongodb-clients. ";
+  echo "sudo apt-get install mongodb-clients"
+  exit 1;
+fi
+
+
+mongo_backup
 
 mongocon
