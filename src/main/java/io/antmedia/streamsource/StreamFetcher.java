@@ -122,11 +122,6 @@ public class StreamFetcher {
 		this.scope = scope;
 		this.vertx = vertx;
 
-
-		if (getAppSettings() == null) {
-			throw new NullPointerException("App Settings is null in StreamFetcher");
-		}
-
 		this.bufferTime = getAppSettings().getStreamFetcherBufferTime();
 	}
 
