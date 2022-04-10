@@ -85,20 +85,30 @@ public class SupportRestService {
 		}
 		return new Result(success);
 	}	
+	
+	private WebApplicationContext getContext() {
+		return WebApplicationContextUtils.getWebApplicationContext(servletContext);
+	}
+
 
 	public ILicenceService getLicenceServiceInstance () {
 		if(licenceService == null) {
 
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+			WebApplicationContext ctxt =getContext();
+			if (ctxt != null) {
+				licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+			}
 		}
 		return licenceService;
 	}
 
 	public IStatsCollector getStatsCollector () {
-		if(statsCollector == null) {
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			statsCollector = (IStatsCollector)ctxt.getBean(IStatsCollector.BEAN_NAME);
+		if(statsCollector == null) 
+		{
+			WebApplicationContext ctxt =getContext();
+			if (ctxt != null) {
+				statsCollector = (IStatsCollector)ctxt.getBean(IStatsCollector.BEAN_NAME);
+			}
 		}
 		return statsCollector;
 	}
@@ -239,8 +249,10 @@ public class SupportRestService {
 	public ServerSettings getServerSettings() {
 		if(serverSettings == null) {
 
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			serverSettings = (ServerSettings)ctxt.getBean(ServerSettings.BEAN_NAME);
+			WebApplicationContext ctxt =getContext();
+			if (ctxt != null) { 
+				serverSettings = (ServerSettings)ctxt.getBean(ServerSettings.BEAN_NAME);
+			}
 		}
 		return serverSettings;
 	}

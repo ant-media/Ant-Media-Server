@@ -1,5 +1,6 @@
 package io.antmedia.console.rest;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.ServletContext;
@@ -31,29 +32,57 @@ public class ClusterRestServiceV2 {
 	@Context
 	private ServletContext servletContext;
 	
-	private IClusterStore getClusterStore() {
+	private IClusterStore getClusterStore() 
+	{
+		IClusterStore clusterStore = null;
 		WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-		IClusterNotifier clusterNotifier = (IClusterNotifier) ctxt.getBean(IClusterNotifier.BEAN_NAME);
-		return clusterNotifier.getClusterStore();
+		if (ctxt != null) {
+			IClusterNotifier clusterNotifier = (IClusterNotifier) ctxt.getBean(IClusterNotifier.BEAN_NAME);
+			clusterStore = clusterNotifier.getClusterStore();
+		}
+		
+		return clusterStore;
 	}
 	
 	@GET
 	@Path("/node-count")
 	public SimpleStat getNodeCount() {
-		return new SimpleStat(getClusterStore().getNodeCount());
+		IClusterStore clusterStore = getClusterStore();
+		long nodeCount = -1;
+		if (clusterStore != null) {
+			nodeCount = clusterStore.getNodeCount();
+		}
+		return new SimpleStat(nodeCount);
 	}
 	
 	@GET
 	@Path("/nodes/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<ClusterNode> getNodeList(@PathParam("offset") int offset, @PathParam("size") int size) {
-		return getClusterStore().getClusterNodes(offset, size);
+	public List<ClusterNode> getNodeList(@PathParam("offset") int offset, @PathParam("size") int size) 
+	{
+		IClusterStore clusterStore = getClusterStore();
+		List<ClusterNode> nodeList = null;
+		if (clusterStore != null) 
+		{
+			nodeList = clusterStore.getClusterNodes(offset, size);
+		}
+		else {
+			nodeList = new ArrayList<>();
+		}
+		return nodeList;
 	}	
 	
 	@DELETE
 	@Path("/node/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result deleteNode(@PathParam("id") String nodeId) {
-		return new Result(getClusterStore().deleteNode(nodeId));
+	public Result deleteNode(@PathParam("id") String nodeId) 
+	{
+		boolean result = false;
+		IClusterStore clusterStore = getClusterStore();
+		if (clusterStore != null) 
+		{
+			result = clusterStore.deleteNode(nodeId);
+		}
+		return new Result(result);
 	}
 }
