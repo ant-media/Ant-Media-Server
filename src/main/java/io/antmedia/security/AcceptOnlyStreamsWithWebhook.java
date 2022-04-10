@@ -1,10 +1,8 @@
 package io.antmedia.security;
 
-import com.google.gson.JsonObject;
-import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.licence.ILicenceService;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -21,18 +19,14 @@ import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
+import com.google.gson.JsonObject;
+
+import io.antmedia.AppSettings;
 
 public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 	@Autowired
-	private DataStoreFactory dataStoreFactory;
-	private DataStore dataStore;
 	private AppSettings appSettings = null;
 
 
@@ -53,7 +47,8 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 			try (CloseableHttpClient client = getHttpClient())
 			{
 				JsonObject instance = new JsonObject();
-
+				instance.addProperty("appName", scope.getName());
+				instance.addProperty("name", streamId); //this is for backward compatibility for release v2.4.3				
 				instance.addProperty("streamId", streamId);
 				instance.addProperty("mode", mode);
 				if(queryParams != null){
