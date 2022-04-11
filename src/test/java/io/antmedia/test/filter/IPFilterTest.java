@@ -12,7 +12,6 @@ import javax.servlet.ServletException;
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.rest.RestProxyFilter;
 import io.antmedia.settings.ServerSettings;
 import org.apache.catalina.ha.tcp.SimpleTcpCluster;
 import org.awaitility.Awaitility;
@@ -35,6 +34,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.filter.IPFilter;
+import io.antmedia.filter.RestProxyFilter;
 
 import static org.junit.Assert.*;
 
@@ -117,10 +117,7 @@ public class IPFilterTest {
     public void testIsCluster(){
         IPFilter ipFilter = Mockito.spy(new IPFilter());
 
-        List<ClusterNode> nodes = new ArrayList<ClusterNode>();
-
-        nodes.add(new ClusterNode("172.0.0.0", "node1"));
-        nodes.add(new ClusterNode("10.0.0.0", "node2"));
+       
 
         ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);
         Mockito.doReturn(webAppContext).when(ipFilter).getAppContext();
@@ -128,9 +125,9 @@ public class IPFilterTest {
 
         assertFalse(ipFilter.isComingFromCluser("1000000"));
 
-        assertTrue(ipFilter.checkClusterIps("172.0.0.0", nodes));
-        assertTrue(ipFilter.checkClusterIps("10.0.0.0", nodes));
-        assertFalse(ipFilter.checkClusterIps("172341", nodes));
+        assertTrue(ipFilter.isComingFromCluser("172.0.0.0"));
+        assertTrue(ipFilter.isComingFromCluser("10.0.0.0"));
+        assertFalse(ipFilter.isComingFromCluser("172341"));
 
     }
 	

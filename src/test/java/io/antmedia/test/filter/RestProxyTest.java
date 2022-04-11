@@ -5,7 +5,7 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.rest.RestProxyFilter;
+import io.antmedia.filter.RestProxyFilter;
 import io.antmedia.settings.ServerSettings;
 import org.junit.Rule;
 import org.junit.Test;

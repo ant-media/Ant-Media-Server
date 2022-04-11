@@ -35,28 +35,21 @@ public class IPFilter extends AbstractFilter {
 		}
 		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed IP");
 	}
+	
 
-	public  boolean isComingFromCluser(String originAddress) {
+	public  boolean isComingFromCluser(String originAddress) 
+	{
 		ApplicationContext context = getAppContext();
 		boolean isCluster = context.containsBean(IClusterNotifier.BEAN_NAME);
 		boolean isClusterNode = false;
 		if(isCluster){
 			IClusterNotifier clusterNotifier = (IClusterNotifier) context.getBean(IClusterNotifier.BEAN_NAME);
-			isClusterNode = checkClusterIps(originAddress, clusterNotifier.getClusterStore().getClusterNodes(0,1000));
+			isClusterNode = clusterNotifier.getClusterStore().getClusterNodeFromIP(originAddress) != null;
 		}
 		return isClusterNode;
 	}
 
-	public boolean checkClusterIps(String originAddress, List<ClusterNode> nodes){
-		boolean result = false;
-		for(int i = 0; i < nodes.size(); i++){
-			if(originAddress.equals(nodes.get(i).getIp())){
-				result = true;
-				break;
-			}
-		}
-		return result;
-	}
+
 
 	/**
 	 * Test if a remote's IP address is allowed to proceed.

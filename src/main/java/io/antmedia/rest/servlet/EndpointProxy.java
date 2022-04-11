@@ -4,6 +4,8 @@ import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.utils.URIUtils;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHttpRequest;
@@ -104,9 +106,21 @@ public class EndpointProxy extends ProxyServlet {
     }
 
     @Override
-    protected HttpClient createHttpClient() {
-        HttpClientBuilder clientBuilder = HttpClientBuilder.create().setDefaultRequestConfig(this.buildRequestConfig()).setDefaultSocketConfig(this.buildSocketConfig());
+    protected HttpClient createHttpClient() 
+    {
+         RequestConfig requestConfig = RequestConfig.custom()
+                .setRedirectsEnabled(doHandleRedirects)
+                .setCookieSpec(CookieSpecs.IGNORE_COOKIES) // we handle them in the servlet instead
+                .setConnectTimeout(2 * 1000)
+                .setSocketTimeout(5*1000)
+                .setConnectionRequestTimeout(connectionRequestTimeout)
+                .build();
+         
+        HttpClientBuilder clientBuilder = HttpClientBuilder.create()
+        		.setDefaultRequestConfig(requestConfig)
+        		.setDefaultSocketConfig(this.buildSocketConfig());
         clientBuilder.setMaxConnTotal(this.maxConnections);
+        
         if (this.useSystemProperties) {
             clientBuilder = clientBuilder.useSystemProperties();
         }
