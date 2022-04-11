@@ -581,7 +581,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	
 	@Test
 	public void testSkipPlaylistItem() {
-		
+
 		BroadcastRestService service = new BroadcastRestService();
 
 		service.setApplication(app);
@@ -614,95 +614,93 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//app.getAppAdaptor().getStreamFetcherManager();
 
 		app.setStreamFetcherManager(streamFetcherManager);
-		
-		String streamId = "testPlaylistId";
-		
+
+		String streamId = "testPlaylistStreamId";
+
 		try {
 
 			//create a broadcast
 			PlayListItem broadcastItem1 = new PlayListItem(VALID_LONG_DURATION_MP4_URL, AntMediaApplicationAdapter.VOD);
-			
+
 			//create a broadcast
 			PlayListItem broadcastItem2 = new PlayListItem(VALID_LONG_DURATION_MP4_URL_2, AntMediaApplicationAdapter.VOD);
-	
+
 			//create a broadcast
 			PlayListItem broadcastItem3 = new PlayListItem(VALID_LONG_DURATION_MP4_URL_3, AntMediaApplicationAdapter.VOD);
-	
+
 			List<PlayListItem> broadcastList = new ArrayList<>();
-	
+
 			broadcastList.add(broadcastItem1);
 			broadcastList.add(broadcastItem2);
 			broadcastList.add(broadcastItem3);
-	
+
 			Broadcast playlist = new Broadcast();
 			playlist.setStreamId(streamId);
 			playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
 			playlist.setPlayListItemList(broadcastList);
 			playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-	
+
 			dataStore.save(playlist);
-	
+
 			Result startPlaylist = streamFetcherManager.startPlaylist(playlist);
 			assertTrue(startPlaylist.isSuccess());
-			
+
 			// Check it currentPlayIndex is 0
 			Awaitility.await().atMost(20, TimeUnit.SECONDS)
 			.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 0);
-			
+
 			{
 				// It means that it will skip next playlist item
 				service.skipPlaylistItem(streamId, null);
-				
+
 				// Check it currentPlayIndex is 1
 				Awaitility.await().atMost(20, TimeUnit.SECONDS)
 				.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 1);
-				
+
 				Awaitility.await().atMost(20, TimeUnit.SECONDS)
 				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
 			}
-			
+
 			{
-				// It means that it will skip 100. playlist item. If there is no playlist item. It will resetting to 0.
+				// It means that it will skip 100. playlist item. If there is no playlist item, It will reset to 0.
 				service.skipPlaylistItem(streamId, "100");
-				
+
 				// Check it currentPlayIndex is 0
 				Awaitility.await().atMost(20, TimeUnit.SECONDS)
 				.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 0);
-				
+
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+			}
+
+			{
+				// It means that it will skip 2. playlist item.
+				service.skipPlaylistItem(streamId, "2");
+
+				// Check it currentPlayIndex is 1
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 1);
+
 				Awaitility.await().atMost(20, TimeUnit.SECONDS)
 				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
 			}
 			
 			{
-				// It means that it will skip next playlist item
-				service.skipPlaylistItem(streamId, "2");
-				
-				// Check it currentPlayIndex is 1
-				Awaitility.await().atMost(20, TimeUnit.SECONDS)
-				.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 1);
-				
-				Awaitility.await().atMost(20, TimeUnit.SECONDS)
-				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+				Result stopPlayList = streamFetcherManager.stopPlayList(streamId);
+				assertTrue(stopPlayList.isSuccess());
 			}
-			
+
 			//convert to original settings
 			getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 			Application.enableSourceHealthUpdate = false;
 
-			
+
 		}
 		catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-		
 	}
-	
-	
-
-
-
 
 	@Test
 	public void testStopFetchingWhenDeleted() {
