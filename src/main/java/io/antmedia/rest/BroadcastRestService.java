@@ -811,6 +811,18 @@ public class BroadcastRestService extends RestServiceBase{
 	{
 		return super.startStreamSource(id);
 	}
+	
+	@ApiOperation(value = "Skip playlist next item or specific item", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/skip-playlist-item")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result skipPlaylistItem(@ApiParam(value = "the id of the stream. The broadcast type should be Playlist. Otherwise, it does not work", required = true) @PathParam("id") String id,			
+			@ApiParam(value = "If it's null then playlist will skip to next item. Otherwise, it will skip to a specific playlist item", required = false) @QueryParam("skipItem") String skipItem			
+			) 
+	{ 
+		return super.skipPlaylistItemProcess(id, skipItem);
+	}
 
 	@ApiOperation(value = "Stop streaming for the active stream. It both stops ingested(RTMP, WebRTC) or pulled stream sources (IP Cameras and Stream Sources)", response = Result.class)
 	@POST

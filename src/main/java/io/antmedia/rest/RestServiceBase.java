@@ -58,7 +58,6 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
-import io.antmedia.muxer.RecordMuxer;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
@@ -519,9 +518,10 @@ public abstract class RestServiceBase {
 		return true;
 	}
 
-
-
-	@Deprecated
+	 /**
+	  * @deprecated (we don't use this function anymore. It's just only for backward compatible)
+	  */
+	@Deprecated(since="2.0.0", forRemoval=true)
 	public Result addEndpoint(String id, String rtmpUrl) {
 		boolean success = false;
 		String message = null;
@@ -567,7 +567,10 @@ public abstract class RestServiceBase {
 		return new Result(success, endpointServiceId, message);
 	}
 
-	@Deprecated
+	 /**
+	  * @deprecated (we don't use this function anymore. It's just only for backward compatible)
+	  */
+	@Deprecated(since="2.0.0", forRemoval=true)
 	public Result removeEndpoint(String id, String rtmpUrl) 
 	{
 		Endpoint endpoint = new Endpoint();
@@ -1198,7 +1201,7 @@ public abstract class RestServiceBase {
 
 					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
 
-					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
+					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, Muxer.getDurationInMs(savedFile,fileName), fileSize,
 							VoD.UPLOADED_VOD, vodId, null);
 
 					id = getDataStore().addVod(newVod);
@@ -1414,6 +1417,29 @@ public abstract class RestServiceBase {
 		else {
 			result.setMessage("No Stream Exists with id:"+id);
 		}
+		return result;
+	}
+	
+	public Result skipPlaylistItemProcess(String id, String skipItem) {
+		Result result = new Result(false);	
+		
+		stopStreaming(id);
+		Broadcast broadcast = getDataStore().get(id);
+		
+		if(broadcast == null) {
+			result.setMessage("There is no playlist found. Please check Stream ID again");
+			return result;
+		}
+		
+		if(skipItem == null) {
+			broadcast.setCurrentPlayIndex(broadcast.getCurrentPlayIndex()+1);
+		}
+		else {
+			broadcast.setCurrentPlayIndex(Integer.parseInt(skipItem));
+		}
+		
+		result = getApplication().getStreamFetcherManager().startPlaylist(broadcast);
+		
 		return result;
 	}
 
