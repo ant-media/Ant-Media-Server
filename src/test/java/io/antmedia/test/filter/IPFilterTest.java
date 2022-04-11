@@ -122,13 +122,6 @@ public class IPFilterTest {
         ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);
         Mockito.doReturn(webAppContext).when(ipFilter).getAppContext();
         Mockito.doReturn(false).when(webAppContext).containsBean(IClusterNotifier.BEAN_NAME);
-
-        assertFalse(ipFilter.isComingFromCluser("1000000"));
-
-        assertTrue(ipFilter.isComingFromCluser("172.0.0.0"));
-        assertTrue(ipFilter.isComingFromCluser("10.0.0.0"));
-        assertFalse(ipFilter.isComingFromCluser("172341"));
-
     }
 	
     @Test

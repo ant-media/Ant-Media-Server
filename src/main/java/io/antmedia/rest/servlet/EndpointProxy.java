@@ -23,7 +23,12 @@ import java.net.UnknownHostException;
 
 public class EndpointProxy extends ProxyServlet {
 
-    private static HttpClient proxyClient;
+    /**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+
+	private HttpClient proxyClient;
 
     protected static Logger log = LoggerFactory.getLogger(EndpointProxy.class);
 
