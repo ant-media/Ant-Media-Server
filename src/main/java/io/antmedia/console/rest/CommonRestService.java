@@ -1,5 +1,7 @@
 package io.antmedia.console.rest;
 
+import static org.slf4j.Logger.ROOT_LOGGER_NAME;
+
 import java.io.*;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
@@ -690,7 +692,7 @@ public class CommonRestService {
 					if (!appAdaptor.isShutdownProperly()) {
 						appShutdownProblemExists = true;
 						break;
-					};
+					}
 
 				}
 			}
@@ -803,7 +805,7 @@ public class CommonRestService {
 		store.put(NODE_GROUP, String.valueOf(serverSettings.getNodeGroup()));
 		getServerSettingsInternal().setNodeGroup(serverSettings.getNodeGroup());
 
-		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
 
 		if(LOG_LEVEL_ALL.equals(serverSettings.getLogLevel()) || LOG_LEVEL_TRACE.equals(serverSettings.getLogLevel()) 
 				|| LOG_LEVEL_DEBUG.equals(serverSettings.getLogLevel()) || LOG_LEVEL_INFO.equals(serverSettings.getLogLevel()) 
@@ -888,13 +890,19 @@ public class CommonRestService {
 		}
 		return dataStore;
 	}
+	
+	private WebApplicationContext getContext() {
+		return WebApplicationContextUtils.getWebApplicationContext(servletContext);
+	}
 
 	private ServerSettings getServerSettingsInternal() {
 
-		if(serverSettings == null) {
-
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			serverSettings = (ServerSettings)ctxt.getBean(ServerSettings.BEAN_NAME);
+		if(serverSettings == null) 
+		{
+			WebApplicationContext ctxt = getContext();
+			if (ctxt != null) {
+				serverSettings = (ServerSettings)ctxt.getBean(ServerSettings.BEAN_NAME);
+			}
 		}
 		return serverSettings;
 	}
@@ -904,23 +912,30 @@ public class CommonRestService {
 	public ILicenceService getLicenceServiceInstance () {
 		if(licenceService == null) {
 
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+			WebApplicationContext ctxt = getContext();
+			if (ctxt != null) {
+				licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+			}
 		}
 		return licenceService;
 	}
 
 
 	public AdminApplication getApplication() {
-		WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-		return (AdminApplication)ctxt.getBean("web.handler");
+		WebApplicationContext ctxt = getContext();
+		if (ctxt != null) {
+			return (AdminApplication)ctxt.getBean("web.handler");
+		}
+		return null;
 	}
 
 	public ConsoleDataStoreFactory getDataStoreFactory() {
 		if(dataStoreFactory == null)
 		{
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			dataStoreFactory = (ConsoleDataStoreFactory) ctxt.getBean("dataStoreFactory");
+			WebApplicationContext ctxt = getContext();
+			if (ctxt != null) {
+				dataStoreFactory = (ConsoleDataStoreFactory) ctxt.getBean("dataStoreFactory");
+			}
 		}
 		return dataStoreFactory;
 	}
@@ -937,7 +952,7 @@ public class CommonRestService {
 
 	public String changeLogSettings(@PathParam("level") String logLevel){
 
-		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
 
 		PreferenceStore store = new PreferenceStore(RED5_PROPERTIES_PATH);
 
@@ -1152,9 +1167,14 @@ public class CommonRestService {
 		return new Result(result, message);
 	}
 
-	public boolean isClusterMode() {
-		WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-		return ctxt.containsBean(IClusterNotifier.BEAN_NAME);
+	public boolean isClusterMode() 
+	{
+		boolean result = false;
+		WebApplicationContext ctxt = getContext();
+		if (ctxt != null) {
+			result = ctxt.containsBean(IClusterNotifier.BEAN_NAME);
+		}
+		return result;
 	}
 
 	public Result getBlockedStatus(String usermail) {

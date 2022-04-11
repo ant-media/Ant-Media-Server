@@ -218,7 +218,9 @@ public abstract class RestServiceBase {
 	public DataStoreFactory getDataStoreFactory() {
 		if(dataStoreFactory == null) {
 			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
+			if (ctxt != null) {
+				dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
+			}
 		}
 		return dataStoreFactory;
 	}
