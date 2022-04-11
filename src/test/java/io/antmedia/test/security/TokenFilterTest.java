@@ -403,8 +403,9 @@ public class TokenFilterTest {
 		
 		if (code.charAt(0) == '0') {
 			//first character can be zero.
-			assertTrue(intCode > 1000);
+			assertTrue(intCode > 100);
 			//if both first three characters are zero, meet the ice bear in the desert :)
+			//It seems that I found an ice bear in the desert -> Selim
 		}
 		else {
 			assertTrue(intCode > 100000);
