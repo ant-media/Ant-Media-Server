@@ -28,7 +28,7 @@ public class EndpointProxy extends ProxyServlet {
 	 */
 	private static final long serialVersionUID = 1L;
 
-	private HttpClient proxyClient;
+	private HttpClient localProxyClient;
 
     protected static Logger log = LoggerFactory.getLogger(EndpointProxy.class);
 
@@ -97,7 +97,7 @@ public class EndpointProxy extends ProxyServlet {
         }
 
         this.targetHost = URIUtils.extractHost(this.targetUriObj);
-        this.proxyClient = this.createHttpClient();
+        this.localProxyClient = this.createHttpClient();
     }
 
     public void setXForwardedFor(HttpServletRequest servletRequest, HttpRequest proxyRequest) {
@@ -143,7 +143,7 @@ public class EndpointProxy extends ProxyServlet {
     public HttpResponse doExecute(HttpServletRequest servletRequest, HttpServletResponse servletResponse, HttpRequest proxyRequest) throws IOException {
         try{
             log.debug("proxy {} uri: {} -- {}", servletRequest.getMethod(), servletRequest.getRequestURI(), proxyRequest.getRequestLine().getUri());
-            return this.proxyClient.execute(this.getTargetHost(servletRequest), proxyRequest);
+            return this.localProxyClient.execute(this.getTargetHost(servletRequest), proxyRequest);
         }
         catch (Exception e){
             log.error("Can't execute the request to forward in cluster");

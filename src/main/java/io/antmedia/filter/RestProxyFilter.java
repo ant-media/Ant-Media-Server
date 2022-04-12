@@ -25,76 +25,79 @@ import io.antmedia.rest.servlet.EndpointProxy;
 
 public class RestProxyFilter extends AbstractFilter {
 
-    protected static Logger log = LoggerFactory.getLogger(RestProxyFilter.class);
+	protected static Logger log = LoggerFactory.getLogger(RestProxyFilter.class);
 
-    private DataStore dataStore;
+	private DataStore dataStore;
 
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException 
-    {
-        HttpServletRequest httpReq = (HttpServletRequest) request;
-        String reqURI = httpReq.getRequestURI();
-        
-        String method = httpReq.getMethod();
-        
-        if (HttpMethod.POST.equals(method) || HttpMethod.PUT.equals(method) || HttpMethod.DELETE.equals(method)) 
-        {
-	        String streamId = getStreamId(reqURI);
-	        Broadcast broadcast = getDataStore().get(streamId);
-	        log.debug("STREAM ID = {} BROADCAST = {} ", streamId, broadcast);
-	
-	        //If it is not related with the broadcast, we can skip this filter
-	        if (broadcast == null 
-	        		|| !IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())
-	        		|| isInSameNodeInCluster(request.getRemoteAddr(), broadcast.getOriginAdress()) ) 
-	        {
-	            chain.doFilter(request, response);
-	        }
-	        else
-	        {
-	        	AppSettings settings = getAppSettings();
-	            String originAdress = "http://" + broadcast.getOriginAdress() + ":" + getServerSetting().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
-	            log.info("Redirecting request to origin {}", originAdress);
-	            EndpointProxy endpointProxy = new EndpointProxy();
-	            endpointProxy.initTarget(originAdress);
-	            endpointProxy.service(request, response);
-	        }
-        }
-        else 
-        {
-        	 chain.doFilter(request, response);
-        }
-    }
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException 
+	{
+		HttpServletRequest httpReq = (HttpServletRequest) request;
+		String reqURI = httpReq.getRequestURI();
 
-    public String getStreamId(String reqURI){
-        try{
-            reqURI = reqURI.split("broadcasts/")[1];
-        }
-        catch (ArrayIndexOutOfBoundsException e){
-            return reqURI;
-        }
-        if(reqURI.contains("/"))
-            reqURI = reqURI.substring(0, reqURI.indexOf("/"));
-        return reqURI;
-    }
+		String method = httpReq.getMethod();
 
-    public  boolean isInSameNodeInCluster(String requestAddress, String streamOriginAddress) {
-        ApplicationContext context = getAppContext();
-        boolean isCluster = context.containsBean(IClusterNotifier.BEAN_NAME);
-        return !isCluster || requestAddress.equals(getServerSetting().getHostAddress()) 
-        		|| getServerSetting().getHostAddress().equals(streamOriginAddress);
-    }
+		if (HttpMethod.POST.equals(method) || HttpMethod.PUT.equals(method) || HttpMethod.DELETE.equals(method)) 
+		{
+			String streamId = getStreamId(reqURI);
+			if (streamId != null && !streamId.isEmpty()) 
+			{
+				Broadcast broadcast = getDataStore().get(streamId);
+				log.debug("STREAM ID = {} BROADCAST = {} ", streamId, broadcast);
+				
+				//If it is not related with the broadcast, we can skip this filter
+				if (broadcast == null 
+						|| !IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())
+						|| isInSameNodeInCluster(request.getRemoteAddr(), broadcast.getOriginAdress()) ) 
+				{
+					chain.doFilter(request, response);
+				}
+				else
+				{
+					AppSettings settings = getAppSettings();
+					String originAdress = "http://" + broadcast.getOriginAdress() + ":" + getServerSetting().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
+					log.info("Redirecting request to origin {}", originAdress);
+					EndpointProxy endpointProxy = new EndpointProxy();
+					endpointProxy.initTarget(originAdress);
+					endpointProxy.service(request, response);
+				}
+			}
+		}
+		else 
+		{
+			chain.doFilter(request, response);
+		}
+	}
 
-    public DataStore getDataStore() {
-        if(dataStore == null) {
-            ApplicationContext context = getAppContext();
-            if(context != null){
-                dataStore = ((DataStoreFactory) context.getBean(IDataStoreFactory.BEAN_NAME)).getDataStore();
-            }
-            else{
-                log.error("RestProxyFilter is not initialized because context returns null");
-            }
-        }
-        return dataStore;
-    }
+	public String getStreamId(String reqURI){
+		try{
+			reqURI = reqURI.split("broadcasts/")[1];
+		}
+		catch (ArrayIndexOutOfBoundsException e){
+			return null;
+		}
+		if(reqURI.contains("/"))
+			reqURI = reqURI.substring(0, reqURI.indexOf("/"));
+		return reqURI;
+	}
+
+	public  boolean isInSameNodeInCluster(String requestAddress, String streamOriginAddress) {
+		ApplicationContext context = getAppContext();
+		boolean isCluster = context.containsBean(IClusterNotifier.BEAN_NAME);
+		return !isCluster || requestAddress.equals(getServerSetting().getHostAddress()) 
+				|| getServerSetting().getHostAddress().equals(streamOriginAddress);
+	}
+
+	public DataStore getDataStore() {
+		if(dataStore == null) {
+			ApplicationContext context = getAppContext();
+			if(context != null){
+				dataStore = ((DataStoreFactory) context.getBean(IDataStoreFactory.BEAN_NAME)).getDataStore();
+			}
+			else{
+				log.error("RestProxyFilter is not initialized because context returns null");
+			}
+		}
+		return dataStore;
+	}
 
 }
