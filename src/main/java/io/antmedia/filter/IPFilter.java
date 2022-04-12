@@ -31,7 +31,7 @@ public class IPFilter extends AbstractFilter {
 		}
 		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed IP");
 	}
-	
+
 	/**
 	 * Test if a remote's IP address is allowed to proceed.
 	 *

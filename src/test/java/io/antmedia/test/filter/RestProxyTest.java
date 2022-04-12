@@ -6,6 +6,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.filter.RestProxyFilter;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
 import org.junit.Rule;
 import org.junit.Test;
@@ -22,6 +23,8 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import javax.servlet.ServletException;
+import javax.ws.rs.HttpMethod;
+
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
@@ -112,12 +115,13 @@ public class RestProxyTest {
         broadcast.setOriginAdress("127.0.0.1");
         try{
             broadcast.setStreamId("stream1");
+           
         }
         catch(Exception e ){
             logger.error("StreamId can't set");
             fail();
         }
-
+        
         Mockito.doReturn(broadcast).when(dtStore).get(Mockito.anyString());
 
         Mockito.when(dtFactory.getDataStore()).thenReturn(dtStore);
@@ -128,7 +132,7 @@ public class RestProxyTest {
 
         AppSettings appSettings = new AppSettings();
         appSettings.setRemoteAllowedCIDR("127.0.0.1/8");
-
+        
         ServerSettings serverSettings = Mockito.spy(new ServerSettings());
         Mockito.doReturn("172.0.0.0").when(serverSettings).getHostAddress();
 
@@ -136,20 +140,31 @@ public class RestProxyTest {
         Mockito.doReturn(appSettings).when(restFilter).getAppSettings();
         Mockito.doReturn(serverSettings).when(restFilter).getServerSetting();
 
+        httpServletRequest.setMethod(HttpMethod.POST);
         restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
-        assertEquals(501, httpServletResponse.getStatus());
+        assertEquals(200, httpServletResponse.getStatus());
 
+        broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+        httpServletRequest.setMethod(HttpMethod.DELETE);
+        filterChain = new MockFilterChain();
         httpServletRequest.setQueryString("query string");
         restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
-        assertEquals(501, httpServletResponse.getStatus());
+        assertEquals(200, httpServletResponse.getStatus());
 
+        httpServletRequest.setMethod(HttpMethod.PUT);
+        filterChain = new MockFilterChain();
         httpServletRequest.addHeader("X-Forwarded-For", "170.0.0.0");
+        
         restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
-        assertEquals(501, httpServletResponse.getStatus());
+        assertEquals(200, httpServletResponse.getStatus());
 
+        httpServletRequest.setMethod(HttpMethod.GET);
+        filterChain = new MockFilterChain();
         httpServletRequest.setRequestURI("/v2/broadcasts/stream12314_239/rtmp-endpoint");
         restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
-        assertEquals(501, httpServletResponse.getStatus());
+        assertEquals(200, httpServletResponse.getStatus());
+        
+        
 
     }
 }

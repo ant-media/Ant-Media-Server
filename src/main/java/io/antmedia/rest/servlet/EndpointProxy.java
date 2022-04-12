@@ -65,13 +65,19 @@ public class EndpointProxy extends ProxyServlet {
 
         try {
             proxyResponse = this.doExecute(servletRequest, servletResponse, (HttpRequest)proxyRequest);
-            int statusCode = proxyResponse.getStatusLine().getStatusCode();
-            servletResponse.setStatus(statusCode, proxyResponse.getStatusLine().getReasonPhrase());
-            this.copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
-            if (statusCode == 304) {
-                servletResponse.setIntHeader("Content-Length", 0);
-            } else {
-                this.copyResponseEntity(proxyResponse, servletResponse, (HttpRequest)proxyRequest, servletRequest);
+            if (proxyResponse != null) 
+            {
+	            int statusCode = proxyResponse.getStatusLine().getStatusCode();
+	            servletResponse.setStatus(statusCode, proxyResponse.getStatusLine().getReasonPhrase());
+	            this.copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
+	            if (statusCode == 304) {
+	                servletResponse.setIntHeader("Content-Length", 0);
+	            } else {
+	                this.copyResponseEntity(proxyResponse, servletResponse, (HttpRequest)proxyRequest, servletRequest);
+	            }
+            }
+            else {
+            	log.warn("ProxyResponse is null for request:{}", servletRequest);
             }
         } catch (Exception var11) {
             this.handleRequestException((HttpRequest)proxyRequest, proxyResponse, var11);
