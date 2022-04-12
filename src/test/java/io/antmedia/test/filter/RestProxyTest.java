@@ -148,6 +148,7 @@ public class RestProxyTest {
 
 		MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
 		httpServletRequest.setRemoteAddr("10.0.0.0");
+		httpServletRequest.setRequestURI("/broadcasts/23456");
 
 		MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
@@ -210,9 +211,15 @@ public class RestProxyTest {
 		httpServletRequest.setRequestURI("/v2/broadcasts/stream12314_239/rtmp-endpoint");
 		restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
 		assertEquals(200, httpServletResponse.getStatus());
-
-
-
+		
+		
+		
+		httpServletRequest.setMethod(HttpMethod.PUT);
+		filterChain = new MockFilterChain();
+		httpServletRequest.setRequestURI("/v2/br");
+		restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
+		assertEquals(200, httpServletResponse.getStatus());
+		
 	}
 
 	@Test
