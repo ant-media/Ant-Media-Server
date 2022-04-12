@@ -285,10 +285,10 @@ public class WebSocketCommunityHandler {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session, String linkedSession)
+	public void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session, String linkedSessionForSignaling)
 	{
 
-		sendMessage(getTakeCandidateJSON(sdpMLineIndex, sdpMid, sdp, streamId, linkedSession).toJSONString(), session);
+		sendMessage(getTakeCandidateJSON(sdpMLineIndex, sdpMid, sdp, streamId, linkedSessionForSignaling).toJSONString(), session);
 	}
 
 
@@ -364,7 +364,7 @@ public class WebSocketCommunityHandler {
 	}
 
 
-	public static JSONObject getTakeCandidateJSON(long sdpMLineIndex, String sdpMid, String sdp, String streamId, String linkedSession) {
+	public static JSONObject getTakeCandidateJSON(long sdpMLineIndex, String sdpMid, String sdp, String streamId, String linkedSessionForSignaling) {
 
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND,  WebSocketConstants.TAKE_CANDIDATE_COMMAND);
@@ -372,7 +372,7 @@ public class WebSocketCommunityHandler {
 		jsonObject.put(WebSocketConstants.CANDIDATE_ID, sdpMid);
 		jsonObject.put(WebSocketConstants.CANDIDATE_SDP, sdp);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
-		jsonObject.put(WebSocketConstants.LINK_SESSION, linkedSession);
+		jsonObject.put(WebSocketConstants.LINK_SESSION, linkedSessionForSignaling);
 
 		return jsonObject;
 	}
