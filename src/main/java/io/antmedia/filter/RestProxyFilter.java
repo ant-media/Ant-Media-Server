@@ -43,9 +43,9 @@ public class RestProxyFilter extends AbstractFilter {
 	        log.debug("STREAM ID = {} BROADCAST = {} ", streamId, broadcast);
 	
 	        //If it is not related with the broadcast, we can skip this filter
-	        if (isInSameNodeInCluster(request.getRemoteAddr()) 
-	        		|| broadcast == null 
-	        		|| !IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
+	        if (broadcast == null 
+	        		|| !IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())
+	        		|| isInSameNodeInCluster(request.getRemoteAddr(), broadcast.getOriginAdress()) ) 
 	        {
 	            chain.doFilter(request, response);
 	        }
@@ -77,10 +77,11 @@ public class RestProxyFilter extends AbstractFilter {
         return reqURI;
     }
 
-    public  boolean isInSameNodeInCluster(String originAddress) {
+    public  boolean isInSameNodeInCluster(String requestAddress, String streamOriginAddress) {
         ApplicationContext context = getAppContext();
         boolean isCluster = context.containsBean(IClusterNotifier.BEAN_NAME);
-        return !isCluster || originAddress.equals(getServerSetting().getHostAddress());
+        return !isCluster || requestAddress.equals(getServerSetting().getHostAddress()) 
+        		|| getServerSetting().getHostAddress().equals(streamOriginAddress);
     }
 
     public DataStore getDataStore() {
