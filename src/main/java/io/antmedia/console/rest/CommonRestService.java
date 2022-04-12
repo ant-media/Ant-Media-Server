@@ -55,6 +55,7 @@ import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.UserType;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
 
 
@@ -128,6 +129,8 @@ public class CommonRestService {
 	private ServerSettings serverSettings;
 
 	private ILicenceService licenceService;
+
+	private IStatsCollector statsCollector;
 
 	private static final int BLOCKED_LOGIN_TIMEOUT_SECS = 300 ; // in seconds
 
@@ -842,6 +845,16 @@ public class CommonRestService {
 	}
 	
 
+	public IStatsCollector getStatsCollector () {
+		if(statsCollector == null) 
+		{
+			WebApplicationContext ctxt =getContext();
+			if (ctxt != null) {
+				statsCollector = (IStatsCollector)ctxt.getBean(IStatsCollector.BEAN_NAME);
+			}
+		}
+		return statsCollector;
+	}
 
 	public ServerSettings getServerSettings() 
 	{
@@ -891,11 +904,11 @@ public class CommonRestService {
 		return dataStore;
 	}
 	
-	private WebApplicationContext getContext() {
+	public WebApplicationContext getContext() {
 		return WebApplicationContextUtils.getWebApplicationContext(servletContext);
 	}
 
-	private ServerSettings getServerSettingsInternal() {
+	public ServerSettings getServerSettingsInternal() {
 
 		if(serverSettings == null) 
 		{
