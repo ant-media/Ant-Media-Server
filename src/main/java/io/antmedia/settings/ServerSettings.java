@@ -76,6 +76,8 @@ public class ServerSettings implements ApplicationContextAware {
 
 	private static final String SETTINGS_SERVER_NAME = "server.name";
 
+	private static final String SETTINGS_MARKET_PLACE_NAME = "server.marketplace";
+
 	@Value( "${"+ALLOWED_DASH_BOARD_CIDR+":'0.0.0.0/0'}" )
 	private String allowedDashboardCIDR;
 
@@ -100,7 +102,6 @@ public class ServerSettings implements ApplicationContextAware {
 	/**
 	 * Customer License Key
 	 */
-	
 	@Value( "${"+SETTINGS_LICENSE_KEY+":#{null}}" )
 	private String licenceKey;
 	
@@ -109,6 +110,13 @@ public class ServerSettings implements ApplicationContextAware {
 	 */
 	@Value( "${"+SETTINGS_MARKET_BUILD+":false}" )
 	private boolean buildForMarket = false;
+	
+	/**
+	 * Name of the marketplace
+	 */
+	@Value( "${"+SETTINGS_MARKET_PLACE_NAME+":#{null}}" )
+	private String marketplace;
+	
 	
 	@Value( "${"+SETTINGS_LOG_LEVEL+":'INFO'}" )
 	private String logLevel = null;
@@ -501,6 +509,14 @@ public class ServerSettings implements ApplicationContextAware {
 	
 	public void setSrtPort(int srtPort) {
 		this.srtPort = srtPort;
+	}
+
+	public String getMarketplace() {
+		return marketplace;
+	}
+
+	public void setMarketplace(String marketplace) {
+		this.marketplace = marketplace;
 	}
 
 

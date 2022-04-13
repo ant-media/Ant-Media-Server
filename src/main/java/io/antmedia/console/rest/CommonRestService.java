@@ -26,6 +26,17 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.red5.server.Launcher;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +58,7 @@ import io.antmedia.console.AdminApplication.ApplicationInfo;
 import io.antmedia.console.AdminApplication.BroadcastInfo;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
+import io.antmedia.console.rest.SupportRestService.SupportResponse;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.datastore.preference.PreferenceStore;
@@ -54,6 +66,7 @@ import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.UserType;
+import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
@@ -137,7 +150,7 @@ public class CommonRestService {
 	private static final int ALLOWED_LOGIN_ATTEMPTS = 2 ;
 
 	public static final String SESSION_SCOPE_KEY = "scope";
-	
+
 	public static final String USER_TYPE = "user-type";
 
 	public static final String SCOPE_SYSTEM = "system";
@@ -179,6 +192,12 @@ public class CommonRestService {
 				user.setPassword(getMD5Hash(user.getPassword()));
 				result = getDataStore().addUser(user);
 				logger.info("added user = {} user type = {} -> {}", user.getEmail() ,user.getUserType(), result);
+				
+				new Thread() {
+					public void run() {
+						sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), user.getScope(), user.getUserType().toString());
+					};
+				}.start();
 			}
 			else {
 				message = "User with the same e-mail already exists";
@@ -210,988 +229,1051 @@ public class CommonRestService {
 
 		Result operationResult = new Result(result);
 		operationResult.setErrorId(errorId);
+
+		new Thread() {
+			
+			@Override
+			public void run() 
+			{
+				sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), user.getScope(), user.getUserType().toString());
+			}
+		}.start();
+		
+
 		return operationResult;
 	}
 
-	
 
-	protected static String getWebAppsDirectory() {
-		return String.format("%s/webapps", System.getProperty("red5.root"));
-	}
-
-	protected static String getTmpDirectory() {
-		return String.format("%s/tmp", System.getProperty("red5.root"));
-	}
-
-	public Result isFirstLogin() 
+	public boolean sendUserInfo(String email, String firstname, String lastname, String scope, String userType) 
 	{
-		boolean result = false;
-		if (getDataStore().getNumberOfUserRecords() == 0) {
-			result = true;
-		}
-		return new Result(result);
-	}
+		boolean success = false;
 
-
-	/**
-	 * Authenticates user with userName and password
-	 * 
-	 * 
-	 * @param user: The User object to be authenticated 
-	 * @return json that shows user is authenticated or not
-	 */
-	public Result authenticateUser(User user) 
-	{
-
-		String message = "";
-
-		boolean tryToAuthenticate = false;
-		if (user != null && user.getEmail() != null) 
+		try (CloseableHttpClient httpClient = HttpClients.createDefault()) 
 		{
-			if (getDataStore().isUserBlocked(user.getEmail())) 
-			{
-				if ((Instant.now().getEpochSecond() - getDataStore().getBlockTime(user.getEmail())) > BLOCKED_LOGIN_TIMEOUT_SECS) 
+			Version version = RestServiceBase.getSoftwareVersion();
+
+			HttpPost httpPost = new HttpPost("https://antmedia.io/livedemo/ams_web_panel_registration.php");
+			
+			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
+			
+			httpPost.setConfig(requestConfig);
+
+			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+			builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+
+			builder.addTextBody("firstname", firstname);
+			builder.addTextBody("lastname", lastname);
+			builder.addTextBody("email", email);
+			builder.addTextBody("isEnterprise", RestServiceBase.isEnterprise()+"");
+			builder.addTextBody("licenseKey", getServerSettings().getLicenceKey());
+			builder.addTextBody("version", version.getVersionType()+" "+version.getVersionName()+" "+version.getBuildNumber());
+			builder.addTextBody("marketplace", getServerSettings().getMarketplace());
+			builder.addTextBody("instanceId", Launcher.getInstanceId());
+			builder.addTextBody("userScope", scope);
+			builder.addTextBody("userType", userType);
+			
+
+			HttpEntity httpEntity = builder.build();
+
+			httpPost.setEntity(httpEntity);
+
+			CloseableHttpResponse response = httpClient.execute(httpPost);
+
+			try {
+				if (response.getStatusLine().getStatusCode() == 200) 
 				{
-					logger.info("Unblocking the user -> {}", user.getEmail());
-					getDataStore().setUnBlocked(user.getEmail());
-					getDataStore().resetInvalidLoginCount(user.getEmail());
-					tryToAuthenticate = true;
-				}
-				else {
-					message = "Too many login attempts. User is blocked for " + BLOCKED_LOGIN_TIMEOUT_SECS + " secs";
-				}
-	
-	
+					success = true;
+				}	
+			} finally {
+				response.close();
 			}
-			else {
+		}catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		
+		
+		return success;		
+	}
+
+
+
+protected static String getWebAppsDirectory() {
+	return String.format("%s/webapps", System.getProperty("red5.root"));
+}
+
+protected static String getTmpDirectory() {
+	return String.format("%s/tmp", System.getProperty("red5.root"));
+}
+
+public Result isFirstLogin() 
+{
+	boolean result = false;
+	if (getDataStore().getNumberOfUserRecords() == 0) {
+		result = true;
+	}
+	return new Result(result);
+}
+
+
+/**
+ * Authenticates user with userName and password
+ * 
+ * 
+ * @param user: The User object to be authenticated 
+ * @return json that shows user is authenticated or not
+ */
+public Result authenticateUser(User user) 
+{
+
+	String message = "";
+
+	boolean tryToAuthenticate = false;
+	if (user != null && user.getEmail() != null) 
+	{
+		if (getDataStore().isUserBlocked(user.getEmail())) 
+		{
+			if ((Instant.now().getEpochSecond() - getDataStore().getBlockTime(user.getEmail())) > BLOCKED_LOGIN_TIMEOUT_SECS) 
+			{
+				logger.info("Unblocking the user -> {}", user.getEmail());
+				getDataStore().setUnBlocked(user.getEmail());
+				getDataStore().resetInvalidLoginCount(user.getEmail());
 				tryToAuthenticate = true;
 			}
-		}
-
-		boolean result = false;
-		if (tryToAuthenticate) 
-		{
-			result = getDataStore().doesUserExist(user.getEmail(), user.getPassword()) ||
-					getDataStore().doesUserExist(user.getEmail(), getMD5Hash(user.getPassword()));
-
-			if (result) 
-			{
-				HttpSession session = servletRequest.getSession();
-				session.setAttribute(IS_AUTHENTICATED, true);
-				session.setAttribute(USER_EMAIL, user.getEmail());
-				session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
-				message = getDataStore().getUser(user.getEmail()).getScope();
-				getDataStore().resetInvalidLoginCount(user.getEmail());
-			} 
-			else 
-			{
-				getDataStore().incrementInvalidLoginCount(user.getEmail());
-				logger.info("Increased invalid login count to: {}", getDataStore().getInvalidLoginCount(user.getEmail()));
-				if (getDataStore().getInvalidLoginCount(user.getEmail()) > ALLOWED_LOGIN_ATTEMPTS) {
-					getDataStore().setBlocked(user.getEmail());
-					getDataStore().setBlockTime(user.getEmail(), Instant.now().getEpochSecond());
-					logger.info("User is blocked: {}", getDataStore().doesUsernameExist(user.getEmail()));
-				}
-
-			}
-		}
-
-		return new Result(result, message);
-
-	}
-	public void setRequestForTest(HttpServletRequest testRequest){
-		servletRequest = testRequest;
-	}
-
-	public Result isAdmin() {
-		HttpSession session = servletRequest.getSession();
-		if(isAuthenticated(session)) {
-			User currentUser = getDataStore().getUser(session.getAttribute(USER_EMAIL).toString());
-			if (currentUser.getUserType().equals(UserType.ADMIN)) {
-				return new Result(true, "User is admin");
-			}
-		}
-		return new Result(false, "User is not admin");
-	}
-
-
-	public Result editUser(User user) 
-	{
-		boolean result = false;
-		String message = "";
-		HttpSession session = servletRequest.getSession();
-		String userEmail = (String)session.getAttribute(USER_EMAIL);
-
-		if (user != null && user.getEmail() != null && getDataStore().doesUsernameExist(user.getEmail())) 
-		{
-			if (!userEmail.equals(user.getEmail()))
-			{
-				
-				if(user.getNewPassword() != null && !user.getNewPassword().isEmpty()) 
-				{
-					logger.info("Changing password of user: {}",  user.getEmail());
-					user.setPassword(getMD5Hash(user.getNewPassword()));
-					user.setNewPassword(null);
-				}
-				else {
-					//just keep the password same
-					User userOriginal = getDataStore().getUser(user.getEmail());
-					user.setPassword(userOriginal.getPassword());
-				}
-				
-				result = getDataStore().editUser(user);
-				
-			}
 			else {
-				message = "User cannot edit itself";
+				message = "Too many login attempts. User is blocked for " + BLOCKED_LOGIN_TIMEOUT_SECS + " secs";
 			}
 
+
+		}
+		else {
+			tryToAuthenticate = true;
+		}
+	}
+
+	boolean result = false;
+	if (tryToAuthenticate) 
+	{
+		result = getDataStore().doesUserExist(user.getEmail(), user.getPassword()) ||
+				getDataStore().doesUserExist(user.getEmail(), getMD5Hash(user.getPassword()));
+
+		if (result) 
+		{
+			HttpSession session = servletRequest.getSession();
+			session.setAttribute(IS_AUTHENTICATED, true);
+			session.setAttribute(USER_EMAIL, user.getEmail());
+			session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
+			message = getDataStore().getUser(user.getEmail()).getScope();
+			getDataStore().resetInvalidLoginCount(user.getEmail());
 		} 
-		else {
-			message = "Edited user is not found in database";
-		}
-
-		return new Result(result, message);
-	}
-
-	public Result deleteUser(String userName) {
-		HttpSession session = servletRequest.getSession();
-		String userEmail = (String) session.getAttribute(USER_EMAIL);
-		boolean result = false;
-		String message = "";
-
-		if (!userEmail.equals(userName)) {
-			result = getDataStore().deleteUser(userName);
-			if (!result) {
-				logger.info("Could not delete the user: {}" , userName);
+		else 
+		{
+			getDataStore().incrementInvalidLoginCount(user.getEmail());
+			logger.info("Increased invalid login count to: {}", getDataStore().getInvalidLoginCount(user.getEmail()));
+			if (getDataStore().getInvalidLoginCount(user.getEmail()) > ALLOWED_LOGIN_ATTEMPTS) {
+				getDataStore().setBlocked(user.getEmail());
+				getDataStore().setBlockTime(user.getEmail(), Instant.now().getEpochSecond());
+				logger.info("User is blocked: {}", getDataStore().doesUsernameExist(user.getEmail()));
 			}
+
 		}
-		else {
-			message = "You cannot delete yourself";
+	}
+
+	return new Result(result, message);
+
+}
+public void setRequestForTest(HttpServletRequest testRequest){
+	servletRequest = testRequest;
+}
+
+public Result isAdmin() {
+	HttpSession session = servletRequest.getSession();
+	if(isAuthenticated(session)) {
+		User currentUser = getDataStore().getUser(session.getAttribute(USER_EMAIL).toString());
+		if (currentUser.getUserType().equals(UserType.ADMIN)) {
+			return new Result(true, "User is admin");
 		}
-
-		if(result) {
-			logger.info("Deleted user: {} ", userName);
-		}	
-
-		return new Result(result, message);
 	}
+	return new Result(false, "User is not admin");
+}
 
 
-	public List<User> getUserList() {
-		return getDataStore().getUserList();
-	}
+public Result editUser(User user) 
+{
+	boolean result = false;
+	String message = "";
+	HttpSession session = servletRequest.getSession();
+	String userEmail = (String)session.getAttribute(USER_EMAIL);
 
+	if (user != null && user.getEmail() != null && getDataStore().doesUsernameExist(user.getEmail())) 
+	{
+		if (!userEmail.equals(user.getEmail()))
+		{
 
-	public Result changeUserPassword(User user) {
-
-		String userMail = (String)servletRequest.getSession().getAttribute(USER_EMAIL);
-
-		return changeUserPasswordInternal(userMail, user);
-
-	}
-
-	public Result changeUserPasswordInternal(String userMail, User user) {
-		boolean result = false;
-		String message = null;
-		if (userMail != null && user.getNewPassword() != null) {
-			result = getDataStore().doesUserExist(userMail, user.getPassword()) || getDataStore().doesUserExist(userMail, getMD5Hash(user.getPassword()));
-			if (result) {
-				User userFromDB = getDataStore().getUser(userMail);
-				userFromDB.setPassword(getMD5Hash(user.getNewPassword()));
-				userFromDB.setNewPassword(null);
-				result = getDataStore().editUser(userFromDB);
-
-				if (result) {
-					message = "Success";
-					HttpSession session = servletRequest.getSession();
-					if (session != null) {
-						session.setAttribute(IS_AUTHENTICATED, true);
-						session.setAttribute(USER_EMAIL, userMail);
-						session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
-					}
-				}
+			if(user.getNewPassword() != null && !user.getNewPassword().isEmpty()) 
+			{
+				logger.info("Changing password of user: {}",  user.getEmail());
+				user.setPassword(getMD5Hash(user.getNewPassword()));
+				user.setNewPassword(null);
 			}
 			else {
-				message = "User not exist with that name and pass";
+				//just keep the password same
+				User userOriginal = getDataStore().getUser(user.getEmail());
+				user.setPassword(userOriginal.getPassword());
+			}
+
+			result = getDataStore().editUser(user);
+
+		}
+		else {
+			message = "User cannot edit itself";
+		}
+
+	} 
+	else {
+		message = "Edited user is not found in database";
+	}
+
+	return new Result(result, message);
+}
+
+public Result deleteUser(String userName) {
+	HttpSession session = servletRequest.getSession();
+	String userEmail = (String) session.getAttribute(USER_EMAIL);
+	boolean result = false;
+	String message = "";
+
+	if (!userEmail.equals(userName)) {
+		result = getDataStore().deleteUser(userName);
+		if (!result) {
+			logger.info("Could not delete the user: {}" , userName);
+		}
+	}
+	else {
+		message = "You cannot delete yourself";
+	}
+
+	if(result) {
+		logger.info("Deleted user: {} ", userName);
+	}	
+
+	return new Result(result, message);
+}
+
+
+public List<User> getUserList() {
+	return getDataStore().getUserList();
+}
+
+
+public Result changeUserPassword(User user) {
+
+	String userMail = (String)servletRequest.getSession().getAttribute(USER_EMAIL);
+
+	return changeUserPasswordInternal(userMail, user);
+
+}
+
+public Result changeUserPasswordInternal(String userMail, User user) {
+	boolean result = false;
+	String message = null;
+	if (userMail != null && user.getNewPassword() != null) {
+		result = getDataStore().doesUserExist(userMail, user.getPassword()) || getDataStore().doesUserExist(userMail, getMD5Hash(user.getPassword()));
+		if (result) {
+			User userFromDB = getDataStore().getUser(userMail);
+			userFromDB.setPassword(getMD5Hash(user.getNewPassword()));
+			userFromDB.setNewPassword(null);
+			result = getDataStore().editUser(userFromDB);
+
+			if (result) {
+				message = "Success";
+				HttpSession session = servletRequest.getSession();
+				if (session != null) {
+					session.setAttribute(IS_AUTHENTICATED, true);
+					session.setAttribute(USER_EMAIL, userMail);
+					session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
+				}
 			}
 		}
 		else {
-			message = "User name does not exist or there is no new password";
+			message = "User not exist with that name and pass";
 		}
-
-		return new Result(result, message);
+	}
+	else {
+		message = "User name does not exist or there is no new password";
 	}
 
-	public Result isAuthenticatedRest(){
-		return new Result(isAuthenticated(servletRequest.getSession()));
-	}
+	return new Result(result, message);
+}
 
-	public static boolean isAuthenticated(HttpSession session) 
+public Result isAuthenticatedRest(){
+	return new Result(isAuthenticated(servletRequest.getSession()));
+}
+
+public static boolean isAuthenticated(HttpSession session) 
+{
+	Object isAuthenticated = session.getAttribute(IS_AUTHENTICATED);
+	Object userEmail = session.getAttribute(USER_EMAIL);
+	Object userPassword = session.getAttribute(USER_PASSWORD);
+	boolean result = false;
+	if (isAuthenticated != null && userEmail != null && userPassword != null) {
+		result = true;
+	}
+	return result;
+}
+
+/*
+ * 	os.name						:Operating System Name
+ * 	os.arch						: x86/x64/...
+ * 	java.specification.version	: Java Version (Required 1.5 or 1.6 and higher to run Red5)
+ * 	-------------------------------
+ * 	Runtime.getRuntime()._____  (Java Virtual Machine Memory)
+ * 	===============================
+ * 	maxMemory()					: Maximum limitation
+ * 	totalMemory()				: Total can be used
+ * 	freeMemory()				: Availability
+ * 	totalMemory()-freeMemory()	: In Use
+ * 	availableProcessors()		: Total Processors available
+ * 	-------------------------------
+ *  getOperatingSystemMXBean()	(Actual Operating System RAM)
+ *	===============================
+ *  osCommittedVirtualMemory()	: Virtual Memory
+ *  osTotalPhysicalMemory()		: Total Physical Memory
+ *  osFreePhysicalMemory()		: Available Physical Memory
+ *  osInUsePhysicalMemory()		: In Use Physical Memory
+ *  osTotalSwapSpace()			: Total Swap Space
+ *  osFreeSwapSpace()			: Available Swap Space
+ *  osInUseSwapSpace()			: In Use Swap Space
+ *  -------------------------------
+ *  File						(Actual Harddrive Info: Supported for JRE 1.6)
+ *	===============================
+ *	osHDUsableSpace()			: Usable Space
+ *	osHDTotalSpace()			: Total Space
+ *	osHDFreeSpace()				: Available Space
+ *	osHDInUseSpace()			: In Use Space
+ **/
+
+
+
+public String getSystemInfo() {
+	return gson.toJson(StatsCollector.getSystemInfoJSObject());
+}
+
+
+/*
+ * 	Runtime.getRuntime()._____  (Java Virtual Machine Memory)
+ * 	===============================
+ * 	maxMemory()					: Maximum limitation
+ * 	totalMemory()				: Total can be used
+ * 	freeMemory()				: Availability
+ * 	totalMemory()-freeMemory()	: In Use
+ * 	availableProcessors()		: Total Processors available
+ */
+
+public String getJVMMemoryInfo() {
+	return gson.toJson(StatsCollector.getJVMMemoryInfoJSObject());
+}
+
+
+/*
+ *  osCommittedVirtualMemory()	: Virtual Memory
+ *  osTotalPhysicalMemory()		: Total Physical Memory
+ *  osFreePhysicalMemory()		: Available Physical Memory
+ *  osInUsePhysicalMemory()		: In Use Physical Memory
+ *  osTotalSwapSpace()			: Total Swap Space
+ *  osFreeSwapSpace()			: Available Swap Space
+ *  osInUseSwapSpace()			: In Use Swap Space
+ */
+
+public String getSystemMemoryInfo() {
+	return gson.toJson(StatsCollector.getSysteMemoryInfoJSObject());
+}
+
+
+/*
+ *  File						(Actual Harddrive Info: Supported for JRE 1.6)
+ *	===============================
+ *	osHDUsableSpace()			: Usable Space
+ *	osHDTotalSpace()			: Total Space
+ *	osHDFreeSpace()				: Available Space
+ *	osHDInUseSpace()			: In Use Space
+ **/
+
+public String getFileSystemInfo() {
+	return gson.toJson(StatsCollector.getFileSystemInfoJSObject());
+}
+
+/**
+ * getProcessCpuTime:  microseconds CPU time used by the process
+ * 
+ * getSystemCpuLoad:	"% recent cpu usage" for the whole system. 
+ * 
+ * getProcessCpuLoad: "% recent cpu usage" for the Java Virtual Machine process. 
+ * @return the CPU load info
+ */
+
+public String getCPUInfo() {
+	return gson.toJson(StatsCollector.getCPUInfoJSObject());
+}
+
+
+public String getThreadDump() {
+	return Arrays.toString(StatsCollector.getThreadDump());
+}
+
+
+public String getThreadDumpJSON() {
+	return gson.toJson(StatsCollector.getThreadDumpJSON());
+}
+
+
+
+public String getThreadsInfo() {
+	return gson.toJson(StatsCollector.getThreadInfoJSONObject());
+}
+
+
+public Response getHeapDump() {
+	SystemUtils.getHeapDump(SystemUtils.HEAPDUMP_HPROF);
+	File file = new File(SystemUtils.HEAPDUMP_HPROF);
+	return Response.ok(file, MediaType.APPLICATION_OCTET_STREAM)
+			.header("Content-Disposition", "attachment; filename=\"" + file.getName() + "\"" ) //optional
+			.build();
+}
+
+
+
+/**
+ * Return server uptime and startime in milliseconds
+ * @return JSON object contains the server uptime and start time
+ */
+
+public String getServerTime() {
+	return gson.toJson(StatsCollector.getServerTime());
+}
+
+
+public String getSystemResourcesInfo() {
+
+	AdminApplication application = getApplication();
+	IScope rootScope = application.getRootScope();
+
+	//add live stream size
+	int totalLiveStreams = 0;
+	Queue<IScope> scopes = new LinkedList<>();
+	List<String> appNames = application.getApplications();
+	for (String name : appNames) 
 	{
-		Object isAuthenticated = session.getAttribute(IS_AUTHENTICATED);
-		Object userEmail = session.getAttribute(USER_EMAIL);
-		Object userPassword = session.getAttribute(USER_PASSWORD);
-		boolean result = false;
-		if (isAuthenticated != null && userEmail != null && userPassword != null) {
-			result = true;
+		IScope scope = rootScope.getScope(name);
+		scopes.add(scope);
+		totalLiveStreams += application.getAppLiveStreamCount(scope);
+	}
+
+	JsonObject jsonObject = StatsCollector.getSystemResourcesInfo(scopes);
+
+	jsonObject.addProperty(StatsCollector.TOTAL_LIVE_STREAMS, totalLiveStreams);
+
+	jsonObject.add(LICENSE_STATUS, gson.toJsonTree(getLicenceStatus()));
+
+	return gson.toJson(jsonObject);
+}
+
+
+public String getGPUInfo() 
+{
+	return gson.toJson(StatsCollector.getGPUInfoJSObject());
+}
+
+
+
+public String getVersion() {
+	return gson.toJson(RestServiceBase.getSoftwareVersion());
+}
+
+
+
+public String getApplications() {
+	List<String> applications = getApplication().getApplications();
+	JsonObject jsonObject = new JsonObject();
+	JsonArray jsonArray = new JsonArray();
+
+	for (String appName : applications) {
+		if (!appName.equals(AdminApplication.APP_NAME)) {
+			jsonArray.add(appName);
 		}
-		return result;
 	}
+	jsonObject.add("applications", jsonArray);
+	return gson.toJson(jsonObject);
+}
 
-	/*
-	 * 	os.name						:Operating System Name
-	 * 	os.arch						: x86/x64/...
-	 * 	java.specification.version	: Java Version (Required 1.5 or 1.6 and higher to run Red5)
-	 * 	-------------------------------
-	 * 	Runtime.getRuntime()._____  (Java Virtual Machine Memory)
-	 * 	===============================
-	 * 	maxMemory()					: Maximum limitation
-	 * 	totalMemory()				: Total can be used
-	 * 	freeMemory()				: Availability
-	 * 	totalMemory()-freeMemory()	: In Use
-	 * 	availableProcessors()		: Total Processors available
-	 * 	-------------------------------
-	 *  getOperatingSystemMXBean()	(Actual Operating System RAM)
-	 *	===============================
-	 *  osCommittedVirtualMemory()	: Virtual Memory
-	 *  osTotalPhysicalMemory()		: Total Physical Memory
-	 *  osFreePhysicalMemory()		: Available Physical Memory
-	 *  osInUsePhysicalMemory()		: In Use Physical Memory
-	 *  osTotalSwapSpace()			: Total Swap Space
-	 *  osFreeSwapSpace()			: Available Swap Space
-	 *  osInUseSwapSpace()			: In Use Swap Space
-	 *  -------------------------------
-	 *  File						(Actual Harddrive Info: Supported for JRE 1.6)
-	 *	===============================
-	 *	osHDUsableSpace()			: Usable Space
-	 *	osHDTotalSpace()			: Total Space
-	 *	osHDFreeSpace()				: Available Space
-	 *	osHDInUseSpace()			: In Use Space
-	 **/
+/**
+ * Refactor name getTotalLiveStreamSize
+ * only return totalLiveStreamSize
+ * @return the number of live clients
+ */
+
+public String getLiveClientsSize() 
+{
+	int totalConnectionSize = getApplication().getTotalConnectionSize();
+	int totalLiveStreamSize = getApplication().getTotalLiveStreamSize();
+	JsonObject jsonObject = new JsonObject();
+	jsonObject.addProperty("totalConnectionSize", totalConnectionSize);
+	jsonObject.addProperty(StatsCollector.TOTAL_LIVE_STREAMS, totalLiveStreamSize);
+
+	return gson.toJson(jsonObject);
+}
 
 
+public String getApplicationInfo() {
+	List<ApplicationInfo> info = getApplication().getApplicationInfo();
+	return gson.toJson(info);
+}
 
-	public String getSystemInfo() {
-		return gson.toJson(StatsCollector.getSystemInfoJSObject());
-	}
+/**
+ * Refactor remove this function and use ProxyServlet to get this info
+ * Before deleting check web panel does not use it
+ * @param name: application name 
+ * @return live streams in the application
+ */
 
-
-	/*
-	 * 	Runtime.getRuntime()._____  (Java Virtual Machine Memory)
-	 * 	===============================
-	 * 	maxMemory()					: Maximum limitation
-	 * 	totalMemory()				: Total can be used
-	 * 	freeMemory()				: Availability
-	 * 	totalMemory()-freeMemory()	: In Use
-	 * 	availableProcessors()		: Total Processors available
-	 */
-
-	public String getJVMMemoryInfo() {
-		return gson.toJson(StatsCollector.getJVMMemoryInfoJSObject());
-	}
+public String getAppLiveStreams(@PathParam("appname") String name) {
+	List<BroadcastInfo> appLiveStreams = getApplication().getAppLiveStreams(name);
+	return gson.toJson(appLiveStreams);
+}
 
 
-	/*
-	 *  osCommittedVirtualMemory()	: Virtual Memory
-	 *  osTotalPhysicalMemory()		: Total Physical Memory
-	 *  osFreePhysicalMemory()		: Available Physical Memory
-	 *  osInUsePhysicalMemory()		: In Use Physical Memory
-	 *  osTotalSwapSpace()			: Total Swap Space
-	 *  osFreeSwapSpace()			: Available Swap Space
-	 *  osInUseSwapSpace()			: In Use Swap Space
-	 */
+/**
+ * Refactor remove this function and use ProxyServlet to get this info
+ * Before deleting check web panel does not use it
+ * @param name application name
+ * @param streamName the stream name to be deleted
+ * @return operation value
+ */
 
-	public String getSystemMemoryInfo() {
-		return gson.toJson(StatsCollector.getSysteMemoryInfoJSObject());
-	}
-
-
-	/*
-	 *  File						(Actual Harddrive Info: Supported for JRE 1.6)
-	 *	===============================
-	 *	osHDUsableSpace()			: Usable Space
-	 *	osHDTotalSpace()			: Total Space
-	 *	osHDFreeSpace()				: Available Space
-	 *	osHDInUseSpace()			: In Use Space
-	 **/
-
-	public String getFileSystemInfo() {
-		return gson.toJson(StatsCollector.getFileSystemInfoJSObject());
-	}
-
-	/**
-	 * getProcessCpuTime:  microseconds CPU time used by the process
-	 * 
-	 * getSystemCpuLoad:	"% recent cpu usage" for the whole system. 
-	 * 
-	 * getProcessCpuLoad: "% recent cpu usage" for the Java Virtual Machine process. 
-	 * @return the CPU load info
-	 */
-
-	public String getCPUInfo() {
-		return gson.toJson(StatsCollector.getCPUInfoJSObject());
-	}
-
-
-	public String getThreadDump() {
-		return Arrays.toString(StatsCollector.getThreadDump());
-	}
-
-
-	public String getThreadDumpJSON() {
-		return gson.toJson(StatsCollector.getThreadDumpJSON());
-	}
+public String deleteVoDStream(@PathParam("appname") String name, @FormParam("streamName") String streamName) {
+	boolean deleteVoDStream = getApplication().deleteVoDStream(name, streamName);
+	return gson.toJson(new Result(deleteVoDStream));
+}
 
 
 
-	public String getThreadsInfo() {
-		return gson.toJson(StatsCollector.getThreadInfoJSONObject());
-	}
+public String changeSettings(@PathParam("appname") String appname, AppSettings newSettings){
+	AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME);
+	return gson.toJson(new Result(adapter.updateSettings(newSettings, true, false)));
+}
 
+public boolean getShutdownStatus(@QueryParam("appNames") String appNamesArray){
 
-	public Response getHeapDump() {
-		SystemUtils.getHeapDump(SystemUtils.HEAPDUMP_HPROF);
-		File file = new File(SystemUtils.HEAPDUMP_HPROF);
-		return Response.ok(file, MediaType.APPLICATION_OCTET_STREAM)
-				.header("Content-Disposition", "attachment; filename=\"" + file.getName() + "\"" ) //optional
-				.build();
-	}
+	boolean appShutdownProblemExists = false;
+	if (appNamesArray != null) 
+	{
+		String[] appNames = appNamesArray.split(",");
 
-
-
-	/**
-	 * Return server uptime and startime in milliseconds
-	 * @return JSON object contains the server uptime and start time
-	 */
-
-	public String getServerTime() {
-		return gson.toJson(StatsCollector.getServerTime());
-	}
-
-
-	public String getSystemResourcesInfo() {
-
-		AdminApplication application = getApplication();
-		IScope rootScope = application.getRootScope();
-
-		//add live stream size
-		int totalLiveStreams = 0;
-		Queue<IScope> scopes = new LinkedList<>();
-		List<String> appNames = application.getApplications();
-		for (String name : appNames) 
+		if (appNames != null) 
 		{
-			IScope scope = rootScope.getScope(name);
-			scopes.add(scope);
-			totalLiveStreams += application.getAppLiveStreamCount(scope);
-		}
+			for (String appName : appNames) 
+			{
+				//Check apps shutdown properly
+				AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appName);
+				if (!appAdaptor.isShutdownProperly()) {
+					appShutdownProblemExists = true;
+					break;
+				}
 
-		JsonObject jsonObject = StatsCollector.getSystemResourcesInfo(scopes);
-
-		jsonObject.addProperty(StatsCollector.TOTAL_LIVE_STREAMS, totalLiveStreams);
-
-		jsonObject.add(LICENSE_STATUS, gson.toJsonTree(getLicenceStatus()));
-
-		return gson.toJson(jsonObject);
-	}
-
-
-	public String getGPUInfo() 
-	{
-		return gson.toJson(StatsCollector.getGPUInfoJSObject());
-	}
-
-
-
-	public String getVersion() {
-		return gson.toJson(RestServiceBase.getSoftwareVersion());
-	}
-
-
-
-	public String getApplications() {
-		List<String> applications = getApplication().getApplications();
-		JsonObject jsonObject = new JsonObject();
-		JsonArray jsonArray = new JsonArray();
-
-		for (String appName : applications) {
-			if (!appName.equals(AdminApplication.APP_NAME)) {
-				jsonArray.add(appName);
 			}
 		}
-		jsonObject.add("applications", jsonArray);
-		return gson.toJson(jsonObject);
 	}
 
-	/**
-	 * Refactor name getTotalLiveStreamSize
-	 * only return totalLiveStreamSize
-	 * @return the number of live clients
-	 */
+	return !appShutdownProblemExists;
+}
 
-	public String getLiveClientsSize() 
+public AntMediaApplicationAdapter getAppAdaptor(String appName) {
+
+	AntMediaApplicationAdapter appAdaptor = null;
+	AdminApplication application = getApplication();
+	if (application != null) 
 	{
-		int totalConnectionSize = getApplication().getTotalConnectionSize();
-		int totalLiveStreamSize = getApplication().getTotalLiveStreamSize();
-		JsonObject jsonObject = new JsonObject();
-		jsonObject.addProperty("totalConnectionSize", totalConnectionSize);
-		jsonObject.addProperty(StatsCollector.TOTAL_LIVE_STREAMS, totalLiveStreamSize);
-
-		return gson.toJson(jsonObject);
-	}
-
-
-	public String getApplicationInfo() {
-		List<ApplicationInfo> info = getApplication().getApplicationInfo();
-		return gson.toJson(info);
-	}
-
-	/**
-	 * Refactor remove this function and use ProxyServlet to get this info
-	 * Before deleting check web panel does not use it
-	 * @param name: application name 
-	 * @return live streams in the application
-	 */
-
-	public String getAppLiveStreams(@PathParam("appname") String name) {
-		List<BroadcastInfo> appLiveStreams = getApplication().getAppLiveStreams(name);
-		return gson.toJson(appLiveStreams);
-	}
-
-
-	/**
-	 * Refactor remove this function and use ProxyServlet to get this info
-	 * Before deleting check web panel does not use it
-	 * @param name application name
-	 * @param streamName the stream name to be deleted
-	 * @return operation value
-	 */
-
-	public String deleteVoDStream(@PathParam("appname") String name, @FormParam("streamName") String streamName) {
-		boolean deleteVoDStream = getApplication().deleteVoDStream(name, streamName);
-		return gson.toJson(new Result(deleteVoDStream));
-	}
-
-
-
-	public String changeSettings(@PathParam("appname") String appname, AppSettings newSettings){
-		AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter) getApplication().getApplicationContext(appname).getBean(AntMediaApplicationAdapter.BEAN_NAME);
-		return gson.toJson(new Result(adapter.updateSettings(newSettings, true, false)));
-	}
-	
-	public boolean getShutdownStatus(@QueryParam("appNames") String appNamesArray){
-
-		boolean appShutdownProblemExists = false;
-		if (appNamesArray != null) 
+		ApplicationContext context = application.getApplicationContext(appName);
+		if (context != null) 
 		{
-			String[] appNames = appNamesArray.split(",");
+			appAdaptor = (AntMediaApplicationAdapter) context.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		}
+	}
+	return appAdaptor;
+}
 
-			if (appNames != null) 
+public Response isShutdownProperly(@QueryParam("appNames") String appNamesArray)
+{
+	boolean appShutdownProblemExists = false;
+	Response response = null;
+
+	if (appNamesArray != null) 
+	{
+		String[] appNames = appNamesArray.split(",");
+
+		if (appNames != null) 
+		{
+			for (String appName : appNames) 
 			{
-				for (String appName : appNames) 
+				//Check apps shutdown properly
+				AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appName);
+				if (appAdaptor != null) 
 				{
-					//Check apps shutdown properly
-					AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appName);
 					if (!appAdaptor.isShutdownProperly()) {
 						appShutdownProblemExists = true;
 						break;
 					}
-
+				}
+				else {
+					response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(new Result(false, "Either server may not be initialized or application name that does not exist is requested. ")).build();
+					break;
 				}
 			}
-		}
-
-		return !appShutdownProblemExists;
-	}
-
-	public AntMediaApplicationAdapter getAppAdaptor(String appName) {
-
-		AntMediaApplicationAdapter appAdaptor = null;
-		AdminApplication application = getApplication();
-		if (application != null) 
-		{
-			ApplicationContext context = application.getApplicationContext(appName);
-			if (context != null) 
-			{
-				appAdaptor = (AntMediaApplicationAdapter) context.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-			}
-		}
-		return appAdaptor;
-	}
-
-	public Response isShutdownProperly(@QueryParam("appNames") String appNamesArray)
-	{
-		boolean appShutdownProblemExists = false;
-		Response response = null;
-
-		if (appNamesArray != null) 
-		{
-			String[] appNames = appNamesArray.split(",");
-
-			if (appNames != null) 
-			{
-				for (String appName : appNames) 
-				{
-					//Check apps shutdown properly
-					AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appName);
-					if (appAdaptor != null) 
-					{
-						if (!appAdaptor.isShutdownProperly()) {
-							appShutdownProblemExists = true;
-							break;
-						}
-					}
-					else {
-						response = Response.status(Status.INTERNAL_SERVER_ERROR).entity(new Result(false, "Either server may not be initialized or application name that does not exist is requested. ")).build();
-						break;
-					}
-				}
-			}
-			else {
-				response = Response.status(Status.BAD_REQUEST).entity(new Result(false, "Bad parameter for appNames. ")).build();
-			}
-
 		}
 		else {
 			response = Response.status(Status.BAD_REQUEST).entity(new Result(false, "Bad parameter for appNames. ")).build();
 		}
 
-		if (response == null) {
-			response = Response.status(Status.OK).entity(new Result(!appShutdownProblemExists)).build();
-		}
-
-		return response; 
+	}
+	else {
+		response = Response.status(Status.BAD_REQUEST).entity(new Result(false, "Bad parameter for appNames. ")).build();
 	}
 
-
-
-	public boolean setShutdownStatus(@QueryParam("appNames") String appNamesArray){
-
-		String[] appNames = appNamesArray.split(",");
-		boolean result = true;
-
-		for (String appName : appNames) {
-			//Check apps shutdown properly
-			AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appName);
-			if (appAdaptor != null) {
-				appAdaptor.setShutdownProperly(true);
-			}
-		}
-
-		return result;
+	if (response == null) {
+		response = Response.status(Status.OK).entity(new Result(!appShutdownProblemExists)).build();
 	}
 
-
-	public String changeServerSettings(ServerSettings serverSettings){
-
-		PreferenceStore store = new PreferenceStore(RED5_PROPERTIES_PATH);
-
-		String serverName = "";
-		String licenceKey = "";
-		if(serverSettings.getServerName() != null) {
-			serverName = serverSettings.getServerName();
-		}
-
-		store.put(SERVER_NAME, serverName);
-		getServerSettingsInternal().setServerName(serverName);
-
-		if (serverSettings.getLicenceKey() != null) {
-			licenceKey = serverSettings.getLicenceKey();
-		}
-
-		store.put(LICENSE_KEY, licenceKey);
-		getServerSettingsInternal().setLicenceKey(licenceKey);
-
-		store.put(MARKET_BUILD, String.valueOf(serverSettings.isBuildForMarket()));
-		getServerSettingsInternal().setBuildForMarket(serverSettings.isBuildForMarket());
-
-		store.put(NODE_GROUP, String.valueOf(serverSettings.getNodeGroup()));
-		getServerSettingsInternal().setNodeGroup(serverSettings.getNodeGroup());
-
-		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
-
-		if(LOG_LEVEL_ALL.equals(serverSettings.getLogLevel()) || LOG_LEVEL_TRACE.equals(serverSettings.getLogLevel()) 
-				|| LOG_LEVEL_DEBUG.equals(serverSettings.getLogLevel()) || LOG_LEVEL_INFO.equals(serverSettings.getLogLevel()) 
-				|| LOG_LEVEL_WARN.equals(serverSettings.getLogLevel())  || LOG_LEVEL_ERROR.equals(serverSettings.getLogLevel())
-				|| LOG_LEVEL_OFF.equals(serverSettings.getLogLevel())) 
-		{
-
-			rootLogger.setLevel(currentLevelDetect(serverSettings.getLogLevel()));
-
-			store.put(LOG_LEVEL, serverSettings.getLogLevel());
-			getServerSettingsInternal().setLogLevel(serverSettings.getLogLevel());
-		}
-
-		return gson.toJson(new Result(store.save()));
+	return response; 
+}
 
 
-	}
 
+public boolean setShutdownStatus(@QueryParam("appNames") String appNamesArray){
 
-	public Result isEnterpriseEdition(){
-		boolean isEnterprise = RestServiceBase.isEnterprise();
-		return new Result(isEnterprise, "");
-	}
+	String[] appNames = appNamesArray.split(",");
+	boolean result = true;
 
-
-	public AppSettings getSettings(String appname) 
-	{
-		AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appname);
+	for (String appName : appNames) {
+		//Check apps shutdown properly
+		AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appName);
 		if (appAdaptor != null) {
-			return appAdaptor.getAppSettings();
+			appAdaptor.setShutdownProperly(true);
 		}
-		logger.warn("getSettings for app: {} returns null. It's likely not initialized.", appname);
+	}
+
+	return result;
+}
+
+
+public String changeServerSettings(ServerSettings serverSettings){
+
+	PreferenceStore store = new PreferenceStore(RED5_PROPERTIES_PATH);
+
+	String serverName = "";
+	String licenceKey = "";
+	if(serverSettings.getServerName() != null) {
+		serverName = serverSettings.getServerName();
+	}
+
+	store.put(SERVER_NAME, serverName);
+	getServerSettingsInternal().setServerName(serverName);
+
+	if (serverSettings.getLicenceKey() != null) {
+		licenceKey = serverSettings.getLicenceKey();
+	}
+
+	store.put(LICENSE_KEY, licenceKey);
+	getServerSettingsInternal().setLicenceKey(licenceKey);
+
+	store.put(MARKET_BUILD, String.valueOf(serverSettings.isBuildForMarket()));
+	getServerSettingsInternal().setBuildForMarket(serverSettings.isBuildForMarket());
+
+	store.put(NODE_GROUP, String.valueOf(serverSettings.getNodeGroup()));
+	getServerSettingsInternal().setNodeGroup(serverSettings.getNodeGroup());
+
+	ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
+
+	if(LOG_LEVEL_ALL.equals(serverSettings.getLogLevel()) || LOG_LEVEL_TRACE.equals(serverSettings.getLogLevel()) 
+			|| LOG_LEVEL_DEBUG.equals(serverSettings.getLogLevel()) || LOG_LEVEL_INFO.equals(serverSettings.getLogLevel()) 
+			|| LOG_LEVEL_WARN.equals(serverSettings.getLogLevel())  || LOG_LEVEL_ERROR.equals(serverSettings.getLogLevel())
+			|| LOG_LEVEL_OFF.equals(serverSettings.getLogLevel())) 
+	{
+
+		rootLogger.setLevel(currentLevelDetect(serverSettings.getLogLevel()));
+
+		store.put(LOG_LEVEL, serverSettings.getLogLevel());
+		getServerSettingsInternal().setLogLevel(serverSettings.getLogLevel());
+	}
+
+	return gson.toJson(new Result(store.save()));
+
+
+}
+
+
+public Result isEnterpriseEdition(){
+	boolean isEnterprise = RestServiceBase.isEnterprise();
+	return new Result(isEnterprise, "");
+}
+
+
+public AppSettings getSettings(String appname) 
+{
+	AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appname);
+	if (appAdaptor != null) {
+		return appAdaptor.getAppSettings();
+	}
+	logger.warn("getSettings for app: {} returns null. It's likely not initialized.", appname);
+	return null;
+}
+
+
+public IStatsCollector getStatsCollector () {
+	if(statsCollector == null) 
+	{
+		WebApplicationContext ctxt =getContext();
+		if (ctxt != null) {
+			statsCollector = (IStatsCollector)ctxt.getBean(IStatsCollector.BEAN_NAME);
+		}
+	}
+	return statsCollector;
+}
+
+public ServerSettings getServerSettings() 
+{
+	return getServerSettingsInternal();
+}
+
+
+public Licence getLicenceStatus(@QueryParam("key") String key) 
+{
+	if(key == null) {
 		return null;
 	}
-	
+	return getLicenceServiceInstance().checkLicence(key);
+}
 
-	public IStatsCollector getStatsCollector () {
-		if(statsCollector == null) 
-		{
-			WebApplicationContext ctxt =getContext();
-			if (ctxt != null) {
-				statsCollector = (IStatsCollector)ctxt.getBean(IStatsCollector.BEAN_NAME);
-			}
-		}
-		return statsCollector;
+
+public Licence getLicenceStatus() 
+{
+	return getLicenceServiceInstance().getLastLicenseStatus();
+}
+
+/**
+ * This method resets the viewers counts and broadcast status in the db. 
+ * This should be used to recover db after server crashes. 
+ * It's not intended to use to ignore the crash
+ * @param appname the application name that broadcasts will be reset
+ * @return
+ */
+
+public Result resetBroadcast(@PathParam("appname") String appname) 
+{
+	AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appname);
+	if (appAdaptor != null) {
+		return appAdaptor.resetBroadcasts();
 	}
+	return new Result(false, "No application adaptor with this name " + appname);
+}
 
-	public ServerSettings getServerSettings() 
+public void setDataStore(AbstractConsoleDataStore dataStore) {
+	this.dataStore = dataStore;
+}
+
+public AbstractConsoleDataStore getDataStore() {
+	if (dataStore == null) {
+		dataStore = getDataStoreFactory().getDataStore();
+	}
+	return dataStore;
+}
+
+public WebApplicationContext getContext() {
+	return WebApplicationContextUtils.getWebApplicationContext(servletContext);
+}
+
+public ServerSettings getServerSettingsInternal() {
+
+	if(serverSettings == null) 
 	{
-		return getServerSettingsInternal();
-	}
-
-
-	public Licence getLicenceStatus(@QueryParam("key") String key) 
-	{
-		if(key == null) {
-			return null;
-		}
-		return getLicenceServiceInstance().checkLicence(key);
-	}
-
-
-	public Licence getLicenceStatus() 
-	{
-		return getLicenceServiceInstance().getLastLicenseStatus();
-	}
-
-	/**
-	 * This method resets the viewers counts and broadcast status in the db. 
-	 * This should be used to recover db after server crashes. 
-	 * It's not intended to use to ignore the crash
-	 * @param appname the application name that broadcasts will be reset
-	 * @return
-	 */
-
-	public Result resetBroadcast(@PathParam("appname") String appname) 
-	{
-		AntMediaApplicationAdapter appAdaptor = getAppAdaptor(appname);
-		if (appAdaptor != null) {
-			return appAdaptor.resetBroadcasts();
-		}
-		return new Result(false, "No application adaptor with this name " + appname);
-	}
-
-	public void setDataStore(AbstractConsoleDataStore dataStore) {
-		this.dataStore = dataStore;
-	}
-
-	public AbstractConsoleDataStore getDataStore() {
-		if (dataStore == null) {
-			dataStore = getDataStoreFactory().getDataStore();
-		}
-		return dataStore;
-	}
-	
-	public WebApplicationContext getContext() {
-		return WebApplicationContextUtils.getWebApplicationContext(servletContext);
-	}
-
-	public ServerSettings getServerSettingsInternal() {
-
-		if(serverSettings == null) 
-		{
-			WebApplicationContext ctxt = getContext();
-			if (ctxt != null) {
-				serverSettings = (ServerSettings)ctxt.getBean(ServerSettings.BEAN_NAME);
-			}
-		}
-		return serverSettings;
-	}
-
-
-
-	public ILicenceService getLicenceServiceInstance () {
-		if(licenceService == null) {
-
-			WebApplicationContext ctxt = getContext();
-			if (ctxt != null) {
-				licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
-			}
-		}
-		return licenceService;
-	}
-
-
-	public AdminApplication getApplication() {
 		WebApplicationContext ctxt = getContext();
 		if (ctxt != null) {
-			return (AdminApplication)ctxt.getBean("web.handler");
+			serverSettings = (ServerSettings)ctxt.getBean(ServerSettings.BEAN_NAME);
 		}
-		return null;
 	}
+	return serverSettings;
+}
 
-	public ConsoleDataStoreFactory getDataStoreFactory() {
-		if(dataStoreFactory == null)
-		{
-			WebApplicationContext ctxt = getContext();
-			if (ctxt != null) {
-				dataStoreFactory = (ConsoleDataStoreFactory) ctxt.getBean("dataStoreFactory");
-			}
+
+
+public ILicenceService getLicenceServiceInstance () {
+	if(licenceService == null) {
+
+		WebApplicationContext ctxt = getContext();
+		if (ctxt != null) {
+			licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 		}
-		return dataStoreFactory;
 	}
+	return licenceService;
+}
 
-	public void setDataStoreFactory(ConsoleDataStoreFactory dataStoreFactory) {
-		this.dataStoreFactory = dataStoreFactory;
+
+public AdminApplication getApplication() {
+	WebApplicationContext ctxt = getContext();
+	if (ctxt != null) {
+		return (AdminApplication)ctxt.getBean("web.handler");
 	}
+	return null;
+}
 
-
-	public Result isInClusterMode()
+public ConsoleDataStoreFactory getDataStoreFactory() {
+	if(dataStoreFactory == null)
 	{
-		return new Result(isClusterMode(), "");
+		WebApplicationContext ctxt = getContext();
+		if (ctxt != null) {
+			dataStoreFactory = (ConsoleDataStoreFactory) ctxt.getBean("dataStoreFactory");
+		}
+	}
+	return dataStoreFactory;
+}
+
+public void setDataStoreFactory(ConsoleDataStoreFactory dataStoreFactory) {
+	this.dataStoreFactory = dataStoreFactory;
+}
+
+
+public Result isInClusterMode()
+{
+	return new Result(isClusterMode(), "");
+}
+
+public String changeLogSettings(@PathParam("level") String logLevel){
+
+	ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
+
+	PreferenceStore store = new PreferenceStore(RED5_PROPERTIES_PATH);
+
+	if(logLevel.equals(LOG_LEVEL_ALL) || logLevel.equals(LOG_LEVEL_TRACE) 
+			|| logLevel.equals(LOG_LEVEL_DEBUG) || logLevel.equals(LOG_LEVEL_INFO) 
+			|| logLevel.equals(LOG_LEVEL_WARN)  || logLevel.equals(LOG_LEVEL_ERROR)
+			|| logLevel.equals(LOG_LEVEL_OFF)) {
+
+		rootLogger.setLevel(currentLevelDetect(logLevel));
+
+		store.put(LOG_LEVEL, logLevel);
 	}
 
-	public String changeLogSettings(@PathParam("level") String logLevel){
+	return gson.toJson(new Result(store.save()));
+}
 
-		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
+public Level currentLevelDetect(String logLevel) {
 
-		PreferenceStore store = new PreferenceStore(RED5_PROPERTIES_PATH);
-
-		if(logLevel.equals(LOG_LEVEL_ALL) || logLevel.equals(LOG_LEVEL_TRACE) 
-				|| logLevel.equals(LOG_LEVEL_DEBUG) || logLevel.equals(LOG_LEVEL_INFO) 
-				|| logLevel.equals(LOG_LEVEL_WARN)  || logLevel.equals(LOG_LEVEL_ERROR)
-				|| logLevel.equals(LOG_LEVEL_OFF)) {
-
-			rootLogger.setLevel(currentLevelDetect(logLevel));
-
-			store.put(LOG_LEVEL, logLevel);
-		}
-
-		return gson.toJson(new Result(store.save()));
+	Level currentLevel;
+	if( logLevel.equals(LOG_LEVEL_OFF)) {
+		currentLevel = Level.OFF;
+		return currentLevel;
+	}
+	if( logLevel.equals(LOG_LEVEL_ERROR)) {
+		currentLevel = Level.ERROR;
+		return currentLevel;
+	}
+	if( logLevel.equals(LOG_LEVEL_WARN)) {
+		currentLevel = Level.WARN;
+		return currentLevel;
+	}
+	if( logLevel.equals(LOG_LEVEL_DEBUG)) {
+		currentLevel = Level.DEBUG;
+		return currentLevel;
+	}
+	if( logLevel.equals(LOG_LEVEL_TRACE)) {
+		currentLevel = Level.ALL;
+		return currentLevel;
+	}
+	if( logLevel.equals(LOG_LEVEL_ALL)) {
+		currentLevel = Level.ALL;
+		return currentLevel;
+	}
+	else {
+		currentLevel = Level.INFO;
+		return currentLevel;
 	}
 
-	public Level currentLevelDetect(String logLevel) {
+}
 
-		Level currentLevel;
-		if( logLevel.equals(LOG_LEVEL_OFF)) {
-			currentLevel = Level.OFF;
-			return currentLevel;
-		}
-		if( logLevel.equals(LOG_LEVEL_ERROR)) {
-			currentLevel = Level.ERROR;
-			return currentLevel;
-		}
-		if( logLevel.equals(LOG_LEVEL_WARN)) {
-			currentLevel = Level.WARN;
-			return currentLevel;
-		}
-		if( logLevel.equals(LOG_LEVEL_DEBUG)) {
-			currentLevel = Level.DEBUG;
-			return currentLevel;
-		}
-		if( logLevel.equals(LOG_LEVEL_TRACE)) {
-			currentLevel = Level.ALL;
-			return currentLevel;
-		}
-		if( logLevel.equals(LOG_LEVEL_ALL)) {
-			currentLevel = Level.ALL;
-			return currentLevel;
-		}
-		else {
-			currentLevel = Level.INFO;
-			return currentLevel;
-		}
+public String getLogFile(@PathParam("charSize") int charSize, @QueryParam("logType") String logType,
+		@PathParam("offsetSize") long offsetSize) throws IOException {
 
-	}
+	long skipValue = 0;
+	int countKb = 0;
+	int maxCount = 500;
+	//default log 
+	String logLocation = SERVER_LOG_LOCATION;
 
-	public String getLogFile(@PathParam("charSize") int charSize, @QueryParam("logType") String logType,
-			@PathParam("offsetSize") long offsetSize) throws IOException {
+	if (logType.equals(LOG_TYPE_ERROR)) {
+		logLocation = ERROR_LOG_LOCATION;
+	} 
 
-		long skipValue = 0;
-		int countKb = 0;
-		int maxCount = 500;
-		//default log 
-		String logLocation = SERVER_LOG_LOCATION;
+	JsonObject jsonObject = new JsonObject();
+	String logContent = "";
+	File file = new File(logLocation);
 
-		if (logType.equals(LOG_TYPE_ERROR)) {
-			logLocation = ERROR_LOG_LOCATION;
-		} 
+	if (!file.isFile()) {
+		logContent = FILE_NOT_EXIST;
 
-		JsonObject jsonObject = new JsonObject();
-		String logContent = "";
-		File file = new File(logLocation);
-
-		if (!file.isFile()) {
-			logContent = FILE_NOT_EXIST;
-
-			jsonObject.addProperty(LOG_CONTENT, logContent);
-
-			return jsonObject.toString();
-		}
-
-		// check charSize > 500kb
-		if (charSize > MAX_CHAR_SIZE) {
-			charSize = MAX_CHAR_SIZE;
-		}
-
-		if (offsetSize != -1) { 			
-			skipValue = offsetSize;
-			maxCount = charSize / 1024;
-		} 
-		else if (file.length() > charSize) {
-			skipValue = file.length() - charSize;
-		}
-
-		int contentSize = 0;
-		if (file.length() > skipValue) {
-
-			ByteArrayOutputStream ous = null;
-			InputStream ios = null;
-
-
-			try {
-
-				byte[] buffer = new byte[1024];
-				ous = new ByteArrayOutputStream();
-				ios = new FileInputStream(file);
-
-				ios.skip(skipValue);
-
-				int read = 0;
-
-				while ((read = ios.read(buffer)) != -1) {
-
-					ous.write(buffer, 0, read);
-					countKb++;
-					contentSize += read;
-					if (countKb == maxCount) { // max read 500kb
-						break;
-					}
-
-				}
-			} finally {
-				try {
-					if (ous != null)
-						ous.close();
-				} catch (IOException e) { 
-					logger.error(e.toString());
-				}
-
-				try {
-					if (ios != null)
-						ios.close();
-				} catch (IOException e) {
-					logger.error(e.toString());
-				}
-			}
-
-			logContent = ous.toString("UTF-8");
-		}
 		jsonObject.addProperty(LOG_CONTENT, logContent);
-		jsonObject.addProperty(LOG_CONTENT_SIZE, contentSize);
-		jsonObject.addProperty(LOG_FILE_SIZE, file.length());
 
 		return jsonObject.toString();
 	}
 
-	public String getMD5Hash(String pass){
-		String passResult= "";
+	// check charSize > 500kb
+	if (charSize > MAX_CHAR_SIZE) {
+		charSize = MAX_CHAR_SIZE;
+	}
+
+	if (offsetSize != -1) { 			
+		skipValue = offsetSize;
+		maxCount = charSize / 1024;
+	} 
+	else if (file.length() > charSize) {
+		skipValue = file.length() - charSize;
+	}
+
+	int contentSize = 0;
+	if (file.length() > skipValue) {
+
+		ByteArrayOutputStream ous = null;
+		InputStream ios = null;
+
+
 		try {
-			MessageDigest m=MessageDigest.getInstance("MD5");
-			m.reset();
-			m.update(pass.getBytes(Charset.forName("UTF8")));
-			byte[] digestResult=m.digest();
-			passResult= Hex.encodeHexString(digestResult);
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
+
+			byte[] buffer = new byte[1024];
+			ous = new ByteArrayOutputStream();
+			ios = new FileInputStream(file);
+
+			ios.skip(skipValue);
+
+			int read = 0;
+
+			while ((read = ios.read(buffer)) != -1) {
+
+				ous.write(buffer, 0, read);
+				countKb++;
+				contentSize += read;
+				if (countKb == maxCount) { // max read 500kb
+					break;
+				}
+
+			}
+		} finally {
+			try {
+				if (ous != null)
+					ous.close();
+			} catch (IOException e) { 
+				logger.error(e.toString());
+			}
+
+			try {
+				if (ios != null)
+					ios.close();
+			} catch (IOException e) {
+				logger.error(e.toString());
+			}
 		}
-		return passResult;
+
+		logContent = ous.toString("UTF-8");
 	}
+	jsonObject.addProperty(LOG_CONTENT, logContent);
+	jsonObject.addProperty(LOG_CONTENT_SIZE, contentSize);
+	jsonObject.addProperty(LOG_FILE_SIZE, file.length());
+
+	return jsonObject.toString();
+}
+
+public String getMD5Hash(String pass){
+	String passResult= "";
+	try {
+		MessageDigest m=MessageDigest.getInstance("MD5");
+		m.reset();
+		m.update(pass.getBytes(Charset.forName("UTF8")));
+		byte[] digestResult=m.digest();
+		passResult= Hex.encodeHexString(digestResult);
+	} catch (NoSuchAlgorithmException e) {
+		e.printStackTrace();
+	}
+	return passResult;
+}
 
 
-	public Result createApplication(String appName, InputStream inputStream) 
+public Result createApplication(String appName, InputStream inputStream) 
+{
+	appName = appName.replaceAll("[\n\r\t]", "_");
+
+	File warFile = null;
+	if (inputStream != null) 
 	{
-		appName = appName.replaceAll("[\n\r\t]", "_");
-		
-		File warFile = null;
-		if (inputStream != null) 
-		{
-			warFile = AdminApplication.saveWARFile(appName, inputStream);
-			
-			if (warFile == null) 
-			{
-				return new Result(false, "Cannot save the WAR file for appName:{}", appName);
-			}
-		}
-						
-		if (isClusterMode())
-		{
-			//If there is a record in database, just delete it in order to start from scratch
-			IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
-			long deletedRecordCount = clusterNotifier.getClusterStore().deleteAppSettings(appName);
-			if (deletedRecordCount > 0) 
-			{
-				logger.info("App detected in the database. It's likely the app with the same name {} is re-creating. ", appName);
-			}
-			
-			if (warFile != null) 
-			{
-				AppSettings tempSetting = new AppSettings();
-				tempSetting.setAppName(appName);
-				tempSetting.setPullWarFile(true);
-				tempSetting.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
+		warFile = AdminApplication.saveWARFile(appName, inputStream);
 
-				clusterNotifier.getClusterStore().saveSettings(tempSetting);
-			}
+		if (warFile == null) 
+		{
+			return new Result(false, "Cannot save the WAR file for appName:{}", appName);
 		}
-		return new Result(getApplication().createApplication(appName, warFile != null ? warFile.getAbsolutePath() : null));
 	}
 
-
-	public Result deleteApplication(String appName, boolean deleteDB) {
-		appName = appName.replaceAll("[\n\r\t]", "_");
-		logger.info("delete application http request:{}", appName);
-		AppSettings appSettings = getSettings(appName);
-		boolean result = false;
-		String message = "";
-		if (appSettings != null) {
-			appSettings.setToBeDeleted(true);
-			//change settings on the db to let undeploy the app
-			changeSettings(appName, appSettings);
-			
-			result = getApplication().deleteApplication(appName, deleteDB);
-		}
-		else {
-			logger.info("App settings is not available for app name:{}. App may be initializing", appName);
-			message = "AppSettings is not available for app: " + appName + ". It's not available or it's being initialized";
-		}
-		return new Result(result, message);
-	}
-
-	public boolean isClusterMode() 
+	if (isClusterMode())
 	{
-		boolean result = false;
-		WebApplicationContext ctxt = getContext();
-		if (ctxt != null) {
-			result = ctxt.containsBean(IClusterNotifier.BEAN_NAME);
+		//If there is a record in database, just delete it in order to start from scratch
+		IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
+		long deletedRecordCount = clusterNotifier.getClusterStore().deleteAppSettings(appName);
+		if (deletedRecordCount > 0) 
+		{
+			logger.info("App detected in the database. It's likely the app with the same name {} is re-creating. ", appName);
 		}
-		return result;
-	}
 
-	public Result getBlockedStatus(String usermail) {
-		return new Result(getDataStore().isUserBlocked(usermail));
+		if (warFile != null) 
+		{
+			AppSettings tempSetting = new AppSettings();
+			tempSetting.setAppName(appName);
+			tempSetting.setPullWarFile(true);
+			tempSetting.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
+
+			clusterNotifier.getClusterStore().saveSettings(tempSetting);
+		}
 	}
+	return new Result(getApplication().createApplication(appName, warFile != null ? warFile.getAbsolutePath() : null));
+}
+
+
+public Result deleteApplication(String appName, boolean deleteDB) {
+	appName = appName.replaceAll("[\n\r\t]", "_");
+	logger.info("delete application http request:{}", appName);
+	AppSettings appSettings = getSettings(appName);
+	boolean result = false;
+	String message = "";
+	if (appSettings != null) {
+		appSettings.setToBeDeleted(true);
+		//change settings on the db to let undeploy the app
+		changeSettings(appName, appSettings);
+
+		result = getApplication().deleteApplication(appName, deleteDB);
+	}
+	else {
+		logger.info("App settings is not available for app name:{}. App may be initializing", appName);
+		message = "AppSettings is not available for app: " + appName + ". It's not available or it's being initialized";
+	}
+	return new Result(result, message);
+}
+
+public boolean isClusterMode() 
+{
+	boolean result = false;
+	WebApplicationContext ctxt = getContext();
+	if (ctxt != null) {
+		result = ctxt.containsBean(IClusterNotifier.BEAN_NAME);
+	}
+	return result;
+}
+
+public Result getBlockedStatus(String usermail) {
+	return new Result(getDataStore().isUserBlocked(usermail));
+}
 
 }
