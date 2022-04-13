@@ -43,6 +43,7 @@ change_server_mode() {
     sed -i $SED_COMPATIBILITY -E -e 's/(<!-- cluster end -->|cluster end -->)/cluster end -->/g' $AMS_INSTALL_LOCATION/conf/jee-container.xml
   fi
 
+if [ "$OS_NAME" != "Darwin" ]; then
   #The c\ command is used to handle the & character in the mongo server url. & character mentions the matched line in s/ command
   sed -i $SED_COMPATIBILITY "/clusterdb.host=/c\clusterdb.host=${MONGO_SERVER_IP}" $AMS_INSTALL_LOCATION/conf/red5.properties
   sed -i $SED_COMPATIBILITY "/clusterdb.user=/c\clusterdb.user=$3" $AMS_INSTALL_LOCATION/conf/red5.properties
@@ -54,6 +55,19 @@ change_server_mode() {
     sed -i $SED_COMPATIBILITY "/db.user=/c\db.user=$3" $i/WEB-INF/red5-web.properties
     sed -i $SED_COMPATIBILITY "/db.password=/c\db.password=$4" $i/WEB-INF/red5-web.properties
   done
+else
+  #for darwin use s/ -> substitute
+  sed -i $SED_COMPATIBILITY "s/clusterdb.host=.*/clusterdb.host=${MONGO_SERVER_IP}/g" $AMS_INSTALL_LOCATION/conf/red5.properties
+  sed -i $SED_COMPATIBILITY "s/clusterdb.user=.*/clusterdb.user=$3/g" $AMS_INSTALL_LOCATION/conf/red5.properties
+  sed -i $SED_COMPATIBILITY "s/clusterdb.password=.*/clusterdb.password=$4/g" $AMS_INSTALL_LOCATION/conf/red5.properties
+
+  for i in $LIST_APPS; do
+    sed -i $SED_COMPATIBILITY "s/db.type=.*/db.type=$DB_TYPE/g" $i/WEB-INF/red5-web.properties
+    sed -i $SED_COMPATIBILITY "s/db.host=.*/db.host=${MONGO_SERVER_IP}/g" $i/WEB-INF/red5-web.properties
+    sed -i $SED_COMPATIBILITY "s/db.user=.*/db.user=$3/g" $i/WEB-INF/red5-web.properties
+    sed -i $SED_COMPATIBILITY "s/db.password=.*/db.password=$4/g" $i/WEB-INF/red5-web.properties
+  done
+fi
   
   if [ "$OS_NAME" != "Darwin" ]; then
     LOCAL_IPv4=`ip add | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p'`

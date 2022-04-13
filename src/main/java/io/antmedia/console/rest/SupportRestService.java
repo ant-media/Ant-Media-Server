@@ -48,7 +48,7 @@ import io.antmedia.statistic.IStatsCollector;
 
 @Component
 @Path("/v2/support")
-public class SupportRestService {
+public class SupportRestService  extends CommonRestService {
 	class SupportResponse {
 		private boolean result;
 
@@ -65,10 +65,7 @@ public class SupportRestService {
 
 	@Context
 	private ServletContext servletContext;
-	private ILicenceService licenceService;
 	private IStatsCollector statsCollector;
-	private ServerSettings serverSettings;
-	private Gson gson = new Gson();
 	public static final String LOG_FILE = "ant-media-server.log.zip";
 
 	@POST
@@ -86,32 +83,6 @@ public class SupportRestService {
 		return new Result(success);
 	}	
 	
-	private WebApplicationContext getContext() {
-		return WebApplicationContextUtils.getWebApplicationContext(servletContext);
-	}
-
-
-	public ILicenceService getLicenceServiceInstance () {
-		if(licenceService == null) {
-
-			WebApplicationContext ctxt =getContext();
-			if (ctxt != null) {
-				licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
-			}
-		}
-		return licenceService;
-	}
-
-	public IStatsCollector getStatsCollector () {
-		if(statsCollector == null) 
-		{
-			WebApplicationContext ctxt =getContext();
-			if (ctxt != null) {
-				statsCollector = (IStatsCollector)ctxt.getBean(IStatsCollector.BEAN_NAME);
-			}
-		}
-		return statsCollector;
-	}
 
 	public boolean sendSupport(SupportRequest supportRequest) throws Exception {
 		boolean success = false;
@@ -244,17 +215,6 @@ public class SupportRestService {
 		}
 
 		return cpuInfo.toString();
-	}
-
-	public ServerSettings getServerSettings() {
-		if(serverSettings == null) {
-
-			WebApplicationContext ctxt =getContext();
-			if (ctxt != null) { 
-				serverSettings = (ServerSettings)ctxt.getBean(ServerSettings.BEAN_NAME);
-			}
-		}
-		return serverSettings;
 	}
 
 	public StringBuilder readResponse(HttpResponse response) throws IOException {
