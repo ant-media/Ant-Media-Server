@@ -73,10 +73,17 @@ public class User {
 	private String newPassword;
 	
 	/**
-	 * Name of the user
+	 * Name of the user. Use firstname and lastname
 	 */
+	@Deprecated
 	@ApiModelProperty(value = "the name of the user")
 	private String fullName;
+	
+	@ApiModelProperty(value = "Fist name of the user")
+	private String firstName;
+	
+	@ApiModelProperty(value = "last name of the user")
+	private String lastName;
 	
 	/**
 	 * URL of the picture if exists
@@ -163,5 +170,21 @@ public class User {
 
 	public void setPicture(String picture) {
 		this.picture = picture;
+	}
+
+	public String getFirstName() {
+		return firstName;
+	}
+
+	public void setFirstName(String firstName) {
+		this.firstName = firstName;
+	}
+
+	public String getLastName() {
+		return lastName;
+	}
+
+	public void setLastName(String lastName) {
+		this.lastName = lastName;
 	}	
 }
