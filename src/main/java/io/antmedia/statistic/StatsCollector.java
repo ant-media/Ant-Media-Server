@@ -110,6 +110,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String CPU_USAGE = "cpuUsage";
 
 	public static final String INSTANCE_ID = "instanceId";
+	
+	public static final String MARKETPLACE_NAME = "marketplace";
 
 	public static final String INSTANCE_TYPE = "instanceType";
 
@@ -276,6 +278,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private Vertx webRTCVertx;
 
 	private int time2Log = 0;
+
+	private String marketplace;
 
 	private static MetricsService vertXMetrics;
 
@@ -828,6 +832,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		hostAddress = serverSettings.getHostAddress();
 		measurementPeriod = serverSettings.getCpuMeasurementPeriodMs();
 		windowSize = serverSettings.getCpuMeasurementWindowSize();
+		marketplace = serverSettings.getMarketplace();
 
 		setVertx((Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME));
 
@@ -915,6 +920,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		instance.addProperty(INSTANCE_ID, instanceId);
 		instance.addProperty(INSTANCE_TYPE, type);
 		instance.addProperty(INSTANCE_VERSION, version);
+		instance.addProperty(MARKETPLACE_NAME, marketplace);
 
 		try (CloseableHttpClient client = getHttpClient())
 		{

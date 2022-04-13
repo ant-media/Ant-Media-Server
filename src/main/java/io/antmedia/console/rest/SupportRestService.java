@@ -23,6 +23,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -95,6 +96,10 @@ public class SupportRestService  extends CommonRestService {
 
 			HttpPost httpPost = new HttpPost("https://antmedia.io/livedemo/upload/upload.php");
 
+			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
+			
+			httpPost.setConfig(requestConfig);
+			
 			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 			builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
 
@@ -200,7 +205,7 @@ public class SupportRestService  extends CommonRestService {
 	}
 
 
-	public String getCpuInfo() {
+	public static String getCpuInfo() {
 		StringBuilder cpuInfo = new StringBuilder();
 		ProcessBuilder pb = new ProcessBuilder("lscpu");
 		try {
@@ -217,7 +222,7 @@ public class SupportRestService  extends CommonRestService {
 		return cpuInfo.toString();
 	}
 
-	public StringBuilder readResponse(HttpResponse response) throws IOException {
+	public static StringBuilder readResponse(HttpResponse response) throws IOException {
 		StringBuilder result = new StringBuilder();
 		if(response.getEntity() != null) {
 			BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
