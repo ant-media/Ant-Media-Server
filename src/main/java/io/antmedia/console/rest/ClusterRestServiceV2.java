@@ -32,7 +32,7 @@ public class ClusterRestServiceV2 {
 	@Context
 	private ServletContext servletContext;
 	
-	private IClusterStore getClusterStore() 
+	public IClusterStore getClusterStore() 
 	{
 		IClusterStore clusterStore = null;
 		WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
