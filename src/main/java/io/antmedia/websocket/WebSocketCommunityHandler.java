@@ -32,7 +32,7 @@ public class WebSocketCommunityHandler {
 
 	private JSONParser jsonParser = new JSONParser();
 
-	private AppSettings appSettings;
+	protected AppSettings appSettings;
 	
 	private ApplicationContext appContext;
 

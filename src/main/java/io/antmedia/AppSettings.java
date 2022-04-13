@@ -363,8 +363,8 @@ public class AppSettings {
 	private String encoderSettingsString;
 
 	/**
-	 * This is for using another Ant Media instance as signaling server.
-	 * If your server is behind a NAT it will allow possible connection.
+	 * This is for making this instance run also as a signaling server.
+	 * Signaling Server lets Ant Media Server instances behind NAT stream its content to the peer in the Internet
 	 */
 	@Value( "${"+SETTINGS_SIGNALING_ENABLED+":false}" )
 	private boolean signalingEnabled;
@@ -373,7 +373,7 @@ public class AppSettings {
 	 * This is for using another Ant Media instance as signaling server.
 	 * If your server is behind a NAT it will allow possible connection.
 	 */
-	@Value( "${"+SETTINGS_SIGNALING_ADDRESS+":null}" )
+	@Value( "${"+SETTINGS_SIGNALING_ADDRESS+":#{null}}" )
 	private String signalingAddress;
 
 	/**
