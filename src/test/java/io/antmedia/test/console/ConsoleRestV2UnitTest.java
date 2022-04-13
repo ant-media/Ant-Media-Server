@@ -222,8 +222,10 @@ public class ConsoleRestV2UnitTest {
 	public void testSendInfo() {
 		RestServiceV2 restServiceSpy = Mockito.spy(restService);
 		
+		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
+		
 		boolean sendUserInfo = restServiceSpy.sendUserInfo("test@antmedia.io", "firstname", "lastname", "scope", "admin");
-		assertFalse(sendUserInfo);
+		assertTrue(sendUserInfo);
 	}
 	
 	@Test

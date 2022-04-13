@@ -243,12 +243,15 @@ public class CommonRestService {
 		return operationResult;
 	}
 
+	public CloseableHttpClient getHttpClient() {
+		return  HttpClients.createDefault();
+	}
 
 	public boolean sendUserInfo(String email, String firstname, String lastname, String scope, String userType) 
 	{
 		boolean success = false;
 
-		try (CloseableHttpClient httpClient = HttpClients.createDefault()) 
+		try (CloseableHttpClient httpClient = getHttpClient()) 
 		{
 			Version version = RestServiceBase.getSoftwareVersion();
 
@@ -265,9 +268,9 @@ public class CommonRestService {
 			builder.addTextBody("lastname", lastname);
 			builder.addTextBody("email", email);
 			builder.addTextBody("isEnterprise", RestServiceBase.isEnterprise()+"");
-			builder.addTextBody("licenseKey", getServerSettings().getLicenceKey());
+			builder.addTextBody("licenseKey", getServerSettings().getLicenceKey()+"");
 			builder.addTextBody("version", version.getVersionType()+" "+version.getVersionName()+" "+version.getBuildNumber());
-			builder.addTextBody("marketplace", getServerSettings().getMarketplace());
+			builder.addTextBody("marketplace", getServerSettings().getMarketplace()+"");
 			builder.addTextBody("instanceId", Launcher.getInstanceId());
 			builder.addTextBody("userScope", scope);
 			builder.addTextBody("userType", userType);

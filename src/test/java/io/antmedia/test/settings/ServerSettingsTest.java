@@ -50,6 +50,9 @@ public class ServerSettingsTest {
 		assertEquals(Logging.Severity.LS_WARNING, settings.getWebRTCLogLevel());
 		assertEquals(ServerSettings.LOG_LEVEL_WARN, settings.getNativeLogLevel());
 		
+		settings.setMarketplace("aws");
+		assertEquals("aws", settings.getMarketplace());
+		
 		
 		
 	}
