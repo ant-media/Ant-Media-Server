@@ -3,38 +3,35 @@ package io.antmedia.test.statistic;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
 import org.springframework.context.ApplicationContext;
 
-import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
-import io.antmedia.statistic.HlsViewerStats;
+import io.antmedia.statistic.DashViewerStats;
 import io.vertx.core.Vertx;
 
-
-public class HlsViewerStatsTest {
+public class DashViewerStatsTest {
 	
 	static Vertx vertx;	
-	
 	
 	@BeforeClass
 	public static void beforeClass() {
@@ -47,8 +44,8 @@ public class HlsViewerStatsTest {
 	}
 
 	@Test
-	public void testHLSViewerCount() {
-		HlsViewerStats viewerStats = new HlsViewerStats();
+	public void testDASHViewerCount() {
+		DashViewerStats viewerStats = new DashViewerStats();
 			
 		viewerStats.setVertx(vertx);
 		DataStore dataStore = new InMemoryDataStore("datastore");
@@ -94,7 +91,7 @@ public class HlsViewerStatsTest {
 
 	@Test
 	public void testSubscriberEvents() {
-		HlsViewerStats viewerStats = new HlsViewerStats();
+		DashViewerStats viewerStats = new DashViewerStats();
 		
 		viewerStats.setVertx(vertx);
 
@@ -103,7 +100,7 @@ public class HlsViewerStatsTest {
 		
 		String streamId = "stream1";
 		
-		viewerStats.resetHLSViewerMap(streamId);
+		viewerStats.resetDASHViewerMap(streamId);
 		
 		// create a subscriber play
 		Subscriber subscriberPlay = new Subscriber();
@@ -131,7 +128,7 @@ public class HlsViewerStatsTest {
 				return (subData.isConnected()) && eventExist; }
 		);
 	
-		viewerStats.resetHLSViewerMap(streamId);
+		viewerStats.resetDASHViewerMap(streamId);
 		Map<String, String> map = viewerStats.getSessionId2subscriberId();
 		assertTrue(map.isEmpty());
 		
@@ -140,14 +137,14 @@ public class HlsViewerStatsTest {
 	@Test
 	public void testGetTimeout() {
 		AppSettings settings = mock(AppSettings.class);
-		when(settings.getHlsTime()).thenReturn("");
+		when(settings.getDashFragmentDuration()).thenReturn("");
 		
-		int defaultValue = HlsViewerStats.DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT;
-		assertEquals(defaultValue, HlsViewerStats.getTimeoutMSFromSettings(settings, defaultValue, HlsViewerStats.HLS_TYPE));
+		int defaultValue = DashViewerStats.DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT;
+		assertEquals(defaultValue, DashViewerStats.getTimeoutMSFromSettings(settings, defaultValue, DashViewerStats.DASH_TYPE));
 		
-		when(settings.getHlsTime()).thenReturn("2");
+		when(settings.getDashFragmentDuration()).thenReturn("0.5");
 		
-		assertEquals(20000, HlsViewerStats.getTimeoutMSFromSettings(settings, defaultValue, HlsViewerStats.HLS_TYPE));
+		assertEquals(10000, DashViewerStats.getTimeoutMSFromSettings(settings, defaultValue, DashViewerStats.DASH_TYPE));
 		
 	}
 	
@@ -168,13 +165,13 @@ public class HlsViewerStatsTest {
 
 			AppSettings settings = mock(AppSettings.class);
 
-			//set hls time to 1
-			when(settings.getHlsTime()).thenReturn("1");
+			//set dash fragment duration to 0.5
+			when(settings.getDashFragmentDuration()).thenReturn("0.5");
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 			
-			HlsViewerStats viewerStats = new HlsViewerStats();
+			DashViewerStats viewerStats = new DashViewerStats();
 			
 			viewerStats.setTimePeriodMS(1000);
 			viewerStats.setApplicationContext(context);
@@ -246,11 +243,11 @@ public class HlsViewerStatsTest {
 			
 			// Check viewer is online
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
-					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 1);
+					()-> dsf.getDataStore().get(streamId).getDashViewerCount() == 1);
 			
 			// Wait some time for detect disconnect
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
-					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 0);
+					()-> dsf.getDataStore().get(streamId).getDashViewerCount() == 0);
 			
 			assertEquals(0, viewerStats.getViewerCount(streamId));
 			assertEquals(0, viewerStats.getIncreaseCounterMap(streamId));
@@ -285,7 +282,7 @@ public class HlsViewerStatsTest {
 			
 			// Wait some time for detect disconnect
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
-					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 0);
+					()-> dsf.getDataStore().get(streamId).getDashViewerCount() == 0);
 			
 			// Check Viewer 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
@@ -329,13 +326,13 @@ public class HlsViewerStatsTest {
 
 			AppSettings settings = mock(AppSettings.class);
 
-			//set hls time to 1
-			when(settings.getHlsTime()).thenReturn("1");
+			//set dash fragment duration time to 1
+			when(settings.getDashFragmentDuration()).thenReturn("0.5");
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 			
-			HlsViewerStats viewerStats = new HlsViewerStats();
+			DashViewerStats viewerStats = new DashViewerStats();
 			
 			viewerStats.setTimePeriodMS(1000);
 			viewerStats.setApplicationContext(context);
@@ -355,25 +352,25 @@ public class HlsViewerStatsTest {
 
 			viewerStats.registerNewViewer(streamId, sessionId, null);
 			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getViewerCount(streamId) == 1 );
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getIncreaseCounterMap(streamId) == 1 );
 			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getTotalViewerCount() == 1 );
 			
 			//Viewer timeout increase
 			viewerStats.registerNewViewer(streamId, sessionId, null);
 			
 			// Check viewer is online
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
-					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 1);
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
+					()-> dsf.getDataStore().get(streamId).getDashViewerCount() == 1);
 			
 			// Wait some time for detect disconnect
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
-					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 0);
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
+					()-> dsf.getDataStore().get(streamId).getDashViewerCount() == 0);
 			
 			assertEquals(0, viewerStats.getViewerCount(streamId));
 			assertEquals(0, viewerStats.getIncreaseCounterMap(streamId));
@@ -383,13 +380,13 @@ public class HlsViewerStatsTest {
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 			dsf.getDataStore().save(broadcast);
 			
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			
 			
 			viewerStats.registerNewViewer(streamId, sessionId, null);
 			
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);
 			
 			assertEquals(1, viewerStats.getViewerCount(streamId));
@@ -397,17 +394,17 @@ public class HlsViewerStatsTest {
 			assertEquals(1, viewerStats.getTotalViewerCount());
 			
 			// Wait some time for detect disconnect
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
-					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 0);
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
+					()-> dsf.getDataStore().get(streamId).getDashViewerCount() == 0);
 			
 			// Check Viewer 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 0);
 			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
 					()-> viewerStats.getIncreaseCounterMap(streamId) == 0);
 			
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
 					()-> viewerStats.getTotalViewerCount() == 0);
 			
 			

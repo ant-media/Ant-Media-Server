@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.IStreamStats;
@@ -82,7 +83,7 @@ public class DashStatisticsFilter extends AbstractFilter {
 		ApplicationContext context = getAppContext();
 		if (context != null) 
 		{
-			DataStoreFactory dsf = (DataStoreFactory)context.getBean(DataStoreFactory.BEAN_NAME);
+			DataStoreFactory dsf = (DataStoreFactory)context.getBean(IDataStoreFactory.BEAN_NAME);
 			broadcast = dsf.getDataStore().get(streamId);
 		}
 		return broadcast;

@@ -332,10 +332,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 			logger.warn("Starting heartbeats for the version:{} and type:{}", Launcher.getVersion(), Launcher.getVersionType());
 
-			getVertx().setPeriodic(heartbeatPeriodMs, l -> 
-			{
-				startAnalytic();
-			});
+			getVertx().setPeriodic(heartbeatPeriodMs, l -> startAnalytic());
 		}
 		else {
 			logger.info("Heartbeats are disabled for this instance");
@@ -704,9 +701,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private static int getHLSViewers(IScope scope) {
 		if (scope.getContext().getApplicationContext().containsBean(HlsViewerStats.BEAN_NAME)) {
 			HlsViewerStats hlsViewerStats = (HlsViewerStats) scope.getContext().getApplicationContext().getBean(HlsViewerStats.BEAN_NAME);
-			if (hlsViewerStats != null) {
-				return hlsViewerStats.getTotalViewerCount();
-			}
+			return hlsViewerStats.getTotalViewerCount();
 		}
 		return 0;
 	}
@@ -714,9 +709,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private static int getDASHViewers(IScope scope) {
 		if (scope.getContext().getApplicationContext().containsBean(DashViewerStats.BEAN_NAME)) {
 			DashViewerStats dashViewerStats = (DashViewerStats) scope.getContext().getApplicationContext().getBean(DashViewerStats.BEAN_NAME);
-			if (dashViewerStats != null) {
-				return dashViewerStats.getTotalViewerCount();
-			}
+			return dashViewerStats.getTotalViewerCount();
 		}
 		return 0;
 	}
@@ -1032,9 +1025,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private String findAdminUser(List<User> userList) {
 		
 		String email = null;
-		for (Iterator iterator2 = userList.iterator(); iterator2.hasNext();) 
+		for (Iterator<User> iterator2 = userList.iterator(); iterator2.hasNext();) 
 		{
-			User user = (User) iterator2.next();
+			User user = iterator2.next();
 			
 			if (user.getUserType() == UserType.ADMIN && CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) 
 			{

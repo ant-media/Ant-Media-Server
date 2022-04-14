@@ -1988,10 +1988,11 @@ public class DBStoresUnitTest {
 	public void testDontWriteStatsToDB (DataStore dataStore) {
 		testDontUpdateRtmpViewerStats(dataStore);
 		testDontUpdateHLSViewerStats(dataStore);
+		testDontUpdateDASHViewerStats(dataStore);
 		testDontUpdateWebRTCViewerStats(dataStore);
 		testDontUpdateSourceQualityParameters(dataStore);
 	}
-
+	
 	public void testDontUpdateRtmpViewerStats(DataStore dataStore) {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
@@ -2008,6 +2009,15 @@ public class DBStoresUnitTest {
 
 		assertFalse(dataStore.updateHLSViewerCount(key, 1));
 		assertEquals(0, dataStore.get(key).getHlsViewerCount());
+	}
+	
+	public void testDontUpdateDASHViewerStats(DataStore dataStore) {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+
+		assertFalse(dataStore.updateDASHViewerCount(key, 1));
+		assertEquals(0, dataStore.get(key).getDashViewerCount());
 	}
 
 	public void testDontUpdateWebRTCViewerStats(DataStore dataStore) {
