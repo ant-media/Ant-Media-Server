@@ -543,7 +543,7 @@ public class WebSocketCommunityHandlerTest {
 		for (int i = 0; i < trackSize; i++) {
 			midSidMap.put("mid"+i, "sid"+i);
 		}
-		JSONObject json = WebSocketCommunityHandler.getSDPConfigurationJSON(description, type, streamId, midSidMap);
+		JSONObject json = WebSocketCommunityHandler.getSDPConfigurationJSON(description, type, streamId, midSidMap, null);
 		
 		assertEquals(WebSocketConstants.TAKE_CONFIGURATION_COMMAND, json.get(WebSocketConstants.COMMAND));
 		assertEquals(description, json.get(WebSocketConstants.SDP));

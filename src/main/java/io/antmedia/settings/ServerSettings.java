@@ -144,7 +144,7 @@ public class ServerSettings implements ApplicationContextAware {
 	@Value( "${"+SETTINGS_PROXY_ADDRESS+":null}" )
 	private String proxyAddress;
 
-	
+
 	@Value( "${"+SETTINGS_NODE_GROUP+":"+DEFAULT_NODE_GROUP+"}" )
 	private String nodeGroup = DEFAULT_NODE_GROUP;
 
