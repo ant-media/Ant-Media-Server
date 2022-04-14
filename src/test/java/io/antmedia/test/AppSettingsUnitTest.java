@@ -17,6 +17,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
 
+import io.antmedia.settings.ServerSettings;
 import org.apache.catalina.util.NetMask;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -76,6 +77,17 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appSettings.setFileNameFormat(null);
 		assertNull(appSettings.getFileNameFormat());
+	}
+
+	@Test
+	public void testUseAsSignalingSetting(){
+		AppSettings settings = new AppSettings();
+
+		settings.setSignalingEnabled(true);
+		assertTrue(settings.isSignalingEnabled());
+
+		settings.setSignalingAddress("192.168.0.1");
+		assertEquals("192.168.0.1",settings.getSignalingAddress());
 	}
 	
 	@Test

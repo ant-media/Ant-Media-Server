@@ -1,11 +1,14 @@
 package io.antmedia.test.settings;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.webrtc.Logging;
 
 import io.antmedia.settings.ServerSettings;
+
+import javax.validation.constraints.AssertTrue;
 
 public class ServerSettingsTest {
 	
@@ -50,6 +53,9 @@ public class ServerSettingsTest {
 		assertEquals(Logging.Severity.LS_WARNING, settings.getWebRTCLogLevel());
 		assertEquals(ServerSettings.LOG_LEVEL_WARN, settings.getNativeLogLevel());
 		
+		settings.setMarketplace("aws");
+		assertEquals("aws", settings.getMarketplace());
+		
 		
 		
 	}
@@ -72,7 +78,6 @@ public class ServerSettingsTest {
 		
 	}
 
-	
 	@Test
 	public void testOriginPort() {
 		ServerSettings settings = new ServerSettings();
