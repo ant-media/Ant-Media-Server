@@ -984,10 +984,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			logger.error("Couldn't connect Ant Media Server Analytics");
 		} 
 	}
+	
+	public void setUserEmail(String userEmail) {
+		this.userEmail = userEmail;
+	}
 
-	private String getUserEmail() 
+	public String getUserEmail() 
 	{
-		if (scopes != null && userEmail == null) 
+		if (userEmail == null) 
 		{
 			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) 
 			{ 
@@ -1017,7 +1021,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		{
 			User user = (User) iterator2.next();
 			
-			if (user.getUserType() == UserType.ADMIN || CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) 
+			if (user.getUserType() == UserType.ADMIN && CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) 
 			{
 				email = user.getEmail();
 				break;
