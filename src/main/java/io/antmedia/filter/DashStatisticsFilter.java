@@ -12,10 +12,7 @@ import javax.ws.rs.HttpMethod;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.IStreamStats;
@@ -23,7 +20,6 @@ import io.antmedia.statistic.IStreamStats;
 public class DashStatisticsFilter extends AbstractFilter {
 	
 	protected static Logger logger = LoggerFactory.getLogger(DashStatisticsFilter.class);
-	private IStreamStats streamStats;
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -54,7 +50,7 @@ public class DashStatisticsFilter extends AbstractFilter {
 			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST && streamId != null) 
 			{				
 				logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
-				IStreamStats stats = getStreamStats();
+				IStreamStats stats = getStreamStats(DashViewerStats.BEAN_NAME);
 				if (stats != null) {
 					stats.registerNewViewer(streamId, sessionId, subscriberId);
 					
@@ -65,28 +61,6 @@ public class DashStatisticsFilter extends AbstractFilter {
 			chain.doFilter(httpRequest, response);
 		}
 
-	}
-
-	public IStreamStats getStreamStats() {
-		if (streamStats == null) {
-			ApplicationContext context = getAppContext();
-			if (context != null) 
-			{
-				streamStats = (IStreamStats)context.getBean(DashViewerStats.BEAN_NAME);
-			}
-		}
-		return streamStats;
-	}
-	
-	public Broadcast getBroadcast(String streamId) {
-		Broadcast broadcast = null;	
-		ApplicationContext context = getAppContext();
-		if (context != null) 
-		{
-			DataStoreFactory dsf = (DataStoreFactory)context.getBean(IDataStoreFactory.BEAN_NAME);
-			broadcast = dsf.getDataStore().get(streamId);
-		}
-		return broadcast;
 	}
 
 }

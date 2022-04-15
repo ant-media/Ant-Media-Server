@@ -85,7 +85,7 @@ public class DashStatisticsFilterTest {
 		dashStatisticsFilter.setConfig(filterconfig);
 		
 		
-		assertNull(dashStatisticsFilter.getStreamStats());
+		assertNull(dashStatisticsFilter.getStreamStats(DashViewerStats.BEAN_NAME));
 		
 		
 		
@@ -134,6 +134,7 @@ public class DashStatisticsFilterTest {
 		
 		try {
 			dashStatisticsFilter.init(filterconfig);
+			//when(dashStatisticsFilter.getStreamStats()).thenReturn(streamStats);
 			
 			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
 			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
@@ -186,6 +187,7 @@ public class DashStatisticsFilterTest {
 		ConfigurableWebApplicationContext context = mock(ConfigurableWebApplicationContext.class);
 		
 		IStreamStats streamStats = mock(IStreamStats.class);
+		
 		when(context.getBean(DashViewerStats.BEAN_NAME)).thenReturn(streamStats);
 		
 		when(context.isRunning()).thenReturn(true);
@@ -208,6 +210,7 @@ public class DashStatisticsFilterTest {
 		
 		try {
 			dashStatisticsFilter.init(filterconfig);
+			//when(dashStatisticsFilter.getStreamStats()).thenReturn(streamStats);
 			
 			String sessionId = requestDash(streamId);		
 			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);

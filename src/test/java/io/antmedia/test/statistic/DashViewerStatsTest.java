@@ -27,6 +27,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.DashViewerStats;
+import io.antmedia.statistic.ViewerStats;
 import io.vertx.core.Vertx;
 
 public class DashViewerStatsTest {
@@ -100,7 +101,7 @@ public class DashViewerStatsTest {
 		
 		String streamId = "stream1";
 		
-		viewerStats.resetDASHViewerMap(streamId);
+		viewerStats.resetViewerMap(streamId,ViewerStats.DASH_TYPE);
 		
 		// create a subscriber play
 		Subscriber subscriberPlay = new Subscriber();
@@ -128,7 +129,7 @@ public class DashViewerStatsTest {
 				return (subData.isConnected()) && eventExist; }
 		);
 	
-		viewerStats.resetDASHViewerMap(streamId);
+		viewerStats.resetViewerMap(streamId, ViewerStats.DASH_TYPE);
 		Map<String, String> map = viewerStats.getSessionId2subscriberId();
 		assertTrue(map.isEmpty());
 		

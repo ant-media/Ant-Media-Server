@@ -12,9 +12,7 @@ import javax.ws.rs.HttpMethod;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 
-import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
@@ -22,9 +20,6 @@ import io.antmedia.statistic.IStreamStats;
 public class HlsStatisticsFilter extends AbstractFilter {
 
 	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilter.class);
-	private IStreamStats streamStats;
-
-
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -55,7 +50,7 @@ public class HlsStatisticsFilter extends AbstractFilter {
 			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST && streamId != null) 
 			{				
 				logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
-				IStreamStats stats = getStreamStats();
+				IStreamStats stats = getStreamStats(HlsViewerStats.BEAN_NAME);
 				if (stats != null) {
 					stats.registerNewViewer(streamId, sessionId, subscriberId);
 					
@@ -68,26 +63,5 @@ public class HlsStatisticsFilter extends AbstractFilter {
 
 	}
 
-	public IStreamStats getStreamStats() {
-		if (streamStats == null) {
-			ApplicationContext context = getAppContext();
-			if (context != null) 
-			{
-				streamStats = (IStreamStats)context.getBean(HlsViewerStats.BEAN_NAME);
-			}
-		}
-		return streamStats;
-	}
-	
-	public Broadcast getBroadcast(String streamId) {
-		Broadcast broadcast = null;	
-		ApplicationContext context = getAppContext();
-		if (context != null) 
-		{
-			DataStoreFactory dsf = (DataStoreFactory)context.getBean(DataStoreFactory.BEAN_NAME);
-			broadcast = dsf.getDataStore().get(streamId);
-		}
-		return broadcast;
-	}
 
 }

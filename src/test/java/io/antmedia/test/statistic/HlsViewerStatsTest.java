@@ -28,6 +28,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.HlsViewerStats;
+import io.antmedia.statistic.ViewerStats;
 import io.vertx.core.Vertx;
 
 
@@ -103,7 +104,7 @@ public class HlsViewerStatsTest {
 		
 		String streamId = "stream1";
 		
-		viewerStats.resetHLSViewerMap(streamId);
+		viewerStats.resetViewerMap(streamId, ViewerStats.HLS_TYPE);
 		
 		// create a subscriber play
 		Subscriber subscriberPlay = new Subscriber();
@@ -131,7 +132,7 @@ public class HlsViewerStatsTest {
 				return (subData.isConnected()) && eventExist; }
 		);
 	
-		viewerStats.resetHLSViewerMap(streamId);
+		viewerStats.resetViewerMap(streamId, ViewerStats.HLS_TYPE);
 		Map<String, String> map = viewerStats.getSessionId2subscriberId();
 		assertTrue(map.isEmpty());
 		

@@ -12,7 +12,9 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConnectionEvent;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.vertx.core.Vertx;
 
 public class ViewerStats {
@@ -84,7 +86,8 @@ public class ViewerStats {
 		
 	}
 	
-	public void resetDASHViewerMap(String streamID) {
+	public void resetViewerMap(String streamID, String type) {
+		
 		Iterator<Entry<String, Long>> viewerIterator;
 		Map<String, Long> viewerMapEntry = streamsViewerMap.get(streamID);
 		if(viewerMapEntry != null) {
@@ -101,34 +104,10 @@ public class ViewerStats {
 			
 			streamsViewerMap.get(streamID).clear();
 			streamsViewerMap.remove(streamID);
-			logger.info("Reset DASH Stream ID: {} removed successfully", streamID);			
+			logger.info("Reset {} Stream ID: {} removed successfully", type, streamID);			
 		}
 		else {
-			logger.info("Reset DASH Stream ID: {} remove failed or null", streamID);
-		}
-	}
-	
-	public void resetHLSViewerMap(String streamID) {
-		Iterator<Entry<String, Long>> viewerIterator;
-		Map<String, Long> viewerMapEntry = streamsViewerMap.get(streamID);
-		if(viewerMapEntry != null) {
-			// remove all the subscribers associated with the sessions in the stream 
-			viewerIterator = viewerMapEntry.entrySet().iterator();
-			while (viewerIterator.hasNext()) {
-				Entry<String, Long> viewer = viewerIterator.next();
-				
-				String sessionId = viewer.getKey();
-				if(sessionId2subscriberId.containsKey(sessionId)) {
-					sessionId2subscriberId.remove(sessionId);					
-				}
-			}
-			
-			streamsViewerMap.get(streamID).clear();
-			streamsViewerMap.remove(streamID);
-			logger.info("Reset HLS Stream ID: {} removed successfully", streamID);			
-		}
-		else {
-			logger.info("Reset HLS Stream ID: {} remove failed or null", streamID);
+			logger.info("Reset {} Stream ID: {} remove failed or null", type, streamID);
 		}
 	}
 	
@@ -202,14 +181,15 @@ public class ViewerStats {
 		}
 		return newTimePeriodMS;
 	}
-
+	
 	public void setTimePeriodMS(int timePeriodMS) {
 		this.timePeriodMS = timePeriodMS;
 	}
+	
 	public int getTimePeriodMS() {
 		return timePeriodMS;
 	}
-
+	
 	public int getTimeoutMS() {
 		return timeoutMS;
 	}
@@ -224,6 +204,108 @@ public class ViewerStats {
 	
 	public void setVertx(Vertx vertx) {
 		this.vertx = vertx;
+	}
+	
+	public void updateViewerCountProcess(String type) {
+		
+		Iterator<Entry<String, Map<String, Long>>> streamIterator = streamsViewerMap.entrySet().iterator();
+		
+		Iterator<Entry<String, Long>> viewerIterator;
+		Entry<String, Map<String, Long>> streamViewerEntry;
+		Map<String, Long> viewerMapEntry;
+		
+		long now = System.currentTimeMillis();
+		
+		while (streamIterator.hasNext()) 
+		{
+			streamViewerEntry = streamIterator.next();
+			
+			String streamId = streamViewerEntry.getKey();
+			Broadcast broadcast = getDataStore().get(streamId);
+			
+			boolean isBroadcasting = false;
+			
+			// Check if it's deleted.
+			// This case for the deleted streams(zombi streams)
+			if(broadcast != null) {
+			
+				int numberOfDecrement = 0;
+				
+				viewerMapEntry = streamViewerEntry.getValue();
+				viewerIterator = viewerMapEntry.entrySet().iterator();
+			
+				while (viewerIterator.hasNext()) 
+				{
+					Entry<String, Long> viewer = viewerIterator.next();
+
+					if (viewer.getValue() < (now - getTimeoutMS())) 
+					{
+						// regard it as not a viewer
+						viewerIterator.remove();
+						numberOfDecrement++;
+						
+						String sessionId = viewer.getKey();
+						String subscriberId = sessionId2subscriberId.get(sessionId);
+						// set subscriber status to not connected
+						if(subscriberId != null) {
+							// add a disconnected event to the subscriber
+							ConnectionEvent event = new ConnectionEvent();
+							event.setEventType(ConnectionEvent.DISCONNECTED_EVENT);
+							Date curDate = new Date();
+							event.setTimestamp(curDate.getTime());
+							getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
+						}
+					}
+				}
+				
+				if(broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
+					isBroadcasting = true;
+				}
+			
+				numberOfDecrement = -1 * numberOfDecrement;
+
+				int numberOfIncrement = getIncreaseCounterMap(streamId);
+				if((numberOfIncrement != 0 || numberOfDecrement != 0) && isBroadcasting) {
+					
+					int diffCount = numberOfIncrement + numberOfDecrement;
+
+					logger.info("Update {} viewer in stream ID:{} increment count:{} decrement count:{} diff:{}", type, streamId, numberOfIncrement, numberOfDecrement, diffCount);
+					
+					if(type.equals(ViewerStats.HLS_TYPE)) {
+						getDataStore().updateHLSViewerCount(streamViewerEntry.getKey(), diffCount);
+					}
+					else {
+						getDataStore().updateDASHViewerCount(streamViewerEntry.getKey(), diffCount);
+					}
+					increaseCounterMap.put(streamId, 0);
+				}
+			}
+
+			if (!isBroadcasting) {
+				// set all connection status information about the subscribers of the stream to false
+				viewerMapEntry = streamViewerEntry.getValue();
+				viewerIterator = viewerMapEntry.entrySet().iterator();
+				while (viewerIterator.hasNext()) {
+					Entry<String, Long> viewer = viewerIterator.next();
+					
+					String sessionId = viewer.getKey();
+					String subscriberId = sessionId2subscriberId.get(sessionId);
+					// set subscriber status to not connected
+					if(subscriberId != null) {
+						// add a disconnected event to the subscriber
+						ConnectionEvent event = new ConnectionEvent();
+						event.setEventType(ConnectionEvent.DISCONNECTED_EVENT);
+						Date curDate = new Date();
+						event.setTimestamp(curDate.getTime());
+						getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
+					}
+				}
+				
+				streamIterator.remove();
+				increaseCounterMap.remove(streamId);
+			}
+		}
+		
 	}
 
 }

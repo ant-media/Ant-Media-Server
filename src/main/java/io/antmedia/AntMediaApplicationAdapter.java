@@ -64,6 +64,7 @@ import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.shutdown.IShutdownListener;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
+import io.antmedia.statistic.ViewerStats;
 import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
@@ -353,14 +354,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void resetHLSStats(String streamId) {
 		if (scope.getContext().getApplicationContext().containsBean(HlsViewerStats.BEAN_NAME)) {
 			HlsViewerStats hlsViewerStats = (HlsViewerStats) scope.getContext().getApplicationContext().getBean(HlsViewerStats.BEAN_NAME);
-			hlsViewerStats.resetHLSViewerMap(streamId);
+			hlsViewerStats.resetViewerMap(streamId, ViewerStats.HLS_TYPE);
 		}
 	}
 	
 	public void resetDASHStats(String streamId) {
 		if (scope.getContext().getApplicationContext().containsBean(DashViewerStats.BEAN_NAME)) {
 			DashViewerStats dashViewerStats = (DashViewerStats) scope.getContext().getApplicationContext().getBean(DashViewerStats.BEAN_NAME);
-			dashViewerStats.resetDASHViewerMap(streamId);
+			dashViewerStats.resetViewerMap(streamId, ViewerStats.DASH_TYPE);
 		}
 	}
 

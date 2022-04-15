@@ -74,8 +74,6 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	private static final String REPLACE_CHARS = "[\n|\r|\t]";
-	private static final String WEBM = "webm";
-	private static final String VALUE_IS_LESS_THAN_ZERO = "Value is less than zero";
 	private static final String STREAM_ID_NOT_VALID = "Stream id not valid";
 	private static final String RELATIVE_MOVE = "relative";
 	private static final String ABSOLUTE_MOVE = "absolute";
