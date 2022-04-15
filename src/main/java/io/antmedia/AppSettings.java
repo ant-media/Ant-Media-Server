@@ -102,7 +102,10 @@ public class AppSettings {
 	public static final String SETTINGS_WEBRTC_PORT_RANGE_MAX = "settings.webrtc.portRangeMax";
 	public static final String SETTINGS_WEBRTC_STUN_SERVER_URI = "settings.webrtc.stunServerURI";
 	public static final String SETTINGS_WEBRTC_TCP_CANDIDATE_ENABLED = "settings.webrtc.tcpCandidateEnabled"; 
-	public static final String SETTINGS_WEBRTC_SDP_SEMANTICS = "settings.webrtc.sdpSemantics"; 
+	public static final String SETTINGS_WEBRTC_SDP_SEMANTICS = "settings.webrtc.sdpSemantics";
+
+	private static final String SETTINGS_SIGNALING_ENABLED = "signaling.enabled";
+	private static final String SETTINGS_SIGNALING_ADDRESS = "signaling.address";
 
 	private static final String SETTINGS_ENCODING_ENCODER_NAME = "settings.encoding.encoderName";
 	private static final String SETTINGS_ENCODING_PRESET = "settings.encoding.preset";
@@ -303,6 +306,9 @@ public class AppSettings {
 
 	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
 
+	public static final String SETTINGS_VOD_UPLOAD_FINISH_SCRIPT = "settings.vodUploadFinishScript";
+	public static final String SETTINGS_FILE_NAME_FORMAT = "settings.fileNameFormat";
+
 	public static final String SETTINGS_MAX_AUDIO_TRACK_COUNT = "settings.maxAudioTrackCount";
 
 
@@ -333,6 +339,15 @@ public class AppSettings {
 	private boolean addDateTimeToMp4FileName;
 
 	/**
+	 * The format of output mp4 and ts files.
+	 * To add resolution like stream1_240p.mp4, add %r to the string
+	 * To add bitrate like stream1_500kbps, add %b to the string
+	 * Add both for stream1_240p500kbps
+	 */
+	@Value( "${"+SETTINGS_FILE_NAME_FORMAT+":%r%b}" )
+	private String fileNameFormat;
+	
+	/**
 	 * Enable/disable hls recording
 	 *  If it is set true then HLS files are created into <APP_DIR>/streams and HLS playing is enabled,
 	 *  Default value is true
@@ -349,6 +364,20 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_ENCODER_SETTINGS_STRING+"}" )
 	private String encoderSettingsString;
+
+	/**
+	 * This is for making this instance run also as a signaling server.
+	 * Signaling Server lets Ant Media Server instances behind NAT stream its content to the peer in the Internet
+	 */
+	@Value( "${"+SETTINGS_SIGNALING_ENABLED+":false}" )
+	private boolean signalingEnabled;
+
+	/**
+	 * This is for using another Ant Media instance as signaling server.
+	 * If your server is behind a NAT it will allow possible connection.
+	 */
+	@Value( "${"+SETTINGS_SIGNALING_ADDRESS+":#{null}}" )
+	private String signalingAddress;
 
 	/**
 	 * Number of segments(chunks) in m3u8 files
@@ -922,6 +951,8 @@ public class AppSettings {
 	@Value("${" + SETTINGS_EXCESSIVE_BANDWIDTH_THRESHOLD + ":300000}")
 	private int excessiveBandwidthValue;
 
+
+
 	/**
 	 * The excessive bandwidth call threshold value
 	 */
@@ -1179,10 +1210,21 @@ public class AppSettings {
 	@Value( "${"+SETTINGS_WEBRTC_VIEWER_LIMIT+":-1}" )
 	private int webRTCViewerLimit = -1;
 
-	/*
+	/**
 	 * Set to true when you want to delete an application 
 	 */
 	private boolean toBeDeleted = false;
+
+
+	/**
+	 * Set to true when the app settings are only created for pulling the war file.
+	 */
+	private boolean pullWarFile = false;
+
+	/**
+	 * Address of the original place of the war file.
+	 */
+	private String warFileOriginServerAddress;
 
 
 	/**
@@ -1397,6 +1439,13 @@ public class AppSettings {
 	@Value( "${"+SETTINGS_MAX_AUDIO_TRACK_COUNT+":-1}" )
 	private int maxAudioTrackCount = -1;
 	
+	
+	/**
+	 * This is a script file path that is called by Runtime when VoD upload is finished,
+	 * Bash script file path will be called after upload process finishes.
+	 */
+	@Value( "${"+SETTINGS_VOD_UPLOAD_FINISH_SCRIPT+":}" )
+	private String vodUploadFinishScript;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -1421,6 +1470,13 @@ public class AppSettings {
 	public void setMp4MuxingEnabled(boolean mp4MuxingEnabled) {
 		this.mp4MuxingEnabled = mp4MuxingEnabled;
 	}
+	
+	public void setFileNameFormat(String fileNameFormat) {
+		this.fileNameFormat = fileNameFormat;
+	}
+	public String getFileNameFormat() {
+		return fileNameFormat;
+	}
 
 	public boolean isHlsMuxingEnabled() {
 		return hlsMuxingEnabled;
@@ -1432,6 +1488,21 @@ public class AppSettings {
 
 	public boolean isDashMuxingEnabled() {
 		return dashMuxingEnabled;
+	}
+
+	public void setSignalingEnabled(boolean signalingEnabled){
+		this.signalingEnabled = signalingEnabled;
+	}
+
+	public boolean isSignalingEnabled(){
+		return signalingEnabled;
+	}
+
+	public void setSignalingAddress(String signalingAddress){
+		this.signalingAddress = signalingAddress;
+	}
+	public String getSignalingAddress(){
+		return signalingAddress;
 	}
 
 	public void setDashMuxingEnabled(boolean dashMuxingEnabled) {
@@ -2467,6 +2538,14 @@ public class AppSettings {
 		this.toBeDeleted = toBeDeleted;
 	}
 
+	public boolean isPullWarFile() {
+		return pullWarFile;
+	}
+
+	public void setPullWarFile(boolean pullWarFile) {
+		this.pullWarFile = pullWarFile;
+	}
+
 	public int getWebRTCKeyframeTime() {
 		return webRTCKeyframeTime;
 	}
@@ -2664,5 +2743,21 @@ public class AppSettings {
 
 	public void setMaxAudioTrackCount(int maxAudioTrackCount) {
 		this.maxAudioTrackCount = maxAudioTrackCount;
+	}
+
+	public String getWarFileOriginServerAddress() {
+		return warFileOriginServerAddress;
+	}
+
+	public void setWarFileOriginServerAddress(String warFileOriginServerAddress) {
+		this.warFileOriginServerAddress = warFileOriginServerAddress;
+	}
+	
+	public String getVodFinishScript() {
+		return vodUploadFinishScript;
+	}
+
+	public void setVodUploadFinishScript(String vodUploadFinishScript) {
+		this.vodUploadFinishScript = vodUploadFinishScript;
 	}
 }

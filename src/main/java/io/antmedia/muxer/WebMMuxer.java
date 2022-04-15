@@ -13,8 +13,6 @@ import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 
 public class WebMMuxer extends RecordMuxer {
-
-	protected static Logger logger = LoggerFactory.getLogger(WebMMuxer.class);
 	
 	private static int[] WEBM_SUPPORTED_CODECS = {
 			AV_CODEC_ID_VP8			 ,

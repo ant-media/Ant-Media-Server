@@ -223,25 +223,28 @@ public class ContextLoader implements ApplicationContextAware, InitializingBean,
         if (factory.containsSingleton(name)) {
             log.debug("Context found in parent, destroying: {}", name);
             FileSystemXmlApplicationContext ctx = (FileSystemXmlApplicationContext) factory.getSingleton(name);
-            if (ctx.isRunning()) {
-                log.debug("Context was running, attempting to stop");
-                ctx.stop();
-            }
-            if (ctx.isActive()) {
-                log.debug("Context is active, attempting to close");
-                ctx.close();
-            } else {
-                try {
-                    factory.destroyBean(name, ctx);
-                } catch (Exception e) {
-                    log.warn("Context destroy failed for: {}", name, e);
-                    ctx.destroy();
-                } finally {
-                    if (factory.containsSingleton(name)) {
-                        log.debug("Singleton still exists, trying another destroy method");
-                        ((DefaultListableBeanFactory) factory).destroySingleton(name);
-                    }
-                }
+            if (ctx != null) 
+            {
+	            if (ctx.isRunning()) {
+	                log.debug("Context was running, attempting to stop");
+	                ctx.stop();
+	            }
+	            if (ctx.isActive()) {
+	                log.debug("Context is active, attempting to close");
+	                ctx.close();
+	            } else {
+	                try {
+	                    factory.destroyBean(name, ctx);
+	                } catch (Exception e) {
+	                    log.warn("Context destroy failed for: {}", name, e);
+	                    ctx.destroy();
+	                } finally {
+	                    if (factory.containsSingleton(name)) {
+	                        log.debug("Singleton still exists, trying another destroy method");
+	                        ((DefaultListableBeanFactory) factory).destroySingleton(name);
+	                    }
+	                }
+	            }
             }
         } else {
             log.debug("Context does not contain singleton: {}", name);
