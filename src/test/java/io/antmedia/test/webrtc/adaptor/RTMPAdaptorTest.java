@@ -355,7 +355,7 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.onIceCandidate(iceCandidate);
 
 
-		verify(webSocketHandler).sendTakeCandidateMessage(iceCandidate.sdpMLineIndex, iceCandidate.sdpMid, iceCandidate.sdp, streamId, session);
+		verify(webSocketHandler).sendTakeCandidateMessage(iceCandidate.sdpMLineIndex, iceCandidate.sdpMid, iceCandidate.sdp, streamId, session, "");
 
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND,  WebSocketConstants.TAKE_CANDIDATE_COMMAND);
@@ -363,6 +363,7 @@ public class RTMPAdaptorTest {
 		jsonObject.put(WebSocketConstants.CANDIDATE_ID, iceCandidate.sdpMid);
 		jsonObject.put(WebSocketConstants.CANDIDATE_SDP, iceCandidate.sdp);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonObject.put(WebSocketConstants.LINK_SESSION, "");
 
 		try {
 			verify(basicRemote).sendText(jsonObject.toJSONString());
@@ -430,12 +431,13 @@ public class RTMPAdaptorTest {
 
 		rtmpAdaptor.onCreateSuccess(sdp);
 
-		verify(webSocketHandler).sendSDPConfiguration(sdp.description, "offer", streamId, session, null);
+		verify(webSocketHandler).sendSDPConfiguration(sdp.description, "offer", streamId, session, null, "");
 		JSONObject jsonResponseObject = new JSONObject();
 		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
 		jsonResponseObject.put(WebSocketConstants.SDP, sdp.description);
 		jsonResponseObject.put(WebSocketConstants.TYPE, "offer");
 		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonResponseObject.put(WebSocketConstants.LINK_SESSION, "");
 		try {
 			verify(basicRemote).sendText(jsonResponseObject.toJSONString());
 		} catch (IOException e) {
