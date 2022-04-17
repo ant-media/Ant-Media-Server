@@ -71,6 +71,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.rest.model.Result;
@@ -573,6 +574,51 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 	}
 
+	@Test
+	public void testHookAfterDefined() 
+	{
+		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		AppSettings appSettings = new AppSettings();
+		spyAdaptor.setAppSettings(appSettings);
+		
+		Broadcast broadcast = new Broadcast();
+		assertNull(spyAdaptor.getListenerHookURL(broadcast));
+		
+		String hookURL = "listener_hook_url";
+		appSettings.setListenerHookURL(hookURL);
+		
+		assertEquals(hookURL, spyAdaptor.getListenerHookURL(broadcast));
+		
+		
+		spyAdaptor = Mockito.spy(adapter);
+		appSettings = new AppSettings();
+		spyAdaptor.setServerSettings(new ServerSettings());
+		spyAdaptor.setAppSettings(appSettings);
+		DataStore dataStore = new InMemoryDataStore("testHook");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		spyAdaptor.setDataStoreFactory(dsf);
+		
+		dataStore.save(broadcast);
+		
+		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP);
+		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(1)).getListenerHookURL(broadcast);
+		
+		
+		spyAdaptor.closeBroadcast(broadcast.getStreamId());
+		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(2)).getListenerHookURL(broadcast);
+		
+		
+		spyAdaptor.publishTimeoutError(broadcast.getStreamId());
+		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(3)).getListenerHookURL(broadcast);
+		
+		spyAdaptor.incrementEncoderNotOpenedError(broadcast.getStreamId());
+		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(4)).getListenerHookURL(broadcast);
+		
+		spyAdaptor.endpointFailedUpdate(broadcast.getStreamId(), "rtmp_url");
+		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(5)).getListenerHookURL(broadcast);
+		
+	}
 
 	@Test
 	public void testNotifyHook() {
