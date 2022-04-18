@@ -372,6 +372,8 @@ public class AppSettings {
 	/**
 	 * This is for using another Ant Media instance as signaling server.
 	 * If your server is behind a NAT it will allow possible connection.
+	 * It should be full qualified URI like this 
+	 * ws://107.23.25.77:5080/WebRTCAppEE/websocket/signaling
 	 */
 	@Value( "${"+SETTINGS_SIGNALING_ADDRESS+":#{null}}" )
 	private String signalingAddress;
