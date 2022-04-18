@@ -803,6 +803,7 @@ public class MongoStore extends DataStore {
 				updates.add(set("userAgent", broadcast.getUserAgent()));
 				updates.add(set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit()));
 				updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
+				updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
 				updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
 				updates.add(set("metaData", broadcast.getMetaData()));
 				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
