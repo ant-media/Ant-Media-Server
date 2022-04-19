@@ -18,6 +18,8 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
 
+import javax.validation.constraints.NotNull;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -41,6 +43,8 @@ import org.red5.server.api.stream.ISubscriberStream;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.errorprone.annotations.NoAllocation;
 
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
@@ -298,18 +302,28 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		return result;
 	}
+	
+	public String getListenerHookURL(@NotNull Broadcast broadcast) 
+	{
+		String listenerHookURL = broadcast.getListenerHookURL();
+		if (listenerHookURL == null || listenerHookURL.isEmpty()) 
+		{
+			listenerHookURL = getAppSettings().getListenerHookURL();
+		}
+		return listenerHookURL;
+		
+	}
 
-	public void closeBroadcast(String streamName) {
+	public void closeBroadcast(String streamId) {
 
 		try {
-			logger.info("Closing broadcast stream id: {}", streamName);
-			getDataStore().updateStatus(streamName, BROADCAST_STATUS_FINISHED);
-			Broadcast broadcast = getDataStore().get(streamName);
+			logger.info("Closing broadcast stream id: {}", streamId);
+			getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
+			Broadcast broadcast = getDataStore().get(streamId);
 
 			if (broadcast != null) {
-				final String listenerHookURL = broadcast.getListenerHookURL();
-				final String streamId = broadcast.getStreamId();
-				if (listenerHookURL != null && listenerHookURL.length() > 0) {
+				final String listenerHookURL = getListenerHookURL(broadcast);
+				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					logger.info("Setting timer to call live stream ended hook for stream:{}",streamId );
@@ -320,7 +334,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					if(broadcast.getMainTrackStreamId() != null && !broadcast.getMainTrackStreamId().isEmpty()) {
 						updateMainBroadcast(broadcast);
 					}
-					getDataStore().delete(streamName);
+					getDataStore().delete(streamId);
 				}
 				else {
 					// This is resets Viewer map in HLS Viewer Stats
@@ -377,7 +391,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				Broadcast broadcast = updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, getDataStore().get(streamId));
 
-				final String listenerHookURL = broadcast.getListenerHookURL();
+				final String listenerHookURL = getListenerHookURL(broadcast);
 				if (listenerHookURL != null && !listenerHookURL.isEmpty())
 				{
 					final String name = broadcast.getName();
@@ -488,12 +502,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		try {
 			newBroadcast.setStreamId(streamId);
 			newBroadcast.setPublishType(publishType);
-			String settingsListenerHookURL = null; 
-			settingsListenerHookURL = appAdapter.getAppSettings().getListenerHookURL();
 
 			return RestServiceBase.saveBroadcast(newBroadcast,
 					streamStatus, appAdapter.getScope().getName(), appAdapter.getDataStore(),
-					settingsListenerHookURL, appAdapter.getServerSettings(), absoluteStartTimeMs);
+					appAdapter.getAppSettings().getListenerHookURL(), appAdapter.getServerSettings(), absoluteStartTimeMs);
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
@@ -521,6 +533,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		}
 
+		//We need to get the webhook url explicitly because broadcast may be deleted here
 		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
 			// if hook URL is not defined for stream specific, then try to get common one from app
 			listenerHookURL = appSettings.getListenerHookURL();
@@ -1109,7 +1122,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		Broadcast broadcast = getDataStore().get(streamId);
 
 		if (broadcast != null) {
-			final String listenerHookURL = broadcast.getListenerHookURL();
+			final String listenerHookURL = getListenerHookURL(broadcast);
 			if (listenerHookURL != null && listenerHookURL.length() > 0) {
 				final String name = broadcast.getName();
 				final String category = broadcast.getCategory();
@@ -1132,8 +1145,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		publishTimeoutStreamsList.add(streamId);
 		Broadcast broadcast = getDataStore().get(streamId);
 
-		if (broadcast != null) {
-			final String listenerHookURL = broadcast.getListenerHookURL();
+		if (broadcast != null) 
+		{
+			final String listenerHookURL = getListenerHookURL(broadcast);
 			if (listenerHookURL != null && listenerHookURL.length() > 0) {
 				final String name = broadcast.getName();
 				final String category = broadcast.getCategory();
@@ -1471,7 +1485,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		if (broadcast != null) 
 		{
-			final String listenerHookURL = broadcast.getListenerHookURL();
+			final String listenerHookURL = getListenerHookURL(broadcast);
 			if (listenerHookURL != null && listenerHookURL.length() > 0)
 			{
 				final String name = broadcast.getName();
