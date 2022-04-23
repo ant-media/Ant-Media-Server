@@ -262,6 +262,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		newSettings.setHlsPlayListType("");
 		newSettings.setTokenHashSecret("");
 		newSettings.setDataChannelPlayerDistribution("");
+		newSettings.setDashSegDuration("");
 
 		IScope scope = mock(IScope.class);
 
@@ -285,6 +286,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		assertEquals("", settings.getHlsPlayListType());
 		assertEquals(newSettings.getHlsPlayListType(), settings.getHlsPlayListType());
+		
+		assertEquals("", settings.getDashSegDuration());
+		assertEquals(newSettings.getDashSegDuration(), settings.getDashSegDuration());
 
 
 		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);

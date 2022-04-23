@@ -1377,6 +1377,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		
 		store.put(AppSettings.SETTINGS_VOD_UPLOAD_FINISH_SCRIPT, newAppsettings.getVodFinishScript() != null ? String.valueOf(newAppsettings.getVodFinishScript()) : "");
 		
+		store.put(AppSettings.SETTINGS_DASH_FRAGMENT_DURATION, String.valueOf(newAppsettings.getDashFragmentDuration()));
+		store.put(AppSettings.SETTINGS_DASH_SEG_DURATION, String.valueOf(newAppsettings.getDashSegDuration()));
+
 		return store.save();
 	}
 
