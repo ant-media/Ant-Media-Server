@@ -971,18 +971,21 @@ public class DBStoresUnitTest {
 
 		String roomId = "aaaroom";
 		room.setRoomId(roomId);
+		room.setMaxViewers(100);
 		room.setStartDate(now);
 		room.setEndDate(now + 3600);
 
 		ConferenceRoom room2 = new ConferenceRoom();
 		roomId = "bbbtahir";
 		room2.setRoomId(roomId);
+		room.setMaxViewers(120);
 		room2.setStartDate(now + 150);
 		room2.setEndDate(now + 360);
 
 		ConferenceRoom room3 = new ConferenceRoom();
 		roomId = "cctast";
 		room3.setRoomId(roomId);
+		// Max viewers not set
 		room3.setStartDate(now + 10);
 		room3.setEndDate(now + 36000);
 
@@ -1002,15 +1005,19 @@ public class DBStoresUnitTest {
 		roomList = dataStore.getConferenceRoomList(0,50,"","","tahir");
 		assertEquals(1, roomList.size());
 		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(0).getMaxViewers(), room2.getMaxViewers());
 
 		roomList = dataStore.getConferenceRoomList(0,50,"","","ccta");
 		assertEquals(1, roomList.size());
 		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
+		assertEquals(roomList.get(0).getMaxViewers(), room3.getMaxViewers());
 
 		roomList = dataStore.getConferenceRoomList(0,50,"roomId","asc","ta");
 		assertEquals(2, roomList.size());
 		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
+		assertEquals(roomList.get(0).getMaxViewers(), room2.getMaxViewers());
 		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
+		assertEquals(roomList.get(1).getMaxViewers(), room2.getMaxViewers());
 
 		roomList = dataStore.getConferenceRoomList(0,50,"roomId","desc","ta");
 		assertEquals(2, roomList.size());

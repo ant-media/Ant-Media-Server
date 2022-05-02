@@ -37,10 +37,10 @@ import java.util.Map;
 @Component
 @Path("/v2")
 public class RootRestService extends RestServiceBase {
-	
-	
+
+
 	protected static Logger logger = LoggerFactory.getLogger(RootRestService.class);
-	
+
 	@ApiOperation(value = "Returns the Ant Media Server Version", notes = "", response = Version.class)
 	@GET
 	@Path("/version")
@@ -54,6 +54,7 @@ public class RootRestService extends RestServiceBase {
 		private Map<String,String> streamDetailsMap;
 		private long endDate = 0;
 		private long startDate = 0;
+		private int maxViewers = -1;
 
 		public RoomInfo(String roomId, Map<String, String> streamDetailsMap, ConferenceRoom room) {
 			this.roomId = roomId;
@@ -61,6 +62,7 @@ public class RootRestService extends RestServiceBase {
 			if(room != null) {
 				this.endDate = room.getEndDate();
 				this.startDate = room.getStartDate();
+				this.maxViewers = room.getMaxViewers();
 			}
 		}
 
@@ -72,6 +74,8 @@ public class RootRestService extends RestServiceBase {
 		public long getEndDate() { return endDate; }
 
 		public long getStartDate() { return startDate;}
+
+		public int getMaxViewers() { return maxViewers; }
 
 		public void setRoomId(String roomId) {
 			this.roomId = roomId;
