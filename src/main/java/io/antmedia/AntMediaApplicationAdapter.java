@@ -1553,4 +1553,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
 	}
 
+	public void joinedTheRoom(String roomId, String streamId) {
+		//No need to implement here. 
+	}
+	
+	public void leftTheRoom(String roomId, String streamId) {
+		//No need to implement here. 
+	}
+	
 }
