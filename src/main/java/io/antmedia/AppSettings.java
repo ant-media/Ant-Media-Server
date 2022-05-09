@@ -403,7 +403,7 @@ public class AppSettings {
 	 * HLS files still will be saved on the server if deleteHLSFilesOnEnded flag is false
 	 */
 	@Value( "${"+SETTINGS_UPLOAD_EXTENSIONS_TO_S3+":7}" )
-	private int uploadExtensionsToS3;
+	private int uploadExtensionsToS3=7;
 
 	/*
 	 * S3 Storage classes. Possible values are 
@@ -413,8 +413,8 @@ public class AppSettings {
 	 * 
 	 * More information is available at AWS S3 -> https://www.amazonaws.cn/en/s3/storage-classes/
 	 */
-	@Value( "${"+SETTINGS_S3_STORAGE_CLASS+": STANDARD}" )
-	private String s3StorageClass;
+	@Value( "${"+SETTINGS_S3_STORAGE_CLASS+":STANDARD}" )
+	private String s3StorageClass="STANDARD";
 	/**
 	 * Endpoint will try to republish if error occurs,
 	 * however the error might get fixed internally in case of small issues without republishing
@@ -423,7 +423,7 @@ public class AppSettings {
 	 * if each of them fails it will try to republish in 3rd check.
 	 */
 	@Value( "${"+SETTINGS_ENDPOINT_HEALTH_CHECK_PERIOD_MS+":2000}" )
-	private int endpointHealthCheckPeriodMs;
+	private int endpointHealthCheckPeriodMs=2000;
 
 	/**
 	 * This limit is for republishing to a certain endpoint for how many times
@@ -431,7 +431,7 @@ public class AppSettings {
 	 * We conclude that the endpoint is dead and close it.
 	 */
 	@Value( "${"+SETTINGS_ENDPOINT_REPUBLISH_LIMIT+":3}" )
-	private int endpointRepublishLimit;
+	private int endpointRepublishLimit=3;
 
 	/**
 	 * Duration of segments in mpd files,
@@ -439,64 +439,64 @@ public class AppSettings {
 	 *  
 	 */
 	@Value( "${"+SETTINGS_DASH_SEG_DURATION+":6}" )
-	private String dashSegDuration;
+	private String dashSegDuration="6";
 
 	/**
 	 * Fragments are a property of fragmented MP4 files, Typically a fragment consists of moof + mdat.
 	 *
 	 */
 	@Value( "${"+SETTINGS_DASH_FRAGMENT_DURATION+":0.5}" )
-	private String dashFragmentDuration;
+	private String dashFragmentDuration="0.5";
 
 
 	/**
 	 * Latency of the DASH streaming,
 	 */
 	@Value( "${"+SETTINGS_DASH_TARGET_LATENCY+":3.5}" )
-	private String targetLatency;
+	private String targetLatency="3.5";
 
 	/**
 	 * DASH window size, Number of files in manifest
 	 */
 	@Value( "${"+SETTINGS_DASH_WINDOW_SIZE+":5}" )
-	private String dashWindowSize;
+	private String dashWindowSize="5";
 
 	/**
 	 * DASH extra window size, Number of segments kept outside of the manifest before removing from disk
 	 */
 	@Value( "${"+SETTINGS_DASH_EXTRA_WINDOW_SIZE+":5}" )
-	private String dashExtraWindowSize;
+	private String dashExtraWindowSize="5";
 
 	/**
 	 * Enable low latency dash, This settings is effective if dash is enabled
 	 */
 	@Value( "${"+SETTINGS_DASH_ENABLE_LOW_LATENCY+":true}" )
-	private boolean lLDashEnabled;
+	private boolean lLDashEnabled=true;
 
 	/**
 	 * Enable low latency hls via dash muxer, LLHLS is effective if dash is enabled.
 	 */
 	@Value( "${"+SETTINGS_HLS_ENABLE_LOW_LATENCY+":false}" )
-	private boolean lLHLSEnabled;
+	private boolean lLHLSEnabled=false;
 
 	/**
 	 * Enable hls through DASH muxer, LLHLS is effective if dash is enabled.
 	 */
 	@Value( "${"+SETTINGS_HLS_ENABLED_VIA_DASH_LOW_LATENCY+":false}" )
-	private boolean hlsEnabledViaDash;
+	private boolean hlsEnabledViaDash=false;
 
 	/**
 	 * Use timeline in dash muxing.
 	 */
 	@Value( "${"+SETTINGS_USE_TIMELINE_DASH_MUXING+":false}" )
-	private boolean useTimelineDashMuxing;
+	private boolean useTimelineDashMuxing=false;
 
 	/**
 	 * Enable/disable webrtc,
 	 * It's mandatory, If it is set true then WebRTC playing is enabled, Default value is false
 	 */
 	@Value( "${"+SETTINGS_WEBRTC_ENABLED+":true}" )
-	private boolean webRTCEnabled;
+	private boolean webRTCEnabled=true;
 
 	/**
 	 * The flag that sets using the original webrtc stream in streaming,
@@ -506,7 +506,7 @@ public class AppSettings {
 	 * In this case if this setting is false, there is one bitrate for playing that is 480p
 	 */
 	@Value( "${"+SETTINGS_USE_ORIGINAL_WEBRTC_ENABLED+":false}" )
-	private boolean useOriginalWebRTCEnabled;
+	private boolean useOriginalWebRTCEnabled=false;
 
 	/**
 	 * It's mandatory,
@@ -1254,7 +1254,7 @@ public class AppSettings {
 	 * It's in milliseconds
 	 */
 	@Value( "${"+SETTINGS_WEBRTC_KEYFRAME_TIME+":2000}" )
-	private int webRTCKeyframeTime;
+	private int webRTCKeyframeTime=2000;
 
 	/**
 	 * Application JWT stream secret key
@@ -1282,7 +1282,7 @@ public class AppSettings {
 	 * In order to have Low Latency http streaming should be used
 	 */
 	@Value( "${"+SETTINGS_DASH_HTTP_STREAMING+":true}" )
-	private boolean dashHttpStreaming;
+	private boolean dashHttpStreaming=true;
 
 
 	/**
@@ -1291,7 +1291,7 @@ public class AppSettings {
 	 * 
 	 */
 	@Value( "${"+SETTINGS_S3_STREAMS_FOLDER_PATH+":streams}" )
-	private String  s3StreamsFolderPath;
+	private String  s3StreamsFolderPath="streams";
 
 	/**
 	 * It's S3 stream PNG files storage name . 
@@ -1299,7 +1299,7 @@ public class AppSettings {
 	 * 
 	 */
 	@Value( "${"+SETTINGS_S3_PREVIEWS_FOLDER_PATH+":previews}" )
-	private String  s3PreviewsFolderPath;
+	private String  s3PreviewsFolderPath="previews";
 
 	/*
 	 * Use http endpoint  in CMAF/HLS. 
@@ -1365,7 +1365,7 @@ public class AppSettings {
 	 * 
 	 */
 	@Value( "${"+SETTINGS_S3_PERMISSION+":public-read}" )
-	private String s3Permission;
+	private String s3Permission="public-read";
 
 	/**
 	 *  HLS Encryption key info file full path.

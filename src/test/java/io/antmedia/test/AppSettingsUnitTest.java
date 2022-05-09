@@ -8,19 +8,14 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.List;
 
-import io.antmedia.settings.ServerSettings;
 import org.apache.catalina.util.NetMask;
-import org.json.simple.JSONArray;
-import org.json.simple.JSONObject;
 import org.junit.Test;
 import org.red5.server.scope.WebScope;
 import org.springframework.test.annotation.DirtiesContext;
@@ -250,6 +245,33 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setEncoderSettingsString(encSettings);
 		assertNotNull(appSettings.getEncoderSettings());
 		assertEquals(2, appSettings.getEncoderSettings().size());
+	}
+	
+	@Test
+	public void testUnsetAppSettings() {
+		AppSettings appSettings = new AppSettings();
+		
+		assertEquals(7, appSettings.getUploadExtensionsToS3());
+		assertEquals("STANDARD", appSettings.getS3StorageClass());
+		assertEquals(2000, appSettings.getEndpointHealthCheckPeriodMs());
+		assertEquals(3, appSettings.getEndpointRepublishLimit());
+		assertEquals("6", appSettings.getDashSegDuration());
+		assertEquals("0.5", appSettings.getDashFragmentDuration());
+		assertEquals("3.5", appSettings.getTargetLatency());
+		assertEquals("5", appSettings.getDashWindowSize());
+		assertEquals("5", appSettings.getDashExtraWindowSize());
+		assertEquals(true, appSettings.islLDashEnabled());
+		assertEquals(false, appSettings.islLHLSEnabled());
+		assertEquals(false, appSettings.isHlsEnabledViaDash());
+		assertEquals(false, appSettings.isUseTimelineDashMuxing());
+		assertEquals(true, appSettings.isWebRTCEnabled());
+		assertEquals(false, appSettings.isUseOriginalWebRTCEnabled());
+		assertEquals(2000, appSettings.getWebRTCKeyframeTime());
+		assertEquals(true, appSettings.isDashHttpStreaming());
+		assertEquals("streams", appSettings.getS3StreamsFolderPath());
+		assertEquals("previews", appSettings.getS3PreviewsFolderPath());
+		assertEquals("public-read", appSettings.getS3Permission());
+		
 	}
 
 }
