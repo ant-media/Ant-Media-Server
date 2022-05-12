@@ -154,6 +154,6 @@ else
   echo "Application is deployed as directory."
 fi
 
-chown -R antmedia:antmedia $APP_DIR 
+chown -R antmedia:antmedia $APP_DIR -f
 
 echo "$APP_NAME is created."
