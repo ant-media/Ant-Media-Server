@@ -91,7 +91,7 @@ public class ServerSettings implements ApplicationContextAware {
 	
 	private static String globalHostAddress;
 	
-	private static String hostAddress;
+	private String hostAddress;
 	
 	/**
 	 * Fully Qualified Domain Name
@@ -338,16 +338,28 @@ public class ServerSettings implements ApplicationContextAware {
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 	
-		if (useGlobalIp) {
+		String hostAddressEnv = getHostAddressFromEnvironment();
+		if (hostAddressEnv != null && !hostAddressEnv.isEmpty()) {
+			logger.info("Env host address is {}", hostAddressEnv);
+			hostAddress = hostAddressEnv;
+		}
+		
+		else if (useGlobalIp) {
 			hostAddress = getGlobalHostAddress();
+			logger.info("Using global host address is {}", hostAddress);
 		}
 		else {
 			//************************************
 			//this method may sometimes takes long to return
 			//delaying initialization may cause some after issues
 			hostAddress = getLocalHostAddress();
+			logger.info("Using local host address is {}", hostAddress);
 		}
 		
+	}
+
+	public String getHostAddressFromEnvironment() {
+		return System.getenv("AMS_HOST_ADDRESS");
 	}
 
 	public boolean isUseGlobalIp() {
