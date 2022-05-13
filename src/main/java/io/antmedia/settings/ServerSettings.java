@@ -91,7 +91,7 @@ public class ServerSettings implements ApplicationContextAware {
 	
 	private static String globalHostAddress;
 	
-	private static String hostAddress;
+	private String hostAddress;
 	
 	/**
 	 * Fully Qualified Domain Name
