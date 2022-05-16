@@ -54,7 +54,7 @@ mongo_backup(){
 }
 
 
-#    "className" : "io.antmedia.AppSettings",
+
 
 mongocon() {
         if [ -z "$MONGODB_USERNAME" ] && [ -z "$MONGODB_PASSWORD" ]; then

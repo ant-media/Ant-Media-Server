@@ -260,6 +260,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		newSettings.setVodFolder("");
 		newSettings.setListenerHookURL("");
 		newSettings.setHlsPlayListType("");
+		newSettings.setHlsflags("");
 		newSettings.setTokenHashSecret("");
 		newSettings.setDataChannelPlayerDistribution("");
 
@@ -285,6 +286,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		assertEquals("", settings.getHlsPlayListType());
 		assertEquals(newSettings.getHlsPlayListType(), settings.getHlsPlayListType());
+
+		assertEquals("", settings.getHlsFlags());
+		assertEquals(newSettings.getHlsFlags(), settings.getHlsFlags());
 
 
 		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
