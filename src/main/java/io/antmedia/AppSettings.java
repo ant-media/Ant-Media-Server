@@ -213,7 +213,7 @@ public class AppSettings {
 	 */
 	public static final String DATA_CHANNEL_PLAYER_TO_ALL = "all";
 
-	private static final String SETTINGS_HLS_FLAGS = "settings.hlsflags";
+	public static final String SETTINGS_HLS_FLAGS = "settings.hlsflags";
 
 	public static final String SETTINGS_UPLOAD_EXTENSIONS_TO_S3 = "settings.uploadExtensionsToS3";
 
