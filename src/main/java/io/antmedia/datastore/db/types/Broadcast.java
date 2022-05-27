@@ -336,7 +336,12 @@ public class Broadcast {
 	 */
 	@ApiModelProperty(value = "the identifier of playlist loop status")
 	private boolean playlistLoopEnabled = true;
-
+	
+	/**
+	 * Update time of the Broadcast object
+	 * This parameter updates consistently according to broadcast status
+	 */
+	private long updateTime = 0;
 
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
@@ -779,4 +784,13 @@ public class Broadcast {
 	public void setPlaylistLoopEnabled(boolean playlistLoopEnabled) {
 		this.playlistLoopEnabled = playlistLoopEnabled;
 	}
+	
+	public long getUpdateTime() {
+		return updateTime;
+	}
+
+	public void setUpdateTime(long updateTime) {
+		this.updateTime = updateTime;
+	}
+	
 }
