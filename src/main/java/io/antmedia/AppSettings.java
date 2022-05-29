@@ -311,6 +311,8 @@ public class AppSettings {
 
 	public static final String SETTINGS_MAX_AUDIO_TRACK_COUNT = "settings.maxAudioTrackCount";
 
+	public static final String SETTINGS_MAX_VIDEO_TRACK_COUNT = "settings.maxVideoTrackCount";
+
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -1438,6 +1440,16 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_MAX_AUDIO_TRACK_COUNT+":-1}" )
 	private int maxAudioTrackCount = -1;
+	
+	
+	/**
+	 * The maximum video track in a multitrack playing connection
+	 * If it is -1 then a new video track connection is established for each track
+	 * otherwise, video connections are established as many as this value and
+	 * the limited connections are shared between tracks.
+	 */
+	@Value( "${"+SETTINGS_MAX_VIDEO_TRACK_COUNT+":-1}" )
+	private int maxVideoTrackCount = -1;
 	
 	
 	/**
@@ -2759,5 +2771,13 @@ public class AppSettings {
 
 	public void setVodUploadFinishScript(String vodUploadFinishScript) {
 		this.vodUploadFinishScript = vodUploadFinishScript;
+	}
+
+	public int getMaxVideoTrackCount() {
+		return maxVideoTrackCount;
+	}
+
+	public void setMaxVideoTrackCount(int maxVideoTrackCount) {
+		this.maxVideoTrackCount = maxVideoTrackCount;
 	}
 }
