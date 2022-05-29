@@ -218,7 +218,9 @@ public abstract class RestServiceBase {
 	public DataStoreFactory getDataStoreFactory() {
 		if(dataStoreFactory == null) {
 			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
+			if (ctxt != null) {
+				dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
+			}
 		}
 		return dataStoreFactory;
 	}
@@ -1204,6 +1206,12 @@ public abstract class RestServiceBase {
 					if(id != null) {
 						success = true;
 						message = id;
+						
+						String vodFinishScript = getAppSettings().getVodFinishScript();
+						if (vodFinishScript != null && !vodFinishScript.isEmpty()) {
+							getApplication().runScript(vodFinishScript + "  " + savedFile.getAbsolutePath());
+						}
+						
 					} 
 				}
 			} 

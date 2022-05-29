@@ -71,7 +71,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 	}
 	private IScope rootScope;
-	private ServerSettings serverSettings;
 	private Vertx vertx;
 	private WarDeployer warDeployer;
 	private boolean isCluster = false;

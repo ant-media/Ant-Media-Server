@@ -1,11 +1,17 @@
 package io.antmedia.test.settings;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.context.ApplicationContext;
 import org.webrtc.Logging;
 
 import io.antmedia.settings.ServerSettings;
+
+import javax.validation.constraints.AssertTrue;
 
 public class ServerSettingsTest {
 	
@@ -50,6 +56,39 @@ public class ServerSettingsTest {
 		assertEquals(Logging.Severity.LS_WARNING, settings.getWebRTCLogLevel());
 		assertEquals(ServerSettings.LOG_LEVEL_WARN, settings.getNativeLogLevel());
 		
+		settings.setMarketplace("aws");
+		assertEquals("aws", settings.getMarketplace());
+		
+		
+		
+	}
+	
+	@Test
+	public void testSetAppContext() 
+	{
+		ServerSettings settings = Mockito.spy(new ServerSettings());
+		
+		assertNull(settings.getHostAddressFromEnvironment());
+		
+		Mockito.doReturn(null).when(settings).getHostAddressFromEnvironment();
+		
+		ApplicationContext applicationContext = Mockito.mock(ApplicationContext.class);
+		settings.setApplicationContext(applicationContext);
+		
+		assertEquals(ServerSettings.getLocalHostAddress(), settings.getHostAddress());
+		
+		
+		Mockito.doReturn("").when(settings).getHostAddressFromEnvironment();
+		settings.setUseGlobalIp(true);
+		settings.setApplicationContext(applicationContext);
+		//it should still return public host address
+		assertEquals(ServerSettings.getGlobalHostAddress(), settings.getHostAddress());
+		
+		Mockito.doReturn("144.123.45.67").when(settings).getHostAddressFromEnvironment();
+
+		settings.setApplicationContext(applicationContext);
+		assertEquals("144.123.45.67", settings.getHostAddress());
+		
 		
 		
 	}
@@ -72,7 +111,6 @@ public class ServerSettingsTest {
 		
 	}
 
-	
 	@Test
 	public void testOriginPort() {
 		ServerSettings settings = new ServerSettings();

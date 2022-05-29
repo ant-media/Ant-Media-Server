@@ -200,8 +200,9 @@ public class TomcatVHostLoader extends TomcatLoader implements TomcatVHostLoader
                             }
                         }
                         if (log.isDebugEnabled()) {
-                            if (appctx.getParent() != null) {
-                                log.debug("Parent application context: {}", appctx.getParent().getDisplayName());
+                        	ApplicationContext context = appctx.getParent();
+                            if (context != null) {
+                                log.debug("Parent application context: {}", context.getDisplayName());
                             }
                         }
                         //
@@ -326,8 +327,9 @@ public class TomcatVHostLoader extends TomcatLoader implements TomcatVHostLoader
                 }
             }
             if (log.isDebugEnabled()) {
-                if (appctx.getParent() != null) {
-                    log.debug("Parent application context: {}", appctx.getParent().getDisplayName());
+            	ApplicationContext context = appctx.getParent();
+                if (context != null) {
+                    log.debug("Parent application context: {}", context.getDisplayName());
                 }
             }
             //

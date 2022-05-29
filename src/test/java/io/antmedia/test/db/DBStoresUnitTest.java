@@ -330,7 +330,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, vodList.size());
 		
 		for (int i = 0; i < 10; i++) {
-			dataStore.addVod(new VoD("stream", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 111, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000), null));
+			assertNotNull(dataStore.addVod(new VoD("stream", "111223" + (int)(Math.random() * 100000),  "path", "vod", 1517239808, 111, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000), null)));
 		}
 		
 		vodList = dataStore.getVodList(6, 4, null, null, null, null);
@@ -1390,11 +1390,12 @@ public class DBStoresUnitTest {
 			
 			String name = "name 1";
 			String description = "description 2";
+			long now = System.currentTimeMillis();
 			Broadcast tmp = new Broadcast();
 			tmp.setName(name);
 			tmp.setDescription(description);
+			tmp.setUpdateTime(now);
 			tmp.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			long now = System.currentTimeMillis();
 			tmp.setStartTime(now);
 			tmp.setOriginAdress(ServerSettings.getLocalHostAddress());
 			String subFolder = "test_folder";
@@ -1409,6 +1410,7 @@ public class DBStoresUnitTest {
 			broadcast2 = dataStore.get(key);
 
 			assertEquals(name, broadcast2.getName());
+			assertEquals(now, broadcast2.getUpdateTime());
 			assertEquals(subFolder, broadcast2.getSubFolder());
 			assertEquals(description, broadcast2.getDescription());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast2.getStatus());

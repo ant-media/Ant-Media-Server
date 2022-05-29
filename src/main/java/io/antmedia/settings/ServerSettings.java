@@ -76,6 +76,8 @@ public class ServerSettings implements ApplicationContextAware {
 
 	private static final String SETTINGS_SERVER_NAME = "server.name";
 
+	private static final String SETTINGS_MARKET_PLACE_NAME = "server.marketplace";
+
 	@Value( "${"+ALLOWED_DASH_BOARD_CIDR+":'0.0.0.0/0'}" )
 	private String allowedDashboardCIDR;
 
@@ -89,7 +91,7 @@ public class ServerSettings implements ApplicationContextAware {
 	
 	private static String globalHostAddress;
 	
-	private static String hostAddress;
+	private String hostAddress;
 	
 	/**
 	 * Fully Qualified Domain Name
@@ -100,7 +102,6 @@ public class ServerSettings implements ApplicationContextAware {
 	/**
 	 * Customer License Key
 	 */
-	
 	@Value( "${"+SETTINGS_LICENSE_KEY+":#{null}}" )
 	private String licenceKey;
 	
@@ -109,6 +110,13 @@ public class ServerSettings implements ApplicationContextAware {
 	 */
 	@Value( "${"+SETTINGS_MARKET_BUILD+":false}" )
 	private boolean buildForMarket = false;
+	
+	/**
+	 * Name of the marketplace
+	 */
+	@Value( "${"+SETTINGS_MARKET_PLACE_NAME+":#{null}}" )
+	private String marketplace;
+	
 	
 	@Value( "${"+SETTINGS_LOG_LEVEL+":'INFO'}" )
 	private String logLevel = null;
@@ -136,7 +144,7 @@ public class ServerSettings implements ApplicationContextAware {
 	@Value( "${"+SETTINGS_PROXY_ADDRESS+":null}" )
 	private String proxyAddress;
 
-	
+
 	@Value( "${"+SETTINGS_NODE_GROUP+":"+DEFAULT_NODE_GROUP+"}" )
 	private String nodeGroup = DEFAULT_NODE_GROUP;
 
@@ -330,16 +338,28 @@ public class ServerSettings implements ApplicationContextAware {
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 	
-		if (useGlobalIp) {
+		String hostAddressEnv = getHostAddressFromEnvironment();
+		if (hostAddressEnv != null && !hostAddressEnv.isEmpty()) {
+			logger.info("Env host address is {}", hostAddressEnv);
+			hostAddress = hostAddressEnv;
+		}
+		
+		else if (useGlobalIp) {
 			hostAddress = getGlobalHostAddress();
+			logger.info("Using global host address is {}", hostAddress);
 		}
 		else {
 			//************************************
 			//this method may sometimes takes long to return
 			//delaying initialization may cause some after issues
 			hostAddress = getLocalHostAddress();
+			logger.info("Using local host address is {}", hostAddress);
 		}
 		
+	}
+
+	public String getHostAddressFromEnvironment() {
+		return System.getenv("AMS_HOST_ADDRESS");
 	}
 
 	public boolean isUseGlobalIp() {
@@ -501,6 +521,14 @@ public class ServerSettings implements ApplicationContextAware {
 	
 	public void setSrtPort(int srtPort) {
 		this.srtPort = srtPort;
+	}
+
+	public String getMarketplace() {
+		return marketplace;
+	}
+
+	public void setMarketplace(String marketplace) {
+		this.marketplace = marketplace;
 	}
 
 
