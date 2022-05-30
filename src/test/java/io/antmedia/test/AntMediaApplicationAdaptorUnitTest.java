@@ -298,9 +298,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
 		spyAdapter.setClusterNotifier(clusterNotifier);
 
+		newSettings.setVodFolder(null);
+		newSettings.setHlsPlayListType(null);
 		newSettings.setHlsflags(null);
 		spyAdapter.updateSettings(newSettings, true, false);
 		
+		assertEquals(null, settings.getVodFinishScript());
+		assertEquals(null, settings.getHlsPlayListType());
 		assertEquals(null, settings.getHlsFlags());
 		assertEquals(newSettings.getHlsFlags(), settings.getHlsFlags());
 
