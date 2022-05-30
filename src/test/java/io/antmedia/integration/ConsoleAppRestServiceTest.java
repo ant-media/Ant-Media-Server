@@ -792,7 +792,7 @@ public class ConsoleAppRestServiceTest{
 
 			Awaitility.await()
 			.atMost(20, TimeUnit.SECONDS)
-			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_temp.png"));
 			
 			Awaitility.await()
 			.atMost(20, TimeUnit.SECONDS)

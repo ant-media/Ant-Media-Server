@@ -138,7 +138,7 @@ public abstract class Muxer {
 	 */
 	protected String bsfVideoName = null;
 
-	protected String streamId = null;
+	protected String streamId;
 
 	protected Map<Integer, AVRational> inputTimeBaseMap = new ConcurrentHashMap<>();
 
@@ -181,7 +181,7 @@ public abstract class Muxer {
 	public static File getPreviewFile(IScope scope, String name, String extension) {
 		String appScopeName = ScopeUtils.findApplication(scope).getName();
 		return new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
-				"previews/" + name + extension));
+				"previews/" + name + "_temp" + extension));
 	}
 	public static File getRecordFile(IScope scope, String name, String extension, String subFolder) 
 	{
