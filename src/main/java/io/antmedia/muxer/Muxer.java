@@ -181,7 +181,7 @@ public abstract class Muxer {
 	public static File getPreviewFile(IScope scope, String name, String extension) {
 		String appScopeName = ScopeUtils.findApplication(scope).getName();
 		return new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
-				"previews/" + name + "_temp" + extension));
+				"previews/" + name + extension));
 	}
 	public static File getRecordFile(IScope scope, String name, String extension, String subFolder) 
 	{
