@@ -260,7 +260,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		newSettings.setVodFolder("");
 		newSettings.setListenerHookURL("");
 		newSettings.setHlsPlayListType("");
-		newSettings.setHlsflags("");
+		newSettings.setHlsflags("delete_segments");
 		newSettings.setTokenHashSecret("");
 		newSettings.setDataChannelPlayerDistribution("");
 
@@ -287,7 +287,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals("", settings.getHlsPlayListType());
 		assertEquals(newSettings.getHlsPlayListType(), settings.getHlsPlayListType());
 
-		assertEquals("", settings.getHlsFlags());
+		assertEquals("delete_segments", settings.getHlsFlags());
 		assertEquals(newSettings.getHlsFlags(), settings.getHlsFlags());
 
 
@@ -298,7 +298,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
 		spyAdapter.setClusterNotifier(clusterNotifier);
 
+		newSettings.setHlsflags(null);
 		spyAdapter.updateSettings(newSettings, true, false);
+		
+		assertEquals(null, settings.getHlsFlags());
+		assertEquals(newSettings.getHlsFlags(), settings.getHlsFlags());
 
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
