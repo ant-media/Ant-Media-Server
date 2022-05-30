@@ -1390,11 +1390,12 @@ public class DBStoresUnitTest {
 			
 			String name = "name 1";
 			String description = "description 2";
+			long now = System.currentTimeMillis();
 			Broadcast tmp = new Broadcast();
 			tmp.setName(name);
 			tmp.setDescription(description);
+			tmp.setUpdateTime(now);
 			tmp.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			long now = System.currentTimeMillis();
 			tmp.setStartTime(now);
 			tmp.setOriginAdress(ServerSettings.getLocalHostAddress());
 			String subFolder = "test_folder";
@@ -1409,6 +1410,7 @@ public class DBStoresUnitTest {
 			broadcast2 = dataStore.get(key);
 
 			assertEquals(name, broadcast2.getName());
+			assertEquals(now, broadcast2.getUpdateTime());
 			assertEquals(subFolder, broadcast2.getSubFolder());
 			assertEquals(description, broadcast2.getDescription());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast2.getStatus());
