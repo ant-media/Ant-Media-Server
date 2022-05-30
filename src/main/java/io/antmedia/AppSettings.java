@@ -1008,7 +1008,7 @@ public class AppSettings {
 	/**
 	 * If webrtc client is not started in this time, it'll close automatically
 	 */
-	@Value("${" + SETTINGS_WEBRTC_CLIENT_START_TIMEOUT +":5000}")
+	@Value("${" + SETTINGS_WEBRTC_CLIENT_START_TIMEOUT +":10000}")
 	private int webRTCClientStartTimeoutMs;
 
 	/**

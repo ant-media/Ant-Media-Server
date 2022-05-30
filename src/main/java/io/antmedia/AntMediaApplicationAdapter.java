@@ -469,7 +469,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		else {
 
 			broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
-			broadcast.setStartTime(System.currentTimeMillis());
+			long now = System.currentTimeMillis();
+			broadcast.setStartTime(now);
+			broadcast.setUpdateTime(now);
 			broadcast.setOriginAdress(getServerSettings().getHostAddress());
 			broadcast.setWebRTCViewerCount(0);
 			broadcast.setHlsViewerCount(0);
@@ -495,6 +497,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
 		newBroadcast.setStartTime(now);
+		newBroadcast.setUpdateTime(now);
 		newBroadcast.setZombi(true);
 		newBroadcast.setName(streamName);
 		newBroadcast.setMainTrackStreamId(mainTrackStreamId);
