@@ -555,6 +555,13 @@
                 </exclusion>
             </exclusions>
         </dependency>
+		<!-- jackson-databind is a dependency of jersey media. We just explicity add it because there was a vulnerability
+		in the older version. We can remove it after it's updated -->
+		<dependency>
+		    <groupId>com.fasterxml.jackson.core</groupId>
+		    <artifactId>jackson-databind</artifactId>
+		    <version>${jackson-databind.version}</version>
+		</dependency>
         <dependency>
             <groupId>org.glassfish.jersey.media</groupId>
             <artifactId>jersey-media-multipart</artifactId>
@@ -562,8 +569,8 @@
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.ext</groupId>
-            <artifactId>jersey-spring4</artifactId>
-            <version>${jersey.version}</version>
+            <artifactId>jersey-spring5</artifactId>
+            <version>2.35</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.media</groupId>

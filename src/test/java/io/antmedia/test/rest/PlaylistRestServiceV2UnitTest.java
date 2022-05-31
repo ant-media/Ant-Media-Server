@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.ws.rs.core.Response.Status;
+import jakarta.ws.rs.core.Response.Status;
 
 import org.junit.After;
 import org.junit.Before;
@@ -83,7 +83,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		String checkPlaylistIdNull = null;
 
-		javax.ws.rs.core.Response response = restServiceReal.getBroadcast(checkPlaylistIdNull);
+		jakarta.ws.rs.core.Response response = restServiceReal.getBroadcast(checkPlaylistIdNull);
 
 		// Check Get Playlist is null
 		assertEquals(404, response.getStatus());
@@ -167,7 +167,7 @@ public class PlaylistRestServiceV2UnitTest {
 
 		// Test already created playlist Id  
 
-		javax.ws.rs.core.Response response = restServiceReal.createBroadcast(playlist, false);
+		jakarta.ws.rs.core.Response response = restServiceReal.createBroadcast(playlist, false);
 		
 		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
 		// Test already invalid created playlist Id  

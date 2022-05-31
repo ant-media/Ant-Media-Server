@@ -33,7 +33,7 @@ import com.amazonaws.partitions.model.Endpoint;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.HttpMethod;
+import jakarta.ws.rs.HttpMethod;
 
 import java.io.IOException;
 
