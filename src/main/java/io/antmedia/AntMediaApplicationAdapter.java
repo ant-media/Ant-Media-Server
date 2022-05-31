@@ -1331,7 +1331,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(newAppsettings.isHashControlPublishEnabled()));
 		store.put(AppSettings.SETTINGS_HASH_CONTROL_PLAY_ENABLED, String.valueOf(newAppsettings.isHashControlPlayEnabled()));
 
-		store.put(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR, newAppsettings.getRemoteAllowedCIDR() != null ? newAppsettings.getRemoteAllowedCIDR() : DEFAULT_LOCALHOST);
+		store.put(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR, newAppsettings.getRemoteAllowedCIDR() != null 
+				? newAppsettings.getRemoteAllowedCIDR() 
+						: DEFAULT_LOCALHOST);
 
 		store.put(AppSettings.SETTINGS_VOD_FOLDER, newAppsettings.getVodFolder() != null ? newAppsettings.getVodFolder() : "");
 		store.put(AppSettings.SETTINGS_HLS_LIST_SIZE, String.valueOf(newAppsettings.getHlsListSize()));
@@ -1340,7 +1342,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		store.put(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING, AppSettings.encodersList2Str(newAppsettings.getEncoderSettings()));
 		store.put(AppSettings.TOKEN_HASH_SECRET, newAppsettings.getTokenHashSecret() != null ? newAppsettings.getTokenHashSecret() : "");
 		store.put(AppSettings.SETTINGS_PREVIEW_OVERWRITE, String.valueOf(newAppsettings.isPreviewOverwrite()));
-		store.put(AppSettings.SETTINGS_ALLOWED_PUBLISHER_IPS, newAppsettings.getAllowedPublisherCIDR() != null ? String.valueOf(newAppsettings.getAllowedPublisherCIDR()) : "");
+		store.put(AppSettings.SETTINGS_ALLOWED_PUBLISHER_IPS, newAppsettings.getAllowedPublisherCIDR() != null ? 
+				String.valueOf(newAppsettings.getAllowedPublisherCIDR())
+				: "");
 		store.put(AppSettings.SETTINGS_H264_ENABLED, String.valueOf(newAppsettings.isH264Enabled()));
 		store.put(AppSettings.SETTINGS_VP8_ENABLED, String.valueOf(newAppsettings.isVp8Enabled()));
 		store.put(AppSettings.SETTINGS_H265_ENABLED, String.valueOf(newAppsettings.isH265Enabled()));
