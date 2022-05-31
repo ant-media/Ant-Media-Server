@@ -377,6 +377,8 @@ public class AppSettings {
 	/**
 	 * This is for using another Ant Media instance as signaling server.
 	 * If your server is behind a NAT it will allow possible connection.
+	 * It should be full qualified URI like this 
+	 * ws://107.23.25.77:5080/WebRTCAppEE/websocket/signaling
 	 */
 	@Value( "${"+SETTINGS_SIGNALING_ADDRESS+":#{null}}" )
 	private String signalingAddress;
@@ -1011,7 +1013,7 @@ public class AppSettings {
 	/**
 	 * If webrtc client is not started in this time, it'll close automatically
 	 */
-	@Value("${" + SETTINGS_WEBRTC_CLIENT_START_TIMEOUT +":5000}")
+	@Value("${" + SETTINGS_WEBRTC_CLIENT_START_TIMEOUT +":10000}")
 	private int webRTCClientStartTimeoutMs;
 
 	/**
