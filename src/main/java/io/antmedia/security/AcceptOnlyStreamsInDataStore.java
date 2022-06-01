@@ -39,6 +39,7 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		boolean result = false;
 		
 		
+		//TODO: check if possible to control timeout value to accept the streams
 		if (enabled) 
 		{
 			Broadcast broadcast = getDatastore().get(name);
