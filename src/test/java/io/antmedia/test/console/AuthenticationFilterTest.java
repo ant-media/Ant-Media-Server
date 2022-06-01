@@ -10,7 +10,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import jakarta.ws.rs.HttpMethod;
+import javax.ws.rs.HttpMethod;
 
 import org.apache.catalina.Session;
 import org.junit.Test;

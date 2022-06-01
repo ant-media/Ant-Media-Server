@@ -26,7 +26,7 @@ import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import javax.servlet.ServletContext;
-import jakarta.ws.rs.core.Context;
+import javax.ws.rs.core.Context;
 
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;

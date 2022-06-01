@@ -12,7 +12,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import jakarta.ws.rs.HttpMethod;
+import javax.ws.rs.HttpMethod;
 
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
