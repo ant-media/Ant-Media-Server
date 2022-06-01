@@ -1009,6 +1009,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					}
 				}
 
+				//TODO: if server does not accept packets, it does not update the quality
 				long dts = packet.getTimestamp() & 0xffffffffL;
 				updateQualityParameters(dts, TIME_BASE_FOR_MS);
 
