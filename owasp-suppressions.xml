@@ -73,4 +73,14 @@
 		</packageUrl>
 		<vulnerabilityName>CVE-2021-35958</vulnerabilityName>
 	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: spring-.*-5.3.20.jar
+	   We don't use http invoker/features of Spring. In addition it's an old vulnerability
+	   and reactivated by NVD for some unknown reason. Take a look at the references and discussions 
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-.*@.*$</packageUrl>
+	   <cve>CVE-2016-1000027</cve>
+	</suppress>
+	
 </suppressions>
