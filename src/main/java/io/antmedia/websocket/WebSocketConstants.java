@@ -454,4 +454,30 @@ public class WebSocketConstants {
 	 */
 	public static final String UPDATE_STREAM_META_DATA_COMMAND = "updateStreamMetaData";
 
+	/**
+	 * Command to inform AMS if a stream is pinned in conference mode
+	 */
+	public static final String ASSIGN_VIDEO_TRACK_COMMAND = "assignVideoTrackCommand";
+	
+	/**
+	 * Command to change visible streams in conference mode, used for pagination
+	 */
+	public static final String UPDATE_VIDEO_TRACK_ASSIGNMENTS_COMMAND = "updateVideoTrackAssignmentsCommand";
+	
+	/**
+	 * Track id that is pinned for a stream
+	 */
+	public static final String VIDEO_TRACK_ID = "videoTrackId";
+	
+	/**
+	 * Start index of a list for pagination
+	 */
+	public static final String OFFSET = "offset";
+	
+	/**
+	 * Length of a page for pagination
+	 */
+	public static final String SIZE = "size";
+
+	
 }
