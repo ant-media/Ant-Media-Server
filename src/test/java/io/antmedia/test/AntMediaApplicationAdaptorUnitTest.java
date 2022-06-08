@@ -1475,7 +1475,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
 		when(context.getApplicationContext()).thenReturn(appContext);
-		
+		when(context.getResource(Mockito.anyString())).thenReturn(Mockito.mock(org.springframework.core.io.Resource.class));
 		
 		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 		spyAdapter.setServerSettings(new ServerSettings());
@@ -1485,6 +1485,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
 		
 		when(appContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
+		when(appContext.containsBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(true);
+		when(appContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
 				
 		when(scope.getContext()).thenReturn(context);
