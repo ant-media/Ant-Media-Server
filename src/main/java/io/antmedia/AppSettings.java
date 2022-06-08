@@ -314,7 +314,7 @@ public class AppSettings {
 	 * Allowed IP addresses to reach REST API, It must be in CIDR format as a.b.c.d/x
 	 */
 	@Value("${"+SETTINGS_REMOTE_ALLOWED_CIDR+":127.0.0.1}")
-	private String remoteAllowedCIDR;
+	private String remoteAllowedCIDR = "127.0.0.1";
 
 	/**
 	 * It's mandatory, If it is set true then a mp4 file is created into <APP_DIR>/streams directory
@@ -342,7 +342,7 @@ public class AppSettings {
 	 * Add both for stream1_240p500kbps
 	 */
 	@Value( "${"+SETTINGS_FILE_NAME_FORMAT+":%r%b}" )
-	private String fileNameFormat;
+	private String fileNameFormat = "%r%b";
 	
 	/**
 	 * Enable/disable hls recording
@@ -350,7 +350,7 @@ public class AppSettings {
 	 *  Default value is true
 	 */
 	@Value( "${"+SETTINGS_HLS_MUXING_ENABLED+":true}" )
-	private boolean hlsMuxingEnabled;
+	private boolean hlsMuxingEnabled = true;
 
 	/**
 	 * Encoder settings in comma separated format
@@ -612,7 +612,7 @@ public class AppSettings {
 	 * period for the generated time token 
 	 */
 	@Value( "${"+SETTINGS_TIME_TOKEN_PERIOD+":60}" )
-	private int timeTokenPeriod;	
+	private int timeTokenPeriod = 60;	
 
 	/**
 	 * It can be event: or vod, Check HLS documentation for EXT-X-PLAYLIST-TYPE.
@@ -674,7 +674,7 @@ public class AppSettings {
 	 */
 
 	@Value( "${"+SETTINGS_CREATE_PREVIEW_PERIOD+":5000}" )
-	private int createPreviewPeriod;
+	private int createPreviewPeriod = 5000;
 
 	/**
 	 * It's mandatory,
@@ -733,7 +733,7 @@ public class AppSettings {
 	 * Default value is 30 because users are complaining about the 20fps(previous value) and may not know to change it
 	 */
 	@Value( "${"+SETTINGS_WEBRTC_FRAME_RATE+":30}" )
-	private int webRTCFrameRate;
+	private int webRTCFrameRate = 30;
 
 	/**
 	 * Min port number of the port range of WebRTC, It's effective when user publishes stream,
@@ -757,7 +757,7 @@ public class AppSettings {
 	 * Default value is stun:stun.l.google.com:19302.
 	 */
 	@Value( "${" + SETTINGS_WEBRTC_STUN_SERVER_URI +":stun:stun1.l.google.com:19302}")
-	private String stunServerURI;
+	private String stunServerURI = "stun:stun1.l.google.com:19302";
 
 	/**
 	 * It's mandatory,
@@ -775,7 +775,7 @@ public class AppSettings {
 	 * It can "planB" or "unifiedPlan"
 	 */
 	@Value( "${" + SETTINGS_WEBRTC_SDP_SEMANTICS +":" + SDP_SEMANTICS_UNIFIED_PLAN + "}")
-	private String webRTCSdpSemantics;
+	private String webRTCSdpSemantics = SDP_SEMANTICS_UNIFIED_PLAN;
 
 
 	/**
@@ -786,9 +786,15 @@ public class AppSettings {
 	 */
 	@Value( "${" + SETTINGS_PORT_ALLOCATOR_FLAGS +":0}")
 	private int portAllocatorFlags;
+	
+	
+	@Deprecated
 	/**
 	 * If it's enabled, interactivity(like, comment, etc.) is collected from social media channel,
 	 * Default value is false.
+	 * 
+	 * This feature is removed
+	 * 
 	 */
 	@Value( "${" + SETTINGS_COLLECT_SOCIAL_MEDIA_ACTIVITY_ENABLED +":false}")
 	private boolean collectSocialMediaActivity;
@@ -862,7 +868,7 @@ public class AppSettings {
 	 * Set quality/speed ratio modifier, Higher values speed up the encode at the cost of quality.
 	 */
 	@Value( "${" + SETTINGS_ENCODING_VP8_SPEED +":4}")
-	private int vp8EncoderSpeed;
+	private int vp8EncoderSpeed = 4;
 
 	/**
 	 * VP8 Encoder deadline:
@@ -871,13 +877,13 @@ public class AppSettings {
 	 *  realtime
 	 */ 
 	@Value( "${" + SETTINGS_ENCODING_VP8_DEADLINE +":realtime}")
-	private String vp8EncoderDeadline;
+	private String vp8EncoderDeadline = "realtime";
 
 	/**
 	 * VP8 Encoder thread count.
 	 */
 	@Value( "${" + SETTINGS_ENCODING_VP8_THREAD_COUNT +":1}")
-	private int vp8EncoderThreadCount;
+	private int vp8EncoderThreadCount = 1;
 
 	/**
 	 * It's mandatory,
@@ -886,7 +892,7 @@ public class AppSettings {
 	 */
 
 	@Value( "${" + SETTINGS_PREVIEW_HEIGHT +":480}")
-	private int previewHeight;
+	private int previewHeight = 480;
 
 	/**
 	 * Generate preview if there is any adaptive settings,
@@ -910,7 +916,7 @@ public class AppSettings {
 	 * 
 	 */
 	@Value( "${" + SETTINGS_ENCODER_SELECTION_PREFERENCE+":'gpu_and_cpu'}")
-	private String encoderSelectionPreference;
+	private String encoderSelectionPreference = "gpu_and_cpu";
 
 	/**
 	 * Comma separated CIDR that server accepts/ingests RTMP streams from,
@@ -948,7 +954,7 @@ public class AppSettings {
 	 *  The excessive bandwidth threshold value
 	 */
 	@Value("${" + SETTINGS_EXCESSIVE_BANDWIDTH_THRESHOLD + ":300000}")
-	private int excessiveBandwidthValue;
+	private int excessiveBandwidthValue = 300000;
 
 
 
@@ -956,11 +962,11 @@ public class AppSettings {
 	 * The excessive bandwidth call threshold value
 	 */
 	@Value("${" + SETTINGS_EXCESSIVE_BANDWIDTH_CALL_THRESHOLD + ":3}")
-	private int excessiveBandwidthCallThreshold;
+	private int excessiveBandwidthCallThreshold = 3;
 
 
 	@Value("${" + SETTINGS_EXCESSIVE_BANDWIDTH_TRY_COUNT_BEFORE_SWITCH_BACK + ":4}")
-	private int excessiveBandwithTryCountBeforeSwitchback;
+	private int excessiveBandwithTryCountBeforeSwitchback = 4;
 
 	/**
 	 * Enable or disable excessive bandwidth algorithm
@@ -973,7 +979,7 @@ public class AppSettings {
 	 * algorithm, it switches back to lower quality without try every attempts {@link #excessiveBandwithTryCountBeforeSwitchback}
 	 */
 	@Value("${" + SETTINGS_EXCESSIVE_BANDWIDTH_PACKET_LOSS_DIFF_THRESHOLD_FOR_SWITCH_BACK+ ":10}")
-	private int packetLossDiffThresholdForSwitchback;
+	private int packetLossDiffThresholdForSwitchback = 10;
 
 	/**
 	 * rtt measurement threshold diff if rttMeasurement is bigger than this value in ExcessiveBandwidth
@@ -981,7 +987,7 @@ public class AppSettings {
 	 * @param rttMeasurementDiffThresholdForSwitchback
 	 */
 	@Value("${" + SETTINGS_EXCESSIVE_BANDWIDTH_RTT_MEASUREMENT_THRESHOLD_FOR_SWITCH_BACK+ ":20}")
-	private int rttMeasurementDiffThresholdForSwitchback;
+	private int rttMeasurementDiffThresholdForSwitchback=20;
 
 	/**
 	 * Replace candidate addr with server addr,
@@ -1003,13 +1009,13 @@ public class AppSettings {
 	 * If encoder cannot encode a frame in this timeout, streaming is finished by server. 
 	 */
 	@Value("${" + SETTINGS_ENCODING_TIMEOUT +":5000}")
-	private int encodingTimeout;
+	private int encodingTimeout = 5000;
 
 	/**
 	 * If webrtc client is not started in this time, it'll close automatically
 	 */
 	@Value("${" + SETTINGS_WEBRTC_CLIENT_START_TIMEOUT +":10000}")
-	private int webRTCClientStartTimeoutMs;
+	private int webRTCClientStartTimeoutMs = 10000;
 
 	/**
 	 * Set true to enable WebRTC default decoders(such as VP8, VP9) 
@@ -1047,27 +1053,27 @@ public class AppSettings {
 	 * Max analyze duration in for determining video and audio existence in RTMP streams
 	 */
 	@Value("${" + SETTINGS_RTMP_MAX_ANALYZE_DURATION_MS+ ":1500}")
-	private int maxAnalyzeDurationMS;
+	private int maxAnalyzeDurationMS = 1500;
 
 	/**
 	 * Enable/Disable IPv6 Candidates for WebRTC It's disabled by default
 	 */
 	@Value("${" + SETTINGS_DISABLE_IPV6_CANDIDATES+ ":true}")
-	private boolean disableIPv6Candidates;
+	private boolean disableIPv6Candidates = true;
 
 	/**
 	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
 	 * It can be tcp or udp
 	 */
 	@Value("${" + SETTINGS_RTSP_PULL_TRANSPORT_TYPE+ ":tcp}")
-	private String rtspPullTransportType;
+	private String rtspPullTransportType = "tcp";
 
 	/**
 	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
 	 * It can be tcp or udp
 	 */
 	@Value("${" + SETTINGS_RTSP_TIMEOUT_DURATION_MS+ ":5000}")
-	private int rtspTimeoutDurationMs;
+	private int rtspTimeoutDurationMs = 5000;
 
 	/**
 	 * Max FPS value in RTMP streams
@@ -1122,7 +1128,7 @@ public class AppSettings {
 	 * all:  player messages are delivered to everyone both publisher and all players
 	 */
 	@Value("${" + SETTINGS_DATA_CHANNEL_PLAYER_DISTRIBUTION+ ":"+DATA_CHANNEL_PLAYER_TO_ALL+"}")
-	private String dataChannelPlayerDistribution;
+	private String dataChannelPlayerDistribution = DATA_CHANNEL_PLAYER_TO_ALL;
 
 	/**
 	 * RTMP ingesting buffer time in Milliseconds Server buffer this amount of video packet in order to compensate
@@ -1155,7 +1161,7 @@ public class AppSettings {
 	 * in Enterprise Edition
 	 */
 	@Value( "${" + SETTINGS_HEIGHT_RTMP_FORWARDING+":360}")
-	private int heightRtmpForwarding;
+	private int heightRtmpForwarding = 360;
 
 	/**
 	 * In SFU mode we still transcode the audio to opus and aac
@@ -1164,7 +1170,7 @@ public class AppSettings {
 	 * After version(2.3), we directly forward incoming audio to the viewers without transcoding.
 	 */
 	@Value("${" + SETTINGS_AUDIO_BITRATE_SFU+":96000}")
-	private int audioBitrateSFU;
+	private int audioBitrateSFU = 96000;
 
 	/**
 	 * Enable/disable dash recording
@@ -1179,7 +1185,7 @@ public class AppSettings {
 	 * This value should be true if you're sending stream to RTMP endpoints or enable/disable mp4 recording on the fly
 	 */
 	@Value( "${"+SETTINGS_AAC_ENCODING_ENABLED+":true}" )
-	private boolean aacEncodingEnabled;
+	private boolean aacEncodingEnabled = true;
 
 	/**
 	 * GOP size, AKA key frame interval,
@@ -1201,7 +1207,7 @@ public class AppSettings {
 	 * 
 	 */
 	@Value( "${"+SETTINGS_CONSTANT_RATE_FACTOR+":23}" )
-	private String constantRateFactor;
+	private String constantRateFactor = "23";
 
 	/**
 	 * Application level WebRTC viewer limit
@@ -1241,13 +1247,13 @@ public class AppSettings {
 	 * Application IP Filter Enabled
 	 */
 	@Value( "${"+SETTINGS_IP_FILTER_ENABLED+":true}" )
-	private boolean ipFilterEnabled;
+	private boolean ipFilterEnabled = true;
 
 	/**
 	 * Application level total incoming stream limit
 	 */
 	@Value( "${"+SETTINGS_INGESTING_STREAM_LIMIT+":-1}" )
-	private int ingestingStreamLimit;
+	private int ingestingStreamLimit = -1;
 
 	/**
 	 * WebRTC Keyframe Time, Ant Media Server asks key frame for every webRTCKeyframeTime in SFU mode,
@@ -1365,7 +1371,7 @@ public class AppSettings {
 	 * 
 	 */
 	@Value( "${"+SETTINGS_S3_PERMISSION+":public-read}" )
-	private String s3Permission="public-read";
+	private String s3Permission = "public-read";
 
 	/**
 	 *  HLS Encryption key info file full path.
