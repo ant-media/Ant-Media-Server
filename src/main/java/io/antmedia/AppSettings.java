@@ -1745,7 +1745,7 @@ public class AppSettings {
 		this.streamFetcherBufferTime = streamFetcherBufferTime;
 	}
 
-	public String getHlsFlags() {
+	public String getHlsflags() {
 		return hlsflags;
 	}
 

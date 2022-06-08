@@ -287,8 +287,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals("", settings.getHlsPlayListType());
 		assertEquals(newSettings.getHlsPlayListType(), settings.getHlsPlayListType());
 
-		assertEquals("delete_segments", settings.getHlsFlags());
-		assertEquals(newSettings.getHlsFlags(), settings.getHlsFlags());
+		assertEquals("delete_segments", settings.getHlsflags());
+		assertEquals(newSettings.getHlsflags(), settings.getHlsflags());
 
 
 		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
@@ -305,8 +305,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		assertEquals(null, settings.getVodFinishScript());
 		assertEquals(null, settings.getHlsPlayListType());
-		assertEquals(null, settings.getHlsFlags());
-		assertEquals(newSettings.getHlsFlags(), settings.getHlsFlags());
+		assertEquals(null, settings.getHlsflags());
+		assertEquals(newSettings.getHlsflags(), settings.getHlsflags());
 
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
