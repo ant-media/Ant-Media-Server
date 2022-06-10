@@ -57,7 +57,7 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 * Send audio packet to WebRTCClients
 	 * @param audioPacket
 	 */
-	public void sendAudioPacket(ByteBuffer audioPacket, long timestamp);
+	public void sendAudioPacket(ByteBuffer audioPacket, long timestamp, int audioLevel);
 
 	/**
 	 * Send track's audio packet to WebRTCClients
