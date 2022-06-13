@@ -1380,6 +1380,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		
 		store.put(AppSettings.SETTINGS_VOD_UPLOAD_FINISH_SCRIPT, newAppsettings.getVodFinishScript() != null ? String.valueOf(newAppsettings.getVodFinishScript()) : "");
 		
+		store.put(AppSettings.SETTINGS_HLS_FLAGS, newAppsettings.getHlsflags() != null ? newAppsettings.getHlsflags() : "");
+		
 		return store.save();
 	}
 
