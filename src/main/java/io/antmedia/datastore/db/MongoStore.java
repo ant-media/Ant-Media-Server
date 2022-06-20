@@ -50,6 +50,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.rest.model.Result;
 
 public class MongoStore extends DataStore {
 
@@ -58,11 +59,12 @@ public class MongoStore extends DataStore {
 	private static final String TOKEN_ID = "tokenId";
 	private static final String STREAM_ID = "streamId";
 	private Datastore datastore;
-	private Datastore vodDatastore;
-	private Datastore tokenDatastore;
-	private Datastore subscriberDatastore;
-	private Datastore detectionMap;
-	private Datastore conferenceRoomDatastore;
+	public Datastore vodDatastore;
+	public Datastore tokenDatastore;
+	public Datastore subscriberDatastore;
+	public Datastore detectionMap;
+	public Datastore conferenceRoomDatastore;
+	
 	private MongoClient mongoClient;
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
@@ -84,7 +86,6 @@ public class MongoStore extends DataStore {
 
 
 		mongoClient = MongoClients.create(uri);
-
 
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = Morphia.createDatastore(mongoClient, dbName);
@@ -113,8 +114,86 @@ public class MongoStore extends DataStore {
 		vodDatastore.ensureIndexes();
 		detectionMap.ensureIndexes();
 		conferenceRoomDatastore.ensureIndexes();
+		
+		migrateNewDbDesign();
 
 		available = true;
+	}
+	
+	public Result migrateNewDbDesign(){
+		
+		Result result = new Result(false);
+		
+		synchronized (this) {
+			List<VoD> vodList = vodDatastore.find(VoD.class).iterator().toList();
+			for(VoD vod : vodList) {
+				addVod(vod);
+			}
+			
+			try {
+				Query<VoD> query = vodDatastore.find(VoD.class);
+				long removedVoDCount = query.delete(new DeleteOptions().multi(true)).getDeletedCount();
+				logger.info("{} VoD records migrated to new database structure",removedVoDCount);
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+			
+		
+			List<Token> tokenList = tokenDatastore.find(Token.class).iterator().toList();
+			for(Token token : tokenList) {
+				saveToken(token);
+			}
+			
+			try {
+				Query<Token> query = tokenDatastore.find(Token.class);
+				long removedTokenCount = query.delete(new DeleteOptions().multi(true)).getDeletedCount();
+				logger.info("{} Token records migrated to new database structure",removedTokenCount);
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+			
+			List<Subscriber> subscriberList = subscriberDatastore.find(Subscriber.class).iterator().toList();
+			for(Subscriber subscriber : subscriberList) {
+				addSubscriber(subscriber);
+			}
+			
+			try {
+				Query<Subscriber> query = subscriberDatastore.find(Subscriber.class);
+				long removedSubscriberCount = query.delete(new DeleteOptions().multi(true)).getDeletedCount();
+				logger.info("{} Subscriber records migrated to new database structure",removedSubscriberCount);
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		
+			List<TensorFlowObject> tensorFlowObjectList = detectionMap.find(TensorFlowObject.class).iterator().toList();
+			for(TensorFlowObject tensorFlowObject : tensorFlowObjectList) {
+				addTensorFlowObject(tensorFlowObject);
+			}
+			
+			try {
+				Query<TensorFlowObject> query = detectionMap.find(TensorFlowObject.class);
+				long removedTensorflowObjectCount = query.delete(new DeleteOptions().multi(true)).getDeletedCount();
+				logger.info("{} Detected records migrated new database structure",removedTensorflowObjectCount);
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		
+			List<ConferenceRoom> conferenceList = conferenceRoomDatastore.find(ConferenceRoom.class).iterator().toList();
+			for(ConferenceRoom conferenceRoom : conferenceList) {
+				createConferenceRoom(conferenceRoom);
+			}
+			
+			try {
+				Query<ConferenceRoom> query = conferenceRoomDatastore.find(ConferenceRoom.class);
+				long removedConferenceCount = query.delete(new DeleteOptions().multi(true)).getDeletedCount();
+				logger.info("{} Conference records migrated new database structure",removedConferenceCount);
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		
+		}
+		
+		return result;
 	}
 
 	public static String getMongoConnectionUri(String host, String username, String password) {
@@ -195,7 +274,7 @@ public class MongoStore extends DataStore {
 	public VoD getVoD(String id) {
 		synchronized(this) {
 			try {
-				return vodDatastore.find(VoD.class).filter(Filters.eq(VOD_ID,id)).first();
+				return datastore.find(VoD.class).filter(Filters.eq(VOD_ID,id)).first();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -341,7 +420,7 @@ public class MongoStore extends DataStore {
 	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search) {
 		synchronized(this) {
 			try {
-				Query<ConferenceRoom> query = conferenceRoomDatastore.find(ConferenceRoom.class);
+				Query<ConferenceRoom> query = datastore.find(ConferenceRoom.class);
 
 				if (size > MAX_ITEM_IN_ONE_LIST) {
 					size = MAX_ITEM_IN_ONE_LIST;
@@ -469,7 +548,7 @@ public class MongoStore extends DataStore {
 				if (vod.getVodId() == null) {
 					vod.setVodId(RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis());
 				}
-				vodDatastore.save(vod);
+				datastore.save(vod);
 				result = true;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -486,7 +565,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId, String search) {
 		synchronized(this) {
-			Query<VoD> query = vodDatastore.find(VoD.class);
+			Query<VoD> query = datastore.find(VoD.class);
 
 			if (filterStreamId != null && !filterStreamId.isEmpty()) {
 				query.filter(Filters.eq(STREAM_ID, filterStreamId));
@@ -525,7 +604,7 @@ public class MongoStore extends DataStore {
 	public boolean deleteVod(String id) {
 		synchronized(this) {
 			try {
-				Query<VoD> query = vodDatastore.find(VoD.class).filter(Filters.eq(VOD_ID, id));
+				Query<VoD> query = datastore.find(VoD.class).filter(Filters.eq(VOD_ID, id));
 				return query.delete().getDeletedCount() == 1;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -539,7 +618,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getTotalVodNumber() {
 		synchronized(this) {
-			return vodDatastore.find(VoD.class).count();
+			return datastore.find(VoD.class).count();
 		}
 	}
 
@@ -553,7 +632,7 @@ public class MongoStore extends DataStore {
 		int numberOfSavedFiles = 0;
 		synchronized(this) {
 			try {
-				vodDatastore.find(VoD.class).filter(Filters.eq("type", "userVod")).delete(new DeleteOptions().multi(true));
+				datastore.find(VoD.class).filter(Filters.eq("type", "userVod")).delete(new DeleteOptions().multi(true));
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -646,7 +725,7 @@ public class MongoStore extends DataStore {
 	public long getPartialVodNumber(String search)
 	{
 		synchronized(this) {
-			Query<VoD> query = vodDatastore.find(VoD.class);
+			Query<VoD> query = datastore.find(VoD.class);
 			if (search != null && !search.isEmpty()) 
 			{
 				logger.info("Server side search is called for {}", search);
@@ -661,14 +740,6 @@ public class MongoStore extends DataStore {
 		}
 	}
 
-	public Datastore getVodDatastore() {
-		return vodDatastore;
-	}
-
-	public void setVodDatastore(Datastore vodDatastore) {
-		this.vodDatastore = vodDatastore;
-	}
-
 	@Override
 	public long getActiveBroadcastCount() {
 		synchronized(this) {
@@ -678,12 +749,18 @@ public class MongoStore extends DataStore {
 
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
 		synchronized(this) {
+			for (TensorFlowObject tensorFlowObject : detectedObjects) {
+				tensorFlowObject.setDetectionTime(timeElapsed);
+				tensorFlowObject.setImageId(id);
+				addTensorFlowObject(tensorFlowObject);
+			}
+		}
+	}
+	
+	public void addTensorFlowObject(TensorFlowObject detectedObjects) {
+		synchronized(this) {
 			if (detectedObjects != null) {
-				for (TensorFlowObject tensorFlowObject : detectedObjects) {
-					tensorFlowObject.setDetectionTime(timeElapsed);
-					tensorFlowObject.setImageId(id);
-					detectionMap.save(tensorFlowObject);
-				}
+				datastore.save(detectedObjects);
 			}
 		}
 	}
@@ -695,7 +772,7 @@ public class MongoStore extends DataStore {
 				if (batchSize > MAX_ITEM_IN_ONE_LIST) {
 					batchSize = MAX_ITEM_IN_ONE_LIST;
 				}
-				return detectionMap.find(TensorFlowObject.class).filter(Filters.text(IMAGE_ID)).iterator(new FindOptions().skip(offsetSize).limit(batchSize)).toList();
+				return datastore.find(TensorFlowObject.class).filter(Filters.text(IMAGE_ID)).iterator(new FindOptions().skip(offsetSize).limit(batchSize)).toList();
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
@@ -707,7 +784,7 @@ public class MongoStore extends DataStore {
 	public List<TensorFlowObject> getDetection(String id) {
 		synchronized(this) {
 			try {
-				return detectionMap.find(TensorFlowObject.class).filter(Filters.eq(IMAGE_ID, id)).iterator().toList();
+				return datastore.find(TensorFlowObject.class).filter(Filters.eq(IMAGE_ID, id)).iterator().toList();
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
@@ -718,7 +795,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getObjectDetectedTotal(String id) {
 		synchronized(this) {
-			return detectionMap.find(TensorFlowObject.class).filter(Filters.eq(IMAGE_ID, id)).count();
+			return datastore.find(TensorFlowObject.class).filter(Filters.eq(IMAGE_ID, id)).count();
 		}
 	}
 
@@ -940,7 +1017,7 @@ public class MongoStore extends DataStore {
 			if(token.getStreamId() != null && token.getTokenId() != null) {
 
 				try {
-					tokenDatastore.save(token);
+					datastore.save(token);
 					result = true;
 
 				} catch (Exception e) {
@@ -958,7 +1035,7 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			if (token.getTokenId() != null) 
 			{
-				Query<Token> query = tokenDatastore.find(Token.class).filter(Filters.eq(TOKEN_ID, token.getTokenId()));
+				Query<Token> query = datastore.find(Token.class).filter(Filters.eq(TOKEN_ID, token.getTokenId()));
 				fetchedToken = query.first();
 				if (fetchedToken != null 
 						&& fetchedToken.getType().equals(token.getType())
@@ -989,7 +1066,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public boolean revokeTokens(String streamId) {
 		synchronized(this) {
-			Query<Token> query = tokenDatastore.find(Token.class).filter(Filters.eq(STREAM_ID, streamId));
+			Query<Token> query = datastore.find(Token.class).filter(Filters.eq(STREAM_ID, streamId));
 			DeleteResult delete = query.delete(new DeleteOptions().multi(true));
 
 			return delete.getDeletedCount() >= 1;
@@ -999,26 +1076,26 @@ public class MongoStore extends DataStore {
 	@Override
 	public List<Token> listAllTokens(String streamId, int offset, int size) {
 		synchronized(this) {
-			return 	tokenDatastore.find(Token.class).filter(Filters.eq(STREAM_ID, streamId)).iterator(new FindOptions() .skip(offset).limit(size)).toList();
+			return 	datastore.find(Token.class).filter(Filters.eq(STREAM_ID, streamId)).iterator(new FindOptions() .skip(offset).limit(size)).toList();
 		}
 	}
 
 	@Override
 	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
 		synchronized(this) {
-			return 	subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId)).iterator(new FindOptions().skip(offset).limit(size)).toList();
+			return 	datastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId)).iterator(new FindOptions().skip(offset).limit(size)).toList();
 		}
 	}
 
 
 	@Override
-	public boolean addSubscriber(String streamId, Subscriber subscriber) {
+	public boolean addSubscriber(Subscriber subscriber) {
 		boolean result = false;
 		if (subscriber != null) {
 			synchronized (this) {
 				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
 					try {
-						subscriberDatastore.save(subscriber);
+						datastore.save(subscriber);
 						result = true;
 					} catch (Exception e) {
 						logger.error(ExceptionUtils.getStackTrace(e));
@@ -1035,7 +1112,7 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized(this) {
 			try {
-				Query<Subscriber> query = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId));
+				Query<Subscriber> query = datastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId));
 				result = query.delete().getDeletedCount() == 1;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -1047,7 +1124,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public boolean revokeSubscribers(String streamId) {
 		synchronized(this) {
-			Query<Subscriber> query = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId));
+			Query<Subscriber> query = datastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId));
 			DeleteResult delete = query.delete(new DeleteOptions().multi(true));
 
 			return delete.getDeletedCount() >= 1;
@@ -1060,7 +1137,7 @@ public class MongoStore extends DataStore {
 		if (subscriberId != null && streamId != null) {
 			synchronized (this) {
 				try {
-					subscriber = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId)).first();
+					subscriber = datastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId)).first();
 				} catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
 				}
@@ -1074,7 +1151,7 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized (this) {
 			try {
-				subscriberDatastore.find(Subscriber.class).update(set("connected", false)).execute();
+				datastore.find(Subscriber.class).update(set("connected", false)).execute();
 
 				result = true;
 			} catch (Exception e) {
@@ -1119,7 +1196,7 @@ public class MongoStore extends DataStore {
 			if(room != null && room.getRoomId() != null) {
 
 				try {
-					conferenceRoomDatastore.save(room);
+					datastore.save(room);
 					result = true;
 
 				} catch (Exception e) {
@@ -1135,7 +1212,7 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized(this) {
 			try {
-				UpdateResult updateResult = conferenceRoomDatastore.find(ConferenceRoom.class)
+				UpdateResult updateResult = datastore.find(ConferenceRoom.class)
 						.filter(Filters.eq("roomId", roomId))
 						.update(set("roomId", room.getRoomId()),
 								set("startDate", room.getStartDate()),
@@ -1157,7 +1234,7 @@ public class MongoStore extends DataStore {
 	public boolean deleteConferenceRoom(String roomId) {
 		synchronized(this) {
 			try {
-				DeleteResult deleteResult = conferenceRoomDatastore.find(ConferenceRoom.class)
+				DeleteResult deleteResult = datastore.find(ConferenceRoom.class)
 						.filter(Filters.eq("roomId",roomId))
 						.delete();
 				return deleteResult.getDeletedCount() == 1;
@@ -1172,7 +1249,7 @@ public class MongoStore extends DataStore {
 	public ConferenceRoom getConferenceRoom(String roomId) {
 		synchronized(this) {
 			try {
-				return conferenceRoomDatastore.find(ConferenceRoom.class).filter(Filters.eq("roomId", roomId)).first();
+				return datastore.find(ConferenceRoom.class).filter(Filters.eq("roomId", roomId)).first();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1185,7 +1262,7 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized(this) {
 			try {
-				return tokenDatastore.find(Token.class)
+				return datastore.find(Token.class)
 						.filter(Filters.eq(TOKEN_ID, tokenId))
 						.delete()
 						.getDeletedCount() == 1;
@@ -1202,7 +1279,7 @@ public class MongoStore extends DataStore {
 
 		synchronized(this) {
 			try {
-				token =  tokenDatastore.find(Token.class).filter(Filters.eq(TOKEN_ID,tokenId)).first();
+				token =  datastore.find(Token.class).filter(Filters.eq(TOKEN_ID,tokenId)).first();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}

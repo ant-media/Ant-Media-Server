@@ -49,6 +49,7 @@ public class MongoStore extends AbstractConsoleDataStore {
 			List<User> users = new ArrayList<>();
 			try {
 				users = datastore.find(User.class).iterator().toList();
+				
 			}
 			catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));

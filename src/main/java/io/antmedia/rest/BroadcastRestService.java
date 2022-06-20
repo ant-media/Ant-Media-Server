@@ -666,7 +666,7 @@ public class BroadcastRestService extends RestServiceBase{
 			subscriber.setConnected(false);
 
 			if (streamId != null) {
-				result = getDataStore().addSubscriber(streamId, subscriber);
+				result = getDataStore().addSubscriber(subscriber);
 			}
 		}
 		return new Result(result);

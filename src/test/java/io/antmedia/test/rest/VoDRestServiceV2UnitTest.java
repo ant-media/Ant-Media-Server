@@ -391,7 +391,7 @@ public class VoDRestServiceV2UnitTest {
 		vodSorting(mapDataStore);
 		
 		DataStore mongoDataStore = new MongoStore("localhost", "", "", "testdb");
-		Datastore store = ((MongoStore) mongoDataStore).getVodDatastore();
+		Datastore store = ((MongoStore) mongoDataStore).getDataStore();
 		
 		store.find(VoD.class).delete(new DeleteOptions().multi(true));
 		vodSorting(mongoDataStore);

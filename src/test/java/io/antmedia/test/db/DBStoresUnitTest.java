@@ -1863,7 +1863,7 @@ public class DBStoresUnitTest {
 		String streamId = "stream1";
 		store.revokeSubscribers(streamId);
 		// null checks
-		assertFalse(store.addSubscriber("stream1", null));
+		assertFalse(store.addSubscriber(null));
 		
 		assertFalse(store.isSubscriberConnected("stream1", null));
 		assertNull(store.getSubscriber("stream1", null));
@@ -1876,7 +1876,7 @@ public class DBStoresUnitTest {
 		subscriberPlay.setSubscriberId("subscriber1");
 		subscriberPlay.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 		subscriberPlay.setType(Subscriber.PLAY_TYPE);
-		assertTrue(store.addSubscriber(subscriberPlay.getStreamId(), subscriberPlay));
+		assertTrue(store.addSubscriber(subscriberPlay));
 		
 		// create a subscriber publish
 		Subscriber subscriberPub = new Subscriber();
@@ -1884,7 +1884,7 @@ public class DBStoresUnitTest {
 		subscriberPub.setSubscriberId("subscriber2");
 		subscriberPub.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 		subscriberPub.setType(Subscriber.PUBLISH_TYPE);
-		assertTrue(store.addSubscriber(subscriberPub.getStreamId(), subscriberPub));
+		assertTrue(store.addSubscriber(subscriberPub));
 		
 		//get subscribers of stream
 		List <Subscriber> subscribers = store.listAllSubscribers(streamId, 0, 10);
@@ -1905,7 +1905,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, subscriberStats.size());
 		
 		//create subscriber again
-		assertTrue(store.addSubscriber(subscriberPub.getStreamId(), subscriberPub));
+		assertTrue(store.addSubscriber(subscriberPub));
 
 		//get this subscriber
 		Subscriber written = store.getSubscriber(subscriberPub.getStreamId(), subscriberPub.getSubscriberId());
@@ -1925,7 +1925,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, subscriberStats.size());
 		
 		//create subscriber again
-		assertTrue(store.addSubscriber(subscriberPlay.getStreamId(), subscriberPlay));
+		assertTrue(store.addSubscriber(subscriberPlay));
 
 		ConnectionEvent connected = new ConnectionEvent();
 		connected.setEventType(ConnectionEvent.CONNECTED_EVENT);
@@ -2661,6 +2661,106 @@ public class DBStoresUnitTest {
 		assertFalse(new File(dbName).exists());
 	}
 	
+	@Test
+	public void testOutdatedMongoDBRecords() {
+		String dbName = "deleteMongodb1";
+		MongoStore dataStore = new MongoStore("localhost", "", "", dbName);
+
+		// Test VoD Migrate
+		VoD vodFile = new VoD();
+		dataStore.vodDatastore.save(vodFile);
+
+		// Let's assume that there is 1 VoD file on old MongoDB structure
+		long vodCount = dataStore.vodDatastore.find(VoD.class).count();
+		assertEquals(1, vodCount);
+
+
+		// Test Token Migrate
+		Token token = new Token();
+		token.setStreamId("testStreamId");
+		token.setTokenId("testTokenId");
+		dataStore.tokenDatastore.save(token);
+
+		// Let's assume that there is 1 Token on old MongoDB structure
+		long tokenCount = dataStore.tokenDatastore.find(Token.class).count();
+		assertEquals(1, tokenCount);
+
+
+		// Test Subscriber Migrate
+		Subscriber subscriber = new Subscriber();
+		subscriber.setStreamId("testStreamId");
+		subscriber.setSubscriberId("testSubscriberId");
+		dataStore.subscriberDatastore.save(subscriber);
+
+		// Let's assume that there is 1 Subscriber on old MongoDB structure
+		long subscriberCount = dataStore.subscriberDatastore.find(Subscriber.class).count();
+		assertEquals(1, subscriberCount);
+
+
+		// Test Tensorflow Objects Migrate
+		TensorFlowObject tensorflowObject = new TensorFlowObject();
+		dataStore.detectionMap.save(tensorflowObject);
+
+		// Let's assume that there is 1 Tensorflow Object on old MongoDB structure
+		long tensorflowObjectCount = dataStore.detectionMap.find(TensorFlowObject.class).count();
+		assertEquals(1, tensorflowObjectCount);
+		
+		
+		// Test Conference Room Migrate
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+		conferenceRoom.setRoomId("testRoomId");
+		dataStore.conferenceRoomDatastore.save(conferenceRoom);
+
+		// Let's assume that there is 1 Conference Room on old MongoDB structure
+		long conferenceRoomCount = dataStore.conferenceRoomDatastore.find(ConferenceRoom.class).count();
+		assertEquals(1, conferenceRoomCount);
+
+
+		// Run Migrate New DB function
+		dataStore.migrateNewDbDesign();
+
+
+		// It should 0 at old VoD Database
+		long afterMigrateVoDCount = dataStore.vodDatastore.find(VoD.class).count();
+		assertEquals(0, afterMigrateVoDCount);
+
+		// Check VoD count on current Database 
+		assertEquals(1, dataStore.getTotalVodNumber());
+
+
+		// It should 0 at old Token Database
+		long afterMigrateTokenCount = dataStore.tokenDatastore.find(Token.class).count();
+		assertEquals(0, afterMigrateTokenCount);
+
+		// Check Token count on current Database 
+		assertEquals(1, dataStore.getDataStore().find(Token.class).count());
+
+
+		// It should 0 at old Subscriber Database
+		long afterMigrateSubscriberCount = dataStore.subscriberDatastore.find(Subscriber.class).count();
+		assertEquals(0, afterMigrateSubscriberCount);
+
+		// Check Subscriber count on current Database 
+		assertEquals(1, dataStore.getDataStore().find(Subscriber.class).count());
+
+
+		// It should 0 at old Tensorflow Object Database
+		long afterMigrateTensorflowObjectCount = dataStore.detectionMap.find(TensorFlowObject.class).count();
+		assertEquals(0, afterMigrateTensorflowObjectCount);
+
+		// Check Tensorflow Object count on current Database 
+		assertEquals(1, dataStore.getDataStore().find(TensorFlowObject.class).count());
+		
+		
+		// It should 0 at old Conference Room Database
+		long afterMigrateConferenceRoomCount = dataStore.conferenceRoomDatastore.find(ConferenceRoom.class).count();
+		assertEquals(0, afterMigrateConferenceRoomCount);
+
+		// Check Conference Room count on current Database 
+		assertEquals(1, dataStore.getDataStore().find(ConferenceRoom.class).count());
+
+	}
+
 	@Test
 	public void testDeleteMongoDBCollection() {
 		String dbName = "deleteMapdb";
