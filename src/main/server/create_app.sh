@@ -148,7 +148,8 @@ fi
 
 if [[ $AS_WAR == "true" ]]; then
   echo "Application will deployed as war" 
-  zip $AMS_DIR/webapps/$APP_NAME.war $APP_DIR  
+  cd $APP_DIR 
+  zip -r ../$APP_NAME.war *  
   rm -r $APP_DIR
 else
   echo "Application is deployed as directory."
