@@ -2746,4 +2746,30 @@ public class AppSettings {
 	public void setVodUploadFinishScript(String vodUploadFinishScript) {
 		this.vodUploadFinishScript = vodUploadFinishScript;
 	}
+	
+	public boolean isAACEncodingRequired() {
+		return mp4MuxingEnabled || hlsMuxingEnabled || dashMuxingEnabled || aacEncodingEnabled;
+	}
+	
+	public boolean isAudioTranscodeRequired() {
+		boolean audioTranscodeRequired = isAACEncodingRequired();
+		for (EncoderSettings setting : getEncoderSettings()) {
+			if(setting.getAudioBitrate() >= 0) {
+				audioTranscodeRequired = true;
+				break;
+			}
+		}
+		return audioTranscodeRequired;
+	}
+	
+	public boolean isVideoTranscodeRequired() {
+		boolean videoTranscodeRequired = isH264Enabled() && isVp8Enabled();
+		for (EncoderSettings setting : getEncoderSettings()) {
+			if(setting.getVideoBitrate() >= 0) {
+				videoTranscodeRequired = true;
+				break;
+			}
+		}
+		return videoTranscodeRequired;
+	}
 }
