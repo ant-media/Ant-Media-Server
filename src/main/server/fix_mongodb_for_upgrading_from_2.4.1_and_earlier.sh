@@ -77,6 +77,15 @@ mongocon() {
                                                 run_mongo $appName"VoD" "db.vod.updateMany({\"_id\" :$vodObjectId}, {\$set : {\"_t\" : \"VoD\"}})"
                                         fi
                                 done
+
+                                #Old AppSettings changes
+                                appObjectId=`run_mongo "clusterdb" 'db.AppSettings.find()['$appsettings']._id'`
+                                q=$(run_mongo "clusterdb" 'db.AppSettings.find({"_t" : {$ne : "AppSettings"}})')
+                                if [ "$q" ]; then
+                                        run_mongo "clusterdb" "db.AppSettings.updateMany({}, {\$unset: {\"className\" : \"\", \"io.antmedia.AppSettings\": \"\"}});"
+                                        run_mongo "clusterdb" "db.AppSettings.updateMany({\"_id\" :$appObjectId}, {\$set : {\"_t\" : \"AppSettings\"}})"
+                                fi
+
                 done
 
                 if [ `run_mongo "serverdb" 'db.user.count()'` = "0" ]; then
@@ -111,6 +120,14 @@ mongocon() {
                                                 run_mongo_auth $appName"VoD" "db.vod.updateMany({\"_id\" :$vodObjectId}, {\$set : {\"_t\" : \"VoD\"}})"
                                         fi
                                 done
+
+                                #Old AppSettings changes
+                                appObjectId=`run_mongo_auth "clusterdb" 'db.AppSettings.find()['$appsettings']._id'`
+                                q=$(run_mongo_auth "clusterdb" 'db.AppSettings.find({"_t" : {$ne : "AppSettings"}})')
+                                if [ "$q" ]; then
+                                        run_mongo_auth "clusterdb" "db.AppSettings.updateMany({}, {\$unset: {\"className\" : \"\", \"io.antmedia.AppSettings\": \"\"}});"
+                                        run_mongo_auth "clusterdb" "db.AppSettings.updateMany({\"_id\" :$appObjectId}, {\$set : {\"_t\" : \"AppSettings\"}})"
+                                fi
                 done
 
                 if [ `run_mongo_auth "serverdb" 'db.user.count()'` = "0" ]; then

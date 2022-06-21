@@ -805,6 +805,7 @@ public class MongoStore extends DataStore {
 				updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
 				updates.add(set("metaData", broadcast.getMetaData()));
 				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
+				updates.add(set("updateTime", broadcast.getUpdateTime()));
 
 				
 				UpdateResult updateResult = query.update(updates).execute();
