@@ -63,6 +63,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.storage.StorageClient;
@@ -84,13 +85,17 @@ public abstract class RestServiceBase {
 
 		@ApiModelProperty(value = "the total WebRTC viewers of the stream")
 		public final int totalWebRTCWatchersCount;
+		
+		@ApiModelProperty(value = "the total DASH viewers of the stream")
+		public final int totalDASHWatchersCount;
 
 
 		public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
-				int totalWebRTCWatchersCount) {
+				int totalWebRTCWatchersCount, int totalDASHWatchersCount) {
 			this.totalRTMPWatchersCount = totalRTMPWatchersCount;
 			this.totalHLSWatchersCount = totalHLSWatchersCount;
 			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
+			this.totalDASHWatchersCount = totalDASHWatchersCount;
 		}
 	}
 
@@ -101,9 +106,9 @@ public abstract class RestServiceBase {
 		public final int activeLiveStreamCount;
 
 		public AppBroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
-				int totalWebRTCWatchersCount, int activeLiveStreamCount) 
+				int totalWebRTCWatchersCount, int totalDASHWatchersCount, int activeLiveStreamCount ) 
 		{
-			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount);
+			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount, totalDASHWatchersCount);
 			this.activeLiveStreamCount = activeLiveStreamCount;
 		}
 
@@ -1322,6 +1327,7 @@ public abstract class RestServiceBase {
 		int totalRTMPViewer = -1;
 		int totalWebRTCViewer = -1;
 		int totalHLSViewer = -1;
+		int totalDASHViewer = -1;
 		if (id != null) 
 		{
 			IBroadcastScope broadcastScope = getScope().getBroadcastScope(id);
@@ -1333,23 +1339,28 @@ public abstract class RestServiceBase {
 			Broadcast broadcast = getDataStore().get(id);
 			if (broadcast != null) {
 				totalHLSViewer = broadcast.getHlsViewerCount();
+				totalDASHViewer = broadcast.getDashViewerCount();
 				totalWebRTCViewer = broadcast.getWebRTCViewerCount();
 			}			
 		}
 
-		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
+		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer,totalDASHViewer);
 	}
 
 	protected AppBroadcastStatistics getBroadcastTotalStatistics() {
 
 		int totalWebRTCViewer = -1;
 		int totalHLSViewer = -1;
+		int totalDASHViewer = -1;
 
 		if (getAppContext().containsBean(HlsViewerStats.BEAN_NAME)) {
 			HlsViewerStats hlsViewerStats = (HlsViewerStats) getAppContext().getBean(HlsViewerStats.BEAN_NAME);
-			if (hlsViewerStats != null) {
-				totalHLSViewer = hlsViewerStats.getTotalViewerCount();
-			}
+			totalHLSViewer = hlsViewerStats.getTotalViewerCount();
+		}
+		
+		if (getAppContext().containsBean(DashViewerStats.BEAN_NAME)) {
+			DashViewerStats dashViewerStats = (DashViewerStats) getAppContext().getBean(DashViewerStats.BEAN_NAME);
+			totalDASHViewer = dashViewerStats.getTotalViewerCount();
 		}
 
 
@@ -1361,7 +1372,7 @@ public abstract class RestServiceBase {
 
 		int activeBroadcastCount = (int)getDataStore().getActiveBroadcastCount();
 
-		return new AppBroadcastStatistics(-1, totalHLSViewer, totalWebRTCViewer, activeBroadcastCount);
+		return new AppBroadcastStatistics(-1, totalHLSViewer, totalWebRTCViewer, totalDASHViewer, activeBroadcastCount);
 	}
 
 

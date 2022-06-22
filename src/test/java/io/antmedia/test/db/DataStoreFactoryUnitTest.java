@@ -25,6 +25,7 @@ import io.antmedia.rest.VoDRestService;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.security.ExpireStreamPublishSecurity;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.vertx.core.Vertx;
 
@@ -123,6 +124,10 @@ public class DataStoreFactoryUnitTest {
 		HlsViewerStats hvs = new HlsViewerStats();
 		hvs.setDataStoreFactory(dsf);
 		assertEquals(datastore, hvs.getDataStore());
+		
+		DashViewerStats dvs = new DashViewerStats();
+		dvs.setDataStoreFactory(dsf);
+		assertEquals(datastore, dvs.getDataStore());
 
 	}
 
