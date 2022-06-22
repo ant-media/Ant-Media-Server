@@ -573,8 +573,12 @@ public abstract class DataStore {
 
 		if (newBroadcast.getAbsoluteStartTimeMs() != 0) {
 			broadcast.setAbsoluteStartTimeMs(newBroadcast.getAbsoluteStartTimeMs());
+		}		
+		
+		if (newBroadcast.getUpdateTime() != 0) {
+			broadcast.setUpdateTime(newBroadcast.getUpdateTime());
 		}
-
+		
 		if (newBroadcast.getPlayListItemList() != null) {
 			broadcast.setPlayListItemList(newBroadcast.getPlayListItemList());
 		}

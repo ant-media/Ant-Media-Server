@@ -71,6 +71,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.rest.model.Result;
@@ -259,8 +260,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 		newSettings.setVodFolder("");
 		newSettings.setListenerHookURL("");
 		newSettings.setHlsPlayListType("");
+		newSettings.setHlsflags("delete_segments");
 		newSettings.setTokenHashSecret("");
 		newSettings.setDataChannelPlayerDistribution("");
+		newSettings.setDashSegDuration("");
 
 		IScope scope = mock(IScope.class);
 
@@ -284,6 +287,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		assertEquals("", settings.getHlsPlayListType());
 		assertEquals(newSettings.getHlsPlayListType(), settings.getHlsPlayListType());
+		
+		assertEquals("", settings.getDashSegDuration());
+		assertEquals(newSettings.getDashSegDuration(), settings.getDashSegDuration());
+
+		assertEquals("delete_segments", settings.getHlsflags());
+		assertEquals(newSettings.getHlsflags(), settings.getHlsflags());
 
 
 		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
@@ -293,7 +302,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
 		spyAdapter.setClusterNotifier(clusterNotifier);
 
+		newSettings.setVodFolder(null);
+		newSettings.setHlsPlayListType(null);
+		newSettings.setHlsflags(null);
 		spyAdapter.updateSettings(newSettings, true, false);
+		
+		assertEquals(null, settings.getVodFinishScript());
+		assertEquals(null, settings.getHlsPlayListType());
+		assertEquals(null, settings.getHlsflags());
+		assertEquals(newSettings.getHlsflags(), settings.getHlsflags());
 
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
@@ -573,6 +590,51 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 	}
 
+	@Test
+	public void testHookAfterDefined() 
+	{
+		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		AppSettings appSettings = new AppSettings();
+		spyAdaptor.setAppSettings(appSettings);
+		
+		Broadcast broadcast = new Broadcast();
+		assertNull(spyAdaptor.getListenerHookURL(broadcast));
+		
+		String hookURL = "listener_hook_url";
+		appSettings.setListenerHookURL(hookURL);
+		
+		assertEquals(hookURL, spyAdaptor.getListenerHookURL(broadcast));
+		
+		
+		spyAdaptor = Mockito.spy(adapter);
+		appSettings = new AppSettings();
+		spyAdaptor.setServerSettings(new ServerSettings());
+		spyAdaptor.setAppSettings(appSettings);
+		DataStore dataStore = new InMemoryDataStore("testHook");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		spyAdaptor.setDataStoreFactory(dsf);
+		
+		dataStore.save(broadcast);
+		
+		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP);
+		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(1)).getListenerHookURL(broadcast);
+		
+		
+		spyAdaptor.closeBroadcast(broadcast.getStreamId());
+		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(2)).getListenerHookURL(broadcast);
+		
+		
+		spyAdaptor.publishTimeoutError(broadcast.getStreamId());
+		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(3)).getListenerHookURL(broadcast);
+		
+		spyAdaptor.incrementEncoderNotOpenedError(broadcast.getStreamId());
+		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(4)).getListenerHookURL(broadcast);
+		
+		spyAdaptor.endpointFailedUpdate(broadcast.getStreamId(), "rtmp_url");
+		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(5)).getListenerHookURL(broadcast);
+		
+	}
 
 	@Test
 	public void testNotifyHook() {
@@ -1417,7 +1479,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
 		when(context.getApplicationContext()).thenReturn(appContext);
-		
+		when(context.getResource(Mockito.anyString())).thenReturn(Mockito.mock(org.springframework.core.io.Resource.class));
 		
 		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 		spyAdapter.setServerSettings(new ServerSettings());
@@ -1427,6 +1489,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
 		
 		when(appContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
+		when(appContext.containsBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(true);
+		when(appContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
 				
 		when(scope.getContext()).thenReturn(context);
