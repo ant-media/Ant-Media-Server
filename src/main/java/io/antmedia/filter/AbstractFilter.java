@@ -11,6 +11,7 @@ import javax.servlet.ServletException;
 import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -18,12 +19,18 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.DashViewerStats;
+import io.antmedia.statistic.HlsViewerStats;
+import io.antmedia.statistic.IStreamStats;
 
 public abstract class AbstractFilter implements Filter{
 
 	protected static Logger logger = LoggerFactory.getLogger(AbstractFilter.class);
 	protected FilterConfig config;
+	
+	IStreamStats streamStats;
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
@@ -71,7 +78,7 @@ public abstract class AbstractFilter implements Filter{
 		ConfigurableWebApplicationContext appContext = getWebApplicationContext();
 		if (appContext != null && appContext.isRunning()) 
 		{
-			Object dataStoreFactory = appContext.getBean(DataStoreFactory.BEAN_NAME);
+			Object dataStoreFactory = appContext.getBean(IDataStoreFactory.BEAN_NAME);
 			
 			if (dataStoreFactory instanceof IDataStoreFactory) 
 			{
@@ -115,10 +122,36 @@ public abstract class AbstractFilter implements Filter{
 		this.config = config;
 	}
 
-
-
 	@Override
 	public void destroy() {
 		//nothing to destroy
 	}
+	
+	public IStreamStats getStreamStats(String type) {
+		if (streamStats == null) {
+			ApplicationContext context = getAppContext();
+			if (context != null) 
+			{
+				if(type.equals(HlsViewerStats.BEAN_NAME)) {
+					streamStats = (IStreamStats)context.getBean(HlsViewerStats.BEAN_NAME);
+				}
+				else {
+					streamStats = (IStreamStats)context.getBean(DashViewerStats.BEAN_NAME);
+				}
+			}
+		}
+		return streamStats;
+	}
+	
+	public Broadcast getBroadcast(String streamId) {
+		Broadcast broadcast = null;	
+		ApplicationContext context = getAppContext();
+		if (context != null) 
+		{
+			DataStoreFactory dsf = (DataStoreFactory)context.getBean(IDataStoreFactory.BEAN_NAME);
+			broadcast = dsf.getDataStore().get(streamId);
+		}
+		return broadcast;
+	}
+	
 }

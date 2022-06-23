@@ -56,6 +56,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		AppSettings appSettings = (AppSettings) applicationContext.getBean("app.settings");
 		
+		assertEquals("0.5", appSettings.getDashFragmentDuration());
+		assertEquals("6", appSettings.getDashSegDuration());
+		
 		assertEquals("stun:stun1.l.google.com:19302", appSettings.getStunServerURI());
 		assertEquals(false, appSettings.isWebRTCTcpCandidatesEnabled());
 		assertNull(appSettings.getEncoderName());
