@@ -3,8 +3,8 @@ package io.antmedia.test.filter;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,25 +36,25 @@ import org.springframework.web.context.WebApplicationContext;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.filter.HlsStatisticsFilter;
-import io.antmedia.statistic.HlsViewerStats;
+import io.antmedia.filter.DashStatisticsFilter;
+import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
-public class HlsStatisticsFilterTest {
+public class DashStatisticsFilterTest {
 	
-	private HlsStatisticsFilter hlsStatisticsFilter;
+	private DashStatisticsFilter dashStatisticsFilter;
 
-	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilterTest.class);
+	protected static Logger logger = LoggerFactory.getLogger(DashStatisticsFilterTest.class);
 
 
 	@Before
 	public void before() {
-		hlsStatisticsFilter = new HlsStatisticsFilter();
+		dashStatisticsFilter = new DashStatisticsFilter();
 	}
 	
 	@After
 	public void after() {
-		hlsStatisticsFilter = null;
+		dashStatisticsFilter = null;
 	}
 	
 	@Rule
@@ -82,10 +82,10 @@ public class HlsStatisticsFilterTest {
 		
 		when(filterconfig.getServletContext()).thenReturn(servletContext);
 		
-		hlsStatisticsFilter.setConfig(filterconfig);
+		dashStatisticsFilter.setConfig(filterconfig);
 		
 		
-		assertNull(hlsStatisticsFilter.getStreamStats(HlsViewerStats.BEAN_NAME));
+		assertNull(dashStatisticsFilter.getStreamStats(DashViewerStats.BEAN_NAME));
 		
 		
 		
@@ -100,12 +100,12 @@ public class HlsStatisticsFilterTest {
 		when(mockRequest.getMethod()).thenReturn("GET");
 		
 		String streamId = RandomStringUtils.randomAlphanumeric(8);
-		when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
+		when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+"/"+streamId+".m4s");
 		
 		when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
 		
 		try {
-			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
+			dashStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 		} catch (IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
@@ -124,7 +124,7 @@ public class HlsStatisticsFilterTest {
 		when(context.isRunning()).thenReturn(true);
 		IStreamStats streamStats = mock(IStreamStats.class);
 		
-		when(context.getBean(HlsViewerStats.BEAN_NAME)).thenReturn(streamStats);
+		when(context.getBean(DashViewerStats.BEAN_NAME)).thenReturn(streamStats);
 		
 		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
 				.thenReturn(context);
@@ -133,7 +133,8 @@ public class HlsStatisticsFilterTest {
 		
 		
 		try {
-			hlsStatisticsFilter.init(filterconfig);
+			dashStatisticsFilter.init(filterconfig);
+			//when(dashStatisticsFilter.getStreamStats()).thenReturn(streamStats);
 			
 			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
 			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
@@ -146,7 +147,7 @@ public class HlsStatisticsFilterTest {
 			when(mockRequest.getMethod()).thenReturn("GET");
 			
 			String streamId = RandomStringUtils.randomAlphanumeric(8);
-			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+"/"+streamId+"m4s");
 			
 			when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
 			
@@ -158,7 +159,7 @@ public class HlsStatisticsFilterTest {
 			when(dsf.getDataStore()).thenReturn(dataStore);
 
 			logger.info("session id {}, stream id {}", sessionId, streamId);
-			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
+			dashStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			
 			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
@@ -178,7 +179,7 @@ public class HlsStatisticsFilterTest {
 	}
 	
 	@Test
-	public void testHLSViewerLimit() {
+	public void testDASHViewerLimit() {
 		String streamId = RandomStringUtils.randomAlphanumeric(8);
 
 		FilterConfig filterconfig = mock(FilterConfig.class);
@@ -186,7 +187,8 @@ public class HlsStatisticsFilterTest {
 		ConfigurableWebApplicationContext context = mock(ConfigurableWebApplicationContext.class);
 		
 		IStreamStats streamStats = mock(IStreamStats.class);
-		when(context.getBean(HlsViewerStats.BEAN_NAME)).thenReturn(streamStats);
+		
+		when(context.getBean(DashViewerStats.BEAN_NAME)).thenReturn(streamStats);
 		
 		when(context.isRunning()).thenReturn(true);
 		DataStoreFactory dsf = mock(DataStoreFactory.class);		
@@ -202,22 +204,23 @@ public class HlsStatisticsFilterTest {
 		when(dsf.getDataStore()).thenReturn(dataStore);
 
 		Broadcast broadcast = new Broadcast();
-		broadcast.setHlsViewerLimit(2);
+		broadcast.setDashViewerLimit(2);
 		when(dataStore.get(streamId)).thenReturn(broadcast);
 
 		
 		try {
-			hlsStatisticsFilter.init(filterconfig);
+			dashStatisticsFilter.init(filterconfig);
+			//when(dashStatisticsFilter.getStreamStats()).thenReturn(streamStats);
 			
-			String sessionId = requestHls(streamId);		
+			String sessionId = requestDash(streamId);		
 			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
-			broadcast.setHlsViewerCount(1);
+			broadcast.setDashViewerCount(1);
 			
-			String sessionId2 = requestHls(streamId);		
+			String sessionId2 = requestDash(streamId);		
 			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null);
-			broadcast.setHlsViewerCount(2);
+			broadcast.setDashViewerCount(2);
 
-			String sessionId3 = requestHls(streamId);		
+			String sessionId3 = requestDash(streamId);		
 			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null);
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -231,7 +234,7 @@ public class HlsStatisticsFilterTest {
 		
 	}
 
-	private String requestHls(String streamId) throws IOException, ServletException {
+	private String requestDash(String streamId) throws IOException, ServletException {
 		HttpServletRequest mockRequest = mock(HttpServletRequest.class);
 		HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 		FilterChain mockChain = mock(FilterChain.class);
@@ -242,12 +245,12 @@ public class HlsStatisticsFilterTest {
 		when(mockRequest.getSession()).thenReturn(session);
 		when(mockRequest.getMethod()).thenReturn("GET");
 		
-		when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
+		when(mockRequest.getRequestURI()).thenReturn("LliveApp/streams/"+streamId+ "/" + streamId + "_0segment00139.m4s");
 		
 		when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
 
 		logger.info("session id {}, stream id {}", sessionId, streamId);
-		hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
+		dashStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 		return sessionId;
 	}
 
