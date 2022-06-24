@@ -227,6 +227,7 @@ public class MongoStore extends DataStore {
 					ops.add(set(WEBRTC_VIEWER_COUNT, 0));
 					ops.add(set(HLS_VIEWER_COUNT, 0));
 					ops.add(set(RTMP_VIEWER_COUNT, 0));
+					ops.add(set(DASH_VIEWER_COUNT, 0));
 				}
 
 				UpdateResult update = ops.execute();
