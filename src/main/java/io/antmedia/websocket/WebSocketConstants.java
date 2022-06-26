@@ -465,6 +465,11 @@ public class WebSocketConstants {
 	public static final String UPDATE_VIDEO_TRACK_ASSIGNMENTS_COMMAND = "updateVideoTrackAssignmentsCommand";
 	
 	/**
+	 * Command to set max video track count in conference
+	 */
+	public static final Object SET_MAX_VIDEO_TRACK_COUNT_COMMAND = "setMaxVideoTrackCountCommand";
+
+	/**
 	 * Track id that is pinned for a stream
 	 */
 	public static final String VIDEO_TRACK_ID = "videoTrackId";
@@ -478,6 +483,10 @@ public class WebSocketConstants {
 	 * Length of a page for pagination
 	 */
 	public static final String SIZE = "size";
-
+	
+	/**
+	 * maximum number of tracks 
+	 */
+	public static final String MAX_TRACK_COUNT = "maxTrackCount";
 	
 }
