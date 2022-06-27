@@ -85,6 +85,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
@@ -286,6 +287,7 @@ public class BroadcastRestServiceV2UnitTest {
 		BroadcastStatistics broadcastStatistics = restServiceReal.getBroadcastStatistics(null);
 		assertNotNull(broadcastStatistics);
 		assertEquals(-1, broadcastStatistics.totalHLSWatchersCount);
+		assertEquals(-1, broadcastStatistics.totalDASHWatchersCount);
 		assertEquals(-1, broadcastStatistics.totalRTMPWatchersCount);
 		assertEquals(-1, broadcastStatistics.totalWebRTCWatchersCount);
 	}
@@ -313,10 +315,15 @@ public class BroadcastRestServiceV2UnitTest {
 		when(context.getBean(HlsViewerStats.BEAN_NAME)).thenReturn(hlsViewerStats);
 		when(context.containsBean(HlsViewerStats.BEAN_NAME)).thenReturn(true);
 		
+		DashViewerStats dashViewerStats = mock(DashViewerStats.class);
+		when(context.getBean(DashViewerStats.BEAN_NAME)).thenReturn(dashViewerStats);
+		when(context.containsBean(DashViewerStats.BEAN_NAME)).thenReturn(true);
+		
 		BroadcastStatistics broadcastStatistics = restServiceReal.getBroadcastTotalStatistics();
 		assertNotNull(broadcastStatistics);
 		assertEquals(0, broadcastStatistics.totalHLSWatchersCount);
 		assertEquals(0, broadcastStatistics.totalWebRTCWatchersCount);
+		assertEquals(0, broadcastStatistics.totalDASHWatchersCount);
 		
 		when(context.containsBean(IWebRTCAdaptor.BEAN_NAME)).thenReturn(true);
 		

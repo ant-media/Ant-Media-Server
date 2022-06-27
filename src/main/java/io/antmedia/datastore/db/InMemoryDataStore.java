@@ -519,6 +519,23 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
+	
+	@Override
+	public synchronized boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
+		boolean result = false;
+		if (streamId != null) {
+			Broadcast broadcast = broadcastMap.get(streamId);
+			if (broadcast != null) {
+				int dashViewerCount = broadcast.getDashViewerCount();
+				dashViewerCount += diffCount;
+
+				broadcast.setDashViewerCount(dashViewerCount);
+				broadcastMap.replace(streamId, broadcast);
+				result = true;
+			}
+		}
+		return result;
+	}
 
 	@Override
 	public synchronized boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
