@@ -14,12 +14,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.statistic.HlsViewerStats;
+import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
-public class HlsStatisticsFilter extends AbstractFilter {
-
-	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilter.class);
+public class DashStatisticsFilter extends AbstractFilter {
+	
+	protected static Logger logger = LoggerFactory.getLogger(DashStatisticsFilter.class);
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -29,7 +29,7 @@ public class HlsStatisticsFilter extends AbstractFilter {
 		HttpServletRequest httpRequest =(HttpServletRequest)request;
 
 		String method = httpRequest.getMethod();
-		if (HttpMethod.GET.equals(method) && httpRequest.getRequestURI().endsWith("m3u8")) {
+		if (HttpMethod.GET.equals(method) && httpRequest.getRequestURI().endsWith("m4s")) {
 			//only accept GET methods
 			String sessionId = httpRequest.getSession().getId();
 
@@ -37,8 +37,8 @@ public class HlsStatisticsFilter extends AbstractFilter {
 			String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 			Broadcast broadcast = getBroadcast(streamId);
 			if(broadcast != null 
-					&& broadcast.getHlsViewerLimit() != -1
-					&& broadcast.getHlsViewerCount() >= broadcast.getHlsViewerLimit()) {
+					&& broadcast.getDashViewerLimit() != -1
+					&& broadcast.getDashViewerCount() >= broadcast.getDashViewerLimit()) {
 				((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Viewer Limit Reached");
 				return;
 			}
@@ -50,7 +50,7 @@ public class HlsStatisticsFilter extends AbstractFilter {
 			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST && streamId != null) 
 			{				
 				logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
-				IStreamStats stats = getStreamStats(HlsViewerStats.BEAN_NAME);
+				IStreamStats stats = getStreamStats(DashViewerStats.BEAN_NAME);
 				if (stats != null) {
 					stats.registerNewViewer(streamId, sessionId, subscriberId);
 					
@@ -62,6 +62,5 @@ public class HlsStatisticsFilter extends AbstractFilter {
 		}
 
 	}
-
 
 }

@@ -223,6 +223,7 @@ public class MapDBStore extends DataStore {
 						broadcast.setRtmpViewerCount(0);
 						broadcast.setWebRTCViewerCount(0);
 						broadcast.setHlsViewerCount(0);
+						broadcast.setDashViewerCount(0);
 					}
 
 					String jsonVal = gson.toJson(broadcast);
@@ -813,6 +814,25 @@ public class MapDBStore extends DataStore {
 					int hlsViewerCount = broadcast.getHlsViewerCount();
 					hlsViewerCount += diffCount;
 					broadcast.setHlsViewerCount(hlsViewerCount);
+					map.replace(streamId, gson.toJson(broadcast));
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
+	
+	@Override
+	protected synchronized boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
+		boolean result = false;
+		synchronized (this) {
+
+			if (streamId != null) {
+				Broadcast broadcast = get(streamId);
+				if (broadcast != null) {
+					int dashViewerCount = broadcast.getDashViewerCount();
+					dashViewerCount += diffCount;
+					broadcast.setDashViewerCount(dashViewerCount);
 					map.replace(streamId, gson.toJson(broadcast));
 					result = true;
 				}

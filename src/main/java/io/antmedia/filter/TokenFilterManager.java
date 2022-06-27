@@ -195,6 +195,13 @@ public class TokenFilterManager extends AbstractFilter   {
 		if(requestURI.contains("streams")) {
 			requestURI = requestURI.split("streams")[1];
 		}
+		
+		if(requestURI.contains("m4s")) {
+			startIndex = requestURI.indexOf("/");
+			endIndex = requestURI.lastIndexOf("/");
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+		
 		else if(requestURI.contains("chunked")) {
 			requestURI = requestURI.split("chunked")[1];
 			startIndex = requestURI.indexOf("/");
