@@ -2,19 +2,6 @@ package io.antmedia.rest;
 
 import java.util.List;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
@@ -53,6 +40,18 @@ import io.swagger.annotations.ExternalDocs;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 @Api(value = "BroadcastRestService")
 @SwaggerDefinition(
@@ -74,8 +73,6 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	private static final String REPLACE_CHARS = "[\n|\r|\t]";
-	private static final String WEBM = "webm";
-	private static final String VALUE_IS_LESS_THAN_ZERO = "Value is less than zero";
 	private static final String STREAM_ID_NOT_VALID = "Stream id not valid";
 	private static final String RELATIVE_MOVE = "relative";
 	private static final String ABSOLUTE_MOVE = "absolute";
@@ -951,10 +948,12 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/subtrack")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addSubTrack(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
+	public Result addSubTrack(@ApiParam(value = "Broadcast id(main track)", required = true) @PathParam("id") String id,
 			@ApiParam(value = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId) {
 
+		
 		Broadcast subTrack = getDataStore().get(subTrackId);
+		//TODO: what if subtrack is null
 		subTrack.setMainTrackStreamId(id);
 		boolean success = getDataStore().updateBroadcastFields(subTrackId, subTrack);
 		success = success && getDataStore().addSubTrack(id, subTrackId);

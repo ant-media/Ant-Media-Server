@@ -66,7 +66,9 @@ import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.shutdown.IShutdownListener;
+import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
+import io.antmedia.statistic.ViewerStats;
 import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
@@ -91,6 +93,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String HOOK_ACTION_PUBLISH_TIMEOUT_ERROR = "publishTimeoutError";
 	public static final String HOOK_ACTION_ENCODER_NOT_OPENED_ERROR =  "encoderNotOpenedError";
 	public static final String HOOK_ACTION_ENDPOINT_FAILED = "endpointFailed";
+	
+	public static final String STREAMS = "streams";
 
 	public static final String DEFAULT_LOCALHOST = "127.0.0.1";
 
@@ -137,7 +141,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	protected StorageClient storageClient;
 
-	protected ArrayList<IStreamListener> streamListeners = new ArrayList<IStreamListener>();
+	protected ArrayList<IStreamListener> streamListeners = new ArrayList<>();
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -168,10 +172,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			//which means it's in cluster mode
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
 			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
-			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> {
-
-				updateSettings(settings, false, true);
-			});
+			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false, true));
 			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
 
 			boolean updateClusterSettings = false;
@@ -339,6 +340,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				else {
 					// This is resets Viewer map in HLS Viewer Stats
 					resetHLSStats(streamId);
+					
+					// This is resets Viewer map in DASH Viewer Stats
+					resetDASHStats(streamId);
 				}
 
 				for (IStreamListener listener : streamListeners) {
@@ -364,9 +368,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void resetHLSStats(String streamId) {
 		if (scope.getContext().getApplicationContext().containsBean(HlsViewerStats.BEAN_NAME)) {
 			HlsViewerStats hlsViewerStats = (HlsViewerStats) scope.getContext().getApplicationContext().getBean(HlsViewerStats.BEAN_NAME);
-			if (hlsViewerStats != null) {
-				hlsViewerStats.resetHLSViewerMap(streamId);
-			}
+			hlsViewerStats.resetViewerMap(streamId, ViewerStats.HLS_TYPE);
+		}
+	}
+	
+	public void resetDASHStats(String streamId) {
+		if (scope.getContext().getApplicationContext().containsBean(DashViewerStats.BEAN_NAME)) {
+			DashViewerStats dashViewerStats = (DashViewerStats) scope.getContext().getApplicationContext().getBean(DashViewerStats.BEAN_NAME);
+			dashViewerStats.resetViewerMap(streamId, ViewerStats.DASH_TYPE);
 		}
 	}
 
@@ -469,7 +478,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		else {
 
 			broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
-			broadcast.setStartTime(System.currentTimeMillis());
+			long now = System.currentTimeMillis();
+			broadcast.setStartTime(now);
+			broadcast.setUpdateTime(now);
 			broadcast.setOriginAdress(getServerSettings().getHostAddress());
 			broadcast.setWebRTCViewerCount(0);
 			broadcast.setHlsViewerCount(0);
@@ -495,6 +506,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
 		newBroadcast.setStartTime(now);
+		newBroadcast.setUpdateTime(now);
 		newBroadcast.setZombi(true);
 		newBroadcast.setName(streamName);
 		newBroadcast.setMainTrackStreamId(mainTrackStreamId);
@@ -588,12 +600,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public static String getRelativePath(String filePath){
 		StringBuilder relativePath= new StringBuilder();
-		String[] subDirs = filePath.split("streams");
+		String[] subDirs = filePath.split(STREAMS);
 		if(subDirs.length == 2)
-			relativePath = new StringBuilder("streams" + subDirs[1]);
+			relativePath = new StringBuilder(STREAMS + subDirs[1]);
 		else{
 			for(int i=1;i<subDirs.length;i++){
-				relativePath.append("streams").append(subDirs[i]);
+				relativePath.append(STREAMS).append(subDirs[i]);
 			}
 		}
 		return relativePath.toString();
@@ -972,9 +984,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		createShutdownFile(getScope().getName());
 
-		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l-> { 
-			getDataStore().close(deleteDB);
-		});
+		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l-> getDataStore().close(deleteDB));
 
 	}
 
@@ -1376,6 +1386,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		store.put(AppSettings.SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING, String.valueOf(newAppsettings.isForceAspectRatioInTranscoding()));
 		
 		store.put(AppSettings.SETTINGS_VOD_UPLOAD_FINISH_SCRIPT, newAppsettings.getVodFinishScript() != null ? String.valueOf(newAppsettings.getVodFinishScript()) : "");
+		//default value for DASH frag Duration is 0.5 seconds
+		store.put(AppSettings.SETTINGS_DASH_FRAGMENT_DURATION, newAppsettings.getDashFragmentDuration() != null ? newAppsettings.getDashFragmentDuration() : "0.5");
+		//default value for DASH Seg Duration is 6 seconds.
+		store.put(AppSettings.SETTINGS_DASH_SEG_DURATION, newAppsettings.getDashSegDuration() != null ? newAppsettings.getDashSegDuration() : "6");
+
+		store.put(AppSettings.SETTINGS_HLS_FLAGS, newAppsettings.getHlsflags() != null ? newAppsettings.getHlsflags() : "");
 		
 		return store.save();
 	}

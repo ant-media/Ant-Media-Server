@@ -47,6 +47,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.FFmpegUtilities;
 import io.antmedia.SystemUtils;
 import io.antmedia.console.AdminApplication;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
@@ -154,6 +155,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String GPU_DEVICE_NAME = "deviceName";
 
 	public static final String GPU_USAGE_INFO = "gpuUsageInfo";
+	
+	public static final String FFMPEG_BUILD_INFO = "ffmpegBuildInfo";
 
 	public static final String TOTAL_LIVE_STREAMS = "totalLiveStreamSize";
 
@@ -164,6 +167,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String LOCAL_WEBRTC_VIEWERS = "localWebRTCViewers";
 
 	public static final String LOCAL_HLS_VIEWERS = "localHLSViewers";
+	
+	public static final String LOCAL_DASH_VIEWERS = "localDASHViewers";
 
 	private static final String TIME = "time";
 
@@ -330,10 +335,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 			logger.warn("Starting heartbeats for the version:{} and type:{}", Launcher.getVersion(), Launcher.getVersionType());
 
-			getVertx().setPeriodic(heartbeatPeriodMs, l -> 
-			{
-				startAnalytic();
-			});
+			getVertx().setPeriodic(heartbeatPeriodMs, l -> startAnalytic());
 		}
 		else {
 			logger.info("Heartbeats are disabled for this instance");
@@ -647,8 +649,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		//add gpu info 
 		jsonObject.add(StatsCollector.GPU_USAGE_INFO, StatsCollector.getGPUInfoJSObject());
+		
+		//add ffmpeg build info 
+		jsonObject.addProperty(StatsCollector.FFMPEG_BUILD_INFO, FFmpegUtilities.getBuildConfiguration());
 
 		int localHlsViewers = 0;
+		int localDashViewers = 0;
 		int localWebRTCViewers = 0;
 		int localWebRTCStreams = 0;
 		int localStreams = 0;
@@ -659,6 +665,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
 				IScope scope = iterator.next();
 				localHlsViewers += getHLSViewers(scope);
+				localDashViewers += getDASHViewers(scope);
 
 				if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) {
 					IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
@@ -684,6 +691,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(StatsCollector.LOCAL_LIVE_STREAMS, localStreams);
 		jsonObject.addProperty(StatsCollector.LOCAL_WEBRTC_VIEWERS, localWebRTCViewers);
 		jsonObject.addProperty(StatsCollector.LOCAL_HLS_VIEWERS, localHlsViewers);	
+		jsonObject.addProperty(StatsCollector.LOCAL_DASH_VIEWERS, localDashViewers);	
 		jsonObject.addProperty(StatsCollector.ENCODERS_BLOCKED, encodersBlocked);
 		jsonObject.addProperty(StatsCollector.ENCODERS_NOT_OPENED, encodersNotOpened);
 		jsonObject.addProperty(StatsCollector.PUBLISH_TIMEOUT_ERRORS, publishTimeoutError);
@@ -699,9 +707,15 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private static int getHLSViewers(IScope scope) {
 		if (scope.getContext().getApplicationContext().containsBean(HlsViewerStats.BEAN_NAME)) {
 			HlsViewerStats hlsViewerStats = (HlsViewerStats) scope.getContext().getApplicationContext().getBean(HlsViewerStats.BEAN_NAME);
-			if (hlsViewerStats != null) {
-				return hlsViewerStats.getTotalViewerCount();
-			}
+			return hlsViewerStats.getTotalViewerCount();
+		}
+		return 0;
+	}
+	
+	private static int getDASHViewers(IScope scope) {
+		if (scope.getContext().getApplicationContext().containsBean(DashViewerStats.BEAN_NAME)) {
+			DashViewerStats dashViewerStats = (DashViewerStats) scope.getContext().getApplicationContext().getBean(DashViewerStats.BEAN_NAME);
+			return dashViewerStats.getTotalViewerCount();
 		}
 		return 0;
 	}
@@ -1017,9 +1031,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private String findAdminUser(List<User> userList) {
 		
 		String email = null;
-		for (Iterator iterator2 = userList.iterator(); iterator2.hasNext();) 
+		for (Iterator<User> iterator2 = userList.iterator(); iterator2.hasNext();) 
 		{
-			User user = (User) iterator2.next();
+			User user = iterator2.next();
 			
 			if (user.getUserType() == UserType.ADMIN && CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) 
 			{

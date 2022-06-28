@@ -480,6 +480,8 @@ public class TokenFilterTest {
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+".m3u8"));
 		
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+"/"+"test_test_"+streamId+"_1segment00139.m4s"));
+		
 		// Tests for CMAF
 		assertEquals("test_test_" + streamId, TokenFilterManager.getStreamId("/live_app/chunked/test_test_" + streamId+"/media_1.m3u8"));
 		
@@ -506,6 +508,8 @@ public class TokenFilterTest {
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_0p500kbps0000.ts")); 
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_240p120kbps0000.ts"));
+		
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"/"+"test_test_"+streamId+"_0segment00139.m4s"));
 
 		assertNull(TokenFilterManager.getStreamId("/live_app/streams/"+streamId+".u8"));
 		

@@ -271,6 +271,14 @@ public class Broadcast {
 
 	@ApiModelProperty(value = "the number of HLS viewers of the stream")
 	private int hlsViewerCount = 0;
+	
+
+	/**
+	 * number of dash viewers of the stream
+	 */
+
+	@ApiModelProperty(value = "the number of DASH viewers of the stream")
+	private int dashViewerCount = 0;
 
 	@ApiModelProperty(value = "the number of WebRTC viewers of the stream")
 	private int webRTCViewerCount = 0;
@@ -313,6 +321,9 @@ public class Broadcast {
 
 	@ApiModelProperty(value = "Number of the allowed maximum HLS viewers for the broadcast")
 	private int hlsViewerLimit = -1;
+	
+	@ApiModelProperty(value = "Number of the allowed maximum DASH viewers for the broadcast")
+	private int dashViewerLimit = -1;
 
 	@ApiModelProperty(value = "Name of the subfolder that will contain stream files")
 	private String subFolder;
@@ -336,7 +347,12 @@ public class Broadcast {
 	 */
 	@ApiModelProperty(value = "the identifier of playlist loop status")
 	private boolean playlistLoopEnabled = true;
-
+	
+	/**
+	 * Update time of the Broadcast object
+	 * This parameter updates consistently according to broadcast status
+	 */
+	private long updateTime = 0;
 
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
@@ -779,4 +795,29 @@ public class Broadcast {
 	public void setPlaylistLoopEnabled(boolean playlistLoopEnabled) {
 		this.playlistLoopEnabled = playlistLoopEnabled;
 	}
+	
+	public int getDashViewerLimit() {
+		return dashViewerLimit;
+	}
+
+	public void setDashViewerLimit(int dashViewerLimit) {
+		this.dashViewerLimit = dashViewerLimit;
+	}
+	
+	public int getDashViewerCount() {
+		return dashViewerCount;
+	}
+
+	public void setDashViewerCount(int dashViewerCount) {
+		this.dashViewerCount = dashViewerCount;
+	}
+
+	public long getUpdateTime() {
+		return updateTime;
+	}
+
+	public void setUpdateTime(long updateTime) {
+		this.updateTime = updateTime;
+	}
+	
 }
