@@ -153,8 +153,7 @@ if [[ $AS_WAR == "true" ]]; then
   rm -r $APP_DIR
 else
   echo "Application is deployed as directory."
+  chown -R antmedia:antmedia $APP_DIR -f
 fi
-
-chown -R antmedia:antmedia $APP_DIR -f
 
 echo "$APP_NAME is created."
