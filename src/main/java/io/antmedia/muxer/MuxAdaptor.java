@@ -1677,6 +1677,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (prepared) {
 			addMuxer(muxer);
 		}
+		//TODO: if it's not prepared, release the resources
 
 		return prepared;
 	}
