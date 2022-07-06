@@ -722,6 +722,11 @@ public abstract class Muxer {
 			AVStream outStream = avNewStream(outputContext);
 			//if it's not running add to the list
 			registeredStreamIndexList.add(streamIndex);
+			
+			logger.info("debug1:"+timebase);
+			
+			logger.info("debug2:"+timebase.num());
+
 
 			if (bsfVideoName != null && codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
 			{
@@ -733,13 +738,17 @@ public abstract class Muxer {
 				}
 
 			}
+			
+			logger.info("debug3:"+timebase);
+			
+			logger.info("debug4:"+timebase.num());
 
 			if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
 			{
 				videoWidth = codecParameters.width();
 				videoHeight = codecParameters.height();
 			}
-
+			
 			avcodec_parameters_copy(outStream.codecpar(), codecParameters);
 			logger.info("Adding timebase to the input time base map index:{} value: {}/{} for stream:{}", 
 					outStream.index(), timebase.num(), timebase.den(), streamId);
