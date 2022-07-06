@@ -575,8 +575,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		AVCodecParameters codecParameters = getVideoCodecParameters();
 		if (codecParameters != null) {
 			logger.info("Incoming video width: {} height:{} stream:{}", codecParameters.width(), codecParameters.height(), streamId);
-			
-			logger.info("debug1:"+TIME_BASE_FOR_MS.num());
 			addStream2Muxers(codecParameters, TIME_BASE_FOR_MS, streamIndex);
 			videoStreamIndex = streamIndex;
 			streamIndex++;
@@ -753,7 +751,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			while (iterator.hasNext())
 			{
 				Muxer muxer = iterator.next();
-				logger.info("debug2:"+muxer.getClass().getName()+ rat.num());
 
 				if (!muxer.addStream(codecParameters, rat, streamIndex)) 
 				{
@@ -1680,7 +1677,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (prepared) {
 			addMuxer(muxer);
 		}
-		//TODO: if it's not prepared, release the resources
 
 		return prepared;
 	}
