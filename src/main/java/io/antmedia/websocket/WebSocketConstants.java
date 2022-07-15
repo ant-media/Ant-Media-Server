@@ -465,12 +465,6 @@ public class WebSocketConstants {
 	public static final String UPDATE_VIDEO_TRACK_ASSIGNMENTS_COMMAND = "updateVideoTrackAssignmentsCommand";
 	
 	/**
-	 * Command to update audio level for a stream
-	 */
-	public static final String UPDATE_AUDIO_LEVEL_COMMAND = "updateAudioLevel";
-
-	
-	/**
 	 * Command to set max video track count in conference
 	 */
 	public static final String SET_MAX_VIDEO_TRACK_COUNT_COMMAND = "setMaxVideoTrackCountCommand";
@@ -494,12 +488,5 @@ public class WebSocketConstants {
 	 * maximum number of tracks 
 	 */
 	public static final String MAX_TRACK_COUNT = "maxTrackCount";
-
-	
-	/**
-	 * audio level
-	 */
-	public static final String LEVEL = "level";
-
 	
 }
