@@ -109,7 +109,7 @@ check_result
 
 WAR_FILE_NAME=`basename $WAR_FILE`
 
-jar -xf $WAR_FILE_NAME
+unzip $WAR_FILE_NAME
 check_result
 
 rm $WAR_FILE_NAME
@@ -148,12 +148,12 @@ fi
 
 if [[ $AS_WAR == "true" ]]; then
   echo "Application will deployed as war" 
-  jar -cvf $AMS_DIR/webapps/$APP_NAME.war -C $APP_DIR .  
+  cd $APP_DIR 
+  zip -r ../$APP_NAME.war *  
   rm -r $APP_DIR
 else
   echo "Application is deployed as directory."
+  chown -R antmedia:antmedia $APP_DIR -f
 fi
-
-chown -R antmedia:antmedia $APP_DIR
 
 echo "$APP_NAME is created."
