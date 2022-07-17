@@ -18,6 +18,16 @@ public interface IOnvifCamera {
 	 */
 	int connect(String address, String username, String password);
 	
+	/**
+	 * 
+	 * @param address
+	 * @param username
+	 * @param password
+	 * @return profile list
+	 */
+	String[] getProfiles(String address, String username, String password);
+
+	
 	void disconnect();
 	
 	String getRTSPStreamURI();

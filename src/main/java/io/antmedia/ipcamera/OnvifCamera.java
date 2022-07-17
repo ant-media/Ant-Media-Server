@@ -74,6 +74,30 @@ public class OnvifCamera implements IOnvifCamera {
 		} 
 		return result;
 	}
+	
+	@Override
+	public String[] getProfiles(String address, String username, String password) {
+		String camIP = getURL(address);
+		String profilesStr[] = null;
+		try {
+			OnvifDevice device = new OnvifDevice(camIP, username, password);
+			List<Profile> profilesLocal = device.getDevices().getProfiles();
+
+			if (profilesLocal != null) 
+			{
+				int i = 0;
+				profilesStr = new String[profilesLocal.size()]; 
+				for (Profile profile : profilesLocal) {
+					if (profile.getPTZConfiguration() != null) {
+						profilesStr[i++] = profile.getToken();
+					}
+				}
+			}
+		} catch (ConnectException | SOAPException e) {
+			// nothing to do
+		} 
+		return profilesStr;
+	}
 
 	@Override
 	public void disconnect() {

@@ -827,6 +827,16 @@ public class BroadcastRestService extends RestServiceBase{
 	public String[] searchOnvifDevicesV2() {
 		return super.searchOnvifDevices();
 	}
+	
+	@ApiOperation(value = "Get The Profile List for an ONVIF IP Cameras", notes = "Notes here", response = Result.class)
+	@GET
+	@Path("/onvif-device-profiles")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String[] getOnvifDeviceProfiles(@ApiParam(value="Address") @QueryParam("address") String address, 
+			@ApiParam(value="User") @QueryParam("user")String user, 
+			@ApiParam(value="Password") @QueryParam("password")String password) {
+		return super.getOnvifDeviceProfiles(address, user, password);
+	}
 
 
 	@ApiOperation(value = "Move IP Camera. It support continuous, relative and absolute move. By default it's relative move."
