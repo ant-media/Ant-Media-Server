@@ -740,8 +740,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testShoutcastSource() {
 		logger.info("running testShoutcastSource");
-		//test Southcast Source
-		testFetchStreamSources("http://powerfm.listenpowerapp.com/powerfm/mpeg/icecast.audio", false, false);
+		//test Southcast Source - http://sc13.shoutcaststreaming.us/
+		testFetchStreamSources("http://107.181.227.250:8526/stream/1/", false, false);
 		logger.info("leaving testShoutcastSource");
 	}
 

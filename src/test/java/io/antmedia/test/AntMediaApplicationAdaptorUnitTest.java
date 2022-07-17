@@ -263,6 +263,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		newSettings.setHlsflags("delete_segments");
 		newSettings.setTokenHashSecret("");
 		newSettings.setDataChannelPlayerDistribution("");
+		newSettings.setDashSegDuration("");
 
 		IScope scope = mock(IScope.class);
 
@@ -286,6 +287,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		assertEquals("", settings.getHlsPlayListType());
 		assertEquals(newSettings.getHlsPlayListType(), settings.getHlsPlayListType());
+		
+		assertEquals("", settings.getDashSegDuration());
+		assertEquals(newSettings.getDashSegDuration(), settings.getDashSegDuration());
 
 		assertEquals("delete_segments", settings.getHlsflags());
 		assertEquals(newSettings.getHlsflags(), settings.getHlsflags());

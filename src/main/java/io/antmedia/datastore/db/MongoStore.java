@@ -75,6 +75,7 @@ public class MongoStore extends DataStore {
 	private static final String CREATION_DATE = "creationDate";
 	private static final String RTMP_VIEWER_COUNT = "rtmpViewerCount";
 	private static final String HLS_VIEWER_COUNT = "hlsViewerCount";
+	private static final String DASH_VIEWER_COUNT = "dashViewerCount";
 	private static final String WEBRTC_VIEWER_COUNT = "webRTCViewerCount";
 	private static final String META_DATA = "metaData";
 
@@ -226,6 +227,7 @@ public class MongoStore extends DataStore {
 					ops.add(set(WEBRTC_VIEWER_COUNT, 0));
 					ops.add(set(HLS_VIEWER_COUNT, 0));
 					ops.add(set(RTMP_VIEWER_COUNT, 0));
+					ops.add(set(DASH_VIEWER_COUNT, 0));
 				}
 
 				UpdateResult update = ops.execute();
@@ -802,6 +804,7 @@ public class MongoStore extends DataStore {
 				updates.add(set("userAgent", broadcast.getUserAgent()));
 				updates.add(set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit()));
 				updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
+				updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
 				updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
 				updates.add(set("metaData", broadcast.getMetaData()));
 				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
@@ -849,6 +852,24 @@ public class MongoStore extends DataStore {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 				UpdateResult result = query.update(inc(HLS_VIEWER_COUNT, diffCount)).execute();
+
+				return result.getMatchedCount() == 1;
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
+		synchronized(this) {
+			try {
+				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
+				UpdateResult result = query.update(inc(DASH_VIEWER_COUNT, diffCount)).execute();
 
 				return result.getMatchedCount() == 1;
 			} catch (Exception e) {
