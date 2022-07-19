@@ -2980,4 +2980,14 @@ public class BroadcastRestServiceV2UnitTest {
 		verify(testApp, times(1)).stopPlaying(viewerId);
 	}
 	
+	@Test
+	public void testGetCameraProfiles() {
+		StreamFetcherUnitTest.startCameraEmulator();
+
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
+		String[] profiles = streamSourceRest.getOnvifDeviceProfiles("127.0.0.1:8080", "admin", "admin");
+		
+		assertEquals(2, profiles.length);
+	}
+	
 }

@@ -829,7 +829,7 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 	
 	@ApiOperation(value = "Get The Profile List for an ONVIF IP Cameras", notes = "Notes here", response = Result.class)
-	@GET
+	@POST
 	@Path("/onvif-device-profiles")
 	@Produces(MediaType.APPLICATION_JSON)
 	public String[] getOnvifDeviceProfiles(@ApiParam(value="Address") @QueryParam("address") String address, 

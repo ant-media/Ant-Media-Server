@@ -89,7 +89,7 @@ public class OnvifCamera implements IOnvifCamera {
 				profilesStr = new String[profilesLocal.size()]; 
 				for (Profile profile : profilesLocal) {
 					if (profile.getPTZConfiguration() != null) {
-						profilesStr[i++] = profile.getToken();
+						profilesStr[i++] = device.getMedia().getRTSPStreamUri(profile.getToken());
 					}
 				}
 			}
