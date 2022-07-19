@@ -101,6 +101,9 @@ public class AppSettings {
 	public static final String SETTINGS_WEBRTC_PORT_RANGE_MIN = "settings.webrtc.portRangeMin";
 	public static final String SETTINGS_WEBRTC_PORT_RANGE_MAX = "settings.webrtc.portRangeMax";
 	public static final String SETTINGS_WEBRTC_STUN_SERVER_URI = "settings.webrtc.stunServerURI";
+	public static final String SETTINGS_WEBRTC_TURN_SERVER_USERNAME = "settings.webrtc.turnServerUsername";
+	public static final String SETTINGS_WEBRTC_TURN_SERVER_CREDENTIAL = "settings.webrtc.turnServerCredential";
+	
 	public static final String SETTINGS_WEBRTC_TCP_CANDIDATE_ENABLED = "settings.webrtc.tcpCandidateEnabled"; 
 	public static final String SETTINGS_WEBRTC_SDP_SEMANTICS = "settings.webrtc.sdpSemantics";
 
@@ -753,14 +756,30 @@ public class AppSettings {
 	private int webRTCPortRangeMax;
 
 	/**
-	 * Stun Server URI
-	 * Stun server URI used for WebRTC signaling,
+	 * STUN or TURN Server URI
+	 * STUN server URI used for WebRTC ICE candidates
 	 * You can check: https://antmedia.io/learn-webrtc-basics-components/,
-	 * Default value is stun:stun.l.google.com:19302.
+	 * Default value is stun:stun.l.google.com:19302
+	 * 
+	 * STUN or TURN URL can be set for this properoy
 	 */
 	@Value( "${" + SETTINGS_WEBRTC_STUN_SERVER_URI +":stun:stun1.l.google.com:19302}")
 	private String stunServerURI = "stun:stun1.l.google.com:19302";
 
+	/**
+	 * TURN server username for WebRTC ICE candidates.
+	 * In order to be effective, {@code #stunServerURI} and {@code #turnServerCredential} should be set
+	 */
+	@Value( "${" + SETTINGS_WEBRTC_TURN_SERVER_USERNAME +":#{null}")
+	private String turnServerUsername;
+
+	/**
+	 * TURN server credentai for WebRTC ICE candidates.
+	 * In order to be effective, {@code #stunServerURI} and {@code #turnServerUsername} should be set
+	 */
+	@Value( "${" + SETTINGS_WEBRTC_TURN_SERVER_CREDENTIAL +":#{null}")
+	private String turnServerCredential;
+	
 	/**
 	 * It's mandatory,
 	 * TCP candidates are enabled/disabled.It's effective when user publishes stream
@@ -2766,5 +2785,21 @@ public class AppSettings {
 
 	public void setContentSecurityPolicyHeaderValue(String contentSecurityPolicyHeaderValue) {
 		this.contentSecurityPolicyHeaderValue = contentSecurityPolicyHeaderValue;
+	}
+
+	public String getTurnServerUsername() {
+		return turnServerUsername;
+	}
+
+	public void setTurnServerUsername(String turnServerUsername) {
+		this.turnServerUsername = turnServerUsername;
+	}
+
+	public String getTurnServerCredential() {
+		return turnServerCredential;
+	}
+
+	public void setTurnServerCredential(String turnServerCredential) {
+		this.turnServerCredential = turnServerCredential;
 	}
 }
