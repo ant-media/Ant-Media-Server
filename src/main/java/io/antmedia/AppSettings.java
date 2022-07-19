@@ -309,6 +309,8 @@ public class AppSettings {
 	public static final String SETTINGS_VOD_UPLOAD_FINISH_SCRIPT = "settings.vodUploadFinishScript";
 	public static final String SETTINGS_FILE_NAME_FORMAT = "settings.fileNameFormat";
 
+	private static final String SETTINGS_CONTENT_SECURITY_POLICY_HEADER_VALUE = "settings.contentSecurityPolicyHeaderValue";
+
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
 	 * Allowed IP addresses to reach REST API, It must be in CIDR format as a.b.c.d/x
@@ -1440,7 +1442,18 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_VOD_UPLOAD_FINISH_SCRIPT+":}" )
 	private String vodUploadFinishScript;
+	
+	/**
+	 * Value of the content security policy header(csp) 
+	 * The new Content-Security-Policy HTTP response header helps you reduce XSS risks 
+	 * on modern browsers by declaring which dynamic resources are allowed to load.
+	 * 
+	 * https://content-security-policy.com/
+	 */
+	@Value( "${"+SETTINGS_CONTENT_SECURITY_POLICY_HEADER_VALUE+":#{null}}" )
+	private String contentSecurityPolicyHeaderValue;
 
+	
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
 	}
@@ -2745,5 +2758,13 @@ public class AppSettings {
 
 	public void setVodUploadFinishScript(String vodUploadFinishScript) {
 		this.vodUploadFinishScript = vodUploadFinishScript;
+	}
+
+	public String getContentSecurityPolicyHeaderValue() {
+		return contentSecurityPolicyHeaderValue;
+	}
+
+	public void setContentSecurityPolicyHeaderValue(String contentSecurityPolicyHeaderValue) {
+		this.contentSecurityPolicyHeaderValue = contentSecurityPolicyHeaderValue;
 	}
 }
