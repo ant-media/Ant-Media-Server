@@ -80,6 +80,16 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appSettings.setFileNameFormat(null);
 		assertNull(appSettings.getFileNameFormat());
+		
+		
+		assertNull(appSettings.getTurnServerUsername());
+		appSettings.setTurnServerUsername("turnserverusername");
+		assertEquals("turnserverusername", appSettings.getTurnServerUsername());
+		
+		assertNull(appSettings.getTurnServerCredential());
+		appSettings.setTurnServerCredential("turnservercredential");
+		assertEquals("turnservercredential", appSettings.getTurnServerCredential());
+		
 	}
 
 	@Test

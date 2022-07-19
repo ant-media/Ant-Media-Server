@@ -770,14 +770,14 @@ public class AppSettings {
 	 * TURN server username for WebRTC ICE candidates.
 	 * In order to be effective, {@code #stunServerURI} and {@code #turnServerCredential} should be set
 	 */
-	@Value( "${" + SETTINGS_WEBRTC_TURN_SERVER_USERNAME +":#{null}")
+	@Value( "${" + SETTINGS_WEBRTC_TURN_SERVER_USERNAME +":#{null}}")
 	private String turnServerUsername;
 
 	/**
 	 * TURN server credentai for WebRTC ICE candidates.
 	 * In order to be effective, {@code #stunServerURI} and {@code #turnServerUsername} should be set
 	 */
-	@Value( "${" + SETTINGS_WEBRTC_TURN_SERVER_CREDENTIAL +":#{null}")
+	@Value( "${" + SETTINGS_WEBRTC_TURN_SERVER_CREDENTIAL +":#{null}}")
 	private String turnServerCredential;
 	
 	/**
