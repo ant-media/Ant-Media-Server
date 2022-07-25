@@ -259,7 +259,12 @@ public class AuthenticationFilterTest {
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(6)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 			
-			
+			Mockito.when(user.getUserType()).thenReturn(UserType.USER);
+			Mockito.when(user.getScope()).thenReturn("system");
+			Mockito.when(request.getParameter(AuthenticationFilter.DISPATCH_PATH_URL)).thenReturn("WebRTCAppEE/rest/v2/broadcasts/create");
+			Mockito.when(request.getRequestURI()).thenReturn("/rest/v2/request");
+			filter.doFilter(request, response, chain);
+			Mockito.verify(chain, Mockito.times(7)).doFilter(request, response);
 			
 			
 		} catch (IOException e) {

@@ -141,6 +141,11 @@ public class AuthenticationFilter extends AbstractFilter {
 						}
 						else if (scopeAccess) 
 						{
+							// Get app name from system internal request
+							String appName = "";
+							if(dispatchURL != null) {
+								appName = dispatchURL.split("/rest")[0];
+							}
 							
 							//if it's an admin, provide access - backward compatible
 							if (UserType.ADMIN.equals(currentUser.getUserType()) || currentUser.getUserType() == null) 
@@ -148,7 +153,8 @@ public class AuthenticationFilter extends AbstractFilter {
 								chain.doFilter(request, response);
 							}
 							else if (UserType.USER.equals(currentUser.getUserType()) && 
-										!currentUser.getScope().equals(CommonRestService.SCOPE_SYSTEM)) 
+										(!currentUser.getScope().equals(CommonRestService.SCOPE_SYSTEM) || (!appName.isEmpty()))
+										) 
 							{
 								//if user scope is system and granted, it cannot change anythings in the system scope server-settings, add/delete apps and users
 								//if user scope is application and granted, it can do anything in this scope
@@ -157,7 +163,6 @@ public class AuthenticationFilter extends AbstractFilter {
 							else {
 								((HttpServletResponse)response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 							}
-							
 						}
 						else {
 							
