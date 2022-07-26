@@ -911,7 +911,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		RtmpMuxer rtmpMuxer = new RtmpMuxer("rtmp://no_server", vertx);
 		
-		rtmpMuxer.prepareIO();
+		//it should return false because there is no thing to send.
+		assertFalse(rtmpMuxer.prepareIO());
 		
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 			return rtmpMuxer.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);

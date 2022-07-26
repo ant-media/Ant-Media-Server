@@ -322,7 +322,7 @@ public class MuxingTest {
 		//rtmpMuxer.prepare(inputFormatContext);
 		rtmpMuxer.addVideoStream(1280, 720, null, avcodec.AV_CODEC_ID_H264, 0, false, null);
 
-		rtmpMuxer.prepareIO();
+		assertTrue(rtmpMuxer.prepareIO());
 
 		while((ret = av_read_frame(inputFormatContext, pkt)) >= 0) 
 		{
