@@ -76,12 +76,10 @@ public class OnvifCamera implements IOnvifCamera {
 	}
 	
 	@Override
-	public String[] getProfiles(String address, String username, String password) {
-		String camIP = getURL(address);
+	public String[] getProfiles() {
 		String profilesStr[] = null;
 		try {
-			OnvifDevice device = new OnvifDevice(camIP, username, password);
-			List<Profile> profilesLocal = device.getDevices().getProfiles();
+			List<Profile> profilesLocal = nvt.getDevices().getProfiles();
 
 			if (profilesLocal != null) 
 			{
@@ -89,7 +87,7 @@ public class OnvifCamera implements IOnvifCamera {
 				profilesStr = new String[profilesLocal.size()]; 
 				for (Profile profile : profilesLocal) {
 					if (profile.getPTZConfiguration() != null) {
-						profilesStr[i++] = device.getMedia().getRTSPStreamUri(profile.getToken());
+						profilesStr[i++] = nvt.getMedia().getRTSPStreamUri(profile.getToken());
 					}
 				}
 			}

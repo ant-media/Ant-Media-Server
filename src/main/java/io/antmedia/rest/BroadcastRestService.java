@@ -829,13 +829,14 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 	
 	@ApiOperation(value = "Get The Profile List for an ONVIF IP Cameras", notes = "Notes here", response = Result.class)
-	@POST
-	@Path("/onvif-device-profiles")
+	@GET
+	@Path("/{id}/ip-camera/device-profiles")
 	@Produces(MediaType.APPLICATION_JSON)
-	public String[] getOnvifDeviceProfiles(@ApiParam(value="Address") @QueryParam("address") String address, 
-			@ApiParam(value="User") @QueryParam("user")String user, 
-			@ApiParam(value="Password") @QueryParam("password")String password) {
-		return super.getOnvifDeviceProfiles(address, user, password);
+	public String[] getOnvifDeviceProfiles(@ApiParam(value = "The id of the IP Camera", required = true) @PathParam("id") String id) {
+		if (id != null && StreamIdValidator.isStreamIdValid(id)) {
+			return super.getOnvifDeviceProfiles(id);
+		}
+		return null;
 	}
 
 

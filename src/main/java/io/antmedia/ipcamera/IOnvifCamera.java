@@ -20,12 +20,9 @@ public interface IOnvifCamera {
 	
 	/**
 	 * 
-	 * @param address
-	 * @param username
-	 * @param password
 	 * @return profile list
 	 */
-	String[] getProfiles(String address, String username, String password);
+	String[] getProfiles();
 
 	
 	void disconnect();

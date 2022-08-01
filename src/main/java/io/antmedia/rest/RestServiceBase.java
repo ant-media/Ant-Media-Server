@@ -1488,9 +1488,9 @@ public abstract class RestServiceBase {
 		return list;
 	}
 	
-	protected String[] getOnvifDeviceProfiles(String address, String user, String password) {
-		OnvifCamera onvif = new OnvifCamera();
-		return onvif.getProfiles(address, user, password);
+	protected String[] getOnvifDeviceProfiles(String id) {
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
+		return camera.getProfiles();
 	}
 
 
