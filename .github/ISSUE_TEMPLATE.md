@@ -28,6 +28,7 @@ __Put as much detail here as possible__
 ### Logs
 __Place logs on [pastebin](http://pastebin.com/) or elsewhere and put links here__
 
-Join [Google Group](https://groups.google.com/forum/#!forum/ant-media-server) and be a part of Ant Media Server Community.
+Join [community.antmedia.io](https://community.antmedia.io) and be a part of Ant Media Server Community.
+
 
 

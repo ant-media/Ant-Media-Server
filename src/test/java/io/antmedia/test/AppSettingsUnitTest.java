@@ -340,7 +340,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true, appSettings.isH264Enabled());
 		assertEquals(false, appSettings.isVp8Enabled());
 		assertEquals(false, appSettings.isH265Enabled());
-		assertEquals(false, appSettings.isDataChannelEnabled());
+		assertEquals(true, appSettings.isDataChannelEnabled());
 		assertEquals(0, appSettings.getRtmpIngestBufferTimeMs());
 		assertEquals(null, appSettings.getDataChannelWebHook());
 		assertEquals(0, appSettings.getEncoderThreadCount());

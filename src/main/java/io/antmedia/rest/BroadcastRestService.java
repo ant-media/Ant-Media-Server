@@ -65,7 +65,8 @@ import javax.ws.rs.core.Response.Status;
 		produces = {"application/json"},
 		schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
 		externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
-		basePath = "/v2"
+		basePath = "/v2",
+		host = "test.antmedia.io:5443/Sandbox/rest/"
 		)
 @Component
 @Path("/v2/broadcasts")

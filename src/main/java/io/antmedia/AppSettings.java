@@ -1137,8 +1137,8 @@ public class AppSettings {
 	 * Enable/Disable data channel It's disabled by default
 	 * When data channel is enabled, publisher can send messages to the players
 	 */
-	@Value("${" + SETTINGS_DATA_CHANNEL_ENABLED+ ":false}")
-	private boolean dataChannelEnabled;
+	@Value("${" + SETTINGS_DATA_CHANNEL_ENABLED+ ":true}")
+	private boolean dataChannelEnabled = true;
 
 
 	/**
