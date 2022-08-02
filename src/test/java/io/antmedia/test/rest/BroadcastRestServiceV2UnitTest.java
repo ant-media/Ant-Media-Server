@@ -3019,6 +3019,9 @@ public class BroadcastRestServiceV2UnitTest {
 		String[] profiles = streamSourceRest.getOnvifDeviceProfiles(newCam.getStreamId());
 		
 		assertEquals(2, profiles.length);
+		
+		assertNull(streamSourceRest.getOnvifDeviceProfiles("invalid id"));
+
 	}
 	
 }
