@@ -139,7 +139,7 @@ after_failure:
 deploy:
   - provider: script
     script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
-    cleanup: true
+    skip_cleanup: true
     on:
       tags: false
       all_branches: true
@@ -148,7 +148,7 @@ deploy:
   
   - provider: script
     script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
-    cleanup: true
+    skip_cleanup: true
     on:
       #deploy to maven if it is a release tagged
       tags: true

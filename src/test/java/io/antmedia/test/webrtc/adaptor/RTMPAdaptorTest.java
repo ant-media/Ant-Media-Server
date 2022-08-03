@@ -418,6 +418,8 @@ public class RTMPAdaptorTest {
 		PeerConnectionFactory peerConnectionFactory = mock(PeerConnectionFactory.class);
 
 		doReturn(peerConnectionFactory).when(rtmpAdaptor).createPeerConnectionFactory();
+		
+		rtmpAdaptor.setStunServerUri("turn:ovh36.antmedia.io", "ovh36", "ovh36");
 
 		rtmpAdaptor.start();
 

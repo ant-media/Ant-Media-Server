@@ -80,6 +80,16 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appSettings.setFileNameFormat(null);
 		assertNull(appSettings.getFileNameFormat());
+		
+		
+		assertNull(appSettings.getTurnServerUsername());
+		appSettings.setTurnServerUsername("turnserverusername");
+		assertEquals("turnserverusername", appSettings.getTurnServerUsername());
+		
+		assertNull(appSettings.getTurnServerCredential());
+		appSettings.setTurnServerCredential("turnservercredential");
+		assertEquals("turnservercredential", appSettings.getTurnServerCredential());
+		
 	}
 
 	@Test
@@ -338,7 +348,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true, appSettings.isH264Enabled());
 		assertEquals(false, appSettings.isVp8Enabled());
 		assertEquals(false, appSettings.isH265Enabled());
-		assertEquals(false, appSettings.isDataChannelEnabled());
+		assertEquals(true, appSettings.isDataChannelEnabled());
 		assertEquals(0, appSettings.getRtmpIngestBufferTimeMs());
 		assertEquals(null, appSettings.getDataChannelWebHook());
 		assertEquals(0, appSettings.getEncoderThreadCount());
@@ -440,6 +450,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(false, appSettings.isStartStreamFetcherAutomatically());
 		assertEquals(null, appSettings.getHlsEncryptionKeyInfoFile());
 		assertEquals(null, appSettings.getWarFileOriginServerAddress());
+		assertEquals(null, appSettings.getContentSecurityPolicyHeaderValue());
+		assertEquals(null, appSettings.getTurnServerCredential());
+		assertEquals(null, appSettings.getTurnServerUsername());
 		
 	
 		
@@ -447,7 +460,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					147, numberOfFields);
+					150, numberOfFields);
 		
 	}
 
