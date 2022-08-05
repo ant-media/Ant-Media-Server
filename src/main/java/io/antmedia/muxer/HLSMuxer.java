@@ -124,11 +124,13 @@ public class HLSMuxer extends Muxer  {
 
 			logger.info("hls time: {}, hls list size: {} for stream:{}", hlsTime, hlsListSize, streamId);
 
-			if (httpEndpoint == null) {
+			if (httpEndpoint == null) 
+			{
 				segmentFilename = file.getParentFile() + File.separator + initialResourceNameWithoutExtension;
 			}
-			else {
-				segmentFilename = httpEndpoint + File.separator + initialResourceNameWithoutExtension;
+			else 
+			{
+				segmentFilename = httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + initialResourceNameWithoutExtension;
 			}
 			segmentFilename += SEGMENT_SUFFIX_TS;
 					
