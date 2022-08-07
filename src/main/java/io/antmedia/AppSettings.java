@@ -66,6 +66,7 @@ public class AppSettings {
 	public static final String SETTINGS_ENCODER_SETTINGS_STRING = "settings.encoderSettingsString";
 	public static final String SETTINGS_HLS_LIST_SIZE = "settings.hlsListSize";
 	public static final String SETTINGS_HLS_TIME = "settings.hlsTime";
+	public static final String SETTINGS_HLS_HTTP_ENDPOINT = "settings.hlsHttpEndpoint";
 	public static final String SETTINGS_DASH_SEG_DURATION = "settings.dashSegDuration";
 	public static final String SETTINGS_DASH_FRAGMENT_DURATION = "settings.dashFragmentDuration";
 	public static final String SETTINGS_DASH_TARGET_LATENCY = "settings.dashTargetLatency";	
@@ -1137,8 +1138,8 @@ public class AppSettings {
 	 * Enable/Disable data channel It's disabled by default
 	 * When data channel is enabled, publisher can send messages to the players
 	 */
-	@Value("${" + SETTINGS_DATA_CHANNEL_ENABLED+ ":false}")
-	private boolean dataChannelEnabled;
+	@Value("${" + SETTINGS_DATA_CHANNEL_ENABLED+ ":true}")
+	private boolean dataChannelEnabled = true;
 
 
 	/**
@@ -1334,6 +1335,12 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_DASH_HTTP_ENDPOINT+":#{null}}" )
 	private String dashHttpEndpoint;
+	
+	/**
+	 * Http endpoint to push the HLS stream
+	 */
+	@Value( "${"+SETTINGS_HLS_HTTP_ENDPOINT+":#{null}}" )
+	private String hlsHttpEndpoint;
 
 	/**
 	 * Force stream decoding even if there is no adaptive setting
@@ -2801,5 +2808,13 @@ public class AppSettings {
 
 	public void setTurnServerCredential(String turnServerCredential) {
 		this.turnServerCredential = turnServerCredential;
+	}
+
+	public String getHlsHttpEndpoint() {
+		return hlsHttpEndpoint;
+	}
+
+	public void setHlsHttpEndpoint(String hlsHttpEndpoint) {
+		this.hlsHttpEndpoint = hlsHttpEndpoint;
 	}
 }

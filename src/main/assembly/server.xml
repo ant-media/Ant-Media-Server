@@ -59,6 +59,7 @@
 				<exclude>ffmpeg-*.jar</exclude>
 				<exclude>javacpp-*.jar</exclude>
 				<exclude>cuda-*.jar</exclude>
+				<exclude>srt*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
@@ -89,7 +90,6 @@
 				and they will copied later in this file -->
 				 
 				<exclude>ffmpeg*linux-x86.jar</exclude>
-				<exclude>ffmpeg*linux-arm64.jar</exclude>
 				<exclude>ffmpeg*linux-armhf.jar</exclude> 
 				<exclude>ffmpeg*android*.jar</exclude>
 				<exclude>ffmpeg*ppc64le.jar</exclude>
@@ -97,7 +97,6 @@
 				<exclude>javacpp*android*.jar</exclude>
 				<exclude>javacpp*ios*.jar</exclude>
 				<exclude>javacpp*linux-x86.jar</exclude>
-				<exclude>javacpp*linux-arm64.jar</exclude>
 				<exclude>javacpp*linux-armhf.jar</exclude>
 				<exclude>javacpp*linux-ppc64le.jar</exclude>
 				<exclude>javacpp*windows*.jar</exclude>	
