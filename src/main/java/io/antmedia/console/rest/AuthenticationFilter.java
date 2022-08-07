@@ -114,7 +114,7 @@ public class AuthenticationFilter extends AbstractFilter {
 				{
 					String userScope = currentUser.getScope();
 					String dispatchURL = httpRequest.getParameter(DISPATCH_PATH_URL);
-					boolean scopeAccess =  scopeAccessGranted(userScope, dispatchURL);
+					boolean scopeAccess =  scopeAccessGranted(userScope, dispatchURL, path);
 					
 					if (HttpMethod.GET.equals(method))  
 					{
@@ -141,20 +141,14 @@ public class AuthenticationFilter extends AbstractFilter {
 						}
 						else if (scopeAccess) 
 						{
-							// Get app name from system internal request
-							String appName = "";
-							if(dispatchURL != null) {
-								appName = dispatchURL.split("/rest")[0];
-							}
-							
 							//if it's an admin, provide access - backward compatible
 							if (UserType.ADMIN.equals(currentUser.getUserType()) || currentUser.getUserType() == null) 
 							{
 								chain.doFilter(request, response);
 							}
+							//user scope already checked on scopeAccessGranted. No need to check it again
 							else if (UserType.USER.equals(currentUser.getUserType()) && 
-										(!currentUser.getScope().equals(CommonRestService.SCOPE_SYSTEM) || (!appName.isEmpty()))
-										) 
+									(dispatchURL != null && (dispatchURL.contains("/rest/v2/broadcasts") || dispatchURL.contains("/rest/v2/vods") )))
 							{
 								//if user scope is system and granted, it cannot change anythings in the system scope server-settings, add/delete apps and users
 								//if user scope is application and granted, it can do anything in this scope
@@ -165,8 +159,8 @@ public class AuthenticationFilter extends AbstractFilter {
 							}
 						}
 						else {
-							
-							if (UserType.ADMIN.equals(currentUser.getUserType()) && path.startsWith("/rest/v2/applications/settings/" + userScope)) 
+							if (UserType.ADMIN.equals(currentUser.getUserType()) && 
+									(path.startsWith("/rest/v2/applications/settings/" + userScope) || (path.startsWith(userScope) || path.startsWith(userScope, 1)))) 
 							{
 								//only admin user can access to change the application settings out of its scope
 								chain.doFilter(request, response);
@@ -190,11 +184,9 @@ public class AuthenticationFilter extends AbstractFilter {
 			((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not authenticated user");
 		}
 
-
 	}
 
-
-	private boolean scopeAccessGranted(String userScope, String dispatchUrl){
+	private boolean scopeAccessGranted(String userScope, String dispatchUrl, String path){
 
 		boolean granted = false;
 		if (userScope == null || userScope.equals(CommonRestService.SCOPE_SYSTEM)) 
@@ -205,8 +197,7 @@ public class AuthenticationFilter extends AbstractFilter {
 		else 
 		{
 			//Allow application level access
-
-			if (dispatchUrl != null && (dispatchUrl.startsWith(userScope) || dispatchUrl.startsWith(userScope, 1))) 
+			if ((dispatchUrl != null && (dispatchUrl.startsWith(userScope) || dispatchUrl.startsWith(userScope, 1)))) 
 			{
 				//second dispatch url is if the url starts with "/"
 				granted = true;
