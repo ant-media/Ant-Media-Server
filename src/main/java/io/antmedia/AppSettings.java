@@ -314,6 +314,8 @@ public class AppSettings {
 	public static final String SETTINGS_FILE_NAME_FORMAT = "settings.fileNameFormat";
 
 	private static final String SETTINGS_CONTENT_SECURITY_POLICY_HEADER_VALUE = "settings.contentSecurityPolicyHeaderValue";
+	
+	private static final String SETTINGS_RTMP_PLAYBACK_ENABLED = "settings.rtmpPlaybackEnabled";
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -1478,6 +1480,14 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_CONTENT_SECURITY_POLICY_HEADER_VALUE+":#{null}}" )
 	private String contentSecurityPolicyHeaderValue;
+	
+	/**
+	 * RTMP playback is not maintained and its support will be removed completely.
+	 * It also causes some stability issues on the server side. 
+	 * We highly recommend users to use CMAF(DASH) instead of RTMP playback 
+	 */
+	@Value( "${"+SETTINGS_RTMP_PLAYBACK_ENABLED +":false}" )
+	private boolean rtmpPlaybackEnabled = false;
 
 	
 	public boolean isWriteStatsToDatastore() {
@@ -2816,5 +2826,13 @@ public class AppSettings {
 
 	public void setHlsHttpEndpoint(String hlsHttpEndpoint) {
 		this.hlsHttpEndpoint = hlsHttpEndpoint;
+	}
+
+	public boolean isRtmpPlaybackEnabled() {
+		return rtmpPlaybackEnabled;
+	}
+
+	public void setRtmpPlaybackEnabled(boolean rtmpPlaybackEnabled) {
+		this.rtmpPlaybackEnabled = rtmpPlaybackEnabled;
 	}
 }
