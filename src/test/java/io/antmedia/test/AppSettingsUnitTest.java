@@ -90,7 +90,12 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setTurnServerCredential("turnservercredential");
 		assertEquals("turnservercredential", appSettings.getTurnServerCredential());
 		
+		
 		assertEquals(false, appSettings.isRtmpPlaybackEnabled());
+		appSettings.setRtmpPlaybackEnabled(true);
+		assertEquals(true, appSettings.isRtmpPlaybackEnabled());
+		appSettings.setRtmpPlaybackEnabled(false);
+		
 		
 	}
 

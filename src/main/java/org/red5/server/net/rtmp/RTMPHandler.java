@@ -304,20 +304,9 @@ public class RTMPHandler extends BaseRTMPHandler {
                         			channel.sendStatus(status);
                         			return;
                         		}
+                        	} else if (!isAllowedIfRtmpPlayback(conn, channel, streamAction)) {
+                        		return;
                         	}
-                        	else if (streamAction == StreamAction.PLAY || streamAction == StreamAction.PLAY2) 
-                        	{
-                        		AppSettings appSettings = (AppSettings) conn.getScope().getContext().getBean(AppSettings.BEAN_NAME);
-                        		if (!appSettings.isRtmpPlaybackEnabled()) 
-                        		{
-                        			log.info("RTMP playback is disabled");
-                        			Status status = getStatus(NS_FAILED).asStatus();
-                        			status.setDesciption("RTMP playback is disabled");
-                        			channel.sendStatus(status);
-                        			return;
-                        		}
-                        	}
-                        	
                         	
                         	
                             log.debug("Invoking {} from {} with service: {}", new Object[] { call, conn.getSessionId(), streamService });
@@ -544,6 +533,22 @@ public class RTMPHandler extends BaseRTMPHandler {
             log.debug("Command type: {}", command.getClass().getName());
         }
     }
+
+	public boolean isAllowedIfRtmpPlayback(RTMPConnection conn, Channel channel, StreamAction streamAction) {
+		if (streamAction == StreamAction.PLAY || streamAction == StreamAction.PLAY2) 
+		{
+			AppSettings appSettings = (AppSettings) conn.getScope().getContext().getBean(AppSettings.BEAN_NAME);
+			if (!appSettings.isRtmpPlaybackEnabled()) 
+			{
+				log.info("RTMP playback is disabled");
+				Status status = getStatus(NS_FAILED).asStatus();
+				status.setDesciption("RTMP playback is disabled");
+				channel.sendStatus(status);
+				return false;
+			}
+		}
+		return true;
+	}
 
     public StatusObject getStatus(String code) {
         return statusObjectService.getStatusObject(code);
