@@ -1,15 +1,11 @@
 package io.antmedia.console.rest;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
@@ -27,6 +23,7 @@ public class AuthenticationFilter extends AbstractFilter {
 
 
 	public static final String DISPATCH_PATH_URL = "_path";
+	public static final String FORBIDDEN_ERROR = "Not allowed to access this resource. Contact system admin";
 
 	public AbstractConsoleDataStore getDataStore() 
 	{
@@ -114,7 +111,7 @@ public class AuthenticationFilter extends AbstractFilter {
 				{
 					String userScope = currentUser.getScope();
 					String dispatchURL = httpRequest.getParameter(DISPATCH_PATH_URL);
-					boolean scopeAccess =  scopeAccessGranted(userScope, dispatchURL, path);
+					boolean scopeAccess =  scopeAccessGranted(userScope, dispatchURL);
 					
 					if (HttpMethod.GET.equals(method))  
 					{
@@ -127,7 +124,7 @@ public class AuthenticationFilter extends AbstractFilter {
 						}
 						else 
 						{
-							((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
+							((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_ERROR);
 						}
 
 					}
@@ -155,7 +152,7 @@ public class AuthenticationFilter extends AbstractFilter {
 								chain.doFilter(request, response);
 							}
 							else {
-								((HttpServletResponse)response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
+								((HttpServletResponse)response).sendError(HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_ERROR);
 							}
 						}
 						else {
@@ -166,7 +163,7 @@ public class AuthenticationFilter extends AbstractFilter {
 								chain.doFilter(request, response);
 							}
 							else {
-								((HttpServletResponse)response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
+								((HttpServletResponse)response).sendError(HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_ERROR);
 							}
 						}
 					}
@@ -186,7 +183,7 @@ public class AuthenticationFilter extends AbstractFilter {
 
 	}
 
-	private boolean scopeAccessGranted(String userScope, String dispatchUrl, String path){
+	private boolean scopeAccessGranted(String userScope, String dispatchUrl){
 
 		boolean granted = false;
 		if (userScope == null || userScope.equals(CommonRestService.SCOPE_SYSTEM)) 
