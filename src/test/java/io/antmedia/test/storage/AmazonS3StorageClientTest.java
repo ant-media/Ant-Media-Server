@@ -124,6 +124,7 @@ public class AmazonS3StorageClientTest {
 			storage.save("streams/any_file", new File("any_file"));
 			
 			assertEquals(5*1024*1024, storage.getMultipartUploadThreshold());
+			storage.setRegion("us-east-1");
 			
 			TransferManager transferManager = storage.getTransferManager();
 			assertEquals(transferManager, storage.getTransferManager());
