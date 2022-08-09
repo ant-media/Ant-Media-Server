@@ -57,6 +57,7 @@ import org.red5.server.stream.StreamService;
 import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 
+import io.antmedia.AppSettings;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.statistic.IStatsCollector;
 
@@ -303,7 +304,10 @@ public class RTMPHandler extends BaseRTMPHandler {
                         			channel.sendStatus(status);
                         			return;
                         		}
+                        	} else if (!isAllowedIfRtmpPlayback(conn, channel, streamAction)) {
+                        		return;
                         	}
+                        	
                         	
                             log.debug("Invoking {} from {} with service: {}", new Object[] { call, conn.getSessionId(), streamService });
                             if (invokeCall(conn, call, streamService)) {
@@ -529,6 +533,22 @@ public class RTMPHandler extends BaseRTMPHandler {
             log.debug("Command type: {}", command.getClass().getName());
         }
     }
+
+	public boolean isAllowedIfRtmpPlayback(RTMPConnection conn, Channel channel, StreamAction streamAction) {
+		if (streamAction == StreamAction.PLAY || streamAction == StreamAction.PLAY2) 
+		{
+			AppSettings appSettings = (AppSettings) conn.getScope().getContext().getBean(AppSettings.BEAN_NAME);
+			if (!appSettings.isRtmpPlaybackEnabled()) 
+			{
+				log.info("RTMP playback is disabled");
+				Status status = getStatus(NS_FAILED).asStatus();
+				status.setDesciption("RTMP playback is disabled");
+				channel.sendStatus(status);
+				return false;
+			}
+		}
+		return true;
+	}
 
     public StatusObject getStatus(String code) {
         return statusObjectService.getStatusObject(code);
