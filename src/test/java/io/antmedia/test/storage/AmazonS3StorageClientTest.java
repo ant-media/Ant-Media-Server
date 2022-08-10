@@ -116,6 +116,21 @@ public class AmazonS3StorageClientTest {
 						
 			storage.save("streams/any_file", new File("any_file"));
 			
+			storage.setProgressListener(Mockito.mock(com.amazonaws.event.ProgressListener.class));
+			storage.save("streams/any_file", new File("any_file"));
+			
+			storage.setMultipartUploadThreshold(5*1024*1024);
+			
+			storage.save("streams/any_file", new File("any_file"));
+			
+			assertEquals(5*1024*1024, storage.getMultipartUploadThreshold());
+			storage.setRegion("us-east-1");
+			
+			TransferManager transferManager = storage.getTransferManager();
+			assertEquals(transferManager, storage.getTransferManager());
+			
+			
+			
 		}
 		catch (Exception e) {
 			e.printStackTrace();

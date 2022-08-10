@@ -318,6 +318,9 @@ public class AppSettings {
 	public static final String SETTINGS_MAX_AUDIO_TRACK_COUNT = "settings.maxAudioTrackCount";
 
 	public static final String SETTINGS_MAX_VIDEO_TRACK_COUNT = "settings.maxVideoTrackCount";
+	
+	private static final String SETTINGS_RTMP_PLAYBACK_ENABLED = "settings.rtmpPlaybackEnabled";
+
 
 
 	/**
@@ -1503,6 +1506,14 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_CONTENT_SECURITY_POLICY_HEADER_VALUE+":#{null}}" )
 	private String contentSecurityPolicyHeaderValue;
+	
+	/**
+	 * RTMP playback is not maintained and its support will be removed completely.
+	 * It also causes some stability issues on the server side. 
+	 * We highly recommend users to use CMAF(DASH) instead of RTMP playback 
+	 */
+	@Value( "${"+SETTINGS_RTMP_PLAYBACK_ENABLED +":false}" )
+	private boolean rtmpPlaybackEnabled = false;
 
 	
 	public boolean isWriteStatsToDatastore() {
@@ -2857,5 +2868,13 @@ public class AppSettings {
 
 	public void setHlsHttpEndpoint(String hlsHttpEndpoint) {
 		this.hlsHttpEndpoint = hlsHttpEndpoint;
+	}
+
+	public boolean isRtmpPlaybackEnabled() {
+		return rtmpPlaybackEnabled;
+	}
+
+	public void setRtmpPlaybackEnabled(boolean rtmpPlaybackEnabled) {
+		this.rtmpPlaybackEnabled = rtmpPlaybackEnabled;
 	}
 }

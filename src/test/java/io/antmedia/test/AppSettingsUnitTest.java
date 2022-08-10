@@ -90,6 +90,13 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setTurnServerCredential("turnservercredential");
 		assertEquals("turnservercredential", appSettings.getTurnServerCredential());
 		
+		
+		assertEquals(false, appSettings.isRtmpPlaybackEnabled());
+		appSettings.setRtmpPlaybackEnabled(true);
+		assertEquals(true, appSettings.isRtmpPlaybackEnabled());
+		appSettings.setRtmpPlaybackEnabled(false);
+		
+		
 	}
 
 	@Test
@@ -454,6 +461,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(null, appSettings.getTurnServerCredential());
 		assertEquals(null, appSettings.getTurnServerUsername());
 		assertEquals(null, appSettings.getHlsHttpEndpoint());
+		assertEquals(false, appSettings.isRtmpPlaybackEnabled());
 		
 	
 		
@@ -461,7 +469,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					151, numberOfFields);
+					152, numberOfFields);
 		
 	}
 
