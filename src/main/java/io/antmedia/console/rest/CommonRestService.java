@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
@@ -263,16 +264,16 @@ public class CommonRestService {
 
 			// if any of them is null, then it will throw IllegalArgumentException
 			// so, be sure that none of them is null
-			firstname = Objects.requireNonNullElse(firstname, "")
-			lastname = Objects.requireNonNullElse(lastname, "")
-			email = Objects.requireNonNullElse(email, "")
+			firstname = Objects.requireNonNullElse(firstname, "");
+			lastname = Objects.requireNonNullElse(lastname, "");
+			email = Objects.requireNonNullElse(email, "");
 			String isEnterprise = Objects.requireNonNullElse(RestServiceBase.isEnterprise(), "") + "";
 			String licenseKey = Objects.requireNonNullElse(getServerSettings().getLicenceKey(), "") + "";
-			String version = Objects.requireNonNullElse(version.getVersionType(), "")+" "+Objects.requireNonNullElse(version.getVersionName(), "")+" "+Objects.requireNonNullElse(version.getBuildNumber(), "");
+			String versionStr = Objects.requireNonNullElse(version.getVersionType(), "")+" "+Objects.requireNonNullElse(version.getVersionName(), "")+" "+Objects.requireNonNullElse(version.getBuildNumber(), "");
 			String marketplace = Objects.requireNonNullElse(getServerSettings().getMarketplace(), "")+"";
 			String instanceId = Objects.requireNonNullElse(Launcher.getInstanceId(), "");
 			scope = Objects.requireNonNullElse(scope, "");
-			userType = Objects.requireNonNullElse(userType, "")
+			userType = Objects.requireNonNullElse(userType, "");
 
 			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 			builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
@@ -282,7 +283,7 @@ public class CommonRestService {
 			builder.addTextBody("email", email);
 			builder.addTextBody("isEnterprise", isEnterprise);
 			builder.addTextBody("licenseKey", licenseKey);
-			builder.addTextBody("version", version);
+			builder.addTextBody("version", versionStr);
 			builder.addTextBody("marketplace", marketplace);
 			builder.addTextBody("instanceId", instanceId);
 			builder.addTextBody("userScope", scope);
