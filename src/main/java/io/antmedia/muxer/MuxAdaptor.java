@@ -1,6 +1,9 @@
 package io.antmedia.muxer;
 
 import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING;
+import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED;
+import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_ERROR;
+import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_FAILED;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_PNG;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
@@ -1937,10 +1940,23 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
 			RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
-			if (rtmpMuxer != null) {
+			String status = statusMap.getValueOrDefault(rtmpUrl, null);
+			if (rtmpMuxer != null)
+			{
 				muxerList.remove(rtmpMuxer);
 				statusMap.remove(rtmpUrl);
 				rtmpMuxer.writeTrailer();
+				result.setSuccess(true);
+			}
+			else if(status == null
+					|| IAntMediaStreamHandler.BROADCAST_STATUS_ERROR.equals(status)
+					|| IAntMediaStreamHandler.BROADCAST_STATUS_FAILED.equals(status)
+					|| IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(status))
+			{
+				/**
+				 * When the stream is not found in the muxer list, stream url could be invalid or the stream is finished.
+				 * In either case, we should return success.
+				 */
 				result.setSuccess(true);
 			}
 		}
