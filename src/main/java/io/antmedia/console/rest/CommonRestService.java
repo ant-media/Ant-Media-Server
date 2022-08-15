@@ -262,8 +262,7 @@ public class CommonRestService {
 
 			httpPost.setConfig(requestConfig);
 
-			// if any of them is null, then it will throw IllegalArgumentException
-			// so, be sure that none of them is null
+			// if args are null, set them to empty string
 			firstname = Objects.requireNonNullElse(firstname, "");
 			lastname = Objects.requireNonNullElse(lastname, "");
 			email = Objects.requireNonNullElse(email, "");
