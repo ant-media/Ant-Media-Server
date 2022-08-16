@@ -166,7 +166,7 @@ public abstract class Muxer {
 	/**
 	 * ts and m4s files index length
 	 */
-	public static final int SEGMENT_INDEX_LENGTH = 11;
+	public static final int SEGMENT_INDEX_LENGTH = 9;
 
 	protected Map<Integer, Integer> inputOutputStreamIndexMap = new ConcurrentHashMap<>();
 
