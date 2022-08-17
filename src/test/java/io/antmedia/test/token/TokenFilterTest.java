@@ -480,7 +480,7 @@ public class TokenFilterTest {
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"0000.ts")); 
 		
 		
-		assertEquals("monstercat", TokenFilterManager.getStreamId("/liveapp/streams/monstercat06021800000.ts")); 
+		assertEquals("monstercat", TokenFilterManager.getStreamId("/liveapp/streams/monstercat060218000.ts")); 
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p300kbps0000.ts")); 
 
