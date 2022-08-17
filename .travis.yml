@@ -28,8 +28,10 @@ before_install:
   - echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
   - sudo apt-get update -qq
   #install mongodb ffmpeg wondershaper 
-  - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
-  - sudo apt-get install redis -y -qq
+  - sudo apt-get install mongodb-org ffmpeg redis wondershaper -y -qq
+  - sudo sed -e 's/^bind.*/bind 127.0.0.1/' /etc/redis/redis.conf > redis.conf
+  - sudo mv redis.conf /etc/redis
+  - sudo service redis-server start
   - sudo mongod --dbpath /var/lib/mongodb &>/dev/null & # start mongo db - don' write log
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
     # get parent project
