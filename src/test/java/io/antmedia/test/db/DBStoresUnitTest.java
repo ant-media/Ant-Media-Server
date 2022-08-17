@@ -40,6 +40,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
+import io.antmedia.datastore.db.RedisStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -266,6 +267,58 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+	}
+	
+	@Test
+	public void testRedisStore() {
+
+		DataStore dataStore = new RedisStore("localhost", "testApp", "", "", "6379");
+		//delete db
+		dataStore.close(true);
+		
+		dataStore = new RedisStore("localhost", "testApp", "", "", "6379");
+		
+		testBugFreeStreamId(dataStore);
+		testUnexpectedBroadcastOffset(dataStore);
+		testUnexpectedVodOffset(dataStore);
+		
+		testBugGetExternalStreamsList(dataStore);
+		testGetPagination(dataStore);
+		testNullCheck(dataStore);
+		testSimpleOperations(dataStore);
+		testRemoveEndpoint(dataStore);
+		testRemoveEndpointWithServiceEndpoint(dataStore);
+		testRTMPURL(dataStore);
+		testStreamWithId(dataStore);
+		testSaveDetection(dataStore);
+		testFilterSearchOperations(dataStore);
+		testVoDFunctions(dataStore);
+		testSaveStreamInDirectory(dataStore);
+		testEditCameraInfo(dataStore);
+		testGetActiveBroadcastCount(dataStore);
+		testUpdateHLSViewerCount(dataStore);
+		testWebRTCViewerCount(dataStore);
+		testRTMPViewerCount(dataStore);
+		testTokenOperations(dataStore);
+		testTimeBasedSubscriberOperations(dataStore);
+		testConferenceRoom(dataStore);
+		testUpdateStatus(dataStore);
+		testP2PConnection(dataStore);
+		testUpdateLocationParams(dataStore);
+		testPlaylist(dataStore);
+		testAddTrack(dataStore);
+		testClearAtStart(dataStore);
+    	testGetVoDIdByStreamId(dataStore);
+    	testBroadcastListSorting(dataStore);	
+		testTotalWebRTCViewerCount(dataStore);
+		testBroadcastListSearch(dataStore);
+		testVodSearch(dataStore);
+		testConferenceRoomSorting(dataStore);
+		testConferenceRoomSearch(dataStore);
+		testUpdateEndpointStatus(dataStore);
+		testWebRTCViewerOperations(dataStore);
+		testUpdateMetaData(dataStore);
+		testStreamSourceList(dataStore);
 	}
 	
 	@Test

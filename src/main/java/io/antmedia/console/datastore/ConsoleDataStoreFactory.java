@@ -26,6 +26,9 @@ public class ConsoleDataStoreFactory  {
 	@Value( "${"+io.antmedia.datastore.db.DataStoreFactory.SETTINGS_DB_PASS+":#{null}}" )
 	private String dbPassword;
 	
+	@Value( "${"+io.antmedia.datastore.db.DataStoreFactory.SETTINGS_DB_PORT+":#{null}}" )
+	private String dbPort;
+
 	public String getAppName() {
 		return appName;
 	}
@@ -73,6 +76,14 @@ public class ConsoleDataStoreFactory  {
 	public void setDbPassword(String dbPassword) {
 		this.dbPassword = dbPassword;
 	}
+	
+	public String getDbPort() {
+		return dbPort;
+	}
+
+	public void setDbPort(String dbPort) {
+		this.dbPort = dbPort;
+	}
 
 	public AbstractConsoleDataStore getDataStore() {
 		if (dataStore == null) {
@@ -84,6 +95,10 @@ public class ConsoleDataStoreFactory  {
 			else if(dbType.contentEquals("mapdb"))
 			{
 				dataStore = new MapDBStore();
+			}
+			else if(dbType.contentEquals("redisdb"))
+			{
+				dataStore = new RedisStore(dbHost, dbUser, dbPassword, dbPort);
 			}
 		}
 		return dataStore;

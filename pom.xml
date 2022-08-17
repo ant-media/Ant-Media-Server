@@ -635,7 +635,14 @@
   			<groupId>com.auth0</groupId>
   			<artifactId>java-jwt</artifactId>
   			<version>3.18.3</version>
-		</dependency>
+		</dependency>		
+
+<dependency>
+   <groupId>org.redisson</groupId>
+   <artifactId>redisson</artifactId>
+   <version>3.17.4</version>
+</dependency>  
+
     </dependencies>
     <profiles>
         <profile>

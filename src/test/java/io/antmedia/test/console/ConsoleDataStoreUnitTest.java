@@ -9,6 +9,7 @@ import org.junit.Test;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.datastore.MapDBStore;
 import io.antmedia.console.datastore.MongoStore;
+import io.antmedia.console.datastore.RedisStore;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.rest.model.UserType;
 
@@ -18,6 +19,12 @@ public class ConsoleDataStoreUnitTest {
 	@Test
 	public void testMongoStore() {
 		AbstractConsoleDataStore dt = new MongoStore("127.0.0.1", "", "");
+		simpleDBOperations(dt);
+	}
+	
+	@Test
+	public void testRedisStore() {
+		AbstractConsoleDataStore dt = new RedisStore("127.0.0.1", "", "", "6379");
 		simpleDBOperations(dt);
 	}
 	

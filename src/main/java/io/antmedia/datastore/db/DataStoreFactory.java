@@ -19,12 +19,14 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	public static final String DB_TYPE_MEMORYDB = "memorydb";
 	public static final String DB_TYPE_MAPDB = "mapdb";
 	public static final String DB_TYPE_MONGODB = "mongodb";
+	public static final String DB_TYPE_REDISDB = "redisdb";
 	
 	public static final String SETTINGS_DB_NAME = "db.name";
 	public static final String SETTINGS_DB_TYPE = "db.type";
 	public static final String SETTINGS_DB_HOST = "db.host";
 	public static final String SETTINGS_DB_USER = "db.user";
 	public static final String SETTINGS_DB_PASS = "db.password";
+	public static final String SETTINGS_DB_PORT = "db.port";
 
 
 	private static Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
@@ -39,6 +41,9 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	@Value( "${"+SETTINGS_DB_NAME+":#{null}}" )
 	private String dbName;
 	
+	@Value( "${"+SETTINGS_DB_PORT+":#{null}}" )
+	private String dbPort;
+
 	/**
 	 * One of the DB_TYPE_*
 	 */
@@ -98,6 +103,14 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		this.dbPassword = dbPassword;
 	}
 	
+	public String getDbPort() {
+		return dbPort;
+	}
+
+	public void setDbPort(String dbPort) {
+		this.dbPort = dbPort;
+	}
+	
 	public void init()  
 	{
 		if(dbType.contentEquals(DB_TYPE_MONGODB))
@@ -107,6 +120,10 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		else if(dbType .contentEquals(DB_TYPE_MAPDB))
 		{
 			dataStore = new MapDBStore(dbName+".db", vertx);
+		}
+		else if(dbType .contentEquals(DB_TYPE_REDISDB))
+		{
+			dataStore = new RedisStore(dbHost, dbName, dbUser, dbPassword, dbPort);
 		}
 		else if(dbType .contentEquals(DB_TYPE_MEMORYDB))
 		{
