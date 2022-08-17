@@ -1487,6 +1487,12 @@ public abstract class RestServiceBase {
 
 		return list;
 	}
+	
+	protected String[] getOnvifDeviceProfiles(String id) {
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
+		return camera.getProfiles();
+	}
+
 
 	public String[] getIPArray(List<URL> onvifDevices) {
 
@@ -1889,4 +1895,5 @@ public abstract class RestServiceBase {
 
 		return new Result(result, message);
 	}
+
 }

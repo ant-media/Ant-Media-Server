@@ -445,6 +445,13 @@ public class TokenFilterTest {
 		
 		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test" +".m3u8"));
 		
+		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test_240p" +".m3u8"));
+		
+		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test_500kbps" +".m3u8"));
+		
+		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test_480p300kbps" +".m3u8"));
+		
+		
 		// Tests for CMAF
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/chunked/"+streamId+"/media_1.m3u8"));
 		
@@ -453,6 +460,10 @@ public class TokenFilterTest {
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/chunked/"+streamId+"/media_0.m3u8"));		
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".m3u8"));
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_240p.m3u8"));
+		
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_500kbps.m3u8"));
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_480p300kbps_1"+".mp4")); 
 		
@@ -467,6 +478,9 @@ public class TokenFilterTest {
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p300kbps.m3u8"));
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"0000.ts")); 
+		
+		
+		assertEquals("monstercat", TokenFilterManager.getStreamId("/liveapp/streams/monstercat060218000.ts")); 
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p300kbps0000.ts")); 
 
@@ -511,6 +525,9 @@ public class TokenFilterTest {
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"/"+"test_test_"+streamId+"_0segment00139.m4s"));
 
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"/"+"test_test_"+streamId+"_0segment00139000001.m4s"));
+
+		
 		assertNull(TokenFilterManager.getStreamId("/live_app/streams/"+streamId+".u8"));
 		
 		

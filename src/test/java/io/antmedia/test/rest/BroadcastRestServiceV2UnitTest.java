@@ -2980,4 +2980,48 @@ public class BroadcastRestServiceV2UnitTest {
 		verify(testApp, times(1)).stopPlaying(viewerId);
 	}
 	
+	@Test
+	public void testGetCameraProfiles() {
+		//start ONVIF Camera emulator
+		StreamFetcherUnitTest.startCameraEmulator();
+
+		//create a cam broadcast
+		Broadcast newCam = new Broadcast("testAddIPCamera", "127.0.0.1:8080", "admin", "admin",
+				"", AntMediaApplicationAdapter.IP_CAMERA);
+		try {
+			newCam.setStreamId("test");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		//simulate required operations
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
+		AntMediaApplicationAdapter adaptor = Mockito.spy (new AntMediaApplicationAdapter());
+
+		InMemoryDataStore datastore = new InMemoryDataStore("testConnectToCamera");
+		
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
+		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
+		Mockito.doReturn(datastore).when(streamSourceRest).getDataStore();
+		Mockito.doReturn(datastore).when(adaptor).getDataStore();
+
+		
+		IScope scope = mock(IScope.class);
+		Mockito.doReturn(scope).when(streamSourceRest).getScope();
+		
+		Mockito.doReturn(new ServerSettings()).when(streamSourceRest).getServerSettings();
+		Mockito.doReturn(new AppSettings()).when(streamSourceRest).getAppSettings();
+		
+		//add IP Camera first
+		assertTrue(streamSourceRest.addIPCamera(newCam).isSuccess());
+
+
+		String[] profiles = streamSourceRest.getOnvifDeviceProfiles(newCam.getStreamId());
+		
+		assertEquals(2, profiles.length);
+		
+		assertNull(streamSourceRest.getOnvifDeviceProfiles("invalid id"));
+
+	}
+	
 }
