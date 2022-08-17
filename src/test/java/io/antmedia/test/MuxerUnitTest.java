@@ -2804,20 +2804,20 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7, null);
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		hlsMuxer.init(appScope, "test", 0, "", 100);
-		assertEquals("./webapps/junit/streams/test%011d.ts", hlsMuxer.getSegmentFilename());
+		assertEquals("./webapps/junit/streams/test%09d.ts", hlsMuxer.getSegmentFilename());
 
 		hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7, null);
 		hlsMuxer.init(appScope, "test", 0, "", 0);
-		assertEquals("./webapps/junit/streams/test%011d.ts", hlsMuxer.getSegmentFilename());
+		assertEquals("./webapps/junit/streams/test%09d.ts", hlsMuxer.getSegmentFilename());
 
 		hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7, null);
 		hlsMuxer.init(appScope, "test", 300, "", 0);
-		assertEquals("./webapps/junit/streams/test_300p%011d.ts", hlsMuxer.getSegmentFilename());
+		assertEquals("./webapps/junit/streams/test_300p%09d.ts", hlsMuxer.getSegmentFilename());
 		
 
 		hlsMuxer = new HLSMuxer(vertx,Mockito.mock(StorageClient.class), "", 7, null);
 		hlsMuxer.init(appScope, "test", 300, "", 400000);
-		assertEquals("./webapps/junit/streams/test_300p400kbps%011d.ts", hlsMuxer.getSegmentFilename());
+		assertEquals("./webapps/junit/streams/test_300p400kbps%09d.ts", hlsMuxer.getSegmentFilename());
 
 	}
 
