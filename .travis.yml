@@ -24,9 +24,12 @@ before_install:
   #- sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
   - wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
   - echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+  - curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+  - echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
   - sudo apt-get update -qq
   #install mongodb ffmpeg wondershaper 
   - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
+  - sudo apt-get install redis -y -qq
   - sudo mongod --dbpath /var/lib/mongodb &>/dev/null & # start mongo db - don' write log
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
     # get parent project
