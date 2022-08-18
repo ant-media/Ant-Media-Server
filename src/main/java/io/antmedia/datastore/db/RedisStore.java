@@ -79,9 +79,9 @@ public class RedisStore extends DataStore {
     	vodMap = redisson.getMap(dbName+"Vods");
     	conferenceRoomMap = redisson.getMap(dbName+"Conferences");
     	detectionMap = redisson.getMap(dbName+"Detections");
-    	tokenMap = redisson.getMap(dbName+"tokens");
+    	tokenMap = redisson.getMap(dbName+"Tokens");
     	subscriberMap = redisson.getMap(dbName+"Subscribers");	
-    	webRTCViewerMap = redisson.getMap(dbName+"webRTCViewers");
+    	webRTCViewerMap = redisson.getMap(dbName+"WebRTCViewers");
     	
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.create();
