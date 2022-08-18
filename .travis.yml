@@ -32,7 +32,6 @@ before_install:
   - sudo sed -e 's/^bind.*/bind 127.0.0.1/' /etc/redis/redis.conf > redis.conf
   - sudo mv redis.conf /etc/redis
   - sudo service redis-server start
-  - echo PING | nc localhost 6379
   - sudo apt-get update -qq
   #install mongodb ffmpeg wondershaper 
   - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
@@ -124,7 +123,6 @@ before_script:
   
   
 script:
-  - echo PING | nc localhost 6379
   - export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
   - echo $RELEASE_VERSION
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package  org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
