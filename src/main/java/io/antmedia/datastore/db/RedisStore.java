@@ -59,7 +59,7 @@ public class RedisStore extends DataStore {
     	
 		this.dbName = dbName;
 		
-   	Config config  = new Config();
+		Config config  = new Config();
     	
     	SingleServerConfig singleServerConfig = config.useSingleServer();
     	singleServerConfig.setAddress("redis://"+redisHost+":"+redisPort);

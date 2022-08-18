@@ -272,11 +272,11 @@ public class DBStoresUnitTest {
 	@Test
 	public void testRedisStore() {
 
-		DataStore dataStore = new RedisStore("localhost", "testApp", "", "", "6379");
+		DataStore dataStore = new RedisStore("localhost", "testdb", "", "", "6379");
 		//delete db
 		dataStore.close(true);
 		
-		dataStore = new RedisStore("localhost", "testApp", "", "", "6379");
+		dataStore = new RedisStore("localhost", "testdb", "", "", "6379");
 		
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
