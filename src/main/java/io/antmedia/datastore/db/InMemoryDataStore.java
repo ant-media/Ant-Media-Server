@@ -43,7 +43,7 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, WebRTCViewerInfo> webRTCViewerMap = new LinkedHashMap<>();
 
 
-	public InMemoryDataStore() {
+	public InMemoryDataStore(String dbName) {
 		available = true;
 	}
 

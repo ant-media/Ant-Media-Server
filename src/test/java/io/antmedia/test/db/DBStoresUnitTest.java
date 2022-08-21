@@ -169,7 +169,7 @@ public class DBStoresUnitTest {
 
 	@Test
 	public void testMemoryDataStore() {
-		DataStore dataStore = new InMemoryDataStore();
+		DataStore dataStore = new InMemoryDataStore("testdb");
 		
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
