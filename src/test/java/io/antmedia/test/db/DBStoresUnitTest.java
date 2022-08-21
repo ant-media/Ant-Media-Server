@@ -169,7 +169,7 @@ public class DBStoresUnitTest {
 
 	@Test
 	public void testMemoryDataStore() {
-		DataStore dataStore = new InMemoryDataStore("testdb");
+		DataStore dataStore = new InMemoryDataStore();
 		
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -272,11 +272,11 @@ public class DBStoresUnitTest {
 	@Test
 	public void testRedisStore() {
 
-	//	DataStore dataStore = new RedisStore("127.0.0.1", "testdb", "", "", "6379");
-		//delete db
-	//	dataStore.close(true);
-		
 		DataStore dataStore = new RedisStore("127.0.0.1", "testdb", "", "", "6379");
+		//delete db
+		dataStore.close(true);
+		
+		dataStore = new RedisStore("127.0.0.1", "testdb", "", "", "6379");
 		
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);

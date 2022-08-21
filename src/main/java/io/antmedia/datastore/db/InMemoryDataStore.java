@@ -16,6 +16,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -42,44 +43,18 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, WebRTCViewerInfo> webRTCViewerMap = new LinkedHashMap<>();
 
 
-	public InMemoryDataStore(String dbName) {
+	public InMemoryDataStore() {
 		available = true;
 	}
 
 	@Override
 	public String save(Broadcast broadcast) {
-
-		String streamId = null;
-		if (broadcast != null) {
-
-			try {
-				if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-					streamId = RandomStringUtils.randomNumeric(24);
-					broadcast.setStreamId(streamId);
-				}
-				streamId = broadcast.getStreamId();
-				String rtmpURL = broadcast.getRtmpURL();
-				if (rtmpURL != null) {
-					rtmpURL += streamId;
-				}
-				broadcast.setRtmpURL(rtmpURL);
-				if(broadcast.getStatus()==null) {
-					broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
-				}
-				broadcastMap.put(streamId, broadcast);
-			} catch (Exception e) {
-				logger.error(e.getMessage());
-				streamId = null;
-			}
-
-		}
-		return streamId;
+		return super.save(null, null, broadcastMap, null, broadcast, null);
 	}
 
 	@Override
 	public Broadcast get(String id) {
-
-		return broadcastMap.get(id);
+		return super.get(null, null, broadcastMap, null, id, null);
 	}
 
 	@Override
@@ -89,22 +64,7 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public boolean updateStatus(String id, String status) {
-		Broadcast broadcast = broadcastMap.get(id);
-		boolean result = false;
-		if (broadcast != null) {
-			broadcast.setStatus(status);
-			if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
-				broadcast.setStartTime(System.currentTimeMillis());
-			}
-			else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) {
-				broadcast.setRtmpViewerCount(0);
-				broadcast.setWebRTCViewerCount(0);
-				broadcast.setHlsViewerCount(0);
-			}
-			broadcastMap.put(id, broadcast);
-			result = true;
-		}
-		return result;
+		return super.updateStatus(null, null, broadcastMap, id, status, null); 
 	}
 
 	@Override
@@ -188,7 +148,7 @@ public class InMemoryDataStore extends DataStore {
 		Broadcast broadcast = broadcastMap.get(id);
 		boolean result = false;
 		if (broadcast != null) {
-			result = broadcastMap.remove(id) != null ? true : false;
+			result = broadcastMap.remove(id) != null;
 		}
 		return result;
 	}
@@ -338,7 +298,7 @@ public class InMemoryDataStore extends DataStore {
 		Collection<VoD> vodCollection = vodMap.values();
 
 		for (Iterator<VoD> iterator = vodCollection.iterator(); iterator.hasNext();) {
-			VoD vod = (VoD) iterator.next();
+			VoD vod = iterator.next();
 			if (vod.getType().equals(VoD.USER_VOD)) {
 				iterator.remove();
 			}
@@ -476,11 +436,12 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public List<TensorFlowObject> getDetection(String id) {
+		List<TensorFlowObject> detectedObjects = new ArrayList<>();
 		if (id != null) {
-			List<TensorFlowObject> detectedObjects = detectionMap.get(id);
+			detectedObjects = detectionMap.get(id);
 			return detectedObjects;
 		}
-		return null;
+		return detectedObjects;
 	}
 
 	@Override
@@ -631,7 +592,7 @@ public class InMemoryDataStore extends DataStore {
 		Collection<Token> tokenCollection = tokenMap.values();
 
 		for (Iterator<Token> iterator = tokenCollection.iterator(); iterator.hasNext();) {
-			Token token = (Token) iterator.next();
+			Token token = iterator.next();
 			if (token.getStreamId().equals(streamId)) {
 				iterator.remove();
 				tokenMap.remove(token.getTokenId());
@@ -1022,7 +983,7 @@ public class InMemoryDataStore extends DataStore {
 		Broadcast broadcast = broadcastMap.get(streamId);
 		boolean result = false;
 		if (broadcast != null) {
-			broadcast.setMetaData(metaData);;
+			broadcast.setMetaData(metaData);
 			broadcastMap.put(streamId, broadcast);
 			result = true;
 		}

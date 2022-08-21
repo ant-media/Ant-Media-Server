@@ -127,7 +127,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		}
 		else if(dbType .contentEquals(DB_TYPE_MEMORYDB))
 		{
-			dataStore = new InMemoryDataStore(dbName);
+			dataStore = new InMemoryDataStore();
 		}
 		else {
 			logger.error("Undefined Datastore:{}  db name:{}", dbType, dbName);

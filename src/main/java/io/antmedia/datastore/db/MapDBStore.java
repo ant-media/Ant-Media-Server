@@ -151,89 +151,22 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public String save(Broadcast broadcast) {
-
-		String streamId = null;
-		synchronized (this) {
-			if (broadcast != null) {
-				try {
-					if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-						streamId = RandomStringUtils.randomNumeric(24);
-						broadcast.setStreamId(streamId);
-					}
-					streamId = broadcast.getStreamId();
-
-					String rtmpURL = broadcast.getRtmpURL();
-					if (rtmpURL != null) {
-						rtmpURL += streamId;
-					}
-					broadcast.setRtmpURL(rtmpURL);
-					if(broadcast.getStatus()==null) {
-						broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
-					}
-					map.put(streamId, gson.toJson(broadcast));
-				} catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-					streamId = null;
-				}
-			}
-		}
-
-		return streamId;
+		return super.save(null, map, null, null, broadcast, gson);
 	}
 
 	@Override
 	public Broadcast get(String id) {
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = map.get(id);
-				if (jsonString != null) {
-					return gson.fromJson(jsonString, Broadcast.class);
-				}
-			}
-		}
-		return null;
+		return super.get(null, map, null, null, id, gson);
 	}
 
 	@Override
 	public VoD getVoD(String id) {
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = vodMap.get(id);
-				if (jsonString != null) {
-					return gson.fromJson(jsonString, VoD.class);
-				}
-			}
-		}
-		return null;
+		return super.getVoD(null, vodMap, null, null, id, gson);
 	}
 
 	@Override
 	public boolean updateStatus(String id, String status) {
-		boolean result = false;
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = map.get(id);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-					broadcast.setStatus(status);
-					if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
-						broadcast.setStartTime(System.currentTimeMillis());
-					}
-					else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) {
-						broadcast.setRtmpViewerCount(0);
-						broadcast.setWebRTCViewerCount(0);
-						broadcast.setHlsViewerCount(0);
-						broadcast.setDashViewerCount(0);
-					}
-
-					String jsonVal = gson.toJson(broadcast);
-					String previousValue = map.replace(id, jsonVal);
-					logger.debug("updateStatus replacing id {} having value {} to {}", id, previousValue, jsonVal);
-					result = true;
-				}
-			}
-		}
-		return result;
+		return super.updateStatus(null, map, null, id, status, gson); 
 	}
 
 	@Override
@@ -1464,4 +1397,5 @@ public class MapDBStore extends DataStore {
 		}
 		return result;
 	}
+
 }

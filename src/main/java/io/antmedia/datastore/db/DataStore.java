@@ -1,15 +1,24 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.mapdb.BTreeMap;
+import org.redisson.api.RMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.Gson;
+
+import dev.morphia.Datastore;
+import dev.morphia.query.filters.Filters;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
@@ -22,9 +31,10 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
+import io.antmedia.muxer.IAntMediaStreamHandler;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public abstract class DataStore {
-
 
 	//Do not forget to write function descriptions especially if you are adding new functions
 
@@ -36,24 +46,184 @@ public abstract class DataStore {
 
 	protected static Logger logger = LoggerFactory.getLogger(DataStore.class);
 	
+	public String save(Broadcast broadcast) {
+		return save(null, null, null, null, broadcast, null);
+	}
 	
-	public abstract String save(Broadcast broadcast);
+	public String save(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, Map<String, Broadcast> inMemoryBroadcastMap, Datastore mongoStore, Broadcast broadcast, Gson gson) {
+		if (broadcast == null) {
+			return null;
+		}
+		try {
+			String streamId = null;
+			if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
+				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
+				broadcast.setStreamId(streamId);
+			}
+			streamId = broadcast.getStreamId();
+			String rtmpURL = broadcast.getRtmpURL();
+			if (rtmpURL != null) {
+				rtmpURL += streamId;
+			}
+			broadcast.setRtmpURL(rtmpURL);
+			if(broadcast.getStatus()==null) {
+				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
+			}
+
+			synchronized(this) {
+				if(mapdbBroadcastMap != null) {
+					mapdbBroadcastMap.put(streamId, gson.toJson(broadcast));
+				}
+				else if (mongoStore != null) {
+					mongoStore.save(broadcast);
+				}
+				else if(redisBroadcastMap != null) {
+					redisBroadcastMap.put(streamId, gson.toJson(broadcast));
+				}
+				else {
+					inMemoryBroadcastMap.put(streamId, broadcast);
+				}
+			}
+			return streamId;
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return null;
+	}
 
 	/**
 	 * Return the broadcast in data store
 	 * @param id
 	 * @return broadcast
 	 */
-	public abstract Broadcast get(String id);
+	public Broadcast get(String id) {
+		return get(null, null, null, null, id, null);
+	}
+	
+	public Broadcast get(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, Map<String, Broadcast> inMemoryBroadcastMap, Datastore mongoStore, String streamId, Gson gson) {
+		synchronized (this) {
+			if (streamId != null) {
+				String jsonString;
+				if(mapdbBroadcastMap != null) {
+					jsonString = mapdbBroadcastMap.get(streamId);
+				}
+				else if(mongoStore != null) {
+					return mongoStore.find(Broadcast.class).filter(Filters.eq(MongoStore.STREAM_ID, streamId)).first();
+				}
+				else if(redisBroadcastMap != null) {
+					jsonString = redisBroadcastMap.get(streamId);
+				}
+				else {
+					return inMemoryBroadcastMap.get(streamId);
+				}
+				
+				if (jsonString != null) {
+					return gson.fromJson(jsonString, Broadcast.class);
+				}
+			}
+		}
+		return null;
+	}
+	
 
 	/**
 	 * Return the vod by id
 	 * @param id
 	 * @return Vod object
 	 */
-	public abstract VoD getVoD(String id);
+	public VoD getVoD(String id) {
+		return getVoD(null, null, null, null, id, null);
+	}
+	
+	public VoD getVoD(RMap<String, String> redisVoDMap, BTreeMap<String, String> mapdbVoDMap, Map<String, VoD> inMemoryVoDMap, Datastore mongoStore, String vodId, Gson gson) {
+		synchronized (this) {
+			if (vodId != null) {
+				String jsonString;
+				if(mapdbVoDMap != null) {
+					jsonString = mapdbVoDMap.get(vodId);
+				}
+				else if(mongoStore != null) {
+					return mongoStore.find(VoD.class).filter(Filters.eq(MongoStore.VOD_ID,vodId)).first();
+				}
+				else if(redisVoDMap != null) {
+					jsonString = redisVoDMap.get(vodId);
+				}
+				else {
+					return inMemoryVoDMap.get(vodId);
+				}
 
-	public abstract boolean updateStatus(String id, String status);
+				if (jsonString != null) {
+					return gson.fromJson(jsonString, VoD.class);
+				}
+			}
+		}
+		return null;
+	}
+
+	public boolean updateStatus(String id, String status) {
+		return updateStatus(null, null, null, id, status, null);
+	}
+	
+	public boolean updateStatus(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, Map<String, Broadcast> inMemoryBroadcastMap, String streamId, String status, Gson gson) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				String jsonString = null;
+				Broadcast broadcast = null;
+				if(mapdbBroadcastMap != null) {
+					jsonString = mapdbBroadcastMap.get(streamId);
+				}
+				else if(redisBroadcastMap != null) {
+					jsonString = redisBroadcastMap.get(streamId);
+				}
+				else if (inMemoryBroadcastMap != null) {
+					broadcast = inMemoryBroadcastMap.get(streamId);
+				}
+
+				if (jsonString != null || broadcast != null) {
+					
+					// Map DB or Redis
+					if(broadcast == null) {
+						broadcast = gson.fromJson(jsonString, Broadcast.class);
+					}
+					
+					broadcast.setStatus(status);
+					if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
+						broadcast.setStartTime(System.currentTimeMillis());
+					}
+					else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) {
+						broadcast.setRtmpViewerCount(0);
+						broadcast.setWebRTCViewerCount(0);
+						broadcast.setHlsViewerCount(0);
+						broadcast.setDashViewerCount(0);
+					}
+					
+					if(inMemoryBroadcastMap != null) {
+						inMemoryBroadcastMap.put(streamId, broadcast);
+						return true;
+					}
+
+					String jsonVal = gson.toJson(broadcast);
+					String previousValue = null;
+					
+					if(mapdbBroadcastMap != null) {
+						previousValue = mapdbBroadcastMap.replace(streamId, jsonVal);
+					}
+					else {
+						previousValue = redisBroadcastMap.replace(streamId, jsonVal);
+					}
+					
+					logger.debug("updateStatus replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
+	
+
+	
+
 
 	public static final long TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME = 5000;
 	protected int totalWebRTCViewerCount = 0;

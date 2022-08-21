@@ -42,7 +42,7 @@ public class RedisStore extends DataStore {
 
 	protected static Logger logger = LoggerFactory.getLogger(RedisStore.class);
 	
-	private RMap<String, String> broadcastMap;
+	public RMap<String, String> broadcastMap;
 	private RMap<String, String> vodMap;
 	private RMap<String, String> conferenceRoomMap;
 	private RMap<String, String> detectionMap;
@@ -89,90 +89,24 @@ public class RedisStore extends DataStore {
 		available = true;
 	}
 	
-	@Override
+    @Override
 	public String save(Broadcast broadcast) {
-		if (broadcast == null) {
-			return null;
-		}
-		try {
-			String streamId = null;
-			if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
-				broadcast.setStreamId(streamId);
-			}
-			streamId = broadcast.getStreamId();
-			String rtmpURL = broadcast.getRtmpURL();
-			if (rtmpURL != null) {
-				rtmpURL += streamId;
-			}
-			broadcast.setRtmpURL(rtmpURL);
-			if(broadcast.getStatus()==null) {
-				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
-			}
-
-			synchronized(this) {
-				broadcastMap.put(streamId, gson.toJson(broadcast));
-			}
-			return streamId;
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		return null;
+		return super.save(broadcastMap, null, null, null, broadcast, gson);
 	}
 
 	@Override
 	public Broadcast get(String id) {
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = broadcastMap.get(id);
-				if (jsonString != null) {
-					return gson.fromJson(jsonString, Broadcast.class);
-				}
-			}
-		}
-		return null;
+		return super.get(broadcastMap, null, null, null, id, gson);
 	}
 
 	@Override
 	public VoD getVoD(String id) {
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = vodMap.get(id);
-				if (jsonString != null) {
-					return gson.fromJson(jsonString, VoD.class);
-				}
-			}
-		}
-		return null;
+		return super.getVoD(vodMap, null, null, null, id, gson);
 	}
 
 	@Override
 	public boolean updateStatus(String id, String status) {
-		boolean result = false;
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = broadcastMap.get(id);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-					broadcast.setStatus(status);
-					if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
-						broadcast.setStartTime(System.currentTimeMillis());
-					}
-					else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) {
-						broadcast.setRtmpViewerCount(0);
-						broadcast.setWebRTCViewerCount(0);
-						broadcast.setHlsViewerCount(0);
-						broadcast.setDashViewerCount(0);
-					}
-
-					String jsonVal = gson.toJson(broadcast);
-					String previousValue = broadcastMap.replace(id, jsonVal);
-					logger.debug("updateStatus replacing id {} having value {} to {}", id, previousValue, jsonVal);
-					result = true;
-				}
-			}
-		}
-		return result;
+		return super.updateStatus(broadcastMap, null, null, id, status, gson); 
 	}
 
 	@Override
@@ -277,6 +211,7 @@ public class RedisStore extends DataStore {
 	 * Use getTotalBroadcastNumber
 	 * @deprecated
 	 */
+	@Deprecated
 	@Override
 	public long getBroadcastCount() {
 		synchronized (this) {
@@ -292,7 +227,7 @@ public class RedisStore extends DataStore {
 			for (String broadcastString : values) {
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
-				if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				if (status != null && status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 					activeBroadcastCount++;
 				}
 			}
@@ -305,8 +240,6 @@ public class RedisStore extends DataStore {
 		boolean result = false;
 		synchronized (this) {
 			result = broadcastMap.remove(id) != null;
-			if (result) {
-			}
 		}
 		return result;
 	}
@@ -529,7 +462,7 @@ public class RedisStore extends DataStore {
 
 			for (String vodString : vodFiles)  {
 				i++;
-				vodList.add(gson.fromJson((String) vodString, VoD.class));
+				vodList.add(gson.fromJson(vodString, VoD.class));
 				if (i > size) {
 					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
 					break;
@@ -635,7 +568,7 @@ public class RedisStore extends DataStore {
 
 	@Override
 	public List<TensorFlowObject> getDetection(String id) {
-
+		List<TensorFlowObject> tensorflowObject = new ArrayList<> ();
 		synchronized (this) {
 			if (id != null) {
 				String jsonString = detectionMap.get(id);
@@ -645,7 +578,7 @@ public class RedisStore extends DataStore {
 				}
 			}
 		}
-		return null;
+		return tensorflowObject;
 	}
 
 	@Override
@@ -686,12 +619,12 @@ public class RedisStore extends DataStore {
 	public long getObjectDetectedTotal(String id) {
 
 		List<TensorFlowObject> list = new ArrayList<>();
-/*
+
 		Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
 
 		synchronized (this) {
 
-			for (Iterator<String> keyIterator =  detectionMap.keyIterator(); keyIterator.hasNext();) {
+			for (Iterator<String> keyIterator =  detectionMap.keySet().iterator(); keyIterator.hasNext();) {
 				String keyValue = keyIterator.next();
 				if (keyValue.startsWith(id)) 
 				{
@@ -700,7 +633,6 @@ public class RedisStore extends DataStore {
 				}
 			}
 		}
-		*/
 		return list.size();
 	}
 
@@ -865,7 +797,7 @@ public class RedisStore extends DataStore {
 			if (token.getTokenId() != null) {
 				String jsonToken = tokenMap.get(token.getTokenId());
 				if (jsonToken != null) {
-					fetchedToken = gson.fromJson((String) jsonToken, Token.class);
+					fetchedToken = gson.fromJson(jsonToken, Token.class);
 
 					if( fetchedToken.getType().equals(token.getType())
 							&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
@@ -1300,7 +1232,7 @@ public class RedisStore extends DataStore {
 						broadcast.setHlsViewerCount(0);
 						broadcast.setWebRTCViewerCount(0);
 						broadcast.setRtmpViewerCount(0);
-						broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+						broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 						broadcastMap.put(broadcast.getStreamId(), gson.toJson(broadcast));
 					}
 				}
@@ -1396,4 +1328,5 @@ public class RedisStore extends DataStore {
 		}
 		return result;
 	}
+
 }

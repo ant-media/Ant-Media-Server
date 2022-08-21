@@ -66,7 +66,7 @@ public class RedisStore extends AbstractConsoleDataStore {
 				}
 			}
 			catch (Exception e) {
-				e.printStackTrace();
+				logger.error("Add user error:{} trace:{}", user.getEmail(), ExceptionUtils.getStackTrace(e));
 				result = false;
 			}
 
@@ -85,6 +85,7 @@ public class RedisStore extends AbstractConsoleDataStore {
 				}
 			}
 			catch (Exception e) {
+				logger.error("Edit user error:{} trace:{}", user.getEmail(), ExceptionUtils.getStackTrace(e));
 				result = false;
 			}
 			return result;
@@ -103,6 +104,7 @@ public class RedisStore extends AbstractConsoleDataStore {
 					}
 				}
 				catch (Exception e) {
+					logger.error("Delete user error:{} trace:{}", username, ExceptionUtils.getStackTrace(e));
 					result = false;
 				}
 			}
@@ -130,7 +132,7 @@ public class RedisStore extends AbstractConsoleDataStore {
 					}
 				}
 				catch (Exception e) {
-					e.printStackTrace();
+					logger.error("Does not exist user error:{} trace:{}", username, ExceptionUtils.getStackTrace(e));
 				}
 			}
 			return result;

@@ -53,10 +53,10 @@ import io.antmedia.muxer.MuxAdaptor;
 
 public class MongoStore extends DataStore {
 
-	private static final String VOD_ID = "vodId";
+	public static final String VOD_ID = "vodId";
 	private static final String VIEWER_ID = "viewerId";
 	private static final String TOKEN_ID = "tokenId";
-	private static final String STREAM_ID = "streamId";
+	public  static final String STREAM_ID = "streamId";
 	private Datastore datastore;
 	private Datastore vodDatastore;
 	private Datastore tokenDatastore;
@@ -146,33 +146,7 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public String save(Broadcast broadcast) {
-		if (broadcast == null) {
-			return null;
-		}
-		try {
-			String streamId = null;
-			if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
-				broadcast.setStreamId(streamId);
-			}
-			streamId = broadcast.getStreamId();
-			String rtmpURL = broadcast.getRtmpURL();
-			if (rtmpURL != null) {
-				rtmpURL += streamId;
-			}
-			broadcast.setRtmpURL(rtmpURL);
-			if(broadcast.getStatus()==null) {
-				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
-			}
-
-			synchronized(this) {
-				datastore.save(broadcast);
-			}
-			return streamId;
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-		return null;
+		return super.save(null, null, null, datastore, broadcast, null);
 	}
 
 	/*
@@ -182,26 +156,12 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public Broadcast get(String id) {
-		synchronized(this) {
-			try {
-				return datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id)).first();
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return null;
+		return super.get(null, null, null, datastore, id, null);
 	}
 
 	@Override
 	public VoD getVoD(String id) {
-		synchronized(this) {
-			try {
-				return vodDatastore.find(VoD.class).filter(Filters.eq(VOD_ID,id)).first();
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return null;
+		return super.getVoD(null, null, null, vodDatastore, id, null);
 	}
 
 	/*
@@ -391,7 +351,7 @@ public class MongoStore extends DataStore {
 				{
 					logger.info("Server side search in broadcast for the text -> {}", search);
 					query.filter(Filters.or(
-										Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
+										Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
 										Filters.regex("name").caseInsensitive().pattern(".*" + search + ".*")
 										)
 							    );
@@ -510,9 +470,9 @@ public class MongoStore extends DataStore {
 				logger.info("Server side search is called for VoD, searchString =  {}", search);
 				
 				query.filter(Filters.or(
-						Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("streamName").caseInsensitive().pattern(".*" + search + ".*"),
-						Filters.regex("vodId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex(VOD_ID).caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("vodName").caseInsensitive().pattern(".*" + search + ".*")
 						)
 			    );
@@ -655,7 +615,7 @@ public class MongoStore extends DataStore {
 				query.filter(Filters.or(
 						Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("streamName").caseInsensitive().pattern(".*" + search + ".*"),
-						Filters.regex("vodId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex(VOD_ID).caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("vodName").caseInsensitive().pattern(".*" + search + ".*")
 						));
 			}
@@ -806,7 +766,7 @@ public class MongoStore extends DataStore {
 				updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
 				updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
 				updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
-				updates.add(set("metaData", broadcast.getMetaData()));
+				updates.add(set(META_DATA, broadcast.getMetaData()));
 				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
 				updates.add(set("updateTime", broadcast.getUpdateTime()));
 
