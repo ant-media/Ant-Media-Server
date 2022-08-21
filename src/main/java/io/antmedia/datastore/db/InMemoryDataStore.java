@@ -69,59 +69,17 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public boolean updateDuration(String id, long duration) {
-		Broadcast broadcast = broadcastMap.get(id);
-		boolean result = false;
-		if (broadcast != null) {
-			broadcast.setDuration(duration);
-			broadcastMap.put(id, broadcast);
-			result = true;
-		}
-		return result;
+		return super.updateDuration(null, null, broadcastMap, id, duration, null); 
 	}
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
-		Broadcast broadcast = broadcastMap.get(id);
-		boolean result = false;
-		if (broadcast != null && endpoint != null) {
-			List<Endpoint> endPointList = broadcast.getEndPointList();
-			if (endPointList == null) {
-				endPointList = new ArrayList<>();
-			}
-			endPointList.add(endpoint);
-			broadcast.setEndPointList(endPointList);
-			broadcastMap.put(id, broadcast);
-			result = true;
-		}
-		return result;
+		return super.addEndpoint(null, null, broadcastMap, id, endpoint, null); 
 	}
 
 	@Override
 	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
-		boolean result = false;
-		Broadcast broadcast = broadcastMap.get(id);
-		if (broadcast != null && endpoint != null) {
-			List<Endpoint> endPointList = broadcast.getEndPointList();
-			if (endPointList != null) {
-				for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
-					Endpoint endpointItem = iterator.next();
-					if(checkRTMPUrl) {
-						if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
-							iterator.remove();
-							result = true;
-							break;
-						}
-					}
-					else if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
-						iterator.remove();
-						result = true;
-						break;
-					}
-				}
-
-			}
-		}
-		return result;
+		return super.removeEndpoint(null, null, broadcastMap, id, endpoint, checkRTMPUrl, null);
 	}
 
 	@Override
@@ -211,26 +169,7 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public String addVod(VoD vod) {
-		String id = null;
-		boolean result = false;
-
-		if (vod != null) {
-			try {
-				if (vod.getVodId() == null) {
-					vod.setVodId(RandomStringUtils.randomNumeric(24));
-				}
-				vodMap.put(vod.getVodId(),vod);
-				result = true;
-
-			} catch (Exception e) {
-				logger.error(e.getMessage());
-			}
-		}
-
-		if(result) {
-			id = vod.getVodId();
-		}
-		return id;
+		return super.addVod(null, null, vodMap, vod, null); 
 	}
 
 	@Override
@@ -265,17 +204,9 @@ public class InMemoryDataStore extends DataStore {
 		return vodMap.remove(id) != null;
 	}
 
-
+	@Override
 	public boolean removeAllEndpoints(String id) {
-		boolean result = false;
-		Broadcast broadcast = broadcastMap.get(id);
-		if (broadcast != null) {
-			broadcast.setEndPointList(null);
-			broadcastMap.replace(id, broadcast);
-			result = true;
-		}
-		return result;
-
+		return super.removeAllEndpoints(null, null, broadcastMap, id, null);
 	}
 
 	@Override

@@ -59,6 +59,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	
 	@Value( "${"+SETTINGS_DB_PASS+":#{null}}" )
 	private String dbPassword;
+
 	private String hostAddress;
 	
 	private Vertx vertx;
@@ -94,23 +95,11 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	public void setDbUser(String dbUser) {
 		this.dbUser = dbUser;
 	}
-
-	public String getDbPassword() {
-		return dbPassword;
-	}
-
+	
 	public void setDbPassword(String dbPassword) {
 		this.dbPassword = dbPassword;
 	}
-	
-	public String getDbPort() {
-		return dbPort;
-	}
 
-	public void setDbPort(String dbPort) {
-		this.dbPort = dbPort;
-	}
-	
 	public void init()  
 	{
 		if(dbType.contentEquals(DB_TYPE_MONGODB))

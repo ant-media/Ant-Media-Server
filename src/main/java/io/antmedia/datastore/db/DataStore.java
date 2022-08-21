@@ -3,12 +3,15 @@ package io.antmedia.datastore.db;
 import java.io.File;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.mapdb.BTreeMap;
 import org.redisson.api.RMap;
@@ -220,10 +223,6 @@ public abstract class DataStore {
 		}
 		return result;
 	}
-	
-
-	
-
 
 	public static final long TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME = 5000;
 	protected int totalWebRTCViewerCount = 0;
@@ -238,7 +237,61 @@ public abstract class DataStore {
 
 	protected abstract boolean updateSourceQualityParametersLocal(String id, String quality, double speed,  int pendingPacketQueue);
 
-	public abstract boolean updateDuration(String id, long duration);
+	public boolean updateDuration(String id, long duration) {
+		return updateDuration(null, null, null, id, duration, null);
+	}
+	
+	public boolean updateDuration(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, Map<String, Broadcast> inMemoryBroadcastMap, String streamId, long duration, Gson gson) {
+		
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				String jsonString = null;
+				Broadcast broadcast = null;
+				
+				if(mapdbBroadcastMap != null) {
+					jsonString = mapdbBroadcastMap.get(streamId);
+				}
+				else if(redisBroadcastMap != null) {
+					jsonString = redisBroadcastMap.get(streamId);
+				}
+				else if (inMemoryBroadcastMap != null) {
+					broadcast = inMemoryBroadcastMap.get(streamId);
+				}
+				
+				if (jsonString != null || broadcast != null) {
+					
+					// Map DB or Redis
+					if(broadcast == null) {
+						broadcast = gson.fromJson(jsonString, Broadcast.class);
+					}
+					
+					broadcast.setDuration(duration);
+					
+					if(inMemoryBroadcastMap != null) {
+						inMemoryBroadcastMap.put(streamId, broadcast);
+						return true;
+					}
+
+					String jsonVal = gson.toJson(broadcast);
+					String previousValue = null;
+					
+					if(mapdbBroadcastMap != null) {
+						previousValue = mapdbBroadcastMap.replace(streamId, jsonVal);
+					}
+					else {
+						previousValue = redisBroadcastMap.replace(streamId, jsonVal);
+					}
+					
+					logger.debug("updateDuration replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
+					result = true;
+					
+				}
+			}
+		}
+		return result;
+	}
+
 
 	/**
 	 * Returns the number of vods which contains searched string
@@ -254,15 +307,86 @@ public abstract class DataStore {
 	 */
 	public abstract long getPartialBroadcastNumber(String search);
 
-	public abstract boolean addEndpoint(String id, Endpoint endpoint);
+	public boolean addEndpoint(String id, Endpoint endpoint) {
+		return addEndpoint(null, null, null, id, endpoint, null);
+	}
+	
+	public boolean addEndpoint(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, Map<String, Broadcast> inMemoryBroadcastMap, String streamId, Endpoint endpoint, Gson gson) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null && endpoint != null) {
+				String jsonString = null;
+				Broadcast broadcast = null;
+				
+				if(mapdbBroadcastMap != null) {
+					jsonString = mapdbBroadcastMap.get(streamId);
+				}
+				else if(redisBroadcastMap != null) {
+					jsonString = redisBroadcastMap.get(streamId);
+				}
+				else if (inMemoryBroadcastMap != null) {
+					broadcast = inMemoryBroadcastMap.get(streamId);
+				}
+				
+				if (jsonString != null || broadcast != null) {
+				
+					// Map DB or Redis
+					if(broadcast == null) {
+						broadcast = gson.fromJson(jsonString, Broadcast.class);
+					}
+					
+					List<Endpoint> endPointList = broadcast.getEndPointList();
+					if (endPointList == null) {
+						endPointList = new ArrayList<>();
+					}
+					
+					endPointList.add(endpoint);
+					broadcast.setEndPointList(endPointList);
+					
+					if(inMemoryBroadcastMap != null) {
+						inMemoryBroadcastMap.put(streamId, broadcast);
+						return true;
+					}
 
-	public abstract String addVod(VoD vod);
+					String jsonVal = gson.toJson(broadcast);
+					String previousValue = null;
+					
+					if(mapdbBroadcastMap != null) {
+						previousValue = mapdbBroadcastMap.replace(streamId, jsonVal);
+					}
+					else {
+						previousValue = redisBroadcastMap.replace(streamId, jsonVal);
+					}
+					
+					logger.debug("addEndpoint replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
 
 	public abstract long getBroadcastCount();
 
 	public abstract boolean delete(String id);
 
-	public abstract boolean deleteVod(String id);
+	public boolean deleteVod(String id) {
+		return deleteVod(null, null, id);
+	}
+	
+	public boolean deleteVod(RMap<String, String> redisVoDMap, BTreeMap<String, String> mapdbVoDMap, String vodId) {
+		boolean result = false;
+
+		synchronized (this) {
+			if(redisVoDMap != null) {
+				result = redisVoDMap.remove(vodId) != null;
+			}
+			else if(mapdbVoDMap != null) {
+				result = mapdbVoDMap.remove(vodId) != null;
+			}
+		}
+		return result;
+	}
 
 	/**
 	 * Returns the Broadcast List in order
@@ -287,9 +411,224 @@ public abstract class DataStore {
 	 * @param search is used for searching in RoomId
 	 * @return
 	 */
-	public abstract List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search);
+	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search){
+		return getConferenceRoomList(null, null, offset, size, sortBy, orderBy, search, null);
+	}
+	
+	public List<ConferenceRoom> getConferenceRoomList(RMap<String, String> redisConferenceMap, BTreeMap<String, String> mapdbConferenceMap, int offset, int size, String sortBy, String orderBy, String search, Gson gson){
+		ArrayList<ConferenceRoom> list = new ArrayList<>();
+		synchronized (this) {
+			Collection<String> conferenceRooms = null;
+			
+			if(redisConferenceMap != null) {
+				conferenceRooms = redisConferenceMap.values();
+			}
+			else if(mapdbConferenceMap != null) {
+				conferenceRooms = mapdbConferenceMap.values();
+			}
+			
+			for (String roomString : conferenceRooms)
+			{
+				ConferenceRoom room = gson.fromJson(roomString, ConferenceRoom.class);
+				list.add(room);
+			}
+		}
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for Conference Room = {}", search);
+			list = searchOnServerConferenceRoom(list, search);
+		}
+		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
+	}
 
-	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
+	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
+		return removeEndpoint(null, null, null, id, endpoint, checkRTMPUrl, null);
+	}
+	
+	public boolean removeEndpoint(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, Map<String, Broadcast> inMemoryBroadcastMap, String streamId, Endpoint endpoint, boolean checkRTMPUrl, Gson gson ) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null && endpoint != null) {
+				String jsonString = null;
+				Broadcast broadcast = null;
+				
+				if(mapdbBroadcastMap != null) {
+					jsonString = mapdbBroadcastMap.get(streamId);
+				}
+				else if(redisBroadcastMap != null) {
+					jsonString = redisBroadcastMap.get(streamId);
+				}
+				else if (inMemoryBroadcastMap != null) {
+					broadcast = inMemoryBroadcastMap.get(streamId);
+				}
+				
+				if (jsonString != null || broadcast != null) {
+				
+					// Map DB or Redis
+					if(broadcast == null) {
+						broadcast = gson.fromJson(jsonString, Broadcast.class);
+					}
+					
+					List<Endpoint> endPointList = broadcast.getEndPointList();
+					if (endPointList != null) {
+						for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
+							Endpoint endpointItem = iterator.next();
+							if(checkRTMPUrl) {
+								if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
+									iterator.remove();
+									result = true;
+									break;
+								}
+							}
+							else if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
+								iterator.remove();
+								result = true;
+								break;
+							}
+						}
+
+						if (result) {							
+							broadcast.setEndPointList(endPointList);
+							
+							if(inMemoryBroadcastMap != null) {
+								inMemoryBroadcastMap.put(streamId, broadcast);
+								return true;
+							}
+							
+							String jsonVal = gson.toJson(broadcast);
+							String previousValue = null;
+							
+							if(mapdbBroadcastMap != null) {
+								previousValue = mapdbBroadcastMap.replace(streamId, jsonVal);
+							}
+							else {
+								previousValue = redisBroadcastMap.replace(streamId, jsonVal);
+							}
+							
+							logger.debug("removeEndpoint replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
+							result = true;
+						}
+					}
+				}
+			}
+		}
+		return result;
+	}
+	
+	public List<Broadcast> getBroadcastListV2(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, String type, String search, Gson gson) {
+		ArrayList<Broadcast> list = new ArrayList<>();
+		synchronized (this) {
+			
+			Collection<String> broadcasts = null;
+			
+			if(mapdbBroadcastMap != null) {
+				broadcasts = mapdbBroadcastMap.getValues();
+			}
+			else if(redisBroadcastMap != null) {
+				broadcasts = redisBroadcastMap.values();
+			}
+
+			if(type != null && !type.isEmpty()) {
+				for (String broadcastString : broadcasts)
+				{
+					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+
+					if (broadcast.getType().equals(type)) {
+						list.add(broadcast);
+					}
+				}
+			}
+			else {
+				for (String broadcastString : broadcasts)
+				{
+					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+					list.add(broadcast);
+				}
+			}
+		}
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for Broadcast searchString = {}", search);
+			list = searchOnServer(list, search);
+		}
+		return list;
+	}
+	
+	public List<VoD> getVodListV2(RMap<String, String> redisVodMap, BTreeMap<String, String> mapdbVodMap, String streamId, String search, Gson gson, String dbName) {
+		ArrayList<VoD> vods = new ArrayList<>();
+		synchronized (this) {
+			
+			Collection<String> values = new ArrayList<>();
+			
+			if(mapdbVodMap != null) {
+				values = mapdbVodMap.getValues();
+			}
+			else if(redisVodMap != null) {
+				values = redisVodMap.values();
+			}
+			
+			int length = values.size();
+			int i = 0;
+			for (String vodString : values)
+			{
+				VoD vod = gson.fromJson(vodString, VoD.class);
+				if (streamId != null && !streamId.isEmpty())
+				{
+					if (vod.getStreamId().equals(streamId)) {
+						vods.add(vod);
+					}
+				}
+				else {
+					vods.add(vod);
+				}
+
+				i++;
+				if (i > length) {
+					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
+					break;
+				}
+			}
+			if(search != null && !search.isEmpty()){
+				logger.info("server side search called for VoD searchString = {}", search);
+				vods = searchOnServerVod(vods, search);
+			}
+			return vods;
+		}
+	}
+	
+	public String addVod(VoD vod) {
+		return addVod(null, null, null, vod, null);
+	}
+	
+	public String addVod(RMap<String, String> redisVodMap, BTreeMap<String, String> mapdbVodMap, Map<String, VoD> inMemoryVoDMap, VoD vod, Gson gson) {
+
+		String id = null;
+		synchronized (this) {
+			try {
+				if (vod.getVodId() == null) {
+					vod.setVodId(RandomStringUtils.randomNumeric(24));
+				}
+				id = vod.getVodId();
+				
+				if(mapdbVodMap != null) {
+					mapdbVodMap.put(vod.getVodId(), gson.toJson(vod));
+				}
+				else if(redisVodMap != null) {
+					redisVodMap.put(vod.getVodId(), gson.toJson(vod));
+				}
+				else{
+					inMemoryVoDMap.put(vod.getVodId(),vod);
+				}
+				
+				logger.warn("VoD is saved to DB {} with voID {}", vod.getVodName(), id);
+
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+				id = null;
+			}
+
+		}
+		return id;
+	}
+	
 
 	public abstract List<Broadcast> getExternalStreamsList();
 	
@@ -312,9 +651,72 @@ public abstract class DataStore {
 	 */
 	public abstract List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId, String search);
 
-	public abstract boolean removeAllEndpoints(String id);
+	public boolean removeAllEndpoints(String id) {
+		return removeAllEndpoints(null, null, null, id, null);
+	}
+	
+	public boolean removeAllEndpoints(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, Map<String, Broadcast> inMemoryBroadcastMap, String streamId, Gson gson) {
+		boolean result = false;
+		synchronized (this) {
+			String jsonString = null;
+			Broadcast broadcast = null;
+			
+			if(mapdbBroadcastMap != null) {
+				jsonString = mapdbBroadcastMap.get(streamId);
+			}
+			else if(redisBroadcastMap != null) {
+				jsonString = redisBroadcastMap.get(streamId);
+			}
+			else if (inMemoryBroadcastMap != null) {
+				broadcast = inMemoryBroadcastMap.get(streamId);
+			}
+			
+			if (jsonString != null || broadcast != null) {
+			
+				// Map DB or Redis
+				if(broadcast == null) {
+					broadcast = gson.fromJson(jsonString, Broadcast.class);
+				}
+				
+				broadcast.setEndPointList(null);
+					
+				if(inMemoryBroadcastMap != null) {
+					inMemoryBroadcastMap.put(streamId, broadcast);
+					return true;
+				}
+					
+				String jsonVal = gson.toJson(broadcast);
+				String previousValue = null;
+				
+				if(mapdbBroadcastMap != null) {
+					previousValue = mapdbBroadcastMap.replace(streamId, jsonVal);
+				}
+				else {
+					previousValue = redisBroadcastMap.replace(streamId, jsonVal);
+				}
+					
+				logger.debug("removeAllEndpoints replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
+				result = true;
+				}
+			}
+		return result;
+	}
 
-	public abstract long getTotalVodNumber();
+	public long getTotalVodNumber() {
+		return getTotalVodNumber(null, null);
+	}
+	
+	public long getTotalVodNumber(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap) {
+		synchronized (this) {
+			if(mapdbBroadcastMap != null) {
+				return mapdbBroadcastMap.size();
+			}
+			else {
+				return redisBroadcastMap.size();
+			}
+			
+		}
+	}
 
 	public abstract long getTotalBroadcastNumber();
 
@@ -529,14 +931,100 @@ public abstract class DataStore {
 	 * @param file
 	 * @return number of files that are saved to datastore
 	 */
-	public abstract int fetchUserVodList(File filedir);
+	public int fetchUserVodList(File filedir) {
+		return fetchUserVodList(null, null, filedir, null, null);
+	}
+	
+	public int fetchUserVodList(RMap<String, String> redisVoDMap, BTreeMap<String, String> mapdbVoDMap, File filedir, Gson gson, String dbName) {
+
+		if(filedir==null) {
+			return 0;
+		}
+
+		int numberOfSavedFiles = 0;
+
+		synchronized (this) {
+			int i = 0;
+
+			Collection<String> vodFiles = new ArrayList<>();
+			
+			if(redisVoDMap != null) {
+				vodFiles = redisVoDMap.values();
+			}
+			else if(mapdbVoDMap != null) {
+				vodFiles = mapdbVoDMap.values();
+			}
+
+			int size = vodFiles.size();
+
+			List<VoD> vodList = new ArrayList<>();
+
+			for (String vodString : vodFiles)  {
+				i++;
+				vodList.add(gson.fromJson(vodString, VoD.class));
+				if (i > size) {
+					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
+					break;
+				}
+			}
+
+			boolean result = false;
+			for (VoD vod : vodList) 
+			{	
+				if (vod.getType().equals(VoD.USER_VOD)) {
+					if(redisVoDMap != null) {
+						result = redisVoDMap.remove(vod.getVodId()) != null;
+					}
+					else if(mapdbVoDMap != null) {
+						result = mapdbVoDMap.remove(vod.getVodId()) != null;
+					}
+					
+					if (!result) {
+						logger.error("MapDB VoD is not synchronized. It's likely db files({}) is damaged", dbName);
+					}
+				}
+			}
+
+			File[] listOfFiles = filedir.listFiles();
+
+			if (listOfFiles != null) 
+			{
+				for (File file : listOfFiles) {
+
+					String fileExtension = FilenameUtils.getExtension(file.getName());
+
+					if (file.isFile() && 
+							("mp4".equals(fileExtension) || "flv".equals(fileExtension) || "mkv".equals(fileExtension))) {
+
+						long fileSize = file.length();
+						long unixTime = System.currentTimeMillis();
+
+						String path=file.getPath();
+
+						String[] subDirs = path.split(Pattern.quote(File.separator));
+						Integer pathLength=Integer.valueOf(subDirs.length);
+						String relativePath = "streams/" +subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
+
+						String vodId = RandomStringUtils.randomNumeric(24);
+
+						VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, 0, fileSize,
+								VoD.USER_VOD, vodId, null);
+						addVod(newVod);
+						numberOfSavedFiles++;
+					}
+				}
+			}
+		}
+
+		return numberOfSavedFiles;
+	}
 
 	/**
 	 * Return the number of active broadcasts in the server
 	 * @return
 	 */
 	public abstract long getActiveBroadcastCount();
-
+	
 	/**
 	 * Updates the Broadcast objects fields if it's not null.
 	 * The updated fields are as follows

@@ -7,10 +7,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.regex.Pattern;
 
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.redisson.Redisson;
 import org.redisson.api.RMap;
@@ -42,7 +39,7 @@ public class RedisStore extends DataStore {
 
 	protected static Logger logger = LoggerFactory.getLogger(RedisStore.class);
 	
-	public RMap<String, String> broadcastMap;
+	private RMap<String, String> broadcastMap;
 	private RMap<String, String> vodMap;
 	private RMap<String, String> conferenceRoomMap;
 	private RMap<String, String> detectionMap;
@@ -111,99 +108,22 @@ public class RedisStore extends DataStore {
 
 	@Override
 	public boolean updateDuration(String id, long duration) {
-		boolean result = false;
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = broadcastMap.get(id);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-					broadcast.setDuration(duration);
-					String jsonVal = gson.toJson(broadcast);
-					String previousValue = broadcastMap.replace(id, jsonVal);
-					result = true;
-					logger.debug("updateStatus replacing id {} having value {} to {}", id, previousValue, jsonVal);
-				}
-			}
-		}
-		return result;
+		return super.updateDuration(broadcastMap, null, null, id, duration, gson); 
 	}
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
-		boolean result = false;
-		synchronized (this) {
-			if (id != null && endpoint != null) {
-				String jsonString = broadcastMap.get(id);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-					List<Endpoint> endPointList = broadcast.getEndPointList();
-					if (endPointList == null) {
-						endPointList = new ArrayList<>();
-					}
-					endPointList.add(endpoint);
-					broadcast.setEndPointList(endPointList);
-					broadcastMap.replace(id, gson.toJson(broadcast));
-					result = true;
-				}
-			}
-		}
-		return result;
+		return super.addEndpoint(broadcastMap, null, null, id, endpoint, gson);
 	}
 
 	@Override
 	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
-		boolean result = false;
-		synchronized (this) {
-
-			if (id != null && endpoint != null) {
-				String jsonString = broadcastMap.get(id);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-					List<Endpoint> endPointList = broadcast.getEndPointList();
-					if (endPointList != null) {
-						for (Iterator<Endpoint> iterator = endPointList.iterator(); iterator.hasNext();) {
-							Endpoint endpointItem = iterator.next();
-							if(checkRTMPUrl) {
-								if (endpointItem.getRtmpUrl().equals(endpoint.getRtmpUrl())) {
-									iterator.remove();
-									result = true;
-									break;
-								}
-							}
-							else if (endpointItem.getEndpointServiceId().equals(endpoint.getEndpointServiceId())) {
-								iterator.remove();
-								result = true;
-								break;
-							}
-						}
-
-						if (result) {
-							broadcast.setEndPointList(endPointList);
-							broadcastMap.replace(id, gson.toJson(broadcast));
-						}
-					}
-				}
-			}
-		}
-		return result;
+		return super.removeEndpoint(broadcastMap, null, null, id, endpoint, checkRTMPUrl, gson);
 	}
 
 	@Override
 	public boolean removeAllEndpoints(String id) {
-
-		boolean result = false;
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = broadcastMap.get(id);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-					broadcast.setEndPointList(null);
-					broadcastMap.replace(id, gson.toJson(broadcast));
-					result = true;
-				}
-			}
-		}
-		return result;
+		return super.removeAllEndpoints(broadcastMap, null, null, id, gson);
 	}
 
 
@@ -245,51 +165,13 @@ public class RedisStore extends DataStore {
 	}
 	@Override
 	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search){
-		ArrayList<ConferenceRoom> list = new ArrayList<>();
-		synchronized (this) {
-			Collection<String> conferenceRooms = conferenceRoomMap.values();
-			for (String roomString : conferenceRooms)
-			{
-				ConferenceRoom room = gson.fromJson(roomString, ConferenceRoom.class);
-				list.add(room);
-			}
-		}
-		if(search != null && !search.isEmpty()){
-			logger.info("server side search called for Conference Room = {}", search);
-			list = searchOnServerConferenceRoom(list, search);
-		}
-		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
+		return super.getConferenceRoomList(conferenceRoomMap, null, offset, size, sortBy, orderBy, search, gson);
 	}
 
 	//GetBroadcastList method may be called without offset and size to get the full list without offset or size
 	//sortAndCrop method returns maximum 50 (hardcoded) of the broadcasts for an offset.
 	public List<Broadcast> getBroadcastListV2(String type, String search) {
-		ArrayList<Broadcast> list = new ArrayList<>();
-		synchronized (this) {
-			Collection<String> broadcasts = broadcastMap.values();
-			if(type != null && !type.isEmpty()) {
-				for (String broadcastString : broadcasts)
-				{
-					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
-
-					if (broadcast.getType().equals(type)) {
-						list.add(broadcast);
-					}
-				}
-			}
-			else {
-				for (String broadcastString : broadcasts)
-				{
-					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
-					list.add(broadcast);
-				}
-			}
-		}
-		if(search != null && !search.isEmpty()){
-			logger.info("server side search called for Broadcast searchString = {}", search);
-			list = searchOnServer(list, search);
-		}
-		return list;
+		return super.getBroadcastListV2(broadcastMap, null, type, search, gson);
 	}
 
 	@Override
@@ -300,36 +182,7 @@ public class RedisStore extends DataStore {
 	}
 
 	public List<VoD> getVodListV2(String streamId, String search) {
-		ArrayList<VoD> vods = new ArrayList<>();
-		synchronized (this) {
-			Collection<String> values = vodMap.values();
-			int length = values.size();
-			int i = 0;
-			for (String vodString : values)
-			{
-				VoD vod = gson.fromJson(vodString, VoD.class);
-				if (streamId != null && !streamId.isEmpty())
-				{
-					if (vod.getStreamId().equals(streamId)) {
-						vods.add(vod);
-					}
-				}
-				else {
-					vods.add(vod);
-				}
-
-				i++;
-				if (i > length) {
-					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
-					break;
-				}
-			}
-			if(search != null && !search.isEmpty()){
-				logger.info("server side search called for VoD searchString = {}", search);
-				vods = searchOnServerVod(vods, search);
-			}
-			return vods;
-		}
+		return super.getVodListV2(vodMap, null, streamId, search, gson, null);
 	}
 
 	/**
@@ -341,27 +194,10 @@ public class RedisStore extends DataStore {
 		vods = getVodListV2(streamId,search);
 		return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
 	}
-
+	
 	@Override
 	public String addVod(VoD vod) {
-
-		String id = null;
-		synchronized (this) {
-			try {
-				if (vod.getVodId() == null) {
-					vod.setVodId(RandomStringUtils.randomNumeric(24));
-				}
-				id = vod.getVodId();
-				vodMap.put(vod.getVodId(), gson.toJson(vod));
-				logger.warn("VoD is saved to DB {} with voID {}", vod.getVodName(), id);
-
-			} catch (Exception e) {
-				logger.error(e.getMessage());
-				id = null;
-			}
-
-		}
-		return id;
+		return super.addVod(vodMap, null, null, vod, gson);
 	}
 
 
@@ -431,9 +267,7 @@ public class RedisStore extends DataStore {
 
 	@Override
 	public long getTotalVodNumber() {
-		synchronized (this) {
-			return vodMap.size();
-		}
+		return super.getTotalVodNumber(vodMap, null);
 	}
 
 	@Override
@@ -444,74 +278,7 @@ public class RedisStore extends DataStore {
 
 	@Override
 	public int fetchUserVodList(File userfile) {
-
-		if(userfile==null) {
-			return 0;
-		}
-
-		int numberOfSavedFiles = 0;
-
-		synchronized (this) {
-			int i = 0;
-
-			Collection<String> vodFiles = vodMap.values();
-
-			int size = vodFiles.size();
-
-			List<VoD> vodList = new ArrayList<>();
-
-			for (String vodString : vodFiles)  {
-				i++;
-				vodList.add(gson.fromJson(vodString, VoD.class));
-				if (i > size) {
-					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
-					break;
-				}
-			}
-
-			boolean result = false;
-			for (VoD vod : vodList) 
-			{	
-				if (vod.getType().equals(VoD.USER_VOD)) {
-					result = vodMap.remove(vod.getVodId()) != null;
-					if (!result) {
-						logger.error("MapDB VoD is not synchronized. It's likely db files({}) is damaged", dbName);
-					}
-				}
-			}
-
-			File[] listOfFiles = userfile.listFiles();
-
-			if (listOfFiles != null) 
-			{
-				for (File file : listOfFiles) {
-
-					String fileExtension = FilenameUtils.getExtension(file.getName());
-
-					if (file.isFile() && 
-							("mp4".equals(fileExtension) || "flv".equals(fileExtension) || "mkv".equals(fileExtension))) {
-
-						long fileSize = file.length();
-						long unixTime = System.currentTimeMillis();
-
-						String path=file.getPath();
-
-						String[] subDirs = path.split(Pattern.quote(File.separator));
-						Integer pathLength=Integer.valueOf(subDirs.length);
-						String relativePath = "streams/" +subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
-
-						String vodId = RandomStringUtils.randomNumeric(24);
-
-						VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, 0, fileSize,
-								VoD.USER_VOD, vodId, null);
-						addVod(newVod);
-						numberOfSavedFiles++;
-					}
-				}
-			}
-		}
-
-		return numberOfSavedFiles;
+		return super.fetchUserVodList(vodMap,null, userfile, gson, dbName);
 	}
 
 
