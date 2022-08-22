@@ -24,6 +24,7 @@ import com.google.gson.reflect.TypeToken;
 
 import dev.morphia.Datastore;
 import dev.morphia.query.filters.Filters;
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
@@ -46,6 +47,7 @@ public abstract class DataStore {
 	//Do not forget to write function descriptions especially if you are adding new functions
 
 	public static final int MAX_ITEM_IN_ONE_LIST = 250;
+	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 
 	private boolean writeStatsToDatastore = true;
 
@@ -219,7 +221,7 @@ public abstract class DataStore {
 					else {
 						previousValue = redisBroadcastMap.replace(streamId, jsonVal);
 					}
-					
+					streamId = streamId.replaceAll(REPLACE_CHARS_REGEX, "_");
 					logger.debug("updateStatus replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
 					result = true;
 				}
@@ -286,7 +288,7 @@ public abstract class DataStore {
 					else {
 						previousValue = redisBroadcastMap.replace(streamId, jsonVal);
 					}
-					
+					streamId = streamId.replaceAll(REPLACE_CHARS_REGEX, "_");
 					logger.debug("updateDuration replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
 					result = true;
 					
@@ -361,7 +363,7 @@ public abstract class DataStore {
 					else {
 						previousValue = redisBroadcastMap.replace(streamId, jsonVal);
 					}
-					streamId = streamId.replaceAll("[\n\r\t]", "_");
+					streamId = streamId.replaceAll(REPLACE_CHARS_REGEX, "_");
 					logger.debug("addEndpoint replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
 					result = true;
 				}
@@ -438,7 +440,7 @@ public abstract class DataStore {
 			}
 		}
 		if(search != null && !search.isEmpty()){
-			search = search.replaceAll("[\n\r\t]", "_");
+			search = search.replaceAll(REPLACE_CHARS_REGEX, "_");
 			logger.info("server side search called for Conference Room = {}", search);
 			list = searchOnServerConferenceRoom(list, search);
 		}
@@ -508,7 +510,7 @@ public abstract class DataStore {
 							else {
 								previousValue = redisBroadcastMap.replace(streamId, jsonVal);
 							}
-							
+							streamId = streamId.replaceAll(REPLACE_CHARS_REGEX, "_");
 							logger.debug("removeEndpoint replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
 							result = true;
 						}
@@ -699,7 +701,7 @@ public abstract class DataStore {
 				else {
 					previousValue = redisBroadcastMap.replace(streamId, jsonVal);
 				}
-					
+				streamId = streamId.replaceAll(REPLACE_CHARS_REGEX, "_");
 				logger.debug("removeAllEndpoints replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
 				result = true;
 				}
@@ -2388,7 +2390,37 @@ public abstract class DataStore {
 	 * @param subTrackId - main track id
 	 * @return boolean - success 
 	 */
-	public abstract boolean addSubTrack(String mainTrackId, String subTrackId);
+	public boolean addSubTrack(String mainTrackId, String subTrackId) {
+		return addSubTrack(null, null, mainTrackId, subTrackId, null);
+	}
+	
+	public boolean addSubTrack(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, String mainTrackId, String subTrackId, Gson gson) {
+		boolean result = false;
+		synchronized (this) {
+			
+			Map<String, String> broadcastMap = null;
+			
+			if(mapdbBroadcastMap != null) {
+				broadcastMap = mapdbBroadcastMap;
+			}
+			else {
+				broadcastMap = redisBroadcastMap;
+			}
+			
+			String json = broadcastMap.get(mainTrackId);
+			Broadcast mainTrack = gson.fromJson(json, Broadcast.class);
+			List<String> subTracks = mainTrack.getSubTrackStreamIds();
+			if (subTracks == null) {
+				subTracks = new ArrayList<>();
+			}
+			subTracks.add(subTrackId);
+			mainTrack.setSubTrackStreamIds(subTracks);
+			broadcastMap.replace(mainTrackId, gson.toJson(mainTrack));
+			result = true;
+		}
+
+		return result;
+	}
 
 	/**
 	 * Resets the broadcasts in the database. 
@@ -2397,7 +2429,56 @@ public abstract class DataStore {
 	 *
 	 * @returns total number of operation in the db
 	 */
-	public abstract int resetBroadcasts(String hostAddress);
+	public int resetBroadcasts(String hostAddress) {
+		return resetBroadcasts(null, null, hostAddress, null, null);
+	}
+	
+	public int resetBroadcasts(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, String hostAddress, Gson gson, String dbName) {
+		synchronized (this) {
+			
+			Map<String, String> broadcastMap = null;
+			
+			if(mapdbBroadcastMap != null) {
+				broadcastMap = mapdbBroadcastMap;
+			}
+			else {
+				broadcastMap = redisBroadcastMap;
+			}
+
+			Collection<String> broadcastsRawJSON = broadcastMap.values();
+			int size = broadcastsRawJSON.size();
+			int updateOperations = 0;
+			int zombieStreamCount = 0;
+			int i = 0;
+			for (String broadcastRaw : broadcastsRawJSON) {
+				i++;
+				if (broadcastRaw != null) {
+					Broadcast broadcast = gson.fromJson(broadcastRaw, Broadcast.class);
+					if (broadcast.isZombi()) {
+						zombieStreamCount++;
+						broadcastMap.remove(broadcast.getStreamId());
+					}
+					else {
+						updateOperations++;
+						broadcast.setHlsViewerCount(0);
+						broadcast.setWebRTCViewerCount(0);
+						broadcast.setRtmpViewerCount(0);
+						broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+						broadcastMap.put(broadcast.getStreamId(), gson.toJson(broadcast));
+					}
+				}
+
+				if (i > size) {
+					logger.error("Inconsistency in DB found in resetting broadcasts. It's likely db file({}) is damaged", dbName);
+					break;
+				}
+			}
+			logger.info("Reset broadcasts result in deleting {} zombi streams and {} update operations", zombieStreamCount, updateOperations );
+
+			return updateOperations + zombieStreamCount;
+		}
+	}
+	
 
 	/**
 	 * Return if data store is available. DataStore is available if it's initialized and not closed. 
@@ -2414,7 +2495,36 @@ public abstract class DataStore {
 	 *
 	 * @returns total number of WebRTC viewers
 	 */
-	public abstract int getTotalWebRTCViewersCount();
+	public int getTotalWebRTCViewersCount() {
+		return getTotalWebRTCViewersCount(null, null, null);
+	}
+	
+	public int getTotalWebRTCViewersCount(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, Gson gson) {
+		long now = System.currentTimeMillis();
+		if(now - totalWebRTCViewerCountLastUpdateTime > TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME) {
+			int total = 0;
+			synchronized (this) {
+				
+				Map<String, String> broadcastMap = null;
+				
+				if(mapdbBroadcastMap != null) {
+					broadcastMap = mapdbBroadcastMap;
+				}
+				else {
+					broadcastMap = redisBroadcastMap;
+				}
+
+				
+				for (String json : broadcastMap.values()) {
+					Broadcast broadcast = gson.fromJson(json, Broadcast.class);
+					total += broadcast.getWebRTCViewerCount();
+				}
+			}
+			totalWebRTCViewerCount = total;
+			totalWebRTCViewerCountLastUpdateTime = now;
+		}  
+		return totalWebRTCViewerCount;
+	}
 
 	protected ArrayList<WebRTCViewerInfo> searchOnWebRTCViewerInfo(ArrayList<WebRTCViewerInfo> list, String search) {
 		if(search != null && !search.isEmpty()) {
@@ -2461,7 +2571,29 @@ public abstract class DataStore {
 	 *
 	 * @param info information for the WebRTC Viewer
 	 */
-	public abstract void saveViewerInfo(WebRTCViewerInfo info);
+	public void saveViewerInfo(WebRTCViewerInfo info) {
+		
+	}
+	
+	public void saveViewerInfo(RMap<String, String> redisWebRTCViewerMap, BTreeMap<String, String> mapdbWebRTCViewerMap, WebRTCViewerInfo info, Gson gson) {
+		synchronized (this) {
+			if (info != null) {
+				Map<String, String> webRTCViewerMap = null;
+				
+				if(mapdbWebRTCViewerMap != null) {
+					webRTCViewerMap = mapdbWebRTCViewerMap;
+				}
+				else {
+					webRTCViewerMap = redisWebRTCViewerMap;
+				}
+				try {
+					webRTCViewerMap.put(info.getViewerId(), gson.toJson(info));
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
+	}
 
 	/**
 	 * Get list of webrtc viewers
@@ -2474,7 +2606,36 @@ public abstract class DataStore {
 	 *
 	 * @return list of webrtc viewers
 	 */
-	public abstract List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy, String search);
+	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy, String search){
+		return getWebRTCViewerList(null, null, offset, size, sortBy, orderBy, search, null);
+	}
+	
+	public List<WebRTCViewerInfo> getWebRTCViewerList(RMap<String, String> redisWebRTCViewerMap, BTreeMap<String, String> mapdbWebRTCViewerMap, int offset, int size, String sortBy, String orderBy, String search, Gson gson){
+		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
+		synchronized (this) {
+			
+			Map<String, String> webRTCViewerMap = null;
+			
+			if(mapdbWebRTCViewerMap != null) {
+				webRTCViewerMap = mapdbWebRTCViewerMap;
+			}
+			else {
+				webRTCViewerMap = redisWebRTCViewerMap;
+			}
+			
+			Collection<String> webRTCViewers = webRTCViewerMap.values();
+			for (String infoString : webRTCViewers)
+			{
+				WebRTCViewerInfo info = gson.fromJson(infoString, WebRTCViewerInfo.class);
+				list.add(info);
+			}
+		}
+		if(search != null && !search.isEmpty()){
+			logger.info("server side search called for Conference Room = {}", search);
+			list = searchOnWebRTCViewerInfo(list, search);
+		}
+		return sortAndCropWebRTCViewerInfoList(list, offset, size, sortBy, orderBy);
+	}
 	
 	
 	/**
@@ -2482,7 +2643,25 @@ public abstract class DataStore {
 	 *
 	 * @param viewerId WebRTC Viewer Id
 	 */
-	public abstract boolean deleteWebRTCViewerInfo(String viewerId);
+	public boolean deleteWebRTCViewerInfo(String viewerId) {
+		return deleteWebRTCViewerInfo(null, null, viewerId);
+	}
+	
+	public boolean deleteWebRTCViewerInfo(RMap<String, String> redisWebRTCViewerMap, BTreeMap<String, String> mapdbWebRTCViewerMap, String viewerId) {
+		synchronized (this) 
+		{		
+			Map<String, String> webRTCViewerMap = null;
+			
+			if(mapdbWebRTCViewerMap != null) {
+				webRTCViewerMap = mapdbWebRTCViewerMap;
+			}
+			else {
+				webRTCViewerMap = redisWebRTCViewerMap;
+			}
+			
+			return webRTCViewerMap.remove(viewerId) != null;
+		}
+	}
 
 	/**
 	 * This is used to update meta data for a bradcast 
@@ -2490,7 +2669,37 @@ public abstract class DataStore {
 	 * @param streamId id for the broadcast
 	 * @param metaData new meta data
 	 */
-	public abstract boolean updateStreamMetaData(String streamId, String metaData);
+	public boolean updateStreamMetaData(String streamId, String metaData) {
+		return updateStreamMetaData(null, null, streamId, metaData, null);
+	}
+	
+	public boolean updateStreamMetaData(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, String streamId, String metaData, Gson gson) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				
+				Map<String, String> broadcastMap = null;
+				
+				if(mapdbBroadcastMap != null) {
+					broadcastMap = mapdbBroadcastMap;
+				}
+				else {
+					broadcastMap = redisBroadcastMap;
+				}
+				
+				String jsonString = broadcastMap.get(streamId);
+				if (jsonString != null) {
+					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					broadcast.setMetaData(metaData);
+					String jsonVal = gson.toJson(broadcast);
+					String previousValue = broadcastMap.replace(streamId, jsonVal);
+					result = true;
+					logger.debug("updateStatus replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
+				}
+			}
+		}
+		return result;
+	}
 	
 
 	//**************************************

@@ -439,13 +439,13 @@ public class MapDBStore extends DataStore {
 	protected synchronized boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
 		return super.updateRtmpViewerCountLocal(null, map, streamId, increment, gson);
 	}
-
-	@Override
-	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
+	
+	public void clearStreamInfoList(String streamId) {
 		//used in mongo for cluster mode. useless here.
 	}
 
-	public void clearStreamInfoList(String streamId) {
+	@Override
+	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
 		//used in mongo for cluster mode. useless here.
 	}
 	
@@ -568,141 +568,38 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public boolean addSubTrack(String mainTrackId, String subTrackId) {
-		boolean result = false;
-		synchronized (this) {
-			String json = map.get(mainTrackId);
-			Broadcast mainTrack = gson.fromJson(json, Broadcast.class);
-			List<String> subTracks = mainTrack.getSubTrackStreamIds();
-			if (subTracks == null) {
-				subTracks = new ArrayList<>();
-			}
-			subTracks.add(subTrackId);
-			mainTrack.setSubTrackStreamIds(subTracks);
-			map.replace(mainTrackId, gson.toJson(mainTrack));
-			result = true;
-		}
-
-		return result;
+		return super.addSubTrack(null, map, mainTrackId, subTrackId, gson);
 	}
 
 	@Override
-	public int resetBroadcasts(String hostAddress) 
-	{
-		synchronized (this) {
-
-			Collection<String> broadcastsRawJSON = map.values();
-			int size = broadcastsRawJSON.size();
-			int updateOperations = 0;
-			int zombieStreamCount = 0;
-			int i = 0;
-			for (String broadcastRaw : broadcastsRawJSON) {
-				i++;
-				if (broadcastRaw != null) {
-					Broadcast broadcast = gson.fromJson(broadcastRaw, Broadcast.class);
-					if (broadcast.isZombi()) {
-						zombieStreamCount++;
-						map.remove(broadcast.getStreamId());
-					}
-					else {
-						updateOperations++;
-						broadcast.setHlsViewerCount(0);
-						broadcast.setWebRTCViewerCount(0);
-						broadcast.setRtmpViewerCount(0);
-						broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-						map.put(broadcast.getStreamId(), gson.toJson(broadcast));
-					}
-				}
-
-				if (i > size) {
-					logger.error("Inconsistency in DB found in resetting broadcasts. It's likely db file({}) is damaged", dbName);
-					break;
-				}
-			}
-			logger.info("Reset broadcasts result in deleting {} zombi streams and {} update operations", zombieStreamCount, updateOperations );
-
-			return updateOperations + zombieStreamCount;
-		}
+	public int resetBroadcasts(String hostAddress) {
+		return super.resetBroadcasts(null, map, hostAddress, gson, dbName);
 	}
 
 	@Override
 	public int getTotalWebRTCViewersCount() {
-		long now = System.currentTimeMillis();
-		if(now - totalWebRTCViewerCountLastUpdateTime > TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME) {
-			int total = 0;
-			synchronized (this) {
-				for (String json : map.getValues()) {
-					Broadcast broadcast = gson.fromJson(json, Broadcast.class);
-					total += broadcast.getWebRTCViewerCount();
-				}
-			}
-			totalWebRTCViewerCount = total;
-			totalWebRTCViewerCountLastUpdateTime = now;
-		}  
-		return totalWebRTCViewerCount;
+		return super.getTotalWebRTCViewersCount(null, map, gson);
 	}
 
 	@Override
 	public void saveViewerInfo(WebRTCViewerInfo info) {
-		synchronized (this) {
-			if (info != null) {
-				try {
-					webRTCViewerMap.put(info.getViewerId(), gson.toJson(info));
-				} catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-			}
-		}
+		super.saveViewerInfo(null, webRTCViewerMap, info, gson);
 	}
-
-
 
 	@Override
 	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
 			String search) {
-
-		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
-		synchronized (this) {
-			Collection<String> webRTCViewers = webRTCViewerMap.getValues();
-			for (String infoString : webRTCViewers)
-			{
-				WebRTCViewerInfo info = gson.fromJson(infoString, WebRTCViewerInfo.class);
-				list.add(info);
-			}
-		}
-		if(search != null && !search.isEmpty()){
-			logger.info("server side search called for Conference Room = {}", search);
-			list = searchOnWebRTCViewerInfo(list, search);
-		}
-		return sortAndCropWebRTCViewerInfoList(list, offset, size, sortBy, orderBy);
+		return super.getWebRTCViewerList(null, webRTCViewerMap, offset, size, sortBy, orderBy, search, gson);
 	}
-
-
 
 	@Override
 	public boolean deleteWebRTCViewerInfo(String viewerId) {
-		synchronized (this) 
-		{		
-			return webRTCViewerMap.remove(viewerId) != null;
-		}
+		return super.deleteWebRTCViewerInfo(null, webRTCViewerMap, viewerId);
 	}
 	
 	@Override
 	public boolean updateStreamMetaData(String streamId, String metaData) {
-		boolean result = false;
-		synchronized (this) {
-			if (streamId != null) {
-				String jsonString = map.get(streamId);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-					broadcast.setMetaData(metaData);
-					String jsonVal = gson.toJson(broadcast);
-					String previousValue = map.replace(streamId, jsonVal);
-					result = true;
-					logger.debug("updateStatus replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
-				}
-			}
-		}
-		return result;
+		return super.updateStreamMetaData(null, map, streamId, metaData, gson);
 	}
 
 }
