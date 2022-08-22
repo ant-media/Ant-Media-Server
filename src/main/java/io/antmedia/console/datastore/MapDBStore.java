@@ -1,12 +1,9 @@
 package io.antmedia.console.datastore;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import io.antmedia.datastore.db.types.User;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
@@ -37,122 +34,39 @@ public class MapDBStore extends AbstractConsoleDataStore {
 		available = true;
 	}
 
-
+	 @Override
 	public boolean addUser(User user) {
-		synchronized (this) {
-			boolean result = false;
-			try {
-				if (!userMap.containsKey(user.getEmail()))
-				{
-					userMap.put(user.getEmail(), gson.toJson(user));
-					db.commit();
-					result = true;
-				}
-				else {
-					logger.warn("user with {} already exist", user.getEmail());
-				}
-			}
-			catch (Exception e) {
-				e.printStackTrace();
-				result = false;
-			}
-
-		return result;
-		}
+		return super.addUser(null, userMap, user, gson);
 	}
 
+	@Override
 	public boolean editUser(User user) {
-		synchronized (this) {
-			boolean result = false;
-			try {
-				String username = user.getEmail();
-				if (userMap.containsKey(username)) {
-					userMap.put(username, gson.toJson(user));
-					db.commit();
-					result = true;
-				}
-			}
-			catch (Exception e) {
-				result = false;
-			}
-			return result;
-		}
+		return super.editUser(null, userMap, user, gson);
 	}
 
-
+	@Override
 	public boolean deleteUser(String username) {
-		synchronized (this) {
-			boolean result = false;
-			if (username != null) {
-				try {
-					if (userMap.containsKey(username)) {
-						userMap.remove(username);
-						db.commit();
-						result = true;
-					}
-				}
-				catch (Exception e) {
-					result = false;
-				}
-			}
-			return result;
-		}
+		return super.deleteUser(null, userMap, username);
 	}
 
+	@Override
 	public boolean doesUsernameExist(String username) {
-		synchronized (this) {
-			return userMap.containsKey(username);
-		}
+		return super.doesUsernameExist(null, userMap, username);
 	}
 
+	@Override
 	public boolean doesUserExist(String username, String password) {
-		synchronized (this) {
-			boolean result = false;
-			if (username != null && password != null) {
-				try {
-					if (userMap.containsKey(username)) {
-						String value = userMap.get(username);
-						User user = gson.fromJson(value, User.class);
-						if (user.getPassword().equals(password)) {
-							result = true;
-						}
-					}
-				}
-				catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-			return result;
-		}
+		return super.doesUserExist(null, userMap, username, password, gson);
 	}
+	
+	@Override
 	public List<User> getUserList(){
-		ArrayList<User> list = new ArrayList<>();
-		synchronized (this) {
-			Collection<String> users = userMap.getValues();
-			for (String userString : users) {
-				User user = gson.fromJson(userString, User.class);
-				list.add(user);
-			}
-		}
-		return list;
+		return super.getUserList(null, userMap, gson);
 	}
 
-	public User getUser(String username) 
-	{
-		synchronized (this) {
-			if (username != null)  {
-				try {
-					if (userMap.containsKey(username)) {
-						String value = userMap.get(username);
-						return gson.fromJson(value, User.class);
-					}
-				}
-				catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-			}
-			return null;
-		}
+	@Override
+	public User getUser(String username) {
+		return super.getUser(null, userMap, username, gson);
 	}
 
 

@@ -937,7 +937,7 @@ public abstract class DataStore {
 				
 				String jsonToken = tokenMap.get(token.getTokenId());
 				if (jsonToken != null) {
-					fetchedToken = gson.fromJson((String) jsonToken, Token.class);
+					fetchedToken = gson.fromJson(jsonToken, Token.class);
 
 					if( fetchedToken.getType().equals(token.getType())
 							&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
@@ -1610,7 +1610,6 @@ public abstract class DataStore {
 				Broadcast oldBroadcast = get(streamId);
 				if (oldBroadcast != null) 
 				{
-					//TODO parameter backup 1111111111
 					Map<String, String> broadcastMap = null;
 					
 					if(mapdbBroadcastMap != null) {
@@ -2463,7 +2462,7 @@ public abstract class DataStore {
 						broadcast.setHlsViewerCount(0);
 						broadcast.setWebRTCViewerCount(0);
 						broadcast.setRtmpViewerCount(0);
-						broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+						broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 						broadcastMap.put(broadcast.getStreamId(), gson.toJson(broadcast));
 					}
 				}

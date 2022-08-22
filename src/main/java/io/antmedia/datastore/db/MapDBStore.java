@@ -4,10 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.List;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -34,7 +32,6 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.muxer.MuxAdaptor;
 import io.vertx.core.Vertx;
 
 
@@ -61,7 +58,6 @@ public class MapDBStore extends DataStore {
 	private static final String DETECTION_MAP_NAME = "DETECTION";
 	private static final String TOKEN = "TOKEN";
 	private static final String SUBSCRIBER = "SUBSCRIBER";
-	private static final String SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME = "SOCIAL_ENDPONT_CREDENTIALS_MAP_NAME";
 	private static final String CONFERENCE_ROOM_MAP_NAME = "CONFERENCE_ROOM";
 	private static final String WEBRTC_VIEWER = "WEBRTC_VIEWER";
 
@@ -207,7 +203,7 @@ public class MapDBStore extends DataStore {
 			for (String broadcastString : values) {
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
-				if (status != null && status.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING)) {
+				if (status != null && status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 					activeBroadcastCount++;
 				}
 			}
