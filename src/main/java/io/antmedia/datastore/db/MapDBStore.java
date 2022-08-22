@@ -437,8 +437,10 @@ public class MapDBStore extends DataStore {
 			{
 				VoD vod = gson.fromJson(vodString, VoD.class);
 				if (vod.getFilePath() != null) {
-					String fileExtension = vod.getFilePath().substring(vod.getFilePath().lastIndexOf("."));
-					if (!vod.getStreamName().endsWith(fileExtension)) {
+					Integer index = vod.getFilePath().lastIndexOf(".");
+					String fileExtension = (index == -1) ? "" : vod.getFilePath().substring(index);
+					if (vod.getStreamName() != null
+							&& !vod.getStreamName().endsWith(fileExtension)) {
 						vod.setStreamName(vod.getStreamName() + fileExtension);
 					}
 				}
