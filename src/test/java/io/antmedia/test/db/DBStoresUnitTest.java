@@ -1568,11 +1568,13 @@ public class DBStoresUnitTest {
 	private void testVodSearch(DataStore dataStore){
 		clear(dataStore);
 
-		VoD newVod =  new VoD("streamName", "1112233" + (int)(Math.random() * 1000), "path", "aaVod", 1517239908, 123, 17933, 1190425, VoD.STREAM_VOD, "1149253" + (int)(Math.random() * 91000),null);
-		VoD newVod2 = new VoD("oguz", "123456" + (int)(Math.random() * 1000),  "path", "cCVod", 1517239708, 456, 17933, 1190625, VoD.STREAM_VOD, "11503943" + (int)(Math.random() * 91000),null);
-		VoD newVod3 = new VoD("ahmet", "2341" + (int)(Math.random() * 1000),  "path", "TahIr", 1517239608, 17933, 789, 1190725, VoD.STREAM_VOD, "11259243" + (int)(Math.random() * 91000),null);
+		String fileExtension = ".mp4";
+
+		VoD newVod =  new VoD("streamName"+fileExtension, "1112233" + (int)(Math.random() * 1000), "path", "aaVod", 1517239908, 123, 17933, 1190425, VoD.STREAM_VOD, "1149253" + (int)(Math.random() * 91000),null);
+		VoD newVod2 = new VoD("oguz", "123456" + (int)(Math.random() * 1000),  "path"+fileExtension, "cCVod", 1517239708, 456, 17933, 1190625, VoD.STREAM_VOD, "11503943" + (int)(Math.random() * 91000),null);
+		VoD newVod3 = new VoD("ahmet"+fileExtension, "2341" + (int)(Math.random() * 1000),  "path", "TahIr", 1517239608, 17933, 789, 1190725, VoD.STREAM_VOD, "11259243" + (int)(Math.random() * 91000),null);
 		VoD newVod4 = new VoD(null, null,  "path", null, 1517239608, 345, 17933, 1190725, VoD.STREAM_VOD, "11827485" + (int)(Math.random() * 91000), null);
-		VoD newVod5 = new VoD("denem", null,  "path", null, 1517239608, 678, 17933, 1190725, VoD.STREAM_VOD, null, null);
+		VoD newVod5 = new VoD("denem"+fileExtension, null,  "path", null, 1517239608, 678, 17933, 1190725, VoD.STREAM_VOD, null, null);
 
 		dataStore.addVod(newVod);
 		dataStore.addVod(newVod2);
@@ -1619,7 +1621,7 @@ public class DBStoresUnitTest {
 		vodList = dataStore.getVodList(0, 50, null, null, null, newVod2.getVodId());
 		assertEquals(1, vodList.size());
 		assertEquals(newVod2.getVodName(), vodList.get(0).getVodName());
-		assertEquals(newVod2.getStreamName(), vodList.get(0).getStreamName());
+		assertEquals(newVod2.getStreamName()+fileExtension, vodList.get(0).getStreamName());
 		assertEquals(newVod2.getStreamId(), vodList.get(0).getStreamId());
 		assertEquals(newVod2.getVodId(), vodList.get(0).getVodId());
 
