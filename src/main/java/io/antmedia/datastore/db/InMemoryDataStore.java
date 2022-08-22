@@ -204,7 +204,6 @@ public class InMemoryDataStore extends DataStore {
 		return vodMap.remove(id) != null;
 	}
 
-	@Override
 	public boolean removeAllEndpoints(String id) {
 		return super.removeAllEndpoints(null, null, broadcastMap, id, null);
 	}

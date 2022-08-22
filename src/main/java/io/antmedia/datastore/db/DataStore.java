@@ -1,7 +1,8 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
-
+import java.lang.reflect.Type;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -19,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import dev.morphia.Datastore;
 import dev.morphia.query.filters.Filters;
@@ -35,6 +37,8 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.MuxAdaptor;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public abstract class DataStore {
@@ -357,7 +361,7 @@ public abstract class DataStore {
 					else {
 						previousValue = redisBroadcastMap.replace(streamId, jsonVal);
 					}
-					
+					streamId = streamId.replaceAll("[\n\r\t]", "_");
 					logger.debug("addEndpoint replacing id {} having value {} to {}", streamId, previousValue, jsonVal);
 					result = true;
 				}
@@ -434,6 +438,7 @@ public abstract class DataStore {
 			}
 		}
 		if(search != null && !search.isEmpty()){
+			search = search.replaceAll("[\n\r\t]", "_");
 			logger.info("server side search called for Conference Room = {}", search);
 			list = searchOnServerConferenceRoom(list, search);
 		}
@@ -720,9 +725,80 @@ public abstract class DataStore {
 
 	public abstract long getTotalBroadcastNumber();
 
-	public abstract void saveDetection(String id,long timeElapsed,List<TensorFlowObject> detectedObjects);
+	public void saveDetection(String id,long timeElapsed,List<TensorFlowObject> detectedObjects) {
+		saveDetection(null, null, id, timeElapsed, detectedObjects, null);
+	}
+	
+	public void saveDetection(RMap<String, String> redisDetectionMap, BTreeMap<String, String> mapdbDetectionMap, String id,long timeElapsed,List<TensorFlowObject> detectedObjects, Gson gson) {
+		synchronized (this) {
+			try {
+				if (detectedObjects != null) {
+					for (TensorFlowObject tensorFlowObject : detectedObjects) {
+						tensorFlowObject.setDetectionTime(timeElapsed);
+					}
+					if(mapdbDetectionMap != null) {
+						mapdbDetectionMap.put(id, gson.toJson(detectedObjects));
+					}
+					else {
+						redisDetectionMap.put(id, gson.toJson(detectedObjects));
+					}
+					
+				}
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+			}
+		}
+	}
+	
 
-	public abstract List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize);
+
+	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize){
+		return getDetectionList(null, null, idFilter, offsetSize, batchSize, null);
+	}
+	
+	public List<TensorFlowObject> getDetectionList(RMap<String, String> redisDetectionMap, BTreeMap<String, String> mapdbDetectionMap, String idFilter, int offsetSize, int batchSize, Gson gson){
+
+		List<TensorFlowObject> list = new ArrayList<>();
+
+		synchronized (this) {
+			Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
+			int offsetCount = 0;
+			int batchCount = 0;
+
+			if (batchSize > MAX_ITEM_IN_ONE_LIST) {
+				batchSize = MAX_ITEM_IN_ONE_LIST;
+			}
+			
+			Map<String, String> detectionMap = null;
+			
+			if(mapdbDetectionMap != null) {
+				detectionMap = mapdbDetectionMap;
+			}
+			else {
+				detectionMap = redisDetectionMap;
+			}
+
+			for (Iterator<String> keyIterator =   detectionMap.keySet().iterator(); keyIterator.hasNext();) {
+				String keyValue = keyIterator.next();
+				if (keyValue.startsWith(idFilter)) 
+				{
+					if (offsetCount < offsetSize) {
+						offsetCount++;
+						continue;
+					}
+					if (batchCount >= batchSize) {
+						break;
+					}
+					List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
+					list.addAll(detectedList);
+					batchCount=list.size();
+				}
+			}
+		}
+		return list;
+	}
+	
+
 
 	public abstract List<TensorFlowObject> getDetection(String id);
 
@@ -732,7 +808,37 @@ public abstract class DataStore {
 	 * @param token - created token
 	 * @return  true/false
 	 */
-	public abstract boolean saveToken (Token token);
+	public boolean saveToken (Token token) {
+		return saveToken(null, null, token, null);
+	}
+	
+	public boolean saveToken (RMap<String, String> redisTokenMap, BTreeMap<String, String> mapdbTokenMap, Token token, Gson gson) {
+		boolean result = false;
+
+		synchronized (this) {
+
+			if(token.getStreamId() != null && token.getTokenId() != null) {
+				
+				try {
+					Map<String, String> tokenMap = null;
+					
+					if(mapdbTokenMap != null) {
+						tokenMap = mapdbTokenMap;
+					}
+					else {
+						tokenMap = redisTokenMap;
+					}
+					
+					tokenMap.put(token.getTokenId(), gson.toJson(token));
+					result = true;
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
+
+		return result;
+	}
 
 
 	/**
@@ -742,7 +848,64 @@ public abstract class DataStore {
 	 * @param size
 	 * @return lists of tokens
 	 */
-	public abstract List<Token> listAllTokens (String streamId, int offset, int size);
+	public List<Token> listAllTokens (String streamId, int offset, int size){
+		return listAllTokens(null, null, streamId, offset, size, null);
+	}
+	
+	public List<Token> listAllTokens (RMap<String, String> redisTokenMap, BTreeMap<String, String> mapdbTokenMap, String streamId, int offset, int size, Gson gson){
+
+		List<Token> list = new ArrayList<>();
+		List<Token> listToken = new ArrayList<>();
+
+		synchronized (this) {
+			
+			Map<String, String> tokenMap = null;
+			
+			if(mapdbTokenMap != null) {
+				tokenMap = mapdbTokenMap;
+			}
+			else {
+				tokenMap = redisTokenMap;
+			}
+			
+			Collection<String> values = tokenMap.values();
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
+			if (offset < 0) {
+				offset = 0;
+			}
+
+			Iterator<String> iterator = values.iterator();
+
+			while(iterator.hasNext()) {
+				Token token = gson.fromJson(iterator.next(), Token.class);
+
+				if(token.getStreamId().equals(streamId)) {
+					list.add(token);
+				}
+			}
+
+			Iterator<Token> listIterator = list.iterator();
+
+			while(itemCount < size && listIterator.hasNext()) {
+				if (t < offset) {
+					t++;
+					listIterator.next();
+				}
+				else {
+
+					listToken.add(listIterator.next());
+					itemCount++;
+
+				}
+			}
+
+		}
+		return listToken;
+	}
 
 
 	/**
@@ -751,28 +914,156 @@ public abstract class DataStore {
 	 * @param streamId
 	 * @return token if validated, null if not
 	 */
-	public abstract Token validateToken (Token token);
+	public Token validateToken (Token token) {
+		return validateToken(null, null, token, null);
+	}
+	
+	public Token validateToken (RMap<String, String> redisTokenMap, BTreeMap<String, String> mapdbTokenMap, Token token, Gson gson) {
+		Token fetchedToken = null;
+
+		synchronized (this) {
+			if (token.getTokenId() != null) {
+				
+				Map<String, String> tokenMap = null;
+				
+				if(mapdbTokenMap != null) {
+					tokenMap = mapdbTokenMap;
+				}
+				else {
+					tokenMap = redisTokenMap;
+				}
+				
+				String jsonToken = tokenMap.get(token.getTokenId());
+				if (jsonToken != null) {
+					fetchedToken = gson.fromJson((String) jsonToken, Token.class);
+
+					if( fetchedToken.getType().equals(token.getType())
+							&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
+
+						if(token.getRoomId() == null || token.getRoomId().isEmpty() ) {
+							if(fetchedToken.getStreamId().equals(token.getStreamId())) {
+
+								tokenMap.remove(token.getTokenId());
+
+							}
+							else{
+								fetchedToken = null;
+							}
+						}
+						return fetchedToken;
+					}
+					else {
+						fetchedToken = null;
+					}
+				}
+			}
+		}
+
+		return fetchedToken;
+	}
+	
 
 	/**
 	 * Delete all tokens of the stream
 	 * @param streamId
 	 */
 
-	public abstract boolean revokeTokens (String streamId);
+	public boolean revokeTokens (String streamId) {
+		return revokeTokens(null, null, streamId, null);
+	}
+	
+	public boolean revokeTokens (RMap<String, String> redisTokenMap, BTreeMap<String, String> mapdbTokenMap, String streamId, Gson gson) {
+		boolean result = false;
+
+		synchronized (this) {
+			
+			Map<String, String> tokenMap = null;
+			
+			if(mapdbTokenMap != null) {
+				tokenMap = mapdbTokenMap;
+			}
+			else {
+				tokenMap = redisTokenMap;
+			}
+			
+			Object[] objectArray = tokenMap.values().toArray();
+			Token[] tokenArray = new Token[objectArray.length];
+
+			for (int i = 0; i < objectArray.length; i++) {
+				tokenArray[i] = gson.fromJson((String) objectArray[i], Token.class);
+			}
+
+			for (int i = 0; i < tokenArray.length; i++) {
+				if (tokenArray[i].getStreamId().equals(streamId)) {
+					result = tokenMap.remove(tokenArray[i].getTokenId()) != null;
+					if(!result) {
+						break;
+					}
+				}
+
+			}
+		}
+		return result;
+	}
 
 	/**
 	 * Delete specific token
 	 * @param tokenId id of the token
 	 */
 
-	public abstract boolean deleteToken (String tokenId);
+	public boolean deleteToken (String tokenId) {
+		return deleteToken(null, null, tokenId);
+	}
+	
+	public boolean deleteToken (RMap<String, String> redisTokenMap, BTreeMap<String, String> mapdbTokenMap, String tokenId) {
+		boolean result = false;
+
+		synchronized (this) {
+			
+			Map<String, String> tokenMap = null;
+			
+			if(mapdbTokenMap != null) {
+				tokenMap = mapdbTokenMap;
+			}
+			else {
+				tokenMap = redisTokenMap;
+			}
+			
+			result = tokenMap.remove(tokenId) != null;
+		}
+		return result;
+	}
 
 	/**
 	 * retrieve specific token
 	 * @param tokenId id of the token
 	 */
 
-	public abstract Token getToken (String tokenId);
+	public Token getToken (String tokenId) {
+		return getToken(null, null, tokenId, null);
+	}
+
+	public Token getToken (RMap<String, String> redisTokenMap, BTreeMap<String, String> mapdbTokenMap, String tokenId, Gson gson) {
+		Token token = null;
+		synchronized (this) {
+			if (tokenId != null) {
+				Map<String, String> tokenMap = null;
+				
+				if(mapdbTokenMap != null) {
+					tokenMap = mapdbTokenMap;
+				}
+				else {
+					tokenMap = redisTokenMap;
+				}
+				
+				String jsonString = tokenMap.get(tokenId);
+				if (jsonString != null) {
+					token = gson.fromJson(jsonString, Token.class);
+				}
+			}
+		}
+		return token;
+	}
 
 	/**
 	 * Lists all subscribers of requested stream
@@ -781,7 +1072,63 @@ public abstract class DataStore {
 	 * @param size
 	 * @return lists of subscribers
 	 */	
-	public abstract List<Subscriber> listAllSubscribers(String streamId, int offset, int size);
+	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size){
+		return listAllSubscribers(null, null, streamId, offset, size, null);
+	}
+	
+	public List<Subscriber> listAllSubscribers(RMap<String, String> redisSubscriberMap, BTreeMap<String, String> mapdbSubscriberMap, String streamId, int offset, int size, Gson gson){
+		List<Subscriber> list = new ArrayList<>();
+		List<Subscriber> listSubscriber = new ArrayList<>();
+
+		synchronized (this) {
+			
+			Map<String, String> subscriberMap = null;
+			
+			if(mapdbSubscriberMap != null) {
+				subscriberMap = mapdbSubscriberMap;
+			}
+			else {
+				subscriberMap = redisSubscriberMap;
+			}
+			
+			Collection<String> values = subscriberMap.values();
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
+			if (offset < 0) {
+				offset = 0;
+			}
+
+			Iterator<String> iterator = values.iterator();
+
+			while(iterator.hasNext()) {
+				Subscriber subscriber = gson.fromJson(iterator.next(), Subscriber.class);
+
+				if(subscriber.getStreamId().equals(streamId)) {
+					list.add(subscriber);
+				}
+			}
+
+			Iterator<Subscriber> listIterator = list.iterator();
+
+			while(itemCount < size && listIterator.hasNext()) {
+				if (t < offset) {
+					t++;
+					listIterator.next();
+				}
+				else {
+
+					listSubscriber.add(listIterator.next());
+					itemCount++;
+
+				}
+			}
+
+		}
+		return listSubscriber;
+	}
 
 
 	/**
@@ -808,7 +1155,40 @@ public abstract class DataStore {
 	 * @param subscriber - subscriber to be added
 	 * @return- true if set, false if not
 	 */	
-	public abstract boolean addSubscriber(String streamId, Subscriber subscriber);
+	public boolean addSubscriber(String streamId, Subscriber subscriber) {
+		return addSubscriber(null, null, streamId, subscriber, null);
+	}
+	
+	public boolean addSubscriber(RMap<String, String> redisSubscriberMap, BTreeMap<String, String> mapdbSubscriberMap, String streamId, Subscriber subscriber, Gson gson) {
+		boolean result = false;
+
+		if (subscriber != null) {		
+			synchronized (this) {
+
+				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
+
+					Map<String, String> subscriberMap = null;
+					
+					if(mapdbSubscriberMap != null) {
+						subscriberMap = mapdbSubscriberMap;
+					}
+					else {
+						subscriberMap = redisSubscriberMap;
+					}
+					
+					try {
+						subscriberMap.put(subscriber.getSubscriberKey(), gson.toJson(subscriber));
+
+						result = true;
+					} catch (Exception e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+				}
+			}
+		}
+
+		return result;
+	}
 
 	/**
 	 * deletes subscriber from the datastore for this stream
@@ -816,14 +1196,76 @@ public abstract class DataStore {
 	 * @param subscriberId - id of the subsciber to be deleted
 	 * @return- true if set, false if not
 	 */		
-	public abstract boolean deleteSubscriber(String streamId, String subscriberId);
+	public boolean deleteSubscriber(String streamId, String subscriberId) {
+		return deleteSubscriber(null, null, streamId, subscriberId);
+	}
+	
+	public boolean deleteSubscriber(RMap<String, String> redisSubscriberMap, BTreeMap<String, String> mapdbSubscriberMap, String streamId, String subscriberId) {
+		boolean result = false;
+
+		synchronized (this) {
+			try {
+				Map<String, String> subscriberMap = null;
+				
+				if(mapdbSubscriberMap != null) {
+					subscriberMap = mapdbSubscriberMap;
+				}
+				else {
+					subscriberMap = redisSubscriberMap;
+				}
+				
+				result = subscriberMap.remove(Subscriber.getDBKey(streamId, subscriberId)) != null;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return result;
+	}
 
 	/**
 	 * deletes all subscriber from the datastore for this stream
 	 * @param streamId
 	 * @return- true if set, false if not
 	 */		
-	public abstract boolean revokeSubscribers(String streamId);
+	public boolean revokeSubscribers(String streamId) {
+		return revokeSubscribers(null, null, streamId, null);
+	}
+	
+	public boolean revokeSubscribers(RMap<String, String> redisSubscriberMap, BTreeMap<String, String> mapdbSubscriberMap, String streamId, Gson gson) {
+		boolean result = false;
+
+		synchronized (this) {
+			
+			Map<String, String> subscriberMap = null;
+			
+			if(mapdbSubscriberMap != null) {
+				subscriberMap = mapdbSubscriberMap;
+			}
+			else {
+				subscriberMap = redisSubscriberMap;
+			}
+			
+			Object[] objectArray = subscriberMap.values().toArray();
+			Subscriber[] subscriberArray = new Subscriber[objectArray.length];
+
+			for (int i = 0; i < objectArray.length; i++) {
+				subscriberArray[i] = gson.fromJson((String) objectArray[i], Subscriber.class);
+			}
+
+			for (int i = 0; i < subscriberArray.length; i++) {
+				String subscriberStreamId = subscriberArray[i].getStreamId();
+				if (subscriberStreamId != null && subscriberStreamId.equals(streamId)) {
+					result = subscriberMap.remove(subscriberArray[i].getSubscriberKey()) != null;
+					if(!result) {
+						break;
+					}
+				}
+
+			}
+		}
+
+		return result;
+	}
 
 	/**
 	 * gets subscriber from the datastore
@@ -831,7 +1273,32 @@ public abstract class DataStore {
 	 * @param subscriberId - id of the subsciber to be deleted
 	 * @return- Subscriber
 	 */	
-	public abstract Subscriber getSubscriber (String streamId, String subscriberId);
+	public Subscriber getSubscriber (String streamId, String subscriberId) {
+		return getSubscriber(null, null, streamId, subscriberId, null);
+	}
+	
+	public Subscriber getSubscriber (RMap<String, String> redisSubscriberMap, BTreeMap<String, String> mapdbSubscriberMap, String streamId, String subscriberId, Gson gson) {
+		Subscriber subscriber = null;
+		synchronized (this) {
+			if (subscriberId != null && streamId != null) {
+				
+				Map<String, String> subscriberMap = null;
+				
+				if(mapdbSubscriberMap != null) {
+					subscriberMap = mapdbSubscriberMap;
+				}
+				else {
+					subscriberMap = redisSubscriberMap;
+				}
+				
+				String jsonString = subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId));
+				if (jsonString != null) {
+					subscriber = gson.fromJson(jsonString, Subscriber.class);
+				}
+			}
+		}
+		return subscriber;	
+	}
 
 	/**
 	 * gets the connection status of the subscriber from the datastore
@@ -906,7 +1373,42 @@ public abstract class DataStore {
 	 * called after an ungraceful shutdown
 	 * @return- true if successful else false
 	 */	
-	public abstract boolean resetSubscribersConnectedStatus ();	
+	public boolean resetSubscribersConnectedStatus () {
+		return resetSubscribersConnectedStatus(null, null, null);
+	}
+	
+	public boolean resetSubscribersConnectedStatus(RMap<String, String> redisSubscriberMap, BTreeMap<String, String> mapdbSubscriberMap, Gson gson) {
+		synchronized (this) {
+			try {
+				Map<String, String> subscriberMap = null;
+				
+				if(mapdbSubscriberMap != null) {
+					subscriberMap = mapdbSubscriberMap;
+				}
+				else {
+					subscriberMap = redisSubscriberMap;
+				}
+				
+				Collection<String> subcribersRaw = subscriberMap.values();
+
+				for (String subscriberRaw : subcribersRaw) {
+					if (subscriberRaw != null) {
+						Subscriber subscriber = gson.fromJson(subscriberRaw, Subscriber.class);
+						if (subscriber != null) {
+							subscriber.setConnected(false);
+							subscriberMap.put(subscriber.getSubscriberKey(), gson.toJson(subscriber));
+						}
+					}
+				}
+
+
+				return true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				return false;
+			}
+		}
+	}
 
 	/**
 	 * enables or disables mp4 muxing for the stream
@@ -914,7 +1416,37 @@ public abstract class DataStore {
 	 * @param enabled 1 means enabled, -1 means disabled, 0 means no setting for the stream
 	 * @return- true if set, false if not
 	 */
-	public abstract boolean setMp4Muxing(String streamId, int enabled);
+	public boolean setMp4Muxing(String streamId, int enabled) {
+		return setMp4Muxing(null, null, streamId, enabled, null);
+	}
+	
+	public boolean setMp4Muxing(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, String streamId, int enabled, Gson gson) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				Map<String, String> broadcastMap = null;
+				
+				if(mapdbBroadcastMap != null) {
+					broadcastMap = mapdbBroadcastMap;
+				}
+				else {
+					broadcastMap = redisBroadcastMap;
+				}
+				
+				String jsonString = broadcastMap.get(streamId);
+				if (jsonString != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {			
+
+					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
+					broadcast.setMp4Enabled(enabled);
+					broadcastMap.replace(streamId, gson.toJson(broadcast));
+
+
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
 
 	/**
 	 * enables or disables WebM muxing for the stream
@@ -922,7 +1454,38 @@ public abstract class DataStore {
 	 * @param enabled 1 means enabled, -1 means disabled, 0 means no setting for the stream
 	 * @return- true if set, false if not
 	 */
-	public abstract boolean setWebMMuxing(String streamId, int enabled);
+	public boolean setWebMMuxing(String streamId, int enabled) {
+		return setWebMMuxing(null, null, streamId, enabled, null);
+	}
+	
+	public boolean setWebMMuxing(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, String streamId, int enabled, Gson gson) {
+		
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				Map<String, String> broadcastMap = null;
+				
+				if(mapdbBroadcastMap != null) {
+					broadcastMap = mapdbBroadcastMap;
+				}
+				else {
+					broadcastMap = redisBroadcastMap;
+				}
+				
+				String jsonString = broadcastMap.get(streamId);
+				if (jsonString != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {			
+
+					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
+					broadcast.setWebMEnabled(enabled);
+					broadcastMap.replace(streamId, gson.toJson(broadcast));
+
+
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
 
 
 	/**
@@ -1033,7 +1596,41 @@ public abstract class DataStore {
 	 * @param broadcast
 	 * @return
 	 */
-	public abstract boolean updateBroadcastFields(String streamId, Broadcast broadcast);
+	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {
+		return updateBroadcastFields(null, null, streamId, broadcast, null);
+	}
+	
+	public boolean updateBroadcastFields(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, String streamId, Broadcast broadcast, Gson gson) {
+		boolean result = false;
+		synchronized (this) {
+			try {
+				logger.debug("inside of updateBroadcastFields {}", broadcast.getStreamId());
+				Broadcast oldBroadcast = get(streamId);
+				if (oldBroadcast != null) 
+				{
+					//TODO parameter backup 1111111111
+					Map<String, String> broadcastMap = null;
+					
+					if(mapdbBroadcastMap != null) {
+						broadcastMap = mapdbBroadcastMap;
+					}
+					else {
+						broadcastMap = redisBroadcastMap;
+					}
+					
+					updateStreamInfo(oldBroadcast, broadcast);
+					broadcastMap.replace(streamId, gson.toJson(oldBroadcast));
+
+					result = true;
+				}
+			} catch (Exception e) {
+				result = false;
+			}
+		}
+
+		logger.debug("result inside updateBroadcastFields:{} ", result);
+		return result;
+	}
 
 	/**
 	 * Add or subtract the HLS viewer count from current value
@@ -1047,7 +1644,37 @@ public abstract class DataStore {
 		return false;
 	}
 	
-	protected abstract boolean updateHLSViewerCountLocal(String streamId, int diffCount);
+	protected boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
+		return updateHLSViewerCountLocal(null, null, streamId, diffCount, null);
+	}
+	
+	protected boolean updateHLSViewerCountLocal(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, String streamId, int diffCount, Gson gson) {
+		boolean result = false;
+		synchronized (this) {
+
+			if (streamId != null) {
+				Broadcast broadcast = get(streamId);
+				if (broadcast != null) {
+					int hlsViewerCount = broadcast.getHlsViewerCount();
+					hlsViewerCount += diffCount;
+					broadcast.setHlsViewerCount(hlsViewerCount);
+					
+					Map<String, String> broadcastMap = null;
+					
+					if(mapdbBroadcastMap != null) {
+						broadcastMap = mapdbBroadcastMap;
+					}
+					else {
+						broadcastMap = redisBroadcastMap;
+					}
+					
+					broadcastMap.replace(streamId, gson.toJson(broadcast));
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
 	
 	/**
 	 * Add or subtract the DASH viewer count from current value
@@ -1061,14 +1688,76 @@ public abstract class DataStore {
 		return false;
 	}
 
-	protected abstract boolean updateDASHViewerCountLocal(String streamId, int diffCount);	
+	protected boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
+		return updateDASHViewerCountLocal(null, null, streamId, diffCount, null);
+	}
+	
+	protected boolean updateDASHViewerCountLocal(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, String streamId, int diffCount, Gson gson) {		
+		boolean result = false;
+		synchronized (this) {
+
+			if (streamId != null) {
+				Broadcast broadcast = get(streamId);
+				if (broadcast != null) {
+					Map<String, String> broadcastMap = null;
+					
+					if(mapdbBroadcastMap != null) {
+						broadcastMap = mapdbBroadcastMap;
+					}
+					else {
+						broadcastMap = redisBroadcastMap;
+					}
+					
+					int dashViewerCount = broadcast.getDashViewerCount();
+					dashViewerCount += diffCount;
+					broadcast.setDashViewerCount(dashViewerCount);
+					broadcastMap.replace(streamId, gson.toJson(broadcast));
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
+	
+	
+	
 
 	/**
 	 * Returns the total number of detected objects in the stream
 	 * @param id is the stream id
 	 * @return total number of detected objects
 	 */
-	public abstract long getObjectDetectedTotal(String streamId);
+	public long getObjectDetectedTotal(String streamId) {
+		return getObjectDetectedTotal(null, null, streamId, null);
+	}
+	
+	public long getObjectDetectedTotal(RMap<String, String> redisDetectionMap, BTreeMap<String, String> mapdbDetectionMap, String streamId, Gson gson) {
+		List<TensorFlowObject> list = new ArrayList<>();
+
+		Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
+
+		synchronized (this) {
+			
+			Map<String, String> detectionMap = null;
+			
+			if(mapdbDetectionMap != null) {
+				detectionMap = mapdbDetectionMap;
+			}
+			else {
+				detectionMap = redisDetectionMap;
+			}
+
+			for (Iterator<String> keyIterator =  detectionMap.keySet().iterator(); keyIterator.hasNext();) {
+				String keyValue = keyIterator.next();
+				if (keyValue.startsWith(streamId)) 
+				{
+					List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
+					list.addAll(detectedList);
+				}
+			}
+		}
+		return list.size();
+	}
 
 	/**
 	 * Update the WebRTC viewer count
@@ -1083,7 +1772,42 @@ public abstract class DataStore {
 		return false;
 	}
 
-	protected abstract boolean updateWebRTCViewerCountLocal(String streamId, boolean increment);
+	protected boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
+		return updateWebRTCViewerCountLocal(null, null, streamId, increment, null);
+	}
+	
+	protected boolean updateWebRTCViewerCountLocal(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, String streamId, boolean increment, Gson gson) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				Broadcast broadcast = get(streamId);
+				if (broadcast != null) {
+					Map<String, String> broadcastMap = null;
+					
+					if(mapdbBroadcastMap != null) {
+						broadcastMap = mapdbBroadcastMap;
+					}
+					else {
+						broadcastMap = redisBroadcastMap;
+					}
+					
+					int webRTCViewerCount = broadcast.getWebRTCViewerCount();
+					if (increment) {
+						webRTCViewerCount++;
+					}
+					else {
+						webRTCViewerCount--;
+					}
+					if(webRTCViewerCount >= 0) {
+						broadcast.setWebRTCViewerCount(webRTCViewerCount);
+						broadcastMap.replace(streamId, gson.toJson(broadcast));
+						result = true;
+					}
+				}
+			}
+		}
+		return result;
+	}
 
 
 	/**
@@ -1099,7 +1823,43 @@ public abstract class DataStore {
 		return false;
 	}
 
-	protected abstract boolean updateRtmpViewerCountLocal(String streamId, boolean increment);
+	protected boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
+		return updateRtmpViewerCountLocal(null, null, streamId, increment, null);
+	}
+	
+	protected boolean updateRtmpViewerCountLocal(RMap<String, String> redisBroadcastMap, BTreeMap<String, String> mapdbBroadcastMap, String streamId, boolean increment, Gson gson) {
+		boolean result = false;
+		synchronized (this) {
+			if (streamId != null) {
+				Broadcast broadcast = get(streamId);
+				if (broadcast != null) {
+					
+					Map<String, String> broadcastMap = null;
+					
+					if(mapdbBroadcastMap != null) {
+						broadcastMap = mapdbBroadcastMap;
+					}
+					else {
+						broadcastMap = redisBroadcastMap;
+					}
+					
+					int rtmpViewerCount = broadcast.getRtmpViewerCount();
+					if (increment) {
+						rtmpViewerCount++;
+					}
+					else { 
+						rtmpViewerCount--;
+					}
+					if(rtmpViewerCount >= 0) {
+						broadcast.setRtmpViewerCount(rtmpViewerCount);
+						broadcastMap.replace(streamId, gson.toJson(broadcast));
+						result = true;
+					}
+				}
+			}
+		}
+		return result;
+	}
 
 
 	/**
@@ -1142,28 +1902,124 @@ public abstract class DataStore {
 	 * @param room - conference room
 	 * @return true if successfully created, false if not
 	 */
-	public abstract boolean createConferenceRoom(ConferenceRoom room);
+	public boolean createConferenceRoom(ConferenceRoom room) {
+		return createConferenceRoom(null, null, room, null);
+	}
+	
+	public boolean createConferenceRoom(RMap<String, String> redisConferenceMap, BTreeMap<String, String> mapdbConferenceMap,  ConferenceRoom room, Gson gson) {
+		synchronized (this) {
+			boolean result = false;
+
+			if (room != null && room.getRoomId() != null) {
+				
+				Map<String, String> conferenceRoomMap = null;
+				
+				if(mapdbConferenceMap != null) {
+					conferenceRoomMap = mapdbConferenceMap;
+				}
+				else {
+					conferenceRoomMap = redisConferenceMap;
+				}
+				
+				conferenceRoomMap.put(room.getRoomId(), gson.toJson(room));
+
+				result = true;
+			}
+
+			return result;
+		}
+	}
 
 	/**
 	 * Edits previously saved conference room
 	 * @param room - conference room
 	 * @return true if successfully edited, false if not
 	 */
-	public abstract boolean editConferenceRoom(String roomId, ConferenceRoom room);
+	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
+		return editConferenceRoom(null, null, roomId, room, null);
+	}
+	
+	public boolean editConferenceRoom(RMap<String, String> redisConferenceMap, BTreeMap<String, String> mapdbConferenceMap, String roomId, ConferenceRoom room, Gson gson) {
+		synchronized (this) {
+			boolean result = false;
+
+			if (roomId != null && room != null && room.getRoomId() != null) {
+				Map<String, String> conferenceRoomMap = null;
+				
+				if(mapdbConferenceMap != null) {
+					conferenceRoomMap = mapdbConferenceMap;
+				}
+				else {
+					conferenceRoomMap = redisConferenceMap;
+				}
+				
+				result = conferenceRoomMap.replace(roomId, gson.toJson(room)) != null;
+			}
+			return result;
+		}
+	}
 
 	/**
 	 * Deletes previously saved conference room
 	 * @param roomName- name of the conference room
 	 * @return true if successfully deleted, false if not
 	 */
-	public abstract boolean deleteConferenceRoom(String roomId);
+	public boolean deleteConferenceRoom(String roomId) {
+		return deleteConferenceRoom(null, null, roomId);
+	}
+	
+	public boolean deleteConferenceRoom(RMap<String, String> redisConferenceMap, BTreeMap<String, String> mapdbConferenceMap, String roomId) {
+		synchronized (this) 
+		{
+			boolean result = false;
+
+			if (roomId != null && !roomId.isEmpty()) {
+				
+				Map<String, String> conferenceRoomMap = null;
+				
+				if(mapdbConferenceMap != null) {
+					conferenceRoomMap = mapdbConferenceMap;
+				}
+				else {
+					conferenceRoomMap = redisConferenceMap;
+				}
+				
+				result = conferenceRoomMap.remove(roomId) != null;
+			}
+			return result;
+		}
+	}
 
 	/**
 	 * Retrieves previously saved conference room
 	 * @param roomName- name of the conference room
 	 * @return room - conference room
 	 */
-	public abstract ConferenceRoom getConferenceRoom(String roomId);
+	public ConferenceRoom getConferenceRoom(String roomId) {
+		return getConferenceRoom(null, null, roomId, null);
+	}
+	
+	public ConferenceRoom getConferenceRoom(RMap<String, String> redisConferenceMap, BTreeMap<String, String> mapdbConferenceMap, String roomId, Gson gson) {
+		synchronized (this) {
+			if (roomId != null) {
+				
+				Map<String, String> conferenceRoomMap = null;
+				
+				if(mapdbConferenceMap != null) {
+					conferenceRoomMap = mapdbConferenceMap;
+				}
+				else {
+					conferenceRoomMap = redisConferenceMap;
+				}
+				
+				String jsonString = conferenceRoomMap.get(roomId);
+				if (jsonString != null) {
+					return gson.fromJson(jsonString, ConferenceRoom.class);
+				}
+			}
+		}
+		return null;
+	}
 
 	/**
 	 * Updates the stream fields if it's not null

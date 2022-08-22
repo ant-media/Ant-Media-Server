@@ -68,7 +68,6 @@ public class DBStoresUnitTest {
 	@Before
 	public void before() {
 		deleteMapDBFile();
-
 	}
 
 	@After

@@ -375,23 +375,12 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public long getPartialBroadcastNumber(String search) {
-		List<Broadcast> broadcasts = getBroadcastListV2(null ,search);
-		return broadcasts.size();
+		return getBroadcastListV2(null ,search).size();
 	}
-
+	
+	@Override
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
-		synchronized (this) {
-			try {
-				if (detectedObjects != null) {
-					for (TensorFlowObject tensorFlowObject : detectedObjects) {
-						tensorFlowObject.setDetectionTime(timeElapsed);
-					}
-					detectionMap.put(id, gson.toJson(detectedObjects));
-				}
-			} catch (Exception e) {
-				logger.error(e.getMessage());
-			}
-		}
+		super.saveDetection(null, detectionMap, id, timeElapsed, detectedObjects, gson);
 	}
 
 	@Override
@@ -411,57 +400,12 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
-
-		List<TensorFlowObject> list = new ArrayList<>();
-
-		synchronized (this) {
-			Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
-			int offsetCount = 0;
-			int batchCount = 0;
-
-			if (batchSize > MAX_ITEM_IN_ONE_LIST) {
-				batchSize = MAX_ITEM_IN_ONE_LIST;
-			}
-
-			for (Iterator<String> keyIterator =  detectionMap.keyIterator(); keyIterator.hasNext();) {
-				String keyValue = keyIterator.next();
-				if (keyValue.startsWith(idFilter)) 
-				{
-					if (offsetCount < offsetSize) {
-						offsetCount++;
-						continue;
-					}
-					if (batchCount >= batchSize) {
-						break;
-					}
-					List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
-					list.addAll(detectedList);
-					batchCount=list.size();
-				}
-			}
-		}
-		return list;
+		return super.getDetectionList(null, detectionMap, idFilter, offsetSize, batchSize, gson);
 	}
 
 	@Override
 	public long getObjectDetectedTotal(String id) {
-
-		List<TensorFlowObject> list = new ArrayList<>();
-
-		Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
-
-		synchronized (this) {
-
-			for (Iterator<String> keyIterator =  detectionMap.keyIterator(); keyIterator.hasNext();) {
-				String keyValue = keyIterator.next();
-				if (keyValue.startsWith(id)) 
-				{
-					List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
-					list.addAll(detectedList);
-				}
-			}
-		}
-		return list.size();
+		return super.getObjectDetectedTotal(null, detectionMap, id, gson);
 	}
 
 
@@ -473,114 +417,27 @@ public class MapDBStore extends DataStore {
 	 */
 	@Override
 	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {
-		boolean result = false;
-		synchronized (this) {
-			try {
-				logger.debug("inside of updateBroadcastFields {}", broadcast.getStreamId());
-				Broadcast oldBroadcast = get(streamId);
-				if (oldBroadcast != null) 
-				{
-
-					updateStreamInfo(oldBroadcast, broadcast);
-					map.replace(streamId, gson.toJson(oldBroadcast));
-
-					result = true;
-				}
-			} catch (Exception e) {
-				result = false;
-			}
-		}
-
-		logger.debug("result inside updateBroadcastFields:{} ", result);
-		return result;
+		return super.updateBroadcastFields(null, map, streamId, broadcast, gson);
 	}
 
 	@Override
 	protected synchronized boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
-		boolean result = false;
-		synchronized (this) {
-
-			if (streamId != null) {
-				Broadcast broadcast = get(streamId);
-				if (broadcast != null) {
-					int hlsViewerCount = broadcast.getHlsViewerCount();
-					hlsViewerCount += diffCount;
-					broadcast.setHlsViewerCount(hlsViewerCount);
-					map.replace(streamId, gson.toJson(broadcast));
-					result = true;
-				}
-			}
-		}
-		return result;
+		return super.updateHLSViewerCountLocal(null, map, streamId, diffCount, gson);
 	}
 	
 	@Override
 	protected synchronized boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
-		boolean result = false;
-		synchronized (this) {
-
-			if (streamId != null) {
-				Broadcast broadcast = get(streamId);
-				if (broadcast != null) {
-					int dashViewerCount = broadcast.getDashViewerCount();
-					dashViewerCount += diffCount;
-					broadcast.setDashViewerCount(dashViewerCount);
-					map.replace(streamId, gson.toJson(broadcast));
-					result = true;
-				}
-			}
-		}
-		return result;
+		return super.updateDASHViewerCountLocal(null, map, streamId, diffCount, gson);
 	}
 
 	@Override
 	protected synchronized boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
-		boolean result = false;
-		synchronized (this) {
-			if (streamId != null) {
-				Broadcast broadcast = get(streamId);
-				if (broadcast != null) {
-					int webRTCViewerCount = broadcast.getWebRTCViewerCount();
-					if (increment) {
-						webRTCViewerCount++;
-					}
-					else {
-						webRTCViewerCount--;
-					}
-					if(webRTCViewerCount >= 0) {
-						broadcast.setWebRTCViewerCount(webRTCViewerCount);
-						map.replace(streamId, gson.toJson(broadcast));
-						result = true;
-					}
-				}
-			}
-		}
-		return result;
+		return super.updateWebRTCViewerCountLocal(null, map, streamId, increment, gson);
 	}
 
 	@Override
 	protected synchronized boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
-		boolean result = false;
-		synchronized (this) {
-			if (streamId != null) {
-				Broadcast broadcast = get(streamId);
-				if (broadcast != null) {
-					int rtmpViewerCount = broadcast.getRtmpViewerCount();
-					if (increment) {
-						rtmpViewerCount++;
-					}
-					else { 
-						rtmpViewerCount--;
-					}
-					if(rtmpViewerCount >= 0) {
-						broadcast.setRtmpViewerCount(rtmpViewerCount);
-						map.replace(streamId, gson.toJson(broadcast));
-						result = true;
-					}
-				}
-			}
-		}
-		return result;
+		return super.updateRtmpViewerCountLocal(null, map, streamId, increment, gson);
 	}
 
 	@Override
@@ -588,416 +445,107 @@ public class MapDBStore extends DataStore {
 		//used in mongo for cluster mode. useless here.
 	}
 
+	public void clearStreamInfoList(String streamId) {
+		//used in mongo for cluster mode. useless here.
+	}
+	
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		return new ArrayList<>();
 	}
 
-	public void clearStreamInfoList(String streamId) {
-		//used in mongo for cluster mode. useless here.
-	}
-
 	@Override
 	public boolean saveToken(Token token) {
-		boolean result = false;
-
-		synchronized (this) {
-
-			if(token.getStreamId() != null && token.getTokenId() != null) {
-
-
-				try {
-					tokenMap.put(token.getTokenId(), gson.toJson(token));
-					result = true;
-				} catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-			}
-		}
-
-		return result;
+		return super.saveToken(null, tokenMap, token, gson);
 	}
 
 	@Override
 	public Token validateToken(Token token) {
-		Token fetchedToken = null;
-
-		synchronized (this) {
-			if (token.getTokenId() != null) {
-				String jsonToken = tokenMap.get(token.getTokenId());
-				if (jsonToken != null) {
-					fetchedToken = gson.fromJson((String) jsonToken, Token.class);
-
-					if( fetchedToken.getType().equals(token.getType())
-							&& Instant.now().getEpochSecond() < fetchedToken.getExpireDate()) {
-
-						if(token.getRoomId() == null || token.getRoomId().isEmpty() ) {
-							if(fetchedToken.getStreamId().equals(token.getStreamId())) {
-
-								tokenMap.remove(token.getTokenId());
-
-							}
-							else{
-								fetchedToken = null;
-							}
-						}
-						return fetchedToken;
-					}
-					else {
-						fetchedToken = null;
-					}
-				}
-			}
-		}
-
-		return fetchedToken;
+		return super.validateToken(null, tokenMap, token, gson);
 	}
 
 	@Override
 	public boolean revokeTokens(String streamId) {
-		boolean result = false;
-
-		synchronized (this) {
-			Object[] objectArray = tokenMap.getValues().toArray();
-			Token[] tokenArray = new Token[objectArray.length];
-
-			for (int i = 0; i < objectArray.length; i++) {
-				tokenArray[i] = gson.fromJson((String) objectArray[i], Token.class);
-			}
-
-			for (int i = 0; i < tokenArray.length; i++) {
-				if (tokenArray[i].getStreamId().equals(streamId)) {
-					result = tokenMap.remove(tokenArray[i].getTokenId()) != null;
-					if(!result) {
-						break;
-					}
-				}
-
-			}
-		}
-		return result;
+		return super.revokeTokens(null, tokenMap, streamId, gson);
 	}
 
 	@Override
 	public List<Token> listAllTokens(String streamId, int offset, int size) {
-
-		List<Token> list = new ArrayList<>();
-		List<Token> listToken = new ArrayList<>();
-
-		synchronized (this) {
-			Collection<String> values = tokenMap.values();
-			int t = 0;
-			int itemCount = 0;
-			if (size > MAX_ITEM_IN_ONE_LIST) {
-				size = MAX_ITEM_IN_ONE_LIST;
-			}
-			if (offset < 0) {
-				offset = 0;
-			}
-
-			Iterator<String> iterator = values.iterator();
-
-			while(iterator.hasNext()) {
-				Token token = gson.fromJson(iterator.next(), Token.class);
-
-				if(token.getStreamId().equals(streamId)) {
-					list.add(token);
-				}
-			}
-
-			Iterator<Token> listIterator = list.iterator();
-
-			while(itemCount < size && listIterator.hasNext()) {
-				if (t < offset) {
-					t++;
-					listIterator.next();
-				}
-				else {
-
-					listToken.add(listIterator.next());
-					itemCount++;
-
-				}
-			}
-
-		}
-		return listToken;
+		return super.listAllTokens(null, tokenMap, streamId, offset, size, gson);
 	}
 
 	@Override
 	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
-		List<Subscriber> list = new ArrayList<>();
-		List<Subscriber> listSubscriber = new ArrayList<>();
-
-		synchronized (this) {
-			Collection<String> values = subscriberMap.values();
-			int t = 0;
-			int itemCount = 0;
-			if (size > MAX_ITEM_IN_ONE_LIST) {
-				size = MAX_ITEM_IN_ONE_LIST;
-			}
-			if (offset < 0) {
-				offset = 0;
-			}
-
-			Iterator<String> iterator = values.iterator();
-
-			while(iterator.hasNext()) {
-				Subscriber subscriber = gson.fromJson(iterator.next(), Subscriber.class);
-
-				if(subscriber.getStreamId().equals(streamId)) {
-					list.add(subscriber);
-				}
-			}
-
-			Iterator<Subscriber> listIterator = list.iterator();
-
-			while(itemCount < size && listIterator.hasNext()) {
-				if (t < offset) {
-					t++;
-					listIterator.next();
-				}
-				else {
-
-					listSubscriber.add(listIterator.next());
-					itemCount++;
-
-				}
-			}
-
-		}
-		return listSubscriber;
+		return super.listAllSubscribers(null, subscriberMap, streamId, offset, size, gson);
 	}
 
 	@Override
 	public boolean addSubscriber(String streamId, Subscriber subscriber) {
-		boolean result = false;
-
-		if (subscriber != null) {		
-			synchronized (this) {
-
-				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
-
-					try {
-						subscriberMap.put(subscriber.getSubscriberKey(), gson.toJson(subscriber));
-
-						result = true;
-					} catch (Exception e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
-				}
-			}
-		}
-
-		return result;
+		return super.addSubscriber(null, subscriberMap, streamId, subscriber, gson);
 	}
-
-
 
 	@Override
 	public boolean deleteSubscriber(String streamId, String subscriberId) {
-		boolean result = false;
-
-		synchronized (this) {
-			try {
-				result = subscriberMap.remove(Subscriber.getDBKey(streamId, subscriberId)) != null;
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return result;
+		return super.deleteSubscriber(null, subscriberMap, streamId, subscriberId);
 	}
-
 
 	@Override
 	public boolean revokeSubscribers(String streamId) {
-		boolean result = false;
-
-		synchronized (this) {
-			Object[] objectArray = subscriberMap.getValues().toArray();
-			Subscriber[] subscriberArray = new Subscriber[objectArray.length];
-
-			for (int i = 0; i < objectArray.length; i++) {
-				subscriberArray[i] = gson.fromJson((String) objectArray[i], Subscriber.class);
-			}
-
-			for (int i = 0; i < subscriberArray.length; i++) {
-				String subscriberStreamId = subscriberArray[i].getStreamId();
-				if (subscriberStreamId != null && subscriberStreamId.equals(streamId)) {
-					result = subscriberMap.remove(subscriberArray[i].getSubscriberKey()) != null;
-					if(!result) {
-						break;
-					}
-				}
-
-			}
-		}
-
-		return result;
+		return super.revokeSubscribers(null, subscriberMap, streamId, gson);
 	}
 
 	@Override
 	public Subscriber getSubscriber(String streamId, String subscriberId) {
-		Subscriber subscriber = null;
-		synchronized (this) {
-			if (subscriberId != null && streamId != null) {
-				String jsonString = subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId));
-				if (jsonString != null) {
-					subscriber = gson.fromJson(jsonString, Subscriber.class);
-				}
-			}
-		}
-		return subscriber;	
+		return super.getSubscriber(null, subscriberMap, streamId, subscriberId, gson);
 	}		
 
 	@Override
 	public boolean resetSubscribersConnectedStatus() {
-		synchronized (this) {
-			try {
-				Collection<String> subcribersRaw = subscriberMap.values();
-
-				for (String subscriberRaw : subcribersRaw) {
-					if (subscriberRaw != null) {
-						Subscriber subscriber = gson.fromJson(subscriberRaw, Subscriber.class);
-						if (subscriber != null) {
-							subscriber.setConnected(false);
-							subscriberMap.put(subscriber.getSubscriberKey(), gson.toJson(subscriber));
-						}
-					}
-				}
-
-
-				return true;
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-				return false;
-			}
-		}
+		return super.resetSubscribersConnectedStatus(null, subscriberMap, gson);
 	}
-
-	@Override
-	public boolean setMp4Muxing(String streamId, int enabled) {
-		boolean result = false;
-		synchronized (this) {
-			if (streamId != null) {
-				String jsonString = map.get(streamId);
-				if (jsonString != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {			
-
-					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
-					broadcast.setMp4Enabled(enabled);
-					map.replace(streamId, gson.toJson(broadcast));
-
-
-					result = true;
-				}
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public boolean setWebMMuxing(String streamId, int enabled) {
-		boolean result = false;
-		synchronized (this) {
-			if (streamId != null) {
-				String jsonString = map.get(streamId);
-				if (jsonString != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {			
-
-					Broadcast broadcast =  gson.fromJson(jsonString, Broadcast.class);	
-					broadcast.setWebMEnabled(enabled);
-					map.replace(streamId, gson.toJson(broadcast));
-
-
-					result = true;
-				}
-			}
-		}
-		return result;
-	}
-
+	
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		//no need to implement this method, it is used in cluster mode
 	}
 
+	@Override
+	public boolean setMp4Muxing(String streamId, int enabled) {
+		return super.setMp4Muxing(null, map, streamId, enabled, gson);
+	}
 
+	@Override
+	public boolean setWebMMuxing(String streamId, int enabled) {
+		return super.setWebMMuxing(null, map, streamId, enabled, gson);
+	}
 
 	@Override
 	public boolean createConferenceRoom(ConferenceRoom room) {
-		synchronized (this) {
-			boolean result = false;
-
-			if (room != null && room.getRoomId() != null) {
-				conferenceRoomMap.put(room.getRoomId(), gson.toJson(room));
-
-				result = true;
-			}
-
-			return result;
-		}
+		return super.createConferenceRoom(null, conferenceRoomMap, room, gson);
 	}
 
 	@Override
 	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
-		synchronized (this) {
-			boolean result = false;
-
-			if (roomId != null && room != null && room.getRoomId() != null) {
-				result = conferenceRoomMap.replace(roomId, gson.toJson(room)) != null;
-			}
-			return result;
-		}
+		return super.editConferenceRoom(null, conferenceRoomMap, roomId, room, gson);
 	}
 
 	@Override
 	public boolean deleteConferenceRoom(String roomId) {
-		synchronized (this) 
-		{		
-			boolean result = false;
-
-			if (roomId != null && !roomId.isEmpty()) {
-				result = conferenceRoomMap.remove(roomId) != null;
-			}
-			return result;
-		}
+		return super.deleteConferenceRoom(null, conferenceRoomMap, roomId);
 	}
 
 	@Override
 	public ConferenceRoom getConferenceRoom(String roomId) {
-		synchronized (this) {
-			if (roomId != null) {
-				String jsonString = conferenceRoomMap.get(roomId);
-				if (jsonString != null) {
-					return gson.fromJson(jsonString, ConferenceRoom.class);
-				}
-			}
-		}
-		return null;
+		return super.getConferenceRoom(null, conferenceRoomMap, roomId, gson);
 	}
 
 	@Override
 	public boolean deleteToken(String tokenId) {
-
-		boolean result = false;
-
-		synchronized (this) {
-			result = tokenMap.remove(tokenId) != null;
-		}
-		return result;
+		return super.deleteToken(null, tokenMap, tokenId);
 	}
 
 	@Override
 	public Token getToken(String tokenId) {
-		Token token = null;
-		synchronized (this) {
-			if (tokenId != null) {
-				String jsonString = tokenMap.get(tokenId);
-				if (jsonString != null) {
-					token = gson.fromJson(jsonString, Token.class);
-				}
-			}
-		}
-		return token;
-
+		return super.getToken(null, tokenMap, tokenId, gson);
 	}	
 
 	@Override
