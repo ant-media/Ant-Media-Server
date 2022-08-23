@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -116,32 +115,6 @@ public class MapDBStore extends DataStore {
 		available = true;
 	}
 
-
-
-	public BTreeMap<String, String> getVodMap() {
-		return vodMap;
-	}
-
-	public void setVodMap(BTreeMap<String, String> vodMap) {
-		this.vodMap = vodMap;
-	}
-
-	public BTreeMap<String, String> getMap() {
-		return map;
-	}
-
-	public void setMap(BTreeMap<String, String> map) {
-		this.map = map;
-	}
-
-	public BTreeMap<String, String> getDetectionMap() {
-		return detectionMap;
-	}
-
-	public void setDetectionMap(BTreeMap<String, String> detectionMap) {
-		this.detectionMap = detectionMap;
-	}
-
 	@Override
 	public String save(Broadcast broadcast) {
 		return super.save(null, map, null, null, broadcast, gson);
@@ -197,27 +170,12 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public long getActiveBroadcastCount() {
-		int activeBroadcastCount = 0;
-		synchronized (this) {
-			Collection<String> values = map.values();
-			for (String broadcastString : values) {
-				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
-				String status = broadcast.getStatus();
-				if (status != null && status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
-					activeBroadcastCount++;
-				}
-			}
-		}
-		return activeBroadcastCount;
+		return super.getActiveBroadcastCount(null, map, gson);
 	}
 
 	@Override
 	public boolean delete(String id) {
-		boolean result = false;
-		synchronized (this) {
-			result = map.remove(id) != null;
-		}
-		return result;
+		return super.delete(null, map, id);
 	}
 	@Override
 	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search){

@@ -3,7 +3,6 @@ package io.antmedia.datastore.db;
 import java.io.File;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.redisson.Redisson;
@@ -137,27 +136,12 @@ public class RedisStore extends DataStore {
 
 	@Override
 	public long getActiveBroadcastCount() {
-		int activeBroadcastCount = 0;
-		synchronized (this) {
-			Collection<String> values = broadcastMap.values();
-			for (String broadcastString : values) {
-				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
-				String status = broadcast.getStatus();
-				if (status != null && status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
-					activeBroadcastCount++;
-				}
-			}
-		}
-		return activeBroadcastCount;
+		return super.getActiveBroadcastCount(broadcastMap, null, gson);
 	}
 
 	@Override
 	public boolean delete(String id) {
-		boolean result = false;
-		synchronized (this) {
-			result = broadcastMap.remove(id) != null;
-		}
-		return result;
+		return super.delete(broadcastMap, null, id);
 	}
 	@Override
 	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search){
