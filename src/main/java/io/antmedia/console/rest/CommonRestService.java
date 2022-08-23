@@ -378,7 +378,8 @@ public class CommonRestService {
 				session.setAttribute(IS_AUTHENTICATED, true);
 				session.setAttribute(USER_EMAIL, user.getEmail());
 				session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
-				message = getDataStore().getUser(user.getEmail()).getScope();
+				user = getDataStore().getUser(user.getEmail());
+				message = user.getScope() + "/" + user.getUserType();
 				getDataStore().resetInvalidLoginCount(user.getEmail());
 			} 
 			else 
