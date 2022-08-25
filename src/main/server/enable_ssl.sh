@@ -56,7 +56,7 @@ distro () {
     . $os_release
       id=$ID
   else
-      echo "Ubuntu and Centos are supported."
+      echo "Ubuntu, Centos, Rocky Linux and ALmaLinux are supported."
   fi
 }
 
@@ -149,7 +149,7 @@ get_new_certificate(){
         $SUDO apt-get install certbot python3-certbot-dns-route53 -qq -y
         output
 
-      elif [ "$ID" == "centos" ]; then
+      elif [ "$ID" == "centos" ] || [ "$ID" == "rocky" ] || [ "$ID" == "almalinux" ]; then
         $SUDO yum -y install epel-release
         $SUDO yum -y install certbot
         output
