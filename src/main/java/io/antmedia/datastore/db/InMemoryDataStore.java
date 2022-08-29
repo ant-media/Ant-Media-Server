@@ -297,7 +297,20 @@ public class InMemoryDataStore extends DataStore {
 			logger.info("server side search called for VoD searchString = {}", search);
 			vods = searchOnServerVod(vods, search);
 		}
-		return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
+		List<VoD> vodList = new ArrayList<>();
+		for(VoD vod : vods) {
+			VoD vodItem = new VoD(vod.getStreamName(),vod.getStreamId(),vod.getFilePath(),vod.getVodName(), vod.getCreationDate(), vod.getStartTime(), vod.getDuration(), vod.getFileSize(), vod.getType(), vod.getVodId(), vod.getPreviewFilePath());
+			if (vodItem.getFilePath() != null) {
+				Integer index = vodItem.getFilePath().lastIndexOf(".");
+				String fileExtension = (index == -1) ? "" : vodItem.getFilePath().substring(index);
+				if (vodItem.getStreamName() != null
+						&& !vodItem.getStreamName().endsWith(fileExtension)) {
+					vodItem.setStreamName(vodItem.getStreamName() + fileExtension);
+				}
+			}
+			vodList.add(vodItem);
+		}
+		return sortAndCropVodList(vodList, offset, size, sortBy, orderBy);
 	}
 
 	@Override
