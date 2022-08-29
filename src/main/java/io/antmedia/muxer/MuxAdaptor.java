@@ -1,9 +1,6 @@
 package io.antmedia.muxer;
 
 import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING;
-import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED;
-import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_ERROR;
-import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_FAILED;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_PNG;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
