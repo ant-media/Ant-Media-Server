@@ -90,7 +90,7 @@ public class ConsoleAppRestServiceTest{
 	private static final String LOG_LEVEL_TEST = "TEST";
 
 	private static String TEST_USER_EMAIL = "test@antmedia.io";
-	private static String TEST_USER_PASS = "testtest";
+	private static String TEST_USER_PASS = "05a671c66aefea124cc08b76ea6d30bb";
 	private static Process tmpExec;
 	private static final String SERVER_ADDR = ServerSettings.getLocalHostAddress(); 
 	private static final String SERVICE_URL = "http://localhost:5080/LiveApp/rest";
