@@ -277,6 +277,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		AppSettings appSettings = new AppSettings();
 		appSettings.setMaxAudioTrackCount(5);
 		assertEquals(5, appSettings.getMaxAudioTrackCount());
+		
+		appSettings.setMaxVideoTrackCount(10);
+		assertEquals(10, appSettings.getMaxVideoTrackCount());
 	}
 	
 	
