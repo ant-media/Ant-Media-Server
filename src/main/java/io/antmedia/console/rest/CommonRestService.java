@@ -11,6 +11,7 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Objects;
 
 import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
@@ -261,17 +262,29 @@ public class CommonRestService {
 
 			httpPost.setConfig(requestConfig);
 
+			// if args are null, set them to empty string
+			firstname = Objects.requireNonNullElse(firstname, "");
+			lastname = Objects.requireNonNullElse(lastname, "");
+			email = Objects.requireNonNullElse(email, "");
+			String isEnterprise = Objects.requireNonNullElse(RestServiceBase.isEnterprise(), "") + "";
+			String licenseKey = Objects.requireNonNullElse(getServerSettings().getLicenceKey(), "") + "";
+			String versionStr = Objects.requireNonNullElse(version.getVersionType(), "")+" "+Objects.requireNonNullElse(version.getVersionName(), "")+" "+Objects.requireNonNullElse(version.getBuildNumber(), "");
+			String marketplace = Objects.requireNonNullElse(getServerSettings().getMarketplace(), "")+"";
+			String instanceId = Objects.requireNonNullElse(Launcher.getInstanceId(), "");
+			scope = Objects.requireNonNullElse(scope, "");
+			userType = Objects.requireNonNullElse(userType, "");
+
 			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 			builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
 
 			builder.addTextBody("firstname", firstname);
 			builder.addTextBody("lastname", lastname);
 			builder.addTextBody("email", email);
-			builder.addTextBody("isEnterprise", RestServiceBase.isEnterprise()+"");
-			builder.addTextBody("licenseKey", getServerSettings().getLicenceKey()+"");
-			builder.addTextBody("version", version.getVersionType()+" "+version.getVersionName()+" "+version.getBuildNumber());
-			builder.addTextBody("marketplace", getServerSettings().getMarketplace()+"");
-			builder.addTextBody("instanceId", Launcher.getInstanceId());
+			builder.addTextBody("isEnterprise", isEnterprise);
+			builder.addTextBody("licenseKey", licenseKey);
+			builder.addTextBody("version", versionStr);
+			builder.addTextBody("marketplace", marketplace);
+			builder.addTextBody("instanceId", instanceId);
 			builder.addTextBody("userScope", scope);
 			builder.addTextBody("userType", userType);
 
@@ -365,7 +378,8 @@ public class CommonRestService {
 				session.setAttribute(IS_AUTHENTICATED, true);
 				session.setAttribute(USER_EMAIL, user.getEmail());
 				session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
-				message = getDataStore().getUser(user.getEmail()).getScope();
+				user = getDataStore().getUser(user.getEmail());
+				message = user.getScope() + "/" + user.getUserType();
 				getDataStore().resetInvalidLoginCount(user.getEmail());
 			} 
 			else 
