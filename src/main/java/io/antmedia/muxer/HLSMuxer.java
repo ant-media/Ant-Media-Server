@@ -38,8 +38,7 @@ import io.vertx.core.Vertx;
 
 public class HLSMuxer extends Muxer  {
 
-
-	private static final String SEGMENT_SUFFIX_TS = "%04d.ts";
+	private static final String SEGMENT_SUFFIX_TS = "%0"+SEGMENT_INDEX_LENGTH+"d.ts";
 
 	protected static Logger logger = LoggerFactory.getLogger(HLSMuxer.class);
 	private String  hlsListSize = "20";

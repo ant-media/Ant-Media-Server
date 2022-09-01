@@ -828,6 +828,17 @@ public class BroadcastRestService extends RestServiceBase{
 	public String[] searchOnvifDevicesV2() {
 		return super.searchOnvifDevices();
 	}
+	
+	@ApiOperation(value = "Get The Profile List for an ONVIF IP Cameras", notes = "Notes here", response = Result.class)
+	@GET
+	@Path("/{id}/ip-camera/device-profiles")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String[] getOnvifDeviceProfiles(@ApiParam(value = "The id of the IP Camera", required = true) @PathParam("id") String id) {
+		if (id != null && StreamIdValidator.isStreamIdValid(id)) {
+			return super.getOnvifDeviceProfiles(id);
+		}
+		return null;
+	}
 
 
 	@ApiOperation(value = "Move IP Camera. It support continuous, relative and absolute move. By default it's relative move."
