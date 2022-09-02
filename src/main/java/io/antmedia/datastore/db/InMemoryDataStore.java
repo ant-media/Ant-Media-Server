@@ -297,7 +297,7 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public Optional<String> getVodId(String streamId) {
-		return Optional.of(vodIdMap.get(streamId));
+		return Optional.ofNullable(vodIdMap.get(streamId));
 	}
 
 	@Override

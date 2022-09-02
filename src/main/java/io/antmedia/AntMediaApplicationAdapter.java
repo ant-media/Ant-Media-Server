@@ -551,7 +551,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			listenerHookURL = appSettings.getListenerHookURL();
 		}
 
-		final String vodId = getDataStore().getVodId(streamId).orElse(RandomStringUtils.randomNumeric(24));
+		String vodId = getDataStore().getVodId(streamId).orElse(RandomStringUtils.randomNumeric(24));
 
 		// after getting vodId, we need to delete it from database
 		getDataStore().removeVodId(streamId);
