@@ -138,11 +138,11 @@ public abstract class DataStore {
 	 */
 	public abstract List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId, String search);
 
-	public abstract Optional<String> getVodId(String streamId);
+	public abstract Optional<String> getVoDId(String streamId);
 
-	public abstract boolean saveVodId(String streamId, String vodId);
+	public abstract boolean saveVoDId(String streamId, String vodId);
 
-	public abstract void removeVodId(String streamId);
+	public abstract void removeVoDIdByStreamId(String streamId);
 
 	public abstract boolean removeAllEndpoints(String id);
 

@@ -1307,7 +1307,7 @@ public abstract class RestServiceBase {
 		}
 		if (result) {
 			String vodId = RandomStringUtils.randomNumeric(24);
-			getDataStore().saveVodId(streamId, vodId);
+			getDataStore().saveVoDId(streamId, vodId);
 		}
 
 		return result;
@@ -1898,7 +1898,7 @@ public abstract class RestServiceBase {
 		}
 
 		if (result && enableRecording) {
-			String vodId = getDataStore().getVodId(streamId).orElse("");
+			String vodId = getDataStore().getVoDId(streamId).orElse("");
 			return new Result(result, vodId, message);
 		} else {
 			return new Result(result, message);

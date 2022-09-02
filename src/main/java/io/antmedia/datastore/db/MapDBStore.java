@@ -463,18 +463,18 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
-	public Optional<String> getVodId(String streamId) {
+	public Optional<String> getVoDId(String streamId) {
 		return Optional.ofNullable(VoDIdStreamIdPairMap.get(streamId));
 	}
 
 	@Override
-	public boolean saveVodId(String streamId, String vodId) {
-		VoDIdStreamIdPairMap.put(streamId, vodId);
+	public boolean saveVoDId(String streamId, String voDId) {
+		VoDIdStreamIdPairMap.put(streamId, voDId);
 		return true;
 	}
 
 	@Override
-	public void removeVodId(String streamId) {
+	public void removeVoDIdByStreamId(String streamId) {
 		VoDIdStreamIdPairMap.remove(streamId);
 	}
 

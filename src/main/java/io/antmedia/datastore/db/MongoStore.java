@@ -517,17 +517,20 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public Optional<String> getVodId(String streamId) {
+	public Optional<String> getVoDId(String streamId) {
 		Query<VoDIdStreamIdPair> query = vodIdDatastore.find(VoDIdStreamIdPair.class).filter(Filters.eq(STREAM_ID, streamId));
-		return Optional.ofNullable(query.first().getVodId());
+		if (query.first() != null) {
+			return Optional.of(query.first().getVoDId());
+		}
+		return Optional.empty();
 	}
 
 	@Override
-	public boolean saveVodId(String streamId, String vodId) {
+	public boolean saveVoDId(String streamId, String voDId) {
 		boolean result = false;
 		synchronized(this) {
 			try {
-				vodIdDatastore.save(new VoDIdStreamIdPair(streamId, vodId));
+				vodIdDatastore.save(new VoDIdStreamIdPair(streamId, voDId));
 				result = true;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -537,11 +540,11 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public void removeVodId(String streamId) {
+	public void removeVoDIdByStreamId(String streamId) {
 		synchronized(this) {
 			try {
 				Query<VoDIdStreamIdPair> query = vodIdDatastore.find(VoDIdStreamIdPair.class).filter(Filters.eq(STREAM_ID, streamId));
-				query.delete().getDeletedCount();
+				query.delete();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}

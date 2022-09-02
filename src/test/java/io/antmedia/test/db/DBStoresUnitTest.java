@@ -1,13 +1,5 @@
 package io.antmedia.test.db;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -57,6 +49,8 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
+
+import static org.junit.Assert.*;
 
 public class DBStoresUnitTest {
 
@@ -134,6 +128,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		testVoDIdStreamIdPair(dataStore);
 
 	}
 	
@@ -211,7 +206,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-
+		testVoDIdStreamIdPair(dataStore);
 
 	}
 	
@@ -266,6 +261,7 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testVoDIdStreamIdPair(dataStore);
 	}
 	
 	@Test
@@ -2760,5 +2756,16 @@ public class DBStoresUnitTest {
 		
 		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.randomAlphanumeric(8), UPDATED_DATA));
 
+	}
+
+	public void testVoDIdStreamIdPair(DataStore dataStore) {
+		String streamId = "streamId";
+		String vodId = "vodId";
+
+		dataStore.saveVoDId(streamId, vodId);
+		assertEquals(vodId, dataStore.getVoDId(streamId).get());
+
+		dataStore.removeVoDIdByStreamId(streamId);
+		assertNull(dataStore.getVoDId(streamId).orElse(null));
 	}
 }

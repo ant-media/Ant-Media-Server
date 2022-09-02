@@ -29,7 +29,7 @@ public class InMemoryDataStore extends DataStore {
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
 	private Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
 	private Map<String, VoD> vodMap = new LinkedHashMap<>();
-	private Map<String, String> vodIdMap = new LinkedHashMap<>();
+	private Map<String, String> voDIdStreamIdPairMap = new LinkedHashMap<>();
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 	private Map<String, Subscriber> subscriberMap = new LinkedHashMap<>();
@@ -296,19 +296,19 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public Optional<String> getVodId(String streamId) {
-		return Optional.ofNullable(vodIdMap.get(streamId));
+	public Optional<String> getVoDId(String streamId) {
+		return Optional.ofNullable(voDIdStreamIdPairMap.get(streamId));
 	}
 
 	@Override
-	public boolean saveVodId(String streamId, String vodId) {
-		vodIdMap.put(streamId, vodId);
+	public boolean saveVoDId(String streamId, String voDId) {
+		voDIdStreamIdPairMap.put(streamId, voDId);
 		return true;
 	}
 
 	@Override
-	public void removeVodId(String streamId) {
-		vodIdMap.remove(streamId);
+	public void removeVoDIdByStreamId(String streamId) {
+		voDIdStreamIdPairMap.remove(streamId);
 	}
 
 	@Override

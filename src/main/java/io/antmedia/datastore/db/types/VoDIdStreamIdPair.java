@@ -10,7 +10,7 @@ import java.io.Serializable;
 
 
 @Entity("voDIdStreamIdPair")
-@Indexes({ @Index(fields = @Field("streamId")), @Index(fields = @Field("vodId")) })
+@Indexes({ @Index(fields = @Field("streamId")), @Index(fields = @Field("voDId")) })
 @ApiModel(value="VoDIdStreamIdPair", description="Video-on-demand id - stream id pair object class")
 public class VoDIdStreamIdPair implements Serializable {
 
@@ -20,29 +20,30 @@ public class VoDIdStreamIdPair implements Serializable {
 	@JsonIgnore
 	@Id
 	private ObjectId dbId;
-	@ApiModelProperty(value = "the id of the VoD")
-	private String vodId;
 
 	@ApiModelProperty(value = "the stream id of the VoD")
 	private String streamId;
+
+	@ApiModelProperty(value = "the id of the VoD")
+	private String voDId;
 
 	public VoDIdStreamIdPair() {
 		//default constructor is used to return not found vod in rest service
 	}
 
-	public VoDIdStreamIdPair(String vodId, String streamId) {
+	public VoDIdStreamIdPair(String streamId, String voDId) {
 
-		this.vodId = vodId;
 		this.streamId = streamId;
+		this.voDId = voDId;
 
 	}
 
-	public String getVodId() {
-		return vodId;
+	public String getVoDId() {
+		return voDId;
 	}
 
-	public void setVodId(String vodId) {
-		this.vodId = vodId;
+	public void setVoDId(String voDId) {
+		this.voDId = voDId;
 	}
 
 	public String getStreamId() {
