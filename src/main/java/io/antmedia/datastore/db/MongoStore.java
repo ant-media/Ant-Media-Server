@@ -10,8 +10,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
+import io.antmedia.datastore.db.types.*;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -38,16 +40,6 @@ import dev.morphia.query.filters.Filters;
 import dev.morphia.query.updates.UpdateOperator;
 import dev.morphia.query.updates.UpdateOperators;
 import io.antmedia.AntMediaApplicationAdapter;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.ConferenceRoom;
-import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.P2PConnection;
-import io.antmedia.datastore.db.types.StreamInfo;
-import io.antmedia.datastore.db.types.Subscriber;
-import io.antmedia.datastore.db.types.TensorFlowObject;
-import io.antmedia.datastore.db.types.Token;
-import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
@@ -59,6 +51,7 @@ public class MongoStore extends DataStore {
 	private static final String STREAM_ID = "streamId";
 	private Datastore datastore;
 	private Datastore vodDatastore;
+	private Datastore vodIdDatastore;
 	private Datastore tokenDatastore;
 	private Datastore subscriberDatastore;
 	private Datastore detectionMap;
@@ -90,6 +83,7 @@ public class MongoStore extends DataStore {
 		//TODO: Refactor these stores so that we don't have separate datastore for each class
 		datastore = Morphia.createDatastore(mongoClient, dbName);
 		vodDatastore = Morphia.createDatastore(mongoClient, dbName+"VoD");
+		vodIdDatastore = Morphia.createDatastore(mongoClient, dbName+"VodId");
 		tokenDatastore = Morphia.createDatastore(mongoClient, dbName + "_token");
 		subscriberDatastore = Morphia.createDatastore(mongoClient, dbName + "_subscriber");
 		detectionMap = Morphia.createDatastore(mongoClient, dbName + "detection");
@@ -522,6 +516,37 @@ public class MongoStore extends DataStore {
 		}
 	}
 
+	@Override
+	public Optional<String> getVodId(String streamId) {
+		Query<VodId> query = vodIdDatastore.find(VodId.class).filter(Filters.eq(STREAM_ID, streamId));
+		return Optional.ofNullable(query.first().getVodId());
+	}
+
+	@Override
+	public boolean saveVodId(String streamId, String vodId) {
+		boolean result = false;
+		synchronized(this) {
+			try {
+				vodIdDatastore.save(new VodId(streamId, vodId));
+				result = true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public void removeVodId(String streamId) {
+		synchronized(this) {
+			try {
+				Query<VodId> query = vodIdDatastore.find(VodId.class).filter(Filters.eq(STREAM_ID, streamId));
+				query.delete().getDeletedCount();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+	}
 
 	@Override
 	public boolean deleteVod(String id) {

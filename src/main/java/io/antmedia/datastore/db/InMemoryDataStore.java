@@ -2,14 +2,8 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.regex.Pattern;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -35,6 +29,7 @@ public class InMemoryDataStore extends DataStore {
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
 	private Map<String, Broadcast> broadcastMap = new LinkedHashMap<>();
 	private Map<String, VoD> vodMap = new LinkedHashMap<>();
+	private Map<String, String> vodIdMap = new LinkedHashMap<>();
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 	private Map<String, Subscriber> subscriberMap = new LinkedHashMap<>();
@@ -298,6 +293,22 @@ public class InMemoryDataStore extends DataStore {
 			vods = searchOnServerVod(vods, search);
 		}
 		return sortAndCropVodList(vods, offset, size, sortBy, orderBy);
+	}
+
+	@Override
+	public Optional<String> getVodId(String streamId) {
+		return Optional.of(vodIdMap.get(streamId));
+	}
+
+	@Override
+	public boolean saveVodId(String streamId, String vodId) {
+		vodIdMap.put(streamId, vodId);
+		return true;
+	}
+
+	@Override
+	public void removeVodId(String streamId) {
+		vodIdMap.remove(streamId);
 	}
 
 	@Override

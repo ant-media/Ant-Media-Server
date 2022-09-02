@@ -1,11 +1,7 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -141,6 +137,12 @@ public abstract class DataStore {
 	 * @return
 	 */
 	public abstract List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId, String search);
+
+	public abstract Optional<String> getVodId(String streamId);
+
+	public abstract boolean saveVodId(String streamId, String vodId);
+
+	public abstract void removeVodId(String streamId);
 
 	public abstract boolean removeAllEndpoints(String id);
 

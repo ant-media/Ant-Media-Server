@@ -5,10 +5,7 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
@@ -46,6 +43,7 @@ public class MapDBStore extends DataStore {
 	private DB db;
 	private BTreeMap<String, String> map;
 	private BTreeMap<String, String> vodMap;
+	private BTreeMap<String, String> vodIdMap;
 	private BTreeMap<String, String> detectionMap;
 	private BTreeMap<String, String> tokenMap;
 	private BTreeMap<String, String> subscriberMap;
@@ -61,6 +59,7 @@ public class MapDBStore extends DataStore {
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "BROADCAST";
 	private static final String VOD_MAP_NAME = "VOD";
+	private static final String VOD_ID_MAP_NAME = "VODID";
 	private static final String DETECTION_MAP_NAME = "DETECTION";
 	private static final String TOKEN = "TOKEN";
 	private static final String SUBSCRIBER = "SUBSCRIBER";
@@ -86,6 +85,9 @@ public class MapDBStore extends DataStore {
 				.createOrOpen();
 
 		vodMap = db.treeMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
+
+		vodIdMap = db.treeMap(VOD_ID_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		detectionMap = db.treeMap(DETECTION_MAP_NAME).keySerializer(Serializer.STRING)
@@ -458,6 +460,22 @@ public class MapDBStore extends DataStore {
 			}
 			return vods;
 		}
+	}
+
+	@Override
+	public Optional<String> getVodId(String streamId) {
+		return Optional.ofNullable(vodIdMap.get(streamId));
+	}
+
+	@Override
+	public boolean saveVodId(String streamId, String vodId) {
+		vodIdMap.put(streamId, vodId);
+		return true;
+	}
+
+	@Override
+	public void removeVodId(String streamId) {
+		vodIdMap.remove(streamId);
 	}
 
 	/**

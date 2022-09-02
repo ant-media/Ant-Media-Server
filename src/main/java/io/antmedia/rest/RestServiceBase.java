@@ -1305,6 +1305,10 @@ public abstract class RestServiceBase {
 		{
 			result = muxAdaptor.startRecording(recordType);
 		}
+		if (result) {
+			String vodId = RandomStringUtils.randomNumeric(24);
+			getDataStore().saveVodId(streamId, vodId);
+		}
 
 		return result;
 	}
@@ -1893,7 +1897,12 @@ public abstract class RestServiceBase {
 			message = "No stream for this id: " + streamId + " or wrong setting parameter";
 		}
 
-		return new Result(result, message);
+		if (result && enableRecording) {
+			String vodId = getDataStore().getVodId(streamId).orElse("");
+			return new Result(result, vodId, message);
+		} else {
+			return new Result(result, message);
+		}
 	}
 
 }
