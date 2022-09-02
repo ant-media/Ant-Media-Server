@@ -9,10 +9,10 @@ import org.bson.types.ObjectId;
 import java.io.Serializable;
 
 
-@Entity("vodId")
+@Entity("voDIdStreamIdPair")
 @Indexes({ @Index(fields = @Field("streamId")), @Index(fields = @Field("vodId")) })
-@ApiModel(value="VodId", description="Video-on-demand id - stream id object class")
-public class VodId implements Serializable {
+@ApiModel(value="VoDIdStreamIdPair", description="Video-on-demand id - stream id pair object class")
+public class VoDIdStreamIdPair implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
@@ -26,11 +26,11 @@ public class VodId implements Serializable {
 	@ApiModelProperty(value = "the stream id of the VoD")
 	private String streamId;
 
-	public VodId() {
+	public VoDIdStreamIdPair() {
 		//default constructor is used to return not found vod in rest service
 	}
 
-	public VodId(String vodId, String streamId) {
+	public VoDIdStreamIdPair(String vodId, String streamId) {
 
 		this.vodId = vodId;
 		this.streamId = streamId;
