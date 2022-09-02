@@ -94,4 +94,5 @@ public interface IWebRTCMuxer extends IStreamInfo {
 	 * @param captureTimeMs
 	 */
 	public void setFrameIdAndCaptureTimeMs(long frameId, long captureTimeMs);
+
 }
