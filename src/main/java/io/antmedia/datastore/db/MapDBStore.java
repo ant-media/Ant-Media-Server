@@ -43,7 +43,7 @@ public class MapDBStore extends DataStore {
 	private DB db;
 	private BTreeMap<String, String> map;
 	private BTreeMap<String, String> vodMap;
-	private BTreeMap<String, String> voDIdStreamIdPairMap;
+	private BTreeMap<String, String> vodIdStreamIdPairMap;
 	private BTreeMap<String, String> detectionMap;
 	private BTreeMap<String, String> tokenMap;
 	private BTreeMap<String, String> subscriberMap;
@@ -87,7 +87,7 @@ public class MapDBStore extends DataStore {
 		vodMap = db.treeMap(VOD_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
-		voDIdStreamIdPairMap = db.treeMap(VOD_ID_STREAM_ID_PAIR_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+		vodIdStreamIdPairMap = db.treeMap(VOD_ID_STREAM_ID_PAIR_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		detectionMap = db.treeMap(DETECTION_MAP_NAME).keySerializer(Serializer.STRING)
@@ -464,18 +464,18 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public Optional<String> getVoDId(String streamId) {
-		return Optional.ofNullable(voDIdStreamIdPairMap.get(streamId));
+		return Optional.ofNullable(vodIdStreamIdPairMap.get(streamId));
 	}
 
 	@Override
 	public boolean saveVoDId(String streamId, String voDId) {
-		voDIdStreamIdPairMap.put(streamId, voDId);
+		vodIdStreamIdPairMap.put(streamId, voDId);
 		return true;
 	}
 
 	@Override
 	public void removeVoDIdByStreamId(String streamId) {
-		voDIdStreamIdPairMap.remove(streamId);
+		vodIdStreamIdPairMap.remove(streamId);
 	}
 
 	/**
