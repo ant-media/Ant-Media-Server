@@ -309,13 +309,19 @@ public class AppSettings {
 	public static final String SETTINGS_WEBHOOK_AUTHENTICATE_URL = "settings.webhookAuthenticateURL";
 
 	public static final String SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING = "settings.forceAspectRationInTranscoding";
-	
+
 	public static final String SETTINGS_VOD_UPLOAD_FINISH_SCRIPT = "settings.vodUploadFinishScript";
 	public static final String SETTINGS_FILE_NAME_FORMAT = "settings.fileNameFormat";
 
 	private static final String SETTINGS_CONTENT_SECURITY_POLICY_HEADER_VALUE = "settings.contentSecurityPolicyHeaderValue";
 	
+	public static final String SETTINGS_MAX_AUDIO_TRACK_COUNT = "settings.maxAudioTrackCount";
+
+	public static final String SETTINGS_MAX_VIDEO_TRACK_COUNT = "settings.maxVideoTrackCount";
+	
 	private static final String SETTINGS_RTMP_PLAYBACK_ENABLED = "settings.rtmpPlaybackEnabled";
+
+
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -1463,6 +1469,26 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_WEBHOOK_AUTHENTICATE_URL+":}" )
 	private String webhookAuthenticateURL;
+	
+	/**
+	 * The maximum audio track in a multitrack playing connection
+	 * If it is -1 then a new audio track connection is established for each track
+	 * otherwise, audio connections are established as many as this value and
+	 * the limited connections are shared between tracks.
+	 */
+	@Value( "${"+SETTINGS_MAX_AUDIO_TRACK_COUNT+":-1}" )
+	private int maxAudioTrackCount = -1;
+	
+	
+	/**
+	 * The maximum video track in a multitrack playing connection
+	 * If it is -1 then a new video track connection is established for each track
+	 * otherwise, video connections are established as many as this value and
+	 * the limited connections are shared between tracks.
+	 */
+	@Value( "${"+SETTINGS_MAX_VIDEO_TRACK_COUNT+":-1}" )
+	private int maxVideoTrackCount = -1;
+	
 	
 	/**
 	 * This is a script file path that is called by Runtime when VoD upload is finished,
@@ -2780,6 +2806,14 @@ public class AppSettings {
 		this.s3Permission = s3Permission;
 	}
 
+	public int getMaxAudioTrackCount() {
+		return maxAudioTrackCount;
+	}
+
+	public void setMaxAudioTrackCount(int maxAudioTrackCount) {
+		this.maxAudioTrackCount = maxAudioTrackCount;
+	}
+
 	public String getWarFileOriginServerAddress() {
 		return warFileOriginServerAddress;
 	}
@@ -2796,6 +2830,14 @@ public class AppSettings {
 		this.vodUploadFinishScript = vodUploadFinishScript;
 	}
 
+	public int getMaxVideoTrackCount() {
+		return maxVideoTrackCount;
+	}
+
+	public void setMaxVideoTrackCount(int maxVideoTrackCount) {
+		this.maxVideoTrackCount = maxVideoTrackCount;
+	}
+	
 	public String getContentSecurityPolicyHeaderValue() {
 		return contentSecurityPolicyHeaderValue;
 	}

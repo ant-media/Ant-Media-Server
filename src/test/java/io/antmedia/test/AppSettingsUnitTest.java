@@ -273,6 +273,17 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	@Test
+	public void testSettings() {
+		AppSettings appSettings = new AppSettings();
+		appSettings.setMaxAudioTrackCount(5);
+		assertEquals(5, appSettings.getMaxAudioTrackCount());
+		
+		appSettings.setMaxVideoTrackCount(10);
+		assertEquals(10, appSettings.getMaxVideoTrackCount());
+	}
+	
+	
+	@Test
 	public void testUnsetAppSettings() {
 		AppSettings appSettings = new AppSettings();
 		
@@ -454,14 +465,16 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(null, appSettings.getTurnServerUsername());
 		assertEquals(null, appSettings.getHlsHttpEndpoint());
 		assertEquals(false, appSettings.isRtmpPlaybackEnabled());
-		
+		assertEquals(-1, appSettings.getMaxAudioTrackCount());
+		assertEquals(-1, appSettings.getMaxVideoTrackCount());
+
 	
 		
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					152, numberOfFields);
+					154, numberOfFields);
 		
 	}
 
