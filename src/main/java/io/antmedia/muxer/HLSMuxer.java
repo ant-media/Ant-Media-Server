@@ -38,8 +38,7 @@ import io.vertx.core.Vertx;
 
 public class HLSMuxer extends Muxer  {
 
-
-	private static final String SEGMENT_SUFFIX_TS = "%04d.ts";
+	private static final String SEGMENT_SUFFIX_TS = "%0"+SEGMENT_INDEX_LENGTH+"d.ts";
 
 	protected static Logger logger = LoggerFactory.getLogger(HLSMuxer.class);
 	private String  hlsListSize = "20";
@@ -61,9 +60,11 @@ public class HLSMuxer extends Muxer  {
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
 	private String segmentFilename;
+
+	private String httpEndpoint;
 	public static final int S3_CONSTANT = 0b010;
 
-	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3) {
+	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint) {
 		super(vertx);
 		this.storageClient = storageClient;
 
@@ -75,6 +76,7 @@ public class HLSMuxer extends Muxer  {
 		format = "hls";
 
 		this.s3StreamsFolderPath  = s3StreamsFolderPath;
+		this.httpEndpoint = httpEndpoint;
 	}
 
 	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile){
@@ -121,8 +123,14 @@ public class HLSMuxer extends Muxer  {
 
 			logger.info("hls time: {}, hls list size: {} for stream:{}", hlsTime, hlsListSize, streamId);
 
-			segmentFilename = file.getParentFile() + File.separator + initialResourceNameWithoutExtension;
-			
+			if (httpEndpoint == null) 
+			{
+				segmentFilename = file.getParentFile() + File.separator + initialResourceNameWithoutExtension;
+			}
+			else 
+			{
+				segmentFilename = httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + initialResourceNameWithoutExtension;
+			}
 			segmentFilename += SEGMENT_SUFFIX_TS;
 					
 			options.put("hls_segment_filename", segmentFilename);
@@ -139,15 +147,25 @@ public class HLSMuxer extends Muxer  {
 		}
 
 	}
+	
+	@Override
+	public String getOutputURL() 
+	{
+		if (httpEndpoint != null) 
+		{
+			return httpEndpoint + File.separator + streamId  + extension;
+		}
+		return super.getOutputURL();
+	}
 
 
 	public AVFormatContext getOutputFormatContext() {
 		if (outputFormatContext == null) {
 
 			outputFormatContext= new AVFormatContext(null);
-			int ret = avformat_alloc_output_context2(outputFormatContext, null, format, file.getAbsolutePath());
+			int ret = avformat_alloc_output_context2(outputFormatContext, null, format, getOutputURL());
 			if (ret < 0) {
-				logger.info("Could not create output context for {}", file.getName());
+				logger.info("Could not create output context for {}",  getOutputURL());
 				return null;
 			}
 		}
@@ -192,45 +210,51 @@ public class HLSMuxer extends Muxer  {
 	public synchronized void writeTrailer() {
 		super.writeTrailer();
 		
-		logger.info("Delete File onexit:{} upload to S3:{} stream:{} hls time:{} hlslist size:{} ", deleteFileOnExit, uploadHLSToS3, streamId, hlsTime, hlsListSize);
-
-		vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
-			final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
-
-			//SEGMENT_SUFFIX_TS is %04d.ts
-			//convert segmentFileName to regular expression
-			String segmentFileWithoutSuffixTS = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, segmentFilename.indexOf(SEGMENT_SUFFIX_TS));
-			String regularExpression = segmentFileWithoutSuffixTS + "[0-9]*\\.ts$";
-			File[] files = file.getParentFile().listFiles((dir, name) -> 
-			
-				//matches m3u8 file or ts segment file
-				name.equals(file.getName()) || name.matches(regularExpression)
-			);
-
-			if (files != null)
-			{
-
-				for (int i = 0; i < files.length; i++) 
+		if (httpEndpoint == null) 
+		{
+			logger.info("Delete File onexit:{} upload to S3:{} stream:{} hls time:{} hlslist size:{}",
+					deleteFileOnExit, uploadHLSToS3, streamId, hlsTime, hlsListSize);
+			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
+				final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
+	
+				//SEGMENT_SUFFIX_TS is %04d.ts
+				//convert segmentFileName to regular expression
+				String segmentFileWithoutSuffixTS = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, segmentFilename.indexOf(SEGMENT_SUFFIX_TS));
+				String regularExpression = segmentFileWithoutSuffixTS + "[0-9]*\\.ts$";
+				File[] files = file.getParentFile().listFiles((dir, name) -> 
+				
+					//matches m3u8 file or ts segment file
+					name.equals(file.getName()) || name.matches(regularExpression)
+				);
+	
+				if (files != null)
 				{
-					try {
-						if (!files[i].exists()) {
-							continue;
+	
+					for (int i = 0; i < files.length; i++) 
+					{
+						try {
+							if (!files[i].exists()) {
+								continue;
+							}
+							if(uploadHLSToS3 && storageClient.isEnabled()) 
+							{
+								storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], deleteFileOnExit);
+							}
+							else if (deleteFileOnExit) 
+							{
+								Files.delete(files[i].toPath());
+							}
+						} catch (IOException e) {
+							logger.error(e.getMessage());
 						}
-						if(uploadHLSToS3 && storageClient.isEnabled()) 
-						{
-							storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], deleteFileOnExit);
-						}
-						else if (deleteFileOnExit) 
-						{
-							Files.delete(files[i].toPath());
-						}
-					} catch (IOException e) {
-						logger.error(e.getMessage());
 					}
 				}
-			}
-			
-		});
+				
+			});
+		}
+		else {
+			logger.info("http endpoint is {} so skipping delete or upload the m3u8 or ts files", httpEndpoint);
+		}
 
 
 	}

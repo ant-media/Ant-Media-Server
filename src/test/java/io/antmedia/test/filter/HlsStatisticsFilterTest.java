@@ -85,7 +85,7 @@ public class HlsStatisticsFilterTest {
 		hlsStatisticsFilter.setConfig(filterconfig);
 		
 		
-		assertNull(hlsStatisticsFilter.getStreamStats());
+		assertNull(hlsStatisticsFilter.getStreamStats(HlsViewerStats.BEAN_NAME));
 		
 		
 		

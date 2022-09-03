@@ -90,7 +90,7 @@ public class ConsoleAppRestServiceTest{
 	private static final String LOG_LEVEL_TEST = "TEST";
 
 	private static String TEST_USER_EMAIL = "test@antmedia.io";
-	private static String TEST_USER_PASS = "testtest";
+	private static String TEST_USER_PASS = "05a671c66aefea124cc08b76ea6d30bb"; // hash of "testtest"
 	private static Process tmpExec;
 	private static final String SERVER_ADDR = ServerSettings.getLocalHostAddress(); 
 	private static final String SERVICE_URL = "http://localhost:5080/LiveApp/rest";
@@ -801,7 +801,7 @@ public class ConsoleAppRestServiceTest{
 
 			Awaitility.await()
 			.atMost(10, TimeUnit.SECONDS)
-			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+".png"));
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_finished.png"));
 
 
 			//send a short stream with same name again
@@ -822,10 +822,10 @@ public class ConsoleAppRestServiceTest{
 			//check that second preview is created
 			Awaitility.await()
 			.atMost(10, TimeUnit.SECONDS)
-			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_1.png"));
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_finished_1.png"));
 
 
-			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_1.png"));
+			assertTrue(checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId+"_finished_1.png"));
 
 			//change settings and make preview overwrite true
 			appSettingsModel.setPreviewOverwrite(true);
@@ -851,7 +851,7 @@ public class ConsoleAppRestServiceTest{
 			//check that preview is created			
 			Awaitility.await()
 			.atMost(10, TimeUnit.SECONDS)
-			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+".png"));
+			.pollInterval(1, TimeUnit.SECONDS).until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+"_finished.png"));
 
 
 			//send a short stream with same name again
@@ -870,7 +870,7 @@ public class ConsoleAppRestServiceTest{
 			//check that second preview with the same created.
 
 			Awaitility.await().atMost(25, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-			.until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+".png"));
+			.until(() -> checkURLExist("http://localhost:5080/LiveApp/previews/"+streamId2+"_finished.png"));
 
 			appSettingsModel.setPreviewOverwrite(false);
 			result = callSetAppSettings("LiveApp", appSettingsModel);
@@ -1108,7 +1108,7 @@ public class ConsoleAppRestServiceTest{
 			.pollDelay(5, TimeUnit.SECONDS)
 			.atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 	+ broadcast.getStreamId() + ".m3u8") && 
-						!MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "_0p0005.ts")
+						!MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "_0p00000000005.ts")
 						|| clusterResult.isSuccess();
 			});
 
@@ -1298,7 +1298,7 @@ public class ConsoleAppRestServiceTest{
 			//it should be false, because publishing is not allowed and hls files are not created
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId(), true)==404 
-						&& ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "0005.ts?token=" + accessToken.getTokenId(), true) == 404;
+						&& ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "000000005.ts?token=" + accessToken.getTokenId(), true) == 404;
 			});
 
 			rtmpSendingProcess.destroy();
@@ -1323,7 +1323,7 @@ public class ConsoleAppRestServiceTest{
 			.pollDelay(5, TimeUnit.SECONDS)
 			.atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8") &&
-						 !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "0005.ts") ||
+						 !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "000000005.ts") ||
 						 clusterResult.isSuccess();
 			});
 

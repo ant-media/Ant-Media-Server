@@ -62,6 +62,7 @@
 				<exclude>ant-media-filter-plugin*.jar</exclude>
 				<exclude>libtensorflow*.jar</exclude>
 				<exclude>tensorflow*.jar</exclude>
+				<exclude>srt*.jar</exclude>
 			</excludes>
 		</fileSet>
 		<fileSet>
@@ -96,9 +97,9 @@
 				<exclude>ffmpeg*ppc64le.jar</exclude>
 				<exclude>ffmpeg*windows*.jar</exclude>
 				<exclude>javacpp*android*.jar</exclude>
+				<exclude>ffmpeg*gpl.jar</exclude>
 				<exclude>javacpp*ios*.jar</exclude>
 				<exclude>javacpp*linux-x86.jar</exclude>
-				<exclude>javacpp*linux-arm64.jar</exclude>
 				<exclude>javacpp*linux-armhf.jar</exclude>
 				<exclude>javacpp*linux-ppc64le.jar</exclude>
 				<exclude>javacpp*windows*.jar</exclude>	

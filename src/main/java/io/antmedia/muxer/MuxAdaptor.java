@@ -374,8 +374,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (hlsMuxingEnabled) {
 
-			HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3());
-			hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsFlags(), getAppSettings().getHlsEncryptionKeyInfoFile());
+			HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(), getAppSettings().getHlsHttpEndpoint());
+			hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile());
 			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
 			addMuxer(hlsMuxer);
 			logger.info("adding HLS Muxer for {}", streamId);
@@ -1009,6 +1009,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					}
 				}
 
+				//TODO: if server does not accept packets, it does not update the quality
 				long dts = packet.getTimestamp() & 0xffffffffL;
 				updateQualityParameters(dts, TIME_BASE_FOR_MS);
 
@@ -1676,6 +1677,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (prepared) {
 			addMuxer(muxer);
 		}
+		//TODO: if it's not prepared, release the resources
 
 		return prepared;
 	}
@@ -1935,10 +1937,23 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
 			RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
-			if (rtmpMuxer != null) {
+			String status = statusMap.getValueOrDefault(rtmpUrl, null);
+			if (rtmpMuxer != null)
+			{
 				muxerList.remove(rtmpMuxer);
 				statusMap.remove(rtmpUrl);
 				rtmpMuxer.writeTrailer();
+				result.setSuccess(true);
+			}
+			else if(status == null
+					|| IAntMediaStreamHandler.BROADCAST_STATUS_ERROR.equals(status)
+					|| IAntMediaStreamHandler.BROADCAST_STATUS_FAILED.equals(status)
+					|| IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(status))
+			{
+				/**
+				 * When the stream is not found in the muxer list, stream url could be invalid or the stream is finished.
+				 * In either case, we should return success.
+				 */
 				result.setSuccess(true);
 			}
 		}

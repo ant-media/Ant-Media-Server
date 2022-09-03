@@ -2,7 +2,7 @@
     <parent>
         <groupId>io.antmedia</groupId>
         <artifactId>parent</artifactId>
-        <version>2.4.3-SNAPSHOT</version>
+        <version>2.4.4-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ant-media-server</artifactId>
@@ -427,7 +427,6 @@
 		<dependency>
 			<groupId>com.amazonaws</groupId>
 			<artifactId>aws-java-sdk-s3</artifactId>
-			<version>1.11.837</version>
 		</dependency>
         <dependency>
 			<groupId>org.apache.commons</groupId>
@@ -519,7 +518,7 @@
         </dependency>
         <dependency>
     		<groupId>org.bytedeco</groupId>
-    		<artifactId>ffmpeg-platform-gpl</artifactId>
+    		<artifactId>ffmpeg-platform</artifactId>
             <version>${javacpp.ffmpeg.version}</version>
             <scope>provided</scope>
         </dependency>
@@ -555,6 +554,13 @@
                 </exclusion>
             </exclusions>
         </dependency>
+		<!-- jackson-databind is a dependency of jersey media. We just explicity add it because there was a vulnerability
+		in the older version. We can remove it after it's updated -->
+		<dependency>
+		    <groupId>com.fasterxml.jackson.core</groupId>
+		    <artifactId>jackson-databind</artifactId>
+		    <version>${jackson-databind.version}</version>
+		</dependency>
         <dependency>
             <groupId>org.glassfish.jersey.media</groupId>
             <artifactId>jersey-media-multipart</artifactId>
@@ -562,8 +568,8 @@
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.ext</groupId>
-            <artifactId>jersey-spring4</artifactId>
-            <version>${jersey.version}</version>
+            <artifactId>jersey-spring5</artifactId>
+            <version>2.35</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.media</groupId>

@@ -47,9 +47,18 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.FFmpegUtilities;
 import io.antmedia.SystemUtils;
+import io.antmedia.console.AdminApplication;
+import io.antmedia.console.datastore.AbstractConsoleDataStore;
+import io.antmedia.console.rest.CommonRestService;
+import io.antmedia.datastore.db.types.Licence;
+import io.antmedia.datastore.db.types.User;
+import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.WebRTCClientStats;
+import io.antmedia.rest.model.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
@@ -110,6 +119,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String CPU_USAGE = "cpuUsage";
 
 	public static final String INSTANCE_ID = "instanceId";
+	
+	public static final String MARKETPLACE_NAME = "marketplace";
+	
+	public static final String USER_EMAIL = "userEmail";
+	
+	public static final String LICENSE_VALID = "licenseValid";
 
 	public static final String INSTANCE_TYPE = "instanceType";
 
@@ -140,6 +155,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String GPU_DEVICE_NAME = "deviceName";
 
 	public static final String GPU_USAGE_INFO = "gpuUsageInfo";
+	
+	public static final String FFMPEG_BUILD_INFO = "ffmpegBuildInfo";
 
 	public static final String TOTAL_LIVE_STREAMS = "totalLiveStreamSize";
 
@@ -150,6 +167,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String LOCAL_WEBRTC_VIEWERS = "localWebRTCViewers";
 
 	public static final String LOCAL_HLS_VIEWERS = "localHLSViewers";
+	
+	public static final String LOCAL_DASH_VIEWERS = "localDASHViewers";
 
 	private static final String TIME = "time";
 
@@ -277,9 +296,15 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private int time2Log = 0;
 
+	private String marketplace;
+
 	private static MetricsService vertXMetrics;
 
 	private static MetricsService webRTCVertxMetrics;
+
+	private ILicenceService licenseService;
+
+	private String userEmail;
 
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> 
@@ -310,10 +335,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 			logger.warn("Starting heartbeats for the version:{} and type:{}", Launcher.getVersion(), Launcher.getVersionType());
 
-			getVertx().setPeriodic(heartbeatPeriodMs, l -> 
-			{
-				startAnalytic();
-			});
+			getVertx().setPeriodic(heartbeatPeriodMs, l -> startAnalytic());
 		}
 		else {
 			logger.info("Heartbeats are disabled for this instance");
@@ -582,6 +604,21 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(StatsCollector.START_TIME, ManagementFactory.getRuntimeMXBean().getStartTime());
 		return jsonObject;
 	}
+	
+	public static AdminApplication getAdminAppAdaptor(ApplicationContext appContext) {
+		AdminApplication adaptor = null;
+		
+		if (appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)) 
+		{
+			Object appHandler =appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+			if (appHandler instanceof  AdminApplication) 
+			{
+				adaptor = (AdminApplication) appHandler;
+			}
+		}
+		
+		return adaptor;
+	}
 
 	public static AntMediaApplicationAdapter getAppAdaptor(ApplicationContext appContext) 
 	{
@@ -612,8 +649,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		//add gpu info 
 		jsonObject.add(StatsCollector.GPU_USAGE_INFO, StatsCollector.getGPUInfoJSObject());
+		
+		//add ffmpeg build info 
+		jsonObject.addProperty(StatsCollector.FFMPEG_BUILD_INFO, FFmpegUtilities.getBuildConfiguration());
 
 		int localHlsViewers = 0;
+		int localDashViewers = 0;
 		int localWebRTCViewers = 0;
 		int localWebRTCStreams = 0;
 		int localStreams = 0;
@@ -624,6 +665,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
 				IScope scope = iterator.next();
 				localHlsViewers += getHLSViewers(scope);
+				localDashViewers += getDASHViewers(scope);
 
 				if( scope.getContext().getApplicationContext().containsBean(IWebRTCAdaptor.BEAN_NAME)) {
 					IWebRTCAdaptor webrtcAdaptor = (IWebRTCAdaptor)scope.getContext().getApplicationContext().getBean(IWebRTCAdaptor.BEAN_NAME);
@@ -649,6 +691,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(StatsCollector.LOCAL_LIVE_STREAMS, localStreams);
 		jsonObject.addProperty(StatsCollector.LOCAL_WEBRTC_VIEWERS, localWebRTCViewers);
 		jsonObject.addProperty(StatsCollector.LOCAL_HLS_VIEWERS, localHlsViewers);	
+		jsonObject.addProperty(StatsCollector.LOCAL_DASH_VIEWERS, localDashViewers);	
 		jsonObject.addProperty(StatsCollector.ENCODERS_BLOCKED, encodersBlocked);
 		jsonObject.addProperty(StatsCollector.ENCODERS_NOT_OPENED, encodersNotOpened);
 		jsonObject.addProperty(StatsCollector.PUBLISH_TIMEOUT_ERRORS, publishTimeoutError);
@@ -664,9 +707,15 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private static int getHLSViewers(IScope scope) {
 		if (scope.getContext().getApplicationContext().containsBean(HlsViewerStats.BEAN_NAME)) {
 			HlsViewerStats hlsViewerStats = (HlsViewerStats) scope.getContext().getApplicationContext().getBean(HlsViewerStats.BEAN_NAME);
-			if (hlsViewerStats != null) {
-				return hlsViewerStats.getTotalViewerCount();
-			}
+			return hlsViewerStats.getTotalViewerCount();
+		}
+		return 0;
+	}
+	
+	private static int getDASHViewers(IScope scope) {
+		if (scope.getContext().getApplicationContext().containsBean(DashViewerStats.BEAN_NAME)) {
+			DashViewerStats dashViewerStats = (DashViewerStats) scope.getContext().getApplicationContext().getBean(DashViewerStats.BEAN_NAME);
+			return dashViewerStats.getTotalViewerCount();
 		}
 		return 0;
 	}
@@ -828,6 +877,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		hostAddress = serverSettings.getHostAddress();
 		measurementPeriod = serverSettings.getCpuMeasurementPeriodMs();
 		windowSize = serverSettings.getCpuMeasurementWindowSize();
+		marketplace = serverSettings.getMarketplace();
+		
+		licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 
 		setVertx((Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME));
 
@@ -915,7 +967,22 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		instance.addProperty(INSTANCE_ID, instanceId);
 		instance.addProperty(INSTANCE_TYPE, type);
 		instance.addProperty(INSTANCE_VERSION, version);
-
+		instance.addProperty(MARKETPLACE_NAME, marketplace);
+		
+		
+		instance.addProperty(USER_EMAIL, getUserEmail());
+		
+		if (RestServiceBase.isEnterprise()) 
+		{
+			Licence lastLicenseStatus = licenseService.getLastLicenseStatus();
+			String status = "invalid";
+			if (lastLicenseStatus != null) 
+			{
+				status = lastLicenseStatus.getStatus();
+			}
+			instance.addProperty(LICENSE_VALID, status);
+		}
+		
 		try (CloseableHttpClient client = getHttpClient())
 		{
 			HttpRequestBase post = (HttpRequestBase)RequestBuilder.post().setUri("https://us-central1-ant-media-server-analytics.cloudfunctions.net/sendHeartbeat").setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -930,6 +997,51 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}catch (IOException e) {
 			logger.error("Couldn't connect Ant Media Server Analytics");
 		} 
+	}
+	
+	public void setUserEmail(String userEmail) {
+		this.userEmail = userEmail;
+	}
+
+	public String getUserEmail() 
+	{
+		if (userEmail == null) 
+		{
+			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) 
+			{ 
+				IScope scope = iterator.next();
+
+				
+				AdminApplication adaptor = null;
+
+				if ((adaptor = getAdminAppAdaptor(scope.getContext().getApplicationContext())) != null)
+				{
+					AbstractConsoleDataStore dataStore = adaptor.getDataStoreFactory().getDataStore();
+					
+					List<User> userList = dataStore.getUserList();
+					
+					userEmail = findAdminUser(userList);
+					break;
+				}
+			}
+		}
+		return userEmail;
+	}
+
+	private String findAdminUser(List<User> userList) {
+		
+		String email = null;
+		for (Iterator<User> iterator2 = userList.iterator(); iterator2.hasNext();) 
+		{
+			User user = iterator2.next();
+			
+			if (user.getUserType() == UserType.ADMIN && CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) 
+			{
+				email = user.getEmail();
+				break;
+			}
+		}
+		return email;
 	}
 
 	public static CloseableHttpClient getHttpClient() {

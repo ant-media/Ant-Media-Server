@@ -163,6 +163,10 @@ public abstract class Muxer {
 	protected AVPacket videoPkt;
 	protected int rotation;
 
+	/**
+	 * ts and m4s files index length
+	 */
+	public static final int SEGMENT_INDEX_LENGTH = 9;
 
 	protected Map<Integer, Integer> inputOutputStreamIndexMap = new ConcurrentHashMap<>();
 
@@ -1000,6 +1004,8 @@ public abstract class Muxer {
 
 			ret = av_write_frame(context, pkt);
 			if (ret < 0 && logger.isWarnEnabled()) {
+				//TODO: this is written for some muxers like HLS because normalized video time is coming from WebRTC
+				//WebRTCVideoForwarder#getVideoTime. Fix this problem when upgrading the webrtc stack
 				logger.warn("cannot write video frame to muxer({}). Pts: {} dts:{}  Error is {} ", file.getName(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
 			}
 		}

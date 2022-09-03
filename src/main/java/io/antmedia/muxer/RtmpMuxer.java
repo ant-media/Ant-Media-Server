@@ -125,28 +125,38 @@ public class RtmpMuxer extends Muxer {
 			return false;
 		}
 		preparedIO.set(true);
-		this.vertx.executeBlocking(b ->
+		boolean result = false;
+		//if there is a stream in the output format context, try to push
+		if (getOutputFormatContext().nb_streams() > 0) 
 		{
-
-			if (openIO())
+			this.vertx.executeBlocking(b ->
 			{
-				if (videoBsfFilterContext == null)
+	
+				if (openIO())
 				{
-					writeHeader();
-					return;
+					if (videoBsfFilterContext == null)
+					{
+						writeHeader();
+						return;
+					}
+					isRunning.set(true);
+					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 				}
-				isRunning.set(true);
-				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-			}
-			else
-			{
-				clearResource();
-				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
-				logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
-			}
-		}, null);
+				else
+				{
+					clearResource();
+					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+					logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
+				}
+			}, null);
+			
+			result = true;
+		}
+		else {
+			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+		}
 		
-		return true;
+		return result;
 	}
 
 	/**

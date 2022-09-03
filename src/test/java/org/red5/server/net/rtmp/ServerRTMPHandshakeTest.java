@@ -1,5 +1,8 @@
 package org.red5.server.net.rtmp;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import java.util.Arrays;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -14,9 +17,16 @@ import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.red5.io.object.StreamAction;
 import org.red5.io.utils.IOUtils;
+import org.red5.server.api.IContext;
+import org.red5.server.api.scope.IScope;
+import org.red5.server.net.rtmp.status.StatusObjectService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import io.antmedia.AppSettings;
 
 /**
  * Tests for server side handshaking. Test command for using rtmpdump, if targeting specific player version use: -f "WIN 10,0,2,0"
@@ -243,6 +253,34 @@ public class ServerRTMPHandshakeTest {
         } while (threadCount.get() > 0);
         log.info("Wait completed, failures: {}", failures.get());
         Assert.assertEquals(0, failures.get());
+    }
+    
+    @Test
+    public void testRTMPPlaybackAndAllowed() {
+    	RTMPHandler rtmpHandler = new RTMPHandler();
+    	
+    	RTMPConnection conn = Mockito.mock(RTMPConnection.class);
+    	Channel channel = Mockito.mock(Channel.class);
+    	
+    	assertTrue(rtmpHandler.isAllowedIfRtmpPlayback(conn, channel, StreamAction.CONNECT));
+    	AppSettings appSettings = new AppSettings();
+    	IScope scope = Mockito.mock(IScope.class);
+    	Mockito.when(conn.getScope()).thenReturn(scope);
+    	
+    	IContext context = Mockito.mock(IContext.class);
+		Mockito.when(scope.getContext()).thenReturn(context);
+		
+		Mockito.when(context.getBean(Mockito.anyString())).thenReturn(appSettings);
+		StatusObjectService statusObjectService = new StatusObjectService();
+		statusObjectService.loadStatusObjects();
+		rtmpHandler.setStatusObjectService(statusObjectService);
+		
+    	assertFalse(rtmpHandler.isAllowedIfRtmpPlayback(conn, channel, StreamAction.PLAY));
+    	
+    	assertFalse(rtmpHandler.isAllowedIfRtmpPlayback(conn, channel, StreamAction.PLAY2));
+    	
+    	appSettings.setRtmpPlaybackEnabled(true);
+    	assertTrue(rtmpHandler.isAllowedIfRtmpPlayback(conn, channel, StreamAction.PLAY2));
     }
 
 }
