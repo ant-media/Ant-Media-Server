@@ -250,6 +250,57 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
+	public List<Broadcast> filterBroadcastListByType(int offset, int size, String type, String value) {
+		int t = 0;
+		int itemCount = 0;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+
+		Collection<Broadcast> values =broadcastMap.values();
+
+		List<Broadcast> list = new ArrayList();
+
+		for (Broadcast broadcast : values)
+		{
+			Boolean isEqual = false;
+
+			if (type.equals("channel")) {
+				isEqual = broadcast.getCategory().equals(value);
+			} else if (type.equals("status")) {
+				isEqual = broadcast.getStatus().equals(value);
+			} else if (type.equals("stream")) {
+				isEqual = broadcast.getStreamId().equals(value);
+			} else if (type.equals("type")) {
+				isEqual = broadcast.getType().equals(value);
+			} else if (type.equals("name")) {
+				isEqual = broadcast.getName().equals(value);
+			} else if (type.equals("description")) {
+				isEqual = broadcast.getDescription().equals(value);
+			}
+
+			if (isEqual)
+			{
+				if (t < offset) {
+					t++;
+					continue;
+				}
+				list.add(broadcast);
+
+				itemCount++;
+
+				if (itemCount >= size) {
+					break;
+				}
+			}
+		}
+		return list;
+	}
+
+	@Override
 	public String addVod(VoD vod) {
 		String id = null;
 		boolean result = false;

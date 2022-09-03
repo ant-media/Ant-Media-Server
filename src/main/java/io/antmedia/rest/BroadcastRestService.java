@@ -913,6 +913,14 @@ public class BroadcastRestService extends RestServiceBase{
 		return new Result(result, message);
 	}
 
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/broadcast/filterListByType/{offset}/{size}/{type}/{value}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<Broadcast> filterBroadcastListByType(@PathParam("offset") int offset, @PathParam("size") int size,
+			@PathParam("type") String type, @PathParam("value") String value) {
+		return getDataStore().filterBroadcastListByType(offset, size, type, value);
+	}
 
 	@ApiOperation(value = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one", response = ConferenceRoom.class)
 	@ApiResponses(value = { @ApiResponse(code = 400, message = "If operation is no completed for any reason", response=Result.class),

@@ -471,6 +471,75 @@ public class MapDBStore extends DataStore {
 	}
 
 	@Override
+	public List<Broadcast> filterBroadcastListByType(int offset, int size, String type, String value) {
+
+		List<Broadcast> list = new ArrayList<Broadcast>();
+		synchronized (this) {
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
+			if (offset < 0) {
+				offset = 0;
+			}
+
+			Object[] objectArray = map.getValues().toArray();
+
+			Broadcast[] broadcastArray = new Broadcast[objectArray.length];
+
+			for (int i = 0; i < objectArray.length; i++) {
+				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
+			}
+
+			List<Broadcast> filterList = new ArrayList<>();
+			for (int i = 0; i < broadcastArray.length; i++) {
+				if (type.equals("channel")) {
+					if (broadcastArray[i].getCategory().equals(value)) {
+						filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					}
+				} else if (type.equals("status")) {
+					if (broadcastArray[i].getStatus().equals(value)) {
+						filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					}
+				} else if (type.equals("stream")) {
+					if (broadcastArray[i].getStreamId().equals(value)) {
+						filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					}
+				} else if (type.equals("type")) {
+					if (broadcastArray[i].getType().equals(value)) {
+						filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					}
+				} else if (type.equals("name")) {
+					if (broadcastArray[i].getName().equals(value)) {
+						filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					}
+				} else if (type.equals("description")) {
+					if (broadcastArray[i].getDescription().equals(value)) {
+						filterList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					}
+				}
+			}
+			Iterator<Broadcast> iterator = filterList.iterator();
+
+			while (itemCount < size && iterator.hasNext()) {
+				if (t < offset) {
+					t++;
+					iterator.next();
+				}
+				else {
+
+					list.add(iterator.next());
+					itemCount++;
+				}
+			}
+
+		}
+		return list;
+
+	}
+
+	@Override
 	public String addVod(VoD vod) {
 
 		String id = null;
