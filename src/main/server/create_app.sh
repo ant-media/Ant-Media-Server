@@ -14,6 +14,7 @@ usage() {
   echo "-u:  Mongo DB user. If it's a cluster, it's mandatory. Otherwise optional"
   echo "-s:  Mongo DB password. If it's a cluster, it's mandatory. Otherwise optional"
   echo "-h: print this usage"
+  echo "-f: war file path for custom app deployment"
   echo " "
   echo "Example: "
   echo "$0 -n live -w"
@@ -21,13 +22,17 @@ usage() {
   echo "If you have any question, send e-mail to contact@antmedia.io"
 }
 
+echo "all parameters"
+echo $@
+echo "--> \n"
+
 ERROR_MESSAGE="Error: App is not created. Please check the error in the terminal and take a look at the instructions below"
 
 AMS_DIR=/usr/local/antmedia
 AS_WAR=false
 IS_CLUSTER=false
 
-while getopts 'n:p:w:h:c:m:u:s:' option
+while getopts 'n:p:w:h:c:m:u:s:f:' option
 do
   case "${option}" in
     n) APP_NAME=${OPTARG};;
@@ -37,6 +42,7 @@ do
     m) MONGO_HOST=${OPTARG};;
     u) MONGO_USER=${OPTARG};;
     s) MONGO_PASS=${OPTARG};;
+    f) WAR_FILE=${OPTARG};;
     h) usage 
        exit 1;;
    esac
@@ -65,6 +71,14 @@ if [[ -z "$APP_NAME" ]]; then
     exit 1
 fi
 
+if [[ -z "$WAR_FILE" ]]; then
+    WAR_FILE=$AMS_DIR/StreamApp*.war
+fi
+
+if [[ -z "$AS_WAR" ]]; then
+    AS_WAR="false"
+fi
+
 if [[ "$IS_CLUSTER" == "true" ]]; then
     if [[ -z "$MONGO_HOST" ]]; then
        echo "Please set mongodb host, username and password for cluster mode. "
@@ -87,16 +101,18 @@ mkdir $APP_DIR
 check_result
 
 echo $AMS_DIR
-cp $AMS_DIR/StreamApp*.war $APP_DIR
+cp $WAR_FILE $APP_DIR
 check_result
 
 cd $APP_DIR
 check_result
 
-jar -xf StreamApp*.war
+WAR_FILE_NAME=`basename $WAR_FILE`
+
+unzip $WAR_FILE_NAME
 check_result
 
-rm StreamApp*.war
+rm $WAR_FILE_NAME
 check_result
 
 OS_NAME=`uname`
@@ -124,6 +140,7 @@ if [[ "$IS_CLUSTER" == "true" ]]; then
     sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$MONGO_HOST'#' $RED5_PROPERTIES_FILE  
     sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$MONGO_USER'/' $RED5_PROPERTIES_FILE
     sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$MONGO_PASS'/' $RED5_PROPERTIES_FILE
+    ln -s $WAR_FILE $AMS_DIR/webapps/root/$APP_NAME.war
 else 
     echo "Not cluster mode."    
 fi
@@ -131,12 +148,12 @@ fi
 
 if [[ $AS_WAR == "true" ]]; then
   echo "Application will deployed as war" 
-  jar -cvf $AMS_DIR/webapps/$APP_NAME.war -C $APP_DIR .  
+  cd $APP_DIR 
+  zip -r ../$APP_NAME.war *  
   rm -r $APP_DIR
 else
   echo "Application is deployed as directory."
+  chown -R antmedia:antmedia $APP_DIR -f
 fi
-
-chown -R antmedia:antmedia $APP_DIR
 
 echo "$APP_NAME is created."

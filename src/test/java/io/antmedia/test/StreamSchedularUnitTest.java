@@ -396,7 +396,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		//create a stream Manager
-		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope)); // aaaa
 		//app.getAppAdaptor().getStreamFetcherManager();
 
 		app.setStreamFetcherManager(streamFetcherManager);
@@ -504,6 +504,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getStatus()));
 
 
+			playlist.setPlaylistLoopEnabled(false);
 			assertTrue(streamFetcherManager.startPlaylist(playlist).isSuccess());
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS)
@@ -512,21 +513,35 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			Awaitility.await().atMost(10, TimeUnit.SECONDS)
 			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get("testId").getStatus()));
 
-
-			assertTrue(service.stopStreamingV2(playlist.getStreamId()).isSuccess());
-
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> {
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getStatus());
+			});
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 3);
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get("testId").getStatus()));
+			
+			
+			// Playlist will return Finished status and current play index = 0
+			
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getStatus());
+			});
+			
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getPlayListStatus());
+			});
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 0);
 
 			// Update playlist with DB
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
-				Broadcast tmp = dataStore.get("testId");
-				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(tmp.getStatus());
-			});
-
-			playlist = dataStore.get(playlist.getStreamId());
-			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getPlayListStatus());
-
-			assertEquals(1, dataStore.get("testId").getCurrentPlayIndex());
+	//		playlist = dataStore.get(playlist.getStreamId());
+	//		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getPlayListStatus());
 
 			//Check Stream URL function
 

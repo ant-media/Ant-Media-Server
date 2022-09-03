@@ -106,7 +106,7 @@ public class TokenFilterManager extends AbstractFilter   {
 					{
 						if (!tokenServiceTmp.checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
 							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Token");
-							logger.warn("token {} is not valid", tokenId);
+							logger.warn("token {} is not valid for stream id:{}", tokenId, streamId);
 							return; 
 						}
 					}
@@ -116,7 +116,7 @@ public class TokenFilterManager extends AbstractFilter   {
 						return;
 					}
 				}
-
+				
 				if (appSettings.isHashControlPlayEnabled()) 
 				{
 					ITokenService tokenServiceTmp = getTokenService();
@@ -195,6 +195,13 @@ public class TokenFilterManager extends AbstractFilter   {
 		if(requestURI.contains("streams")) {
 			requestURI = requestURI.split("streams")[1];
 		}
+		
+		if(requestURI.contains("m4s")) {
+			startIndex = requestURI.indexOf("/");
+			endIndex = requestURI.lastIndexOf("/");
+			return requestURI.substring(startIndex+1, endIndex);
+		}
+		
 		else if(requestURI.contains("chunked")) {
 			requestURI = requestURI.split("chunked")[1];
 			startIndex = requestURI.indexOf("/");
@@ -209,9 +216,9 @@ public class TokenFilterManager extends AbstractFilter   {
 		}
 
 		//if specific bitrate is requested
-		String hlsRegex = "(.*)_[0-9]+p[0-9]+kbps.m3u8$";  // matches ending with _[resolution]p[bitrate]kbps.m3u8
+		String hlsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps).m3u8$"; // matches ending with _[resolution]p[bitrate]kbps.m3u8 or _[resolution]p.m3u8 or _[bitrate]kbps.m3u8
 		if (requestURI.matches(hlsRegex)) {
-			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[bitrate]kbps.m3u8
+			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[bitrate]kbps.m3u8 or [NAME]_[RESOLUTION]p.m3u8 or _[bitrate]kbps.m3u8
 			return requestURI.substring(startIndex+1, endIndex);
 		}
 
@@ -222,16 +229,30 @@ public class TokenFilterManager extends AbstractFilter   {
 		}
 
 		//if specific ts file requested
-		String tsRegex = "(.*)_[0-9]+p[0-9]+kbps+[0-9][0-9][0-9][0-9].ts$";  // matches ending with _[_240p300kbps0000].ts or default ts file extension  _[0000].ts
+		String tsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)+[0-9]{" + Muxer.SEGMENT_INDEX_LENGTH + "}.ts$";  // matches ending with _[_240p300kbps0000].ts or _[_300kbps0000].ts or _[_240p0000].ts default ts file extension _[0000].ts
 		if (requestURI.matches(tsRegex)) {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
 			return requestURI.substring(startIndex+1, endIndex);
 		}
 		
-		tsRegex = "(.*)_[0-9][0-9][0-9][0-9].ts$";  // matches default ts file extension  _[0000].ts
+		//for backward compatibility
+		tsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)+[0-9]{4}.ts$";  // matches ending with _[_240p300kbps0000].ts or _[_300kbps0000].ts or _[_240p0000].ts default ts file extension _[0000].ts
 		if (requestURI.matches(tsRegex)) {
-			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[0000].ts
+			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
 			return requestURI.substring(startIndex+1, endIndex);
+		}
+		
+		tsRegex = "(.*)[0-9]{"+ Muxer.SEGMENT_INDEX_LENGTH +"}.ts$";  // matches default ts file extension  [0000].ts
+		if (requestURI.matches(tsRegex)) {
+			endIndex = requestURI.lastIndexOf('.'); //because file format is [NAME][0000].ts
+			return requestURI.substring(startIndex+1, endIndex-Muxer.SEGMENT_INDEX_LENGTH);
+		}
+		
+		//for backward compatibility
+		tsRegex = "(.*)[0-9]{4}.ts$";  // matches default ts file extension  [0000].ts
+		if (requestURI.matches(tsRegex)) {
+			endIndex = requestURI.lastIndexOf('.'); //because file format is [NAME][0000].ts
+			return requestURI.substring(startIndex+1, endIndex-4);
 		}
 
 		//streamId_underline_test-2021-05-18_11-26-26.842.mp4 and streamId_underline_test-2021-05-18_11-26-26.842_360p500kbps.mp4 

@@ -164,7 +164,15 @@ export RED5_CLASSPATH="${RED5_HOME}/ant-media-server-service.jar${P}${RED5_HOME}
 # create log directory if not exist
 if [ ! -d "/var/log/antmedia" ] 
 then
-    mkdir /var/log/antmedia 
+  mkdir -p /var/log/antmedia   
+  OUT=$?
+  if [ $OUT -ne 0 ]; then
+    echo "You're likely running start.sh directly. The problem is /var/log/antmedia directory cannot not created"
+    echo "If you run the start.sh with your current user, please run the following commands"
+    echo "sudo mkdir -p /var/log/antmedia"
+    echo "sudo chown $USER /var/log/antmedia"
+    exit $OUT
+  fi
 fi
 
 #create soft link if not exists

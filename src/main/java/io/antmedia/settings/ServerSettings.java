@@ -20,22 +20,25 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.context.annotation.PropertySource;
 import org.apache.catalina.util.NetMask;
 import org.webrtc.Logging;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+@PropertySource("/conf/red5.properties")
 @JsonIgnoreProperties(ignoreUnknown=true)
-public class ServerSettings implements IServerSettings, ApplicationContextAware {
+public class ServerSettings implements ApplicationContextAware {
 
 	public static final String BEAN_NAME = "ant.media.server.settings";
-
+	
 
 	private static final String SETTINGS_HEART_BEAT_ENABLED = "server.heartbeatEnabled";
 
 
 	private static final String SETTINGS_USE_GLOBAL_IP = "useGlobalIp";
+
+	private static final String SETTINGS_PROXY_ADDRESS = "proxy.address";
 
 	private static final String SETTINGS_NODE_GROUP = "nodeGroup";
 
@@ -56,7 +59,26 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 	private static final String SETTINGS_CPU_MEASUREMENT_WINDOW_SIZE = "server.cpu_measurement_window_size";
 
 	private static final String SETTINGS_SERVER_DEFAULT_HTTP_PORT = "http.port";
+	
+	private static final String SETTINGS_ORIGIN_PORT = "server.origin_port";
+	
+	private static final String SETTINGS_SRT_PORT = "server.srt_port";
+	
+	private static final String ALLOWED_DASH_BOARD_CIDR = "server.allowed_dashboard_CIDR";
 
+	private static final String SETTINGS_NATIVE_LOG_LEVEL = "nativeLogLevel";
+
+	private static final String SETTINGS_LOG_LEVEL = "logLevel";
+
+	private static final String SETTINGS_MARKET_BUILD = "server.market_build";
+
+	private static final String SETTINGS_LICENSE_KEY = "server.licence_key";
+
+	private static final String SETTINGS_SERVER_NAME = "server.name";
+
+	private static final String SETTINGS_MARKET_PLACE_NAME = "server.marketplace";
+
+	@Value( "${"+ALLOWED_DASH_BOARD_CIDR+":'0.0.0.0/0'}" )
 	private String allowedDashboardCIDR;
 
 	@JsonIgnore
@@ -69,28 +91,43 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 	
 	private static String globalHostAddress;
 	
-	private static String hostAddress;
+	private String hostAddress;
 	
 	/**
 	 * Fully Qualified Domain Name
 	 */
+	
+	@Value( "${"+SETTINGS_SERVER_NAME+":#{null}}" )
 	private String serverName;
 	/**
 	 * Customer License Key
 	 */
+	@Value( "${"+SETTINGS_LICENSE_KEY+":#{null}}" )
 	private String licenceKey;
 	
 	/**
 	 * The setting for customized marketplace build
 	 */
+	@Value( "${"+SETTINGS_MARKET_BUILD+":false}" )
 	private boolean buildForMarket = false;
 	
+	/**
+	 * Name of the marketplace
+	 */
+	@Value( "${"+SETTINGS_MARKET_PLACE_NAME+":#{null}}" )
+	private String marketplace;
+	
+	
+	@Value( "${"+SETTINGS_LOG_LEVEL+":'INFO'}" )
 	private String logLevel = null;
 
 	/**
 	 * Native Log Level is used for ffmpeg and WebRTC logs
 	 */
+	
+	@Value( "${"+SETTINGS_NATIVE_LOG_LEVEL+":'ERROR'}" )
 	private String nativeLogLevel = LOG_LEVEL_WARN;
+	
 
 	@Value( "${"+SETTINGS_HEART_BEAT_ENABLED+":true}" )
 	private boolean heartbeatEnabled; 
@@ -98,7 +135,16 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 	@Value( "${"+SETTINGS_USE_GLOBAL_IP+":false}" )
 	private boolean useGlobalIp;
 
-	
+	/**
+	 * The proxy IP address and port.
+	 * If there is a proxy in front of Ant Media Server(reverse proxy) please enter its IP and port
+	 * The format will be <proxy_ip>:<port_number> for example:
+	 * 					 192.168.0.1:3012
+	 */
+	@Value( "${"+SETTINGS_PROXY_ADDRESS+":null}" )
+	private String proxyAddress;
+
+
 	@Value( "${"+SETTINGS_NODE_GROUP+":"+DEFAULT_NODE_GROUP+"}" )
 	private String nodeGroup = DEFAULT_NODE_GROUP;
 
@@ -176,6 +222,19 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 
 	@Value( "${" + SETTINGS_JWKS_URL +":#{null}}")
 	private String jwksURL;
+	
+	/**
+	 * The port that is opened by origin in cluster mode.
+	 * Edges are connected to the origin through this port.
+	 */
+	@Value( "${"+SETTINGS_ORIGIN_PORT+":5000}" )
+	private int originServerPort;
+
+	/**
+	 * The SRT port that server opens to listen incoming SRT connections
+	 */
+	@Value("${"+SETTINGS_SRT_PORT + ":4200}")
+	private int srtPort;
 
 	public String getJwksURL() {
 		return jwksURL;
@@ -279,16 +338,28 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
 	
-		if (useGlobalIp) {
+		String hostAddressEnv = getHostAddressFromEnvironment();
+		if (hostAddressEnv != null && !hostAddressEnv.isEmpty()) {
+			logger.info("Env host address is {}", hostAddressEnv);
+			hostAddress = hostAddressEnv;
+		}
+		
+		else if (useGlobalIp) {
 			hostAddress = getGlobalHostAddress();
+			logger.info("Using global host address is {}", hostAddress);
 		}
 		else {
 			//************************************
 			//this method may sometimes takes long to return
 			//delaying initialization may cause some after issues
 			hostAddress = getLocalHostAddress();
+			logger.info("Using local host address is {}", hostAddress);
 		}
 		
+	}
+
+	public String getHostAddressFromEnvironment() {
+		return System.getenv("AMS_HOST_ADDRESS");
 	}
 
 	public boolean isUseGlobalIp() {
@@ -297,6 +368,14 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 
 	public void setUseGlobalIp(boolean useGlobalIp) {
 		this.useGlobalIp = useGlobalIp;
+	}
+
+	public void setProxyAddress(String proxyAddress){
+		this.proxyAddress = proxyAddress;
+	}
+
+	public String getProxyAddress(){
+		return proxyAddress;
 	}
 	
 	/**
@@ -427,5 +506,30 @@ public class ServerSettings implements IServerSettings, ApplicationContextAware 
 	public void setDefaultHttpPort(int defaultHttpPort) {
 		this.defaultHttpPort = defaultHttpPort;
 	}
+	
+	public int getOriginServerPort() {
+		return originServerPort;
+	}
+
+	public void setOriginServerPort(int originServerPort) {
+		this.originServerPort = originServerPort;
+	}
+
+	public int getSrtPort() {
+		return srtPort;
+	}
+	
+	public void setSrtPort(int srtPort) {
+		this.srtPort = srtPort;
+	}
+
+	public String getMarketplace() {
+		return marketplace;
+	}
+
+	public void setMarketplace(String marketplace) {
+		this.marketplace = marketplace;
+	}
+
 
 }

@@ -27,6 +27,7 @@ import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnection.IceServer;
 import org.webrtc.PeerConnection.TcpCandidatePolicy;
+import org.webrtc.PeerConnection.IceServer.Builder;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
 import org.webrtc.SoftwareVideoEncoderFactory;
@@ -96,6 +97,8 @@ public class RTMPAdaptor extends Adaptor {
 	private int videoFrameCount = 0;
 
 	private long videoFrameLastTimestampMs;
+	private String turnServerUsername;
+	private String turnServerCredential;
 
 	public static class AudioFrame 
 	{
@@ -264,6 +267,21 @@ public class RTMPAdaptor extends Adaptor {
 
 				List<IceServer> iceServers = new ArrayList<>();
 				iceServers.add(IceServer.builder(getStunServerUri()).createIceServer());
+				
+				Builder iceServerBuilder = IceServer.builder(stunServerUri);
+				
+				if (turnServerUsername != null && !turnServerUsername.isEmpty())
+				{
+					iceServerBuilder.setUsername(turnServerUsername);
+				}
+				
+				if (turnServerCredential != null && !turnServerCredential.isEmpty()) 
+				{
+					iceServerBuilder.setPassword(turnServerCredential);
+				}
+				
+				iceServers.add(iceServerBuilder.createIceServer());
+				
 
 				PeerConnection.RTCConfiguration rtcConfig =
 						new PeerConnection.RTCConfiguration(iceServers);
@@ -563,8 +581,10 @@ public class RTMPAdaptor extends Adaptor {
 		return stunServerUri;
 	}
 
-	public void setStunServerUri(String stunServerUri) {
+	public void setStunServerUri(String stunServerUri, String username, String credential) {
 		this.stunServerUri = stunServerUri;
+		this.turnServerUsername = username;
+		this.turnServerCredential = credential;	
 	}
 
 	public void setPortRange(int webRTCPortRangeMin, int webRTCPortRangeMax) {

@@ -18,15 +18,15 @@ before_install:
   - openssl aes-256-cbc -K $encrypted_5fef4fa28306_key -iv $encrypted_5fef4fa28306_iv -in codesigning.asc.enc -out codesigning.asc -d
   - export GPG_TTY=$(tty) #-> https://github.com/keybase/keybase-issues/issues/2798
   - gpg2 --batch --fast-import codesigning.asc
-  - sudo apt purge mongodb*
-  - sudo apt autoremove
+  - sudo apt purge mongodb* -qq
+  - sudo apt autoremove -qq
   - sudo rm -rf /var/lib/mongodb  # remove old mongodb files
   #- sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
   - wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
   - echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
   - sudo apt-get update -qq
   #install mongodb ffmpeg wondershaper 
-  - sudo apt-get install mongodb-org ffmpeg wondershaper -y
+  - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
   - sudo mongod --dbpath /var/lib/mongodb &>/dev/null & # start mongo db - don' write log
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
     # get parent project
@@ -43,7 +43,7 @@ before_install:
   - cd ..
 
     # install Ant Media Server
-  - mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true  
+  - mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true --quiet 
 
    #get StreamApp project
   - (if [ $(git ls-remote https://github.com/ant-media/StreamApp.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
@@ -139,7 +139,7 @@ after_failure:
 deploy:
   - provider: script
     script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
-    cleanup: true
+    skip_cleanup: true
     on:
       tags: false
       all_branches: true
@@ -148,7 +148,7 @@ deploy:
   
   - provider: script
     script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
-    cleanup: true
+    skip_cleanup: true
     on:
       #deploy to maven if it is a release tagged
       tags: true

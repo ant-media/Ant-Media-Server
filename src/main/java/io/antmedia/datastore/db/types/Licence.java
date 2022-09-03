@@ -16,6 +16,7 @@ public class Licence {
 	
 	private String status;
 	
+	private String hourUsed;
 
 	public Licence() {
 		
@@ -76,6 +77,14 @@ public class Licence {
 
 	public void setStatus(String status) {
 		this.status = status;
+	}
+	
+	public String getHourUsed() {
+		return hourUsed;
+	}
+
+	public void setHourUsed(String hourUsed) {
+		this.hourUsed = hourUsed;
 	}
 
 }

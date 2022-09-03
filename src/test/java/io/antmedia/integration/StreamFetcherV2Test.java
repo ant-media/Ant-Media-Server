@@ -286,7 +286,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		
 		//create a local stream
 		//add librtmp style in the url
-		Broadcast localStream = new Broadcast("name", null, null, null, "rtmp://127.0.0.1/LiveApp/"+ streamId /*"rtsp://127.0.0.1:6554/test.flv"*/, AntMediaApplicationAdapter.STREAM_SOURCE);
+		Broadcast localStream = new Broadcast("name", null, null, null, "http://127.0.0.1:5080/LiveApp/streams/"+ streamId + ".m3u8", AntMediaApplicationAdapter.STREAM_SOURCE);
 		dataStore.save(localStream);
 		
 		Endpoint endpoint = new Endpoint();

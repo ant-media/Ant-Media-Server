@@ -15,6 +15,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.licence.ILicenceService;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 
 public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	
@@ -38,15 +39,23 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		boolean result = false;
 		
 		
+		//TODO: check if possible to control timeout value to accept the streams
 		if (enabled) 
 		{
 			Broadcast broadcast = getDatastore().get(name);
-			result = broadcast != null;
+			result = broadcast != null 
+					&& !broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) 
+					&& !broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 		}	
 		else 
 		{
 			logger.info("AcceptOnlyStreamsInDataStore is not activated. Accepting all streams {}", name);
-			result = true;
+			Broadcast broadcast = getDatastore().get(name);
+			
+			result = broadcast == null
+					|| 
+					(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) 
+					&& !broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING));
 		}
 	
 		if (result) 

@@ -63,6 +63,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.storage.StorageClient;
@@ -84,13 +85,17 @@ public abstract class RestServiceBase {
 
 		@ApiModelProperty(value = "the total WebRTC viewers of the stream")
 		public final int totalWebRTCWatchersCount;
+		
+		@ApiModelProperty(value = "the total DASH viewers of the stream")
+		public final int totalDASHWatchersCount;
 
 
 		public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
-				int totalWebRTCWatchersCount) {
+				int totalWebRTCWatchersCount, int totalDASHWatchersCount) {
 			this.totalRTMPWatchersCount = totalRTMPWatchersCount;
 			this.totalHLSWatchersCount = totalHLSWatchersCount;
 			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
+			this.totalDASHWatchersCount = totalDASHWatchersCount;
 		}
 	}
 
@@ -101,9 +106,9 @@ public abstract class RestServiceBase {
 		public final int activeLiveStreamCount;
 
 		public AppBroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
-				int totalWebRTCWatchersCount, int activeLiveStreamCount) 
+				int totalWebRTCWatchersCount, int totalDASHWatchersCount, int activeLiveStreamCount ) 
 		{
-			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount);
+			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount, totalDASHWatchersCount);
 			this.activeLiveStreamCount = activeLiveStreamCount;
 		}
 
@@ -218,7 +223,9 @@ public abstract class RestServiceBase {
 	public DataStoreFactory getDataStoreFactory() {
 		if(dataStoreFactory == null) {
 			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
+			if (ctxt != null) {
+				dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
+			}
 		}
 		return dataStoreFactory;
 	}
@@ -576,12 +583,8 @@ public abstract class RestServiceBase {
 		return new Result(removed);
 	}
 
-	public Result removeRTMPEndpoint(String id, String endpointServiceId) 
+	public Result removeRTMPEndpoint(String id, Endpoint endpoint) 
 	{
-		Endpoint endpoint = new Endpoint();
-		endpoint.setType(ENDPOINT_GENERIC);
-		endpoint.setEndpointServiceId(endpointServiceId);
-
 		boolean removed = getDataStore().removeEndpoint(id, endpoint, false);
 
 		return new Result(removed);
@@ -1208,6 +1211,12 @@ public abstract class RestServiceBase {
 					if(id != null) {
 						success = true;
 						message = id;
+						
+						String vodFinishScript = getAppSettings().getVodFinishScript();
+						if (vodFinishScript != null && !vodFinishScript.isEmpty()) {
+							getApplication().runScript(vodFinishScript + "  " + savedFile.getAbsolutePath());
+						}
+						
 					} 
 				}
 			} 
@@ -1318,6 +1327,7 @@ public abstract class RestServiceBase {
 		int totalRTMPViewer = -1;
 		int totalWebRTCViewer = -1;
 		int totalHLSViewer = -1;
+		int totalDASHViewer = -1;
 		if (id != null) 
 		{
 			IBroadcastScope broadcastScope = getScope().getBroadcastScope(id);
@@ -1329,23 +1339,28 @@ public abstract class RestServiceBase {
 			Broadcast broadcast = getDataStore().get(id);
 			if (broadcast != null) {
 				totalHLSViewer = broadcast.getHlsViewerCount();
+				totalDASHViewer = broadcast.getDashViewerCount();
 				totalWebRTCViewer = broadcast.getWebRTCViewerCount();
 			}			
 		}
 
-		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
+		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer,totalDASHViewer);
 	}
 
 	protected AppBroadcastStatistics getBroadcastTotalStatistics() {
 
 		int totalWebRTCViewer = -1;
 		int totalHLSViewer = -1;
+		int totalDASHViewer = -1;
 
 		if (getAppContext().containsBean(HlsViewerStats.BEAN_NAME)) {
 			HlsViewerStats hlsViewerStats = (HlsViewerStats) getAppContext().getBean(HlsViewerStats.BEAN_NAME);
-			if (hlsViewerStats != null) {
-				totalHLSViewer = hlsViewerStats.getTotalViewerCount();
-			}
+			totalHLSViewer = hlsViewerStats.getTotalViewerCount();
+		}
+		
+		if (getAppContext().containsBean(DashViewerStats.BEAN_NAME)) {
+			DashViewerStats dashViewerStats = (DashViewerStats) getAppContext().getBean(DashViewerStats.BEAN_NAME);
+			totalDASHViewer = dashViewerStats.getTotalViewerCount();
 		}
 
 
@@ -1357,7 +1372,7 @@ public abstract class RestServiceBase {
 
 		int activeBroadcastCount = (int)getDataStore().getActiveBroadcastCount();
 
-		return new AppBroadcastStatistics(-1, totalHLSViewer, totalWebRTCViewer, activeBroadcastCount);
+		return new AppBroadcastStatistics(-1, totalHLSViewer, totalWebRTCViewer, totalDASHViewer, activeBroadcastCount);
 	}
 
 
@@ -1472,6 +1487,12 @@ public abstract class RestServiceBase {
 
 		return list;
 	}
+	
+	protected String[] getOnvifDeviceProfiles(String id) {
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
+		return camera.getProfiles();
+	}
+
 
 	public String[] getIPArray(List<URL> onvifDevices) {
 
@@ -1874,4 +1895,5 @@ public abstract class RestServiceBase {
 
 		return new Result(result, message);
 	}
+
 }

@@ -2,19 +2,6 @@ package io.antmedia.rest;
 
 import java.util.List;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
@@ -53,6 +40,18 @@ import io.swagger.annotations.ExternalDocs;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
 @Api(value = "BroadcastRestService")
 @SwaggerDefinition(
@@ -66,7 +65,8 @@ import io.swagger.annotations.SwaggerDefinition;
 		produces = {"application/json"},
 		schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
 		externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
-		basePath = "/v2"
+		basePath = "/v2",
+		host = "test.antmedia.io:5443/Sandbox/rest/"
 		)
 @Component
 @Path("/v2/broadcasts")
@@ -74,8 +74,6 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	private static final String REPLACE_CHARS = "[\n|\r|\t]";
-	private static final String WEBM = "webm";
-	private static final String VALUE_IS_LESS_THAN_ZERO = "Value is less than zero";
 	private static final String STREAM_ID_NOT_VALID = "Stream id not valid";
 	private static final String RELATIVE_MOVE = "relative";
 	private static final String ABSOLUTE_MOVE = "absolute";
@@ -437,24 +435,11 @@ public class BroadcastRestService extends RestServiceBase{
 		if (broadcast != null && endpointServiceId != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty()) 
 		{
 
-			rtmpUrl = getRtmpUrlFromList(endpointServiceId, rtmpUrl, broadcast);
-			if (rtmpUrl != null) {
-
-				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
-				{
-					result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, false, resolutionHeight);
-					if (result.isSuccess()) 
-					{
-						result = super.removeRTMPEndpoint(id, endpointServiceId);
-					}
-				}
-				else 
-				{
-					result = super.removeRTMPEndpoint(id, endpointServiceId);
-				}
+			Endpoint endpoint = getRtmpUrlFromList(endpointServiceId, broadcast);
+			if (endpoint != null && endpoint.getRtmpUrl() != null) {
+				rtmpUrl = endpoint.getRtmpUrl();
+				result = removeRTMPEndpointProcess(broadcast, endpoint, resolutionHeight, id);	
 			}
-
-
 		} 
 		if (logger.isInfoEnabled()) 
 		{ 
@@ -462,15 +447,36 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return result;
 	}
-
-	private String getRtmpUrlFromList(String endpointServiceId, String rtmpUrl, Broadcast broadcast) {
-		for(Endpoint endpoint: broadcast.getEndPointList()) 
+	
+	private Result removeRTMPEndpointProcess(Broadcast broadcast, Endpoint endpoint, int resolutionHeight, String id) {
+		Result result;
+		
+		if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
 		{
-			if(endpoint.getEndpointServiceId().equals(endpointServiceId)) {
-				rtmpUrl = endpoint.getRtmpUrl();
+			result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpoint.getRtmpUrl(), false, resolutionHeight);
+			if (result.isSuccess()) 
+			{
+				result = super.removeRTMPEndpoint(id, endpoint);
 			}
 		}
-		return rtmpUrl;
+		else 
+		{
+			result = super.removeRTMPEndpoint(id, endpoint);
+		}
+		
+		
+		return result;
+	}
+
+	private Endpoint getRtmpUrlFromList(String endpointServiceId, Broadcast broadcast) {
+		Endpoint endpoint = null;
+		for(Endpoint selectedEndpoint: broadcast.getEndPointList()) 
+		{
+			if(selectedEndpoint.getEndpointServiceId().equals(endpointServiceId)) {
+				endpoint = selectedEndpoint;
+			}
+		}
+		return endpoint;
 	}
 
 
@@ -822,6 +828,17 @@ public class BroadcastRestService extends RestServiceBase{
 	public String[] searchOnvifDevicesV2() {
 		return super.searchOnvifDevices();
 	}
+	
+	@ApiOperation(value = "Get The Profile List for an ONVIF IP Cameras", notes = "Notes here", response = Result.class)
+	@GET
+	@Path("/{id}/ip-camera/device-profiles")
+	@Produces(MediaType.APPLICATION_JSON)
+	public String[] getOnvifDeviceProfiles(@ApiParam(value = "The id of the IP Camera", required = true) @PathParam("id") String id) {
+		if (id != null && StreamIdValidator.isStreamIdValid(id)) {
+			return super.getOnvifDeviceProfiles(id);
+		}
+		return null;
+	}
 
 
 	@ApiOperation(value = "Move IP Camera. It support continuous, relative and absolute move. By default it's relative move."
@@ -943,10 +960,12 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/subtrack")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addSubTrack(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
+	public Result addSubTrack(@ApiParam(value = "Broadcast id(main track)", required = true) @PathParam("id") String id,
 			@ApiParam(value = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId) {
 
+		
 		Broadcast subTrack = getDataStore().get(subTrackId);
+		//TODO: what if subtrack is null
 		subTrack.setMainTrackStreamId(id);
 		boolean success = getDataStore().updateBroadcastFields(subTrackId, subTrack);
 		success = success && getDataStore().addSubTrack(id, subTrackId);
@@ -1068,7 +1087,12 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addStreamToTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
 			@ApiParam(value="Stream id to add to the conference room",required = true) @QueryParam("streamId") String streamId){
-		return new Result(RestServiceBase.addStreamToConferenceRoom(roomId,streamId,getDataStore()));
+		
+		boolean result = BroadcastRestService.addStreamToConferenceRoom(roomId,streamId,getDataStore());
+		if(result) {
+			getApplication().joinedTheRoom(roomId, streamId);
+		}
+		return new Result(result);
 	}
 
 	@ApiOperation(value="Deletes the specified stream correlated with streamId in the room. ",response = Result.class)
@@ -1078,7 +1102,11 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteStreamFromTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
 			@ApiParam(value="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId){
-		return new Result(RestServiceBase.removeStreamFromRoom(roomId,streamId,getDataStore()));
+		boolean result = BroadcastRestService.removeStreamFromRoom(roomId,streamId,getDataStore());
+		if(result) {
+			getApplication().leftTheRoom(roomId, streamId);
+		}
+		return new Result(result);
 	}
 	
 	@GET

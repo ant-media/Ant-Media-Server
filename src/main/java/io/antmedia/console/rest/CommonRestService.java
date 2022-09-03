@@ -1,10 +1,8 @@
 package io.antmedia.console.rest;
 
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import static org.slf4j.Logger.ROOT_LOGGER_NAME;
+
+import java.io.*;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -13,7 +11,9 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
+import java.util.Objects;
 
+import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -26,6 +26,18 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.red5.server.Launcher;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,6 +59,7 @@ import io.antmedia.console.AdminApplication.ApplicationInfo;
 import io.antmedia.console.AdminApplication.BroadcastInfo;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
+import io.antmedia.console.rest.SupportRestService.SupportResponse;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.datastore.preference.PreferenceStore;
@@ -54,7 +67,9 @@ import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.UserType;
+import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
 
 
@@ -129,12 +144,14 @@ public class CommonRestService {
 
 	private ILicenceService licenceService;
 
+	private IStatsCollector statsCollector;
+
 	private static final int BLOCKED_LOGIN_TIMEOUT_SECS = 300 ; // in seconds
 
 	private static final int ALLOWED_LOGIN_ATTEMPTS = 2 ;
 
 	public static final String SESSION_SCOPE_KEY = "scope";
-	
+
 	public static final String USER_TYPE = "user-type";
 
 	public static final String SCOPE_SYSTEM = "system";
@@ -176,6 +193,12 @@ public class CommonRestService {
 				user.setPassword(getMD5Hash(user.getPassword()));
 				result = getDataStore().addUser(user);
 				logger.info("added user = {} user type = {} -> {}", user.getEmail() ,user.getUserType(), result);
+
+				new Thread() {
+					public void run() {
+						sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), user.getScope(), user.getUserType().toString());
+					};
+				}.start();
 			}
 			else {
 				message = "User with the same e-mail already exists";
@@ -207,9 +230,96 @@ public class CommonRestService {
 
 		Result operationResult = new Result(result);
 		operationResult.setErrorId(errorId);
+
+		new Thread() {
+
+			@Override
+			public void run() 
+			{
+				sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), user.getScope(), user.getUserType().toString());
+			}
+		}.start();
+
+
 		return operationResult;
 	}
 
+	public CloseableHttpClient getHttpClient() {
+		return  HttpClients.createDefault();
+	}
+
+	public boolean sendUserInfo(String email, String firstname, String lastname, String scope, String userType) 
+	{
+		boolean success = false;
+
+		try (CloseableHttpClient httpClient = getHttpClient()) 
+		{
+			Version version = RestServiceBase.getSoftwareVersion();
+
+			HttpPost httpPost = new HttpPost("https://antmedia.io/livedemo/ams_web_panel_registration.php");
+
+			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
+
+			httpPost.setConfig(requestConfig);
+
+			// if args are null, set them to empty string
+			firstname = Objects.requireNonNullElse(firstname, "");
+			lastname = Objects.requireNonNullElse(lastname, "");
+			email = Objects.requireNonNullElse(email, "");
+			String isEnterprise = Objects.requireNonNullElse(RestServiceBase.isEnterprise(), "") + "";
+			String licenseKey = Objects.requireNonNullElse(getServerSettings().getLicenceKey(), "") + "";
+			String versionStr = Objects.requireNonNullElse(version.getVersionType(), "")+" "+Objects.requireNonNullElse(version.getVersionName(), "")+" "+Objects.requireNonNullElse(version.getBuildNumber(), "");
+			String marketplace = Objects.requireNonNullElse(getServerSettings().getMarketplace(), "")+"";
+			String instanceId = Objects.requireNonNullElse(Launcher.getInstanceId(), "");
+			scope = Objects.requireNonNullElse(scope, "");
+			userType = Objects.requireNonNullElse(userType, "");
+
+			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
+			builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
+
+			builder.addTextBody("firstname", firstname);
+			builder.addTextBody("lastname", lastname);
+			builder.addTextBody("email", email);
+			builder.addTextBody("isEnterprise", isEnterprise);
+			builder.addTextBody("licenseKey", licenseKey);
+			builder.addTextBody("version", versionStr);
+			builder.addTextBody("marketplace", marketplace);
+			builder.addTextBody("instanceId", instanceId);
+			builder.addTextBody("userScope", scope);
+			builder.addTextBody("userType", userType);
+
+
+			HttpEntity httpEntity = builder.build();
+
+			httpPost.setEntity(httpEntity);
+
+			CloseableHttpResponse response = httpClient.execute(httpPost);
+
+			try {
+				if (response.getStatusLine().getStatusCode() == 200) 
+				{
+					success = true;
+				}	
+			} finally {
+				response.close();
+			}
+		}catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+
+		return success;		
+	}
+
+
+
+	protected static String getWebAppsDirectory() {
+		return String.format("%s/webapps", System.getProperty("red5.root"));
+	}
+
+	protected static String getTmpDirectory() {
+		return String.format("%s/tmp", System.getProperty("red5.root"));
+	}
 
 	public Result isFirstLogin() 
 	{
@@ -248,8 +358,8 @@ public class CommonRestService {
 				else {
 					message = "Too many login attempts. User is blocked for " + BLOCKED_LOGIN_TIMEOUT_SECS + " secs";
 				}
-	
-	
+
+
 			}
 			else {
 				tryToAuthenticate = true;
@@ -268,7 +378,8 @@ public class CommonRestService {
 				session.setAttribute(IS_AUTHENTICATED, true);
 				session.setAttribute(USER_EMAIL, user.getEmail());
 				session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
-				message = getDataStore().getUser(user.getEmail()).getScope();
+				user = getDataStore().getUser(user.getEmail());
+				message = user.getScope() + "/" + user.getUserType();
 				getDataStore().resetInvalidLoginCount(user.getEmail());
 			} 
 			else 
@@ -314,7 +425,7 @@ public class CommonRestService {
 		{
 			if (!userEmail.equals(user.getEmail()))
 			{
-				
+
 				if(user.getNewPassword() != null && !user.getNewPassword().isEmpty()) 
 				{
 					logger.info("Changing password of user: {}",  user.getEmail());
@@ -326,9 +437,9 @@ public class CommonRestService {
 					User userOriginal = getDataStore().getUser(user.getEmail());
 					user.setPassword(userOriginal.getPassword());
 				}
-				
+
 				result = getDataStore().editUser(user);
-				
+
 			}
 			else {
 				message = "User cannot edit itself";
@@ -667,7 +778,6 @@ public class CommonRestService {
 		return gson.toJson(new Result(adapter.updateSettings(newSettings, true, false)));
 	}
 
-
 	public boolean getShutdownStatus(@QueryParam("appNames") String appNamesArray){
 
 		boolean appShutdownProblemExists = false;
@@ -684,7 +794,7 @@ public class CommonRestService {
 					if (!appAdaptor.isShutdownProperly()) {
 						appShutdownProblemExists = true;
 						break;
-					};
+					}
 
 				}
 			}
@@ -797,7 +907,7 @@ public class CommonRestService {
 		store.put(NODE_GROUP, String.valueOf(serverSettings.getNodeGroup()));
 		getServerSettingsInternal().setNodeGroup(serverSettings.getNodeGroup());
 
-		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
 
 		if(LOG_LEVEL_ALL.equals(serverSettings.getLogLevel()) || LOG_LEVEL_TRACE.equals(serverSettings.getLogLevel()) 
 				|| LOG_LEVEL_DEBUG.equals(serverSettings.getLogLevel()) || LOG_LEVEL_INFO.equals(serverSettings.getLogLevel()) 
@@ -832,8 +942,18 @@ public class CommonRestService {
 		logger.warn("getSettings for app: {} returns null. It's likely not initialized.", appname);
 		return null;
 	}
-	
 
+
+	public IStatsCollector getStatsCollector () {
+		if(statsCollector == null) 
+		{
+			WebApplicationContext ctxt =getContext();
+			if (ctxt != null) {
+				statsCollector = (IStatsCollector)ctxt.getBean(IStatsCollector.BEAN_NAME);
+			}
+		}
+		return statsCollector;
+	}
 
 	public ServerSettings getServerSettings() 
 	{
@@ -883,12 +1003,18 @@ public class CommonRestService {
 		return dataStore;
 	}
 
-	private ServerSettings getServerSettingsInternal() {
+	public WebApplicationContext getContext() {
+		return WebApplicationContextUtils.getWebApplicationContext(servletContext);
+	}
 
-		if(serverSettings == null) {
+	public ServerSettings getServerSettingsInternal() {
 
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			serverSettings = (ServerSettings)ctxt.getBean(ServerSettings.BEAN_NAME);
+		if(serverSettings == null) 
+		{
+			WebApplicationContext ctxt = getContext();
+			if (ctxt != null) {
+				serverSettings = (ServerSettings)ctxt.getBean(ServerSettings.BEAN_NAME);
+			}
 		}
 		return serverSettings;
 	}
@@ -898,23 +1024,30 @@ public class CommonRestService {
 	public ILicenceService getLicenceServiceInstance () {
 		if(licenceService == null) {
 
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+			WebApplicationContext ctxt = getContext();
+			if (ctxt != null) {
+				licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+			}
 		}
 		return licenceService;
 	}
 
 
 	public AdminApplication getApplication() {
-		WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-		return (AdminApplication)ctxt.getBean("web.handler");
+		WebApplicationContext ctxt = getContext();
+		if (ctxt != null) {
+			return (AdminApplication)ctxt.getBean("web.handler");
+		}
+		return null;
 	}
 
 	public ConsoleDataStoreFactory getDataStoreFactory() {
 		if(dataStoreFactory == null)
 		{
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			dataStoreFactory = (ConsoleDataStoreFactory) ctxt.getBean("dataStoreFactory");
+			WebApplicationContext ctxt = getContext();
+			if (ctxt != null) {
+				dataStoreFactory = (ConsoleDataStoreFactory) ctxt.getBean("dataStoreFactory");
+			}
 		}
 		return dataStoreFactory;
 	}
@@ -931,7 +1064,7 @@ public class CommonRestService {
 
 	public String changeLogSettings(@PathParam("level") String logLevel){
 
-		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ch.qos.logback.classic.Logger.ROOT_LOGGER_NAME);
+		ch.qos.logback.classic.Logger rootLogger = (ch.qos.logback.classic.Logger) LoggerFactory.getLogger(ROOT_LOGGER_NAME);
 
 		PreferenceStore store = new PreferenceStore(RED5_PROPERTIES_PATH);
 
@@ -1087,20 +1220,42 @@ public class CommonRestService {
 	}
 
 
-	public Result createApplication(String appName) {
+	public Result createApplication(String appName, InputStream inputStream) 
+	{
 		appName = appName.replaceAll("[\n\r\t]", "_");
-		if (isClusterMode()) 
+
+		File warFile = null;
+		if (inputStream != null) 
+		{
+			warFile = AdminApplication.saveWARFile(appName, inputStream);
+
+			if (warFile == null) 
+			{
+				return new Result(false, "Cannot save the WAR file for appName:{}", appName);
+			}
+		}
+
+		if (isClusterMode())
 		{
 			//If there is a record in database, just delete it in order to start from scratch
 			IClusterNotifier clusterNotifier = getApplication().getClusterNotifier();
 			long deletedRecordCount = clusterNotifier.getClusterStore().deleteAppSettings(appName);
-			if (deletedRecordCount > 0) {
+			if (deletedRecordCount > 0) 
+			{
 				logger.info("App detected in the database. It's likely the app with the same name {} is re-creating. ", appName);
 			}
-			
+
+			if (warFile != null) 
+			{
+				AppSettings tempSetting = new AppSettings();
+				tempSetting.setAppName(appName);
+				tempSetting.setPullWarFile(true);
+				tempSetting.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
+
+				clusterNotifier.getClusterStore().saveSettings(tempSetting);
+			}
 		}
-		
-		return new Result(getApplication().createApplication(appName));
+		return new Result(getApplication().createApplication(appName, warFile != null ? warFile.getAbsolutePath() : null));
 	}
 
 
@@ -1114,7 +1269,7 @@ public class CommonRestService {
 			appSettings.setToBeDeleted(true);
 			//change settings on the db to let undeploy the app
 			changeSettings(appName, appSettings);
-			
+
 			result = getApplication().deleteApplication(appName, deleteDB);
 		}
 		else {
@@ -1124,9 +1279,14 @@ public class CommonRestService {
 		return new Result(result, message);
 	}
 
-	public boolean isClusterMode() {
-		WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-		return ctxt.containsBean(IClusterNotifier.BEAN_NAME);
+	public boolean isClusterMode() 
+	{
+		boolean result = false;
+		WebApplicationContext ctxt = getContext();
+		if (ctxt != null) {
+			result = ctxt.containsBean(IClusterNotifier.BEAN_NAME);
+		}
+		return result;
 	}
 
 	public Result getBlockedStatus(String usermail) {

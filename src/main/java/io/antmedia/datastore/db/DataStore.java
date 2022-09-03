@@ -388,9 +388,22 @@ public abstract class DataStore {
 		}
 		return false;
 	}
-
+	
 	protected abstract boolean updateHLSViewerCountLocal(String streamId, int diffCount);
+	
+	/**
+	 * Add or subtract the DASH viewer count from current value
+	 * @param streamId
+	 * @param diffCount
+	 */
+	public boolean updateDASHViewerCount(String streamId, int diffCount) {
+		if (writeStatsToDatastore) {
+			return updateDASHViewerCountLocal(streamId, diffCount);
+		}
+		return false;
+	}
 
+	protected abstract boolean updateDASHViewerCountLocal(String streamId, int diffCount);	
 
 	/**
 	 * Returns the total number of detected objects in the stream
@@ -560,8 +573,12 @@ public abstract class DataStore {
 
 		if (newBroadcast.getAbsoluteStartTimeMs() != 0) {
 			broadcast.setAbsoluteStartTimeMs(newBroadcast.getAbsoluteStartTimeMs());
+		}		
+		
+		if (newBroadcast.getUpdateTime() != 0) {
+			broadcast.setUpdateTime(newBroadcast.getUpdateTime());
 		}
-
+		
 		if (newBroadcast.getPlayListItemList() != null) {
 			broadcast.setPlayListItemList(newBroadcast.getPlayListItemList());
 		}
@@ -576,6 +593,9 @@ public abstract class DataStore {
 		if (newBroadcast.getSubFolder() != null) {
 			broadcast.setSubFolder(newBroadcast.getSubFolder());
 		}
+		if (newBroadcast.getListenerHookURL() != null && !newBroadcast.getListenerHookURL().isEmpty()) {
+			broadcast.setListenerHookURL(newBroadcast.getListenerHookURL());
+		}
 
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
@@ -585,6 +605,7 @@ public abstract class DataStore {
 		broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
 		broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
+		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
 	}
 
 	/**

@@ -38,6 +38,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.apache.catalina.tribes.util.ExceptionUtils;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.ContextLoader;
 import org.red5.server.LoaderBase;
@@ -116,14 +117,11 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
         try {
             // check for an embedded jee server
             jeeServer = applicationContext.getBean(LoaderBase.class);
-            // lookup the jee container
-            if (jeeServer == null) {
-                log.info("JEE server was not found");
-            } else {
-                log.info("JEE server was found: {}", jeeServer.toString());
-            }
-        } catch (Exception e) {
-            
+           
+        } 
+        catch (Exception e) 
+        {
+        	log.error(org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace(e));
         }
         // start blocks, so it must be on its own thread
         future = executor.submit(new Runnable(){
