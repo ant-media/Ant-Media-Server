@@ -1087,7 +1087,12 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addStreamToTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
 			@ApiParam(value="Stream id to add to the conference room",required = true) @QueryParam("streamId") String streamId){
-		return new Result(RestServiceBase.addStreamToConferenceRoom(roomId,streamId,getDataStore()));
+		
+		boolean result = BroadcastRestService.addStreamToConferenceRoom(roomId,streamId,getDataStore());
+		if(result) {
+			getApplication().joinedTheRoom(roomId, streamId);
+		}
+		return new Result(result);
 	}
 
 	@ApiOperation(value="Deletes the specified stream correlated with streamId in the room. ",response = Result.class)
@@ -1097,7 +1102,11 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteStreamFromTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
 			@ApiParam(value="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId){
-		return new Result(RestServiceBase.removeStreamFromRoom(roomId,streamId,getDataStore()));
+		boolean result = BroadcastRestService.removeStreamFromRoom(roomId,streamId,getDataStore());
+		if(result) {
+			getApplication().leftTheRoom(roomId, streamId);
+		}
+		return new Result(result);
 	}
 	
 	@GET

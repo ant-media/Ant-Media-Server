@@ -58,6 +58,7 @@ import java.util.Queue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.apache.tika.io.IOUtils;
@@ -138,6 +139,7 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.test.utils.VideoInfo;
 import io.antmedia.test.utils.VideoProber;
 import io.vertx.core.Vertx;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ContextConfiguration(locations = {"test.xml"})
 //@ContextConfiguration(classes = {AppConfig.class})
@@ -725,6 +727,36 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+
+	@Test
+	public void testStopRtmpStreamingWhenRtmpMuxerNull() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		logger.info("Application / web scope: {}", appScope);
+		assertTrue(appScope.getDepth() == 1);
+
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		String rtmpUrl = "rtmp://test.com/live/stream";
+		Integer resolution = 0;
+
+		ConcurrentHashMap<String, String> statusMap = Mockito.mock(ConcurrentHashMap.class);
+		ReflectionTestUtils.setField(muxAdaptor, "statusMap", statusMap);
+		Mockito.doReturn(null).when(muxAdaptor).getRtmpMuxer(rtmpUrl);
+
+		Mockito.doReturn(null).when(statusMap).getValueOrDefault(rtmpUrl, null);
+		assertTrue(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
+
+		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR).when(statusMap).getValueOrDefault(rtmpUrl, null);
+		assertTrue(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
+
+		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED).when(statusMap).getValueOrDefault(rtmpUrl, null);
+		assertTrue(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
+
+		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED).when(statusMap).getValueOrDefault(rtmpUrl, null);
+		assertTrue(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
+
+		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING).when(statusMap).getValueOrDefault(rtmpUrl, null);
+		assertFalse(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
 	}
 
 	@Test
