@@ -43,12 +43,16 @@ public class ExpireStreamPublishSecurityTest {
 		broadcast.setPlannedStartDate(9999999999l);
 		broadcast.setPlannedEndDate(9999999999l);
 		
+		dataStore.save(broadcast);
+		
 		assertEquals(false, filter.isPublishAllowed(null, streamId, null, null));	
 		
 		// Scenario-3
 		// Broadcast getPlannedStartDate < now & getPlannedEndDate > now
 		broadcast.setPlannedStartDate(99l);
 		broadcast.setPlannedEndDate(9999999999l);
+		
+		dataStore.save(broadcast);
 		
 		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null));	
 		
@@ -57,12 +61,16 @@ public class ExpireStreamPublishSecurityTest {
 		broadcast.setPlannedStartDate(9999999999l);
 		broadcast.setPlannedEndDate(99l);
 		
+		dataStore.save(broadcast);
+		
 		assertEquals(false, filter.isPublishAllowed(null, streamId, null, null));	
 		
 		// Scenario-5
 		// Broadcast getPlannedStartDate < now & getPlannedEndDate < now
 		broadcast.setPlannedStartDate(99l);
 		broadcast.setPlannedEndDate(99l);
+		
+		dataStore.save(broadcast);
 		
 		assertEquals(false, filter.isPublishAllowed(null, streamId, null, null));	
 		
@@ -71,6 +79,8 @@ public class ExpireStreamPublishSecurityTest {
 		broadcast.setPlannedStartDate(0);
 		broadcast.setPlannedEndDate(99l);
 		
+		dataStore.save(broadcast);
+		
 		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null));	
 		
 		// Scenario-7
@@ -78,10 +88,14 @@ public class ExpireStreamPublishSecurityTest {
 		broadcast.setPlannedStartDate(9999999999l);
 		broadcast.setPlannedEndDate(0);
 		
+		dataStore.save(broadcast);
+		
 		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null));
 		
 		broadcast.setPlannedStartDate(0);
 		broadcast.setPlannedEndDate(0);
+		
+		dataStore.save(broadcast);
 		
 		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null));
 		
