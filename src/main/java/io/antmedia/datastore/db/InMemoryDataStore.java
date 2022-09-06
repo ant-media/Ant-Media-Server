@@ -2,7 +2,6 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +25,7 @@ import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 public class InMemoryDataStore extends DataStore {
 
 	protected static Logger logger = LoggerFactory.getLogger(InMemoryDataStore.class);
-	private Map<String, String> broadcastMap =  new HashMap<>();
+	private Map<String, String> broadcastMap =  new LinkedHashMap<>();
 	private Map<String, String> vodMap = new LinkedHashMap<>();
 	private Map<String, String> detectionMap = new LinkedHashMap<>();
 	private Map<String, String> tokenMap = new LinkedHashMap<>();
