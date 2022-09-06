@@ -1207,7 +1207,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (checkUpdateTime && !isIncomingTimeValid(newSettings)) {
 			//if current app settings update time is bigger than the newSettings, don't update the bean
 			//it may happen in cluster mode, app settings may be updated locally then a new update just may come instantly from cluster settings.
-			logger.warn("Not saving the settings because current appsettings update time({}) is later than incoming settings update time({}) ", appSettings.getUpdateTime(), newSettings.getUpdateTime() );
+			logger.debug("Not saving the settings because current appsettings update time({}) is later than incoming settings update time({}) ", appSettings.getUpdateTime(), newSettings.getUpdateTime() );
 			return result;
 		}
 
@@ -1569,4 +1569,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
 	}
 
+	public void joinedTheRoom(String roomId, String streamId) {
+		//No need to implement here. 
+	}
+	
+	public void leftTheRoom(String roomId, String streamId) {
+		//No need to implement here. 
+	}
+	
 }
