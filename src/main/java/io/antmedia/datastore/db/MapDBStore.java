@@ -17,9 +17,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 
-import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -30,7 +28,6 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
-import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.vertx.core.Vertx;
 
 
@@ -117,44 +114,43 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public String save(Broadcast broadcast) {
-		return super.save(null, map, null, null, broadcast, gson);
+		return super.save(map, broadcast, gson);
 	}
 
 	@Override
 	public Broadcast get(String id) {
-		return super.get(null, map, null, null, id, gson);
+		return super.get(map, id, gson);
 	}
 
 	@Override
 	public VoD getVoD(String id) {
-		return super.getVoD(null, vodMap, null, null, id, gson);
+		return super.getVoD(vodMap, id, gson);
 	}
 
 	@Override
 	public boolean updateStatus(String id, String status) {
-		return super.updateStatus(null, map, null, id, status, gson); 
+		return super.updateStatus(map, id, status, gson); 
 	}
 
 	@Override
 	public boolean updateDuration(String id, long duration) {
-		return super.updateDuration(null, map, null, id, duration, gson); 
+		return super.updateDuration(map, id, duration, gson); 
 	}
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
-		return super.addEndpoint(null, map, null, id, endpoint, gson); 
+		return super.addEndpoint(map, id, endpoint, gson); 
 	}
 
 	@Override
 	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
-		return super.removeEndpoint(null, map, null, id, endpoint, checkRTMPUrl, gson); 
+		return super.removeEndpoint(map, id, endpoint, checkRTMPUrl, gson); 
 	}
 
 	@Override
 	public boolean removeAllEndpoints(String id) {
-		return super.removeAllEndpoints(null, map, null, id, gson); 
+		return super.removeAllEndpoints(map, id, gson); 
 	}
-
 
 	/**
 	 * Use getTotalBroadcastNumber
@@ -163,29 +159,29 @@ public class MapDBStore extends DataStore {
 	@Override
 	@Deprecated
 	public long getBroadcastCount() {
-		synchronized (this) {
-			return map.getSize();
-		}
+		return super.getBroadcastCount(map);
 	}
 
 	@Override
 	public long getActiveBroadcastCount() {
-		return super.getActiveBroadcastCount(null, map, gson);
+		return super.getActiveBroadcastCount(map, gson);
 	}
 
 	@Override
 	public boolean delete(String id) {
-		return super.delete(null, map, id);
+		return super.delete(map, id);
 	}
+	
+	
 	@Override
 	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search){
-		return super.getConferenceRoomList(null, conferenceRoomMap, offset, size, sortBy, orderBy, search, gson);
+		return super.getConferenceRoomList(conferenceRoomMap, offset, size, sortBy, orderBy, search, gson);
 	}
 
 	//GetBroadcastList method may be called without offset and size to get the full list without offset or size
 	//sortAndCrop method returns maximum 50 (hardcoded) of the broadcasts for an offset.
 	public List<Broadcast> getBroadcastListV2(String type, String search) {
-		return super.getBroadcastListV2(null, map, type, search, gson);
+		return super.getBroadcastListV2(map, type, search, gson);
 	}
 
 	@Override
@@ -196,7 +192,7 @@ public class MapDBStore extends DataStore {
 	}
 
 	public List<VoD> getVodListV2(String streamId, String search) {
-		return super.getVodListV2(null, vodMap, streamId, search, gson, dbName);
+		return super.getVodListV2(vodMap, streamId, search, gson, dbName);
 	}
 
 	/**
@@ -211,39 +207,13 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public String addVod(VoD vod) {
-		return super.addVod(null, vodMap, null, vod, gson);
+		return super.addVod(vodMap, vod, gson);
 	}
 
 
 	@Override
 	public List<Broadcast> getExternalStreamsList() {
-
-		List<Broadcast> streamsList = new ArrayList<>();
-
-		synchronized (this) {
-
-			Object[] objectArray = map.getValues().toArray();
-			Broadcast[] broadcastArray = new Broadcast[objectArray.length];
-
-
-			for (int i = 0; i < objectArray.length; i++) {
-
-				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-
-			}
-
-			for (int i = 0; i < broadcastArray.length; i++) {
-				String type = broadcastArray[i].getType();
-				String status = broadcastArray[i].getStatus();
-
-				if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
-					streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
-					broadcastArray[i].setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
-					map.replace(broadcastArray[i].getStreamId(), gson.toJson(broadcastArray[i]));
-				}
-			}
-		}
-		return streamsList;
+		return super.getExternalStreamsList(map, gson);
 	}
 
 	@Override
@@ -277,12 +247,12 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public boolean deleteVod(String id) {
-		return super.deleteVod(null, vodMap, id);
+		return super.deleteVod(vodMap, id);
 	}
 
 	@Override
 	public long getTotalVodNumber() {
-		return super.getTotalVodNumber(null, vodMap);
+		return super.getTotalVodNumber(vodMap);
 	}
 
 	@Override
@@ -293,38 +263,17 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public int fetchUserVodList(File userfile) {
-		return super.fetchUserVodList(null,vodMap, userfile, gson, dbName);
+		return super.fetchUserVodList(vodMap, userfile, gson, dbName);
 	}
-
 
 	@Override
 	protected boolean updateSourceQualityParametersLocal(String id, String quality, double speed, int pendingPacketQueue) {
-		boolean result = false;
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = map.get(id);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
-					broadcast.setSpeed(speed);
-					if (quality != null) {
-						broadcast.setQuality(quality);
-					}
-					broadcast.setPendingPacketSize(pendingPacketQueue);
-					map.replace(id, gson.toJson(broadcast));
-
-					result = true;
-
-				}
-			}
-		}
-		return result;
+		return super.updateSourceQualityParametersLocal(map, id, quality, speed, pendingPacketQueue, gson);
 	}
 
 	@Override
 	public long getTotalBroadcastNumber() {
-		synchronized (this) {
-			return map.size();
-		}
+		return super.getTotalBroadcastNumber(map);
 	}
 
 	@Override
@@ -334,32 +283,22 @@ public class MapDBStore extends DataStore {
 	
 	@Override
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
-		super.saveDetection(null, detectionMap, id, timeElapsed, detectedObjects, gson);
+		super.saveDetection(detectionMap, id, timeElapsed, detectedObjects, gson);
 	}
 
 	@Override
 	public List<TensorFlowObject> getDetection(String id) {
-
-		synchronized (this) {
-			if (id != null) {
-				String jsonString = detectionMap.get(id);
-				if (jsonString != null) {
-					Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
-					return gson.fromJson(jsonString, listType);
-				}
-			}
-		}
-		return null;
+		return super.getDetection(detectionMap, id, gson);
 	}
 
 	@Override
 	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
-		return super.getDetectionList(null, detectionMap, idFilter, offsetSize, batchSize, gson);
+		return super.getDetectionList(detectionMap, idFilter, offsetSize, batchSize, gson);
 	}
 
 	@Override
 	public long getObjectDetectedTotal(String id) {
-		return super.getObjectDetectedTotal(null, detectionMap, id, gson);
+		return super.getObjectDetectedTotal(detectionMap, id, gson);
 	}
 
 
@@ -371,27 +310,27 @@ public class MapDBStore extends DataStore {
 	 */
 	@Override
 	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {
-		return super.updateBroadcastFields(null, map, streamId, broadcast, gson);
+		return super.updateBroadcastFields(map, streamId, broadcast, gson);
 	}
 
 	@Override
 	protected synchronized boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
-		return super.updateHLSViewerCountLocal(null, map, streamId, diffCount, gson);
+		return super.updateHLSViewerCountLocal(map, streamId, diffCount, gson);
 	}
 	
 	@Override
 	protected synchronized boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
-		return super.updateDASHViewerCountLocal(null, map, streamId, diffCount, gson);
+		return super.updateDASHViewerCountLocal(map, streamId, diffCount, gson);
 	}
 
 	@Override
 	protected synchronized boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
-		return super.updateWebRTCViewerCountLocal(null, map, streamId, increment, gson);
+		return super.updateWebRTCViewerCountLocal(map, streamId, increment, gson);
 	}
 
 	@Override
 	protected synchronized boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
-		return super.updateRtmpViewerCountLocal(null, map, streamId, increment, gson);
+		return super.updateRtmpViewerCountLocal(map, streamId, increment, gson);
 	}
 	
 	public void clearStreamInfoList(String streamId) {
@@ -409,52 +348,52 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public boolean saveToken(Token token) {
-		return super.saveToken(null, tokenMap, token, gson);
+		return super.saveToken(tokenMap, token, gson);
 	}
 
 	@Override
 	public Token validateToken(Token token) {
-		return super.validateToken(null, tokenMap, token, gson);
+		return super.validateToken(tokenMap, token, gson);
 	}
 
 	@Override
 	public boolean revokeTokens(String streamId) {
-		return super.revokeTokens(null, tokenMap, streamId, gson);
+		return super.revokeTokens(tokenMap, streamId, gson);
 	}
 
 	@Override
 	public List<Token> listAllTokens(String streamId, int offset, int size) {
-		return super.listAllTokens(null, tokenMap, streamId, offset, size, gson);
+		return super.listAllTokens(tokenMap, streamId, offset, size, gson);
 	}
 
 	@Override
 	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
-		return super.listAllSubscribers(null, subscriberMap, streamId, offset, size, gson);
+		return super.listAllSubscribers(subscriberMap, streamId, offset, size, gson);
 	}
 
 	@Override
 	public boolean addSubscriber(String streamId, Subscriber subscriber) {
-		return super.addSubscriber(null, subscriberMap, streamId, subscriber, gson);
+		return super.addSubscriber(subscriberMap, streamId, subscriber, gson);
 	}
 
 	@Override
 	public boolean deleteSubscriber(String streamId, String subscriberId) {
-		return super.deleteSubscriber(null, subscriberMap, streamId, subscriberId);
+		return super.deleteSubscriber(subscriberMap, streamId, subscriberId);
 	}
 
 	@Override
 	public boolean revokeSubscribers(String streamId) {
-		return super.revokeSubscribers(null, subscriberMap, streamId, gson);
+		return super.revokeSubscribers(subscriberMap, streamId, gson);
 	}
 
 	@Override
 	public Subscriber getSubscriber(String streamId, String subscriberId) {
-		return super.getSubscriber(null, subscriberMap, streamId, subscriberId, gson);
+		return super.getSubscriber(subscriberMap, streamId, subscriberId, gson);
 	}		
 
 	@Override
 	public boolean resetSubscribersConnectedStatus() {
-		return super.resetSubscribersConnectedStatus(null, subscriberMap, gson);
+		return super.resetSubscribersConnectedStatus(subscriberMap, gson);
 	}
 	
 	@Override
@@ -464,42 +403,42 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public boolean setMp4Muxing(String streamId, int enabled) {
-		return super.setMp4Muxing(null, map, streamId, enabled, gson);
+		return super.setMp4Muxing(map, streamId, enabled, gson);
 	}
 
 	@Override
 	public boolean setWebMMuxing(String streamId, int enabled) {
-		return super.setWebMMuxing(null, map, streamId, enabled, gson);
+		return super.setWebMMuxing(map, streamId, enabled, gson);
 	}
 
 	@Override
 	public boolean createConferenceRoom(ConferenceRoom room) {
-		return super.createConferenceRoom(null, conferenceRoomMap, room, gson);
+		return super.createConferenceRoom(conferenceRoomMap, room, gson);
 	}
 
 	@Override
 	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
-		return super.editConferenceRoom(null, conferenceRoomMap, roomId, room, gson);
+		return super.editConferenceRoom(conferenceRoomMap, roomId, room, gson);
 	}
 
 	@Override
 	public boolean deleteConferenceRoom(String roomId) {
-		return super.deleteConferenceRoom(null, conferenceRoomMap, roomId);
+		return super.deleteConferenceRoom(conferenceRoomMap, roomId);
 	}
 
 	@Override
 	public ConferenceRoom getConferenceRoom(String roomId) {
-		return super.getConferenceRoom(null, conferenceRoomMap, roomId, gson);
+		return super.getConferenceRoom(conferenceRoomMap, roomId, gson);
 	}
 
 	@Override
 	public boolean deleteToken(String tokenId) {
-		return super.deleteToken(null, tokenMap, tokenId);
+		return super.deleteToken(tokenMap, tokenId);
 	}
 
 	@Override
 	public Token getToken(String tokenId) {
-		return super.getToken(null, tokenMap, tokenId, gson);
+		return super.getToken(tokenMap, tokenId, gson);
 	}	
 
 	@Override
@@ -522,38 +461,38 @@ public class MapDBStore extends DataStore {
 
 	@Override
 	public boolean addSubTrack(String mainTrackId, String subTrackId) {
-		return super.addSubTrack(null, map, mainTrackId, subTrackId, gson);
+		return super.addSubTrack(map, mainTrackId, subTrackId, gson);
 	}
 
 	@Override
 	public int resetBroadcasts(String hostAddress) {
-		return super.resetBroadcasts(null, map, hostAddress, gson, dbName);
+		return super.resetBroadcasts(map, hostAddress, gson, dbName);
 	}
 
 	@Override
 	public int getTotalWebRTCViewersCount() {
-		return super.getTotalWebRTCViewersCount(null, map, gson);
+		return super.getTotalWebRTCViewersCount(map, gson);
 	}
 
 	@Override
 	public void saveViewerInfo(WebRTCViewerInfo info) {
-		super.saveViewerInfo(null, webRTCViewerMap, info, gson);
+		super.saveViewerInfo(webRTCViewerMap, info, gson);
 	}
 
 	@Override
 	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
 			String search) {
-		return super.getWebRTCViewerList(null, webRTCViewerMap, offset, size, sortBy, orderBy, search, gson);
+		return super.getWebRTCViewerList(webRTCViewerMap, offset, size, sortBy, orderBy, search, gson);
 	}
 
 	@Override
 	public boolean deleteWebRTCViewerInfo(String viewerId) {
-		return super.deleteWebRTCViewerInfo(null, webRTCViewerMap, viewerId);
+		return super.deleteWebRTCViewerInfo(webRTCViewerMap, viewerId);
 	}
 	
 	@Override
 	public boolean updateStreamMetaData(String streamId, String metaData) {
-		return super.updateStreamMetaData(null, map, streamId, metaData, gson);
+		return super.updateStreamMetaData(map, streamId, metaData, gson);
 	}
 
 }

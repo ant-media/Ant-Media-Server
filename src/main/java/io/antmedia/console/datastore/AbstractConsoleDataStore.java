@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.mapdb.HTreeMap;
-import org.redisson.api.RMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,20 +29,16 @@ public abstract class AbstractConsoleDataStore {
 	private Map<String, Boolean> isBlockedMap = new HashMap<>();
 
 	public boolean addUser(User user) {
-		return addUser(null, null, user, null);
+		return addUser(null, user, null);
 	}
 	
-	public boolean addUser(RMap<String, String> redisUserMap, HTreeMap<String, String> mapdbUserMap, User user, Gson gson) {
+	public boolean addUser(Map<String, String> userMap, User user, Gson gson) {
 		synchronized (this) {
 			boolean result = false;
 			try {
 							
-				if(mapdbUserMap != null && mapdbUserMap.get(user.getEmail()) == null) { 
-					mapdbUserMap.put(user.getEmail(), gson.toJson(user));
-					result = true;
-				}
-				else if(redisUserMap != null && redisUserMap.get(user.getEmail()) == null) { 
-					redisUserMap.put(user.getEmail(), gson.toJson(user));
+				if(userMap != null && userMap.get(user.getEmail()) == null) { 
+					userMap.put(user.getEmail(), gson.toJson(user));
 					result = true;
 				}
 				else {
@@ -61,21 +55,17 @@ public abstract class AbstractConsoleDataStore {
 	}
 
 	public boolean editUser(User user) {
-		return editUser(null, null, user, null);
+		return editUser(null, user, null);
 	}
 	
-	public boolean editUser(RMap<String, String> redisUserMap, HTreeMap<String, String> mapdbUserMap, User user, Gson gson) {
+	public boolean editUser(Map<String, String> userMap, User user, Gson gson) {
 		synchronized (this) {
 			boolean result = false;
 			try {
 				String username = user.getEmail();
 				
-				if(mapdbUserMap != null && !mapdbUserMap.get(username).isEmpty()) { 
-					mapdbUserMap.put(username, gson.toJson(user));
-					result = true;
-				}
-				else if(redisUserMap != null && !redisUserMap.get(username).isEmpty()) { 
-					redisUserMap.put(username, gson.toJson(user));
+				if(userMap != null && !userMap.get(username).isEmpty()) { 
+					userMap.put(username, gson.toJson(user));
 					result = true;
 				}
 			}
@@ -88,22 +78,18 @@ public abstract class AbstractConsoleDataStore {
 	}
 
 	public boolean deleteUser(String username) {
-		return deleteUser(null, null, username);
+		return deleteUser(null, username);
 	}
 	
-	public boolean deleteUser(RMap<String, String> redisUserMap, HTreeMap<String, String> mapdbUserMap, String username) {
+	public boolean deleteUser(Map<String, String> userMap, String username) {
 		
 		synchronized (this) {
 			boolean result = false;
 			if (username != null) {
 				try {
 					
-					if(mapdbUserMap != null && mapdbUserMap.containsKey(username)) {
-						mapdbUserMap.remove(username);
-						result = true;
-					}
-					else if (redisUserMap != null && redisUserMap.containsKey(username)) {
-						redisUserMap.remove(username);
+					if(userMap != null && userMap.containsKey(username)) {
+						userMap.remove(username);
 						result = true;
 					}
 				}
@@ -117,42 +103,27 @@ public abstract class AbstractConsoleDataStore {
 	}
 	
 	public boolean doesUsernameExist(String username) {
-		return doesUsernameExist(null, null, username);
+		return doesUsernameExist(null, username);
 	}
 	
-	public boolean doesUsernameExist(RMap<String, String> redisUserMap, HTreeMap<String, String> mapdbUserMap, String username) {
+	public boolean doesUsernameExist(Map<String, String> userMap, String username) {
 		synchronized (this) {
-
-			if(mapdbUserMap != null) {
-				return mapdbUserMap.containsKey(username);
-			}
-			else {
-				return redisUserMap.containsKey(username);
-			}
+			return userMap.containsKey(username);
 		}
 	}
 
 	public boolean doesUserExist(String username, String password) {
-		return doesUserExist(null, null, username, password, null);
+		return doesUserExist(null, username, password, null);
 	}
 	
-	public boolean doesUserExist(RMap<String, String> redisUserMap, HTreeMap<String, String> mapdbUserMap, String username, String password, Gson gson) {
+	public boolean doesUserExist(Map<String, String> userMap, String username, String password, Gson gson) {
 		synchronized (this) {
 			boolean result = false;
 			if (username != null && password != null) {
-				try {
-					String userMap = null;
-					
-					if(mapdbUserMap != null) { 
-						userMap = mapdbUserMap.get(username);
-					}
-					else {
-						userMap = redisUserMap.get(username);
-					}
-					
-					if (userMap.contains(username)) {
+				try {					
+					if (userMap.containsKey(username)) {
 						
-						String value = userMap;
+						String value = userMap.get(username);
 						User user = gson.fromJson(value, User.class);
 						if (user.getPassword().equals(password)) {
 							result = true;
@@ -168,20 +139,17 @@ public abstract class AbstractConsoleDataStore {
 	}
 
 	public List<User> getUserList(){
-		return getUserList(null, null, null);
+		return getUserList(null, null);
 	}
 	
-	public List<User> getUserList(RMap<String, String> redisUserMap, HTreeMap<String, String> mapdbUserMap, Gson gson){
+	public List<User> getUserList(Map<String, String> userMap, Gson gson){
 		ArrayList<User> list = new ArrayList<>();
 		synchronized (this) {
 			
 			Collection<String> users = null;
 			
-			if(mapdbUserMap != null) { 
-				users = mapdbUserMap.getValues();
-			}
-			else {
-				users = redisUserMap.values();
+			if(userMap != null) { 
+				users = userMap.values();
 			}
 			
 			for (String userString : users) {
@@ -193,21 +161,18 @@ public abstract class AbstractConsoleDataStore {
 	}
 
 	public User getUser(String username) {
-		return getUser(null, null, username, null);
+		return getUser(null, username, null);
 	}
 	
-	public User getUser(RMap<String, String> redisUserMap, HTreeMap<String, String> mapdbUserMap, String username, Gson gson) {
+	public User getUser(Map<String, String> userMap, String username, Gson gson) {
 		synchronized (this) {
 			if (username != null)  {
 				try {
 					
 					String user = null;
 					
-					if(mapdbUserMap != null) { 
-						user = mapdbUserMap.get(username);
-					}
-					else {
-						user = redisUserMap.get(username);
+					if(userMap != null) { 
+						user = userMap.get(username);
 					}
 					
 					return gson.fromJson(user, User.class);
@@ -225,7 +190,15 @@ public abstract class AbstractConsoleDataStore {
 
 	public abstract void close();
 	
-	public abstract int getNumberOfUserRecords();
+	public int getNumberOfUserRecords() {
+		return getNumberOfUserRecords(null);
+	}
+	
+	public int getNumberOfUserRecords(Map<String,String> userMap) {
+		synchronized (this) {
+			return userMap.size();
+		}
+	}
 	
 	/**
 	 * Return if data store is available. DataStore is available if it's initialized and not closed. 

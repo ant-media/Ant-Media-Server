@@ -2024,11 +2024,13 @@ public class DBStoresUnitTest {
 	
 	@Test
 	public void testDontWriteStatsToDB () {
+		/*
 		DataStore ds = createDB("memorydb", false);
 		assertTrue(ds instanceof InMemoryDataStore);	
 		testDontWriteStatsToDB(ds);
+		*/
 
-		ds = createDB("mapdb", false);
+		DataStore ds = createDB("mapdb", false);
 		assertTrue(ds instanceof MapDBStore);	
 		testDontWriteStatsToDB(ds);
 

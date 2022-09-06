@@ -146,7 +146,33 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public String save(Broadcast broadcast) {
-		return super.save(null, null, null, datastore, broadcast, null);
+		if (broadcast == null) {
+			return null;
+		}
+		try {
+			String streamId = null;
+			if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
+				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
+				broadcast.setStreamId(streamId);
+			}
+			streamId = broadcast.getStreamId();
+			String rtmpURL = broadcast.getRtmpURL();
+			if (rtmpURL != null) {
+				rtmpURL += streamId;
+			}
+			broadcast.setRtmpURL(rtmpURL);
+			if(broadcast.getStatus()==null) {
+				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
+			}
+
+			synchronized(this) {
+				datastore.save(broadcast);
+			}
+			return streamId;
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return null;
 	}
 
 	/*
@@ -156,14 +182,27 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public Broadcast get(String id) {
-		return super.get(null, null, null, datastore, id, null);
+		synchronized(this) {
+			try {
+				return datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id)).first();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
 	}
-
+	
 	@Override
 	public VoD getVoD(String id) {
-		return super.getVoD(null, null, null, vodDatastore, id, null);
+		synchronized(this) {
+			try {
+				return vodDatastore.find(VoD.class).filter(Filters.eq(VOD_ID,id)).first();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
 	}
-
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -638,6 +677,7 @@ public class MongoStore extends DataStore {
 		}
 	}
 
+	@Override
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
 		synchronized(this) {
 			if (detectedObjects != null) {
@@ -881,8 +921,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		synchronized(this) {
-			Query<StreamInfo> query = datastore.find(StreamInfo.class);
-
+			datastore.find(StreamInfo.class);
 			datastore.save(streamInfo);
 		}
 	}
@@ -1336,7 +1375,7 @@ public class MongoStore extends DataStore {
 				
 
 				if(cursor.hasNext()) {
-					total = ((Summation) cursor.next()).getTotal();
+					total = (cursor.next()).getTotal();
 				}
 				
 
@@ -1357,6 +1396,7 @@ public class MongoStore extends DataStore {
 		}
 	}
 
+	@Override
 	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
 			String search) {
 		synchronized(this) {

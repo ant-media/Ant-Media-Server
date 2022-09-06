@@ -50,37 +50,37 @@ public class RedisStore extends AbstractConsoleDataStore {
 
 	@Override
 	public boolean addUser(User user) {
-		return super.addUser(userMap, null, user, gson);
+		return super.addUser(userMap, user, gson);
 	}
 
 	@Override
 	public boolean editUser(User user) {
-		return super.editUser(userMap, null, user, gson);
+		return super.editUser(userMap, user, gson);
 	}
 
 	@Override
 	public boolean deleteUser(String username) {
-		return super.deleteUser(userMap, null, username);
+		return super.deleteUser(userMap, username);
 	}
 
 	@Override
 	public boolean doesUsernameExist(String username) {
-		return super.doesUsernameExist(userMap, null, username);
+		return super.doesUsernameExist(userMap, username);
 	}
 
 	@Override
 	public boolean doesUserExist(String username, String password) {
-		return super.doesUserExist(userMap, null, username, password, gson);
+		return super.doesUserExist(userMap, username, password, gson);
 	}
 	
 	@Override
 	public List<User> getUserList(){
-		return super.getUserList(userMap, null, gson);
+		return super.getUserList(userMap, gson);
 	}
 
 	@Override
 	public User getUser(String username) {
-		return super.getUser(userMap, null, username, gson);
+		return super.getUser(userMap, username, gson);
 	}
 
 
@@ -97,10 +97,9 @@ public class RedisStore extends AbstractConsoleDataStore {
 		}
 	}
 
+	@Override
 	public int getNumberOfUserRecords() {
-		synchronized (this) {
-			return userMap.size();
-		}
+		return super.getNumberOfUserRecords(userMap);
 	}
 
 	/**

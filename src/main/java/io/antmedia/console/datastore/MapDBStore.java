@@ -36,39 +36,38 @@ public class MapDBStore extends AbstractConsoleDataStore {
 
 	 @Override
 	public boolean addUser(User user) {
-		return super.addUser(null, userMap, user, gson);
+		return super.addUser(userMap, user, gson);
 	}
 
 	@Override
 	public boolean editUser(User user) {
-		return super.editUser(null, userMap, user, gson);
+		return super.editUser(userMap, user, gson);
 	}
 
 	@Override
 	public boolean deleteUser(String username) {
-		return super.deleteUser(null, userMap, username);
+		return super.deleteUser(userMap, username);
 	}
 
 	@Override
 	public boolean doesUsernameExist(String username) {
-		return super.doesUsernameExist(null, userMap, username);
+		return super.doesUsernameExist(userMap, username);
 	}
 
 	@Override
 	public boolean doesUserExist(String username, String password) {
-		return super.doesUserExist(null, userMap, username, password, gson);
+		return super.doesUserExist(userMap, username, password, gson);
 	}
 	
 	@Override
 	public List<User> getUserList(){
-		return super.getUserList(null, userMap, gson);
+		return super.getUserList(userMap, gson);
 	}
 
 	@Override
 	public User getUser(String username) {
-		return super.getUser(null, userMap, username, gson);
+		return super.getUser(userMap, username, gson);
 	}
-
 
 	public void clear() {
 		synchronized (this) {
@@ -84,10 +83,9 @@ public class MapDBStore extends AbstractConsoleDataStore {
 		}
 	}
 
+	@Override
 	public int getNumberOfUserRecords() {
-		synchronized (this) {
-			return userMap.size();
-		}
+		return super.getNumberOfUserRecords(userMap);
 	}
 
 	/**
