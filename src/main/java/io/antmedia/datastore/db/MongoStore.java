@@ -518,18 +518,7 @@ public class MongoStore extends DataStore {
 			    );
 
 			}
-			List<VoD> vodList = query.iterator(findOptions).toList();
-			for(VoD vod : vodList) {
-				if (vod.getFilePath() != null) {
-					Integer index = vod.getFilePath().lastIndexOf(".");
-					String fileExtension = (index == -1) ? "" : vod.getFilePath().substring(index);
-					if (vod.getStreamName() != null
-							&& !vod.getStreamName().endsWith(fileExtension)) {
-						vod.setStreamName(vod.getStreamName() + fileExtension);
-					}
-				}
-			}
-			return vodList;
+			return query.iterator(findOptions).toList();
 		}
 	}
 
