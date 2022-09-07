@@ -134,6 +134,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		testAddFileExtensionToStreamNameIfNotExist(dataStore);
 
 	}
 	
@@ -211,7 +212,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-
+		testAddFileExtensionToStreamNameIfNotExist(dataStore);
 
 	}
 	
@@ -266,6 +267,8 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testAddFileExtensionToStreamNameIfNotExist(dataStore);
+
 	}
 	
 	@Test
@@ -2762,5 +2765,19 @@ public class DBStoresUnitTest {
 		
 		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.randomAlphanumeric(8), UPDATED_DATA));
 
+	}
+
+	public void testAddFileExtensionToStreamNameIfNotExist(DataStore dataStore) {
+		String extension = ".mp4";
+
+		String streamNameWithoutExtension = "streamName";
+		String streamNameWithExtension = "streamName" + extension;
+
+		String fileRelativePathWithoutExtension = "streams" + File.separator;
+		String fileRelativePathWithExtension = "streams" + File.separator + streamNameWithExtension;
+
+		assertEquals(streamNameWithExtension, dataStore.addFileExtensionToStreamNameIfNotExist(streamNameWithExtension, fileRelativePathWithExtension));
+		assertEquals(streamNameWithExtension, dataStore.addFileExtensionToStreamNameIfNotExist(streamNameWithoutExtension, fileRelativePathWithExtension));
+		assertNotEquals(streamNameWithExtension, dataStore.addFileExtensionToStreamNameIfNotExist(streamNameWithoutExtension, fileRelativePathWithoutExtension));
 	}
 }
