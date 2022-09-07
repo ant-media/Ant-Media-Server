@@ -1621,7 +1621,7 @@ public class DBStoresUnitTest {
 		vodList = dataStore.getVodList(0, 50, null, null, null, newVod2.getVodId());
 		assertEquals(1, vodList.size());
 		assertEquals(newVod2.getVodName(), vodList.get(0).getVodName());
-		assertEquals(newVod2.getStreamName()+fileExtension, vodList.get(0).getStreamName());
+		assertEquals(newVod2.getStreamName(), vodList.get(0).getStreamName());
 		assertEquals(newVod2.getStreamId(), vodList.get(0).getStreamId());
 		assertEquals(newVod2.getVodId(), vodList.get(0).getVodId());
 
