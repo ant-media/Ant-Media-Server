@@ -469,7 +469,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(tmp.getStatus());
 			});
 
-
+			//Get latest status of playlist
+			playlist = dataStore.get(streamId);
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getStatus());
 			assertEquals(2, playlist.getCurrentPlayIndex());
 
