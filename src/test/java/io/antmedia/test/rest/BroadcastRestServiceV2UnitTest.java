@@ -2872,6 +2872,10 @@ public class BroadcastRestServiceV2UnitTest {
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(currentcontext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		
 		ConferenceRoom room=new ConferenceRoom();
 		room.setRoomId("testroom");
 		store.createConferenceRoom(room);
@@ -2899,6 +2903,7 @@ public class BroadcastRestServiceV2UnitTest {
 		store.save(broadcast5);
 		restServiceSpy.addStreamToTheRoom("testroom","stream1");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
+		verify(app, times(1)).joinedTheRoom("testroom", "stream1");
 		restServiceSpy.addStreamToTheRoom("testroom","stream2");
 		assertEquals(2,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.addStreamToTheRoom(null,"stream3");
@@ -2917,6 +2922,10 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setAppCtx(currentcontext);
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
+		
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(currentcontext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		
 		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 		ConferenceRoom room=new ConferenceRoom();
 		room.setRoomId("testroom");
@@ -2939,6 +2948,7 @@ public class BroadcastRestServiceV2UnitTest {
 		store.createConferenceRoom(room);
 		assertEquals(2,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.deleteStreamFromTheRoom("testroom","stream2");
+		verify(app, times(1)).leftTheRoom("testroom", "stream2");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.deleteStreamFromTheRoom(null,"stream2");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
