@@ -555,14 +555,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 		// if stream name doesn't have extension, then add it
-		if (relativePath != null) {
-			Integer index = relativePath.lastIndexOf(".");
-			String fileExtension = (index == -1) ? "" : relativePath.substring(index);
-			if (streamName != null
-					&& !streamName.endsWith(fileExtension)) {
-				streamName = streamName + fileExtension;
-			}
-		}
+		streamName = DataStore.addFileExtensionToStreamNameIfNotExist(streamName, relativePath);
 
 		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodId, previewFilePath);
 

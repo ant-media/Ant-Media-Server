@@ -312,7 +312,7 @@ public abstract class DataStore {
 	 * @param relativePath - relative path of the VoD file
 	 * @return- modified stream name
 	 */
-	public String addFileExtensionToStreamNameIfNotExist(String streamName, String relativePath) {
+	public static String addFileExtensionToStreamNameIfNotExist(String streamName, String relativePath) {
 		if (relativePath != null) {
 			int index = relativePath.lastIndexOf(".");
 			String fileExtension = (index == -1) ? "" : relativePath.substring(index);

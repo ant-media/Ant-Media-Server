@@ -134,7 +134,6 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-		testAddFileExtensionToStreamNameIfNotExist(dataStore);
 
 	}
 	
@@ -212,7 +211,6 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-		testAddFileExtensionToStreamNameIfNotExist(dataStore);
 
 	}
 	
@@ -267,7 +265,6 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
-		testAddFileExtensionToStreamNameIfNotExist(dataStore);
 
 	}
 	
@@ -2767,7 +2764,8 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void testAddFileExtensionToStreamNameIfNotExist(DataStore dataStore) {
+	@Test
+	public void testAddFileExtensionToStreamNameIfNotExist() {
 		String extension = ".mp4";
 
 		String streamNameWithoutExtension = "streamName";
@@ -2776,8 +2774,11 @@ public class DBStoresUnitTest {
 		String fileRelativePathWithoutExtension = "streams" + File.separator;
 		String fileRelativePathWithExtension = "streams" + File.separator + streamNameWithExtension;
 
-		assertEquals(streamNameWithExtension, dataStore.addFileExtensionToStreamNameIfNotExist(streamNameWithExtension, fileRelativePathWithExtension));
-		assertEquals(streamNameWithExtension, dataStore.addFileExtensionToStreamNameIfNotExist(streamNameWithoutExtension, fileRelativePathWithExtension));
-		assertNotEquals(streamNameWithExtension, dataStore.addFileExtensionToStreamNameIfNotExist(streamNameWithoutExtension, fileRelativePathWithoutExtension));
+		assertEquals(streamNameWithExtension, DataStore.addFileExtensionToStreamNameIfNotExist(streamNameWithExtension, fileRelativePathWithExtension));
+		assertEquals(streamNameWithExtension, DataStore.addFileExtensionToStreamNameIfNotExist(streamNameWithoutExtension, fileRelativePathWithExtension));
+		assertNotEquals(streamNameWithExtension, DataStore.addFileExtensionToStreamNameIfNotExist(streamNameWithoutExtension, fileRelativePathWithoutExtension));
+		assertNull(DataStore.addFileExtensionToStreamNameIfNotExist(null, fileRelativePathWithoutExtension));
+		assertEquals(streamNameWithoutExtension, DataStore.addFileExtensionToStreamNameIfNotExist(streamNameWithoutExtension, null));
 	}
+
 }
