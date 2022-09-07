@@ -436,7 +436,6 @@ public class MapDBStore extends DataStore {
 			for (String vodString : values)
 			{
 				VoD vod = gson.fromJson(vodString, VoD.class);
-
 				if (streamId != null && !streamId.isEmpty())
 				{
 					if (vod.getStreamId().equals(streamId)) {
@@ -638,8 +637,8 @@ public class MapDBStore extends DataStore {
 						String relativePath = "streams/" +subDirs[pathLength-2]+'/'+subDirs[pathLength-1];
 
 						String vodId = RandomStringUtils.randomNumeric(24);
-
-						VoD newVod = new VoD("vodFile", "vodFile", relativePath, file.getName(), unixTime, 0, 0, fileSize,
+						String streamName = addFileExtensionToStreamNameIfNotExist("vodFile", relativePath);
+						VoD newVod = new VoD(streamName, "vodFile", relativePath, file.getName(), unixTime, 0, 0, fileSize,
 								VoD.USER_VOD, vodId, null);
 						addVod(newVod);
 						numberOfSavedFiles++;

@@ -552,6 +552,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		String vodId = RandomStringUtils.randomNumeric(24);
+
+		if (relativePath != null) {
+			Integer index = relativePath.lastIndexOf(".");
+			String fileExtension = (index == -1) ? "" : relativePath.substring(index);
+			if (streamName != null
+					&& !streamName.endsWith(fileExtension)) {
+				streamName = streamName + fileExtension;
+			}
+		}
+
 		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodId, previewFilePath);
 
 		if (getDataStore().addVod(newVod) == null) {

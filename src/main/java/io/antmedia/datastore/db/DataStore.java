@@ -304,7 +304,25 @@ public abstract class DataStore {
 			subscriber.setConnected(false);
 		}
 		subscriber.getStats().addConnectionEvent(event);
-	}	
+	}
+
+	/**
+	 * check stream name contains extension and return stream name with extension
+	 * @param streamName
+	 * @param relativePath - relative path of the VoD file
+	 * @return- modified stream name
+	 */
+	public String addFileExtensionToStreamNameIfNotExist(String streamName, String relativePath) {
+		if (relativePath != null) {
+			int index = relativePath.lastIndexOf(".");
+			String fileExtension = (index == -1) ? "" : relativePath.substring(index);
+			if (streamName != null
+					&& !streamName.endsWith(fileExtension)) {
+				streamName = streamName + fileExtension;
+			}
+		}
+		return streamName;
+	}
 
 	/**
 	 * sets the avarage bitrate of the subscriber in the datastore
