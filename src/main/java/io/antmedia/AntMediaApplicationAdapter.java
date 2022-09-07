@@ -553,6 +553,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		String vodId = RandomStringUtils.randomNumeric(24);
 
+
+		// if stream name doesn't have extension, then add it
 		if (relativePath != null) {
 			Integer index = relativePath.lastIndexOf(".");
 			String fileExtension = (index == -1) ? "" : relativePath.substring(index);
