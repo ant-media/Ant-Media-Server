@@ -8,7 +8,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockitoSession;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
@@ -50,13 +49,10 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.red5.compatibility.flex.messaging.io.ArrayCollection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
-
-import com.fasterxml.jackson.core.JsonParser;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -1270,6 +1266,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		adapter.closeBroadcast(broadcast.getStreamId());
 		
+		broadcast = db.get(broadcast.getStreamId());
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
 	}
 	
