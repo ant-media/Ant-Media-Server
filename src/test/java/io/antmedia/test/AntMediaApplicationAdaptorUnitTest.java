@@ -1457,8 +1457,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
 		verify(streamFetcherManager, times(1)).startStreams(broadcastListCaptor.capture());
 		
+		broadcast = dataStore.get(broadcast.getStreamId());
 		assertEquals(1,  broadcastListCaptor.getValue().size());
-		assertEquals(broadcast,  broadcastListCaptor.getValue().get(0));
+		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().get(0).getStreamId());
+		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().get(0).getStatus());
 	}
 	
 	@Test

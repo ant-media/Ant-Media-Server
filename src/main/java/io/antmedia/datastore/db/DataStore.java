@@ -78,9 +78,7 @@ public abstract class DataStore {
 			}
 
 			synchronized (this) {
-				if (broadcastMap != null) {
-					broadcastMap.put(streamId, gson.toJson(broadcast));
-				}
+				broadcastMap.put(streamId, gson.toJson(broadcast));
 			}
 			return streamId;
 		} catch (Exception e) {
@@ -103,9 +101,7 @@ public abstract class DataStore {
 		synchronized (this) {
 			if (streamId != null) {
 				String jsonString = null;
-				if (broadcastMap != null) {
-					jsonString = broadcastMap.get(streamId);
-				}
+				jsonString = broadcastMap.get(streamId);
 				if (jsonString != null) {
 					return gson.fromJson(jsonString, Broadcast.class);
 				}
@@ -128,9 +124,7 @@ public abstract class DataStore {
 		synchronized (this) {
 			if (vodId != null) {
 				String jsonString = null;
-				if (vodMap != null) {
-					jsonString = vodMap.get(vodId);
-				}
+				jsonString = vodMap.get(vodId);
 
 				if (jsonString != null) {
 					return gson.fromJson(jsonString, VoD.class);
@@ -217,9 +211,8 @@ public abstract class DataStore {
 		Broadcast broadcast = null;
 		String jsonString = null;
 
-		if (broadcastMap != null) {
-			jsonString = broadcastMap.get(streamId);
-		}
+		jsonString = broadcastMap.get(streamId);
+		
 		broadcast = gson.fromJson(jsonString, Broadcast.class);
 
 		return broadcast;
@@ -316,9 +309,7 @@ public abstract class DataStore {
 		boolean result = false;
 
 		synchronized (this) {
-			if (vodMap != null) {
-				result = vodMap.remove(vodId) != null;
-			}
+			result = vodMap.remove(vodId) != null;
 		}
 		return result;
 	}
@@ -358,10 +349,7 @@ public abstract class DataStore {
 		ArrayList<ConferenceRoom> list = new ArrayList<>();
 		synchronized (this) {
 			Collection<String> conferenceRooms = null;
-
-			if (conferenceMap != null) {
-				conferenceRooms = conferenceMap.values();
-			}
+			conferenceRooms = conferenceMap.values();
 
 			for (String roomString : conferenceRooms) {
 				ConferenceRoom room = gson.fromJson(roomString, ConferenceRoom.class);
@@ -422,9 +410,7 @@ public abstract class DataStore {
 		String jsonVal = gson.toJson(broadcast);
 		String previousValue = null;
 
-		if (broadcastMap != null) {
-			previousValue = broadcastMap.replace(streamId, jsonVal);
-		}
+		previousValue = broadcastMap.replace(streamId, jsonVal);
 		
 		streamId = streamId.replaceAll(REPLACE_CHARS_REGEX, "_");
 		logger.debug("replacing id {} having value {} to {}", streamId,
@@ -503,10 +489,7 @@ public abstract class DataStore {
 					vod.setVodId(RandomStringUtils.randomNumeric(24));
 				}
 				id = vod.getVodId();
-
-				if (vodMap != null) {
-					vodMap.put(vod.getVodId(), gson.toJson(vod));
-				}
+				vodMap.put(vod.getVodId(), gson.toJson(vod));
 
 				logger.warn("VoD is saved to DB {} with voID {}", vod.getVodName(), id);
 
@@ -522,7 +505,7 @@ public abstract class DataStore {
 	public List<Broadcast> getExternalStreamsList(){
 		return getExternalStreamsList(null, null);
 	}
-	
+	/*
 	public List<Broadcast> getExternalStreamsList(Map<String,String> broadcastMap, Gson gson){
 		List<Broadcast> streamsList = new ArrayList<>();
 
@@ -531,11 +514,8 @@ public abstract class DataStore {
 			Object[] objectArray = broadcastMap.values().toArray();
 			Broadcast[] broadcastArray = new Broadcast[objectArray.length];
 
-
 			for (int i = 0; i < objectArray.length; i++) {
-
 				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-
 			}
 
 			for (int i = 0; i < broadcastArray.length; i++) {
@@ -547,6 +527,25 @@ public abstract class DataStore {
 					broadcastArray[i].setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 					broadcastMap.replace(broadcastArray[i].getStreamId(), gson.toJson(broadcastArray[i]));
 				}
+			}
+		}
+		return streamsList;
+	}
+	*/
+	
+	public List<Broadcast> getExternalStreamsList(Map<String,String> broadcastMap, Gson gson){
+		Collection<String> values = broadcastMap.values();
+
+		List<Broadcast> streamsList = new ArrayList<>();
+		for (String broadcastObject : values) {
+			Broadcast broadcast = gson.fromJson(broadcastObject, Broadcast.class);
+			String type = broadcast.getType();
+			String status = broadcast.getStatus();
+
+			if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
+				streamsList.add(broadcast);
+				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+				broadcastMap.replace(broadcast.getStreamId(), gson.toJson(broadcast));
 			}
 		}
 		return streamsList;
@@ -623,9 +622,7 @@ public abstract class DataStore {
 					for (TensorFlowObject tensorFlowObject : detectedObjects) {
 						tensorFlowObject.setDetectionTime(timeElapsed);
 					}
-					if (detectionMap != null) {
-						detectionMap.put(id, gson.toJson(detectedObjects));
-					}
+					detectionMap.put(id, gson.toJson(detectedObjects));
 
 				}
 			} catch (Exception e) {
