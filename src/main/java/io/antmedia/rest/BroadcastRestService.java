@@ -663,6 +663,8 @@ public class BroadcastRestService extends RestServiceBase{
 			subscriber.setStats(new SubscriberStats());
 			// subscriber is not connected yet
 			subscriber.setConnected(false);
+			// subscriber is not viewing anyone
+			subscriber.setCurrentConcurrentConnections(0);
 
 			if (streamId != null) {
 				result = getDataStore().addSubscriber(streamId, subscriber);

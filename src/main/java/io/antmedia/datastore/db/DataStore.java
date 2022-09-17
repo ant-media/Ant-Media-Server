@@ -300,8 +300,10 @@ public abstract class DataStore {
 	protected void handleConnectionEvent(Subscriber subscriber, ConnectionEvent event) {
 		if(ConnectionEvent.CONNECTED_EVENT.equals(event.getEventType())) {
 			subscriber.setConnected(true);
+			subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()+1);
 		} else if(ConnectionEvent.DISCONNECTED_EVENT.equals(event.getEventType())) {
 			subscriber.setConnected(false);
+			subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()-1);
 		}
 		subscriber.getStats().addConnectionEvent(event);
 	}	
