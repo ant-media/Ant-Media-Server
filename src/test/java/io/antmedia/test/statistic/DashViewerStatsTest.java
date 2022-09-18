@@ -230,6 +230,7 @@ public class DashViewerStatsTest {
 			
 			//Viewer timeout increase
 			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId());
+			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay2.getSubscriberId());
 			
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()-> {
@@ -263,8 +264,8 @@ public class DashViewerStatsTest {
 			
 			List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
 			
-			assertEquals(2, events.size());
-			ConnectionEvent eventDis = events.get(1);
+			assertEquals(4, events.size());
+			ConnectionEvent eventDis = events.get(3);
 			assertSame(ConnectionEvent.DISCONNECTED_EVENT, eventDis.getEventType());
 			
 			// Broadcast finished test
@@ -305,8 +306,8 @@ public class DashViewerStatsTest {
 			List<ConnectionEvent> events2 = subData2.getStats().getConnectionEvents();
 			
 			assertEquals(2, events2.size());	
-			ConnectionEvent eventDis2 = events.get(1);
-			assertTrue(ConnectionEvent.DISCONNECTED_EVENT == eventDis2.getEventType());		
+			ConnectionEvent eventDis2 = events2.get(1);
+			assertSame(ConnectionEvent.DISCONNECTED_EVENT, eventDis2.getEventType());		
 			
 		} catch (Exception e) {
 			e.printStackTrace();
