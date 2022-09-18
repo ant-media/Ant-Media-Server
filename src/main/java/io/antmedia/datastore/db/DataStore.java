@@ -53,9 +53,7 @@ public abstract class DataStore {
 
 	protected static Logger logger = LoggerFactory.getLogger(DataStore.class);
 
-	public String save(Broadcast broadcast) {
-		return save(null, broadcast, null);
-	}
+	public abstract String save(Broadcast broadcast);
 
 	public String save(Map<String, String> broadcastMap, Broadcast broadcast, Gson gson) {
 		if (broadcast == null) {
@@ -93,9 +91,7 @@ public abstract class DataStore {
 	 * @param id
 	 * @return broadcast
 	 */
-	public Broadcast get(String id) {
-		return get(null, id, null);
-	}
+	public abstract Broadcast get(String id);
 
 	public Broadcast get(Map<String, String> broadcastMap, String streamId, Gson gson) {
 		synchronized (this) {
@@ -116,9 +112,7 @@ public abstract class DataStore {
 	 * @param id
 	 * @return Vod object
 	 */
-	public VoD getVoD(String id) {
-		return getVoD(null, id, null);
-	}
+	public abstract VoD getVoD(String id);
 
 	public VoD getVoD(Map<String, String> vodMap, String vodId, Gson gson) {
 		synchronized (this) {
@@ -134,9 +128,7 @@ public abstract class DataStore {
 		return null;
 	}
 
-	public boolean updateStatus(String id, String status) {
-		return updateStatus(null, id, status, null);
-	}
+	public abstract boolean updateStatus(String id, String status);
 
 	public boolean updateStatus(Map<String, String> broadcastMap, String streamId, String status, Gson gson) {
 		boolean result = false;
@@ -177,9 +169,7 @@ public abstract class DataStore {
 		return false;
 	}
 
-	protected boolean updateSourceQualityParametersLocal(String id, String quality, double speed, int pendingPacketQueue) {
-		return updateSourceQualityParametersLocal(null, id, quality, speed, pendingPacketQueue, null);
-	}
+	protected abstract boolean updateSourceQualityParametersLocal(String id, String quality, double speed, int pendingPacketQueue);
 	
 	protected boolean updateSourceQualityParametersLocal(Map<String, String> broadcastMap, String id, String quality, double speed, int pendingPacketQueue, Gson gson) {
 		boolean result = false;
@@ -203,20 +193,7 @@ public abstract class DataStore {
 		return result;
 	}
 
-	public boolean updateDuration(String id, long duration) {
-		return updateDuration(null, id, duration, null);
-	}
-
-	public Broadcast getBroadcastFromMap(Map<String, String> broadcastMap, String streamId, Gson gson) {
-		Broadcast broadcast = null;
-		String jsonString = null;
-
-		jsonString = broadcastMap.get(streamId);
-		
-		broadcast = gson.fromJson(jsonString, Broadcast.class);
-
-		return broadcast;
-	}
+	public abstract boolean updateDuration(String id, long duration);
 
 	public boolean updateDuration(Map<String, String> broadcastMap, String streamId, long duration, Gson gson) {
 
@@ -252,9 +229,7 @@ public abstract class DataStore {
 	 */
 	public abstract long getPartialBroadcastNumber(String search);
 
-	public boolean addEndpoint(String id, Endpoint endpoint) {
-		return addEndpoint(null, id, endpoint, null);
-	}
+	public abstract boolean addEndpoint(String id, Endpoint endpoint);
 
 	public boolean addEndpoint(Map<String, String> broadcastMap, String streamId, Endpoint endpoint, Gson gson) {
 		boolean result = false;
@@ -279,9 +254,7 @@ public abstract class DataStore {
 		return result;
 	}
 
-	public long getBroadcastCount() {
-		return getBroadcastCount(null);
-	}
+	public abstract long getBroadcastCount();
 	
 	public long getBroadcastCount(Map<String,String> broadcastMap) {
 		synchronized (this) {
@@ -289,9 +262,7 @@ public abstract class DataStore {
 		}
 	}
 
-	public boolean delete(String id) {
-		return delete(null, id);
-	}
+	public abstract boolean delete(String id);
 
 	public boolean delete(Map<String, String> broadcastMap, String id) {
 		boolean result = false;
@@ -301,9 +272,7 @@ public abstract class DataStore {
 		return result;
 	}
 
-	public boolean deleteVod(String id) {
-		return deleteVod(null, id);
-	}
+	public abstract boolean deleteVod(String id);
 
 	public boolean deleteVod(Map<String, String> vodMap, String vodId) {
 		boolean result = false;
@@ -339,10 +308,8 @@ public abstract class DataStore {
 	 * @param search  is used for searching in RoomId
 	 * @return
 	 */
-	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy,
-			String search) {
-		return getConferenceRoomList(null, offset, size, sortBy, orderBy, search, null);
-	}
+	public abstract List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy,
+			String search);
 
 	public List<ConferenceRoom> getConferenceRoomList(Map<String, String> conferenceMap, int offset, int size, String sortBy, String orderBy,
 			String search, Gson gson) {
@@ -364,9 +331,7 @@ public abstract class DataStore {
 		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
 	}
 
-	public boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl) {
-		return removeEndpoint(null, id, endpoint, checkRTMPUrl, null);
-	}
+	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
 
 	public boolean removeEndpoint(Map<String, String> broadcastMap, String streamId, Endpoint endpoint, boolean checkRTMPUrl,
 			Gson gson) {
@@ -476,9 +441,7 @@ public abstract class DataStore {
 		}
 	}
 
-	public String addVod(VoD vod) {
-		return addVod(null, vod, null);
-	}
+	public abstract String addVod(VoD vod);
 
 	public String addVod(Map<String, String> vodMap, VoD vod, Gson gson) {
 
@@ -502,36 +465,7 @@ public abstract class DataStore {
 		return id;
 	}
 
-	public List<Broadcast> getExternalStreamsList(){
-		return getExternalStreamsList(null, null);
-	}
-	/*
-	public List<Broadcast> getExternalStreamsList(Map<String,String> broadcastMap, Gson gson){
-		List<Broadcast> streamsList = new ArrayList<>();
-
-		synchronized (this) {
-
-			Object[] objectArray = broadcastMap.values().toArray();
-			Broadcast[] broadcastArray = new Broadcast[objectArray.length];
-
-			for (int i = 0; i < objectArray.length; i++) {
-				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
-			}
-
-			for (int i = 0; i < broadcastArray.length; i++) {
-				String type = broadcastArray[i].getType();
-				String status = broadcastArray[i].getStatus();
-
-				if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
-					streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
-					broadcastArray[i].setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
-					broadcastMap.replace(broadcastArray[i].getStreamId(), gson.toJson(broadcastArray[i]));
-				}
-			}
-		}
-		return streamsList;
-	}
-	*/
+	public abstract List<Broadcast> getExternalStreamsList();
 	
 	public List<Broadcast> getExternalStreamsList(Map<String,String> broadcastMap, Gson gson){
 		Collection<String> values = broadcastMap.values();
@@ -573,9 +507,7 @@ public abstract class DataStore {
 	public abstract List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId,
 			String search);
 
-	public boolean removeAllEndpoints(String id) {
-		return removeAllEndpoints(null, id, null);
-	}
+	public abstract boolean removeAllEndpoints(String id);
 
 	public boolean removeAllEndpoints(Map<String, String> broadcastMap, String streamId,
 			Gson gson) {
@@ -591,9 +523,7 @@ public abstract class DataStore {
 		return result;
 	}
 
-	public long getTotalVodNumber() {
-		return getTotalVodNumber(null);
-	}
+	public abstract long getTotalVodNumber();
 
 	public long getTotalVodNumber(Map<String, String> broadcastMap) {
 		synchronized (this) {
@@ -601,9 +531,7 @@ public abstract class DataStore {
 		}
 	}
 
-	public long getTotalBroadcastNumber() {
-		return getTotalBroadcastNumber(null);
-	}
+	public abstract long getTotalBroadcastNumber();
 	
 	public long getTotalBroadcastNumber(Map<String,String> broadcastMap) {
 		synchronized (this) {
@@ -611,9 +539,7 @@ public abstract class DataStore {
 		}
 	}
 
-	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
-		saveDetection(null, id, timeElapsed, detectedObjects, null);
-	}
+	public abstract void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects);
 
 	public void saveDetection(Map<String, String> detectionMap, String id, long timeElapsed, List<TensorFlowObject> detectedObjects, Gson gson) {
 		synchronized (this) {
@@ -631,9 +557,7 @@ public abstract class DataStore {
 		}
 	}
 
-	public List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize) {
-		return getDetectionList(null, idFilter, offsetSize, batchSize, null);
-	}
+	public abstract List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize);
 
 	public List<TensorFlowObject> getDetectionList(Map<String, String> detectionMap, String idFilter, int offsetSize, int batchSize, Gson gson) {
 
@@ -668,9 +592,7 @@ public abstract class DataStore {
 		return list;
 	}
 
-	public List<TensorFlowObject> getDetection(String id){
-		return getDetection(null, id, null);
-	}
+	public abstract List<TensorFlowObject> getDetection(String id);
 	
 	public List<TensorFlowObject> getDetection(Map<String, String> detectionMap, String id, Gson gson){
 		synchronized (this) {
@@ -691,9 +613,7 @@ public abstract class DataStore {
 	 * @param token - created token
 	 * @return true/false
 	 */
-	public boolean saveToken(Token token) {
-		return saveToken(null, token, null);
-	}
+	public abstract boolean saveToken(Token token);
 
 	public boolean saveToken(Map<String, String> tokenMap, Token token, Gson gson) {
 		boolean result = false;
@@ -722,9 +642,7 @@ public abstract class DataStore {
 	 * @param size
 	 * @return lists of tokens
 	 */
-	public List<Token> listAllTokens(String streamId, int offset, int size) {
-		return listAllTokens(null, streamId, offset, size, null);
-	}
+	public abstract List<Token> listAllTokens(String streamId, int offset, int size);
 
 	public List<Token> listAllTokens(Map<String, String> tokenMap, String streamId, int offset, int size, Gson gson) {
 
@@ -777,9 +695,7 @@ public abstract class DataStore {
 	 * @param streamId
 	 * @return token if validated, null if not
 	 */
-	public Token validateToken(Token token) {
-		return validateToken(null, token, null);
-	}
+	public abstract Token validateToken(Token token);
 
 	public Token validateToken(Map<String, String> tokenMap, Token token,
 			Gson gson) {
@@ -1191,9 +1107,7 @@ public abstract class DataStore {
 	 *                  the stream
 	 * @return- true if set, false if not
 	 */
-	public boolean setMp4Muxing(String streamId, int enabled) {
-		return setMp4Muxing(null, streamId, enabled, null);
-	}
+	public abstract boolean setMp4Muxing(String streamId, int enabled);
 
 	public boolean setMp4Muxing(Map<String, String> broadcastMap, String streamId, int enabled, Gson gson) {
 		boolean result = false;
@@ -1224,9 +1138,7 @@ public abstract class DataStore {
 	 *                  the stream
 	 * @return- true if set, false if not
 	 */
-	public boolean setWebMMuxing(String streamId, int enabled) {
-		return setWebMMuxing(null, streamId, enabled, null);
-	}
+	public abstract boolean setWebMMuxing(String streamId, int enabled);
 
 	public boolean setWebMMuxing(Map<String, String> broadcastMap, String streamId, int enabled, Gson gson) {
 
@@ -1256,9 +1168,7 @@ public abstract class DataStore {
 	 * @param file
 	 * @return number of files that are saved to datastore
 	 */
-	public int fetchUserVodList(File filedir) {
-		return fetchUserVodList(null, filedir, null, null);
-	}
+	public abstract int fetchUserVodList(File filedir);
 
 	public int fetchUserVodList(Map<String, String> vodMap, File filedir,
 			Gson gson, String dbName) {
@@ -1342,9 +1252,7 @@ public abstract class DataStore {
 	 * 
 	 * @return
 	 */
-	public long getActiveBroadcastCount() {
-		return getActiveBroadcastCount(null, null);
-	}
+	public abstract long getActiveBroadcastCount();
 
 	public long getActiveBroadcastCount(Map<String, String> broadcastMap, Gson gson) {
 		int activeBroadcastCount = 0;
@@ -1369,9 +1277,7 @@ public abstract class DataStore {
 	 * @param broadcast
 	 * @return
 	 */
-	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {
-		return updateBroadcastFields(null, streamId, broadcast, null);
-	}
+	public abstract boolean updateBroadcastFields(String streamId, Broadcast broadcast);
 
 	public boolean updateBroadcastFields(Map<String, String> broadcastMap, String streamId, Broadcast broadcast, Gson gson) {
 		boolean result = false;
@@ -1407,9 +1313,7 @@ public abstract class DataStore {
 		return false;
 	}
 
-	protected boolean updateHLSViewerCountLocal(String streamId, int diffCount) {
-		return updateHLSViewerCountLocal(null, streamId, diffCount, null);
-	}
+	protected abstract boolean updateHLSViewerCountLocal(String streamId, int diffCount);
 
 	protected boolean updateHLSViewerCountLocal(Map<String, String> broadcastMap, String streamId, int diffCount, Gson gson) {
 		boolean result = false;
@@ -1443,9 +1347,7 @@ public abstract class DataStore {
 		return false;
 	}
 
-	protected boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
-		return updateDASHViewerCountLocal(null, streamId, diffCount, null);
-	}
+	protected abstract boolean updateDASHViewerCountLocal(String streamId, int diffCount);
 
 	protected boolean updateDASHViewerCountLocal(Map<String, String> broadcastMap, String streamId, int diffCount, Gson gson) {
 		boolean result = false;
@@ -1509,9 +1411,7 @@ public abstract class DataStore {
 		return false;
 	}
 
-	protected boolean updateWebRTCViewerCountLocal(String streamId, boolean increment) {
-		return updateWebRTCViewerCountLocal(null, streamId, increment, null);
-	}
+	protected abstract boolean updateWebRTCViewerCountLocal(String streamId, boolean increment);
 
 	protected boolean updateWebRTCViewerCountLocal(Map<String, String> broadcastMap, String streamId, boolean increment, Gson gson) {
 		boolean result = false;
@@ -1551,9 +1451,7 @@ public abstract class DataStore {
 		return false;
 	}
 
-	protected boolean updateRtmpViewerCountLocal(String streamId, boolean increment) {
-		return updateRtmpViewerCountLocal(null, streamId, increment, null);
-	}
+	protected abstract boolean updateRtmpViewerCountLocal(String streamId, boolean increment);
 
 	protected boolean updateRtmpViewerCountLocal(Map<String, String> broadcastMap, String streamId, boolean increment, Gson gson) {
 		boolean result = false;
@@ -2063,9 +1961,7 @@ public abstract class DataStore {
 	 * @param subTrackId  - main track id
 	 * @return boolean - success
 	 */
-	public boolean addSubTrack(String mainTrackId, String subTrackId) {
-		return addSubTrack(null, mainTrackId, subTrackId, null);
-	}
+	public abstract boolean addSubTrack(String mainTrackId, String subTrackId);
 
 	public boolean addSubTrack(Map<String, String> broadcastMap, String mainTrackId, String subTrackId, Gson gson) {
 		boolean result = false;
@@ -2092,9 +1988,7 @@ public abstract class DataStore {
 	 *
 	 * @returns total number of operation in the db
 	 */
-	public int resetBroadcasts(String hostAddress) {
-		return resetBroadcasts(null, hostAddress, null, null);
-	}
+	public abstract int resetBroadcasts(String hostAddress);
 
 	public int resetBroadcasts(Map<String, String> broadcastMap, String hostAddress, Gson gson, String dbName) {
 		synchronized (this) {
@@ -2160,9 +2054,7 @@ public abstract class DataStore {
 	 *
 	 * @returns total number of WebRTC viewers
 	 */
-	public int getTotalWebRTCViewersCount() {
-		return getTotalWebRTCViewersCount(null, null);
-	}
+	public abstract int getTotalWebRTCViewersCount();
 
 	public int getTotalWebRTCViewersCount(Map<String, String> broadcastMap, Gson gson) {
 		long now = System.currentTimeMillis();
@@ -2295,9 +2187,7 @@ public abstract class DataStore {
 	 * @param streamId id for the broadcast
 	 * @param metaData new meta data
 	 */
-	public boolean updateStreamMetaData(String streamId, String metaData) {
-		return updateStreamMetaData(null, streamId, metaData, null);
-	}
+	public abstract boolean updateStreamMetaData(String streamId, String metaData);
 
 	public boolean updateStreamMetaData(Map<String, String> broadcastMap, String streamId, String metaData, Gson gson) {
 		boolean result = false;
@@ -2318,6 +2208,18 @@ public abstract class DataStore {
 		}
 		return result;
 	}
+	
+	public Broadcast getBroadcastFromMap(Map<String, String> broadcastMap, String streamId, Gson gson) {
+		Broadcast broadcast = null;
+		String jsonString = null;
+
+		jsonString = broadcastMap.get(streamId);
+		
+		broadcast = gson.fromJson(jsonString, Broadcast.class);
+
+		return broadcast;
+	}
+
 
 	// **************************************
 	// ATTENTION: Write function descriptions while adding new functions
