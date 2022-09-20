@@ -1,10 +1,5 @@
 package io.antmedia;
 
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
-import static org.bytedeco.ffmpeg.global.avutil.av_malloc;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
@@ -36,8 +31,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
-import org.bytedeco.javacpp.BytePointer;
 import org.json.simple.JSONObject;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scope.IScope;
@@ -1510,7 +1503,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		
 		if(!isAdded) {
 			if(clusterStreamFetcher == null) {
-				clusterStreamFetcher = createClusterStreamFetcher(listener);
+				clusterStreamFetcher = createClusterStreamFetcher();
 			}
 			
 			clusterStreamFetcher.register(streamId, listener);
@@ -1598,7 +1591,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		//No need to implement here. 
 	}
 	
-	public IClusterStreamFetcher createClusterStreamFetcher(IPacketListener listener) {
+	public IClusterStreamFetcher createClusterStreamFetcher() {
 		return null;
 	}
 	
