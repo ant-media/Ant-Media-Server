@@ -586,7 +586,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 	}
 
-	//@Test
+	@Test
 	public void testHookAfterDefined() 
 	{
 		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);

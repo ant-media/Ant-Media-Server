@@ -96,11 +96,7 @@ public abstract class DataStore {
 	public Broadcast get(Map<String, String> broadcastMap, String streamId, Gson gson) {
 		synchronized (this) {
 			if (streamId != null) {
-				String jsonString = null;
-				jsonString = broadcastMap.get(streamId);
-				if (jsonString != null) {
-					return gson.fromJson(jsonString, Broadcast.class);
-				}
+				return getBroadcastFromMap(broadcastMap, streamId, gson);
 			}
 		}
 		return null;
@@ -134,11 +130,8 @@ public abstract class DataStore {
 		boolean result = false;
 		synchronized (this) {
 			if (streamId != null) {
-
 				Broadcast broadcast = getBroadcastFromMap(broadcastMap, streamId, gson);
-
 				if (broadcast != null) {
-
 					broadcast.setStatus(status);
 					if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 						broadcast.setStartTime(System.currentTimeMillis());
@@ -148,9 +141,7 @@ public abstract class DataStore {
 						broadcast.setHlsViewerCount(0);
 						broadcast.setDashViewerCount(0);
 					}
-
 					setBroadcastToMap(broadcastMap, broadcast, streamId, gson);
-					
 					result = true;
 				}
 			}
@@ -175,18 +166,15 @@ public abstract class DataStore {
 		boolean result = false;
 		synchronized (this) {
 			if (id != null) {
-				String jsonString = broadcastMap.get(id);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+				Broadcast broadcast = getBroadcastFromMap(broadcastMap, id, gson);
+				if(broadcast != null) {
 					broadcast.setSpeed(speed);
 					if (quality != null) {
 						broadcast.setQuality(quality);
 					}
 					broadcast.setPendingPacketSize(pendingPacketQueue);
-					broadcastMap.replace(id, gson.toJson(broadcast));
-
+					setBroadcastToMap(broadcastMap, broadcast, id, gson);
 					result = true;
-
 				}
 			}
 		}
@@ -200,9 +188,7 @@ public abstract class DataStore {
 		boolean result = false;
 		synchronized (this) {
 			if (streamId != null) {
-
 				Broadcast broadcast = getBroadcastFromMap(broadcastMap, streamId, gson);
-				
 				if (broadcast != null) {
 					broadcast.setDuration(duration);
 					setBroadcastToMap(broadcastMap, broadcast, streamId, gson);
@@ -235,15 +221,12 @@ public abstract class DataStore {
 		boolean result = false;
 		synchronized (this) {
 			if (streamId != null && endpoint != null) {
-
 				Broadcast broadcast = getBroadcastFromMap(broadcastMap, streamId, gson);
 				if (broadcast != null) {
-
 					List<Endpoint> endPointList = broadcast.getEndPointList();
 					if (endPointList == null) {
 						endPointList = new ArrayList<>();
 					}
-
 					endPointList.add(endpoint);
 					broadcast.setEndPointList(endPointList);
 					setBroadcastToMap(broadcastMap, broadcast, streamId, gson);
@@ -369,19 +352,6 @@ public abstract class DataStore {
 		}
 		return result;
 	}
-	
-	public void setBroadcastToMap(Map<String, String> broadcastMap, Broadcast broadcast, String streamId, Gson gson){
-		
-		String jsonVal = gson.toJson(broadcast);
-		String previousValue = null;
-
-		previousValue = broadcastMap.replace(streamId, jsonVal);
-		
-		streamId = streamId.replaceAll(REPLACE_CHARS_REGEX, "_");
-		logger.debug("replacing id {} having value {} to {}", streamId,
-				previousValue, jsonVal);
-
-	}
 
 	public List<Broadcast> getBroadcastListV2(Map<String, String> broadcastMap, String type, String search, Gson gson) {
 		ArrayList<Broadcast> list = new ArrayList<>();
@@ -466,20 +436,24 @@ public abstract class DataStore {
 	}
 
 	public abstract List<Broadcast> getExternalStreamsList();
-	
+
 	public List<Broadcast> getExternalStreamsList(Map<String,String> broadcastMap, Gson gson){
-		Collection<String> values = broadcastMap.values();
-
 		List<Broadcast> streamsList = new ArrayList<>();
-		for (String broadcastObject : values) {
-			Broadcast broadcast = gson.fromJson(broadcastObject, Broadcast.class);
-			String type = broadcast.getType();
-			String status = broadcast.getStatus();
+		synchronized (this) {
+			Object[] objectArray = broadcastMap.values().toArray();
+			Broadcast[] broadcastArray = new Broadcast[objectArray.length];
+			for (int i = 0; i < objectArray.length; i++) {
+				broadcastArray[i] = gson.fromJson((String) objectArray[i], Broadcast.class);
+			}
+			for (int i = 0; i < broadcastArray.length; i++) {
+				String type = broadcastArray[i].getType();
+				String status = broadcastArray[i].getStatus();
 
-			if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
-				streamsList.add(broadcast);
-				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
-				broadcastMap.replace(broadcast.getStreamId(), gson.toJson(broadcast));
+				if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
+					streamsList.add(gson.fromJson((String) objectArray[i], Broadcast.class));
+					broadcastArray[i].setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+					setBroadcastToMap(broadcastMap, broadcastArray[i], broadcastArray[i].getStreamId(), gson);
+				}
 			}
 		}
 		return streamsList;
@@ -736,9 +710,7 @@ public abstract class DataStore {
 	 * @param streamId
 	 */
 
-	public boolean revokeTokens(String streamId) {
-		return revokeTokens(null, streamId, null);
-	}
+	public abstract boolean revokeTokens(String streamId);
 
 	public boolean revokeTokens(Map<String, String> tokenMap, String streamId, Gson gson) {
 		boolean result = false;
@@ -770,9 +742,7 @@ public abstract class DataStore {
 	 * @param tokenId id of the token
 	 */
 
-	public boolean deleteToken(String tokenId) {
-		return deleteToken(null, tokenId);
-	}
+	public abstract boolean deleteToken(String tokenId);
 
 	public boolean deleteToken(Map<String, String> tokenMap, String tokenId) {
 		boolean result = false;
@@ -789,9 +759,7 @@ public abstract class DataStore {
 	 * @param tokenId id of the token
 	 */
 
-	public Token getToken(String tokenId) {
-		return getToken(null, tokenId, null);
-	}
+	public abstract Token getToken(String tokenId);
 
 	public Token getToken(Map<String, String> tokenMap, String tokenId,
 			Gson gson) {
@@ -815,9 +783,7 @@ public abstract class DataStore {
 	 * @param size
 	 * @return lists of subscribers
 	 */
-	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
-		return listAllSubscribers(null, streamId, offset, size, null);
-	}
+	public abstract List<Subscriber> listAllSubscribers(String streamId, int offset, int size);
 
 	public List<Subscriber> listAllSubscribers(Map<String, String> subscriberMap, String streamId, int offset, int size, Gson gson) {
 		List<Subscriber> list = new ArrayList<>();
@@ -888,9 +854,7 @@ public abstract class DataStore {
 	 * @param subscriber - subscriber to be added
 	 * @return- true if set, false if not
 	 */
-	public boolean addSubscriber(String streamId, Subscriber subscriber) {
-		return addSubscriber(null, streamId, subscriber, null);
-	}
+	public abstract boolean addSubscriber(String streamId, Subscriber subscriber);
 
 	public boolean addSubscriber(Map<String, String> subscriberMap, String streamId, Subscriber subscriber, Gson gson) {
 		boolean result = false;
@@ -920,9 +884,7 @@ public abstract class DataStore {
 	 * @param subscriberId - id of the subsciber to be deleted
 	 * @return- true if set, false if not
 	 */
-	public boolean deleteSubscriber(String streamId, String subscriberId) {
-		return deleteSubscriber(null, streamId, subscriberId);
-	}
+	public abstract boolean deleteSubscriber(String streamId, String subscriberId);
 
 	public boolean deleteSubscriber(Map<String, String> subscriberMap, String streamId, String subscriberId) {
 		boolean result = false;
@@ -943,9 +905,7 @@ public abstract class DataStore {
 	 * @param streamId
 	 * @return- true if set, false if not
 	 */
-	public boolean revokeSubscribers(String streamId) {
-		return revokeSubscribers(null, streamId, null);
-	}
+	public abstract boolean revokeSubscribers(String streamId);
 
 	public boolean revokeSubscribers(Map<String, String> subscriberMap, String streamId, Gson gson) {
 		boolean result = false;
@@ -980,9 +940,7 @@ public abstract class DataStore {
 	 * @param subscriberId - id of the subsciber to be deleted
 	 * @return- Subscriber
 	 */
-	public Subscriber getSubscriber(String streamId, String subscriberId) {
-		return getSubscriber(null, streamId, subscriberId, null);
-	}
+	public abstract Subscriber getSubscriber(String streamId, String subscriberId);
 
 	public Subscriber getSubscriber(Map<String, String> subscriberMap, String streamId, String subscriberId, Gson gson) {
 		Subscriber subscriber = null;
@@ -1072,9 +1030,7 @@ public abstract class DataStore {
 	 * 
 	 * @return- true if successful else false
 	 */
-	public boolean resetSubscribersConnectedStatus() {
-		return resetSubscribersConnectedStatus(null, null);
-	}
+	public abstract boolean resetSubscribersConnectedStatus();
 
 	public boolean resetSubscribersConnectedStatus(Map<String, String> subscriberMap,  Gson gson) {
 		synchronized (this) {
@@ -1113,15 +1069,13 @@ public abstract class DataStore {
 		boolean result = false;
 		synchronized (this) {
 			if (streamId != null) {
-
-				String jsonString = broadcastMap.get(streamId);
-				if (jsonString != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM
+				Broadcast broadcast = getBroadcastFromMap(broadcastMap, streamId, gson);
+				if (broadcast != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM
 						|| enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM
 						|| enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
-
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+					
 					broadcast.setMp4Enabled(enabled);
-					broadcastMap.replace(streamId, gson.toJson(broadcast));
+					setBroadcastToMap(broadcastMap, broadcast, streamId, gson);
 
 					result = true;
 				}
@@ -1145,14 +1099,12 @@ public abstract class DataStore {
 		boolean result = false;
 		synchronized (this) {
 			if (streamId != null) {
-				String jsonString = broadcastMap.get(streamId);
-				if (jsonString != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM
+				Broadcast broadcast = getBroadcastFromMap(broadcastMap, streamId, gson);
+				if (broadcast != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM
 						|| enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM
 						|| enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
-
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
 					broadcast.setWebMEnabled(enabled);
-					broadcastMap.replace(streamId, gson.toJson(broadcast));
+					setBroadcastToMap(broadcastMap, broadcast, streamId, gson);
 
 					result = true;
 				}
@@ -1287,7 +1239,7 @@ public abstract class DataStore {
 				Broadcast oldBroadcast = get(streamId);
 				if (oldBroadcast != null) {
 					updateStreamInfo(oldBroadcast, broadcast);
-					broadcastMap.replace(streamId, gson.toJson(oldBroadcast));
+					setBroadcastToMap(broadcastMap, oldBroadcast, streamId, gson);
 
 					result = true;
 				}
@@ -1326,7 +1278,7 @@ public abstract class DataStore {
 					hlsViewerCount += diffCount;
 					broadcast.setHlsViewerCount(hlsViewerCount);
 					
-					broadcastMap.replace(streamId, gson.toJson(broadcast));
+					setBroadcastToMap(broadcastMap, broadcast, streamId, gson);
 					result = true;
 				}
 			}
@@ -1360,7 +1312,7 @@ public abstract class DataStore {
 					int dashViewerCount = broadcast.getDashViewerCount();
 					dashViewerCount += diffCount;
 					broadcast.setDashViewerCount(dashViewerCount);
-					broadcastMap.replace(streamId, gson.toJson(broadcast));
+					setBroadcastToMap(broadcastMap, broadcast, streamId, gson);
 					result = true;
 				}
 			}
@@ -1374,9 +1326,7 @@ public abstract class DataStore {
 	 * @param id is the stream id
 	 * @return total number of detected objects
 	 */
-	public long getObjectDetectedTotal(String streamId) {
-		return getObjectDetectedTotal(null, streamId, null);
-	}
+	public abstract long getObjectDetectedTotal(String streamId);
 
 	public long getObjectDetectedTotal(Map<String, String> detectionMap, String streamId, Gson gson) {
 		List<TensorFlowObject> list = new ArrayList<>();
@@ -1428,7 +1378,7 @@ public abstract class DataStore {
 					}
 					if (webRTCViewerCount >= 0) {
 						broadcast.setWebRTCViewerCount(webRTCViewerCount);
-						broadcastMap.replace(streamId, gson.toJson(broadcast));
+						setBroadcastToMap(broadcastMap, broadcast, streamId, gson);
 						result = true;
 					}
 				}
@@ -1521,9 +1471,7 @@ public abstract class DataStore {
 	 * @param room - conference room
 	 * @return true if successfully created, false if not
 	 */
-	public boolean createConferenceRoom(ConferenceRoom room) {
-		return createConferenceRoom(null, room, null);
-	}
+	public abstract boolean createConferenceRoom(ConferenceRoom room);
 
 	public boolean createConferenceRoom(Map<String, String> conferenceRoomMap, ConferenceRoom room, Gson gson) {
 		synchronized (this) {
@@ -1544,9 +1492,7 @@ public abstract class DataStore {
 	 * @param room - conference room
 	 * @return true if successfully edited, false if not
 	 */
-	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
-		return editConferenceRoom(null, roomId, room, null);
-	}
+	public abstract boolean editConferenceRoom(String roomId, ConferenceRoom room);
 
 	public boolean editConferenceRoom(Map<String, String> conferenceRoomMap, String roomId, ConferenceRoom room, Gson gson) {
 		synchronized (this) {
@@ -1565,9 +1511,7 @@ public abstract class DataStore {
 	 * @param roomName- name of the conference room
 	 * @return true if successfully deleted, false if not
 	 */
-	public boolean deleteConferenceRoom(String roomId) {
-		return deleteConferenceRoom(null, roomId);
-	}
+	public abstract boolean deleteConferenceRoom(String roomId);
 
 	public boolean deleteConferenceRoom(Map<String, String> conferenceRoomMap, String roomId) {
 		synchronized (this) {
@@ -1587,9 +1531,7 @@ public abstract class DataStore {
 	 * @param roomName- name of the conference room
 	 * @return room - conference room
 	 */
-	public ConferenceRoom getConferenceRoom(String roomId) {
-		return getConferenceRoom(null, roomId, null);
-	}
+	public abstract ConferenceRoom getConferenceRoom(String roomId);
 
 	public ConferenceRoom getConferenceRoom(Map<String, String> conferenceRoomMap, String roomId, Gson gson) {
 		synchronized (this) {
@@ -1966,16 +1908,14 @@ public abstract class DataStore {
 	public boolean addSubTrack(Map<String, String> broadcastMap, String mainTrackId, String subTrackId, Gson gson) {
 		boolean result = false;
 		synchronized (this) {
-			
-			String json = broadcastMap.get(mainTrackId);
-			Broadcast mainTrack = gson.fromJson(json, Broadcast.class);
-			List<String> subTracks = mainTrack.getSubTrackStreamIds();
+			Broadcast broadcast = getBroadcastFromMap(broadcastMap, mainTrackId, gson);
+			List<String> subTracks = broadcast.getSubTrackStreamIds();
 			if (subTracks == null) {
 				subTracks = new ArrayList<>();
 			}
 			subTracks.add(subTrackId);
-			mainTrack.setSubTrackStreamIds(subTracks);
-			broadcastMap.replace(mainTrackId, gson.toJson(mainTrack));
+			broadcast.setSubTrackStreamIds(subTracks);
+			setBroadcastToMap(broadcastMap, broadcast, mainTrackId, gson);
 			result = true;
 		}
 
@@ -2115,9 +2055,7 @@ public abstract class DataStore {
 	 *
 	 * @param info information for the WebRTC Viewer
 	 */
-	public void saveViewerInfo(WebRTCViewerInfo info) {
-		saveViewerInfo(null, info, null);
-	}
+	public abstract void saveViewerInfo(WebRTCViewerInfo info);
 
 	public void saveViewerInfo(Map<String, String> webRTCViewerMap, WebRTCViewerInfo info, Gson gson) {
 		synchronized (this) {
@@ -2142,10 +2080,8 @@ public abstract class DataStore {
 	 *
 	 * @return list of webrtc viewers
 	 */
-	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
-			String search) {
-		return getWebRTCViewerList(null, offset, size, sortBy, orderBy, search, null);
-	}
+	public abstract List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
+			String search);
 
 	public List<WebRTCViewerInfo> getWebRTCViewerList(Map<String, String> webRTCViewerMap, int offset, int size, String sortBy, String orderBy,
 			String search, Gson gson) {
@@ -2171,9 +2107,7 @@ public abstract class DataStore {
 	 *
 	 * @param viewerId WebRTC Viewer Id
 	 */
-	public boolean deleteWebRTCViewerInfo(String viewerId) {
-		return deleteWebRTCViewerInfo(null, viewerId);
-	}
+	public abstract boolean deleteWebRTCViewerInfo(String viewerId);
 
 	public boolean deleteWebRTCViewerInfo(Map<String, String> webRTCViewerMap, String viewerId) {
 		synchronized (this) {
@@ -2193,16 +2127,11 @@ public abstract class DataStore {
 		boolean result = false;
 		synchronized (this) {
 			if (streamId != null) {
-
-				String jsonString = broadcastMap.get(streamId);
-				if (jsonString != null) {
-					Broadcast broadcast = gson.fromJson(jsonString, Broadcast.class);
+				Broadcast broadcast = getBroadcastFromMap(broadcastMap, streamId, gson);
+				if(broadcast != null) {
 					broadcast.setMetaData(metaData);
-					String jsonVal = gson.toJson(broadcast);
-					String previousValue = broadcastMap.replace(streamId, jsonVal);
+					setBroadcastToMap(broadcastMap, broadcast, streamId, gson);
 					result = true;
-					logger.debug("updateStatus replacing id {} having value {} to {}", streamId, previousValue,
-							jsonVal);
 				}
 			}
 		}
@@ -2214,10 +2143,23 @@ public abstract class DataStore {
 		String jsonString = null;
 
 		jsonString = broadcastMap.get(streamId);
-		
-		broadcast = gson.fromJson(jsonString, Broadcast.class);
-
+		if(jsonString != null) {
+			return gson.fromJson(jsonString, Broadcast.class);
+		}
 		return broadcast;
+	}
+	
+	public void setBroadcastToMap(Map<String, String> broadcastMap, Broadcast broadcast, String streamId, Gson gson){
+		
+		String jsonVal = gson.toJson(broadcast);
+		String previousValue = null;
+
+		previousValue = broadcastMap.replace(streamId, jsonVal);
+		
+		streamId = streamId.replaceAll(REPLACE_CHARS_REGEX, "_");
+		logger.debug("replacing id {} having value {} to {}", streamId,
+				previousValue, jsonVal);
+
 	}
 
 
