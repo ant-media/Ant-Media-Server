@@ -32,7 +32,7 @@ MONGODB_HOST=
 MONGODB_USERNAME=
 MONGODB_PASSWORD=
 
-while getopts g:s:r:m:h:u:p:t option
+while getopts g:s:r:m:h:u:p:x:y:z:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
@@ -42,6 +42,9 @@ do
     h) MONGODB_HOST=${OPTARG};;
     u) MONGODB_USERNAME=${OPTARG};;
     p) MONGODB_PASSWORD=${OPTARG};;
+    x) TURN_URL=${OPTARG};;
+    y) TURN_USERNAME=${OPTARG};;
+    z) TURN_PASSWORD=${OPTARG};;
    esac
 done
 
@@ -91,6 +94,13 @@ if [ ! -z "${SERVER_MODE}" ]; then
 fi
 ################################################
 
+# Turn server configuration.
+if [ ! -z "${TURN_URL}" ] || [ ! -z "${TURN_USERNAME}" ] || [ ! -z ${TURN_PASSWORD} ]; then
+  for applist in $LIST_APPS; do
+    echo -e "settings.webrtc.stunServerURI=turn:${TURN_URL}\nsettings.webrtc.turnServerUsername=${TURN_USERNAME}\n
+settings.webrtc.turnServerCredential=${TURN_PASSWORD}\n" >> $applist/WEB-INF/red5-web.properties
+done
+fi
 
 P=":" # The default classpath separator
 OS=`uname`
