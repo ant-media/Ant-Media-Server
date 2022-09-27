@@ -57,9 +57,11 @@ import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.plugin.api.IClusterStreamFetcher;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.plugin.api.IStreamListener;
+import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -142,6 +144,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected StorageClient storageClient;
 
 	protected ArrayList<IStreamListener> streamListeners = new ArrayList<>();
+	
+	IClusterStreamFetcher clusterStreamFetcher;
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -1485,14 +1489,24 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public void addPacketListener(String streamId, IPacketListener listener) {
+		boolean isAdded = false;
 		List<MuxAdaptor> muxAdaptors = getMuxAdaptors();
 		for (MuxAdaptor muxAdaptor : muxAdaptors) 
 		{
 			if (streamId.equals(muxAdaptor.getStreamId())) 
 			{
 				muxAdaptor.addPacketListener(listener);
+				isAdded = true;
 				break;
 			}
+		}
+		
+		if(!isAdded) {
+			if(clusterStreamFetcher == null) {
+				clusterStreamFetcher = createClusterStreamFetcher();
+			}
+			
+			clusterStreamFetcher.register(streamId, listener);
 		}
 	}
 
@@ -1575,6 +1589,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	
 	public void leftTheRoom(String roomId, String streamId) {
 		//No need to implement here. 
+	}
+	
+	public IClusterStreamFetcher createClusterStreamFetcher() {
+		return null;
 	}
 	
 }
