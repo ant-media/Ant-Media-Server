@@ -1829,7 +1829,8 @@ public abstract class RestServiceBase {
 		String vodId = null;
 		
 		RecordType recordType = null;
-		if (type == null || type.equals(RecordType.MP4.toString())) 
+		//type cannot be null
+		if (type.equals(RecordType.MP4.toString())) 
 		{
 			recordType = RecordType.MP4;
 		}
@@ -1881,8 +1882,8 @@ public abstract class RestServiceBase {
 							if (muxer == null) 
 							{
 								result = false;
-								logFailedOperation(enableRecording,streamId,(type.equals(RecordType.MP4.toString()))?RecordType.MP4:RecordType.WEBM);
-								message= type +" recording couldn't be " + status;
+								logFailedOperation(enableRecording, streamId, recordType);
+								message= recordType +" recording couldn't be " + status;
 							}
 						}
 						else 
