@@ -1664,6 +1664,7 @@ public class ConsoleAppRestServiceTest{
 
 				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
 				assertTrue(result.isSuccess());
+				assertNotNull(result.getDataId());
 
 				//it should be true this time, because stream mp4 setting is 1 although general setting is disabled
 
@@ -1710,9 +1711,6 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 
-
-
-
 			rtmpSendingProcess = execute(
 					ffmpegPath + " -re -i src/test/resources/test.flv -c copy -an -f flv rtmp://"
 							+ SERVER_ADDR + "/LiveApp/" + streamName);
@@ -1728,10 +1726,12 @@ public class ConsoleAppRestServiceTest{
 				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
 				assertTrue(result.isSuccess());
 				assertNotNull(result.getMessage());
+				assertNotNull(result.getDataId());
 				Thread.sleep(recordDuration);
 
 				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
 				assertTrue(result.isSuccess());
+				assertNotNull(result.getDataId());
 
 				//it should be true this time, because stream mp4 setting is 1 although general setting is disabled
 
@@ -1805,7 +1805,6 @@ public class ConsoleAppRestServiceTest{
 			result = RestServiceV2Test.callEnableMp4Muxing(broadcast2.getStreamId(), 1);
 
 			assertTrue(result.isSuccess());
-			assertNotNull(result.getDataId());
 
 			//send stream
 			rtmpSendingProcess = execute(ffmpegPath
@@ -1840,7 +1839,6 @@ public class ConsoleAppRestServiceTest{
 			//set stream spesific mp4 settings to false
 			result = RestServiceV2Test.callEnableMp4Muxing(broadcast3.getStreamId(), 0);
 			assertTrue(result.isSuccess());
-			assertNotNull(result.getDataId());
 
 
 			//send stream
