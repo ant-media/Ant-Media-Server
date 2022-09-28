@@ -1686,9 +1686,9 @@ public class BroadcastRestServiceV2UnitTest {
         MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
         when(mockMuxAdaptor.getMuxerList()).thenReturn(mockMuxers);
         
-        when(mockMuxAdaptor.startRecording(RecordType.MP4)).thenReturn(true);
+        when(mockMuxAdaptor.startRecording(RecordType.MP4)).thenReturn(Mockito.mock(Mp4Muxer.class));
         
-        when(mockMuxAdaptor.stopRecording(RecordType.MP4)).thenReturn(true);
+        when(mockMuxAdaptor.stopRecording(RecordType.MP4)).thenReturn(Mockito.mock(Mp4Muxer.class));
 
         ArrayList<MuxAdaptor> mockMuxAdaptors = new ArrayList<>();
         mockMuxAdaptors.add(mockMuxAdaptor);

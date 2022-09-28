@@ -1805,6 +1805,7 @@ public class ConsoleAppRestServiceTest{
 			result = RestServiceV2Test.callEnableMp4Muxing(broadcast2.getStreamId(), 1);
 
 			assertTrue(result.isSuccess());
+			assertNotNull(result.getDataId());
 
 			//send stream
 			rtmpSendingProcess = execute(ffmpegPath
@@ -1839,6 +1840,7 @@ public class ConsoleAppRestServiceTest{
 			//set stream spesific mp4 settings to false
 			result = RestServiceV2Test.callEnableMp4Muxing(broadcast3.getStreamId(), 0);
 			assertTrue(result.isSuccess());
+			assertNotNull(result.getDataId());
 
 
 			//send stream

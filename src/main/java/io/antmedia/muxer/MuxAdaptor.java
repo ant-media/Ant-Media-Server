@@ -1608,20 +1608,20 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * @param recordType
 	 * @return
 	 */
-	public boolean startRecording(RecordType recordType) {
+	public RecordMuxer startRecording(RecordType recordType) {
 
 		if (!isRecording.get()) {
 			logger.warn("Starting recording return false for stream:{} because stream is being prepared", streamId);
-			return false;
+			return null;
 		}
 
 		if(isAlreadyRecording(recordType)) {
 			logger.warn("Record is called while {} is already recording.", streamId);
-			return false;
+			return null;
 		}
 
 
-		Muxer muxer = null;
+		RecordMuxer muxer = null;
 		if(recordType == RecordType.MP4) {
 			Mp4Muxer mp4Muxer = createMp4Muxer();
 			muxer = mp4Muxer;
@@ -1636,11 +1636,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		boolean prepared = false;
 		if (muxer != null) {
 			prepared = prepareMuxer(muxer);
-			if (!prepared) {
+			if (prepared) {
+				return muxer;
+			}
+			else {
 				logger.error("{} prepare method returned false. Recording is not started for {}", recordType, streamId);
 			}
 		}
-		return prepared;
+		return null;
 	}
 
 
@@ -1715,17 +1718,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * @param recordType
 	 * @return
 	 */
-	public boolean stopRecording(RecordType recordType)
+	public RecordMuxer stopRecording(RecordType recordType)
 	{
-		boolean result = false;
 		Muxer muxer = findDynamicRecordMuxer(recordType);
 		if (muxer != null && recordType == RecordType.MP4)
 		{
 			muxerList.remove(muxer);
 			muxer.writeTrailer();
-			result = true;
+			return (RecordMuxer) muxer;
 		}
-		return result;
+		return null;
 	}
 
 	public ClientBroadcastStream getBroadcastStream() {

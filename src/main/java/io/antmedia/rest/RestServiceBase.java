@@ -1298,28 +1298,32 @@ public abstract class RestServiceBase {
 		return mp4Muxer;
 	}
 
-	protected boolean startRecord(String streamId, RecordType recordType) {
-		boolean result = false;
+	protected RecordMuxer startRecord(String streamId, RecordType recordType) {
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if (muxAdaptor != null) 
 		{
-			result = muxAdaptor.startRecording(recordType);
+			return muxAdaptor.startRecording(recordType);
 		}
 
-		return result;
+		return null;
 	}
 
-	protected boolean stopRecord(String streamId, RecordType recordType) 
+	/**
+	 * 
+	 * @param streamId
+	 * @param recordType
+	 * @return
+	 */
+	protected @Nullable RecordMuxer stopRecord(String streamId, RecordType recordType) 
 	{
-		boolean result = false;
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 
 		if (muxAdaptor != null) 
 		{
-			result = muxAdaptor.stopRecording(recordType);
+			return muxAdaptor.stopRecording(recordType);
 		}
 
-		return result;
+		return null;
 	}
 
 	protected BroadcastStatistics getBroadcastStatistics(String id) {
@@ -1817,69 +1821,85 @@ public abstract class RestServiceBase {
 		return id;
 	}
 
-	public Result enableRecordMuxing(String streamId, boolean enableRecording, String  type ) {
+	public Result enableRecordMuxing(String streamId, boolean enableRecording, String type ) 
+	{
 		boolean result = false;
 		String message = null;
 		String status = (enableRecording)?"started":"stopped"; 
-		if (streamId != null) 
+		String vodId = null;
+		
+		RecordType recordType = null;
+		
+		if (type.equals(RecordType.WEBM.toString())) 
 		{
-			
+			recordType = RecordType.WEBM;
+		}
+		else if (type.equals(RecordType.MP4.toString())) 
+		{
+			recordType = RecordType.MP4;
+		}
+		
+		if (streamId != null && recordType != null) 
+		{
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) 
 			{
-				if ( (type.equals(RecordType.WEBM.toString()) && (enableRecording && broadcast.getWebMEnabled() != RECORD_ENABLE )  ||
+				if ( (recordType == RecordType.WEBM && (enableRecording && broadcast.getWebMEnabled() != RECORD_ENABLE )  ||
 						( !enableRecording && broadcast.getWebMEnabled() != RECORD_DISABLE))
 						|| 							
-						( type.equals(RecordType.MP4.toString()) && (enableRecording && broadcast.getMp4Enabled() != RECORD_ENABLE ) ||
+						( recordType == RecordType.MP4  && (enableRecording && broadcast.getMp4Enabled() != RECORD_ENABLE ) ||
 								( !enableRecording && broadcast.getMp4Enabled() != RECORD_DISABLE))
 						)
 				{
 					result = true;
+					RecordMuxer muxer = null;
 					//if it's not enabled, start it
 					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 					{	
-						if (isInSameNodeInCluster(broadcast.getOriginAdress())) {
-							if(enableRecording && type.equals(RecordType.WEBM.toString())) {
-								result = startRecord(streamId, RecordType.WEBM);
-							}
-							else if(!enableRecording && type.equals(RecordType.WEBM.toString())) {
-								result = stopRecord(streamId, RecordType.WEBM);
-							}
-							else if (enableRecording && type.equals(RecordType.MP4.toString())) {
-								result = startRecord(streamId, RecordType.MP4);
-							}
-							else if(!enableRecording && type.equals(RecordType.MP4.toString())){
-								result = stopRecord(streamId, RecordType.MP4);
-							}
-							//Check process status result
-							if (result) 
+						if (isInSameNodeInCluster(broadcast.getOriginAdress())) 
+						{
+							if (enableRecording) 
 							{
-								message=Long.toString(System.currentTimeMillis());
+								muxer = startRecord(streamId, recordType);
+								vodId = RandomStringUtils.randomAlphanumeric(24);
+								muxer.setVodId(vodId);
+							}
+							else 
+							{
+								muxer = stopRecord(streamId, recordType);
+								vodId = muxer.getVodId();
+							}
+							
+							//Check process status result
+							if (muxer != null) 
+							{
+								message = Long.toString(System.currentTimeMillis());
 								logger.warn("{} recording is {} for stream: {}", type,status,streamId);
 							}
 							else
 							{
+								result = false;
 								logFailedOperation(enableRecording,streamId,(type.equals(RecordType.MP4.toString()))?RecordType.MP4:RecordType.WEBM);
 								message= type +" recording couldn't be " + status;
 							}
 						}
-						else {
+						else 
+						{
 							message="Please send " + type + " recording request to " + broadcast.getOriginAdress() + " node or send request in a stopped status.";
 							result = false;
 						}
 					}
 					// If record process works well then change record status in DB
-					if(result && enableRecording && type.equals(RecordType.WEBM.toString())) {
-						result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
-					}
-					else if(result && enableRecording && type.equals(RecordType.MP4.toString())) {
-						result = getDataStore().setMp4Muxing(streamId, RECORD_ENABLE);
-					}
-					else if(result && !enableRecording &&  type.equals(RecordType.WEBM.toString())) {
-						result = getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
-					}
-					else if(result && !enableRecording &&  type.equals(RecordType.MP4.toString())) {
-						result = getDataStore().setMp4Muxing(streamId, RECORD_DISABLE);
+					if (result) 
+					{
+						if (recordType == RecordType.WEBM) 
+						{
+							result = getDataStore().setWebMMuxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+						}
+						else if (recordType == RecordType.MP4) 
+						{
+							result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+						}
 					}
 				}
 				else
@@ -1890,10 +1910,10 @@ public abstract class RestServiceBase {
 		}
 		else 
 		{
-			message = "No stream for this id: " + streamId + " or wrong setting parameter";
+			message = "No stream for this id: " + streamId + " or unexpected record type. Record type is "+ recordType;
 		}
 
-		return new Result(result, message);
+		return new Result(result, vodId, message);
 	}
 
 }
