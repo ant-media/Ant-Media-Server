@@ -70,6 +70,7 @@ before_install:
      fi)
   - cd ManagementConsole_AngularApp
   - npm install
+  - export NODE_OPTIONS=--openssl-legacy-provider
   - ng build --prod
   - cp -a ./dist/. ../src/main/server/webapps/root/
   - cd ..
