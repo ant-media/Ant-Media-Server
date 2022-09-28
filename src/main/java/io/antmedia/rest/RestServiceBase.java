@@ -1829,15 +1829,15 @@ public abstract class RestServiceBase {
 		String vodId = null;
 		
 		RecordType recordType = null;
-		
-		if (type.equals(RecordType.WEBM.toString())) 
-		{
-			recordType = RecordType.WEBM;
-		}
-		else if (type.equals(RecordType.MP4.toString())) 
+		if (type == null || type.equals(RecordType.MP4.toString())) 
 		{
 			recordType = RecordType.MP4;
 		}
+		else if (type != null && type.equals(RecordType.WEBM.toString())) 
+		{
+			recordType = RecordType.WEBM;
+		}
+		
 		
 		if (streamId != null && recordType != null) 
 		{
@@ -1862,21 +1862,23 @@ public abstract class RestServiceBase {
 							{
 								muxer = startRecord(streamId, recordType);
 								vodId = RandomStringUtils.randomAlphanumeric(24);
-								muxer.setVodId(vodId);
+								if (muxer != null) {
+									muxer.setVodId(vodId);
+									message = Long.toString(System.currentTimeMillis());
+									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
+								}
+								
 							}
 							else 
 							{
 								muxer = stopRecord(streamId, recordType);
-								vodId = muxer.getVodId();
+								if (muxer != null) {
+									vodId = muxer.getVodId();
+								}
 							}
 							
 							//Check process status result
-							if (muxer != null) 
-							{
-								message = Long.toString(System.currentTimeMillis());
-								logger.warn("{} recording is {} for stream: {}", type,status,streamId);
-							}
-							else
+							if (muxer == null) 
 							{
 								result = false;
 								logFailedOperation(enableRecording,streamId,(type.equals(RecordType.MP4.toString()))?RecordType.MP4:RecordType.WEBM);
