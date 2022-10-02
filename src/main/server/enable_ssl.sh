@@ -10,7 +10,7 @@ domain=""
 password=
 renew_flag='false'
 
-while getopts i:d:v:p:e:f:rc: option
+while getopts i:d:v:p:e:s:f:rc: option
 do
   case "${option}" in
     f) FULL_CHAIN_FILE=${OPTARG};;
@@ -21,6 +21,7 @@ do
     v) dns_validate=${OPTARG};;
     r) renew_flag='true';;
     e) email=${OPTARG};;
+    s) freessl='true';;
    esac
 done
 
@@ -135,6 +136,20 @@ if [ ! -d "$INSTALL_DIRECTORY" ]; then
   exit 1
 fi
 
+freessl(){
+  env=$(<.env)
+  hostname="ams-$RANDOM"
+  ip=`curl http://checkip.amazonaws.com`
+  curl -X POST -H "x-api-key: $env" -H "Content-Type: application/json" "https://emgwmames0.execute-api.eu-central-1.amazonaws.com/ams/create?domain=$hostname&ip=$ip"
+  while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
+    now=$(date +"%H:%M:%S")
+    echo "$now > Please wait: dns failure"
+    sleep 10
+  done
+  domain="$hostname"".antmedia.cloud"
+  echo "Dns success, installing the ssl certificate."
+}
+
 get_new_certificate(){
 
   if [ "$fullChainFileExist" == false ]; then
@@ -164,6 +179,9 @@ get_new_certificate(){
         $SUDO certbot certonly --dns-route53 --agree-tos --register-unsafely-without-email -d $domain
       elif [ "$dns_validate" == "custom" ]; then
         $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
+      elif [ "$freessl" == "true" ]; then
+        freessl
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
       else
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
       fi
@@ -226,6 +244,10 @@ auth_tomcat(){
   TRUST_STORE=$TEMP_DIR/truststore.jks
 
   CER_FILE=$INSTALL_DIRECTORY/$domain/tomcat.cer
+
+  if [ "$freessl" == "true" ]; then
+    password=$domain
+  fi
 
   $SUDO openssl pkcs12 -export \
       -in $FULL_CHAIN_FILE \
@@ -326,12 +348,15 @@ generate_password(){
 
 check_domain_name(){
     #check domain name exists
-    if [ -z "$domain" ]; then
-    echo "Missing parameter. Domain name is not set"
-    usage
-    exit 1
+    if [ "$freessl" == "true" ]; then
+            continue
+    elif [ -z "$domain" ]; then
+        echo "Missing parameter. Domain name is not set"
+        usage
+        exit 1
     fi
 }
+
 
 #check domain name
 check_domain_name
