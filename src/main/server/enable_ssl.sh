@@ -21,7 +21,7 @@ do
     v) dns_validate=${OPTARG};;
     r) renew_flag='true';;
     e) email=${OPTARG};;
-    s) freessl='true';;
+    s) freedomain='true';;
    esac
 done
 
@@ -136,7 +136,7 @@ if [ ! -d "$INSTALL_DIRECTORY" ]; then
   exit 1
 fi
 
-freessl(){
+freedomain(){
   env=$(<.env)
   hostname="ams-$RANDOM"
   ip=`curl http://checkip.amazonaws.com`
@@ -179,8 +179,8 @@ get_new_certificate(){
         $SUDO certbot certonly --dns-route53 --agree-tos --register-unsafely-without-email -d $domain
       elif [ "$dns_validate" == "custom" ]; then
         $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
-      elif [ "$freessl" == "true" ]; then
-        freessl
+      elif [ "$freedomain" == "true" ]; then
+        freedomain
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
       else
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
@@ -245,7 +245,7 @@ auth_tomcat(){
 
   CER_FILE=$INSTALL_DIRECTORY/$domain/tomcat.cer
 
-  if [ "$freessl" == "true" ]; then
+  if [ "$freedomain" == "true" ]; then
     password=$domain
   fi
 
@@ -348,7 +348,7 @@ generate_password(){
 
 check_domain_name(){
     #check domain name exists
-    if [ "$freessl" == "true" ]; then
+    if [ "$freedomain" == "true" ]; then
             continue
     elif [ -z "$domain" ]; then
         echo "Missing parameter. Domain name is not set"
