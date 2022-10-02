@@ -191,6 +191,8 @@ get_new_certificate(){
         $SUDO certbot certonly --dns-route53 --agree-tos --email $email -d $domain
       elif [ "$dns_validate" == "custom" ]; then
         $SUDO certbot --agree-tos --email $email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
+      elif [ "$freedomain" == "true" ]; then
+        freedomain
       else
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
       fi
