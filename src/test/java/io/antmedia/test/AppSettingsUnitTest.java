@@ -19,6 +19,7 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Queue;
 
 import org.apache.catalina.util.NetMask;
 import org.junit.Test;
@@ -73,7 +74,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setForceAspectRatioInTranscoding(false);
 		assertEquals(false, appSettings.isForceAspectRatioInTranscoding());
 		
-		List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
+		Queue<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
 		System.out.println("allowedCIDRList ->" + allowedCIDRList.size());
 		
 		assertEquals("%r%b",appSettings.getFileNameFormat());
@@ -429,7 +430,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("127.0.0.1", appSettings.getRemoteAllowedCIDR());
 		assertEquals(false, appSettings.isWebMMuxingEnabled());
 		assertEquals(null, appSettings.getEncoderSettingsString());
-		assertEquals("127.0.0.1", appSettings.getAllowedCIDRList().get(0).toString());
+		assertEquals("127.0.0.1", appSettings.getAllowedCIDRList().poll().toString());
 		assertEquals(false, appSettings.isUseOriginalWebRTCEnabled());
 		assertEquals(5000, appSettings.getCreatePreviewPeriod());
 		assertEquals("stun:stun1.l.google.com:19302", appSettings.getStunServerURI());

@@ -1638,10 +1638,11 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	public static boolean deleteConferenceRoom(String roomName, DataStore store) {
+	public static boolean deleteConferenceRoom(String roomId, DataStore store) {
 
-		if(roomName != null) {
-			return store.deleteConferenceRoom(roomName);
+		if(roomId != null) {
+			logger.info("Deleting conference room:{} from database ", roomId);
+			return store.deleteConferenceRoom(roomId);
 		}
 		return false;
 	}
@@ -1800,6 +1801,7 @@ public abstract class RestServiceBase {
 					roomStreamList.remove(streamId);
 					conferenceRoom.setRoomStreamList(roomStreamList);
 					store.editConferenceRoom(roomId, conferenceRoom);
+					logger.info("stream:{} is removed from room:{}", streamId, roomId);
 					return true;
 				}
 			}
