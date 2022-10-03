@@ -1783,7 +1783,7 @@ public abstract class RestServiceBase {
 	}
 
 
-	public static boolean removeStreamFromRoom(String roomId, String streamId,DataStore store)
+	public static synchronized boolean removeStreamFromRoom(String roomId, String streamId,DataStore store)
 	{
 		if (roomId != null)
 		{
@@ -1801,7 +1801,7 @@ public abstract class RestServiceBase {
 					roomStreamList.remove(streamId);
 					conferenceRoom.setRoomStreamList(roomStreamList);
 					store.editConferenceRoom(roomId, conferenceRoom);
-					logger.info("stream:{} is removed from room:{}", streamId, roomId);
+					logger.info("stream:{} is removed from room:{} ", streamId, roomId);
 					return true;
 				}
 			}

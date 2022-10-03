@@ -1102,7 +1102,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteStreamFromTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
 			@ApiParam(value="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId){
-		boolean result = BroadcastRestService.removeStreamFromRoom(roomId,streamId,getDataStore());
+		boolean result = RestServiceBase.removeStreamFromRoom(roomId,streamId,getDataStore());
 		if(result) {
 			getApplication().leftTheRoom(roomId, streamId);
 		}
