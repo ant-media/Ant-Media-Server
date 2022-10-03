@@ -84,6 +84,10 @@ for i in $LIST_APPS; do
 done
 ################################################
 
+if [ ! -z "$MONGODB_USERNAME" ] && [ ! -z "$MONGODB_PASSWORD" ]; then
+  echo -e "\033[0;31mSince we will use DNS Seed List Connection Format instead of the standard connection string, the username and password will be deprecated after a while.\033[0m"
+fi
+
 ################################################
 # Set server mode cluster or standalone. Below method is available is functions.sh
 if [ ! -z "${SERVER_MODE}" ]; then
