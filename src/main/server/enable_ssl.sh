@@ -149,6 +149,7 @@ freedomain(){
     done
     domain="$hostname"".antmedia.cloud"
     echo "Dns success, installing the ssl certificate."
+    freedomain="true"
   else
     domain=`cat $INSTALL_DIRECTORY/conf/red5.properties |egrep "ams-[0-9]*.antmedia.cloud" -o | uniq`
   fi
@@ -197,6 +198,7 @@ get_new_certificate(){
         $SUDO certbot --agree-tos --email $email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
       elif [ "$freedomain" == "true" ]; then
         freedomain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
       else
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
       fi
