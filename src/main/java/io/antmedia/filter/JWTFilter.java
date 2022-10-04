@@ -45,7 +45,7 @@ public class JWTFilter extends AbstractFilter {
 			return;
 		}
 
-		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid JWT Token");
+		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid App JWT Token");
 	}
 
 	private boolean checkJWT( String jwtString) {

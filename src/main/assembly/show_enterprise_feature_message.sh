@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#This is a simple script just edit css file to show messae in community
+#This is a simple script just edit css file to show message in community
 
 APP_PATH=$1
 
