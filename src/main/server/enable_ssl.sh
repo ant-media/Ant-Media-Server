@@ -139,7 +139,7 @@ fi
 freedomain(){
   env=$(<.env)
   hostname="ams-$RANDOM"
-  if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"` == "0" ]; then
+  if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then
     ip=`curl http://checkip.amazonaws.com`
     curl -X POST -H "x-api-key: $env" -H "Content-Type: application/json" "https://emgwmames0.execute-api.eu-central-1.amazonaws.com/ams/create?domain=$hostname&ip=$ip"
     while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
