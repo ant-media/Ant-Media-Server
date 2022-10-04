@@ -9,8 +9,9 @@ CHAIN_FILE=
 domain=""
 password=
 renew_flag='false'
+freedomain=""
 
-while getopts i:d:v:p:e:s:f:rc: option
+while getopts i:d:v:p:e:f:rc: option
 do
   case "${option}" in
     f) FULL_CHAIN_FILE=${OPTARG};;
@@ -21,7 +22,6 @@ do
     v) dns_validate=${OPTARG};;
     r) renew_flag='true';;
     e) email=${OPTARG};;
-    s) freedomain='true';;
    esac
 done
 
@@ -247,10 +247,6 @@ auth_tomcat(){
 
   CER_FILE=$INSTALL_DIRECTORY/$domain/tomcat.cer
 
-  if [ "$freedomain" == "true" ]; then
-    password=$domain
-  fi
-
   $SUDO openssl pkcs12 -export \
       -in $FULL_CHAIN_FILE \
       -inkey $PRIVATE_KEY_FILE \
@@ -349,13 +345,8 @@ generate_password(){
 }
 
 check_domain_name(){
-    #check domain name exists
-    if [ "$freedomain" == "true" ]; then
-            continue
-    elif [ -z "$domain" ]; then
-        echo "Missing parameter. Domain name is not set"
-        usage
-        exit 1
+    if [ -z "$domain" ]; then
+      freedomain
     fi
 }
 
