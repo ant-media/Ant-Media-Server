@@ -73,6 +73,7 @@ import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.plugin.api.IClusterStreamFetcher;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -478,7 +479,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		assertFalse(f.exists());
 
-		adapter.muxingFinished("streamId", anyFile, 0, 100, 480, "src/test/resources/preview.png");
+		adapter.muxingFinished("streamId", anyFile, 0, 100, 480, "src/test/resources/preview.png", null);
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
 
@@ -513,7 +514,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			assertFalse(f.exists());
 
-			adapter.muxingFinished("streamId", anyFile, 0, 100, 480, null);
+			adapter.muxingFinished("streamId", anyFile, 0, 100, 480, null, null);
 
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> f.exists());
 
@@ -531,7 +532,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			assertFalse(f.exists());
 
-			adapter.muxingFinished("streamId", anyFile, 0, 100, 480, "");
+			adapter.muxingFinished("streamId", anyFile, 0, 100, 480, "", null);
 
 			Awaitility.await().pollDelay(3, TimeUnit.SECONDS).atMost(4, TimeUnit.SECONDS).until(()-> !f.exists());
 		}
@@ -859,7 +860,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null);
+		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);
 
 		//verify that notifyHook is never called
 		verify(spyAdaptor, never()).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
@@ -881,7 +882,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.updateBroadcastFields(streamId, broadcast);
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null);
+		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -915,7 +916,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.delete(streamId);
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null);
+		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -944,7 +945,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		appSettings.setListenerHookURL("listenerHookURL");
 
 		//call muxingFinished function
-		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null);
+		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -1722,6 +1723,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		MuxAdaptor mockAdaptor = mock(MuxAdaptor.class);
 		String streamId = "stream_"+RandomUtils.nextInt(0, 1000);
 		
+		
 		MuxAdaptor mockAdaptor2 = mock(MuxAdaptor.class);
 
 		
@@ -1733,7 +1735,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(mockAdaptor2.getStreamId()).thenReturn("dummy");
 		when(mockAdaptor.getStreamId()).thenReturn(streamId);
 
+		IClusterStreamFetcher clusterStreamFetcher = mock(IClusterStreamFetcher.class);
 		doReturn(muxAdaptors).when(spyAdapter).getMuxAdaptors();
+		doReturn(clusterStreamFetcher).when(spyAdapter).createClusterStreamFetcher();
 		
 		
 		IPacketListener listener = mock(IPacketListener.class);
@@ -1743,8 +1747,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		spyAdapter.removePacketListener(streamId, listener);
 		verify(mockAdaptor, times(1)).removePacketListener(listener);
-
-	
+		
+		String nonExistingStreamId = "stream_"+RandomUtils.nextInt(0, 1000);
+		spyAdapter.addPacketListener(nonExistingStreamId, listener);
+		verify(clusterStreamFetcher, times(1)).register(nonExistingStreamId, listener);
 	}
 
 	@Test

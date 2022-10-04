@@ -57,9 +57,11 @@ import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.plugin.api.IClusterStreamFetcher;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.plugin.api.IStreamListener;
+import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -142,6 +144,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected StorageClient storageClient;
 
 	protected ArrayList<IStreamListener> streamListeners = new ArrayList<>();
+	
+	IClusterStreamFetcher clusterStreamFetcher;
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -526,7 +530,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}	
 
 	@Override
-	public void muxingFinished(final String streamId, File file, long startTime, long duration, int resolution, String previewFilePath) {
+	public void muxingFinished(final String streamId, File file, long startTime, long duration, int resolution, String previewFilePath, String vodId) {
 		String vodName = file.getName();
 		String filePath = file.getPath();
 		long fileSize = file.length();
@@ -551,8 +555,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			listenerHookURL = appSettings.getListenerHookURL();
 		}
 
-		String vodId = RandomStringUtils.randomNumeric(24);
-		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodId, previewFilePath);
+		String vodIdFinal;
+		if (vodId != null) {
+			vodIdFinal = vodId;
+		}
+		else {
+			vodIdFinal = RandomStringUtils.randomAlphanumeric(24);
+		}
+		
+		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodIdFinal, previewFilePath);
 
 		if (getDataStore().addVod(newVod) == null) {
 			logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
@@ -568,7 +579,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			final String baseName = vodName.substring(0, index);
 			String finalListenerHookURL = listenerHookURL;
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			vertx.runOnContext(e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId, null));
+			vertx.runOnContext(e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodIdFinal, null));
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
@@ -1485,14 +1496,24 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public void addPacketListener(String streamId, IPacketListener listener) {
+		boolean isAdded = false;
 		List<MuxAdaptor> muxAdaptors = getMuxAdaptors();
 		for (MuxAdaptor muxAdaptor : muxAdaptors) 
 		{
 			if (streamId.equals(muxAdaptor.getStreamId())) 
 			{
 				muxAdaptor.addPacketListener(listener);
+				isAdded = true;
 				break;
 			}
+		}
+		
+		if(!isAdded) {
+			if(clusterStreamFetcher == null) {
+				clusterStreamFetcher = createClusterStreamFetcher();
+			}
+			
+			clusterStreamFetcher.register(streamId, listener);
 		}
 	}
 
@@ -1575,6 +1596,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	
 	public void leftTheRoom(String roomId, String streamId) {
 		//No need to implement here. 
+	}
+	
+	public IClusterStreamFetcher createClusterStreamFetcher() {
+		return null;
 	}
 	
 }
