@@ -32,7 +32,7 @@ MONGODB_HOST=
 MONGODB_USERNAME=
 MONGODB_PASSWORD=
 
-while getopts g:s:r:m:h:u:p:t:n:w:t option
+while getopts g:s:r:m:h:u:p:a:n:w:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
@@ -42,7 +42,7 @@ do
     h) MONGODB_HOST=${OPTARG};;
     u) MONGODB_USERNAME=${OPTARG};;
     p) MONGODB_PASSWORD=${OPTARG};;
-    t) TURN_URL=${OPTARG};;
+    a) TURN_URL=${OPTARG};;
     n) TURN_USERNAME=${OPTARG};;
     w) TURN_PASSWORD=${OPTARG};;
    esac
