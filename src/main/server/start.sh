@@ -31,8 +31,9 @@ SERVER_MODE=
 MONGODB_HOST=
 MONGODB_USERNAME=
 MONGODB_PASSWORD=
+LICENSE_KEY=
 
-while getopts g:s:r:m:h:u:p:t option
+while getopts g:s:r:m:h:u:p:l:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
@@ -42,6 +43,7 @@ do
     h) MONGODB_HOST=${OPTARG};;
     u) MONGODB_USERNAME=${OPTARG};;
     p) MONGODB_PASSWORD=${OPTARG};;
+    l) LICENSE_KEY=${OPTARG};;
    esac
 done
 
@@ -90,6 +92,10 @@ if [ ! -z "${SERVER_MODE}" ]; then
   change_server_mode $SERVER_MODE $MONGODB_HOST $MONGODB_USERNAME $MONGODB_PASSWORD
 fi
 ################################################
+# set the license key
+if [ ! -z "${LICENSE_KEY}" ]; then
+  sed -i $SED_COMPATIBILITY 's/server.licence_key=.*/server.licence_key='$LICENSE_KEY'/' $RED5_HOME/conf/red5.properties
+fi
 
 
 P=":" # The default classpath separator
