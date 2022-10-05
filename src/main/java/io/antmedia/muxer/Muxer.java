@@ -101,6 +101,8 @@ import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
  */
 public abstract class Muxer {
 
+	private long currentVoDTimeStamp = 0;
+
 	protected String extension;
 	protected String format;
 	protected boolean isInitialized = false;
@@ -582,6 +584,7 @@ public abstract class Muxer {
 		if (addDateTimeToResourceName) 
 		{
 			LocalDateTime ldt =  LocalDateTime.now();
+			currentVoDTimeStamp = System.currentTimeMillis();
 			resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
 			if (logger.isInfoEnabled()) {
 				logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
@@ -1109,5 +1112,12 @@ public abstract class Muxer {
 		return isRunning;
 	}
 	
+	public long getCurrentVoDTimeStamp() {
+		return currentVoDTimeStamp;
+	}
+
+	public void setCurrentVoDTimeStamp(long currentVoDTimeStamp) {
+		this.currentVoDTimeStamp = currentVoDTimeStamp;
+	}
 	
 }
