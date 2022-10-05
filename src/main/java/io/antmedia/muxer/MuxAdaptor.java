@@ -244,7 +244,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	protected PacketFeeder packetFeeder;
 
-
 	private static final int COUNT_TO_LOG_BUFFER = 500;
 
 	static {
@@ -252,6 +251,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		TIME_BASE_FOR_MS.num(1);
 		TIME_BASE_FOR_MS.den(1000);
 	}
+	
+	private AVRational videoTimeBase = TIME_BASE_FOR_MS;
+	private AVRational audioTimeBase = TIME_BASE_FOR_MS;
 
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, boolean isSource, IScope scope) {
 		MuxAdaptor muxAdaptor = null;
@@ -2087,11 +2089,20 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public AVRational getVideoTimeBase() {
-		return TIME_BASE_FOR_MS;
+		return videoTimeBase;
 	}
 
 	public AVRational getAudioTimeBase() {
-		return TIME_BASE_FOR_MS;
+		return audioTimeBase;
+	}
+	
+	public void setVideoTimeBase(AVRational videoTimeBase) {
+		this.videoTimeBase = videoTimeBase;
+	}
+
+
+	public void setAudioTimeBase(AVRational audioTimeBase) {
+		this.audioTimeBase = audioTimeBase;
 	}
 
 	public Vertx getVertx() {
