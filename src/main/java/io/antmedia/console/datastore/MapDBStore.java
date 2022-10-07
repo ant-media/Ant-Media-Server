@@ -1,9 +1,12 @@
 package io.antmedia.console.datastore;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import io.antmedia.datastore.db.types.User;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.HTreeMap;
@@ -36,37 +39,138 @@ public class MapDBStore extends AbstractConsoleDataStore {
 
 	 @Override
 	public boolean addUser(User user) {
-		return super.addUser(userMap, user, gson);
+			synchronized (this) {
+				boolean result = false;
+				try {
+								
+					if(userMap != null && userMap.get(user.getEmail()) == null) { 
+						userMap.put(user.getEmail(), gson.toJson(user));
+						result = true;
+					}
+					else {
+						logger.warn("user with {} already exist", user.getEmail());
+					}
+				}
+				catch (Exception e) {
+					logger.error("Add user error:{} trace:{}", user.getEmail(), ExceptionUtils.getStackTrace(e));
+					result = false;
+				}
+
+			return result;
+			}
 	}
 
 	@Override
 	public boolean editUser(User user) {
-		return super.editUser(userMap, user, gson);
+		synchronized (this) {
+			boolean result = false;
+			try {
+				String username = user.getEmail();
+				
+				if(userMap != null && !userMap.get(username).isEmpty()) { 
+					userMap.put(username, gson.toJson(user));
+					result = true;
+				}
+			}
+			catch (Exception e) {
+				logger.error("Edit user error:{} trace:{}", user.getEmail(), ExceptionUtils.getStackTrace(e));
+				result = false;
+			}
+			return result;
+		}
 	}
 
 	@Override
 	public boolean deleteUser(String username) {
-		return super.deleteUser(userMap, username);
+		synchronized (this) {
+			boolean result = false;
+			if (username != null) {
+				try {
+					
+					if(userMap != null && userMap.containsKey(username)) {
+						userMap.remove(username);
+						result = true;
+					}
+				}
+				catch (Exception e) {
+					logger.error("Delete user error:{} trace:{}", username, ExceptionUtils.getStackTrace(e));
+					result = false;
+				}
+			}
+			return result;
+		}
 	}
 
 	@Override
 	public boolean doesUsernameExist(String username) {
-		return super.doesUsernameExist(userMap, username);
+		synchronized (this) {
+			return userMap.containsKey(username);
+		}
 	}
 
 	@Override
 	public boolean doesUserExist(String username, String password) {
-		return super.doesUserExist(userMap, username, password, gson);
+		synchronized (this) {
+			boolean result = false;
+			if (username != null && password != null) {
+				try {					
+					if (userMap.containsKey(username)) {
+						
+						String value = userMap.get(username);
+						User user = gson.fromJson(value, User.class);
+						if (user.getPassword().equals(password)) {
+							result = true;
+						}
+					}
+				}
+				catch (Exception e) {
+					logger.error("Does not exist user error:{} trace:{}", username, ExceptionUtils.getStackTrace(e));
+				}
+			}
+			return result;
+		}
 	}
 	
 	@Override
 	public List<User> getUserList(){
-		return super.getUserList(userMap, gson);
+		ArrayList<User> list = new ArrayList<>();
+		synchronized (this) {
+			
+			Collection<String> users = null;
+			
+			if(userMap != null) { 
+				users = userMap.values();
+			}
+			
+			for (String userString : users) {
+				User user = gson.fromJson(userString, User.class);
+				list.add(user);
+			}
+		}
+		return list;
 	}
 
 	@Override
 	public User getUser(String username) {
-		return super.getUser(userMap, username, gson);
+		synchronized (this) {
+			if (username != null)  {
+				try {
+					
+					String user = null;
+					
+					if(userMap != null) { 
+						user = userMap.get(username);
+					}
+					
+					return gson.fromJson(user, User.class);
+					
+				}
+				catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+			return null;
+		}
 	}
 
 	public void clear() {
@@ -85,7 +189,9 @@ public class MapDBStore extends AbstractConsoleDataStore {
 
 	@Override
 	public int getNumberOfUserRecords() {
-		return super.getNumberOfUserRecords(userMap);
+		synchronized (this) {
+			return userMap.size();
+		}
 	}
 
 	/**
