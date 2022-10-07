@@ -1362,7 +1362,7 @@ public class AppSettings {
 	 * Add the original hls stream to the playlist if adaptive bitrate setting is enabled
 	 */
 	@Value("${" + SETTINGS_ADD_ORIGINAL_MUXER_INTO_HLS_PLAYLIST+ ":true}")
-	private boolean addOriginalMuxerIntoHLSPlaylist;
+	private boolean addOriginalMuxerIntoHLSPlaylist = true;
 
 	/**
 	 * Application JWT Control Enabled
