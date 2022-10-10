@@ -1836,7 +1836,7 @@ public abstract class RestServiceBase {
 		{
 			recordType = RecordType.MP4;
 		}
-		else if (type != null && type.equals(RecordType.WEBM.toString())) 
+		else if (type.equals(RecordType.WEBM.toString())) 
 		{
 			recordType = RecordType.WEBM;
 		}
@@ -1864,10 +1864,10 @@ public abstract class RestServiceBase {
 							if (enableRecording) 
 							{
 								muxer = startRecord(streamId, recordType);
-								vodId = RandomStringUtils.randomAlphanumeric(24);
 								if (muxer != null) {
+									vodId = RandomStringUtils.randomAlphanumeric(24);
 									muxer.setVodId(vodId);
-									message = Long.toString(System.currentTimeMillis());
+									message = Long.toString(muxer.getCurrentVoDTimeStamp());
 									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
 								}
 								
@@ -1877,6 +1877,7 @@ public abstract class RestServiceBase {
 								muxer = stopRecord(streamId, recordType);
 								if (muxer != null) {
 									vodId = muxer.getVodId();
+									message = Long.toString(muxer.getCurrentVoDTimeStamp());
 								}
 							}
 							
