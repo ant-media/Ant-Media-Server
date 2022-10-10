@@ -10,11 +10,11 @@
 # -m: Server mode. It can be standalone or cluster. If cluster mode is specified then mongodb host, username and password should also be provided.
 #     There is no default value for mode
 #
-# -h: MongoDB host
+# -h: MongoDB host. It's either IP address or full connection string such as mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1]
 #
-# -u: MongoDB username
+# -u: MongoDB username: Deprecated. Just give the username in the connection string with -h parameter
 #
-# -p: MongoDB password
+# -p: MongoDB password: Deprecated. Just give the password in the connection string with -h parameter
 
 if [ -z "$RED5_HOME" ]; then 
   BASEDIR=$(dirname "$0")
@@ -83,6 +83,10 @@ for i in $LIST_APPS; do
   replaceCandidateAddressWithServer $i/WEB-INF/red5-web.properties $REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME
 done
 ################################################
+
+if [ ! -z "$MONGODB_USERNAME" ] && [ ! -z "$MONGODB_PASSWORD" ]; then
+  echo -e "\033[0;31mYou can just use mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1] connection strings with -h parameter. No need give mongodb username and password parameters explicityly. These parameters are deprecated.\033[0m"
+fi
 
 ################################################
 # Set server mode cluster or standalone. Below method is available is functions.sh
