@@ -293,6 +293,8 @@ public class AppSettings {
 
 	private static final String SETTINGS_FORCE_DECODING = "settings.forceDecoding";
 
+	private static final String SETTINGS_ADD_ORIGINAL_MUXER_INTO_HLS_PLAYLIST = "settings.addOriginalMuxerIntoHlsPlaylist";
+
 	public static final String SETTINGS_S3_RECORDING_ENABLED = "settings.s3RecordingEnabled";
 
 	public static final String SETTINGS_S3_ACCESS_KEY = "settings.s3AccessKey";
@@ -1358,6 +1360,11 @@ public class AppSettings {
 	@Value("${" + SETTINGS_FORCE_DECODING+ ":false}")
 	private boolean forceDecoding;
 
+	/**
+	 * Add the original hls stream to the playlist if adaptive bitrate setting is enabled
+	 */
+	@Value("${" + SETTINGS_ADD_ORIGINAL_MUXER_INTO_HLS_PLAYLIST+ ":true}")
+	private boolean addOriginalMuxerIntoHLSPlaylist = true;
 
 	/**
 	 * Application JWT Control Enabled
@@ -2772,6 +2779,14 @@ public class AppSettings {
 
 	public void setForceDecoding(boolean forceDecoding) {
 		this.forceDecoding = forceDecoding;
+	}
+
+	public boolean isAddOriginalMuxerIntoHLSPlaylist() {
+		return addOriginalMuxerIntoHLSPlaylist;
+	}
+
+	public void setAddOriginalMuxerIntoHLSPlaylist(boolean addOriginalMuxerIntoHLSPlaylist) {
+		this.addOriginalMuxerIntoHLSPlaylist = addOriginalMuxerIntoHLSPlaylist;
 	}
 
 	public String getJwksURL() {
