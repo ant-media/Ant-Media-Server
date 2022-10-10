@@ -15,6 +15,9 @@
 # -u: MongoDB username
 #
 # -p: MongoDB password
+#
+# -l: Licence Key
+#
 
 if [ -z "$RED5_HOME" ]; then 
   BASEDIR=$(dirname "$0")
