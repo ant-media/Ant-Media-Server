@@ -15,6 +15,12 @@
 # -u: MongoDB username: Deprecated. Just give the username in the connection string with -h parameter
 #
 # -p: MongoDB password: Deprecated. Just give the password in the connection string with -h parameter
+#
+# -a: TURN Server URL
+#
+# -n: TURN Server Usermame
+#
+# -w: TURN Server Password
 
 if [ -z "$RED5_HOME" ]; then 
   BASEDIR=$(dirname "$0")
