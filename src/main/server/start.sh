@@ -85,7 +85,7 @@ done
 ################################################
 
 if [ ! -z "$MONGODB_USERNAME" ] && [ ! -z "$MONGODB_PASSWORD" ]; then
-  echo -e "\033[0;31mYou can just use mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1] connection strings with -h parameter. No need use to give mongodb username and password parameters explicityly. These parameters are deprecated.\033[0m"
+  echo -e "\033[0;31mYou can just use mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1] connection strings with -h parameter. No need give mongodb username and password parameters explicityly. These parameters are deprecated.\033[0m"
 fi
 
 ################################################
