@@ -41,6 +41,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -579,12 +580,14 @@ public abstract class Muxer {
 		// set default name
 		String resourceName = name;
 		int bitrateKbps = bitrate / 1000;
+		
+		// added before the if statement because of if addDateTimeToResourceName parameter return false, currentVoDTimeStamp returns 0
+		LocalDateTime ldt =  LocalDateTime.now();
+		currentVoDTimeStamp = ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
 		// add date time parameter to resource name if it is set
 		if (addDateTimeToResourceName) 
 		{
-			LocalDateTime ldt =  LocalDateTime.now();
-			currentVoDTimeStamp = System.currentTimeMillis();
 			resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
 			if (logger.isInfoEnabled()) {
 				logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
