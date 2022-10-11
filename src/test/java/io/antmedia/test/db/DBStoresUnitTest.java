@@ -223,8 +223,6 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		
 		dataStore = new MongoStore("localhost", "", "", "testdb");
-
-		
 		
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -300,7 +298,7 @@ public class DBStoresUnitTest {
 		testTokenOperations(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
 		testClearAtStart(dataStore);
-		//testClearAtStartCluster(dataStore);
+		testClearAtStartCluster(dataStore);
 		testConferenceRoom(dataStore);
 		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
@@ -2175,7 +2173,27 @@ public class DBStoresUnitTest {
 	public void testClearAtStartCluster(DataStore dataStore) {
 		
 		
-		deleteBroadcast((MongoStore) dataStore);
+		if (dataStore instanceof MongoStore) {
+			deleteBroadcast((MongoStore) dataStore);
+			assertEquals(0, dataStore.getBroadcastCount());
+		}
+		else  {
+			long broadcastCount = dataStore.getBroadcastCount();
+			System.out.println("broadcast count: " + broadcastCount);
+			int j = 0;
+			List<Broadcast> broadcastList;
+			while ((broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, null)) != null)
+			{
+				if (broadcastList.size() == 0) {
+					break;
+				}
+				for (Broadcast broadcast : broadcastList) {
+					assertTrue(dataStore.delete(broadcast.getStreamId()));
+					
+				}
+			}
+			
+		}
 		
 		Broadcast broadcast = new Broadcast();
 		broadcast.setOriginAdress(ServerSettings.getLocalHostAddress());
@@ -2498,7 +2516,7 @@ public class DBStoresUnitTest {
 	private void testP2PConnection(DataStore dataStore) {
 		String streamId = "p2pstream"+Math.random()*100;
 		P2PConnection p2pConn = new P2PConnection(streamId, "dummy");
-		if(dataStore instanceof MongoStore) {
+		if(dataStore instanceof MongoStore || dataStore instanceof RedisStore) {
 			assertNull(dataStore.getP2PConnection(streamId));
 			assertTrue(dataStore.createP2PConnection(p2pConn));
 			P2PConnection conn = dataStore.getP2PConnection(streamId);

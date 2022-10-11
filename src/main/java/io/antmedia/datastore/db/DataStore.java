@@ -778,12 +778,6 @@ public abstract class DataStore {
 	public abstract void saveStreamInfo(StreamInfo streamInfo);
 
 	/**
-	 * Add stream info list to db
-	 * @param streamInfoList
-	 */
-	public abstract  void addStreamInfoList(List<StreamInfo> streamInfoList);
-
-	/**
 	 * Returns stream info list added to db
 	 * @param streamId
 	 * @return

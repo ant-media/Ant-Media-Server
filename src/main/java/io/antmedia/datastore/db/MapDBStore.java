@@ -4,7 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.Map.Entry;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.mapdb.DB;
@@ -13,7 +16,9 @@ import org.mapdb.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.StreamInfo;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.vertx.core.Vertx;
 
 
@@ -21,7 +26,6 @@ public class MapDBStore extends MapBasedDataStore {
 
 	private DB db;
 
-	private Iterable<String> dbFiles;
 	private Vertx vertx;
 	private long timerId;
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
@@ -89,7 +93,7 @@ public class MapDBStore extends MapBasedDataStore {
 	@Override
 	public void close(boolean deleteDB) {
 		//get db file before closing. They can be used in delete method
-		dbFiles = db.getStore().getAllFiles();
+		Iterable<String> dbFiles = db.getStore().getAllFiles();
 		synchronized (this) {
 			vertx.cancelTimer(timerId);
 			db.commit();
@@ -114,18 +118,64 @@ public class MapDBStore extends MapBasedDataStore {
 
 		}
 	}
-
-
 	
+	@Override
+	public int resetBroadcasts(String hostAddress) {
+		synchronized (this) {
+			
+			int size = map.size();
+			int updateOperations = 0;
+			int zombieStreamCount = 0;
+			
+			Set<Entry<String,String>> entrySet = map.entrySet();
+			
+			Iterator<Entry<String, String>> iterator = entrySet.iterator();
+			int i = 0;
+			while (iterator.hasNext()) {
+				Entry<String, String> next = iterator.next();
+				
+				if (next != null) {
+					Broadcast broadcast = gson.fromJson(next.getValue(), Broadcast.class);
+					i++;
+					
+					if (broadcast.isZombi()) {
+						iterator.remove();
+						zombieStreamCount++;
+					}
+					else
+					{
+						broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+						broadcast.setWebRTCViewerCount(0);
+						broadcast.setHlsViewerCount(0);
+						broadcast.setRtmpViewerCount(0);
+						broadcast.setDashViewerCount(0);
+						map.put(broadcast.getStreamId(), gson.toJson(broadcast));
+						updateOperations++;
+					}
+				}
+				
+				if (i > size) {
+					logger.error(
+							"Inconsistency in DB found in resetting broadcasts. It's likely db file({}) is damaged",
+							dbName);
+					break;
+				}
+			}
+			
+			logger.info("Reset broadcasts result in deleting {} zombi streams and {} update operations",
+					zombieStreamCount, updateOperations);
+			
+			return updateOperations + zombieStreamCount;
+		}
+	}
+
+
+	@Override
 	public void clearStreamInfoList(String streamId) {
 		//used in mongo for cluster mode. useless here.
 	}
 	
 	@Override
-	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
-		//used in mongo for cluster mode. useless here.
-	}
-	
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		return new ArrayList<>();
 	}

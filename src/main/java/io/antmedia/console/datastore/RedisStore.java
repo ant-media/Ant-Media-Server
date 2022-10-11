@@ -7,7 +7,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
-import org.redisson.config.SingleServerConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,7 +22,6 @@ public class RedisStore extends MapBasedDataStore {
 	 */
 	public RedisStore(String redisConnectionUrl) {
 		try {
-
 			File file = new File(redisConnectionUrl);
 
 			Config config;

@@ -786,13 +786,6 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return true;
 	}	
-	
-	@Override
-	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
-		//used in mongo for cluster mode. useless here.
-
-
-	}
 
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		return new ArrayList<>();

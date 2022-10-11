@@ -2,23 +2,35 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
+import java.util.Map.Entry;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.redisson.Redisson;
+import org.redisson.api.RMap;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 
 public class RedisStore extends MapBasedDataStore {
 
 	protected static Logger logger = LoggerFactory.getLogger(RedisStore.class);
     	
 	RedissonClient redisson;
+
+	private RMap<Object, Object> streamInfoMap;
+
+	private RMap<Object, Object> p2pMap;
     
     public RedisStore(String redisConnectionUrl, String dbName) {
     	super(dbName);
@@ -47,6 +59,8 @@ public class RedisStore extends MapBasedDataStore {
 	    	tokenMap = redisson.getMap(dbName+"Tokens");
 	    	subscriberMap = redisson.getMap(dbName+"Subscribers");	
 	    	webRTCViewerMap = redisson.getMap(dbName+"WebRTCViewers");
+	    	streamInfoMap = redisson.getMap(dbName+"StreamInfo");
+	    	p2pMap = redisson.getMap(dbName+"P2P");
 			
 			available = true;
     	}
@@ -71,48 +85,137 @@ public class RedisStore extends MapBasedDataStore {
 		    	redisson.getMap(dbName+"tokens").delete();
 		    	redisson.getMap(dbName+"Subscribers").delete();	
 		    	redisson.getMap(dbName+"webRTCViewers").delete();
+		    	redisson.getMap(dbName+"StreamInfo").delete();
+		    	redisson.getMap(dbName+"P2P").delete();
 			}
 			redisson.shutdown();
 		}
 	}
 
-
-
-	public List<StreamInfo> getStreamInfoList(String streamId) {
-		//TODO: Implement
-		return null;
-	}
 	
-	public void clearStreamInfoList(String streamId) {
-		//TODO: Implement
+	@Override
+	public int resetBroadcasts(String hostAddress) {
+		synchronized (this) {
+			
+			int size = map.size();
+			int updateOperations = 0;
+			int zombieStreamCount = 0;
+			
+			Set<Entry<String,String>> entrySet = map.entrySet();
+			
+			Iterator<Entry<String, String>> iterator = entrySet.iterator();
+			int i = 0;
+			while (iterator.hasNext()) {
+				Entry<String, String> next = iterator.next();
+				
+				if (next != null) {
+					Broadcast broadcast = gson.fromJson(next.getValue(), Broadcast.class);
+					i++;
+					
+					if (broadcast.getOriginAdress() == null || broadcast.getOriginAdress().isEmpty() ||
+							hostAddress.equals(broadcast.getOriginAdress())) 
+					{
+						if (broadcast.isZombi()) {
+							iterator.remove();
+							zombieStreamCount++;
+						}
+						else
+						{
+							broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+							broadcast.setWebRTCViewerCount(0);
+							broadcast.setHlsViewerCount(0);
+							broadcast.setRtmpViewerCount(0);
+							broadcast.setDashViewerCount(0);
+							map.put(broadcast.getStreamId(), gson.toJson(broadcast));
+							updateOperations++;
+						}
+					}
+				}
+				
+				if (i > size) {
+					logger.error(
+							"Inconsistency in DB found in resetting broadcasts for dbName:{}",
+							dbName);
+					break;
+				}
+			}
+			Collection<Object> streamInfoValues = streamInfoMap.values();
+			if (streamInfoValues != null) {
+				for (Iterator<Object> streamInfoListIterator = streamInfoValues.iterator(); streamInfoListIterator.hasNext();) 
+				{
+					List<StreamInfo> streamInfoList = (List<StreamInfo>) streamInfoListIterator.next();
+					
+					for (Iterator<StreamInfo> streamInfoIterator = streamInfoList.iterator(); streamInfoIterator.hasNext();) 
+					{
+						StreamInfo streamInfo = streamInfoIterator.next();
+						if (hostAddress.equals(streamInfo.getHost())) {
+							streamInfoIterator.remove();
+						}
+					}
+					
+					if (streamInfoList.isEmpty()) {
+						streamInfoListIterator.remove();
+					}
+					
+					
+				} 
+			}
+			
+			
+			
+			logger.info("Reset broadcasts result in deleting {} zombi streams and {} update operations",
+					zombieStreamCount, updateOperations);
+			
+			return updateOperations + zombieStreamCount;
+		}
+	}
+
+
+	@Override
+	public List<StreamInfo> getStreamInfoList(String streamId) {
+		synchronized (this) {
+			List<StreamInfo> object = (List<StreamInfo>) streamInfoMap.get(streamId);
+			return object != null ? object : new ArrayList<>();
+		}
 	}
 	
 	@Override
-	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
-		//TODO: Implement
+	public void clearStreamInfoList(String streamId) {
+		synchronized (this) {
+			streamInfoMap.clear();
+		}
 	}
+	
 	
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
-		//TODO: Implement
+		synchronized (this) {
+			List streamInfoList = (List) streamInfoMap.get(streamInfo.getStreamId());
+			if (streamInfoList == null) {
+				streamInfoList = new ArrayList<>();
+			}
+			streamInfoList.add(streamInfo);
+			streamInfoMap.put(streamInfo.getStreamId(), streamInfoList);
+		}
 	}
 
 	@Override
 	public boolean createP2PConnection(P2PConnection conn) {
-		//TODO: Implement
+		if (conn != null) {
+			p2pMap.put(conn.getStreamId(), conn);
+			return true;
+		}
 		return false;
 	}
 
 	@Override
 	public boolean deleteP2PConnection(String streamId) {
-		//TODO: Implement
-		return false;
+		return p2pMap.remove(streamId) != null ? true : false;
 	}
 
 	@Override
 	public P2PConnection getP2PConnection(String streamId) {
-		//TODO: Implement
-		return null;
+		return (P2PConnection) p2pMap.get(streamId);
 	}
 
 
