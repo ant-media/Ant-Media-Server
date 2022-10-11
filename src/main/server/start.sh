@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Options 
+# Options
 # -g: Use global(Public) IP in network communication. Its value can be true or false. Default value is false.
 #
 # -s: Use Public IP as server name. Its value can be true or false. Default value is false.
@@ -15,8 +15,15 @@
 # -u: MongoDB username: Deprecated. Just give the username in the connection string with -h parameter
 #
 # -p: MongoDB password: Deprecated. Just give the password in the connection string with -h parameter
+#
+# -a: TURN/STUN Server URL for the server side. It should start with "turn:" or "stun:" such as stun:stun.l.google.com:19302 or turn:ovh36.antmedia.io
+#     this url is not visible to frontend users just for server side.
+#
+# -n: TURN Server Usermame: Provide the TURN server username to get relay candidates.
+#
+# -w: TURN Server Password: Provide the TURN server password to get relay candidates.
 
-if [ -z "$RED5_HOME" ]; then 
+if [ -z "$RED5_HOME" ]; then
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
   export RED5_HOME=`pwd`
@@ -32,7 +39,7 @@ MONGODB_HOST=
 MONGODB_USERNAME=
 MONGODB_PASSWORD=
 
-while getopts g:s:r:m:h:u:p:t option
+while getopts g:s:r:m:h:u:p:a:n:w:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
@@ -42,6 +49,9 @@ do
     h) MONGODB_HOST=${OPTARG};;
     u) MONGODB_USERNAME=${OPTARG};;
     p) MONGODB_PASSWORD=${OPTARG};;
+    a) TURN_URL=${OPTARG};;
+    n) TURN_USERNAME=${OPTARG};;
+    w) TURN_PASSWORD=${OPTARG};;
    esac
 done
 
@@ -56,7 +66,7 @@ fi
 sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $RED5_HOME/conf/red5.properties
 
 ################################################
-# Set server name 
+# Set server name
 SERVER_ADDRESS=
 if [ "$USE_PUBLIC_IP_AS_SERVER_NAME" = "true" ]; then
   # get server public ip address
@@ -74,12 +84,12 @@ replaceCandidateAddressWithServer() {
     echo " " >> $1 #add new line
     echo "settings.replaceCandidateAddrWithServerAddr=$2" >> $1
   else
-    sed -i $SED_COMPATIBILITY 's/settings.replaceCandidateAddrWithServerAddr=.*/settings.replaceCandidateAddrWithServerAddr='$2'/' $1 
+    sed -i $SED_COMPATIBILITY 's/settings.replaceCandidateAddrWithServerAddr=.*/settings.replaceCandidateAddrWithServerAddr='$2'/' $1
   fi
 }
 LIST_APPS=`ls -d $RED5_HOME/webapps/*/`
 
-for i in $LIST_APPS; do 
+for i in $LIST_APPS; do
   replaceCandidateAddressWithServer $i/WEB-INF/red5-web.properties $REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME
 done
 ################################################
@@ -94,6 +104,42 @@ if [ ! -z "${SERVER_MODE}" ]; then
   change_server_mode $SERVER_MODE $MONGODB_HOST $MONGODB_USERNAME $MONGODB_PASSWORD
 fi
 ################################################
+
+# Turn server configuration.
+if [ ! -z "${TURN_URL}" ]; then
+  for applist in $LIST_APPS; do
+    if [ $(grep -E "settings.webrtc.stunServerURI" $applist/WEB-INF/red5-web.properties | wc -l) -eq "0" ]; then
+        echo " " >> $applist/WEB-INF/red5-web.properties #add new line
+        echo  "settings.webrtc.stunServerURI=${TURN_URL}" >> $applist/WEB-INF/red5-web.properties
+    else
+        sed -i $SED_COMPATIBILITY 's/settings.webrtc.stunServerURI=.*/settings.webrtc.stunServerURI='${TURN_URL}'/' $applist/WEB-INF/red5-web.properties
+    fi
+ done
+fi
+
+if [ ! -z "${TURN_USERNAME}" ]; then
+  for applist in $LIST_APPS; do
+
+    if [ $(grep -E "settings.webrtc.turnServerUsername" $applist/WEB-INF/red5-web.properties | wc -l) -eq "0"  ]; then
+        echo " " >> $applist/WEB-INF/red5-web.properties #add new line
+        echo  "settings.webrtc.turnServerUsername=${TURN_USERNAME}" >> $applist/WEB-INF/red5-web.properties
+    else
+        sed -i $SED_COMPATIBILITY 's/settings.webrtc.turnServerUsername=.*/settings.webrtc.turnServerUsername='${TURN_USERNAME}'/' $applist/WEB-INF/red5-web.properties
+    fi
+ done
+fi
+
+if [ ! -z ${TURN_PASSWORD} ]; then
+  for applist in $LIST_APPS; do
+    if [ $(grep -E "settings.webrtc.turnServerCredential" $applist/WEB-INF/red5-web.properties | wc -l) -eq "0"  ]; then
+        echo " " >> $applist/WEB-INF/red5-web.properties #add new line
+        echo  "settings.webrtc.turnServerCredential=${TURN_PASSWORD}" >> $applist/WEB-INF/red5-web.properties
+    else
+        sed -i $SED_COMPATIBILITY 's/settings.webrtc.turnServerCredential=.*/settings.webrtc.turnServerCredential='${TURN_PASSWORD}'/' $applist/WEB-INF/red5-web.properties
+    fi
+ done
+fi
+
 
 
 P=":" # The default classpath separator
@@ -117,8 +163,8 @@ case "$OS" in
       NATIVE="-Djava.library.path=$DYLD_LIBRARY_PATH:$RED5_HOME/lib/native"
   ;;
   SunOS*)
-      if [ -z "$JAVA_HOME" ]; then 
-          export JAVA_HOME=/opt/local/java/sun6; 
+      if [ -z "$JAVA_HOME" ]; then
+          export JAVA_HOME=/opt/local/java/sun6;
       fi
   ;;
   *)
@@ -129,7 +175,7 @@ esac
 echo "Running on " $OS
 # JAVA options
 # You can set JVM additional options here if you want
-if [ -z "$JVM_OPTS" ]; then 
+if [ -z "$JVM_OPTS" ]; then
     JVM_OPTS="-Xms256m -Djava.awt.headless=true -Xverify:none -XX:+HeapDumpOnOutOfMemoryError -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:MaxMetaspaceSize=128m  -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=10 -XX:ConcGCThreads=5 -Djava.system.class.loader=org.red5.server.classloading.ServerClassLoader -Xshare:off "
 fi
 # Set up security options
@@ -166,9 +212,9 @@ fi
 export RED5_CLASSPATH="${RED5_HOME}/ant-media-server-service.jar${P}${RED5_HOME}/conf${P}${CLASSPATH}"
 
 # create log directory if not exist
-if [ ! -d "/var/log/antmedia" ] 
+if [ ! -d "/var/log/antmedia" ]
 then
-  mkdir -p /var/log/antmedia   
+  mkdir -p /var/log/antmedia
   OUT=$?
   if [ $OUT -ne 0 ]; then
     echo "You're likely running start.sh directly. The problem is /var/log/antmedia directory cannot not created"
@@ -181,7 +227,7 @@ fi
 
 #create soft link if not exists
 if [ ! -L  "${RED5_HOME}/log" ]
-then 
+then
   ln -sf /var/log/antmedia ${RED5_HOME}/log
 fi
 
@@ -196,3 +242,4 @@ elif [ "$RED5_MAINCLASS" = "org.red5.server.Shutdown" ]; then
     echo "Stopping Ant Media Server"
 fi
 exec "$JAVA" -Dred5.root="${RED5_HOME}" $JAVA_OPTS -cp "${RED5_CLASSPATH}" "$RED5_MAINCLASS" $RED5_OPTS 2>>${RED5_HOME}/log/antmedia-error.log
+
