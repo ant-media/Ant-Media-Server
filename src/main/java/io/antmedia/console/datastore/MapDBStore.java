@@ -1,21 +1,12 @@
 package io.antmedia.console.datastore;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-
-import io.antmedia.datastore.db.types.User;
-import io.vertx.core.Vertx;
-
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
-import org.mapdb.HTreeMap;
 import org.mapdb.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.Gson;
+import io.vertx.core.Vertx;
 
 public class MapDBStore extends MapBasedDataStore {
 
