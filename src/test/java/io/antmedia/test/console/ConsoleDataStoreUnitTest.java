@@ -12,6 +12,7 @@ import io.antmedia.console.datastore.MongoStore;
 import io.antmedia.console.datastore.RedisStore;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.rest.model.UserType;
+import io.vertx.core.Vertx;
 
 
 public class ConsoleDataStoreUnitTest {
@@ -24,14 +25,16 @@ public class ConsoleDataStoreUnitTest {
 	
 	@Test
 	public void testRedisStore() {
-		AbstractConsoleDataStore dt = new RedisStore("127.0.0.1", "", "", "6379");
+		AbstractConsoleDataStore dt = new RedisStore("redis://127.0.0.1:6379");
 		simpleDBOperations(dt);
 	}
 	
 	@Test
 	public void testMapDBStore() {
-		AbstractConsoleDataStore dt = new MapDBStore();
+		Vertx vertx = Vertx.vertx();
+		AbstractConsoleDataStore dt = new MapDBStore(vertx);
 		simpleDBOperations(dt);
+		vertx.close();
 	}
 	
 	

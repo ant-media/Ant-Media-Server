@@ -173,7 +173,6 @@ public class DBStoresUnitTest {
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);
-		
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -225,6 +224,8 @@ public class DBStoresUnitTest {
 		
 		dataStore = new MongoStore("localhost", "", "", "testdb");
 
+		
+		
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);		
@@ -236,7 +237,7 @@ public class DBStoresUnitTest {
 		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
-		//testSaveDetection(dataStore);
+		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
@@ -271,16 +272,14 @@ public class DBStoresUnitTest {
 	@Test
 	public void testRedisStore() {
 
-		DataStore dataStore = new RedisStore("127.0.0.1", "testdb", "", "", "6379");
+		DataStore dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
 		//delete db
 		dataStore.close(true);
-		
-		dataStore = new RedisStore("127.0.0.1", "testdb", "", "", "6379");
+		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
 		
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
-		testUnexpectedVodOffset(dataStore);
-		
+		testUnexpectedVodOffset(dataStore);		
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -300,15 +299,17 @@ public class DBStoresUnitTest {
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
+		testClearAtStart(dataStore);
+		//testClearAtStartCluster(dataStore);
 		testConferenceRoom(dataStore);
+		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
-		testClearAtStart(dataStore);
-    	testGetVoDIdByStreamId(dataStore);
-    	testBroadcastListSorting(dataStore);	
+		testGetVoDIdByStreamId(dataStore);
+		testBroadcastListSorting(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
@@ -317,7 +318,6 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
-		testStreamSourceList(dataStore);
 	}
 	
 	@Test

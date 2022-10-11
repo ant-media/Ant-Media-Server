@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 
 import io.antmedia.datastore.db.types.User;
+import io.vertx.core.Vertx;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.mapdb.DB;
@@ -16,163 +17,40 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 
-public class MapDBStore extends AbstractConsoleDataStore {
+public class MapDBStore extends MapBasedDataStore {
 
 	private DB db;
-	private HTreeMap<String, String> userMap;
-	private Gson gson;
 
-	protected volatile boolean available = false;
+	private long timerId;
+
+	private Vertx vertx;
 
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 
-	public MapDBStore() {
+	public MapDBStore(Vertx vertx) {
 		db = DBMaker.fileDB(SERVER_STORAGE_FILE).fileMmapEnableIfSupported().checksumHeaderBypass().make();
 		userMap = db.hashMap(SERVER_STORAGE_MAP_NAME)
 				.keySerializer(Serializer.STRING)
 				.valueSerializer(Serializer.STRING)
 				.counterEnable()
 				.createOrOpen();
-		gson = new Gson();
-		available = true;
-	}
-
-	 @Override
-	public boolean addUser(User user) {
-			synchronized (this) {
-				boolean result = false;
-				try {
-								
-					if(userMap != null && userMap.get(user.getEmail()) == null) { 
-						userMap.put(user.getEmail(), gson.toJson(user));
-						result = true;
-					}
-					else {
-						logger.warn("user with {} already exist", user.getEmail());
-					}
-				}
-				catch (Exception e) {
-					logger.error("Add user error:{} trace:{}", user.getEmail(), ExceptionUtils.getStackTrace(e));
-					result = false;
-				}
-
-			return result;
-			}
-	}
-
-	@Override
-	public boolean editUser(User user) {
-		synchronized (this) {
-			boolean result = false;
-			try {
-				String username = user.getEmail();
+		
+		this.vertx = vertx;
+		timerId = vertx.setPeriodic(5000, id -> 
+		
+						this.vertx.executeBlocking(b -> {
+							synchronized (this) 
+							{
+								if (available) {
+									db.commit();
+								}
+							}
 				
-				if(userMap != null && !userMap.get(username).isEmpty()) { 
-					userMap.put(username, gson.toJson(user));
-					result = true;
-				}
-			}
-			catch (Exception e) {
-				logger.error("Edit user error:{} trace:{}", user.getEmail(), ExceptionUtils.getStackTrace(e));
-				result = false;
-			}
-			return result;
-		}
+						}, false, null)
+		);
 	}
 
 	@Override
-	public boolean deleteUser(String username) {
-		synchronized (this) {
-			boolean result = false;
-			if (username != null) {
-				try {
-					
-					if(userMap != null && userMap.containsKey(username)) {
-						userMap.remove(username);
-						result = true;
-					}
-				}
-				catch (Exception e) {
-					logger.error("Delete user error:{} trace:{}", username, ExceptionUtils.getStackTrace(e));
-					result = false;
-				}
-			}
-			return result;
-		}
-	}
-
-	@Override
-	public boolean doesUsernameExist(String username) {
-		synchronized (this) {
-			return userMap.containsKey(username);
-		}
-	}
-
-	@Override
-	public boolean doesUserExist(String username, String password) {
-		synchronized (this) {
-			boolean result = false;
-			if (username != null && password != null) {
-				try {					
-					if (userMap.containsKey(username)) {
-						
-						String value = userMap.get(username);
-						User user = gson.fromJson(value, User.class);
-						if (user.getPassword().equals(password)) {
-							result = true;
-						}
-					}
-				}
-				catch (Exception e) {
-					logger.error("Does not exist user error:{} trace:{}", username, ExceptionUtils.getStackTrace(e));
-				}
-			}
-			return result;
-		}
-	}
-	
-	@Override
-	public List<User> getUserList(){
-		ArrayList<User> list = new ArrayList<>();
-		synchronized (this) {
-			
-			Collection<String> users = null;
-			
-			if(userMap != null) { 
-				users = userMap.values();
-			}
-			
-			for (String userString : users) {
-				User user = gson.fromJson(userString, User.class);
-				list.add(user);
-			}
-		}
-		return list;
-	}
-
-	@Override
-	public User getUser(String username) {
-		synchronized (this) {
-			if (username != null)  {
-				try {
-					
-					String user = null;
-					
-					if(userMap != null) { 
-						user = userMap.get(username);
-					}
-					
-					return gson.fromJson(user, User.class);
-					
-				}
-				catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-			}
-			return null;
-		}
-	}
-
 	public void clear() {
 		synchronized (this) {
 			userMap.clear();
@@ -180,27 +58,16 @@ public class MapDBStore extends AbstractConsoleDataStore {
 		}
 	}
 
+	@Override
 	public void close() {
 		synchronized (this) {
+			vertx.cancelTimer(timerId);
+			db.commit();
 			available = false;
 			db.close();
 		}
 	}
 
-	@Override
-	public int getNumberOfUserRecords() {
-		synchronized (this) {
-			return userMap.size();
-		}
-	}
 
-	/**
-	 * Return if data store is available. DataStore is available if it's initialized and not closed. 
-	 * It's not available if it's closed. 
-	 * @return availability of the datastore
-	 */
-	public boolean isAvailable() {
-		return available;
-	}
 
 }

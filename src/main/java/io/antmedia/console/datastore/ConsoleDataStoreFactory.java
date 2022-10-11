@@ -1,10 +1,17 @@
 package io.antmedia.console.datastore;
 
+import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.IDataStoreFactory;
+import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.settings.ServerSettings;
+import io.vertx.core.Vertx;
 
-public class ConsoleDataStoreFactory  {
+public class ConsoleDataStoreFactory implements ApplicationContextAware {
 
 	private AbstractConsoleDataStore dataStore;
 	
@@ -25,10 +32,9 @@ public class ConsoleDataStoreFactory  {
 	
 	@Value( "${"+io.antmedia.datastore.db.DataStoreFactory.SETTINGS_DB_PASS+":#{null}}" )
 	private String dbPassword;
-	
-	@Value( "${"+io.antmedia.datastore.db.DataStoreFactory.SETTINGS_DB_PORT+":#{null}}" )
-	private String dbPort;
 
+	private Vertx vertx;
+	
 	public String getAppName() {
 		return appName;
 	}
@@ -76,13 +82,9 @@ public class ConsoleDataStoreFactory  {
 	public void setDbPassword(String dbPassword) {
 		this.dbPassword = dbPassword;
 	}
-	
-	public String getDbPort() {
-		return dbPort;
-	}
-
-	public void setDbPort(String dbPort) {
-		this.dbPort = dbPort;
+	@Override
+	public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+		vertx = (Vertx)applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 	}
 
 	public AbstractConsoleDataStore getDataStore() {
@@ -94,11 +96,11 @@ public class ConsoleDataStoreFactory  {
 			}
 			else if(dbType.contentEquals("mapdb"))
 			{
-				dataStore = new MapDBStore();
+				dataStore = new MapDBStore(vertx);
 			}
 			else if(dbType.contentEquals("redisdb"))
 			{
-				dataStore = new RedisStore(dbHost, dbUser, dbPassword, dbPort);
+				dataStore = new RedisStore(dbHost);
 			}
 		}
 		return dataStore;

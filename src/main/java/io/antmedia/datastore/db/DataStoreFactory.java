@@ -26,7 +26,6 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	public static final String SETTINGS_DB_HOST = "db.host";
 	public static final String SETTINGS_DB_USER = "db.user";
 	public static final String SETTINGS_DB_PASS = "db.password";
-	public static final String SETTINGS_DB_PORT = "db.port";
 
 
 	private static Logger logger = LoggerFactory.getLogger(DataStoreFactory.class);
@@ -40,9 +39,6 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	
 	@Value( "${"+SETTINGS_DB_NAME+":#{null}}" )
 	private String dbName;
-	
-	@Value( "${"+SETTINGS_DB_PORT+":#{null}}" )
-	private String dbPort;
 
 	/**
 	 * One of the DB_TYPE_*
@@ -112,7 +108,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		}
 		else if(dbType .contentEquals(DB_TYPE_REDISDB))
 		{
-			dataStore = new RedisStore(dbHost, dbName, dbUser, dbPassword, dbPort);
+			dataStore = new RedisStore(dbHost, dbName);
 		}
 		else if(dbType .contentEquals(DB_TYPE_MEMORYDB))
 		{
