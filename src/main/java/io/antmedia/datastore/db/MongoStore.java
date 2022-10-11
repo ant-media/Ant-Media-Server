@@ -150,20 +150,8 @@ public class MongoStore extends DataStore {
 			return null;
 		}
 		try {
-			String streamId = null;
-			if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
-				broadcast.setStreamId(streamId);
-			}
-			streamId = broadcast.getStreamId();
-			String rtmpURL = broadcast.getRtmpURL();
-			if (rtmpURL != null) {
-				rtmpURL += streamId;
-			}
-			broadcast.setRtmpURL(rtmpURL);
-			if(broadcast.getStatus()==null) {
-				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
-			}
+			Broadcast updatedBroadcast = super.saveBroadcast(broadcast);
+			String streamId = updatedBroadcast.getStreamId();
 
 			synchronized(this) {
 				datastore.save(broadcast);

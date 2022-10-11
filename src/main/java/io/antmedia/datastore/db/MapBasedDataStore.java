@@ -71,7 +71,7 @@ public abstract class MapBasedDataStore extends DataStore {
 				Broadcast updatedBroadcast = super.saveBroadcast(broadcast);
 				streamId = updatedBroadcast.getStreamId();
 				map.put(updatedBroadcast.getStreamId(), gson.toJson(updatedBroadcast));
-				}
+			}
 	    	return streamId;
 		}
 	}
@@ -788,6 +788,60 @@ public abstract class MapBasedDataStore extends DataStore {
 				logger.error(ExceptionUtils.getStackTrace(e));
 				return false;
 			}
+		}
+	}
+	
+	@Override
+	public int resetBroadcasts(String hostAddress) {
+		synchronized (this) {
+			
+			int size = map.size();
+			int updateOperations = 0;
+			int zombieStreamCount = 0;
+			
+			Set<Entry<String,String>> entrySet = map.entrySet();
+			
+			Iterator<Entry<String, String>> iterator = entrySet.iterator();
+			int i = 0;
+			while (iterator.hasNext()) {
+				Entry<String, String> next = iterator.next();
+				
+				if (next != null) {
+					Broadcast broadcast = gson.fromJson(next.getValue(), Broadcast.class);
+					i++;
+					
+					if (broadcast.getOriginAdress() == null || broadcast.getOriginAdress().isEmpty() ||
+							hostAddress.equals(broadcast.getOriginAdress())) 
+					{
+						if (broadcast.isZombi()) {
+							iterator.remove();
+							zombieStreamCount++;
+						}
+						else
+						{
+							broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+							broadcast.setWebRTCViewerCount(0);
+							broadcast.setHlsViewerCount(0);
+							broadcast.setRtmpViewerCount(0);
+							broadcast.setDashViewerCount(0);
+							map.put(broadcast.getStreamId(), gson.toJson(broadcast));
+							updateOperations++;
+						}
+					}
+				}
+				
+				if (i > size) {
+					logger.error(
+							"Inconsistency in DB found in resetting broadcasts for dbName:{}",
+							dbName);
+					break;
+				}
+			}
+			
+			logger.info("Reset broadcasts result in deleting {} zombi streams and {} update operations",
+					zombieStreamCount, updateOperations);
+			
+			return updateOperations + zombieStreamCount;
 		}
 	}
 	

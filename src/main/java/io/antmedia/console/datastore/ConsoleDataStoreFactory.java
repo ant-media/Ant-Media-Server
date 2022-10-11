@@ -6,9 +6,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
 public class ConsoleDataStoreFactory implements ApplicationContextAware {

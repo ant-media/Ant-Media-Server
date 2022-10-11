@@ -10,7 +10,7 @@
 # -m: Server mode. It can be standalone or cluster. If cluster mode is specified then mongodb host, username and password should also be provided.
 #     There is no default value for mode
 #
-# -h: MongoDB host. It's either IP address or full connection string such as mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1]
+# -h: MongoDB or Redist host. It's either IP address or full connection string such as mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1] or redis://[username:password@]host1[:port1] or redis yaml configuration
 #
 # -u: MongoDB username: Deprecated. Just give the username in the connection string with -h parameter
 #
@@ -37,7 +37,7 @@ USE_GLOBAL_IP=false
 USE_PUBLIC_IP_AS_SERVER_NAME=false
 REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME=false
 SERVER_MODE=
-MONGODB_HOST=
+DB_URL=
 MONGODB_USERNAME=
 MONGODB_PASSWORD=
 LICENSE_KEY=
@@ -50,7 +50,7 @@ do
     s) USE_PUBLIC_IP_AS_SERVER_NAME=${OPTARG};;
     r) REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME=${OPTARG};;
     m) SERVER_MODE=${OPTARG};;
-    h) MONGODB_HOST=${OPTARG};;
+    h) DB_URL=${OPTARG};;
     u) MONGODB_USERNAME=${OPTARG};;
     p) MONGODB_PASSWORD=${OPTARG};;
     l) LICENSE_KEY=${OPTARG};;
@@ -106,7 +106,7 @@ fi
 ################################################
 # Set server mode cluster or standalone. Below method is available is functions.sh
 if [ ! -z "${SERVER_MODE}" ]; then
-  change_server_mode $SERVER_MODE $MONGODB_HOST $MONGODB_USERNAME $MONGODB_PASSWORD
+  change_server_mode $SERVER_MODE $DB_URL $MONGODB_USERNAME $MONGODB_PASSWORD
 fi
 ################################################
 # set the license key
