@@ -1,5 +1,6 @@
 package io.antmedia;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -51,7 +52,9 @@ import dev.morphia.annotations.Indexes;
 @Indexes({ @Index(fields = @Field("appName"))})
 @PropertySource("/WEB-INF/red5-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class AppSettings {
+public class AppSettings implements Serializable{
+
+	private static final long serialVersionUID = 1L;
 
 	@JsonIgnore
 	@Id

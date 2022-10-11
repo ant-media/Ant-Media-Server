@@ -6,7 +6,7 @@
 # - First parameter is the mode of the cluster. It can be standalone or cluster
 # if the first parameter is cluster than the following parameter should also be given
 #
-# - Second parameter is the url of the database. It can be mongodb:, mongodb+srv:// redis: or redis yaml configuration file. Don't use localhost
+# - Second parameter is the url of the database. It can be mongodb:, mongodb+srv:// redis: or redis yaml configuration file
 # - Third parameter is the username of the mongodb. Deprecated. Add username to the host parameter
 # - Fourth parameter is the password of the mongodb. Deprecated. Add password to the host parameter
 #
@@ -33,11 +33,8 @@ change_server_mode() {
       exit 1
     fi
     
-    # if DB_URL is an IP address, assume that it's mongodb IP Address for backward compatibility
-    if [[ $DB_URL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-      DB_TYPE=mongodb
-      echo "DB type is mongodb"
-    elif [[ $DB_URL =~ ^mongodb.*$ ]]; then # if DB_URL starts with mongodb, then it's mongodb url
+    # if DB_URL is an IP address or localhost or starts with mongodb, assume that it's mongodb IP Address for backward compatibility
+    if [[ $DB_URL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DB_URL =~ ^localhost$ ||  $DB_URL =~ ^mongodb.*$ ]]; then
       DB_TYPE=mongodb
       echo "DB type is mongodb"
     elif [[ $DB_URL =~ ^redis.*$ ]]; then # if DB_URL starts with redis, then it's redis URL and make DB_TYPE to redis
@@ -58,22 +55,17 @@ change_server_mode() {
       DB_TYPE=mapdb
       DB_URL=localhost
       echo "DB type is mapdb"
-    elif [[ $DB_URL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then  #if DB_URL is an IP address, assume that it's mongodb IP Address
-      DB_TYPE=mongodb
-      echo "DB type is mongodb"
-    elif [[ $DB_URL =~ ^mongodb.*$ ]]; then # if DB_URL starts with mongodb, then it's mongodb url
+    elif [[ $DB_URL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DB_URL =~ ^localhost$ ||  $DB_URL =~ ^mongodb.*$ ]]; then
       DB_TYPE=mongodb
       echo "DB type is mongodb"
     elif [[ $DB_URL =~ ^redis.*$ ]]; then # if DB_URL starts with redis, then it's redis URL and make DB_TYPE to redis
       DB_TYPE=redisdb
-      echo "DB type is redisdb"
+      echo "DB type is redis"
     else  # if DB_URL is something else, then assume that it's redist configuration file and make DB_TYPE to redis
       DB_TYPE=redisdb
-      echo "DB type is redisdb"
+      echo "DB type is redis"
     fi
     
-    DB_TYPE=mapdb
-    DB_URL=localhost
     sed -i $SED_COMPATIBILITY -E -e  's/(<!-- cluster start -->|<!-- cluster start)/<!-- cluster start /g' $AMS_INSTALL_LOCATION/conf/jee-container.xml
     sed -i $SED_COMPATIBILITY -E -e 's/(<!-- cluster end -->|cluster end -->)/cluster end -->/g' $AMS_INSTALL_LOCATION/conf/jee-container.xml
   fi
