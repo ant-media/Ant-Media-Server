@@ -1641,7 +1641,9 @@ public abstract class RestServiceBase {
 	public static boolean deleteConferenceRoom(String roomId, DataStore store) {
 
 		if(roomId != null) {
-			logger.info("Deleting conference room:{} from database ", roomId);
+			if (logger.isInfoEnabled()) {
+				logger.info("Deleting conference room:{} from database ", roomId.replaceAll(REPLACE_CHARS, "_"));
+			}
 			return store.deleteConferenceRoom(roomId);
 		}
 		return false;
@@ -1801,7 +1803,9 @@ public abstract class RestServiceBase {
 					roomStreamList.remove(streamId);
 					conferenceRoom.setRoomStreamList(roomStreamList);
 					store.editConferenceRoom(roomId, conferenceRoom);
-					logger.info("stream:{} is removed from room:{} ", streamId, roomId);
+					if (logger.isInfoEnabled()) {
+						logger.info("stream:{} is removed from room:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), roomId.replaceAll(REPLACE_CHARS, "_"));
+					}
 					return true;
 				}
 			}
