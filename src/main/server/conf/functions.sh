@@ -33,8 +33,9 @@ change_server_mode() {
       exit 1
     fi
     
-    # if DB_URL is an IP address or localhost or starts with mongodb, assume that it's mongodb IP Address for backward compatibility
-    if [[ $DB_URL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DB_URL =~ ^localhost$ ||  $DB_URL =~ ^mongodb.*$ ]]; then
+    # if DB_URL is an IP address or localhost or starts with mongodb, assume that it's mongodb IP Address for backward compatibility.
+    if [[ $DB_URL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DB_URL =~ ^localhost$ ||  $DB_URL =~ ^mongo.*$ ]]; then
+      # it should be ^mongo.*$ not ^mongodb.*$ becaue  kubernetes deployment  give -h mongo parameter
       DB_TYPE=mongodb
       echo "DB type is mongodb"
     elif [[ $DB_URL =~ ^redis.*$ ]]; then # if DB_URL starts with redis, then it's redis URL and make DB_TYPE to redis
@@ -55,7 +56,8 @@ change_server_mode() {
       DB_TYPE=mapdb
       DB_URL=localhost
       echo "DB type is mapdb"
-    elif [[ $DB_URL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DB_URL =~ ^localhost$ ||  $DB_URL =~ ^mongodb.*$ ]]; then
+    elif [[ $DB_URL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DB_URL =~ ^localhost$ ||  $DB_URL =~ ^mongo.*$ ]]; then
+      # it should be ^mongo.*$ not ^mongodb.*$ becaue kubernetes deployment give -h mongo parameter
       DB_TYPE=mongodb
       echo "DB type is mongodb"
     elif [[ $DB_URL =~ ^redis.*$ ]]; then # if DB_URL starts with redis, then it's redis URL and make DB_TYPE to redis
