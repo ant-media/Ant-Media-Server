@@ -136,7 +136,7 @@ if [ ! -d "$INSTALL_DIRECTORY" ]; then
   exit 1
 fi
 
-freedomain(){
+get_freedomain(){
   env=$(<.env)
   hostname="ams-$RANDOM"
   if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then
@@ -185,7 +185,7 @@ get_new_certificate(){
       elif [ "$dns_validate" == "custom" ]; then
         $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
       elif [ "$freedomain" == "true" ]; then
-        freedomain
+        get_freedomain
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
       else
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
@@ -197,7 +197,7 @@ get_new_certificate(){
       elif [ "$dns_validate" == "custom" ]; then
         $SUDO certbot --agree-tos --email $email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
       elif [ "$freedomain" == "true" ]; then
-        freedomain
+        get_freedomain
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
       else
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
@@ -352,7 +352,7 @@ generate_password(){
 
 check_domain_name(){
     if [ -z "$domain" ]; then
-      freedomain
+      get_freedomain
     fi
 }
 
