@@ -232,11 +232,10 @@ public abstract class DataStore {
 
 	/**
 	 * adds subscriber to the datastore for this stream
-	 * @param streamId
 	 * @param subscriber - subscriber to be added
 	 * @return- true if set, false if not
 	 */	
-	public abstract boolean addSubscriber(String streamId, Subscriber subscriber);
+	public abstract boolean addSubscriber(Subscriber subscriber);
 
 	/**
 	 * deletes subscriber from the datastore for this stream
@@ -289,7 +288,7 @@ public abstract class DataStore {
 		if (subscriber != null) {
 			handleConnectionEvent(subscriber, event);
 
-			addSubscriber(streamId, subscriber);
+			addSubscriber(subscriber);
 			result = true;
 		}
 
@@ -320,7 +319,7 @@ public abstract class DataStore {
 		if (subscriber != null) {	
 			subscriber.getStats().setAvgVideoBitrate(avgVideoBitrate);
 			subscriber.getStats().setAvgAudioBitrate(avgAudioBitrate);
-			addSubscriber(streamId, subscriber);
+			addSubscriber(subscriber);
 			result = true;
 		}
 

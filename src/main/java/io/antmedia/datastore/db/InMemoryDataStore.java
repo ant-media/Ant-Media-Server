@@ -724,7 +724,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean addSubscriber(String streamId, Subscriber subscriber) {
+	public boolean addSubscriber(Subscriber subscriber) {
 		boolean result = false;
 
 		if (subscriber != null && subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {

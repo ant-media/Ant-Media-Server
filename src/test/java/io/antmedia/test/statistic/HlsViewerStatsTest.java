@@ -112,7 +112,7 @@ public class HlsViewerStatsTest {
 		subscriberPlay.setSubscriberId("subscriber1");
 		subscriberPlay.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 		subscriberPlay.setType(Subscriber.PLAY_TYPE);
-		dataStore.addSubscriber(subscriberPlay.getStreamId(), subscriberPlay);
+		dataStore.addSubscriber(subscriberPlay);
 		
 		String sessionId = String.valueOf((Math.random() * 999999));
 		// check if viewer is added
@@ -199,21 +199,21 @@ public class HlsViewerStatsTest {
 			subscriberPlay.setSubscriberId("subscriber1");
 			subscriberPlay.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 			subscriberPlay.setType(Subscriber.PLAY_TYPE);
-			dsf.getDataStore().addSubscriber(subscriberPlay.getStreamId(), subscriberPlay);
+			dsf.getDataStore().addSubscriber(subscriberPlay);
 			
 			Subscriber subscriberPlay2 = new Subscriber();
 			subscriberPlay2.setStreamId(streamId);
 			subscriberPlay2.setSubscriberId("subscriber2");
 			subscriberPlay2.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 			subscriberPlay2.setType(Subscriber.PLAY_TYPE);
-			dsf.getDataStore().addSubscriber(subscriberPlay2.getStreamId(), subscriberPlay2);			
+			dsf.getDataStore().addSubscriber(subscriberPlay2);			
 			
 			Subscriber subscriberPlay3 = new Subscriber();
 			subscriberPlay3.setStreamId(streamId);
 			subscriberPlay3.setSubscriberId("subscriber3");
 			subscriberPlay3.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 			subscriberPlay3.setType(Subscriber.PLAY_TYPE);
-			dsf.getDataStore().addSubscriber(subscriberPlay3.getStreamId(), subscriberPlay3);				
+			dsf.getDataStore().addSubscriber(subscriberPlay3);				
 			
 			
 			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId());
