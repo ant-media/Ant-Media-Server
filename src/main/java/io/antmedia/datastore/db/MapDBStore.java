@@ -420,6 +420,24 @@ public class MapDBStore extends DataStore {
 		return list;
 	}
 
+	public List<Broadcast> getStreamsWithOutputId(String id) {
+		ArrayList<Broadcast> list = new ArrayList<>();
+		synchronized (this) {
+			Collection<String> broadcasts = map.getValues();
+
+			for (String broadcastString : broadcasts) {
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				list.add(broadcast);
+			}
+
+			if (id != null && !id.isEmpty()) {
+				logger.info("Searching for outputId in broadcasts = {}", id);
+				list = searchForOutputId(list, id);
+			}
+			return list;
+		}
+	}
+
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
 		List<Broadcast> list = null;

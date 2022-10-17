@@ -49,7 +49,7 @@ public interface IWebRTCClient {
 	
 	public void removeWebRTCMuxer(IWebRTCMuxer webRTCMuxer);
 	
-	public void stop();
+	public void stop(boolean stopCompletely);
 	
 
 

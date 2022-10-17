@@ -428,6 +428,11 @@ public class WebSocketConstants {
 	 * It's sent for conference in MCU mode
 	 */
 	public static final String MULTI_TRACK = "multitrack";
+
+	/**
+	 * It's sent for back up streams
+	 */
+	public static final String OUTPUT_ID = "outputId";
 	
 	/**
 	 * It's sent for conference in legacy mode
