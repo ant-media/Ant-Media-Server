@@ -10,12 +10,14 @@
 # -m: Server mode. It can be standalone or cluster. If cluster mode is specified then mongodb host, username and password should also be provided.
 #     There is no default value for mode
 #
-# -h: MongoDB host. It's either IP address or full connection string such as mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1]
+# -h: MongoDB or Redist host. It's either IP address or full connection string such as mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1] or redis://[username:password@]host1[:port1] or redis yaml configuration
 #
 # -u: MongoDB username: Deprecated. Just give the username in the connection string with -h parameter
 #
 # -p: MongoDB password: Deprecated. Just give the password in the connection string with -h parameter
 #
+# -l: Licence Key
+
 # -a: TURN/STUN Server URL for the server side. It should start with "turn:" or "stun:" such as stun:stun.l.google.com:19302 or turn:ovh36.antmedia.io
 #     this url is not visible to frontend users just for server side.
 #
@@ -35,20 +37,23 @@ USE_GLOBAL_IP=false
 USE_PUBLIC_IP_AS_SERVER_NAME=false
 REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME=false
 SERVER_MODE=
-MONGODB_HOST=
+DB_URL=
 MONGODB_USERNAME=
 MONGODB_PASSWORD=
+LICENSE_KEY=
 
-while getopts g:s:r:m:h:u:p:a:n:w:t option
+
+while getopts g:s:r:m:h:u:p:l:a:n:w:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
     s) USE_PUBLIC_IP_AS_SERVER_NAME=${OPTARG};;
     r) REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME=${OPTARG};;
     m) SERVER_MODE=${OPTARG};;
-    h) MONGODB_HOST=${OPTARG};;
+    h) DB_URL=${OPTARG};;
     u) MONGODB_USERNAME=${OPTARG};;
     p) MONGODB_PASSWORD=${OPTARG};;
+    l) LICENSE_KEY=${OPTARG};;
     a) TURN_URL=${OPTARG};;
     n) TURN_USERNAME=${OPTARG};;
     w) TURN_PASSWORD=${OPTARG};;
@@ -101,9 +106,13 @@ fi
 ################################################
 # Set server mode cluster or standalone. Below method is available is functions.sh
 if [ ! -z "${SERVER_MODE}" ]; then
-  change_server_mode $SERVER_MODE $MONGODB_HOST $MONGODB_USERNAME $MONGODB_PASSWORD
+  change_server_mode $SERVER_MODE $DB_URL $MONGODB_USERNAME $MONGODB_PASSWORD
 fi
 ################################################
+# set the license key
+if [ ! -z "${LICENSE_KEY}" ]; then
+  sed -i $SED_COMPATIBILITY 's/server.licence_key=.*/server.licence_key='$LICENSE_KEY'/' $RED5_HOME/conf/red5.properties
+fi
 
 # Turn server configuration.
 if [ ! -z "${TURN_URL}" ]; then

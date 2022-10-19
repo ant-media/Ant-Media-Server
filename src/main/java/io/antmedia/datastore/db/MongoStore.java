@@ -53,10 +53,10 @@ import io.antmedia.muxer.MuxAdaptor;
 
 public class MongoStore extends DataStore {
 
-	private static final String VOD_ID = "vodId";
+	public static final String VOD_ID = "vodId";
 	private static final String VIEWER_ID = "viewerId";
 	private static final String TOKEN_ID = "tokenId";
-	private static final String STREAM_ID = "streamId";
+	public  static final String STREAM_ID = "streamId";
 	private Datastore datastore;
 	private Datastore vodDatastore;
 	private Datastore tokenDatastore;
@@ -150,20 +150,8 @@ public class MongoStore extends DataStore {
 			return null;
 		}
 		try {
-			String streamId = null;
-			if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
-				broadcast.setStreamId(streamId);
-			}
-			streamId = broadcast.getStreamId();
-			String rtmpURL = broadcast.getRtmpURL();
-			if (rtmpURL != null) {
-				rtmpURL += streamId;
-			}
-			broadcast.setRtmpURL(rtmpURL);
-			if(broadcast.getStatus()==null) {
-				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
-			}
+			Broadcast updatedBroadcast = super.saveBroadcast(broadcast);
+			String streamId = updatedBroadcast.getStreamId();
 
 			synchronized(this) {
 				datastore.save(broadcast);
@@ -191,7 +179,7 @@ public class MongoStore extends DataStore {
 		}
 		return null;
 	}
-
+	
 	@Override
 	public VoD getVoD(String id) {
 		synchronized(this) {
@@ -203,7 +191,6 @@ public class MongoStore extends DataStore {
 		}
 		return null;
 	}
-
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -391,7 +378,7 @@ public class MongoStore extends DataStore {
 				{
 					logger.info("Server side search in broadcast for the text -> {}", search);
 					query.filter(Filters.or(
-										Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
+										Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
 										Filters.regex("name").caseInsensitive().pattern(".*" + search + ".*")
 										)
 							    );
@@ -510,9 +497,9 @@ public class MongoStore extends DataStore {
 				logger.info("Server side search is called for VoD, searchString =  {}", search);
 				
 				query.filter(Filters.or(
-						Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("streamName").caseInsensitive().pattern(".*" + search + ".*"),
-						Filters.regex("vodId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex(VOD_ID).caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("vodName").caseInsensitive().pattern(".*" + search + ".*")
 						)
 			    );
@@ -655,7 +642,7 @@ public class MongoStore extends DataStore {
 				query.filter(Filters.or(
 						Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("streamName").caseInsensitive().pattern(".*" + search + ".*"),
-						Filters.regex("vodId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex(VOD_ID).caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("vodName").caseInsensitive().pattern(".*" + search + ".*")
 						));
 			}
@@ -678,6 +665,7 @@ public class MongoStore extends DataStore {
 		}
 	}
 
+	@Override
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
 		synchronized(this) {
 			if (detectedObjects != null) {
@@ -697,7 +685,7 @@ public class MongoStore extends DataStore {
 				if (batchSize > MAX_ITEM_IN_ONE_LIST) {
 					batchSize = MAX_ITEM_IN_ONE_LIST;
 				}
-				return detectionMap.find(TensorFlowObject.class).filter(Filters.text(IMAGE_ID)).iterator(new FindOptions().skip(offsetSize).limit(batchSize)).toList();
+				return detectionMap.find(TensorFlowObject.class).iterator(new FindOptions().skip(offsetSize).limit(batchSize)).toList();
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
@@ -806,7 +794,7 @@ public class MongoStore extends DataStore {
 				updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
 				updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
 				updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
-				updates.add(set("metaData", broadcast.getMetaData()));
+				updates.add(set(META_DATA, broadcast.getMetaData()));
 				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
 				updates.add(set("updateTime", broadcast.getUpdateTime()));
 
@@ -921,18 +909,9 @@ public class MongoStore extends DataStore {
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		synchronized(this) {
-			Query<StreamInfo> query = datastore.find(StreamInfo.class);
-
+			//TODO: Why do we run find(StreamInfo.class)
+			datastore.find(StreamInfo.class);
 			datastore.save(streamInfo);
-		}
-	}
-
-	@Override
-	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
-		synchronized(this) {
-			for (StreamInfo streamInfo : streamInfoList) {
-				datastore.save(streamInfo);
-			}
 		}
 	}
 
@@ -1376,7 +1355,7 @@ public class MongoStore extends DataStore {
 				
 
 				if(cursor.hasNext()) {
-					total = ((Summation) cursor.next()).getTotal();
+					total = (cursor.next()).getTotal();
 				}
 				
 
@@ -1397,6 +1376,7 @@ public class MongoStore extends DataStore {
 		}
 	}
 
+	@Override
 	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
 			String search) {
 		synchronized(this) {
