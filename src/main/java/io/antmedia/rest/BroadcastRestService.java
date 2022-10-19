@@ -148,6 +148,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/create")
+	@ApiModelProperty(readOnly = true)
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createBroadcast(@ApiParam(value = "Broadcast object. Set the required fields, it may be null as well.", required = false) Broadcast broadcast,
 			@ApiParam(value = "Only effective if stream is IP Camera or Stream Source. If it's true, it starts automatically pulling stream. Its value is false by default", required = false, defaultValue="false") @QueryParam("autoStart") boolean autoStart) {
@@ -1102,7 +1103,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteStreamFromTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
 			@ApiParam(value="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId){
-		boolean result = BroadcastRestService.removeStreamFromRoom(roomId,streamId,getDataStore());
+		boolean result = RestServiceBase.removeStreamFromRoom(roomId,streamId,getDataStore());
 		if(result) {
 			getApplication().leftTheRoom(roomId, streamId);
 		}

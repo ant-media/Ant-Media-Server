@@ -48,6 +48,7 @@ public class ConsoleRestV2UnitTest {
 
 	private RestServiceV2 restService;
 	private MapDBStore dbStore;
+	private Vertx vertx;
 
 	private static final String USER_PASSWORD = "user.password";
 
@@ -84,7 +85,8 @@ public class ConsoleRestV2UnitTest {
 			}
 		}
 		restService = new RestServiceV2();
-		dbStore = new MapDBStore();
+		vertx = Vertx.vertx();
+		dbStore = new MapDBStore(vertx);
 		restService.setDataStore(dbStore);
 	}
 
@@ -92,6 +94,7 @@ public class ConsoleRestV2UnitTest {
 	public void after() {
 		// dbStore.clear();
 		dbStore.close();
+		vertx.close();
 
 		File f = new File("server.db");
 		if (f.exists()) {

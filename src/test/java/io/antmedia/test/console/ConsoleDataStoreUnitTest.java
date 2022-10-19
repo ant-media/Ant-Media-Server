@@ -9,8 +9,10 @@ import org.junit.Test;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.datastore.MapDBStore;
 import io.antmedia.console.datastore.MongoStore;
+import io.antmedia.console.datastore.RedisStore;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.rest.model.UserType;
+import io.vertx.core.Vertx;
 
 
 public class ConsoleDataStoreUnitTest {
@@ -22,9 +24,17 @@ public class ConsoleDataStoreUnitTest {
 	}
 	
 	@Test
-	public void testMapDBStore() {
-		AbstractConsoleDataStore dt = new MapDBStore();
+	public void testRedisStore() {
+		AbstractConsoleDataStore dt = new RedisStore("redis://127.0.0.1:6379");
 		simpleDBOperations(dt);
+	}
+	
+	@Test
+	public void testMapDBStore() {
+		Vertx vertx = Vertx.vertx();
+		AbstractConsoleDataStore dt = new MapDBStore(vertx);
+		simpleDBOperations(dt);
+		vertx.close();
 	}
 	
 	
@@ -37,6 +47,7 @@ public class ConsoleDataStoreUnitTest {
 		String password = "pass" + (Math.random()*10000);
 		User user = new User(username, password, UserType.ADMIN , "system");
 		assertTrue(dtStore.addUser(user));
+		assertFalse(dtStore.addUser(user));
 		assertEquals(1, dtStore.getNumberOfUserRecords());
 		
 		assertTrue(dtStore.doesUsernameExist(username));
@@ -46,6 +57,8 @@ public class ConsoleDataStoreUnitTest {
 		assertTrue(dtStore.doesUserExist(username, password));
 		assertFalse(dtStore.doesUserExist(username, password + "123"));
 		assertFalse(dtStore.doesUserExist(username + "123", password));
+		
+		assertEquals(null, dtStore.getUser(username + "123"));
 		
 		user = dtStore.getUser(username);
 		assertEquals(password, user.getPassword());

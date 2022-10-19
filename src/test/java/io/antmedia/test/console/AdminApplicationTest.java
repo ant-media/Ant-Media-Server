@@ -207,7 +207,8 @@ public class AdminApplicationTest {
 
 		assertEquals(0, adminApplication.getVoDCount(Mockito.mock(IScope.class)));
 
-		String id = dataStore.addVod(Mockito.mock(VoD.class));
+		VoD streamVod = new VoD();
+		String id = dataStore.addVod(streamVod);
 
 		assertEquals(1, adminApplication.getVoDCount(Mockito.mock(IScope.class)));
 

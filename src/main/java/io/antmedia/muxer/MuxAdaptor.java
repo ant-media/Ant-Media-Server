@@ -298,6 +298,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void addMuxer(Muxer muxer)
 	{
+		logger.error("path: " + new Exception().getStackTrace());
+		logger.error("test");
 		muxerList.add(muxer);
 	}
 

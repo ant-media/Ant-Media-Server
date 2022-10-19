@@ -1,5 +1,7 @@
 package io.antmedia.datastore.db.types;
 
+import java.io.Serializable;
+
 import org.bson.types.ObjectId;
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
@@ -15,7 +17,9 @@ import io.swagger.annotations.ApiModelProperty;
 @Entity("P2PConnection")
 @Indexes({ @Index(fields = @Field("streamId")) })
 @ApiModel(value="P2PConnection", description="P2P Signalling Connection Info")
-public class P2PConnection {
+public class P2PConnection implements Serializable{
+	private static final long serialVersionUID = 1L;
+
 	@JsonIgnore
 	@Id
 	@ApiModelProperty(value = "the db id of the p2p connection")
