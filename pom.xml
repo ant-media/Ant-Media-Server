@@ -232,6 +232,7 @@
                    				 <title>Ant Media Server REST API Reference</title>
                    				 <version>${project.parent.version}</version>
                    			</info>
+                   			<host>test.antmedia.io:5443/Sandbox/rest/</host>
                         </apiSource>
                     </apiSources>
                 </configuration>
