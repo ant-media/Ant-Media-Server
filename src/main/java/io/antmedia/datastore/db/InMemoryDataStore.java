@@ -64,7 +64,7 @@ public class InMemoryDataStore extends DataStore {
 				}
 				broadcast.setRtmpURL(rtmpURL);
 				if(broadcast.getStatus()==null) {
-					broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+					broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
 				}
 				broadcastMap.put(streamId, broadcast);
 			} catch (Exception e) {
@@ -338,7 +338,7 @@ public class InMemoryDataStore extends DataStore {
 		Collection<VoD> vodCollection = vodMap.values();
 
 		for (Iterator<VoD> iterator = vodCollection.iterator(); iterator.hasNext();) {
-			VoD vod = (VoD) iterator.next();
+			VoD vod = iterator.next();
 			if (vod.getType().equals(VoD.USER_VOD)) {
 				iterator.remove();
 			}
@@ -631,7 +631,7 @@ public class InMemoryDataStore extends DataStore {
 		Collection<Token> tokenCollection = tokenMap.values();
 
 		for (Iterator<Token> iterator = tokenCollection.iterator(); iterator.hasNext();) {
-			Token token = (Token) iterator.next();
+			Token token = iterator.next();
 			if (token.getStreamId().equals(streamId)) {
 				iterator.remove();
 				tokenMap.remove(token.getTokenId());
@@ -786,13 +786,6 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return true;
 	}	
-	
-	@Override
-	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
-		//used in mongo for cluster mode. useless here.
-
-
-	}
 
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		return new ArrayList<>();
@@ -1022,7 +1015,7 @@ public class InMemoryDataStore extends DataStore {
 		Broadcast broadcast = broadcastMap.get(streamId);
 		boolean result = false;
 		if (broadcast != null) {
-			broadcast.setMetaData(metaData);;
+			broadcast.setMetaData(metaData);
 			broadcastMap.put(streamId, broadcast);
 			result = true;
 		}

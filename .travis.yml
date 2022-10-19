@@ -12,6 +12,11 @@ addons:
   sonarcloud:
     organization: "ant-media"
     token: $SONAR_TOKEN
+  apt:
+    packages:
+    - redis-tools
+services:
+  - redis-server
 
 
 before_install:
@@ -24,6 +29,9 @@ before_install:
   #- sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
   - wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
   - echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+  - sudo sed -e 's/^bind.*/bind 127.0.0.1/' /etc/redis/redis.conf > redis.conf
+  - sudo mv redis.conf /etc/redis
+  - sudo service redis-server start
   - sudo apt-get update -qq
   #install mongodb ffmpeg wondershaper 
   - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
@@ -132,6 +140,7 @@ cache:
 after_failure:
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
   - sudo service mongod status
+  - sudo service redis-server status
   - sudo cat /var/log/mongodb/mongod.log
   - sudo cat /usr/local/antmedia/hs_err_pid*.log  # cat hs_err_pid file if it exists
   - sudo cat hs_err_pid*.log  # cat hs_err_pid file if it exists

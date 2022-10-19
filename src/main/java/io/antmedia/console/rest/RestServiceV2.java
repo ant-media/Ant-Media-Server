@@ -61,7 +61,7 @@ public class RestServiceV2 extends CommonRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Override
-	public Result addUser(@ApiParam(value = "User object. If it is null, new user won't be created.", required = true) User user) {
+	public Result addUser(@ApiParam(value = "User object. If it is null, new user won't be created.", required = true, readOnly = true) User user) {
 		return super.addUser(user);
 	}
 
@@ -470,8 +470,8 @@ public class RestServiceV2 extends CommonRestService {
 	@Path("/server-settings")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
+	@Override
 	public String changeServerSettings(@ApiParam(value = "Server settings", required = true) ServerSettings serverSettings){
-
 		return super.changeServerSettings(serverSettings);
 	}
 
@@ -539,6 +539,7 @@ public class RestServiceV2 extends CommonRestService {
 	@Path("/applications/{appname}/reset")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
+	@Override
 	public Result resetBroadcast(@ApiParam(value = "Application name", required = true) @PathParam("appname") String appname) 
 	{
 		return super.resetBroadcast(appname);

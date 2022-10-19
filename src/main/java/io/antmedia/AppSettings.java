@@ -1,9 +1,12 @@
 package io.antmedia;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.catalina.util.NetMask;
 import org.bson.types.ObjectId;
@@ -49,7 +52,9 @@ import dev.morphia.annotations.Indexes;
 @Indexes({ @Index(fields = @Field("appName"))})
 @PropertySource("/WEB-INF/red5-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class AppSettings {
+public class AppSettings implements Serializable{
+
+	private static final long serialVersionUID = 1L;
 
 	@JsonIgnore
 	@Id
@@ -2081,9 +2086,9 @@ public class AppSettings {
 	}
 
 	@JsonIgnore
-	public synchronized List<NetMask> getAllowedCIDRList() 
+	public synchronized Queue<NetMask> getAllowedCIDRList() 
 	{
-		List<NetMask> allowedCIDRList = new ArrayList<>();
+		Queue<NetMask> allowedCIDRList = new ConcurrentLinkedQueue<>();
 		fillFromInput(remoteAllowedCIDR, allowedCIDRList);
 		return allowedCIDRList;
 	}
@@ -2098,9 +2103,9 @@ public class AppSettings {
 	}
 
 	@JsonIgnore
-	public synchronized List<NetMask> getAllowedPublisherCIDRList() 
+	public synchronized Queue<NetMask> getAllowedPublisherCIDRList() 
 	{
-		List<NetMask> allowedPublisherCIDRList = new ArrayList<>();
+		Queue<NetMask> allowedPublisherCIDRList = new ConcurrentLinkedQueue<>();
 		fillFromInput(allowedPublisherCIDR, allowedPublisherCIDRList);
 		return allowedPublisherCIDRList;
 	}
@@ -2114,7 +2119,7 @@ public class AppSettings {
 	 * @param target The list to fill
 	 * @return a string list of processing errors (empty when no errors)
 	 */
-	private List<String> fillFromInput(final String input, final List<NetMask> target) {
+	private List<String> fillFromInput(final String input, final Queue<NetMask> target) {
 		target.clear();
 		if (input == null || input.isEmpty()) {
 			return Collections.emptyList();

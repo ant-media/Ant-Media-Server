@@ -440,16 +440,23 @@ public class TokenFilterTest {
 		String streamId = "stream_Id";
 		
 		assertEquals("test_stream_Id_davut_diyen_kedi", TokenFilterManager.getStreamId("/liveapp/streams/"+"test_"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
+		assertEquals("test_stream_Id_davut_diyen_kedi", TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+"test_"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
 
+		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX +".m3u8"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX +".m3u8"));
 		
 		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test" +".m3u8"));
+		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+ "_underline_test" +".m3u8"));
 		
 		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test_240p" +".m3u8"));
+		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+ "_underline_test_240p" +".m3u8"));
 		
 		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test_500kbps" +".m3u8"));
-		
+		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+ "_underline_test_500kbps" +".m3u8"));
+
 		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test_480p300kbps" +".m3u8"));
+		assertEquals("stream_Id_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+ "_underline_test_480p300kbps" +".m3u8"));
 		
 		
 		// Tests for CMAF
@@ -460,41 +467,61 @@ public class TokenFilterTest {
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/chunked/"+streamId+"/media_0.m3u8"));		
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".m3u8"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+".m3u8"));
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_240p.m3u8"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+ "_240p.m3u8"));
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_500kbps.m3u8"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+ "_500kbps.m3u8"));
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_480p300kbps_1"+".mp4")); 
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_480p300kbps_1"+".mp4")); 
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_1"+".mp4")); 
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_1"+".mp4")); 
 
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".mp4")); 
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+".mp4")); 
+		
 		
 		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test-2021-05-18_11-26-26.842"+".mp4")); 
+		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+ "_underline_test-2021-05-18_11-26-26.842"+".mp4")); 
+		
 		
 		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+ "_underline_test-2021-05-18_11-26-26.842_240p500kbps"+".mp4")); 
+		assertEquals(streamId+ "_underline_test", TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+ "_underline_test-2021-05-18_11-26-26.842_240p500kbps"+".mp4")); 
 
+		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p300kbps.m3u8"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_240p300kbps.m3u8"));
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"0000.ts")); 
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"0000.ts"));
 		
 		
 		assertEquals("monstercat", TokenFilterManager.getStreamId("/liveapp/streams/monstercat060218000.ts")); 
+		assertEquals("monstercat", TokenFilterManager.getStreamId("/liveapp/streams/subfolder/monstercat060218000.ts")); 
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p300kbps0000.ts")); 
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_240p300kbps0000.ts")); 
 
 		assertNull(TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".u8"));
+		assertNull(TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+".u8"));
 		
 		// Add "_" in appname and stream Id
 		
 		assertEquals("test_stream_Id_davut_diyen_kedi", TokenFilterManager.getStreamId("/live_app/streams/"+"test_" + streamId+"_davut_diyen_kedi_adaptive.m3u8"));
-
+		assertEquals("test_stream_Id_davut_diyen_kedi", TokenFilterManager.getStreamId("/live_app/streams/subfolder/"+"test_" + streamId+"_davut_diyen_kedi_adaptive.m3u8"));
+		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8"));
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/subfolder/"+"test_test_"+streamId+ MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8"));
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+".m3u8"));
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/subfolder/"+"test_test_"+streamId+".m3u8"));
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+"/"+"test_test_"+streamId+"_1segment00139.m4s"));
+		
 		
 		// Tests for CMAF
 		assertEquals("test_test_" + streamId, TokenFilterManager.getStreamId("/live_app/chunked/test_test_" + streamId+"/media_1.m3u8"));
@@ -504,24 +531,36 @@ public class TokenFilterTest {
 		assertEquals("test_test_" + streamId, TokenFilterManager.getStreamId("/live_app/chunked/test_test_" + streamId+"/media_0.m3u8"));		
 
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+".mp4"));
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/subfolder/"+"test_test_"+streamId+".mp4"));
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_1"+".mp4")); 
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+"test_test_"+streamId+"_1"+".mp4")); 
+
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_480p400kbps_1"+".mp4")); 
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+"test_test_"+streamId+"_480p400kbps_1"+".mp4")); 
+		
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_480p300kbps_1"+".mp4")); 
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+"test_test_"+streamId+"_480p300kbps_1"+".mp4")); 
 		
 		assertEquals("test_test_"+streamId , TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+ "-2021-05-18_11-26-26.842"+".mp4")); 
+		assertEquals("test_test_"+streamId , TokenFilterManager.getStreamId("/live_app/streams/subfolder/"+"test_test_"+streamId+ "-2021-05-18_11-26-26.842"+".mp4")); 
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+ "-2021-05-18_11-26-26.842_240p250kbps"+".mp4")); 
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/subfolder/"+"test_test_"+streamId+ "-2021-05-18_11-26-26.842_240p250kbps"+".mp4")); 
 
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+"_240p500kbps.m3u8"));
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/subfolder/"+"test_test_"+streamId+"_240p500kbps.m3u8"));
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/"+"test_test_"+streamId+"_240p300kbps.m3u8"));
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/live_app/streams/subfolder/"+"test_test_"+streamId+"_240p300kbps.m3u8"));
 				
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_0p500kbps0000.ts")); 
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+"test_test_"+streamId+"_0p500kbps0000.ts")); 
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"_240p120kbps0000.ts"));
+		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+"test_test_"+streamId+"_240p120kbps0000.ts"));
 		
 		assertEquals("test_test_"+streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+"test_test_"+streamId+"/"+"test_test_"+streamId+"_0segment00139.m4s"));
 
@@ -529,31 +568,53 @@ public class TokenFilterTest {
 
 		
 		assertNull(TokenFilterManager.getStreamId("/live_app/streams/"+streamId+".u8"));
+		assertNull(TokenFilterManager.getStreamId("/live_app/streams/subfolder/"+streamId+".u8"));
 		
 		
 						
 		assertNull(TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".u8"));
+		assertNull(TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+".u8"));
 
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+".webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+".webm"));
+		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_1.webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_1.webm"));
+		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"-2021-12-26_19-13-12.371.webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"-2021-12-26_19-13-12.371.webm"));
+		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"-2021-12-26_19-13-39.524_240p500kbps.webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"-2021-12-26_19-13-39.524_240p500kbps.webm"));
+		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p500kbps.mp4"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_240p500kbps.mp4"));
 		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p500kbps.webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_240p500kbps.webm"));
+		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p500kbps_1.webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_240p500kbps_1.webm"));
+		
 		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_240p500kbps_2.webm"));
+		assertEquals(streamId, TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_240p500kbps_2.webm"));
 		
 
 		assertEquals(streamId+"_tahir_diyen_kedi_adaptive_123", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_tahir_diyen_kedi_adaptive_123_480p600kbps_1.mp4"));
+		assertEquals(streamId+"_tahir_diyen_kedi_adaptive_123", TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_tahir_diyen_kedi_adaptive_123_480p600kbps_1.mp4"));
 
 		assertEquals(streamId+"_tahir_diyen_kedi_adaptive", TokenFilterManager.getStreamId("/liveapp/streams/"+streamId+"_tahir_diyen_kedi_adaptive_12.webm"));
+		assertEquals(streamId+"_tahir_diyen_kedi_adaptive", TokenFilterManager.getStreamId("/liveapp/streams/subfolder/"+streamId+"_tahir_diyen_kedi_adaptive_12.webm"));
 
 
 		//below test case
 		streamId = "AgTWuHxp";
 		String requestURI = "/LiveApp/streams/"+ streamId + ".m3u8"; 
 		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		requestURI = "/LiveApp/streams/subfolder/"+ streamId + ".m3u8"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+				
 	}
 	
 	@Test
