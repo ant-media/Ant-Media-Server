@@ -1376,7 +1376,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				{
 					while(!bufferQueue.isEmpty())
 					{
-						IStreamPacket tempPacket = bufferQueue.peek();
+						IStreamPacket tempPacket = peekTheNextPacketFromBuffer();
+						
 						long now = System.currentTimeMillis();
 						long pktTimeDifferenceMs = tempPacket.getTimestamp() - firstPacketReadyToSentTimeMs;
 						long passedTime = now - bufferingFinishTimeMs;
@@ -1384,7 +1385,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						{
 							writeStreamPacket(tempPacket);
 
-							bufferQueue.remove(); //remove the packet from the queue
+							bufferQueue.remove(tempPacket); //remove the packet from the queue
 						}
 						else {
 							break;
@@ -1411,14 +1412,34 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 	}
 
+	public IStreamPacket peekTheNextPacketFromBuffer() {
+		IStreamPacket tempPacket = bufferQueue.peek();
+		if(tempPacket.getDataType() == Constants.TYPE_AUDIO_DATA) {
+			long minDTS = tempPacket.getTimestamp() & 0xffffffffL;
+			for (IStreamPacket p : bufferQueue) {
+				if(p.getDataType() == Constants.TYPE_AUDIO_DATA) {
+					long dts = p.getTimestamp() & 0xffffffffL;
+					if(dts < minDTS) {
+						tempPacket = p;
+						minDTS = dts;
+					}
+				}	
+			}
+		}		
+		
+		return tempPacket;
+	}
+
+
 	private void writeAllBufferedPackets()
 	{
 		synchronized (this) {
 			logger.info("write all buffered packets for stream: {} ", streamId);
 			while (!bufferQueue.isEmpty()) {
 
-				IStreamPacket tempPacket = bufferQueue.poll();
+				IStreamPacket tempPacket = peekTheNextPacketFromBuffer();
 				writeStreamPacket(tempPacket);
+				bufferQueue.remove(tempPacket);
 			}
 		}
 
