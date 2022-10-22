@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Queue;
 
 import org.apache.catalina.util.NetMask;
+import org.apache.commons.lang3.RandomUtils;
 import org.junit.Test;
 import org.red5.server.scope.WebScope;
 import org.springframework.test.annotation.DirtiesContext;
@@ -281,6 +282,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appSettings.setMaxVideoTrackCount(10);
 		assertEquals(10, appSettings.getMaxVideoTrackCount());
+		
+		int idleTimeOut = RandomUtils.nextInt();
+		appSettings.setOriginEdgeIdleTimeout(idleTimeOut);
+		assertEquals(idleTimeOut, appSettings.getOriginEdgeIdleTimeout());
 	}
 	
 	
