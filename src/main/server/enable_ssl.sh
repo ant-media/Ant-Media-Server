@@ -141,17 +141,16 @@ get_freedomain(){
   get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
   if [ ! -z $get_license_key ]; then
     if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then
-      ip=`curl http://checkip.amazonaws.com`
-      check_api=`curl -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=$get_license_key"`
-      sleep 3
-      if [ $check_api == 400 ]; then
+      ip=`curl -s http://checkip.amazonaws.com`
+      check_api=`curl -s -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=$get_license_key"`
+      if [ $? != 0 ]; then
+        echo "There is a problem with the script. Please re-run the enable_ssl.sh script."
+        exit 1
+      elif [ $check_api == 400 ]; then
         echo "The domain exists, please re-run the enable_ssl.sh script."
         exit 1
       elif [ $check_api == 401 ]; then
         echo "The license key is invalid."
-        exit 1
-      elif [ $? != 0 ]; then
-        echo "There is a problem with the script. Please re-run the enable_ssl.sh script."
         exit 1
       fi
       while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
@@ -166,7 +165,7 @@ get_freedomain(){
       domain=`cat $INSTALL_DIRECTORY/conf/red5.properties |egrep "ams-[0-9]*.antmedia.cloud" -o | uniq`
     fi
   else
-    echo "Make sure you enter your license key and use the Enterprise edition."
+    echo "Please make sure you enter your license key and use the Enterprise edition."
     exit 1
   fi
 }
@@ -201,7 +200,6 @@ get_new_certificate(){
       elif [ "$dns_validate" == "custom" ]; then
         $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
       elif [ "$freedomain" == "true" ]; then
-        get_freedomain
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
       else
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
@@ -213,7 +211,6 @@ get_new_certificate(){
       elif [ "$dns_validate" == "custom" ]; then
         $SUDO certbot --agree-tos --email $email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
       elif [ "$freedomain" == "true" ]; then
-        get_freedomain
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
       else
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
