@@ -142,7 +142,18 @@ get_freedomain(){
   if [ ! -z $get_license_key ]; then
     if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then
       ip=`curl http://checkip.amazonaws.com`
-      curl -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=$get_license_key"
+      check_api=`curl -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=$get_license_key"`
+      sleep 3
+      if [ $check_api == 400 ]; then
+        echo "The domain exists, please re-run the enable_ssl.sh script."
+        exit 1
+      elif [ $check_api == 401 ]; then
+        echo "The license key is invalid."
+        exit 1
+      elif [ $? != 0 ]; then
+        echo "There is a problem with the script. Please re-run the enable_ssl.sh script."
+        exit 1
+      fi
       while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
         now=$(date +"%H:%M:%S")
         echo "$now > Please wait: dns failure"
@@ -154,6 +165,9 @@ get_freedomain(){
     else
       domain=`cat $INSTALL_DIRECTORY/conf/red5.properties |egrep "ams-[0-9]*.antmedia.cloud" -o | uniq`
     fi
+  else
+    echo "Make sure you enter your license key and use the Enterprise edition."
+    exit 1
   fi
 }
 
