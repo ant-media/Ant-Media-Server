@@ -298,8 +298,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void addMuxer(Muxer muxer)
 	{
-		logger.error("path: " + new Exception().getStackTrace());
-		logger.error("test");
 		muxerList.add(muxer);
 	}
 
@@ -1911,7 +1909,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		}
 		else {
-			logger.info("Broadcast with streamId:{} is not found to update its endpoint status. It's likely a zombi stream", streamId);
+			logger.error("Broadcast with streamId:{} is not found to update its endpoint status. It's likely a zombi stream", streamId);
 		}
 	}
 
