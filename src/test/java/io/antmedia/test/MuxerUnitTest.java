@@ -97,6 +97,7 @@ import org.red5.io.flv.impl.FLVReader;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamPacket;
+import org.red5.server.net.rtmp.event.CachedEvent;
 import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.scope.WebScope;
 import org.red5.server.service.mp4.impl.MP4Service;
@@ -3634,5 +3635,50 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor3.registerToMainTrackIfExists();
 		verify(ds2, never()).updateBroadcastFields(anyString(), any());
 		
+	}
+	
+	@Test
+	public void testOrderAudioPacket() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+
+		muxAdaptor.getBufferQueue().add(createPacket(Constants.TYPE_AUDIO_DATA, 10));
+		muxAdaptor.getBufferQueue().add(createPacket(Constants.TYPE_VIDEO_DATA, 15));
+		muxAdaptor.getBufferQueue().add(createPacket(Constants.TYPE_AUDIO_DATA, 20));
+		muxAdaptor.getBufferQueue().add(createPacket(Constants.TYPE_VIDEO_DATA, 25));
+		muxAdaptor.getBufferQueue().add(createPacket(Constants.TYPE_AUDIO_DATA, 14));
+		muxAdaptor.getBufferQueue().add(createPacket(Constants.TYPE_AUDIO_DATA, 30));
+		
+		IStreamPacket p = muxAdaptor.peekTheNextPacketFromBuffer();
+		assertTrue(p.getDataType() == Constants.TYPE_AUDIO_DATA && p.getTimestamp() == 10);
+		muxAdaptor.getBufferQueue().remove(p);
+		p = muxAdaptor.peekTheNextPacketFromBuffer();
+		assertTrue(p.getDataType() == Constants.TYPE_VIDEO_DATA && p.getTimestamp() == 15);
+		muxAdaptor.getBufferQueue().remove(p);
+		p = muxAdaptor.peekTheNextPacketFromBuffer();
+		assertTrue(p.getDataType() == Constants.TYPE_AUDIO_DATA && p.getTimestamp() == 14);
+		muxAdaptor.getBufferQueue().remove(p);
+		p = muxAdaptor.peekTheNextPacketFromBuffer();
+		assertTrue(p.getDataType() == Constants.TYPE_AUDIO_DATA && p.getTimestamp() == 20);
+		muxAdaptor.getBufferQueue().remove(p);
+		p = muxAdaptor.peekTheNextPacketFromBuffer();
+		assertTrue(p.getDataType() == Constants.TYPE_VIDEO_DATA && p.getTimestamp() == 25);
+		muxAdaptor.getBufferQueue().remove(p);
+		p = muxAdaptor.peekTheNextPacketFromBuffer();
+		assertTrue(p.getDataType() == Constants.TYPE_AUDIO_DATA && p.getTimestamp() == 30);
+	}
+
+	private IStreamPacket createPacket(byte type, int timeStamp) {
+		CachedEvent ce = new CachedEvent();
+		ce.setDataType(type);
+		ce.setTimestamp(timeStamp);
+		IoBuffer data = IoBuffer.allocate(1);
+		ce.setData(data );
+		return ce;
 	}
 }
