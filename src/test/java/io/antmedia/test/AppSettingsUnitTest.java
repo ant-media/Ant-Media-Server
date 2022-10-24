@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Queue;
 
 import org.apache.catalina.util.NetMask;
+import org.apache.commons.lang3.RandomUtils;
 import org.junit.Test;
 import org.red5.server.scope.WebScope;
 import org.springframework.test.annotation.DirtiesContext;
@@ -281,6 +282,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appSettings.setMaxVideoTrackCount(10);
 		assertEquals(10, appSettings.getMaxVideoTrackCount());
+		
+		int idleTimeOut = RandomUtils.nextInt();
+		appSettings.setOriginEdgeIdleTimeout(idleTimeOut);
+		assertEquals(idleTimeOut, appSettings.getOriginEdgeIdleTimeout());
 	}
 	
 	
@@ -469,6 +474,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(false, appSettings.isRtmpPlaybackEnabled());
 		assertEquals(-1, appSettings.getMaxAudioTrackCount());
 		assertEquals(-1, appSettings.getMaxVideoTrackCount());
+		assertEquals(2, appSettings.getOriginEdgeIdleTimeout());
 
 	
 		
@@ -476,7 +482,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					155, numberOfFields);
+					156, numberOfFields);
 		
 	}
 

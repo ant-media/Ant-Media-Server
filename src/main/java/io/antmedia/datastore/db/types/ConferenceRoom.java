@@ -45,6 +45,12 @@ public class ConferenceRoom {
 	
 	@JsonIgnore
 	private boolean zombi;
+	
+	/**
+	 * This is the origin address of the node hosting the room.
+	 */
+	@ApiModelProperty(value = "the origin address of the node hosting the room")
+	private String originAdress;
 
 	public String getRoomId() {
 		return roomId;
@@ -92,6 +98,14 @@ public class ConferenceRoom {
 
 	public void setMode(String mode) {
 		this.mode = mode;
+	}
+
+	public String getOriginAdress() {
+		return originAdress;
+	}
+
+	public void setOriginAdress(String originAdress) {
+		this.originAdress = originAdress;
 	}
 
 }
