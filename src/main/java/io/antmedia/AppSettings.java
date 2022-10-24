@@ -328,6 +328,7 @@ public class AppSettings implements Serializable{
 	
 	private static final String SETTINGS_RTMP_PLAYBACK_ENABLED = "settings.rtmpPlaybackEnabled";
 
+	private static final String SETTINGS_ORIGIN_EDGE_CONNECTION_IDLE_TIMEOUT = "settings.originEdgeIdleTimeout";
 
 
 	/**
@@ -1526,6 +1527,15 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${"+SETTINGS_RTMP_PLAYBACK_ENABLED +":false}" )
 	private boolean rtmpPlaybackEnabled = false;
+	
+	
+	/**
+	 * The maximum idle time between origin and edge connection.
+	 * After this timeout connection will be re-established if
+	 * the stream is still active on origin.
+	 */
+	@Value( "${"+SETTINGS_ORIGIN_EDGE_CONNECTION_IDLE_TIMEOUT+":2}" )
+	private int originEdgeIdleTimeout = 2;
 
 	
 	public boolean isWriteStatsToDatastore() {
@@ -2896,5 +2906,13 @@ public class AppSettings implements Serializable{
 
 	public void setRtmpPlaybackEnabled(boolean rtmpPlaybackEnabled) {
 		this.rtmpPlaybackEnabled = rtmpPlaybackEnabled;
+	}
+
+	public int getOriginEdgeIdleTimeout() {
+		return originEdgeIdleTimeout;
+	}
+
+	public void setOriginEdgeIdleTimeout(int originEdgeIdleTimeout) {
+		this.originEdgeIdleTimeout = originEdgeIdleTimeout;
 	}
 }
