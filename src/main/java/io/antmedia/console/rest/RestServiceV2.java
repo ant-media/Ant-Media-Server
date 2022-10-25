@@ -21,6 +21,8 @@ import javax.ws.rs.core.Response.Status;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.springframework.stereotype.Component;
 
@@ -89,7 +91,7 @@ public class RestServiceV2 extends CommonRestService {
 	public Result deleteUser(@ApiParam(value = "User name or e-mail of the user to be deleted", required = true) @PathParam("username") String userName) {
 		return super.deleteUser(userName);
 	}
-	
+
 	@ApiOperation(value = "Returns if user is blocked. User is blocked for a specific time if there are login attempts")
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -588,7 +590,7 @@ public class RestServiceV2 extends CommonRestService {
 	public Result createApplication(@ApiParam(value = "Name for the new application", required = true) @PathParam("appName") String appName) {
 		return createApplication(appName, null);
 	}
-	
+
 	@ApiOperation(value = "Creates a new application with given name. It supports uploading custom WAR files", response = Result.class)
 	@PUT
 	@Consumes({MediaType.MULTIPART_FORM_DATA})
@@ -642,7 +644,7 @@ public class RestServiceV2 extends CommonRestService {
 		}
 		return new Result(false, "Application name is not defined");
 	}
-	
+
 
 	@ApiOperation(value = "Returns the hostname to check liveness with HTTP type healthcheck.", response = Response.class)
 	@GET
@@ -651,25 +653,44 @@ public class RestServiceV2 extends CommonRestService {
 	public Response liveness() {
 		long startTimeMs = System.currentTimeMillis();
 		JsonObject jsonObject = new JsonObject();
-		Status statusCode = null;
-		try {
-			//the following method may take some time to return
-			InetAddress inetAddress = InetAddress.getLocalHost();
-			String hostname = inetAddress.getHostName();
-			jsonObject.addProperty("host", hostname);
-			jsonObject.addProperty("status", "ok");
+		
+		//the following method may take some time to return
+		
+		String status;
+		Status statusCode;
+		String hostname = getHostname();
+		if (hostname != null) {
+			status = "ok";
 			statusCode = Status.OK;
-		} catch (UnknownHostException e) {
-			jsonObject.addProperty("host", "unknown");
-			jsonObject.addProperty("status", "error");
+		}
+		else {
+			hostname = "unknown";
+			status = "error";
 			statusCode = Status.INTERNAL_SERVER_ERROR;
 		}
+		
+		jsonObject.addProperty("host", hostname);
+		jsonObject.addProperty("status", status);
+
 		Gson gson = new Gson();
 		long elapsedTimeMs = System.currentTimeMillis() - startTimeMs;
 		if (elapsedTimeMs > 1000) {
 			logger.warn("GET liveness method takes {}ms to return", elapsedTimeMs);
 		}
 		return Response.status(statusCode).entity(gson.toJson(jsonObject)).build();
+	}
+	
+
+	public String getHostname() {
+		String hostname = null;
+		try {
+			InetAddress inetAddress = InetAddress.getLocalHost();
+			hostname = inetAddress.getHostName();
+		} catch (UnknownHostException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return hostname;
 	}
 
 }
