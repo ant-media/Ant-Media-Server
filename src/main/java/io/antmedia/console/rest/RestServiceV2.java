@@ -642,14 +642,18 @@ public class RestServiceV2 extends CommonRestService {
 		}
 		return new Result(false, "Application name is not defined");
 	}
+	
 
+	@ApiOperation(value = "Returns the hostname to check liveness with HTTP type healthcheck.", response = Response.class)
 	@GET
 	@Path("/liveness")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response liveness() {
+		long startTimeMs = System.currentTimeMillis();
 		JsonObject jsonObject = new JsonObject();
 		Status statusCode = null;
 		try {
+			//the following method may take some time to return
 			InetAddress inetAddress = InetAddress.getLocalHost();
 			String hostname = inetAddress.getHostName();
 			jsonObject.addProperty("host", hostname);
@@ -661,6 +665,10 @@ public class RestServiceV2 extends CommonRestService {
 			statusCode = Status.INTERNAL_SERVER_ERROR;
 		}
 		Gson gson = new Gson();
+		long elapsedTimeMs = System.currentTimeMillis() - startTimeMs;
+		if (elapsedTimeMs > 1000) {
+			logger.warn("GET liveness method takes {}ms to return", elapsedTimeMs);
+		}
 		return Response.status(statusCode).entity(gson.toJson(jsonObject)).build();
 	}
 
