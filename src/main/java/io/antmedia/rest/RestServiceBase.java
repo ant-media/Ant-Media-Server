@@ -1203,7 +1203,7 @@ public abstract class RestServiceBase {
 
 					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
 
-					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, RecordMuxer.getDurationInMs(savedFile,fileName), fileSize,
+					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, Muxer.getDurationInMs(savedFile,fileName), fileSize,
 							VoD.UPLOADED_VOD, vodId, null);
 
 					id = getDataStore().addVod(newVod);
@@ -1638,10 +1638,13 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	public static boolean deleteConferenceRoom(String roomName, DataStore store) {
+	public static boolean deleteConferenceRoom(String roomId, DataStore store) {
 
-		if(roomName != null) {
-			return store.deleteConferenceRoom(roomName);
+		if(roomId != null) {
+			if (logger.isInfoEnabled()) {
+				logger.info("Deleting conference room:{} from database ", roomId.replaceAll(REPLACE_CHARS, "_"));
+			}
+			return store.deleteConferenceRoom(roomId);
 		}
 		return false;
 	}
@@ -1782,7 +1785,7 @@ public abstract class RestServiceBase {
 	}
 
 
-	public static boolean removeStreamFromRoom(String roomId, String streamId,DataStore store)
+	public static synchronized boolean removeStreamFromRoom(String roomId, String streamId,DataStore store)
 	{
 		if (roomId != null)
 		{
@@ -1800,6 +1803,9 @@ public abstract class RestServiceBase {
 					roomStreamList.remove(streamId);
 					conferenceRoom.setRoomStreamList(roomStreamList);
 					store.editConferenceRoom(roomId, conferenceRoom);
+					if (logger.isInfoEnabled()) {
+						logger.info("stream:{} is removed from room:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), roomId.replaceAll(REPLACE_CHARS, "_"));
+					}
 					return true;
 				}
 			}
@@ -1834,7 +1840,7 @@ public abstract class RestServiceBase {
 		{
 			recordType = RecordType.MP4;
 		}
-		else if (type != null && type.equals(RecordType.WEBM.toString())) 
+		else if (type.equals(RecordType.WEBM.toString())) 
 		{
 			recordType = RecordType.WEBM;
 		}
@@ -1862,10 +1868,10 @@ public abstract class RestServiceBase {
 							if (enableRecording) 
 							{
 								muxer = startRecord(streamId, recordType);
-								vodId = RandomStringUtils.randomAlphanumeric(24);
 								if (muxer != null) {
+									vodId = RandomStringUtils.randomAlphanumeric(24);
 									muxer.setVodId(vodId);
-									message = Long.toString(System.currentTimeMillis());
+									message = Long.toString(muxer.getCurrentVoDTimeStamp());
 									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
 								}
 								
@@ -1875,6 +1881,7 @@ public abstract class RestServiceBase {
 								muxer = stopRecord(streamId, recordType);
 								if (muxer != null) {
 									vodId = muxer.getVodId();
+									message = Long.toString(muxer.getCurrentVoDTimeStamp());
 								}
 							}
 							

@@ -1,5 +1,7 @@
 package io.antmedia.cluster;
 
+import java.io.Serializable;
+
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
@@ -9,8 +11,9 @@ import dev.morphia.annotations.NotSaved;
 
 @Entity("clusternode")
 @Indexes({ @Index(fields = @Field("id"))})
-public class ClusterNode {
+public class ClusterNode implements Serializable {
 	
+	private static final long serialVersionUID = 1L;
 	public static final String ALIVE = "alive";
 	public static final String DEAD = "dead";
 	public static final long NODE_UPDATE_PERIOD = 5000;

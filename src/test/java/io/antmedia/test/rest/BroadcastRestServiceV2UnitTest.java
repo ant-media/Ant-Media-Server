@@ -1993,6 +1993,12 @@ public class BroadcastRestServiceV2UnitTest {
 		//define a start date
 		room.setStartDate(now);
 
+		String origin = "someAddress";
+		//define a start date
+		room.setOriginAdress(origin);
+		
+		assertEquals(origin, room.getOriginAdress());
+		
 		//Test GET conference room by id rest service
 		assertNotNull(restServiceReal.getConferenceRoom(room.getRoomId()));
 		assertEquals(restServiceReal.getConferenceRoom(room.getRoomId()).getEntity(), room);

@@ -8,7 +8,6 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockitoSession;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
@@ -50,13 +49,10 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
-import org.red5.compatibility.flex.messaging.io.ArrayCollection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
-
-import com.fasterxml.jackson.core.JsonParser;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -615,10 +611,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		spyAdaptor.setDataStoreFactory(dsf);
+		spyAdaptor.setDataStore(dataStore);
 		
 		dataStore.save(broadcast);
 		
 		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP);
+		
+		broadcast = dataStore.get(broadcast.getStreamId());
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(1)).getListenerHookURL(broadcast);
 		
 		
@@ -1271,6 +1270,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		adapter.closeBroadcast(broadcast.getStreamId());
 		
+		broadcast = db.get(broadcast.getStreamId());
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
 	}
 	
@@ -1458,8 +1458,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
 		verify(streamFetcherManager, times(1)).startStreams(broadcastListCaptor.capture());
 		
+		broadcast = dataStore.get(broadcast.getStreamId());
 		assertEquals(1,  broadcastListCaptor.getValue().size());
-		assertEquals(broadcast,  broadcastListCaptor.getValue().get(0));
+		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().get(0).getStreamId());
+		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().get(0).getStatus());
 	}
 	
 	@Test

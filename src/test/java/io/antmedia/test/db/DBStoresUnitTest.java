@@ -40,6 +40,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
+import io.antmedia.datastore.db.RedisStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -67,7 +68,6 @@ public class DBStoresUnitTest {
 	@Before
 	public void before() {
 		deleteMapDBFile();
-
 	}
 
 	@After
@@ -173,7 +173,6 @@ public class DBStoresUnitTest {
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);
-		
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -224,7 +223,7 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		
 		dataStore = new MongoStore("localhost", "", "", "testdb");
-
+		
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);		
@@ -236,7 +235,58 @@ public class DBStoresUnitTest {
 		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
-		//testSaveDetection(dataStore);
+		testSaveDetection(dataStore);
+		testFilterSearchOperations(dataStore);
+		testVoDFunctions(dataStore);
+		testSaveStreamInDirectory(dataStore);
+		testEditCameraInfo(dataStore);
+		testGetActiveBroadcastCount(dataStore);
+		testUpdateHLSViewerCount(dataStore);
+		testWebRTCViewerCount(dataStore);
+		testRTMPViewerCount(dataStore);
+		testTokenOperations(dataStore);
+		testTimeBasedSubscriberOperations(dataStore);
+		testClearAtStart(dataStore);
+		testClearAtStartCluster(dataStore);
+		testConferenceRoom(dataStore);
+		testStreamSourceList(dataStore);
+		testUpdateStatus(dataStore);
+		testP2PConnection(dataStore);
+		testUpdateLocationParams(dataStore);
+		testPlaylist(dataStore);
+		testAddTrack(dataStore);
+		testGetVoDIdByStreamId(dataStore);
+		testBroadcastListSorting(dataStore);
+		testTotalWebRTCViewerCount(dataStore);
+		testBroadcastListSearch(dataStore);
+		testVodSearch(dataStore);
+		testConferenceRoomSorting(dataStore);
+		testConferenceRoomSearch(dataStore);
+		testUpdateEndpointStatus(dataStore);
+		testWebRTCViewerOperations(dataStore);
+		testUpdateMetaData(dataStore);
+	}
+	
+	@Test
+	public void testRedisStore() {
+
+		DataStore dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
+		//delete db
+		dataStore.close(true);
+		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
+		
+		testBugFreeStreamId(dataStore);
+		testUnexpectedBroadcastOffset(dataStore);
+		testUnexpectedVodOffset(dataStore);		
+		testBugGetExternalStreamsList(dataStore);
+		testGetPagination(dataStore);
+		testNullCheck(dataStore);
+		testSimpleOperations(dataStore);
+		testRemoveEndpoint(dataStore);
+		testRemoveEndpointWithServiceEndpoint(dataStore);
+		testRTMPURL(dataStore);
+		testStreamWithId(dataStore);
+		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
@@ -1972,11 +2022,13 @@ public class DBStoresUnitTest {
 	
 	@Test
 	public void testDontWriteStatsToDB () {
+		/*
 		DataStore ds = createDB("memorydb", false);
 		assertTrue(ds instanceof InMemoryDataStore);	
 		testDontWriteStatsToDB(ds);
+		*/
 
-		ds = createDB("mapdb", false);
+		DataStore ds = createDB("mapdb", false);
 		assertTrue(ds instanceof MapDBStore);	
 		testDontWriteStatsToDB(ds);
 
@@ -2121,7 +2173,27 @@ public class DBStoresUnitTest {
 	public void testClearAtStartCluster(DataStore dataStore) {
 		
 		
-		deleteBroadcast((MongoStore) dataStore);
+		if (dataStore instanceof MongoStore) {
+			deleteBroadcast((MongoStore) dataStore);
+			assertEquals(0, dataStore.getBroadcastCount());
+		}
+		else  {
+			long broadcastCount = dataStore.getBroadcastCount();
+			System.out.println("broadcast count: " + broadcastCount);
+			int j = 0;
+			List<Broadcast> broadcastList;
+			while ((broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, null)) != null)
+			{
+				if (broadcastList.size() == 0) {
+					break;
+				}
+				for (Broadcast broadcast : broadcastList) {
+					assertTrue(dataStore.delete(broadcast.getStreamId()));
+					
+				}
+			}
+			
+		}
 		
 		Broadcast broadcast = new Broadcast();
 		broadcast.setOriginAdress(ServerSettings.getLocalHostAddress());
@@ -2444,7 +2516,7 @@ public class DBStoresUnitTest {
 	private void testP2PConnection(DataStore dataStore) {
 		String streamId = "p2pstream"+Math.random()*100;
 		P2PConnection p2pConn = new P2PConnection(streamId, "dummy");
-		if(dataStore instanceof MongoStore) {
+		if(dataStore instanceof MongoStore || dataStore instanceof RedisStore) {
 			assertNull(dataStore.getP2PConnection(streamId));
 			assertTrue(dataStore.createP2PConnection(p2pConn));
 			P2PConnection conn = dataStore.getP2PConnection(streamId);
