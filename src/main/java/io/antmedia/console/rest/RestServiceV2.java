@@ -3,6 +3,8 @@ package io.antmedia.console.rest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -15,7 +17,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.springframework.stereotype.Component;
 
@@ -638,6 +643,25 @@ public class RestServiceV2 extends CommonRestService {
 		return new Result(false, "Application name is not defined");
 	}
 
-
+	@GET
+	@Path("/liveness")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response liveness() {
+		JsonObject jsonObject = new JsonObject();
+		Status statusCode = null;
+		try {
+			InetAddress inetAddress = InetAddress.getLocalHost();
+			String hostname = inetAddress.getHostName();
+			jsonObject.addProperty("host", hostname);
+			jsonObject.addProperty("status", "ok");
+			statusCode = Status.OK;
+		} catch (UnknownHostException e) {
+			jsonObject.addProperty("host", "unknown");
+			jsonObject.addProperty("status", "error");
+			statusCode = Status.INTERNAL_SERVER_ERROR;
+		}
+		Gson gson = new Gson();
+		return Response.status(statusCode).entity(gson.toJson(jsonObject)).build();
+	}
 
 }
