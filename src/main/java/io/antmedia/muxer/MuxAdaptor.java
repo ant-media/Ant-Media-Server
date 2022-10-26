@@ -2084,13 +2084,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void addPacketListener(IPacketListener listener) {
 		StreamParametersInfo videoInfo = new StreamParametersInfo();
-		videoInfo.codecParameters = getVideoCodecParameters();
-		videoInfo.timeBase = getVideoTimeBase();
-		videoInfo.enabled = enableVideo;
+		videoInfo.setCodecParameters(getVideoCodecParameters());
+		videoInfo.setTimeBase(getVideoTimeBase());
+		videoInfo.setEnabled(enableVideo);
 		StreamParametersInfo audioInfo = new StreamParametersInfo();
-		audioInfo.codecParameters = getAudioCodecParameters();
-		audioInfo.timeBase = getAudioTimeBase();
-		audioInfo.enabled = enableAudio;
+		audioInfo.setCodecParameters(getAudioCodecParameters());
+		audioInfo.setTimeBase(getAudioTimeBase());
+		audioInfo.setEnabled(enableAudio);
 
 		listener.setVideoStreamInfo(streamId, videoInfo);
 		listener.setAudioStreamInfo(streamId, audioInfo);
