@@ -155,11 +155,11 @@ get_freedomain(){
       fi
       while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
         now=$(date +"%H:%M:%S")
-        echo "$now > Please wait: dns failure"
+        echo "$now > Waiting for DNS validation."
         sleep 10
       done
       domain="$hostname"".antmedia.cloud"
-      echo "Dns success, installing the ssl certificate."
+      echo "DNS success, installing the SSL certificate."
       freedomain="true"
     else
       domain=`cat $INSTALL_DIRECTORY/conf/red5.properties |egrep "ams-[0-9]*.antmedia.cloud" -o | uniq`
