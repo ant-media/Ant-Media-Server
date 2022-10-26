@@ -122,6 +122,7 @@ public class AuthenticationFilter extends AbstractFilter {
 				path.equals("/rest/v2/users/initial") ||
 				path.equals("/rest/v2/first-login-status") ||
 				path.equals("/rest/v2/users/authenticate") ||
+				path.equals("/rest/v2/liveness") ||
 				(path.startsWith("/rest/v2/users/") && path.endsWith("/blocked"))
 				) 
 		{
