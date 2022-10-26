@@ -148,10 +148,10 @@ get_freedomain(){
         exit 1
       elif [ $check_api == 400 ]; then
         echo "The domain exists, please re-run the enable_ssl.sh script."
-        exit 1
+        exit 400
       elif [ $check_api == 401 ]; then
         echo "The license key is invalid."
-        exit 1
+        exit 401
       fi
       while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
         now=$(date +"%H:%M:%S")
