@@ -32,9 +32,13 @@ import org.springframework.web.context.WebApplicationContext;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -604,6 +608,19 @@ public class ConsoleRestV2UnitTest {
 		assertFalse(result.isSuccess());
 
 
+	}
+	
+	@Test
+	public void testLiveness() {
+		RestServiceV2 restServiceSpy = Mockito.spy(restService);
+		
+		Response liveness = restServiceSpy.liveness();
+		assertEquals(Status.OK.getStatusCode(), liveness.getStatus());
+		
+		Mockito.doReturn(null).when(restServiceSpy).getHostname();
+		
+		liveness = restServiceSpy.liveness();
+		assertEquals(Status.INTERNAL_SERVER_ERROR.getStatusCode(), liveness.getStatus());
 	}
 
 	@Test
