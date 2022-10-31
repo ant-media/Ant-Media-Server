@@ -236,15 +236,12 @@ public class StreamFetcher {
 				logger.info("Preparing the StreamFetcher for {} for streamId:{}", streamUrl, streamId);
 				Result result = prepare(inputFormatContext);
 
-				AVRational audioTimeBase = MuxAdaptor.TIME_BASE_FOR_MS;
-				AVRational videoTimeBase = MuxAdaptor.TIME_BASE_FOR_MS;
 				
 				if (result.isSuccess()) {
 					boolean audioExist = false;
 					boolean videoExist = false;
 					for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
 						if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO) {
-							audioTimeBase = inputFormatContext.streams(i).time_base();
 							audioExist = true;
 							if(avcodec.avcodec_find_decoder(inputFormatContext.streams(i).codecpar().codec_id()) == null) {
 								logger.error("avcodec_find_decoder() error: Unsupported audio format or codec not found");
@@ -252,7 +249,6 @@ public class StreamFetcher {
 							}
 						}
 						else if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
-							videoTimeBase = inputFormatContext.streams(i).time_base();
 							videoExist = true;
 							if(avcodec.avcodec_find_decoder(inputFormatContext.streams(i).codecpar().codec_id()) == null) {
 								logger.error("avcodec_find_decoder() error: Unsupported video format or codec not found");
@@ -275,9 +271,6 @@ public class StreamFetcher {
 										
 					MuxAdaptor.setUpEndPoints(muxAdaptor, broadcast, vertx);
 					
-					muxAdaptor.setVideoTimeBase(videoTimeBase);
-					muxAdaptor.setAudioTimeBase(audioTimeBase);
-
 					muxAdaptor.init(scope, streamId, false);
 
 					logger.info("{} stream count in stream {} is {}", streamId, streamUrl, inputFormatContext.nb_streams());
