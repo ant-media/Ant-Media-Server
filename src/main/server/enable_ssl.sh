@@ -370,15 +370,13 @@ fi
 #restore iptables redirect rule
 ipt_restore
 
-echo ""
-
-$SUDO service antmedia stop
-
-output
-
-$SUDO service antmedia start
-
-output
+if [ -x "$(command -v systemctl)" ]; then
+  echo ""
+  $SUDO service antmedia stop
+  output
+  $SUDO service antmedia start
+  output
+fi
 
 echo "SSL certificate is installed."
 echo "Https port: 5443"
