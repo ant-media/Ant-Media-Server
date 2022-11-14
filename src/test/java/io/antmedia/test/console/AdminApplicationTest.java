@@ -161,19 +161,21 @@ public class AdminApplicationTest {
 			
 			adminApplication.createApplicationWithURL("app", "https://antmedia.io/rest");
 
-			Mockito.verify(adminApplication).downloadWarFile("app", "https://antmedia.io/rest");
 			Mockito.doReturn(false).when(adminApplication).createApplication(Mockito.anyString(), Mockito.anyString());
+
 			
-			adminApplication.createApplicationWithURL("app", null);
+			Mockito.verify(adminApplication).downloadWarFile("app", "https://antmedia.io/rest");
+			
+			adminApplication.createApplicationWithURL("app2", null);
 			//it should be 1 one time because url is null
 			Mockito.verify(adminApplication, Mockito.times(1)).downloadWarFile("app", "https://antmedia.io/rest");
 			
 			
-			adminApplication.createApplicationWithURL("app", "");
+			adminApplication.createApplicationWithURL("app3", "");
 			//it should be 1 one time because url is ""
 			Mockito.verify(adminApplication, Mockito.times(1)).downloadWarFile("app", "https://antmedia.io/rest");
 
-			adminApplication.createApplicationWithURL("app2", "htdfdf");
+			adminApplication.createApplicationWithURL("app4", "htdfdf");
 			//it should be 2 time because there is an url. It also with different app name.
 			Mockito.verify(adminApplication, Mockito.times(2)).downloadWarFile(Mockito.anyString(),Mockito.anyString());
 
