@@ -370,7 +370,7 @@ public class BroadcastRestServiceV2UnitTest {
 		int clientCount = (int)(Math.random()*999) + 70;
 
 		for (int i = 0; i < clientCount; i++) {
-			statsList.add(new WebRTCClientStats(500, 400, 40, 20, 0, 0, 0, "info", "192.168.1.1"));
+			statsList.add(new WebRTCClientStats(500, 400, 40, 20, 0, 0, 0, "info"));
 		}
 
 		Mockito.when(webrtcAdaptor.getWebRTCClientStats(Mockito.anyString())).thenReturn(statsList);
