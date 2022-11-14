@@ -18,6 +18,8 @@ import io.antmedia.datastore.db.types.VoD;
 import io.vertx.core.Vertx;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 
 public class AdminApplicationTest {
 
@@ -215,6 +217,32 @@ public class AdminApplicationTest {
 		dataStore.deleteVod(id);
 
 		assertEquals(0, adminApplication.getVoDCount(Mockito.mock(IScope.class)));
+	}
+	
+	@Test
+	public void testPreventConcurrentInstallationSameWar() 
+	{
+		//create application
+		AdminApplication app = Mockito.spy(new AdminApplication());
+		app.setVertx(vertx);
+		
+		int warDeployDuration = 2000;
+		String appName = "test";
+		
+		WarDeployer warDeployer = new WarDeployer() {
+			public void deploy(boolean startApplication) {
+				long t0 = System.currentTimeMillis();
+				while(System.currentTimeMillis() < t0+warDeployDuration);
+			};
+		};
+		app.setWarDeployer(warDeployer);
+		Mockito.doReturn(true).when(app).runCreateAppScript(Mockito.any(), Mockito.any());
+		
+		app.createApplication(appName, null);
+
+		Mockito.verify(app).runCreateAppScript(appName, null);
+
+		assertFalse(app.createApplicationWithURL(appName, "some_url"));
 	}
 
 }
