@@ -158,22 +158,19 @@ public class AdminApplicationTest {
 	public void testCreateApplicationWitURL() {
 		try {
 			AdminApplication adminApplication = Mockito.spy(new AdminApplication());
+			Mockito.doReturn(false).when(adminApplication).createApplication(Mockito.anyString(), Mockito.any());
 			
-			adminApplication.createApplicationWithURL("app", "https://antmedia.io/rest");
-
-			Mockito.doReturn(false).when(adminApplication).createApplication(Mockito.anyString(), Mockito.anyString());
-
-			
+			adminApplication.createApplicationWithURL("app", "https://antmedia.io/rest");		
 			Mockito.verify(adminApplication).downloadWarFile("app", "https://antmedia.io/rest");
 			
 			adminApplication.createApplicationWithURL("app2", null);
-			//it should be 1 one time because url is null
-			Mockito.verify(adminApplication, Mockito.times(1)).downloadWarFile("app", "https://antmedia.io/rest");
+			//it should be never for app2 because url is null
+			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app2"), Mockito.anyString());
 			
 			
 			adminApplication.createApplicationWithURL("app3", "");
-			//it should be 1 one time because url is ""
-			Mockito.verify(adminApplication, Mockito.times(1)).downloadWarFile("app", "https://antmedia.io/rest");
+			//it should be never for app3 because url is ""
+			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app3"), Mockito.anyString());
 
 			adminApplication.createApplicationWithURL("app4", "htdfdf");
 			//it should be 2 time because there is an url. It also with different app name.
