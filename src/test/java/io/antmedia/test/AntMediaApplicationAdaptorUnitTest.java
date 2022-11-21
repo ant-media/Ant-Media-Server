@@ -1792,11 +1792,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
 
-		Path appPath = Paths.get(streamsFolderPath + nonExistingVoDId + "." + fileExtension);
+		Path appPath = Paths.get(streamsFolderPath + "/" + nonExistingVoDId + "." + fileExtension);
 		when(dataStore.getVoD(nonExistingVoDId)).thenReturn(null);
 		assertTrue(spyAdapter.checkIfNotRegistered(appPath));
 
-		appPath = Paths.get(streamsFolderPath + existingVoDId + "." + fileExtension);
+		appPath = Paths.get(streamsFolderPath + "/" + existingVoDId + "." + fileExtension);
 		when(dataStore.getVoD(existingVoDId)).thenReturn(new VoD());
 		assertFalse(spyAdapter.checkIfNotRegistered(appPath));
 	}
