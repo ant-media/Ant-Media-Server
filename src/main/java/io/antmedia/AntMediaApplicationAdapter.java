@@ -7,7 +7,9 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,6 +19,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import javax.validation.constraints.NotNull;
 
@@ -290,6 +294,45 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 
+
+		return result;
+	}
+
+	public boolean checkIfNotRegistered(Path path) {
+		String fileName = path.getFileName().toString();
+		String id = fileName.substring(0,fileName.lastIndexOf("."));
+
+		return getDataStore().getVoD(id) == null;
+	}
+
+	public boolean registerExternalVod()
+	{
+		boolean result = false;
+
+		try (Stream<Path> paths = Files.walk(Paths.get(WEBAPPS_PATH + getScope().getName() + "/streams"))) {
+			paths
+					.filter(Files::isRegularFile)
+					.filter(f -> f.toString().endsWith(".mp4")
+						|| f.toString().endsWith(".flv")
+						|| f.toString().endsWith(".mkv"))
+					.filter(this::checkIfNotRegistered)
+					.forEach(s -> {
+						long fileSize = s.toFile().length();
+						long unixTime = System.currentTimeMillis();
+
+						String fileName = s.getFileName().toString();
+						String vodId = fileName.substring(0,fileName.lastIndexOf("."));
+						String filePath = s.toFile().getPath();
+						String[] subDirs = filePath.split(Pattern.quote(File.separator));
+						String relativePath= "streams" + '/' +subDirs[subDirs.length-1];
+
+						VoD vod = new VoD("vodFile", "vodFile", relativePath, fileName, unixTime, 0, 0, fileSize, VoD.UPLOADED_VOD, vodId, null);
+						getDataStore().addVod(vod);
+					});
+			result = true;
+		} catch (IOException e) {
+			logger.error(e.getMessage());
+		}
 
 		return result;
 	}

@@ -137,4 +137,13 @@ public class VoDRestService extends RestServiceBase{
 	public Result synchUserVodList() {
 		return super.synchUserVodList();
 	}
+
+	@ApiOperation(value = "Check VoD Folder and add unregistered them to VoD database", notes = "Notes here", response = Result.class)
+	@POST
+	@Path("/register-external-vod")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public Result registerExternalVod() {
+		return super.registerExternalVod();
+	}
 }

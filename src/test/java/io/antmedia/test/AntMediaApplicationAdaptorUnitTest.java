@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -24,6 +25,8 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -1776,6 +1779,60 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		adapter.stopApplication(true);
 		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).close(true);
-	}	
+	}
+
+	@Test
+	public void testCheckIfNotRegistered() {
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		DataStore dataStore = mock(DataStore.class);
+
+		final String existingVoDId = "cba";
+		final String nonExistingVoDId = "abc";
+		final String fileExtension = "mp4";
+
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+
+		Path appPath = Paths.get(streamsFolderPath + nonExistingVoDId + "." + fileExtension);
+		when(dataStore.getVoD(nonExistingVoDId)).thenReturn(null);
+		assertTrue(spyAdapter.checkIfNotRegistered(appPath));
+
+		appPath = Paths.get(streamsFolderPath + existingVoDId + "." + fileExtension);
+		when(dataStore.getVoD(existingVoDId)).thenReturn(new VoD());
+		assertFalse(spyAdapter.checkIfNotRegistered(appPath));
+	}
+
+	@Test
+	public void testRegisterExternalVod() {
+		DataStore dataStore = mock(DataStore.class);
+
+		IScope scope = Mockito.mock(IScope.class);
+		Mockito.when(scope.getName()).thenReturn("test");
+
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		Mockito.doReturn(scope).when(spyAdapter).getScope();
+
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+
+		// false because of streamFoldersPath is not exists
+		assertFalse(spyAdapter.registerExternalVod());
+
+		File streamsFolder = new File(streamsFolderPath);
+		if (!streamsFolder.exists()) {
+			assertTrue(streamsFolder.mkdirs());
+		}
+
+		File emptyVideoFile = new File(streamsFolderPath, "emptyvideofile.mp4");
+		emptyVideoFile.deleteOnExit();
+		when(dataStore.getVoD("emptyvideofile")).thenReturn(new VoD());
+
+		// true but not saved because of empty video file is already registered
+		assertTrue(spyAdapter.registerExternalVod());
+
+		Mockito.doReturn(null).when(dataStore).addVod(any());
+		when(dataStore.getVoD("emptyvideofile")).thenReturn(null);
+
+		// true because of empty video file exist and has mp4 extension
+		assertTrue(spyAdapter.registerExternalVod());
+	}
 
 }

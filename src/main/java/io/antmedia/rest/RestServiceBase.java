@@ -1255,6 +1255,15 @@ public abstract class RestServiceBase {
 		return new Result(result, message, errorId);
 	}
 
+	protected Result registerExternalVod() {
+		int errorId = -1;
+		String message = "";
+
+		boolean result = getApplication().registerExternalVod();
+
+		return new Result(result, message, errorId);
+	}
+
 
 	public MuxAdaptor getMuxAdaptor(String streamId) 
 	{
