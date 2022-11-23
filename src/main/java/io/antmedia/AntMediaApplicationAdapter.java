@@ -326,7 +326,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 							String fileNameWithExtension = s.getFileName().toString();
 							fileName = fileNameWithExtension.substring(0,fileNameWithExtension.lastIndexOf("."));
 						} catch (Exception e) {
-							logger.error("Error while getting substring file: {}", s.getFileName().toString());
+							logger.error("Error while getting substring file: {}", s.getFileName());
 							return;
 						}
 
