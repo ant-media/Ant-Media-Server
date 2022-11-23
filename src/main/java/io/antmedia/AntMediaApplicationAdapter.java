@@ -193,10 +193,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			else if (getServerSettings().getHostAddress().equals(storedSettings.getWarFileOriginServerAddress()) 
 						&& storedSettings.isPullWarFile()) 
 			{
+				//get the current value of isPullWarFile here otherwise it will be set to false below
+				boolean isPullWarFile = storedSettings.isPullWarFile();
 				storedSettings = appSettings;
 				updateClusterSettings = true;
 				//keep the settings to let the app distributed to all nodes
-				storedSettings.setPullWarFile(storedSettings.isPullWarFile());
+				storedSettings.setPullWarFile(isPullWarFile);
 				storedSettings.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
 			}
 
