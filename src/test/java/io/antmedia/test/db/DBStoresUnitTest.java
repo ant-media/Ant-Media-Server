@@ -134,6 +134,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		testGetVoDFromFilePath(dataStore);
 
 	}
 	
@@ -210,7 +211,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-
+		testGetVoDFromFilePath(dataStore);
 
 	}
 	
@@ -265,6 +266,7 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testGetVoDFromFilePath(dataStore);
 	}
 	
 	@Test
@@ -316,6 +318,7 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testGetVoDFromFilePath(dataStore);
 	}
 	
 	@Test
@@ -2832,5 +2835,16 @@ public class DBStoresUnitTest {
 		
 		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.randomAlphanumeric(8), UPDATED_DATA));
 
+	}
+
+	public void testGetVoDFromFilePath(DataStore dataStore) {
+		String filePath = "/streams/test.mp4";
+		String voDId = RandomStringUtils.randomAlphanumeric(8);
+		VoD vod = new VoD();
+		vod.setVodId(voDId);
+		vod.setFilePath(filePath);
+		dataStore.addVod(vod);
+
+		assertEquals(voDId, dataStore.getVoDFromFilePath(filePath).getVodId());
 	}
 }

@@ -88,6 +88,16 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
+	public VoD getVoDFromFilePath(String filePath) {
+		for (VoD vod : vodMap.values()) {
+			if (vod.getFilePath().equals(filePath)) {
+				return vod;
+			}
+		}
+		return null;
+	}
+
+	@Override
 	public boolean updateStatus(String id, String status) {
 		Broadcast broadcast = broadcastMap.get(id);
 		boolean result = false;

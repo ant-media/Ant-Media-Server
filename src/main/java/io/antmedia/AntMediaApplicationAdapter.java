@@ -299,17 +299,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	public boolean checkIfNotRegistered(Path path) {
-		String fileName = path.getFileName().toString();
-		String id;
-		try {
-			id = fileName.substring(0,fileName.lastIndexOf("."));
-		} catch (Exception e) {
-			logger.error("Error while getting substring file name: {}", fileName);
-			return false;
+	public String generateVoDIdFromFileName(String id, int count) {
+		if (getDataStore().getVoD(id + "_" + count) == null) {
+			return id + "_" + count;
+		} else {
+			return generateVoDIdFromFileName(id, count + 1);
 		}
-
-		return getDataStore().getVoD(id) == null;
 	}
 
 	public boolean registerExternalVod()
@@ -322,26 +317,29 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					.filter(f -> f.toString().endsWith(".mp4")
 						|| f.toString().endsWith(".flv")
 						|| f.toString().endsWith(".mkv"))
-					.filter(this::checkIfNotRegistered)
 					.forEach(s -> {
 						long fileSize = s.toFile().length();
 						long unixTime = System.currentTimeMillis();
 
-						String fileName = s.getFileName().toString();
-						String vodId;
+						String fileName;
 						try {
-							vodId = fileName.substring(0, fileName.lastIndexOf("."));
-						} catch (StringIndexOutOfBoundsException e) {
-							logger.error("Error while getting substring file name: {}", e.getMessage());
+							String fileNameWithExtension = s.getFileName().toString();
+							fileName = fileNameWithExtension.substring(0,fileNameWithExtension.lastIndexOf("."));
+						} catch (Exception e) {
+							logger.error("Error while getting substring file: {}", s.getFileName().toString());
 							return;
 						}
+
+						String vodId = generateVoDIdFromFileName(fileName, 0);
 
 						String filePath = s.toFile().getPath();
 						String[] subDirs = filePath.split(Pattern.quote(File.separator));
 						String relativePath= STREAMS + '/' +subDirs[subDirs.length-1];
 
-						VoD vod = new VoD("vodFile", "vodFile", relativePath, fileName, unixTime, 0, 0, fileSize, VoD.UPLOADED_VOD, vodId, null);
-						getDataStore().addVod(vod);
+						if (getDataStore().getVoDFromFilePath(relativePath) == null) {
+							VoD vod = new VoD("vodFile", "vodFile", relativePath, fileName, unixTime, 0, 0, fileSize, VoD.UPLOADED_VOD, vodId, null);
+							getDataStore().addVod(vod);
+						}
 					});
 			result = true;
 		} catch (IOException e) {

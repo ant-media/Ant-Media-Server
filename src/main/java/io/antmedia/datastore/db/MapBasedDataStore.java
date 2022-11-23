@@ -87,6 +87,19 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
+	public VoD getVoDFromFilePath(String filePath) {
+		for (Map.Entry<String, String> entry : vodMap.entrySet()) {
+			if (entry.getValue() != null) {
+				VoD vod = gson.fromJson(entry.getValue(), VoD.class);
+				if (vod.getFilePath().equals(filePath)) {
+					return vod;
+				}
+			}
+		}
+		return null;
+	}
+
+	@Override
 	public boolean updateStatus(String id, String status) {
 		boolean result = false;
 		synchronized (this) {

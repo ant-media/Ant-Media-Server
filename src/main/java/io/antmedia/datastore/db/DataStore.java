@@ -99,6 +99,13 @@ public abstract class DataStore {
 	 * @return Vod object
 	 */
 	public abstract VoD getVoD(String id);
+
+	/**
+	 * Return the vod by file path
+	 * @param filePath
+	 * @return Vod object
+	 */
+	public abstract VoD getVoDFromFilePath(String filePath);
 	
 	public VoD getVoD(Map<String, String> vodMap, String vodId, Gson gson) {
 		synchronized (this) {

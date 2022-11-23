@@ -7,8 +7,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -1790,23 +1789,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
-	public void testCheckIfNotRegistered() {
+	public void testGenerateVoDIdFromFileName() {
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
-		DataStore dataStore = mock(DataStore.class);
-
-		final String existingVoDId = "cba";
-		final String nonExistingVoDId = "abc";
-		final String fileExtensionMP4 = "mp4";
-
+		DataStore dataStore = Mockito.mock(InMemoryDataStore.class);
 		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
-
-		Path appPath = Paths.get(streamsFolderPath + "/" + nonExistingVoDId + "." + fileExtensionMP4);
-		when(dataStore.getVoD(nonExistingVoDId)).thenReturn(null);
-		assertTrue(spyAdapter.checkIfNotRegistered(appPath));
-
-		appPath = Paths.get(streamsFolderPath + "/" + existingVoDId + "." + fileExtensionMP4);
-		when(dataStore.getVoD(existingVoDId)).thenReturn(new VoD());
-		assertFalse(spyAdapter.checkIfNotRegistered(appPath));
+		String existingId = "existingId";
+		Mockito.doReturn(new VoD()).when(dataStore).getVoD(existingId);
+		Mockito.doReturn(new VoD()).when(dataStore).getVoD(existingId + "_0");
+		Mockito.doReturn(null).when(dataStore).getVoD(existingId + "_1");
+		assertEquals(existingId + "_1", spyAdapter.generateVoDIdFromFileName(existingId, 0));
 	}
 
 	@Test
@@ -1855,6 +1846,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 		File emptyVideoFileMKV = new File(streamsFolderPath, "emptyvideofilemkv." + fileExtensionMKV);
 		emptyVideoFileMKV.createNewFile();
 		emptyVideoFileMKV.deleteOnExit();
+		assertTrue(spyAdapter.registerExternalVod());
+		assertEquals(totalVodNumber + 1, dataStore.getTotalVodNumber());
+		totalVodNumber++;
+
+		File emptyVideoFile2MKV = new File(streamsFolderPath, "emptyvideofilemkv." + fileExtensionMP4);
+		emptyVideoFile2MKV.createNewFile();
+		emptyVideoFile2MKV.deleteOnExit();
 		assertTrue(spyAdapter.registerExternalVod());
 		assertEquals(totalVodNumber + 1, dataStore.getTotalVodNumber());
 	}

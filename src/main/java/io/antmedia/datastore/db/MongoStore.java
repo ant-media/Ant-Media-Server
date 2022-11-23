@@ -9,9 +9,11 @@ import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import com.mongodb.client.FindIterable;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -191,6 +193,25 @@ public class MongoStore extends DataStore {
 		}
 		return null;
 	}
+
+	@Override
+	public VoD getVoDFromFilePath(String filePath) {
+		synchronized (this) {
+			try {
+				Iterator<VoD> iterable = vodDatastore.find(VoD.class).stream().iterator();
+				while (iterable.hasNext()) {
+					VoD vod = iterable.next();
+					if (vod.getFilePath().equals(filePath)) {
+						return vod;
+					}
+				}
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
+	}
+
 	/*
 	 * (non-Javadoc)
 	 * 
