@@ -7,7 +7,6 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -326,7 +325,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 						String vodId = fileName.substring(0,fileName.lastIndexOf("."));
 						String filePath = s.toFile().getPath();
 						String[] subDirs = filePath.split(Pattern.quote(File.separator));
-						String relativePath= "streams" + '/' +subDirs[subDirs.length-1];
+						String relativePath= STREAMS + '/' +subDirs[subDirs.length-1];
 
 						VoD vod = new VoD("vodFile", "vodFile", relativePath, fileName, unixTime, 0, 0, fileSize, VoD.UPLOADED_VOD, vodId, null);
 						getDataStore().addVod(vod);
