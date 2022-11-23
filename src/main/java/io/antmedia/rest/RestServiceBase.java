@@ -1255,7 +1255,7 @@ public abstract class RestServiceBase {
 		return new Result(result, message, errorId);
 	}
 
-	protected Result registerExternalVod() {
+	public Result registerExternalVod() {
 		int errorId = -1;
 		String message = "";
 

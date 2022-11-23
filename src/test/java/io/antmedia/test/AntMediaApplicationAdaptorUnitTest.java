@@ -8,6 +8,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -19,6 +20,7 @@ import static org.mockito.Mockito.doReturn;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.nio.file.Files;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -34,6 +36,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
@@ -1807,12 +1810,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
-	public void testRegisterExternalVod() {
+	public void testRegisterExternalVod() throws IOException {
 		final String fileExtensionMP4 = "mp4";
 		final String fileExtensionFLV = "flv";
 		final String fileExtensionMKV = "mkv";
 
-		DataStore dataStore = mock(DataStore.class);
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("test"));
+		long totalVodNumber = dataStore.getTotalVodNumber();
 
 		IScope scope = Mockito.mock(IScope.class);
 		Mockito.when(scope.getName()).thenReturn("test");
@@ -1822,34 +1826,37 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
 
-		// false because of streamFoldersPath is not exists
-		assertFalse(spyAdapter.registerExternalVod());
-
 		File streamsFolder = new File(streamsFolderPath);
 		if (!streamsFolder.exists()) {
+			assertFalse(spyAdapter.registerExternalVod());
 			assertTrue(streamsFolder.mkdirs());
 		}
 
+		File emptyFile = new File(streamsFolderPath, "emptyfile");
+		emptyFile.createNewFile();
+		emptyFile.deleteOnExit();
+		assertTrue(spyAdapter.registerExternalVod());
+		assertEquals(totalVodNumber, dataStore.getTotalVodNumber());
+
 		File emptyVideoFileMP4 = new File(streamsFolderPath, "emptyvideofilemp4." + fileExtensionMP4);
+		emptyVideoFileMP4.createNewFile();
 		emptyVideoFileMP4.deleteOnExit();
-		when(dataStore.getVoD("emptyvideofilemp4")).thenReturn(new VoD());
+		assertTrue(spyAdapter.registerExternalVod());
+		assertEquals(totalVodNumber + 1, dataStore.getTotalVodNumber());
+		totalVodNumber++;
 
 		File emptyVideoFileFLV = new File(streamsFolderPath, "emptyvideofileflv." + fileExtensionFLV);
+		emptyVideoFileFLV.createNewFile();
 		emptyVideoFileFLV.deleteOnExit();
-		when(dataStore.getVoD("emptyvideofileflv")).thenReturn(new VoD());
+		assertTrue(spyAdapter.registerExternalVod());
+		assertEquals(totalVodNumber + 1, dataStore.getTotalVodNumber());
+		totalVodNumber++;
 
 		File emptyVideoFileMKV = new File(streamsFolderPath, "emptyvideofilemkv." + fileExtensionMKV);
+		emptyVideoFileMKV.createNewFile();
 		emptyVideoFileMKV.deleteOnExit();
-		when(dataStore.getVoD("emptyvideofilemkv")).thenReturn(new VoD());
-
-		// true but not saved because of empty video file is already registered
 		assertTrue(spyAdapter.registerExternalVod());
-
-		Mockito.doReturn(null).when(dataStore).addVod(any());
-		when(dataStore.getVoD("emptyvideofilemp4")).thenReturn(null);
-
-		// true because of empty video file exist and has mp4 extension
-		assertTrue(spyAdapter.registerExternalVod());
+		assertEquals(totalVodNumber + 1, dataStore.getTotalVodNumber());
 	}
 
 }

@@ -301,7 +301,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public boolean checkIfNotRegistered(Path path) {
 		String fileName = path.getFileName().toString();
-		String id = fileName.substring(0,fileName.lastIndexOf("."));
+		String id;
+		try {
+			id = fileName.substring(0,fileName.lastIndexOf("."));
+		} catch (Exception e) {
+			logger.error("Error while getting substring file name: {}", fileName);
+			return false;
+		}
 
 		return getDataStore().getVoD(id) == null;
 	}
@@ -322,7 +328,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 						long unixTime = System.currentTimeMillis();
 
 						String fileName = s.getFileName().toString();
-						String vodId = fileName.substring(0,fileName.lastIndexOf("."));
+						String vodId;
+						try {
+							vodId = fileName.substring(0, fileName.lastIndexOf("."));
+						} catch (StringIndexOutOfBoundsException e) {
+							logger.error("Error while getting substring file name: {}", e.getMessage());
+							return;
+						}
+
 						String filePath = s.toFile().getPath();
 						String[] subDirs = filePath.split(Pattern.quote(File.separator));
 						String relativePath= STREAMS + '/' +subDirs[subDirs.length-1];

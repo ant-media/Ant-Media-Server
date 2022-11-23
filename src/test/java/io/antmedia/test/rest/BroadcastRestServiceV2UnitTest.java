@@ -6,8 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -3040,5 +3039,15 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNull(streamSourceRest.getOnvifDeviceProfiles("invalid id"));
 
 	}
-	
+
+	@Test
+    public void testRegisterExternalVod() {
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		AntMediaApplicationAdapter application = Mockito.mock(AntMediaApplicationAdapter.class);
+		when(restServiceSpy.getApplication()).thenReturn(application);
+		when(restServiceSpy.getApplication().registerExternalVod()).thenReturn(true);
+		Result result = restServiceSpy.registerExternalVod();
+		verify(application, times(1)).registerExternalVod();
+		assertEquals(true, result.isSuccess());
+	}
 }
