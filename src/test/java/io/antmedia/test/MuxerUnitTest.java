@@ -136,6 +136,7 @@ import io.antmedia.muxer.parser.SpsParser;
 import io.antmedia.muxer.parser.codec.AACAudio;
 import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
+import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.storage.AmazonS3StorageClient;
 import io.antmedia.storage.StorageClient;
@@ -3574,6 +3575,27 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		ByteBuffer audioFrame = ByteBuffer.allocate(100); 
 		packetFeeder.writeAudioBuffer(audioFrame, 1, 50);
 		verify(listener, Mockito.times(1)).onAudioPacket(eq(streamId), any());
+
+
+	}
+	
+	@Test
+	public void testStreamParametersInfo() {
+		StreamParametersInfo spi = new StreamParametersInfo();
+		AVCodecParameters codecParameters = mock(AVCodecParameters.class);
+		AVRational timebase = mock(AVRational.class);
+		boolean enable = RandomUtils.nextBoolean();
+		boolean hostedInOtherNode = RandomUtils.nextBoolean();
+		
+		spi.setCodecParameters(codecParameters);
+		spi.setTimeBase(timebase);
+		spi.setEnabled(enable);
+		spi.setHostedInOtherNode(hostedInOtherNode);
+		
+		assertEquals(codecParameters, spi.getCodecParameters());
+		assertEquals(timebase, spi.getTimeBase());
+		assertEquals(enable, spi.isEnabled());
+		assertEquals(hostedInOtherNode, spi.isHostedInOtherNode());
 
 
 	}

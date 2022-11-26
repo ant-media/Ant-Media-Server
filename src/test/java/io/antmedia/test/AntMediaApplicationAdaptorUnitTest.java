@@ -1654,6 +1654,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		clusterStoreSettings.setPullWarFile(true);
 		spyAdapter.appStart(scope);
 		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
+		assertTrue(settings.isPullWarFile());
 		
 		
 		clusterStoreSettings.setWarFileOriginServerAddress("other address");
@@ -1661,12 +1662,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		clusterStoreSettings.setPullWarFile(true);
 		spyAdapter.appStart(scope);
 		verify(spyAdapter, times(4)).updateSettings(clusterStoreSettings, false, false);
+		assertTrue(settings.isPullWarFile());
+
 		
 		clusterStoreSettings.setWarFileOriginServerAddress(serverSettings.getHostAddress());
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()+80000);
 		clusterStoreSettings.setPullWarFile(false);
 		spyAdapter.appStart(scope);
 		verify(spyAdapter, times(5)).updateSettings(clusterStoreSettings, false, false);
+		assertFalse(settings.isPullWarFile());
+
 		
 	}
 	

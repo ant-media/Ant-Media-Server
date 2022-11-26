@@ -31,8 +31,7 @@ import java.util.Map;
         consumes = {"application/json"},
         produces = {"application/json"},
         schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
-        externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
-        basePath = "/v2"
+        externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io")
 )
 @Component
 @Path("/v2")
