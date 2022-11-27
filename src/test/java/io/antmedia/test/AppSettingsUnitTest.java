@@ -286,6 +286,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		int idleTimeOut = RandomUtils.nextInt();
 		appSettings.setOriginEdgeIdleTimeout(idleTimeOut);
 		assertEquals(idleTimeOut, appSettings.getOriginEdgeIdleTimeout());
+		
+		appSettings.setAddDateTimeToHlsFileName(true);
+		assertEquals(true, appSettings.isAddDateTimeToHlsFileName());
 	}
 	
 	
