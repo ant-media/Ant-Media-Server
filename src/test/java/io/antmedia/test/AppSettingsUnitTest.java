@@ -475,6 +475,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(-1, appSettings.getMaxAudioTrackCount());
 		assertEquals(-1, appSettings.getMaxVideoTrackCount());
 		assertEquals(2, appSettings.getOriginEdgeIdleTimeout());
+		assertEquals(false, appSettings.isAddDateTimeToHlsFileName());
 
 	
 		
@@ -482,7 +483,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					156, numberOfFields);
+					157, numberOfFields);
 		
 	}
 
