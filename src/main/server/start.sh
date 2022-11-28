@@ -38,8 +38,8 @@ USE_PUBLIC_IP_AS_SERVER_NAME=false
 REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME=false
 SERVER_MODE=
 DB_URL=
-MONGODB_USERNAME=
-MONGODB_PASSWORD=
+DB_USERNAME=
+DB_PASSWORD=
 LICENSE_KEY=
 
 
@@ -51,8 +51,8 @@ do
     r) REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME=${OPTARG};;
     m) SERVER_MODE=${OPTARG};;
     h) DB_URL=${OPTARG};;
-    u) MONGODB_USERNAME=${OPTARG};;
-    p) MONGODB_PASSWORD=${OPTARG};;
+    u) DB_USERNAME=${OPTARG};;
+    p) DB_PASSWORD=${OPTARG};;
     l) LICENSE_KEY=${OPTARG};;
     a) TURN_URL=${OPTARG};;
     n) TURN_USERNAME=${OPTARG};;
@@ -99,14 +99,14 @@ for i in $LIST_APPS; do
 done
 ################################################
 
-if [ ! -z "$MONGODB_USERNAME" ] && [ ! -z "$MONGODB_PASSWORD" ]; then
+if [ ! -z "$DB_USERNAME" ] && [ ! -z "$DB_PASSWORD" ]; then
   echo -e "\033[0;31mYou can just use mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1] connection strings with -h parameter. No need give mongodb username and password parameters explicityly. These parameters are deprecated.\033[0m"
 fi
 
 ################################################
 # Set server mode cluster or standalone. Below method is available is functions.sh
 if [ ! -z "${SERVER_MODE}" ]; then
-  change_server_mode $SERVER_MODE $DB_URL $MONGODB_USERNAME $MONGODB_PASSWORD
+  change_server_mode $SERVER_MODE $DB_URL $DB_USERNAME $DB_PASSWORD
 fi
 ################################################
 # set the license key
