@@ -1,5 +1,7 @@
 package io.antmedia.datastore.db.types;
 
+import java.io.Serializable;
+
 import org.bson.types.ObjectId;
 import dev.morphia.annotations.Embedded;
 import dev.morphia.annotations.Entity;
@@ -13,8 +15,9 @@ import io.antmedia.webrtc.VideoCodec;
 
 @Entity("StreamInfo")
 @Indexes({@Index(fields = @Field("streamId"))})
-public class StreamInfo implements IStreamInfo {
+public class StreamInfo implements IStreamInfo, Serializable {
 	
+	private static final long serialVersionUID = 1L;
 	@Id
 	private ObjectId dbId;
 	private String streamId;

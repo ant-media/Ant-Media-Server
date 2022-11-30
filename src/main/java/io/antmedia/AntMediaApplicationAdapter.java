@@ -189,10 +189,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			else if (getServerSettings().getHostAddress().equals(storedSettings.getWarFileOriginServerAddress()) 
 						&& storedSettings.isPullWarFile()) 
 			{
+				//get the current value of isPullWarFile here otherwise it will be set to false below
+				boolean isPullWarFile = storedSettings.isPullWarFile();
 				storedSettings = appSettings;
 				updateClusterSettings = true;
 				//keep the settings to let the app distributed to all nodes
-				storedSettings.setPullWarFile(storedSettings.isPullWarFile());
+				storedSettings.setPullWarFile(isPullWarFile);
 				storedSettings.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
 			}
 
@@ -530,7 +532,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}	
 
 	@Override
-	public void muxingFinished(final String streamId, File file, long startTime, long duration, int resolution, String previewFilePath) {
+	public void muxingFinished(final String streamId, File file, long startTime, long duration, int resolution, String previewFilePath, String vodId) {
 		String vodName = file.getName();
 		String filePath = file.getPath();
 		long fileSize = file.length();
@@ -555,8 +557,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			listenerHookURL = appSettings.getListenerHookURL();
 		}
 
-		String vodId = RandomStringUtils.randomNumeric(24);
-		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodId, previewFilePath);
+		String vodIdFinal;
+		if (vodId != null) {
+			vodIdFinal = vodId;
+		}
+		else {
+			vodIdFinal = RandomStringUtils.randomAlphanumeric(24);
+		}
+		
+		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodIdFinal, previewFilePath);
 
 		if (getDataStore().addVod(newVod) == null) {
 			logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);
@@ -572,7 +581,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			final String baseName = vodName.substring(0, index);
 			String finalListenerHookURL = listenerHookURL;
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			vertx.runOnContext(e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodId, null));
+			vertx.runOnContext(e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodIdFinal, null));
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();

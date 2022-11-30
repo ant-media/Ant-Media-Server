@@ -236,7 +236,7 @@ public class StreamFetcher {
 				logger.info("Preparing the StreamFetcher for {} for streamId:{}", streamUrl, streamId);
 				Result result = prepare(inputFormatContext);
 
-
+				
 				if (result.isSuccess()) {
 					boolean audioExist = false;
 					boolean videoExist = false;
@@ -270,7 +270,7 @@ public class StreamFetcher {
 					muxAdaptor.setAvc(!streamUrl.toLowerCase().startsWith("rtsp"));
 										
 					MuxAdaptor.setUpEndPoints(muxAdaptor, broadcast, vertx);
-
+					
 					muxAdaptor.init(scope, streamId, false);
 
 					logger.info("{} stream count in stream {} is {}", streamId, streamUrl, inputFormatContext.nb_streams());
@@ -402,7 +402,7 @@ public class StreamFetcher {
 									}
 									
 								}
-
+								
 								muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
 
 							}

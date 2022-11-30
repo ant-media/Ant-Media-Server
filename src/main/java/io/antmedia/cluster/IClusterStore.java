@@ -21,7 +21,7 @@ public interface IClusterStore
 	public boolean saveSettings(AppSettings settings);
 
 	public AppSettings getSettings(String appName);
-	
+		
 	public List<AppSettings> getAllSettings();
 	
 	/**

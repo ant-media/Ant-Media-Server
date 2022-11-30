@@ -13,7 +13,9 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.annotation.Nullable;
 
@@ -78,6 +80,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	private IClusterNotifier clusterNotifier;
 
+
+	private Queue<String> currentApplicationCreationProcesses = new ConcurrentLinkedQueue<>();
+
 	@Override
 	public boolean appStart(IScope app) {
 		isCluster = app.getContext().hasBean(IClusterNotifier.BEAN_NAME);
@@ -102,6 +107,12 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	public boolean createApplicationWithURL(String appName, String warFileURI) 
 	{
+		//If installation takes long, prevent redownloading war and starting installation again
+		if(currentApplicationCreationProcesses.contains(appName)) {
+			log.warn("{} application has already been installing", appName);
+			return false;
+		}
+		
 		log.info("Creating application with name {}", appName);
 		boolean result = false;
 		try {
@@ -305,6 +316,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	public boolean createApplication(String appName, String warFileFullPath) {
+		currentApplicationCreationProcesses.add(appName);
 		boolean success = false;
 		logger.info("Running create app script, war file name (null if default): {}, app name: {} ", warFileFullPath, appName);
 
@@ -320,8 +332,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			boolean result = runCreateAppScript(appName, warFileFullPath);
 			success = result;
 		}
-
-		vertx.setTimer(3000, i -> warDeployer.deploy(true));
+		
+		vertx.executeBlocking(i -> {
+			warDeployer.deploy(true);
+			currentApplicationCreationProcesses.remove(appName);
+		});
 
 		return success;
 

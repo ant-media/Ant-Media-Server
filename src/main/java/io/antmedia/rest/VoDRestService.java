@@ -39,8 +39,7 @@ import io.swagger.annotations.SwaggerDefinition;
         consumes = {"application/json"},
         produces = {"application/json"},
         schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
-        externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
-        basePath = "/v2/vods"
+        externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io")
 )
 @Component
 @Path("/v2/vods")
@@ -74,7 +73,7 @@ public class VoDRestService extends RestServiceBase{
 			@ApiParam(value = "Number of items that will be fetched", required = true) @PathParam("size") int size,
 			@ApiParam(value = "Field to sort. Possible values are \"name\", \"date\"", required = false) @QueryParam("sort_by") String sortBy,
 			@ApiParam(value ="\"asc\" for Ascending, \"desc\" Descening order", required = false) @QueryParam("order_by") String orderBy,
-			@ApiParam(value = "Id of the stream to filter the results by stream id", required = true) @QueryParam("streamId") String streamId,
+			@ApiParam(value = "Id of the stream to filter the results by stream id", required = false) @QueryParam("streamId") String streamId,
 			@ApiParam(value = "Search string", required = false) @QueryParam("search") String search)
 	{
 		return getDataStore().getVodList(offset, size, sortBy, orderBy, streamId, search);

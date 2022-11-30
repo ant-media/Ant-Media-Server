@@ -74,6 +74,7 @@ import io.antmedia.muxer.HLSMuxer;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.muxer.RecordMuxer;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
@@ -1686,9 +1687,9 @@ public class BroadcastRestServiceV2UnitTest {
         MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
         when(mockMuxAdaptor.getMuxerList()).thenReturn(mockMuxers);
         
-        when(mockMuxAdaptor.startRecording(RecordType.MP4)).thenReturn(true);
+        when(mockMuxAdaptor.startRecording(RecordType.MP4)).thenReturn(Mockito.mock(Mp4Muxer.class));
         
-        when(mockMuxAdaptor.stopRecording(RecordType.MP4)).thenReturn(true);
+        when(mockMuxAdaptor.stopRecording(RecordType.MP4)).thenReturn(Mockito.mock(Mp4Muxer.class));
 
         ArrayList<MuxAdaptor> mockMuxAdaptors = new ArrayList<>();
         mockMuxAdaptors.add(mockMuxAdaptor);
@@ -1753,7 +1754,7 @@ public class BroadcastRestServiceV2UnitTest {
         
         MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
         doReturn(mockMuxAdaptor).when(restServiceSpy).getMuxAdaptor(streamId);
-        doReturn(false).when(mockMuxAdaptor).startRecording(RecordType.WEBM);
+        doReturn(null).when(mockMuxAdaptor).startRecording(RecordType.WEBM);
         when(mockMuxAdaptor.getStreamId()).thenReturn(streamId);
 
         doReturn(true).when(restServiceSpy).isInSameNodeInCluster(Mockito.any());
@@ -1765,7 +1766,7 @@ public class BroadcastRestServiceV2UnitTest {
         
         result = restServiceSpy.enableRecordMuxing(streamId, true,"webm");
         assertFalse(result.isSuccess());
-        doReturn(true).when(mockMuxAdaptor).startRecording(RecordType.WEBM);
+        doReturn(Mockito.mock(RecordMuxer.class)).when(mockMuxAdaptor).startRecording(RecordType.WEBM);
   
         result = restServiceSpy.enableRecordMuxing(streamId, true,"webm");
         assertTrue(result.isSuccess());
@@ -1774,7 +1775,7 @@ public class BroadcastRestServiceV2UnitTest {
         assertEquals(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM, store.get(streamId).getWebMEnabled());
 
         //disable
-        doReturn(true).when(mockMuxAdaptor).stopRecording(RecordType.WEBM);
+        doReturn(Mockito.mock(RecordMuxer.class)).when(mockMuxAdaptor).stopRecording(RecordType.WEBM);
 		result = restServiceSpy.enableRecordMuxing(streamId, false,"webm");
 		assertTrue(result.isSuccess());
         verify(mockMuxAdaptor, times(2)).stopRecording(RecordType.WEBM);
@@ -1782,7 +1783,7 @@ public class BroadcastRestServiceV2UnitTest {
         
       
         store.get(streamId).setWebMEnabled(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM);
-        doReturn(false).when(mockMuxAdaptor).stopRecording(RecordType.WEBM);
+        doReturn(null).when(mockMuxAdaptor).stopRecording(RecordType.WEBM);
 		result = restServiceSpy.enableRecordMuxing(streamId, false,"webm");
 		assertFalse(result.isSuccess());
         
@@ -1992,6 +1993,12 @@ public class BroadcastRestServiceV2UnitTest {
 		//define a start date
 		room.setStartDate(now);
 
+		String origin = "someAddress";
+		//define a start date
+		room.setOriginAdress(origin);
+		
+		assertEquals(origin, room.getOriginAdress());
+		
 		//Test GET conference room by id rest service
 		assertNotNull(restServiceReal.getConferenceRoom(room.getRoomId()));
 		assertEquals(restServiceReal.getConferenceRoom(room.getRoomId()).getEntity(), room);

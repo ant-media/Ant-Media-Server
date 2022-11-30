@@ -51,6 +51,8 @@ public abstract class RecordMuxer extends Muxer {
 	 * It will be define when record muxer is called by anywhere
 	 */
 	private long startTime = 0;
+	
+	private String vodId;
 
 
 	protected RecordMuxer(StorageClient storageClient, Vertx vertx, String s3FolderPath) {
@@ -146,7 +148,7 @@ public abstract class RecordMuxer extends Muxer {
 
 				finalizeRecordFile(f);
 
-				adaptor.muxingFinished(streamId, f, startTime, getDurationInMs(f,streamId), resolution, previewPath);
+				adaptor.muxingFinished(streamId, f, startTime, getDurationInMs(f,streamId), resolution, previewPath, vodId);
 
 				logger.info("File: {} exist: {}", fileTmp.getAbsolutePath(), fileTmp.exists());
 
@@ -241,6 +243,14 @@ public abstract class RecordMuxer extends Muxer {
 	
 
 	public boolean isUploadingToS3(){return uploadMP4ToS3;}
+
+	public String getVodId() {
+		return vodId;
+	}
+
+	public void setVodId(String vodId) {
+		this.vodId = vodId;
+	}
 
 
 }

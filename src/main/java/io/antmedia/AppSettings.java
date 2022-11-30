@@ -1,9 +1,12 @@
 package io.antmedia;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.catalina.util.NetMask;
 import org.bson.types.ObjectId;
@@ -49,7 +52,9 @@ import dev.morphia.annotations.Indexes;
 @Indexes({ @Index(fields = @Field("appName"))})
 @PropertySource("/WEB-INF/red5-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class AppSettings {
+public class AppSettings implements Serializable{
+
+	private static final long serialVersionUID = 1L;
 
 	@JsonIgnore
 	@Id
@@ -291,6 +296,8 @@ public class AppSettings {
 
 	private static final String SETTINGS_FORCE_DECODING = "settings.forceDecoding";
 
+	private static final String SETTINGS_ADD_ORIGINAL_MUXER_INTO_HLS_PLAYLIST = "settings.addOriginalMuxerIntoHlsPlaylist";
+
 	public static final String SETTINGS_S3_RECORDING_ENABLED = "settings.s3RecordingEnabled";
 
 	public static final String SETTINGS_S3_ACCESS_KEY = "settings.s3AccessKey";
@@ -321,6 +328,9 @@ public class AppSettings {
 	
 	private static final String SETTINGS_RTMP_PLAYBACK_ENABLED = "settings.rtmpPlaybackEnabled";
 
+	private static final String SETTINGS_ORIGIN_EDGE_CONNECTION_IDLE_TIMEOUT = "settings.originEdgeIdleTimeout";
+	
+	public static final String SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME = "settings.addDateTimeToHlsFileName";
 
 
 	/**
@@ -1356,6 +1366,11 @@ public class AppSettings {
 	@Value("${" + SETTINGS_FORCE_DECODING+ ":false}")
 	private boolean forceDecoding;
 
+	/**
+	 * Add the original hls stream to the playlist if adaptive bitrate setting is enabled
+	 */
+	@Value("${" + SETTINGS_ADD_ORIGINAL_MUXER_INTO_HLS_PLAYLIST+ ":true}")
+	private boolean addOriginalMuxerIntoHLSPlaylist = true;
 
 	/**
 	 * Application JWT Control Enabled
@@ -1514,8 +1529,22 @@ public class AppSettings {
 	 */
 	@Value( "${"+SETTINGS_RTMP_PLAYBACK_ENABLED +":false}" )
 	private boolean rtmpPlaybackEnabled = false;
-
 	
+	
+	/**
+	 * The maximum idle time between origin and edge connection.
+	 * After this timeout connection will be re-established if
+	 * the stream is still active on origin.
+	 */
+	@Value( "${"+SETTINGS_ORIGIN_EDGE_CONNECTION_IDLE_TIMEOUT+":2}" )
+	private int originEdgeIdleTimeout = 2;
+	
+	/**
+	 * It's mandatory, Date and time are added to created .m3u8 and .ts file name, Default value is false
+	 */
+	@Value( "${"+SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME+":false}" )
+	private boolean addDateTimeToHlsFileName;
+
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
 	}
@@ -2074,9 +2103,9 @@ public class AppSettings {
 	}
 
 	@JsonIgnore
-	public synchronized List<NetMask> getAllowedCIDRList() 
+	public synchronized Queue<NetMask> getAllowedCIDRList() 
 	{
-		List<NetMask> allowedCIDRList = new ArrayList<>();
+		Queue<NetMask> allowedCIDRList = new ConcurrentLinkedQueue<>();
 		fillFromInput(remoteAllowedCIDR, allowedCIDRList);
 		return allowedCIDRList;
 	}
@@ -2091,9 +2120,9 @@ public class AppSettings {
 	}
 
 	@JsonIgnore
-	public synchronized List<NetMask> getAllowedPublisherCIDRList() 
+	public synchronized Queue<NetMask> getAllowedPublisherCIDRList() 
 	{
-		List<NetMask> allowedPublisherCIDRList = new ArrayList<>();
+		Queue<NetMask> allowedPublisherCIDRList = new ConcurrentLinkedQueue<>();
 		fillFromInput(allowedPublisherCIDR, allowedPublisherCIDRList);
 		return allowedPublisherCIDRList;
 	}
@@ -2107,7 +2136,7 @@ public class AppSettings {
 	 * @param target The list to fill
 	 * @return a string list of processing errors (empty when no errors)
 	 */
-	private List<String> fillFromInput(final String input, final List<NetMask> target) {
+	private List<String> fillFromInput(final String input, final Queue<NetMask> target) {
 		target.clear();
 		if (input == null || input.isEmpty()) {
 			return Collections.emptyList();
@@ -2772,6 +2801,14 @@ public class AppSettings {
 		this.forceDecoding = forceDecoding;
 	}
 
+	public boolean isAddOriginalMuxerIntoHLSPlaylist() {
+		return addOriginalMuxerIntoHLSPlaylist;
+	}
+
+	public void setAddOriginalMuxerIntoHLSPlaylist(boolean addOriginalMuxerIntoHLSPlaylist) {
+		this.addOriginalMuxerIntoHLSPlaylist = addOriginalMuxerIntoHLSPlaylist;
+	}
+
 	public String getJwksURL() {
 		return jwksURL;
 	}
@@ -2876,5 +2913,21 @@ public class AppSettings {
 
 	public void setRtmpPlaybackEnabled(boolean rtmpPlaybackEnabled) {
 		this.rtmpPlaybackEnabled = rtmpPlaybackEnabled;
+	}
+
+	public int getOriginEdgeIdleTimeout() {
+		return originEdgeIdleTimeout;
+	}
+
+	public void setOriginEdgeIdleTimeout(int originEdgeIdleTimeout) {
+		this.originEdgeIdleTimeout = originEdgeIdleTimeout;
+	}
+	
+	public boolean isAddDateTimeToHlsFileName() {
+		return addDateTimeToHlsFileName;
+	}
+
+	public void setAddDateTimeToHlsFileName(boolean addDateTimeToHlsFileName) {
+		this.addDateTimeToHlsFileName = addDateTimeToHlsFileName;
 	}
 }

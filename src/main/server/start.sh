@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Options 
+# Options
 # -g: Use global(Public) IP in network communication. Its value can be true or false. Default value is false.
 #
 # -s: Use Public IP as server name. Its value can be true or false. Default value is false.
@@ -10,13 +10,22 @@
 # -m: Server mode. It can be standalone or cluster. If cluster mode is specified then mongodb host, username and password should also be provided.
 #     There is no default value for mode
 #
-# -h: MongoDB host
+# -h: MongoDB or Redist host. It's either IP address or full connection string such as mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1] or redis://[username:password@]host1[:port1] or redis yaml configuration
 #
-# -u: MongoDB username
+# -u: MongoDB username: Deprecated. Just give the username in the connection string with -h parameter
 #
-# -p: MongoDB password
+# -p: MongoDB password: Deprecated. Just give the password in the connection string with -h parameter
+#
+# -l: Licence Key
 
-if [ -z "$RED5_HOME" ]; then 
+# -a: TURN/STUN Server URL for the server side. It should start with "turn:" or "stun:" such as stun:stun.l.google.com:19302 or turn:ovh36.antmedia.io
+#     this url is not visible to frontend users just for server side.
+#
+# -n: TURN Server Usermame: Provide the TURN server username to get relay candidates.
+#
+# -w: TURN Server Password: Provide the TURN server password to get relay candidates.
+
+if [ -z "$RED5_HOME" ]; then
   BASEDIR=$(dirname "$0")
   cd $BASEDIR
   export RED5_HOME=`pwd`
@@ -28,20 +37,26 @@ USE_GLOBAL_IP=false
 USE_PUBLIC_IP_AS_SERVER_NAME=false
 REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME=false
 SERVER_MODE=
-MONGODB_HOST=
-MONGODB_USERNAME=
-MONGODB_PASSWORD=
+DB_URL=
+DB_USERNAME=
+DB_PASSWORD=
+LICENSE_KEY=
 
-while getopts g:s:r:m:h:u:p:t option
+
+while getopts g:s:r:m:h:u:p:l:a:n:w:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
     s) USE_PUBLIC_IP_AS_SERVER_NAME=${OPTARG};;
     r) REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME=${OPTARG};;
     m) SERVER_MODE=${OPTARG};;
-    h) MONGODB_HOST=${OPTARG};;
-    u) MONGODB_USERNAME=${OPTARG};;
-    p) MONGODB_PASSWORD=${OPTARG};;
+    h) DB_URL=${OPTARG};;
+    u) DB_USERNAME=${OPTARG};;
+    p) DB_PASSWORD=${OPTARG};;
+    l) LICENSE_KEY=${OPTARG};;
+    a) TURN_URL=${OPTARG};;
+    n) TURN_USERNAME=${OPTARG};;
+    w) TURN_PASSWORD=${OPTARG};;
    esac
 done
 
@@ -56,7 +71,7 @@ fi
 sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $RED5_HOME/conf/red5.properties
 
 ################################################
-# Set server name 
+# Set server name
 SERVER_ADDRESS=
 if [ "$USE_PUBLIC_IP_AS_SERVER_NAME" = "true" ]; then
   # get server public ip address
@@ -74,22 +89,66 @@ replaceCandidateAddressWithServer() {
     echo " " >> $1 #add new line
     echo "settings.replaceCandidateAddrWithServerAddr=$2" >> $1
   else
-    sed -i $SED_COMPATIBILITY 's/settings.replaceCandidateAddrWithServerAddr=.*/settings.replaceCandidateAddrWithServerAddr='$2'/' $1 
+    sed -i $SED_COMPATIBILITY 's/settings.replaceCandidateAddrWithServerAddr=.*/settings.replaceCandidateAddrWithServerAddr='$2'/' $1
   fi
 }
 LIST_APPS=`ls -d $RED5_HOME/webapps/*/`
 
-for i in $LIST_APPS; do 
+for i in $LIST_APPS; do
   replaceCandidateAddressWithServer $i/WEB-INF/red5-web.properties $REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME
 done
 ################################################
 
+if [ ! -z "$DB_USERNAME" ] && [ ! -z "$DB_PASSWORD" ]; then
+  echo -e "\033[0;31mYou can just use mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1] connection strings with -h parameter. No need give mongodb username and password parameters explicityly. These parameters are deprecated.\033[0m"
+fi
+
 ################################################
 # Set server mode cluster or standalone. Below method is available is functions.sh
 if [ ! -z "${SERVER_MODE}" ]; then
-  change_server_mode $SERVER_MODE $MONGODB_HOST $MONGODB_USERNAME $MONGODB_PASSWORD
+  change_server_mode $SERVER_MODE $DB_URL $DB_USERNAME $DB_PASSWORD
 fi
 ################################################
+# set the license key
+if [ ! -z "${LICENSE_KEY}" ]; then
+  sed -i $SED_COMPATIBILITY 's/server.licence_key=.*/server.licence_key='$LICENSE_KEY'/' $RED5_HOME/conf/red5.properties
+fi
+
+# Turn server configuration.
+if [ ! -z "${TURN_URL}" ]; then
+  for applist in $LIST_APPS; do
+    if [ $(grep -E "settings.webrtc.stunServerURI" $applist/WEB-INF/red5-web.properties | wc -l) -eq "0" ]; then
+        echo " " >> $applist/WEB-INF/red5-web.properties #add new line
+        echo  "settings.webrtc.stunServerURI=${TURN_URL}" >> $applist/WEB-INF/red5-web.properties
+    else
+        sed -i $SED_COMPATIBILITY 's/settings.webrtc.stunServerURI=.*/settings.webrtc.stunServerURI='${TURN_URL}'/' $applist/WEB-INF/red5-web.properties
+    fi
+ done
+fi
+
+if [ ! -z "${TURN_USERNAME}" ]; then
+  for applist in $LIST_APPS; do
+
+    if [ $(grep -E "settings.webrtc.turnServerUsername" $applist/WEB-INF/red5-web.properties | wc -l) -eq "0"  ]; then
+        echo " " >> $applist/WEB-INF/red5-web.properties #add new line
+        echo  "settings.webrtc.turnServerUsername=${TURN_USERNAME}" >> $applist/WEB-INF/red5-web.properties
+    else
+        sed -i $SED_COMPATIBILITY 's/settings.webrtc.turnServerUsername=.*/settings.webrtc.turnServerUsername='${TURN_USERNAME}'/' $applist/WEB-INF/red5-web.properties
+    fi
+ done
+fi
+
+if [ ! -z ${TURN_PASSWORD} ]; then
+  for applist in $LIST_APPS; do
+    if [ $(grep -E "settings.webrtc.turnServerCredential" $applist/WEB-INF/red5-web.properties | wc -l) -eq "0"  ]; then
+        echo " " >> $applist/WEB-INF/red5-web.properties #add new line
+        echo  "settings.webrtc.turnServerCredential=${TURN_PASSWORD}" >> $applist/WEB-INF/red5-web.properties
+    else
+        sed -i $SED_COMPATIBILITY 's/settings.webrtc.turnServerCredential=.*/settings.webrtc.turnServerCredential='${TURN_PASSWORD}'/' $applist/WEB-INF/red5-web.properties
+    fi
+ done
+fi
+
 
 
 P=":" # The default classpath separator
@@ -113,8 +172,8 @@ case "$OS" in
       NATIVE="-Djava.library.path=$DYLD_LIBRARY_PATH:$RED5_HOME/lib/native"
   ;;
   SunOS*)
-      if [ -z "$JAVA_HOME" ]; then 
-          export JAVA_HOME=/opt/local/java/sun6; 
+      if [ -z "$JAVA_HOME" ]; then
+          export JAVA_HOME=/opt/local/java/sun6;
       fi
   ;;
   *)
@@ -125,7 +184,7 @@ esac
 echo "Running on " $OS
 # JAVA options
 # You can set JVM additional options here if you want
-if [ -z "$JVM_OPTS" ]; then 
+if [ -z "$JVM_OPTS" ]; then
     JVM_OPTS="-Xms256m -Djava.awt.headless=true -Xverify:none -XX:+HeapDumpOnOutOfMemoryError -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:MaxMetaspaceSize=128m  -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=10 -XX:ConcGCThreads=5 -Djava.system.class.loader=org.red5.server.classloading.ServerClassLoader -Xshare:off "
 fi
 # Set up security options
@@ -162,9 +221,9 @@ fi
 export RED5_CLASSPATH="${RED5_HOME}/ant-media-server-service.jar${P}${RED5_HOME}/conf${P}${CLASSPATH}"
 
 # create log directory if not exist
-if [ ! -d "/var/log/antmedia" ] 
+if [ ! -d "/var/log/antmedia" ]
 then
-  mkdir -p /var/log/antmedia   
+  mkdir -p /var/log/antmedia
   OUT=$?
   if [ $OUT -ne 0 ]; then
     echo "You're likely running start.sh directly. The problem is /var/log/antmedia directory cannot not created"
@@ -177,7 +236,7 @@ fi
 
 #create soft link if not exists
 if [ ! -L  "${RED5_HOME}/log" ]
-then 
+then
   ln -sf /var/log/antmedia ${RED5_HOME}/log
 fi
 
@@ -192,3 +251,4 @@ elif [ "$RED5_MAINCLASS" = "org.red5.server.Shutdown" ]; then
     echo "Stopping Ant Media Server"
 fi
 exec "$JAVA" -Dred5.root="${RED5_HOME}" $JAVA_OPTS -cp "${RED5_CLASSPATH}" "$RED5_MAINCLASS" $RED5_OPTS 2>>${RED5_HOME}/log/antmedia-error.log
+
