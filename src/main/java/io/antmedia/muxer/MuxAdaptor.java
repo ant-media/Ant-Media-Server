@@ -367,7 +367,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		enableMp4Setting();
 		enableWebMSetting();
 		initVertx();
-		initServerSettings();		
 
 		if (mp4MuxingEnabled) {
 			addMp4Muxer();
