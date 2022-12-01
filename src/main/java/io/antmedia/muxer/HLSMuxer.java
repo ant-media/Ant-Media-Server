@@ -64,7 +64,7 @@ public class HLSMuxer extends Muxer  {
 	private String httpEndpoint;
 	public static final int S3_CONSTANT = 0b010;
 
-	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint) {
+	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
 		this.storageClient = storageClient;
 
@@ -77,6 +77,7 @@ public class HLSMuxer extends Muxer  {
 
 		this.s3StreamsFolderPath  = s3StreamsFolderPath;
 		this.httpEndpoint = httpEndpoint;
+		setAddDateTimeToSourceName(addDateTimeToResourceName);
 	}
 
 	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile){
@@ -217,7 +218,7 @@ public class HLSMuxer extends Muxer  {
 			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
 				final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
 	
-				//SEGMENT_SUFFIX_TS is %04d.ts
+				//SEGMENT_SUFFIX_TS is %09d.ts
 				//convert segmentFileName to regular expression
 				String segmentFileWithoutSuffixTS = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, segmentFilename.indexOf(SEGMENT_SUFFIX_TS));
 				String regularExpression = segmentFileWithoutSuffixTS + "[0-9]*\\.ts$";

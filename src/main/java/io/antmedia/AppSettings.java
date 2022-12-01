@@ -329,6 +329,8 @@ public class AppSettings implements Serializable{
 	private static final String SETTINGS_RTMP_PLAYBACK_ENABLED = "settings.rtmpPlaybackEnabled";
 
 	private static final String SETTINGS_ORIGIN_EDGE_CONNECTION_IDLE_TIMEOUT = "settings.originEdgeIdleTimeout";
+	
+	public static final String SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME = "settings.addDateTimeToHlsFileName";
 
 
 	/**
@@ -1536,8 +1538,13 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${"+SETTINGS_ORIGIN_EDGE_CONNECTION_IDLE_TIMEOUT+":2}" )
 	private int originEdgeIdleTimeout = 2;
-
 	
+	/**
+	 * It's mandatory, Date and time are added to created .m3u8 and .ts file name, Default value is false
+	 */
+	@Value( "${"+SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME+":false}" )
+	private boolean addDateTimeToHlsFileName;
+
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
 	}
@@ -2914,5 +2921,13 @@ public class AppSettings implements Serializable{
 
 	public void setOriginEdgeIdleTimeout(int originEdgeIdleTimeout) {
 		this.originEdgeIdleTimeout = originEdgeIdleTimeout;
+	}
+	
+	public boolean isAddDateTimeToHlsFileName() {
+		return addDateTimeToHlsFileName;
+	}
+
+	public void setAddDateTimeToHlsFileName(boolean addDateTimeToHlsFileName) {
+		this.addDateTimeToHlsFileName = addDateTimeToHlsFileName;
 	}
 }
