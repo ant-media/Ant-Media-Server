@@ -30,8 +30,6 @@ public class WebSocketCommunityHandler {
 	
 	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
 
-	private JSONParser jsonParser = new JSONParser();
-
 	protected AppSettings appSettings;
 	
 	private ApplicationContext appContext;
@@ -65,6 +63,8 @@ public class WebSocketCommunityHandler {
 	}
 
 	public void onMessage(Session session, String message) {
+		//json parser is not thread-safe
+		JSONParser jsonParser = new JSONParser();
 		try {
 
 			if (message == null) {
