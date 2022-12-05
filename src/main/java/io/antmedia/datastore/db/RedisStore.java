@@ -20,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
+import io.antmedia.datastore.db.types.ViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 
 public class RedisStore extends MapBasedDataStore {
@@ -170,7 +171,4 @@ public class RedisStore extends MapBasedDataStore {
 	public P2PConnection getP2PConnection(String streamId) {
 		return (P2PConnection) p2pMap.get(streamId);
 	}
-
-
-
 }

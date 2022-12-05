@@ -17,7 +17,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
+import io.antmedia.datastore.db.types.ViewerInfo;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.model.BasicStreamInfo;
@@ -1109,16 +1109,30 @@ public class BroadcastRestService extends RestServiceBase{
 		return new Result(result);
 	}
 	
+	@Deprecated
 	@GET
 	@Path("/webrtc-viewers/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public List<WebRTCViewerInfo> getWebRTCViewerList(@ApiParam(value = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
+	public List<ViewerInfo> getWebRTCViewerList(@ApiParam(value = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
 			@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
 			@ApiParam(value = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
 			@ApiParam(value = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
 			@ApiParam(value = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
 			) {
-		return getDataStore().getWebRTCViewerList(offset, size ,sortBy, orderBy, search);
+		return getDataStore().getViewerList("webrtc", offset, size ,sortBy, orderBy, search);
+	}
+	
+	@GET
+	@Path("/viewer-stats/list/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<ViewerInfo> getViewerList(@ApiParam(value = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
+			@ApiParam(value = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
+			@ApiParam(value = "Field to sort", required = false) @QueryParam("sort_by") String sortBy,
+			@ApiParam(value = "Asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
+			@ApiParam(value = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search,
+			@ApiParam(value = "Viewer type of stream. Possible values are \"webrtc\", \"hls\", \"dash\"", required = true) @QueryParam("viewerType") String viewerType
+			) {
+		return getDataStore().getViewerList(viewerType, offset, size ,sortBy, orderBy, search);
 	}
 	
 	@ApiOperation(value = "Stop player with a specified id", response = Result.class)

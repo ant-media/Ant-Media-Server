@@ -30,7 +30,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
+import io.antmedia.datastore.db.types.ViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
@@ -991,7 +991,7 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
-	public void saveViewerInfo(WebRTCViewerInfo info) {
+	public void saveViewerInfo(ViewerInfo info) {
 		synchronized (this) {
 			if (info != null) {
 				try {
@@ -1004,9 +1004,9 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
-	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
+	public List<ViewerInfo> getViewerList(String viewerType, int offset, int size, String sortBy, String orderBy,
 			String search) {
-		return super.getWebRTCViewerList(webRTCViewerMap, offset, size, sortBy, orderBy, search, gson);
+		return super.getViewerList(webRTCViewerMap, viewerType, offset, size, sortBy, orderBy, search, gson);
 	}
 
 	@Override

@@ -15,7 +15,7 @@ import io.swagger.annotations.ApiModelProperty;
 @ApiModel(value="WebRTCViewerInfo", description="Stores the info for a WebRTC viewer")
 @Entity(value = "WebRTCViewerInfo")
 @Indexes({ @Index(fields = @Field("viewerId")) })
-public class WebRTCViewerInfo {
+public class ViewerInfo {
 
 	@JsonIgnore
 	@Id
@@ -24,14 +24,14 @@ public class WebRTCViewerInfo {
 	/**
 	 * Id of the viewer
 	 */
-	@ApiModelProperty(value = "the id of the viewer")
+	@ApiModelProperty(value = "The id of the viewer")
 	private String viewerId;
 	
 	
 	/**
 	 * Stream id that viewer views
 	 */
-	@ApiModelProperty(value = "stream id that viewer views")
+	@ApiModelProperty(value = "Stream id that viewer views")
 	private String streamId;
 	
 	/**
@@ -39,8 +39,27 @@ public class WebRTCViewerInfo {
 	 */
 	@ApiModelProperty(value = "IP address of the edge to which viewer is connected")
 	private String edgeAddress;
-
 	
+	/**
+	 * It shows viewer type
+	 * It can be "webrtc", "hls" or "dash"
+	 * Default value: "webrtc"
+	 */
+	@ApiModelProperty(value = "The type of viewer")
+	private String viewerType="webrtc";
+	
+	/**
+	 * the viewer start time of the stream
+	 */
+	@ApiModelProperty(value = "The viewer start time of the stream")
+	private long startTime = 0;
+	
+	/**
+	 * The viewer end time of the stream
+	 */
+	@ApiModelProperty(value = "The viewer end time of the stream")
+	private long endTime = 0;
+
 	public ObjectId getDbId() {
 		return dbId;
 	}
@@ -71,6 +90,14 @@ public class WebRTCViewerInfo {
 
 	public void setEdgeAddress(String edgeAddress) {
 		this.edgeAddress = edgeAddress;
+	}
+	
+	public String getViewerType() {
+		return viewerType;
+	}
+
+	public void setViewerType(String viewerType) {
+		this.viewerType = viewerType;
 	}
 	
 }

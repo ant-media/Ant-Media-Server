@@ -67,7 +67,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
+import io.antmedia.datastore.db.types.ViewerInfo;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.DeviceDiscovery;
 import io.antmedia.muxer.HLSMuxer;
@@ -2975,7 +2975,7 @@ public class BroadcastRestServiceV2UnitTest {
 		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 		assertEquals(0, restServiceSpy.getWebRTCViewerList(0, 5, "", "", "").size());
 		
-		WebRTCViewerInfo wwi = new WebRTCViewerInfo();
+		ViewerInfo wwi = new ViewerInfo();
 		String streamId = "stream"+RandomStringUtils.randomAlphanumeric(5);
 		String viewerId = "viewer"+RandomStringUtils.randomAlphanumeric(5);
 		String edgeAddress = RandomStringUtils.randomAlphanumeric(10);
@@ -2984,7 +2984,7 @@ public class BroadcastRestServiceV2UnitTest {
 		wwi.setEdgeAddress(edgeAddress);
 		
 		store.saveViewerInfo(wwi);
-		List<WebRTCViewerInfo> wwiList = restServiceSpy.getWebRTCViewerList(0, 5, "", "", "");
+		List<ViewerInfo> wwiList = restServiceSpy.getWebRTCViewerList(0, 5, "", "", "");
 		assertEquals(1, wwiList.size());
 		
 		assertEquals(streamId, wwiList.get(0).getStreamId());

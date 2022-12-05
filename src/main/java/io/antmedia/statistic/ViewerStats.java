@@ -14,6 +14,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConnectionEvent;
+import io.antmedia.datastore.db.types.ViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.vertx.core.Vertx;
 
@@ -40,6 +41,8 @@ public class ViewerStats {
 	Map<String, Map<String, Long>> streamsViewerMap = new ConcurrentHashMap<>();
 	Map<String, String> sessionId2subscriberId = new ConcurrentHashMap<>();
 	Map<String, Integer> increaseCounterMap = new ConcurrentHashMap<>();
+	
+
 	
 	private Object lock = new Object();
 	
@@ -68,7 +71,7 @@ public class ViewerStats {
 					increaseCounterMap.put(streamId, streamIncrementCounter);
 					
 				}
-				viewerMap.put(sessionId, System.currentTimeMillis());
+				//viewerMap.put(sessionId, System.currentTimeMillis());
 				streamsViewerMap.put(streamId, viewerMap);
 				if(subscriberId != null) {
 					// map sessionId to subscriberId

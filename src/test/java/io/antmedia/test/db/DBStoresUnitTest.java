@@ -53,7 +53,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
+import io.antmedia.datastore.db.types.ViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
@@ -2771,7 +2771,7 @@ public class DBStoresUnitTest {
 		
 		int total = RandomUtils.nextInt(10, DataStore.MAX_ITEM_IN_ONE_LIST);
 		for (int i = 0; i < total; i++) {
-			WebRTCViewerInfo info = new WebRTCViewerInfo();
+			ViewerInfo info = new ViewerInfo();
 			String streamId = RandomStringUtils.randomAlphabetic(5);
 			info.setStreamId(streamId);
 			String id = RandomStringUtils.randomAlphabetic(5);
@@ -2782,7 +2782,7 @@ public class DBStoresUnitTest {
 			idList.add(id);
 		}
 		
-		List<WebRTCViewerInfo> returningList = dataStore.getWebRTCViewerList(0, DataStore.MAX_ITEM_IN_ONE_LIST+10, "viewerId", "asc", "");
+		List<ViewerInfo> returningList = dataStore.getViewerList("webrtc", 0, DataStore.MAX_ITEM_IN_ONE_LIST+10, "viewerId", "asc", "");
 		assertEquals(total,  returningList.size());	
 		
 		
@@ -2792,8 +2792,8 @@ public class DBStoresUnitTest {
 			assertEquals(idList.get(i),  returningList.get(i).getViewerId());	
 		}
 	    
-		List<WebRTCViewerInfo> returningList2 = dataStore.getWebRTCViewerList(0, total, "viewerId", "asc", "a");
-		for (WebRTCViewerInfo webRTCViewerInfo : returningList2) {
+		List<ViewerInfo> returningList2 = dataStore.getViewerList("webrtc", 0, total, "viewerId", "asc", "a");
+		for (ViewerInfo webRTCViewerInfo : returningList2) {
 			assertTrue(webRTCViewerInfo.getViewerId().contains("a")||webRTCViewerInfo.getViewerId().contains("A"));
 		}
 	    
@@ -2801,7 +2801,7 @@ public class DBStoresUnitTest {
 	    int deleted = 0;
 	    for (String id : idList) {
 			dataStore.deleteWebRTCViewerInfo(id);
-		    List<WebRTCViewerInfo> tempList = dataStore.getWebRTCViewerList(0, total, "viewerId", "asc", "");
+		    List<ViewerInfo> tempList = dataStore.getViewerList("webrtc", 0, total, "viewerId", "asc", "");
 		    
 			assertEquals(total - (++deleted),  tempList.size());	
 		}

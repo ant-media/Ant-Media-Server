@@ -47,7 +47,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
+import io.antmedia.datastore.db.types.ViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
@@ -1367,7 +1367,7 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public void saveViewerInfo(WebRTCViewerInfo info) {
+	public void saveViewerInfo(ViewerInfo info) {
 		synchronized(this) {
 			if (info == null) {
 				return;
@@ -1377,20 +1377,21 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
+	public List<ViewerInfo> getViewerList(String viewerType, int offset, int size, String sortBy, String orderBy,
 			String search) {
 		synchronized(this) {
-			Query<WebRTCViewerInfo> query = datastore.find(WebRTCViewerInfo.class);
+			Query<ViewerInfo> query = datastore.find(ViewerInfo.class);
 
 			if (size > MAX_ITEM_IN_ONE_LIST) {
 				size = MAX_ITEM_IN_ONE_LIST;
 			}
+			
+			//TODO add detail about viewerType
 
 			FindOptions findOptions = new FindOptions().skip(offset).limit(size);
 
 			if (sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
 				findOptions.sort(orderBy.equals("desc") ? Sort.descending(sortBy) : Sort.ascending(sortBy));
-
 			}
 			if (search != null && !search.isEmpty()) {
 				logger.info("Server side search is called for WebRTCViewerInfo = {}", search);
@@ -1407,7 +1408,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public boolean deleteWebRTCViewerInfo(String viewerId) {
 		synchronized(this) {
-			return datastore.find(WebRTCViewerInfo.class)
+			return datastore.find(ViewerInfo.class)
 					.filter(Filters.eq(VIEWER_ID, viewerId))
 					.delete()
 					.getDeletedCount() == 1;
