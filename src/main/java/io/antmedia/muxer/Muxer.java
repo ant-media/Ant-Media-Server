@@ -308,7 +308,8 @@ public abstract class Muxer {
 				av_dict_set(optionsDictionary, key, options.get(key), 0);
 			}
 
-		}		
+		}	
+			
 
 		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);		
 		if (ret < 0) {
@@ -379,7 +380,8 @@ public abstract class Muxer {
 		}
 
 		/* close output */
-		if (outputFormatContext != null && (outputFormatContext.flags() & AVFMT_NOFILE) == 0 && outputFormatContext.pb() != null)
+		if (outputFormatContext != null &&
+				(outputFormatContext.oformat().flags() & AVFMT_NOFILE) == 0 && outputFormatContext.pb() != null)
 			avio_closep(outputFormatContext.pb());
 
 		if (outputFormatContext != null) {

@@ -298,11 +298,29 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		this.broadcastStream = clientBroadcastStream;
 	}
 
-	public void addMuxer(Muxer muxer)
+	public boolean addMuxer(Muxer muxer)
 	{
-		muxerList.add(muxer);
+		boolean result = false;
+		if (isRecording.get()) 
+		{
+			result = prepareMuxer(muxer);
+		}
+		else 
+		{
+			result = addMuxerInternal(muxer);
+		}
+		return result;
 	}
 
+	private boolean addMuxerInternal(Muxer muxer) 
+	{
+		boolean result = false;
+		if (!muxerList.contains(muxer)) 
+		{
+			result = muxerList.add(muxer);
+		}
+		return result;
+	}
 
 
 	@Override
@@ -1670,6 +1688,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return null;
 	}
 
+	public boolean addMuxer2(Muxer muxer) {
+		boolean result = false;
+		if (isRecording.get()) {
+			result = prepareMuxer(muxer);
+		}
+		else {
+			result = addMuxer(muxer);
+		}
+		return result;
+	}
+
 
 	public boolean prepareMuxer(Muxer muxer) {
 		boolean prepared;
@@ -1702,8 +1731,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		prepared = muxer.prepareIO();
 
 		if (prepared) {
-			addMuxer(muxer);
+			addMuxerInternal(muxer);
 		}
+		else {
+			logger.warn("Muxer:{} cannot be prepared for streamId:{}", muxer.getClass().getSimpleName(), streamId);
+		}
+
 		//TODO: if it's not prepared, release the resources
 
 		return prepared;
