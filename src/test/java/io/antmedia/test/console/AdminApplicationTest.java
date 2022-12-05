@@ -18,6 +18,8 @@ import io.antmedia.datastore.db.types.VoD;
 import io.vertx.core.Vertx;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 
 public class AdminApplicationTest {
 
@@ -156,23 +158,22 @@ public class AdminApplicationTest {
 	public void testCreateApplicationWitURL() {
 		try {
 			AdminApplication adminApplication = Mockito.spy(new AdminApplication());
+			Mockito.doReturn(false).when(adminApplication).createApplication(Mockito.anyString(), Mockito.any());
 			
-			adminApplication.createApplicationWithURL("app", "https://antmedia.io/rest");
-
+			adminApplication.createApplicationWithURL("app", "https://antmedia.io/rest");		
 			Mockito.verify(adminApplication).downloadWarFile("app", "https://antmedia.io/rest");
-			Mockito.doReturn(false).when(adminApplication).createApplication(Mockito.anyString(), Mockito.anyString());
 			
-			adminApplication.createApplicationWithURL("app", null);
-			//it should be 1 one time because url is null
-			Mockito.verify(adminApplication, Mockito.times(1)).downloadWarFile("app", "https://antmedia.io/rest");
+			adminApplication.createApplicationWithURL("app2", null);
+			//it should be never for app2 because url is null
+			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app2"), Mockito.anyString());
 			
 			
-			adminApplication.createApplicationWithURL("app", "");
-			//it should be 1 one time because url is ""
-			Mockito.verify(adminApplication, Mockito.times(1)).downloadWarFile("app", "https://antmedia.io/rest");
+			adminApplication.createApplicationWithURL("app3", "");
+			//it should be never for app3 because url is ""
+			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app3"), Mockito.anyString());
 
-			adminApplication.createApplicationWithURL("app", "htdfdf");
-			//it should be 2 time because there is an url
+			adminApplication.createApplicationWithURL("app4", "htdfdf");
+			//it should be 2 time because there is an url. It also with different app name.
 			Mockito.verify(adminApplication, Mockito.times(2)).downloadWarFile(Mockito.anyString(),Mockito.anyString());
 
 			
@@ -215,6 +216,32 @@ public class AdminApplicationTest {
 		dataStore.deleteVod(id);
 
 		assertEquals(0, adminApplication.getVoDCount(Mockito.mock(IScope.class)));
+	}
+	
+	@Test
+	public void testPreventConcurrentInstallationSameWar() 
+	{
+		//create application
+		AdminApplication app = Mockito.spy(new AdminApplication());
+		app.setVertx(vertx);
+		
+		int warDeployDuration = 2000;
+		String appName = "test";
+		
+		WarDeployer warDeployer = new WarDeployer() {
+			public void deploy(boolean startApplication) {
+				long t0 = System.currentTimeMillis();
+				while(System.currentTimeMillis() < t0+warDeployDuration);
+			};
+		};
+		app.setWarDeployer(warDeployer);
+		Mockito.doReturn(true).when(app).runCreateAppScript(Mockito.any(), Mockito.any());
+		
+		app.createApplication(appName, null);
+
+		Mockito.verify(app).runCreateAppScript(appName, null);
+
+		assertFalse(app.createApplicationWithURL(appName, "some_url"));
 	}
 
 }
