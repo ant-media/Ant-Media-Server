@@ -9,6 +9,7 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
+import static org.bytedeco.ffmpeg.global.avutil.AVERROR_EOF;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
@@ -276,8 +277,22 @@ public class StreamFetcher {
 					logger.info("{} stream count in stream {} is {}", streamId, streamUrl, inputFormatContext.nb_streams());
 
 					if(muxAdaptor.prepareFromInputFormatContext(inputFormatContext)) {
-						
-						while (av_read_frame(inputFormatContext, pkt) >= 0) {
+						while (true) {
+							int readResult = av_read_frame(inputFormatContext, pkt);
+							if(readResult < 0) {
+								if(AntMediaApplicationAdapter.VOD.equals(streamType) && readResult != AVERROR_EOF) {
+									/* 
+									 * For VOD stream source, if the return of read frame is error (but not end of file), 
+									 * don't break the loop immediately. Instead jump to next frame. 
+									 * Otherwise same VOD will be streamed from the beginning of the file again.
+									 */
+									logger.warn("Frame can't be read for VOD {}", streamUrl);
+									av_packet_unref(pkt);
+									continue;
+								}
+								//break the loop except above case
+								break;
+							}
 							
 							if(!streamPublished) {
 								long currentTime = System.currentTimeMillis();
