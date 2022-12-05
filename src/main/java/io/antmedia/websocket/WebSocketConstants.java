@@ -468,6 +468,16 @@ public class WebSocketConstants {
 	 * Command to set max video track count in conference
 	 */
 	public static final String SET_MAX_VIDEO_TRACK_COUNT_COMMAND = "setMaxVideoTrackCountCommand";
+	
+	/**
+	 * Command to get debug info in conference
+	 */
+	public static final String GET_DEBUG_INFO_COMMAND = "getDebugInfo";
+	
+	/**
+	 * Generated debug info in conference
+	 */
+	public static final String DEBUG_INFO = "debugInfo";
 
 	/**
 	 * Track id that is pinned for a stream
@@ -488,5 +498,6 @@ public class WebSocketConstants {
 	 * maximum number of tracks 
 	 */
 	public static final String MAX_TRACK_COUNT = "maxTrackCount";
+
 	
 }
