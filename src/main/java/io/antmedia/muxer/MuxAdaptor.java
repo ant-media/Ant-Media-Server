@@ -1688,18 +1688,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return null;
 	}
 
-	public boolean addMuxer2(Muxer muxer) {
-		boolean result = false;
-		if (isRecording.get()) {
-			result = prepareMuxer(muxer);
-		}
-		else {
-			result = addMuxer(muxer);
-		}
-		return result;
-	}
-
-
 	public boolean prepareMuxer(Muxer muxer) {
 		boolean prepared;
 		muxer.init(scope, streamId, 0, broadcast != null ? broadcast.getSubFolder(): null, 0);
