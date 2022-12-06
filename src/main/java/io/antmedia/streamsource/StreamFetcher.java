@@ -238,35 +238,10 @@ public class StreamFetcher {
 				if(prepareInputContext()) {
 					boolean readTheNextFrame = true;
 					while (readTheNextFrame) {
-						int readResult = av_read_frame(inputFormatContext, pkt);
-						if(readResult >= 0) {
-							packetRead(pkt);
-							av_packet_unref(pkt);
-						}
-						else if(AntMediaApplicationAdapter.VOD.equals(streamType) && readResult != AVERROR_EOF) {
-							/* 
-							 * For VOD stream source, if the return of read frame is error (but not end of file), 
-							 * don't break the loop immediately. Instead jump to next frame. 
-							 * Otherwise same VOD will be streamed from the beginning of the file again.
-							 */
-							logger.warn("Frame can't be read for VOD {}", streamUrl);
-							av_packet_unref(pkt);
-						}
-						else {
-							//break the loop except above case
-							readTheNextFrame = false;;
-						}
-						
-						if (stopRequestReceived) {
-							logger.warn("Stop request received, breaking the loop for {} ", streamId);
-							readTheNextFrame = false;
-						}
+						readTheNextFrame = readMore(pkt);
 					}
 					logger.info("Leaving the stream fetcher loop for stream: {}", streamId);
 				}
-			}
-			catch (InterruptedException e) {
-				Thread.currentThread().interrupt();
 			}
 			catch (OutOfMemoryError | Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -274,11 +249,48 @@ public class StreamFetcher {
 			}
 
 
-			stop(pkt);
+			close(pkt);
 		}
 
+
+		public boolean readMore(AVPacket pkt) {
+			boolean readTheNextFrame = true;
+			int readResult = readNextPacket(pkt);
+			if(readResult >= 0) {
+				packetRead(pkt);
+				unReferencePacket(pkt);
+			}
+			else if(AntMediaApplicationAdapter.VOD.equals(streamType) && readResult != AVERROR_EOF) {
+				/* 
+				 * For VOD stream source, if the return of read frame is error (but not end of file), 
+				 * don't break the loop immediately. Instead jump to next frame. 
+				 * Otherwise same VOD will be streamed from the beginning of the file again.
+				 */
+				logger.warn("Frame can't be read for VOD {}", streamUrl);
+				unReferencePacket(pkt);
+			}
+			else {
+				//break the loop except above case
+				readTheNextFrame = false;;
+			}
 			
-		private boolean prepareInputContext() throws Exception {
+			if (stopRequestReceived) {
+				logger.warn("Stop request received, breaking the loop for {} ", streamId);
+				readTheNextFrame = false;
+			}
+			return readTheNextFrame;
+		}
+
+		public int readNextPacket(AVPacket pkt) {
+			int readResult = av_read_frame(inputFormatContext, pkt);
+			return readResult;
+		}
+		
+		public void unReferencePacket(AVPacket pkt) {
+			av_packet_unref(pkt);
+		}
+
+		public boolean prepareInputContext() throws Exception {
 			logger.info("Preparing the StreamFetcher for {} for streamId:{}", streamUrl, streamId);
 			Result result = prepare(inputFormatContext);
 			
@@ -334,7 +346,7 @@ public class StreamFetcher {
 			return false;
 		}
 
-		private void packetRead(AVPacket pkt) {
+		public void packetRead(AVPacket pkt) {
 			if(!streamPublished) {
 				long currentTime = System.currentTimeMillis();
 				muxAdaptor.setStartTime(currentTime);
@@ -457,6 +469,8 @@ public class StreamFetcher {
 						try {
 							Thread.sleep(1);
 						} catch (InterruptedException e) {
+							logger.error(ExceptionUtils.getStackTrace(e));
+							Thread.currentThread().interrupt();
 						}
 					}
 					
@@ -468,7 +482,7 @@ public class StreamFetcher {
 			
 		}
 		
-		public void stop(AVPacket pkt) {
+		public void close(AVPacket pkt) {
 			if (packetWriterJobName != -1) {
 				logger.info("Removing packet writer job {}", packetWriterJobName);
 				vertx.cancelTimer(packetWriterJobName);
@@ -537,7 +551,7 @@ public class StreamFetcher {
 	
 					AVPacket pkt = bufferQueue.poll();
 					muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
-					av_packet_unref(pkt);
+					unReferencePacket(pkt);
 				}
 	
 				AVPacket pkt;
@@ -552,7 +566,7 @@ public class StreamFetcher {
 			
 		}
 
-		//TODO: Code dumplication with MuxAdaptor.writeBufferedPacket. It should be refactored.
+		//TODO: Code duplication with MuxAdaptor.writeBufferedPacket. It should be refactored.
 		public void writeBufferedPacket() 
 		{
 			synchronized (this) {
@@ -568,7 +582,7 @@ public class StreamFetcher {
 							long passedTime = now - bufferingFinishTimeMs;
 							if (pktTimeDifferenceMs < passedTime) {
 								muxAdaptor.writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
-								av_packet_unref(tempPacket);
+								unReferencePacket(tempPacket);
 								bufferQueue.remove(); //remove the packet from the queue
 								availableBufferQueue.offer(tempPacket);
 							}
