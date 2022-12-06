@@ -311,6 +311,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		return result;
 	}
+	
+	public boolean removeMuxer(Muxer muxer) 
+	{
+		boolean result = false;
+		if (muxerList.remove(muxer)) 
+		{
+			muxer.writeTrailer();
+			result = true;
+		}
+		return result;
+	}
 
 	private boolean addMuxerInternal(Muxer muxer) 
 	{
