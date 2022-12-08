@@ -452,9 +452,6 @@ public abstract class Muxer {
 			logPacketIssue("Not writing packet for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
 			return;
 		}
-
-		logger.info("write video packet after write video buffer---");
-
 		int inputStreamIndex = pkt.stream_index();
 		int outputStreamIndex = inputOutputStreamIndexMap.get(inputStreamIndex);
 		AVStream outStream = outputFormatContext.streams(outputStreamIndex);
