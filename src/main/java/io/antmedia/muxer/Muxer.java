@@ -252,8 +252,11 @@ public abstract class Muxer {
 
 
 	public boolean openIO() {
+		
 		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0) 
 		{
+			//if it's different from zero, it means no file is need to be open. 
+			//If it's zero, Not "no file" and it means that file is need to be open .			
 			AVIOContext pb = new AVIOContext(null);
 
 			int ret = avformat.avio_open(pb,  getOutputURL(), AVIO_FLAG_WRITE);
