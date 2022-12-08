@@ -13,7 +13,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.av_packet_ref;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_from_context;
-import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
+import static org.bytedeco.ffmpeg.global.avformat.*;
 import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_trailer;
@@ -381,8 +381,12 @@ public abstract class Muxer {
 
 		/* close output */
 		if (outputFormatContext != null &&
-				(outputFormatContext.oformat().flags() & AVFMT_NOFILE) == 0 && outputFormatContext.pb() != null)
+				(outputFormatContext.oformat().flags() & AVFMT_NOFILE) == 0 
+						&& outputFormatContext.pb() != null
+						&& (outputFormatContext.flags() & AVFormatContext.AVFMT_FLAG_CUSTOM_IO) == 0)
+		{
 			avio_closep(outputFormatContext.pb());
+		}
 
 		if (outputFormatContext != null) {
 			avformat_free_context(outputFormatContext);
@@ -445,6 +449,8 @@ public abstract class Muxer {
 			logPacketIssue("Not writing packet for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
 			return;
 		}
+
+		logger.info("write video packet after write video buffer---");
 
 		int inputStreamIndex = pkt.stream_index();
 		int outputStreamIndex = inputOutputStreamIndexMap.get(inputStreamIndex);
@@ -805,11 +811,13 @@ public abstract class Muxer {
 		 * in case of initiation and preparation takes long.
 		 * because native objects like videoPkt can not be initiated yet
 		 */
+		logger.info("write video buffer---");
 		if (!isRunning.get()) {
 			logPacketIssue("Not writing VideoBuffer for {} because Is running:{}", streamId, isRunning.get());
 			return;
 		}
 
+		
 		/*
 		 * Rotation field is used add metadata to the mp4.
 		 * this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
@@ -912,6 +920,7 @@ public abstract class Muxer {
 
 		if (codecType == AVMEDIA_TYPE_AUDIO)
 		{
+			logger.info("write audio packet write video packet after write video buffer---");
 			if(firstAudioDts == -1) {
 				firstAudioDts = pkt.dts();
 			}
@@ -948,6 +957,8 @@ public abstract class Muxer {
 				return;
 			}
 
+			logger.info("write video packet after write video packet after write video buffer---");
+			
 			/*
 			 * We add this check because when encoder calls this method the packet needs extra data inside
 			 * However, SFUForwarder calls writeVideoBuffer and the method packets itself there
@@ -993,23 +1004,26 @@ public abstract class Muxer {
 
 	protected void writeVideoFrame(AVPacket pkt, AVFormatContext context) {
 		int ret;
+		
 		if (videoBsfFilterContext != null) 
 		{
 			ret = av_bsf_send_packet(videoBsfFilterContext, pkt);
-			if (ret < 0)
+			if (ret < 0) {
+				logger.warn("Cannot send packet to bit stream filter for stream:{}", streamId);
 				return;
-
+			}
 			while (av_bsf_receive_packet(videoBsfFilterContext, pkt) == 0)
 			{
+				logger.info("1. write video frame - write video packet after write video packet after write video buffer---");
 				ret = av_write_frame(context, tmpPacket);
 				if (ret < 0 && logger.isWarnEnabled()) {
 					logger.warn("cannot write video frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), getErrorDefinition(ret));
 				}
-
 			}
 		}
 		else {
 
+			logger.info("2. write video frame - write video packet after write video packet after write video buffer---");
 			ret = av_write_frame(context, pkt);
 			if (ret < 0 && logger.isWarnEnabled()) {
 				//TODO: this is written for some muxers like HLS because normalized video time is coming from WebRTC
@@ -1022,6 +1036,8 @@ public abstract class Muxer {
 	protected void writeAudioFrame(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
 			AVFormatContext context, long dts) {
 		int ret;
+		logger.info("write audio frame - write video packet after write video packet after write video buffer---");
+
 		ret = av_write_frame(context, tmpPacket);
 		if (ret < 0 && logger.isInfoEnabled()) {
 			logger.info("cannot write audio frame to muxer({}). Error is {} ", file.getName(), getErrorDefinition(ret));

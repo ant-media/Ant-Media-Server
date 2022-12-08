@@ -1718,11 +1718,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		else {
 			AVCodecParameters videoParameters = getVideoCodecParameters();
 			if (videoParameters != null) {
+				logger.info("Add video stream to muxer:{} for streamId:{}", muxer.getClass().getSimpleName(), streamId);
 				muxer.addStream(videoParameters, TIME_BASE_FOR_MS, videoStreamIndex);
 			}
 
 			AVCodecParameters audioParameters = getAudioCodecParameters();
 			if (audioParameters != null) {
+				logger.info("Add audio stream to muxer:{} for streamId:{}", muxer.getClass().getSimpleName(), streamId);
 				muxer.addStream(audioParameters, TIME_BASE_FOR_MS, audioStreamIndex);
 			}
 		}
@@ -1731,6 +1733,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (prepared) {
 			addMuxerInternal(muxer);
+			logger.info("Muxer:{} is prepared succesfully for streamId:{}", muxer.getClass().getSimpleName(), streamId);
 		}
 		else {
 			logger.warn("Muxer:{} cannot be prepared for streamId:{}", muxer.getClass().getSimpleName(), streamId);
