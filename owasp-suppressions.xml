@@ -82,5 +82,14 @@
 	   <packageUrl regex="true">^pkg:maven/org\.springframework/spring\-.*@.*$</packageUrl>
 	   <cve>CVE-2016-1000027</cve>
 	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: snakeyaml-1.30.jar
+	   snakeyaml is being used through redisson->jackson-databind-yaml. 
+	   There is no yaml usage of Redisson in Ant Media Server
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.yaml/snakeyaml@.*$</packageUrl>
+	   <vulnerabilityName>CVE-2022-1471</vulnerabilityName>
+	</suppress>
 	
 </suppressions>
