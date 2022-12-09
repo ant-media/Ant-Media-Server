@@ -37,6 +37,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.filter.HlsStatisticsFilter;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
@@ -156,12 +157,17 @@ public class HlsStatisticsFilterTest {
 			DataStore dataStore = mock(DataStore.class);
 			when(dataStore.isAvailable()).thenReturn(true);
 			when(dsf.getDataStore()).thenReturn(dataStore);
-
+			
+			ServerSettings serverSettings = mock(ServerSettings.class);
+			
+			when(hlsStatisticsFilter.getServerSetting()).thenReturn(serverSettings);
+			when(hlsStatisticsFilter.getServerSetting().getHostAddress()).thenReturn("127.0.0.1");
+			
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, "hls", "127.0.0.1");
 			
 			
 			
@@ -210,15 +216,15 @@ public class HlsStatisticsFilterTest {
 			hlsStatisticsFilter.init(filterconfig);
 			
 			String sessionId = requestHls(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, "hls", "127.0.0.1");
 			broadcast.setHlsViewerCount(1);
 			
 			String sessionId2 = requestHls(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null, "hls", "127.0.0.1");
 			broadcast.setHlsViewerCount(2);
 
 			String sessionId3 = requestHls(streamId);		
-			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null);
+			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null, "hls", "127.0.0.1");
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
@@ -245,6 +251,11 @@ public class HlsStatisticsFilterTest {
 		when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
 		
 		when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
+		
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		
+		when(hlsStatisticsFilter.getServerSetting()).thenReturn(serverSettings);
+		when(hlsStatisticsFilter.getServerSetting().getHostAddress()).thenReturn("127.0.0.1");
 
 		logger.info("session id {}, stream id {}", sessionId, streamId);
 		hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);

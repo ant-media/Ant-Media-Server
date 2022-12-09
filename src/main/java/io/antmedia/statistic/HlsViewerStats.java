@@ -9,6 +9,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
 public class HlsViewerStats extends ViewerStats implements IStreamStats, ApplicationContextAware{
@@ -18,6 +19,8 @@ public class HlsViewerStats extends ViewerStats implements IStreamStats, Applica
 	public static final String BEAN_NAME = "hls.viewerstats";
 	
 	private Object lock = new Object();
+	
+	ServerSettings serverSettings;
 
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext)  {
@@ -25,14 +28,15 @@ public class HlsViewerStats extends ViewerStats implements IStreamStats, Applica
 		
 		vertx = (Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
-		
 		AppSettings settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
 		timeoutMS = getTimeoutMSFromSettings(settings, timeoutMS, HLS_TYPE);
+		
+		serverSettings = (ServerSettings)applicationContext.getBean(ServerSettings.BEAN_NAME);
 		
 		vertx.setPeriodic(DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT, yt-> 
 		{
 			synchronized (lock) {
-				updateViewerCountProcess(HLS_TYPE);
+				updateViewerCountProcess(HLS_TYPE, serverSettings.getHostAddress());
 			}
 		});	
 	}

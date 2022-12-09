@@ -12,9 +12,9 @@ import dev.morphia.annotations.Indexes;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
-@ApiModel(value="WebRTCViewerInfo", description="Stores the info for a WebRTC viewer")
-@Entity(value = "WebRTCViewerInfo")
-@Indexes({ @Index(fields = @Field("viewerId")) })
+@ApiModel(value="ViewerInfo", description="Stores the info for the viewers")
+@Entity(value = "ViewerInfo")
+@Indexes({ @Index(fields = @Field("sessionId")) })
 public class ViewerInfo {
 
 	@JsonIgnore
@@ -27,7 +27,12 @@ public class ViewerInfo {
 	@ApiModelProperty(value = "The id of the viewer")
 	private String viewerId;
 	
-	
+	/**
+	 * The session id of the viewer
+	 */
+	@ApiModelProperty(value = "The session id of the viewer")
+	private String sessionId;
+
 	/**
 	 * Stream id that viewer views
 	 */
@@ -53,7 +58,7 @@ public class ViewerInfo {
 	 */
 	@ApiModelProperty(value = "The viewer start time of the stream")
 	private long startTime = 0;
-	
+
 	/**
 	 * The viewer end time of the stream
 	 */
@@ -98,6 +103,30 @@ public class ViewerInfo {
 
 	public void setViewerType(String viewerType) {
 		this.viewerType = viewerType;
+	}
+	
+	public String getSessionId() {
+		return sessionId;
+	}
+
+	public void setSessionId(String sessionId) {
+		this.sessionId = sessionId;
+	}
+	
+	public long getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(long startTime) {
+		this.startTime = startTime;
+	}
+	
+	public long getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(long endTime) {
+		this.endTime = endTime;
 	}
 	
 }

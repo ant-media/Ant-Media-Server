@@ -981,7 +981,20 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public void saveViewerInfo(ViewerInfo info) {
-		viewerMap.put(info.getViewerId(), info);
+		viewerMap.put(info.getSessionId(), info);
+	}
+	
+	@Override
+	public boolean updateViewerInfoEndTime(String sessionId, long endTime) {
+		ViewerInfo viewerInfo = viewerMap.get(sessionId);
+		boolean result = false;
+		if (viewerInfo != null) {
+			viewerInfo.setEndTime(endTime);
+			viewerMap.put(sessionId, viewerInfo);
+			result = true;
+			return result;
+		}
+		 return result;
 	}
 
 	public List<ViewerInfo> getViewerList(String viewerType, int offset, int size, String sortBy, String orderBy,
@@ -1010,8 +1023,8 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean deleteWebRTCViewerInfo(String viewerId) {
-		viewerMap.remove(viewerId);
+	public boolean deleteWebRTCViewerInfo(String sessionId) {
+		viewerMap.remove(sessionId);
 		return true;
 	}
 	

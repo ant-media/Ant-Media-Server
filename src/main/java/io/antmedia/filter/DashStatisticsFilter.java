@@ -52,7 +52,7 @@ public class DashStatisticsFilter extends AbstractFilter {
 				logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
 				IStreamStats stats = getStreamStats(DashViewerStats.BEAN_NAME);
 				if (stats != null) {
-					stats.registerNewViewer(streamId, sessionId, subscriberId);
+					stats.registerNewViewer(streamId, sessionId, subscriberId, "dash", getServerSetting().getHostAddress());
 					
 				}
 			}

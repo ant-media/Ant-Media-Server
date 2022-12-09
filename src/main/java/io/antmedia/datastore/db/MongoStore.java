@@ -1375,19 +1375,35 @@ public class MongoStore extends DataStore {
 			datastore.save(info);
 		}
 	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean updateViewerInfoEndTime(String sessionId, long endTime) {
+		synchronized(this) {
+			try {
+				Query<ViewerInfo> query = datastore.find(ViewerInfo.class).filter(Filters.eq("sessionId", sessionId));
+				return query.update(
+						set("endTime", endTime))
+						.execute().getMatchedCount() == 1;
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+				return  false;
+			}
+		}
+	}
 
 	@Override
 	public List<ViewerInfo> getViewerList(String viewerType, int offset, int size, String sortBy, String orderBy,
 			String search) {
 		synchronized(this) {
-			Query<ViewerInfo> query = datastore.find(ViewerInfo.class);
+			Query<ViewerInfo> query = datastore.find(ViewerInfo.class).filter(Filters.eq("viewerType", viewerType));
 
 			if (size > MAX_ITEM_IN_ONE_LIST) {
 				size = MAX_ITEM_IN_ONE_LIST;
 			}
 			
-			//TODO add detail about viewerType
-
 			FindOptions findOptions = new FindOptions().skip(offset).limit(size);
 
 			if (sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) {
@@ -1406,10 +1422,10 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public boolean deleteWebRTCViewerInfo(String viewerId) {
+	public boolean deleteWebRTCViewerInfo(String sessionId) {
 		synchronized(this) {
 			return datastore.find(ViewerInfo.class)
-					.filter(Filters.eq(VIEWER_ID, viewerId))
+					.filter(Filters.eq("sessionId", sessionId))
 					.delete()
 					.getDeletedCount() == 1;
 		}

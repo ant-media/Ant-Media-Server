@@ -59,7 +59,7 @@ public class RedisStore extends MapBasedDataStore {
 	    	detectionMap = redisson.getMap(dbName+"Detections");
 	    	tokenMap = redisson.getMap(dbName+"Tokens");
 	    	subscriberMap = redisson.getMap(dbName+"Subscribers");	
-	    	webRTCViewerMap = redisson.getMap(dbName+"WebRTCViewers");
+	    	viewerMap = redisson.getMap(dbName+"Viewers");
 	    	streamInfoMap = redisson.getMap(dbName+"StreamInfo");
 	    	p2pMap = redisson.getMap(dbName+"P2P");
 			
@@ -85,7 +85,7 @@ public class RedisStore extends MapBasedDataStore {
 		    	redisson.getMap(dbName+"Detections").delete();
 		    	redisson.getMap(dbName+"tokens").delete();
 		    	redisson.getMap(dbName+"Subscribers").delete();	
-		    	redisson.getMap(dbName+"webRTCViewers").delete();
+		    	redisson.getMap(dbName+"Viewers").delete();
 		    	redisson.getMap(dbName+"StreamInfo").delete();
 		    	redisson.getMap(dbName+"P2P").delete();
 			}

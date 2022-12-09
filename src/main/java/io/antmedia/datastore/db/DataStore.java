@@ -1298,6 +1298,13 @@ public abstract class DataStore {
 	 * @param info information for the WebRTC Viewer
 	 */
 	public abstract void saveViewerInfo(ViewerInfo info);
+	
+	/**
+	 * This is used to update WebRTC Viewer Info to datastore 
+	 *
+	 * @param info information for the WebRTC Viewer
+	 */
+	public abstract boolean updateViewerInfoEndTime(String sessionId, long endTime);
 
 	/**
 	 * Get list of viewers
@@ -1319,7 +1326,7 @@ public abstract class DataStore {
 		synchronized (this) {
 			
 			// Use WebRTC by default
-			if(viewerType != null) {
+			if(viewerType == null) {
 				viewerType = "webrtc";
 			}
 			
@@ -1344,7 +1351,7 @@ public abstract class DataStore {
 	 *
 	 * @param viewerId WebRTC Viewer Id
 	 */
-	public abstract boolean deleteWebRTCViewerInfo(String viewerId);
+	public abstract boolean deleteWebRTCViewerInfo(String sessionId);
 
 	/**
 	 * This is used to update meta data for a bradcast 

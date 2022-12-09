@@ -33,7 +33,7 @@ public class MapDBStore extends MapBasedDataStore {
 	private static final String TOKEN = "TOKEN";
 	private static final String SUBSCRIBER = "SUBSCRIBER";
 	private static final String CONFERENCE_ROOM_MAP_NAME = "CONFERENCE_ROOM";
-	private static final String WEBRTC_VIEWER = "WEBRTC_VIEWER";
+	private static final String VIEWER = "VIEWER";
 
 
 	public MapDBStore(String dbName, Vertx vertx) {
@@ -68,7 +68,7 @@ public class MapDBStore extends MapBasedDataStore {
 		conferenceRoomMap = db.treeMap(CONFERENCE_ROOM_MAP_NAME).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
-		webRTCViewerMap = db.treeMap(WEBRTC_VIEWER).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+		viewerMap = db.treeMap(VIEWER).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 		timerId = vertx.setPeriodic(5000, id -> 
