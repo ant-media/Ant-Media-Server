@@ -77,7 +77,6 @@ public class ViewerStats {
 					
 					// TODO We shoudln't use cookie's session ID. Because it's not changing other tab browser. 
 					ViewerInfo info = new ViewerInfo();
-					
 					String viewerId;
 					
 					info.setStartTime(System.currentTimeMillis());
@@ -275,11 +274,13 @@ public class ViewerStats {
 						viewerIterator.remove();
 						numberOfDecrement++;
 						
-						// TODO update viewer end time
-						
-						
 						String sessionId = viewer.getKey();
 						String subscriberId = sessionId2subscriberId.get(sessionId);
+						
+						if(sessionId != null) {
+							// Update ViewerInfo End Time
+							getDataStore().updateViewerInfoEndTime(sessionId, System.currentTimeMillis());
+						}
 						// set subscriber status to not connected
 						if(subscriberId != null) {
 							// add a disconnected event to the subscriber
