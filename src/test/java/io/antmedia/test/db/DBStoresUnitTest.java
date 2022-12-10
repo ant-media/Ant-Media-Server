@@ -2776,6 +2776,7 @@ public class DBStoresUnitTest {
 			info.setStreamId(streamId);
 			String id = RandomStringUtils.randomAlphabetic(5);
 			info.setViewerId(id);
+			info.setSessionId(id);
 			
 			dataStore.saveViewerInfo(info);
 			
@@ -2789,7 +2790,7 @@ public class DBStoresUnitTest {
 	    Collections.sort(idList);
 	    
 	    for (int i = 0; i < total; i++) {
-			assertEquals(idList.get(i),  returningList.get(i).getViewerId());	
+			assertEquals(idList.get(i),  returningList.get(i).getSessionId());	
 		}
 	    
 		List<ViewerInfo> returningList2 = dataStore.getViewerList("webrtc", 0, total, "viewerId", "asc", "a");
