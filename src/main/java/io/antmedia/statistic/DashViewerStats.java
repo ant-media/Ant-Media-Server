@@ -10,7 +10,6 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.muxer.IAntMediaStreamHandler;
-import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
 public class DashViewerStats extends ViewerStats implements IStreamStats, ApplicationContextAware {
@@ -30,12 +29,10 @@ public class DashViewerStats extends ViewerStats implements IStreamStats, Applic
 		AppSettings settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
 		timeoutMS = getTimeoutMSFromSettings(settings, timeoutMS, DASH_TYPE);
 		
-		serverSettings = (ServerSettings)applicationContext.getBean(ServerSettings.BEAN_NAME);
-		
 		vertx.setPeriodic(DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT, yt-> 
 		{
 			synchronized (lock) {
-				updateViewerCountProcess(DASH_TYPE, serverSettings.getHostAddress());
+				updateViewerCountProcess(DASH_TYPE);
 			}
 		});	
 	}

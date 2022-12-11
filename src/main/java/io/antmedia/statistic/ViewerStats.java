@@ -6,8 +6,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.websocket.Session;
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -236,7 +234,7 @@ public class ViewerStats {
 		this.vertx = vertx;
 	}
 	
-	public void updateViewerCountProcess(String type, String hostAddress) {
+	public void updateViewerCountProcess(String type) {
 		
 		Iterator<Entry<String, Map<String, Long>>> streamIterator = streamsViewerMap.entrySet().iterator();
 		

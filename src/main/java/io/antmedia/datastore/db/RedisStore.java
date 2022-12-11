@@ -6,8 +6,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-import java.util.Map.Entry;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.redisson.Redisson;
@@ -17,11 +15,8 @@ import org.redisson.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
-import io.antmedia.datastore.db.types.ViewerInfo;
-import io.antmedia.muxer.IAntMediaStreamHandler;
 
 public class RedisStore extends MapBasedDataStore {
 
