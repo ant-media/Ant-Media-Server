@@ -712,7 +712,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * Stream fetchers are started automatically if it is set true
 	 */
-	@Value( "${"+SETTINGS_STREAM_FETCHER_AUTO_START+":true}" )
+	@Value( "${"+SETTINGS_STREAM_FETCHER_AUTO_START+":false}" )
 	private boolean startStreamFetcherAutomatically;
 
 	/**

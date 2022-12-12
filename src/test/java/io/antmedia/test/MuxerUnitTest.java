@@ -3163,6 +3163,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(appScope.getDepth() == 1);
 		}
 
+		vertx = (Vertx)appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
@@ -3206,6 +3208,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			boolean firstAudioPacketReceived = false;
 			boolean firstVideoPacketReceived = false;
 			ArrayList<Integer> timeStamps = new ArrayList<>();
+			HLSMuxer hlsMuxer = null;
 			while (flvReader.hasMoreTags()) {
 
 				ITag readTag = flvReader.readTag();
@@ -3251,6 +3254,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					logger.info("----input queue size: {}", muxAdaptor.getInputQueueSize());
 					startOfRecordingTimeStamp = streamPacket.getTimestamp();
 					assertTrue(muxAdaptor.startRecording(RecordType.MP4) != null);
+					hlsMuxer = new HLSMuxer(vertx, null, null, 0, null, false);
+					
+					assertTrue(muxAdaptor.addMuxer(hlsMuxer));
+					assertFalse(muxAdaptor.addMuxer(hlsMuxer));
+					
 				}
 				packetNumber++;
 
@@ -3274,6 +3282,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				estimatedLastTimeStamp = timeStamps.get((timeStamps.size() - inputQueueSize));
 			}
 			assertTrue(muxAdaptor.stopRecording(RecordType.MP4) != null);
+			
+			assertTrue(muxAdaptor.removeMuxer(hlsMuxer));
+			assertFalse(muxAdaptor.removeMuxer(hlsMuxer));
 
 			muxAdaptor.stop(true);
 
@@ -3284,6 +3295,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertFalse(muxAdaptor.isRecording());
 
 			assertTrue(MuxingTest.testFile(finalFilePath, estimatedLastTimeStamp-startOfRecordingTimeStamp));
+			
+			assertTrue(MuxingTest.testFile(hlsMuxer.getFile().getAbsolutePath()));
+			
 
 		} catch (Exception e) {
 			e.printStackTrace();
