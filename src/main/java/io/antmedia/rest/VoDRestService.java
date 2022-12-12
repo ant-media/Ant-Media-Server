@@ -134,7 +134,7 @@ public class VoDRestService extends RestServiceBase{
 	@Path("/synch-user-vod-list")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result synchUserVodList() {
-		return super.synchUserVodList();
+	public Result synchUserVodList(@ApiParam(value = "Synchronize VoD Folder", required = true) String vodFolderPath) {
+		return super.synchUserVodList(vodFolderPath);
 	}
 }

@@ -89,7 +89,7 @@ public class VoDRestServiceV2UnitTest {
 		Mockito.doReturn(true).when(adaptor).synchUserVoDFolder(null, vodFolder);
 
 
-		result = streamSourceRest.synchUserVodList();
+		result = streamSourceRest.synchUserVodList("/home/antmedia/vod");
 
 		assertTrue(result.isSuccess());
 	}
