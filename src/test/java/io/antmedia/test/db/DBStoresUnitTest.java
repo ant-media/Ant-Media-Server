@@ -2780,6 +2780,8 @@ public class DBStoresUnitTest {
 			
 			dataStore.saveViewerInfo(info);
 			
+			dataStore.updateViewerInfoEndTime(id, System.currentTimeMillis());
+			
 			idList.add(id);
 		}
 		
@@ -2796,9 +2798,9 @@ public class DBStoresUnitTest {
 		List<ViewerInfo> returningList2 = dataStore.getViewerList("webrtc", 0, total, "viewerId", "asc", "a");
 		for (ViewerInfo webRTCViewerInfo : returningList2) {
 			assertTrue(webRTCViewerInfo.getViewerId().contains("a")||webRTCViewerInfo.getViewerId().contains("A"));
+			assertNotEquals(webRTCViewerInfo.getEndTime(),0);
 		}
 	    
-		
 	    int deleted = 0;
 	    for (String id : idList) {
 			dataStore.deleteWebRTCViewerInfo(id);
