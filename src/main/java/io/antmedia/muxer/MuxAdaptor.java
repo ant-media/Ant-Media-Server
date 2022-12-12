@@ -298,11 +298,43 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		this.broadcastStream = clientBroadcastStream;
 	}
 
-	public void addMuxer(Muxer muxer)
+	public boolean addMuxer(Muxer muxer)
 	{
-		muxerList.add(muxer);
+		boolean result = false;
+		if (directMuxingSupported()) 
+		{	
+			if (isRecording.get()) 
+			{
+				result = prepareMuxer(muxer);
+			}
+			else 
+			{
+				result = addMuxerInternal(muxer);
+			}
+		}
+		return result;
 	}
 
+	public boolean removeMuxer(Muxer muxer) 
+	{
+		boolean result = false;
+		if (muxerList.remove(muxer)) 
+		{
+			muxer.writeTrailer();
+			result = true;
+		}
+		return result;
+	}
+
+	private boolean addMuxerInternal(Muxer muxer) 
+	{
+		boolean result = false;
+		if (!muxerList.contains(muxer)) 
+		{
+			result = muxerList.add(muxer);
+		}
+		return result;
+	}
 
 
 	@Override
@@ -1287,6 +1319,23 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		changeStreamQualityParameters(this.streamId, null, 0, getInputQueueSize());
 		getStreamHandler().muxAdaptorRemoved(this);
 	}
+	
+	
+	/**
+	 * This method means that if the MuxAdaptor writes 
+	 * incoming packets to muxers({@link MuxAdaptor#muxerList}) directly without any StreamAdaptor/Encoders
+	 * 
+	 * It's true for RTMP, SRT ingest to MP4, HLS, RTMP Endpoint writing 
+	 * but it's not true WebRTC ingest.
+	 * 
+	 * This method is being implemented in subclasses
+	 * @return
+	 */
+	public boolean directMuxingSupported() {
+		//REFACTOR: I think it may be good idea to proxy every packet through StreamAdaptor even for RTMP Ingest
+		//It'll likely provide better compatibility for codecs and formats
+		return true;
+	}
 
 
 	@Override
@@ -1669,13 +1718,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return null;
 	}
 
-
-	public boolean prepareMuxer(Muxer muxer) {
-		boolean prepared;
+	public boolean prepareMuxer(Muxer muxer) 
+	{
+		boolean streamAdded = false;
+		
 		muxer.init(scope, streamId, 0, broadcast != null ? broadcast.getSubFolder(): null, 0);
 		logger.info("prepareMuxer for stream:{} muxer:{}", streamId, muxer.getClass().getSimpleName());
 
-		if (streamSourceInputFormatContext != null) {
+		if (streamSourceInputFormatContext != null) 
+		{
 
 
 			for (int i = 0; i < streamSourceInputFormatContext.nb_streams(); i++) 
@@ -1684,26 +1735,47 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					logger.warn("muxer add streams returns false {}", muxer.getFormat());
 					break;
 				}
+				else {
+					streamAdded = true;
+				}
 			}
 		}
-		else {
+		else 
+		{
 			AVCodecParameters videoParameters = getVideoCodecParameters();
 			if (videoParameters != null) {
-				muxer.addStream(videoParameters, TIME_BASE_FOR_MS, videoStreamIndex);
+				logger.info("Add video stream to muxer:{} for streamId:{}", muxer.getClass().getSimpleName(), streamId);
+				if (muxer.addStream(videoParameters, TIME_BASE_FOR_MS, videoStreamIndex)) {
+					streamAdded = true;
+				}
 			}
 
 			AVCodecParameters audioParameters = getAudioCodecParameters();
 			if (audioParameters != null) {
-				muxer.addStream(audioParameters, TIME_BASE_FOR_MS, audioStreamIndex);
+				logger.info("Add audio stream to muxer:{} for streamId:{}", muxer.getClass().getSimpleName(), streamId);
+				if (muxer.addStream(audioParameters, TIME_BASE_FOR_MS, audioStreamIndex)) {
+					streamAdded = true;
+				}
 			}
 		}
 
-		prepared = muxer.prepareIO();
-
-		if (prepared) {
-			addMuxer(muxer);
+		boolean prepared = false;
+		if (streamAdded) 
+		{
+			prepared = muxer.prepareIO();
+	
+			if (prepared) 
+			{
+				addMuxerInternal(muxer);
+				logger.info("Muxer:{} is prepared succesfully for streamId:{}", muxer.getClass().getSimpleName(), streamId);
+			}
+			else 
+			{
+				logger.warn("Muxer:{} cannot be prepared for streamId:{}", muxer.getClass().getSimpleName(), streamId);
+			}
+	
+			//TODO: Check to release the resources if it's not already released
 		}
-		//TODO: if it's not prepared, release the resources
 
 		return prepared;
 	}
