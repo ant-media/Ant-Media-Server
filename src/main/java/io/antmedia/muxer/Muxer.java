@@ -13,7 +13,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.av_packet_ref;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_from_context;
-import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
+import static org.bytedeco.ffmpeg.global.avformat.*;
 import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_trailer;
@@ -252,8 +252,11 @@ public abstract class Muxer {
 
 
 	public boolean openIO() {
+		
 		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0) 
 		{
+			//if it's different from zero, it means no file is need to be open. 
+			//If it's zero, Not "no file" and it means that file is need to be open .			
 			AVIOContext pb = new AVIOContext(null);
 
 			int ret = avformat.avio_open(pb,  getOutputURL(), AVIO_FLAG_WRITE);
@@ -308,7 +311,8 @@ public abstract class Muxer {
 				av_dict_set(optionsDictionary, key, options.get(key), 0);
 			}
 
-		}		
+		}	
+			
 
 		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);		
 		if (ret < 0) {
@@ -379,8 +383,13 @@ public abstract class Muxer {
 		}
 
 		/* close output */
-		if (outputFormatContext != null && (outputFormatContext.flags() & AVFMT_NOFILE) == 0 && outputFormatContext.pb() != null)
+		if (outputFormatContext != null &&
+				(outputFormatContext.oformat().flags() & AVFMT_NOFILE) == 0 
+						&& outputFormatContext.pb() != null
+						&& (outputFormatContext.flags() & AVFormatContext.AVFMT_FLAG_CUSTOM_IO) == 0)
+		{
 			avio_closep(outputFormatContext.pb());
+		}
 
 		if (outputFormatContext != null) {
 			avformat_free_context(outputFormatContext);
@@ -443,7 +452,6 @@ public abstract class Muxer {
 			logPacketIssue("Not writing packet for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
 			return;
 		}
-
 		int inputStreamIndex = pkt.stream_index();
 		int outputStreamIndex = inputOutputStreamIndexMap.get(inputStreamIndex);
 		AVStream outStream = outputFormatContext.streams(outputStreamIndex);
@@ -808,6 +816,7 @@ public abstract class Muxer {
 			return;
 		}
 
+		
 		/*
 		 * Rotation field is used add metadata to the mp4.
 		 * this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
@@ -944,8 +953,7 @@ public abstract class Muxer {
 			if (ret < 0) {
 				logger.error("Cannot copy video packet for {}", streamId);
 				return;
-			}
-
+			}			
 			/*
 			 * We add this check because when encoder calls this method the packet needs extra data inside
 			 * However, SFUForwarder calls writeVideoBuffer and the method packets itself there
@@ -991,23 +999,24 @@ public abstract class Muxer {
 
 	protected void writeVideoFrame(AVPacket pkt, AVFormatContext context) {
 		int ret;
+		
 		if (videoBsfFilterContext != null) 
 		{
 			ret = av_bsf_send_packet(videoBsfFilterContext, pkt);
-			if (ret < 0)
+			if (ret < 0) {
+				logger.warn("Cannot send packet to bit stream filter for stream:{}", streamId);
 				return;
-
+			}
 			while (av_bsf_receive_packet(videoBsfFilterContext, pkt) == 0)
 			{
 				ret = av_write_frame(context, tmpPacket);
 				if (ret < 0 && logger.isWarnEnabled()) {
 					logger.warn("cannot write video frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), getErrorDefinition(ret));
 				}
-
 			}
 		}
-		else {
-
+		else 
+		{
 			ret = av_write_frame(context, pkt);
 			if (ret < 0 && logger.isWarnEnabled()) {
 				//TODO: this is written for some muxers like HLS because normalized video time is coming from WebRTC

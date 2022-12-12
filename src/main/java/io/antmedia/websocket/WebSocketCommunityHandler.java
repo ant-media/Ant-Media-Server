@@ -359,7 +359,8 @@ public class WebSocketCommunityHandler {
 		jsonResponse.put(WebSocketConstants.STREAM_LIST_IN_ROOM, jsonStreamListArray);	
 		jsonResponse.put(WebSocketConstants.ATTR_ROOM_NAME, room);	
 		jsonResponse.put(WebSocketConstants.ROOM, room);	
-
+		jsonResponse.put(WebSocketConstants.MAX_TRACK_COUNT, appSettings.getMaxVideoTrackCount());	
+		
 		sendMessage(jsonResponse.toJSONString(), session);
 	}
 
