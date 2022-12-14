@@ -178,7 +178,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@BeforeClass
 	public static void beforeClass() {
-		avformat.av_register_all();
+		//avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
 	}
@@ -3333,8 +3333,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		int streamCount = inputFormatContext.nb_streams();
 
 		for (int i = 0; i < streamCount; i++) {
-			AVCodecContext codecContext = inputFormatContext.streams(i).codec();
-			if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) {
+			AVCodecParameters codecpar = inputFormatContext.streams(i).codecpar();
+			if (codecpar.codec_type() == AVMEDIA_TYPE_VIDEO) {
 				AVStream videoStream = inputFormatContext.streams(i);
 
 				AVDictionaryEntry entry = av_dict_get(videoStream.metadata(), "rotate", null, 0);

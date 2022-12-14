@@ -1,41 +1,19 @@
 package io.antmedia.recorder;
-/*
- * Copyright (C) 2015 Samuel Audet
- *
- * Licensed either under the Apache License, Version 2.0, or (at your option)
- * under the terms of the GNU General Public License as published by
- * the Free Software Foundation (subject to the "Classpath" exception),
- * either version 2, or any later version (collectively, the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *     http://www.gnu.org/licenses/
- *     http://www.gnu.org/software/classpath/license.html
- *
- * or as provided in the LICENSE.txt file that accompanied this code.
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
 import java.nio.ShortBuffer;
+import java.util.EnumSet;
 
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.DoublePointer;
 import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.LongPointer;
+import org.bytedeco.javacpp.Pointer;
 import org.bytedeco.javacpp.ShortPointer;
 import org.bytedeco.javacpp.indexer.ByteIndexer;
 import org.bytedeco.javacpp.indexer.DoubleIndexer;
@@ -56,9 +34,12 @@ import org.bytedeco.javacpp.indexer.UShortIndexer;
  *
  * @author Samuel Audet
  */
-public class Frame implements Indexable {
+public class Frame implements AutoCloseable, Indexable {
     /** A flag set by a FrameGrabber or a FrameRecorder to indicate a key frame. */
     public boolean keyFrame;
+
+    /** The type of the image frame ('I', 'P', 'B', etc). */
+    public char pictType;
 
     /** Constants to be used for {@link #imageDepth}. */
     public static final int
@@ -70,6 +51,15 @@ public class Frame implements Indexable {
             DEPTH_LONG   = -64,
             DEPTH_FLOAT  =  32,
             DEPTH_DOUBLE =  64;
+
+    /** Constants defining data type in the frame. */
+    public static enum Type {
+        VIDEO,
+        AUDIO,
+        DATA,
+        SUBTITLE,
+        ATTACHMENT
+    }
 
     /** Information associated with the {@link #image} field. */
     public int imageWidth, imageHeight, imageDepth, imageChannels, imageStride;
@@ -87,26 +77,47 @@ public class Frame implements Indexable {
     /** Buffers to hold audio samples from multiple channels for an audio frame. */
     public Buffer[] samples;
 
-    /** The underlying data object, for example, AVFrame, IplImage, or Mat. */
+    /** Buffer to hold a data stream associated with a frame. */
+    public ByteBuffer data;
+
+    /** Stream number the audio|video|other data is associated with. */
+    public int streamIndex;
+
+    /** The type of the stream. */
+    public Type type;
+
+    /** The underlying data object, for example, Pointer, AVFrame, IplImage, or Mat. */
     public Object opaque;
 
-    /** Timestamp of the frame creation. */
+    /** Timestamp of the frame creation in microseconds. */
     public long timestamp;
+
+    /** Returns {@code Math.abs(depth) / 8}. */
+    public static int pixelSize(int depth) {
+        return Math.abs(depth) / 8;
+    }
 
     /** Empty constructor. */
     public Frame() { }
 
     /** Allocates a new packed image frame in native memory where rows are 8-byte aligned. */
     public Frame(int width, int height, int depth, int channels) {
-        int pixelSize = Math.abs(depth) / 8;
+        this(width, height, depth, channels, ((width * channels * pixelSize(depth) + 7) & ~7) / pixelSize(depth));
+    }
+    public Frame(int width, int height, int depth, int channels, int imageStride) {
         this.imageWidth = width;
         this.imageHeight = height;
         this.imageDepth = depth;
         this.imageChannels = channels;
-        this.imageStride = ((imageWidth * imageChannels * pixelSize + 7) & ~7) / pixelSize; // 8-byte aligned
+        this.imageStride = imageStride;
+        this.pictType = '\0';
         this.image = new Buffer[1];
+        this.data = null;
+        this.streamIndex = -1;
+        this.type = null;
 
-        ByteBuffer buffer = ByteBuffer.allocateDirect(imageHeight * imageStride * pixelSize).order(ByteOrder.nativeOrder());
+        Pointer pointer = new BytePointer(imageHeight * imageStride * pixelSize(depth));
+        ByteBuffer buffer = pointer.asByteBuffer();
         switch (imageDepth) {
             case DEPTH_BYTE:
             case DEPTH_UBYTE:  image[0] = buffer;                  break;
@@ -118,6 +129,7 @@ public class Frame implements Indexable {
             case DEPTH_DOUBLE: image[0] = buffer.asDoubleBuffer(); break;
             default: throw new UnsupportedOperationException("Unsupported depth value: " + imageDepth);
         }
+        opaque = new Pointer[] {pointer.retainReference()};
     }
 
     /** Returns {@code createIndexer(true, 0)}. */
@@ -184,7 +196,6 @@ public class Frame implements Indexable {
     public Frame clone() {
         Frame newFrame = new Frame();
 
-
         // Video part
         newFrame.imageWidth = imageWidth;
         newFrame.imageHeight = imageHeight;
@@ -192,19 +203,34 @@ public class Frame implements Indexable {
         newFrame.imageChannels = imageChannels;
         newFrame.imageStride = imageStride;
         newFrame.keyFrame = keyFrame;
-        newFrame.opaque = opaque;
-        newFrame.image = cloneBufferArray(image);
+        newFrame.pictType = pictType;
+        newFrame.streamIndex = streamIndex;
+        newFrame.type = type;
+        newFrame.opaque = new Pointer[3];
+        if (image != null) {
+            newFrame.image = new Buffer[image.length];
+            ((Pointer[])newFrame.opaque)[0] = cloneBufferArray(image, newFrame.image);
+        }
 
         // Audio part
         newFrame.audioChannels = audioChannels;
         newFrame.sampleRate = sampleRate;
-        newFrame.samples = cloneBufferArray(samples);
+        if (samples != null) {
+            newFrame.samples = new Buffer[samples.length];
+            ((Pointer[])newFrame.opaque)[1] = cloneBufferArray(samples, newFrame.samples);
+        }
+
+        // Other data streams
+        if (data != null) {
+            ByteBuffer[] dst = new ByteBuffer[1];
+            ((Pointer[])newFrame.opaque)[2] = cloneBufferArray(new ByteBuffer[]{data}, dst);
+            newFrame.data = dst[0];
+        }
 
         // Add timestamp
         newFrame.timestamp = timestamp;
 
         return newFrame;
-
     }
 
     /**
@@ -212,21 +238,20 @@ public class Frame implements Indexable {
      * It is assumed that all buffers in the input array are of the same subclass.
      *
      * @param srcBuffers - Buffer array to be cloned
-     * @return New buffer array
+     * @param clonedBuffers - Buffer array to fill with clones
+     * @return Opaque object to store
      *
      *  @author Extension proposed by Dragos Dutu
      */
-    private static Buffer[] cloneBufferArray(Buffer[] srcBuffers) {
+    private static Pointer cloneBufferArray(Buffer[] srcBuffers, Buffer[] clonedBuffers) {
+        Pointer opaque = null;
 
-        Buffer[] clonedBuffers = null;
-        int i;
-        short dataSize;
-
-        if (srcBuffers != null) {
-            clonedBuffers = new Buffer[srcBuffers.length];
-
-            for (i = 0; i < srcBuffers.length; i++)
+        if (srcBuffers != null && srcBuffers.length > 0) {
+            int totalCapacity = 0;
+            for (int i = 0; i < srcBuffers.length; i++) {
                 srcBuffers[i].rewind();
+                totalCapacity += srcBuffers[i].capacity();
+            }
 
             /*
              * In order to optimize the transfer we need a type check.
@@ -247,45 +272,86 @@ public class Frame implements Indexable {
              *
              */
 
-            if (srcBuffers[0] instanceof ByteBuffer)
-                // dataSize is 1
-                for (i = 0; i < srcBuffers.length; i++)
-                    clonedBuffers[i] = ByteBuffer.allocateDirect(srcBuffers[i].capacity())
-                            .put((ByteBuffer) srcBuffers[i]).rewind();
-            else if (srcBuffers[0] instanceof ShortBuffer) {
-                dataSize = Short.SIZE >> 3; // dataSize is 2
-                for (i = 0; i < srcBuffers.length; i++)
-                    clonedBuffers[i] = ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
-                            .order(ByteOrder.nativeOrder()).asShortBuffer().put((ShortBuffer) srcBuffers[i]).rewind();
+            if (srcBuffers[0] instanceof ByteBuffer) {
+                BytePointer pointer = new BytePointer(totalCapacity);
+                for (int i = 0; i < srcBuffers.length; i++) {
+                    clonedBuffers[i] = pointer.limit(pointer.position() + srcBuffers[i].limit())
+                            .asBuffer().put((ByteBuffer)srcBuffers[i]);
+                    pointer.position(pointer.limit());
+                }
+                opaque = pointer;
+            } else if (srcBuffers[0] instanceof ShortBuffer) {
+                ShortPointer pointer = new ShortPointer(totalCapacity);
+                for (int i = 0; i < srcBuffers.length; i++) {
+                    clonedBuffers[i] = pointer.limit(pointer.position() + srcBuffers[i].limit())
+                            .asBuffer().put((ShortBuffer)srcBuffers[i]);
+                    pointer.position(pointer.limit());
+                }
+                opaque = pointer;
             } else if (srcBuffers[0] instanceof IntBuffer) {
-                dataSize = Integer.SIZE >> 3; // dataSize is 4
-                for (i = 0; i < srcBuffers.length; i++)
-                    clonedBuffers[i] = ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
-                            .order(ByteOrder.nativeOrder()).asIntBuffer().put((IntBuffer) srcBuffers[i]).rewind();
+                IntPointer pointer = new IntPointer(totalCapacity);
+                for (int i = 0; i < srcBuffers.length; i++) {
+                    clonedBuffers[i] = pointer.limit(pointer.position() + srcBuffers[i].limit())
+                            .asBuffer().put((IntBuffer)srcBuffers[i]);
+                    pointer.position(pointer.limit());
+                }
+                opaque = pointer;
             } else if (srcBuffers[0] instanceof LongBuffer) {
-                dataSize = Long.SIZE >> 3; // dataSize is 8
-                for (i = 0; i < srcBuffers.length; i++)
-                    clonedBuffers[i] = ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
-                            .order(ByteOrder.nativeOrder()).asLongBuffer().put((LongBuffer) srcBuffers[i]).rewind();
+                LongPointer pointer = new LongPointer(totalCapacity);
+                for (int i = 0; i < srcBuffers.length; i++) {
+                    clonedBuffers[i] = pointer.limit(pointer.position() + srcBuffers[i].limit())
+                            .asBuffer().put((LongBuffer)srcBuffers[i]);
+                    pointer.position(pointer.limit());
+                }
+                opaque = pointer;
             } else if (srcBuffers[0] instanceof FloatBuffer) {
-                dataSize = Float.SIZE >> 3; // dataSize is 4
-                for (i = 0; i < srcBuffers.length; i++)
-                    clonedBuffers[i] = ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
-                            .order(ByteOrder.nativeOrder()).asFloatBuffer().put((FloatBuffer) srcBuffers[i]).rewind();
+                FloatPointer pointer = new FloatPointer(totalCapacity);
+                for (int i = 0; i < srcBuffers.length; i++) {
+                    clonedBuffers[i] = pointer.limit(pointer.position() + srcBuffers[i].limit())
+                            .asBuffer().put((FloatBuffer)srcBuffers[i]);
+                    pointer.position(pointer.limit());
+                }
+                opaque = pointer;
             } else if (srcBuffers[0] instanceof DoubleBuffer) {
-                dataSize = Double.SIZE >> 3; // dataSize is 8
-                for (i = 0; i < srcBuffers.length; i++)
-                    clonedBuffers[i] = ByteBuffer.allocateDirect(srcBuffers[i].capacity() * dataSize)
-                            .order(ByteOrder.nativeOrder()).asDoubleBuffer().put((DoubleBuffer) srcBuffers[i]).rewind();
+                DoublePointer pointer = new DoublePointer(totalCapacity);
+                for (int i = 0; i < srcBuffers.length; i++) {
+                    clonedBuffers[i] = pointer.limit(pointer.position() + srcBuffers[i].limit())
+                            .asBuffer().put((DoubleBuffer)srcBuffers[i]);
+                    pointer.position(pointer.limit());
+                }
+                opaque = pointer;
             }
 
-            for (i = 0; i < srcBuffers.length; i++)
+            for (int i = 0; i < srcBuffers.length; i++) {
                 srcBuffers[i].rewind();
-
+                clonedBuffers[i].rewind();
+            }
         }
 
-        return clonedBuffers;
-
+        if (opaque != null) {
+            opaque.retainReference();
+        }
+        return opaque;
     }
 
+    /** Returns types of data containing in the frame */
+    public EnumSet<Type> getTypes() {
+        EnumSet<Type> type = EnumSet.noneOf(Type.class);
+        if (image != null) type.add(Type.VIDEO);
+        if (samples != null) type.add(Type.AUDIO);
+        if (data != null) type.add(Type.DATA);
+        return type;
+    }
+
+    @Override public void close() {
+        if (opaque instanceof Pointer[]) {
+            for (Pointer p : (Pointer[])opaque) {
+                if (p != null) {
+                    p.releaseReference();
+                    p = null;
+                }
+            }
+            opaque = null;
+        }
+    }
 }

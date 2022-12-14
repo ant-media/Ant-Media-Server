@@ -1,7 +1,6 @@
 package io.antmedia.integration;
 
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
-import static org.bytedeco.ffmpeg.global.avformat.av_register_all;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
@@ -30,6 +29,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
+import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVInputFormat;
@@ -103,7 +103,7 @@ public class MuxingTest {
 		if (OS_TYPE == MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
-		av_register_all();
+	//	av_register_all();
 		avformat_network_init();
 
 	}
@@ -469,20 +469,20 @@ public class MuxingTest {
 
 		boolean streamExists = false;
 		for (int i = 0; i < streamCount; i++) {
-			AVCodecContext codecContext = inputFormatContext.streams(i).codec();
+			AVCodecParameters codecpar = inputFormatContext.streams(i).codecpar();
 
-			if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) 
+			if (codecpar.codec_type() == AVMEDIA_TYPE_VIDEO) 
 			{
-				assertTrue(codecContext.width() != 0);
-				assertTrue(codecContext.height() != 0);
-				assertTrue(codecContext.pix_fmt() != AV_PIX_FMT_NONE);
+				assertTrue(codecpar.width() != 0);
+				assertTrue(codecpar.height() != 0);
+				assertTrue(codecpar.format() != AV_PIX_FMT_NONE);
 				videoStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 
 				videoExists = true;
 				streamExists = true;
-			} else if (codecContext.codec_type() == AVMEDIA_TYPE_AUDIO) 
+			} else if (codecpar.codec_type() == AVMEDIA_TYPE_AUDIO) 
 			{
-				assertTrue(codecContext.sample_rate() != 0);
+				assertTrue(codecpar.sample_rate() != 0);
 				audioStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 				audioExists = true;
 				streamExists = true;
