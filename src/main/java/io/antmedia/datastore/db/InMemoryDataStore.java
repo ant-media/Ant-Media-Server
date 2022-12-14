@@ -782,6 +782,7 @@ public class InMemoryDataStore extends DataStore {
 		for(Subscriber subscriber: subscriberMap.values()) {
 			if (subscriber != null) {
 				subscriber.setConnected(false);
+				subscriber.setCurrentConcurrentConnections(0);
 			}
 		}
 		return true;
