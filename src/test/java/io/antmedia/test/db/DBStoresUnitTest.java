@@ -1999,6 +1999,7 @@ public class DBStoresUnitTest {
 		// isConnected should return false
 		assertFalse(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
 		assertFalse(written.isConnected());
+		assertEquals(0, written.getCurrentConcurrentConnections());
 		
 		// there should be two events with correct order
 		List<ConnectionEvent> events = written.getStats().getConnectionEvents();
