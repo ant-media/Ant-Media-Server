@@ -129,7 +129,7 @@ public class HlsViewerStatsTest {
 					eventExist = ConnectionEvent.CONNECTED_EVENT == event2.getEventType();
 				}
 
-				return (subData.isConnected()) && eventExist; }
+				return subData.isConnected() && subData.getCurrentConcurrentConnections() == 1 && eventExist; }
 		);
 	
 		viewerStats.resetViewerMap(streamId, ViewerStats.HLS_TYPE);
@@ -242,7 +242,7 @@ public class HlsViewerStatsTest {
 						eventExist = ConnectionEvent.CONNECTED_EVENT == event.getEventType();
 					}
 
-					return (subData.isConnected()) && eventExist; 
+					return subData.isConnected() && subData.getCurrentConcurrentConnections() == 1 && eventExist; 
 			});
 			
 			// Check viewer is online
