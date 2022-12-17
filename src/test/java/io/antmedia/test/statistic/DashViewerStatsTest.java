@@ -216,7 +216,7 @@ public class DashViewerStatsTest {
 			subscriberPlay3.setType(Subscriber.PLAY_TYPE);
 			dsf.getDataStore().addSubscriber(subscriberPlay3.getStreamId(), subscriberPlay3);				
 			
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId()), "dash", "127.0.0.1");
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), "dash", "127.0.0.1");
 			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay.getSubscriberId(), "dash", "127.0.0.1");
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
