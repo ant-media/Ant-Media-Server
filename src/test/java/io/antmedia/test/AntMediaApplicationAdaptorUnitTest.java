@@ -988,6 +988,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			File oldDir = new File (streamsFolderPath, "dir");
 			oldDir.mkdirs();
+			Files.deleteIfExists(oldDir.toPath());
+			Files.createSymbolicLink(oldDir.toPath(), emptyFile.toPath());
 			oldDir.deleteOnExit();
 
 			synchUserVoDFolder = adapter.deleteSymbolicLink(oldDir, f);
