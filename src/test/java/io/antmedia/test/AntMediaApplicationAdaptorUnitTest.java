@@ -979,27 +979,18 @@ public class AntMediaApplicationAdaptorUnitTest {
 		emptyFile.deleteOnExit();
 		try {
 			assertTrue(emptyFile.createNewFile());
-			boolean synchUserVoDFolder = adapter.deleteOldFolderPath("", f);
+			boolean synchUserVoDFolder = adapter.deleteSymbolicLink(new File("any_file_not_exist"), f);
 			assertFalse(synchUserVoDFolder);
 
-			synchUserVoDFolder = adapter.deleteOldFolderPath(null, f);
+			synchUserVoDFolder = adapter.deleteSymbolicLink(null, f);
 			assertFalse(synchUserVoDFolder);
 
-			synchUserVoDFolder = adapter.deleteOldFolderPath("anyfile", null);
-			assertFalse(synchUserVoDFolder);
-
-
-			synchUserVoDFolder = adapter.deleteOldFolderPath("notexist", f);
-			assertFalse(synchUserVoDFolder);
-
-			synchUserVoDFolder = adapter.deleteOldFolderPath(emptyFile.getName(), f);
-			assertFalse(synchUserVoDFolder);
 
 			File oldDir = new File (streamsFolderPath, "dir");
 			oldDir.mkdirs();
 			oldDir.deleteOnExit();
 
-			synchUserVoDFolder = adapter.deleteOldFolderPath(oldDir.getName(), f);
+			synchUserVoDFolder = adapter.deleteSymbolicLink(oldDir, f);
 			assertTrue(synchUserVoDFolder);
 
 		} catch (IOException e) {

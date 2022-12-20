@@ -1038,7 +1038,9 @@ public abstract class Muxer {
 	public static long getDurationInMs(File f, String streamId) {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		int ret;
-		streamId = streamId.replaceAll("[\n\r\t]", "_");
+		if (streamId != null) {
+			streamId = streamId.replaceAll("[\n\r\t]", "_");
+		}
 		if (avformat_open_input(inputFormatContext, f.getAbsolutePath(), null, (AVDictionary)null) < 0) 
 		{
 			loggerStatic.info("cannot open input context for duration for stream: {} for file:{}", streamId, f.getName());

@@ -15,11 +15,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.regex.Pattern;
 import java.util.Queue;
 import java.util.Set;
 
 import javax.validation.constraints.NotNull;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -57,6 +59,7 @@ import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.plugin.api.IClusterStreamFetcher;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
@@ -95,7 +98,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String HOOK_ACTION_PUBLISH_TIMEOUT_ERROR = "publishTimeoutError";
 	public static final String HOOK_ACTION_ENCODER_NOT_OPENED_ERROR =  "encoderNotOpenedError";
 	public static final String HOOK_ACTION_ENDPOINT_FAILED = "endpointFailed";
-	
+
 	public static final String STREAMS = "streams";
 
 	public static final String DEFAULT_LOCALHOST = "127.0.0.1";
@@ -144,7 +147,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected StorageClient storageClient;
 
 	protected ArrayList<IStreamListener> streamListeners = new ArrayList<>();
-	
+
 	IClusterStreamFetcher clusterStreamFetcher;
 
 	@Override
@@ -187,7 +190,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				updateClusterSettings = true;
 			}
 			else if (getServerSettings().getHostAddress().equals(storedSettings.getWarFileOriginServerAddress()) 
-						&& storedSettings.isPullWarFile()) 
+					&& storedSettings.isPullWarFile()) 
 			{
 				//get the current value of isPullWarFile here otherwise it will be set to false below
 				boolean isPullWarFile = storedSettings.isPullWarFile();
@@ -231,7 +234,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			webRTCAdaptor.setPacketLossDiffThresholdForSwitchback(appSettings.getPacketLossDiffThresholdForSwitchback());
 			webRTCAdaptor.setRttMeasurementDiffThresholdForSwitchback(appSettings.getRttMeasurementDiffThresholdForSwitchback());
 		}
-		
+
 		setStorageclientSettings(appSettings);
 
 
@@ -259,57 +262,190 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
+	/**
+	 * @Deprecated
+	 * This method is deprecated. Use {@link #importVoDFolder(String)} {@link #unlinksVoD(String)}
+	 * @param oldFolderPath
+	 * @param vodFolderPath
+	 * @return
+	 */
 	public boolean synchUserVoDFolder(String oldFolderPath, String vodFolderPath) 
 	{
 		boolean result = false;
 		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
 
-		try {
-			deleteOldFolderPath(oldFolderPath, streamsFolder);
-			//even if an exception occurs, catch it in here and do not prevent the below operations
-		} catch (IOException e) {
-			logger.error(e.getMessage());
-		}
+		deleteSymbolicLink(new File(oldFolderPath), streamsFolder);
+		
 
 		File f = new File(vodFolderPath == null ? "" : vodFolderPath);
-		try {
-			if (!streamsFolder.exists()) {
-				streamsFolder.mkdir();
-			}
-			if (f.exists() && f.isDirectory()) {
-				String newLinkPath = streamsFolder.getAbsolutePath() + "/" + f.getName();
-				File newLinkFile = new File(newLinkPath);
-				if (!newLinkFile.exists()) {
-					Path target = f.toPath();
-					Files.createSymbolicLink(newLinkFile.toPath(), target);
-				}
-			}
-			//if file does not exists, it means reset the vod
-			getDataStore().fetchUserVodList(f);
-			result = true;
-		} catch (IOException e) {
-			logger.error(e.getMessage());
-		}
-
-
+		createSymbolicLink(streamsFolder, f);
+		//if file does not exists, it means reset the vod
+		getDataStore().fetchUserVodList(f);
+		result = true;
 
 		return result;
 	}
 
-	public boolean deleteOldFolderPath(String oldFolderPath, File streamsFolder) throws IOException {
-		boolean result = false;
-		if (oldFolderPath != null && !oldFolderPath.isEmpty() && streamsFolder != null) 
-		{
-			File f = new File(oldFolderPath);
-			File linkFile = new File(streamsFolder.getAbsolutePath(), f.getName());
-			if (linkFile.exists() && linkFile.isDirectory()) {
-				Files.delete(linkFile.toPath());
-				result = true;
+	private Result createSymbolicLink(File streamsFolder, File vodFolder) {
+
+		Result result = null;
+		try {
+			if (!streamsFolder.exists()) {
+				streamsFolder.mkdirs();
 			}
+			if (vodFolder.exists() && vodFolder.isDirectory()) {
+				String newLinkPath = streamsFolder.getAbsolutePath() + File.separator + vodFolder.getName();
+				File newLinkFile = new File(newLinkPath);
+				if (!Files.isSymbolicLink(newLinkFile.toPath())) 
+				{
+					Path target = vodFolder.toPath();
+					Files.createSymbolicLink(newLinkFile.toPath(), target);
+					result = new Result(true);
+				}
+				else {
+					result = new Result(false, "There is already a file with the name "+ vodFolder.getName()+" in the streams directory");
+				}
+			}
+			else {
+				result = new Result(false, vodFolder.getAbsolutePath() + " does not exist or is not a directory");
+			}
+
+		} catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			result = new Result(false, "Exception in creating symbolic link");
 		}
+		return result;
+	}
+
+	/**
+	 * Import vod files recursively in the directory. It also created symbolic link to make the files streamable
+	 * @param vodFolderPath absolute path of the vod folder to be imported
+	 * @return
+	 */
+	public Result importVoDFolder(String vodFolderPath) {
+		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
+		File directory = new File(vodFolderPath == null ? "" : vodFolderPath);
+
+		Result result = createSymbolicLink(streamsFolder, directory);
+		if (result.isSuccess()) {
+			int numberOfFilesImported = importToDB(directory, directory);
+			result.setMessage(numberOfFilesImported + " files are imported");
+		}
+
 		return result;
 	}
 	
+	
+	public Result unlinksVoD(String directory) 
+	{
+		//check the directory exist
+		File folder = new File(directory == null ? "" : directory);
+		Result result = null;
+		if (folder.exists() && folder.isDirectory()) {
+
+			File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
+			//check the symbolic links exists and delete it
+
+			deleteSymbolicLink(folder, streamsFolder);
+
+			int deletedRecords = deleteUserVoDByStreamId(folder.getName());
+			result = new Result(true, deletedRecords + " of records are deleted");
+		}
+		else {
+			result = new Result(false, directory + " does not exist or it's not a directory");
+		}
+		return result;
+	}
+
+	private int deleteUserVoDByStreamId(String streamId) 
+	{
+		int numberOfDeletedRecords = 0;
+		List<VoD> vodList;
+		do {
+			vodList = getDataStore().getVodList(0, 50, null, null, streamId, null);
+			
+			if (vodList != null && !vodList.isEmpty()) 
+			{
+				for (VoD voD : vodList) {
+						if (VoD.USER_VOD.equals(voD.getType())) 
+						{
+							if (getDataStore().deleteVod(voD.getVodId())) {
+								numberOfDeletedRecords++;
+							}
+						}
+					
+				}
+			}
+		} while(vodList != null && !vodList.isEmpty());
+		
+		return numberOfDeletedRecords;
+	}
+
+	public int importToDB(File subDirectory, File baseDirectory) 
+	{
+		File[] listOfFiles = subDirectory.listFiles();
+		int numberOfFilesImported = 0;
+		if (listOfFiles != null) 
+		{
+			for (File file : listOfFiles) {
+
+				String fileExtension = FilenameUtils.getExtension(file.getName());
+
+				if (file.isFile() && ("mp4".equals(fileExtension) || "flv".equals(fileExtension)
+						|| "mkv".equals(fileExtension) || "m3u8".equals(fileExtension))) 
+				{
+
+					long fileSize = file.length();
+					long unixTime = System.currentTimeMillis();
+
+					String relativePath = "streams/" + subDirectory.getAbsolutePath().substring(baseDirectory.getAbsolutePath().length() - baseDirectory.getName().length());
+
+					String vodId = RandomStringUtils.randomNumeric(24);
+
+					//add base directory folder name as streamId in order to find it easily
+					VoD newVod = new VoD(baseDirectory.getName(), baseDirectory.getName(), relativePath, file.getName(), unixTime, 0, Muxer.getDurationInMs(file, null),
+							fileSize, VoD.USER_VOD, vodId, null);
+					if (getDataStore().addVod(newVod) != null) 
+					{
+						numberOfFilesImported++;
+					}
+
+				}
+				else if (file.isDirectory()) 
+				{
+					numberOfFilesImported += importToDB(file, baseDirectory);
+				}
+			}
+		}
+		return numberOfFilesImported;
+	}
+
+	/**
+	 * Deletes the symbolic link under the streams directory
+	 * @param vodDirectory
+	 * @param streamsFolder
+	 * @return
+	 * @throws IOException
+	 */
+	public boolean deleteSymbolicLink(File vodDirectory, File streamsFolder){
+		boolean result = false;
+		try {
+			if (vodDirectory != null && streamsFolder != null) 
+			{
+				File linkFile = new File(streamsFolder.getAbsolutePath(), vodDirectory.getName());
+
+				if (Files.isSymbolicLink(linkFile.toPath())) 
+				{
+					Files.delete(linkFile.toPath());
+					result = true;
+				}
+			}
+		} catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return result;
+	}
+
 	public String getListenerHookURL(@NotNull Broadcast broadcast) 
 	{
 		String listenerHookURL = broadcast.getListenerHookURL();
@@ -318,7 +454,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			listenerHookURL = getAppSettings().getListenerHookURL();
 		}
 		return listenerHookURL;
-		
+
 	}
 
 	public void closeBroadcast(String streamId) {
@@ -346,7 +482,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				else {
 					// This is resets Viewer map in HLS Viewer Stats
 					resetHLSStats(streamId);
-					
+
 					// This is resets Viewer map in DASH Viewer Stats
 					resetDASHStats(streamId);
 				}
@@ -377,7 +513,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			hlsViewerStats.resetViewerMap(streamId, ViewerStats.HLS_TYPE);
 		}
 	}
-	
+
 	public void resetDASHStats(String streamId) {
 		if (scope.getContext().getApplicationContext().containsBean(DashViewerStats.BEAN_NAME)) {
 			DashViewerStats dashViewerStats = (DashViewerStats) scope.getContext().getApplicationContext().getBean(DashViewerStats.BEAN_NAME);
@@ -564,7 +700,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		else {
 			vodIdFinal = RandomStringUtils.randomAlphanumeric(24);
 		}
-		
+
 		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodIdFinal, previewFilePath);
 
 		if (getDataStore().addVod(newVod) == null) {
@@ -674,7 +810,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if (vodId != null) {
 				variables.put("vodId", vodId);
 			}
-			
+
 			if (metadata != null) {
 				variables.put("metadata", metadata);
 			}
@@ -1397,7 +1533,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		store.put(AppSettings.SETTINGS_WEBHOOK_AUTHENTICATE_URL, newAppsettings.getWebhookAuthenticateURL() != null ? String.valueOf(newAppsettings.getWebhookAuthenticateURL()) : "");
 
 		store.put(AppSettings.SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING, String.valueOf(newAppsettings.isForceAspectRatioInTranscoding()));
-		
+
 		store.put(AppSettings.SETTINGS_VOD_UPLOAD_FINISH_SCRIPT, newAppsettings.getVodFinishScript() != null ? String.valueOf(newAppsettings.getVodFinishScript()) : "");
 		//default value for DASH frag Duration is 0.5 seconds
 		store.put(AppSettings.SETTINGS_DASH_FRAGMENT_DURATION, newAppsettings.getDashFragmentDuration() != null ? newAppsettings.getDashFragmentDuration() : "0.5");
@@ -1405,28 +1541,28 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		store.put(AppSettings.SETTINGS_DASH_SEG_DURATION, newAppsettings.getDashSegDuration() != null ? newAppsettings.getDashSegDuration() : "6");
 
 		store.put(AppSettings.SETTINGS_HLS_FLAGS, newAppsettings.getHlsflags() != null ? newAppsettings.getHlsflags() : "");
-		
+
 		return store.save();
 	}
 
-		
+
 	public void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings) 
 	{		
 		Field[] declaredFields = appSettings.getClass().getDeclaredFields();
-		
+
 		for (Field field : declaredFields) 
 		{     
-            setAppSettingsFieldValue(appSettings, newSettings, field); 
+			setAppSettingsFieldValue(appSettings, newSettings, field); 
 		}
-		
+
 		appSettings.setUpdateTime(System.currentTimeMillis());
-		
+
 		String oldVodFolder = appSettings.getVodFolder();
 		synchUserVoDFolder(oldVodFolder, newSettings.getVodFolder());
 
-		
+
 		setStorageclientSettings(newSettings);
-		
+
 		logger.warn("app settings bean updated for {}", getScope().getName());	
 
 	}
@@ -1446,19 +1582,19 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static boolean setAppSettingsFieldValue(AppSettings appSettings, AppSettings newSettings, Field field) {
 		boolean result = false;
 		try {
-			
+
 			if (!Modifier.isFinal(field.getModifiers()) && !Modifier.isStatic(field.getModifiers())) {
 
-		    	if (field.trySetAccessible()) 
-		    	{	            		
-		    		field.set(appSettings, field.get(newSettings));
-		    		field.setAccessible(false);
-		    		result = true;
-		    	}
-		    	else 
-		    	{
-		    		logger.warn("Cannot set the value this field: {}", field.getName());
-		    	}
+				if (field.trySetAccessible()) 
+				{	            		
+					field.set(appSettings, field.get(newSettings));
+					field.setAccessible(false);
+					result = true;
+				}
+				else 
+				{
+					logger.warn("Cannot set the value this field: {}", field.getName());
+				}
 			}
 		} 
 		catch (IllegalArgumentException | IllegalAccessException e) 
@@ -1509,12 +1645,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				break;
 			}
 		}
-		
+
 		if(!isAdded) {
 			if(clusterStreamFetcher == null) {
 				clusterStreamFetcher = createClusterStreamFetcher();
 			}
-			
+
 			clusterStreamFetcher.register(streamId, listener);
 		}
 	}
@@ -1572,7 +1708,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void setStorageClient(StorageClient storageClient) {
 		this.storageClient = storageClient;
 	}
-	
+
 	public StorageClient getStorageClient() {
 		return storageClient;
 	}
@@ -1595,13 +1731,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void joinedTheRoom(String roomId, String streamId) {
 		//No need to implement here. 
 	}
-	
+
 	public void leftTheRoom(String roomId, String streamId) {
 		//No need to implement here. 
 	}
-	
+
 	public IClusterStreamFetcher createClusterStreamFetcher() {
 		return null;
 	}
-	
+
+
+
 }

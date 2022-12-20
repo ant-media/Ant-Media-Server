@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -35,6 +36,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
 import io.antmedia.rest.VoDRestService;
@@ -62,6 +64,12 @@ public class VoDRestServiceV2UnitTest {
 	@Before
 	public void before() {
 		restServiceReal = new VoDRestService();
+		File webapps = new File("webapps");
+		try {
+			AppFunctionalV2Test.delete(webapps);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@After
@@ -89,7 +97,7 @@ public class VoDRestServiceV2UnitTest {
 		Mockito.doReturn(true).when(adaptor).synchUserVoDFolder(null, vodFolder);
 
 
-		result = streamSourceRest.synchUserVodList(vodFolder);
+		result = streamSourceRest.synchUserVodList();
 
 		assertTrue(result.isSuccess());
 	}
@@ -520,5 +528,75 @@ public class VoDRestServiceV2UnitTest {
 		}
 		assertTrue(vod1Match);
 		assertTrue(vod2Match);
+	}
+	
+	@Test
+	public void testImportVoDs() {
+		VoDRestService restService=new VoDRestService();
+		InMemoryDataStore dataStore = new InMemoryDataStore("test");
+		restService.setDataStore(dataStore);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "junit";
+		when(scope.getName()).thenReturn(scopeName);
+
+		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		app.setDataStore(dataStore);
+		app.setScope(scope);
+		
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+
+		restService.setAppCtx(context);
+		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, null);
+		assertEquals(0, vodList.size());
+		Result result = restService.importVoDs("src/test");
+		assertTrue(result.isSuccess());
+		vodList = dataStore.getVodList(0, 50, null, null, null, null);
+		//there are 9 files under src/test directory
+		assertEquals(9, vodList.size());
+		File f = new File("webapps/junit/streams/test");
+		assertTrue(Files.isSymbolicLink(f.toPath()));
+		
+		//it should find the flv src/test/resources/fixtures/test.flv
+		boolean foundFixturesTest = false;
+		for (VoD voD : vodList) {
+			System.out.println("vod file path: " + voD.getFilePath());
+			if (voD.getFilePath().equals("streams/test/resources/fixtures")) {
+				foundFixturesTest = true;
+			}
+		}
+		
+		assertTrue(foundFixturesTest);
+		
+		
+		result = restService.importVoDs("src/test");
+		assertFalse(result.isSuccess());
+		vodList = dataStore.getVodList(0, 50, null, null, null, null);
+		//there are 9 files under src/test directory it should not increae
+		assertEquals(9, vodList.size());
+		
+		result = restService.importVoDs(null);
+		assertFalse(result.isSuccess());
+		vodList = dataStore.getVodList(0, 50, null, null, null, null);
+		//there are 9 files under src/test directory it should not increae
+		assertEquals(9, vodList.size());
+		
+		result = restService.importVoDs("");
+		assertFalse(result.isSuccess());
+		vodList = dataStore.getVodList(0, 50, null, null, null, null);
+		//there are 9 files under src/test directory it should not increae
+		assertEquals(9, vodList.size());
+		
+		
+		result = restService.unlinksVoD(null);
+		assertFalse(result.isSuccess());
+		
+		result = restService.unlinksVoD("src/test");
+		assertTrue(result.isSuccess());
+		vodList = dataStore.getVodList(0, 50, null, null, null, null);
+		assertEquals(0, vodList.size());
+		
+		
 	}
 }
