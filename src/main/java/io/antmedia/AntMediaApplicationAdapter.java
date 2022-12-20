@@ -274,7 +274,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		boolean result = false;
 		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
 
-		deleteSymbolicLink(new File(oldFolderPath), streamsFolder);
+		deleteSymbolicLink(new File(oldFolderPath == null ? "" : oldFolderPath), streamsFolder);
 		
 
 		File f = new File(vodFolderPath == null ? "" : vodFolderPath);
