@@ -128,8 +128,29 @@ public class VoDRestService extends RestServiceBase{
 		return super.uploadVoDFile(fileName, inputStream);
 	}
 	
+	@ApiOperation(value = "Import VoD files from a directory and make it streamable.", response = Result.class)
+	@POST
+	@Path("/directory")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public Result importVoDs(@ApiParam(value="the full path of the directory that VoD files will be imported to datastore and linked to the streams") @QueryParam("directory") String directory) {
+		return super.importVoDs(directory);
+	}
 	
-	@ApiOperation(value = "Synchronize VoD Folder and add them to VoD database if any file exist and create symbolic links to that folder", notes = "Notes here", response = Result.class)
+	
+	@ApiOperation(value = "Unlinks VoD path from streams directory and delete the database record. It does not delete the files. It only unlinks folder and delete database records", response = Result.class)
+	@DELETE
+	@Path("/directory")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public Result unlinksVoD(@ApiParam(value="the full path of the directory that imported VoD files will be deleted from database. ") @QueryParam("directory") String directory) {
+		return super.unlinksVoD(directory);
+	}
+	
+	
+	
+	@Deprecated
+	@ApiOperation(value = "Deprecated. Use import VoDs. Synchronize VoD Folder and add them to VoD database if any file exist and create symbolic links to that folder", notes = "Notes here", response = Result.class)
 	@POST
 	@Path("/synch-user-vod-list")
 	@Produces(MediaType.APPLICATION_JSON)
