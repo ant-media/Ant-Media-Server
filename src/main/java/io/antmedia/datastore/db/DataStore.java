@@ -147,6 +147,11 @@ public abstract class DataStore {
 
 	public abstract boolean addEndpoint(String id, Endpoint endpoint);
 
+	/**
+	 * Add VoD record to the datastore
+	 * @param vod
+	 * @return the id of the VoD if it's successful or it returns null if it's failed
+	 */
 	public abstract String addVod(VoD vod);
 
 	/**

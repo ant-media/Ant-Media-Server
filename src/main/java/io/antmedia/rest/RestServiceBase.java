@@ -1240,7 +1240,7 @@ public abstract class RestServiceBase {
 		String message = "";
 
 		String vodFolder = getAppSettings().getVodFolder();
-
+		
 		logger.info("synch user vod list vod folder is {}", vodFolder);
 
 		if (vodFolder != null && vodFolder.length() > 0) {
@@ -1924,6 +1924,14 @@ public abstract class RestServiceBase {
 		}
 
 		return new Result(result, vodId, message);
+	}
+
+	public Result importVoDs(String directory) {
+		return getApplication().importVoDFolder(directory);
+	}
+
+	public Result unlinksVoD(String directory) {
+		return getApplication().unlinksVoD(directory);
 	}
 
 }
