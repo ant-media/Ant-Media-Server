@@ -21,6 +21,7 @@ import java.util.Set;
 
 import javax.validation.constraints.NotNull;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -112,6 +113,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String PLAY_LIST = "playlist";
 	protected static final int END_POINT_LIMIT = 20;
 	public static final String WEBAPPS_PATH = "webapps/";
+
+	//Allow any sub directory under /
+	private static final String VOD_IMPORT_ALLOWED_DIRECTORY = "/";
 
 
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
@@ -325,11 +329,25 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public Result importVoDFolder(String vodFolderPath) {
 		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
 		File directory = new File(vodFolderPath == null ? "" : vodFolderPath);
+		
+		File allowedDirectory = new File(VOD_IMPORT_ALLOWED_DIRECTORY);
+		Result result = null;
+		try {
+			if (FileUtils.directoryContains(allowedDirectory, directory)) 
+			{
 
-		Result result = createSymbolicLink(streamsFolder, directory);
-		if (result.isSuccess()) {
-			int numberOfFilesImported = importToDB(directory, directory);
-			result.setMessage(numberOfFilesImported + " files are imported");
+				result = createSymbolicLink(streamsFolder, directory);
+				if (result.isSuccess()) {
+					int numberOfFilesImported = importToDB(directory, directory);
+					result.setMessage(numberOfFilesImported + " files are imported");
+				}
+			}
+			else {
+				result = new Result(false, "VoD import directory is allowed under " + VOD_IMPORT_ALLOWED_DIRECTORY );
+			}
+		} catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			result = new Result(false, "VoD import directory is allowed under " + VOD_IMPORT_ALLOWED_DIRECTORY );
 		}
 
 		return result;
