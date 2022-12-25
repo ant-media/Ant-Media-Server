@@ -173,6 +173,8 @@ public abstract class Muxer {
 
 	protected Map<Integer, Integer> inputOutputStreamIndexMap = new ConcurrentHashMap<>();
 
+	private int resolution;
+
 	public  static final AVRational avRationalTimeBase;
 	static {
 		avRationalTimeBase = new AVRational();
@@ -540,6 +542,7 @@ public abstract class Muxer {
 		if (!isInitialized) {
 			isInitialized = true;
 			this.scope = scope;
+			this.resolution = resolution;
 
 			//Refactor: Getting AppSettings smells here
 			IContext context = this.scope.getContext();
@@ -1133,5 +1136,8 @@ public abstract class Muxer {
 	public void setCurrentVoDTimeStamp(long currentVoDTimeStamp) {
 		this.currentVoDTimeStamp = currentVoDTimeStamp;
 	}
-	
+
+	public int getResolution() {
+		return resolution;
+	}
 }

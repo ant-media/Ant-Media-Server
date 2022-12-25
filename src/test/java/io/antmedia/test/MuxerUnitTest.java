@@ -31,6 +31,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -772,7 +773,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
 
 		muxAdaptor.setIsRecording(true);
-		Mockito.doReturn(true).when(muxAdaptor).prepareMuxer(Mockito.any());
+		Mockito.doReturn(true).when(muxAdaptor).prepareMuxer(Mockito.any(), anyInt());
 
 		String rtmpUrl = "rtmp://localhost";
 		int resolutionHeight = 480;
@@ -3253,7 +3254,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.getInputQueueSize() == 0);
 					logger.info("----input queue size: {}", muxAdaptor.getInputQueueSize());
 					startOfRecordingTimeStamp = streamPacket.getTimestamp();
-					assertTrue(muxAdaptor.startRecording(RecordType.MP4) != null);
+					assertTrue(muxAdaptor.startRecording(RecordType.MP4, 0) != null);
 					hlsMuxer = new HLSMuxer(vertx, null, null, 0, null, false);
 					
 					assertTrue(muxAdaptor.addMuxer(hlsMuxer));
@@ -3281,7 +3282,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			if (inputQueueSize > 0) {
 				estimatedLastTimeStamp = timeStamps.get((timeStamps.size() - inputQueueSize));
 			}
-			assertTrue(muxAdaptor.stopRecording(RecordType.MP4) != null);
+			assertTrue(muxAdaptor.stopRecording(RecordType.MP4, 0) != null);
 			
 			assertTrue(muxAdaptor.removeMuxer(hlsMuxer));
 			assertFalse(muxAdaptor.removeMuxer(hlsMuxer));

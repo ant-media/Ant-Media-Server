@@ -1298,11 +1298,11 @@ public abstract class RestServiceBase {
 		return mp4Muxer;
 	}
 
-	protected RecordMuxer startRecord(String streamId, RecordType recordType) {
+	protected RecordMuxer startRecord(String streamId, RecordType recordType, int resolutionHeight) {
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if (muxAdaptor != null) 
 		{
-			return muxAdaptor.startRecording(recordType);
+			return muxAdaptor.startRecording(recordType, resolutionHeight);
 		}
 
 		return null;
@@ -1312,15 +1312,16 @@ public abstract class RestServiceBase {
 	 * 
 	 * @param streamId
 	 * @param recordType
+	 * @param resolutionHeight 
 	 * @return
 	 */
-	protected @Nullable RecordMuxer stopRecord(String streamId, RecordType recordType) 
+	protected @Nullable RecordMuxer stopRecord(String streamId, RecordType recordType, int resolutionHeight) 
 	{
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 
 		if (muxAdaptor != null) 
 		{
-			return muxAdaptor.stopRecording(recordType);
+			return muxAdaptor.stopRecording(recordType, resolutionHeight);
 		}
 
 		return null;
@@ -1827,7 +1828,7 @@ public abstract class RestServiceBase {
 		return id;
 	}
 
-	public Result enableRecordMuxing(String streamId, boolean enableRecording, String type ) 
+	public Result enableRecordMuxing(String streamId, boolean enableRecording, String type, int resolutionHeight ) 
 	{
 		boolean result = false;
 		String message = null;
@@ -1867,7 +1868,7 @@ public abstract class RestServiceBase {
 						{
 							if (enableRecording) 
 							{
-								muxer = startRecord(streamId, recordType);
+								muxer = startRecord(streamId, recordType, resolutionHeight);
 								if (muxer != null) {
 									vodId = RandomStringUtils.randomAlphanumeric(24);
 									muxer.setVodId(vodId);
@@ -1878,7 +1879,7 @@ public abstract class RestServiceBase {
 							}
 							else 
 							{
-								muxer = stopRecord(streamId, recordType);
+								muxer = stopRecord(streamId, recordType, resolutionHeight);
 								if (muxer != null) {
 									vodId = muxer.getVodId();
 									message = Long.toString(muxer.getCurrentVoDTimeStamp());
