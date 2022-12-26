@@ -247,7 +247,7 @@ public class TokenFilterTest {
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
-			verify(tokenService, times(1)).checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN);
+			verify(tokenService, times(1)).checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN, null);
 			
 		} catch (ServletException|IOException e) {
 			e.printStackTrace();

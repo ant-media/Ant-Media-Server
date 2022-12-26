@@ -59,10 +59,11 @@ public interface ITokenService {
 	 * Checks the JWT token validity
 	 * @param jwtTokenId - requested token id
 	 * @param streamId - id of the stream
-	 * @param type - type of the token (play/publish)
+	 * @param type - type of the token (play/publish/room)
+	 * @param roomId - id of the room
 	 * @return true or false
 	 */
-	boolean checkJwtToken (String jwtTokenId, String streamId, String type);
+	boolean checkJwtToken (String jwtTokenId, String streamId, String type, String roomId);
 	
 	/**
 	 * creates token according to the provided parameters

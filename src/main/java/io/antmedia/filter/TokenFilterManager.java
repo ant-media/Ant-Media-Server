@@ -140,7 +140,7 @@ public class TokenFilterManager extends AbstractFilter   {
 					ITokenService tokenServiceTmp = getTokenService();
 					if (tokenServiceTmp != null) 
 					{
-						if (!tokenServiceTmp.checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN)) {
+						if (!tokenServiceTmp.checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN, null)) {
 							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid JWT Token");
 							logger.warn("JWT token is not valid");
 							return; 
