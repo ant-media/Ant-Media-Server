@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -334,8 +335,8 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testEnableRecording() {
 		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 		
-		Mockito.doReturn(null).when(restServiceSpy).enableRecordMuxing(Mockito.anyString(), Mockito.anyBoolean(),Mockito.anyString(), 0);
-		Mockito.doReturn(null).when(restServiceSpy).enableRecordMuxing(Mockito.anyString(), Mockito.anyBoolean(),Mockito.anyString(), 0);
+		Mockito.doReturn(null).when(restServiceSpy).enableRecordMuxing(Mockito.anyString(), Mockito.anyBoolean(),Mockito.anyString(), anyInt());
+		Mockito.doReturn(null).when(restServiceSpy).enableRecordMuxing(Mockito.anyString(), Mockito.anyBoolean(),Mockito.anyString(), anyInt());
 		
 		restServiceSpy.enableRecording("streamId", true, null, 0);
 		verify(restServiceSpy).enableRecordMuxing("streamId", true,"mp4", 0);
@@ -352,6 +353,9 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		restServiceSpy.enableRecording("streamId", true, "mp4", 0);
 		verify(restServiceSpy, times(2)).enableRecordMuxing("streamId", true,"mp4", 0);
+		
+		restServiceSpy.enableRecording("streamId", true, "mp4", 480);
+		verify(restServiceSpy, times(1)).enableRecordMuxing("streamId", true,"mp4", 480);
 		
 	}
 
