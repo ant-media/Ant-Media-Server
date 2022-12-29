@@ -22,6 +22,7 @@ import javax.ws.rs.core.Response.Status;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 
+import io.antmedia.settings.SslSettings;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.springframework.stereotype.Component;
@@ -481,6 +482,16 @@ public class RestServiceV2 extends CommonRestService {
 		return super.changeServerSettings(serverSettings);
 	}
 
+	@ApiOperation(value = "Changes ssl settings. Sets ssl configuration type,", response = Result.class)
+	@POST
+	@Path("/ssl-settings")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Override
+	public String configureSsl(@ApiParam(value = "Ssl settings", required = true) SslSettings sslSettings){
+		return super.configureSsl(sslSettings);
+	}
+
 	@ApiOperation(value = "Returns true if the server is enterprise edition.", response = Result.class)
 	@GET
 	@Path("/enterprise-edition")
@@ -501,7 +512,7 @@ public class RestServiceV2 extends CommonRestService {
 		return super.getSettings(appname);
 	}
 
-	@ApiOperation(value = "Returns the server settings. From log level to measurement period of cpu, license key of the server host address and many more settings are returned at once.", response = Result.class)
+	@ApiOperation(value = "Returns the server settings. From log level to measurement period of cpu, license key of the server host address,ssl configuration and many more settings are returned at once.", response = Result.class)
 	@GET
 	@Path("/server-settings")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -509,6 +520,16 @@ public class RestServiceV2 extends CommonRestService {
 	public ServerSettings getServerSettings() 
 	{
 		return super.getServerSettings();
+	}
+
+	@ApiOperation(value = "Returns the ssl settings. Includes SSL configuration type, domain and custom certificate file names.", response = Result.class)
+	@GET
+	@Path("/ssl-settings")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public SslSettings getSslSettings()
+	{
+		return super.getServerSettings().getSslSettings();
 	}
 
 	@ApiOperation(value = "Returns license status. Includes license ID, status, owner, start date, end date, type and license count.", response = Result.class)

@@ -9,6 +9,8 @@ CHAIN_FILE=
 domain=""
 password=
 renew_flag='false'
+freedomain=""
+
 
 while getopts i:d:v:p:e:f:rc: option
 do
@@ -25,7 +27,7 @@ do
 done
 
 ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Please take a look at the logs above and try to fix.\n If you do not have any idea, contact@antmedia.io"
-
+free_domain_requested='false'
 usage() {
   echo "Usage:"
   echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-e {YOUR_EMAIL}]"
@@ -102,6 +104,7 @@ if [ ! -z "$FULL_CHAIN_FILE" ] && [ -f "$FULL_CHAIN_FILE" ]; then
   fullChainFileExist=true
 fi
 
+
 privateKeyFileExist=false
 if [ ! -z "$PRIVATE_KEY_FILE" ] && [ -f "$PRIVATE_KEY_FILE" ]; then
   privateKeyFileExist=true
@@ -135,6 +138,40 @@ if [ ! -d "$INSTALL_DIRECTORY" ]; then
   exit 1
 fi
 
+get_freedomain(){
+  hostname="ams-$RANDOM"
+  get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
+  if [ ! -z $get_license_key ]; then
+    if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then
+      ip=`curl -s http://checkip.amazonaws.com`
+      check_api=`curl -s -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=$get_license_key"`
+      if [ $? != 0 ]; then
+        echo "There is a problem with the script. Please re-run the enable_ssl.sh script."
+        exit 1
+      elif [ $check_api == 400 ]; then
+        echo "The domain exists, please re-run the enable_ssl.sh script."
+        exit 400
+      elif [ $check_api == 401 ]; then
+        echo "The license key is invalid."
+        exit 401
+      fi
+      while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
+        now=$(date +"%H:%M:%S")
+        echo "$now > Waiting for DNS validation."
+        sleep 10
+      done
+      domain="$hostname"".antmedia.cloud"
+      echo "DNS success, installing the SSL certificate."
+      freedomain="true"
+    else
+      domain=`cat $INSTALL_DIRECTORY/conf/red5.properties |egrep "ams-[0-9]*.antmedia.cloud" -o | uniq`
+    fi
+  else
+    echo "Please make sure you enter your license key and use the Enterprise edition."
+    exit 1
+  fi
+}
+
 get_new_certificate(){
 
   if [ "$fullChainFileExist" == false ]; then
@@ -161,20 +198,24 @@ get_new_certificate(){
     if [ -z "$email" ]; then
       if [ "$dns_validate" == "route53" ]; then
         echo -e "\033[0;31mPlease make sure you have entered the AWS access key and secret key.\033[0m"
-        $SUDO certbot certonly --dns-route53 --agree-tos --register-unsafely-without-email --cert-name $domain -d $domain
+        $SUDO certbot certonly --dns-route53 --agree-tos --register-unsafely-without-email -d $domain
       elif [ "$dns_validate" == "custom" ]; then
-        $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly --cert-name $domain -d $domain
+        $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
+      elif [ "$freedomain" == "true" ]; then
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
       else
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email --cert-name $domain -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
       fi
     else
       if [ "$dns_validate" == "route53" ]; then
         echo -e "\033[0;31mPlease make sure you have entered the AWS access key and secret key.\033[0m"
         $SUDO certbot certonly --dns-route53 --agree-tos --email $email -d $domain
       elif [ "$dns_validate" == "custom" ]; then
-        $SUDO certbot --agree-tos --email $email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly --cert-name $domain -d $domain
+        $SUDO certbot --agree-tos --email $email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
+      elif [ "$freedomain" == "true" ]; then
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
       else
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email --cert-name $domain -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
       fi
     fi
 
@@ -325,13 +366,12 @@ generate_password(){
 }
 
 check_domain_name(){
-    #check domain name exists
     if [ -z "$domain" ]; then
-    echo "Missing parameter. Domain name is not set"
-    usage
-    exit 1
+      get_freedomain
+      free_domain_requested='true'
     fi
 }
+
 
 #check domain name
 check_domain_name
@@ -367,16 +407,38 @@ then
 
 fi
 
+if [ "$free_domain_requested" == "true" ]; 
+then
+	$SUDO sed -i "/http.sslConfigurationType=/c\http.sslConfigurationType=ANTMEDIA_SUBDOMAIN"  $INSTALL_DIRECTORY/conf/red5.properties
+	output
+	$SUDO sed -i "/http.sslDomain=/c\http.sslDomain=$domain"  $INSTALL_DIRECTORY/conf/red5.properties
+	output
+elif [ "$fullChainFileExist" == "true" ] && [ "$chainFileExist" == "true" ] && [ "$keyFileExist" == "true" ];
+then
+	$SUDO sed -i "/http.sslConfigurationType=/c\http.sslConfigurationType=CUSTOM_CERTIFICATE"  $INSTALL_DIRECTORY/conf/red5.properties
+	output
+	$SUDO sed -i "/http.sslDomain=/c\http.sslDomain=$domain"  $INSTALL_DIRECTORY/conf/red5.properties
+	output
+elif [ "$domain" != "" ];
+then
+	$SUDO sed -i "/http.sslConfigurationType=/c\http.sslConfigurationType=CUSTOM_DOMAIN"  $INSTALL_DIRECTORY/conf/red5.properties
+	output
+	$SUDO sed -i "/http.sslDomain=/c\http.sslDomain=$domain"  $INSTALL_DIRECTORY/conf/red5.properties
+	output
+fi
+
 #restore iptables redirect rule
 ipt_restore
 
-if [ -x "$(command -v systemctl)" ]; then
-  echo ""
-  $SUDO service antmedia stop
-  output
-  $SUDO service antmedia start
-  output
-fi
+echo ""
+
+$SUDO service antmedia stop
+
+output
+
+$SUDO service antmedia start
+
+output
 
 echo "SSL certificate is installed."
 echo "Https port: 5443"
