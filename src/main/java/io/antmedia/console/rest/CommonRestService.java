@@ -7,13 +7,8 @@ import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Queue;
-import java.util.Objects;
+import java.util.*;
 
-import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -25,14 +20,15 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import io.antmedia.rest.model.*;
+import io.antmedia.security.SslConfigurator;
+import io.antmedia.settings.SslSettings;
 import org.apache.commons.codec.binary.Hex;
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -59,15 +55,11 @@ import io.antmedia.console.AdminApplication.ApplicationInfo;
 import io.antmedia.console.AdminApplication.BroadcastInfo;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
-import io.antmedia.console.rest.SupportRestService.SupportResponse;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
-import io.antmedia.rest.model.Result;
-import io.antmedia.rest.model.UserType;
-import io.antmedia.rest.model.Version;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
@@ -879,14 +871,19 @@ public class CommonRestService {
 
 		return result;
 	}
-
+	public String configureSsl(SslSettings recievedSslSettings){
+		PreferenceStore store = new PreferenceStore(RED5_PROPERTIES_PATH);
+		SslConfigurator sslConfigurator = new SslConfigurator(getSslSettings(), recievedSslSettings, store);
+		SslConfigurationResult sslConfigurationResult = sslConfigurator.configure();
+		return gson.toJson(sslConfigurationResult);
+	}
 
 	public String changeServerSettings(ServerSettings serverSettings){
-
 		PreferenceStore store = new PreferenceStore(RED5_PROPERTIES_PATH);
 
 		String serverName = "";
 		String licenceKey = "";
+
 		if(serverSettings.getServerName() != null) {
 			serverName = serverSettings.getServerName();
 		}
@@ -958,6 +955,11 @@ public class CommonRestService {
 	public ServerSettings getServerSettings() 
 	{
 		return getServerSettingsInternal();
+	}
+
+	public SslSettings getSslSettings()
+	{
+		return getServerSettings().getSslSettings();
 	}
 
 

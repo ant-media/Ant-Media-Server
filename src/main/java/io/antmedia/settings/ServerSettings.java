@@ -6,7 +6,6 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -94,6 +93,8 @@ public class ServerSettings implements ApplicationContextAware {
 	private static String globalHostAddress;
 	
 	private String hostAddress;
+
+	private SslSettings sslSettings = new SslSettings();
 	
 	/**
 	 * Fully Qualified Domain Name
@@ -175,8 +176,6 @@ public class ServerSettings implements ApplicationContextAware {
 	@Value( "${"+SETTINGS_SERVER_DEFAULT_HTTP_PORT+":5080}" )
 	private int defaultHttpPort;
 
-
-
 	/** jwt server filter control*/
 	public static final String SETTINGS_JWT_SERVER_CONTROL_ENABLED = "server.jwtServerControlEnabled";
 
@@ -198,6 +197,14 @@ public class ServerSettings implements ApplicationContextAware {
 
 	public String getJwtServerSecretKey() {
 		return jwtServerSecretKey;
+	}
+
+	public SslSettings getSslSettings() {
+		return sslSettings;
+	}
+
+	public void setSslSettings(SslSettings sslSettings) {
+		this.sslSettings = sslSettings;
 	}
 
 	public void setJwtServerSecretKey(String jwtServerSecretKey){

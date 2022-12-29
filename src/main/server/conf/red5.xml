@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xmlns:lang="http://www.springframework.org/schema/lang"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:lang="http://www.springframework.org/schema/lang"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                            http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd">
 
 	<!-- DO NOT FORMAT THIS FILE IN ECLIPSE -->
 	<!-- This file just wires together the context tree. Its accessed by ContextSingletonBeanFactoryLocator -->
 
 	<bean id="placeholderConfig"
-		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		  class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
 		<property name="location" value="classpath:/red5.properties" />
 	</bean>
 
@@ -17,18 +17,18 @@
 		contexts -->
 	<!-- Global context serves as the parent to all child contexts. -->
 	<bean id="red5.common"
-		class="org.red5.spring.Red5ApplicationContext">
+		  class="org.red5.spring.Red5ApplicationContext">
 		<property name="configLocation"
-			value="classpath:/red5-common.xml" />
+				  value="classpath:/red5-common.xml" />
 	</bean>
 
 
 	<!-- Then we load the core context, with the common as parent -->
 	<!-- Context holding all the networking, users should not need to edit. -->
 	<bean id="red5.core"
-		class="org.red5.spring.Red5ApplicationContext">
+		  class="org.red5.spring.Red5ApplicationContext">
 		<property name="configLocation"
-			value="classpath:/red5-core.xml" />
+				  value="classpath:/red5-core.xml" />
 		<property name="parent" ref="red5.common" />
 	</bean>
 
@@ -37,12 +37,12 @@
 	<bean id="context.loader" class="org.red5.server.ContextLoader">
 		<property name="parentContext" ref="red5.common" />
 		<property name="contextsConfig"
-			value="classpath:/red5.globals" />
+				  value="classpath:/red5.globals" />
 	</bean>
 
 	<!-- Plug-ins management -->
 	<bean id="pluginLauncher"
-		class="org.red5.server.plugin.PluginLauncher" />
+		  class="org.red5.server.plugin.PluginLauncher" />
 
 	<!-- Now we can load the JEE container / servlet engine -->
 	<import resource="classpath:/jee-container.xml" />
@@ -55,14 +55,19 @@
 		<property name="contextLoader" ref="context.loader" />
 	</bean>
 
-	<bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings"/>
-	
+	<bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings">
+		<property name="sslSettings">
+			<bean   id="sslSettings" class="io.antmedia.settings.SslSettings"/>
+		</property>
+
+	</bean>
+
 
 	<bean id="ant.media.licence.service" class="#{ T(io.antmedia.rest.RestServiceBase).isEnterprise() ? 'io.antmedia.enterprise.licence.LicenceService' : 'io.antmedia.licence.CommunityLicenceService' }"
-	init-method="start">
-		<property name="serverSettings" ref="ant.media.server.settings" />						
+		  init-method="start">
+		<property name="serverSettings" ref="ant.media.server.settings" />
 	</bean>
-	
-	
+
+
 
 </beans>
