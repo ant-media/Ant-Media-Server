@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -82,7 +84,7 @@ public class ServerSettings implements ApplicationContextAware {
 	private String allowedDashboardCIDR;
 
 	@JsonIgnore
-	private List<NetMask> allowedCIDRList = new ArrayList<>();
+	private Queue<NetMask> allowedCIDRList = new ConcurrentLinkedQueue();
 
 	
 	private static Logger logger = LoggerFactory.getLogger(ServerSettings.class);
@@ -386,7 +388,7 @@ public class ServerSettings implements ApplicationContextAware {
 	 */
 	public void setAllowedDashboardCIDR(String allowedDashboardCIDR) {
 		this.allowedDashboardCIDR = allowedDashboardCIDR;
-		allowedCIDRList = new ArrayList<>();
+		allowedCIDRList = new ConcurrentLinkedQueue<>();
 		fillFromInput(allowedDashboardCIDR, allowedCIDRList);
 	}
 	
@@ -394,7 +396,7 @@ public class ServerSettings implements ApplicationContextAware {
 		return allowedDashboardCIDR;
 	}
 
-	public List<NetMask> getAllowedCIDRList() {
+	public Queue<NetMask> getAllowedCIDRList() {
 		if (allowedCIDRList.isEmpty()) {
 			fillFromInput(allowedDashboardCIDR, allowedCIDRList);
 		}
@@ -409,7 +411,7 @@ public class ServerSettings implements ApplicationContextAware {
 	 * @param target The list to fill
 	 * @return a string list of processing errors (empty when no errors)
 	 */
-	private List<String> fillFromInput(final String input, final List<NetMask> target) {
+	private List<String> fillFromInput(final String input, final Queue<NetMask> target) {
 		target.clear();
 		if (input == null || input.isEmpty()) {
 			return Collections.emptyList();

@@ -19,8 +19,10 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Queue;
 
 import org.apache.catalina.util.NetMask;
+import org.apache.commons.lang3.RandomUtils;
 import org.junit.Test;
 import org.red5.server.scope.WebScope;
 import org.springframework.test.annotation.DirtiesContext;
@@ -73,7 +75,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setForceAspectRatioInTranscoding(false);
 		assertEquals(false, appSettings.isForceAspectRatioInTranscoding());
 		
-		List<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
+		Queue<NetMask> allowedCIDRList = appSettings.getAllowedCIDRList();
 		System.out.println("allowedCIDRList ->" + allowedCIDRList.size());
 		
 		assertEquals("%r%b",appSettings.getFileNameFormat());
@@ -280,6 +282,13 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appSettings.setMaxVideoTrackCount(10);
 		assertEquals(10, appSettings.getMaxVideoTrackCount());
+		
+		int idleTimeOut = RandomUtils.nextInt();
+		appSettings.setOriginEdgeIdleTimeout(idleTimeOut);
+		assertEquals(idleTimeOut, appSettings.getOriginEdgeIdleTimeout());
+		
+		appSettings.setAddDateTimeToHlsFileName(true);
+		assertEquals(true, appSettings.isAddDateTimeToHlsFileName());
 	}
 	
 	
@@ -430,7 +439,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("127.0.0.1", appSettings.getRemoteAllowedCIDR());
 		assertEquals(false, appSettings.isWebMMuxingEnabled());
 		assertEquals(null, appSettings.getEncoderSettingsString());
-		assertEquals("127.0.0.1", appSettings.getAllowedCIDRList().get(0).toString());
+		assertEquals("127.0.0.1", appSettings.getAllowedCIDRList().poll().toString());
 		assertEquals(false, appSettings.isUseOriginalWebRTCEnabled());
 		assertEquals(5000, appSettings.getCreatePreviewPeriod());
 		assertEquals("stun:stun1.l.google.com:19302", appSettings.getStunServerURI());
@@ -468,6 +477,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(false, appSettings.isRtmpPlaybackEnabled());
 		assertEquals(-1, appSettings.getMaxAudioTrackCount());
 		assertEquals(-1, appSettings.getMaxVideoTrackCount());
+		assertEquals(2, appSettings.getOriginEdgeIdleTimeout());
+		assertEquals(false, appSettings.isAddDateTimeToHlsFileName());
 
 	
 		
@@ -475,7 +486,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					155, numberOfFields);
+					157, numberOfFields);
 		
 	}
 

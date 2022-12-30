@@ -370,7 +370,7 @@ public class BroadcastRestServiceV2UnitTest {
 		int clientCount = (int)(Math.random()*999) + 70;
 
 		for (int i = 0; i < clientCount; i++) {
-			statsList.add(new WebRTCClientStats(500, 400, 40, 20, 0, 0, 0, "info"));
+			statsList.add(new WebRTCClientStats(500, 400, 40, 20, 0, 0, 0, "info", "192.168.1.1"));
 		}
 
 		Mockito.when(webrtcAdaptor.getWebRTCClientStats(Mockito.anyString())).thenReturn(statsList);
@@ -1993,6 +1993,12 @@ public class BroadcastRestServiceV2UnitTest {
 		//define a start date
 		room.setStartDate(now);
 
+		String origin = "someAddress";
+		//define a start date
+		room.setOriginAdress(origin);
+		
+		assertEquals(origin, room.getOriginAdress());
+		
 		//Test GET conference room by id rest service
 		assertNotNull(restServiceReal.getConferenceRoom(room.getRoomId()));
 		assertEquals(restServiceReal.getConferenceRoom(room.getRoomId()).getEntity(), room);

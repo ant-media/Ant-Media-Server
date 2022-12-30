@@ -2,7 +2,6 @@ package io.antmedia.console.rest;
 
 import java.io.IOException;
 import java.security.interfaces.RSAPublicKey;
-
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
@@ -23,8 +22,8 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.auth0.jwt.interfaces.DecodedJWT;
 
-import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
+import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.filter.AbstractFilter;
@@ -35,6 +34,7 @@ public class AuthenticationFilter extends AbstractFilter {
 
 	public static final String DISPATCH_PATH_URL = "_path";
 	public static final String JWT_TOKEN = "ProxyAuthorization";
+	public static final String FORBIDDEN_ERROR = "Not allowed to access this resource. Contact system admin";
 
 	public AbstractConsoleDataStore getDataStore()
 	{
@@ -122,6 +122,7 @@ public class AuthenticationFilter extends AbstractFilter {
 				path.equals("/rest/v2/users/initial") ||
 				path.equals("/rest/v2/first-login-status") ||
 				path.equals("/rest/v2/users/authenticate") ||
+				path.equals("/rest/v2/liveness") ||
 				(path.startsWith("/rest/v2/users/") && path.endsWith("/blocked"))
 				) 
 		{
@@ -153,7 +154,7 @@ public class AuthenticationFilter extends AbstractFilter {
 						}
 						else 
 						{
-							((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
+							((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_ERROR);
 						}
 
 					}
@@ -167,33 +168,32 @@ public class AuthenticationFilter extends AbstractFilter {
 						}
 						else if (scopeAccess) 
 						{
-							
 							//if it's an admin, provide access - backward compatible
 							if (UserType.ADMIN.equals(currentUser.getUserType()) || currentUser.getUserType() == null) 
 							{
 								chain.doFilter(request, response);
 							}
+							//user scope already checked on scopeAccessGranted. No need to check it again
 							else if (UserType.USER.equals(currentUser.getUserType()) && 
-										!currentUser.getScope().equals(CommonRestService.SCOPE_SYSTEM)) 
+									(dispatchURL != null && (dispatchURL.contains("/rest/v2/broadcasts") || dispatchURL.contains("/rest/v2/vods") )))
 							{
 								//if user scope is system and granted, it cannot change anythings in the system scope server-settings, add/delete apps and users
 								//if user scope is application and granted, it can do anything in this scope
 								chain.doFilter(request, response);
 							}
 							else {
-								((HttpServletResponse)response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
+								((HttpServletResponse)response).sendError(HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_ERROR);
 							}
-							
 						}
 						else {
-							
-							if (UserType.ADMIN.equals(currentUser.getUserType()) && path.startsWith("/rest/v2/applications/settings/" + userScope)) 
+							if (UserType.ADMIN.equals(currentUser.getUserType()) && 
+									(path.startsWith("/rest/v2/applications/settings/" + userScope) || (path.startsWith(userScope) || path.startsWith(userScope, 1)))) 
 							{
 								//only admin user can access to change the application settings out of its scope
 								chain.doFilter(request, response);
 							}
 							else {
-								((HttpServletResponse)response).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
+								((HttpServletResponse)response).sendError(HttpServletResponse.SC_FORBIDDEN, FORBIDDEN_ERROR);
 							}
 						}
 					}
@@ -213,7 +213,6 @@ public class AuthenticationFilter extends AbstractFilter {
 
 	}
 
-
 	private boolean scopeAccessGranted(String userScope, String dispatchUrl){
 
 		boolean granted = false;
@@ -225,8 +224,7 @@ public class AuthenticationFilter extends AbstractFilter {
 		else 
 		{
 			//Allow application level access
-
-			if (dispatchUrl != null && (dispatchUrl.startsWith(userScope) || dispatchUrl.startsWith(userScope, 1))) 
+			if ((dispatchUrl != null && (dispatchUrl.startsWith(userScope) || dispatchUrl.startsWith(userScope, 1)))) 
 			{
 				//second dispatch url is if the url starts with "/"
 				granted = true;

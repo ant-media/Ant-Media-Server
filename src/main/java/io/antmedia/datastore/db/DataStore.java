@@ -1,14 +1,22 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
+import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -22,6 +30,7 @@ import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 
 public abstract class DataStore {
 
@@ -29,6 +38,7 @@ public abstract class DataStore {
 	//Do not forget to write function descriptions especially if you are adding new functions
 
 	public static final int MAX_ITEM_IN_ONE_LIST = 250;
+	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 
 	private boolean writeStatsToDatastore = true;
 
@@ -39,12 +49,49 @@ public abstract class DataStore {
 	
 	public abstract String save(Broadcast broadcast);
 
+	public Broadcast saveBroadcast (Broadcast broadcast) {
+		String streamId = null;
+		try {
+		if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
+			streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
+			broadcast.setStreamId(streamId);
+		}
+		streamId = broadcast.getStreamId();
+		String rtmpURL = broadcast.getRtmpURL();
+		if (rtmpURL != null) {
+			rtmpURL += streamId;
+		}
+		broadcast.setRtmpURL(rtmpURL);
+		if (broadcast.getStatus() == null) {
+			broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
+		}
+	} catch (Exception e) {
+		logger.error(ExceptionUtils.getStackTrace(e));
+	}
+		return broadcast;
+	}
+
 	/**
 	 * Return the broadcast in data store
 	 * @param id
 	 * @return broadcast
 	 */
 	public abstract Broadcast get(String id);
+	
+	public Broadcast get(Map<String, String> broadcastMap, String streamId, Gson gson) {
+		synchronized (this) {
+			Broadcast broadcast = null;
+			String jsonString = null;
+			if (streamId != null) {
+				jsonString = broadcastMap.get(streamId);
+				if(jsonString != null) {
+					return gson.fromJson(jsonString, Broadcast.class);
+				}
+				return broadcast;
+			}
+		}
+		return null;
+	}
 
 	/**
 	 * Return the vod by id
@@ -52,6 +99,20 @@ public abstract class DataStore {
 	 * @return Vod object
 	 */
 	public abstract VoD getVoD(String id);
+	
+	public VoD getVoD(Map<String, String> vodMap, String vodId, Gson gson) {
+		synchronized (this) {
+			if (vodId != null) {
+				String jsonString = null;
+				jsonString = vodMap.get(vodId);
+
+				if (jsonString != null) {
+					return gson.fromJson(jsonString, VoD.class);
+				}
+			}
+		}
+		return null;
+	}
 
 	public abstract boolean updateStatus(String id, String status);
 
@@ -86,9 +147,25 @@ public abstract class DataStore {
 
 	public abstract boolean addEndpoint(String id, Endpoint endpoint);
 
+	/**
+	 * Add VoD record to the datastore
+	 * @param vod
+	 * @return the id of the VoD if it's successful or it returns null if it's failed
+	 */
 	public abstract String addVod(VoD vod);
 
+	/**
+	 * Use getTotalBroadcastNumber
+	 * @deprecated
+	 */
+	@Deprecated
 	public abstract long getBroadcastCount();
+	
+	public long getBroadcastCount(Map<String,String> broadcastMap) {
+		synchronized (this) {
+			return broadcastMap.size();
+		}
+	}
 
 	public abstract boolean delete(String id);
 
@@ -118,9 +195,30 @@ public abstract class DataStore {
 	 * @return
 	 */
 	public abstract List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search);
+	
+	public List<ConferenceRoom> getConferenceRoomList(Map<String, String> conferenceMap, int offset, int size, String sortBy, String orderBy,
+			String search, Gson gson) {
+		ArrayList<ConferenceRoom> list = new ArrayList<>();
+		synchronized (this) {
+			Collection<String> conferenceRooms = null;
+			conferenceRooms = conferenceMap.values();
+
+			for (String roomString : conferenceRooms) {
+				ConferenceRoom room = gson.fromJson(roomString, ConferenceRoom.class);
+				list.add(room);
+			}
+		}
+		if (search != null && !search.isEmpty()) {
+			search = search.replaceAll(REPLACE_CHARS_REGEX, "_");
+			logger.info("server side search called for Conference Room = {}", search);
+			list = searchOnServerConferenceRoom(list, search);
+		}
+		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
+	}
+
 
 	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
-
+	
 	public abstract List<Broadcast> getExternalStreamsList();
 	
 	/**
@@ -142,26 +240,114 @@ public abstract class DataStore {
 	 */
 	public abstract List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId, String search);
 
+	public List<VoD> getVodListV2(Map<String, String> vodMap, String streamId, String search, Gson gson, String dbName) {
+		ArrayList<VoD> vods = new ArrayList<>();
+		synchronized (this) {
+
+			int length = vodMap.size();
+			int i = 0;
+			for (String vodString : vodMap.values()) {
+				VoD vod = gson.fromJson(vodString, VoD.class);
+				if (streamId != null && !streamId.isEmpty()) {
+					if (vod.getStreamId().equals(streamId)) {
+						vods.add(vod);
+					}
+				} else {
+					vods.add(vod);
+				}
+
+				i++;
+				if (i > length) {
+					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
+					break;
+				}
+			}
+			if (search != null && !search.isEmpty()) {
+				search = search.replaceAll(REPLACE_CHARS_REGEX, "_");
+				logger.info("server side search called for VoD searchString = {}", search);
+				vods = searchOnServerVod(vods, search);
+			}
+			return vods;
+		}
+	}
+
+
 	public abstract boolean removeAllEndpoints(String id);
 
 	public abstract long getTotalVodNumber();
 
-	public abstract long getTotalBroadcastNumber();
+	public long getTotalVodNumber(Map<String, String> broadcastMap) {
+		synchronized (this) {
+			return broadcastMap.size();
+		}
+	}
 
-	public abstract void saveDetection(String id,long timeElapsed,List<TensorFlowObject> detectedObjects);
+	public abstract long getTotalBroadcastNumber();
+	
+	public long getTotalBroadcastNumber(Map<String,String> broadcastMap) {
+		synchronized (this) {
+			return broadcastMap.size();
+		}
+	}
+
+	public abstract void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects);
 
 	public abstract List<TensorFlowObject> getDetectionList(String idFilter, int offsetSize, int batchSize);
 
-	public abstract List<TensorFlowObject> getDetection(String id);
+	public List<TensorFlowObject> getDetectionList(Map<String, String> detectionMap, String idFilter, int offsetSize, int batchSize, Gson gson) {
 
+		List<TensorFlowObject> list = new ArrayList<>();
+
+		synchronized (this) {
+			Type listType = new TypeToken<ArrayList<TensorFlowObject>>() {
+			}.getType();
+			int offsetCount = 0;
+			int batchCount = 0;
+
+			if (batchSize > MAX_ITEM_IN_ONE_LIST) {
+				batchSize = MAX_ITEM_IN_ONE_LIST;
+			}
+
+			for (Iterator<String> keyIterator = detectionMap.keySet().iterator(); keyIterator.hasNext();) {
+				String keyValue = keyIterator.next();
+				if (keyValue.startsWith(idFilter)) {
+					if (offsetCount < offsetSize) {
+						offsetCount++;
+						continue;
+					}
+					if (batchCount >= batchSize) {
+						break;
+					}
+					List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
+					list.addAll(detectedList);
+					batchCount = list.size();
+				}
+			}
+		}
+		return list;
+	}
+
+	public abstract List<TensorFlowObject> getDetection(String id);
+	
+	public List<TensorFlowObject> getDetection(Map<String, String> detectionMap, String id, Gson gson){
+		synchronized (this) {
+			if (id != null) {
+				String jsonString = detectionMap.get(id);
+				if (jsonString != null) {
+					Type listType = new TypeToken<ArrayList<TensorFlowObject>>(){}.getType();
+					return gson.fromJson(jsonString, listType);
+				}
+			}
+		}
+		return null;
+	}
 
 	/**
 	 * saves token to store
 	 * @param token - created token
 	 * @return  true/false
 	 */
-	public abstract boolean saveToken (Token token);
-
+	public abstract boolean saveToken(Token token);
 
 	/**
 	 * Lists all tokens of requested stream
@@ -172,6 +358,49 @@ public abstract class DataStore {
 	 */
 	public abstract List<Token> listAllTokens (String streamId, int offset, int size);
 
+	public List<Token> listAllTokens (Map<String, String> tokenMap, String streamId, int offset, int size, Gson gson) {
+
+		List<Token> list = new ArrayList<>();
+		List<Token> listToken = new ArrayList<>();
+
+		synchronized (this) {
+			Collection<String> values = tokenMap.values();
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
+			if (offset < 0) {
+				offset = 0;
+			}
+
+			Iterator<String> iterator = values.iterator();
+
+			while (iterator.hasNext()) {
+				Token token = gson.fromJson(iterator.next(), Token.class);
+
+				if (token.getStreamId().equals(streamId)) {
+					list.add(token);
+				}
+			}
+
+			Iterator<Token> listIterator = list.iterator();
+
+			while (itemCount < size && listIterator.hasNext()) {
+				if (t < offset) {
+					t++;
+					listIterator.next();
+				} else {
+
+					listToken.add(listIterator.next());
+					itemCount++;
+
+				}
+			}
+
+		}
+		return listToken;
+	}
 
 	/**
 	 * Validates token
@@ -202,6 +431,20 @@ public abstract class DataStore {
 
 	public abstract Token getToken (String tokenId);
 
+	public Token getToken(Map<String, String> tokenMap, String tokenId,
+			Gson gson) {
+		Token token = null;
+		synchronized (this) {
+			if (tokenId != null) {
+				String jsonString = tokenMap.get(tokenId);
+				if (jsonString != null) {
+					token = gson.fromJson(jsonString, Token.class);
+				}
+			}
+		}
+		return token;
+	}
+
 	/**
 	 * Lists all subscribers of requested stream
 	 * @param streamId
@@ -211,6 +454,48 @@ public abstract class DataStore {
 	 */	
 	public abstract List<Subscriber> listAllSubscribers(String streamId, int offset, int size);
 
+	public List<Subscriber> listAllSubscribers(Map<String, String> subscriberMap, String streamId, int offset, int size, Gson gson) {
+		List<Subscriber> list = new ArrayList<>();
+		List<Subscriber> listSubscriber = new ArrayList<>();
+
+		synchronized (this) {
+			Collection<String> values = subscriberMap.values();
+			int t = 0;
+			int itemCount = 0;
+			if (size > MAX_ITEM_IN_ONE_LIST) {
+				size = MAX_ITEM_IN_ONE_LIST;
+			}
+			if (offset < 0) {
+				offset = 0;
+			}
+
+			Iterator<String> iterator = values.iterator();
+
+			while (iterator.hasNext()) {
+				Subscriber subscriber = gson.fromJson(iterator.next(), Subscriber.class);
+
+				if (subscriber.getStreamId().equals(streamId)) {
+					list.add(subscriber);
+				}
+			}
+
+			Iterator<Subscriber> listIterator = list.iterator();
+
+			while (itemCount < size && listIterator.hasNext()) {
+				if (t < offset) {
+					t++;
+					listIterator.next();
+				} else {
+
+					listSubscriber.add(listIterator.next());
+					itemCount++;
+
+				}
+			}
+
+		}
+		return listSubscriber;
+	}
 
 	/**
 	 * Lists all subscriber statistics of requested stream
@@ -261,6 +546,19 @@ public abstract class DataStore {
 	 */	
 	public abstract Subscriber getSubscriber (String streamId, String subscriberId);
 
+	public Subscriber getSubscriber(Map<String, String> subscriberMap, String streamId, String subscriberId, Gson gson) {
+		Subscriber subscriber = null;
+		synchronized (this) {
+			if (subscriberId != null && streamId != null) {
+				String jsonString = subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId));
+				if (jsonString != null) {
+					subscriber = gson.fromJson(jsonString, Subscriber.class);
+				}
+			}
+		}
+		return subscriber;
+	}
+
 	/**
 	 * gets the connection status of the subscriber from the datastore
 	 * @param streamId
@@ -300,8 +598,10 @@ public abstract class DataStore {
 	protected void handleConnectionEvent(Subscriber subscriber, ConnectionEvent event) {
 		if(ConnectionEvent.CONNECTED_EVENT.equals(event.getEventType())) {
 			subscriber.setConnected(true);
+			subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()+1);
 		} else if(ConnectionEvent.DISCONNECTED_EVENT.equals(event.getEventType())) {
 			subscriber.setConnected(false);
+			subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()-1);
 		}
 		subscriber.getStats().addConnectionEvent(event);
 	}	
@@ -367,11 +667,26 @@ public abstract class DataStore {
 	 */
 	public abstract long getActiveBroadcastCount();
 
-	/**
-	 * Updates the Broadcast objects fields if it's not null.
-	 * The updated fields are as follows
-	 * name, description, userName, password, IP address, streamUrl
+	public long getActiveBroadcastCount(Map<String, String> broadcastMap, Gson gson) {
+		int activeBroadcastCount = 0;
+		synchronized (this) {
+			
+			Collection<String> values = broadcastMap.values();
+			for (String broadcastString : values) {
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				String status = broadcast.getStatus();
+				if (status != null && status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
+					activeBroadcastCount++;
+				}
+			}
+		}
+		return activeBroadcastCount;
+	}
 
+	/**
+	 * Updates the Broadcast objects fields if it's not null. The updated fields are
+	 * as follows name, description, userName, password, IP address, streamUrl
+	 * 
 	 * @param broadcast
 	 * @return
 	 */
@@ -412,6 +727,25 @@ public abstract class DataStore {
 	 */
 	public abstract long getObjectDetectedTotal(String streamId);
 
+	public long getObjectDetectedTotal(Map<String, String> detectionMap, String streamId, Gson gson) {
+		List<TensorFlowObject> list = new ArrayList<>();
+
+		Type listType = new TypeToken<ArrayList<TensorFlowObject>>() {
+		}.getType();
+
+		synchronized (this) {
+
+			for (Iterator<String> keyIterator = detectionMap.keySet().iterator(); keyIterator.hasNext();) {
+				String keyValue = keyIterator.next();
+				if (keyValue.startsWith(streamId)) {
+					List<TensorFlowObject> detectedList = gson.fromJson(detectionMap.get(keyValue), listType);
+					list.addAll(detectedList);
+				}
+			}
+		}
+		return list.size();
+	}
+
 	/**
 	 * Update the WebRTC viewer count
 	 * @param streamId
@@ -449,12 +783,6 @@ public abstract class DataStore {
 	 * @param streamInfo
 	 */
 	public abstract void saveStreamInfo(StreamInfo streamInfo);
-
-	/**
-	 * Add stream info list to db
-	 * @param streamInfoList
-	 */
-	public abstract  void addStreamInfoList(List<StreamInfo> streamInfoList);
 
 	/**
 	 * Returns stream info list added to db
@@ -506,6 +834,19 @@ public abstract class DataStore {
 	 * @return room - conference room
 	 */
 	public abstract ConferenceRoom getConferenceRoom(String roomId);
+
+	public ConferenceRoom getConferenceRoom(Map<String, String> conferenceRoomMap, String roomId, Gson gson) {
+		synchronized (this) {
+			if (roomId != null) {
+
+				String jsonString = conferenceRoomMap.get(roomId);
+				if (jsonString != null) {
+					return gson.fromJson(jsonString, ConferenceRoom.class);
+				}
+			}
+		}
+		return null;
+	}
 
 	/**
 	 * Updates the stream fields if it's not null
@@ -902,6 +1243,22 @@ public abstract class DataStore {
 	 */
 	public abstract int getTotalWebRTCViewersCount();
 
+	public int getTotalWebRTCViewersCount(Map<String, String> broadcastMap, Gson gson) {
+		long now = System.currentTimeMillis();
+		if (now - totalWebRTCViewerCountLastUpdateTime > TOTAL_WEBRTC_VIEWER_COUNT_CACHE_TIME) {
+			int total = 0;
+			synchronized (this) {
+				for (String json : broadcastMap.values()) {
+					Broadcast broadcast = gson.fromJson(json, Broadcast.class);
+					total += broadcast.getWebRTCViewerCount();
+				}
+			}
+			totalWebRTCViewerCount = total;
+			totalWebRTCViewerCountLastUpdateTime = now;
+		}
+		return totalWebRTCViewerCount;
+	}
+
 	protected ArrayList<WebRTCViewerInfo> searchOnWebRTCViewerInfo(ArrayList<WebRTCViewerInfo> list, String search) {
 		if(search != null && !search.isEmpty()) {
 			for (Iterator<WebRTCViewerInfo> i = list.iterator(); i.hasNext(); ) {
@@ -961,8 +1318,26 @@ public abstract class DataStore {
 	 * @return list of webrtc viewers
 	 */
 	public abstract List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy, String search);
-	
-	
+
+	public List<WebRTCViewerInfo> getWebRTCViewerList(Map<String, String> webRTCViewerMap, int offset, int size, String sortBy, String orderBy,
+			String search, Gson gson) {
+		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
+		synchronized (this) {
+			
+			Collection<String> webRTCViewers = webRTCViewerMap.values();
+			for (String infoString : webRTCViewers) {
+				WebRTCViewerInfo info = gson.fromJson(infoString, WebRTCViewerInfo.class);
+				list.add(info);
+			}
+		}
+		if (search != null && !search.isEmpty()) {
+			search = search.replaceAll(REPLACE_CHARS_REGEX, "_");
+			logger.info("server side search called for Conference Room = {}", search);
+			list = searchOnWebRTCViewerInfo(list, search);
+		}
+		return sortAndCropWebRTCViewerInfoList(list, offset, size, sortBy, orderBy);
+	}
+
 	/**
 	 * This is used to delete a WebRTC Viewer Info from datastore 
 	 *

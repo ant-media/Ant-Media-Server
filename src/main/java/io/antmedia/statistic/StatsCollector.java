@@ -271,6 +271,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private static final String HOST_ADDRESS = "host-address";
 
+	private static final String IP_ADDRESS = "ip-address";
+
 	private static final String VERTX_WORKER_QUEUE_SIZE = "vertx.pools.worker.vert.x-worker-thread.queue-size";
 
 	private static final String VERTX_WORKER_THREAD_QUEUE_SIZE = "vertx-worker-thread-queue-size";
@@ -424,6 +426,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			jsonObject.addProperty(TIME, dateTime);
 			jsonObject.addProperty(HOST_ADDRESS, hostAddress);
 			jsonObject.addProperty(WEBRTC_VIEWER_INFO, webRTCClientStat.getClientInfo());
+			jsonObject.addProperty(IP_ADDRESS, webRTCClientStat.getClientIp());
 
 			//logstash cannot parse json array so that we send each info separately
 			send2Kafka(jsonObject, WEBRTC_STATS_TOPIC_NAME);
@@ -726,6 +729,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		jsonObject.addProperty(TIME, DateTimeFormatter.ISO_INSTANT.format(Instant.now()));
 		jsonObject.addProperty(HOST_ADDRESS, hostAddress);
+		jsonObject.addProperty(IP_ADDRESS, ServerSettings.getGlobalHostAddress());
 
 		send2Kafka(jsonObject, INSTANCE_STATS_TOPIC_NAME); 
 

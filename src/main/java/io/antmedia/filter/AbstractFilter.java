@@ -3,6 +3,7 @@ package io.antmedia.filter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Queue;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterConfig;
@@ -57,7 +58,7 @@ public abstract class AbstractFilter implements Filter{
 		return serverSettings;
 	}
 
-	public boolean checkCIDRList(List<NetMask> allowedCIDRList, final String remoteIPAdrress) {
+	public boolean checkCIDRList(Queue<NetMask> allowedCIDRList, final String remoteIPAdrress) {
 		try {
 			InetAddress addr = InetAddress.getByName(remoteIPAdrress);
 			for (final NetMask nm : allowedCIDRList) {

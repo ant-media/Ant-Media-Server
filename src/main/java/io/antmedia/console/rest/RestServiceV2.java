@@ -3,6 +3,8 @@ package io.antmedia.console.rest;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -15,7 +17,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.springframework.stereotype.Component;
 
@@ -48,8 +55,7 @@ import io.swagger.annotations.SwaggerDefinition;
 		consumes = {"application/json"},
 		produces = {"application/json"},
 		schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
-		externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
-		basePath = "/v2"
+		externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io")
 		)
 @Component
 @Path("/v2")
@@ -61,7 +67,7 @@ public class RestServiceV2 extends CommonRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Override
-	public Result addUser(@ApiParam(value = "User object. If it is null, new user won't be created.", required = true) User user) {
+	public Result addUser(@ApiParam(value = "User object. If it is null, new user won't be created.", required = true, readOnly = true) User user) {
 		return super.addUser(user);
 	}
 
@@ -84,7 +90,7 @@ public class RestServiceV2 extends CommonRestService {
 	public Result deleteUser(@ApiParam(value = "User name or e-mail of the user to be deleted", required = true) @PathParam("username") String userName) {
 		return super.deleteUser(userName);
 	}
-	
+
 	@ApiOperation(value = "Returns if user is blocked. User is blocked for a specific time if there are login attempts")
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -470,8 +476,8 @@ public class RestServiceV2 extends CommonRestService {
 	@Path("/server-settings")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
+	@Override
 	public String changeServerSettings(@ApiParam(value = "Server settings", required = true) ServerSettings serverSettings){
-
 		return super.changeServerSettings(serverSettings);
 	}
 
@@ -539,6 +545,7 @@ public class RestServiceV2 extends CommonRestService {
 	@Path("/applications/{appname}/reset")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
+	@Override
 	public Result resetBroadcast(@ApiParam(value = "Application name", required = true) @PathParam("appname") String appname) 
 	{
 		return super.resetBroadcast(appname);
@@ -582,7 +589,7 @@ public class RestServiceV2 extends CommonRestService {
 	public Result createApplication(@ApiParam(value = "Name for the new application", required = true) @PathParam("appName") String appName) {
 		return createApplication(appName, null);
 	}
-	
+
 	@ApiOperation(value = "Creates a new application with given name. It supports uploading custom WAR files", response = Result.class)
 	@PUT
 	@Consumes({MediaType.MULTIPART_FORM_DATA})
@@ -638,5 +645,51 @@ public class RestServiceV2 extends CommonRestService {
 	}
 
 
+	@ApiOperation(value = "Returns the hostname to check liveness with HTTP type healthcheck.", response = Response.class)
+	@GET
+	@Path("/liveness")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response liveness() {
+		long startTimeMs = System.currentTimeMillis();
+		JsonObject jsonObject = new JsonObject();
+		
+		//the following method may take some time to return
+		
+		String status;
+		Status statusCode;
+		String hostname = getHostname();
+		if (hostname != null) {
+			status = "ok";
+			statusCode = Status.OK;
+		}
+		else {
+			hostname = "unknown";
+			status = "error";
+			statusCode = Status.INTERNAL_SERVER_ERROR;
+		}
+		
+		jsonObject.addProperty("host", hostname);
+		jsonObject.addProperty("status", status);
+
+		Gson gson = new Gson();
+		long elapsedTimeMs = System.currentTimeMillis() - startTimeMs;
+		if (elapsedTimeMs > 1000) {
+			logger.warn("GET liveness method takes {}ms to return", elapsedTimeMs);
+		}
+		return Response.status(statusCode).entity(gson.toJson(jsonObject)).build();
+	}
+	
+
+	public String getHostname() {
+		String hostname = null;
+		try {
+			InetAddress inetAddress = InetAddress.getLocalHost();
+			hostname = inetAddress.getHostName();
+		} catch (UnknownHostException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return hostname;
+	}
 
 }

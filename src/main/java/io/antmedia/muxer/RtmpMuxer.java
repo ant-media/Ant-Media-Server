@@ -308,23 +308,7 @@ public class RtmpMuxer extends Muxer {
 					if (headerWritten)
 					{
 						
-						boolean isKeyFrame = false;
-						if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
-							isKeyFrame = true;
-						}
-						
-						addExtradataIfRequired(pkt, isKeyFrame);
-						
-						ret = av_write_frame(context, getTmpPacket());
-						if (ret < 0 && logger.isInfoEnabled()) 
-						{
-							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-							logPacketIssue("Cannot write video packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
-							
-						}
-						else{
-							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-						}
+						avWriteFrame(pkt, context);
 					}
 					else {
 						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
@@ -334,16 +318,7 @@ public class RtmpMuxer extends Muxer {
 			}
 			else
 			{
-				ret = av_write_frame(context, getTmpPacket());
-				if (ret < 0 && logger.isInfoEnabled()) 
-				{
-					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-					logPacketIssue("Cannot write video packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
-					
-				}
-				else {
-					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-				}
+				avWriteFrame(pkt, context);
 			}
 			av_packet_unref(getTmpPacket());
 		}
@@ -364,6 +339,26 @@ public class RtmpMuxer extends Muxer {
 		pkt.dts(dts);
 		pkt.duration(duration);
 		pkt.pos(pos);
+	}
+
+	public void avWriteFrame(AVPacket pkt, AVFormatContext context) {
+		int ret;
+		boolean isKeyFrame = false;
+		if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
+			isKeyFrame = true;
+		}
+		addExtradataIfRequired(pkt, isKeyFrame);
+		
+		ret = av_write_frame(context, getTmpPacket());
+		if (ret < 0 && logger.isInfoEnabled()) 
+		{
+			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
+			logPacketIssue("Cannot write video packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
+			
+		}
+		else {
+			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		}
 	}
 
 

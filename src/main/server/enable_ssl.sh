@@ -196,24 +196,24 @@ get_new_certificate(){
     if [ -z "$email" ]; then
       if [ "$dns_validate" == "route53" ]; then
         echo -e "\033[0;31mPlease make sure you have entered the AWS access key and secret key.\033[0m"
-        $SUDO certbot certonly --dns-route53 --agree-tos --register-unsafely-without-email -d $domain
+        $SUDO certbot certonly --dns-route53 --agree-tos --register-unsafely-without-email --cert-name $domain -d $domain
       elif [ "$dns_validate" == "custom" ]; then
-        $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
+        $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly --cert-name $domain -d $domain
       elif [ "$freedomain" == "true" ]; then
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email --cert-name $domain -d $domain
       else
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email --cert-name $domain -d $domain
       fi
     else
       if [ "$dns_validate" == "route53" ]; then
         echo -e "\033[0;31mPlease make sure you have entered the AWS access key and secret key.\033[0m"
         $SUDO certbot certonly --dns-route53 --agree-tos --email $email -d $domain
       elif [ "$dns_validate" == "custom" ]; then
-        $SUDO certbot --agree-tos --email $email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
+        $SUDO certbot --agree-tos --email $email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly --cert-name $domain -d $domain
       elif [ "$freedomain" == "true" ]; then
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email --cert-name $domain -d $domain
       else
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email --cert-name $domain -d $domain
       fi
     fi
 
@@ -407,15 +407,13 @@ fi
 #restore iptables redirect rule
 ipt_restore
 
-echo ""
-
-$SUDO service antmedia stop
-
-output
-
-$SUDO service antmedia start
-
-output
+if [ -x "$(command -v systemctl)" ]; then
+  echo ""
+  $SUDO service antmedia stop
+  output
+  $SUDO service antmedia start
+  output
+fi
 
 echo "SSL certificate is installed."
 echo "Https port: 5443"

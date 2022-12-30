@@ -18,9 +18,10 @@ public class WebRTCClientStatsTest {
 		int audioPacketCount = (int)(Math.random() * 999999);
 		int clientId = (int)(Math.random() * 999999);
 		String clientInfo = "info";
+		String clientIp = "192.168.1.1";
 
 		WebRTCClientStats clientStats = new WebRTCClientStats(measuredBitrate, sendBitrate, videoFrameSendPeriod, audioFrameSendPeriod, 
-				videoPacketCount, audioPacketCount, clientId,"notinfo");
+				videoPacketCount, audioPacketCount, clientId,"notinfo", clientIp);
 		clientStats.setClientInfo(clientInfo);
 	
 		assertEquals(measuredBitrate, clientStats.getMeasuredBitrate());
