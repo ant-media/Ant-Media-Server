@@ -25,6 +25,7 @@ public class SslConfigurator {
     private static final Logger logger = LoggerFactory.getLogger(SslConfigurator.class);
     private static final String sslConfigurationFailedMessage = "SSL configuration has failed. {}";
     private static final String sslConfigurationSuccessMessage = "SSL configuration has been completed successfully.";
+
     private final SslSettings currentSslSettings;
     private final SslSettings sslSettingsToConfigure;
     private final PreferenceStore store;
@@ -188,6 +189,7 @@ public class SslConfigurator {
                 } else if (fullChainFileName.contains(pemFileExtension)) {
                     fullChainFilePath = sslFilePath + pemFileExtension;
                 }
+
                 fullChainFileCreated = createFullChainFile(fullChainFilePath, fullChainFileContent);
 
             }
@@ -201,8 +203,8 @@ public class SslConfigurator {
                 } else if (chainFileName.contains(pemFileExtension)) {
                     chainFilePath = sslFilePath + chainStr + pemFileExtension;
                 }
-                chainFileCreated = createChainFile(chainFilePath, chainFileContent);
 
+                chainFileCreated = createChainFile(chainFilePath, chainFileContent);
 
             }
 
