@@ -23,16 +23,11 @@ import static io.antmedia.settings.SslSettings.*;
 public class SslConfigurator {
 
     private static final Logger logger = LoggerFactory.getLogger(SslConfigurator.class);
-
     private final String sslConfigurationFailedMessage = "SSL configuration has failed. {}";
     private final String sslConfigurationSuccessMessage = "SSL configuration has been completed successfully.";
-
     private final SslSettings currentSslSettings;
     private final SslSettings sslSettingsToConfigure;
     private final PreferenceStore store;
-
-    String fullChainFileExtension = "";
-    String chainFileExtension = "";
 
     public SslConfigurator(final SslSettings currentSslSettings, final SslSettings sslSettingsToConfigure, final PreferenceStore store) {
 
@@ -165,12 +160,8 @@ public class SslConfigurator {
                 final String fullChainFileName = sslSettingsToConfigure.getFullChainFileName();
                 if (fullChainFileName.contains(crtFileExtension)) {
                     fullChainFilePath = sslFilePath + crtFileExtension;
-                    fullChainFileExtension = crtFileExtension;
-
                 } else if (fullChainFileName.contains(pemFileExtension)) {
                     fullChainFilePath = sslFilePath + pemFileExtension;
-                    fullChainFileExtension = pemFileExtension;
-
                 }
                 try {
                     createSslFile(fullChainFilePath, fullChainFileContent);
@@ -190,12 +181,8 @@ public class SslConfigurator {
                 final String chainFileName = sslSettingsToConfigure.getChainFileName();
                 if (chainFileName.contains(crtFileExtension)) {
                     chainFilePath = sslFilePath + chainStr + crtFileExtension;
-                    chainFileExtension = crtFileExtension;
-
                 } else if (chainFileName.contains(pemFileExtension)) {
                     chainFilePath = sslFilePath + chainStr + pemFileExtension;
-                    chainFileExtension = pemFileExtension;
-
                 }
                 try {
                     createSslFile(chainFilePath, chainFileContent);
@@ -249,7 +236,6 @@ public class SslConfigurator {
 
                 } else if (fullChainFileName.contains(pemFileExtension)) {
                     fullChainFileExtension = pemFileExtension;
-
                 }
 
                 String chainFileName = sslSettingsToConfigure.getChainFileName();
@@ -283,7 +269,6 @@ public class SslConfigurator {
             default:
                 logger.warn("No SSL configuration type. SSL configuration failed.");
                 break;
-
         }
         return sslConfigurationResult;
     }
