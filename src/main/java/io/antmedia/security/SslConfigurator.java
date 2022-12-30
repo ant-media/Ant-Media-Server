@@ -23,16 +23,11 @@ import static io.antmedia.settings.SslSettings.*;
 public class SslConfigurator {
 
     private static final Logger logger = LoggerFactory.getLogger(SslConfigurator.class);
-
-    private final String sslConfigurationFailedMessage = "SSL configuration has failed. {}";
-    private final String sslConfigurationSuccessMessage = "SSL configuration has been completed successfully.";
-
+    private static final String sslConfigurationFailedMessage = "SSL configuration has failed. {}";
+    private static final String sslConfigurationSuccessMessage = "SSL configuration has been completed successfully.";
     private final SslSettings currentSslSettings;
     private final SslSettings sslSettingsToConfigure;
     private final PreferenceStore store;
-
-    String fullChainFileExtension = "";
-    String chainFileExtension = "";
 
     public SslConfigurator(final SslSettings currentSslSettings, final SslSettings sslSettingsToConfigure, final PreferenceStore store) {
 
@@ -135,6 +130,41 @@ public class SslConfigurator {
 
     }
 
+    private boolean createKeyFile(final String sslFilePath, final String keyFileContent){
+        final String keyFileExtension = ".key";
+        final String keyFilePath = sslFilePath + keyFileExtension;
+        try {
+            createSslFile(keyFilePath, keyFileContent);
+            return true;
+
+        } catch (final IOException ex) {
+            logger.warn("Could not create key file on server side.");
+            return false;
+        }
+    }
+
+    private boolean createFullChainFile(final String sslFilePath, final String fullChainFileContent){
+        try {
+            createSslFile(sslFilePath, fullChainFileContent);
+            return true;
+
+        } catch (final IOException ex) {
+            logger.warn("Could not create full chain file on server side.");
+            return false;
+        }
+    }
+
+    private boolean createChainFile(final String sslFilePath, final String chainFileContent){
+        try {
+            createSslFile(sslFilePath, chainFileContent);
+            return true;
+
+        } catch (final IOException ex) {
+            logger.warn("Could not create chain file on server side.");
+            return false;
+        }
+    }
+
     private boolean createCustomCertificateFiles(final File tempSslDir, final String domainName, final String crtFileExtension, final String pemFileExtension) {
         final String keyFileContent = sslSettingsToConfigure.getKeyFileContent();
         final String fullChainFileContent = sslSettingsToConfigure.getFullChainFileContent();
@@ -146,17 +176,7 @@ public class SslConfigurator {
             boolean chainFileCreated = false;
 
             if (keyFileContent != null) {
-                final String keyFileExtension = ".key";
-                final String keyFilePath = sslFilePath + keyFileExtension;
-                try {
-                    createSslFile(keyFilePath, keyFileContent);
-                    keyFileCreated = true;
-
-                } catch (final IOException ex) {
-                    logger.warn("Could not create key file on server side.");
-                    return false;
-                }
-
+                keyFileCreated = createKeyFile(sslFilePath, keyFileContent);
             }
 
 
@@ -165,22 +185,10 @@ public class SslConfigurator {
                 final String fullChainFileName = sslSettingsToConfigure.getFullChainFileName();
                 if (fullChainFileName.contains(crtFileExtension)) {
                     fullChainFilePath = sslFilePath + crtFileExtension;
-                    fullChainFileExtension = crtFileExtension;
-
                 } else if (fullChainFileName.contains(pemFileExtension)) {
                     fullChainFilePath = sslFilePath + pemFileExtension;
-                    fullChainFileExtension = pemFileExtension;
-
                 }
-                try {
-                    createSslFile(fullChainFilePath, fullChainFileContent);
-                    fullChainFileCreated = true;
-
-                } catch (final IOException ex) {
-                    logger.warn("Could not create full chain file on server side.");
-                    return false;
-                }
-
+                fullChainFileCreated = createFullChainFile(fullChainFilePath, fullChainFileContent);
 
             }
 
@@ -190,21 +198,11 @@ public class SslConfigurator {
                 final String chainFileName = sslSettingsToConfigure.getChainFileName();
                 if (chainFileName.contains(crtFileExtension)) {
                     chainFilePath = sslFilePath + chainStr + crtFileExtension;
-                    chainFileExtension = crtFileExtension;
-
                 } else if (chainFileName.contains(pemFileExtension)) {
                     chainFilePath = sslFilePath + chainStr + pemFileExtension;
-                    chainFileExtension = pemFileExtension;
-
                 }
-                try {
-                    createSslFile(chainFilePath, chainFileContent);
-                    chainFileCreated = true;
+                chainFileCreated = createChainFile(chainFilePath, chainFileContent);
 
-                } catch (final IOException ex) {
-                    logger.warn("Could not create chain file on server side.");
-                    return false;
-                }
 
             }
 
@@ -249,7 +247,6 @@ public class SslConfigurator {
 
                 } else if (fullChainFileName.contains(pemFileExtension)) {
                     fullChainFileExtension = pemFileExtension;
-
                 }
 
                 String chainFileName = sslSettingsToConfigure.getChainFileName();
@@ -283,7 +280,6 @@ public class SslConfigurator {
             default:
                 logger.warn("No SSL configuration type. SSL configuration failed.");
                 break;
-
         }
         return sslConfigurationResult;
     }

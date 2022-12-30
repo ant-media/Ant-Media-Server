@@ -21,16 +21,13 @@ public class SslSettings {
     public static final String DEFAULT_KEY_FILE_PATH = "conf/privkey.pem";
     public static final String DEFAULT_FULL_CHAIN_FILE_PATH = "conf/fullchain.pem";
     public static final String DEFAULT_CHAIN_FILE_PATH = "conf/chain.pem";
-
-
     @Value("${" + SSL_CONFIGURATION_TYPE + ":}")
     private String configurationType;
-
-
     @Value("${" + SSL_DOMAIN + ":}")
     private String customDomain;
 
     @Value("${" + SSL_DOMAIN + ":}")
+
     private String antMediaSubDomain;
 
     private String fullChainFileContent;
@@ -44,7 +41,6 @@ public class SslSettings {
     private String chainFileName;
 
     private String keyFileName;
-
     @Value("${" + SSL_CERTIFICATE_FILE_PATH + ":}")
     private String certificateFilePath;
     @Value("${" + SSL_CHAIN_FILE_PATH + ":}")
@@ -56,28 +52,8 @@ public class SslSettings {
         this.configurationType = configurationType;
     }
 
-    public String getCertificateFilePath() {
-        return certificateFilePath;
-    }
-
-    public String getChainFilePath() {
-        return chainFilePath;
-    }
-
-    public String getKeyFilePath() {
-        return keyFilePath;
-    }
-
     public void setCertificateFilePath(String certificateFilePath) {
         this.certificateFilePath = certificateFilePath;
-    }
-
-    public void setChainFilePath(String chainFilePath) {
-        this.chainFilePath = chainFilePath;
-    }
-
-    public void setKeyFilePath(String keyFilePath) {
-        this.keyFilePath = keyFilePath;
     }
 
     public void setCustomDomain(String customDomain) {
@@ -111,17 +87,12 @@ public class SslSettings {
     public void setKeyFileContent(String keyFileContent) {
         this.keyFileContent = keyFileContent;
     }
-
     public String getFullChainFileName() {
         return fullChainFileName;
     }
 
     public String getChainFileName() {
         return chainFileName;
-    }
-
-    public String getKeyFileName() {
-        return keyFileName;
     }
 
     public void setFullChainFileName(String fullChainFileName) {
