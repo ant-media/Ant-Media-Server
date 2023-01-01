@@ -673,6 +673,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		this.streamSourceInputFormatContext = inputFormatContext;
 		// Dump information about file onto standard error
 
+		if(width == 0 && height == 0 ) {
 		int streamIndex = 0;
 		int streamCount = inputFormatContext.nb_streams();
 		for (int i=0; i < streamCount; i++)
@@ -702,6 +703,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				streamIndex++;
 			}
 		}
+		}
+		
 
 		if (enableVideo && (width == 0 || height == 0)) {
 			logger.info("Width or height is zero so returning for stream: {}", streamId);
@@ -806,6 +809,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			while (iterator.hasNext())
 			{
 				Muxer muxer = iterator.next();
+				
+				// TODO think about that
+				muxer.isRunning.set(false);
+				
 				if (!muxer.prepareIO())
 				{
 					iterator.remove();

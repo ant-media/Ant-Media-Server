@@ -39,6 +39,12 @@ public class Broadcast {
 	@ApiModelProperty(value = "the status of the stream", allowableValues = "finished, broadcasting,created")
 	private String status;
 
+	/**
+    * @deprecated
+    * This parameter is no longer usable for the Broadcast object
+    * Use "status" parameter, instead of "playListStatus"
+    */
+	@Deprecated(since="2.5.2", forRemoval=true)
 	@ApiModelProperty(value = "The status of the playlist. It's usable if type is playlist", allowableValues = "finished, broadcasting,created")
 	private String playListStatus;
 

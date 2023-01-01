@@ -928,13 +928,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		Result result = new Result(false);
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)
+				broadcast.getType().equals(AntMediaApplicationAdapter.VOD) ||
+				broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)
 				)  {
 			result = getStreamFetcherManager().startStreaming(broadcast);
-		}
-		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
-			result = getStreamFetcherManager().startPlaylist(broadcast);
-
 		}
 		return result;
 	}
@@ -945,13 +942,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		logger.info("stopStreaming is called for stream:{}", broadcast.getStreamId());
 		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) 
+				broadcast.getType().equals(AntMediaApplicationAdapter.VOD) ||
+				broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)
+				) 
 		{
 			result = getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
-		} 
-		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) 
-		{
-			result = getStreamFetcherManager().stopPlayList(broadcast.getStreamId());
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) 
 		{

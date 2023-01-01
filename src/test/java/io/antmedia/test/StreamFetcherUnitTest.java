@@ -349,7 +349,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
+			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), newCam.getPlayListItemList(), appScope, vertx);
 
 
 			startCameraEmulator();
@@ -469,7 +469,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
+			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), newCam.getPlayListItemList(), appScope, vertx);
 			fetcher.setRestartStream(false);
 			// thread start
 			fetcher.startStream();
@@ -509,7 +509,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam2.getStreamId());
 
-			StreamFetcher fetcher2 = new StreamFetcher(newCam2.getStreamUrl(), newCam2.getStreamId(), newCam2.getType(), appScope, vertx);
+			StreamFetcher fetcher2 = new StreamFetcher(newCam2.getStreamUrl(), newCam2.getStreamId(), newCam2.getType(), newCam2.getPlayListItemList(), appScope, vertx);
 			fetcher2.setRestartStream(false);
 			// thread start
 			fetcher2.startStream();
@@ -553,7 +553,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
+			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), newCam.getPlayListItemList(), appScope, vertx);
 
 			fetcher.setBufferTime(20000);
 
@@ -636,7 +636,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			DataStore dataStore = new InMemoryDataStore("ntest");
 			dataStore.save(newCam3);
 
-			StreamFetcher fetcher3 = new StreamFetcher(newCam3.getStreamUrl(), newCam3.getStreamId(), newCam3.getType(), appScope, vertx);
+			StreamFetcher fetcher3 = new StreamFetcher(newCam3.getStreamUrl(), newCam3.getStreamId(), newCam3.getType(), newCam3.getPlayListItemList() , appScope, vertx);
 			fetcher3.setRestartStream(false);
 
 			fetcher3.setDataStore(dataStore);
@@ -787,7 +787,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
+			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), newCam.getPlayListItemList(), appScope, vertx);
 
 			fetcher.setDataStore(dataStore);
 			fetcher.setRestartStream(restartStream);
@@ -881,7 +881,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		DataStore dataStore = getInstance().getDataStore();
 		String id = dataStore.save(stream);
 
-		StreamFetcher fetcher = new StreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), appScope, vertx);
+		StreamFetcher fetcher = new StreamFetcher(stream.getStreamUrl(), stream.getStreamId(), stream.getType(), stream.getPlayListItemList(), appScope, vertx);
 
 		fetcher.setRestartStream(true);
 
@@ -921,7 +921,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertNotNull(newCam.getStreamId());
 
-			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
+			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), newCam.getPlayListItemList(), appScope, vertx);
 
 			fetcher.setRestartStream(false);
 
@@ -1088,7 +1088,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			DataStore dtStore = new InMemoryDataStore("db");
 			dtStore.save(newCam);
 
-			StreamFetcher camScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
+			StreamFetcher camScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), newCam.getPlayListItemList(), appScope, vertx);
 
 			camScheduler.setDataStore(dtStore);
 			camScheduler.setConnectionTimeout(10000);
@@ -1117,7 +1117,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	
 	@Test
 	public void testVODStreamingInCaseOfReadProblem() {
-		StreamFetcher fetcher = new StreamFetcher("", "", AntMediaApplicationAdapter.VOD, appScope, vertx);
+		StreamFetcher fetcher = new StreamFetcher("", "", AntMediaApplicationAdapter.VOD, null, appScope, vertx);
 		fetcher.setMuxAdaptor(mock(MuxAdaptor.class));
 		WorkerThread worker = spy(fetcher.new WorkerThread());
 		

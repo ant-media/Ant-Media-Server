@@ -300,7 +300,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		app.setDataStoreFactory(dsf);
 		
 		//create stream fetcher
-		StreamFetcher streamFetcher = new StreamFetcher(localStream.getStreamUrl(), localStream.getStreamId(), localStream.getType(), appScope, Vertx.vertx());
+		StreamFetcher streamFetcher = new StreamFetcher(localStream.getStreamUrl(), localStream.getStreamId(), localStream.getType(), localStream.getPlayListItemList(), appScope, Vertx.vertx());
 
 		//start stream fetcher
 		streamFetcher.startStream();

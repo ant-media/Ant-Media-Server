@@ -14,6 +14,7 @@ import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
+import java.util.List;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -32,6 +33,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
@@ -57,7 +59,18 @@ public class StreamFetcher {
 	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
 	private long[] lastDTS;
+	private long[] lastPTS;
 	private MuxAdaptor muxAdaptor = null;
+	
+//	long[] lastDts;
+//	long[] lastPts ;
+	
+	long[] offsetDts;
+	long[] offsetPts;
+	
+	boolean isFirstPublish = true;
+	
+	boolean isPlaylistLoop = true;
 
 	/**
 	 * If it is true, it restarts fetching everytime it disconnects
@@ -101,6 +114,8 @@ public class StreamFetcher {
 	private String streamId;
 
 	private String streamType;
+	
+	List<PlayListItem> playListItemList;
 
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
@@ -110,16 +125,21 @@ public class StreamFetcher {
 		this.streamFetcherListener = streamFetcherListener;
 	}
 
-	public StreamFetcher(String streamUrl, String streamId, String streamType, IScope scope, Vertx vertx)  {
-		if (streamUrl == null  || streamId == null) {
+	public StreamFetcher(String streamUrl, String streamId, String streamType, List<PlayListItem> playListItemList, IScope scope, Vertx vertx)  {
+	
+		if ( streamId == null || 
+				( AntMediaApplicationAdapter.PLAY_LIST.equals(streamType) && (playListItemList == null || playListItemList.isEmpty())) ||
+				( !AntMediaApplicationAdapter.PLAY_LIST.equals(streamType) && streamUrl == null ) 
+				) {
 			
 			throw new NullPointerException("Stream is not initialized properly. Check "
-					+ " stream id ("+ streamId +") and stream url ("+ streamUrl + ") values");
+					+ " stream id ("+ streamId +"), stream url ("+ streamUrl + ") and  stream playlist item list ("+ playListItemList + ") values");
 		}
 
 		this.streamUrl = streamUrl;
 		this.streamType = streamType;
 		this.streamId = streamId;
+		this.playListItemList = playListItemList;
 		this.scope = scope;
 		this.vertx = vertx;
 
@@ -181,6 +201,7 @@ public class StreamFetcher {
 		}
 
 		lastDTS = new long[inputFormatContext.nb_streams()];
+		lastPTS = new long[inputFormatContext.nb_streams()];
 
 		for (int i = 0; i < lastDTS.length; i++) {
 			lastDTS[i] = -1;
@@ -230,48 +251,125 @@ public class StreamFetcher {
 		public void run() {
 
 			setThreadActive(true);
+
+			Broadcast playlist = null;
 			AVPacket pkt = null;
-			try {
-				inputFormatContext = new AVFormatContext(null); 
-				pkt = avcodec.av_packet_alloc();
-				
-				if(prepareInputContext()) {
-					boolean readTheNextFrame = true;
-					while (readTheNextFrame) {
-						readTheNextFrame = readMore(pkt);
+
+			offsetDts = new long[10];
+			offsetPts = new long[10];
+
+			int currentIndex = 0;
+			int endCount = 1;
+
+			if(AntMediaApplicationAdapter.PLAY_LIST.equals(streamType) ) {
+
+				playlist = dataStore.get(streamId);
+				playListItemList = playlist.getPlayListItemList();
+
+				// Get current stream in Playlist
+				if (playlist.getCurrentPlayIndex() >= playlist.getPlayListItemList().size() || playlist.getCurrentPlayIndex() < 0) {
+					logger.warn("Resetting current play index to 0 because it's not in correct range for id: {}", playlist.getStreamId());
+					playlist.setCurrentPlayIndex(0);
+				}
+
+				currentIndex = playlist.getCurrentPlayIndex();
+				endCount = playListItemList.size();
+			}
+
+			while(currentIndex <  endCount) 
+			{
+
+				if(playlist != null && AntMediaApplicationAdapter.PLAY_LIST.equals(streamType) && !playListItemList.isEmpty()) {
+
+					playlist = dataStore.get(streamId);
+
+					streamUrl = playListItemList.get(currentIndex).getStreamUrl();
+					playlist.setCurrentPlayIndex(currentIndex);
+
+					dataStore.updateBroadcastFields(streamId, playlist);
+
+					logger.info("Next index to play in play list is {} for stream: {}", playlist.getCurrentPlayIndex(), playlist.getStreamId());
+				}
+
+				currentIndex++;
+
+				try {
+
+					inputFormatContext = new AVFormatContext(null); 
+					pkt = avcodec.av_packet_alloc();
+
+					if(prepareInputContext()) {
+						boolean readTheNextFrame = true;
+
+						while (readTheNextFrame) {
+							readTheNextFrame = readMore(pkt);
+						}
+
+						offsetDts = lastDTS;
+						offsetPts = lastPTS;
+
+						lastDTS = new long[10];
+						lastPTS = new long[10];
 					}
-					logger.info("Leaving the stream fetcher loop for stream: {}", streamId);
+				}
+				catch (OutOfMemoryError | Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+					exceptionInThread  = true;
 				}
 			}
-			catch (OutOfMemoryError | Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-				exceptionInThread  = true;
+
+			playlist = dataStore.get(streamId);
+
+			if(!isStopRequestReceived()) 
+			{
+				if( currentIndex ==  endCount ) {
+					playlist = dataStore.get(streamId);
+					// Reset current playlist status
+					playlist.setCurrentPlayIndex(0);
+					dataStore.updateBroadcastFields(streamId, playlist);
+				}
+				else {
+					playlist.setCurrentPlayIndex(currentIndex-1);
+					dataStore.updateBroadcastFields(streamId, playlist);
+				}
 			}
 
+			isPlaylistLoop = playlist.isPlaylistLoopEnabled() ;
 
-			close(pkt);
+			if(!isPlaylistLoop) {
+				logger.info("Play list looping is not enabled. It will be stopped for stream: {}", playlist.getStreamId());
+				appInstance.getStreamFetcherManager().stopStreaming(streamId);
+				stopRequestReceived = true;
+				restartStream = false;
+			}
+
+			logger.info("Leaving the stream fetcher loop for stream: {}", streamId);
+
+			close(pkt);	
+
 		}
 
 
 		public boolean readMore(AVPacket pkt) {
 			boolean readTheNextFrame = true;
 			int readResult = readNextPacket(pkt);
+			
 			if(readResult >= 0) {
 				packetRead(pkt);
 				unReferencePacket(pkt);
 			}
-			else if(AntMediaApplicationAdapter.VOD.equals(streamType) && readResult != AVERROR_EOF) {
+			else if((AntMediaApplicationAdapter.VOD.equals(streamType) || AntMediaApplicationAdapter.PLAY_LIST.equals(streamType))  && readResult != AVERROR_EOF) {
 				/* 
-				 * For VOD stream source, if the return of read frame is error (but not end of file), 
+				 * For VOD/Playlist stream source, if the return of read frame is error (but not end of file), 
 				 * don't break the loop immediately. Instead jump to next frame. 
-				 * Otherwise same VOD will be streamed from the beginning of the file again.
+				 * Otherwise same VOD/Playlist item will be streamed from the beginning of the file again.
 				 */
-				logger.warn("Frame can't be read for VOD {}", streamUrl);
+				logger.warn("Frame can't be read for VOD/Playlist {}", streamUrl);
 				unReferencePacket(pkt);
 			}
 			else {
 				//break the loop except above case
-				readTheNextFrame = false;;
+				readTheNextFrame = false;
 			}
 			
 			if (stopRequestReceived) {
@@ -282,8 +380,7 @@ public class StreamFetcher {
 		}
 
 		public int readNextPacket(AVPacket pkt) {
-			int readResult = av_read_frame(inputFormatContext, pkt);
-			return readResult;
+			return av_read_frame(inputFormatContext, pkt);
 		}
 		
 		public void unReferencePacket(AVPacket pkt) {
@@ -291,6 +388,7 @@ public class StreamFetcher {
 		}
 
 		public boolean prepareInputContext() throws Exception {
+			
 			logger.info("Preparing the StreamFetcher for {} for streamId:{}", streamUrl, streamId);
 			Result result = prepare(inputFormatContext);
 			
@@ -314,21 +412,23 @@ public class StreamFetcher {
 					}
 				}
 				
-				
-				muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
-				// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
-				// because there is no video frame
-				muxAdaptor.setFirstKeyFrameReceivedChecked(!videoExist); 
-				muxAdaptor.setEnableVideo(videoExist);
-				muxAdaptor.setEnableAudio(audioExist);
-				Broadcast broadcast = getDataStore().get(streamId);
-				muxAdaptor.setBroadcast(broadcast);
-				//if stream is rtsp, then it's not AVC
-				muxAdaptor.setAvc(!streamUrl.toLowerCase().startsWith("rtsp"));
-									
-				MuxAdaptor.setUpEndPoints(muxAdaptor, broadcast, vertx);
-				
-				muxAdaptor.init(scope, streamId, false);
+				// If muxadaptor already initialized, then don't need to initialize again
+				if(muxAdaptor == null) {
+					muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
+					// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
+					// because there is no video frame
+					muxAdaptor.setFirstKeyFrameReceivedChecked(!videoExist); 
+					muxAdaptor.setEnableVideo(videoExist);
+					muxAdaptor.setEnableAudio(audioExist);
+					Broadcast broadcast = getDataStore().get(streamId);
+					muxAdaptor.setBroadcast(broadcast);
+					//if stream is rtsp, then it's not AVC
+					muxAdaptor.setAvc(!streamUrl.toLowerCase().startsWith("rtsp"));
+										
+					MuxAdaptor.setUpEndPoints(muxAdaptor, broadcast, vertx);
+					
+					muxAdaptor.init(scope, streamId, false);
+				}
 
 				logger.info("{} stream count in stream {} is {}", streamId, streamUrl, inputFormatContext.nb_streams());
 				
@@ -365,22 +465,28 @@ public class StreamFetcher {
 
 			streamPublished = true;
 			lastPacketReceivedTime = System.currentTimeMillis();
-
+			
+			int packetIndex = pkt.stream_index();
+			
+			// It's necessary for synchronizing new playlist PTS and DTS values
+			pkt.dts(pkt.dts() + offsetDts[packetIndex]);
+			pkt.pts(pkt.pts() + offsetPts[packetIndex]);
+			
 			/**
 			 * Check that dts values are monotically increasing for each stream
 			 */
-			int packetIndex = pkt.stream_index();
 			if (lastDTS[packetIndex] >= pkt.dts()) {
 				logger.info("last dts{} is bigger than incoming dts {}", pkt.dts(), lastDTS[packetIndex]);
 				pkt.dts(lastDTS[packetIndex] + 1);
 				
 			}
 			lastDTS[packetIndex] = pkt.dts();
+			lastPTS[packetIndex] = pkt.dts();
 			if (pkt.dts() > pkt.pts()) {
 				logger.info("dts ({}) is bigger than pts({})", pkt.dts(), pkt.pts());
 				pkt.pts(pkt.dts());
 			}
-
+			
 			/***************************************************
 			 *  Memory of being paranoid or failing while looking for excellence without understanding the whole picture
 			 *  
@@ -442,9 +548,8 @@ public class StreamFetcher {
 			}
 			else {
 
-				if(AntMediaApplicationAdapter.VOD.equals(streamType)) {
+				if(AntMediaApplicationAdapter.VOD.equals(streamType)  || AntMediaApplicationAdapter.PLAY_LIST.equals(streamType)  ) {
 
-					
 					if(firstPacketTime == 0) {
 						int streamIndex = pkt.stream_index();
 						firstPacketTime = System.currentTimeMillis();
@@ -520,7 +625,7 @@ public class StreamFetcher {
 
 			setThreadActive(false);
 
-			if(streamFetcherListener != null) {	
+			if(streamFetcherListener != null ) {	
 				stopRequestReceived = true;
 				restartStream = false;
 
