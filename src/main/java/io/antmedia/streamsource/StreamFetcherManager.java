@@ -262,9 +262,7 @@ public class StreamFetcherManager {
 				logger.info("Stream is not alive {}", streamScheduler.getStreamId());
 			}
 
-			if(streamScheduler.isRestartStream()) {
-				streamScheduler.startStream();
-			}
+			streamScheduler.startStream();
 		}
 	}
 
