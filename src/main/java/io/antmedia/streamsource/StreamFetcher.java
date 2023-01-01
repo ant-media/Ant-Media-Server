@@ -318,29 +318,30 @@ public class StreamFetcher {
 				}
 			}
 
-			playlist = dataStore.get(streamId);
+			if(AntMediaApplicationAdapter.PLAY_LIST.equals(streamType)) {
+				playlist = dataStore.get(streamId);
 
-			if(!isStopRequestReceived()) 
-			{
-				if( currentIndex ==  endCount ) {
-					playlist = dataStore.get(streamId);
-					// Reset current playlist status
-					playlist.setCurrentPlayIndex(0);
-					dataStore.updateBroadcastFields(streamId, playlist);
+				if(!isStopRequestReceived()) 
+				{
+					if( currentIndex ==  endCount ) {
+						playlist = dataStore.get(streamId);
+						// Reset current playlist status
+						playlist.setCurrentPlayIndex(0);
+						dataStore.updateBroadcastFields(streamId, playlist);
+					}
+					else {
+						playlist.setCurrentPlayIndex(currentIndex-1);
+						dataStore.updateBroadcastFields(streamId, playlist);
+					}
 				}
-				else {
-					playlist.setCurrentPlayIndex(currentIndex-1);
-					dataStore.updateBroadcastFields(streamId, playlist);
+
+				if(!playlist.isPlaylistLoopEnabled()) {
+					logger.info("Play list looping is not enabled. It will be stopped for stream: {}", playlist.getStreamId());
+					appInstance.getStreamFetcherManager().stopStreaming(streamId);
+					stopRequestReceived = true;
+					restartStream = false;
 				}
-			}
 
-			isPlaylistLoop = playlist.isPlaylistLoopEnabled() ;
-
-			if(!isPlaylistLoop) {
-				logger.info("Play list looping is not enabled. It will be stopped for stream: {}", playlist.getStreamId());
-				appInstance.getStreamFetcherManager().stopStreaming(streamId);
-				stopRequestReceived = true;
-				restartStream = false;
 			}
 
 			logger.info("Leaving the stream fetcher loop for stream: {}", streamId);
