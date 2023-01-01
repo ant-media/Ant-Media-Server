@@ -267,21 +267,21 @@ public class RTMPAdaptor extends Adaptor {
 
 				List<IceServer> iceServers = new ArrayList<>();
 				iceServers.add(IceServer.builder(getStunServerUri()).createIceServer());
-				
+
 				Builder iceServerBuilder = IceServer.builder(stunServerUri);
-				
+
 				if (turnServerUsername != null && !turnServerUsername.isEmpty())
 				{
 					iceServerBuilder.setUsername(turnServerUsername);
 				}
-				
+
 				if (turnServerCredential != null && !turnServerCredential.isEmpty()) 
 				{
 					iceServerBuilder.setPassword(turnServerCredential);
 				}
-				
+
 				iceServers.add(iceServerBuilder.createIceServer());
-				
+
 
 				PeerConnection.RTCConfiguration rtcConfig =
 						new PeerConnection.RTCConfiguration(iceServers);
@@ -551,14 +551,23 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 	public void addIceCandidate(final IceCandidate iceCandidate) {
-		signallingExecutor.execute(() -> {
+		if (iceCandidate.sdpMid != null && iceCandidate.sdp != null) 
+		{
 
-			if (!peerConnection.addIceCandidate(iceCandidate))
-			{
-				log.error("Add ice candidate failed for {}", iceCandidate);
-			}
+			signallingExecutor.execute(() -> {
 
-		});
+				if (!peerConnection.addIceCandidate(iceCandidate))
+				{
+					log.error("Add ice candidate failed for {}", iceCandidate);
+				}
+
+			});
+		}
+		else 
+		{
+			logger.error("It does not add ICE Candidate because sdpMid or sdp are null. "
+					+ "Check the values sdpMid:{} ,sdp:{}", iceCandidate.sdpMid, iceCandidate.sdp);
+		}
 	}
 
 	public boolean isStarted() {
@@ -635,7 +644,7 @@ public class RTMPAdaptor extends Adaptor {
 	public void setEnableVideo(boolean enableVideo) {
 		this.enableVideo = enableVideo;
 	}
-	
+
 	public boolean isEnableVideo() {
 		return enableVideo;
 	}
