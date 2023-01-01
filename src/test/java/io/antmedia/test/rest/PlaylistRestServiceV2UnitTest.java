@@ -503,17 +503,6 @@ public class PlaylistRestServiceV2UnitTest {
 
 		Result result = new Result(false);
 
-		//create a broadcast
-		PlayListItem broadcastItem1 = new PlayListItem();
-
-		//create a broadcast
-		PlayListItem broadcastItem2 = new PlayListItem();
-
-		List<PlayListItem> broadcastList = new ArrayList<>();
-
-		broadcastList.add(broadcastItem1);
-		broadcastList.add(broadcastItem2);
-
 		Broadcast playlist = new Broadcast();
 		
 		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
@@ -523,7 +512,7 @@ public class PlaylistRestServiceV2UnitTest {
 		catch (Exception e) {
 			e.printStackTrace();
 		}
-		playlist.setPlayListItemList(broadcastList);
+		playlist.setPlayListItemList(null);
 
 
 		Scope scope = mock(Scope.class);
@@ -585,9 +574,7 @@ public class PlaylistRestServiceV2UnitTest {
 		
 		Broadcast broadcast2 = dataStore.get(playlist.getStreamId());
 		
-		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast2.getStatus());
-
-		
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcast2.getStatus());
 		
 	}
 	
