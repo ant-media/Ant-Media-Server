@@ -51,7 +51,14 @@ public class ConferenceRoom {
 	 */
 	@ApiModelProperty(value = "the origin address of the node hosting the room")
 	private String originAdress;
-
+	
+	/**
+	 * The list of granted streams in the Conference Room
+	 * These user-id can send event-based messages to others
+	 */
+	@ApiModelProperty(value = "The list of granted streams in the Conference Room")
+	private List<String> moderatorList = new ArrayList<>();
+	
 	public String getRoomId() {
 		return roomId;
 	}
@@ -107,6 +114,15 @@ public class ConferenceRoom {
 	public void setOriginAdress(String originAdress) {
 		this.originAdress = originAdress;
 	}
+	
+	public List<String> getModeratorList() {
+		return moderatorList;
+	}
+
+	public void setModeratorList(List<String> moderatorList) {
+		this.moderatorList = moderatorList;
+	}
+
 
 }
 
