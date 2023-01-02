@@ -131,7 +131,8 @@ public class WebSocketCommunityHandler {
 				String sdp = (String) jsonObject.get(WebSocketConstants.CANDIDATE_SDP);
 				long sdpMLineIndex = (long)jsonObject.get(WebSocketConstants.CANDIDATE_LABEL);
 
-				addICECandidate(streamId, connectionContext, sdpMid, sdp, sdpMLineIndex);
+				
+				addICECandidate(streamId, connectionContext, ((sdpMid != null) ? sdpMid : "0"), sdp, sdpMLineIndex);
 
 			}
 			else if (cmd.equals(WebSocketConstants.STOP_COMMAND)) {
