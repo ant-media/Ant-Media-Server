@@ -1,7 +1,23 @@
 #!/bin/bash
 
-INSTALL_DIRECTORY=/usr/local/antmedia
+# This script lets you install SSL(HTTPS) to your Ant Media Server.
+# - Free Domain: If you don't have any domain and you're an enterprise user, just type:
+#   `sudo ./enable_ssl.sh `.
+#   It will give you an auto-generated subdomain of antmedia.cloud and you'll have the SSL installed
+#   with Let's Encrypt
+#
+# - Custom Domain: If you have your own domain name, you can install with your custom domain name
+#   easily as well. Assign your domain to your server and Just type:
+#   `sudo ./enable_ssl.sh -d {TYPE_YOUR_DOMAIN}`
+#   It will give you the SSL with Let's Encrpt
+#
+# - Custom Certificate: If you have certificate from your provider, assing your domain and Just type:
+#   `sudo ./enable_ssl.sh -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -c {CHAIN_FILE} -d {DOMAIN_NAME}
+#
+# For information type
+# `./enable_ssl.sh -h`
 
+INSTALL_DIRECTORY=/usr/local/antmedia
 
 FULL_CHAIN_FILE=
 PRIVATE_KEY_FILE=
@@ -10,8 +26,9 @@ domain=""
 password=
 renew_flag='false'
 freedomain=""
+helpRequest='false'
 
-while getopts i:d:v:p:e:f:rc: option
+while getopts i:d:v:p:e:f:rhc: option
 do
   case "${option}" in
     f) FULL_CHAIN_FILE=${OPTARG};;
@@ -22,16 +39,27 @@ do
     v) dns_validate=${OPTARG};;
     r) renew_flag='true';;
     e) email=${OPTARG};;
+    h) helpRequest='true';;
    esac
 done
 
 ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Please take a look at the logs above and try to fix.\n If you do not have any idea, contact@antmedia.io"
 
 usage() {
-  echo "Usage:"
-  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-e {YOUR_EMAIL}]"
-  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-v {route53 or custom}] [-e {YOUR_EMAIL}]"
-  echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -c {CHAIN_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
+
+  echo "Usage commands for different scenarios:"
+  echo " "
+  echo "- Gets free subdomain of antmedia.cloud and install SSL with Let's Encrypt. Just type:"
+  echo "  $0"
+  echo " "
+  echo "- Install SSL for your custom domain with Let's Encrypt. Just type:"
+  echo "  $0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-e {YOUR_EMAIL}]"
+  echo " "
+  echo "- Install SSL for your custom domain and authenticate options with Let's Encrypt. Just type:"
+  echo "  $0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-v {route53 or custom}] [-e {YOUR_EMAIL}]"
+  echo " "
+  echo "- Install SSL with your own certificate and your custom domain. Just type:"
+  echo "  $0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -c {CHAIN_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
   echo " "
   echo -e "If you have any question, send e-mail to contact@antmedia.io\n"
 }
@@ -127,14 +155,6 @@ if [ "$chainFileExist" != "$privateKeyFileExist" ]; then
    exit 1
 fi
 
-
-if [ ! -d "$INSTALL_DIRECTORY" ]; then
-  # Control will enter here if $DIRECTORY doesn't exist.
-  echo "Ant Media Server does not seem to be installed to $INSTALL_DIRECTORY"
-  echo "Please install Ant Media Server with the install script or give as a parameter"
-  usage
-  exit 1
-fi
 
 get_freedomain(){
   hostname="ams-$RANDOM"
@@ -369,6 +389,19 @@ check_domain_name(){
     fi
 }
 
+if [ "$helpRequest" == "true" ]
+then
+  usage
+  exit 0
+fi
+
+if [ ! -d "$INSTALL_DIRECTORY" ]; then
+  # Control will enter here if $DIRECTORY doesn't exist.
+  echo "Ant Media Server does not seem to be installed to $INSTALL_DIRECTORY"
+  echo "Please install Ant Media Server with the install script or give as a parameter"
+  usage
+  exit 1
+fi
 
 #check domain name
 check_domain_name
