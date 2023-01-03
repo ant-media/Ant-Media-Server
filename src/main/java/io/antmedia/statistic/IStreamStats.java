@@ -1,5 +1,7 @@
 package io.antmedia.statistic;
 
+import io.antmedia.AntMediaApplicationAdapter;
+
 public interface IStreamStats {
 
 	/**
@@ -7,7 +9,7 @@ public interface IStreamStats {
 	 * @param streamId
 	 * @param sessionId
 	 */
-	void registerNewViewer(String streamId, String sessionId, String subscriberId);
+	void registerNewViewer(String streamId, String sessionId, String subscriberId, String playType, AntMediaApplicationAdapter antMediaApplicationAdapter);
 	
 	
 	/**
