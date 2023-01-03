@@ -9,6 +9,7 @@ import javax.servlet.Filter;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,6 +154,17 @@ public abstract class AbstractFilter implements Filter{
 			broadcast = dsf.getDataStore().get(streamId);
 		}
 		return broadcast;
+	}
+
+	protected AntMediaApplicationAdapter getAntMediaApplicationAdapter(){
+		AntMediaApplicationAdapter antMediaApplicationAdapter = null;
+		ApplicationContext context = getAppContext();
+		if (context != null)
+		{
+			antMediaApplicationAdapter= (AntMediaApplicationAdapter)context.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		}
+		return antMediaApplicationAdapter;
+
 	}
 	
 }

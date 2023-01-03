@@ -1,6 +1,7 @@
 package io.antmedia.statistic;
 
 
+import io.antmedia.AntMediaApplicationAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -28,11 +29,11 @@ public class DashViewerStats extends ViewerStats implements IStreamStats, Applic
 
 		AppSettings settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
 		timeoutMS = getTimeoutMSFromSettings(settings, timeoutMS, DASH_TYPE);
-		
+		final AntMediaApplicationAdapter antMediaApplicationAdapter = (AntMediaApplicationAdapter)applicationContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
 		vertx.setPeriodic(DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT, yt-> 
 		{
 			synchronized (lock) {
-				updateViewerCountProcess(DASH_TYPE);
+				updateViewerCountProcess(DASH_TYPE, antMediaApplicationAdapter);
 			}
 		});	
 	}

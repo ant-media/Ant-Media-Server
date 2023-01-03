@@ -23,7 +23,8 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	public static boolean enableSourceHealthUpdate = false;
 	public static List<String> notifyVodId = new ArrayList<>();;
-	
+
+	public static List<String> notifyViewerId = new ArrayList<>();;
 
 	
 	@Override
@@ -51,7 +52,7 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	@Override
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
-			String vodName, String vodId, String metadata) {
+			String vodName, String vodId, String viewerId, String metadata) {
 		logger.info("notify hook action: {}", action);
 		notifyHookAction.add(action);
 		notitfyURL.add(url);
@@ -60,6 +61,7 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 		notifyCategory.add(category);
 		notifyVodName.add(vodName);
 		notifyVodId.add(vodId);
+		notifyViewerId.add(viewerId);
 
 		return null;
 	}
