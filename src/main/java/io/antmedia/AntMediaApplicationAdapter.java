@@ -489,8 +489,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					final String category = broadcast.getCategory();
 					final String metaData = broadcast.getMetaData();
 					logger.info("Setting timer to call live stream ended hook for stream:{}",streamId );
-					vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null,
-							null, metaData));
+
+					vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null, null, metaData));
 				}
 
 				if (broadcast.isZombi()) {
@@ -923,6 +923,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			httpPost.setEntity(postParams);
 
 			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
+				System.out.println("http response came");
 				logger.info("POST Response Status:: {}" , httpResponse.getStatusLine().getStatusCode());
 
 				HttpEntity entity = httpResponse.getEntity();
@@ -1067,10 +1068,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public DataStore getDataStore() {
+		System.out.println("get data store called");
 		//vertx should be initialized before calling this method
 		if(dataStore == null)
 		{
+			System.out.println("data store is null");
 			dataStore = dataStoreFactory.getDataStore();
+			System.out.println(dataStore);
+
 		}
 		return dataStore;
 	}
@@ -1364,7 +1369,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				final String category = broadcast.getCategory();
 				final String metaData = broadcast.getMetaData();
 				logger.info("Setting timer to call encoder not opened error for stream:{}", streamId);
-				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_ENCODER_NOT_OPENED_ERROR, name, category, null, null, null,metaData));
+				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_ENCODER_NOT_OPENED_ERROR, name, category, null, null, null, metaData));
 			}
 		}
 	}

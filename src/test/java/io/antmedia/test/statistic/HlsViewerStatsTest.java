@@ -224,7 +224,6 @@ public class HlsViewerStatsTest {
 			dsf.getDataStore().addSubscriber(subscriberPlay3.getStreamId(), subscriberPlay3);
 
 
-
 			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), ViewerStats.HLS_TYPE, antMediaApplicationAdapter);
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -366,6 +365,7 @@ public class HlsViewerStatsTest {
 			assertEquals(10000, viewerStats.getTimeoutMS());
 
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
+			AntMediaApplicationAdapter antMediaApplicationAdapter = mock(AntMediaApplicationAdapter.class);
 
 			viewerStats.registerNewViewer(streamId, sessionId, null, ViewerStats.HLS_TYPE, antMediaApplicationAdapter);
 			

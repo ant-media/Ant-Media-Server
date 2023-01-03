@@ -432,6 +432,7 @@ public class DashViewerStatsTest {
 
 			viewerStats.registerNewViewer(streamId, sessionId, null, ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
 
+
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getViewerCount(streamId) == 1 );
 
