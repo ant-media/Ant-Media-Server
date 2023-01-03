@@ -1,14 +1,11 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.util.concurrent.TimeUnit;
 
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -18,8 +15,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.statistic.ViewerStats;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.awaitility.Awaitility;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -130,8 +132,10 @@ public class DashStatisticsFilterTest {
 				.thenReturn(context);
 		
 		when(filterconfig.getServletContext()).thenReturn(servletContext);
-		
-		
+
+		AntMediaApplicationAdapter antMediaApplicationAdapter = mock(AntMediaApplicationAdapter.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(antMediaApplicationAdapter);
+
 		try {
 			dashStatisticsFilter.init(filterconfig);
 			//when(dashStatisticsFilter.getStreamStats()).thenReturn(streamStats);
@@ -160,12 +164,31 @@ public class DashStatisticsFilterTest {
 
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			dashStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
-			
-			
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
-			
-			
-			
+
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
+			/*verify(antMediaApplicationAdapter, times(1)).sendStartPlayWebHook(ViewerStats.DASH_TYPE, streamId, null);
+
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
+				boolean called = false;
+				try {
+					Broadcast broadcast = dataStore.get(streamId);
+					String url = broadcast.getListenerHookURL();
+					String id = streamId;
+					String action = AntMediaApplicationAdapter.HOOK_ACTION_START_PLAY;
+					String streamName = broadcast.getName();
+					String category = broadcast.getCategory();
+					//String viewerId = sessionId;
+					verify(antMediaApplicationAdapter,times(1)).notifyHook(url,id,action,streamName,category, null, null,null, null);
+					called = true;
+				} catch (Exception e) {
+					e.printStackTrace();
+
+				}
+				return called;
+			});*/
+
+
+
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
@@ -189,7 +212,10 @@ public class DashStatisticsFilterTest {
 		IStreamStats streamStats = mock(IStreamStats.class);
 		
 		when(context.getBean(DashViewerStats.BEAN_NAME)).thenReturn(streamStats);
-		
+
+		AntMediaApplicationAdapter antMediaApplicationAdapter = mock(AntMediaApplicationAdapter.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(antMediaApplicationAdapter);
+
 		when(context.isRunning()).thenReturn(true);
 		DataStoreFactory dsf = mock(DataStoreFactory.class);		
 		when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
@@ -211,17 +237,17 @@ public class DashStatisticsFilterTest {
 		try {
 			dashStatisticsFilter.init(filterconfig);
 			//when(dashStatisticsFilter.getStreamStats()).thenReturn(streamStats);
-			
+
 			String sessionId = requestDash(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
 			broadcast.setDashViewerCount(1);
 			
 			String sessionId2 = requestDash(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null, ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
 			broadcast.setDashViewerCount(2);
 
 			String sessionId3 = requestDash(streamId);		
-			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null);
+			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null, ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));

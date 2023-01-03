@@ -1689,7 +1689,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * @return
 	 */
 	public RecordMuxer startRecording(RecordType recordType) {
-
 		if (!isRecording.get()) {
 			logger.warn("Starting recording return false for stream:{} because stream is being prepared", streamId);
 			return null;
@@ -1699,7 +1698,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.warn("Record is called while {} is already recording.", streamId);
 			return null;
 		}
-
 
 		RecordMuxer muxer = null;
 		if(recordType == RecordType.MP4) {
@@ -1870,10 +1868,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public void sendEndpointErrorNotifyHook(String url){
+		AntMediaApplicationAdapter adaptor = getAntMediaApplicationAdaptor();
+		adaptor.endpointFailedUpdate(this.streamId, url);
+	}
+
+	protected AntMediaApplicationAdapter getAntMediaApplicationAdaptor(){
 		IContext context = MuxAdaptor.this.scope.getContext();
 		ApplicationContext appCtx = context.getApplicationContext();
 		AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-		adaptor.endpointFailedUpdate(this.streamId, url);
+		return adaptor;
 	}
 
 	/**

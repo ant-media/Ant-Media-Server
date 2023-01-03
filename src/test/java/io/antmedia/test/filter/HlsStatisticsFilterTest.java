@@ -18,6 +18,8 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.statistic.ViewerStats;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.After;
@@ -130,7 +132,8 @@ public class HlsStatisticsFilterTest {
 				.thenReturn(context);
 		
 		when(filterconfig.getServletContext()).thenReturn(servletContext);
-		
+		AntMediaApplicationAdapter antMediaApplicationAdapter = mock(AntMediaApplicationAdapter.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(antMediaApplicationAdapter);
 		
 		try {
 			hlsStatisticsFilter.init(filterconfig);
@@ -159,12 +162,9 @@ public class HlsStatisticsFilterTest {
 
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
-			
-			
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
-			
-			
-			
+
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, ViewerStats.HLS_TYPE, antMediaApplicationAdapter);
+
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
@@ -205,20 +205,22 @@ public class HlsStatisticsFilterTest {
 		broadcast.setHlsViewerLimit(2);
 		when(dataStore.get(streamId)).thenReturn(broadcast);
 
-		
+		AntMediaApplicationAdapter antMediaApplicationAdapter = mock(AntMediaApplicationAdapter.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(antMediaApplicationAdapter);
+
 		try {
 			hlsStatisticsFilter.init(filterconfig);
-			
+
 			String sessionId = requestHls(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, ViewerStats.HLS_TYPE, antMediaApplicationAdapter);
 			broadcast.setHlsViewerCount(1);
 			
 			String sessionId2 = requestHls(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null, ViewerStats.HLS_TYPE, antMediaApplicationAdapter);
 			broadcast.setHlsViewerCount(2);
 
 			String sessionId3 = requestHls(streamId);		
-			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null);
+			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null, ViewerStats.HLS_TYPE, antMediaApplicationAdapter);
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
