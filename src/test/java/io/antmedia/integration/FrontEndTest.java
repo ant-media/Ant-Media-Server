@@ -183,9 +183,10 @@ public class FrontEndTest {
 			this.driver = new ChromeDriver(getChromeOptions());
 			this.driver.manage().timeouts().pageLoadTimeout( Duration.ofSeconds(10));
 			this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-			this.driver.get(this.url+"audio_publish.html");
+			this.driver.get(this.url+"audio_publish.html?id=stream1");
 			WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(15));
 
+			this.driver.switchTo().frame(0);
 			String publishButtonText = "//*[@id='start_publish_button']";
 			wait.until(ExpectedConditions.elementToBeClickable(By.xpath(publishButtonText)));
 
@@ -251,13 +252,15 @@ public class FrontEndTest {
 		this.driver = new ChromeDriver(getChromeOptions());
 		this.driver.manage().timeouts().pageLoadTimeout( Duration.ofSeconds(10));
 		this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-		this.driver.get(this.url+"index.html");
+		this.driver.get(this.url+"index.html?id=stream1");
 		WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(15));
 
 		//Check we landed on the page
 		String title = this.driver.getTitle();
-		assertEquals("Ant Media Server WebRTC Publish", title);
+		assertEquals("WebRTC Samples > Publish", title);
 		System.out.println(this.url + " " + this.driver + " " + title);
+		
+		this.driver.switchTo().frame(0);
 
 		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='start_publish_button']")));
 		assertTrue(checkAlert());
