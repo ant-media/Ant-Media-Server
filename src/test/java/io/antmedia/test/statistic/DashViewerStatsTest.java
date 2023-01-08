@@ -427,9 +427,6 @@ public class DashViewerStatsTest {
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
 			antMediaApplicationAdapter.setAppSettings(settings);
 
-
-			//AntMediaApplicationAdapter spyAdapter = Mockito.spy(new AntMediaApplicationAdapter());
-
 			viewerStats.registerNewViewer(streamId, sessionId, null, ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
 
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(

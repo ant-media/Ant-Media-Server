@@ -54,6 +54,8 @@ public class ViewerStats {
 	
 	public void registerNewViewer(String streamId, String sessionId, String subscriberId, String viewerPlayType, AntMediaApplicationAdapter antMediaApplicationAdapter)
 	{
+		System.out.println("i got called3!");
+
 		//do not block the thread, run in vertx event queue 
 		vertx.runOnContext(h -> {
 			synchronized (lock) {
@@ -67,6 +69,7 @@ public class ViewerStats {
 					int streamIncrementCounter = getIncreaseCounterMap(streamId);
 					streamIncrementCounter++;
 					increaseCounterMap.put(streamId, streamIncrementCounter);
+
 					if(subscriberId != null && !subscriberId.equals("undefined")){
 						antMediaApplicationAdapter.sendStartPlayWebHook(viewerPlayType, streamId, subscriberId);
 					}else{
