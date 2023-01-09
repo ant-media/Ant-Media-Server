@@ -25,8 +25,6 @@ public class DashStatisticsFilter extends AbstractFilter {
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
-
-		System.out.println("i got called");
 		HttpServletRequest httpRequest =(HttpServletRequest)request;
 
 		String method = httpRequest.getMethod();

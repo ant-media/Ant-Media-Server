@@ -54,8 +54,6 @@ public class ViewerStats {
 	
 	public void registerNewViewer(String streamId, String sessionId, String subscriberId, String viewerPlayType, AntMediaApplicationAdapter antMediaApplicationAdapter)
 	{
-		System.out.println("i got called3!");
-
 		//do not block the thread, run in vertx event queue 
 		vertx.runOnContext(h -> {
 			synchronized (lock) {
