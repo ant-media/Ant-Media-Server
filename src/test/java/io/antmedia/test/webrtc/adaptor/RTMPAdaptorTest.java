@@ -332,6 +332,37 @@ public class RTMPAdaptorTest {
 
 		return spy(webSocketHandler);
 	}
+	
+	@Test
+	public void testAddCandidate() {
+		FFmpegFrameRecorder recorder = mock(FFmpegFrameRecorder.class);
+
+		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
+
+		RTMPAdaptor adaptorReal = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
+		RTMPAdaptor rtmpAdaptor = spy(adaptorReal);
+		String streamId = "stramId" + (int)(Math.random()*10000);
+		rtmpAdaptor.setStreamId(streamId);
+		Session session = mock(Session.class);
+		RemoteEndpoint.Basic  basicRemote = mock(RemoteEndpoint.Basic .class);
+		when(session.getBasicRemote()).thenReturn(basicRemote);
+		when(session.isOpen()).thenReturn(true);
+		rtmpAdaptor.setSession(session);
+		
+		
+		rtmpAdaptor.start();
+		String sdp = "candidate:78390311 1 udp 2122260223 10.2.40.82 50237 typ host generation 0 ufrag VUE6 network-id 1 network-cost 50";
+		//it was crashing here
+		rtmpAdaptor.addIceCandidate(new IceCandidate(null, 0, sdp));
+		//it was crashing here
+		rtmpAdaptor.addIceCandidate(new IceCandidate("audio", 0, null));
+		
+		
+		rtmpAdaptor.stop();
+		
+		Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> rtmpAdaptor.getSignallingExecutor().isTerminated());
+		
+	}
 
 
 	@Test

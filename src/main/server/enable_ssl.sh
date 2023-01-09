@@ -1,7 +1,23 @@
 #!/bin/bash
 
-INSTALL_DIRECTORY=/usr/local/antmedia
+# This script lets you install SSL(HTTPS) to your Ant Media Server.
+# - Free Domain: If you don't have any domain and you're an enterprise user, just type:
+#   `sudo ./enable_ssl.sh `.
+#   It will give you an auto-generated subdomain of antmedia.cloud and you'll have the SSL installed
+#   with Let's Encrypt
+#
+# - Custom Domain: If you have your own domain name, you can install with your custom domain name
+#   easily as well. Assign your domain to your server and Just type:
+#   `sudo ./enable_ssl.sh -d {TYPE_YOUR_DOMAIN}`
+#   It will give you the SSL with Let's Encrpt
+#
+# - Custom Certificate: If you have certificate from your provider, assing your domain and Just type:
+#   `sudo ./enable_ssl.sh -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -c {CHAIN_FILE} -d {DOMAIN_NAME}
+#
+# For information type
+# `./enable_ssl.sh -h`
 
+INSTALL_DIRECTORY=/usr/local/antmedia
 
 FULL_CHAIN_FILE=
 PRIVATE_KEY_FILE=
@@ -11,8 +27,9 @@ password=
 renew_flag='false'
 freedomain=""
 
+helpRequest='false'
 
-while getopts i:d:v:p:e:f:rc: option
+while getopts i:d:v:p:e:f:rhc: option
 do
   case "${option}" in
     f) FULL_CHAIN_FILE=${OPTARG};;
@@ -23,16 +40,27 @@ do
     v) dns_validate=${OPTARG};;
     r) renew_flag='true';;
     e) email=${OPTARG};;
+    h) helpRequest='true';;
    esac
 done
 
 ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Please take a look at the logs above and try to fix.\n If you do not have any idea, contact@antmedia.io"
 free_domain_requested='false'
 usage() {
-  echo "Usage:"
-  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-e {YOUR_EMAIL}]"
-  echo "$0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-v {route53 or custom}] [-e {YOUR_EMAIL}]"
-  echo "$0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -c {CHAIN_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
+
+  echo "Usage commands for different scenarios:"
+  echo " "
+  echo "- Gets free subdomain of antmedia.cloud and install SSL with Let's Encrypt. Just type:"
+  echo "  $0"
+  echo " "
+  echo "- Install SSL for your custom domain with Let's Encrypt. Just type:"
+  echo "  $0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-e {YOUR_EMAIL}]"
+  echo " "
+  echo "- Install SSL for your custom domain and authenticate options with Let's Encrypt. Just type:"
+  echo "  $0 -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}] [-v {route53 or custom}] [-e {YOUR_EMAIL}]"
+  echo " "
+  echo "- Install SSL with your own certificate and your custom domain. Just type:"
+  echo "  $0 -f {FULL_CHAIN_FILE} -p {PRIVATE_KEY_FILE} -c {CHAIN_FILE} -d {DOMAIN_NAME} [-i {INSTALL_DIRECTORY}]"
   echo " "
   echo -e "If you have any question, send e-mail to contact@antmedia.io\n"
 }
@@ -130,13 +158,39 @@ if [ "$chainFileExist" != "$privateKeyFileExist" ]; then
 fi
 
 
-if [ ! -d "$INSTALL_DIRECTORY" ]; then
-  # Control will enter here if $DIRECTORY doesn't exist.
-  echo "Ant Media Server does not seem to be installed to $INSTALL_DIRECTORY"
-  echo "Please install Ant Media Server with the install script or give as a parameter"
-  usage
-  exit 1
-fi
+get_freedomain(){
+  hostname="ams-$RANDOM"
+  get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
+  if [ ! -z $get_license_key ]; then
+    if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then
+      ip=`curl -s http://checkip.amazonaws.com`
+      check_api=`curl -s -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=$get_license_key"`
+      if [ $? != 0 ]; then
+        echo "There is a problem with the script. Please re-run the enable_ssl.sh script."
+        exit 1
+      elif [ $check_api == 400 ]; then
+        echo "The domain exists, please re-run the enable_ssl.sh script."
+        exit 400
+      elif [ $check_api == 401 ]; then
+        echo "The license key is invalid."
+        exit 401
+      fi
+      while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
+        now=$(date +"%H:%M:%S")
+        echo "$now > Waiting for DNS validation."
+        sleep 10
+      done
+      domain="$hostname"".antmedia.cloud"
+      echo "DNS success, installing the SSL certificate."
+      freedomain="true"
+    else
+      domain=`cat $INSTALL_DIRECTORY/conf/red5.properties |egrep "ams-[0-9]*.antmedia.cloud" -o | uniq`
+    fi
+  else
+    echo "Please make sure you enter your license key and use the Enterprise edition."
+    exit 1
+  fi
+}
 
 get_freedomain(){
   hostname="ams-$RANDOM"
@@ -200,9 +254,9 @@ get_new_certificate(){
         echo -e "\033[0;31mPlease make sure you have entered the AWS access key and secret key.\033[0m"
         $SUDO certbot certonly --dns-route53 --agree-tos --register-unsafely-without-email -d $domain
       elif [ "$dns_validate" == "custom" ]; then
-        $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
+        $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly --cert-name $domain -d $domain
       elif [ "$freedomain" == "true" ]; then
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email --cert-name $domain -d $domain
       else
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
       fi
@@ -211,9 +265,9 @@ get_new_certificate(){
         echo -e "\033[0;31mPlease make sure you have entered the AWS access key and secret key.\033[0m"
         $SUDO certbot certonly --dns-route53 --agree-tos --email $email -d $domain
       elif [ "$dns_validate" == "custom" ]; then
-        $SUDO certbot --agree-tos --email $email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly -d $domain
+        $SUDO certbot --agree-tos --email $email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly --cert-name $domain -d $domain
       elif [ "$freedomain" == "true" ]; then
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email --cert-name $domain -d $domain
       else
         $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
       fi
@@ -372,6 +426,24 @@ check_domain_name(){
     fi
 }
 
+=======
+    fi
+}
+
+if [ "$helpRequest" == "true" ]
+then
+  usage
+  exit 0
+fi
+
+if [ ! -d "$INSTALL_DIRECTORY" ]; then
+  # Control will enter here if $DIRECTORY doesn't exist.
+  echo "Ant Media Server does not seem to be installed to $INSTALL_DIRECTORY"
+  echo "Please install Ant Media Server with the install script or give as a parameter"
+  usage
+  exit 1
+fi
+>>>>>>> 76915c0d8a3e530e9541dd21c7fd70fe8815eff8
 
 #check domain name
 check_domain_name

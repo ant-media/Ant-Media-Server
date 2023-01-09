@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -342,15 +343,37 @@ public class WebSocketCommunityHandlerTest {
 			wsHandler.onMessage(session, takeCandidate.toJSONString());
 
 			ArgumentCaptor<IceCandidate> argument = ArgumentCaptor.forClass(IceCandidate.class);
-			verify(rtmpAdaptor).addIceCandidate(argument.capture());
+			verify(rtmpAdaptor, times(1)).addIceCandidate(argument.capture());
 			IceCandidate icecandidate = argument.getValue();
 			assertEquals(sdp, icecandidate.sdp);
 			assertEquals(type,icecandidate.sdpMid);
 			assertEquals(label,icecandidate.sdpMLineIndex);
-			
-
 		}
 
+		{
+			
+			JSONObject takeCandidate = new JSONObject();
+			takeCandidate.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CANDIDATE_COMMAND);
+			
+			//don't send canidate id
+			//String type = ""  +(int)(Math.random() * 91000);
+			//takeCandidate.put(WebSocketConstants.CANDIDATE_ID, type );
+			String sdp = ""  +(int)(Math.random() * 91000);;
+			takeCandidate.put(WebSocketConstants.CANDIDATE_SDP, sdp);
+			int label = (int)(Math.random() * 91000);;
+			takeCandidate.put(WebSocketConstants.CANDIDATE_LABEL, label);
+			takeCandidate.put(WebSocketConstants.STREAM_ID, streamId);
+
+			wsHandler.onMessage(session, takeCandidate.toJSONString());
+
+			ArgumentCaptor<IceCandidate> argument = ArgumentCaptor.forClass(IceCandidate.class);
+			verify(rtmpAdaptor, times(2)).addIceCandidate(argument.capture());
+			IceCandidate icecandidate = argument.getValue();
+			assertEquals(sdp, icecandidate.sdp);
+			assertEquals("0",icecandidate.sdpMid);
+			assertEquals(label,icecandidate.sdpMLineIndex);
+			
+		}
 
 		JSONObject stopObject = new JSONObject();
 		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.STOP_COMMAND);
