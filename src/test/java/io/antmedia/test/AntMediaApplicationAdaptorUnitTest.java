@@ -53,6 +53,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.api.stream.IPlayItem;
+import org.red5.server.api.stream.ISubscriberStream;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
 
@@ -1822,6 +1824,71 @@ public class AntMediaApplicationAdaptorUnitTest {
 					boolean called = false;
 					try{
 						verify(spyAdaptor,times(1)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_START_RECORD, broadcast.getName(),broadcast.getCategory(),null,null,null,null);
+						called = true;
+					}catch (Exception e){
+						e.printStackTrace();
+					}
+					return called;
+				});
+
+	}
+
+	@Test
+	public void testRtmpStreamPlayStop() throws Exception {
+		final AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		AppSettings appSettings = new AppSettings();
+		spyAdaptor.setAppSettings(appSettings);
+
+		Broadcast broadcast = new Broadcast();
+		assertNull(spyAdaptor.getListenerHookURL(broadcast));
+		broadcast.setMp4Enabled(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM);
+		String hookURL = "listener_hook_url";
+		appSettings.setListenerHookURL(hookURL);
+
+		assertEquals(hookURL, spyAdaptor.getListenerHookURL(broadcast));
+
+
+		appSettings = new AppSettings();
+		spyAdaptor.setServerSettings(new ServerSettings());
+		spyAdaptor.setAppSettings(appSettings);
+		DataStore dataStore = new InMemoryDataStore("test");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		spyAdaptor.setDataStoreFactory(dsf);
+		spyAdaptor.setDataStore(dataStore);
+		broadcast.setStreamId("stream1");
+		broadcast.setName("name");
+		broadcast.setCategory("category");
+		broadcast.setListenerHookURL(hookURL);
+		dataStore.save(broadcast);
+		String streamId = broadcast.getStreamId();
+		IPlayItem item = mock(IPlayItem.class);
+		ISubscriberStream stream = mock(ISubscriberStream.class);
+		doReturn(streamId).when(item).getName();
+		doReturn(new StringBuilder()).when(spyAdaptor).sendPOST(anyString(),anyMap());
+		assertEquals(spyAdaptor.getDataStore().get(streamId).getRtmpViewerCount(), 0);
+
+		spyAdaptor.streamPlayItemPlay(stream, item, true);
+		verify(spyAdaptor, times(1)).sendStartPlayWebHook(anyString(), anyString(), anyString());
+		Awaitility.await().atMost(2, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+				()-> {
+					boolean called = false;
+					try{
+						assertEquals(spyAdaptor.getDataStore().get(streamId).getRtmpViewerCount(), 1);
+						called = true;
+					}catch (Exception e){
+						e.printStackTrace();
+					}
+					return called;
+				});
+
+		spyAdaptor.streamPlayItemStop(stream, item);
+		verify(spyAdaptor, times(1)).sendStopPlayWebHook(anyString(), anyString(), anyString());
+		Awaitility.await().atMost(2, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+				()-> {
+					boolean called = false;
+					try{
+						assertEquals(spyAdaptor.getDataStore().get(streamId).getRtmpViewerCount(), 0);
 						called = true;
 					}catch (Exception e){
 						e.printStackTrace();
