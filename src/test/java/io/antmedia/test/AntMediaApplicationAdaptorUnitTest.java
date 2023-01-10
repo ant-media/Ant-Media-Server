@@ -33,7 +33,6 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
-import io.antmedia.statistic.ViewerStats;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
@@ -1883,7 +1882,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 				});
 
 		spyAdaptor.streamPlayItemStop(stream, item);
-		verify(spyAdaptor, times(1)).sendStopPlayWebHook(anyString(), anyString(), anyString());
+		verify(spyAdaptor, times(1)).sendStopPlayWebHook(anyString(), anyString());
 		Awaitility.await().atMost(2, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 					boolean called = false;

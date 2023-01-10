@@ -11,8 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-import io.antmedia.security.AcceptOnlyStreamsInDataStore;
-import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -21,11 +19,9 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 
-import ch.qos.logback.classic.Logger;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
@@ -310,7 +306,7 @@ public class DashViewerStatsTest {
 					()-> {
 						boolean called = false;
 						try{
-							verify(spyAdapter, times(2)).sendStopPlayWebHook(ViewerStats.DASH_TYPE, streamId, subscriberPlay2.getSubscriberId());
+							verify(spyAdapter, times(2)).sendStopPlayWebHook(streamId, subscriberPlay2.getSubscriberId());
 
 							verify(spyAdapter,times(2)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_STOP_PLAY, broadcast.getName(),broadcast.getCategory(),null,null,subscriberPlay2.getSubscriberId(),null);
 
