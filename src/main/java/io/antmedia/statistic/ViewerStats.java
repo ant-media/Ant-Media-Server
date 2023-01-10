@@ -255,9 +255,9 @@ public class ViewerStats {
 						String subscriberId = sessionId2subscriberId.get(sessionId);
 
 						if(subscriberId !=null && !subscriberId.equals("undefined")){
-							antMediaApplicationAdapter.sendStopPlayWebHook(type,streamId,subscriberId);
+							antMediaApplicationAdapter.sendStopPlayWebHook(streamId,subscriberId);
 						}else{
-							antMediaApplicationAdapter.sendStopPlayWebHook(type,streamId,sessionId);
+							antMediaApplicationAdapter.sendStopPlayWebHook(streamId,sessionId);
 						}
 						// set subscriber status to not connected
 						if(subscriberId != null) {

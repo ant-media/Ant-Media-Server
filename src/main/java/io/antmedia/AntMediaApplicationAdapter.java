@@ -554,7 +554,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				null, null, viewerId, null));
 	}
 
-	public void sendStopPlayWebHook(final String viewerPlayType, final String streamId, final String viewerId){
+	public void sendStopPlayWebHook(final String streamId, final String viewerId){
 		final Broadcast broadcast = getDataStore().get(streamId);
 		final String listenerHookURL = broadcast.getListenerHookURL();
 		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
@@ -593,7 +593,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	@Override
 	public void streamPlayItemStop(ISubscriberStream stream, IPlayItem item) {
 		final String streamId = item.getName();
-		sendStopPlayWebHook(ViewerStats.RTMP_TYPE, streamId, getRtmpViewerId());
+		sendStopPlayWebHook(streamId, getRtmpViewerId());
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(streamId, false));
 	}
 
