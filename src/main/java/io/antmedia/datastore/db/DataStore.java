@@ -947,6 +947,9 @@ public abstract class DataStore {
 		broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
+		broadcast.setStopOnNoViewerEnabled(newBroadcast.isStopOnNoViewerEnabled());
+		broadcast.setNoViewerTime(newBroadcast.getNoViewerTime());
+		broadcast.setStopOnNoViewerTimeElapseSeconds(newBroadcast.getStopOnNoViewerTimeElapseSeconds());
 	}
 
 	/**

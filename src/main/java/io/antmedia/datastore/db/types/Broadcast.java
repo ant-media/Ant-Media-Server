@@ -354,6 +354,25 @@ public class Broadcast {
 	 */
 	private long updateTime = 0;
 
+	@ApiModelProperty(value = "the identifier of whether stream should stop if there is no viewer after certain amount of seconds or not.")
+	private boolean stopOnNoViewerEnabled = false;
+
+	@ApiModelProperty(value = "time required to elapse in seconds for stream to stop after no viewer.")
+	private long stopOnNoViewerTimeElapseSeconds = 0;
+
+	/**
+	 * Time when no viewer left on stream.
+	 */
+	public long getNoViewerTime() {
+		return noViewerTime;
+	}
+
+	public void setNoViewerTime(long noViewerTime) {
+		this.noViewerTime = noViewerTime;
+	}
+
+	private long noViewerTime = 0L;
+
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
 		this.setName(name);
@@ -394,7 +413,6 @@ public class Broadcast {
 		}
 		this.streamId = id;
 	}
-
 
 	public double getSpeed() {
 		return speed;
@@ -818,6 +836,26 @@ public class Broadcast {
 
 	public void setUpdateTime(long updateTime) {
 		this.updateTime = updateTime;
+	}
+
+	public boolean isAnyoneWatching(){
+		return getDashViewerCount() != 0 || getWebRTCViewerCount() != 0 || getRtmpViewerCount() != 0 || getHlsViewerCount() != 0;
+	}
+
+	public boolean isStopOnNoViewerEnabled() {
+		return stopOnNoViewerEnabled;
+	}
+
+	public void setStopOnNoViewerEnabled(boolean stopOnNoViewerEnabled) {
+		this.stopOnNoViewerEnabled = stopOnNoViewerEnabled;
+	}
+
+	public long getStopOnNoViewerTimeElapseSeconds() {
+		return stopOnNoViewerTimeElapseSeconds;
+	}
+
+	public void setStopOnNoViewerTimeElapseSeconds(long stopOnNoViewerTimeElapseSeconds) {
+		this.stopOnNoViewerTimeElapseSeconds = stopOnNoViewerTimeElapseSeconds;
 	}
 	
 }

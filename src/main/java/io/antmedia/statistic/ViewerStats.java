@@ -261,11 +261,12 @@ public class ViewerStats {
 				if(broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
 					isBroadcasting = true;
 				}
+				boolean stopped = broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_STOPPED);
 			
 				numberOfDecrement = -1 * numberOfDecrement;
 
 				int numberOfIncrement = getIncreaseCounterMap(streamId);
-				if((numberOfIncrement != 0 || numberOfDecrement != 0) && isBroadcasting) {
+				if((numberOfIncrement != 0 || numberOfDecrement != 0) && (isBroadcasting || stopped)) {
 					
 					int diffCount = numberOfIncrement + numberOfDecrement;
 
@@ -277,6 +278,11 @@ public class ViewerStats {
 					else {
 						getDataStore().updateDASHViewerCount(streamViewerEntry.getKey(), diffCount);
 					}
+					if(broadcast.isStopOnNoViewerEnabled() && !broadcast.isAnyoneWatching()){
+						System.out.println("NO ONE IS WATCHING STREAM FROM VIEWER STATS!");
+						broadcast.setNoViewerTime(System.currentTimeMillis());
+					}
+
 					increaseCounterMap.put(streamId, 0);
 				}
 			}

@@ -797,8 +797,10 @@ public class MongoStore extends DataStore {
 				updates.add(set(META_DATA, broadcast.getMetaData()));
 				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
 				updates.add(set("updateTime", broadcast.getUpdateTime()));
+				updates.add(set("stopOnNoViewerEnabled",broadcast.isStopOnNoViewerEnabled()));
+				updates.add(set("noViewerTime", broadcast.getNoViewerTime()));
+				updates.add(set("stopOnNoViewerTimeElapse", broadcast.getStopOnNoViewerTimeElapseSeconds()));
 
-				
 				UpdateResult updateResult = query.update(updates).execute();
 				return updateResult.getModifiedCount() == 1;
 			} catch (Exception e) {

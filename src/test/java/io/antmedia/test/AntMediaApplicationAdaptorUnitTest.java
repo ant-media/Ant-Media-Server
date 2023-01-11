@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
@@ -51,6 +52,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.api.stream.IBroadcastStream;
+import org.red5.server.api.stream.IClientBroadcastStream;
+import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
 
@@ -1774,6 +1778,69 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		adapter.stopApplication(true);
 		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).close(true);
-	}	
+	}
+
+	@Test
+	public void testStopBroadcastOnNoViewer() throws Exception {
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+		StorageClient storageClient = Mockito.mock(StorageClient.class);
+		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
+
+		when(scope.getContext()).thenReturn(context);
+		spyAdapter.setDataStoreFactory(dsf);
+
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+
+		Result result = new Result(true);
+
+		spyAdapter.setScope(scope);
+		spyAdapter.setAppSettings(new AppSettings());
+		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("test-stream");
+
+		broadcast.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast.setStopOnNoViewerEnabled(true);
+		broadcast.setNoViewerTime(System.currentTimeMillis());
+		broadcast.setStopOnNoViewerTimeElapseSeconds(1);
+		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		Mockito.doReturn(result).when(spyAdapter).stopStreaming(broadcast);
+		dataStore.save(broadcast);
+
+		assertEquals(1, dataStore.getBroadcastCount());
+
+
+		spyAdapter.setDataStore(dataStore);
+
+		spyAdapter.setServerSettings(new ServerSettings());
+
+		spyAdapter.appStart(scope);
+
+
+		Awaitility.await().pollDelay(7, TimeUnit.SECONDS).until(()-> {
+			boolean called = false;
+			try {
+				verify(spyAdapter, times(1)).stopStreaming(broadcast);
+
+				called = true;
+			} catch (Exception e) {
+				e.printStackTrace();
+
+			}
+			return called;
+		});
+
+	}
 
 }

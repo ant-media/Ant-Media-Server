@@ -210,6 +210,9 @@ public class BroadcastRestService extends RestServiceBase{
 			returnObject = createBroadcastWithStreamID(broadcast);
 			
 		}
+		System.out.println("broadcast created");
+		System.out.println(broadcast.isStopOnNoViewerEnabled());
+		System.out.println(broadcast.getStopOnNoViewerTimeElapseSeconds());
 
 		return Response.status(Status.OK).entity(returnObject).build();
 	}
@@ -792,6 +795,33 @@ public class BroadcastRestService extends RestServiceBase{
 		return enableRecordMuxing(streamId, enableRecording, recordType);
 	}
 
+	@ApiOperation(value = "Enable or disable auto stop on no viewer for a stream.", notes = "", response = Result.class)
+	@PUT
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/stop-on-no-viewer/{enabled}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result enableStopOnNoViewer(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+								  @ApiParam(value = "Enable or disable auto stop on no viewer for stream. If true enables, if false disables.", required = true) @PathParam("enabled") boolean enabled,
+								  @ApiParam(value = "The time in seconds needs to pass to stop stream after no viewer left. Default is 0.", required = false) @QueryParam("timeElapse") long timeElapse) {
+
+		System.out.println("ENABLE STOP ON NO VIEWER CALLED!");
+		System.out.println(streamId);
+		System.out.println(enabled);
+		System.out.println(timeElapse);
+		final Result result = new Result(false);
+		final Broadcast stream = getDataStore().get(streamId);
+		if(stream != null){
+			stream.setStopOnNoViewerEnabled(enabled);
+			stream.setStopOnNoViewerTimeElapseSeconds(timeElapse);
+			stream.setNoViewerTime(System.currentTimeMillis());
+			boolean success = getDataStore().updateBroadcastFields(streamId, stream);
+			result.setSuccess(success);
+		}else{
+			result.setMessage("Stream not found.");
+		}
+
+		return result;
+	}
 
 	@ApiOperation(value = "Get IP Camera Error after connection failure. If returns true, it means there is an error. If returns false, there is no error", notes = "Notes here", response = Result.class)
 	@GET

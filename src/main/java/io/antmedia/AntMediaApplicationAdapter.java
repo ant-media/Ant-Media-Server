@@ -15,7 +15,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.regex.Pattern;
 import java.util.Queue;
 import java.util.Set;
 
@@ -47,8 +46,6 @@ import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.errorprone.annotations.NoAllocation;
-
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
@@ -65,7 +62,6 @@ import io.antmedia.plugin.api.IClusterStreamFetcher;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.plugin.api.IStreamListener;
-import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
@@ -154,6 +150,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	IClusterStreamFetcher clusterStreamFetcher;
 
+	private long stopBroadcastOnNoViewerPeriodicCheck = -1;
+
 	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -241,10 +239,37 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		setStorageclientSettings(appSettings);
 
+		stopBroadcastOnNoViewerPeriodicCheck = vertx.setPeriodic(5000, yt->
+		{
+			stopBroadcastOnNoViewer();
+
+		});
+
 
 		logger.info("{} started", app.getName());
 
 		return true;
+	}
+
+	public void stopBroadcastOnNoViewer(){
+		List<Broadcast> allBroadcasts = getDataStore().getBroadcastList(0,DataStore.MAX_ITEM_IN_ONE_LIST,null,null,null,null);
+		for (Broadcast broadcast : allBroadcasts) {
+			final String broadcastStatus = broadcast.getStatus();
+			final boolean stopOnNoViewerEnabled = broadcast.isStopOnNoViewerEnabled();
+			final long currentTime = System.currentTimeMillis();
+
+			if(stopOnNoViewerEnabled && broadcastStatus.equals(BROADCAST_STATUS_BROADCASTING) &&
+					!broadcast.isAnyoneWatching() && ((broadcast.getNoViewerTime() + broadcast.getStopOnNoViewerTimeElapseSeconds() * 1000) <= currentTime)){
+
+				logger.info("Auto stopping stream with id {} because no viewer.", broadcast.getStreamId());
+				broadcast.setStatus(BROADCAST_STATUS_STOPPED);
+				getDataStore().updateBroadcastFields(broadcast.getStreamId(),broadcast);
+				stopStreaming(broadcast);
+
+			}
+
+		}
+
 	}
 
 	/**
@@ -479,8 +504,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		try {
 			logger.info("Closing broadcast stream id: {}", streamId);
-			getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
 			Broadcast broadcast = getDataStore().get(streamId);
+			if(!broadcast.getStatus().equals(BROADCAST_STATUS_STOPPED)){
+				getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
+			}
 
 			if (broadcast != null) {
 				final String listenerHookURL = getListenerHookURL(broadcast);
@@ -641,6 +668,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			long now = System.currentTimeMillis();
 			broadcast.setStartTime(now);
 			broadcast.setUpdateTime(now);
+			if(broadcast.isStopOnNoViewerEnabled()){
+				broadcast.setNoViewerTime(now);
+			}
 			broadcast.setOriginAdress(getServerSettings().getHostAddress());
 			broadcast.setWebRTCViewerCount(0);
 			broadcast.setHlsViewerCount(0);
@@ -924,8 +954,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 	public Result startStreaming(Broadcast broadcast) 
-	{		
+	{
 		Result result = new Result(false);
+
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)
