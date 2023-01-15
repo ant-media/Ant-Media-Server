@@ -305,7 +305,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public boolean addMuxer(Muxer muxer, int resolutionHeight)
 	{
 		boolean result = false;
-		if (directMuxingSupported()) 
+		if (directMuxingSupported() && (resolutionHeight == 0 || resolutionHeight == height)) 
 		{	
 			if (isRecording.get()) 
 			{
@@ -1692,7 +1692,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			return null;
 		}
 
-		if(isAlreadyRecording(recordType)) {
+		if(isAlreadyRecording(recordType, resolutionHeight)) {
 			logger.warn("Record is called while {} is already recording.", streamId);
 			return null;
 		}
@@ -1777,10 +1777,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return prepared;
 	}
 
-	public boolean isAlreadyRecording(RecordType recordType) {
+	public boolean isAlreadyRecording(RecordType recordType, int resolutionHeight) {
 		for (Muxer muxer : muxerList) {
-			if((muxer instanceof Mp4Muxer && recordType == RecordType.MP4)
-					|| (muxer instanceof WebMMuxer && recordType == RecordType.WEBM)) {
+			if(((muxer instanceof Mp4Muxer && recordType == RecordType.MP4)
+					|| (muxer instanceof WebMMuxer && recordType == RecordType.WEBM))
+					&& (resolutionHeight == 0 || resolutionHeight == height)) {
 				return true;
 			}
 		}

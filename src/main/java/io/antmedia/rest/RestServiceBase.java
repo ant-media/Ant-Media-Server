@@ -1828,7 +1828,7 @@ public abstract class RestServiceBase {
 		return id;
 	}
 
-	public Result enableRecordMuxing(String streamId, boolean enableRecording, String type, int resolutionHeight ) 
+	public Result enableRecordMuxing(String streamId, boolean enableRecording, String type, int resolutionHeight) 
 	{
 		boolean result = false;
 		String message = null;
@@ -1852,12 +1852,9 @@ public abstract class RestServiceBase {
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) 
 			{
-				if ( (recordType == RecordType.WEBM && (enableRecording && broadcast.getWebMEnabled() != RECORD_ENABLE )  ||
-						( !enableRecording && broadcast.getWebMEnabled() != RECORD_DISABLE))
-						|| 							
-						( recordType == RecordType.MP4  && (enableRecording && broadcast.getMp4Enabled() != RECORD_ENABLE ) ||
-								( !enableRecording && broadcast.getMp4Enabled() != RECORD_DISABLE))
-						)
+				boolean isAlreadyRecording = isAlreadyRecording(streamId, recordType, resolutionHeight);
+				//start recording and there is no active recording or stop recording and there is active recording
+				if (enableRecording != isAlreadyRecording) 
 				{
 					result = true;
 					RecordMuxer muxer = null;
@@ -1925,6 +1922,13 @@ public abstract class RestServiceBase {
 		}
 
 		return new Result(result, vodId, message);
+	}
+
+	private boolean isAlreadyRecording(String streamId, RecordType recordType, int resolutionHeight) {
+		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
+		
+		return muxAdaptor.isAlreadyRecording(recordType, resolutionHeight);
+		
 	}
 
 	public Result importVoDs(String directory) {

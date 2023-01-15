@@ -786,7 +786,7 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "Resolution height of the broadcast that is wanted to record. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight
 			) {
 		if (logger.isInfoEnabled()) {
-			logger.info("Recording method is called for {} to make it {} and record Type: {}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null);
+			logger.info("Recording method is called for {} to make it {} and record Type: {} resolution:{}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null, resolutionHeight);
 		}
 		recordType = (recordType==null) ? RecordType.MP4.toString() : recordType;  // It means, if recordType is null, function using Mp4 Record by default
 		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight);
