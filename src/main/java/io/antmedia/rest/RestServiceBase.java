@@ -1934,7 +1934,7 @@ public abstract class RestServiceBase {
 		return new Result(result, vodId, message);
 	}
 
-	private boolean isAlreadyRecording(String streamId, RecordType recordType, int resolutionHeight) {
+	public boolean isAlreadyRecording(String streamId, RecordType recordType, int resolutionHeight) {
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		return muxAdaptor != null && muxAdaptor.isAlreadyRecording(recordType, resolutionHeight);
 	}

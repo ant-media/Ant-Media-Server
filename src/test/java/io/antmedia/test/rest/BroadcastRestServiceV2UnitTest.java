@@ -1780,9 +1780,10 @@ public class BroadcastRestServiceV2UnitTest {
 
         //disable
         doReturn(Mockito.mock(RecordMuxer.class)).when(mockMuxAdaptor).stopRecording(RecordType.WEBM, 0);
+        doReturn(true).when(restServiceSpy).isAlreadyRecording(streamId, RecordType.WEBM, 0);
 		result = restServiceSpy.enableRecordMuxing(streamId, false, "webm", 0);
 		assertTrue(result.isSuccess());
-        verify(mockMuxAdaptor, times(2)).stopRecording(RecordType.WEBM, 0);
+        verify(mockMuxAdaptor, times(1)).stopRecording(RecordType.WEBM, 0);
         assertEquals(MuxAdaptor.RECORDING_DISABLED_FOR_STREAM, store.get(streamId).getWebMEnabled());
         
       
