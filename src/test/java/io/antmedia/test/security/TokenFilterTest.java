@@ -1,7 +1,6 @@
 package io.antmedia.test.security;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -40,7 +39,6 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.filter.TokenGenerator;
-import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.security.ITokenService;
 import io.antmedia.security.TOTPGenerator;
 
@@ -123,10 +121,9 @@ public class TokenFilterTest {
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
+			assertEquals(true, tokenFilter.getAppSettings().isPlayTokenControlEnabled());
 			
 			verify(tokenService, times(1)).checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
-			
-			
 			
 		} catch (ServletException|IOException e) {
 			e.printStackTrace();
@@ -184,6 +181,7 @@ public class TokenFilterTest {
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
+			assertEquals(true, tokenFilter.getAppSettings().isPlayTokenControlEnabled());
 			
 			verify(tokenService, never()).checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
 			verify(mockResponse, times(1)).sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Request Type");	
@@ -246,6 +244,8 @@ public class TokenFilterTest {
 
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
+			
+			assertEquals(true, tokenFilter.getAppSettings().isPlayJwtControlEnabled());
 			
 			verify(tokenService, times(1)).checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN);
 			
@@ -310,6 +310,8 @@ public class TokenFilterTest {
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
+			assertEquals(true, tokenFilter.getAppSettings().isTimeTokenSubscriberOnly());
+			
 			// checkTimeBasedSubscriber is called once
 			verify(tokenService, times(1)).checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCode, false);
 			
@@ -333,9 +335,10 @@ public class TokenFilterTest {
 		when(context.isRunning()).thenReturn(true);
 		
 		ITokenService tokenService = mock(ITokenService.class);
-		AppSettings settings = mock(AppSettings.class);
+		AppSettings settings = new AppSettings();
+		
 		settings.resetDefaults();
-		settings.setPlayTokenControlEnabled(true);
+		settings.setPlayJwtControlEnabled(true);
 
 		TokenGenerator tokenGenerator = new TokenGenerator();
 		
@@ -343,7 +346,6 @@ public class TokenFilterTest {
 		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 		when(context.containsBean(TokenGenerator.BEAN_NAME)).thenReturn(true);
 		when(context.getBean(TokenGenerator.BEAN_NAME)).thenReturn(tokenGenerator);
-
 		
 		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
 				.thenReturn(context);
@@ -358,7 +360,7 @@ public class TokenFilterTest {
 			FilterChain mockChain = mock(FilterChain.class);
 			
 			String streamId = RandomStringUtils.randomAlphanumeric(8);
-			String tokenId = RandomStringUtils.randomAlphanumeric(8);
+
 			HttpSession session = mock(HttpSession.class);
 			String sessionId = RandomStringUtils.randomAlphanumeric(16);
 			String clientIP = "10.0.0.1";
@@ -366,20 +368,17 @@ public class TokenFilterTest {
 			when(mockRequest.getSession()).thenReturn(session);
 			when(mockRequest.getMethod()).thenReturn("GET");
 			when(mockRequest.getRemoteAddr()).thenReturn(clientIP);
-			
-			when(mockRequest.getParameter("token")).thenReturn(tokenId);
 			when(mockRequest.getAttribute("ClusterToken")).thenReturn(tokenGenerator.getGenetaredToken());
-			
 			
 			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
 			
-			when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
-
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
+			verify(mockResponse, times(0)).sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid JWT Token");
+			verify(mockChain, times(1)).doFilter(mockRequest, mockResponse); // It means that it should pass
 			
-			verify(settings).isPlayTokenControlEnabled();
+			assertEquals(true, tokenFilter.getAppSettings().isPlayJwtControlEnabled());
 			
 		} catch (ServletException|IOException e) {
 			e.printStackTrace();

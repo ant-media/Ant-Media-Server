@@ -83,7 +83,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		if (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) 
 		{
 
-			if (tokenGenerator == null || clusterToken == null || clusterToken.equals(tokenGenerator.getGenetaredToken())) {
+			if (tokenGenerator == null || clusterToken == null) {
 				//if it enters this block, it means 
 				// 1. server may be is in cluster mode and this is origin node
 				// 2. server in standalone mode
@@ -152,8 +152,13 @@ public class TokenFilterManager extends AbstractFilter   {
 						return;
 					}
 				}
+				chain.doFilter(request, response);	
 			}
-			chain.doFilter(request, response);	
+			// If clusterToken is using then we should check also tokenGeneratorToken parameter
+			else if( clusterToken != null && clusterToken.equals(tokenGenerator.getGenetaredToken())) {
+				chain.doFilter(request, response);	
+			}
+
 		}
 		else {
 			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
