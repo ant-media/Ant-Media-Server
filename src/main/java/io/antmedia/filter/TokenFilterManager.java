@@ -158,6 +158,10 @@ public class TokenFilterManager extends AbstractFilter   {
 			else if( clusterToken != null && clusterToken.equals(tokenGenerator.getGenetaredToken())) {
 				chain.doFilter(request, response);	
 			}
+			else{
+				httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid clusterToken");
+				logger.warn("Invalid clusterToken");
+			}
 
 		}
 		else {
