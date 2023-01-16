@@ -85,7 +85,7 @@ public abstract class RestServiceBase {
 
 		@ApiModelProperty(value = "the total WebRTC viewers of the stream")
 		public final int totalWebRTCWatchersCount;
-		
+
 		@ApiModelProperty(value = "the total DASH viewers of the stream")
 		public final int totalDASHWatchersCount;
 
@@ -1143,7 +1143,7 @@ public abstract class RestServiceBase {
 			for (String id : vodIds) 
 			{
 				result = deleteVoD(id);
-				
+
 				if (!result.isSuccess()) 
 				{
 					logger.warn("VoD:{} cannot be deleted and breaking the loop", id);
@@ -1211,12 +1211,12 @@ public abstract class RestServiceBase {
 					if(id != null) {
 						success = true;
 						message = id;
-						
+
 						String vodFinishScript = getAppSettings().getVodFinishScript();
 						if (vodFinishScript != null && !vodFinishScript.isEmpty()) {
 							getApplication().runScript(vodFinishScript + "  " + savedFile.getAbsolutePath());
 						}
-						
+
 					} 
 				}
 			} 
@@ -1240,7 +1240,7 @@ public abstract class RestServiceBase {
 		String message = "";
 
 		String vodFolder = getAppSettings().getVodFolder();
-		
+
 		logger.info("synch user vod list vod folder is {}", vodFolder);
 
 		if (vodFolder != null && vodFolder.length() > 0) {
@@ -1362,7 +1362,7 @@ public abstract class RestServiceBase {
 			HlsViewerStats hlsViewerStats = (HlsViewerStats) getAppContext().getBean(HlsViewerStats.BEAN_NAME);
 			totalHLSViewer = hlsViewerStats.getTotalViewerCount();
 		}
-		
+
 		if (getAppContext().containsBean(DashViewerStats.BEAN_NAME)) {
 			DashViewerStats dashViewerStats = (DashViewerStats) getAppContext().getBean(DashViewerStats.BEAN_NAME);
 			totalDASHViewer = dashViewerStats.getTotalViewerCount();
@@ -1492,7 +1492,7 @@ public abstract class RestServiceBase {
 
 		return list;
 	}
-	
+
 	protected String[] getOnvifDeviceProfiles(String id) {
 		OnvifCamera camera = getApplication().getOnvifCamera(id);
 		return camera.getProfiles();
@@ -1834,7 +1834,7 @@ public abstract class RestServiceBase {
 		String message = null;
 		String status = (enableRecording)?"started":"stopped"; 
 		String vodId = null;
-		
+
 		RecordType recordType = null;
 		//type cannot be null
 		if (type.equals(RecordType.MP4.toString())) 
@@ -1845,22 +1845,31 @@ public abstract class RestServiceBase {
 		{
 			recordType = RecordType.WEBM;
 		}
-		
-		
+
+
 		if (streamId != null && recordType != null) 
 		{
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) 
 			{
-				boolean isAlreadyRecording = isAlreadyRecording(streamId, recordType, resolutionHeight);
-				//start recording and there is no active recording or stop recording and there is active recording
-				if (enableRecording != isAlreadyRecording) 
+				if(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 				{
+					if(recordType == RecordType.MP4) {
+						broadcast.setMp4Enabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
+					else {
+						broadcast.setWebMEnabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
 					result = true;
-					RecordMuxer muxer = null;
-					//if it's not enabled, start it
-					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-					{	
+				}
+				else {
+					boolean isAlreadyRecording = isAlreadyRecording(streamId, recordType, resolutionHeight);
+					//start recording and there is no active recording or stop recording and there is active recording
+					if (enableRecording != isAlreadyRecording) 
+					{
+						result = true;
+						RecordMuxer muxer = null;
+
 						if (isInSameNodeInCluster(broadcast.getOriginAdress())) 
 						{
 							if (enableRecording) 
@@ -1872,7 +1881,7 @@ public abstract class RestServiceBase {
 									message = Long.toString(muxer.getCurrentVoDTimeStamp());
 									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
 								}
-								
+
 							}
 							else 
 							{
@@ -1882,7 +1891,7 @@ public abstract class RestServiceBase {
 									message = Long.toString(muxer.getCurrentVoDTimeStamp());
 								}
 							}
-							
+
 							//Check process status result
 							if (muxer == null) 
 							{
@@ -1897,17 +1906,18 @@ public abstract class RestServiceBase {
 							result = false;
 						}
 					}
-					// If record process works well then change record status in DB
-					if (result) 
+
+				}
+				// If record process works well then change record status in DB
+				if (result) 
+				{
+					if (recordType == RecordType.WEBM) 
 					{
-						if (recordType == RecordType.WEBM) 
-						{
-							result = getDataStore().setWebMMuxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-						}
-						else if (recordType == RecordType.MP4) 
-						{
-							result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
-						}
+						result = getDataStore().setWebMMuxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
+					else if (recordType == RecordType.MP4) 
+					{
+						result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
 					}
 				}
 				else
@@ -1926,9 +1936,7 @@ public abstract class RestServiceBase {
 
 	private boolean isAlreadyRecording(String streamId, RecordType recordType, int resolutionHeight) {
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
-		
-		return muxAdaptor.isAlreadyRecording(recordType, resolutionHeight);
-		
+		return muxAdaptor != null && muxAdaptor.isAlreadyRecording(recordType, resolutionHeight);
 	}
 
 	public Result importVoDs(String directory) {
