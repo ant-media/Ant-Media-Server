@@ -6,10 +6,11 @@ public interface IStreamStats {
 
 	/**
 	 * Register a new viewer to a stream
+	 *
 	 * @param streamId
 	 * @param sessionId
 	 */
-	void registerNewViewer(String streamId, String sessionId, String subscriberId, String playType, AntMediaApplicationAdapter antMediaApplicationAdapter);
+	void registerNewViewer(String streamId, String sessionId, String subscriberId, AntMediaApplicationAdapter antMediaApplicationAdapter);
 	
 	
 	/**
