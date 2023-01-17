@@ -538,7 +538,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
-	public void sendStartPlayWebHook(final String viewerPlayType, final String streamId, final String viewerId){
+	public void sendStartPlayWebHook(final String streamId, final String viewerId){
 		final Broadcast broadcast = getDataStore().get(streamId);
 		final String listenerHookURL = broadcast.getListenerHookURL();
 		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
@@ -584,7 +584,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	@Override
 	public void streamPlayItemPlay(ISubscriberStream stream, IPlayItem item, boolean isLive) {
 		final String streamId = item.getName();
-		sendStartPlayWebHook(ViewerStats.RTMP_TYPE, streamId, getRtmpViewerId());
+		sendStartPlayWebHook(streamId, getRtmpViewerId());
 		vertx.setTimer(1, l -> getDataStore().updateRtmpViewerCount(streamId, true));
 	}
 	@Override

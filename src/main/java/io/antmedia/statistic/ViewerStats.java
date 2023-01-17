@@ -69,9 +69,9 @@ public class ViewerStats {
 					increaseCounterMap.put(streamId, streamIncrementCounter);
 
 					if(subscriberId != null && !subscriberId.equals("undefined")){
-						antMediaApplicationAdapter.sendStartPlayWebHook(viewerPlayType, streamId, subscriberId);
+						antMediaApplicationAdapter.sendStartPlayWebHook(streamId, subscriberId);
 					}else{
-						antMediaApplicationAdapter.sendStartPlayWebHook(viewerPlayType, streamId, sessionId);
+						antMediaApplicationAdapter.sendStartPlayWebHook(streamId, sessionId);
 					}
 				}
 				viewerMap.put(sessionId, System.currentTimeMillis());
