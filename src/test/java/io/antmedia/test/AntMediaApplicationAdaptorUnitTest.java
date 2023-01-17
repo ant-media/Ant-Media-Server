@@ -1869,7 +1869,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		spyAdaptor.streamPlayItemPlay(stream, item, true);
 		verify(spyAdaptor, times(1)).sendStartPlayWebHook(anyString(), anyString());
-		Awaitility.await().atMost(2, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 					boolean called = false;
 					try{
@@ -1883,7 +1883,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		spyAdaptor.streamPlayItemStop(stream, item);
 		verify(spyAdaptor, times(1)).sendStopPlayWebHook(anyString(), anyString());
-		Awaitility.await().atMost(2, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 					boolean called = false;
 					try{

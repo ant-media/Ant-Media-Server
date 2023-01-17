@@ -543,6 +543,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void sendStartPlayWebHook(final String streamId, final String viewerId){
 		final Broadcast broadcast = getDataStore().get(streamId);
+		if(broadcast == null){
+			return;
+		}
 		final String listenerHookURL = broadcast.getListenerHookURL();
 		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
 			return;
@@ -556,6 +559,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void sendStopPlayWebHook(final String streamId, final String viewerId){
 		final Broadcast broadcast = getDataStore().get(streamId);
+		if(broadcast == null){
+			return;
+		}
 		final String listenerHookURL = broadcast.getListenerHookURL();
 		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
 			return;
@@ -569,6 +575,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void sendStartRecordWebHook(final String streamId){
 		final Broadcast broadcast = getDataStore().get(streamId);
+		if(broadcast == null){
+			return;
+		}
 		final String listenerHookURL = broadcast.getListenerHookURL();
 		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
 			return;
