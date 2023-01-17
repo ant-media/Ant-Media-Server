@@ -52,7 +52,7 @@ public class ViewerStats {
 	 */
 	protected int timeoutMS = 20000;
 	
-	public void registerNewViewer(String streamId, String sessionId, String subscriberId, String viewerPlayType, AntMediaApplicationAdapter antMediaApplicationAdapter)
+	public void registerNewViewer(String streamId, String sessionId, String subscriberId, AntMediaApplicationAdapter antMediaApplicationAdapter)
 	{
 		//do not block the thread, run in vertx event queue 
 		vertx.runOnContext(h -> {

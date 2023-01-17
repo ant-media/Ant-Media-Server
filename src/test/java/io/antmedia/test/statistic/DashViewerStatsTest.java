@@ -72,7 +72,7 @@ public class DashViewerStatsTest {
 
 		for (int i = 0; i < 100; i++) {
 			String sessionId = String.valueOf((Math.random() * 999999));
-			viewerStats.registerNewViewer(streamId, sessionId, null, ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, antMediaApplicationAdapter);
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -86,7 +86,7 @@ public class DashViewerStatsTest {
 		//Add same session ID
 		for (int i = 0; i < 10; i++) {
 			String sessionId = "sameSessionID";
-			viewerStats.registerNewViewer(streamId, sessionId, null, ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, antMediaApplicationAdapter);
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -122,7 +122,7 @@ public class DashViewerStatsTest {
 		// check if viewer is added
 		AntMediaApplicationAdapter antMediaApplicationAdapter = mock(AntMediaApplicationAdapter.class);
 
-		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
+		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), antMediaApplicationAdapter);
 		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 				boolean eventExist = false;
@@ -248,8 +248,8 @@ public class DashViewerStatsTest {
 
 			//spyAdapter.setDataStoreFactory(dsf);
 
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), ViewerStats.DASH_TYPE, spyAdapter);
-			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay.getSubscriberId(), ViewerStats.DASH_TYPE, spyAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), spyAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay.getSubscriberId(), spyAdapter);
 
 
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -276,8 +276,8 @@ public class DashViewerStatsTest {
 					()->viewerStats.getTotalViewerCount() == 2 );
 
 			//Viewer timeout increase
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId(), ViewerStats.DASH_TYPE, spyAdapter);
-			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay2.getSubscriberId(), ViewerStats.DASH_TYPE, spyAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId(), spyAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay2.getSubscriberId(), spyAdapter);
 
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()-> {
@@ -339,7 +339,7 @@ public class DashViewerStatsTest {
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			
 			
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay3.getSubscriberId(), ViewerStats.DASH_TYPE, spyAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay3.getSubscriberId(), spyAdapter);
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);
@@ -424,9 +424,7 @@ public class DashViewerStatsTest {
 			antMediaApplicationAdapter.setAppSettings(settings);
 
 
-			//AntMediaApplicationAdapter spyAdapter = Mockito.spy(new AntMediaApplicationAdapter());
-
-			viewerStats.registerNewViewer(streamId, sessionId, null, ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, antMediaApplicationAdapter);
 
 
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -439,7 +437,7 @@ public class DashViewerStatsTest {
 					()->viewerStats.getTotalViewerCount() == 1 );
 			
 			//Viewer timeout increase
-			viewerStats.registerNewViewer(streamId, sessionId, null, ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, antMediaApplicationAdapter);
 			
 			// Check viewer is online
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
@@ -460,7 +458,7 @@ public class DashViewerStatsTest {
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			
-			viewerStats.registerNewViewer(streamId, sessionId, null, ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, antMediaApplicationAdapter);
 
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);

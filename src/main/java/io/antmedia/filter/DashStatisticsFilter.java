@@ -10,7 +10,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
 
-import io.antmedia.statistic.ViewerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,7 +50,7 @@ public class DashStatisticsFilter extends AbstractFilter {
 				logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
 				IStreamStats stats = getStreamStats(DashViewerStats.BEAN_NAME);
 				if (stats != null) {
-					stats.registerNewViewer(streamId, sessionId, subscriberId, ViewerStats.DASH_TYPE, getAntMediaApplicationAdapter());
+					stats.registerNewViewer(streamId, sessionId, subscriberId, getAntMediaApplicationAdapter());
 				}
 			}
 		}
