@@ -1865,15 +1865,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ISubscriberStream stream = mock(ISubscriberStream.class);
 		doReturn(streamId).when(item).getName();
 		doReturn(new StringBuilder()).when(spyAdaptor).sendPOST(anyString(),anyMap());
-		assertEquals(spyAdaptor.getDataStore().get(streamId).getRtmpViewerCount(), 0);
+		assertEquals(0, spyAdaptor.getDataStore().get(streamId).getRtmpViewerCount());
 
 		spyAdaptor.streamPlayItemPlay(stream, item, true);
-		verify(spyAdaptor, times(1)).sendStartPlayWebHook(anyString(), anyString(), anyString());
+		verify(spyAdaptor, times(1)).sendStartPlayWebHook(anyString(), anyString());
 		Awaitility.await().atMost(2, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 					boolean called = false;
 					try{
-						assertEquals(spyAdaptor.getDataStore().get(streamId).getRtmpViewerCount(), 1);
+						assertEquals(1, spyAdaptor.getDataStore().get(streamId).getRtmpViewerCount());
 						called = true;
 					}catch (Exception e){
 						e.printStackTrace();
@@ -1887,7 +1887,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 				()-> {
 					boolean called = false;
 					try{
-						assertEquals(spyAdaptor.getDataStore().get(streamId).getRtmpViewerCount(), 0);
+						assertEquals(0, spyAdaptor.getDataStore().get(streamId).getRtmpViewerCount());
 						called = true;
 					}catch (Exception e){
 						e.printStackTrace();

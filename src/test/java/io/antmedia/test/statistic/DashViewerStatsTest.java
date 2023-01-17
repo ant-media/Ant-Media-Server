@@ -256,7 +256,7 @@ public class DashViewerStatsTest {
 					()-> {
 						boolean called = false;
 						try{
-							verify(spyAdapter, times(2)).sendStartPlayWebHook(ViewerStats.DASH_TYPE, streamId, subscriberPlay.getSubscriberId());
+							verify(spyAdapter, times(2)).sendStartPlayWebHook(streamId, subscriberPlay.getSubscriberId());
 							verify(spyAdapter,times(2)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_START_PLAY, broadcast.getName(),broadcast.getCategory(),null,null,subscriberPlay.getSubscriberId(),null);
 							called = true;
 						}catch (Exception e){
