@@ -1817,11 +1817,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 		doReturn(new StringBuilder()).when(spyAdaptor).sendPOST(anyString(),anyMap());
 
 		spyAdaptor.startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_WEBRTC);
-		verify(spyAdaptor, times(1)).sendStartRecordWebHook(streamId);
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 					boolean called = false;
 					try{
+						verify(spyAdaptor, times(1)).sendStartRecordWebHook(streamId);
 						verify(spyAdaptor,times(1)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_START_RECORD, broadcast.getName(),broadcast.getCategory(),null,null,null,null);
 						called = true;
 					}catch (Exception e){
