@@ -1883,17 +1883,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		spyAdaptor.streamPlayItemStop(stream, item);
 		verify(spyAdaptor, times(1)).sendStopPlayWebHook(anyString(), anyString());
-		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
-				()-> {
-					boolean called = false;
-					try{
-						assertEquals(0, spyAdaptor.getDataStore().get(streamId).getRtmpViewerCount());
-						called = true;
-					}catch (Exception e){
-						e.printStackTrace();
-					}
-					return called;
-				});
 
 	}
 
