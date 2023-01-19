@@ -778,6 +778,7 @@ public abstract class MapBasedDataStore extends DataStore {
 						Subscriber subscriber = gson.fromJson(subscriberRaw, Subscriber.class);
 						if (subscriber != null) {
 							subscriber.setConnected(false);
+							subscriber.setCurrentConcurrentConnections(0);
 							subscriberMap.put(subscriber.getSubscriberKey(), gson.toJson(subscriber));
 						}
 					}

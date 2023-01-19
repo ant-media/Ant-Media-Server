@@ -38,8 +38,11 @@ public class WebRTCClientStats {
 	@ApiModelProperty(value = "Free text information for the client")
 	private String clientInfo;
 
+	@ApiModelProperty(value = "WebRTC Client's ip address")
+	private String clientIp;
+
 	public WebRTCClientStats(int measuredBitrate, int sendBitrate, double videoFrameSendPeriod, double audioFrameSendPeriod, 
-			long videoPacketCount, long audioPacketCount, int clientId, String clientInfo) {
+			long videoPacketCount, long audioPacketCount, int clientId, String clientInfo, String clientIp) {
 		this.measuredBitrate = measuredBitrate;
 		this.sendBitrate = sendBitrate;
 		this.videoFrameSendPeriod = videoFrameSendPeriod;
@@ -48,6 +51,7 @@ public class WebRTCClientStats {
 		this.audioPacketCount = audioPacketCount;
 		this.clientId = clientId;
 		this.clientInfo = clientInfo;
+		this.clientIp = clientIp;
 	}
 
 	public double getAudioFrameSendPeriod() {
@@ -129,5 +133,9 @@ public class WebRTCClientStats {
 	public void setClientInfo(String clientInfo) {
 		this.clientInfo = clientInfo;
 	}
+
+	public String getClientIp() { return clientIp; }
+
+	public void setClientIp(String clientIp) { this.clientIp = clientIp; }
 	
 }

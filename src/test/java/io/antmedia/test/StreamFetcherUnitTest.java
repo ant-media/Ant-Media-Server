@@ -7,7 +7,15 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.global.avformat;
@@ -55,8 +64,10 @@ import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcher.WorkerThread;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
+import static org.bytedeco.ffmpeg.global.avutil.AVERROR_EOF;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -1101,6 +1112,42 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 
+	}
+	
+	
+	@Test
+	public void testVODStreamingInCaseOfReadProblem() {
+		StreamFetcher fetcher = new StreamFetcher("", "", AntMediaApplicationAdapter.VOD, appScope, vertx);
+		fetcher.setMuxAdaptor(mock(MuxAdaptor.class));
+		WorkerThread worker = spy(fetcher.new WorkerThread());
+		
+		try {
+			doReturn(true).when(worker).prepareInputContext();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		doNothing().when(worker).packetRead(any());
+		doNothing().when(worker).close(any());
+		doNothing().when(worker).unReferencePacket(any());
+
+
+		doReturn(0).when(worker).readNextPacket(any());
+		assertTrue(worker.readMore(mock(AVPacket.class)));
+		verify(worker, times(1)).packetRead(any());
+		
+		
+		assertTrue(worker.readMore(mock(AVPacket.class)));
+		verify(worker, times(2)).packetRead(any());
+		
+		//return negative in VOD mode it won'tstop but not use packet
+		doReturn(-1).when(worker).readNextPacket(any());
+		assertTrue(worker.readMore(mock(AVPacket.class)));
+		verify(worker, times(2)).packetRead(any());
+		
+		//return AVERROR_EOF
+		doReturn(AVERROR_EOF).when(worker).readNextPacket(any());
+		assertFalse(worker.readMore(mock(AVPacket.class)));
+		verify(worker, times(2)).packetRead(any());
 	}
 
 
