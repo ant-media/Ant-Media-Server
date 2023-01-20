@@ -49,13 +49,14 @@ import static org.bytedeco.ffmpeg.global.avformat.avio_open;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_PASS_MINMAX;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
 import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
@@ -65,6 +66,12 @@ import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.IntPointer;
+
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 
@@ -171,6 +178,12 @@ public class Mp4Muxer extends RecordMuxer {
 		return true;
 	}
 
+	/**
+	 * 
+	 * @param srcFile
+	 * @param dstFile
+	 * @param rotation clockwise rotation
+	 */
 	public static void remux(String srcFile, String dstFile, int rotation) {
 		AVFormatContext inputContext = new AVFormatContext(null);
 		int ret;
@@ -200,10 +213,20 @@ public class Mp4Muxer extends RecordMuxer {
 			}
 			stream.codecpar().codec_tag(0);
 
-			if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
-				AVDictionary metadata = new AVDictionary();
-				av_dict_set(metadata, "rotate", rotation+"", 0);
-				stream.metadata(metadata);
+			if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) 
+			{	
+				//display matrix is 3x3
+				IntPointer rotationMatrixPointer = new IntPointer(9);
+				
+				avutil.av_display_rotation_set(rotationMatrixPointer, rotation);
+
+				BytePointer bytePointer = new BytePointer(rotationMatrixPointer);
+				bytePointer.limit(rotationMatrixPointer.sizeof() * rotationMatrixPointer.limit());
+				
+				ret = avformat.av_stream_add_side_data(stream, avcodec.AV_PKT_DATA_DISPLAYMATRIX , bytePointer, bytePointer.limit());
+				if (ret < 0) {
+					loggerStatic.error("Cannot add rotation matrix side data to file:{}", dstFile);
+				}				
 			}
 		}
 
@@ -251,6 +274,7 @@ public class Mp4Muxer extends RecordMuxer {
 	protected void finalizeRecordFile(final File file) throws IOException {
 		if (isAVCConversionRequired ) {
 			logger.info("AVC conversion needed for MP4 {}", fileTmp.getName());
+			//TODO: There are AV_PKT_DATA_DISPLAYMATRIX and 
 			remux(fileTmp.getAbsolutePath(),file.getAbsolutePath(), rotation);
 			Files.delete(fileTmp.toPath());
 		}

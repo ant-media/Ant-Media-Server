@@ -9,6 +9,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
+import static org.bytedeco.ffmpeg.global.avformat.av_stream_get_side_data;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
@@ -79,6 +80,8 @@ import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.IntPointer;
+import org.bytedeco.javacpp.SizeTPointer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -3336,10 +3339,17 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			AVCodecParameters codecpar = inputFormatContext.streams(i).codecpar();
 			if (codecpar.codec_type() == AVMEDIA_TYPE_VIDEO) {
 				AVStream videoStream = inputFormatContext.streams(i);
+				
+				SizeTPointer size = new SizeTPointer(1);
+				BytePointer displayMatrixBytePointer = av_stream_get_side_data(videoStream, avcodec.AV_PKT_DATA_DISPLAYMATRIX, size);
+				//it should be 36 because it's a 3x3 integer(size=4). 
+				assertEquals(36, size.get());
+				
+				IntPointer displayPointerIntPointer = new IntPointer(displayMatrixBytePointer);
+				//it gets counter clockwise
+				int rotation = (int) -(avutil.av_display_rotation_get(displayPointerIntPointer));
 
-				AVDictionaryEntry entry = av_dict_get(videoStream.metadata(), "rotate", null, 0);
-
-				assertEquals("90", entry.value().getString());
+				assertEquals(90, rotation);
 			}
 		}
 
