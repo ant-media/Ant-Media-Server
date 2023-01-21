@@ -1725,10 +1725,10 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue(restServiceSpy.enableRecordMuxing(testBroadcast.getStreamId(), true, "mp4", 0).isSuccess());
 		verify(mockMuxAdaptor).startRecording(RecordType.MP4, 0);
 
+		when(mockMuxAdaptor.isAlreadyRecording(RecordType.MP4, 0)).thenReturn(true);
 		mockMuxers.add(mockMp4Muxer);
 
         assertEquals(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM, ((Broadcast)restServiceSpy.getBroadcast(testBroadcast.getStreamId()).getEntity()).getMp4Enabled());
-
         assertTrue(restServiceSpy.enableRecordMuxing(testBroadcast.getStreamId(), false, "mp4", 0).isSuccess());
         verify(mockMuxAdaptor).stopRecording(RecordType.MP4, 0);
     }
