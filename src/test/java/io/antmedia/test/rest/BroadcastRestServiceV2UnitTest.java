@@ -12,6 +12,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -1537,7 +1538,9 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals("Please send " + type + " recording request to " + broadcast3.getOriginAdress() + " node or send request in a stopped status.",result.getMessage());
 		
 		// Stop MP4 Recording && Broadcast Status: Broadcasting, mp4Enabled: 0, it should return false
-		result = restServiceReal.enableRecordMuxing(broadcast3.getStreamId(), false,type, 0);
+		BroadcastRestService restServiceSpy = spy(restServiceReal);
+		doReturn(true).when(restServiceSpy).isAlreadyRecording(broadcast3.getStreamId(), RecordType.MP4, 0);
+		result = restServiceSpy.enableRecordMuxing(broadcast3.getStreamId(), false,type, 0);		
 		assertFalse(result.isSuccess());
 		assertEquals("Please send " + type + " recording request to " + broadcast3.getOriginAdress() + " node or send request in a stopped status.",result.getMessage());
 		

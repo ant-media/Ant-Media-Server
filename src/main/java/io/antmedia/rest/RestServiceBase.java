@@ -1906,6 +1906,15 @@ public abstract class RestServiceBase {
 							result = false;
 						}
 					}
+					else {
+						if(enableRecording) {
+							message = type+" recording couldn't be started";
+						}
+						else {
+							message = type+" recording couldn't be stopped";
+						}
+						result = false;
+					}
 
 				}
 				// If record process works well then change record status in DB
@@ -1919,10 +1928,6 @@ public abstract class RestServiceBase {
 					{
 						result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
 					}
-				}
-				else
-				{
-					message =  type + " recording status  is already: " +enableRecording;
 				}
 			}
 		}
