@@ -150,8 +150,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	IClusterStreamFetcher clusterStreamFetcher;
 
-	private long stopBroadcastOnNoViewerPeriodicCheck = -1;
-
 	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -239,12 +237,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		setStorageclientSettings(appSettings);
 
-		stopBroadcastOnNoViewerPeriodicCheck = vertx.setPeriodic(5000, yt->
-		{
-			stopBroadcastOnNoViewer();
-
-		});
-
+		vertx.setPeriodic(5000, yt-> stopBroadcastOnNoViewer());
 
 		logger.info("{} started", app.getName());
 
@@ -255,7 +248,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		List<Broadcast> allBroadcasts = getDataStore().getBroadcastList(0,DataStore.MAX_ITEM_IN_ONE_LIST,null,null,null,null);
 		for (Broadcast broadcast : allBroadcasts) {
 			final String broadcastStatus = broadcast.getStatus();
-			final boolean stopOnNoViewerEnabled = broadcast.isStopOnNoViewerEnabled();
+			final boolean stopOnNoViewerEnabled = broadcast.isAutoStartStopEnabled();
 			final long currentTime = System.currentTimeMillis();
 
 			if(stopOnNoViewerEnabled && broadcastStatus.equals(BROADCAST_STATUS_BROADCASTING) &&
@@ -505,11 +498,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		try {
 			logger.info("Closing broadcast stream id: {}", streamId);
 			Broadcast broadcast = getDataStore().get(streamId);
-			if(!broadcast.getStatus().equals(BROADCAST_STATUS_STOPPED)){
-				getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
-			}
-
 			if (broadcast != null) {
+
+				if(!broadcast.getStatus().equals(BROADCAST_STATUS_STOPPED)){
+					getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
+				}
+
 				final String listenerHookURL = getListenerHookURL(broadcast);
 				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
 					final String name = broadcast.getName();
@@ -668,7 +662,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			long now = System.currentTimeMillis();
 			broadcast.setStartTime(now);
 			broadcast.setUpdateTime(now);
-			if(broadcast.isStopOnNoViewerEnabled()){
+			if(broadcast.isAutoStartStopEnabled()){
 				broadcast.setNoViewerTime(now);
 			}
 			broadcast.setOriginAdress(getServerSettings().getHostAddress());
@@ -1732,6 +1726,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				break;
 
 			}
+		}
+	}
+
+	public void autoStartBroadcast(Broadcast broadcast){
+		logger.info("Auto starting stream with id {} because there is a viewer requesting. Auto start will only work for IP Camera, Stream Source, VOD and playlist stream types.", broadcast.getStreamId());
+		getDataStore().updateStatus(broadcast.getStreamId(), BROADCAST_STATUS_PREPARING);
+		if(startStreaming(broadcast).isSuccess()){
+			logger.info("Auto starting stream with id {} success.", broadcast.getStreamId());
+		}else{
+			getDataStore().updateStatus(broadcast.getStreamId(), BROADCAST_STATUS_FINISHED);
+			logger.info("Auto starting stream with id {} failed. Auto start will only work for IP Camera, Stream Source, VOD and playlist stream types.", broadcast.getStreamId());
 		}
 	}
 

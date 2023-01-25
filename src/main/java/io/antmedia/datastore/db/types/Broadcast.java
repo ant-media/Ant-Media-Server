@@ -355,7 +355,7 @@ public class Broadcast {
 	private long updateTime = 0;
 
 	@ApiModelProperty(value = "the identifier of whether stream should stop if there is no viewer after certain amount of seconds or not.")
-	private boolean stopOnNoViewerEnabled = false;
+	private boolean autoStartStopEnabled = false;
 
 	@ApiModelProperty(value = "time required to elapse in seconds for stream to stop after no viewer.")
 	private long stopOnNoViewerTimeElapseSeconds = 0;
@@ -842,12 +842,12 @@ public class Broadcast {
 		return getDashViewerCount() != 0 || getWebRTCViewerCount() != 0 || getRtmpViewerCount() != 0 || getHlsViewerCount() != 0;
 	}
 
-	public boolean isStopOnNoViewerEnabled() {
-		return stopOnNoViewerEnabled;
+	public boolean isAutoStartStopEnabled() {
+		return autoStartStopEnabled;
 	}
 
-	public void setStopOnNoViewerEnabled(boolean stopOnNoViewerEnabled) {
-		this.stopOnNoViewerEnabled = stopOnNoViewerEnabled;
+	public void setAutoStartStopEnabled(boolean autoStartStopEnabled) {
+		this.autoStartStopEnabled = autoStartStopEnabled;
 	}
 
 	public long getStopOnNoViewerTimeElapseSeconds() {

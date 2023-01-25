@@ -52,9 +52,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.IBroadcastStream;
-import org.red5.server.api.stream.IClientBroadcastStream;
-import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
 
@@ -1807,16 +1804,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setAppSettings(new AppSettings());
 		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
 
-		Broadcast broadcast = new Broadcast();
-		broadcast.setStreamId("test-stream");
+		Broadcast broadcast1 = new Broadcast();
+		broadcast1.setStreamId("test-stream");
 
-		broadcast.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
-		broadcast.setStopOnNoViewerEnabled(true);
-		broadcast.setNoViewerTime(System.currentTimeMillis());
-		broadcast.setStopOnNoViewerTimeElapseSeconds(1);
-		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-		Mockito.doReturn(result).when(spyAdapter).stopStreaming(broadcast);
-		dataStore.save(broadcast);
+		broadcast1.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast1.setAutoStartStopEnabled(true);
+		broadcast1.setNoViewerTime(System.currentTimeMillis());
+		broadcast1.setStopOnNoViewerTimeElapseSeconds(1);
+		broadcast1.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		Mockito.doReturn(result).when(spyAdapter).stopStreaming(broadcast1);
+		dataStore.save(broadcast1);
 
 		assertEquals(1, dataStore.getBroadcastCount());
 
@@ -1825,13 +1822,51 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		spyAdapter.setServerSettings(new ServerSettings());
 
-		spyAdapter.appStart(scope);
+		//spyAdapter.appStart(scope);
 
+
+
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setStreamId("test-stream2");
+
+		broadcast2.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast2.setAutoStartStopEnabled(true);
+		broadcast2.setNoViewerTime(System.currentTimeMillis());
+		broadcast2.setStopOnNoViewerTimeElapseSeconds(1);
+		broadcast2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast2.setHlsViewerCount(5);
+		dataStore.save(broadcast2);
+
+
+		Broadcast broadcast3 = new Broadcast();
+		broadcast3.setStreamId("test-stream3");
+
+		broadcast3.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast3.setAutoStartStopEnabled(true);
+		broadcast3.setNoViewerTime(System.currentTimeMillis());
+		broadcast3.setStopOnNoViewerTimeElapseSeconds(1);
+		broadcast3.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast3.setWebRTCViewerCount(5);
+		dataStore.save(broadcast3);
+
+		Broadcast broadcast4 = new Broadcast();
+		broadcast4.setStreamId("test-stream4");
+
+		broadcast4.setStatus(spyAdapter.BROADCAST_STATUS_FINISHED);
+		broadcast4.setAutoStartStopEnabled(true);
+		dataStore.save(broadcast4);
+
+
+		spyAdapter.appStart(scope);
 
 		Awaitility.await().pollDelay(7, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
 			try {
-				verify(spyAdapter, times(1)).stopStreaming(broadcast);
+				verify(spyAdapter, times(1)).stopStreaming(broadcast1);
+
+				verify(spyAdapter, times(0)).stopStreaming(broadcast2);
+				verify(spyAdapter, times(0)).stopStreaming(broadcast3);
+				verify(spyAdapter, times(0)).stopStreaming(broadcast4);
 
 				called = true;
 			} catch (Exception e) {
@@ -1840,6 +1875,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			}
 			return called;
 		});
+
 
 	}
 

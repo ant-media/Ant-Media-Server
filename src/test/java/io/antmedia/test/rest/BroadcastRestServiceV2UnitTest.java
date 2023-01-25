@@ -6,8 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -3038,6 +3037,30 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(2, profiles.length);
 		
 		assertNull(streamSourceRest.getOnvifDeviceProfiles("invalid id"));
+
+	}
+
+	@Test
+	public void testEnableAutoStartStop(){
+		ApplicationContext currentcontext = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(currentcontext);
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		Broadcast broadcast = mock(Broadcast.class);
+		try {
+			broadcast.setStreamId("stream");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		store.save(broadcast);
+
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+
+		assertTrue(restServiceSpy.enableAutoStartStop(broadcast.getStreamId(), true, 5).isSuccess());
+		verify(broadcast, times(1)).setAutoStartStopEnabled(true);
+		verify(broadcast, times(1)).setStopOnNoViewerTimeElapseSeconds(5);
+		verify(broadcast, times(2)).setNoViewerTime(anyLong());
+		assertFalse(restServiceSpy.enableAutoStartStop("", true, 5).isSuccess());
 
 	}
 	

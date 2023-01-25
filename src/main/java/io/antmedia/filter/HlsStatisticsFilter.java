@@ -10,7 +10,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
 
-import io.antmedia.AntMediaApplicationAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -26,12 +25,14 @@ public class HlsStatisticsFilter extends AbstractFilter {
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
 
+
 		HttpServletRequest httpRequest =(HttpServletRequest)request;
 
 		String method = httpRequest.getMethod();
 		if (HttpMethod.GET.equals(method) && httpRequest.getRequestURI().endsWith("m3u8")) {
 			//only accept GET methods
 			String sessionId = httpRequest.getSession().getId();
+
 			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
 			String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 			Broadcast broadcast = getBroadcast(streamId);
@@ -41,10 +42,11 @@ public class HlsStatisticsFilter extends AbstractFilter {
 				((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Viewer Limit Reached");
 				return;
 			}
-		
+
 			chain.doFilter(request, response);
 
 			int status = ((HttpServletResponse) response).getStatus();
+
 			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST && streamId != null)
 			{
 				logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
@@ -52,7 +54,6 @@ public class HlsStatisticsFilter extends AbstractFilter {
 				if (stats != null) {
 					stats.registerNewViewer(streamId, sessionId, subscriberId);
 
-					
 				}
 			}
 		}

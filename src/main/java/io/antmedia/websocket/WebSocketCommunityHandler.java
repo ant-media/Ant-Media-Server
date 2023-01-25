@@ -65,7 +65,6 @@ public class WebSocketCommunityHandler {
 	public void onMessage(Session session, String message) {
 		//json parser is not thread-safe
 		JSONParser jsonParser = new JSONParser();
-		System.out.println("MESSAGE CAME COMMUNITY!");
 		try {
 
 			if (message == null) {

@@ -152,8 +152,6 @@ public class BroadcastRestService extends RestServiceBase{
 	public Response createBroadcast(@ApiParam(value = "Broadcast object. Set the required fields, it may be null as well.", required = false) Broadcast broadcast,
 			@ApiParam(value = "Only effective if stream is IP Camera or Stream Source. If it's true, it starts automatically pulling stream. Its value is false by default", required = false, defaultValue="false") @QueryParam("autoStart") boolean autoStart) {
 
-
-
 		if (broadcast != null && broadcast.getStreamId() != null) {
 
 			try {
@@ -210,9 +208,6 @@ public class BroadcastRestService extends RestServiceBase{
 			returnObject = createBroadcastWithStreamID(broadcast);
 			
 		}
-		System.out.println("broadcast created");
-		System.out.println(broadcast.isStopOnNoViewerEnabled());
-		System.out.println(broadcast.getStopOnNoViewerTimeElapseSeconds());
 
 		return Response.status(Status.OK).entity(returnObject).build();
 	}
@@ -795,31 +790,26 @@ public class BroadcastRestService extends RestServiceBase{
 		return enableRecordMuxing(streamId, enableRecording, recordType);
 	}
 
-	@ApiOperation(value = "Enable or disable auto stop on no viewer for a stream.", notes = "", response = Result.class)
+	@ApiOperation(value = "Enable or disable auto start on viewer and auto stop on no viewer for a stream.", notes = "Start stream when there is a viewer trying to watch. Stop stream if no one is watching after n seconds.", response = Result.class)
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/stop-on-no-viewer/{enabled}")
+	@Path("/{id}/auto-start-stop/{enabled}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result enableStopOnNoViewer(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
-								  @ApiParam(value = "Enable or disable auto stop on no viewer for stream. If true enables, if false disables.", required = true) @PathParam("enabled") boolean enabled,
-								  @ApiParam(value = "The time in seconds needs to pass to stop stream after no viewer left. Default is 0.", required = false) @QueryParam("timeElapse") long timeElapse) {
+	public Result enableAutoStartStop(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+									  @ApiParam(value = "Enable or disable auto start on viewer and auto stop on no viewer for stream. If true enables, if false disables.", required = true) @PathParam("enabled") boolean enabled,
+									  @ApiParam(value = "The time in seconds needs to pass to stop stream after no viewer left. Default is 0.", required = false) @QueryParam("timeElapseToStop") long timeElapseToStop) {
 
-		System.out.println("ENABLE STOP ON NO VIEWER CALLED!");
-		System.out.println(streamId);
-		System.out.println(enabled);
-		System.out.println(timeElapse);
 		final Result result = new Result(false);
 		final Broadcast stream = getDataStore().get(streamId);
 		if(stream != null){
-			stream.setStopOnNoViewerEnabled(enabled);
-			stream.setStopOnNoViewerTimeElapseSeconds(timeElapse);
+			stream.setAutoStartStopEnabled(enabled);
+			stream.setStopOnNoViewerTimeElapseSeconds(timeElapseToStop);
 			stream.setNoViewerTime(System.currentTimeMillis());
 			boolean success = getDataStore().updateBroadcastFields(streamId, stream);
 			result.setSuccess(success);
 		}else{
 			result.setMessage("Stream not found.");
 		}
-
 		return result;
 	}
 

@@ -151,7 +151,7 @@ public class WaitingViewerFilterTest {
             when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_NOT_FOUND);
             Broadcast broadcast = new Broadcast();
             broadcast.setStreamId(streamId);
-            broadcast.setStopOnNoViewerEnabled(true);
+            broadcast.setAutoStartStopEnabled(true);
             broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_STOPPED);
             dataStore.save(broadcast);
 
@@ -160,8 +160,15 @@ public class WaitingViewerFilterTest {
             logger.info("session id {}, stream id {}", sessionId, streamId);
             waitingViewerFilter.doFilter(mockRequest, mockResponse, mockChain);
 
+            verify(antMediaApplicationAdapter, times(1)).autoStartBroadcast(broadcast);
 
-            verify(antMediaApplicationAdapter, times(1)).startStreaming(broadcast);
+
+            when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+broadcast.getStreamId()+"/.m4s");
+            broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+            when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_BAD_GATEWAY);
+            waitingViewerFilter.doFilter(mockRequest, mockResponse, mockChain);
+
+
 
 
 

@@ -278,8 +278,7 @@ public class ViewerStats {
 					else {
 						getDataStore().updateDASHViewerCount(streamViewerEntry.getKey(), diffCount);
 					}
-					if(broadcast.isStopOnNoViewerEnabled() && !broadcast.isAnyoneWatching()){
-						System.out.println("NO ONE IS WATCHING STREAM FROM VIEWER STATS!");
+					if(broadcast.isAutoStartStopEnabled() && !broadcast.isAnyoneWatching()){
 						broadcast.setNoViewerTime(System.currentTimeMillis());
 					}
 

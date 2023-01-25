@@ -1,12 +1,9 @@
 package io.antmedia.filter;
 
-import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.statistic.HlsViewerStats;
-import io.antmedia.statistic.IStreamStats;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -26,21 +23,17 @@ public class WaitingViewerFilter extends AbstractFilter{
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         final HttpServletRequest httpRequest =(HttpServletRequest)request;
         final String method = httpRequest.getMethod();
-        System.out.println(method);
         if(HttpMethod.HEAD.equals(method) && (httpRequest.getRequestURI().endsWith("m3u8") || httpRequest.getRequestURI().endsWith("m4s"))){
             final String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
-            System.out.println("inside");
-            System.out.println(streamId);
             final Broadcast broadcast = getBroadcast(streamId);
             if(broadcast != null){
                 final String broadcastStatus = broadcast.getStatus();
 
-                if(broadcast.isStopOnNoViewerEnabled() && (broadcastStatus.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_STOPPED) || broadcastStatus.equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED))){
+                if(broadcast.isAutoStartStopEnabled() && (broadcastStatus.equals(IAntMediaStreamHandler.BROADCAST_STATUS_STOPPED) || broadcastStatus.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED))){
                     final int status = ((HttpServletResponse) response).getStatus();
                     if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_NOT_FOUND)
                     {
-                        getAntMediaApplicationAdapter().getDataStore().updateStatus(streamId,AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
-                        getAntMediaApplicationAdapter().startStreaming(broadcast);
+                        getAntMediaApplicationAdapter().autoStartBroadcast(broadcast);
                     }
 
                 }
