@@ -17,6 +17,8 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
+import static io.antmedia.filter.JWTFilter.JWT_TOKEN;
+
 public class HlsStatisticsFilter extends AbstractFilter {
 
 	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilter.class);
@@ -52,7 +54,9 @@ public class HlsStatisticsFilter extends AbstractFilter {
 				logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
 				IStreamStats stats = getStreamStats(HlsViewerStats.BEAN_NAME);
 				if (stats != null) {
-					stats.registerNewViewer(streamId, sessionId, subscriberId, getAntMediaApplicationAdapter());
+					final String tokenId =  request.getParameter("token");
+					stats.registerNewViewer(streamId, sessionId, subscriberId, tokenId, getAntMediaApplicationAdapter());
+
 				}
 			}
 		}

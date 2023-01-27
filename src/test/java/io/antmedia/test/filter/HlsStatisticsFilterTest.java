@@ -162,7 +162,7 @@ public class HlsStatisticsFilterTest {
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, antMediaApplicationAdapter);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
 
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -211,15 +211,15 @@ public class HlsStatisticsFilterTest {
 			hlsStatisticsFilter.init(filterconfig);
 
 			String sessionId = requestHls(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, antMediaApplicationAdapter);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
 			broadcast.setHlsViewerCount(1);
 			
 			String sessionId2 = requestHls(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null, antMediaApplicationAdapter);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null, null, antMediaApplicationAdapter);
 			broadcast.setHlsViewerCount(2);
 
 			String sessionId3 = requestHls(streamId);		
-			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null, antMediaApplicationAdapter);
+			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null, null, antMediaApplicationAdapter);
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));

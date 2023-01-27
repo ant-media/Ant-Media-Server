@@ -41,6 +41,7 @@ public class ViewerStats {
 	private int timePeriodMS = DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT;
 	
 	Map<String, Map<String, Long>> streamsViewerMap = new ConcurrentHashMap<>();
+	Map<String, String> sessionId2Jwt = new ConcurrentHashMap<>();
 	Map<String, String> sessionId2subscriberId = new ConcurrentHashMap<>();
 	Map<String, Integer> increaseCounterMap = new ConcurrentHashMap<>();
 	
@@ -52,7 +53,7 @@ public class ViewerStats {
 	 */
 	protected int timeoutMS = 20000;
 	
-	public void registerNewViewer(String streamId, String sessionId, String subscriberId, AntMediaApplicationAdapter antMediaApplicationAdapter)
+	public void registerNewViewer(String streamId, String sessionId, String subscriberId, String jwt, AntMediaApplicationAdapter antMediaApplicationAdapter)
 	{
 		//do not block the thread, run in vertx event queue 
 		vertx.runOnContext(h -> {
@@ -70,10 +71,12 @@ public class ViewerStats {
 
 					if(subscriberId != null && !subscriberId.equals("undefined")){
 
-						antMediaApplicationAdapter.sendStartPlayWebHook(streamId, subscriberId);
-
+						antMediaApplicationAdapter.sendStartPlayWebHook(streamId, subscriberId, jwt);
 					}else{
-						antMediaApplicationAdapter.sendStartPlayWebHook(streamId, sessionId);
+						antMediaApplicationAdapter.sendStartPlayWebHook(streamId, sessionId, jwt);
+					}
+					if(jwt != null){
+						sessionId2Jwt.put(sessionId, jwt);
 					}
 				}
 				viewerMap.put(sessionId, System.currentTimeMillis());
@@ -107,6 +110,9 @@ public class ViewerStats {
 				String sessionId = viewer.getKey();
 				if(sessionId2subscriberId.containsKey(sessionId)) {
 					sessionId2subscriberId.remove(sessionId);					
+				}
+				if(sessionId2Jwt.containsKey(sessionId)){
+					sessionId2Jwt.remove(sessionId);
 				}
 			}
 			
@@ -254,11 +260,11 @@ public class ViewerStats {
 
 						String sessionId = viewer.getKey();
 						String subscriberId = sessionId2subscriberId.get(sessionId);
-
+						String jwt = sessionId2Jwt.get(sessionId);
 						if(subscriberId !=null && !subscriberId.equals("undefined")){
-							antMediaApplicationAdapter.sendStopPlayWebHook(streamId,subscriberId);
+							antMediaApplicationAdapter.sendStopPlayWebHook(streamId, subscriberId, jwt);
 						}else{
-							antMediaApplicationAdapter.sendStopPlayWebHook(streamId,sessionId);
+							antMediaApplicationAdapter.sendStopPlayWebHook(streamId, sessionId, jwt);
 						}
 						// set subscriber status to not connected
 						if(subscriberId != null) {

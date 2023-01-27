@@ -106,7 +106,7 @@ public class AuthenticationFilter extends AbstractFilter {
 		if (serverSettings != null 
 				&& serverSettings.isJwtServerControlEnabled()
 				&& httpRequest.getHeader(JWT_TOKEN) != null) {
-			if(checkJWT(httpRequest.getHeader(JWT_TOKEN))) {
+			if(checkJWTServerSettings(httpRequest.getHeader(JWT_TOKEN))) {
 				chain.doFilter(request, response);
 			}
 			else {
@@ -235,7 +235,7 @@ public class AuthenticationFilter extends AbstractFilter {
 	}
 	
 
-	private boolean checkJWT( String jwtString) {
+	private boolean checkJWTServerSettings(String jwtString) {
 		boolean result = true;
 		try {
 
