@@ -41,6 +41,8 @@ public class JWTFilter extends AbstractFilter {
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 
 		if(appSettings != null && !appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN)))) {
+
+
 			chain.doFilter(request, response);
 			return;
 		}
@@ -48,34 +50,4 @@ public class JWTFilter extends AbstractFilter {
 		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid App JWT Token");
 	}
 
-	private boolean checkJWT( String jwtString) {
-		boolean result = true;
-		try {
-
-			String jwksURL = appSettings.getJwksURL();
-
-			if (jwksURL != null && !jwksURL.isEmpty()) {
-				DecodedJWT jwt = JWT.decode(jwtString);
-				JwkProvider provider = new UrlJwkProvider(appSettings.getJwksURL());
-				Jwk jwk = provider.get(jwt.getKeyId());
-				Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
-				algorithm.verify(jwt);
-			}
-			else {
-				Algorithm algorithm = Algorithm.HMAC256(appSettings.getJwtSecretKey());
-				JWTVerifier verifier = JWT.require(algorithm)
-						.build();
-				verifier.verify(jwtString);
-			}
-
-		}
-		catch (JWTVerificationException ex) {
-			logger.error(ex.toString());
-			result = false;
-		} catch (JwkException e) {
-			logger.error(e.toString());
-			result = false;
-		}
-		return result;
-	}
 }
