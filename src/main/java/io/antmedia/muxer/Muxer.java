@@ -60,6 +60,7 @@ import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
@@ -680,7 +681,7 @@ public abstract class Muxer {
 	 * @param streamIndex, is the stream index of source
 	 * @return
 	 */
-	public synchronized boolean addAudioStream(int sampleRate, int channelLayout, int codecId, int streamIndex) {
+	public synchronized boolean addAudioStream(int sampleRate, AVChannelLayout channelLayout, int codecId, int streamIndex) {
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
 		if (outputContext != null && isCodecSupported(codecId))
@@ -688,7 +689,7 @@ public abstract class Muxer {
 			registeredStreamIndexList.add(streamIndex);
 			AVStream outStream = avformat_new_stream(outputContext, null);
 			outStream.codecpar().sample_rate(sampleRate);
-			outStream.codecpar().channel_layout(channelLayout);
+			outStream.codecpar().ch_layout(channelLayout);
 			outStream.codecpar().codec_id(codecId);
 			outStream.codecpar().codec_type(AVMEDIA_TYPE_AUDIO);
 			outStream.codecpar().codec_tag(0);

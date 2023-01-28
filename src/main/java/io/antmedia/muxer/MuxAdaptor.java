@@ -12,6 +12,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
+import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
 import static org.bytedeco.ffmpeg.global.avutil.av_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_get_default_channel_layout;
 import static org.bytedeco.ffmpeg.global.avutil.av_malloc;
@@ -37,6 +38,7 @@ import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.javacpp.BytePointer;
 import org.red5.codec.AVCVideo;
@@ -254,6 +256,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	
 	private AVRational videoTimeBase = TIME_BASE_FOR_MS;
 	private AVRational audioTimeBase = TIME_BASE_FOR_MS;
+	private AVChannelLayout channelLayout;
 
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, boolean isSource, IScope scope) {
 		MuxAdaptor muxAdaptor = null;
@@ -533,8 +536,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			{
 				audioCodecParameters = new AVCodecParameters();
 				audioCodecParameters.sample_rate(aacParser.getSampleRate());
-				audioCodecParameters.channels(aacParser.getChannelCount());
-				audioCodecParameters.channel_layout(av_get_default_channel_layout(aacParser.getChannelCount()));
+				
+				channelLayout = new AVChannelLayout();
+				av_channel_layout_default(channelLayout, aacParser.getChannelCount());
+				
+				audioCodecParameters.ch_layout(channelLayout);
+				
 				audioCodecParameters.codec_id(AV_CODEC_ID_AAC);
 				audioCodecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
 

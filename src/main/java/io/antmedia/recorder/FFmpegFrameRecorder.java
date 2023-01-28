@@ -1281,11 +1281,14 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             frame.data(i, samples_out[i].position(0));
             frame.linesize(i, linesize);
         }
-        frame.channels(audio_c.channels());
         frame.format(audio_c.sample_fmt());
         frame.quality(audio_c.global_quality());
+        frame.sample_rate(audio_c.sample_rate());
+        frame.channels(audio_c.channels());
+        frame.channel_layout(av_get_default_channel_layout(audio_c.channels()));
         writeFrame(frame);
     }
+
 
     private boolean writeFrame(AVFrame frame) throws Exception {
         int ret;

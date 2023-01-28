@@ -22,6 +22,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
+import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
 import static org.bytedeco.ffmpeg.global.avutil.av_get_default_channel_layout;
 import static org.junit.Assert.assertEquals;
@@ -73,6 +74,7 @@ import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVInputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
 import org.bytedeco.ffmpeg.avutil.AVRational;
@@ -302,7 +304,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		mp4Muxer.init(appScope, "test",0, "", 0);
 		assertEquals(0, mp4Muxer.getOutputFormatContext().nb_streams());
-		assertTrue(mp4Muxer.addAudioStream(44100, 3, AV_CODEC_ID_AAC, 0));
+		AVChannelLayout layout = new AVChannelLayout();
+		av_channel_layout_default(layout, 1);
+		assertTrue(mp4Muxer.addAudioStream(44100, layout, AV_CODEC_ID_AAC, 0));
 		
 		assertEquals(1, mp4Muxer.getOutputFormatContext().nb_streams());
 		
