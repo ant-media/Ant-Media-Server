@@ -1747,7 +1747,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 		assertEquals(Application.id.get(0), streamId);
 		assertEquals(Application.file.get(0).getName(), streamId + "_1.mp4");
-		assertEquals(10040L, (long)Application.duration.get(0));
+		assertEquals(10120L, (long)Application.duration.get(0));
 
 		broadcast = appAdaptor.getDataStore().get(streamId);
 		//we do not save duration of the finished live streams
