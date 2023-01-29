@@ -1167,8 +1167,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		AACConfigParser aacConfigParser = new AACConfigParser(aacConfig, 0);
 		AVCodecParameters audioCodecParameters = new AVCodecParameters();
 		audioCodecParameters.sample_rate(aacConfigParser.getSampleRate());
-		audioCodecParameters.channels(aacConfigParser.getChannelCount());
-		audioCodecParameters.channel_layout(av_get_default_channel_layout(aacConfigParser.getChannelCount()));
+
+		AVChannelLayout chLayout = new AVChannelLayout();
+		avutil.av_channel_layout_default(chLayout, aacConfigParser.getChannelCount());
+		audioCodecParameters.ch_layout(chLayout);
+
 		audioCodecParameters.codec_id(AV_CODEC_ID_AAC);
 		audioCodecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
 

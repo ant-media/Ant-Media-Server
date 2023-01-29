@@ -71,6 +71,7 @@ import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
 import org.bytedeco.javacpp.IntPointer;
+import org.bytedeco.javacpp.Pointer;
 
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
@@ -216,7 +217,18 @@ public class Mp4Muxer extends RecordMuxer {
 			if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) 
 			{	
 				//display matrix is 3x3
-				IntPointer rotationMatrixPointer = new IntPointer(9);
+				int size = 9 * Pointer.sizeof(IntPointer.class);
+
+				//Let me try to explain Why we're allocation with av_malloc here.
+
+				//if we just allocate with new Inpointer(size), the memory is released after some time by garbage collector
+				//Then avformat_free_context(outputContext) also free the memory in side data and we get double-free or corrupted memory
+				//Keep in mind that Memory allocated in the native side with av_malloc is not got free by gc.
+
+				//On the other hand, if av_stream_add_side_data below would copy the side data, there would be no problem.
+				//av_stream_add_side_data just sets the pointer
+				//mekya Jan 29, 22
+				IntPointer rotationMatrixPointer = new IntPointer(avutil.av_malloc(size)).capacity(size);
 				
 				avutil.av_display_rotation_set(rotationMatrixPointer, rotation);
 
