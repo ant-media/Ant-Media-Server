@@ -157,41 +157,6 @@ if [ "$chainFileExist" != "$privateKeyFileExist" ]; then
    exit 1
 fi
 
-
-get_freedomain(){
-  hostname="ams-$RANDOM"
-  get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
-  if [ ! -z $get_license_key ]; then
-    if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then
-      ip=`curl -s http://checkip.amazonaws.com`
-      check_api=`curl -s -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=$get_license_key"`
-      if [ $? != 0 ]; then
-        echo "There is a problem with the script. Please re-run the enable_ssl.sh script."
-        exit 1
-      elif [ $check_api == 400 ]; then
-        echo "The domain exists, please re-run the enable_ssl.sh script."
-        exit 400
-      elif [ $check_api == 401 ]; then
-        echo "The license key is invalid."
-        exit 401
-      fi
-      while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
-        now=$(date +"%H:%M:%S")
-        echo "$now > Waiting for DNS validation."
-        sleep 10
-      done
-      domain="$hostname"".antmedia.cloud"
-      echo "DNS success, installing the SSL certificate."
-      freedomain="true"
-    else
-      domain=`cat $INSTALL_DIRECTORY/conf/red5.properties |egrep "ams-[0-9]*.antmedia.cloud" -o | uniq`
-    fi
-  else
-    echo "Please make sure you enter your license key and use the Enterprise edition."
-    exit 1
-  fi
-}
-
 get_freedomain(){
   hostname="ams-$RANDOM"
   get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
@@ -426,9 +391,6 @@ check_domain_name(){
     fi
 }
 
-=======
-    fi
-}
 
 if [ "$helpRequest" == "true" ]
 then
@@ -443,7 +405,6 @@ if [ ! -d "$INSTALL_DIRECTORY" ]; then
   usage
   exit 1
 fi
->>>>>>> 76915c0d8a3e530e9541dd21c7fd70fe8815eff8
 
 #check domain name
 check_domain_name
@@ -485,7 +446,7 @@ then
 	output
 	$SUDO sed -i "/http.sslDomain=/c\http.sslDomain=$domain"  $INSTALL_DIRECTORY/conf/red5.properties
 	output
-elif [ "$fullChainFileExist" == "true" ] && [ "$chainFileExist" == "true" ] && [ "$keyFileExist" == "true" ];
+elif [ "$fullChainFileExist" == "true" ] && [ "$chainFileExist" == "true" ] && [ "$privateKeyFileExist" == "true" ];
 then
 	$SUDO sed -i "/http.sslConfigurationType=/c\http.sslConfigurationType=CUSTOM_CERTIFICATE"  $INSTALL_DIRECTORY/conf/red5.properties
 	output
