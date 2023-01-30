@@ -104,7 +104,7 @@ public class RTMPAdaptorTest {
 		 */
 		assertNull(session.getUserProperties().get(streamId));
 
-		verify(webSocketHandler).sendPublishStartedMessage(streamId, session, null);
+		verify(webSocketHandler).sendPublishStartedMessage(streamId, session, null, "");
 	}
 
 	
@@ -386,7 +386,7 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.onIceCandidate(iceCandidate);
 
 
-		verify(webSocketHandler).sendTakeCandidateMessage(iceCandidate.sdpMLineIndex, iceCandidate.sdpMid, iceCandidate.sdp, streamId, session, "");
+		verify(webSocketHandler).sendTakeCandidateMessage(iceCandidate.sdpMLineIndex, iceCandidate.sdpMid, iceCandidate.sdp, streamId, session, "", "");
 
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND,  WebSocketConstants.TAKE_CANDIDATE_COMMAND);
@@ -395,6 +395,7 @@ public class RTMPAdaptorTest {
 		jsonObject.put(WebSocketConstants.CANDIDATE_SDP, iceCandidate.sdp);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
 		jsonObject.put(WebSocketConstants.LINK_SESSION, "");
+		jsonObject.put(WebSocketConstants.SUBSCRIBER_ID, "");
 
 		try {
 			verify(basicRemote).sendText(jsonObject.toJSONString());
@@ -458,19 +459,20 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.isStarted()
 				);
 
-		verify(webSocketHandler).sendStartMessage(streamId, session);
+		verify(webSocketHandler).sendStartMessage(streamId, session, "");
 
 		SessionDescription sdp = new SessionDescription(Type.OFFER, RandomStringUtils.randomAlphanumeric(6));
 
 		rtmpAdaptor.onCreateSuccess(sdp);
 
-		verify(webSocketHandler).sendSDPConfiguration(sdp.description, "offer", streamId, session, null, "");
+		verify(webSocketHandler).sendSDPConfiguration(sdp.description, "offer", streamId, session, null, "", "");
 		JSONObject jsonResponseObject = new JSONObject();
 		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
 		jsonResponseObject.put(WebSocketConstants.SDP, sdp.description);
 		jsonResponseObject.put(WebSocketConstants.TYPE, "offer");
 		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
 		jsonResponseObject.put(WebSocketConstants.LINK_SESSION, "");
+		jsonResponseObject.put(WebSocketConstants.SUBSCRIBER_ID, "");
 		try {
 			verify(basicRemote).sendText(jsonResponseObject.toJSONString());
 		} catch (IOException e) {
@@ -484,12 +486,13 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.getSignallingExecutor().isShutdown()
 				);
 
-		verify(webSocketHandler).sendPublishFinishedMessage(streamId, session);
+		verify(webSocketHandler).sendPublishFinishedMessage(streamId, session, "");
 
 		JSONObject jsonObj = new JSONObject();
 		jsonObj.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonObj.put(WebSocketConstants.DEFINITION, WebSocketConstants.PUBLISH_FINISHED);
 		jsonObj.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonObj.put(WebSocketConstants.SUBSCRIBER_ID, "");
 		try {
 			verify(basicRemote).sendText(jsonObj.toJSONString());
 		} catch (IOException e) {

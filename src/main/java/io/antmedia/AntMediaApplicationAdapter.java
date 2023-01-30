@@ -84,6 +84,7 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
@@ -1317,7 +1318,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return publishTimeoutStreams;
 	}
 
-	public synchronized void publishTimeoutError(String streamId) {
+	public synchronized void publishTimeoutError(String streamId, String subscriberId) {
 		publishTimeoutStreams++;
 		publishTimeoutStreamsList.add(streamId);
 		Broadcast broadcast = getDataStore().get(streamId);
@@ -1329,7 +1330,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				final String name = broadcast.getName();
 				final String category = broadcast.getCategory();
 				logger.info("Setting timer to call hook that means live stream is not started to the publish timeout for stream:{}", streamId);
-				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_PUBLISH_TIMEOUT_ERROR, name, category, null, null, null));
+				
+				JSONObject jsonResponse = new JSONObject();
+				jsonResponse.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
+				
+				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_PUBLISH_TIMEOUT_ERROR, name, category, null, null, jsonResponse.toJSONString()));
 			}
 		}
 	}

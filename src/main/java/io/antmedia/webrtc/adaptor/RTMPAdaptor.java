@@ -297,7 +297,7 @@ public class RTMPAdaptor extends Adaptor {
 
 				peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, RTMPAdaptor.this);
 
-				webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession());
+				webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession(), "");
 
 				videoEncoderFuture = videoEncoderExecutor.scheduleWithFixedDelay(this::encodeVideo, 10, 10, TimeUnit.MILLISECONDS);
 				audioEncoderFuture = audioEncoderExecutor.scheduleWithFixedDelay(this::encodeAudio, 10, 10, TimeUnit.MILLISECONDS);
@@ -338,7 +338,7 @@ public class RTMPAdaptor extends Adaptor {
 		signallingExecutor.execute(() -> {
 
 			logger.info("Executing stop procedure for stream: {}", getStreamId());
-			webSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession());
+			webSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession(), "");
 
 
 			audioEncoderExecutor.shutdownNow();
@@ -534,7 +534,7 @@ public class RTMPAdaptor extends Adaptor {
 		}
 
 
-		webSocketCommunityHandler.sendPublishStartedMessage(getStreamId(), getSession(), null);
+		webSocketCommunityHandler.sendPublishStartedMessage(getStreamId(), getSession(), null, "");
 
 	}
 
