@@ -1735,7 +1735,7 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	public static Map<String,String> getRoomInfoFromConference(String roomId, String streamId,DataStore store){
+	public static Map<String,String> getRoomInfoFromConference(String roomId, String streamId, DataStore store){
 		HashMap<String,String> streamDetailsMap = null;
 
 		if (roomId != null)
