@@ -176,35 +176,5 @@ public abstract class AbstractFilter implements Filter{
 		return antMediaApplicationAdapter;
 
 	}
-	protected boolean checkJWT(String jwtString) {
-		boolean result = true;
-		try {
-			AppSettings appSettings = getAppSettings();
-			String jwksURL = appSettings.getJwksURL();
-
-			if (jwksURL != null && !jwksURL.isEmpty()) {
-				DecodedJWT jwt = JWT.decode(jwtString);
-				JwkProvider provider = new UrlJwkProvider(appSettings.getJwksURL());
-				Jwk jwk = provider.get(jwt.getKeyId());
-				Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
-				algorithm.verify(jwt);
-			}
-			else {
-				Algorithm algorithm = Algorithm.HMAC256(appSettings.getJwtSecretKey());
-				JWTVerifier verifier = JWT.require(algorithm)
-						.build();
-				verifier.verify(jwtString);
-			}
-
-		}
-		catch (JWTVerificationException ex) {
-			logger.error(ex.toString());
-			result = false;
-		} catch (JwkException e) {
-			logger.error(e.toString());
-			result = false;
-		}
-		return result;
-	}
 	
 }

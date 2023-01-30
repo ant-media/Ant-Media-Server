@@ -121,7 +121,7 @@ public class HlsViewerStatsTest {
 
 
 		// check if viewer is added
-		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), null, antMediaApplicationAdapter);
+		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), "jwt", antMediaApplicationAdapter);
 		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 				boolean eventExist = false;
