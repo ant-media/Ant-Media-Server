@@ -22,6 +22,8 @@ import java.io.InputStream;
 import java.lang.ProcessHandle.Info;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -46,6 +48,8 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -70,6 +74,9 @@ public class MuxingTest {
 	public static long videoStartTimeMs;
 	public static boolean audioExists;
 	public static boolean videoExists;
+	
+	protected static Logger logger = LoggerFactory.getLogger(MuxingTest.class);
+
 
 	static {
 		String osName = System.getProperty("os.name", "").toLowerCase();
@@ -209,10 +216,22 @@ public class MuxingTest {
 			fail(e.getMessage());
 		}
 
-		Awaitility.await().atMost(140, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
-			return 0 == restService.callGetLiveStatistics();
+			if (0 == restService.callGetLiveStatistics()) {
+				return true;
+			}
+			else {
+				List<Broadcast> broadcastList = restService.callGetBroadcastList();
+				if (broadcastList != null) {
+					for (Broadcast broadcast : broadcastList) {
+						logger.info("stream on the server side:{}", broadcast.getStreamId());
+					}
+				}
+				
+			}
+			return false;
 		});
 
 	}
