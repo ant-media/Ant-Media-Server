@@ -625,7 +625,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(2)).getListenerHookURL(broadcast);
 		
 		
-		spyAdaptor.publishTimeoutError(broadcast.getStreamId());
+		spyAdaptor.publishTimeoutError(broadcast.getStreamId(), "");
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(3)).getListenerHookURL(broadcast);
 		
 		spyAdaptor.incrementEncoderNotOpenedError(broadcast.getStreamId());
@@ -740,7 +740,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		 * PUBLISH TIMEOUT ERROR
 		 */
 
-		spyAdaptor.publishTimeoutError(broadcast.getStreamId());
+		spyAdaptor.publishTimeoutError(broadcast.getStreamId(), "");
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -1159,7 +1159,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		adapter.setDataStoreFactory(dataStoreFactory);
 
-		adapter.publishTimeoutError("streamId");
+		adapter.publishTimeoutError("streamId", "");
 
 		assertEquals(1, adapter.getNumberOfPublishTimeoutError());
 	}

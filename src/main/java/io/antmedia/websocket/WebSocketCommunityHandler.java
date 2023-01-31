@@ -219,13 +219,13 @@ public class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	public  void sendSDPConfiguration(String description, String type, String streamId, Session session, Map<String, String> midSidMap, String linkedSessionForSignaling) {
+	public  void sendSDPConfiguration(String description, String type, String streamId, Session session, Map<String, String> midSidMap, String linkedSessionForSignaling, String subscriberId) {
 
-		sendMessage(getSDPConfigurationJSON (description, type,  streamId, midSidMap, linkedSessionForSignaling).toJSONString(), session);
+		sendMessage(getSDPConfigurationJSON (description, type,  streamId, midSidMap, linkedSessionForSignaling, subscriberId).toJSONString(), session);
 	}
 
 	@SuppressWarnings("unchecked")
-	public  void sendPublishStartedMessage(String streamId, Session session, String roomName) {
+	public  void sendPublishStartedMessage(String streamId, Session session, String roomName, String subscriberId) {
 		
 		JSONObject jsonObj = new JSONObject();
 		jsonObj.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
@@ -236,6 +236,7 @@ public class WebSocketCommunityHandler {
 			jsonObj.put(WebSocketConstants.ATTR_ROOM_NAME, roomName); //keep it for compatibility
 			jsonObj.put(WebSocketConstants.ROOM, roomName);
 		}
+		jsonObj.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 
 		sendMessage(jsonObj.toJSONString(), session);
 	}
@@ -257,21 +258,22 @@ public class WebSocketCommunityHandler {
 	
 
 	@SuppressWarnings("unchecked")
-	public  void sendPublishFinishedMessage(String streamId, Session session) {
+	public  void sendPublishFinishedMessage(String streamId, Session session, String subscriberId) {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonObject.put(WebSocketConstants.DEFINITION,  WebSocketConstants.PUBLISH_FINISHED);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
-
+		jsonObject.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 		sendMessage(jsonObject.toJSONString(), session);
 	}
 
 	@SuppressWarnings("unchecked")
-	public  void sendStartMessage(String streamId, Session session) 
+	public  void sendStartMessage(String streamId, Session session, String subscriberId) 
 	{
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.START_COMMAND);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonObject.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 
 		sendMessage(jsonObject.toJSONString(), session);
 	}
@@ -286,10 +288,10 @@ public class WebSocketCommunityHandler {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session, String linkedSessionForSignaling)
+	public void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session, String linkedSessionForSignaling, String subscriberId)
 	{
 
-		sendMessage(getTakeCandidateJSON(sdpMLineIndex, sdpMid, sdp, streamId, linkedSessionForSignaling).toJSONString(), session);
+		sendMessage(getTakeCandidateJSON(sdpMLineIndex, sdpMid, sdp, streamId, linkedSessionForSignaling, subscriberId).toJSONString(), session);
 	}
 
 
@@ -313,6 +315,7 @@ public class WebSocketCommunityHandler {
 	 * 
 	 * @param streamIdNameMap this is the map that keys are stream ids and values are stream names
 	 * @param roomId is the id of the room
+	 * @param subscriberId 
 	 */
 	public void sendRoomInformation(Map<String,String> streamIdNameMap , String roomId) 
 	{
@@ -366,7 +369,7 @@ public class WebSocketCommunityHandler {
 	}
 
 
-	public static JSONObject getTakeCandidateJSON(long sdpMLineIndex, String sdpMid, String sdp, String streamId, String linkedSessionForSignaling) {
+	public static JSONObject getTakeCandidateJSON(long sdpMLineIndex, String sdpMid, String sdp, String streamId, String linkedSessionForSignaling, String subscriberId) {
 
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND,  WebSocketConstants.TAKE_CANDIDATE_COMMAND);
@@ -375,11 +378,12 @@ public class WebSocketCommunityHandler {
 		jsonObject.put(WebSocketConstants.CANDIDATE_SDP, sdp);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
 		jsonObject.put(WebSocketConstants.LINK_SESSION, linkedSessionForSignaling);
+		jsonObject.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 
 		return jsonObject;
 	}
 
-	public static JSONObject getSDPConfigurationJSON(String description, String type, String streamId, Map<String, String> midSidMap, String linkedSessionForSignaling) {
+	public static JSONObject getSDPConfigurationJSON(String description, String type, String streamId, Map<String, String> midSidMap, String linkedSessionForSignaling, String subscriberId) {
 
 		JSONObject jsonResponseObject = new JSONObject();
 		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
@@ -387,6 +391,7 @@ public class WebSocketCommunityHandler {
 		jsonResponseObject.put(WebSocketConstants.TYPE, type);
 		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
 		jsonResponseObject.put(WebSocketConstants.LINK_SESSION, linkedSessionForSignaling);
+		jsonResponseObject.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 		
 		if(midSidMap != null) {
 			JSONObject jsonIdMappingObject = new JSONObject();
@@ -422,19 +427,22 @@ public class WebSocketCommunityHandler {
 		this.appAdaptor = appAdaptor;
 	}
 	
-	public void sendRemoteDescriptionSetFailure(Session session, String streamId) {
+	public void sendRemoteDescriptionSetFailure(Session session, String streamId, String subscriberId) {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonObject.put(WebSocketConstants.DEFINITION, WebSocketConstants.NOT_SET_REMOTE_DESCRIPTION);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonObject.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 		sendMessage(jsonObject.toJSONString(), session);
 	}
 	
-	public void sendLocalDescriptionSetFailure(Session session, String streamId) {
+	public void sendLocalDescriptionSetFailure(Session session, String streamId, String subscriberId) {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonObject.put(WebSocketConstants.DEFINITION, WebSocketConstants.NOT_SET_LOCAL_DESCRIPTION);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonObject.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
+		
 		sendMessage(jsonObject.toJSONString(), session);
 	}
 	
