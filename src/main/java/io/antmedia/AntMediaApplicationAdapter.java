@@ -550,9 +550,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		final String name = broadcast.getName();
 		final String category = broadcast.getCategory();
+		final String metaData = broadcast.getMetaData();
 		logger.info("Setting timer to call viewer play started hook for stream:{}", streamId);
 		vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_PLAY, name, category,
-				null, null, viewerId, token, null));
+				null, null, viewerId, token, metaData));
 	}
 
 	public void sendStopPlayWebHook(final String streamId, final String viewerId, final String token){
@@ -566,9 +567,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		final String name = broadcast.getName();
 		final String category = broadcast.getCategory();
+		final String metaData = broadcast.getMetaData();
+
 		logger.info("Setting timer to call viewer play stopped hook for stream:{}", streamId);
 		vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_STOP_PLAY, name, category,
-				null, null, viewerId, token, null));
+				null, null, viewerId, token, metaData));
 	}
 
 	public void sendStartRecordWebHook(final String streamId){
@@ -582,9 +585,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		final String name = broadcast.getName();
 		final String category = broadcast.getCategory();
+		final String metaData = broadcast.getMetaData();
 		logger.info("Setting timer to call stream start recording hook for stream:{}", streamId);
 		vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_RECORD, name, category,
-				null, null, null, null, null));
+				null, null, null, null, metaData));
 	}
 
 	private String getRtmpViewerId(){
@@ -1800,9 +1804,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		streamListeners.remove(listener);
 	}
 
-	public boolean stopPlaying(String viewerId) {
+	public boolean stopPlayingByViewerId(String viewerId) {
 		return false;
 	}
+
+	public boolean stopPlayingByPlayToken(String playToken) {
+		return false;
+	}
+
 	public void stopPublish(String streamId) {
 		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
 	}

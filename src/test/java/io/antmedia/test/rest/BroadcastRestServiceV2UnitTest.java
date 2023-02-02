@@ -2993,8 +2993,8 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		AntMediaApplicationAdapter testApp = Mockito.spy(new AntMediaApplicationAdapter());
 		restServiceSpy.setApplication(testApp);
-		restServiceSpy.stopPlaying(viewerId);
-		verify(testApp, times(1)).stopPlaying(viewerId);
+		restServiceSpy.stopPlaying(viewerId, null);
+		verify(testApp, times(1)).stopPlayingByViewerId(viewerId);
 	}
 	
 	@Test
