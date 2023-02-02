@@ -1244,11 +1244,17 @@ public class BroadcastRestService extends RestServiceBase{
 	@ApiOperation(value = "Stop player with a specified id", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/webrtc-viewers/{webrtc-viewer-id}/stop")
+	@Path("/webrtc-viewers/stop")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result stopPlaying(@ApiParam(value = "the id of the webrtc viewer.", required = true) @PathParam("webrtc-viewer-id") String viewerId) 
+	public Result stopPlaying(@ApiParam(value="the viewer id of webrtc viewer", required = false) @QueryParam("viewerId") String viewerId,
+							  @ApiParam(value="the viewer id of webrtc viewer", required = false) @QueryParam("playToken") String playToken)
 	{
-		boolean result = getApplication().stopPlaying(viewerId);
+		boolean result = false;
+		if(playToken != null){
+			result = getApplication().stopPlayingByPlayToken(playToken);
+		}else if(viewerId != null){
+			result = getApplication().stopPlayingByViewerId(viewerId);
+		}
 		return new Result(result);
 	}
 
