@@ -346,11 +346,11 @@ public class Frame implements AutoCloseable, Indexable {
 
     /** Returns types of data containing in the frame */
     public EnumSet<Type> getTypes() {
-        EnumSet<Type> type = EnumSet.noneOf(Type.class);
-        if (image != null) type.add(Type.VIDEO);
-        if (samples != null) type.add(Type.AUDIO);
-        if (data != null) type.add(Type.DATA);
-        return type;
+        EnumSet<Type> typeSet = EnumSet.noneOf(Type.class);
+        if (image != null) typeSet.add(Type.VIDEO);
+        if (samples != null) typeSet.add(Type.AUDIO);
+        if (data != null) typeSet.add(Type.DATA);
+        return typeSet;
     }
 
     @Override public void close() {
@@ -358,7 +358,6 @@ public class Frame implements AutoCloseable, Indexable {
             for (Pointer p : (Pointer[])opaque) {
                 if (p != null) {
                     p.releaseReference();
-                    p = null;
                 }
             }
             opaque = null;

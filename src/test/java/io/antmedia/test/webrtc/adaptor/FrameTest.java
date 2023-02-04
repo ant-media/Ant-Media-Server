@@ -1,10 +1,10 @@
 package io.antmedia.test.webrtc.adaptor;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 import java.nio.Buffer;
 import java.nio.ByteBuffer;

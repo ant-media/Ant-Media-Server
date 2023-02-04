@@ -159,10 +159,8 @@ import static org.bytedeco.ffmpeg.global.swscale.sws_getCachedContext;
 import static org.bytedeco.ffmpeg.global.swscale.sws_scale;
 import static org.bytedeco.ffmpeg.presets.avutil.AVERROR_EAGAIN;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URL;
 import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -276,10 +274,10 @@ public class FFmpegFrameRecorder extends FrameRecorder {
     public synchronized void releaseUnsafe() throws Exception {
         started = false;
 
-        if (plane_ptr != null && plane_ptr2 != null) {
-            plane_ptr.releaseReference();
-            plane_ptr2.releaseReference();
-            plane_ptr = plane_ptr2 = null;
+        if (planePtr != null && planePtr2 != null) {
+            planePtr.releaseReference();
+            planePtr2.releaseReference();
+            planePtr = planePtr2 = null;
         }
 
         if (video_pkt != null && audio_pkt != null) {
@@ -454,7 +452,8 @@ public class FFmpegFrameRecorder extends FrameRecorder {
     private SwsContext img_convert_ctx;
     private SwrContext samples_convert_ctx;
     private int samples_channels, samples_format, samples_rate;
-    private PointerPointer plane_ptr, plane_ptr2;
+    private PointerPointer planePtr;
+    private PointerPointer planePtr2;
     private AVPacket video_pkt, audio_pkt;
     private int[] got_video_packet, got_audio_packet;
     private AVFormatContext ifmt_ctx;
@@ -517,8 +516,8 @@ public class FFmpegFrameRecorder extends FrameRecorder {
         audio_c = null;
         video_st = null;
         audio_st = null;
-        plane_ptr  = new PointerPointer(AVFrame.AV_NUM_DATA_POINTERS).retainReference();
-        plane_ptr2 = new PointerPointer(AVFrame.AV_NUM_DATA_POINTERS).retainReference();
+        planePtr  = new PointerPointer(AVFrame.AV_NUM_DATA_POINTERS).retainReference();
+        planePtr2 = new PointerPointer(AVFrame.AV_NUM_DATA_POINTERS).retainReference();
         video_pkt = new AVPacket().retainReference();
         audio_pkt = new AVPacket().retainReference();
         got_video_packet = new int[1];
@@ -725,7 +724,7 @@ public class FFmpegFrameRecorder extends FrameRecorder {
                 throw new Exception("avcodec_find_encoder() error: Audio codec not found.");
             }
 
-            AVRational sample_rate = av_d2q(sampleRate, 1001000);
+            AVRational sampleRateLocal = av_d2q(sampleRate, 1001000);
 
             if ((audio_st = avformat_new_stream(oc, null)) == null) {
                 releaseUnsafe();
@@ -774,9 +773,9 @@ public class FFmpegFrameRecorder extends FrameRecorder {
                     }
                 }
             }
-            AVRational time_base = av_inv_q(sample_rate);
-            audio_c.time_base(time_base);
-            audio_st.time_base(time_base);
+            AVRational timeBaseLocal = av_inv_q(sampleRateLocal);
+            audio_c.time_base(timeBaseLocal);
+            audio_st.time_base(timeBaseLocal);
             switch (audio_c.sample_fmt()) {
                 case AV_SAMPLE_FMT_U8:
                 case AV_SAMPLE_FMT_U8P:  audio_c.bits_per_raw_sample(8);  break;
@@ -1021,7 +1020,6 @@ public class FFmpegFrameRecorder extends FrameRecorder {
                frames if using B frames, so we get the last frames by
                passing the same picture again */
         } else {
-           // int step = stride * Math.abs(depth) / 8;
             BytePointer data = image[0] instanceof ByteBuffer
                     ? new BytePointer((ByteBuffer)image[0]).position(0)
                     : new BytePointer(new Pointer(image[0]).position(0));
@@ -1043,9 +1041,7 @@ public class FFmpegFrameRecorder extends FrameRecorder {
                 }
             }
 
-            if (pixelFormat == AV_PIX_FMT_NV21) {
-               // step = width;
-            }
+
 
             if (video_c.pix_fmt() != pixelFormat || video_c.width() != width || video_c.height() != height) {
                 /* convert to the codec pixel format if needed */
@@ -1250,12 +1246,12 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             int outputCount = (int)Math.min((samples_out[0].limit() - samples_out[0].position()) / (outputChannels * outputDepth), Integer.MAX_VALUE);
             inputCount = Math.min(inputCount, (outputCount * sampleRate + audio_c.sample_rate() - 1) / audio_c.sample_rate());
             for (int i = 0; samples != null && i < samples.length; i++) {
-                plane_ptr.put(i, samples_in[i]);
+                planePtr.put(i, samples_in[i]);
             }
             for (int i = 0; i < samples_out.length; i++) {
-                plane_ptr2.put(i, samples_out[i]);
+                planePtr2.put(i, samples_out[i]);
             }
-            if ((ret = swr_convert(samples_convert_ctx, plane_ptr2, outputCount, plane_ptr, inputCount)) < 0) {
+            if ((ret = swr_convert(samples_convert_ctx, planePtr2, outputCount, planePtr, inputCount)) < 0) {
                 throw new Exception("swr_convert() error " + ret + ": Cannot convert audio samples.");
             } else if (ret == 0) {
                 break;
