@@ -104,6 +104,9 @@ public class Frame implements AutoCloseable, Indexable {
     public Frame(int width, int height, int depth, int channels) {
         this(width, height, depth, channels, ((width * channels * pixelSize(depth) + 7) & ~7) / pixelSize(depth));
     }
+    
+    // Supresswarning because it's native code and it's closed in releasing resources
+    @SuppressWarnings("resource")
     public Frame(int width, int height, int depth, int channels, int imageStride) {
         this.imageWidth = width;
         this.imageHeight = height;
@@ -116,7 +119,8 @@ public class Frame implements AutoCloseable, Indexable {
         this.streamIndex = -1;
         this.type = null;
 
-        Pointer pointer = new BytePointer(imageHeight * imageStride * pixelSize(depth));
+        
+        Pointer pointer = new BytePointer(imageHeight * imageStride * (long)pixelSize(depth));
         ByteBuffer buffer = pointer.asByteBuffer();
         switch (imageDepth) {
             case DEPTH_BYTE:
