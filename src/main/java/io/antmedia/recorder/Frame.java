@@ -53,7 +53,7 @@ public class Frame implements AutoCloseable, Indexable {
             DEPTH_DOUBLE =  64;
 
     /** Constants defining data type in the frame. */
-    public static enum Type {
+    public enum Type {
         VIDEO,
         AUDIO,
         DATA,
@@ -62,7 +62,11 @@ public class Frame implements AutoCloseable, Indexable {
     }
 
     /** Information associated with the {@link #image} field. */
-    public int imageWidth, imageHeight, imageDepth, imageChannels, imageStride;
+    protected int imageWidth;
+    protected int imageHeight;
+    protected int imageDepth;
+    protected int imageChannels;
+    protected int imageStride;
 
     /**
      * Buffers to hold image pixels from multiple channels for a video frame.
@@ -72,13 +76,15 @@ public class Frame implements AutoCloseable, Indexable {
     public Buffer[] image;
 
     /** Information associated with the {@link #samples} field. */
-    public int sampleRate, audioChannels;
+    private int sampleRate;
+
+	public int audioChannels;
 
     /** Buffers to hold audio samples from multiple channels for an audio frame. */
-    public Buffer[] samples;
+    private Buffer[] samples;
 
     /** Buffer to hold a data stream associated with a frame. */
-    public ByteBuffer data;
+    private ByteBuffer data;
 
     /** Stream number the audio|video|other data is associated with. */
     public int streamIndex;
@@ -87,7 +93,7 @@ public class Frame implements AutoCloseable, Indexable {
     public Type type;
 
     /** The underlying data object, for example, Pointer, AVFrame, IplImage, or Mat. */
-    public Object opaque;
+    private Object opaque;
 
     /** Timestamp of the frame creation in microseconds. */
     public long timestamp;
@@ -358,4 +364,52 @@ public class Frame implements AutoCloseable, Indexable {
             opaque = null;
         }
     }
+
+	public int getImageWidth() {
+		return imageWidth;
+	}
+
+	public int getImageHeight() {
+		return imageHeight;
+	}
+
+	public int getImageDepth() {
+		return imageDepth;
+	}
+
+	public int getImageChannels() {
+		return imageChannels;
+	}
+
+	public int getImageStride() {
+		return imageStride;
+	}
+
+	public Object getOpaque() {
+		return opaque;
+	}
+
+	public Buffer[] getSamples() {
+		return samples;
+	}
+
+	public void setSamples(Buffer[] samples) {
+		this.samples = samples;
+	}
+
+	public int getSampleRate() {
+		return sampleRate;
+	}
+
+	public void setSampleRate(int sampleRate) {
+		this.sampleRate = sampleRate;
+	}
+
+	public ByteBuffer getData() {
+		return data;
+	}
+
+	public void setData(ByteBuffer data) {
+		this.data = data;
+	}
 }

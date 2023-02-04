@@ -483,8 +483,8 @@ public class RTMPAdaptor extends Adaptor {
 						stride[2] = wrappedBuffer.getStrideV();
 
 						try {
-							recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-									frameCV.imageChannels, stride, AV_PIX_FMT_YUV420P, frameCV.image);
+							recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
+									frameCV.getImageChannels(), stride, AV_PIX_FMT_YUV420P, frameCV.image);
 
 						} catch (FrameRecorder.Exception e) {
 							logger.error(ExceptionUtils.getStackTrace(e));

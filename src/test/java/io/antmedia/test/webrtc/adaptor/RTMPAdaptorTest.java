@@ -128,8 +128,8 @@ public class RTMPAdaptorTest {
 			((ByteBuffer)(frameCV.image[0].position(0))).put(rawFrame);
 			
 			//this is false to give 1280, 320, 320 but it let us know it is effective
-			recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-					frameCV.imageChannels, new int[]{1280, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
+			recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
+					frameCV.getImageChannels(), new int[]{1280, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
 
 			AVFrame picture = recorder.getPicture();
 			
@@ -194,8 +194,8 @@ public class RTMPAdaptorTest {
 			
 			((ByteBuffer)(frameCV.image[0].position(0))).put(rawFrame);
 
-			recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-					frameCV.imageChannels, new int[]{640, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
+			recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
+					frameCV.getImageChannels(), new int[]{640, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
 
 			AVFrame picture = recorder.getPicture();
 			assertEquals(width, picture.linesize(0));
@@ -203,8 +203,8 @@ public class RTMPAdaptorTest {
 			assertEquals(width/2, picture.linesize(2));
 			
 			
-			recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-					frameCV.imageChannels, new int[]{640, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
+			recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
+					frameCV.getImageChannels(), new int[]{640, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
 
 			picture = recorder.getPicture();
 			
