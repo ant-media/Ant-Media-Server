@@ -508,9 +508,9 @@ public abstract class Muxer {
 	 * Inits the file to write. Multiple encoders can init the muxer. It is
 	 * redundant to init multiple times.
 	 */
-	public void init(IScope scope, String name, int resolution, String subFolder, int bitrate) {
+	public void init(IScope scope, String name, int resolution, String subFolder, int videoBitrate) {
 		this.streamId = name;
-		init(scope, name, resolution, true, subFolder, bitrate);
+		init(scope, name, resolution, true, subFolder, videoBitrate);
 	}
 
 	/**
