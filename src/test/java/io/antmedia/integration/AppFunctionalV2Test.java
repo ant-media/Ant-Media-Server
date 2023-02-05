@@ -1,6 +1,5 @@
 package io.antmedia.integration;
 
-import static org.bytedeco.ffmpeg.global.avformat.av_register_all;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -129,7 +128,7 @@ public class AppFunctionalV2Test {
 		if (OS_TYPE == MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
-		av_register_all();
+	//	av_register_all();
 		avformat_network_init();
 	}
 
