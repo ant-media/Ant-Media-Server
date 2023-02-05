@@ -27,6 +27,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -38,6 +39,11 @@ import java.util.Map;
  * @author Samuel Audet
  */
 public abstract class FrameRecorder implements Closeable {
+	
+	public interface Seekable {
+
+	    public void seek(long offset, int whence);
+	}
 
     public static final List<String> list = new LinkedList<String>(Arrays.asList(new String[] { "FFmpeg", "OpenCV" }));
     public static void init() {
@@ -108,11 +114,11 @@ public abstract class FrameRecorder implements Closeable {
     protected String format, videoCodecName, audioCodecName;
     protected int imageWidth, imageHeight, audioChannels;
     protected int pixelFormat, videoCodec, videoBitrate, imageScalingFlags, gopSize = -1;
-    protected double aspectRatio, frameRate = -1;
-    protected int videoQuality = -1;
+    protected double aspectRatio, frameRate, videoQuality = -1;
     protected int sampleFormat, audioCodec, audioBitrate, sampleRate;
     protected double audioQuality = -1;
     protected boolean interleaved;
+    protected Charset charset = Charset.defaultCharset();
     protected Map<String, String> options = new HashMap<String, String>();
     protected Map<String, String> videoOptions = new HashMap<String, String>();
     protected Map<String, String> audioOptions = new HashMap<String, String>();
@@ -124,7 +130,7 @@ public abstract class FrameRecorder implements Closeable {
     protected int maxBFrames = -1;
     protected int trellis = -1;
     protected int maxDelay = -1;
-    
+
     public String getFormat() {
         return format;
     }
@@ -219,7 +225,7 @@ public abstract class FrameRecorder implements Closeable {
     public double getVideoQuality() {
         return videoQuality;
     }
-    public void setVideoQuality(int videoQuality) {
+    public void setVideoQuality(double videoQuality) {
         this.videoQuality = videoQuality;
     }
 
@@ -392,6 +398,7 @@ public abstract class FrameRecorder implements Closeable {
     }
 
     public abstract void start() throws Exception;
+    public abstract void flush() throws Exception;
     public abstract void stop() throws Exception;
     public abstract void record(Frame frame) throws Exception;
     public abstract void release() throws Exception;

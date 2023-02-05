@@ -468,35 +468,37 @@ public class RTMPAdaptor extends Adaptor {
 					recorder.setFrameNumber(frameNumber);
 					lastFrameNumber = frameNumber;
 
-					Frame frameCV = new Frame(videoFrameContext.videoFrame.getRotatedWidth(), videoFrameContext.videoFrame.getRotatedHeight(), Frame.DEPTH_UBYTE, 2);
+					try (Frame frameCV = new Frame(videoFrameContext.videoFrame.getRotatedWidth(), videoFrameContext.videoFrame.getRotatedHeight(), Frame.DEPTH_UBYTE, 2))
+					{
 
-					Buffer buffer = videoFrameContext.videoFrame.getBuffer();
-					int[] stride = new int[3];
-					if (buffer instanceof WrappedNativeI420Buffer) {
-						WrappedNativeI420Buffer wrappedBuffer = (WrappedNativeI420Buffer) buffer;
-						((ByteBuffer)(frameCV.image[0].position(0))).put(wrappedBuffer.getDataY());
-						((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataU());
-						((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataV());
+						Buffer buffer = videoFrameContext.videoFrame.getBuffer();
+						int[] stride = new int[3];
+						if (buffer instanceof WrappedNativeI420Buffer) {
+							WrappedNativeI420Buffer wrappedBuffer = (WrappedNativeI420Buffer) buffer;
+							((ByteBuffer)(frameCV.image[0].position(0))).put(wrappedBuffer.getDataY());
+							((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataU());
+							((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataV());
 
-						stride[0] = wrappedBuffer.getStrideY();
-						stride[1] = wrappedBuffer.getStrideU();
-						stride[2] = wrappedBuffer.getStrideV();
+							stride[0] = wrappedBuffer.getStrideY();
+							stride[1] = wrappedBuffer.getStrideU();
+							stride[2] = wrappedBuffer.getStrideV();
 
-						try {
-							recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-									frameCV.imageChannels, stride, AV_PIX_FMT_YUV420P, frameCV.image);
+							try {
+								recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
+										frameCV.getImageChannels(), stride, AV_PIX_FMT_YUV420P, frameCV.image);
 
-						} catch (FrameRecorder.Exception e) {
-							logger.error(ExceptionUtils.getStackTrace(e));
-							errorLoopCount += 1;
-							if (errorLoopCount > 5){
-								webSocketCommunityHandler.sendServerError(getStreamId(), getSession());
-								stop();
+							} catch (FrameRecorder.Exception e) {
+								logger.error(ExceptionUtils.getStackTrace(e));
+								errorLoopCount += 1;
+								if (errorLoopCount > 5){
+									webSocketCommunityHandler.sendServerError(getStreamId(), getSession());
+									stop();
+								}
 							}
 						}
-					}
-					else {
-						logger.error("Buffer is not type of WrappedNativeI420Buffer for stream: {}", recorder.getFilename());
+						else {
+							logger.error("Buffer is not type of WrappedNativeI420Buffer for stream: {}", recorder.getFilename());
+						}
 					}
 				}
 				else {
