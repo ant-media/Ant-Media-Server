@@ -184,8 +184,6 @@ import org.bytedeco.javacpp.Pointer;
 import org.bytedeco.javacpp.PointerPointer;
 import org.bytedeco.javacpp.PointerScope;
 import org.bytedeco.javacpp.ShortPointer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  *
@@ -331,7 +329,6 @@ public class FFmpegFrameRecorder extends FrameRecorder {
         audio_st = null;
         filename = null;
 
-        AVFormatContext outputStreamKey = oc;
         if (oc != null && !oc.isNull()) {
             if ((oformat.flags() & AVFMT_NOFILE) == 0) {
                 /* close the output file */
@@ -361,7 +358,6 @@ public class FFmpegFrameRecorder extends FrameRecorder {
 
     static Map<Pointer,OutputStream> outputStreams = Collections.synchronizedMap(new HashMap<Pointer,OutputStream>());
 
-    private AVIOContext avio;
     private String filename;
     private AVFrame picture, tmp_picture;
     private BytePointer picture_buf;
@@ -468,9 +464,6 @@ public class FFmpegFrameRecorder extends FrameRecorder {
      
 
         if (imageWidth > 0 && imageHeight > 0) {
-            if (videoCodec == AV_CODEC_ID_NONE) {
-                videoCodec = oformat.video_codec();
-            }
 
             /* find the video encoder */
             if ((video_codec = avcodec_find_encoder_by_name(videoCodecName)) == null &&
@@ -595,9 +588,6 @@ public class FFmpegFrameRecorder extends FrameRecorder {
          * add an audio output stream
          */
         if (audioChannels > 0 && audioBitrate > 0 && sampleRate > 0) {
-            if (audioCodec == AV_CODEC_ID_NONE) {
-                audioCodec = oformat.audio_codec();
-            }
 
             /* find the audio encoder */
             if ((audio_codec = avcodec_find_encoder_by_name(audioCodecName)) == null &&
@@ -1157,8 +1147,16 @@ public class FFmpegFrameRecorder extends FrameRecorder {
     }
 
     private void writePacket(int mediaType, AVPacket avPacket) throws Exception {
-        AVStream avStream = (mediaType == AVMEDIA_TYPE_VIDEO) ? video_st : (mediaType == AVMEDIA_TYPE_AUDIO) ? audio_st : null;
-        String mediaTypeStr = (mediaType == AVMEDIA_TYPE_VIDEO) ? "video" : (mediaType == AVMEDIA_TYPE_AUDIO) ? "audio" : "unsupported media stream type";
+    	AVStream avStream = null;
+    	String mediaTypeStr = "unsupported media stream type";
+    	if (mediaType == AVMEDIA_TYPE_VIDEO) {
+    		avStream = video_st;
+    		mediaTypeStr = "video";
+    	}
+    	else if (mediaType == AVMEDIA_TYPE_AUDIO) {
+    		avStream = audio_st;
+    		mediaTypeStr = "audio";
+    	}
 
         synchronized (oc) {
             int ret;
@@ -1182,5 +1180,9 @@ public class FFmpegFrameRecorder extends FrameRecorder {
 	}
 	public AVFrame getPicture() {
 		return picture;
+	}
+
+	public void debugSetStarted(boolean started) {
+		this.started = started;
 	}
 }

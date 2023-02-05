@@ -271,13 +271,6 @@ public abstract class FrameRecorder implements Closeable {
         this.interleaved = interleaved;
     }
 
-    public Charset getCharset() {
-        return charset;
-    }
-    public void setCharset(Charset charset) {
-        this.charset = charset;
-    }
-
     public Map<String, String> getOptions() {
         return options;
     }

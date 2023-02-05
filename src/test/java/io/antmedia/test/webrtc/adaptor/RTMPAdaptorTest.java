@@ -107,7 +107,7 @@ public class RTMPAdaptorTest {
 		verify(webSocketHandler).sendPublishStartedMessage(streamId, session, null, "");
 	}
 
-	
+		
 	@Test
 	public void testUnexpectedLineSize() {
 		//Create FFmpegFRameRecoder
@@ -183,7 +183,15 @@ public class RTMPAdaptorTest {
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
 		RTMPAdaptor adaptor = new RTMPAdaptor(f.getAbsolutePath(), null, height);
 		FFmpegFrameRecorder recorder = adaptor.getNewRecorder(f.getAbsolutePath(), width, height, "flv");
-
+		
+		//recorder is started, a new start command throws exception
+		try {
+			recorder.start();
+			fail("It should throw exception");
+		} catch (io.antmedia.recorder.FFmpegFrameRecorder.Exception e1) {
+			//e1.printStackTrace();
+		}
+	
 		//give raw frame
 
 		Frame frameCV = new Frame(640, 480, Frame.DEPTH_UBYTE, 2);
@@ -193,7 +201,20 @@ public class RTMPAdaptorTest {
 			byte[] rawFrame = Files.readAllBytes(rawFrameFile.toPath());
 			
 			((ByteBuffer)(frameCV.image[0].position(0))).put(rawFrame);
+			
+			recorder.debugSetStarted(false);
 
+			try {
+				recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
+						frameCV.getImageChannels(), new int[]{640, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
+				
+				fail("It should throw exception above because started is set to false");
+			}
+			catch (Exception e) {
+				
+			}
+			
+			recorder.debugSetStarted(true);
 			recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
 					frameCV.getImageChannels(), new int[]{640, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
 
