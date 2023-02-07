@@ -116,7 +116,9 @@ var webRTCAdaptor = new WebRTCAdaptor({
 
 If your browser supports ```getDisplayMedia```, you only need to call ```webRTCAdaptor.switchDesktopCapture(streamId)``` function to switch to screen sharing
 
->` webRTCAdaptor.switchDesktopCapture(streamId);
+```js
+webRTCAdaptor.switchDesktopCapture(streamId);
+```
 
 Please take a look at the sample page code at [index.html](https://github.com/ant-media/StreamApp/blob/master/src/main/webapp/index.html) file on Github.
 
@@ -124,13 +126,17 @@ Please take a look at the sample page code at [index.html](https://github.com/an
 
 You only need to call ```webRTCAdaptor.switchDesktopCaptureWithCamera(streamId)``` function to switch to screen sharing with camera.
 
->` webRTCAdaptor.switchDesktopCaptureWithCamera(streamId);
+```js
+webRTCAdaptor.switchDesktopCaptureWithCamera(streamId);
+```
 
 ## Switching back to the camera
 
 To switch back to the camera, just call ```webRTCAdaptor.switchVideoCapture(streamId)```.
 
->` webRTCAdaptor.switchVideoCapture(streamId);
+```js
+webRTCAdaptor.switchVideoCapture(streamId);
+```
 
 ## Share desktop audio with Chrome's screen share with audio option
 

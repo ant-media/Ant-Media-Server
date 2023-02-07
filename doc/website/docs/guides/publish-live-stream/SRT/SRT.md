@@ -17,7 +17,9 @@ We assume that you’ve installed and run Ant Media Server v2.4.3 and later. 
 
 Just enter the following command with FFmpeg:
 
-    ffmpeg -re -i {INPUT} -vcodec libx264 -profile:v baseline -g 60 -acodec aac -f mpegts srt://ant.media.server.address:4200?streamid=WebRTCAppEE/stream1
+```js
+ffmpeg -re -i {INPUT} -vcodec libx264 -profile:v baseline -g 60 -acodec aac -f mpegts srt://ant.media.server.address:4200?streamid=WebRTCAppEE/stream1
+```
 
 After you run the command, the stream is going to be available in “**WebRTCAppEE**” with a stream id “**stream1**”.
 
@@ -26,8 +28,9 @@ If you see a "**Protocol not found**" error,  FFmpeg needs to be [compiled with
 **srt://ant.media.server.address:4200?streamid\=WebRTCAppEE/stream1: Protocol not found**
 
 You can check as follows if FFmpeg is compiled with SRT protocol.
-
-    ffmpeg -protocols
+```js
+ffmpeg -protocols
+```
 
 ## Pushing SRT stream with OBS
 
@@ -41,7 +44,7 @@ After you publish the stream to the Ant Media Server either from OBS or FFmpeg, 
 
 SRT is enabled by default in Ant Media Server and it uses the 4200 (UDP) port by default. If you need to change, just open the following file:
 
-```
+```js
 conf/red5.properties
 ```
 
