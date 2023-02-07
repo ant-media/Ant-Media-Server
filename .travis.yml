@@ -12,9 +12,12 @@ git:
 # We use a custom ffmpeg build to support current OS versions.
 # We just had a workaround solution. I mean we don't republish the ffmpeg with a new group id
 # We just build ffmpeg with the proper configurations and downloads from OVH storage and replaces it in the local repository below
-#   
-# 
+# Test codes are checking the proper configuraitons such as cuda and disabling crystalhd decoders
+#
+# For more information visit the build_update_ffmpeg.md doc in enterprise project
+
 #~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-x86_64.jar  
+#~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-arm64.jar
 
 # Sonar cloud addons on travis has some issues so that it's used directly 
 addons:
@@ -92,9 +95,10 @@ before_install:
   - cp -a ./dist/. ../src/main/server/webapps/root/
   - cd ..
   
-  #before package replace the ffmpeg linux-86_64 build with custom build
+  #before package replace the ffmpeg linux-86_64 and arm64 build with custom build
   - wget -O ~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-5.1.2-1.5.8-linux-x86_64.jar
-
+  - wget -O ~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-arm64.jar  https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-5.1.2-1.5.8-linux-arm64.jar
+   
     # package ant media server
   - mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
   
