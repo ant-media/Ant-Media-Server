@@ -9,7 +9,7 @@ const config = {
   title: 'Ant Media Documentation',
   tagline: 'Ant Media Documentation',
   url: 'https://timantmedia.github.io',
-  baseUrl: '/',
+  baseUrl: '/docs',
   trailingSlash: true,
   onBrokenLinks: 'ignore',
   onBrokenMarkdownLinks: 'ignore',
