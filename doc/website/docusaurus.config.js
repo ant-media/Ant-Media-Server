@@ -9,7 +9,7 @@ const config = {
   title: 'Ant Media Documentation',
   tagline: 'Ant Media Documentation',
   url: 'https://timantmedia.github.io',
-  baseUrl: '/',
+  baseUrl: '/docs',
   trailingSlash: true,
   onBrokenLinks: 'ignore',
   onBrokenMarkdownLinks: 'ignore',
@@ -55,6 +55,10 @@ const config = {
       }),
     ],
   ],
+
+  plugins: [[ require.resolve('docusaurus-lunr-search'), {
+    languages: ['en']
+  }]],
 
   themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
