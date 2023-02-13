@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
@@ -1403,11 +1404,11 @@ public abstract class RestServiceBase {
 
 		if (broadcast != null)
 		{
-			if(broadcast.getStreamUrl() != null || AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType()))
+			if(broadcast.getStreamUrl() != null || Objects.equals(broadcast.getType(), AntMediaApplicationAdapter.PLAY_LIST))
 			{
 				result = getApplication().startStreaming(broadcast);
 			}
-			else if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()))
+			else if (Objects.equals(broadcast.getType(), AntMediaApplicationAdapter.IP_CAMERA))
 			{
 				//if streamURL is not defined before for IP Camera, connect to it again and define streamURL
 				result = connectToCamera(broadcast);
