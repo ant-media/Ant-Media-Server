@@ -9,6 +9,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
+import static org.bytedeco.ffmpeg.global.avformat.av_stream_get_side_data;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
@@ -21,6 +22,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
+import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
 import static org.bytedeco.ffmpeg.global.avutil.av_get_default_channel_layout;
 import static org.junit.Assert.assertEquals;
@@ -72,6 +74,7 @@ import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVInputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVDictionaryEntry;
 import org.bytedeco.ffmpeg.avutil.AVRational;
@@ -79,6 +82,8 @@ import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.IntPointer;
+import org.bytedeco.javacpp.SizeTPointer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -178,7 +183,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@BeforeClass
 	public static void beforeClass() {
-		avformat.av_register_all();
+		//avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
 	}
@@ -299,7 +304,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		mp4Muxer.init(appScope, "test",0, "", 0);
 		assertEquals(0, mp4Muxer.getOutputFormatContext().nb_streams());
-		assertTrue(mp4Muxer.addAudioStream(44100, 3, AV_CODEC_ID_AAC, 0));
+		AVChannelLayout layout = new AVChannelLayout();
+		av_channel_layout_default(layout, 1);
+		assertTrue(mp4Muxer.addAudioStream(44100, layout, AV_CODEC_ID_AAC, 0));
 		
 		assertEquals(1, mp4Muxer.getOutputFormatContext().nb_streams());
 		
@@ -1160,8 +1167,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		AACConfigParser aacConfigParser = new AACConfigParser(aacConfig, 0);
 		AVCodecParameters audioCodecParameters = new AVCodecParameters();
 		audioCodecParameters.sample_rate(aacConfigParser.getSampleRate());
-		audioCodecParameters.channels(aacConfigParser.getChannelCount());
-		audioCodecParameters.channel_layout(av_get_default_channel_layout(aacConfigParser.getChannelCount()));
+
+		AVChannelLayout chLayout = new AVChannelLayout();
+		avutil.av_channel_layout_default(chLayout, aacConfigParser.getChannelCount());
+		audioCodecParameters.ch_layout(chLayout);
+
 		audioCodecParameters.codec_id(AV_CODEC_ID_AAC);
 		audioCodecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
 
@@ -1737,7 +1747,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 		assertEquals(Application.id.get(0), streamId);
 		assertEquals(Application.file.get(0).getName(), streamId + "_1.mp4");
-		assertEquals(10040L, (long)Application.duration.get(0));
+		assertEquals(10120L, (long)Application.duration.get(0));
 
 		broadcast = appAdaptor.getDataStore().get(streamId);
 		//we do not save duration of the finished live streams
@@ -3333,13 +3343,20 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		int streamCount = inputFormatContext.nb_streams();
 
 		for (int i = 0; i < streamCount; i++) {
-			AVCodecContext codecContext = inputFormatContext.streams(i).codec();
-			if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) {
+			AVCodecParameters codecpar = inputFormatContext.streams(i).codecpar();
+			if (codecpar.codec_type() == AVMEDIA_TYPE_VIDEO) {
 				AVStream videoStream = inputFormatContext.streams(i);
+				
+				SizeTPointer size = new SizeTPointer(1);
+				BytePointer displayMatrixBytePointer = av_stream_get_side_data(videoStream, avcodec.AV_PKT_DATA_DISPLAYMATRIX, size);
+				//it should be 36 because it's a 3x3 integer(size=4). 
+				assertEquals(36, size.get());
+				
+				IntPointer displayPointerIntPointer = new IntPointer(displayMatrixBytePointer);
+				//it gets counter clockwise
+				int rotation = (int) -(avutil.av_display_rotation_get(displayPointerIntPointer));
 
-				AVDictionaryEntry entry = av_dict_get(videoStream.metadata(), "rotate", null, 0);
-
-				assertEquals("90", entry.value().getString());
+				assertEquals(90, rotation);
 			}
 		}
 
