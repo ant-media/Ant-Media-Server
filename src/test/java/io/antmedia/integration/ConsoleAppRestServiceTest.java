@@ -72,6 +72,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.TOTPGenerator;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.StatsCollector;
 import io.antmedia.test.StreamFetcherUnitTest;
 import net.bytebuddy.utility.RandomString;
 
@@ -1580,6 +1581,23 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(jsObject.containsKey("gpuUsageInfo"));
 
 			assertTrue(jsObject.containsKey("totalLiveStreamSize"));
+			
+			
+			String ffmpegBuildConf = (String) jsObject.get(StatsCollector.FFMPEG_BUILD_INFO);
+			
+			assertTrue(ffmpegBuildConf.contains("--enable-cuda"));
+			assertTrue(ffmpegBuildConf.contains("--enable-libnpp"));
+			assertTrue(ffmpegBuildConf.contains("--extra-cflags=-I/usr/local/cuda/include"));
+			assertTrue(ffmpegBuildConf.contains("--extra-ldflags=-L/usr/local/cuda/lib64"));
+			
+			//crystalhd is not supported in after 20.04 so remove them
+			assertTrue(ffmpegBuildConf.contains("--disable-decoder=h264_crystalhd"));
+			assertTrue(ffmpegBuildConf.contains("--disable-decoder=mpeg2_crystalhd"));
+			assertTrue(ffmpegBuildConf.contains("--disable-decoder=vc1_crystalhd"));
+			assertTrue(ffmpegBuildConf.contains("--disable-decoder=mpeg4_crystalhd"));
+			assertTrue(ffmpegBuildConf.contains("--disable-decoder=msmpeg4_crystalhd"));
+			assertTrue(ffmpegBuildConf.contains("--disable-decoder=wmv3_crystalhd"));
+			
 
 			System.out.println("system resource info: " + systemResourcesInfo);
 

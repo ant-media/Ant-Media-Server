@@ -527,7 +527,7 @@ public class WebSocketCommunityHandlerTest {
 		
 		wsHandler.setSession(session);
 		
-		wsHandler.sendPublishStartedMessage(streamId,  session, roomId); 
+		wsHandler.sendPublishStartedMessage(streamId,  session, roomId, ""); 
 		
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
 		verify(wsHandler).sendMessage(argument.capture(), Mockito.eq(session));
@@ -566,7 +566,7 @@ public class WebSocketCommunityHandlerTest {
 		for (int i = 0; i < trackSize; i++) {
 			midSidMap.put("mid"+i, "sid"+i);
 		}
-		JSONObject json = WebSocketCommunityHandler.getSDPConfigurationJSON(description, type, streamId, midSidMap, null);
+		JSONObject json = WebSocketCommunityHandler.getSDPConfigurationJSON(description, type, streamId, midSidMap, null, "");
 		
 		assertEquals(WebSocketConstants.TAKE_CONFIGURATION_COMMAND, json.get(WebSocketConstants.COMMAND));
 		assertEquals(description, json.get(WebSocketConstants.SDP));
