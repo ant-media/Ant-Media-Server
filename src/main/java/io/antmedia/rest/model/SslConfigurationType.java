@@ -8,7 +8,7 @@ public enum SslConfigurationType {
     CUSTOM_CERTIFICATE("SSL configuration using imported custom certificate.");
 
 
-    private String configurationTypeDesc;
+    private final String configurationTypeDesc;
 
     SslConfigurationType(String configurationTypeDesc) {
         this.configurationTypeDesc = configurationTypeDesc;

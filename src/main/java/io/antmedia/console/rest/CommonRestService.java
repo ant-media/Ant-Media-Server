@@ -959,7 +959,7 @@ public class CommonRestService {
 
 	public SslSettings getSslSettings()
 	{
-		return getServerSettings().getSslSettings();
+		return getServerSettings() == null ? null : getServerSettings().getSslSettings();
 	}
 
 
