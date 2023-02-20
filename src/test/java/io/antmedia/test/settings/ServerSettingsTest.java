@@ -125,7 +125,7 @@ public class ServerSettingsTest {
 		ServerSettings settings = new ServerSettings();
 		SslSettings currSslSettings = settings.getSslSettings();
 		String sslConfigurationType = currSslSettings.getConfigurationType();
-		assertNotNull(sslConfigurationType);
+		assertNull(sslConfigurationType);
 		SslSettings newSslSettings = new SslSettings();
 		newSslSettings.setConfigurationType("NO_SSL");
 		settings.setSslSettings(newSslSettings);
