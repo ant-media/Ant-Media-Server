@@ -873,7 +873,7 @@ public class CommonRestService {
 	}
 	public String configureSsl(SslSettings recievedSslSettings){
 		PreferenceStore store = new PreferenceStore(RED5_PROPERTIES_PATH);
-		SslConfigurator sslConfigurator = new SslConfigurator(getSslSettings(), recievedSslSettings, store);
+		SslConfigurator sslConfigurator = new SslConfigurator(getSslSettingsInternal(), recievedSslSettings, store);
 		SslConfigurationResult sslConfigurationResult = sslConfigurator.configure();
 		return gson.toJson(sslConfigurationResult);
 	}
@@ -957,9 +957,13 @@ public class CommonRestService {
 		return getServerSettingsInternal();
 	}
 
-	public SslSettings getSslSettings()
+	public SslSettings getSslSettingsInternal()
 	{
-		return getServerSettings() == null ? null : getServerSettings().getSslSettings();
+		ServerSettings settings = getServerSettings();
+		if (settings != null) {
+			return settings.getSslSettings();
+		}
+		return null;
 	}
 
 

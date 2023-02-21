@@ -23,8 +23,8 @@ import static io.antmedia.settings.SslSettings.*;
 public class SslConfigurator {
 
     private static final Logger logger = LoggerFactory.getLogger(SslConfigurator.class);
-    private static final String sslConfigurationFailedMessage = "SSL configuration has failed. {}";
-    private static final String sslConfigurationSuccessMessage = "SSL configuration has been completed successfully.";
+    private static final String SSL_CONFIGURATION_FAILED_MESSAGE = "SSL configuration has failed. {}";
+    private static final String SSL_CONFIGURATION_SUCCESS_MESSAGE = "SSL configuration has been completed successfully.";
 
     private final SslSettings currentSslSettings;
     private final SslSettings sslSettingsToConfigure;
@@ -67,7 +67,7 @@ public class SslConfigurator {
 
         SslConfigurationResult sslConfigurationResult = runCommandWithOutput(configureSslCommand);
         if (sslConfigurationResult.isSuccess()) {
-            logger.info(sslConfigurationSuccessMessage);
+            logger.info(SSL_CONFIGURATION_SUCCESS_MESSAGE);
             currentSslSettings.setConfigurationType(sslSettingsToConfigure.getConfigurationType());
             currentSslSettings.setCustomDomain(sslSettingsToConfigure.getCustomDomain());
 
@@ -78,7 +78,7 @@ public class SslConfigurator {
             store.put(SSL_KEY_FILE_PATH, DEFAULT_KEY_FILE_PATH);
             store.save();
         } else {
-            logger.warn(sslConfigurationFailedMessage, sslConfigurationResult.getMessage());
+            logger.warn(SSL_CONFIGURATION_FAILED_MESSAGE, sslConfigurationResult.getMessage());
         }
 
         return sslConfigurationResult;
@@ -90,7 +90,7 @@ public class SslConfigurator {
         SslConfigurationResult sslConfigurationResult = runCommandWithOutput(configureSslCommand);
 
         if (sslConfigurationResult.isSuccess()) {
-            logger.info(sslConfigurationSuccessMessage);
+            logger.info(SSL_CONFIGURATION_SUCCESS_MESSAGE);
             String amsCloudDomain = extractAmsCloudDomainFromCommandOutput(sslConfigurationResult.getMessage());
             sslConfigurationResult.setAmsCloudDomain(amsCloudDomain);
             currentSslSettings.setConfigurationType(sslSettingsToConfigure.getConfigurationType());
@@ -102,7 +102,7 @@ public class SslConfigurator {
             store.put(SSL_KEY_FILE_PATH, DEFAULT_KEY_FILE_PATH);
             store.save();
         } else {
-            logger.warn(sslConfigurationFailedMessage, sslConfigurationResult.getMessage());
+            logger.warn(SSL_CONFIGURATION_FAILED_MESSAGE, sslConfigurationResult.getMessage());
         }
 
         return sslConfigurationResult;
@@ -113,7 +113,7 @@ public class SslConfigurator {
 
         SslConfigurationResult sslConfigurationResult = runCommandWithOutput(configureSslCommand);
         if (sslConfigurationResult.isSuccess()) {
-            logger.info(sslConfigurationSuccessMessage);
+            logger.info(SSL_CONFIGURATION_SUCCESS_MESSAGE);
 
             currentSslSettings.setConfigurationType(sslSettingsToConfigure.getConfigurationType());
             currentSslSettings.setCustomDomain(domain);
@@ -125,7 +125,7 @@ public class SslConfigurator {
             store.save();
 
         } else {
-            logger.warn(sslConfigurationFailedMessage, sslConfigurationResult.getMessage());
+            logger.warn(SSL_CONFIGURATION_FAILED_MESSAGE, sslConfigurationResult.getMessage());
         }
         return sslConfigurationResult;
 

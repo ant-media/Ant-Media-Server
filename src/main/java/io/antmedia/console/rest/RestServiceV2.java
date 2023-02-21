@@ -526,10 +526,14 @@ public class RestServiceV2 extends CommonRestService {
 	@GET
 	@Path("/ssl-settings")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public SslSettings getSslSettings()
+	public Response getSslSettings()
 	{
-		return super.getServerSettings().getSslSettings();
+		SslSettings sslSettings = super.getSslSettingsInternal();
+		if (sslSettings != null) {
+			return Response.status(Status.OK).entity(gson.toJson(sslSettings)).build();
+		}
+		return Response.status(Status.INTERNAL_SERVER_ERROR).build();
+		
 	}
 
 	@ApiOperation(value = "Returns license status. Includes license ID, status, owner, start date, end date, type and license count.", response = Result.class)
