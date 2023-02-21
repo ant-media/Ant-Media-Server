@@ -488,7 +488,7 @@ public class RestServiceV2 extends CommonRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Override
-	public String configureSsl(@ApiParam(value = "Ssl settings", required = true) SslSettings sslSettings){
+	public Result configureSsl(@ApiParam(value = "Ssl settings", required = true) SslSettings sslSettings){
 		return super.configureSsl(sslSettings);
 	}
 

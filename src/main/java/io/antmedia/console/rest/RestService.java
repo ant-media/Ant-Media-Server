@@ -478,7 +478,7 @@ public class RestService extends CommonRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Override
-	public String configureSsl(SslSettings sslSettings){
+	public Result configureSsl(SslSettings sslSettings){
 		return super.configureSsl(sslSettings);
 	}
 

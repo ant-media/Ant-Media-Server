@@ -1,13 +1,15 @@
 package io.antmedia.test.security;
 
 import static io.antmedia.settings.SslSettings.SSL_CONFIGURATION_TYPE;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
-import io.antmedia.datastore.preference.PreferenceStore;
-import io.antmedia.rest.model.SslConfigurationType;
-import io.antmedia.rest.model.SslConfigurationResult;
-import io.antmedia.security.SslConfigurator;
-import io.antmedia.settings.SslSettings;
+import java.io.IOException;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -18,8 +20,11 @@ import org.junit.runner.Description;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.IOException;
+import io.antmedia.datastore.preference.PreferenceStore;
+import io.antmedia.rest.model.Result;
+import io.antmedia.rest.model.SslConfigurationType;
+import io.antmedia.security.SslConfigurator;
+import io.antmedia.settings.SslSettings;
 
 public class SslConfiguratorTest {
     protected static Logger logger = LoggerFactory.getLogger(TokenFilterTest.class);
@@ -71,25 +76,24 @@ public class SslConfiguratorTest {
         SslSettings sslSettingsToConfigure = new SslSettings();
         sslSettingsToConfigure.setConfigurationType(configurationType.name());
         if (configurationType == SslConfigurationType.CUSTOM_DOMAIN) {
-            sslSettingsToConfigure.setCustomDomain(null);
+            sslSettingsToConfigure.setDomainName(null);
 
         } else if (configurationType == SslConfigurationType.ANTMEDIA_SUBDOMAIN) {
 
         } else if (configurationType == SslConfigurationType.CUSTOM_CERTIFICATE) {
-            sslSettingsToConfigure.setCustomDomain("ams.antmedia.io");
+            sslSettingsToConfigure.setDomainName("ams.antmedia.io");
             sslSettingsToConfigure.setKeyFileContent(null);
             sslSettingsToConfigure.setFullChainFileContent(null);
             sslSettingsToConfigure.setFullChainFileContent(null);
             sslSettingsToConfigure.setFullChainFileName("fullchain.pem");
             sslSettingsToConfigure.setChainFileName("chain.pem");
-            sslSettingsToConfigure.setKeyFileName("privkey.pem");
 
         }
         PreferenceStore store = mock(PreferenceStore.class);
 
         SslConfigurator sslConfigurator = spy(new SslConfigurator(currentSslSettings, sslSettingsToConfigure, store));
         sslConfigurator.configure();
-        SslConfigurationResult sslConfigurationResult = new SslConfigurationResult(false, "");
+        Result sslConfigurationResult = new Result(false, "");
 
         doReturn(sslConfigurationResult).when(sslConfigurator).runCommandWithOutput(anyString());
 
@@ -99,27 +103,26 @@ public class SslConfiguratorTest {
         SslSettings currentSslSettings = new SslSettings();
         SslSettings sslSettingsToConfigure = new SslSettings();
         sslSettingsToConfigure.setConfigurationType(configurationType.name());
-        SslConfigurationResult sslConfigurationResult = new SslConfigurationResult(true, "");
+        Result sslConfigurationResult = new Result(true, "");
 
         final String dummyDomain = "ams.antmedia.io";
         final String dummyCloudDomain = "ams-11.antmedia.cloud";
         if (configurationType == SslConfigurationType.CUSTOM_DOMAIN) {
-            sslSettingsToConfigure.setCustomDomain(dummyDomain);
+            sslSettingsToConfigure.setDomainName(dummyDomain);
 
         } else if (configurationType == SslConfigurationType.CUSTOM_CERTIFICATE) {
-            sslSettingsToConfigure.setCustomDomain(dummyDomain);
+            sslSettingsToConfigure.setDomainName(dummyDomain);
             sslSettingsToConfigure.setFullChainFileContent("fullChainContent");
             sslSettingsToConfigure.setChainFileContent("chainContent");
             sslSettingsToConfigure.setKeyFileContent("keyContent");
             sslSettingsToConfigure.setCertificateFilePath("");
             sslSettingsToConfigure.setFullChainFileName("fullchain.pem");
             sslSettingsToConfigure.setChainFileName("chain.pem");
-            sslSettingsToConfigure.setKeyFileName("privkey.pem");
 
 
         } else if (configurationType == SslConfigurationType.ANTMEDIA_SUBDOMAIN) {
-            sslSettingsToConfigure.setAntMediaSubDomain(dummyCloudDomain);
-            sslConfigurationResult = new SslConfigurationResult(true, "domain:ams-11.antmedia.cloud msg msg");
+            sslSettingsToConfigure.setDomainName(dummyCloudDomain);
+            sslConfigurationResult = new Result(true, "domain:ams-11.antmedia.cloud msg msg");
         }
         PreferenceStore store = mock(PreferenceStore.class);
 

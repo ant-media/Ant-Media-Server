@@ -221,9 +221,9 @@ get_new_certificate(){
       elif [ "$dns_validate" == "custom" ]; then
         $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly --cert-name $domain -d $domain
       elif [ "$freedomain" == "true" ]; then
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email --cert-name $domain -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email --cert-name "$domain" -d "$domain"
       else
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d "$domain"
       fi
     else
       if [ "$dns_validate" == "route53" ]; then

@@ -19,16 +19,16 @@ public class SslSettings {
     public static final String SSL_KEY_FILE_PATH = "http.ssl_certificate_key_file"; // KEY FILE
 
     public static final String DEFAULT_KEY_FILE_PATH = "conf/privkey.pem";
+    
     public static final String DEFAULT_FULL_CHAIN_FILE_PATH = "conf/fullchain.pem";
+    
     public static final String DEFAULT_CHAIN_FILE_PATH = "conf/chain.pem";
+    
     @Value("${" + SSL_CONFIGURATION_TYPE + ":}")
     private String configurationType;
+    
     @Value("${" + SSL_DOMAIN + ":}")
-    private String customDomain;
-
-    @Value("${" + SSL_DOMAIN + ":}")
-
-    private String antMediaSubDomain;
+    private String domainName;
 
     private String fullChainFileContent;
 
@@ -39,12 +39,13 @@ public class SslSettings {
     private String fullChainFileName;
 
     private String chainFileName;
-
-    private String keyFileName;
+    
     @Value("${" + SSL_CERTIFICATE_FILE_PATH + ":}")
     private String certificateFilePath;
+    
     @Value("${" + SSL_CHAIN_FILE_PATH + ":}")
     private String chainFilePath;
+    
     @Value("${" + SSL_KEY_FILE_PATH + ":}")
     private String keyFilePath;
 
@@ -54,14 +55,6 @@ public class SslSettings {
 
     public void setCertificateFilePath(String certificateFilePath) {
         this.certificateFilePath = certificateFilePath;
-    }
-
-    public void setCustomDomain(String customDomain) {
-        this.customDomain = customDomain;
-    }
-
-    public void setAntMediaSubDomain(String antMediaSubDomain) {
-        this.antMediaSubDomain = antMediaSubDomain;
     }
 
     public String getFullChainFileContent() {
@@ -103,20 +96,15 @@ public class SslSettings {
         this.chainFileName = chainFileName;
     }
 
-    public void setKeyFileName(String keyFileName) {
-        this.keyFileName = keyFileName;
-    }
-
     public String getConfigurationType() {
         return configurationType;
     }
 
-    public String getCustomDomain() {
-        return customDomain;
-    }
-
-    public String getAntMediaSubDomain() {
-        return antMediaSubDomain;
-    }
-
+    public void setDomainName(String domainName) {
+		this.domainName = domainName;
+	}
+    
+    public String getDomainName() {
+		return domainName;
+	}
 }

@@ -1,13 +1,13 @@
 package io.antmedia.security;
 
-import io.antmedia.datastore.preference.PreferenceStore;
-import io.antmedia.rest.model.SslConfigurationType;
-import io.antmedia.rest.model.SslConfigurationResult;
-import io.antmedia.settings.SslSettings;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static io.antmedia.settings.SslSettings.DEFAULT_CHAIN_FILE_PATH;
+import static io.antmedia.settings.SslSettings.DEFAULT_FULL_CHAIN_FILE_PATH;
+import static io.antmedia.settings.SslSettings.DEFAULT_KEY_FILE_PATH;
+import static io.antmedia.settings.SslSettings.SSL_CERTIFICATE_FILE_PATH;
+import static io.antmedia.settings.SslSettings.SSL_CHAIN_FILE_PATH;
+import static io.antmedia.settings.SslSettings.SSL_CONFIGURATION_TYPE;
+import static io.antmedia.settings.SslSettings.SSL_DOMAIN;
+import static io.antmedia.settings.SslSettings.SSL_KEY_FILE_PATH;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -18,7 +18,16 @@ import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static io.antmedia.settings.SslSettings.*;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.antmedia.console.AdminApplication;
+import io.antmedia.datastore.preference.PreferenceStore;
+import io.antmedia.rest.model.Result;
+import io.antmedia.rest.model.SslConfigurationType;
+import io.antmedia.settings.SslSettings;
 
 public class SslConfigurator {
 
@@ -62,73 +71,50 @@ public class SslConfigurator {
         }
         return amsCloudUrl;
     }
-
-    private SslConfigurationResult configureSslWithCustomDomain(final String configureSslCommand) {
-
-        SslConfigurationResult sslConfigurationResult = runCommandWithOutput(configureSslCommand);
-        if (sslConfigurationResult.isSuccess()) {
-            logger.info(SSL_CONFIGURATION_SUCCESS_MESSAGE);
-            currentSslSettings.setConfigurationType(sslSettingsToConfigure.getConfigurationType());
-            currentSslSettings.setCustomDomain(sslSettingsToConfigure.getCustomDomain());
-
-            store.put(SSL_CONFIGURATION_TYPE, SslConfigurationType.CUSTOM_DOMAIN.name());
-            store.put(SSL_DOMAIN, sslSettingsToConfigure.getCustomDomain());
-            store.put(SSL_CHAIN_FILE_PATH, DEFAULT_CHAIN_FILE_PATH);
-            store.put(SSL_CERTIFICATE_FILE_PATH, DEFAULT_FULL_CHAIN_FILE_PATH);
-            store.put(SSL_KEY_FILE_PATH, DEFAULT_KEY_FILE_PATH);
-            store.save();
-        } else {
+    
+    private void saveSSLConfigurationToStore(String configurationType, String domainName) {
+		store.put(SSL_CONFIGURATION_TYPE, configurationType);
+		store.put(SSL_DOMAIN, domainName);
+		store.put(SSL_CHAIN_FILE_PATH, DEFAULT_CHAIN_FILE_PATH);
+		store.put(SSL_CERTIFICATE_FILE_PATH, DEFAULT_FULL_CHAIN_FILE_PATH);
+		store.put(SSL_KEY_FILE_PATH, DEFAULT_KEY_FILE_PATH);
+		store.save();
+	}
+  
+    
+    private Result configureSSL(final String configureSslCommand, String domain) 
+    {
+    	Result sslConfigurationResult = runCommandWithOutput(configureSslCommand);
+    	if (sslConfigurationResult.isSuccess()) 
+        {
+    		  logger.info(SSL_CONFIGURATION_SUCCESS_MESSAGE);
+    		  currentSslSettings.setConfigurationType(sslSettingsToConfigure.getConfigurationType());
+    		  if (sslSettingsToConfigure.getConfigurationType().equals(SslConfigurationType.CUSTOM_DOMAIN.name())) 
+    		  {
+    			  currentSslSettings.setDomainName(sslSettingsToConfigure.getDomainName());
+    		  }
+    		  else if (sslSettingsToConfigure.getConfigurationType().equals(SslConfigurationType.ANTMEDIA_SUBDOMAIN.name()))
+    		  {
+    			  String amsCloudDomain = extractAmsCloudDomainFromCommandOutput(sslConfigurationResult.getMessage());
+    	         
+    	          currentSslSettings.setDomainName(amsCloudDomain);
+    		  }
+    		  else if(sslSettingsToConfigure.getConfigurationType().equals(SslConfigurationType.CUSTOM_CERTIFICATE.name())) 
+    		  {
+    			  currentSslSettings.setDomainName(domain);
+    		  }
+    		  else {
+    			  throw new IllegalArgumentException("Unknown SSL configuration type "  + sslSettingsToConfigure.getConfigurationType());
+    		  }
+    		  
+    		  sslConfigurationResult.setDataId(currentSslSettings.getDomainName());
+    		  saveSSLConfigurationToStore(sslSettingsToConfigure.getConfigurationType(), currentSslSettings.getDomainName());
+    		  
+        }
+    	else {
             logger.warn(SSL_CONFIGURATION_FAILED_MESSAGE, sslConfigurationResult.getMessage());
         }
-
-        return sslConfigurationResult;
-
-    }
-
-    private SslConfigurationResult configureSslWithAntMediaSubDomain(final String configureSslCommand) {
-
-        SslConfigurationResult sslConfigurationResult = runCommandWithOutput(configureSslCommand);
-
-        if (sslConfigurationResult.isSuccess()) {
-            logger.info(SSL_CONFIGURATION_SUCCESS_MESSAGE);
-            String amsCloudDomain = extractAmsCloudDomainFromCommandOutput(sslConfigurationResult.getMessage());
-            sslConfigurationResult.setAmsCloudDomain(amsCloudDomain);
-            currentSslSettings.setConfigurationType(sslSettingsToConfigure.getConfigurationType());
-            currentSslSettings.setAntMediaSubDomain(amsCloudDomain);
-            store.put(SSL_CONFIGURATION_TYPE, SslConfigurationType.ANTMEDIA_SUBDOMAIN.name());
-            store.put(SSL_DOMAIN, amsCloudDomain);
-            store.put(SSL_CHAIN_FILE_PATH, DEFAULT_CHAIN_FILE_PATH);
-            store.put(SSL_CERTIFICATE_FILE_PATH, DEFAULT_FULL_CHAIN_FILE_PATH);
-            store.put(SSL_KEY_FILE_PATH, DEFAULT_KEY_FILE_PATH);
-            store.save();
-        } else {
-            logger.warn(SSL_CONFIGURATION_FAILED_MESSAGE, sslConfigurationResult.getMessage());
-        }
-
-        return sslConfigurationResult;
-
-    }
-
-    private SslConfigurationResult configureSslWithCustomCertificate(final String configureSslCommand, final String domain) {
-
-        SslConfigurationResult sslConfigurationResult = runCommandWithOutput(configureSslCommand);
-        if (sslConfigurationResult.isSuccess()) {
-            logger.info(SSL_CONFIGURATION_SUCCESS_MESSAGE);
-
-            currentSslSettings.setConfigurationType(sslSettingsToConfigure.getConfigurationType());
-            currentSslSettings.setCustomDomain(domain);
-            store.put(SSL_CONFIGURATION_TYPE, SslConfigurationType.CUSTOM_CERTIFICATE.name());
-            store.put(SSL_DOMAIN, domain);
-            store.put(SSL_CHAIN_FILE_PATH, DEFAULT_CHAIN_FILE_PATH);
-            store.put(SSL_CERTIFICATE_FILE_PATH, DEFAULT_FULL_CHAIN_FILE_PATH);
-            store.put(SSL_KEY_FILE_PATH, DEFAULT_KEY_FILE_PATH);
-            store.save();
-
-        } else {
-            logger.warn(SSL_CONFIGURATION_FAILED_MESSAGE, sslConfigurationResult.getMessage());
-        }
-        return sslConfigurationResult;
-
+    	return sslConfigurationResult;
     }
 
     private boolean createKeyFile(final String sslFilePath, final String keyFileContent){
@@ -166,7 +152,8 @@ public class SslConfigurator {
         }
     }
 
-    private boolean createCustomCertificateFiles(final File tempSslDir, final String domainName, final String crtFileExtension, final String pemFileExtension) {
+    private boolean createCustomCertificateFiles(final File tempSslDir, final String domainName, final String crtFileExtension, final String pemFileExtension) 
+    {
         final String keyFileContent = sslSettingsToConfigure.getKeyFileContent();
         final String fullChainFileContent = sslSettingsToConfigure.getFullChainFileContent();
         final String chainFileContent = sslSettingsToConfigure.getChainFileContent();
@@ -215,28 +202,38 @@ public class SslConfigurator {
         return false;
     }
 
-    public SslConfigurationResult configure() {
+    public Result configure() 
+    {
         logger.info("SSL configuration with configuration type {} has started.", sslSettingsToConfigure.getConfigurationType());
-        SslConfigurationResult sslConfigurationResult = new SslConfigurationResult(false, "");
+        
+        Result sslConfigurationResult = new Result(false);
+        
         final SslConfigurationType configurationType = SslConfigurationType.valueOf(sslSettingsToConfigure.getConfigurationType());
+        
         String configureSslCommand = "";
+       
         final Path path = Paths.get("");
+        
         final String installDirectory = path.toAbsolutePath().toString();
 
-        switch (configurationType) {
+        switch (configurationType) 
+        {
             case CUSTOM_DOMAIN:
-                configureSslCommand = "/bin/bash enable_ssl.sh -d " + sslSettingsToConfigure.getCustomDomain() + " -i " + installDirectory;
-                sslConfigurationResult = configureSslWithCustomDomain(configureSslCommand);
+                configureSslCommand = "/bin/bash enable_ssl.sh -d " + sslSettingsToConfigure.getDomainName() + " -i " + installDirectory;
+                sslConfigurationResult = configureSSL(configureSslCommand, null);
                 break;
+                
             case ANTMEDIA_SUBDOMAIN:
                 configureSslCommand = "/bin/bash enable_ssl.sh -i " + installDirectory;
-                sslConfigurationResult = configureSslWithAntMediaSubDomain(configureSslCommand);
+                sslConfigurationResult = configureSSL(configureSslCommand, null);
+                
                 break;
+                
             case CUSTOM_CERTIFICATE:
                 final String systemTempDir = System.getProperty("java.io.tmpdir");
                 final String sslTempDirName = "sslTemp";
                 final File sslTempDir = new File(systemTempDir + File.separator + sslTempDirName);
-                final String domain = sslSettingsToConfigure.getCustomDomain();
+                final String domain = sslSettingsToConfigure.getDomainName();
                 final String domainName = getDomainNameFromDomain(domain);
                 String fullChainFileExtension = "";
                 String chainFileExtension = "";
@@ -266,7 +263,7 @@ public class SslConfigurator {
                     fullChainFileName = domainName + fullChainFileExtension;
                     chainFileName = domainName + "chain" + chainFileExtension;
                     configureSslCommand = "/bin/bash enable_ssl.sh -f " + fullChainFileName + " -p " + domainName + ".key" + " -c " + chainFileName + " -d " + domain + " -i " + installDirectory;
-                    sslConfigurationResult = configureSslWithCustomCertificate(configureSslCommand, domain);
+                    sslConfigurationResult = configureSSL(configureSslCommand, domain);
 
                 } else {
                     logger.warn("Creating certificate files on server side failed.");
@@ -285,12 +282,13 @@ public class SslConfigurator {
         }
         return sslConfigurationResult;
     }
+    
 
-    public SslConfigurationResult runCommandWithOutput(final String command) {
+    public Result runCommandWithOutput(final String command) {
         logger.debug("Executing enable_ssl script with command {}", command);
-        final SslConfigurationResult commandResult = new SslConfigurationResult(false, "");
+        final Result commandResult = new Result(false);
         try {
-            final Process process = getProcess(command);
+            final Process process = AdminApplication.getProcess(command);
             final ByteArrayOutputStream inputStreamOut = new ByteArrayOutputStream();
             final ByteArrayOutputStream errorStreamOut = new ByteArrayOutputStream();
 
@@ -308,11 +306,6 @@ public class SslConfigurator {
             Thread.currentThread().interrupt();
         }
         return commandResult;
-    }
-
-    public Process getProcess(final String command) throws IOException {
-        final ProcessBuilder pb = new ProcessBuilder(command.split(" "));
-        return pb.start();
     }
 
 }
