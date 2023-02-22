@@ -155,6 +155,8 @@ cache:
     
 after_failure:
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
+  - echo "----------------------------------------------"
+  - sudo cat /usr/local/antmedia/log/antmedia-error.log
   - sudo service mongod status
   - sudo service redis-server status
   - sudo cat /var/log/mongodb/mongod.log
