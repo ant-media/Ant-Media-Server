@@ -1,4 +1,4 @@
-# Management Panel REST APIs for dashboard REST services
+# Management Panel REST API services
 
 Some REST commands which are not application specific, such as creating and deleting an app, creating a new user, etc, require an authentication filter by logging in to the management panel. This creates a few limitations for people who don't want to use the web panel every time and want access to all of the REST commands.
 
@@ -6,28 +6,33 @@ Earlier ,there are two separate methods to access the Dashboard REST services, v
 
 In JWT API Filter, it was needed to edit web.xml file under conf directory first and then make the Dashboard API calls. No with the new versions, we have updated the method and hence JWT Filter along with Username and Password can be used simultaneously.
 
-### Accessing Management Panel API for Dashboard REST Services
+## Accessing Management Panel REST API
 
-#### Enable JWT filter for web panel REST API
+### Enable JWT filter for web panel REST API
 
 First, open the ```conf/red5.properties``` file and find and replace the following lines:
 
-    server.jwtServerControlEnabled=false 
-    server.jwtServerSecretKey=
-    
+```
+server.jwtServerControlEnabled=false 
+server.jwtServerSecretKey=
+```
 
 with these ones:
 
-    server.jwtServerControlEnabled=true
-    server.jwtServerSecretKey=your-secret-key-at-least-32-character
+```
+server.jwtServerControlEnabled=true
+server.jwtServerSecretKey=your-secret-key-at-least-32-character
+```
 
 Now restart the Ant Media Server
 
-    sudo service antmedia restart
+```
+sudo service antmedia restart
+```
 
-REST API for the web panel is listed [Management REST Service](https://antmedia.io/rest/#/ManagementRestService). Web Panel REST methods are binded below https://SERVER\_FQDN:PORT/rest/
+REST API for the web panel is listed [Management REST Service](https://antmedia.io/rest/#/ManagementRestService). Web Panel REST methods are binded below `https://SERVER\_FQDN:PORT/rest/`
 
-#### Example
+### Example
 
 Let's assume that we've entered this key (```cizvvh7f6ys0w3x0s1gzg6c2qzpk0gb9```) as ```server.jwtServerSecretKey```
 
@@ -35,7 +40,7 @@ First, generate the JWT Token at [JWT Debugger](https://jwt.io/#debugger-io). We
 
 ![](@site/static/img/JWT_debugger_sample_for_web_panel_ant_media_server.png)
 
-#### Authenticating the User:
+## Authenticating the User:
 
 Now, we need to authenticate the username and password.
 
@@ -47,23 +52,23 @@ Now that we have the MD5 encrypted password, let's make the AuthenticateUser RE
 
 The payload in the body can be entered like:
 
-    { "email": "your-username", "password": "05a671c66aefea124cc08b76ea6d30bb" }
+```
+{ "email": "your-username", "password": "05a671c66aefea124cc08b76ea6d30bb" }
+```
 
 Now that the User is authenticated, we can make the REST API calls for accessing Dashboard REST Services.
 
-  
-
 Let's get the list of [Applications](https://antmedia.io/rest/#/ManagementRestService/getApplications) from the Server:
 
-ActionScript
-
-    curl -X GET -H "Content-Type: application/json" -H "Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.tA6sZwz_MvD9Nocf3Xv_DXhJaeTNgfsHPlg3RHEoZRk" "https://SERVER_FQDN:5443/rest/v2/applications"
+```
+curl -X GET -H "Content-Type: application/json" -H "Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.tA6sZwz_MvD9Nocf3Xv_DXhJaeTNgfsHPlg3RHEoZRk" "https://SERVER_FQDN:5443/rest/v2/applications"
+```
 
 The response should be something like
 
-ActionScript
-
-    {"applications":["LiveApp","WebRTCAppEE"]} 
+```
+{"applications":["LiveApp","WebRTCAppEE"]}
+```
 
 Then, you can use all [Web panel REST methods](https://antmedia.io/rest/#/ManagementRestService) using the header as shown in the sample above.
 
