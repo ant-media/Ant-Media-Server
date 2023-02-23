@@ -1,4 +1,8 @@
-# How to publish Wirecast
+---
+title: Wirecast
+---
+
+# SRT Ingest using Wirecast
 
 Unfortunatelly streamid parameter doesn't support by Wirecast. Please check these links for more detail:  
 https://telestreamforum.forumbee.com/t/35hpl27/wire-18259-any-updates  
