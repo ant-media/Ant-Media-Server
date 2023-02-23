@@ -1,4 +1,8 @@
-# How to publish with VMix
+---
+title: vMix
+---
+
+# How to Ingest SRT with VMix
 
 ```vMix``` is a software vision mixer available for the Windows operating system. The software is developed by StudioCoast PTY LTD. Like most vision mixing software, it allows users to switch inputs, mix audio, record outputs and live stream cameras, videos files, audio, and more in resolutions of up to 4K. It can stream up to three destinations at one time.
 
