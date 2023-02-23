@@ -5,7 +5,7 @@
             <level>INFO</level>
         </filter>
         <encoder>
-            <pattern>[%p] [%thread] %logger - %msg%n</pattern>
+            <pattern>[%p] %d{ISO8601} [%thread] %logger - %msg%n</pattern>
         </encoder>
     </appender>
     <appender class="ch.qos.logback.core.FileAppender" name="FILE">

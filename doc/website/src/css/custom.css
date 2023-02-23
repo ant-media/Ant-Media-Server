@@ -1,0 +1,53 @@
+/**
+ * Any CSS included here will be global. The classic template
+ * bundles Infima by default. Infima is a CSS framework designed to
+ * work well for content-centric websites.
+ */
+
+/* You can override the default Infima variables here. */
+:root {
+  --ifm-color-primary: #a10310;
+  --ifm-color-primary-dark: #85030d;
+  --ifm-color-primary-darker: #66030b;
+  --ifm-color-primary-darkest: #71030d;
+  --ifm-color-primary-light: #33925d;
+  --ifm-color-primary-lighter: #359962;
+  --ifm-color-primary-lightest: #3cad6e;
+  --ifm-code-font-size: 90%;
+  --ifm-code-border-radius: 0;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+/* For readability concerns, you should choose a lighter palette in dark mode. */
+[data-theme='dark'] {
+  --ifm-color-primary: #f5e6e7;
+  --ifm-color-primary-dark: #21af90;
+  --ifm-color-primary-darker: #1fa588;
+  --ifm-color-primary-darkest: #1a8870;
+  --ifm-color-primary-light: #29d5b0;
+  --ifm-color-primary-lighter: #32d8b4;
+  --ifm-color-primary-lightest: #4fddbf;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}
+
+article{
+  font-size: 18px;
+}
+
+
+code{
+  border: 0.1rem solid rgb(161 156 156 / 10%);
+}
+
+.infobox-title{
+  font-weight:bold;
+}
+
+.infoBox {
+  background-color: #ddf7ff;
+  border-radius: 5px;
+  color: #006a8a;
+  margin-bottom: 1rem;
+  padding: 0.75rem 1.25rem;
+  position: relative;
+}

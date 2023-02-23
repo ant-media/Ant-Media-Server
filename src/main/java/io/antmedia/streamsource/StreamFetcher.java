@@ -141,11 +141,11 @@ public class StreamFetcher {
 		String transportType = appSettings.getRtspPullTransportType();
 		if (streamUrl.startsWith("rtsp://") && !transportType.isEmpty()) {
 			logger.info("Setting rtsp transport type to {} for stream source: {}", transportType, streamUrl);
-			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
+			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);			
 		}
 
 		String timeoutStr = String.valueOf(this.timeoutMicroSeconds);
-		av_dict_set(optionsDictionary, "stimeout", timeoutStr, 0);
+		av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
 
 		int analyzeDurationUs = appSettings.getMaxAnalyzeDurationMS() * 1000;
 		String analyzeDuration = String.valueOf(analyzeDurationUs);
@@ -153,7 +153,7 @@ public class StreamFetcher {
 
 		int ret;
 
-		logger.debug("stream url: {}  " , streamUrl);
+		logger.debug("open stream url: {}  " , streamUrl);
 
 		if ((ret = avformat_open_input(inputFormatContext, streamUrl, null, optionsDictionary)) < 0) {
 
@@ -169,9 +169,11 @@ public class StreamFetcher {
 			optionsDictionary.close();
 			return result;
 		}
-
+		
 		av_dict_free(optionsDictionary);
 		optionsDictionary.close();
+		
+		logger.debug("find stream info: {}  " , streamUrl);
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {

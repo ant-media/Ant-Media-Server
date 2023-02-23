@@ -257,7 +257,7 @@ public class DashViewerStatsTest {
 						boolean called = false;
 						try{
 							verify(spyAdapter, times(2)).sendStartPlayWebHook(streamId, subscriberPlay.getSubscriberId(), null);
-							verify(spyAdapter,times(2)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_START_PLAY, broadcast.getName(),broadcast.getCategory(),null,null,subscriberPlay.getSubscriberId(), null, null);
+							verify(spyAdapter,times(2)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_START_PLAY, broadcast.getName(),broadcast.getCategory(),null,null,subscriberPlay.getSubscriberId(), null, broadcast.getMetaData());
 							called = true;
 						}catch (Exception e){
 							e.printStackTrace();
@@ -308,7 +308,7 @@ public class DashViewerStatsTest {
 						try{
 							verify(spyAdapter, times(2)).sendStopPlayWebHook(streamId, subscriberPlay2.getSubscriberId(), null);
 
-							verify(spyAdapter,times(2)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_STOP_PLAY, broadcast.getName(),broadcast.getCategory(),null,null,subscriberPlay2.getSubscriberId(), null, null);
+							verify(spyAdapter,times(2)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_STOP_PLAY, broadcast.getName(),broadcast.getCategory(),null,null,subscriberPlay2.getSubscriberId(), null, broadcast.getMetaData());
 
 							called = true;
 						}catch (Exception e){

@@ -1824,7 +1824,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 					boolean called = false;
 					try{
 						verify(spyAdaptor, times(1)).sendStartRecordWebHook(streamId);
-						verify(spyAdaptor,times(1)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_START_RECORD, broadcast.getName(),broadcast.getCategory(),null,null,null, null, null);
+						verify(spyAdaptor,times(1)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_START_RECORD, broadcast.getName(),broadcast.getCategory(),null,null,null, null, broadcast.getMetaData());
 						called = true;
 					}catch (Exception e){
 						e.printStackTrace();
