@@ -2,15 +2,12 @@ package io.antmedia.datastore.db;
 
 import java.io.File;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.regex.Pattern;
+
+import io.antmedia.rest.model.Result;
+import io.antmedia.security.ITokenService;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -901,6 +898,26 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
+	public boolean deleteTokenFromBlacklist(String tokenId) {
+		return false;
+	}
+
+	@Override
+	public List<String> getJwtBlacklist() {
+		return Collections.emptyList();
+	}
+
+	@Override
+	public Result deleteAllExpiredJwtFromBlacklist(ITokenService tokenService) {
+		return null;
+	}
+
+	@Override
+	public void clearJwtBlacklist() {
+		throw new UnsupportedOperationException("JWT blacklist must be stored as map based db on disk, not in memory.");
+	}
+
+	@Override
 	public Token getToken(String tokenId) {
 
 		return tokenMap.get(tokenId);
@@ -1021,5 +1038,15 @@ public class InMemoryDataStore extends DataStore {
 			result = true;
 		}
 		return result;
+	}
+
+	@Override
+	public boolean addTokenToBlacklist(Token token) {
+        return false;
+    }
+
+	@Override
+	public Token getTokenFromBlacklist(String tokenId) {
+		return null;
 	}
 }

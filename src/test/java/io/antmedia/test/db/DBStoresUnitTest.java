@@ -7,6 +7,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -19,6 +21,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.rest.model.Result;
+import io.antmedia.security.ITokenService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
@@ -134,6 +138,8 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		testDeleteAllExpiredJwtFromBlacklist(dataStore);
+		testClearJwtBlacklist(dataStore);
 
 	}
 	
@@ -2100,9 +2106,9 @@ public class DBStoresUnitTest {
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
 		dsf.setDbHost("localhost");
-		ApplicationContext context = Mockito.mock(ApplicationContext.class);
-		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
-		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());			
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 		dsf.setApplicationContext(context);
 		return dsf.getDataStore();
 	}
@@ -2834,4 +2840,95 @@ public class DBStoresUnitTest {
 		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.randomAlphanumeric(8), UPDATED_DATA));
 
 	}
+
+	public void testDeleteAllExpiredJwtFromBlacklist(DataStore dataStore){
+
+		Token token1 = new Token();
+		Token token2 = new Token();
+		Token token3 = new Token();
+
+		String jwt1 = "jwt1";
+		String jwt2 = "jwt2";
+		String jwt3 = "jwt3";
+
+		String tokenType = "publish";
+		String streamId = "test-stream";
+
+		token1.setTokenId(jwt1);
+		token2.setTokenId(jwt2);
+		token3.setTokenId(jwt3);
+
+		token1.setType(tokenType);
+		token2.setType(tokenType);
+		token3.setType(tokenType);
+
+		token1.setStreamId(streamId);
+		token2.setStreamId(streamId);
+		token3.setStreamId(streamId);
+		ITokenService tokenService = mock(ITokenService.class);
+
+		Result res = dataStore.deleteAllExpiredJwtFromBlacklist(tokenService);
+		assertFalse(res.isSuccess());
+
+		dataStore.addTokenToBlacklist(token1);
+		dataStore.addTokenToBlacklist(token2);
+		dataStore.addTokenToBlacklist(token3);
+
+		Token jwt = dataStore.getTokenFromBlacklist(token1.getTokenId());
+		assertNotNull(jwt);
+
+		when(tokenService.verifyJwt(jwt1,streamId,tokenType)).thenReturn(false);
+		when(tokenService.verifyJwt(jwt2,streamId,tokenType)).thenReturn(false);
+		when(tokenService.verifyJwt(jwt3,streamId,tokenType)).thenReturn(false);
+
+
+		res = dataStore.deleteAllExpiredJwtFromBlacklist(tokenService);
+		assertTrue(res.isSuccess());
+
+	}
+
+	public void testClearJwtBlacklist(DataStore dataStore){
+		addJwtsToBlacklist(dataStore);
+
+
+		List<String> jwtBlacklist = dataStore.getJwtBlacklist();
+		assertEquals(3, jwtBlacklist.size());
+
+		dataStore.clearJwtBlacklist();
+		jwtBlacklist = dataStore.getJwtBlacklist();
+
+		assertEquals(0, jwtBlacklist.size());
+
+
+	}
+
+	private void addJwtsToBlacklist(DataStore dataStore){
+		Token token1 = new Token();
+		Token token2 = new Token();
+		Token token3 = new Token();
+
+		String jwt1 = "jwt1";
+		String jwt2 = "jwt2";
+		String jwt3 = "jwt3";
+
+		String tokenType = "publish";
+		String streamId = "test-stream";
+
+		token1.setTokenId(jwt1);
+		token2.setTokenId(jwt2);
+		token3.setTokenId(jwt3);
+
+		token1.setType(tokenType);
+		token2.setType(tokenType);
+		token3.setType(tokenType);
+
+		token1.setStreamId(streamId);
+		token2.setStreamId(streamId);
+		token3.setStreamId(streamId);
+
+		dataStore.addTokenToBlacklist(token1);
+		dataStore.addTokenToBlacklist(token2);
+		dataStore.addTokenToBlacklist(token3);
+	}
+
 }

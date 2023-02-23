@@ -6,9 +6,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-import java.util.Map.Entry;
 
+import io.antmedia.datastore.db.types.Token;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.redisson.Redisson;
 import org.redisson.api.RMap;
@@ -17,10 +16,8 @@ import org.redisson.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
-import io.antmedia.muxer.IAntMediaStreamHandler;
 
 public class RedisStore extends MapBasedDataStore {
 
@@ -121,6 +118,18 @@ public class RedisStore extends MapBasedDataStore {
 			}
 			return resetBroadcasts;
 		}
+	}
+
+	@Override
+	public boolean addTokenToBlacklist(Token token) {
+
+		return false;
+	}
+
+	@Override
+	public Token getTokenFromBlacklist(String tokenId) {
+
+		return null;
 	}
 
 

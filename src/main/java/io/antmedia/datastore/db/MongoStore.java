@@ -9,9 +9,12 @@ import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import io.antmedia.rest.model.Result;
+import io.antmedia.security.ITokenService;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -94,7 +97,6 @@ public class MongoStore extends DataStore {
 		subscriberDatastore = Morphia.createDatastore(mongoClient, dbName + "_subscriber");
 		detectionMap = Morphia.createDatastore(mongoClient, dbName + "detection");
 		conferenceRoomDatastore = Morphia.createDatastore(mongoClient, dbName + "room");
-
 		//*************************************************
 		//do not create data store for each type as we do above
 		//*************************************************
@@ -107,7 +109,7 @@ public class MongoStore extends DataStore {
 		vodDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
 		detectionMap.getMapper().mapPackage("io.antmedia.datastore.db.types");
 		conferenceRoomDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
-		
+
 		tokenDatastore.ensureIndexes();
 		subscriberDatastore.ensureIndexes();
 		datastore.ensureIndexes();
@@ -1197,6 +1199,26 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
+	public boolean deleteTokenFromBlacklist(String tokenId) {
+		return false;
+	}
+
+	@Override
+	public List<String> getJwtBlacklist() {
+		return Collections.emptyList();
+	}
+
+	@Override
+	public Result deleteAllExpiredJwtFromBlacklist(ITokenService tokenService) {
+		return null;
+	}
+
+	@Override
+	public void clearJwtBlacklist() {
+		throw new UnsupportedOperationException("JWT blacklist must be stored as map based db on disk, not in mongodb.");
+	}
+
+	@Override
 	public Token getToken(String tokenId) {
 		Token token = null;
 
@@ -1428,5 +1450,16 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return false;
+	}
+
+	@Override
+	public boolean addTokenToBlacklist(Token token) {
+
+		return false;
+	}
+
+	@Override
+	public Token getTokenFromBlacklist(String tokenId) {
+		return null;
 	}
 }

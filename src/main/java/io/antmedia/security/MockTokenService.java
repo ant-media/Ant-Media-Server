@@ -44,6 +44,11 @@ public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 	}
 
 	@Override
+	public boolean verifyJwt(String jwtTokenId, String streamId, String type) {
+		return false;
+	}
+
+	@Override
 	public boolean checkJwtToken(String jwtTokenId, String streamId, String type) {
 		return true;
 	}

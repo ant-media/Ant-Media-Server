@@ -9,8 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
+import io.antmedia.rest.model.Result;
+import io.antmedia.security.ITokenService;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -41,6 +44,8 @@ public abstract class MapBasedDataStore extends DataStore {
 	protected Map<String, String> vodMap;
 	protected Map<String, String> detectionMap;
 	protected Map<String, String> tokenMap;
+	protected Map<String, String> tokenBlacklistMap;
+
 	protected Map<String, String> subscriberMap;
 	protected Map<String, String> conferenceRoomMap;
 	protected Map<String, String> webRTCViewerMap;
@@ -944,6 +949,65 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
+	public boolean deleteTokenFromBlacklist(String tokenId) {
+		boolean result;
+
+		synchronized (this) {
+			result = tokenBlacklistMap.remove(tokenId) != null;
+		}
+		return result;
+	}
+
+	@Override
+	public List<String> getJwtBlacklist(){
+
+		synchronized (this){
+			return new ArrayList<>(tokenBlacklistMap.keySet());
+
+		}
+
+	}
+
+	@Override
+	public Result deleteAllExpiredJwtFromBlacklist(ITokenService tokenService){
+		logger.info("Deleting all expired JWTs from black list.");
+		AtomicInteger deletedTokenCount = new AtomicInteger();
+
+		synchronized (this){
+			tokenBlacklistMap.forEach((key, value) -> {
+				Token token = gson.fromJson(value,Token.class);
+				String tokenId = token.getTokenId();
+				if(!tokenService.verifyJwt(tokenId,token.getStreamId(),token.getType())){
+					if(deleteTokenFromBlacklist(tokenId)){
+						deletedTokenCount.getAndIncrement();
+					}else{
+						logger.warn("Couldn't delete JWT:{}", tokenId);
+					}
+				}
+			});
+		}
+
+		if(deletedTokenCount.get() > 0){
+			final String successMsg = deletedTokenCount+" JWT deleted successfully from black list.";
+			logger.info(successMsg);
+			return new Result(true, successMsg);
+		}else{
+			final String failMsg = "No JWT deleted from black list.";
+			logger.warn(failMsg);
+			return new Result(false, failMsg);
+
+		}
+
+	}
+
+	@Override
+	public void clearJwtBlacklist(){
+		synchronized (this) {
+			tokenBlacklistMap.clear();
+		}
+	}
+
+	@Override
 	public Token getToken(String tokenId) {
 		return super.getToken(tokenMap, tokenId, gson);
 	}	
@@ -1053,6 +1117,32 @@ public abstract class MapBasedDataStore extends DataStore {
 			return gson.fromJson(jsonString, Broadcast.class);
 		}
 		return null;
+	}
+
+	@Override
+	public boolean addTokenToBlacklist(Token token) {
+		boolean result = false;
+
+		synchronized (this) {
+
+			if (token.getStreamId() != null && token.getTokenId() != null) {
+
+				try {
+					tokenBlacklistMap.put(token.getTokenId(), gson.toJson(token));
+					result = true;
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
+		return result;
+
+	}
+
+	@Override
+	public Token getTokenFromBlacklist(String tokenId) {
+		return super.getToken(tokenBlacklistMap, tokenId, gson);
+
 	}
 
 }
