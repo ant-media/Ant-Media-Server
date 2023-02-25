@@ -25,6 +25,7 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -401,6 +402,54 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}	
 	}
 
+	/**
+	 * Test code for https://github.com/ant-media/Ant-Media-Server/issues/4748
+	 */
+	@Test
+	public void testSyncUserVoDBug() {
+		File streamsFolder = new File("webapps/junit/streams");
+		assertFalse(streamsFolder.exists());	
+		
+		//any target
+		Path target = new File("/usr").toPath();
+		try {
+			Files.createSymbolicLink(streamsFolder.toPath(), target);
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
+		assertTrue(streamsFolder.exists());	
+		assertTrue(Files.isSymbolicLink(streamsFolder.toPath()));
+		
+
+		IScope scope = Mockito.mock(IScope.class);
+		Mockito.when(scope.getName()).thenReturn("junit");
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		Mockito.doReturn(scope).when(spyAdapter).getScope();
+		
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		spyAdapter.setDataStoreFactory(dsf);
+		
+		
+		spyAdapter.synchUserVoDFolder(null, null);
+		Mockito.verify(spyAdapter, Mockito.never()).deleteSymbolicLink(Mockito.any(), Mockito.any());
+		Mockito.verify(spyAdapter, Mockito.never()).createSymbolicLink(Mockito.any(), Mockito.any());
+		
+		assertTrue(streamsFolder.exists());
+		
+		//Don't delete the file if they are the same files
+		spyAdapter.deleteSymbolicLink(new File(""), streamsFolder);
+		
+		assertTrue(streamsFolder.exists());
+		
+		
+	}
+	
 	@Test
 	public void testSynchUserVoD() {
 		File streamsFolder = new File(streamsFolderPath);
