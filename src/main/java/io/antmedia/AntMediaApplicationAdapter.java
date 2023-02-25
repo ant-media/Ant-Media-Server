@@ -281,8 +281,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if(oldFolderPath != null && !oldFolderPath.equals("")){
 			deleteSymbolicLink(new File(oldFolderPath), streamsFolder);
 		}
-
-		if(vodFolderPath != null && !vodFolderPath.equals("")){
+		
+		
+		if(vodFolderPath != null && !vodFolderPath.equals(""))
+		{
 			File f = new File(vodFolderPath);
 			createSymbolicLink(streamsFolder, f);
 			//if file does not exists, it means reset the vod
@@ -293,15 +295,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	private Result createSymbolicLink(File streamsFolder, File vodFolder) {
+	public Result createSymbolicLink(File streamsFolder, File vodFolder) {
 		Result result = null;
 		try {
 			if (!streamsFolder.exists()) {
 				streamsFolder.mkdirs();
 			}
-			if (vodFolder.exists() && vodFolder.isDirectory()) {
-				String newLinkPath = streamsFolder.getAbsolutePath() + File.separator + vodFolder.getName();
-				File newLinkFile = new File(newLinkPath);
+			if (vodFolder.exists() && vodFolder.isDirectory()) 
+			{
+				File newLinkFile = new File(streamsFolder, vodFolder.getName());
 				if (!Files.isSymbolicLink(newLinkFile.toPath())) 
 				{
 					Path target = vodFolder.toPath();
@@ -453,8 +455,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if (vodDirectory != null && streamsFolder != null) 
 			{
 				File linkFile = new File(streamsFolder.getAbsolutePath(), vodDirectory.getName());
-
-				if (Files.isSymbolicLink(linkFile.toPath())) 
+				
+				if (!streamsFolder.getAbsolutePath().equals(linkFile.getAbsolutePath()) 
+						&& 
+						Files.isSymbolicLink(linkFile.toPath())) 
 				{
 					Files.delete(linkFile.toPath());
 					result = true;
