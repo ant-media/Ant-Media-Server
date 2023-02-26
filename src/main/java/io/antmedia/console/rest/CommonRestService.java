@@ -2,12 +2,24 @@ package io.antmedia.console.rest;
 
 import static org.slf4j.Logger.ROOT_LOGGER_NAME;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Queue;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -20,10 +32,9 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import io.antmedia.rest.model.*;
-import io.antmedia.security.SslConfigurator;
-import io.antmedia.settings.SslSettings;
 import org.apache.commons.codec.binary.Hex;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.config.RequestConfig;
@@ -33,6 +44,7 @@ import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.red5.server.Launcher;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -60,6 +72,11 @@ import io.antmedia.datastore.db.types.User;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
+import io.antmedia.rest.model.Result;
+import io.antmedia.rest.model.SslConfigurationType;
+import io.antmedia.rest.model.UserType;
+import io.antmedia.rest.model.Version;
+import io.antmedia.security.SslConfigurator;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.statistic.StatsCollector;
@@ -871,15 +888,157 @@ public class CommonRestService {
 
 		return result;
 	}
-	public Result configureSsl(SslSettings recievedSslSettings)
+
+	public static String extractFQDN(String domainName) {
+		// regular expression pattern for fully qualified domain name
+		String regex = "([A-Za-z0-9-]{1,63}\\.){1,10}[A-Za-z]{2,6}";
+		Pattern pattern = Pattern.compile(regex);
+		if (domainName != null) {
+			Matcher matcher = pattern.matcher(domainName);
+
+			if (matcher.find()) {
+				return matcher.group();
+			} else {
+				return null;
+			}
+		}
+		return null;
+	}
+
+
+	public Result configureSsl(String domainName, String type,
+			InputStream fullChainFile,  FormDataContentDisposition fullChainFileDetail,
+			InputStream privateKeyFile, FormDataContentDisposition privateKeyFileDetail,
+			InputStream chainFile, FormDataContentDisposition chainFileDetail)
 	{
-		//
-		PreferenceStore store = new PreferenceStore(RED5_PROPERTIES_PATH);
-		
-		SslConfigurator sslConfigurator = new SslConfigurator(getSslSettingsInternal(), recievedSslSettings, store);
-		
-		return sslConfigurator.configure();
-		
+		//check if the parameters are valid
+		boolean parametersValid = false;
+		String responseMessage = null;
+
+		SslConfigurator sslConfigurator = new SslConfigurator();
+
+		File sslTempDir = null;
+
+		SslConfigurationType sslConfigurationType = getSSLConfigurationType(type);
+
+		String fqdn = extractFQDN(domainName);
+		if (fqdn == null && sslConfigurationType != SslConfigurationType.ANTMEDIA_SUBDOMAIN) 
+		{
+			//return invalid if there is no fqdn except for antmedia.cloud subdomain
+			responseMessage = "Invalid domain name parameter";
+		}
+		else if (sslConfigurationType == SslConfigurationType.CUSTOM_CERTIFICATE) 
+		{
+
+			if (isCustomCertificateParamsValid(fullChainFile, fullChainFileDetail, privateKeyFile,
+					privateKeyFileDetail, chainFile, chainFileDetail)
+					) 
+			{
+				//save the files to the tmp directory
+				String systemTempDir = System.getProperty("java.io.tmpdir");
+				String sslTempDirName = "ssl-tmp-ant-media";
+				sslTempDir = new File(systemTempDir, sslTempDirName);
+				sslTempDir.mkdirs();
+
+				File fullChainOutputFile = new File(sslTempDir, FilenameUtils.getName(fullChainFileDetail.getFileName()));
+				File privateKeyOutputFile = new File(sslTempDir, FilenameUtils.getName(privateKeyFileDetail.getFileName()));
+				File chainOutputFile = new File(sslTempDir, FilenameUtils.getName(chainFileDetail.getFileName()));
+				sslConfigurator.setFullChainFile(fullChainOutputFile);
+				sslConfigurator.setPrivateKeyFile(privateKeyOutputFile);
+				sslConfigurator.setChainFile(chainOutputFile);
+
+				Result tmp = prepareCertificateFiles(fullChainFile, fullChainOutputFile, privateKeyFile,
+						privateKeyOutputFile, chainFile, chainOutputFile);
+
+				parametersValid = tmp.isSuccess();
+				responseMessage = tmp.getMessage();
+
+			}
+			else {
+				responseMessage = "Missing parameters for custom SSL certificate. Please provide domain name, fullChain, private key, and chain";
+			}
+
+		}
+		else if (sslConfigurationType == SslConfigurationType.CUSTOM_DOMAIN || sslConfigurationType == SslConfigurationType.ANTMEDIA_SUBDOMAIN) 
+		{
+			parametersValid = true;	
+		}
+		else 
+		{
+			responseMessage = "Unknown SSL configuration type";
+		}
+
+		Result result = new Result(false);
+		if (parametersValid) 
+		{
+			sslConfigurator.setDomain(fqdn);
+			sslConfigurator.setType(sslConfigurationType);
+
+			String command = sslConfigurator.getCommand();
+			result.setSuccess(getApplication().runCommand(command));
+		}
+		else {
+			result.setMessage(responseMessage);
+
+
+		}
+		deleteSSLTempDirIfExists(sslTempDir);
+
+		return result;
+	}
+
+
+	private SslConfigurationType getSSLConfigurationType(String type) {
+		if (type != null) {
+			try {
+				return SslConfigurationType.valueOf(type);
+			}
+			catch (IllegalArgumentException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
+	}
+
+
+	private boolean isCustomCertificateParamsValid(InputStream fullChainFile,
+			FormDataContentDisposition fullChainFileDetail, InputStream privateKeyFile,
+			FormDataContentDisposition privateKeyFileDetail, InputStream chainFile,
+			FormDataContentDisposition chainFileDetail) {
+		return fullChainFile != null && fullChainFileDetail != null && fullChainFileDetail.getFileName() != null && !fullChainFileDetail.getFileName().isEmpty() &&
+				privateKeyFile != null && privateKeyFileDetail != null && privateKeyFileDetail.getFileName() != null && !privateKeyFileDetail.getFileName().isEmpty() &&
+				chainFile != null && chainFileDetail != null && chainFileDetail.getFileName() != null && !chainFileDetail.getFileName().isEmpty();
+	}
+
+
+	private Result prepareCertificateFiles(InputStream fullChainFile, File fullChainOutputFile,
+			InputStream privateKeyFile, File privateKeyOutputFile, InputStream chainFile,
+			File chainOutputFile) {
+		boolean result = false;
+		String message = null;
+		try {
+			Files.copy(fullChainFile, fullChainOutputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			Files.copy(privateKeyFile, privateKeyOutputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			Files.copy(chainFile, chainOutputFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+			result = true;
+
+		} catch (IOException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			message = "Certificate file operation is not succesful due to " + e.getMessage();
+
+		}
+		return new Result(result, message);
+	}
+
+
+	private void deleteSSLTempDirIfExists(File sslTempDir) {
+		if (sslTempDir != null && sslTempDir.exists()) {
+			try {
+				FileUtils.forceDelete(sslTempDir);
+			} catch (IOException e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
 	}
 
 	public String changeServerSettings(ServerSettings serverSettings){
@@ -960,16 +1119,6 @@ public class CommonRestService {
 	{
 		return getServerSettingsInternal();
 	}
-
-	public SslSettings getSslSettingsInternal()
-	{
-		ServerSettings settings = getServerSettings();
-		if (settings != null) {
-			return settings.getSslSettings();
-		}
-		return null;
-	}
-
 
 	public Licence getLicenceStatus(@QueryParam("key") String key) 
 	{

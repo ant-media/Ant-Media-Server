@@ -1,17 +1,14 @@
 package io.antmedia.test.settings;
 
-import io.antmedia.rest.model.SslConfigurationType;
-import io.antmedia.settings.SslSettings;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
 import org.webrtc.Logging;
 
 import io.antmedia.settings.ServerSettings;
-
-import javax.validation.constraints.AssertTrue;
-
-import static org.junit.Assert.*;
 
 public class ServerSettingsTest {
 	
@@ -119,17 +116,4 @@ public class ServerSettingsTest {
 		assertEquals(5001,settings.getOriginServerPort());
 		
 	}
-
-	@Test
-	public void testSslSettings() {
-		ServerSettings settings = new ServerSettings();
-		SslSettings currSslSettings = settings.getSslSettings();
-		String sslConfigurationType = currSslSettings.getConfigurationType();
-		assertNull(sslConfigurationType);
-		SslSettings newSslSettings = new SslSettings();
-		newSslSettings.setConfigurationType("NO_SSL");
-		settings.setSslSettings(newSslSettings);
-		assertTrue(settings.getSslSettings().getConfigurationType().equals("NO_SSL"));
-	}
-
 }

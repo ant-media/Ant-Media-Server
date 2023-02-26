@@ -471,7 +471,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return clusterNotifier;
 	}
 
-	public static boolean runCommand(String command) {
+	public boolean runCommand(String command) {
 
 		boolean result = false;
 		try {
@@ -488,11 +488,24 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return result;
 	}
 
-	public static Process getProcess(String command) throws IOException {
-		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
-		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
-		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
-		return pb.start();
+	public Process getProcess(String command) throws IOException {
+		//This code uses a regular expression to check if the command string contains any special characters 
+		// that may cause vulnerabilities, 
+		//such as ;, &, |, <, >, (, ), $, , , \r, \n, \t, *, ?, {, }, [, ], \, ", ', or whitespace characters. 
+		//If the command string contains any of these characters, it is considered unsafe to execute and the code prints an error message."
+				
+        boolean containsSpecialChars = command.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*");
+        if (!containsSpecialChars) {
+        
+			ProcessBuilder pb = new ProcessBuilder(command.split(" "));
+			pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
+			pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
+			return pb.start();
+        }
+        else {
+        	logger.error("Command includes special characters so it's refused to run");
+        }
+        return null;
 
 	}
 

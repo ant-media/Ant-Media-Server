@@ -440,25 +440,8 @@ then
 
 fi
 
-if [ "$free_domain_requested" == "true" ]; 
-then
-	$SUDO sed -i "/http.sslConfigurationType=/c\http.sslConfigurationType=ANTMEDIA_SUBDOMAIN"  "$INSTALL_DIRECTORY/conf/red5.properties"
-	output
-	$SUDO sed -i "/http.sslDomain=/c\http.sslDomain=$domain"  "$INSTALL_DIRECTORY/conf/red5.properties"
-	output
-elif [ "$fullChainFileExist" == "true" ] && [ "$chainFileExist" == "true" ] && [ "$privateKeyFileExist" == "true" ];
-then
-	$SUDO sed -i "/http.sslConfigurationType=/c\http.sslConfigurationType=CUSTOM_CERTIFICATE"  "$INSTALL_DIRECTORY/conf/red5.properties"
-	output
-	$SUDO sed -i "/http.sslDomain=/c\http.sslDomain=$domain"  "$INSTALL_DIRECTORY/conf/red5.properties"
-	output
-elif [ "$domain" != "" ];
-then
-	$SUDO sed -i "/http.sslConfigurationType=/c\http.sslConfigurationType=CUSTOM_DOMAIN"  "$INSTALL_DIRECTORY/conf/red5.properties"
-	output
-	$SUDO sed -i "/http.sslDomain=/c\http.sslDomain=$domain"  "$INSTALL_DIRECTORY/conf/red5.properties"
-	output
-fi
+
+$SUDO sed -i "/server.name=/c\server.name=$domain"  "$INSTALL_DIRECTORY/conf/red5.properties"
 
 #restore iptables redirect rule
 ipt_restore
