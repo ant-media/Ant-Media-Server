@@ -220,7 +220,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logger.info("Stream source size: {}", streams.size());
 				streamFetcherManager.startStreams(streams);
 			}
-
 			synchUserVoDFolder(null, appSettings.getVodFolder());
 		});
 
@@ -279,28 +278,32 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		boolean result = false;
 		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
 
-		deleteSymbolicLink(new File(oldFolderPath == null ? "" : oldFolderPath), streamsFolder);
+		if(oldFolderPath != null && !oldFolderPath.equals("")){
+			deleteSymbolicLink(new File(oldFolderPath), streamsFolder);
+		}
 		
-
-		File f = new File(vodFolderPath == null ? "" : vodFolderPath);
-		createSymbolicLink(streamsFolder, f);
-		//if file does not exists, it means reset the vod
-		getDataStore().fetchUserVodList(f);
-		result = true;
+		
+		if(vodFolderPath != null && !vodFolderPath.equals(""))
+		{
+			File f = new File(vodFolderPath);
+			createSymbolicLink(streamsFolder, f);
+			//if file does not exists, it means reset the vod
+			getDataStore().fetchUserVodList(f);
+			result = true;
+		}
 
 		return result;
 	}
 
-	private Result createSymbolicLink(File streamsFolder, File vodFolder) {
-
+	public Result createSymbolicLink(File streamsFolder, File vodFolder) {
 		Result result = null;
 		try {
 			if (!streamsFolder.exists()) {
 				streamsFolder.mkdirs();
 			}
-			if (vodFolder.exists() && vodFolder.isDirectory()) {
-				String newLinkPath = streamsFolder.getAbsolutePath() + File.separator + vodFolder.getName();
-				File newLinkFile = new File(newLinkPath);
+			if (vodFolder.exists() && vodFolder.isDirectory()) 
+			{
+				File newLinkFile = new File(streamsFolder, vodFolder.getName());
 				if (!Files.isSymbolicLink(newLinkFile.toPath())) 
 				{
 					Path target = vodFolder.toPath();
@@ -452,8 +455,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if (vodDirectory != null && streamsFolder != null) 
 			{
 				File linkFile = new File(streamsFolder.getAbsolutePath(), vodDirectory.getName());
-
-				if (Files.isSymbolicLink(linkFile.toPath())) 
+				
+				if (!streamsFolder.getAbsolutePath().equals(linkFile.getAbsolutePath()) 
+						&& 
+						Files.isSymbolicLink(linkFile.toPath())) 
 				{
 					Files.delete(linkFile.toPath());
 					result = true;
