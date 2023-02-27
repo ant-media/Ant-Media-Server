@@ -56,10 +56,6 @@
 	</bean>
 
 	<bean id="ant.media.server.settings" class="io.antmedia.settings.ServerSettings">
-		<property name="sslSettings">
-			<bean   id="sslSettings" class="io.antmedia.settings.SSLSettings"/>
-		</property>
-
 	</bean>
 
 
