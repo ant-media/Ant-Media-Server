@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -93,8 +94,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		if(isCluster) {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
 			clusterNotifier.registerCreateAppListener( (appName, warFileURI) -> 
-				createApplicationWithURL(appName, warFileURI)
-			);
+			createApplicationWithURL(appName, warFileURI)
+					);
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
 				return deleteApplication(appName, false);
@@ -112,7 +113,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			log.warn("{} application has already been installing", appName);
 			return false;
 		}
-		
+
 		log.info("Creating application with name {}", appName);
 		boolean result = false;
 		try {
@@ -332,7 +333,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			boolean result = runCreateAppScript(appName, warFileFullPath);
 			success = result;
 		}
-		
+
 		vertx.executeBlocking(i -> {
 			warDeployer.deploy(true);
 			currentApplicationCreationProcesses.remove(appName);
@@ -341,7 +342,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return success;
 
 	}
-	
+
 	@Nullable
 	public static File saveWARFile(String appName, InputStream inputStream) 
 	{
@@ -349,9 +350,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		String fileExtension = "war";
 
 		try {
-			
+
 			String tmpsDirectory = System.getProperty("java.io.tmpdir");
-			
+
 			File savedFile = new File(tmpsDirectory + File.separator + appName + "." + fileExtension);
 
 			int read = 0;
@@ -367,9 +368,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 				logger.info("War file uploaded for application, filesize = {} path = {}", savedFile.length(),  savedFile.getPath());
 			}
-			
+
 			file = savedFile;
-			
+
 		}
 		catch (Exception iox) {
 			logger.error(iox.getMessage());
@@ -496,20 +497,22 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		// that may cause vulnerabilities, 
 		//such as ;, &, |, <, >, (, ), $, , , \r, \n, \t, *, ?, {, }, [, ], \, ", ', or whitespace characters. 
 		//If the command string contains any of these characters, it is considered unsafe to execute and the code prints an error message."
-				
-        boolean containsSpecialChars = command.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*");
-        if (!containsSpecialChars) {
-        
-			ProcessBuilder pb = new ProcessBuilder(command.split(" "));
-			pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
-			pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
-			return pb.start();
-        }
-        else {
-        	logger.error("Command includes special characters so it's refused to run: {}", command);
-        }
-        return null;
 
+		String[] parameters = command.split(" ");
+		for (String params : parameters) 
+		{
+			if (params.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*")) {
+				logger.error("Command includes special characters so it's refused to run. Failed argument:{} and full command:{}", params, command);
+				return null;
+			}
+
+		}
+		ProcessBuilder pb = new ProcessBuilder(parameters);
+
+
+		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
+		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
+		return pb.start();
 	}
 
 	public void setVertx(Vertx vertx) {
