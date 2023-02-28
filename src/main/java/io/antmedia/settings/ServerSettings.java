@@ -65,7 +65,8 @@ public class ServerSettings implements ApplicationContextAware {
 	private static final String SETTINGS_ORIGIN_PORT = "server.origin_port";
 	
 	private static final String SETTINGS_SRT_PORT = "server.srt_port";
-	
+
+	private static final String SETTINGS_RTMP_PORT = "rtmp.port";
 	private static final String ALLOWED_DASH_BOARD_CIDR = "server.allowed_dashboard_CIDR";
 
 	private static final String SETTINGS_NATIVE_LOG_LEVEL = "nativeLogLevel";
@@ -237,6 +238,11 @@ public class ServerSettings implements ApplicationContextAware {
 	 */
 	@Value("${"+SETTINGS_SRT_PORT + ":4200}")
 	private int srtPort;
+	/**
+	 * The RTMP port that server opens to listen incoming RTMP connections
+	 */
+	@Value("${"+SETTINGS_RTMP_PORT + ":1935}")
+	private int rtmpPort;
 
 	public String getJwksURL() {
 		return jwksURL;
@@ -524,7 +530,9 @@ public class ServerSettings implements ApplicationContextAware {
 	public void setSrtPort(int srtPort) {
 		this.srtPort = srtPort;
 	}
-
+	public int getRtmpPort() {
+		return rtmpPort;
+	}
 	public String getMarketplace() {
 		return marketplace;
 	}

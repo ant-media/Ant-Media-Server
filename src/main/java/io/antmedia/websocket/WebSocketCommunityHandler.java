@@ -31,7 +31,7 @@ public class WebSocketCommunityHandler {
 	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
 
 	protected AppSettings appSettings;
-	
+
 	private ApplicationContext appContext;
 
 	protected Session session;
@@ -164,9 +164,9 @@ public class WebSocketCommunityHandler {
 	
 
 	private void startRTMPAdaptor(Session session, final String streamId, boolean enableVideo) {
-
+		String rtmpPort = String.valueOf(appAdaptor.getServerSettings().getRtmpPort());
 		//get scope and use its name
-		String outputURL = "rtmp://127.0.0.1/"+ appName +"/" + streamId;
+		String outputURL = "rtmp://127.0.0.1" + ":" + rtmpPort +"/"+ appName +"/" + streamId;
 
 		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL, appSettings.getHeightRtmpForwarding());
 
