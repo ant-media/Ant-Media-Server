@@ -342,7 +342,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		//Make sure thread is stopped
 		Awaitility.await().atMost(20, TimeUnit.SECONDS)
 		.until(() -> {
-		   return streamFetcher.isThreadActive();
+		   return !streamFetcher.isThreadActive();
 		});
 		
 		
