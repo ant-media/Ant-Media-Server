@@ -975,7 +975,17 @@ public class CommonRestService {
 			sslConfigurator.setType(sslConfigurationType);
 
 			String command = sslConfigurator.getCommand();
-			result.setSuccess(getApplication().runCommand(command));
+			if (command != null) 
+			{
+				AdminApplication adminApplication = getApplication();
+				if (adminApplication != null) 
+				{
+					result.setSuccess(adminApplication.runCommand(command));
+				}
+			}
+			else {
+				result.setMessage("Undefined configuration type");
+			}
 		}
 		else {
 			result.setMessage(responseMessage);

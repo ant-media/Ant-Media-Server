@@ -45,7 +45,6 @@ do
 done
 
 ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Please take a look at the logs above and try to fix.\n If you do not have any idea, contact@antmedia.io"
-free_domain_requested='false'
 usage() {
 
   echo "Usage commands for different scenarios:"
@@ -387,7 +386,6 @@ generate_password(){
 check_domain_name(){
     if [ -z "$domain" ]; then
       get_freedomain
-      free_domain_requested='true'
     fi
 }
 
