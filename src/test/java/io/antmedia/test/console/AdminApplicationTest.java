@@ -121,9 +121,20 @@ public class AdminApplicationTest {
 
 		runCommand = app.runCommand("");
 		assertFalse(runCommand);
-
+		
+		runCommand = app.runCommand("/bin/bash create_app.sh -n oVs9G24e5BQqbaTNVtjh -w true -p /usr/local/antmedia -c false");
+		assertFalse(runCommand);
+		
+		try {
+			process = app.getProcess("/bin/bash create_app.sh -n oVs9G24e5BQqbaTNVtjh -w true -p /usr/local/antmedia -c false");
+			assertNotNull(process);
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
 	}
-
 	@Test
 	public void testLiveStreamCount() {
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);

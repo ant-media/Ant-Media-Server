@@ -476,7 +476,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		boolean result = false;
 		try {
 			Process process = getProcess(command);
-			result = process.waitFor() == 0;
+			if (process != null) 
+			{
+				result = process.waitFor() == 0;
+			}
 		}
 		catch (IOException e) {
 			log.error(ExceptionUtils.getStackTrace(e));
@@ -503,7 +506,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			return pb.start();
         }
         else {
-        	logger.error("Command includes special characters so it's refused to run");
+        	logger.error("Command includes special characters so it's refused to run: {}", command);
         }
         return null;
 
