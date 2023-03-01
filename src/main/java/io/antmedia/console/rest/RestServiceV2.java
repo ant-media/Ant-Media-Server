@@ -482,7 +482,7 @@ public class RestServiceV2 extends CommonRestService {
 		return super.changeServerSettings(serverSettings);
 	}
 
-	@ApiOperation(value = "Changes ssl settings. Sets ssl configuration type,", response = Result.class)
+	@ApiOperation(value = "Changes ssl settings. Sets ssl configuration type. After this method is called, server will be restarted.", response = Result.class)
 	@POST
 	@Path("/ssl-settings")
 	@Consumes({MediaType.MULTIPART_FORM_DATA})

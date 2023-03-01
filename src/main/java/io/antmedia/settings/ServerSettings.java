@@ -344,13 +344,15 @@ public class ServerSettings implements ApplicationContextAware {
 			logger.info("Using local host address is {}", hostAddress);
 		}
 		
-		TomcatLoader tomcatLoader = (TomcatLoader) applicationContext.getBean("tomcat.server");
-		
-		List<TomcatConnector> connectors = tomcatLoader.getConnectors();
-		for (TomcatConnector tomcatConnector : connectors) {
-			if (tomcatConnector.isSecure()) {
-				this.sslEnabled = true;
-				break;
+		if (applicationContext.containsBean("tomcat.server")) {
+			TomcatLoader tomcatLoader = (TomcatLoader) applicationContext.getBean("tomcat.server");
+			
+			List<TomcatConnector> connectors = tomcatLoader.getConnectors();
+			for (TomcatConnector tomcatConnector : connectors) {
+				if (tomcatConnector.isSecure()) {
+					this.sslEnabled = true;
+					break;
+				}
 			}
 		}
 
