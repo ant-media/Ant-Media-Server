@@ -902,5 +902,9 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	public void setCluster(Cluster cluster) {
 		this.cluster = cluster;
 	}
+	
+	public List<TomcatConnector> getConnectors() {
+		return connectors;
+	}
 
 }

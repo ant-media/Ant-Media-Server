@@ -15,6 +15,8 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.global.avutil;
+import org.red5.server.tomcat.TomcatConnector;
+import org.red5.server.tomcat.TomcatLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -222,6 +224,9 @@ public class ServerSettings implements ApplicationContextAware {
 	 */
 	@Value("${"+SETTINGS_SRT_PORT + ":4200}")
 	private int srtPort;
+	
+	
+	private boolean sslEnabled = false;
 
 	public String getJwksURL() {
 		return jwksURL;
@@ -337,6 +342,16 @@ public class ServerSettings implements ApplicationContextAware {
 			//delaying initialization may cause some after issues
 			hostAddress = getLocalHostAddress();
 			logger.info("Using local host address is {}", hostAddress);
+		}
+		
+		TomcatLoader tomcatLoader = (TomcatLoader) applicationContext.getBean("tomcat.server");
+		
+		List<TomcatConnector> connectors = tomcatLoader.getConnectors();
+		for (TomcatConnector tomcatConnector : connectors) {
+			if (tomcatConnector.isSecure()) {
+				this.sslEnabled = true;
+				break;
+			}
 		}
 
 	}
@@ -528,6 +543,14 @@ public class ServerSettings implements ApplicationContextAware {
 
 	public void setJwtServerControlEnabled(boolean jwtServerControlEnabled) {
 		this.jwtServerControlEnabled = jwtServerControlEnabled;
+	}
+
+	public boolean isSslEnabled() {
+		return sslEnabled;
+	}
+
+	public void setSslEnabled(boolean sslEnabled) {
+		this.sslEnabled = sslEnabled;
 	}
 
 
