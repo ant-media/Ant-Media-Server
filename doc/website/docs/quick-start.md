@@ -32,7 +32,7 @@ cd /path/to/where/ant-media-server/is/downloaded
 Get the `install_ant-media-server.sh` script.
 
 ```shell
-wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh & chmod 755 install_ant-media-server.sh
+wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh && chmod 755 install_ant-media-server.sh
 ```
 
 Install Ant Media Server(AMS) as follows. Please don't forget to replace `[ANT_MEDIA_SERVER_INSTALLATION_FILE]` below with the downloaded .zip file name at step 1.
