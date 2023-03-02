@@ -35,9 +35,11 @@ article{
 }
 
 
-code{
-  border: 0.1rem solid rgb(161 156 156 / 10%);
+.theme-code-block{
+  border: 1px solid #e3e3e3;
 }
+
+
 
 .infobox-title{
   font-weight:bold;
