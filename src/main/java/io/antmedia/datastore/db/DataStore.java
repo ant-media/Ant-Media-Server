@@ -427,25 +427,27 @@ public abstract class DataStore {
 	public abstract boolean deleteToken (String tokenId);
 
 	/**
-	 * Delete specific token from blacklist.
+	 * Whitelist specific token.
 	 * @param tokenId id of the token
 	 */
-	public abstract boolean deleteTokenFromBlacklist (String tokenId);
+	public abstract boolean whiteListToken(String tokenId);
 
 	/**
-	 * Get all tokens from jwt blacklist.
+	 * Get all blacklisted tokens.
 	 */
-	public abstract List<String> getJwtBlacklist();
+	public abstract List<String> getBlackListedTokens();
 
 	/**
-	 * Delete all expired tokens from jwt blacklist.
+	 * Delete all blacklisted expired tokens.
 	 */
-	public abstract Result deleteAllExpiredJwtFromBlacklist(ITokenService tokenService);
+	public abstract Result deleteAllBlacklistedExpiredTokens(ITokenService tokenService);
 
 	/**
-	 * Delete all tokens from jwt blacklist.
+	 * Whitelist all blacklisted tokens.
+	 *
+	 * @return
 	 */
-	public abstract void clearJwtBlacklist();
+	public abstract boolean whiteListAllTokens();
 
 	/**
 	 * retrieve specific token
@@ -1377,16 +1379,16 @@ public abstract class DataStore {
 	public abstract boolean updateStreamMetaData(String streamId, String metaData);
 
 	/**
-	 * Add jwt token to black list.
-	 * @param token which will be added to black list.
+	 * Blacklist token.
+	 * @param token which will be blacklisted.
 	 */
-	public abstract boolean addTokenToBlacklist(Token token);
+	public abstract boolean blackListToken(Token token);
 
 	/**
-	 * Get token from black list.
+	 * Get token from blacklist.
 	 * @param tokenId id of the token.
 	 */
-	public abstract Token getTokenFromBlacklist(String tokenId);
+	public abstract Token getBlackListedToken(String tokenId);
 
 	//**************************************
 	//ATTENTION: Write function descriptions while adding new functions

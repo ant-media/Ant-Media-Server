@@ -28,8 +28,6 @@ public class MapDBStore extends MapBasedDataStore {
 	private static final String VOD_MAP_NAME = "VOD";
 	private static final String DETECTION_MAP_NAME = "DETECTION";
 	private static final String TOKEN = "TOKEN";
-	private static final String TOKEN_BLACKLIST = "TOKEN_BLACKLIST";
-
 	private static final String SUBSCRIBER = "SUBSCRIBER";
 	private static final String CONFERENCE_ROOM_MAP_NAME = "CONFERENCE_ROOM";
 	private static final String WEBRTC_VIEWER = "WEBRTC_VIEWER";
@@ -68,9 +66,6 @@ public class MapDBStore extends MapBasedDataStore {
 				.counterEnable().createOrOpen();
 
 		webRTCViewerMap = db.treeMap(WEBRTC_VIEWER).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
-				.counterEnable().createOrOpen();
-
-		tokenBlacklistMap = db.treeMap(TOKEN_BLACKLIST).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
 

@@ -898,23 +898,23 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean deleteTokenFromBlacklist(String tokenId) {
+	public boolean whiteListToken(String tokenId) {
 		return false;
 	}
 
 	@Override
-	public List<String> getJwtBlacklist() {
+	public List<String> getBlackListedTokens() {
 		return Collections.emptyList();
 	}
 
 	@Override
-	public Result deleteAllExpiredJwtFromBlacklist(ITokenService tokenService) {
+	public Result deleteAllBlacklistedExpiredTokens(ITokenService tokenService) {
 		return null;
 	}
 
 	@Override
-	public void clearJwtBlacklist() {
-		throw new UnsupportedOperationException("JWT blacklist must be stored as map based db on disk, not in memory.");
+	public boolean whiteListAllTokens() {
+		throw new UnsupportedOperationException("");
 	}
 
 	@Override
@@ -1041,12 +1041,12 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean addTokenToBlacklist(Token token) {
+	public boolean blackListToken(Token token) {
         return false;
     }
 
 	@Override
-	public Token getTokenFromBlacklist(String tokenId) {
+	public Token getBlackListedToken(String tokenId) {
 		return null;
 	}
 }

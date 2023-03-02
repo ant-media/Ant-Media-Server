@@ -44,8 +44,6 @@ public abstract class MapBasedDataStore extends DataStore {
 	protected Map<String, String> vodMap;
 	protected Map<String, String> detectionMap;
 	protected Map<String, String> tokenMap;
-	protected Map<String, String> tokenBlacklistMap;
-
 	protected Map<String, String> subscriberMap;
 	protected Map<String, String> conferenceRoomMap;
 	protected Map<String, String> webRTCViewerMap;
@@ -949,36 +947,43 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean deleteTokenFromBlacklist(String tokenId) {
-		boolean result;
-
-		synchronized (this) {
-			result = tokenBlacklistMap.remove(tokenId) != null;
-		}
-		return result;
-	}
-
-	@Override
-	public List<String> getJwtBlacklist(){
-
+	public boolean whiteListToken(String tokenId) {
 		synchronized (this){
-			return new ArrayList<>(tokenBlacklistMap.keySet());
-
+			Token token = getToken(tokenId);
+			if(token != null && token.isBlackListed()){
+				token.setBlackListed(false);
+				return saveToken(token);
+			}
 		}
 
+		return false;
 	}
 
 	@Override
-	public Result deleteAllExpiredJwtFromBlacklist(ITokenService tokenService){
-		logger.info("Deleting all expired JWTs from black list.");
+	public List<String> getBlackListedTokens(){
+		ArrayList<String> tokenBlacklist = new ArrayList<>();
+		synchronized (this){
+			tokenMap.forEach((tokenId, tokenAsJson) -> {
+				Token token = gson.fromJson(tokenAsJson,Token.class);
+				if(token.isBlackListed()){
+					tokenBlacklist.add(tokenId);
+				}
+			});
+			return tokenBlacklist;
+		}
+	}
+
+	@Override
+	public Result deleteAllBlacklistedExpiredTokens(ITokenService tokenService){
+		logger.info("Deleting all expired JWTs from token storage.");
 		AtomicInteger deletedTokenCount = new AtomicInteger();
 
-		synchronized (this){
-			tokenBlacklistMap.forEach((key, value) -> {
-				Token token = gson.fromJson(value,Token.class);
-				String tokenId = token.getTokenId();
-				if(!tokenService.verifyJwt(tokenId,token.getStreamId(),token.getType())){
-					if(deleteTokenFromBlacklist(tokenId)){
+		synchronized (this) {
+
+			tokenMap.forEach((tokenId, tokenAsJson) -> {
+				Token token = gson.fromJson(tokenAsJson,Token.class);
+				if(token.isBlackListed() && !tokenService.verifyJwt(tokenId,token.getStreamId(),token.getType())){
+					if(deleteToken(tokenId)){
 						deletedTokenCount.getAndIncrement();
 					}else{
 						logger.warn("Couldn't delete JWT:{}", tokenId);
@@ -988,23 +993,30 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 
 		if(deletedTokenCount.get() > 0){
-			final String successMsg = deletedTokenCount+" JWT deleted successfully from black list.";
+			final String successMsg = deletedTokenCount+" JWT deleted successfully from storage.";
 			logger.info(successMsg);
 			return new Result(true, successMsg);
 		}else{
-			final String failMsg = "No JWT deleted from black list.";
+			final String failMsg = "No JWT deleted from storage.";
 			logger.warn(failMsg);
 			return new Result(false, failMsg);
-
 		}
 
 	}
 
 	@Override
-	public void clearJwtBlacklist(){
+	public boolean whiteListAllTokens(){
+
 		synchronized (this) {
-			tokenBlacklistMap.clear();
+			tokenMap.forEach((tokenId, tokenAsJson) -> {
+				Token token = gson.fromJson(tokenAsJson,Token.class);
+				if(token.isBlackListed()){
+					whiteListToken(tokenId);
+				}
+			});
 		}
+		return true;
+
 	}
 
 	@Override
@@ -1120,19 +1132,14 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean addTokenToBlacklist(Token token) {
+	public boolean blackListToken(Token token) {
 		boolean result = false;
 
 		synchronized (this) {
 
 			if (token.getStreamId() != null && token.getTokenId() != null) {
-
-				try {
-					tokenBlacklistMap.put(token.getTokenId(), gson.toJson(token));
-					result = true;
-				} catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
+				token.setBlackListed(true);
+				return saveToken(token);
 			}
 		}
 		return result;
@@ -1140,9 +1147,12 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
-	public Token getTokenFromBlacklist(String tokenId) {
-		return super.getToken(tokenBlacklistMap, tokenId, gson);
-
+	public Token getBlackListedToken(String tokenId) {
+		Token token = getToken(tokenId);
+		if(token != null && token.isBlackListed()){
+			return token;
+		}
+		return null;
 	}
 
 }

@@ -29,7 +29,6 @@ import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -138,8 +137,8 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-		testDeleteAllExpiredJwtFromBlacklist(dataStore);
-		testClearJwtBlacklist(dataStore);
+		testWhitelistAllExpiredTokens(dataStore);
+		testWhitelistAllTokens(dataStore);
 
 	}
 	
@@ -271,6 +270,8 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testWhitelistAllExpiredTokens(dataStore);
+		testWhitelistAllTokens(dataStore);
 	}
 	
 	@Test
@@ -2254,6 +2255,18 @@ public class DBStoresUnitTest {
 		deleteStreamInfos(dataStore);		
 	}
 
+	@Test
+	public void testMongoDBJwtBlacklist(){
+		MongoStore dataStore = new MongoStore("localhost", "", "", "testdb");
+		dataStore.whiteListToken("");
+		dataStore.getBlackListedTokens();
+		dataStore.deleteAllBlacklistedExpiredTokens(null);
+		dataStore.whiteListAllTokens();
+		dataStore.blackListToken(new Token());
+		dataStore.getBlackListedToken("");
+
+	}
+
 	public void deleteStreamInfos(MongoStore datastore) {
 		datastore.getDataStore().find(StreamInfo.class).delete(new DeleteOptions()
                 .multi(true));
@@ -2841,7 +2854,7 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void testDeleteAllExpiredJwtFromBlacklist(DataStore dataStore){
+	public void testWhitelistAllExpiredTokens(DataStore dataStore){
 
 		Token token1 = new Token();
 		Token token2 = new Token();
@@ -2867,14 +2880,14 @@ public class DBStoresUnitTest {
 		token3.setStreamId(streamId);
 		ITokenService tokenService = mock(ITokenService.class);
 
-		Result res = dataStore.deleteAllExpiredJwtFromBlacklist(tokenService);
+		Result res = dataStore.deleteAllBlacklistedExpiredTokens(tokenService);
 		assertFalse(res.isSuccess());
 
-		dataStore.addTokenToBlacklist(token1);
-		dataStore.addTokenToBlacklist(token2);
-		dataStore.addTokenToBlacklist(token3);
+		dataStore.blackListToken(token1);
+		dataStore.blackListToken(token2);
+		dataStore.blackListToken(token3);
 
-		Token jwt = dataStore.getTokenFromBlacklist(token1.getTokenId());
+		Token jwt = dataStore.getBlackListedToken(token1.getTokenId());
 		assertNotNull(jwt);
 
 		when(tokenService.verifyJwt(jwt1,streamId,tokenType)).thenReturn(false);
@@ -2882,20 +2895,22 @@ public class DBStoresUnitTest {
 		when(tokenService.verifyJwt(jwt3,streamId,tokenType)).thenReturn(false);
 
 
-		res = dataStore.deleteAllExpiredJwtFromBlacklist(tokenService);
+		res = dataStore.deleteAllBlacklistedExpiredTokens(tokenService);
 		assertTrue(res.isSuccess());
 
 	}
 
-	public void testClearJwtBlacklist(DataStore dataStore){
+	public void testWhitelistAllTokens(DataStore dataStore){
+
 		addJwtsToBlacklist(dataStore);
 
 
-		List<String> jwtBlacklist = dataStore.getJwtBlacklist();
+		List<String> jwtBlacklist = dataStore.getBlackListedTokens();
 		assertEquals(3, jwtBlacklist.size());
 
-		dataStore.clearJwtBlacklist();
-		jwtBlacklist = dataStore.getJwtBlacklist();
+		Token token = dataStore.getBlackListedToken("jwt1");
+		dataStore.whiteListAllTokens();
+		jwtBlacklist = dataStore.getBlackListedTokens();
 
 		assertEquals(0, jwtBlacklist.size());
 
@@ -2918,6 +2933,7 @@ public class DBStoresUnitTest {
 		token2.setTokenId(jwt2);
 		token3.setTokenId(jwt3);
 
+
 		token1.setType(tokenType);
 		token2.setType(tokenType);
 		token3.setType(tokenType);
@@ -2926,9 +2942,9 @@ public class DBStoresUnitTest {
 		token2.setStreamId(streamId);
 		token3.setStreamId(streamId);
 
-		dataStore.addTokenToBlacklist(token1);
-		dataStore.addTokenToBlacklist(token2);
-		dataStore.addTokenToBlacklist(token3);
+		dataStore.blackListToken(token1);
+		dataStore.blackListToken(token2);
+		dataStore.blackListToken(token3);
 	}
 
 }

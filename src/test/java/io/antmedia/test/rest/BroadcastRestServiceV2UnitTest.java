@@ -3065,7 +3065,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceSpy.setDataStore(store);
 
 
-		Result result = restServiceSpy.addJwtToBlacklist(jwt);
+		Result result = restServiceSpy.blackListOrWhitelistJwt(jwt, false);
 		assertFalse(result.isSuccess());
 		when(appSettings.isJwtBlacklistEnabled()).thenReturn(true);
 		Token token = mock(Token.class);
@@ -3074,32 +3074,32 @@ public class BroadcastRestServiceV2UnitTest {
 		when(token.getStreamId()).thenReturn("test-stream");
 
 
-		when(store.addTokenToBlacklist(token)).thenReturn(true);
-		result = restServiceSpy.addJwtToBlacklist(jwt);
+		when(store.blackListToken(token)).thenReturn(true);
+		result = restServiceSpy.blackListOrWhitelistJwt(jwt,false);
 		assertFalse(result.isSuccess());
 		String invalidJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdHJlYW1JZCI6InRlc3Qtc3RyZWFtIiwidHlwZSI6InF3ZSIsImV4cCI6OTk5OTk5OTk5OTk5OX0.DqfFkRJgKPVXgAkIzucuQtfwP2Oj-Qf9dhUuO_-04bU";
 
-		result = restServiceSpy.addJwtToBlacklist(invalidJwt);
+		result = restServiceSpy.blackListOrWhitelistJwt(invalidJwt, false);
 		assertFalse(result.isSuccess());
 
 		String validJwt = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdHJlYW1JZCI6InRlc3Qtc3RyZWFtIiwidHlwZSI6InB1Ymxpc2giLCJleHAiOjk5OTk5OTk5OTk5OTl9.ichno9utOYwVv1qoQWtUpDap7PGYze-zfXRZU31CMnQ";
 
 		when(tokenService.verifyJwt(validJwt,"test-stream","publish")).thenReturn(true);
 
-		when(store.addTokenToBlacklist(any())).thenReturn(true);
+		when(store.blackListToken(any())).thenReturn(true);
 
-		result = restServiceSpy.addJwtToBlacklist(validJwt);
+		result = restServiceSpy.blackListOrWhitelistJwt(validJwt, false);
 		assertTrue(result.isSuccess());
 
-		when(store.getTokenFromBlacklist(validJwt)).thenReturn(token);
+		when(store.getBlackListedToken(validJwt)).thenReturn(token);
 
-		result = restServiceSpy.addJwtToBlacklist(validJwt);
+		result = restServiceSpy.blackListOrWhitelistJwt(validJwt, false);
 		assertFalse(result.isSuccess());
 
 	}
 
 	@Test
-	public void testDeleteJwtFromBlacklist() {
+	public void testWhitelistJwt() {
 
 		AppSettings appSettings = mock(AppSettings.class);
 		ApplicationContext appContext = mock(ApplicationContext.class);
@@ -3120,22 +3120,22 @@ public class BroadcastRestServiceV2UnitTest {
 
 		restServiceSpy.setDataStore(store);
 
-		Result result1 = restServiceSpy.deleteJwtFromBlacklist(jwt);
+		Result result1 = restServiceSpy.blackListOrWhitelistJwt(jwt, true);
 		assertFalse(result1.isSuccess());
 
 		when(appSettings.isJwtBlacklistEnabled()).thenReturn(true);
 
-		when(store.getTokenFromBlacklist(jwt)).thenReturn(null);
-		Result result2 = restServiceSpy.deleteJwtFromBlacklist(jwt);
+		when(store.getBlackListedToken(jwt)).thenReturn(null);
+		Result result2 = restServiceSpy.blackListOrWhitelistJwt(jwt, true);
 		assertFalse(result2.isSuccess());
 
 		Token token = mock(Token.class);
-		when(store.getTokenFromBlacklist(jwt)).thenReturn(token);
-		Result result3 = restServiceSpy.deleteJwtFromBlacklist(jwt);
+		when(store.getBlackListedToken(jwt)).thenReturn(token);
+		Result result3 = restServiceSpy.blackListOrWhitelistJwt(jwt, true);
 		assertFalse(result3.isSuccess());
 
-		when(store.deleteTokenFromBlacklist(jwt)).thenReturn(true);
-		Result result4 = restServiceSpy.deleteJwtFromBlacklist(jwt);
+		when(store.whiteListToken(jwt)).thenReturn(true);
+		Result result4 = restServiceSpy.blackListOrWhitelistJwt(jwt, true);
 		assertTrue(result4.isSuccess());
 
 	}
@@ -3155,7 +3155,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 		restServiceSpy.setAppCtx(appContext);
-		store.addTokenToBlacklist(token);
+		store.blackListToken(token);
 		restServiceSpy.setDataStore(store);
 
 		when(restServiceSpy.getDataStore()).thenReturn(store);
@@ -3163,7 +3163,7 @@ public class BroadcastRestServiceV2UnitTest {
 		tokenList.add(jwt);
 		when(restServiceSpy.getAppSettings()).thenReturn(appSettings);
 		when(appSettings.isJwtBlacklistEnabled()).thenReturn(true);
-		when(store.getJwtBlacklist()).thenReturn(tokenList);
+		when(store.getBlackListedTokens()).thenReturn(tokenList);
 
 		List<String> jwtBlacklist = restServiceSpy.getJwtBlacklist();
 
@@ -3186,7 +3186,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Token token = new Token();
 		token.setTokenId(jwt);
 		token.setType("publish");
-		store.addTokenToBlacklist(token);
+		store.blackListToken(token);
 		restServiceSpy.setDataStore(store);
 		when(appSettings.isJwtBlacklistEnabled()).thenReturn(true);
 		assertTrue(restServiceSpy.clearJwtBlacklist().isSuccess());
@@ -3206,13 +3206,13 @@ public class BroadcastRestServiceV2UnitTest {
 		Token token = new Token();
 		token.setTokenId("token");
 		token.setType("publish");
-		store.addTokenToBlacklist(token);
+		store.blackListToken(token);
 		restServiceSpy.setDataStore(store);
 		when(appSettings.isJwtBlacklistEnabled()).thenReturn(true);
 		ITokenService tokenService = mock(ITokenService.class);
 
 		when(appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString())).thenReturn(tokenService);
-		when(store.deleteAllExpiredJwtFromBlacklist(tokenService)).thenReturn(new Result(true));
+		when(store.deleteAllBlacklistedExpiredTokens(tokenService)).thenReturn(new Result(true));
 		assertTrue(restServiceSpy.deleteAllExpiredJwtFromBlacklist().isSuccess());
 
 	}

@@ -121,13 +121,13 @@ public class RedisStore extends MapBasedDataStore {
 	}
 
 	@Override
-	public boolean addTokenToBlacklist(Token token) {
+	public boolean blackListToken(Token token) {
 
 		return false;
 	}
 
 	@Override
-	public Token getTokenFromBlacklist(String tokenId) {
+	public Token getBlackListedToken(String tokenId) {
 
 		return null;
 	}

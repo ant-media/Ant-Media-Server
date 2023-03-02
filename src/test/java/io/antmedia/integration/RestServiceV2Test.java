@@ -2047,13 +2047,13 @@ public class RestServiceV2Test {
 			final String validJwt2 = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdHJlYW1JZCI6InRlc3RzdHJlYW0iLCJ0eXBlIjoicHVibGlzaCIsImV4cCI6OTg4NzUwNzUwMX0.f4YTJUOmO7yuGpD7W4i_fffv2IVi1JB3mZVxNv8LSdI";
 			final String validJwt3 = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdHJlYW1JZCI6InRlc3RzdHJlYW0iLCJ0eXBlIjoicHVibGlzaCIsImV4cCI6OTg4NzUwNzUwMn0.bSbIumeAeM-k5zLndtII49z_458L8Lqg3eVweahvpb4";
 
-			HttpUriRequest addJwtRequest1 = RequestBuilder.post().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt1).build().toString())
+			HttpUriRequest addJwtRequest1 = RequestBuilder.post().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt1).addParameter("whiteList","false").build().toString())
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
-			HttpUriRequest addJwtRequest2 = RequestBuilder.post().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt2).build().toString())
+			HttpUriRequest addJwtRequest2 = RequestBuilder.post().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt2).addParameter("whiteList","false").build().toString())
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
-			HttpUriRequest addJwtRequest3 = RequestBuilder.post().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt3).build().toString())
+			HttpUriRequest addJwtRequest3 = RequestBuilder.post().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt3).addParameter("whiteList","false").build().toString())
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
 
 			HttpResponse addJwtResponse1 = client.execute(addJwtRequest1);
@@ -2103,14 +2103,14 @@ public class RestServiceV2Test {
 			assertEquals(expectedJwtCount, jwtBlacklist.size());
 
 
-			HttpUriRequest deleteJwtFromBlacklistRequest = RequestBuilder.delete().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt1).build()).build();
-			HttpResponse deleteJwtFromBlacklistResponse = client.execute(deleteJwtFromBlacklistRequest);
-			StringBuffer deleteJwtFromBlacklistResult = readResponse(deleteJwtFromBlacklistResponse);
+			HttpUriRequest whiteListJwtRequest = RequestBuilder.post().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt1).addParameter("whiteList", "true").build()).build();
+			HttpResponse whiteListJwtResponse = client.execute(whiteListJwtRequest);
+			StringBuffer whiteListJwtResult = readResponse(whiteListJwtResponse);
 
-			if (deleteJwtFromBlacklistResponse.getStatusLine().getStatusCode() != 200) {
-				throw new Exception(deleteJwtFromBlacklistResult.toString());
+			if (whiteListJwtResponse.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(whiteListJwtResult.toString());
 			}
-			result = gson.fromJson(deleteJwtFromBlacklistResult.toString(), Result.class);
+			result = gson.fromJson(whiteListJwtResult.toString(), Result.class);
 
 			assertTrue(result.isSuccess());
 
