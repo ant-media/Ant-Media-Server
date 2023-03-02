@@ -36,13 +36,15 @@ You just need to playlist and playListItemList in Broadcast.
 
 Here is the sample create Playlist CURL command:
 
-    curl -X POST -H "Content-Type: application/json" "https://{domain:port}/{application}/rest/v2/broadcasts/create" -d '{ "name":"streamName", "playListItemList":[ { "streamUrl": "http://SAMPLE_STREAM_URL.com/sample.mp4", "type": "VoD" } ], "type":"playlist" }'
+```js
+curl -X POST -H "Content-Type: application/json" "https://{domain:port}/{application}/rest/v2/broadcasts/create" -d '{ "name":"streamName", "playListItemList":[ { "streamUrl": "http://SAMPLE_STREAM_URL.com/sample.mp4", "type": "VoD" } ], "type":"playlist" }'
+```
     
 
 ## How to play Linear Live Streaming?
 
 You can play the playlist in HLS and WebRTC.
 
-Here is HLS player documentation ->` [https://resources.antmedia.io/docs/hls-playing](https://resources.antmedia.io/docs/hls-playing)
+[Here is HLS player documentation](https://resources.antmedia.io/docs/hls-playing)
 
-Here is WebRTC play documentation ->` [https://resources.antmedia.io/docs/webrtc-playing](https://resources.antmedia.io/docs/webrtc-playing)
+[Here is WebRTC play documentation](https://resources.antmedia.io/docs/webrtc-playing)
