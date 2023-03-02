@@ -237,12 +237,12 @@ public class ServerSettings implements ApplicationContextAware {
 	 * The SRT port that server opens to listen incoming SRT connections
 	 */
 	@Value("${"+SETTINGS_SRT_PORT + ":4200}")
-	private int srtPort;
+	private int srtPort = 4200;
 	/**
 	 * The RTMP port that server opens to listen incoming RTMP connections
 	 */
 	@Value("${"+SETTINGS_RTMP_PORT + ":1935}")
-	private int rtmpPort;
+	private int rtmpPort = 1935;
 
 	public String getJwksURL() {
 		return jwksURL;

@@ -22,6 +22,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
 public class WebSocketCommunityHandler {
@@ -160,11 +161,10 @@ public class WebSocketCommunityHandler {
 		}
 
 	}
-	
-	
+		
 
 	private void startRTMPAdaptor(Session session, final String streamId, boolean enableVideo) {
-		String rtmpPort = String.valueOf(appAdaptor.getServerSettings().getRtmpPort());
+		int rtmpPort = appAdaptor.getServerSettings().getRtmpPort();
 		//get scope and use its name
 		String outputURL = "rtmp://127.0.0.1" + ":" + rtmpPort +"/"+ appName +"/" + streamId;
 
