@@ -42,6 +42,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
@@ -88,7 +89,8 @@ public class WebSocketCommunityHandlerTest {
 	};
 
 	@Before
-	public void before() {
+	public void before() 
+	{
 		appContext = Mockito.mock(ApplicationContext.class);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
@@ -96,6 +98,8 @@ public class WebSocketCommunityHandlerTest {
 		when(scope.getName()).thenReturn("junit");
 
 		when(adaptor.getScope()).thenReturn(scope);
+		
+		when(adaptor.getServerSettings()).thenReturn(new ServerSettings());
 	
 		when(appContext.getBean("web.handler")).thenReturn(adaptor);
 		
@@ -117,6 +121,7 @@ public class WebSocketCommunityHandlerTest {
 		when(session.getUserProperties()).thenReturn(userProperties);
 
 		when(session.isOpen()).thenReturn(true);
+		
 	}
 
 
@@ -266,6 +271,7 @@ public class WebSocketCommunityHandlerTest {
 		String streamId = "streamId" + (int)(Math.random()*1000);
 
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
+		
 
 		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
