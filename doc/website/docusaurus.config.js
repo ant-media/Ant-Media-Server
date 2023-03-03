@@ -64,10 +64,11 @@ const config = {
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
       navbar: {
-        title: 'Ant Media Documentation',
+        title: '',
         logo: {
           alt: 'Ant Media Logo',
-          src: 'img/logo.svg',
+          src: 'img/Ant-Media-Logo-dark.png',
+          srcDark: 'img/Ant-Media-Logo-light.png',
         },
         items: [
           {
