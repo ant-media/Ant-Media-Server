@@ -8,19 +8,13 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.regex.Pattern;
-import java.util.Queue;
-import java.util.Set;
 
 import javax.validation.constraints.NotNull;
 
+import io.antmedia.statistic.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -72,9 +66,6 @@ import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.shutdown.IShutdownListener;
-import io.antmedia.statistic.DashViewerStats;
-import io.antmedia.statistic.HlsViewerStats;
-import io.antmedia.statistic.ViewerStats;
 import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
@@ -97,6 +88,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String HOOK_ACTION_END_LIVE_STREAM = "liveStreamEnded";
 	public static final String HOOK_ACTION_START_LIVE_STREAM = "liveStreamStarted";
 	public static final String HOOK_ACTION_VOD_READY = "vodReady";
+
+	public static final String HOOK_UNEXPECTED_SERVER_SHUTDOWN = "unexpectedServerShutdown";
+
+	public static final String HOOK_HIGH_RESOURCE_USAGE = "highResourceUsage";
 	public static final String HOOK_ACTION_PUBLISH_TIMEOUT_ERROR = "publishTimeoutError";
 	public static final String HOOK_ACTION_ENCODER_NOT_OPENED_ERROR =  "encoderNotOpenedError";
 	public static final String HOOK_ACTION_ENDPOINT_FAILED = "endpointFailed";
@@ -151,9 +146,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	protected StorageClient storageClient;
 
+	protected IStatsCollector statsCollector;
+
 	protected ArrayList<IStreamListener> streamListeners = new ArrayList<>();
 
 	IClusterStreamFetcher clusterStreamFetcher;
+
+	private int highResourceUsageHookSentCount = 0;
+	private final int highResourceUsageHookSentCountLimit = 5;
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -172,10 +172,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		//initialize storage client
 		storageClient = (StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
+		statsCollector = (IStatsCollector) app.getContext().getBean(IStatsCollector.BEAN_NAME);
 
 		if (!result.isSuccess()) {
 			//Save App Setting
 			this.shutdownProperly = false;
+			sendUnexpectedShutdownHook();
+
 			// Reset Broadcast Stats
 			resetBroadcasts();
 		}
@@ -241,6 +244,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		setStorageclientSettings(appSettings);
 
+		listenForHighResourceUsage();
 
 		logger.info("{} started", app.getName());
 
@@ -356,8 +360,43 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		return result;
 	}
+
+	private void sendUnexpectedShutdownHook() {
+		final String listenerHookURL = appSettings.getListenerHookURL();
+		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
+			return;
+		}
+		logger.info("Setting timer to call unexpected server shutdown hook.");
+		vertx.setTimer(10, e -> notifyHook(listenerHookURL, null, HOOK_UNEXPECTED_SERVER_SHUTDOWN, null, null,
+				null, null, null));
+	}
 	
-	
+	private void listenForHighResourceUsage() {
+		vertx.setPeriodic(1000, yt-> {
+			if(!statsCollector.enoughResource() && appSettings.getListenerHookURL() != null
+					&& highResourceUsageHookSentCount <= highResourceUsageHookSentCountLimit){
+				sendHighResourceUsageHook();
+			}
+		});
+	}
+
+	private void sendHighResourceUsageHook(){
+		final String listenerHookURL = appSettings.getListenerHookURL();
+		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
+			return;
+		}
+		final Queue<IScope> scopes = new LinkedList<>();
+		scopes.add(scope);
+		logger.info("Setting timer to call high resource usage hook.");
+		vertx.setTimer(10, e -> notifyHook(appSettings.getListenerHookURL(), null, HOOK_HIGH_RESOURCE_USAGE, null, null,
+				null, null, getSystemResourcesInfo(scopes)));
+		highResourceUsageHookSentCount++;
+	}
+
+	public String getSystemResourcesInfo(Queue<IScope> scopes){
+		return StatsCollector.getSystemResourcesInfo(scopes).toString();
+	}
+
 	public Result unlinksVoD(String directory) 
 	{
 		//check the directory exist
