@@ -2,23 +2,12 @@ package io.antmedia.filter;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.security.interfaces.RSAPublicKey;
-import java.util.List;
 import java.util.Queue;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 
-import com.auth0.jwk.Jwk;
-import com.auth0.jwk.JwkException;
-import com.auth0.jwk.JwkProvider;
-import com.auth0.jwk.UrlJwkProvider;
-import com.auth0.jwt.JWT;
-import com.auth0.jwt.JWTVerifier;
-import com.auth0.jwt.algorithms.Algorithm;
-import com.auth0.jwt.exceptions.JWTVerificationException;
-import com.auth0.jwt.interfaces.DecodedJWT;
 import io.antmedia.AntMediaApplicationAdapter;
 import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;

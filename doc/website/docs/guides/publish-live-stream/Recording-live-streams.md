@@ -7,11 +7,11 @@ Enabling recording
 
 ## mp4 recording
 
-To be able to record live streams as mp4, we first need to have the right codecs which are supported by MP4 container. The most famous codec for this purpose is H.264, which is enabled as the default codec in Ant Media Server. If h.264 is disabled, mp4 recording will not be available, you can either set the h264 enabled setting from /usr/local/antmedia/webapps/`<your\_app\_name>/WEB-INF/red5-web.properties` file as;
+To be able to record live streams as mp4, we first need to have the right codecs which are supported by MP4 container. The most famous codec for this purpose is H.264, which is enabled as the default codec in Ant Media Server. If h.264 is disabled, mp4 recording will not be available, you can either set the h264 enabled setting from `/usr/local/antmedia/webapps/<your_app_name>/WEB-INF/red5-web.properties` and changing the below setting: 
 
 ```settings.h264Enabled=true```
 
-Or from the dashboard, under Applications' settings;
+Or from the dashboard, under Applications settings.
 
 ![Screenshot from 2021-12-06 17-03-19](https://user-images.githubusercontent.com/32591015/144859658-8a1887e2-3e3a-4247-948f-6c35e611684a.png)
 

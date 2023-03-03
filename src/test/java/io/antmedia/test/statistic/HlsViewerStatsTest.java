@@ -69,7 +69,7 @@ public class HlsViewerStatsTest {
 
 		for (int i = 0; i < 100; i++) {
 			String sessionId = String.valueOf((Math.random() * 999999));
-			viewerStats.registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -83,7 +83,7 @@ public class HlsViewerStatsTest {
 		//Add same session ID
 		for (int i = 0; i < 10; i++) {
 			String sessionId = "sameSessionID";
-			viewerStats.registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -121,7 +121,7 @@ public class HlsViewerStatsTest {
 
 
 		// check if viewer is added
-		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), "jwt", antMediaApplicationAdapter);
+		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), "jwt", null, antMediaApplicationAdapter);
 		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 				boolean eventExist = false;
@@ -223,7 +223,7 @@ public class HlsViewerStatsTest {
 			subscriberPlay3.setType(Subscriber.PLAY_TYPE);
 			dsf.getDataStore().addSubscriber(subscriberPlay3.getStreamId(), subscriberPlay3);
 
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), null, null, antMediaApplicationAdapter);
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getViewerCount(streamId) == 1 );
@@ -236,7 +236,7 @@ public class HlsViewerStatsTest {
 
 
 			//Viewer timeout increase
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId(), null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId(), null, null, antMediaApplicationAdapter);
 			
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()-> {
@@ -283,7 +283,7 @@ public class HlsViewerStatsTest {
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			
 			
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay3.getSubscriberId(), null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay3.getSubscriberId(), null, null, antMediaApplicationAdapter);
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);
@@ -365,7 +365,7 @@ public class HlsViewerStatsTest {
 
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
 
-			viewerStats.registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getViewerCount(streamId) == 1 );
@@ -377,7 +377,7 @@ public class HlsViewerStatsTest {
 					()->viewerStats.getTotalViewerCount() == 1 );
 			
 			//Viewer timeout increase
-			viewerStats.registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 			
 			// Check viewer is online
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
@@ -399,7 +399,7 @@ public class HlsViewerStatsTest {
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			
 			
-			viewerStats.registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);

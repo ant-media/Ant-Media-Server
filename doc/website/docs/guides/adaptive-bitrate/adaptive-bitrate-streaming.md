@@ -29,7 +29,7 @@ AMS supports adaptive streaming in both WebRTC and HLS formats. On the other han
 
 ## How to enable adaptive bitrate
 
-### 1\. From the dashboard
+### From the dashboard
 
 Enable adaptive streaming under App >` Settings >` Adaptive Bitrate and add new streams.  
 ![](@site/static/img/abs.png)
@@ -44,11 +44,27 @@ The configuration above will create videos at 1080p, 720p, and 360p resolutions 
 
 ![](@site/static/img/iosmediacaptureresolutions.png)
 
-### 2\. Using configuration file
+### Using configuration file
 
 Open the configuration file `{INSTALL\_DIR}/webapps/{APP\_NAME}/WEB-INF/red5-web.properties`**` with your favorite editor.
 
-Now, add this line to the file: `settings.encoderSettingsString=\[{"videoBitrate":800000,"forceEncode":true,"audioBitrate":64000,"height":360},{"videoBitrate":500000,"forceEncode":true,"audioBitrate":32000,"height":240}\]`
+Now, add this line to the file: 
+
+```js
+settings.encoderSettingsString=[
+  {
+    "videoBitrate":800000,
+    "forceEncode":true,
+    "audioBitrate":64000,
+    "height":360},
+    {
+      "videoBitrate":500000,
+      "forceEncode":true,
+      "audioBitrate":32000,
+      "height":240
+    }
+]
+```
 
 The format of the file is as follows: resolution height, video bitrate per second, and audio bitrate per second. In the example above, we are adding two adaptive bitrates:
 

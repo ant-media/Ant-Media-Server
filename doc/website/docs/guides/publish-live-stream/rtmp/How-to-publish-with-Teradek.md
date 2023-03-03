@@ -10,7 +10,7 @@ Let’s have a look at step by step how to use Teradek Vidiu Pro for streaming, 
 
 ## Connect to Teradek Vidiu Pro WiFi Network.
 
-It creates a WiFi network with the name VidiU−XXXXX. Connect that network with your computer and go to the 172.16.1.1 on your browser.
+It creates a WiFi network with the name ```VidiU−XXXXX```. Connect that network with your computer and go to the ```172.16.1.1``` on your browser.
 
 ![](@site/static/img/vidiu_pro_console.png)
 
