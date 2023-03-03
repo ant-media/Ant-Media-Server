@@ -25,6 +25,7 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -401,6 +402,54 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}	
 	}
 
+	/**
+	 * Test code for https://github.com/ant-media/Ant-Media-Server/issues/4748
+	 */
+	@Test
+	public void testSyncUserVoDBug() {
+		File streamsFolder = new File("webapps/junit/streams");
+		assertFalse(streamsFolder.exists());	
+		
+		//any target
+		Path target = new File("/usr").toPath();
+		try {
+			Files.createSymbolicLink(streamsFolder.toPath(), target);
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
+		assertTrue(streamsFolder.exists());	
+		assertTrue(Files.isSymbolicLink(streamsFolder.toPath()));
+		
+
+		IScope scope = Mockito.mock(IScope.class);
+		Mockito.when(scope.getName()).thenReturn("junit");
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		Mockito.doReturn(scope).when(spyAdapter).getScope();
+		
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		spyAdapter.setDataStoreFactory(dsf);
+		
+		
+		spyAdapter.synchUserVoDFolder(null, null);
+		Mockito.verify(spyAdapter, Mockito.never()).deleteSymbolicLink(Mockito.any(), Mockito.any());
+		Mockito.verify(spyAdapter, Mockito.never()).createSymbolicLink(Mockito.any(), Mockito.any());
+		
+		assertTrue(streamsFolder.exists());
+		
+		//Don't delete the file if they are the same files
+		spyAdapter.deleteSymbolicLink(new File(""), streamsFolder);
+		
+		assertTrue(streamsFolder.exists());
+		
+		
+	}
+	
 	@Test
 	public void testSynchUserVoD() {
 		File streamsFolder = new File(streamsFolderPath);
@@ -644,10 +693,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
 
-		StringBuilder notifyHook = spyAdaptor.notifyHook(null, null, null, null, null, null, null, null, null, null);
+		StringBuilder notifyHook = spyAdaptor.notifyHook(null, null, null, null, null, null, null, null, null, null, null);
 		assertNull(notifyHook);
 
-		notifyHook = spyAdaptor.notifyHook("", null, null, null, null, null, null, null, null, null);
+		notifyHook = spyAdaptor.notifyHook("", null, null, null, null, null, null, null, null, null, null);
 		assertNull(notifyHook);
 
 
@@ -662,7 +711,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		String viewerId = String.valueOf((Math.random() * 10000));
 
 		String url = "this is url";
-		notifyHook = spyAdaptor.notifyHook(url, id, action, streamName, category, vodName, vodId, viewerId, null, null);
+		notifyHook = spyAdaptor.notifyHook(url, id, action, streamName, category, vodName, vodId, viewerId, null, null, null);
 		assertNull(notifyHook);
 
 		try {
@@ -687,7 +736,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 
 		url = "this is second  url";
-		notifyHook = spyAdaptor.notifyHook(url, id, null, null, null, null, null, null, null, null);
+		notifyHook = spyAdaptor.notifyHook(url, id, null, null, null, null, null, null, null, null, null);
 		assertNull(notifyHook);
 
 		try {
@@ -741,6 +790,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ArgumentCaptor<String> captureVodName = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureVodId = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureViewerId = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureViewerType = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureToken = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureMetadata = ArgumentCaptor.forClass(String.class);
 
@@ -756,7 +806,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 				//verify that notifyHook is called 1 time
 				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(),
-						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureToken.capture(), captureMetadata.capture());
+						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureViewerType.capture(), captureToken.capture(), captureMetadata.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -782,7 +832,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 				//verify that notifyHook is called 1 time
 				verify(spyAdaptor, times(2)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(),
-						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureToken.capture(), captureMetadata.capture());
+						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureViewerType.capture(), captureToken.capture(), captureMetadata.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -807,7 +857,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 				//verify that notifyHook is called 1 time
 				verify(spyAdaptor, times(3)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(),
-						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureToken.capture(), captureMetadata.capture());
+						captureStreamName.capture(), captureCategory.capture(),captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureViewerType.capture(), captureToken.capture(), captureMetadata.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -863,6 +913,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ArgumentCaptor<String> captureVodName = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureVodId = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureViewerId = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<String> captureViewerType = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureToken = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureMetadata = ArgumentCaptor.forClass(String.class);
 		
@@ -873,7 +924,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		//verify that notifyHook is never called
 		verify(spyAdaptor, never()).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
-				captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureToken.capture(), captureMetadata.capture());
+				captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureViewerType.capture(), captureToken.capture(), captureMetadata.capture());
 
 
 		/*
@@ -899,7 +950,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 				//verify that notifyHook is called 1 time
 				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
-						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureToken.capture(), captureMetadata.capture());
+						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureViewerType.capture(), captureToken.capture(), captureMetadata.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -933,7 +984,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 				//verify that no new notifyHook is called 
 				verify(spyAdaptor, times(1)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
-						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureToken.capture(), captureMetadata.capture());
+						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureViewerType.capture(), captureToken.capture(), captureMetadata.capture());
 
 				called = true;
 			}
@@ -962,7 +1013,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 				//verify that notifyHook is called 2 times
 				verify(spyAdaptor, times(2)).notifyHook(captureUrl.capture(), captureId.capture(), captureAction.capture(), 
-						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureToken.capture(), captureMetadata.capture());
+						captureStreamName.capture(), captureCategory.capture(), captureVodName.capture(), captureVodId.capture(), captureViewerId.capture(), captureViewerType.capture(), captureToken.capture(), captureMetadata.capture());
 
 				assertEquals(captureUrl.getValue(), broadcast.getListenerHookURL());
 				assertEquals(captureId.getValue(), broadcast.getStreamId());
@@ -1824,14 +1875,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 					boolean called = false;
 					try{
 						verify(spyAdaptor, times(1)).sendStartRecordWebHook(streamId);
-						verify(spyAdaptor,times(1)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_START_RECORD, broadcast.getName(),broadcast.getCategory(),null,null,null, null, broadcast.getMetaData());
+						verify(spyAdaptor,times(1)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_START_RECORD, broadcast.getName(),broadcast.getCategory(),null,null,null, null, null, broadcast.getMetaData());
 						called = true;
 					}catch (Exception e){
 						e.printStackTrace();
 					}
 					return called;
 				});
-
 	}
 
 	@Test
@@ -1870,7 +1920,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(0, spyAdaptor.getDataStore().get(streamId).getRtmpViewerCount());
 
 		spyAdaptor.streamPlayItemPlay(stream, item, true);
-		verify(spyAdaptor, times(1)).sendStartPlayWebHook(anyString(), anyString(), any());
+		verify(spyAdaptor, times(1)).sendStartPlayWebHook(anyString(), anyString(), any(), anyString());
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 					boolean called = false;
@@ -1884,7 +1934,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 				});
 
 		spyAdaptor.streamPlayItemStop(stream, item);
-		verify(spyAdaptor, times(1)).sendStopPlayWebHook(anyString(), anyString(), any());
+		verify(spyAdaptor, times(1)).sendStopPlayWebHook(anyString(), anyString(), any(), anyString());
+
+		doReturn(null).when(item).getName();
+		spyAdaptor.streamPlayItemStop(stream, item);
+
+		doReturn(streamId).when(item).getName();
+		broadcast.setListenerHookURL(null);
+		spyAdaptor.streamPlayItemStop(stream, item);
+
 
 	}
 

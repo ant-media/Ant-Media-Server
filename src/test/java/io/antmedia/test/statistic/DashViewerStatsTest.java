@@ -72,7 +72,7 @@ public class DashViewerStatsTest {
 
 		for (int i = 0; i < 100; i++) {
 			String sessionId = String.valueOf((Math.random() * 999999));
-			viewerStats.registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -86,7 +86,7 @@ public class DashViewerStatsTest {
 		//Add same session ID
 		for (int i = 0; i < 10; i++) {
 			String sessionId = "sameSessionID";
-			viewerStats.registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -122,7 +122,7 @@ public class DashViewerStatsTest {
 		// check if viewer is added
 		AntMediaApplicationAdapter antMediaApplicationAdapter = mock(AntMediaApplicationAdapter.class);
 
-		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), null, antMediaApplicationAdapter);
+		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), null, ViewerStats.DASH_TYPE, antMediaApplicationAdapter);
 		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 				boolean eventExist = false;
@@ -248,23 +248,22 @@ public class DashViewerStatsTest {
 
 			//spyAdapter.setDataStoreFactory(dsf);
 
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), null, spyAdapter);
-			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay.getSubscriberId(), null, spyAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(),  ViewerStats.DASH_TYPE, null, spyAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay.getSubscriberId(),  ViewerStats.DASH_TYPE, null, spyAdapter);
 
 
 			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()-> {
 						boolean called = false;
 						try{
-							verify(spyAdapter, times(2)).sendStartPlayWebHook(streamId, subscriberPlay.getSubscriberId(), null);
-							verify(spyAdapter,times(2)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_START_PLAY, broadcast.getName(),broadcast.getCategory(),null,null,subscriberPlay.getSubscriberId(), null, broadcast.getMetaData());
+							verify(spyAdapter, times(2)).sendStartPlayWebHook(streamId, subscriberPlay.getSubscriberId(), null, ViewerStats.DASH_TYPE);
+							verify(spyAdapter,times(2)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_START_PLAY, broadcast.getName(),broadcast.getCategory(),null,null,subscriberPlay.getSubscriberId(), ViewerStats.DASH_TYPE, null, broadcast.getMetaData());
 							called = true;
 						}catch (Exception e){
 							e.printStackTrace();
 						}
 						return called;
 					});
-
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getViewerCount(streamId) == 2 );
@@ -276,8 +275,8 @@ public class DashViewerStatsTest {
 					()->viewerStats.getTotalViewerCount() == 2 );
 
 			//Viewer timeout increase
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId(), null, spyAdapter);
-			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay2.getSubscriberId(), null, spyAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId(), ViewerStats.DASH_TYPE, null, spyAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay2.getSubscriberId(), ViewerStats.DASH_TYPE, null, spyAdapter);
 
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()-> {
@@ -306,9 +305,9 @@ public class DashViewerStatsTest {
 					()-> {
 						boolean called = false;
 						try{
-							verify(spyAdapter, times(2)).sendStopPlayWebHook(streamId, subscriberPlay2.getSubscriberId(), null);
+							verify(spyAdapter, times(2)).sendStopPlayWebHook(streamId, subscriberPlay2.getSubscriberId(), null, ViewerStats.DASH_TYPE);
 
-							verify(spyAdapter,times(2)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_STOP_PLAY, broadcast.getName(),broadcast.getCategory(),null,null,subscriberPlay2.getSubscriberId(), null, broadcast.getMetaData());
+							verify(spyAdapter,times(2)).notifyHook(broadcast.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_STOP_PLAY, broadcast.getName(),broadcast.getCategory(),null,null,subscriberPlay2.getSubscriberId(), ViewerStats.DASH_TYPE, null, broadcast.getMetaData());
 
 							called = true;
 						}catch (Exception e){
@@ -339,7 +338,7 @@ public class DashViewerStatsTest {
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			
 			
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay3.getSubscriberId(), null, spyAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay3.getSubscriberId(), ViewerStats.DASH_TYPE,null, spyAdapter);
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);
@@ -370,7 +369,27 @@ public class DashViewerStatsTest {
 			
 			assertEquals(2, events2.size());	
 			ConnectionEvent eventDis2 = events2.get(1);
-			assertSame(ConnectionEvent.DISCONNECTED_EVENT, eventDis2.getEventType());		
+			assertSame(ConnectionEvent.DISCONNECTED_EVENT, eventDis2.getEventType());
+
+			broadcast.setListenerHookURL(null);
+			appSettings.setListenerHookURL("url");
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(),  ViewerStats.DASH_TYPE, null, spyAdapter);
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
+					()-> {
+						boolean called = false;
+						try{
+							verify(spyAdapter, times(3)).sendStartPlayWebHook(streamId, subscriberPlay.getSubscriberId(), null, ViewerStats.DASH_TYPE);
+							verify(spyAdapter,times(3)).notifyHook(appSettings.getListenerHookURL(),streamId,AntMediaApplicationAdapter.HOOK_ACTION_START_PLAY, broadcast.getName(),broadcast.getCategory(),null,null,subscriberPlay.getSubscriberId(), ViewerStats.DASH_TYPE, null, broadcast.getMetaData());
+							called = true;
+						}catch (Exception e){
+							e.printStackTrace();
+						}
+						return called;
+					});
+
+			viewerStats.registerNewViewer("", sessionId, subscriberPlay.getSubscriberId(),  ViewerStats.DASH_TYPE, null, spyAdapter);
+
+
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -423,7 +442,7 @@ public class DashViewerStatsTest {
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
 			antMediaApplicationAdapter.setAppSettings(settings);
 
-			viewerStats.registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getViewerCount(streamId) == 1 );
@@ -435,7 +454,7 @@ public class DashViewerStatsTest {
 					()->viewerStats.getTotalViewerCount() == 1 );
 			
 			//Viewer timeout increase
-			viewerStats.registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 			
 			// Check viewer is online
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
@@ -456,7 +475,7 @@ public class DashViewerStatsTest {
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			
-			viewerStats.registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);

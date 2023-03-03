@@ -15,6 +15,7 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.statistic.ViewerStats;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.After;
@@ -160,7 +161,7 @@ public class DashStatisticsFilterTest {
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			dashStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, ViewerStats.DASH_TYPE, null, antMediaApplicationAdapter);
 
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -212,15 +213,15 @@ public class DashStatisticsFilterTest {
 			//when(dashStatisticsFilter.getStreamStats()).thenReturn(streamStats);
 
 			String sessionId = requestDash(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, null, antMediaApplicationAdapter);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, ViewerStats.DASH_TYPE, null, antMediaApplicationAdapter);
 			broadcast.setDashViewerCount(1);
 			
 			String sessionId2 = requestDash(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null, null, antMediaApplicationAdapter);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null, ViewerStats.DASH_TYPE, null, antMediaApplicationAdapter);
 			broadcast.setDashViewerCount(2);
 
 			String sessionId3 = requestDash(streamId);		
-			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null, null, antMediaApplicationAdapter);
+			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null, ViewerStats.DASH_TYPE,null, antMediaApplicationAdapter);
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));

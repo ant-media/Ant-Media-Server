@@ -11,7 +11,7 @@ public interface IStreamStats {
 	 * @param sessionId
 	 * @param jwt
 	 */
-	void registerNewViewer(String streamId, String sessionId, String subscriberId, String jwt, AntMediaApplicationAdapter antMediaApplicationAdapter);
+	void registerNewViewer(String streamId, String sessionId, String subscriberId, String viewerType, String jwt, AntMediaApplicationAdapter antMediaApplicationAdapter);
 	
 	
 	/**

@@ -1875,8 +1875,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected AntMediaApplicationAdapter getAntMediaApplicationAdaptor(){
 		IContext context = MuxAdaptor.this.scope.getContext();
 		ApplicationContext appCtx = context.getApplicationContext();
-		AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-		return adaptor;
+		return (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
 	}
 
 	/**

@@ -60,8 +60,8 @@ Follow the instructions below to configure RTMP Load Balancer in Ant Media Serve
 
 Since a new load balancer has been installed, your RTMP URL will be the Load Balancer URL.
 
+
 **Example:**
 
-    rtmp://Antmedia-RTMP-LB-962025612.eu-west-2.elb.amazonaws.com/WebRTCAppEE/
-
+rtmp://Antmedia-RTMP-LB-962025612.eu-west-2.elb.amazonaws.com/WebRTCAppEE/
 ![](@site/static/img/aws-rtmp-url.png)

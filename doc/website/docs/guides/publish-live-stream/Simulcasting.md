@@ -4,7 +4,7 @@ This guide describes how to live stream to social media and other third party RT
 
 <VideoPlayer youtube="true" video="https://www.youtube.com/embed/NVhYthQk_js" />
 
-### **How to Publish Live Stream on Facebook?**
+## How to Publish Live Stream on Facebook
 
 You can publish live streams on your pages/accounts. Just click the **Live** button in the Create Post tab.
 
@@ -30,7 +30,7 @@ You just need to Add your Facebook RTMP Endpoint URL to the Ant Media Server str
 
 So, you can start broadcasting now!
 
-### How to Publish Live Stream on Youtube?
+## How to Publish Live Stream on Youtube
 
 You can publish live streams on your YouTube account. Just click the **Create** button and select **Go Live.**
 
@@ -54,7 +54,7 @@ You just need to add your Youtube RTMP Endpoint URL to the Ant Media Server stre
 
 So, you can start broadcasting now!
 
-### How to Publish Live Stream on Periscope?
+## How to Publish Live Stream on Periscope
 
 You can publish live streams on your periscope account. Just click the **Profile** button and select **Producer.**
 
@@ -74,65 +74,63 @@ You just need to add your Periscope RTMP Endpoint URL to the Ant Media Server st
 
 So, you can start broadcasting now!
 
-### How to Add/Remove RTMP Endpoint with Ant Media Stream?
+## How to Add/Remove RTMP Endpoints?
 
 You can Add/Remove RTMP Endpoint with 2 options.
+One of them is Add/Remove RTMP Endpoint with Dashboard. It's for the general users.  Another option is Add/Remove RTMP Endpoint with REST API. 
 
-One of them is Add/Remove RTMP Endpoint with Dashboard. It's for the general users.
-
-Another option is Add/Remove RTMP Endpoint with REST API. This option is for advanced users. You can Add/Remove RTMP Endpoint with programmatically. REST API Usage is so basic.
-
-#### 1\. Add/Remove RTMP Endpoint with Dashboard
+### AMS Dashboard
 
 This option is for general users. You just need to click the **broadcast properties** tab and click **Edit RTMP Endpoint** as the below image.
 
 ![](@site/static/img/ant-media-dashboard-edit-rtmp-endpoints.png)
 
-#### 2\. Add/Remove RTMP Endpoint with REST API
+### REST API
 
-This option is for advanced users. You just need to request rtmp-endpoint REST API.
+This option is for advanced users by making an API request to the rtmp-endpoint.
 
-**Here is Add RTMP Endpoint Javascript XHR example:**
+#### Add an RTMP endpoint
 
-    var data = JSON.stringify({
-    "rtmpUrl":"rtmps://live-api-s.facebook.com:443/rtmp/sdasdasd=ddfsdfsdf"
-    });
-    
-    var xhr = new XMLHttpRequest();
-    xhr.withCredentials = true;
-    
-    xhr.addEventListener("readystatechange", function() {
-      if(this.readyState === 4) {
-        console.log(this.responseText);
-      }
-    });
-    
-    xhr.open("POST", "http://`<server-domain>`:5080/LiveApp/rest/v2/broadcasts/streamID/rtmp-endpoint");
-    xhr.setRequestHeader("Content-Type", "application/json");
-    
-    xhr.send(data);
+```js
+var data = JSON.stringify({
+"rtmpUrl":"rtmps://live-api-s.facebook.com:443/rtmp/sdasdasd=ddfsdfsdf"
+});
+
+var xhr = new XMLHttpRequest();
+xhr.withCredentials = true;
+
+xhr.addEventListener("readystatechange", function() {
+  if(this.readyState === 4) {
+    console.log(this.responseText);
+  }
+});
+xhr.open("POST", "http://<server-domain>:5080/LiveApp/rest/v2/broadcasts/streamID/rtmp-endpoint");
+xhr.setRequestHeader("Content-Type", "application/json");
+xhr.send(data);
+```
 
 You can get more info in the [REST API](https://antmedia.io/rest/#/BroadcastRestService/addEndpointV3).
 
-**Here is Remove RTMP Endpoint Javascript XHR example:**
+#### Remove an RTMP endpoint
 
-    var data = JSON.stringify({
-    "rtmpUrl":"rtmps://live-api-s.facebook.com:443/rtmp/sdasdasd=ddfsdfsdf"
-    });
-    
-    var xhr = new XMLHttpRequest();
-    xhr.withCredentials = true;
-    
-    xhr.addEventListener("readystatechange", function() {
-      if(this.readyState === 4) {
-        console.log(this.responseText);
-      }
-    });
-    
-    xhr.open("DELETE", "http://`<server-domain>`:5080/LiveApp/rest/v2/broadcasts/streamID/rtmp-endpoint");
-    xhr.setRequestHeader("Content-Type", "application/json");
-    
-    xhr.send(data);
+```js
+var data = JSON.stringify({
+"rtmpUrl":"rtmps://live-api-s.facebook.com:443/rtmp/sdasdasd=ddfsdfsdf"
+});
+
+var xhr = new XMLHttpRequest();
+xhr.withCredentials = true;
+
+xhr.addEventListener("readystatechange", function() {
+  if(this.readyState === 4) {
+    console.log(this.responseText);
+  }
+});
+
+xhr.open("DELETE", "http://`<server-domain>`:5080/LiveApp/rest/v2/broadcasts/streamID/rtmp-endpoint");
+xhr.setRequestHeader("Content-Type", "application/json");
+xhr.send(data);
+```
 
 You can get more info in [REST API](https://antmedia.io/rest/#/BroadcastRestService/removeEndpointV2).
 
@@ -140,6 +138,6 @@ Click for more detail about [REST API Guide](/v1/docs/rest-api-guide).
 
 **PS:** Please be sure to add your IP Address to the **Use IP Filtering for RESTful API** option on Application Settings.
 
-#### Conclusion
+## Conclusion
 
 After adding RTMP Endpoint, you need to publish a live stream. Here is our guide for [publishing live stream](/v1/docs/publishing-live-streams). Finally check the social media account to see the live stream.

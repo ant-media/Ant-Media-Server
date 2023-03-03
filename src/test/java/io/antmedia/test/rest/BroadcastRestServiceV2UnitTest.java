@@ -2995,6 +2995,9 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceSpy.setApplication(testApp);
 		restServiceSpy.stopPlaying(viewerId, null);
 		verify(testApp, times(1)).stopPlayingByViewerId(viewerId);
+		restServiceSpy.stopPlaying(null, "token");
+		verify(testApp, times(1)).stopPlayingByPlayToken("token");
+
 	}
 	
 	@Test

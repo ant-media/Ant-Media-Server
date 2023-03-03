@@ -53,7 +53,7 @@ public class ViewerStats {
 	 */
 	protected int timeoutMS = 20000;
 	
-	public void registerNewViewer(String streamId, String sessionId, String subscriberId, String jwt, AntMediaApplicationAdapter antMediaApplicationAdapter)
+	public void registerNewViewer(String streamId, String sessionId, String subscriberId, String viewerType, String jwt,  AntMediaApplicationAdapter antMediaApplicationAdapter)
 	{
 		//do not block the thread, run in vertx event queue 
 		vertx.runOnContext(h -> {
@@ -70,9 +70,9 @@ public class ViewerStats {
 					increaseCounterMap.put(streamId, streamIncrementCounter);
 
 					if(subscriberId != null && !subscriberId.equals("undefined")){
-						antMediaApplicationAdapter.sendStartPlayWebHook(streamId, subscriberId, jwt);
+						antMediaApplicationAdapter.sendStartPlayWebHook(streamId, subscriberId, jwt, viewerType);
 					}else{
-						antMediaApplicationAdapter.sendStartPlayWebHook(streamId, sessionId, jwt);
+						antMediaApplicationAdapter.sendStartPlayWebHook(streamId, sessionId, jwt, viewerType);
 					}
 					if(jwt != null){
 						sessionId2Jwt.put(sessionId, jwt);
@@ -219,7 +219,7 @@ public class ViewerStats {
 		this.vertx = vertx;
 	}
 	
-	public void updateViewerCountProcess(String type, AntMediaApplicationAdapter antMediaApplicationAdapter) {
+	public void updateViewerCountProcess(String viewerType, AntMediaApplicationAdapter antMediaApplicationAdapter) {
 		
 		Iterator<Entry<String, Map<String, Long>>> streamIterator = streamsViewerMap.entrySet().iterator();
 		
@@ -261,9 +261,9 @@ public class ViewerStats {
 						String subscriberId = sessionId2subscriberId.get(sessionId);
 						String jwt = sessionId2Jwt.get(sessionId);
 						if(subscriberId !=null && !subscriberId.equals("undefined")){
-							antMediaApplicationAdapter.sendStopPlayWebHook(streamId, subscriberId, jwt);
+							antMediaApplicationAdapter.sendStopPlayWebHook(streamId, subscriberId, jwt, viewerType);
 						}else{
-							antMediaApplicationAdapter.sendStopPlayWebHook(streamId, sessionId, jwt);
+							antMediaApplicationAdapter.sendStopPlayWebHook(streamId, sessionId, jwt, viewerType);
 						}
 						// set subscriber status to not connected
 						if(subscriberId != null) {
@@ -288,9 +288,9 @@ public class ViewerStats {
 					
 					int diffCount = numberOfIncrement + numberOfDecrement;
 
-					logger.info("Update {} viewer in stream ID:{} increment count:{} decrement count:{} diff:{}", type, streamId, numberOfIncrement, numberOfDecrement, diffCount);
+					logger.info("Update {} viewer in stream ID:{} increment count:{} decrement count:{} diff:{}", viewerType, streamId, numberOfIncrement, numberOfDecrement, diffCount);
 					
-					if(type.equals(ViewerStats.HLS_TYPE)) {
+					if(viewerType.equals(ViewerStats.HLS_TYPE)) {
 						getDataStore().updateHLSViewerCount(streamViewerEntry.getKey(), diffCount);
 					}
 					else {
