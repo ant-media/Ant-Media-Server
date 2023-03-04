@@ -97,6 +97,13 @@ public class WebSocketConstants {
 	public static final String LEAVED_THE_ROOM = "leavedFromRoom";
 	
 	/**
+	 * This is error definition and it's sent when one requests to get room information
+	 * and there is no active stream or no room
+	 */
+	public static final String ROOM_NOT_ACTIVE = "no_active_streams_in_room";
+	
+	
+	/**
 	 * this token is used to access resources or start broadcast when token security is enabled
 	 */
 	
