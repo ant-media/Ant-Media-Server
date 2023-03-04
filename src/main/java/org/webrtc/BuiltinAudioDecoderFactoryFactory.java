@@ -16,6 +16,12 @@ import java.nio.ByteBuffer;
  * Creates a native {@code webrtc::AudioDecoderFactory} with the builtin audio decoders.
  */
 public class BuiltinAudioDecoderFactoryFactory implements AudioDecoderFactoryFactory {
+	//  @Override
+	//  public long createNativeAudioDecoderFactory() {
+	//    return nativeCreateBuiltinAudioDecoderFactory();
+	//  }
+
+	//private static native long nativeCreateBuiltinAudioDecoderFactory();
 
 	public interface AudioPacketListener {
 		public void onAudioPacketData(ByteBuffer data, long timestamp);
@@ -24,8 +30,7 @@ public class BuiltinAudioDecoderFactoryFactory implements AudioDecoderFactoryFac
 	private AudioPacketListener audioPacketListener;
 	private boolean customDecoder = false;
 	private long audioDecoderFactory = -1;
-	private static final int BUFFER_LIMIT = 4096;
-	ByteBuffer buffer = ByteBuffer.allocateDirect(BUFFER_LIMIT);
+	ByteBuffer buffer = ByteBuffer.allocateDirect(4096);
 
 	@Override
 	public long createNativeAudioDecoderFactory() {
@@ -35,20 +40,11 @@ public class BuiltinAudioDecoderFactoryFactory implements AudioDecoderFactoryFac
 
 
 	@CalledByNative 
-	public synchronized void onAudioPacket(int size, long timestamp) {
+	void onAudioPacket(int size, long timestamp) {
+		byte[] data = new byte[size];
 		buffer.rewind();
-		buffer.limit(size);
-		
-		
-		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(size);
-		byteBuffer.put(buffer);
-		byteBuffer.limit(size);
-		byteBuffer.rewind();
-		
-		
-		buffer.rewind();
-		buffer.limit(BUFFER_LIMIT);
-		audioPacketListener.onAudioPacketData(byteBuffer, timestamp);
+		buffer.get(data, 0, size);
+		audioPacketListener.onAudioPacketData(ByteBuffer.wrap(data), timestamp);
 	}
 
 	public void setAudioPacketListener(AudioPacketListener audioPacketListener) {
@@ -61,4 +57,5 @@ public class BuiltinAudioDecoderFactoryFactory implements AudioDecoderFactoryFac
 	public void setCustomDecoder(boolean customDecoder) {
 		this.customDecoder = customDecoder;
 	}
+
 }
