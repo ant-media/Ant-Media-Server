@@ -14,7 +14,7 @@
   --ifm-color-primary-lighter: #359962;
   --ifm-color-primary-lightest: #3cad6e;
   --ifm-code-font-size: 90%;
-  --ifm-code-border-radius: 0;
+  --ifm-code-border-radius: 10px;
   --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
 }
 
@@ -31,11 +31,12 @@
 }
 
 article{
-  font-size: 18px;
+  font-size: 19px;
+  line-height: 1.7em;
 }
 
 
-code{
+pre code{
   border: 0.1rem solid rgb(161 156 156 / 10%);
 }
 

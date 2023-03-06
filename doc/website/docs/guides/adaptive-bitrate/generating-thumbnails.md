@@ -6,7 +6,7 @@ title: Generating Thumbnails
 
 Ant Media Server can generate periodic previews (snapshots) of the incoming streams on the fly. This guide will help you learn configuration parameters for generating and using previews.
 
-In order to activate preview generation, you just need to add at least one adaptive bitrate. You can do that in the dashboard using ```Application >` Your App >` Settings >` Add New Bitrate```
+In order to activate preview generation, you just need to add at least one adaptive bitrate. You can do that in the dashboard using ```Application > Your App > Settings > Add New Bitrate```
 
 ![](@site/static/img/preview_1.png)
 

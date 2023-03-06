@@ -23,13 +23,13 @@ We assume that your Ant Media Server accepts all streams (e.g there is no securi
 
 ![](@site/static/img/OBS_Configuration.png)
 
-**When you use tokens** you need to generate a publish token and use it in this format inside the stream key : streamdid?token=tokenid 
+**When you use tokens** you need to generate a publish token and use it in this format inside the stream key : ```streamdid?token=tokenid```
 
 ![](@site/static/img/obs-stream-settings.png)
 
 ## Tune for ultra-low latency streaming
 
-OBS by default is not optimized for ultra-low latency streaming. If you push RTMP stream with OBS and play with WebRTC, please open ```Settings >` Output``` and make the rate control ```CBR (Constant Bitrate)``` and tune for ```zerolatency```. Also, you can configure the bitrate according to your quality and internet bandwidth requirements. Additionally, ```keyframe interval``` should be adjusted to 1.
+OBS by default is not optimized for ultra-low latency streaming. If you push RTMP stream with OBS and play with WebRTC, please open ```Settings > Output``` and make the rate control ```CBR (Constant Bitrate)``` and tune for ```zerolatency```. Also, you can configure the bitrate according to your quality and internet bandwidth requirements. Additionally, ```keyframe interval``` should be adjusted to 1.
 
 ![](@site/static/img/tune_for_ultra_low_latency.png)
 
@@ -47,7 +47,7 @@ Congrats! You're publishing a live stream with OBS.
 
 If you have have problems with stream quality, you should check the following indicators in OBS.
 
-**Stream health**
+### Stream health
 
 Stream health parameters are located at the bottom right. There are 3 stream health parameters: ```Dropped Frames```, ```CPU``` and ```Stream health color.``` 
 
@@ -57,13 +57,13 @@ Stream health parameters are located at the bottom right. There are 3 stream hea
 
 ![](@site/static/img/obs-broadcast-health.png)
 
-**OBS cncoding overloaded warning**
+### OBS cncoding overloaded warning
 
 If your PC cannot handle the stream with the parameters you set, this warning appears. In this case, you may want to decrease the resolution, bitrate, or change the encoder preset value to one with high speed and low quality.
 
 ![](@site/static/img/obs-encoding-overloaded.png)
 
-**Streaming recorded VoD files**
+### Streaming recorded VoD files
 
 If you want to stream your VoD files, please consider your VoD encoder settings as below:
 
