@@ -332,6 +332,8 @@ public class AppSettings implements Serializable{
 	
 	public static final String SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME = "settings.addDateTimeToHlsFileName";
 
+	public static final String SETTINGS_PREVENT_PLAYING_STREAM_ID_FROM_SAME_SUBSCRIBER = "settings.preventPlayingStreamIdFromSameSubscriber";
+
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -1544,6 +1546,14 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${"+SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME+":false}" )
 	private boolean addDateTimeToHlsFileName;
+
+	/**
+	 * This setting prevents playing stream id from same subscriber
+	 * If it is true, try to playi stream id from same subscriber, will produce already playing error
+	 * Default value is true
+	 */
+	@Value( "${"+SETTINGS_PREVENT_PLAYING_STREAM_ID_FROM_SAME_SUBSCRIBER+":true}" )
+	private boolean preventPlayingStreamIdFromSameSubscriber = true;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2929,5 +2939,13 @@ public class AppSettings implements Serializable{
 
 	public void setAddDateTimeToHlsFileName(boolean addDateTimeToHlsFileName) {
 		this.addDateTimeToHlsFileName = addDateTimeToHlsFileName;
+	}
+
+	public boolean isPreventPlayingStreamIdFromSameSubscriber() {
+		return preventPlayingStreamIdFromSameSubscriber;
+	}
+
+	public void setPreventPlayingStreamIdFromSameSubscriber(boolean preventPlayingStreamIdFromSameSubscriber) {
+		this.preventPlayingStreamIdFromSameSubscriber = preventPlayingStreamIdFromSameSubscriber;
 	}
 }
