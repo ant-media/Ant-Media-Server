@@ -80,6 +80,7 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
@@ -215,7 +216,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logger.info("Stream source size: {}", streams.size());
 				streamFetcherManager.startStreams(streams);
 			}
-
 			synchUserVoDFolder(null, appSettings.getVodFolder());
 		});
 
@@ -296,28 +296,32 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		boolean result = false;
 		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
 
-		deleteSymbolicLink(new File(oldFolderPath == null ? "" : oldFolderPath), streamsFolder);
+		if(oldFolderPath != null && !oldFolderPath.equals("")){
+			deleteSymbolicLink(new File(oldFolderPath), streamsFolder);
+		}
 		
-
-		File f = new File(vodFolderPath == null ? "" : vodFolderPath);
-		createSymbolicLink(streamsFolder, f);
-		//if file does not exists, it means reset the vod
-		getDataStore().fetchUserVodList(f);
-		result = true;
+		
+		if(vodFolderPath != null && !vodFolderPath.equals(""))
+		{
+			File f = new File(vodFolderPath);
+			createSymbolicLink(streamsFolder, f);
+			//if file does not exists, it means reset the vod
+			getDataStore().fetchUserVodList(f);
+			result = true;
+		}
 
 		return result;
 	}
 
-	private Result createSymbolicLink(File streamsFolder, File vodFolder) {
-
+	public Result createSymbolicLink(File streamsFolder, File vodFolder) {
 		Result result = null;
 		try {
 			if (!streamsFolder.exists()) {
 				streamsFolder.mkdirs();
 			}
-			if (vodFolder.exists() && vodFolder.isDirectory()) {
-				String newLinkPath = streamsFolder.getAbsolutePath() + File.separator + vodFolder.getName();
-				File newLinkFile = new File(newLinkPath);
+			if (vodFolder.exists() && vodFolder.isDirectory()) 
+			{
+				File newLinkFile = new File(streamsFolder, vodFolder.getName());
 				if (!Files.isSymbolicLink(newLinkFile.toPath())) 
 				{
 					Path target = vodFolder.toPath();
@@ -469,8 +473,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if (vodDirectory != null && streamsFolder != null) 
 			{
 				File linkFile = new File(streamsFolder.getAbsolutePath(), vodDirectory.getName());
-
-				if (Files.isSymbolicLink(linkFile.toPath())) 
+				
+				if (!streamsFolder.getAbsolutePath().equals(linkFile.getAbsolutePath()) 
+						&& 
+						Files.isSymbolicLink(linkFile.toPath())) 
 				{
 					Files.delete(linkFile.toPath());
 					result = true;
@@ -508,8 +514,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
+					final String metaData = broadcast.getMetaData();
 					logger.info("Setting timer to call live stream ended hook for stream:{}",streamId );
-					vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null, null));
+					vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null, metaData));
 				}
 
 				if (broadcast.isZombi()) {
@@ -586,9 +593,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				{
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
+					final String metaData = broadcast.getMetaData();
 					logger.info("Setting timer to call live stream started hook for stream:{}",streamId );
 					vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
-							null, null, null));
+							null, null, metaData));
 				}
 
 				int ingestingStreamLimit = appSettings.getIngestingStreamLimit();
@@ -757,9 +765,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				|| ((index = vodName.lastIndexOf(".webm")) != -1) )
 		{
 			final String baseName = vodName.substring(0, index);
+			final String metaData = (broadcast != null) ? broadcast.getMetaData() : null;
 			String finalListenerHookURL = listenerHookURL;
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			vertx.runOnContext(e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodIdFinal, null));
+			vertx.runOnContext(e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodIdFinal, metaData));
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
@@ -1328,8 +1337,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if (listenerHookURL != null && listenerHookURL.length() > 0) {
 				final String name = broadcast.getName();
 				final String category = broadcast.getCategory();
+				final String metaData = broadcast.getMetaData();
 				logger.info("Setting timer to call encoder not opened error for stream:{}", streamId);
-				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_ENCODER_NOT_OPENED_ERROR, name, category, null, null, null));
+				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_ENCODER_NOT_OPENED_ERROR, name, category, null, null, metaData));
 			}
 		}
 	}
@@ -1342,7 +1352,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return publishTimeoutStreams;
 	}
 
-	public synchronized void publishTimeoutError(String streamId) {
+	public synchronized void publishTimeoutError(String streamId, String subscriberId) {
 		publishTimeoutStreams++;
 		publishTimeoutStreamsList.add(streamId);
 		Broadcast broadcast = getDataStore().get(streamId);
@@ -1354,7 +1364,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				final String name = broadcast.getName();
 				final String category = broadcast.getCategory();
 				logger.info("Setting timer to call hook that means live stream is not started to the publish timeout for stream:{}", streamId);
-				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_PUBLISH_TIMEOUT_ERROR, name, category, null, null, null));
+				
+				JSONObject jsonResponse = new JSONObject();
+				jsonResponse.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
+				
+				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_PUBLISH_TIMEOUT_ERROR, name, category, null, null, jsonResponse.toJSONString()));
 			}
 		}
 	}

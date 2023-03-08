@@ -102,7 +102,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@BeforeClass
 	public static void beforeClass() {
-		avformat.av_register_all();
+	//	avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
 	}
