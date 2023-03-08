@@ -550,7 +550,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if(broadcast == null){
 			return;
 		}
-		final String listenerHookURL = broadcast.getListenerHookURL();
+		final String listenerHookURL = appSettings.getListenerHookURL();
 		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
 			return;
 		}
@@ -567,7 +567,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if(broadcast == null){
 			return;
 		}
-		final String listenerHookURL = broadcast.getListenerHookURL();
+		final String listenerHookURL = appSettings.getListenerHookURL();
 		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
 			return;
 		}
@@ -585,7 +585,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if(broadcast == null){
 			return;
 		}
-		final String listenerHookURL = broadcast.getListenerHookURL();
+		final String listenerHookURL = appSettings.getListenerHookURL();
 		if (listenerHookURL == null || listenerHookURL.isEmpty()) {
 			return;
 		}
@@ -934,7 +934,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			httpPost.setEntity(postParams);
 
 			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
-				System.out.println("http response came");
 				logger.info("POST Response Status:: {}" , httpResponse.getStatusLine().getStatusCode());
 
 				HttpEntity entity = httpResponse.getEntity();
@@ -1079,13 +1078,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public DataStore getDataStore() {
-		System.out.println("get data store called");
-		//vertx should be initialized before calling this method
 		if(dataStore == null)
 		{
-			System.out.println("data store is null");
 			dataStore = dataStoreFactory.getDataStore();
-			System.out.println(dataStore);
 
 		}
 		return dataStore;
