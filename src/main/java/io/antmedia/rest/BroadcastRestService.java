@@ -1,8 +1,16 @@
 package io.antmedia.rest;
 
+import java.nio.charset.Charset;
+import java.util.Base64;
 import java.util.List;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.exceptions.JWTDecodeException;
+import com.auth0.jwt.interfaces.DecodedJWT;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -40,6 +48,7 @@ import io.swagger.annotations.ExternalDocs;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
+
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -77,6 +86,9 @@ public class BroadcastRestService extends RestServiceBase{
 	private static final String RELATIVE_MOVE = "relative";
 	private static final String ABSOLUTE_MOVE = "absolute";
 	private static final String CONTINUOUS_MOVE = "continuous";
+
+	private final String blacklistNotEnabledMsg = "JWT blacklist is not enabled for this application.";
+
 
 	@ApiModel(value="SimpleStat", description="Simple generic statistics class to return single values")
 	public static class SimpleStat {
@@ -594,8 +606,115 @@ public class BroadcastRestService extends RestServiceBase{
 		return new Result(result);
 	}
 
+	@ApiOperation(value = "Add jwt token to blacklist. If added, success field is true, "
+			+ "if not added success field false", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/jwt-black-list")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result blackListOrWhitelistJwt(@ApiParam(value = "jwt to be added to blacklist.", required = true) @QueryParam("jwt") String jwt,
+										  @ApiParam(value = "if true whitelist jwt (unblacklist)", required = false) @QueryParam("whiteList") boolean whiteList)
+	{
+		if(getAppSettings().isJwtBlacklistEnabled()){
+			if(whiteList){
+				if(getDataStore().getBlackListedToken(jwt) == null){
+					return new Result(false, "JWT does not exist in blacklist.");
 
-	@ApiOperation(value = " Removes all tokens related with requested stream", notes = "", response = Result.class)
+				}else if(getDataStore().whiteListToken(jwt)){
+					return new Result(true, "JWT successfully whitelisted.");
+
+				}else{
+					return new Result(false, "JWT cannot be whitelisted.");
+				}
+			}
+			try{
+				final DecodedJWT decodedJWT = JWT.decode(jwt);
+				final String payload = new String(Base64.getDecoder().decode(decodedJWT.getPayload()), Charset.defaultCharset());
+				final JSONParser parser = new JSONParser();
+				try{
+					final JSONObject jwtPayload = (JSONObject) parser.parse(payload);
+					final String tokenType = jwtPayload.get("type").toString();
+					final String streamId = jwtPayload.get("streamId").toString();
+					final long exp = (Long) jwtPayload.get("exp");
+
+					final Token token = new Token();
+					token.setTokenId(jwt);
+					token.setType(tokenType);
+					token.setStreamId(streamId);
+					token.setExpireDate(exp);
+
+					if(!super.verifyJwt(jwt, streamId, tokenType)){
+						return new Result(false,"JWT is not valid.");
+					}else if(getDataStore().getBlackListedToken(jwt) != null){
+						return new Result(false, "JWT is already in blacklist.");
+					}else if(getDataStore().blackListToken(token)){
+						return new Result(true, "JWT successfully added to blacklist.");
+					}
+
+				}catch (ParseException e) {
+					return new Result(false,"Invalid JWT");
+				}
+			}catch (JWTDecodeException e){
+				return new Result(false,"Invalid JWT");
+			}
+
+		}else{
+			logger.warn(blacklistNotEnabledMsg);
+			return new Result(false, blacklistNotEnabledMsg);
+		}
+
+		return new Result(false);
+	}
+
+	@ApiOperation(value = "Get all blacklisted JWTs.", response = Result.class)
+	@GET
+	@Path("/jwt-black-list")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<String> getJwtBlacklist()
+	{
+		if(getAppSettings().isJwtBlacklistEnabled()) {
+			return getDataStore().getBlackListedTokens();
+		}else{
+			logger.warn(blacklistNotEnabledMsg);
+			return null;
+		}
+	}
+
+	@ApiOperation(value = "Delete all expired blacklisted JWTs.", response = Result.class)
+	@DELETE
+	@Path("/jwt-black-list-delete-expired")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result deleteAllExpiredJwtFromBlacklist()
+	{
+		if(getAppSettings().isJwtBlacklistEnabled()) {
+			return getDataStore().deleteAllBlacklistedExpiredTokens(getTokenService());
+		}else{
+			logger.warn(blacklistNotEnabledMsg);
+			return new Result(false, blacklistNotEnabledMsg);
+		}
+	}
+
+	@ApiOperation(value = "White list all blacklisted JWTs.", response = Result.class)
+	@DELETE
+	@Path("/jwt-black-list-clear")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result clearJwtBlacklist()
+	{
+		if(getAppSettings().isJwtBlacklistEnabled()) {
+			getDataStore().whiteListAllTokens();
+			if(getDataStore().getBlackListedTokens().isEmpty()){
+				return new Result(true, "All blacklisted tokens are whitelisted successfully.");
+			}else{
+				return new Result(false, "JWT blacklist clear failed.");
+			}
+		}else{
+			logger.warn(blacklistNotEnabledMsg);
+			return new Result(false, blacklistNotEnabledMsg);
+		}
+
+	}
+
+	@ApiOperation(value = "Removes all tokens related with requested stream", notes = "", response = Result.class)
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/tokens")
@@ -603,7 +722,6 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result revokeTokensV2(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId) {
 		return super.revokeTokens(streamId);
 	}
-
 
 	@ApiOperation(value = "Get the all tokens of requested stream", notes = "",responseContainer = "List", response = Token.class)
 	@GET
@@ -1139,6 +1257,5 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return new Result(result);
 	}
-	
 
 }

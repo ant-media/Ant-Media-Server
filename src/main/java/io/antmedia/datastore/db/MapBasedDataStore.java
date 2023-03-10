@@ -9,8 +9,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
+import io.antmedia.rest.model.Result;
+import io.antmedia.security.ITokenService;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -944,6 +947,79 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
+	public boolean whiteListToken(String tokenId) {
+		synchronized (this){
+			Token token = getToken(tokenId);
+			if(token != null && token.isBlackListed()){
+				token.setBlackListed(false);
+				return saveToken(token);
+			}
+		}
+
+		return false;
+	}
+
+	@Override
+	public List<String> getBlackListedTokens(){
+		ArrayList<String> tokenBlacklist = new ArrayList<>();
+		synchronized (this){
+			tokenMap.forEach((tokenId, tokenAsJson) -> {
+				Token token = gson.fromJson(tokenAsJson,Token.class);
+				if(token.isBlackListed()){
+					tokenBlacklist.add(tokenId);
+				}
+			});
+			return tokenBlacklist;
+		}
+	}
+
+	@Override
+	public Result deleteAllBlacklistedExpiredTokens(ITokenService tokenService){
+		logger.info("Deleting all expired JWTs from token storage.");
+		AtomicInteger deletedTokenCount = new AtomicInteger();
+
+		synchronized (this) {
+
+			tokenMap.forEach((tokenId, tokenAsJson) -> {
+				Token token = gson.fromJson(tokenAsJson,Token.class);
+				if(token.isBlackListed() && !tokenService.verifyJwt(tokenId,token.getStreamId(),token.getType())){
+					if(deleteToken(tokenId)){
+						deletedTokenCount.getAndIncrement();
+					}else{
+						logger.warn("Couldn't delete JWT:{}", tokenId);
+					}
+				}
+			});
+		}
+
+		if(deletedTokenCount.get() > 0){
+			final String successMsg = deletedTokenCount+" JWT deleted successfully from storage.";
+			logger.info(successMsg);
+			return new Result(true, successMsg);
+		}else{
+			final String failMsg = "No JWT deleted from storage.";
+			logger.warn(failMsg);
+			return new Result(false, failMsg);
+		}
+
+	}
+
+	@Override
+	public boolean whiteListAllTokens(){
+
+		synchronized (this) {
+			tokenMap.forEach((tokenId, tokenAsJson) -> {
+				Token token = gson.fromJson(tokenAsJson,Token.class);
+				if(token.isBlackListed()){
+					whiteListToken(tokenId);
+				}
+			});
+		}
+		return true;
+
+	}
+
+	@Override
 	public Token getToken(String tokenId) {
 		return super.getToken(tokenMap, tokenId, gson);
 	}	
@@ -1051,6 +1127,30 @@ public abstract class MapBasedDataStore extends DataStore {
 		String jsonString = map.get(streamId);
 		if(jsonString != null) {
 			return gson.fromJson(jsonString, Broadcast.class);
+		}
+		return null;
+	}
+
+	@Override
+	public boolean blackListToken(Token token) {
+		boolean result = false;
+
+		synchronized (this) {
+
+			if (token.getStreamId() != null && token.getTokenId() != null) {
+				token.setBlackListed(true);
+				return saveToken(token);
+			}
+		}
+		return result;
+
+	}
+
+	@Override
+	public Token getBlackListedToken(String tokenId) {
+		Token token = getToken(tokenId);
+		if(token != null && token.isBlackListed()){
+			return token;
 		}
 		return null;
 	}

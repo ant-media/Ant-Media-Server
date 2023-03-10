@@ -10,8 +10,11 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
+import io.antmedia.rest.model.Result;
+import io.antmedia.security.ITokenService;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -56,6 +59,7 @@ public class MongoStore extends DataStore {
 	public static final String VOD_ID = "vodId";
 	private static final String VIEWER_ID = "viewerId";
 	private static final String TOKEN_ID = "tokenId";
+	private static final String BLACKLISTED = "blackListed";
 	public  static final String STREAM_ID = "streamId";
 	private Datastore datastore;
 	private Datastore vodDatastore;
@@ -94,7 +98,6 @@ public class MongoStore extends DataStore {
 		subscriberDatastore = Morphia.createDatastore(mongoClient, dbName + "_subscriber");
 		detectionMap = Morphia.createDatastore(mongoClient, dbName + "detection");
 		conferenceRoomDatastore = Morphia.createDatastore(mongoClient, dbName + "room");
-
 		//*************************************************
 		//do not create data store for each type as we do above
 		//*************************************************
@@ -107,7 +110,7 @@ public class MongoStore extends DataStore {
 		vodDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
 		detectionMap.getMapper().mapPackage("io.antmedia.datastore.db.types");
 		conferenceRoomDatastore.getMapper().mapPackage("io.antmedia.datastore.db.types");
-		
+
 		tokenDatastore.ensureIndexes();
 		subscriberDatastore.ensureIndexes();
 		datastore.ensureIndexes();
@@ -1429,4 +1432,103 @@ public class MongoStore extends DataStore {
 		}
 		return false;
 	}
+
+	@Override
+	public boolean blackListToken(Token token) {
+		boolean result = false;
+		//update if exists, else insert
+		synchronized (this) {
+			if (token.getStreamId() != null && token.getTokenId() != null) {
+				Query<Token> query = tokenDatastore.find(Token.class).filter(Filters.eq(TOKEN_ID, token.getTokenId()));
+
+				if(query.first() != null){
+					final UpdateResult results = query.update(new UpdateOptions().multi(false), set(BLACKLISTED, true));
+					if(results.getModifiedCount() == 1){
+						result = true;
+					}
+				}else{
+					token.setBlackListed(true);
+					result = saveToken(token);
+				}
+			}
+		}
+
+		return result;
+
+	}
+
+	@Override
+	public Token getBlackListedToken(String tokenId) {
+		synchronized (this){
+			Query<Token> query = tokenDatastore.find(Token.class).filter(Filters.eq(TOKEN_ID, tokenId));
+			Token fetchedToken = query.first();
+			if(fetchedToken != null && fetchedToken.isBlackListed()){
+				return fetchedToken;
+			}
+		}
+		return null;
+	}
+
+	@Override
+	public boolean whiteListToken(String tokenId) {
+		synchronized (this){
+			Query<Token> query = tokenDatastore.find(Token.class).filter(Filters.eq(TOKEN_ID, tokenId));
+			final UpdateResult results = query.update(new UpdateOptions().multi(false), set(BLACKLISTED, false));
+			return results.wasAcknowledged();
+		}
+	}
+
+	@Override
+	public List<String> getBlackListedTokens() {
+		List<String> tokenBlacklist = new ArrayList<>();
+		synchronized (this){
+			Query<Token> query = tokenDatastore.find(Token.class).filter(Filters.eq(BLACKLISTED, true));
+			for (Token token : query) {
+				tokenBlacklist.add(token.getTokenId());
+			}
+			return tokenBlacklist;
+		}
+	}
+
+	@Override
+	public Result deleteAllBlacklistedExpiredTokens(ITokenService tokenService) {
+		AtomicInteger deletedTokenCount = new AtomicInteger();
+
+		synchronized (this){
+			List<String> tokenBlacklist = getBlackListedTokens();
+			tokenBlacklist.forEach(tokenId ->{
+
+				Token token = getToken(tokenId);
+				if(!tokenService.verifyJwt(tokenId,token.getStreamId(),token.getType())){
+					if(whiteListToken(tokenId)){
+						deletedTokenCount.getAndIncrement();
+					}else{
+						logger.warn("Couldn't delete JWT:{}", tokenId);
+					}
+				}
+
+			});
+
+		}
+		if(deletedTokenCount.get() > 0){
+			final String successMsg = deletedTokenCount+" JWT deleted successfully from blacklist.";
+			logger.info(successMsg);
+			return new Result(true, successMsg);
+		}else{
+			final String failMsg = "No JWT deleted from blacklist.";
+			logger.warn(failMsg);
+			return new Result(false, failMsg);
+		}
+
+	}
+
+	@Override
+	public boolean whiteListAllTokens() {
+		synchronized (this) {
+			Query<Token> query = tokenDatastore.find(Token.class).filter(Filters.eq(BLACKLISTED, true));
+			final UpdateResult results = query.update(new UpdateOptions().multi(true), set(BLACKLISTED, false));
+			return results.wasAcknowledged();
+		}
+	}
+
 }

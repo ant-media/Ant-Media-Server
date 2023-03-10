@@ -51,6 +51,16 @@ public class Token {
 	 */
 	@ApiModelProperty(value = "the type of the token")
 	private String type;
+
+	public ObjectId getDbId() {
+		return dbId;
+	}
+
+	public void setDbId(ObjectId dbId) {
+		this.dbId = dbId;
+	}
+
+	private boolean blackListed;
 	
 	/**
 	 * the id of the conference room which requested streams belongs to.
@@ -98,6 +108,13 @@ public class Token {
 	public void setExpireDate(long expireDate) {
 		this.expireDate = expireDate;
 	}
-	
+
+	public boolean isBlackListed() {
+		return blackListed;
+	}
+
+	public void setBlackListed(boolean blackListed) {
+		this.blackListed = blackListed;
+	}
 
 }

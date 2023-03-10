@@ -1616,6 +1616,14 @@ public abstract class RestServiceBase {
 		return new Result(false, message);
 	}
 
+	protected boolean verifyJwt(String jwt, String streamId, String type){
+		return getTokenService().verifyJwt(jwt, streamId, type);
+	}
+
+	protected ITokenService getTokenService(){
+		return (ITokenService) getAppContext().getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+	}
+
 	protected Token validateToken (Token token) {
 		Token validatedToken = null;
 
