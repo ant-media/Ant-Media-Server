@@ -3,6 +3,9 @@ package io.antmedia.security;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.IDataStoreFactory;
+import io.antmedia.datastore.db.types.Broadcast;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -53,6 +56,11 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 				instance.addProperty("mode", mode);
 				if(queryParams != null){
 					instance.addProperty("queryParams", queryParams.toString());
+				}
+				DataStore dataStore = getDataStore(scope);
+				Broadcast broadcast = dataStore.get(streamId);
+				if(broadcast != null && broadcast.getMetaData() != null && !broadcast.getMetaData().isEmpty()){
+				instance.addProperty("metaData", broadcast.getMetaData());
 				}
 
 				RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
@@ -109,6 +117,10 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 		return HttpClients.createDefault();
 	}
 
+	private DataStore getDataStore(IScope scope) {
+		IDataStoreFactory dsf = (IDataStoreFactory) scope.getContext().getBean(IDataStoreFactory.BEAN_NAME);
+		return dsf.getDataStore();
+	}
 
 	public int readHttpResponse(HttpResponse response){
 
