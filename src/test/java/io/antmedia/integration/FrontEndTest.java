@@ -152,6 +152,7 @@ public class FrontEndTest {
 				"--use-fake-device-for-media-stream");
 		chrome_options.addArguments("--no-sandbox");
 		chrome_options.addArguments("--log-level=1");
+		chrome_options.addArguments("--remote-allow-origins=*");
 		LoggingPreferences logPrefs = new LoggingPreferences();
 		//To get console log
 		logPrefs.enable(LogType.BROWSER, Level.ALL);
