@@ -140,7 +140,7 @@ public class ServerSettings implements ApplicationContextAware {
 	private boolean useGlobalIp;
 
 	/**
-	 * The proxy IP address and port.
+	 * The proxy IP address and port for license checking. 
 	 * If there is a proxy in front of Ant Media Server(reverse proxy) please enter its IP and port
 	 * The format will be <proxy_ip>:<port_number> for example:
 	 * 					 192.168.0.1:3012

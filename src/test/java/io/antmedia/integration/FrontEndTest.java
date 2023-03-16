@@ -347,17 +347,8 @@ public class FrontEndTest {
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://localhost/LiveApp/"
 					+ broadcast.getStreamId());
 
-			ChromeOptions chrome_options = new ChromeOptions();
-			chrome_options.addArguments("--disable-extensions");
-			chrome_options.addArguments("--disable-gpu");
-			chrome_options.addArguments("--headless");
-			chrome_options.addArguments("--no-sandbox");
-			chrome_options.addArguments("--log-level=1");
-
 			LoggingPreferences logPrefs = new LoggingPreferences();
 			//To get console log
-			logPrefs.enable(LogType.BROWSER, Level.ALL);
-			chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				Broadcast tmpBroadcast = restService.getBroadcast(broadcast.getStreamId());
@@ -365,7 +356,7 @@ public class FrontEndTest {
 				return tmpBroadcast != null && IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmpBroadcast.getStatus());
 			});
 
-			this.driver = new ChromeDriver(chrome_options);
+			this.driver = new ChromeDriver(getChromeOptions());
 			this.driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(10));
 			this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
 
