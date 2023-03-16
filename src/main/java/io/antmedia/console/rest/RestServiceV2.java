@@ -2,9 +2,9 @@ package io.antmedia.console.rest;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.List;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -19,13 +19,13 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-
-import io.antmedia.settings.SslSettings;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.springframework.stereotype.Component;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Licence;
@@ -482,16 +482,24 @@ public class RestServiceV2 extends CommonRestService {
 		return super.changeServerSettings(serverSettings);
 	}
 
-	@ApiOperation(value = "Changes ssl settings. Sets ssl configuration type,", response = Result.class)
+	@ApiOperation(value = "Changes ssl settings. Sets ssl configuration type. After this method is called, server will be restarted.", response = Result.class)
 	@POST
 	@Path("/ssl-settings")
+	@Consumes({MediaType.MULTIPART_FORM_DATA})
 	@Produces(MediaType.APPLICATION_JSON)
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Override
-	public String configureSsl(@ApiParam(value = "Ssl settings", required = true) SslSettings sslSettings){
-		return super.configureSsl(sslSettings);
+	public Result configureSsl(@ApiParam(value = "SSL settings", required = true) @QueryParam("domain") String domain, @QueryParam("type") String type,
+			@FormDataParam("fullChainFile") InputStream fullChainFile,
+			@FormDataParam("fullChainFile") FormDataContentDisposition fullChainFileDetail,
+			@FormDataParam("privateKeyFile") InputStream privateKeyFile,
+			@FormDataParam("privateKeyFile") FormDataContentDisposition privateKeyFileDetail,
+			@FormDataParam("chainFile") InputStream chainFile,
+			@FormDataParam("chainFile") FormDataContentDisposition chainFileDetail)
+	
+	{	
+		return super.configureSsl(domain, type, fullChainFile, fullChainFileDetail, privateKeyFile, privateKeyFileDetail, chainFile, chainFileDetail);
 	}
-
+	
 	@ApiOperation(value = "Returns true if the server is enterprise edition.", response = Result.class)
 	@GET
 	@Path("/enterprise-edition")
@@ -520,16 +528,6 @@ public class RestServiceV2 extends CommonRestService {
 	public ServerSettings getServerSettings() 
 	{
 		return super.getServerSettings();
-	}
-
-	@ApiOperation(value = "Returns the ssl settings. Includes SSL configuration type, domain and custom certificate file names.", response = Result.class)
-	@GET
-	@Path("/ssl-settings")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public SslSettings getSslSettings()
-	{
-		return super.getServerSettings().getSslSettings();
 	}
 
 	@ApiOperation(value = "Returns license status. Includes license ID, status, owner, start date, end date, type and license count.", response = Result.class)

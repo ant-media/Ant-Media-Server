@@ -16,7 +16,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import io.antmedia.settings.SslSettings;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.AppSettings;
@@ -471,15 +470,6 @@ public class RestService extends CommonRestService {
 	@Override
 	public String changeServerSettings(ServerSettings serverSettings){
 		return super.changeServerSettings(serverSettings);
-	}
-
-	@POST
-	@Path("/configureSsl")
-	@Produces(MediaType.APPLICATION_JSON)
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Override
-	public String configureSsl(SslSettings sslSettings){
-		return super.configureSsl(sslSettings);
 	}
 
 	@GET
