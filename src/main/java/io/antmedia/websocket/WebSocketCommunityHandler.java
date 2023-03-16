@@ -311,6 +311,15 @@ public class WebSocketCommunityHandler {
 	
 
 	
+	@SuppressWarnings("unchecked")
+	public void sendRoomNotActiveInformation(String roomId) {
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.ROOM_NOT_ACTIVE);
+		jsonResponse.put(WebSocketConstants.ROOM, roomId);
+		sendMessage(jsonResponse.toJSONString(), session);
+	}
+	
 	/**
 	 * 
 	 * @param streamIdNameMap this is the map that keys are stream ids and values are stream names

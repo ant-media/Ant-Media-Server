@@ -2,7 +2,6 @@ package io.antmedia.test.settings;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -10,8 +9,6 @@ import org.springframework.context.ApplicationContext;
 import org.webrtc.Logging;
 
 import io.antmedia.settings.ServerSettings;
-
-import javax.validation.constraints.AssertTrue;
 
 public class ServerSettingsTest {
 	
