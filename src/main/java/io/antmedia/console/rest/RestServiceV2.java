@@ -482,23 +482,27 @@ public class RestServiceV2 extends CommonRestService {
 		return super.changeServerSettings(serverSettings);
 	}
 
-	@ApiOperation(value = "Changes ssl settings. Sets ssl configuration type. After this method is called, server will be restarted.", response = Result.class)
-	@POST
-	@Path("/ssl-settings")
-	@Consumes({MediaType.MULTIPART_FORM_DATA})
-	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result configureSsl(@ApiParam(value = "SSL settings", required = true) @QueryParam("domain") String domain, @QueryParam("type") String type,
-			@FormDataParam("fullChainFile") InputStream fullChainFile,
-			@FormDataParam("fullChainFile") FormDataContentDisposition fullChainFileDetail,
-			@FormDataParam("privateKeyFile") InputStream privateKeyFile,
-			@FormDataParam("privateKeyFile") FormDataContentDisposition privateKeyFileDetail,
-			@FormDataParam("chainFile") InputStream chainFile,
-			@FormDataParam("chainFile") FormDataContentDisposition chainFileDetail)
-	
-	{	
-		return super.configureSsl(domain, type, fullChainFile, fullChainFileDetail, privateKeyFile, privateKeyFileDetail, chainFile, chainFileDetail);
-	}
+
+//  Configure SSL requires root privilege so don't make it public for now. 
+//	Fix the enable_ssl.sh to work without root privilege and open this code later
+//
+//	@ApiOperation(value = "Changes ssl settings. Sets ssl configuration type. After this method is called, server will be restarted.", response = Result.class)
+//	@POST
+//	@Path("/ssl-settings")
+//	@Consumes({MediaType.MULTIPART_FORM_DATA})
+//	@Produces(MediaType.APPLICATION_JSON)
+//	@Override
+//	public Result configureSsl(@ApiParam(value = "SSL settings", required = true) @QueryParam("domain") String domain, @QueryParam("type") String type,
+//			@FormDataParam("fullChainFile") InputStream fullChainFile,
+//			@FormDataParam("fullChainFile") FormDataContentDisposition fullChainFileDetail,
+//			@FormDataParam("privateKeyFile") InputStream privateKeyFile,
+//			@FormDataParam("privateKeyFile") FormDataContentDisposition privateKeyFileDetail,
+//			@FormDataParam("chainFile") InputStream chainFile,
+//			@FormDataParam("chainFile") FormDataContentDisposition chainFileDetail)
+//	
+//	{	
+//		return super.configureSsl(domain, type, fullChainFile, fullChainFileDetail, privateKeyFile, privateKeyFileDetail, chainFile, chainFileDetail);
+//	}
 	
 	@ApiOperation(value = "Returns true if the server is enterprise edition.", response = Result.class)
 	@GET
