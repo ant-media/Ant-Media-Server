@@ -273,7 +273,7 @@ public class StreamFetcher {
 			}
 			else {
 				//break the loop except above case
-				readTheNextFrame = false;;
+				readTheNextFrame = false;
 			}
 			
 			if (stopRequestReceived) {
@@ -284,8 +284,7 @@ public class StreamFetcher {
 		}
 
 		public int readNextPacket(AVPacket pkt) {
-			int readResult = av_read_frame(inputFormatContext, pkt);
-			return readResult;
+			return av_read_frame(inputFormatContext, pkt);
 		}
 		
 		public void unReferencePacket(AVPacket pkt) {
