@@ -159,7 +159,7 @@ public class ServerSettings implements ApplicationContextAware {
 	 * The format will be <proxy_ip>:<port_number> for example:
 	 * 					 192.168.0.1:3012
 	 */
-	@Value( "${"+SETTINGS_PROXY_ADDRESS+":null}" )
+	@Value( "${"+SETTINGS_PROXY_ADDRESS+":#{null}}" )
 	private String proxyAddress;
 
 
