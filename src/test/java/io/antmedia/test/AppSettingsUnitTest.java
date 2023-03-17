@@ -262,7 +262,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getHlsTime());
 		assertNull(appSettings.getHlsPlayListType());
 		assertTrue(appSettings.getEncoderSettings().isEmpty());
-		assertTrue(appSettings.isPreventPlayingStreamIdFromSameSubscriber());
+		assertTrue(appSettings.isPlayWebRTCStreamOnceForEachSession());
 	}
 	
 	@Test
@@ -291,8 +291,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setAddDateTimeToHlsFileName(true);
 		assertEquals(true, appSettings.isAddDateTimeToHlsFileName());
 
-		appSettings.setPreventPlayingStreamIdFromSameSubscriber(false);
-		assertFalse(appSettings.isPreventPlayingStreamIdFromSameSubscriber());
+		appSettings.setPlayWebRTCStreamOnceForEachSession(false);
+		assertFalse(appSettings.isPlayWebRTCStreamOnceForEachSession());
 	}
 	
 	
@@ -483,7 +483,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(-1, appSettings.getMaxVideoTrackCount());
 		assertEquals(2, appSettings.getOriginEdgeIdleTimeout());
 		assertEquals(false, appSettings.isAddDateTimeToHlsFileName());
-		assertEquals(true, appSettings.isPreventPlayingStreamIdFromSameSubscriber());
+		assertEquals(true, appSettings.isPlayWebRTCStreamOnceForEachSession());
 
 	
 		
