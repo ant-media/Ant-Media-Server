@@ -1,11 +1,17 @@
 package io.antmedia.security;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.IDataStoreFactory;
+import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.types.Broadcast;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.RequestBuilder;
@@ -26,7 +32,6 @@ import io.antmedia.AppSettings;
 
 public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
-	@Autowired
 	private AppSettings appSettings = null;
 
 
@@ -54,6 +59,11 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 				if(queryParams != null){
 					instance.addProperty("queryParams", queryParams.toString());
 				}
+				DataStore dataStore = getDataStore(scope);
+				Broadcast broadcast = dataStore.get(streamId);
+				if(broadcast != null && broadcast.getMetaData() != null){
+					instance.addProperty("metaData", broadcast.getMetaData());
+				}
 
 				RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 
@@ -70,7 +80,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 				result.set(statuscode==200);
 
 			}
-			catch (Exception e) {
+			catch (IOException e) {
 				logger.error("Couldn't connect Webhook for Stream Authentication {} " , ExceptionUtils.getStackTrace(e));
 			}
 
@@ -109,11 +119,9 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 		return HttpClients.createDefault();
 	}
 
-
-	public int readHttpResponse(HttpResponse response){
-
-		int statuscode = response.getStatusLine().getStatusCode();
-		logger.info("Response from webhook is: {}", statuscode);
-		return statuscode;
+	public DataStore getDataStore(IScope scope) {
+		IDataStoreFactory dsf = (IDataStoreFactory) scope.getContext().getBean(IDataStoreFactory.BEAN_NAME);
+		return dsf.getDataStore();
 	}
+
 }
