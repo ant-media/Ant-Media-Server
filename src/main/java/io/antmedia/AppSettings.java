@@ -332,7 +332,7 @@ public class AppSettings implements Serializable{
 	
 	public static final String SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME = "settings.addDateTimeToHlsFileName";
 
-	public static final String SETTINGS_PREVENT_PLAYING_STREAM_ID_FROM_SAME_SUBSCRIBER = "settings.preventPlayingStreamIdFromSameSubscriber";
+	public static final String SETTINGS_PLAY_WEBRTC_STREAM_ONCE_FOR_EACH_SESSION = "settings.playWebRTCStreamOnceForEachSession";
 
 
 	/**
@@ -1548,12 +1548,13 @@ public class AppSettings implements Serializable{
 	private boolean addDateTimeToHlsFileName;
 
 	/**
-	 * This setting prevents playing stream id from same subscriber
-	 * If it is true, try to playi stream id from same subscriber, will produce already playing error
-	 * Default value is true
+	 * This setting prevents playing stream id more than once in the same websocket/webrtc session. 
+	 * If it is true, trying to play stream id more than once in the same websocket session will produce 'already playing' error
+	 * Default value is true.
+	 * It uses session id to match subscriber
 	 */
-	@Value( "${"+SETTINGS_PREVENT_PLAYING_STREAM_ID_FROM_SAME_SUBSCRIBER+":true}" )
-	private boolean preventPlayingStreamIdFromSameSubscriber = true;
+	@Value( "${"+SETTINGS_PLAY_WEBRTC_STREAM_ONCE_FOR_EACH_SESSION+":true}" )
+	private boolean playWebRTCStreamOnceForEachSession = true;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2941,11 +2942,12 @@ public class AppSettings implements Serializable{
 		this.addDateTimeToHlsFileName = addDateTimeToHlsFileName;
 	}
 
-	public boolean isPreventPlayingStreamIdFromSameSubscriber() {
-		return preventPlayingStreamIdFromSameSubscriber;
+	public boolean isPlayWebRTCStreamOnceForEachSession() {
+		return playWebRTCStreamOnceForEachSession;
 	}
 
-	public void setPreventPlayingStreamIdFromSameSubscriber(boolean preventPlayingStreamIdFromSameSubscriber) {
-		this.preventPlayingStreamIdFromSameSubscriber = preventPlayingStreamIdFromSameSubscriber;
+	public void setPlayWebRTCStreamOnceForEachSession(boolean playWebRTCStreamOnceForEachSession) {
+		this.playWebRTCStreamOnceForEachSession = playWebRTCStreamOnceForEachSession;
 	}
+
 }
