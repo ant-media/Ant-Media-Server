@@ -86,6 +86,29 @@ public class AdminApplicationTest {
 		assertFalse(result);
 
 	}
+	
+	
+	@Test
+	public void testSpecialChars() {
+		AdminApplication app = Mockito.spy(new AdminApplication());
+				
+		try {
+			Process process = app.getProcess("/bin/bash create_app.sh -n oVs9G24e5BQqbaTNVtjh -w true -p /usr/local/antmedia -c false");
+			assertNotNull(process);
+			
+			process = app.getProcess("test & ");
+			assertNull(process);
+			
+			
+			boolean result = app.runCommand("test &");
+			assertFalse(result);
+			
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
 
 	@Test
 	public void testRunCommand() {
@@ -121,9 +144,10 @@ public class AdminApplicationTest {
 
 		runCommand = app.runCommand("");
 		assertFalse(runCommand);
-
+		
+		
+		
 	}
-
 	@Test
 	public void testLiveStreamCount() {
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
