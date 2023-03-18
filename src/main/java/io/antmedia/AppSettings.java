@@ -332,6 +332,8 @@ public class AppSettings implements Serializable{
 	
 	public static final String SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME = "settings.addDateTimeToHlsFileName";
 
+	public static final String SETTINGS_PLAY_WEBRTC_STREAM_ONCE_FOR_EACH_SESSION = "settings.playWebRTCStreamOnceForEachSession";
+
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -1544,6 +1546,15 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${"+SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME+":false}" )
 	private boolean addDateTimeToHlsFileName;
+
+	/**
+	 * This setting prevents playing stream id more than once in the same websocket/webrtc session. 
+	 * If it is true, trying to play stream id more than once in the same websocket session will produce 'already playing' error
+	 * Default value is true.
+	 * It uses session id to match subscriber
+	 */
+	@Value( "${"+SETTINGS_PLAY_WEBRTC_STREAM_ONCE_FOR_EACH_SESSION+":true}" )
+	private boolean playWebRTCStreamOnceForEachSession = true;
 
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
@@ -2930,4 +2941,13 @@ public class AppSettings implements Serializable{
 	public void setAddDateTimeToHlsFileName(boolean addDateTimeToHlsFileName) {
 		this.addDateTimeToHlsFileName = addDateTimeToHlsFileName;
 	}
+
+	public boolean isPlayWebRTCStreamOnceForEachSession() {
+		return playWebRTCStreamOnceForEachSession;
+	}
+
+	public void setPlayWebRTCStreamOnceForEachSession(boolean playWebRTCStreamOnceForEachSession) {
+		this.playWebRTCStreamOnceForEachSession = playWebRTCStreamOnceForEachSession;
+	}
+
 }

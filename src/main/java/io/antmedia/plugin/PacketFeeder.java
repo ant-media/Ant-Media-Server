@@ -3,23 +3,25 @@ package io.antmedia.plugin;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.javacpp.BytePointer;
 
 import io.antmedia.plugin.api.IPacketListener;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 
 public class PacketFeeder{
 
-	private ArrayList<IPacketListener> listeners = new ArrayList<IPacketListener>();
+	private Queue<IPacketListener> listeners = new ConcurrentLinkedQueue<>();
 	private String streamId;
-	private AVPacket videoPkt, audioPkt;
+	private AVPacket videoPkt;
+	private AVPacket audioPkt;
 
 
 	public PacketFeeder(String streamId) {
