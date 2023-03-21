@@ -1668,14 +1668,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean addPacketListener(String streamId, IPacketListener listener) {
 		boolean isAdded = false;
 		List<MuxAdaptor> muxAdaptorsLocal = getMuxAdaptors();
-		for (MuxAdaptor muxAdaptor : muxAdaptorsLocal) 
+		synchronized (muxAdaptorsLocal) 
 		{
-			if (streamId.equals(muxAdaptor.getStreamId())) 
+			for (MuxAdaptor muxAdaptor : muxAdaptorsLocal) 
 			{
-				muxAdaptor.addPacketListener(listener);
-				logger.info("Packet listener is added to streamId:{}", streamId);
-				isAdded = true;
-				break;
+				if (streamId.equals(muxAdaptor.getStreamId())) 
+				{
+					muxAdaptor.addPacketListener(listener);
+					logger.info("Packet listener is added to streamId:{}", streamId);
+					isAdded = true;
+					break;
+				}
 			}
 		}
 
@@ -1714,15 +1717,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public boolean removePacketListener(String streamId, IPacketListener listener) {
 		boolean isRemoved = false;
-		for (MuxAdaptor muxAdaptor : getMuxAdaptors()) 
+		
+		List<MuxAdaptor> muxAdaptorsLocal = getMuxAdaptors();
+		synchronized (muxAdaptorsLocal) 
 		{
-			if (streamId.equals(muxAdaptor.getStreamId())) 
+			for (MuxAdaptor muxAdaptor : muxAdaptorsLocal) 
 			{
-				isRemoved = muxAdaptor.removePacketListener(listener);
-				break;
+				if (streamId.equals(muxAdaptor.getStreamId())) 
+				{
+					isRemoved = muxAdaptor.removePacketListener(listener);
+					break;
 
+				}
 			}
 		}
+		
 
 		if (!isRemoved) 
 		{
