@@ -281,8 +281,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if(oldFolderPath != null && !oldFolderPath.equals("")){
 			deleteSymbolicLink(new File(oldFolderPath), streamsFolder);
 		}
-		
-		
+
+
 		if(vodFolderPath != null && !vodFolderPath.equals(""))
 		{
 			File f = new File(vodFolderPath);
@@ -333,7 +333,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public Result importVoDFolder(String vodFolderPath) {
 		File streamsFolder = new File(WEBAPPS_PATH + getScope().getName() + "/streams");
 		File directory = new File(vodFolderPath == null ? "" : vodFolderPath);
-		
+
 		File allowedDirectory = new File(VOD_IMPORT_ALLOWED_DIRECTORY);
 		Result result = null;
 		try {
@@ -356,8 +356,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		return result;
 	}
-	
-	
+
+
 	public Result unlinksVoD(String directory) 
 	{
 		//check the directory exist
@@ -385,21 +385,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		List<VoD> vodList;
 		do {
 			vodList = getDataStore().getVodList(0, 50, null, null, streamId, null);
-			
+
 			if (vodList != null && !vodList.isEmpty()) 
 			{
 				for (VoD voD : vodList) {
-						if (VoD.USER_VOD.equals(voD.getType())) 
-						{
-							if (getDataStore().deleteVod(voD.getVodId())) {
-								numberOfDeletedRecords++;
-							}
+					if (VoD.USER_VOD.equals(voD.getType())) 
+					{
+						if (getDataStore().deleteVod(voD.getVodId())) {
+							numberOfDeletedRecords++;
 						}
-					
+					}
+
 				}
 			}
 		} while(vodList != null && !vodList.isEmpty());
-		
+
 		return numberOfDeletedRecords;
 	}
 
@@ -455,7 +455,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if (vodDirectory != null && streamsFolder != null) 
 			{
 				File linkFile = new File(streamsFolder.getAbsolutePath(), vodDirectory.getName());
-				
+
 				if (!streamsFolder.getAbsolutePath().equals(linkFile.getAbsolutePath()) 
 						&& 
 						Files.isSymbolicLink(linkFile.toPath())) 
@@ -1339,10 +1339,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				final String name = broadcast.getName();
 				final String category = broadcast.getCategory();
 				logger.info("Setting timer to call hook that means live stream is not started to the publish timeout for stream:{}", streamId);
-				
+
 				JSONObject jsonResponse = new JSONObject();
 				jsonResponse.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
-				
+
 				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_PUBLISH_TIMEOUT_ERROR, name, category, null, null, jsonResponse.toJSONString()));
 			}
 		}
@@ -1665,26 +1665,32 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return false;
 	}
 
-	public void addPacketListener(String streamId, IPacketListener listener) {
+	public boolean addPacketListener(String streamId, IPacketListener listener) {
 		boolean isAdded = false;
-		List<MuxAdaptor> muxAdaptors = getMuxAdaptors();
-		for (MuxAdaptor muxAdaptor : muxAdaptors) 
+		List<MuxAdaptor> muxAdaptorsLocal = getMuxAdaptors();
+		for (MuxAdaptor muxAdaptor : muxAdaptorsLocal) 
 		{
 			if (streamId.equals(muxAdaptor.getStreamId())) 
 			{
 				muxAdaptor.addPacketListener(listener);
+				logger.info("Packet listener is added to streamId:{}", streamId);
 				isAdded = true;
 				break;
 			}
 		}
 
+
 		if(!isAdded) {
+			logger.info("Stream:{} is not in this server. It's creating cluster stream fetcher to get the stream", streamId);
 			if(clusterStreamFetcher == null) {
 				clusterStreamFetcher = createClusterStreamFetcher();
 			}
 
-			clusterStreamFetcher.register(streamId, listener);
+			isAdded = clusterStreamFetcher.register(streamId, listener);
 		}
+
+		return isAdded;
+
 	}
 
 	public void endpointFailedUpdate(String streamId, String url) {
@@ -1706,16 +1712,39 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-	public void removePacketListener(String streamId, IPacketListener listener) {
+	public boolean removePacketListener(String streamId, IPacketListener listener) {
+		boolean isRemoved = false;
 		for (MuxAdaptor muxAdaptor : getMuxAdaptors()) 
 		{
 			if (streamId.equals(muxAdaptor.getStreamId())) 
 			{
-				muxAdaptor.removePacketListener(listener);
+				isRemoved = muxAdaptor.removePacketListener(listener);
 				break;
 
 			}
 		}
+
+		if (!isRemoved) 
+		{
+			if (clusterStreamFetcher != null) 
+			{
+				isRemoved = clusterStreamFetcher.remove(streamId, listener);
+			}
+			else {
+				logger.warn("Cluster stream fetcher is null so that packet listener cannot be removed for streamId:{}", streamId);
+			}
+		}
+		
+		if (isRemoved) {
+			logger.info("Packet listener is removed succesfully from adaptor for streamId:{}", streamId);
+		}
+		else {
+			logger.warn("Packet listener cannot be removed from adaptor for streamId:{}", streamId);
+		}
+
+		return isRemoved;
+
+
 	}
 
 	public void addFrameListener(String streamId, IFrameListener listener) {
