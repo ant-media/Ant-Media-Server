@@ -1800,6 +1800,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		String nonExistingStreamId = "stream_"+RandomUtils.nextInt(0, 1000);
 		spyAdapter.addPacketListener(nonExistingStreamId, listener);
 		verify(clusterStreamFetcher, times(1)).register(nonExistingStreamId, listener);
+		
+		
+		spyAdapter.removePacketListener(nonExistingStreamId, listener);
+		verify(clusterStreamFetcher, times(1)).remove(nonExistingStreamId, listener);
+		
+		
 	}
 
 	@Test

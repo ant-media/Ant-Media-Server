@@ -50,12 +50,12 @@ public class PacketFeeder{
 		}
 	}
 
-	public void addListener(IPacketListener listener) {
-		listeners.add(listener);
+	public boolean addListener(IPacketListener listener) {
+		return listeners.add(listener);
 	}
 
-	public void removeListener(IPacketListener listener) {
-		listeners.remove(listener);
+	public boolean removeListener(IPacketListener listener) {
+		return listeners.remove(listener);
 	}
 
 
