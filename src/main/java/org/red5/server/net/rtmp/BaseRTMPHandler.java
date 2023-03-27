@@ -174,7 +174,7 @@ public abstract class BaseRTMPHandler implements IRTMPHandler, Constants, Status
 
     /** {@inheritDoc} */
     public void connectionClosed(RTMPConnection conn) {
-        log.debug("connectionClosed: {}", conn.getSessionId());
+        log.info("connectionClosed: {}", conn.getSessionId());
         if (conn.getStateCode() != RTMP.STATE_DISCONNECTED) {
             // inform any callbacks for pending calls that the connection is closed
             conn.sendPendingServiceCallsCloseError();
