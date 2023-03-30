@@ -43,21 +43,29 @@ public class RestProxyFilter extends AbstractFilter {
 			{
 				Broadcast broadcast = getDataStore().get(streamId);
 				log.debug("STREAM ID = {} BROADCAST = {} ", streamId, broadcast);
+				String originAdress = null;
+
+				// If it is a conference room, we should get the origin address from the conference room
+				if (broadcast != null && broadcast.getOriginAdress() != null) {
+					originAdress = broadcast.getOriginAdress();
+				} else if (getDataStore().getConferenceRoom(streamId) != null) {
+					originAdress = getDataStore().getConferenceRoom(streamId).getOriginAdress();
+				}
 				
 				//If it is not related with the broadcast, we can skip this filter
 				if (broadcast == null 
 						|| !IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())
-						|| isInSameNodeInCluster(request.getRemoteAddr(), broadcast.getOriginAdress()) ) 
+						|| isInSameNodeInCluster(request.getRemoteAddr(), originAdress) )
 				{
 					chain.doFilter(request, response);
 				}
 				else
 				{
 					AppSettings settings = getAppSettings();
-					String originAdress = "http://" + broadcast.getOriginAdress() + ":" + getServerSetting().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
-					log.info("Redirecting request to origin {}", originAdress);
+					String fullOriginAdress = "http://" + originAdress + ":" + getServerSetting().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
+					log.info("Redirecting request to origin {}", fullOriginAdress);
 					EndpointProxy endpointProxy = new EndpointProxy();
-					endpointProxy.initTarget(originAdress);
+					endpointProxy.initTarget(fullOriginAdress);
 					endpointProxy.service(request, response);
 				}
 			}
