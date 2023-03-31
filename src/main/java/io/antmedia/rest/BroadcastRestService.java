@@ -980,17 +980,23 @@ public class BroadcastRestService extends RestServiceBase{
 				}
 				else {
 					result.setMessage("Subtrack:" + subTrackId + " cannot be added to main track: " + id);
-					logger.warn("Subtrack:{} cannot be added to main track:{} ", subTrackId, id);
+					if (logger.isWarnEnabled()) {
+						logger.warn("Subtrack:{} cannot be added to main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+					}
 				}
 			}
 			else {
 				result.setMessage("Main track of the stream " + subTrackId + " cannot be updated");
-				logger.warn("Main track of the stream:{} cannot be updated to {}", subTrackId, id);
+				if (logger.isWarnEnabled()) {
+					logger.warn("Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+				}
 			}
 		}
 		else {
 			result.setMessage("There is not stream with id:" + subTrackId);
-			logger.warn("There is not stream with id:{}" , subTrackId);
+			if (logger.isWarnEnabled()) {
+				logger.warn("There is not stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
+			}
 		}
 		return result;
 	}

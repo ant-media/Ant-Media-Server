@@ -19,6 +19,7 @@
 package org.red5.server.net.rtmp;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.red5.io.object.StreamAction;
@@ -255,6 +256,14 @@ public class RTMPHandler extends BaseRTMPHandler {
                 //if the "stream" action is not predefined a custom type will be returned
                 switch (streamAction) {
                     case DISCONNECT:
+                    	 for (Iterator<IClientStream> it = conn.getStreams().iterator(); it.hasNext();) {
+                             IClientStream stream = it.next();
+                             if (log.isInfoEnabled()) {
+                             	//it's opened for finding a bug
+                                 log.info("Disconnect command for streamId: {} publish name:{}", stream.getStreamId(), stream.getBroadcastStreamPublishName());
+                             }
+                         }
+                    	log.info("Disconnect command for {}", conn.getStreamId());
                         conn.close();
                         break;
                     case CREATE_STREAM:
@@ -492,6 +501,14 @@ public class RTMPHandler extends BaseRTMPHandler {
             }
         } else {
             // not connected and attempting to send an invoke
+        	
+        	 for (Iterator<IClientStream> it = conn.getStreams().iterator(); it.hasNext();) {
+                 IClientStream stream = it.next();
+                 if (log.isInfoEnabled()) {
+                 	//it's opened for finding a bug
+                     log.info("Not connected streamId: {} publish name:{}", stream.getStreamId(), stream.getBroadcastStreamPublishName());
+                 }
+             }
             log.warn("Not connected, closing connection");
             conn.close();
         }
