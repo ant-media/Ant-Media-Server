@@ -1228,8 +1228,10 @@ public class MongoStore extends DataStore {
 	public boolean createP2PConnection(P2PConnection conn) {
 		synchronized(this) {
 			try {
-				datastore.save(conn);
-				return true;
+				if (conn != null) {
+					datastore.save(conn);
+					return true;
+				}
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1267,11 +1269,13 @@ public class MongoStore extends DataStore {
 	public boolean addSubTrack(String mainTrackId, String subTrackId) {
 		synchronized(this) {
 			try {
-				return datastore.find(Broadcast.class)
-						.filter(Filters.eq(STREAM_ID, mainTrackId))
-						.update(UpdateOperators.push("subTrackStreamIds", subTrackId))
-						.execute()
-						.getMatchedCount() == 1;
+				if (subTrackId != null) {
+					return datastore.find(Broadcast.class)
+							.filter(Filters.eq(STREAM_ID, mainTrackId))
+							.update(UpdateOperators.push("subTrackStreamIds", subTrackId))
+							.execute()
+							.getMatchedCount() == 1;
+				}
 
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));

@@ -965,13 +965,34 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result addSubTrack(@ApiParam(value = "Broadcast id(main track)", required = true) @PathParam("id") String id,
 			@ApiParam(value = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId) {
 
-		
+		Result result = new Result(false);
 		Broadcast subTrack = getDataStore().get(subTrackId);
-		//TODO: what if subtrack is null
-		subTrack.setMainTrackStreamId(id);
-		boolean success = getDataStore().updateBroadcastFields(subTrackId, subTrack);
-		success = success && getDataStore().addSubTrack(id, subTrackId);
-		return new Result(success);
+		if (subTrack != null) 
+		{
+			subTrack.setMainTrackStreamId(id);
+			//Update subtrack's main Track Id
+			
+			boolean success = getDataStore().updateBroadcastFields(subTrackId, subTrack);
+			if (success) {
+				success = getDataStore().addSubTrack(id, subTrackId);
+				if (success) {
+					result.setSuccess(true);
+				}
+				else {
+					result.setMessage("Subtrack:" + subTrackId + " cannot be added to main track: " + id);
+					logger.warn("Subtrack:{} cannot be added to main track:{} ", subTrackId, id);
+				}
+			}
+			else {
+				result.setMessage("Main track of the stream " + subTrackId + " cannot be updated");
+				logger.warn("Main track of the stream:{} cannot be updated to {}", subTrackId, id);
+			}
+		}
+		else {
+			result.setMessage("There is not stream with id:" + subTrackId);
+			logger.warn("There is not stream with id:{}" , subTrackId);
+		}
+		return result;
 	}
 
 	@ApiOperation(value = "Returns the stream info(width, height, bitrates and video codec) of the stream", response= BasicStreamInfo[].class)

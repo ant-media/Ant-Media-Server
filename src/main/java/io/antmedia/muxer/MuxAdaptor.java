@@ -1228,6 +1228,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 		}
 		changeStreamQualityParameters(this.streamId, null, speed, getInputQueueSize());
+		
+		
 	}
 
 	public void closeRtmpConnection() {
