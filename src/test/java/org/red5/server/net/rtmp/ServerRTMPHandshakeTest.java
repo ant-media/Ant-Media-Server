@@ -298,6 +298,11 @@ public class ServerRTMPHandshakeTest {
 			Collection<IClientStream> streams = Arrays.asList(Mockito.mock(IClientStream.class)); 
 			Mockito.when(conn.getStreams()).thenReturn(streams);
 			rtmpHandler.logStreamNames(conn);
+			
+			RTMPMinaConnection rtmpConnection = new RTMPMinaConnection();
+			rtmpConnection.logWarning();
+			
+			rtmpConnection.logStream(Mockito.mock(IClientStream.class));
 		}
 		catch (Exception e) {
 			fail(e.getMessage());
