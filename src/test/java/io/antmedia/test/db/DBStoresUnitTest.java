@@ -210,6 +210,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		
 
 
 	}
@@ -2658,12 +2659,21 @@ public class DBStoresUnitTest {
 		subtrack.setMainTrackStreamId(mainTrackId);
 		assertTrue(dataStore.updateBroadcastFields(subTrackId, subtrack));
 
-		dataStore.addSubTrack(mainTrackId, subTrackId);
+		boolean result = dataStore.addSubTrack(mainTrackId, subTrackId);
+		assertTrue(result);
 		mainTrack = dataStore.get(mainTrackId);
 		subtrack = dataStore.get(subTrackId);
 		assertEquals(1, mainTrack.getSubTrackStreamIds().size());
 		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
 		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
+		
+		
+		result = dataStore.addSubTrack("Not exists", subTrackId);
+		assertFalse(result);
+		
+		result = dataStore.addSubTrack(mainTrackId, null);
+		assertFalse(result);
+		
 
 	}
 	public void testGetVoDIdByStreamId(DataStore dataStore) {

@@ -2705,7 +2705,7 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 		
 		BroadcastRestService broadcastRestService = new BroadcastRestService();
-		DataStore datastore = new InMemoryDataStore("dummy");
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
 		datastore.save(mainTrack);
 		datastore.save(subtrack);
 		broadcastRestService.setDataStore(datastore);
@@ -2718,6 +2718,16 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(1, mainTrack.getSubTrackStreamIds().size());
 		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
 		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
+		
+		Result result = broadcastRestService.addSubTrack("trackIdNotExist", "subtrackNotExist");
+		assertFalse(result.isSuccess());
+		
+		result = broadcastRestService.addSubTrack("trackIdNotExist", subTrackId);
+		assertFalse(result.isSuccess());
+		
+		Mockito.doReturn(false).when(datastore).updateBroadcastFields(Mockito.any(), Mockito.any());
+		broadcastRestService.addSubTrack(mainTrackId, subTrackId);
+		assertFalse(result.isSuccess());
 
 		
 	}
