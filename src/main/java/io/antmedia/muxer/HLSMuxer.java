@@ -4,11 +4,13 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H265;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_from_context;
 import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
@@ -63,6 +65,14 @@ public class HLSMuxer extends Muxer  {
 
 	private String httpEndpoint;
 	public static final int S3_CONSTANT = 0b010;
+	
+	/**
+	 * By default first video key frame should be checked
+	 * and below flag should be set to true
+	 * If first video key frame should not be checked,
+	 * then below should be flag in advance
+	 */
+	protected boolean firstKeyFrameReceivedChecked = false;
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
@@ -187,6 +197,33 @@ public class HLSMuxer extends Muxer  {
 			return (totalSize / duration) * 8;
 		}
 		return 0;
+	}
+	
+	
+	@Override
+	public boolean checkToDropPacket(AVPacket pkt, int codecType) {
+		if (!firstKeyFrameReceivedChecked && codecType == AVMEDIA_TYPE_VIDEO) 
+		{
+			if(firstVideoDts == -1) {
+				firstVideoDts = pkt.dts();
+			}
+
+			int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
+			//we set start time here because we start recording with key frame and drop the other
+			//setting here improves synch between audio and video
+			if (keyFrame == 1) {
+				firstKeyFrameReceivedChecked = true;
+				logger.warn("First key frame received for stream: {}", streamId);
+			} else {
+				logger.info("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
+				// return if firstKeyFrameReceived is not received
+				// below return is important otherwise it does not work with like some encoders(vidiu)
+				return true;
+
+			}
+		}
+		//don't drop packet because it's either audio packet or key frame is received
+		return false;
 	}
 
 	@Override

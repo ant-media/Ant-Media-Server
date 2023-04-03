@@ -905,7 +905,7 @@ public abstract class Muxer {
 	 * @param outputTimebase
 	 * output time base is required to calculate the correct dts and pts values for the container
 	 */
-	protected void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
+	protected synchronized void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
 
 		AVFormatContext context = getOutputFormatContext();
