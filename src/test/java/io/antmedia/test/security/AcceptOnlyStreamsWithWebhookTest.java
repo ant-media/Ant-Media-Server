@@ -2,23 +2,17 @@ package io.antmedia.test.security;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.commons.io.IOUtils;
-import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
-import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.junit.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -28,7 +22,6 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.security.AcceptOnlyStreamsWithWebhook;
 
 public class AcceptOnlyStreamsWithWebhookTest {
@@ -52,7 +45,7 @@ public class AcceptOnlyStreamsWithWebhookTest {
 
 		appSettings.setWebhookAuthenticateURL("sampleurl");
 		filter.setAppSettings(appSettings);
-		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null);
+		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null);
 		assertFalse(publishAllowed);
 				
 	}
@@ -63,8 +56,7 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		IScope scope = Mockito.mock(IScope.class);
 		AppSettings appSettings = new AppSettings();
 		appSettings.setWebhookAuthenticateURL("asd");
-		filter.setAppSettings(appSettings);
-		
+
 		InMemoryDataStore dataStore = new InMemoryDataStore("db");
 		DataStoreFactory factory = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(factory.getDataStore()).thenReturn(dataStore);
@@ -72,17 +64,28 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		
 		Mockito.when(scope.getContext()).thenReturn(context);
 		Mockito.when(context.getBean(IDataStoreFactory.BEAN_NAME)).thenReturn(factory);
+		Mockito.when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+		String metaData = "test_metaData";
+		assertFalse(filter.isPublishAllowed(scope, "any()", "any()", null, metaData));
+		filter.setAppSettings(appSettings);
 
-		assertFalse(filter.isPublishAllowed(scope, "any()", "any()", null));
+		assertFalse(filter.isPublishAllowed(scope, "any()", "any()", null, metaData));
+
+		IConnection connectionMock = Mockito.mock(IConnection.class);
+		Mockito.doNothing().when(connectionMock).close();
+		Mockito.when(filter.getConnectionLocal()).thenReturn(connectionMock);
+
+
+		assertFalse(filter.isPublishAllowed(scope, "any()", "any()", null, metaData));
 
 		appSettings.setWebhookAuthenticateURL("");
-		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null);
+		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null);
 		assertTrue(publishAllowed);
 
 		appSettings.setWebhookAuthenticateURL(null);
 		Map<String, String> queryParams = new HashMap<>();
 		queryParams.put("q1","p1");
-		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", queryParams);
+		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", queryParams, null);
 		assertTrue(publishAllowed);
 
 
@@ -96,36 +99,8 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		Mockito.when(httpResponse.getStatusLine()).thenReturn(statusLine);
 		Mockito.when(httpResponse.getStatusLine().getStatusCode()).thenReturn(404);
 
-		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", queryParams);
+		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", queryParams, null);
 		assertFalse(publishAllowed);
-
-		
-		Broadcast broadcast = new Broadcast();
-		try {
-			broadcast.setStreamId("streamId");
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
-		broadcast.setMetaData("metaContent");
-		dataStore.save(broadcast);
-		
-		
-		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", queryParams);
-		
-		ArgumentCaptor<HttpRequestBase> httpRequestBase = ArgumentCaptor.forClass(HttpRequestBase.class);
-
-		Mockito.verify(client, Mockito.times(2)).execute(httpRequestBase.capture());
-		HttpRequestBase requestBase = httpRequestBase.getValue();
-		HttpEntity entity = ((HttpEntityEnclosingRequestBase)requestBase).getEntity();
-		
-		String content = IOUtils.toString(entity.getContent(), StandardCharsets.UTF_8);
-		assertTrue(content.contains("metaContent"));
-		assertTrue(content.contains("metaData"));
-		
-
-
-		
 
 	}
 

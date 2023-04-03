@@ -19,7 +19,7 @@ public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 	}
 
 	@Override
-	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams) {
+	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData) {
 		return true;
 	}
 

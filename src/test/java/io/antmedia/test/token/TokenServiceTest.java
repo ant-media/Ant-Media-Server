@@ -180,7 +180,7 @@ public class TokenServiceTest {
 		Map<String, String> queryParams = new HashMap<>();
 
 		//check is publish allowed or not
-		boolean flag = tokenService.isPublishAllowed(scope, "streamId", "mode", queryParams);
+		boolean flag = tokenService.isPublishAllowed(scope, "streamId", "mode", queryParams, null);
 		
 		//mock service should turn true even is token is not created and saved
 		assertTrue(flag);
