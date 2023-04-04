@@ -181,6 +181,14 @@ public abstract class Muxer {
 		avRationalTimeBase.den(1);
 	}
 
+	/**
+	 * By default first video key frame are not checked, so it's true.
+	 *
+	 * If the first video key frame should be checked, make this setting to false. It's being used in RecordMuxer and HLSMuxer
+	 */
+	protected boolean firstKeyFrameReceived = true;
+	
+	
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
 		logger = LoggerFactory.getLogger(this.getClass());
@@ -880,6 +888,27 @@ public abstract class Muxer {
 	 * @return true to drop the packet, false to not drop packet
 	 */
 	public boolean checkToDropPacket(AVPacket pkt, int codecType) {
+		if (!firstKeyFrameReceived && codecType == AVMEDIA_TYPE_VIDEO) 
+		{
+			if(firstVideoDts == -1) {
+				firstVideoDts = pkt.dts();
+			}
+
+			int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
+			//we set start time here because we start recording with key frame and drop the other
+			//setting here improves synch between audio and video
+			if (keyFrame == 1) {
+				firstKeyFrameReceived = true;
+				logger.warn("First key frame received for stream: {}", streamId);
+			} else {
+				logger.info("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
+				// return if firstKeyFrameReceived is not received
+				// below return is important otherwise it does not work with like some encoders(vidiu)
+				return true;
+
+			}
+		}
+		//don't drop packet because it's either audio packet or key frame is received
 		return false;
 	}
 
