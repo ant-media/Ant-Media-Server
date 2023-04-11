@@ -789,6 +789,7 @@ public class BroadcastRestService extends RestServiceBase{
 			logger.info("Recording method is called for {} to make it {} and record Type: {}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null);
 		}
 		recordType = (recordType==null) ? RecordType.MP4.toString() : recordType;  // It means, if recordType is null, function using Mp4 Record by default
+		logger.info("enableRecording REST API called with record type: "+ recordType);
 		return enableRecordMuxing(streamId, enableRecording, recordType);
 	}
 

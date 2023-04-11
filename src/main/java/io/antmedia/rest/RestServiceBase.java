@@ -1259,16 +1259,25 @@ public abstract class RestServiceBase {
 
 	public MuxAdaptor getMuxAdaptor(String streamId)
 	{
+		logger.info("enter getMuxAdaptor");
+
 		AntMediaApplicationAdapter application = getApplication();
 		MuxAdaptor selectedMuxAdaptor = null;
 
 		if(application != null)
 		{
 			List<MuxAdaptor> muxAdaptors = application.getMuxAdaptors();
+			logger.info("muxAdaptors length {}",muxAdaptors.size());
+
+			logger.info("will iterate mux adaptors:");
+
 			for (MuxAdaptor muxAdaptor : muxAdaptors)
 			{
+
 				if (streamId.equals(muxAdaptor.getStreamId()))
 				{
+					logger.info("mux adaptor found! returning it.");
+
 					selectedMuxAdaptor = muxAdaptor;
 					break;
 				}
@@ -1300,9 +1309,13 @@ public abstract class RestServiceBase {
 	}
 
 	protected RecordMuxer startRecord(String streamId, RecordType recordType) {
+		logger.info("enter startRecord");
+
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if (muxAdaptor != null)
 		{
+			logger.info("mux adaptor is not null. mux adaptors streamId: "+ muxAdaptor.getStreamId());
+
 			return muxAdaptor.startRecording(recordType);
 		}
 
@@ -1839,6 +1852,8 @@ public abstract class RestServiceBase {
 
 	public Result enableRecordMuxing(String streamId, boolean enableRecording, String type )
 	{
+		logger.info("enter enableRecordMuxing");
+
 		boolean result = false;
 		String message = null;
 		String status = (enableRecording)?"started":"stopped";
@@ -1849,18 +1864,24 @@ public abstract class RestServiceBase {
 		if (type.equals(RecordType.MP4.toString()))
 		{
 			recordType = RecordType.MP4;
+
 		}
 		else if (type.equals(RecordType.WEBM.toString()))
 		{
 			recordType = RecordType.WEBM;
 		}
 
+		logger.info("record type: "+ recordType);
 
 		if (streamId != null && recordType != null)
 		{
+			logger.info("streamId and recordType not null");
+
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null)
 			{
+				logger.info("broadcast is not null");
+
 				if ( (recordType == RecordType.WEBM && (enableRecording && broadcast.getWebMEnabled() != RECORD_ENABLE )  ||
 						( !enableRecording && broadcast.getWebMEnabled() != RECORD_DISABLE))
 						||
@@ -1873,8 +1894,12 @@ public abstract class RestServiceBase {
 					//if it's not enabled, start it
 					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 					{
+						logger.info("broadcast status is broadcasting.");
+
 						if (isInSameNodeInCluster(broadcast.getOriginAdress()))
 						{
+							logger.info("same node in cluster.");
+
 							if (enableRecording)
 							{
 								muxer = startRecord(streamId, recordType);
@@ -1882,7 +1907,7 @@ public abstract class RestServiceBase {
 									vodId = RandomStringUtils.randomAlphanumeric(24);
 									muxer.setVodId(vodId);
 									message = Long.toString(muxer.getCurrentVoDTimeStamp());
-									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
+									logger.info("{} recording is {} for stream: {}", type,status,streamId);
 								}
 
 							}

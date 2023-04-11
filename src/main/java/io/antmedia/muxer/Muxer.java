@@ -289,7 +289,7 @@ public abstract class Muxer {
 	 * @return
 	 */
 	public synchronized boolean prepareIO() {
-
+		logger.info("enter prepareIO Muxer.java");
 
 		/**
 		 * We need to extract addedStream information in some cases because we treat audio and video separate
@@ -311,6 +311,7 @@ public abstract class Muxer {
 
 	public boolean writeHeader() 
 	{
+		logger.info("enter writeHeader Muxer.java");
 		AVDictionary optionsDictionary = null;
 
 		if (!options.isEmpty()) {

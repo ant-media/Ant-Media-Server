@@ -74,6 +74,8 @@ public abstract class RecordMuxer extends Muxer {
 	 */
 	@Override
 	public void init(IScope scope, final String name, int resolutionHeight, String subFolder, int bitrate) {
+		logger.info("enter init RecordMuxer.java");
+
 		super.init(scope, name, resolutionHeight, false, subFolder, bitrate);
 
 		this.streamId = name;

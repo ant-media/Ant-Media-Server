@@ -1673,6 +1673,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public Mp4Muxer createMp4Muxer() {
+		logger.info("enter createMp4Muxer");
+
 		Mp4Muxer mp4Muxer = new Mp4Muxer(storageClient, vertx, appSettings.getS3StreamsFolderPath());
 		mp4Muxer.setAddDateTimeToSourceName(addDateTimeToMp4FileName);
 		return mp4Muxer;
@@ -1691,13 +1693,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * @return
 	 */
 	public RecordMuxer startRecording(RecordType recordType) {
-
+		logger.info("enter startRecording MuxAdaptor.java");
 		if (!isRecording.get()) {
+			logger.info("Starting recording return false for stream:{} because stream is being prepared", streamId);
+
 			logger.warn("Starting recording return false for stream:{} because stream is being prepared", streamId);
 			return null;
 		}
 
 		if(isAlreadyRecording(recordType)) {
+			logger.info("Record is called while {} is already recording.", streamId);
+
 			logger.warn("Record is called while {} is already recording.", streamId);
 			return null;
 		}
@@ -1705,6 +1711,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		RecordMuxer muxer = null;
 		if(recordType == RecordType.MP4) {
+			logger.info("record type is mp4 will create mp4 muxer.");
+
 			Mp4Muxer mp4Muxer = createMp4Muxer();
 			muxer = mp4Muxer;
 		}
@@ -1717,8 +1725,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		boolean prepared = false;
 		if (muxer != null) {
+			logger.info("muxer is not null prepare muxer");
+
 			prepared = prepareMuxer(muxer);
 			if (prepared) {
+				logger.info("muxer is prepared return muxer");
+
 				return muxer;
 			}
 			else {
@@ -1730,6 +1742,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public boolean prepareMuxer(Muxer muxer) 
 	{
+		logger.info("enter prepareMuxer MuxAdaptor.java");
 		boolean streamAdded = false;
 		
 		muxer.init(scope, streamId, 0, broadcast != null ? broadcast.getSubFolder(): null, 0);
@@ -1737,12 +1750,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (streamSourceInputFormatContext != null) 
 		{
+			logger.info("streamSourceInputFormatContext not null");
 
 
 			for (int i = 0; i < streamSourceInputFormatContext.nb_streams(); i++) 
 			{
 				if (!muxer.addStream(streamSourceInputFormatContext.streams(i).codecpar(), streamSourceInputFormatContext.streams(i).time_base(), i)) {
 					logger.warn("muxer add streams returns false {}", muxer.getFormat());
+					logger.info("muxer add streams returns false {}", muxer.getFormat());
+
 					break;
 				}
 				else {
@@ -1757,6 +1773,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.info("Add video stream to muxer:{} for streamId:{}", muxer.getClass().getSimpleName(), streamId);
 				if (muxer.addStream(videoParameters, TIME_BASE_FOR_MS, videoStreamIndex)) {
 					streamAdded = true;
+					logger.info("stream added true videoStreamIndex");
+
 				}
 			}
 
@@ -1765,6 +1783,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.info("Add audio stream to muxer:{} for streamId:{}", muxer.getClass().getSimpleName(), streamId);
 				if (muxer.addStream(audioParameters, TIME_BASE_FOR_MS, audioStreamIndex)) {
 					streamAdded = true;
+					logger.info("stream added true audioStreamIndex");
+
 				}
 			}
 		}
