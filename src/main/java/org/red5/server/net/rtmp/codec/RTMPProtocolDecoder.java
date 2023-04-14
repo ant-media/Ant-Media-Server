@@ -237,6 +237,7 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
         //minus 1 because the first byte is already read in  ChunkHeader.read(in)
         
         //Check if extended timestamp exists -> https://rtmp.veriskope.com/docs/spec/#54-protocol-control-messages
+        
         int extendedTimestampLength = 0;
         int lastPositionBeforeCheck = in.position();
 
@@ -253,9 +254,14 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
 	        	
 	        	//according to the reference first 3 bytes are timestamp
 	        	//if timestamp is 0xFFFFFF, then it means there is extended timestamp with 4 bytes
-	        	int timeValue = RTMPUtils.readUnsignedMediumInt(in);
-	        	if (timeValue == 0xffffff) {
-	        		extendedTimestampLength = 4;
+	        	if (in.remaining() >= 3) 
+	        	{
+	        		//following read is 3 byte so make sure there are 3 bytes in the buffer
+		        	int timeValue = RTMPUtils.readUnsignedMediumInt(in);
+		        	if (timeValue == 0xffffff) {
+		        		log.info("Extended timestamp exists because timevalue is 0xffffff chunkheader:{}",chunkHeader);
+		        		extendedTimestampLength = 4;
+		        	}
 	        	}
 	        	break;
 	        case HEADER_CONTINUE:
@@ -265,6 +271,7 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
 	            * the presence of an extended timestamp field.
 	            * */
 	        	if (lastHeader != null && lastHeader.getExtendedTimestamp() != 0) {
+	        		log.info("Extended timestamp exists in HEADER_CONTINUE last header:{} chunk header:{}", lastHeader, chunkHeader);
 	        		extendedTimestampLength = 4;
 	        	}
 	        	break;
@@ -277,8 +284,9 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
         
         headerLength += extendedTimestampLength;
         
+        
         if (in.remaining() < headerLength) {
-        	log.warn("Buffer remaining:{} is smaller than required header length: {}", in.remaining(), headerLength);
+        	log.trace("Buffer remaining:{} is smaller than required header length: {}", in.remaining(), headerLength);
             state.bufferDecoding(headerLength - in.remaining());
             in.position(position);
             return null;
