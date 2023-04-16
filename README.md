@@ -1,10 +1,34 @@
-<a href="https://www.producthunt.com/posts/ant-media-streaming-server?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-ant&#0045;media&#0045;streaming&#0045;server" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=334960&theme=light&period=daily" alt="Ant&#0032;Media&#0032;Streaming&#0032;Server - Stream&#0032;your&#0032;live&#0032;videos&#0032;the&#0032;ultra&#0045;low&#0032;latency&#0032;way | Product Hunt" style="width: 250px; height: 54px;" width="160" height="35" /></a><br>
-[![Build Status](https://travis-ci.org/ant-media/Ant-Media-Server.svg?branch=master)](https://travis-ci.org/ant-media/Ant-Media-Server)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server/badge.svg)](https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server)
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=io.antmedia%3Aant-media-server&metric=alert_status)](https://sonarcloud.io/dashboard?id=io.antmedia%3Aant-media-server)
-<a href="https://in.linkedin.com/company/antmedia" ><img src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white" /></a>
-<a href="https://twitter.com/antmedia_io" ><img src="https://img.shields.io/badge/Twitter-1DA1F2?style=for-the-badge&logo=twitter&logoColor=white" /></a>
-<img src="https://user-images.githubusercontent.com/54481799/95862105-16cb0e00-0d6b-11eb-9087-88888889825d.png" height="100">
+<div align='center'>
+   <img src="https://user-images.githubusercontent.com/54481799/95862105-16cb0e00-0d6b-11eb-9087-88888889825d.png" height="60">
+</div>
+
+<div align='center'>
+   <a href="https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server">
+    <img src="https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server/badge.svg"/>
+   </a>
+   <a href="https://sonarcloud.io/dashboard?id=io.antmedia%3Aant-media-server">
+    <img src="https://sonarcloud.io/api/project_badges/measure?project=io.antmedia%3Aant-media-server&metric=alert_status"/>
+   </a>
+   <a href="https://in.linkedin.com/company/antmedia">
+    <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=social"/>
+   </a>
+   <a href="https://twitter.com/antmedia_io">
+    <img src="https://img.shields.io/twitter/follow/antmedia_io?style=social"/>
+   </a>
+   <a href="https://travis-ci.org/ant-media/Ant-Media-Server">
+    <img src="https://travis-ci.org/ant-media/Ant-Media-Server.svg?branch=master"/>
+   </a>
+   <a href="https://github.com/ant-media/Ant-Media-Server/blob/master/COMMUNITY_EDITION_LICENSE">
+    <img src="https://img.shields.io/badge/license-Apache-blue"/>
+   </a>
+</div>
+
+<div align="center">
+<a href="https://www.producthunt.com/posts/ant-media-streaming-server?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-ant&#0045;media&#0045;streaming&#0045;server" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-badge.svg?post_id=334960&theme=light&period=daily" alt="Ant&#0032;Media&#0032;Streaming&#0032;Server - Stream&#0032;your&#0032;live&#0032;videos&#0032;the&#0032;ultra&#0045;low&#0032;latency&#0032;way | Product Hunt" style="width: 250px; height: 54px;" width="160" height="35" /></a>
+
+<a href="https://www.producthunt.com/posts/ant-media-streaming-server?utm_source=badge-featured&utm_medium=badge&utm_souce=badge-ant&#0045;media&#0045;streaming&#0045;server" target="_blank"><img src="https://api.producthunt.com/widgets/embed-image/v1/top-post-topic-badge.svg?post_id=365190&theme=light&period=monthly&topic_id=267" alt="Ant&#0032;Media&#0032;Streaming&#0032;Server - Stream&#0032;your&#0032;live&#0032;videos&#0032;the&#0032;ultra&#0045;low&#0032;latency&#0032;way | Product Hunt" style="width: 250px; height: 54px;" width="160" height="35" /></a> <br />
+</div>
+
 
 ## Basic Overview
 
