@@ -506,5 +506,27 @@ public class WebSocketConstants {
 	 */
 	public static final String MAX_TRACK_COUNT = "maxTrackCount";
 
-	
+	public static final String CREATE_REMOTE_DESKTOP_CONTROL_SESSION= "createRdcSession";
+
+	public static final String REMOTE_DESKTOP_CONTROL_HOST_ID = "rdcHostId";
+
+	public static final String REMOTE_DESKTOP_CONTROL_SESSION_NAME = "rdcSessionName";
+
+	public static final String START_REMOTE_DESKTOP_CONTROL = "startRdc";
+
+	public static final String REMOTE_DESKTOP_CONTROL_CONTROLLER_SESSION_ID = "rdcControllerSessionId";
+
+	public static final String SET_REMOTE_DESKTOP_CONTROL_STREAM_ID = "setRdcStreamId";
+
+	public static final String REMOTE_DESKTOP_CONTROL_STREAM_ID = "rdcStreamId";
+
+	public static final String STOP_REMOTE_DESKTOP_CONTROL_CONTROLLING = "rdcStopControlling";
+
+	public static final String FINISH_REMOTE_DESKTOP_CONTROL = "rdcFinish";
+
+	public static final String CONTROLLER_STOPPED_REMOTE_DESKTOP_CONTROL = "rdcControllerStopped";
+
+	public static final String REMOTE_DESKTOP_CONTROL_SESSION_FINISHED = "rdcSessionFinished";
+
+
 }
