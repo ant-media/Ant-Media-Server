@@ -963,7 +963,8 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{id}/subtrack")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSubTrack(@ApiParam(value = "Broadcast id(main track)", required = true) @PathParam("id") String id,
-			@ApiParam(value = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId) {
+			@ApiParam(value = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId) 
+	{
 
 		Result result = new Result(false);
 		Broadcast subTrack = getDataStore().get(subTrackId);
@@ -976,6 +977,10 @@ public class BroadcastRestService extends RestServiceBase{
 			if (success) {
 				success = getDataStore().addSubTrack(id, subTrackId);
 				if (success) {
+					//if it's a room, add it to the room as well
+					//Ugly fix
+					//REFACTOR: Migrate conference room to Broadcast object by keeping the interface backward compatible
+					addStreamToConferenceRoom(id, subTrackId, getDataStore());
 					result.setSuccess(true);
 				}
 				else {
