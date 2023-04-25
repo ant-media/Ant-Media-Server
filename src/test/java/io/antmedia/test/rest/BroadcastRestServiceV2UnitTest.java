@@ -2725,9 +2725,21 @@ public class BroadcastRestServiceV2UnitTest {
 		result = broadcastRestService.addSubTrack("trackIdNotExist", subTrackId);
 		assertFalse(result.isSuccess());
 		
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+		conferenceRoom.setRoomId(mainTrackId);
+		assertTrue(datastore.createConferenceRoom(conferenceRoom));
+		
 		Mockito.doReturn(false).when(datastore).updateBroadcastFields(Mockito.any(), Mockito.any());
-		broadcastRestService.addSubTrack(mainTrackId, subTrackId);
+		result = broadcastRestService.addSubTrack(mainTrackId, subTrackId);
 		assertFalse(result.isSuccess());
+		
+		
+		Mockito.doReturn(true).when(datastore).updateBroadcastFields(Mockito.any(), Mockito.any());
+		result = broadcastRestService.addSubTrack(mainTrackId, subTrackId);
+		assertTrue(result.isSuccess());
+		
+		conferenceRoom = datastore.getConferenceRoom(mainTrackId);
+		assertEquals(1,conferenceRoom.getRoomStreamList().size());
 
 		
 	}
