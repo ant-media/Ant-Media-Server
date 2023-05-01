@@ -297,13 +297,13 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setStatsBasedABREnabled(false);
 		assertEquals(false, appSettings.isStatsBasedABREnabled());
 		appSettings.setAbrDownScalePacketLostRatio(2);
-		assertEquals(2, appSettings.getAbrDownScalePacketLostRatio());
+		assertEquals(2, appSettings.getAbrDownScalePacketLostRatio(), 0.0001);
 		appSettings.setAbrUpScalePacketLostRatio(0.2f);
-		assertEquals(0.1, appSettings.getAbrUpScalePacketLostRatio());
+		assertEquals(0.2, appSettings.getAbrUpScalePacketLostRatio(), 0.0001);
 		appSettings.setAbrUpScaleJitterMs(50);
-		assertEquals(50, appSettings.getAbrUpScaleJitterMs());
+		assertEquals(50, appSettings.getAbrUpScaleJitterMs(), 0.0001);
 		appSettings.setAbrUpScaleRTTMs(100);
-		assertEquals(100, appSettings.getAbrUpScaleRTTMs());
+		assertEquals(100, appSettings.getAbrUpScaleRTTMs(), 0.0001);
 	}
 	
 	
