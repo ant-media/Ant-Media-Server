@@ -293,6 +293,17 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appSettings.setPlayWebRTCStreamOnceForEachSession(false);
 		assertFalse(appSettings.isPlayWebRTCStreamOnceForEachSession());
+
+		appSettings.setStatsBasedABREnabled(false);
+		assertEquals(false, appSettings.isStatsBasedABREnabled());
+		appSettings.setAbrDownScalePacketLostRatio(2);
+		assertEquals(2, appSettings.getAbrDownScalePacketLostRatio());
+		appSettings.setAbrUpScalePacketLostRatio(0.2f);
+		assertEquals(0.1, appSettings.getAbrUpScalePacketLostRatio());
+		appSettings.setAbrUpScaleJitterMs(50);
+		assertEquals(50, appSettings.getAbrUpScaleJitterMs());
+		appSettings.setAbrUpScaleRTTMs(100);
+		assertEquals(100, appSettings.getAbrUpScaleRTTMs());
 	}
 	
 	
@@ -484,9 +495,15 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(2, appSettings.getOriginEdgeIdleTimeout());
 		assertEquals(false, appSettings.isAddDateTimeToHlsFileName());
 		assertEquals(true, appSettings.isPlayWebRTCStreamOnceForEachSession());
+		assertEquals(true, appSettings.isStatsBasedABREnabled());
+		assertEquals(1, appSettings.getAbrDownScalePacketLostRatio());
+		assertEquals(0.1, appSettings.getAbrUpScalePacketLostRatio());
+		assertEquals(30, appSettings.getAbrUpScaleJitterMs());
+		assertEquals(150, appSettings.getAbrUpScaleRTTMs());
 
-	
-		
+
+
+
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
