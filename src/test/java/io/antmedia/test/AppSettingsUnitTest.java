@@ -496,10 +496,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(false, appSettings.isAddDateTimeToHlsFileName());
 		assertEquals(true, appSettings.isPlayWebRTCStreamOnceForEachSession());
 		assertEquals(true, appSettings.isStatsBasedABREnabled());
-		assertEquals(1, appSettings.getAbrDownScalePacketLostRatio());
-		assertEquals(0.1, appSettings.getAbrUpScalePacketLostRatio());
-		assertEquals(30, appSettings.getAbrUpScaleJitterMs());
-		assertEquals(150, appSettings.getAbrUpScaleRTTMs());
+		assertEquals(1, appSettings.getAbrDownScalePacketLostRatio(), 0.0001);
+		assertEquals(0.1, appSettings.getAbrUpScalePacketLostRatio(), 0.0001);
+		assertEquals(30, appSettings.getAbrUpScaleJitterMs(), 0.0001);
+		assertEquals(150, appSettings.getAbrUpScaleRTTMs(), 0.0001);
 
 
 
@@ -508,7 +508,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					158, numberOfFields);
+					163, numberOfFields);
 		
 	}
 
