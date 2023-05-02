@@ -971,14 +971,16 @@ public abstract class MapBasedDataStore extends DataStore {
 		boolean result = false;
 		synchronized (this) {
 			Broadcast broadcast = getBroadcastFromMap(mainTrackId);
-			List<String> subTracks = broadcast.getSubTrackStreamIds();
-			if (subTracks == null) {
-				subTracks = new ArrayList<>();
+			if (broadcast != null && subTrackId != null) {
+				List<String> subTracks = broadcast.getSubTrackStreamIds();
+				if (subTracks == null) {
+					subTracks = new ArrayList<>();
+				}
+				subTracks.add(subTrackId);
+				broadcast.setSubTrackStreamIds(subTracks);
+				setBroadcastToMap(broadcast, mainTrackId);
+				result = true;
 			}
-			subTracks.add(subTrackId);
-			broadcast.setSubTrackStreamIds(subTracks);
-			setBroadcastToMap(broadcast, mainTrackId);
-			result = true;
 		}
 
 		return result;

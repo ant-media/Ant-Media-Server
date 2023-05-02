@@ -88,7 +88,7 @@ public class DBStoresUnitTest {
 	}
 	
 	@Test
-	public void testMapDBStore() {
+	public void testMapDBStore() throws Exception {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
 		
@@ -110,6 +110,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateMetadata(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -167,7 +168,7 @@ public class DBStoresUnitTest {
 	}
 
 	@Test
-	public void testMemoryDataStore() {
+	public void testMemoryDataStore() throws Exception {
 		DataStore dataStore = new InMemoryDataStore("testdb");
 		
 		testBugFreeStreamId(dataStore);
@@ -186,6 +187,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateMetadata(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -210,13 +212,14 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		
 
 
 	}
 	
 
 	@Test
-	public void testMongoStore() {
+	public void testMongoStore() throws Exception {
 
 		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
 		//delete db
@@ -240,6 +243,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateMetadata(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -268,7 +272,7 @@ public class DBStoresUnitTest {
 	}
 	
 	@Test
-	public void testRedisStore() {
+	public void testRedisStore() throws Exception {
 
 		DataStore dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
 		//delete db
@@ -291,6 +295,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateMetadata(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -717,6 +722,34 @@ public class DBStoresUnitTest {
 		assertEquals("1.1.1.1", camera.getIpAddr());
 		assertEquals("new_name", camera.getName());
 		datastore.delete(camera.getStreamId());
+	}
+
+	public void testUpdateMetadata(DataStore datastore) throws Exception {
+		String streamId = RandomStringUtils.randomNumeric(24);
+		String metadata = "{metadata:metadata}";
+		String newMetadata = "{metadata:metadata2}";
+
+		//create a new broadcast
+		Broadcast broadcast= new Broadcast();
+		broadcast.setStreamId(streamId);
+		broadcast.setMetaData(metadata);
+
+		//save this broadcast
+		datastore.save(broadcast);
+
+		//check it is saved
+		assertNotNull(broadcast.getMetaData());
+
+		//update metadata
+		broadcast.setMetaData(newMetadata);
+
+		datastore.updateBroadcastFields(broadcast.getStreamId(), broadcast);
+
+		Broadcast broadcast2 = datastore.get(streamId);
+
+		//check whether is changed or not
+		assertEquals(newMetadata, broadcast2.getMetaData());
+		datastore.delete(broadcast2.getStreamId());
 	}
 
 	public void testUpdateHLSViewerCount(DataStore dataStore) {
@@ -2658,12 +2691,21 @@ public class DBStoresUnitTest {
 		subtrack.setMainTrackStreamId(mainTrackId);
 		assertTrue(dataStore.updateBroadcastFields(subTrackId, subtrack));
 
-		dataStore.addSubTrack(mainTrackId, subTrackId);
+		boolean result = dataStore.addSubTrack(mainTrackId, subTrackId);
+		assertTrue(result);
 		mainTrack = dataStore.get(mainTrackId);
 		subtrack = dataStore.get(subTrackId);
 		assertEquals(1, mainTrack.getSubTrackStreamIds().size());
 		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
 		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
+		
+		
+		result = dataStore.addSubTrack("Not exists", subTrackId);
+		assertFalse(result);
+		
+		result = dataStore.addSubTrack(mainTrackId, null);
+		assertFalse(result);
+		
 
 	}
 	public void testGetVoDIdByStreamId(DataStore dataStore) {

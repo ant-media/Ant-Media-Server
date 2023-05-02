@@ -1232,6 +1232,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 		}
 		changeStreamQualityParameters(this.streamId, null, speed, getInputQueueSize());
+		
+		
 	}
 
 	public void closeRtmpConnection() {
@@ -2176,8 +2178,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		packetFeeder.addListener(listener);
 	}
 
-	public void removePacketListener(IPacketListener listener) {
-		packetFeeder.removeListener(listener);
+	public boolean removePacketListener(IPacketListener listener) {
+		return packetFeeder.removeListener(listener);
 	}
 
 	public void setVideoCodecParameter(AVCodecParameters videoCodecParameters) {
