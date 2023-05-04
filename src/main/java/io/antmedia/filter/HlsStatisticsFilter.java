@@ -37,17 +37,8 @@ public class HlsStatisticsFilter extends AbstractFilter {
 			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
 			String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 
-			Broadcast broadcast = (Broadcast) ((HttpServletRequest) request).getAttribute(BROADCAST_OBJECT);
-			if(broadcast == null) {
-				broadcast = getBroadcast(streamId);
-			}
-			if(broadcast != null
-					&& broadcast.getHlsViewerLimit() != -1
-					&& broadcast.getHlsViewerCount() >= broadcast.getHlsViewerLimit()) {
-				((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Viewer Limit Reached");
-				return;
-			}
-		
+			if (isViewerCountExceeded((HttpServletRequest) request, (HttpServletResponse) response, streamId)) return;
+
 			chain.doFilter(request, response);
 
 			int status = ((HttpServletResponse) response).getStatus();
@@ -66,6 +57,21 @@ public class HlsStatisticsFilter extends AbstractFilter {
 			chain.doFilter(httpRequest, response);
 		}
 
+	}
+
+	public boolean isViewerCountExceeded(HttpServletRequest request, HttpServletResponse response, String streamId) throws IOException {
+		Broadcast broadcast = (Broadcast) request.getAttribute(BROADCAST_OBJECT);
+
+		if(broadcast == null) {
+			broadcast = getBroadcast(streamId);
+		}
+		if(broadcast != null
+				&& broadcast.getHlsViewerLimit() != -1
+				&& broadcast.getHlsViewerCount() >= broadcast.getHlsViewerLimit()) {
+			response.sendError(HttpServletResponse.SC_FORBIDDEN, "Viewer Limit Reached");
+			return true;
+		}
+		return false;
 	}
 
 
