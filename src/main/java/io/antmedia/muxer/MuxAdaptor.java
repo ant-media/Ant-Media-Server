@@ -1824,6 +1824,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	public RecordMuxer stopRecording(RecordType recordType, int resolutionHeight)
 	{
+		logger.info("stopRecording is called for streamId:{} and resolution:{}", streamId, resolutionHeight);
 		Muxer muxer = findDynamicRecordMuxer(recordType);
 		if (muxer != null && recordType == RecordType.MP4)
 		{

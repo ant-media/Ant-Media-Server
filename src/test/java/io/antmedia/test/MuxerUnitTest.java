@@ -3791,4 +3791,55 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 	}
+
+	@Test
+	public void testAddMuxer() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = spy(muxAdaptorReal);
+		muxAdaptor.setIsRecording(true);
+		muxAdaptor.setHeight(480);
+		Muxer muxer = mock(Muxer.class);
+
+		doReturn(true).when(muxAdaptor).prepareMuxer(eq(muxer),anyInt());
+		assertTrue(muxAdaptor.addMuxer(muxer, 0));
+
+		doReturn(true).when(muxAdaptor).prepareMuxer(eq(muxer),anyInt());
+		assertTrue(muxAdaptor.addMuxer(muxer, 480));
+
+		doReturn(true).when(muxAdaptor).prepareMuxer(eq(muxer),anyInt());
+		assertFalse(muxAdaptor.addMuxer(muxer, 240));
+
+	}
+
+	@Test
+	public void testIsAlreadyRecording() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = spy(muxAdaptorReal);
+		muxAdaptor.setIsRecording(true);
+		muxAdaptor.setHeight(480);
+		Muxer mp4Muxer = mock(Mp4Muxer.class);
+		Muxer webmMuxer = mock(WebMMuxer.class);
+		muxAdaptor.getMuxerList().add(mp4Muxer);
+		muxAdaptor.getMuxerList().add(webmMuxer);
+
+		assertTrue(muxAdaptor.isAlreadyRecording(RecordType.MP4, 0));
+		assertTrue(muxAdaptor.isAlreadyRecording(RecordType.MP4, 480));
+		assertFalse(muxAdaptor.isAlreadyRecording(RecordType.MP4, 240));
+
+		assertTrue(muxAdaptor.isAlreadyRecording(RecordType.WEBM, 0));
+		assertTrue(muxAdaptor.isAlreadyRecording(RecordType.WEBM, 480));
+		assertFalse(muxAdaptor.isAlreadyRecording(RecordType.WEBM, 240));
+	}
 }
