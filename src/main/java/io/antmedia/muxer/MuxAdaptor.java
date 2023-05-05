@@ -1691,8 +1691,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	/**
 	 * Start recording is used to start recording on the fly(stream is broadcasting).
-	 * @param recordType
-	 * @param resolutionHeight 
+	 * @param recordType MP4 or WEBM
+	 * @param resolutionHeight	resolution height for the recording
 	 * @return
 	 */
 	public RecordMuxer startRecording(RecordType recordType, int resolutionHeight) {
@@ -1818,8 +1818,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	/**
 	 * Stop recording is called to stop recording when the stream is broadcasting(on the fly)
 	 * 
-	 * @param recordType
-	 * @param resolutionHeight 
+	 * @param recordType	MP4 or WEBM
+	 * @param resolutionHeight	resolution height for the recording
 	 * @return
 	 */
 	public RecordMuxer stopRecording(RecordType recordType, int resolutionHeight)
