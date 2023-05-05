@@ -35,7 +35,7 @@ public class DashStatisticsFilter extends AbstractFilter {
 
 			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
 			String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
-			Broadcast broadcast = getBroadcast(streamId);
+			Broadcast broadcast = getBroadcast((HttpServletRequest)request, streamId);
 			if(broadcast != null 
 					&& broadcast.getDashViewerLimit() != -1
 					&& broadcast.getDashViewerCount() >= broadcast.getDashViewerLimit()) {

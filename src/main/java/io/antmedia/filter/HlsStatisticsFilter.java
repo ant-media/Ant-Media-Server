@@ -20,12 +20,11 @@ import io.antmedia.statistic.IStreamStats;
 public class HlsStatisticsFilter extends AbstractFilter {
 
 	protected static Logger logger = LoggerFactory.getLogger(HlsStatisticsFilter.class);
-	public final static String BROADCAST_OBJECT = "broadcast";
+	
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
-
 
 		HttpServletRequest httpRequest =(HttpServletRequest)request;
 
@@ -58,13 +57,12 @@ public class HlsStatisticsFilter extends AbstractFilter {
 		}
 
 	}
+	
+	
 
 	public boolean isViewerCountExceeded(HttpServletRequest request, HttpServletResponse response, String streamId) throws IOException {
-		Broadcast broadcast = (Broadcast) request.getAttribute(BROADCAST_OBJECT);
+		Broadcast broadcast = getBroadcast(request, streamId); 
 
-		if(broadcast == null) {
-			broadcast = getBroadcast(streamId);
-		}
 		if(broadcast != null
 				&& broadcast.getHlsViewerLimit() != -1
 				&& broadcast.getHlsViewerCount() >= broadcast.getHlsViewerLimit()) {
