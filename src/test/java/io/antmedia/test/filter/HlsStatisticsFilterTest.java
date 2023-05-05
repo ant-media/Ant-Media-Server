@@ -260,15 +260,16 @@ public class HlsStatisticsFilterTest {
 			HttpServletResponse response = mock(HttpServletResponse.class);
 			String streamId = "streamId1";
 			assertTrue(filter.isViewerCountExceeded(request, response, streamId));
+			verify(filter, times(1)).getBroadcast(request, streamId);
 
 			broadcast.setHlsViewerCount(1);
 			assertFalse(filter.isViewerCountExceeded(request, response, streamId));
-			verify(filter, never()).getBroadcast(streamId);
+			verify(filter, times(2)).getBroadcast(request, streamId);
 
 			when(request.getAttribute(HlsStatisticsFilter.BROADCAST_OBJECT)).thenReturn(null);
-			doReturn(broadcast).when(filter).getBroadcast(streamId);
+			doReturn(broadcast).when(filter).getBroadcast(request, streamId);
 			assertFalse(filter.isViewerCountExceeded(request, response, streamId));
-			verify(filter, times(1)).getBroadcast(streamId);
+			verify(filter, times(3)).getBroadcast(request, streamId);
 
 
 		}
