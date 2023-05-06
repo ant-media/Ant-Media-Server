@@ -503,7 +503,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 						updateMainBroadcast(broadcast);
 					}
 					getDataStore().delete(streamId);
-					logger.info("---- Broadcast is deleted: " + streamId);
 				}
 				else {
 					// This is resets Viewer map in HLS Viewer Stats
@@ -523,19 +522,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public void updateMainBroadcast(Broadcast broadcast) {
-		logger.info("--- updateMainBroadcast for: " + broadcast.getStreamId());
 		Broadcast mainBroadcast = getDataStore().get(broadcast.getMainTrackStreamId());
-		logger.info("---- befmainBroadcast.getSubTrackStreamIds() size:" + mainBroadcast.getSubTrackStreamIds().size());
-
 		mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
 		if(mainBroadcast.getSubTrackStreamIds().isEmpty() && mainBroadcast.isZombi()) {
 			getDataStore().delete(mainBroadcast.getStreamId());
 		}
 		else {
-			logger.info("--- after mainBroadcast.getSubTrackStreamIds() size:" + mainBroadcast.getSubTrackStreamIds().size());
-			for (String subTrackStreamId : mainBroadcast.getSubTrackStreamIds()) {
-				logger.info("** subTrackStreamId:" + subTrackStreamId);
-			}
 			getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
 		}
 	}

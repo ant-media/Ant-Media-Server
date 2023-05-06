@@ -216,8 +216,6 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public boolean delete(String id) {
-		logger.info("deleting id: {} from map", id);
-		logger.info(ExceptionUtils.getStackTrace(new Exception()));
 		boolean result = false;
 		synchronized (this) {			
 			result = map.remove(id) != null;
