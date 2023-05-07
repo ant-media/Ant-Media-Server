@@ -51,19 +51,14 @@ This also supports various SDKs, including iOS, Android, React Native, Flutter, 
 
 The Enterprise Edition of Ant Media Server offers all the features of the Community Edition and more. It is designed for better scalability, where your use case requires advanced streaming capabilities and enhanced security features. Here are some of the key features of the Enterprise Edition:
 
-- Sub-second Latency with WebRTC: Ultra-low latency streaming using WebRTC technology with ~0.5 seconds latency.
+- **Sub-second Latency with WebRTC:** Ultra-low latency streaming using WebRTC technology with ~0.5 seconds latency.
+- **Cluster Mode:** Deploy multiple instances of Ant Media Server in a cluster to handle large-scale streaming traffic and provide high availability and failover support.
+- **WebRTC Data Channel:** Enable data transfer between clients in real-time using the WebRTC Data Channel.
+- **WebRTC Server-Side Recording:** Record WebRTC streams on the server side without the need for browser-based recording.
+- **Advanced Security:** Secure your streams with SSL/TLS encryption, token authentication, IP filtering, and watermarking.
+- **Professional Support:** Get access to dedicated technical support, training, and consulting services from the Ant Media team.
 
-- Cluster Mode: Deploy multiple instances of Ant Media Server in a cluster to handle large-scale streaming traffic and provide high availability and failover support.
-
-- WebRTC Data Channel: Enable data transfer between clients in real-time using the WebRTC Data Channel.
-
-- WebRTC Server-Side Recording: Record WebRTC streams on the server side without the need for browser-based recording.
-
-- Advanced Security: Secure your streams with SSL/TLS encryption, token authentication, IP filtering, and watermarking.
-
-- Professional Support: Get access to dedicated technical support, training, and consulting services from the Ant Media team.
-
-The Enterprise Edition requires a licence, and it offers a range of additional benefits to businesses and organizations. With its advanced streaming capabilities, enhanced security features, and dedicated technical support, it is the ideal choice for those who require a reliable and scalable media server for their video streaming needs.
+The Enterprise Edition requires a license, and it offers a range of additional benefits to businesses and organizations. With its advanced streaming capabilities, enhanced security features, and dedicated technical support, it is the ideal choice for those who require a reliable and scalable media server for their video streaming needs.
 
 If you're interested in trying the Enterprise Edition of Ant Media Server, please visit our website or contact us for more information. We're always happy to help!
 
@@ -85,38 +80,40 @@ Ant Media server is available on your favorite cloud platform; with 1-Click apps
 | Cluster  | [Cluster installation](https://antmedia.io/docs/guides/clustering-and-scaling/cluster-installation/)  | [Multi Level Cluster](https://antmedia.io/docs/guides/clustering-and-scaling/multi-level-cluster/)  |
 | Kubernetes  | [Deploy on Kubernetes](https://antmedia.io/docs/guides/clustering-and-scaling/kubernetes/deploy-ams-on-kubernetes/)  | [Kubernetes Autoscaling](https://antmedia.io/docs/guides/clustering-and-scaling/kubernetes/kubernetes-autoscaling/)  |
  
-> 📌 We offer a [free trial](https://antmedia.io/free-trial/) so that you can explore the advantages of Ant Media Enterprise Edition. So why wait? [Request your free-trial today](https://antmedia.io/self-hosted-free-trial/) and take your streaming capabilities to the next level with ultra-low latency!
+> 📌 We offer a [free trial](https://antmedia.io/free-trial/) so that you can explore the advantages of Ant Media Enterprise Edition. So why wait? [Request your free trial today](https://antmedia.io/self-hosted-free-trial/) and take your streaming capabilities to the next level with ultra-low latency!
 
 
 ## 📄 Documentation
 
-We've created extensive documentation to help you get the most out of Ant Media, whether you're a developer looking to integrate our platform into your own applications or a content creator looking to set up a live stream. Our documentation includes:
+Our [documentation](https://antmedia.io/docs) is comprehensive. It will help you get the most out of Ant Media Server, whether integrating our platform into your project or setting up a live server for your startup or business. Our documentation includes the following:
 
-- Quick start guides to get you up and running quickly
-- API documentation for developers
-- Tutorials on advanced features, such as live transcoding and adaptive bitrate streaming
+- [Quick Start](https://antmedia.io/docs/quick-start/) guides to get you up and running quickly.
+- [API documentation](https://antmedia.io/docs/category/rest-api-guide/) and [SDK Reference Guide](https://antmedia.io/docs/sdk-reference/) for developers.
+- Tutorials on [advanced use-cases](https://antmedia.io/docs/category/advanced-usage/), such as creating [aplication](https://antmedia.io/docs/guides/advanced-usage/create-new-application/), [plugin structure](https://antmedia.io/docs/guides/advanced-usage/introduction-plugin-structure/) or leverging [hardware-based encoder](https://antmedia.io/docs/guides/advanced-usage/using-nvidia-hardware-based-encoder-on-docker/). 
 - And much more!
+
+> 📝 We've created extensive documentation to help you succeed. However, as Ant Media Server evolves and grows, so must our documentation. We need your help to ensure that it remains up-to-date and accurate, reflecting the latest developments and changes in AMS. Please review our documentation and [contribute](https://github.com/ant-media/ant-media-documentation/) any updates or corrections you may have.
  
 ## 📫 Support
 
 At Ant Media, providing timely and effective support is critical for the success of our customers. Therefore, we offer two levels of support to meet the diverse needs of our users.
 
-- For our **Community Edition** users: We offer support via GitHub Discussions, where you can post your questions, issues, or feature requests. Our vibrant Ant Media Community and the team of experts will be there to assist you, providing solutions and advice to help you get the most out of your Ant Media Server experience.
+- **Community Edition:** We offer support via [GitHub Discussions](https://github.com/orgs/ant-media/discussions), where you can post your questions, issues, or feature requests. Our vibrant Ant Media Community and the team of experts will be there to assist you, providing solutions and advice to help you get the most out of your Ant Media Server experience.
 
-- For our **Enterprise Edition** users: We offer priority support via email. Our dedicated support team is available to help you with any technical issues or challenges you may face. We understand that your business needs may require immediate attention, so we prioritize your requests to ensure you receive timely and effective support.
+- **Enterprise Edition:** We offer _priority support_ via **email**. Our dedicated support team is available to help you with any technical issues or challenges you may face. We understand that your business needs may require immediate attention, so we prioritize your requests to ensure you receive timely and effective support.
 
-No matter which edition you use, we are committed to providing you with the best possible support experience. We encourage you to explore our support packages and take advantage of the resources available to you. Our goal is to help you achieve success with Ant Media Server and empower you to create exceptional streaming experiences for your users. And, for any general inquiries, kindly connect with us via [contact@antmedia.io](mailto:contact@antmedia.io)
+No matter which edition you use, we are committed to providing you with the best possible support experience. We encourage you to explore our [support packages](https://antmedia.io/support-packages/) and take advantage of the resources available to you. Our goal is to help you achieve success with Ant Media Server and empower you to create exceptional streaming experiences for your users. And, for any general inquiries, kindly connect with us via [contact@antmedia.io](mailto:contact@antmedia.io)
 
 ## 🤝 Contributing
 
-We welcome contributions from the community and are always looking for ways to improve our platform. If you're interested, please review our contributing guidelines to get started.
+We welcome contributions from the community and are always looking for ways to improve Ant Media Server. If you're interested, please review our contributing guidelines to get started.
 
 If you would like to say thank you or/and support the active development of Ant Media Server: 
-- Add a [GitHub Star](https://github.com/ant-media/Ant-Media-Server/) to the project.
-- Tweet about the project on your Twitter.
-- Write interesting articles about the project on [Dev.to](https://dev.to/), [Medium](https://medium.com/) or personal blog.
+- Hit the *GitHub Star* button for [Ant Media Server](https://github.com/ant-media/Ant-Media-Server/) and other projects you like at [Ant Media](https://github.com/ant-media/) organization.
+- Spread the word about "Ant Media Server" by sharing your experience on LinkedIn, Twitter, Reddit, YouTube, Telegram, as well as your developer circle, user groups, or local chapters. 
+- Write interesting articles (including tutorials and success stories) for the Ant Media Server on [Medium](https://medium.com/), [Dev.to](https://dev.to/), or your personal blog.
 
-Together, we can make this project **better** every day! 😘
+Together, with your small contribution, we can make Ant Media Server more optimized and rewarding for communities and customers! 😘
 
 ## 💡 More Information
 
