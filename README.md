@@ -33,7 +33,7 @@
 
 ## Introduction
 
-Ant Media Server is a streaming engine software that provides adaptive, ultra-low latency streaming using WebRTC technology with ~0.5 seconds latency or low latency using HLS or CMAF. Ant Media Server is robust, battle-tested, and highly scalable horizontally and vertically, running on-premises or on any cloud provider you choose.
+Ant Media Server is a streaming engine software that provides adaptive, ultra-low latency streaming using WebRTC technology with ~0.5 seconds latency or low latency using HLS or CMAF. Ant Media Server is robust and highly scalable horizontally and vertically, running on-premises or on any cloud provider you choose.
 
 It enables building high-performing infrastructure with Ultra-Low Latency Video Streaming. This way, we're solving the video streaming and delivery headache, a massive problem for companies seeking low latency, adaptive video streaming, by making it simple and on-demand.
 
@@ -43,9 +43,7 @@ Ant Media Server is packed with features to help you create the best-quality liv
 
 #### ⭐️ Community Edition
 
-The Community Edition is a free, open-source version of Ant Media Server. It provides basic live streaming functionality with adaptive bitrate, transcoding, and playback support for WebRTC, RTMP, RTSP, MP4, HLS, and MPEG-DASH support. Additionally, it offers recording and playback of live streams, simulcasting, and RESTful APIs for controlling and monitoring the server.
-
-This also supports various SDKs, including iOS, Android, React Native, Flutter, and Javascript.
+The Community Edition is a free, open-source version of Ant Media Server. It provides basic live streaming functionality with adaptive bitrate, transcoding, and  support for WebRTC, RTMP, RTSP ingest and MP4, HLS playback support. Additionally, it offers recording and playback of live streams, simulcasting, and RESTful APIs for controlling and monitoring the server.
 
 #### ✨ Enterprise Edition
 
@@ -56,16 +54,17 @@ The Enterprise Edition of Ant Media Server offers all the features of the Commun
 - **WebRTC Data Channel:** Enable data transfer between clients in real-time using the WebRTC Data Channel.
 - **WebRTC Server-Side Recording:** Record WebRTC streams on the server side without the need for browser-based recording.
 - **Advanced Security:** Secure your streams with SSL/TLS encryption, token authentication, IP filtering, and watermarking.
+- **Rick SDKs:** iOS, Android, React Native, Flutter, Unity and Javascript SDKs.
 - **Professional Support:** Get access to dedicated technical support, training, and consulting services from the Ant Media team.
 
 The Enterprise Edition requires a license, and it offers a range of additional benefits to businesses and organizations. With its advanced streaming capabilities, enhanced security features, and dedicated technical support, it is the ideal choice for those who require a reliable and scalable media server for their video streaming needs.
 
-If you're interested in trying the Enterprise Edition of Ant Media Server, please visit our website or contact us for more information. We're always happy to help!
+If you're interested in trying the Enterprise Edition of Ant Media Server, please visit our website (https://antmedia.io) or contact us (contact@antmedia.io) for more information. We're always happy to help!
 
 
 ## 🚀 Deploy Ant Media Server
 
-Ant Media server is available on your favorite cloud platform; with 1-Click apps, cloud marketplaces, or deployment through Docker/Kubernetes/Scripts allows you to deploy and automate common setup steps to get your application running seamlessly. Discover how easily you can try and deploy Ant Media Server by exploring the following quick launches:
+Ant Media server is available on your favorite cloud platforms; with 1-Click apps, cloud marketplaces, or deployment through Docker/Kubernetes/Scripts allows you to deploy and automate common setup steps to get your application running seamlessly. Discover how easily you can try and deploy Ant Media Server by exploring the following quick launches:
 
 
 | Cloud Provider  | Community Edition | Enterprise Edition  |
@@ -89,7 +88,7 @@ Our [documentation](https://antmedia.io/docs) is comprehensive. It will help you
 
 - [Quick Start](https://antmedia.io/docs/quick-start/) guides to get you up and running quickly.
 - [API documentation](https://antmedia.io/docs/category/rest-api-guide/) and [SDK Reference Guide](https://antmedia.io/docs/sdk-reference/) for developers.
-- Tutorials on [advanced use-cases](https://antmedia.io/docs/category/advanced-usage/), such as creating [aplication](https://antmedia.io/docs/guides/advanced-usage/create-new-application/), [plugin structure](https://antmedia.io/docs/guides/advanced-usage/introduction-plugin-structure/) or leverging [hardware-based encoder](https://antmedia.io/docs/guides/advanced-usage/using-nvidia-hardware-based-encoder-on-docker/). 
+- Tutorials on [advanced use-cases](https://antmedia.io/docs/category/advanced-usage/), such as creating [application](https://antmedia.io/docs/guides/advanced-usage/create-new-application/), [plugin structure](https://antmedia.io/docs/guides/advanced-usage/introduction-plugin-structure/) or leverging [hardware-based encoder](https://antmedia.io/docs/guides/advanced-usage/using-nvidia-hardware-based-encoder-on-docker/). 
 - And much more!
 
 > 📝 We've created extensive documentation to help you succeed. However, as Ant Media Server evolves and grows, so must our documentation. We need your help to ensure that it remains up-to-date and accurate, reflecting the latest developments and changes in AMS. Please review our documentation and [contribute](https://github.com/ant-media/ant-media-documentation/) any updates or corrections you may have.
