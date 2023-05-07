@@ -70,17 +70,23 @@ If you're interested in trying the Enterprise Edition of Ant Media Server, pleas
 
 ## 🚀 Deploy Ant Media Server
 
-Ant Media server is available on your favorite cloud platform; trying and getting started is effortless.
-1-Click apps allow you to create different DigitalOcean resources with pre-installed features and configurations, enabling you to get your application running quickly. 1-Click apps automate common setup steps.
+Ant Media server is available on your favorite cloud platform; with 1-Click apps, cloud marketplaces, or deployment through Docker/Kubernetes/Scripts allows you to deploy and automate common setup steps to get your application running seamlessly. Discover how easily you can try and deploy Ant Media Server by exploring the following quick launches:
 
-- [AWS](https://aws.amazon.com/marketplace/pp/prodview-464ritgzkzod6?sr=0-1&ref_=beagle&applicationId=AWSMPContessa)
-- [Azure](https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1)
-- [Alibaba](https://marketplace.alibabacloud.com/products/56712002/Ant_Media_Server_Enterprise_2_2_1-sgcmjj00025347.html)
-- [Digital Ocean](https://marketplace.digitalocean.com/apps/antmedia-server-enterprise-edition-3) 
-- [Linode](https://www.linode.com/marketplace/apps/ant-media/ant-media-community-edition/)
 
+| Cloud Provider  | Community Edition | Enterprise Edition  |
+| -------------- | -------------- | ------------- |
+| AWS  | [Community Edition](https://aws.amazon.com/marketplace/pp/prodview-okmynlgwgvq6w)  | [Enterprise Edition](https://aws.amazon.com/marketplace/pp/prodview-464ritgzkzod6)  |
+| Microsoft Azure  | [Community Edition](https://azuremarketplace.microsoft.com/en-us/marketplace/apps/antmedia.ams_community_edition)  | [Enterprise Edition](https://azuremarketplace.microsoft.com/en-us/marketplace/apps/antmedia.ant_media_server_enterprise)  |
+| Alibaba  | - | [Enterprise Edition](https://marketplace.alibabacloud.com/products/56712002/sgcmjj00031246.html)  |
+| Digital Ocean  | [Community Edition](https://marketplace.digitalocean.com/apps/ant-media-server-community-edition)  | [Enterprise Edition](https://marketplace.digitalocean.com/apps/ant-media-server-enterprise-edition) or [Enterprise Edition Kubernetes](https://marketplace.digitalocean.com/apps/ant-media-server-enterprise)  |
+| Linode  | [Community Edition](https://www.linode.com/marketplace/apps/ant-media/ant-media-community-edition/)  | [Enterprise Edition](https://www.linode.com/marketplace/apps/ant-media/ant-media-enterprise-edition/)  |
+| Linux  | [Install via  Script](https://antmedia.io/docs/guides/installing-on-linux/installing-ams-on-linux/)  | [SSL Setup](https://antmedia.io/docs/guides/installing-on-linux/setting-up-ssl/)  |
+| Docker  | [Docker Compose](hhttps://antmedia.io/docs/guides/clustering-and-scaling/docker/docker-and-docker-compose-installation/)  | [Docker Swarm](https://antmedia.io/docs/guides/clustering-and-scaling/docker/docker-swarm/)  |
+| Cluster  | [Cluster installation](https://antmedia.io/docs/guides/clustering-and-scaling/cluster-installation/)  | [Multi Level Cluster](https://antmedia.io/docs/guides/clustering-and-scaling/multi-level-cluster/)  |
+| Kubernetes  | [Deploy on Kubernetes](https://antmedia.io/docs/guides/clustering-and-scaling/kubernetes/deploy-ams-on-kubernetes/)  | [Kubernetes Autoscaling](https://antmedia.io/docs/guides/clustering-and-scaling/kubernetes/kubernetes-autoscaling/)  |
  
-> Ant Media Server Enterprise Editions are available through several cloud marketplaces ([AWS](https://aws.amazon.com/marketplace/pp/prodview-464ritgzkzod6?sr=0-1&ref_=beagle&applicationId=AWSMPContessa), [Azure](https://azuremarketplace.microsoft.com/en-us/marketplace/apps?search=Ant%20Media%20Server&page=1), [Alibaba](https://marketplace.alibabacloud.com/products/56712002/Ant_Media_Server_Enterprise_2_2_1-sgcmjj00025347.html), [Digital Ocean](https://marketplace.digitalocean.com/apps/antmedia-server-enterprise-edition-3) and [Linode](https://www.linode.com/marketplace/apps/ant-media/ant-media-community-edition/)). You can also download Enterprise Edition via subscription on [antmedia.io](https://antmedia.io)
+> 📌 We offer a [free trial](https://antmedia.io/free-trial/) so that you can explore the advantages of Ant Media Enterprise Edition. So why wait? [Request your free-trial today](https://antmedia.io/self-hosted-free-trial/) and take your streaming capabilities to the next level with ultra-low latency!
+
 
 ## 📄 Documentation
 
