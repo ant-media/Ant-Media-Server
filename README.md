@@ -43,7 +43,7 @@ Ant Media Server is packed with features to help you create the best-quality liv
 
 #### ⭐️ Community Edition
 
-The Community Edition is a free, open-source version of Ant Media Server. It provides basic live streaming functionality with adaptive bitrate, transcoding, and  support for WebRTC, RTMP, RTSP ingest and MP4, HLS playback support. Additionally, it offers recording and playback of live streams, simulcasting, and RESTful APIs for controlling and monitoring the server.
+The Community Edition is a free, open-source version of Ant Media Server. It provides basic live streaming functionality with adaptive bitrate, transcoding, and support for WebRTC, RTMP, RTSP ingest, MP4 and HLS playback support. Additionally, it offers recording and playback of live streams, simulcasting, and RESTful APIs for controlling and monitoring the server.
 
 #### ✨ Enterprise Edition
 
@@ -54,12 +54,12 @@ The Enterprise Edition of Ant Media Server offers all the features of the Commun
 - **WebRTC Data Channel:** Enable data transfer between clients in real-time using the WebRTC Data Channel.
 - **WebRTC Server-Side Recording:** Record WebRTC streams on the server side without the need for browser-based recording.
 - **Advanced Security:** Secure your streams with SSL/TLS encryption, token authentication, IP filtering, and watermarking.
-- **Rick SDKs:** iOS, Android, React Native, Flutter, Unity and Javascript SDKs.
+- **Rich SDKs:** iOS, Android, React Native, Flutter, Unity and Javascript SDKs.
 - **Professional Support:** Get access to dedicated technical support, training, and consulting services from the Ant Media team.
 
 The Enterprise Edition requires a license, and it offers a range of additional benefits to businesses and organizations. With its advanced streaming capabilities, enhanced security features, and dedicated technical support, it is the ideal choice for those who require a reliable and scalable media server for their video streaming needs.
 
-If you're interested in trying the Enterprise Edition of Ant Media Server, please visit our website (https://antmedia.io) or contact us (contact@antmedia.io) for more information. We're always happy to help!
+If you're interested in trying the Enterprise Edition of Ant Media Server, please visit our [website](https://antmedia.io) or [contact us](mailto:contact@antmedia.io) for more information. We're always happy to help!
 
 
 ## 🚀 Deploy Ant Media Server
