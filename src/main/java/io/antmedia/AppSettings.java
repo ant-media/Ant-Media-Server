@@ -334,6 +334,12 @@ public class AppSettings implements Serializable{
 
 	public static final String SETTINGS_PLAY_WEBRTC_STREAM_ONCE_FOR_EACH_SESSION = "settings.playWebRTCStreamOnceForEachSession";
 
+	private static final String SETTINGS_STATS_BASED_ABR_ALGORITHM_ENABLED = "settings.statsBasedABREnabled";
+	private static final String SETTINGS_ABR_DOWN_SCALE_PACKET_LOST_RATIO = "settings.abrDownScalePacketLostRatio";
+	private static final String SETTINGS_ABR_UP_SCALE_PACKET_LOST_RATIO = "settings.abrUpScalePacketLostRatio";
+	private static final String SETTINGS_ABR_UP_SCALE_RTT_MS = "settings.abrUpScaleRTTMs";
+	private static final String SETTINGS_ABR_UP_SCALE_JITTER_MS = "settings.abrUpScaleJitterMs";
+
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -1559,6 +1565,37 @@ public class AppSettings implements Serializable{
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
 	}
+
+
+	/**
+	 * Enables the WebRTC statistics based Adaptive Bitrate switch algorithm
+	 */
+	@Value( "${"+SETTINGS_STATS_BASED_ABR_ALGORITHM_ENABLED+":true}" )
+	private boolean statsBasedABREnabled = true;
+
+	/**
+	 * Packet lost percentage to decide serving video with lower resolution
+	 */
+	@Value( "${"+SETTINGS_ABR_DOWN_SCALE_PACKET_LOST_RATIO+":1}" )
+	private float abrDownScalePacketLostRatio = 1;
+
+	/**
+	 * Packet lost percentage to decide serving video with higher resolution
+	 */
+	@Value( "${"+SETTINGS_ABR_UP_SCALE_PACKET_LOST_RATIO+":0.1}" )
+	private float abrUpScalePacketLostRatio = 0.1f;
+
+	/**
+	 * Round trip time in ms to decide serving video with higher resolution
+	 */
+	@Value( "${"+SETTINGS_ABR_UP_SCALE_RTT_MS+":150}" )
+	private int abrUpScaleRTTMs = 150;
+
+	/**
+	 * Jitter in ms to decide serving video with higher resolution
+	 */
+	@Value( "${"+SETTINGS_ABR_UP_SCALE_JITTER_MS+":30}" )
+	private int abrUpScaleJitterMs = 30;
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -2948,6 +2985,46 @@ public class AppSettings implements Serializable{
 
 	public void setPlayWebRTCStreamOnceForEachSession(boolean playWebRTCStreamOnceForEachSession) {
 		this.playWebRTCStreamOnceForEachSession = playWebRTCStreamOnceForEachSession;
+	}
+
+	public boolean isStatsBasedABREnabled() {
+		return statsBasedABREnabled;
+	}
+
+	public void setStatsBasedABREnabled(boolean statsBasedABREnabled) {
+		this.statsBasedABREnabled = statsBasedABREnabled;
+	}
+
+	public float getAbrDownScalePacketLostRatio() {
+		return abrDownScalePacketLostRatio;
+	}
+
+	public void setAbrDownScalePacketLostRatio(float abrDownScalePacketLostRatio) {
+		this.abrDownScalePacketLostRatio = abrDownScalePacketLostRatio;
+	}
+
+	public float getAbrUpScalePacketLostRatio() {
+		return abrUpScalePacketLostRatio;
+	}
+
+	public void setAbrUpScalePacketLostRatio(float abrUpScalePacketLostRatio) {
+		this.abrUpScalePacketLostRatio = abrUpScalePacketLostRatio;
+	}
+
+	public int getAbrUpScaleRTTMs() {
+		return abrUpScaleRTTMs;
+	}
+
+	public void setAbrUpScaleRTTMs(int abrUpScaleRTTMs) {
+		this.abrUpScaleRTTMs = abrUpScaleRTTMs;
+	}
+
+	public int getAbrUpScaleJitterMs() {
+		return abrUpScaleJitterMs;
+	}
+
+	public void setAbrUpScaleJitterMs(int abrUpScaleJitterMs) {
+		this.abrUpScaleJitterMs = abrUpScaleJitterMs;
 	}
 
 }
