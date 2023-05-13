@@ -372,9 +372,7 @@ ipt_restore
 
 if [ -x "$(command -v systemctl)" ]; then
   echo ""
-  $SUDO service antmedia stop
-  output
-  $SUDO service antmedia start
+  $SUDO service antmedia restart
   output
 fi
 
