@@ -34,7 +34,7 @@ import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
-import org.bytedeco.javacpp.IntPointer;
+import org.bytedeco.javacpp.SizeTPointer;
 
 import io.vertx.core.Vertx;
 
@@ -243,7 +243,7 @@ public class RtmpMuxer extends Muxer {
 	
 
 	@Override
-	public void writePacket(AVPacket pkt, final AVRational inputTimebase, final AVRational outputTimebase, int codecType)
+	public synchronized void writePacket(AVPacket pkt, final AVRational inputTimebase, final AVRational outputTimebase, int codecType)
 	{
 		AVFormatContext context = getOutputFormatContext();
 		if (context.streams(pkt.stream_index()).codecpar().codec_type() ==  AVMEDIA_TYPE_AUDIO && !headerWritten) {
@@ -289,17 +289,17 @@ public class RtmpMuxer extends Muxer {
 				{
 					if (!headerWritten)
 					{
-						IntPointer size = new IntPointer(1);
+						SizeTPointer size = new SizeTPointer(1);
 						BytePointer extradataBytePointer = avcodec.av_packet_get_side_data(getTmpPacket(), AV_PKT_DATA_NEW_EXTRADATA,  size);
 						if (size.get() != 0)
 						{
 							allocatedExtraDataPointer = new BytePointer(avutil.av_malloc(size.get() + AV_INPUT_BUFFER_PADDING_SIZE)).capacity(size.get() + AV_INPUT_BUFFER_PADDING_SIZE);
-							byte[] extraDataArray = new byte[size.get()];
+							byte[] extraDataArray = new byte[(int)size.get()];
 							extradataBytePointer.get(extraDataArray, 0, extraDataArray.length);
 							allocatedExtraDataPointer.put(extraDataArray, 0, extraDataArray.length);
 							logger.info("extradata size:{} extradata: {} allocated pointer: {}", size.get(), extradataBytePointer, allocatedExtraDataPointer);
 							context.streams(pkt.stream_index()).codecpar().extradata(allocatedExtraDataPointer);
-							context.streams(pkt.stream_index()).codecpar().extradata_size(size.get());
+							context.streams(pkt.stream_index()).codecpar().extradata_size((int)size.get());
 							writeHeader();
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 						}

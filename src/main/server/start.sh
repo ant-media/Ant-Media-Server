@@ -24,6 +24,9 @@
 # -n: TURN Server Usermame: Provide the TURN server username to get relay candidates.
 #
 # -w: TURN Server Password: Provide the TURN server password to get relay candidates.
+#
+# -k: Kafka Address: Provide the Kafka URL address to collect data. (It must contain the port number. Example: localhost:9092)
+#
 
 if [ -z "$RED5_HOME" ]; then
   BASEDIR=$(dirname "$0")
@@ -38,12 +41,12 @@ USE_PUBLIC_IP_AS_SERVER_NAME=false
 REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME=false
 SERVER_MODE=
 DB_URL=
-MONGODB_USERNAME=
-MONGODB_PASSWORD=
+DB_USERNAME=
+DB_PASSWORD=
 LICENSE_KEY=
 
 
-while getopts g:s:r:m:h:u:p:l:a:n:w:t option
+while getopts g:s:r:m:h:u:p:l:a:n:w:k:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
@@ -51,12 +54,13 @@ do
     r) REPLACE_CANDIDATE_ADDRESS_WITH_SERVER_NAME=${OPTARG};;
     m) SERVER_MODE=${OPTARG};;
     h) DB_URL=${OPTARG};;
-    u) MONGODB_USERNAME=${OPTARG};;
-    p) MONGODB_PASSWORD=${OPTARG};;
+    u) DB_USERNAME=${OPTARG};;
+    p) DB_PASSWORD=${OPTARG};;
     l) LICENSE_KEY=${OPTARG};;
     a) TURN_URL=${OPTARG};;
     n) TURN_USERNAME=${OPTARG};;
     w) TURN_PASSWORD=${OPTARG};;
+    k) KAFKA_URL=${OPTARG};;
    esac
 done
 
@@ -99,21 +103,24 @@ for i in $LIST_APPS; do
 done
 ################################################
 
-if [ ! -z "$MONGODB_USERNAME" ] && [ ! -z "$MONGODB_PASSWORD" ]; then
+if [ ! -z "$DB_USERNAME" ] && [ ! -z "$DB_PASSWORD" ]; then
   echo -e "\033[0;31mYou can just use mongodb://[username:password@]host1[:port1] or mongodb+srv://[username:password@]host1[:port1] connection strings with -h parameter. No need give mongodb username and password parameters explicityly. These parameters are deprecated.\033[0m"
 fi
 
 ################################################
 # Set server mode cluster or standalone. Below method is available is functions.sh
 if [ ! -z "${SERVER_MODE}" ]; then
-  change_server_mode $SERVER_MODE $DB_URL $MONGODB_USERNAME $MONGODB_PASSWORD
+  change_server_mode $SERVER_MODE $DB_URL $DB_USERNAME $DB_PASSWORD
 fi
 ################################################
-# set the license key
+# Set the license key
 if [ ! -z "${LICENSE_KEY}" ]; then
   sed -i $SED_COMPATIBILITY 's/server.licence_key=.*/server.licence_key='$LICENSE_KEY'/' $RED5_HOME/conf/red5.properties
 fi
-
+# Set the kafka address
+if [ ! -z "${KAFKA_URL}" ]; then
+  sed -i $SED_COMPATIBILITY 's/server.kafka_brokers=.*/server.kafka_brokers='$KAFKA_URL'/' $RED5_HOME/conf/red5.properties
+fi
 # Turn server configuration.
 if [ ! -z "${TURN_URL}" ]; then
   for applist in $LIST_APPS; do

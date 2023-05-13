@@ -267,21 +267,21 @@ public class RTMPAdaptor extends Adaptor {
 
 				List<IceServer> iceServers = new ArrayList<>();
 				iceServers.add(IceServer.builder(getStunServerUri()).createIceServer());
-				
+
 				Builder iceServerBuilder = IceServer.builder(stunServerUri);
-				
+
 				if (turnServerUsername != null && !turnServerUsername.isEmpty())
 				{
 					iceServerBuilder.setUsername(turnServerUsername);
 				}
-				
+
 				if (turnServerCredential != null && !turnServerCredential.isEmpty()) 
 				{
 					iceServerBuilder.setPassword(turnServerCredential);
 				}
-				
+
 				iceServers.add(iceServerBuilder.createIceServer());
-				
+
 
 				PeerConnection.RTCConfiguration rtcConfig =
 						new PeerConnection.RTCConfiguration(iceServers);
@@ -297,7 +297,7 @@ public class RTMPAdaptor extends Adaptor {
 
 				peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, RTMPAdaptor.this);
 
-				webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession());
+				webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession(), "");
 
 				videoEncoderFuture = videoEncoderExecutor.scheduleWithFixedDelay(this::encodeVideo, 10, 10, TimeUnit.MILLISECONDS);
 				audioEncoderFuture = audioEncoderExecutor.scheduleWithFixedDelay(this::encodeAudio, 10, 10, TimeUnit.MILLISECONDS);
@@ -338,7 +338,7 @@ public class RTMPAdaptor extends Adaptor {
 		signallingExecutor.execute(() -> {
 
 			logger.info("Executing stop procedure for stream: {}", getStreamId());
-			webSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession());
+			webSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession(), "");
 
 
 			audioEncoderExecutor.shutdownNow();
@@ -468,35 +468,37 @@ public class RTMPAdaptor extends Adaptor {
 					recorder.setFrameNumber(frameNumber);
 					lastFrameNumber = frameNumber;
 
-					Frame frameCV = new Frame(videoFrameContext.videoFrame.getRotatedWidth(), videoFrameContext.videoFrame.getRotatedHeight(), Frame.DEPTH_UBYTE, 2);
+					try (Frame frameCV = new Frame(videoFrameContext.videoFrame.getRotatedWidth(), videoFrameContext.videoFrame.getRotatedHeight(), Frame.DEPTH_UBYTE, 2))
+					{
 
-					Buffer buffer = videoFrameContext.videoFrame.getBuffer();
-					int[] stride = new int[3];
-					if (buffer instanceof WrappedNativeI420Buffer) {
-						WrappedNativeI420Buffer wrappedBuffer = (WrappedNativeI420Buffer) buffer;
-						((ByteBuffer)(frameCV.image[0].position(0))).put(wrappedBuffer.getDataY());
-						((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataU());
-						((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataV());
+						Buffer buffer = videoFrameContext.videoFrame.getBuffer();
+						int[] stride = new int[3];
+						if (buffer instanceof WrappedNativeI420Buffer) {
+							WrappedNativeI420Buffer wrappedBuffer = (WrappedNativeI420Buffer) buffer;
+							((ByteBuffer)(frameCV.image[0].position(0))).put(wrappedBuffer.getDataY());
+							((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataU());
+							((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataV());
 
-						stride[0] = wrappedBuffer.getStrideY();
-						stride[1] = wrappedBuffer.getStrideU();
-						stride[2] = wrappedBuffer.getStrideV();
+							stride[0] = wrappedBuffer.getStrideY();
+							stride[1] = wrappedBuffer.getStrideU();
+							stride[2] = wrappedBuffer.getStrideV();
 
-						try {
-							recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-									frameCV.imageChannels, stride, AV_PIX_FMT_YUV420P, frameCV.image);
+							try {
+								recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
+										frameCV.getImageChannels(), stride, AV_PIX_FMT_YUV420P, frameCV.image);
 
-						} catch (FrameRecorder.Exception e) {
-							logger.error(ExceptionUtils.getStackTrace(e));
-							errorLoopCount += 1;
-							if (errorLoopCount > 5){
-								webSocketCommunityHandler.sendServerError(getStreamId(), getSession());
-								stop();
+							} catch (FrameRecorder.Exception e) {
+								logger.error(ExceptionUtils.getStackTrace(e));
+								errorLoopCount += 1;
+								if (errorLoopCount > 5){
+									webSocketCommunityHandler.sendServerError(getStreamId(), getSession());
+									stop();
+								}
 							}
 						}
-					}
-					else {
-						logger.error("Buffer is not type of WrappedNativeI420Buffer for stream: {}", recorder.getFilename());
+						else {
+							logger.error("Buffer is not type of WrappedNativeI420Buffer for stream: {}", recorder.getFilename());
+						}
 					}
 				}
 				else {
@@ -534,7 +536,7 @@ public class RTMPAdaptor extends Adaptor {
 		}
 
 
-		webSocketCommunityHandler.sendPublishStartedMessage(getStreamId(), getSession(), null);
+		webSocketCommunityHandler.sendPublishStartedMessage(getStreamId(), getSession(), null, "");
 
 	}
 
@@ -551,14 +553,23 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 	public void addIceCandidate(final IceCandidate iceCandidate) {
-		signallingExecutor.execute(() -> {
+		if (iceCandidate.sdpMid != null && iceCandidate.sdp != null) 
+		{
 
-			if (!peerConnection.addIceCandidate(iceCandidate))
-			{
-				log.error("Add ice candidate failed for {}", iceCandidate);
-			}
+			signallingExecutor.execute(() -> {
 
-		});
+				if (!peerConnection.addIceCandidate(iceCandidate))
+				{
+					log.error("Add ice candidate failed for {}", iceCandidate);
+				}
+
+			});
+		}
+		else 
+		{
+			logger.error("It does not add ICE Candidate because sdpMid or sdp are null. "
+					+ "Check the values sdpMid:{} ,sdp:{}", iceCandidate.sdpMid, iceCandidate.sdp);
+		}
 	}
 
 	public boolean isStarted() {
@@ -635,7 +646,7 @@ public class RTMPAdaptor extends Adaptor {
 	public void setEnableVideo(boolean enableVideo) {
 		this.enableVideo = enableVideo;
 	}
-	
+
 	public boolean isEnableVideo() {
 		return enableVideo;
 	}

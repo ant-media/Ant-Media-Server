@@ -262,6 +262,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getHlsTime());
 		assertNull(appSettings.getHlsPlayListType());
 		assertTrue(appSettings.getEncoderSettings().isEmpty());
+		assertTrue(appSettings.isPlayWebRTCStreamOnceForEachSession());
 	}
 	
 	@Test
@@ -286,6 +287,23 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		int idleTimeOut = RandomUtils.nextInt();
 		appSettings.setOriginEdgeIdleTimeout(idleTimeOut);
 		assertEquals(idleTimeOut, appSettings.getOriginEdgeIdleTimeout());
+		
+		appSettings.setAddDateTimeToHlsFileName(true);
+		assertEquals(true, appSettings.isAddDateTimeToHlsFileName());
+
+		appSettings.setPlayWebRTCStreamOnceForEachSession(false);
+		assertFalse(appSettings.isPlayWebRTCStreamOnceForEachSession());
+
+		appSettings.setStatsBasedABREnabled(false);
+		assertEquals(false, appSettings.isStatsBasedABREnabled());
+		appSettings.setAbrDownScalePacketLostRatio(2);
+		assertEquals(2, appSettings.getAbrDownScalePacketLostRatio(), 0.0001);
+		appSettings.setAbrUpScalePacketLostRatio(0.2f);
+		assertEquals(0.2, appSettings.getAbrUpScalePacketLostRatio(), 0.0001);
+		appSettings.setAbrUpScaleJitterMs(50);
+		assertEquals(50, appSettings.getAbrUpScaleJitterMs(), 0.0001);
+		appSettings.setAbrUpScaleRTTMs(100);
+		assertEquals(100, appSettings.getAbrUpScaleRTTMs(), 0.0001);
 	}
 	
 	
@@ -475,14 +493,22 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(-1, appSettings.getMaxAudioTrackCount());
 		assertEquals(-1, appSettings.getMaxVideoTrackCount());
 		assertEquals(2, appSettings.getOriginEdgeIdleTimeout());
+		assertEquals(false, appSettings.isAddDateTimeToHlsFileName());
+		assertEquals(true, appSettings.isPlayWebRTCStreamOnceForEachSession());
+		assertEquals(true, appSettings.isStatsBasedABREnabled());
+		assertEquals(1, appSettings.getAbrDownScalePacketLostRatio(), 0.0001);
+		assertEquals(0.1, appSettings.getAbrUpScalePacketLostRatio(), 0.0001);
+		assertEquals(30, appSettings.getAbrUpScaleJitterMs(), 0.0001);
+		assertEquals(150, appSettings.getAbrUpScaleRTTMs(), 0.0001);
 
-	
-		
+
+
+
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					156, numberOfFields);
+					163, numberOfFields);
 		
 	}
 

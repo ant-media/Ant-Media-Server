@@ -24,6 +24,7 @@ import java.lang.reflect.Field;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -398,6 +399,54 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}	
 	}
 
+	/**
+	 * Test code for https://github.com/ant-media/Ant-Media-Server/issues/4748
+	 */
+	@Test
+	public void testSyncUserVoDBug() {
+		File streamsFolder = new File("webapps/junit/streams");
+		assertFalse(streamsFolder.exists());	
+		
+		//any target
+		Path target = new File("/usr").toPath();
+		try {
+			Files.createSymbolicLink(streamsFolder.toPath(), target);
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
+		assertTrue(streamsFolder.exists());	
+		assertTrue(Files.isSymbolicLink(streamsFolder.toPath()));
+		
+
+		IScope scope = Mockito.mock(IScope.class);
+		Mockito.when(scope.getName()).thenReturn("junit");
+		
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		Mockito.doReturn(scope).when(spyAdapter).getScope();
+		
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		spyAdapter.setDataStoreFactory(dsf);
+		
+		
+		spyAdapter.synchUserVoDFolder(null, null);
+		Mockito.verify(spyAdapter, Mockito.never()).deleteSymbolicLink(Mockito.any(), Mockito.any());
+		Mockito.verify(spyAdapter, Mockito.never()).createSymbolicLink(Mockito.any(), Mockito.any());
+		
+		assertTrue(streamsFolder.exists());
+		
+		//Don't delete the file if they are the same files
+		spyAdapter.deleteSymbolicLink(new File(""), streamsFolder);
+		
+		assertTrue(streamsFolder.exists());
+		
+		
+	}
+	
 	@Test
 	public void testSynchUserVoD() {
 		File streamsFolder = new File(streamsFolderPath);
@@ -625,7 +674,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(2)).getListenerHookURL(broadcast);
 		
 		
-		spyAdaptor.publishTimeoutError(broadcast.getStreamId());
+		spyAdaptor.publishTimeoutError(broadcast.getStreamId(), "");
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(3)).getListenerHookURL(broadcast);
 		
 		spyAdaptor.incrementEncoderNotOpenedError(broadcast.getStreamId());
@@ -740,7 +789,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		 * PUBLISH TIMEOUT ERROR
 		 */
 
-		spyAdaptor.publishTimeoutError(broadcast.getStreamId());
+		spyAdaptor.publishTimeoutError(broadcast.getStreamId(), "");
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> {
 			boolean called = false;
@@ -979,27 +1028,20 @@ public class AntMediaApplicationAdaptorUnitTest {
 		emptyFile.deleteOnExit();
 		try {
 			assertTrue(emptyFile.createNewFile());
-			boolean synchUserVoDFolder = adapter.deleteOldFolderPath("", f);
+			boolean synchUserVoDFolder = adapter.deleteSymbolicLink(new File("any_file_not_exist"), f);
 			assertFalse(synchUserVoDFolder);
 
-			synchUserVoDFolder = adapter.deleteOldFolderPath(null, f);
+			synchUserVoDFolder = adapter.deleteSymbolicLink(null, f);
 			assertFalse(synchUserVoDFolder);
 
-			synchUserVoDFolder = adapter.deleteOldFolderPath("anyfile", null);
-			assertFalse(synchUserVoDFolder);
-
-
-			synchUserVoDFolder = adapter.deleteOldFolderPath("notexist", f);
-			assertFalse(synchUserVoDFolder);
-
-			synchUserVoDFolder = adapter.deleteOldFolderPath(emptyFile.getName(), f);
-			assertFalse(synchUserVoDFolder);
 
 			File oldDir = new File (streamsFolderPath, "dir");
 			oldDir.mkdirs();
+			Files.deleteIfExists(oldDir.toPath());
+			Files.createSymbolicLink(oldDir.toPath(), emptyFile.toPath());
 			oldDir.deleteOnExit();
 
-			synchUserVoDFolder = adapter.deleteOldFolderPath(oldDir.getName(), f);
+			synchUserVoDFolder = adapter.deleteSymbolicLink(oldDir, f);
 			assertTrue(synchUserVoDFolder);
 
 		} catch (IOException e) {
@@ -1166,7 +1208,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		adapter.setDataStoreFactory(dataStoreFactory);
 
-		adapter.publishTimeoutError("streamId");
+		adapter.publishTimeoutError("streamId", "");
 
 		assertEquals(1, adapter.getNumberOfPublishTimeoutError());
 	}
@@ -1654,6 +1696,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		clusterStoreSettings.setPullWarFile(true);
 		spyAdapter.appStart(scope);
 		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
+		assertTrue(settings.isPullWarFile());
 		
 		
 		clusterStoreSettings.setWarFileOriginServerAddress("other address");
@@ -1661,12 +1704,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		clusterStoreSettings.setPullWarFile(true);
 		spyAdapter.appStart(scope);
 		verify(spyAdapter, times(4)).updateSettings(clusterStoreSettings, false, false);
+		assertTrue(settings.isPullWarFile());
+
 		
 		clusterStoreSettings.setWarFileOriginServerAddress(serverSettings.getHostAddress());
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()+80000);
 		clusterStoreSettings.setPullWarFile(false);
 		spyAdapter.appStart(scope);
 		verify(spyAdapter, times(5)).updateSettings(clusterStoreSettings, false, false);
+		assertFalse(settings.isPullWarFile());
+
 		
 	}
 	
@@ -1753,6 +1800,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		String nonExistingStreamId = "stream_"+RandomUtils.nextInt(0, 1000);
 		spyAdapter.addPacketListener(nonExistingStreamId, listener);
 		verify(clusterStreamFetcher, times(1)).register(nonExistingStreamId, listener);
+		
+		
+		spyAdapter.removePacketListener(nonExistingStreamId, listener);
+		verify(clusterStreamFetcher, times(1)).remove(nonExistingStreamId, listener);
+		
+		
 	}
 
 	@Test

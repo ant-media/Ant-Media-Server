@@ -147,6 +147,11 @@ public abstract class DataStore {
 
 	public abstract boolean addEndpoint(String id, Endpoint endpoint);
 
+	/**
+	 * Add VoD record to the datastore
+	 * @param vod
+	 * @return the id of the VoD if it's successful or it returns null if it's failed
+	 */
 	public abstract String addVod(VoD vod);
 
 	/**
@@ -593,8 +598,10 @@ public abstract class DataStore {
 	protected void handleConnectionEvent(Subscriber subscriber, ConnectionEvent event) {
 		if(ConnectionEvent.CONNECTED_EVENT.equals(event.getEventType())) {
 			subscriber.setConnected(true);
+			subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()+1);
 		} else if(ConnectionEvent.DISCONNECTED_EVENT.equals(event.getEventType())) {
 			subscriber.setConnected(false);
+			subscriber.setCurrentConcurrentConnections(subscriber.getCurrentConcurrentConnections()-1);
 		}
 		subscriber.getStats().addConnectionEvent(event);
 	}	
@@ -929,6 +936,10 @@ public abstract class DataStore {
 		}
 		if (newBroadcast.getListenerHookURL() != null && !newBroadcast.getListenerHookURL().isEmpty()) {
 			broadcast.setListenerHookURL(newBroadcast.getListenerHookURL());
+		}
+
+		if (newBroadcast.getMetaData() != null) {
+			broadcast.setMetaData(newBroadcast.getMetaData());
 		}
 
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());

@@ -329,6 +329,16 @@ public class AppSettings implements Serializable{
 	private static final String SETTINGS_RTMP_PLAYBACK_ENABLED = "settings.rtmpPlaybackEnabled";
 
 	private static final String SETTINGS_ORIGIN_EDGE_CONNECTION_IDLE_TIMEOUT = "settings.originEdgeIdleTimeout";
+	
+	public static final String SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME = "settings.addDateTimeToHlsFileName";
+
+	public static final String SETTINGS_PLAY_WEBRTC_STREAM_ONCE_FOR_EACH_SESSION = "settings.playWebRTCStreamOnceForEachSession";
+
+	private static final String SETTINGS_STATS_BASED_ABR_ALGORITHM_ENABLED = "settings.statsBasedABREnabled";
+	private static final String SETTINGS_ABR_DOWN_SCALE_PACKET_LOST_RATIO = "settings.abrDownScalePacketLostRatio";
+	private static final String SETTINGS_ABR_UP_SCALE_PACKET_LOST_RATIO = "settings.abrUpScalePacketLostRatio";
+	private static final String SETTINGS_ABR_UP_SCALE_RTT_MS = "settings.abrUpScaleRTTMs";
+	private static final String SETTINGS_ABR_UP_SCALE_JITTER_MS = "settings.abrUpScaleJitterMs";
 
 
 	/**
@@ -710,7 +720,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * Stream fetchers are started automatically if it is set true
 	 */
-	@Value( "${"+SETTINGS_STREAM_FETCHER_AUTO_START+":true}" )
+	@Value( "${"+SETTINGS_STREAM_FETCHER_AUTO_START+":false}" )
 	private boolean startStreamFetcherAutomatically;
 
 	/**
@@ -1536,11 +1546,56 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${"+SETTINGS_ORIGIN_EDGE_CONNECTION_IDLE_TIMEOUT+":2}" )
 	private int originEdgeIdleTimeout = 2;
-
 	
+	/**
+	 * It's mandatory, Date and time are added to created .m3u8 and .ts file name, Default value is false
+	 */
+	@Value( "${"+SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME+":false}" )
+	private boolean addDateTimeToHlsFileName;
+
+	/**
+	 * This setting prevents playing stream id more than once in the same websocket/webrtc session. 
+	 * If it is true, trying to play stream id more than once in the same websocket session will produce 'already playing' error
+	 * Default value is true.
+	 * It uses session id to match subscriber
+	 */
+	@Value( "${"+SETTINGS_PLAY_WEBRTC_STREAM_ONCE_FOR_EACH_SESSION+":true}" )
+	private boolean playWebRTCStreamOnceForEachSession = true;
+
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
 	}
+
+
+	/**
+	 * Enables the WebRTC statistics based Adaptive Bitrate switch algorithm
+	 */
+	@Value( "${"+SETTINGS_STATS_BASED_ABR_ALGORITHM_ENABLED+":true}" )
+	private boolean statsBasedABREnabled = true;
+
+	/**
+	 * Packet lost percentage to decide serving video with lower resolution
+	 */
+	@Value( "${"+SETTINGS_ABR_DOWN_SCALE_PACKET_LOST_RATIO+":1}" )
+	private float abrDownScalePacketLostRatio = 1;
+
+	/**
+	 * Packet lost percentage to decide serving video with higher resolution
+	 */
+	@Value( "${"+SETTINGS_ABR_UP_SCALE_PACKET_LOST_RATIO+":0.1}" )
+	private float abrUpScalePacketLostRatio = 0.1f;
+
+	/**
+	 * Round trip time in ms to decide serving video with higher resolution
+	 */
+	@Value( "${"+SETTINGS_ABR_UP_SCALE_RTT_MS+":150}" )
+	private int abrUpScaleRTTMs = 150;
+
+	/**
+	 * Jitter in ms to decide serving video with higher resolution
+	 */
+	@Value( "${"+SETTINGS_ABR_UP_SCALE_JITTER_MS+":30}" )
+	private int abrUpScaleJitterMs = 30;
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -2915,4 +2970,61 @@ public class AppSettings implements Serializable{
 	public void setOriginEdgeIdleTimeout(int originEdgeIdleTimeout) {
 		this.originEdgeIdleTimeout = originEdgeIdleTimeout;
 	}
+	
+	public boolean isAddDateTimeToHlsFileName() {
+		return addDateTimeToHlsFileName;
+	}
+
+	public void setAddDateTimeToHlsFileName(boolean addDateTimeToHlsFileName) {
+		this.addDateTimeToHlsFileName = addDateTimeToHlsFileName;
+	}
+
+	public boolean isPlayWebRTCStreamOnceForEachSession() {
+		return playWebRTCStreamOnceForEachSession;
+	}
+
+	public void setPlayWebRTCStreamOnceForEachSession(boolean playWebRTCStreamOnceForEachSession) {
+		this.playWebRTCStreamOnceForEachSession = playWebRTCStreamOnceForEachSession;
+	}
+
+	public boolean isStatsBasedABREnabled() {
+		return statsBasedABREnabled;
+	}
+
+	public void setStatsBasedABREnabled(boolean statsBasedABREnabled) {
+		this.statsBasedABREnabled = statsBasedABREnabled;
+	}
+
+	public float getAbrDownScalePacketLostRatio() {
+		return abrDownScalePacketLostRatio;
+	}
+
+	public void setAbrDownScalePacketLostRatio(float abrDownScalePacketLostRatio) {
+		this.abrDownScalePacketLostRatio = abrDownScalePacketLostRatio;
+	}
+
+	public float getAbrUpScalePacketLostRatio() {
+		return abrUpScalePacketLostRatio;
+	}
+
+	public void setAbrUpScalePacketLostRatio(float abrUpScalePacketLostRatio) {
+		this.abrUpScalePacketLostRatio = abrUpScalePacketLostRatio;
+	}
+
+	public int getAbrUpScaleRTTMs() {
+		return abrUpScaleRTTMs;
+	}
+
+	public void setAbrUpScaleRTTMs(int abrUpScaleRTTMs) {
+		this.abrUpScaleRTTMs = abrUpScaleRTTMs;
+	}
+
+	public int getAbrUpScaleJitterMs() {
+		return abrUpScaleJitterMs;
+	}
+
+	public void setAbrUpScaleJitterMs(int abrUpScaleJitterMs) {
+		this.abrUpScaleJitterMs = abrUpScaleJitterMs;
+	}
+
 }

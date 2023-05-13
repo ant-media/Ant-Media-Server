@@ -235,8 +235,13 @@ public class StreamService implements IStreamService {
                     ((BaseConnection) conn).unregisterBasicScope(bsScope);
                 }
             }
+            log.info("deleteStream with internal id:{} is closing", streamId);
             stream.close();
         }
+        else {
+        	log.info("deleteStream with internal id:{} is null so it's not closed", streamId);
+        }
+        
         conn.unreserveStreamId(streamId);
     }
 

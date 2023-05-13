@@ -782,6 +782,7 @@ public class InMemoryDataStore extends DataStore {
 		for(Subscriber subscriber: subscriberMap.values()) {
 			if (subscriber != null) {
 				subscriber.setConnected(false);
+				subscriber.setCurrentConcurrentConnections(0);
 			}
 		}
 		return true;
@@ -926,15 +927,18 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public boolean addSubTrack(String mainTrackId, String subTrackId) {
-		boolean result = true;
+		boolean result = false;
 		Broadcast mainTrack = broadcastMap.get(mainTrackId);
-		List<String> subTracks = mainTrack.getSubTrackStreamIds();
-		if (subTracks == null) {
-			subTracks = new ArrayList<>();
+		if (mainTrack != null && subTrackId != null) {
+			List<String> subTracks = mainTrack.getSubTrackStreamIds();
+			if (subTracks == null) {
+				subTracks = new ArrayList<>();
+			}
+			subTracks.add(subTrackId);
+			mainTrack.setSubTrackStreamIds(subTracks);
+			broadcastMap.put(mainTrackId, mainTrack);
+			result = true;
 		}
-		subTracks.add(subTrackId);
-		mainTrack.setSubTrackStreamIds(subTracks);
-		broadcastMap.put(mainTrackId, mainTrack);
 		return result;
 	}
   
