@@ -444,11 +444,11 @@ $SUDO sed -i "/server.name=/c\server.name=$domain"  "$INSTALL_DIRECTORY/conf/red
 #restore iptables redirect rule
 ipt_restore
 
-if [ -x "$(command -v systemctl)" ]; then
-  echo ""
-  $SUDO service antmedia restart
-  output
-fi
+echo ""
+
+$SUDO service antmedia restart
+
+output
 
 echo "SSL certificate is installed."
 echo "Https port: 5443"
