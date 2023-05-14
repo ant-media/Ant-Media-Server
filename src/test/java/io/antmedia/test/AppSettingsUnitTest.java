@@ -268,7 +268,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testEncoderSettingsAtStartUp() {
 		AppSettings appSettings = new AppSettings();
 		String encSettings = "480,500000,96000,240,300000,64000";
-		assertNull(appSettings.getEncoderSettings());
+		assertEquals(0, appSettings.getEncoderSettings().size());
 		appSettings.setEncoderSettingsString(encSettings);
 		assertNotNull(appSettings.getEncoderSettings());
 		assertEquals(2, appSettings.getEncoderSettings().size());

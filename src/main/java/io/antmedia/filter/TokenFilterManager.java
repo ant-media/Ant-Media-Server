@@ -96,7 +96,8 @@ public class TokenFilterManager extends AbstractFilter   {
 			
 			if (jwtInternalCommunicationToken != null) 
 			{
-				//if jwtInternalCommunicationToken is not null, it means that this is the origin instance and receiving request from the edge node directly
+				//if jwtInternalCommunicationToken is not null, 
+				//it means that this is the origin instance and receiving request from the edge node directly
 				
 				boolean checkJwtToken = tokenServiceTmp.checkJwtToken(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
 				if (!checkJwtToken) 
