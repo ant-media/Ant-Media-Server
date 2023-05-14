@@ -26,6 +26,7 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
+import io.antmedia.rest.VoDRestService;
 
 /**
  * Application Settings for each application running in Ant Media Server.
@@ -658,6 +659,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * The path for manually saved used VoDs
 	 * Determines the directory to store VOD files.
+	 * @Deprecated use {@link VoDRestService#importVoDs(String)}
 	 */
 	@Value( "${"+SETTINGS_VOD_FOLDER+":}" )
 	private String vodFolder = "";
