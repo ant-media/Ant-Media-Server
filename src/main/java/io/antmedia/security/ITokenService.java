@@ -65,6 +65,16 @@ public interface ITokenService {
 	boolean checkJwtToken (String jwtTokenId, String streamId, String type);
 	
 	/**
+	 * Check the JWT token if it's valid. It accepts the secret key to check the validity;
+	 * @param jwtTokenId
+	 * @param tokenSecret
+	 * @param streamId
+	 * @param type
+	 * @return
+	 */
+	boolean checkJwtToken(String jwtTokenId, String tokenSecret, String streamId, String type);
+	
+	/**
 	 * creates token according to the provided parameters
 	 * @param streamId - id of the requested stream for token creation
 	 * @param exprireDate - expire date of the token

@@ -1,9 +1,9 @@
 package io.antmedia.test.security;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -39,8 +39,6 @@ import com.amazonaws.util.Base32;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.filter.TokenFilterManager;
-import io.antmedia.filter.TokenGenerator;
-import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.security.ITokenService;
 import io.antmedia.security.TOTPGenerator;
 
@@ -325,7 +323,7 @@ public class TokenFilterTest {
 	}	
 	
 	@Test
-	public void testTokenGenerator() {
+	public void testClusterCommunication() {
 		
 		FilterConfig filterconfig = mock(FilterConfig.class);
 		ServletContext servletContext = mock(ServletContext.class);
@@ -336,13 +334,12 @@ public class TokenFilterTest {
 		AppSettings settings = mock(AppSettings.class);
 		settings.resetDefaults();
 		settings.setPlayTokenControlEnabled(true);
+		when(settings.isPlayTokenControlEnabled()).thenReturn(true);
+		when(settings.getClusterCommunicationKey()).thenReturn(RandomStringUtils.randomAlphabetic(10));
 
-		TokenGenerator tokenGenerator = new TokenGenerator();
 		
-		when(context.getBean("token.service")).thenReturn(tokenService);
+		
 		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
-		when(context.containsBean(TokenGenerator.BEAN_NAME)).thenReturn(true);
-		when(context.getBean(TokenGenerator.BEAN_NAME)).thenReturn(tokenGenerator);
 
 		
 		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
@@ -368,18 +365,45 @@ public class TokenFilterTest {
 			when(mockRequest.getRemoteAddr()).thenReturn(clientIP);
 			
 			when(mockRequest.getParameter("token")).thenReturn(tokenId);
-			when(mockRequest.getAttribute("ClusterToken")).thenReturn(tokenGenerator.getGenetaredToken());
-			
-			
+						
 			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
 			
 			when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
 
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
+			verify(mockResponse).sendError(HttpServletResponse.SC_FORBIDDEN, TokenFilterManager.NOT_INITIALIZED);
+
+			
+			when(context.getBean("token.service")).thenReturn(tokenService);
+			
+			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
+
+			//isPlayTokenControlEnabled should be called because there is no header TOKEN_HEADER_FOR_NODE_COMMUNICATION for internal communication
+			verify(settings, times(1)).isPlayTokenControlEnabled();
+			verify(mockResponse).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Token for streamId:" + streamId);
+			verify(mockChain, never()).doFilter(mockRequest, mockResponse);
 			
 			
-			verify(settings).isPlayTokenControlEnabled();
+			when(mockRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION)).thenReturn(RandomStringUtils.randomAlphanumeric(32));
+			when(tokenService.checkJwtToken(anyString(), anyString(), anyString(), anyString())).thenReturn(true);
+			
+			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
+			//play token should not be called again because there is header(TOKEN_HEADER_FOR_NODE_COMMUNICATION) and token service returns true so it just bypass 
+			verify(settings, times(1)).isPlayTokenControlEnabled();
+			verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
+			
+
+			
+			when(tokenService.checkJwtToken(anyString(), anyString(), anyString(), anyString())).thenReturn(false);
+			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
+			//it should not be called again because there is TOKEN_HEADER_FOR_NODE_COMMUNICATION header and it is not valid 
+			verify(settings, times(1)).isPlayTokenControlEnabled();
+			//it should not be called again because there is TOKEN_HEADER_FOR_NODE_COMMUNICATION header and it is not valid 
+			verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
+			verify(mockResponse).sendError(HttpServletResponse.SC_FORBIDDEN, "Cluster communication token is not valid for streamId:" + streamId);
+
+			
 			
 		} catch (ServletException|IOException e) {
 			e.printStackTrace();
