@@ -446,11 +446,7 @@ ipt_restore
 
 echo ""
 
-$SUDO service antmedia stop
-
-output
-
-$SUDO service antmedia start
+$SUDO service antmedia restart
 
 output
 
