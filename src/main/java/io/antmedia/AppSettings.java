@@ -1316,7 +1316,7 @@ public class AppSettings implements Serializable{
 	private int webRTCKeyframeTime=2000;
 
 	/**
-	 * Application JWT stream secret key
+	 * Application JWT stream secret key. Provide 32 character or more in length
 	 */
 	@Value( "${"+SETTINGS_JWT_STREAM_SECRET_KEY+":#{null}}" )
 	private String jwtStreamSecretKey;

@@ -116,7 +116,7 @@ public class TokenFilterManager extends AbstractFilter   {
 				if ((appSettings.isTimeTokenSubscriberOnly() || appSettings.isEnableTimeTokenForPlay()) && 
 						!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Time Based subscriber id or code is invalid");
-					logger.warn("subscriber request for subscriberIDor subscriberCode is not valid for streamId: {}", streamId);
+					logger.warn("subscriber request for subscriberID or subscriberCode is not valid for streamId: {}", streamId);
 					return; 					
 				}
 
