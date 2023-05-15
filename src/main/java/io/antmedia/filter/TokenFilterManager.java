@@ -83,6 +83,11 @@ public class TokenFilterManager extends AbstractFilter   {
 
 		if (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) 
 		{
+			if (streamId == null) {
+				logger.warn("No streamId found in the request: {}", httpRequest.getRequestURI());
+				return ;
+			}
+			
 			ITokenService tokenServiceTmp = getTokenService();
 
 			if (tokenServiceTmp == null) {
@@ -99,7 +104,7 @@ public class TokenFilterManager extends AbstractFilter   {
 				//if jwtInternalCommunicationToken is not null, 
 				//it means that this is the origin instance and receiving request from the edge node directly
 				
-				boolean checkJwtToken = tokenServiceTmp.checkJwtToken(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
+				boolean checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
 				if (!checkJwtToken) 
 				{
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Cluster communication token is not valid for streamId:" + streamId);
@@ -132,7 +137,7 @@ public class TokenFilterManager extends AbstractFilter   {
 					return; 
 				}
 
-				if (appSettings.isPlayJwtControlEnabled() && !tokenServiceTmp.checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN)) {
+				if (appSettings.isPlayJwtControlEnabled() && !tokenServiceTmp.checkJwtToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid JWT Token");
 					logger.warn("JWT token is not valid");
 					return; 
