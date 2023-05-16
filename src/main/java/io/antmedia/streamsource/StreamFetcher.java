@@ -684,6 +684,8 @@ public class StreamFetcher {
 		return ((System.currentTimeMillis() - lastPacketReceivedTime) < PACKET_RECEIVED_INTERVAL_TIMEOUT);
 	}
 
+	//TODO: why we're using isInterruped here? It may not give correct value about the status of the stream
+	//@mekya
 	public boolean isStopped() {
 		return thread.isInterrupted();
 	}
