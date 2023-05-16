@@ -386,7 +386,7 @@ public class TokenFilterTest {
 			
 			
 			when(mockRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION)).thenReturn(RandomStringUtils.randomAlphanumeric(32));
-			when(tokenService.checkJwtToken(anyString(), anyString(), anyString(), anyString())).thenReturn(true);
+			when(tokenService.isJwtTokenValid(anyString(), anyString(), anyString(), anyString())).thenReturn(true);
 			
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			//play token should not be called again because there is header(TOKEN_HEADER_FOR_NODE_COMMUNICATION) and token service returns true so it just bypass 
@@ -395,7 +395,7 @@ public class TokenFilterTest {
 			
 
 			
-			when(tokenService.checkJwtToken(anyString(), anyString(), anyString(), anyString())).thenReturn(false);
+			when(tokenService.isJwtTokenValid(anyString(), anyString(), anyString(), anyString())).thenReturn(false);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			//it should not be called again because there is TOKEN_HEADER_FOR_NODE_COMMUNICATION header and it is not valid 
 			verify(settings, times(1)).isPlayTokenControlEnabled();
