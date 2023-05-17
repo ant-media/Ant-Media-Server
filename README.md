@@ -3,32 +3,32 @@
 </div>
 
 <div align='center'>
-   <a href="https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server">
+   <a href="https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server" target="_blank">
     <img src="https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server/badge.svg"/>
    </a>
-   <a href="https://sonarcloud.io/dashboard?id=io.antmedia%3Aant-media-server">
+   <a href="https://sonarcloud.io/dashboard?id=io.antmedia%3Aant-media-server" target="_blank">
     <img src="https://sonarcloud.io/api/project_badges/measure?project=io.antmedia%3Aant-media-server&metric=alert_status"/>
    </a>
-   <a href="https://in.linkedin.com/company/antmedia">
-    <img src="https://img.shields.io/badge/LinkedIn-0077B5?style=social"/>
+   <a href="https://linkedin.com/company/antmedia" target="_blank">
+    <img alt="Follow Us on LinkedIn" src="https://img.shields.io/badge/LinkedIn-Follow-black?style=social&logo=linkedin"/>
    </a>
-   <a href="https://twitter.com/antmedia_io">
-    <img src="https://img.shields.io/twitter/follow/antmedia_io?style=social"/>
+   <a href="https://twitter.com/antmedia_io" target="_blank">
+    <img alt="Follow Us on Twitter" src="https://img.shields.io/twitter/follow/antmedia_io?style=social"/>
    </a>
-   <a href="https://travis-ci.org/ant-media/Ant-Media-Server">
-    <img src="https://travis-ci.org/ant-media/Ant-Media-Server.svg?branch=master"/>
-   </a>
-   <a href="https://github.com/ant-media/Ant-Media-Server/blob/master/COMMUNITY_EDITION_LICENSE">
-    <img src="https://img.shields.io/badge/license-Apache-blue"/>
+   <a href="https://www.youtube.com/c/AntMediaServer">
+    <img alt="Subscribe on our Youtube Channel" src="https://img.shields.io/youtube/channel/subscribers/UChT5CVgvLj0lGyzpHLvMOUw?style=social" />
+    </a>
+   <a href="https://github.com/ant-media/Ant-Media-Server">
+    <img alt="GitHub Repository Stars Count" src="https://img.shields.io/github/stars/ant-media/Ant-Media-Server?style=social" />
+  </a>
+   <a href="https://www.g2.com/products/ant-media-server-ant-media-server/reviews" target="_blank">
+    <img alt="Review your experience on G2" src="https://img.shields.io/badge/Leader-G2%20Reviews-red?style=social"/>
    </a>
 </div>
-
-<div align="center">
 <br />
-
-<strong>Experience: <a href="https://antmedia.io/webrtc-samples?utm_source=github&utm_medium=readme&utm_campaign=ams">WebRTC Samples</a> developed with Ant Media Server</strong>
+<div align="center">
+<strong>Experience: <a href="https://antmedia.io/webrtc-samples?utm_source=github&utm_medium=readme&utm_campaign=ams">WebRTC Samples</a> | Developed with Ant Media Server</strong>
 </div>
-
 
 ## Introduction
 
@@ -81,14 +81,9 @@ Ant Media server is available on your favorite cloud platforms; with 1-Click app
 
 ## 📄 Documentation
 
-Our [documentation](https://antmedia.io/docs) is comprehensive. It will help you get the most out of Ant Media Server, whether integrating our platform into your project or setting up a live server for your startup or business. Our documentation includes the following:
+Ant Media Server offers comprehensive documentation, including [Quick Start Guide](https://antmedia.io/docs/quick-start/), [API documentation](https://antmedia.io/docs/category/rest-api-guide/), [SDK Reference Guide](https://antmedia.io/docs/sdk-reference/), and [advanced use-cases](https://antmedia.io/docs/category/advanced-usage/) and many tutorials such as creating [application](https://antmedia.io/docs/guides/advanced-usage/create-new-application/), [plugin structure](https://antmedia.io/docs/guides/advanced-usage/introduction-plugin-structure/) or leverging [hardware-based encoder](https://antmedia.io/docs/guides/advanced-usage/using-nvidia-hardware-based-encoder-on-docker/).
 
-- [Quick Start](https://antmedia.io/docs/quick-start/) guides to get you up and running quickly.
-- [API documentation](https://antmedia.io/docs/category/rest-api-guide/) and [SDK Reference Guide](https://antmedia.io/docs/sdk-reference/) for developers.
-- Tutorials on [advanced use-cases](https://antmedia.io/docs/category/advanced-usage/), such as creating [application](https://antmedia.io/docs/guides/advanced-usage/create-new-application/), [plugin structure](https://antmedia.io/docs/guides/advanced-usage/introduction-plugin-structure/) or leverging [hardware-based encoder](https://antmedia.io/docs/guides/advanced-usage/using-nvidia-hardware-based-encoder-on-docker/). 
-- And much more!
-
-> 📝 We've created extensive documentation to help you succeed. However, as Ant Media Server evolves and grows, so must our documentation. We need your help to ensure that it remains up-to-date and accurate, reflecting the latest developments and changes in AMS. Please review our documentation and [contribute](https://github.com/ant-media/ant-media-documentation/) any updates or corrections you may have.
+Your contribution is greatly appreciated in keeping our [documentation](https://github.com/ant-media/ant-media-documentation/) updated. Kindly review and provide any updates or corrections you may have.
  
 ## 📫 Support
 
