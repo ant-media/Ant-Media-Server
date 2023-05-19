@@ -36,7 +36,7 @@ import io.antmedia.EncoderSettings;
 import io.antmedia.rest.RestServiceBase;
 
 @ContextConfiguration(locations = { "test.xml" })
-@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 	
@@ -97,7 +97,6 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setRtmpPlaybackEnabled(true);
 		assertEquals(true, appSettings.isRtmpPlaybackEnabled());
 		appSettings.setRtmpPlaybackEnabled(false);
-		
 		
 	}
 
@@ -269,7 +268,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testEncoderSettingsAtStartUp() {
 		AppSettings appSettings = new AppSettings();
 		String encSettings = "480,500000,96000,240,300000,64000";
-		assertNull(appSettings.getEncoderSettings());
+		assertEquals(0, appSettings.getEncoderSettings().size());
 		appSettings.setEncoderSettingsString(encSettings);
 		assertNotNull(appSettings.getEncoderSettings());
 		assertEquals(2, appSettings.getEncoderSettings().size());
@@ -308,8 +307,17 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 	
 	
 	@Test
-	public void testUnsetAppSettings() {
-		AppSettings appSettings = new AppSettings();
+	public void testDefaultAppSettings() {
+		testUnsetAppSettings(new AppSettings());
+	}
+	
+	@Test
+	public void testBeanAppSettings() {
+		testUnsetAppSettings((AppSettings) applicationContext.getBean("app.settings"));
+	}
+	
+	
+	public void testUnsetAppSettings(AppSettings appSettings) {
 		
 		Field[] declaredFields = appSettings.getClass().getDeclaredFields();
 		
@@ -339,24 +347,24 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		assertEquals(4, appSettings.getExcessiveBandwithTryCountBeforeSwitchback());
 		assertEquals(20, appSettings.getRttMeasurementDiffThresholdForSwitchback());
-		assertEquals(false, appSettings.isWriteStatsToDatastore());
+		assertEquals(true, appSettings.isWriteStatsToDatastore());
 		assertEquals(false, appSettings.isDashMuxingEnabled());
-		assertEquals(null, appSettings.getListenerHookURL());
+		assertEquals("", appSettings.getListenerHookURL());
 		assertEquals(false, appSettings.isObjectDetectionEnabled());
-		assertEquals(null, appSettings.getVodFolder());
+		assertEquals("", appSettings.getVodFolder());
 		assertEquals(false, appSettings.isPreviewOverwrite());
-		assertEquals(null, appSettings.getStalkerDBServer());
-		assertEquals(null, appSettings.getStalkerDBUsername());
-		assertEquals(null, appSettings.getStalkerDBPassword());
+		assertEquals("", appSettings.getStalkerDBServer());
+		assertEquals("", appSettings.getStalkerDBUsername());
+		assertEquals("", appSettings.getStalkerDBPassword());
 		assertEquals(0, appSettings.getStreamFetcherBufferTime());
 		assertEquals("delete_segments", appSettings.getHlsflags());
 		assertEquals("/usr/local/antmedia/mysql", appSettings.getMySqlClientPath());
 		assertEquals(false, appSettings.isPlayTokenControlEnabled());
 		assertEquals(false, appSettings.isTimeTokenSubscriberOnly());
 		assertEquals(false, appSettings.isEnableTimeTokenForPlay());
-		assertEquals(null, appSettings.getMuxerFinishScript());
+		assertEquals("", appSettings.getMuxerFinishScript());
 		assertEquals(30, appSettings.getWebRTCFrameRate());
-		assertEquals(null, appSettings.getTokenHashSecret());
+		assertEquals("", appSettings.getTokenHashSecret());
 		assertEquals(false, appSettings.isHashControlPlayEnabled());
 		assertEquals(0, appSettings.getWebRTCPortRangeMax());
 		assertEquals(0, appSettings.getWebRTCPortRangeMin());
@@ -371,8 +379,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(0, appSettings.getUpdateTime());
 		assertEquals(5000, appSettings.getEncodingTimeout());
 		assertEquals(false, appSettings.isDefaultDecodersEnabled());
-		assertEquals(null, appSettings.getHttpForwardingExtension());
-		assertEquals(null, appSettings.getHttpForwardingBaseURL());
+		assertEquals("", appSettings.getHttpForwardingExtension());
+		assertEquals("", appSettings.getHttpForwardingBaseURL());
 		assertEquals(1500, appSettings.getMaxAnalyzeDurationMS());
 		assertEquals(false, appSettings.isGeneratePreview());
 		assertEquals(true, appSettings.isDisableIPv6Candidates());
@@ -421,8 +429,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(null, appSettings.getS3Endpoint());
 		assertEquals(false, appSettings.isForceDecoding());
 		assertEquals(true, appSettings.isAddOriginalMuxerIntoHLSPlaylist());
-		assertEquals(null, appSettings.getWebhookAuthenticateURL());
-		assertEquals(null, appSettings.getVodFinishScript());
+		assertEquals("", appSettings.getWebhookAuthenticateURL());
+		assertEquals("", appSettings.getVodFinishScript());
 		assertEquals("%r%b", appSettings.getFileNameFormat());
 		assertEquals(false, appSettings.isSignalingEnabled());
 		assertEquals(null, appSettings.getSignalingAddress());
@@ -431,9 +439,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true, appSettings.isHlsMuxingEnabled());
 		assertEquals(true, appSettings.isWebRTCEnabled());
 		assertEquals(true, appSettings.isDeleteHLSFilesOnEnded());
-		assertEquals(null, appSettings.getHlsListSize());
+		assertEquals("5", appSettings.getHlsListSize());
 		assertEquals(null, appSettings.getHlsPlayListType());
-		assertEquals(null, appSettings.getEncoderSettings());
+		assertEquals(0, appSettings.getEncoderSettings().size());
 		assertEquals(7, appSettings.getUploadExtensionsToS3());
 		assertEquals("STANDARD", appSettings.getS3StorageClass());
 		assertEquals(3, appSettings.getEndpointRepublishLimit());
@@ -453,7 +461,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("public-read", appSettings.getS3Permission());
 		assertEquals("127.0.0.1", appSettings.getRemoteAllowedCIDR());
 		assertEquals(false, appSettings.isWebMMuxingEnabled());
-		assertEquals(null, appSettings.getEncoderSettingsString());
+		assertEquals("", appSettings.getEncoderSettingsString());
 		assertEquals("127.0.0.1", appSettings.getAllowedCIDRList().poll().toString());
 		assertEquals(false, appSettings.isUseOriginalWebRTCEnabled());
 		assertEquals(5000, appSettings.getCreatePreviewPeriod());
@@ -461,7 +469,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(null, appSettings.getEncoderName());
 		assertEquals(480, appSettings.getPreviewHeight());
 		assertEquals(null, appSettings.getHlsTime());
-		assertEquals(null, appSettings.getAppName());
+		assertEquals("", appSettings.getAppName());
 		assertEquals(0, appSettings.getGopSize());
 		assertEquals(null, appSettings.getJwksURL());
 		assertEquals(false, appSettings.isWebRTCTcpCandidatesEnabled());
@@ -500,7 +508,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(0.1, appSettings.getAbrUpScalePacketLostRatio(), 0.0001);
 		assertEquals(30, appSettings.getAbrUpScaleJitterMs(), 0.0001);
 		assertEquals(150, appSettings.getAbrUpScaleRTTMs(), 0.0001);
-
+		assertNotNull(appSettings.getClusterCommunicationKey());
 
 
 
@@ -508,7 +516,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					163, numberOfFields);
+					164, numberOfFields);
 		
 	}
 

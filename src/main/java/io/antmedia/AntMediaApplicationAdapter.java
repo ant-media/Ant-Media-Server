@@ -1573,6 +1573,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		store.put(AppSettings.SETTINGS_DASH_SEG_DURATION, newAppsettings.getDashSegDuration() != null ? newAppsettings.getDashSegDuration() : "6");
 
 		store.put(AppSettings.SETTINGS_HLS_FLAGS, newAppsettings.getHlsflags() != null ? newAppsettings.getHlsflags() : "");
+		
+		store.put(AppSettings.SETTINGS_CLUSTER_COMMUNICATION_KEY, newAppsettings.getClusterCommunicationKey() != null ? newAppsettings.getClusterCommunicationKey() : "");
 
 		return store.save();
 	}
