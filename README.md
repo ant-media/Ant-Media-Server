@@ -1,6 +1,4 @@
-<div align='center'>
-   <img src="https://user-images.githubusercontent.com/54481799/95862105-16cb0e00-0d6b-11eb-9087-88888889825d.png" height="60">
-</div>
+
 
 <div align='center'>
    <a href="https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server" target="_blank">
@@ -34,8 +32,8 @@ Are you ready to revolutionize your live video streaming experience? Look no fur
 TL;DR
 
 - <a href="https://antmedia.io/webrtc-samples?utm_source=github&utm_medium=readme&utm_campaign=ams">Try WebRTC Demos</a>
-- <a href="https://www.g2.com/products/ant-media-server-ant-media-server/reviews" target="_blank">Read User reviews on G2</a>
-- <a href="https://aws.amazon.com/marketplace/pp/prodview-464ritgzkzod6">Free Enterprise Trial in AWS - Ready in minutes</a>
+- <a href="https://www.g2.com/products/ant-media-server-ant-media-server/reviews" target="_blank">Discover the reviews on G2</a>
+- <a href="https://aws.amazon.com/marketplace/pp/prodview-464ritgzkzod6">AWS Free Trial: Start now!</a>
 
 ## Why Choose Ant Media Server?
 
@@ -57,32 +55,13 @@ Ready to embark on your streaming journey? Here's what you need to do:
 4. **[Download and Install](https://github.com/ant-media/Ant-Media-Server/releases):** Get your hands on Ant Media Server Community by downloading the latest release from our GitHub repository. Follow the installation guide to set up your streaming environment effortlessly.
 5. **[Upgrade to Enterprise Edition](https://https://antmedia.io/free-trial/):** Unlock premium features and dedicated support by upgrading to our Enterprise Edition. Contact our sales team to discuss your requirements and get started.
 6. **[Spread the Word](https://www.g2.com/products/ant-media-server-ant-media-server/reviews):** Help us grow the Ant Media Server community! Share your positive experiences on G2 and other platforms, follow us on social media, and encourage others to join the revolution!
-<div align='center'>
- 
-
-   <a href="https://linkedin.com/company/antmedia" target="_blank">
-    <img alt="Follow Us on LinkedIn" src="https://img.shields.io/badge/LinkedIn-Follow-black?style=social&logo=linkedin"/>
-   </a>
-   <a href="https://twitter.com/antmedia_io" target="_blank">
-    <img alt="Follow Us on Twitter" src="https://img.shields.io/twitter/follow/antmedia_io?style=social"/>
-   </a>
-   <a href="https://www.youtube.com/c/AntMediaServer">
-    <img alt="Subscribe on our Youtube Channel" src="https://img.shields.io/youtube/channel/subscribers/UChT5CVgvLj0lGyzpHLvMOUw?style=social" />
-    </a>
-   <a href="https://github.com/ant-media/Ant-Media-Server">
-    <img alt="GitHub Repository Stars Count" src="https://img.shields.io/github/stars/ant-media/Ant-Media-Server?style=social" />
-  </a>
-   <a href="https://www.g2.com/products/ant-media-server-ant-media-server/reviews" target="_blank">
-    <img alt="Review your experience on G2" src="https://img.shields.io/badge/Leader-G2%20Reviews-red?style=social"/>
-   </a>
-</div>
 
 At Ant Media Server, we're passionate about delivering cutting-edge streaming solutions that empower businesses and individuals worldwide. Join us today and unleash the full potential of live video streaming!
 
 
-## 🚀 How to Get/Deploy Ant Media Server
+## 🚀 Seamless Ant Media Server Deployment: Effortless & Trustworthy
 
-Ant Media server is available on your favorite cloud platforms; with 1-Click apps, cloud marketplaces, or deployment through Docker/Kubernetes/Scripts allows you to deploy and automate common setup steps to get your application running seamlessly. Discover how easily you can try and deploy Ant Media Server by exploring the following quick launches:
+Deploy Ant Media Server seamlessly on your favorite cloud platforms with 1-Click apps, cloud marketplaces, or Docker/Kubernetes/Scripts. Get started quickly and effortlessly with our streamlined deployment options.
 
 
 | Cloud Provider  | Community Edition | Enterprise Edition  |
@@ -97,23 +76,16 @@ Ant Media server is available on your favorite cloud platforms; with 1-Click app
 | Cluster  | [Cluster installation](https://antmedia.io/docs/guides/clustering-and-scaling/cluster-installation/)  | [Multi Level Cluster](https://antmedia.io/docs/guides/clustering-and-scaling/multi-level-cluster/)  |
 | Kubernetes  | [Deploy on Kubernetes](https://antmedia.io/docs/guides/clustering-and-scaling/kubernetes/deploy-ams-on-kubernetes/)  | [Kubernetes Autoscaling](https://antmedia.io/docs/guides/clustering-and-scaling/kubernetes/kubernetes-autoscaling/)  |
  
-> 📌 We offer a [free trial](https://antmedia.io/free-trial/) so that you can explore the advantages of Ant Media Enterprise Edition. So why wait? [Request your free trial today](https://antmedia.io/self-hosted-free-trial/) and take your streaming capabilities to the next level with ultra-low latency!
+
+[Discover the Power of Ant Media: Start Your Free Trial Today!](https://antmedia.io/free-trial/))
 
 
- 
-## 📫 Support
+## Unleash Your Streaming Potential with Ant Media's Exceptional Support!
 
-Ant Media offers two support options: Community Edition (via [GitHub Discussions](https://github.com/orgs/ant-media/discussions)) and Enterprise Edition (priority email support). We encourage you to explore our [support packages](https://antmedia.io/support-packages/) and take advantage of the resources available to you. No matter which edition you use, we are committed to providing the best support experience to create exceptional streaming experiences for your users. For any general inquiries, kindly connect with us via [contact@antmedia.io](mailto:contact@antmedia.io)
+Whether you opt for our Community Edition, engaging with our active [GitHub Discussions community](https://github.com/orgs/ant-media/discussions), or our Enterprise Edition with email support. Explore our comprehensive [support packages](https://antmedia.io/support-packages/) and tap into the resources that will elevate your streaming experience. No matter the edition, our goal is to deliver exceptional support, empowering you to create remarkable streaming experiences. Need help or have inquiries? Contact us at [support@antmedia.io](mailto:support@antmedia.io). Let's embark on a seamless streaming journey together!
 
-## 🤝 Contributing
 
-We welcome community contributions to improve Ant Media Server. Show support by hitting the *GitHub Star* button and sharing your experience on LinkedIn, Twitter, Reddit, YouTube, and Telegram, as well as your developer circle, user groups, or local chapters. 
-
-You may write articles for Ant Media Server on Medium, Dev.to, or your blog. With your contribution, we can make Ant Media Server better for everyone!
-
-## 💡 More Information
-
-To learn more about Ant Media and our live video streaming platform, visit our official website at https://antmedia.io.
+[antmedia.io](https://antmedia.io)
 
 <div align='center'>
    <a href="https://antmedia.io"><img src="https://user-images.githubusercontent.com/54481799/95862105-16cb0e00-0d6b-11eb-9087-88888889825d.png" height="60"></a>
