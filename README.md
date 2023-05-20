@@ -26,40 +26,61 @@
    </a>
 </div>
 <br />
-<div align="center">
-<strong>Experience: <a href="https://antmedia.io/webrtc-samples?utm_source=github&utm_medium=readme&utm_campaign=ams">WebRTC Samples</a> | Developed with Ant Media Server</strong>
+
+# Welcome to Ant Media Server!
+
+Are you ready to revolutionize your live video streaming experience? Look no further! Ant Media Server is your ultimate solution for high-quality, ultra-low latency streaming. With over 2000 enterprises worldwide already relying on our platform, you can trust us to deliver outstanding performance and exceptional user experiences.
+
+TL;DR
+
+- <a href="https://antmedia.io/webrtc-samples?utm_source=github&utm_medium=readme&utm_campaign=ams">Try WebRTC Demos</a>
+- <a href="https://www.g2.com/products/ant-media-server-ant-media-server/reviews" target="_blank">Read User reviews on G2</a>
+- <a href="https://aws.amazon.com/marketplace/pp/prodview-464ritgzkzod6">Free Enterprise Trial in AWS - Ready in minutes</a>
+
+## Why Choose Ant Media Server?
+
+- **Scalable Real-time Streaming:** Experience sub-0.5 seconds latency and enjoy seamless live video streaming with Ant Media Server.
+- **Extensive Protocol Support:** Whether you need WebRTC, CMAF, HLS, RTMP, RTSP, SRT, Zixi, or more, Ant Media Server has got you covered.
+- **Easy Integration:** Our platform offers rich SDKs for iOS, Android, React Native, Flutter, Unity, and JavaScript, ensuring smooth integration with your existing infrastructure.
+- **Secure and Robust:** Rest assured that your streams are protected with advanced security features like SSL/TLS encryption, token authentication, IP filtering, and watermarking.
+- **Community and Enterprise Editions:** Choose the edition that suits your needs. Our Community Edition provides essential streaming functionality, while the Enterprise Edition offers advanced features and dedicated technical support.
+
+## Get Started with
+
+ Ant Media Server Today!
+
+Ready to embark on your streaming journey? Here's what you need to do:
+
+1. **[Explore our Documentation](https://antmedia.io/docs/quick-start/):** Dive into our comprehensive documentation to learn everything about Ant Media Server's features, installation guides, API references, and more.
+2. **[Join our Community](https://github.com/orgs/ant-media/discussions):** Engage with our vibrant community of developers, streaming enthusiasts, and experts on our forum. Share your ideas, get support, and stay updated with the latest developments.
+3. **<a href="https://antmedia.io/webrtc-samples?utm_source=github&utm_medium=readme&utm_campaign=ams">Try Demos</a>:** Curious to see Ant Media Server in action? Check out our live WebRTC samples to experience the power and performance firsthand.
+4. **[Download and Install](https://github.com/ant-media/Ant-Media-Server/releases):** Get your hands on Ant Media Server Community by downloading the latest release from our GitHub repository. Follow the installation guide to set up your streaming environment effortlessly.
+5. **[Upgrade to Enterprise Edition](https://https://antmedia.io/free-trial/):** Unlock premium features and dedicated support by upgrading to our Enterprise Edition. Contact our sales team to discuss your requirements and get started.
+6. **[Spread the Word](https://www.g2.com/products/ant-media-server-ant-media-server/reviews):** Help us grow the Ant Media Server community! Share your positive experiences on G2 and other platforms, follow us on social media, and encourage others to join the revolution!
+<div align='center'>
+ 
+
+   <a href="https://linkedin.com/company/antmedia" target="_blank">
+    <img alt="Follow Us on LinkedIn" src="https://img.shields.io/badge/LinkedIn-Follow-black?style=social&logo=linkedin"/>
+   </a>
+   <a href="https://twitter.com/antmedia_io" target="_blank">
+    <img alt="Follow Us on Twitter" src="https://img.shields.io/twitter/follow/antmedia_io?style=social"/>
+   </a>
+   <a href="https://www.youtube.com/c/AntMediaServer">
+    <img alt="Subscribe on our Youtube Channel" src="https://img.shields.io/youtube/channel/subscribers/UChT5CVgvLj0lGyzpHLvMOUw?style=social" />
+    </a>
+   <a href="https://github.com/ant-media/Ant-Media-Server">
+    <img alt="GitHub Repository Stars Count" src="https://img.shields.io/github/stars/ant-media/Ant-Media-Server?style=social" />
+  </a>
+   <a href="https://www.g2.com/products/ant-media-server-ant-media-server/reviews" target="_blank">
+    <img alt="Review your experience on G2" src="https://img.shields.io/badge/Leader-G2%20Reviews-red?style=social"/>
+   </a>
 </div>
 
-## Introduction
-
-Ant Media Server is a streaming engine software that provides adaptive, ultra-low latency streaming (less than 0.5 seconds with WebRTC and low latency using HLS or CMAF). 
-
-Ant Media Server enables businesses to build high-performing infrastructure for video streaming, which is simple and easy to deploy. It is robust and highly scalable horizontally and vertically, running on-premises or on any cloud provider you choose.
-
-## ⚡ Ant Media Server Features
-
-Ant Media Server has two editions with unique features for high-quality live and on-demand video streaming, i.e. Community Edition and Enterprise Edition.
-
-#### ⭐️ Community Edition
-
-The Community Edition is a free, open-source version of Ant Media Server. It provides basic live streaming functionality with adaptive bitrate, transcoding, and support for WebRTC, RTMP, RTSP ingest, MP4, and HLS playback support. It also offers recording and playback of live streams, simulcasting, and RESTful APIs for server management.
-
-#### ✨ Enterprise Edition
-
-Ant Media Server's Enterprise Edition has advanced streaming capabilities and enhanced security features for better scalability. Here are some of the key features:
-
-- **Sub-second Latency with WebRTC:** Ultra-low latency streaming using WebRTC technology with ~0.5 seconds latency.
-- **Cluster Mode:** Deploy multiple instances of Ant Media Server in a cluster to handle large-scale streaming traffic and provide high availability and failover support.
-- **WebRTC Data Channel:** Enable data transfer between clients in real-time using the WebRTC Data Channel.
-- **WebRTC Server-Side Recording:** Record WebRTC streams on the server side without the need for browser-based recording.
-- **Advanced Security:** Secure your streams with SSL/TLS encryption, token authentication, IP filtering, and watermarking.
-- **Rich SDKs:** iOS, Android, React Native, Flutter, Unity and Javascript SDKs.
-- **Professional Support:** Get access to dedicated technical support, training, and consulting services from the Ant Media team.
-
-Choose Enterprise Edition for reliable, secure, and advanced video streaming with top-notch technical support. Visit our [website](https://antmedia.io) or send us an [email](mailto:contact@antmedia.io) for Ant Media Server Enterprise Edition. We're always happy to help!
+At Ant Media Server, we're passionate about delivering cutting-edge streaming solutions that empower businesses and individuals worldwide. Join us today and unleash the full potential of live video streaming!
 
 
-## 🚀 Deploy Ant Media Server
+## 🚀 How to Get/Deploy Ant Media Server
 
 Ant Media server is available on your favorite cloud platforms; with 1-Click apps, cloud marketplaces, or deployment through Docker/Kubernetes/Scripts allows you to deploy and automate common setup steps to get your application running seamlessly. Discover how easily you can try and deploy Ant Media Server by exploring the following quick launches:
 
@@ -79,11 +100,6 @@ Ant Media server is available on your favorite cloud platforms; with 1-Click app
 > 📌 We offer a [free trial](https://antmedia.io/free-trial/) so that you can explore the advantages of Ant Media Enterprise Edition. So why wait? [Request your free trial today](https://antmedia.io/self-hosted-free-trial/) and take your streaming capabilities to the next level with ultra-low latency!
 
 
-## 📄 Documentation
-
-Ant Media Server offers comprehensive documentation, including [Quick Start Guide](https://antmedia.io/docs/quick-start/), [API documentation](https://antmedia.io/docs/category/rest-api-guide/), [SDK Reference Guide](https://antmedia.io/docs/sdk-reference/), and [advanced use-cases](https://antmedia.io/docs/category/advanced-usage/) and many tutorials such as creating [application](https://antmedia.io/docs/guides/advanced-usage/create-new-application/), [plugin structure](https://antmedia.io/docs/guides/advanced-usage/introduction-plugin-structure/) or leverging [hardware-based encoder](https://antmedia.io/docs/guides/advanced-usage/using-nvidia-hardware-based-encoder-on-docker/).
-
-Your contribution is greatly appreciated in keeping our [documentation](https://github.com/ant-media/ant-media-documentation/) updated. Kindly review and provide any updates or corrections you may have.
  
 ## 📫 Support
 
@@ -98,3 +114,7 @@ You may write articles for Ant Media Server on Medium, Dev.to, or your blog. Wit
 ## 💡 More Information
 
 To learn more about Ant Media and our live video streaming platform, visit our official website at https://antmedia.io.
+
+<div align='center'>
+   <a href="https://antmedia.io"><img src="https://user-images.githubusercontent.com/54481799/95862105-16cb0e00-0d6b-11eb-9087-88888889825d.png" height="60"></a>
+</div>
