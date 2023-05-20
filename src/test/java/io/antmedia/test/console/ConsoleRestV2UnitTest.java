@@ -609,7 +609,10 @@ public class ConsoleRestV2UnitTest {
 		Mockito.doReturn(null).when(restServiceSpy).getAppAdaptor(Mockito.any());
 		result = restServiceSpy.deleteApplication("test", true);
 		assertFalse(result.isSuccess());
-
+		
+		
+		result = restServiceSpy.deleteApplication("test??", true);
+		assertFalse(result.isSuccess()); //because there is invalid character
 
 	}
 

@@ -1430,20 +1430,26 @@ public class CommonRestService {
 
 	public Result deleteApplication(String appName, boolean deleteDB) {
 		appName = appName.replaceAll("[\n\r\t]", "_");
-		logger.info("delete application http request:{}", appName);
-		AppSettings appSettings = getSettings(appName);
 		boolean result = false;
 		String message = "";
-		if (appSettings != null) {
-			appSettings.setToBeDeleted(true);
-			//change settings on the db to let undeploy the app
-			changeSettings(appName, appSettings);
+		if (appName != null && appName.matches("^[a-zA-Z0-9]*$")) {
+			logger.info("delete application http request:{}", appName);
+			AppSettings appSettings = getSettings(appName);
+			
+			if (appSettings != null) {
+				appSettings.setToBeDeleted(true);
+				//change settings on the db to let undeploy the app
+				changeSettings(appName, appSettings);
 
-			result = getApplication().deleteApplication(appName, deleteDB);
+				result = getApplication().deleteApplication(appName, deleteDB);
+			}
+			else {
+				logger.info("App settings is not available for app name:{}. App may be initializing", appName);
+				message = "AppSettings is not available for app: " + appName + ". It's not available or it's being initialized";
+			}
 		}
 		else {
-			logger.info("App settings is not available for app name:{}. App may be initializing", appName);
-			message = "AppSettings is not available for app: " + appName + ". It's not available or it's being initialized";
+			message = "appname contains invalid character and does not match regexp ^[a-zA-Z0-9]*$";
 		}
 		return new Result(result, message);
 	}

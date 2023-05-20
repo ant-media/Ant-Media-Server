@@ -12,7 +12,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
@@ -39,9 +38,6 @@ import org.springframework.context.ApplicationContext;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
-import io.antmedia.console.rest.CommonRestService;
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
 
@@ -472,6 +468,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return clusterNotifier;
 	}
 
+	
+	
 	public boolean runCommand(String command) {
 
 		boolean result = false;
