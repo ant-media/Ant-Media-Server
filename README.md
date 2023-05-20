@@ -77,7 +77,7 @@ Deploy Ant Media Server seamlessly on your favorite cloud platforms with 1-Click
 | Kubernetes  | [Deploy on Kubernetes](https://antmedia.io/docs/guides/clustering-and-scaling/kubernetes/deploy-ams-on-kubernetes/)  | [Kubernetes Autoscaling](https://antmedia.io/docs/guides/clustering-and-scaling/kubernetes/kubernetes-autoscaling/)  |
  
 
-[Discover the Power of Ant Media: Start Your Free Trial Today!](https://antmedia.io/free-trial/))
+[Discover the Power of Ant Media: Start Your Free Trial Today!](https://antmedia.io/free-trial/)
 
 
 ## Unleash Your Streaming Potential with Ant Media's Exceptional Support!
