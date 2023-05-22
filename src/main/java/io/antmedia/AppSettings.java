@@ -302,6 +302,8 @@ public class AppSettings implements Serializable{
 
 	public static final String SETTINGS_S3_RECORDING_ENABLED = "settings.s3RecordingEnabled";
 
+	public static final String SETTINGS_S3_UPLOAD_HLS_FILES_PERIODICALLY = "settings.s3UploadHlsFilesPeriodically";
+
 	public static final String SETTINGS_S3_ACCESS_KEY = "settings.s3AccessKey";
 	public static final String SETTINGS_S3_SECRET_KEY = "settings.s3SecretKey";
 	public static final String SETTINGS_S3_REGION_NAME = "settings.s3RegionName";
@@ -1390,6 +1392,12 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${"+SETTINGS_S3_RECORDING_ENABLED+":false}" )
 	private boolean s3RecordingEnabled;
+
+	/**
+	 * Upload HLS files periodically
+	 */
+	@Value( "${"+SETTINGS_S3_UPLOAD_HLS_FILES_PERIODICALLY+":false}" )
+	private boolean s3UploadHLSFilesPeriodically;
 
 	/**
 	 * S3 Access key
@@ -2785,7 +2793,6 @@ public class AppSettings implements Serializable{
 		return dashHttpEndpoint;
 	}
 
-
 	public boolean isS3RecordingEnabled() { return s3RecordingEnabled; }
 
 	public void setS3RecordingEnabled(boolean s3RecordingEnabled) {
@@ -2794,6 +2801,14 @@ public class AppSettings implements Serializable{
 
 	public String getS3SecretKey() {
 		return s3SecretKey;
+	}
+
+	public boolean isS3UploadHLSFilesPeriodically() {
+		return s3UploadHLSFilesPeriodically;
+	}
+
+	public void setS3UploadHLSFilesPeriodically(boolean s3UploadHLSFilesPeriodically) {
+		this.s3UploadHLSFilesPeriodically = s3UploadHLSFilesPeriodically;
 	}
 
 	public void setS3SecretKey(String s3SecretKey) { this.s3SecretKey = s3SecretKey; }

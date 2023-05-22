@@ -422,6 +422,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(false, appSettings.isPlayJwtControlEnabled());
 		assertEquals(null, appSettings.getDashHttpEndpoint());
 		assertEquals(false, appSettings.isS3RecordingEnabled());
+		assertEquals(false, appSettings.isS3UploadHLSFilesPeriodically());
 		assertEquals(null, appSettings.getS3SecretKey());
 		assertEquals(null, appSettings.getS3AccessKey());
 		assertEquals(null, appSettings.getS3RegionName());
