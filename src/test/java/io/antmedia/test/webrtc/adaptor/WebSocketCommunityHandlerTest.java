@@ -18,7 +18,7 @@ import javax.websocket.RemoteEndpoint;
 import javax.websocket.RemoteEndpoint.Basic;
 import javax.websocket.Session;
 
-import org.apache.commons.lang.math.RandomUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -567,7 +567,7 @@ public class WebSocketCommunityHandlerTest {
 		String type = "dummyType";
 		String streamId = "dummyStreamId";
 		
-		int trackSize = RandomUtils.nextInt(5)+1;
+		int trackSize = RandomUtils.nextInt(0,5)+1;
 		Map<String, String> midSidMap = new HashMap<>();
 		for (int i = 0; i < trackSize; i++) {
 			midSidMap.put("mid"+i, "sid"+i);

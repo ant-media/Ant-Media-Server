@@ -114,7 +114,7 @@ before_install:
 
   - chmod 755 target/install_ant-media-server.sh
   - cd target 
-  - ./install_ant-media-server.sh ant-media-server-community*.zip
+  - ./install_ant-media-server.sh -i ant-media-server-community*.zip
   - cd ..
   - echo "Waiting a little to make sure server is started "
   - sleep 20
