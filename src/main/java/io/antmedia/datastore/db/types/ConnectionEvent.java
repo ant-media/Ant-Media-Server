@@ -19,14 +19,20 @@ public class ConnectionEvent {
 	/**
 	 * timestamp of this event
 	 */
-	@ApiModelProperty(value = "the timestamp of the event")
+	@ApiModelProperty(value = "the unix timestamp of the event in milliseconds")
 	private long timestamp;
 	
 	/**
 	 * type of the event Connection/Disconnection
 	 */
-	@ApiModelProperty(value = "the type of the event")
+	@ApiModelProperty(value = "The type of the event. It can have connected or disconnected values")
 	private String eventType;
+	
+	@ApiModelProperty(value = "IP address of the instance that this event happened")
+	private String instanceIP;
+	
+	@ApiModelProperty(value = "Connection type. It can be publish or play")
+	private String type;
 
 	public long getTimestamp() {
 		return timestamp;
@@ -43,5 +49,23 @@ public class ConnectionEvent {
 	public void setEventType(String eventType) {
 		this.eventType = eventType;
 	}
+
+	public String getInstanceIP() {
+		return instanceIP;
+	}
+
+	public void setInstanceIP(String instanceIP) {
+		this.instanceIP = instanceIP;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+	
+	
 	
 }
