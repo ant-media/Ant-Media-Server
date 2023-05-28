@@ -17,7 +17,7 @@ public class ConnectionEvent {
 	public static final String DISCONNECTED_EVENT = "disconnected";
 	
 	/**
-	 * timestamp of this event
+	 * Timestamp of this event. Unix timestamp in milliseconds
 	 */
 	@ApiModelProperty(value = "the unix timestamp of the event in milliseconds")
 	private long timestamp;

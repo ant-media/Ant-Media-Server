@@ -2014,6 +2014,9 @@ public class DBStoresUnitTest {
 		connected.setEventType(ConnectionEvent.CONNECTED_EVENT);
 		long eventTime = 20;
 		connected.setTimestamp(eventTime);
+		connected.setType(Subscriber.PLAY_TYPE);
+		String hostAddress = ServerSettings.getLocalHostAddress();
+		connected.setInstanceIP(hostAddress);
 		
 		ConnectionEvent disconnected = new ConnectionEvent();
 		disconnected.setEventType(ConnectionEvent.DISCONNECTED_EVENT);
@@ -2039,7 +2042,11 @@ public class DBStoresUnitTest {
 		assertEquals(2, events.size());  
 		
 		assertEquals(ConnectionEvent.CONNECTED_EVENT, events.get(0).getEventType());
+		assertEquals(Subscriber.PLAY_TYPE, events.get(0).getType());
+		assertEquals(hostAddress, events.get(0).getInstanceIP());
+		assertEquals(eventTime, events.get(0).getTimestamp());
 		assertEquals(ConnectionEvent.DISCONNECTED_EVENT, events.get(1).getEventType());
+		
 		
 		// add connected event
 		store.addSubscriberConnectionEvent(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), connected);
