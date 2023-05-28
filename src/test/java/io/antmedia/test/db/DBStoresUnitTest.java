@@ -468,6 +468,7 @@ public class DBStoresUnitTest {
 			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize, null, null, null, null);
 			for (Broadcast broadcast : broadcastList) {
 				numberOfCall++;
+				logger.info("Updating streamId:{}", broadcast.getStreamId());  //log stream and check it if all of them different when this test fails
 				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 			}
 
@@ -475,6 +476,8 @@ public class DBStoresUnitTest {
 
 		assertEquals(numberOfCall, numberOfStatusChangeStreams);
 		//check that active broadcast exactly the same as changed above
+		
+		//////this test is sometimes failing below, I think streamId may not be unique so I logged above to confirm it - mekya
 		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
 
 		//change all streams to finished
