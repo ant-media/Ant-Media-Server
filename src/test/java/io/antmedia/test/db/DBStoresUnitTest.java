@@ -2020,8 +2020,8 @@ public class DBStoresUnitTest {
 		
 		ConnectionEvent disconnected = new ConnectionEvent();
 		disconnected.setEventType(ConnectionEvent.DISCONNECTED_EVENT);
-		eventTime = 21;
-		disconnected.setTimestamp(eventTime);		
+		long eventTimeDisconnect = 21;
+		disconnected.setTimestamp(eventTimeDisconnect);		
 		
 		// add connected event
 		store.addSubscriberConnectionEvent(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), connected);
