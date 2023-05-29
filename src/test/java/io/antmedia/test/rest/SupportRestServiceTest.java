@@ -3,17 +3,32 @@ package io.antmedia.test.rest;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.*;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.console.rest.SupportRequest;
+import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.rest.BroadcastRestService;
+import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.StatsCollector;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import io.antmedia.console.rest.SupportRestService;
+import org.red5.server.scope.Scope;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.WebApplicationContext;
+
+import javax.servlet.ServletContext;
 
 public class SupportRestServiceTest {
 
+	SupportRestService restServiceSpy = null;
 	
 	@After 
 	public void after() {
@@ -25,6 +40,12 @@ public class SupportRestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		restServiceSpy = null;
+	}
+
+	@Before
+	public void before() {
+		restServiceSpy = spy(SupportRestService.class);
 	}
 
 	@Test
@@ -105,10 +126,34 @@ public class SupportRestServiceTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-		
-		
 
+	}
+
+	@Test
+	public void testSendSupportRequest(){
+
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		StatsCollector statsCollector = mock(StatsCollector.class);
+
+		doReturn(serverSettings).when(restServiceSpy).getServerSettingsInternal();
+		doReturn("key").when(serverSettings).getLicenceKey();
+
+		doReturn(statsCollector).when(restServiceSpy).getStatsCollector();
+		doReturn(10).when(statsCollector).getCpuLoad();
+
+		SupportRequest supportRequest = new SupportRequest();
+
+		supportRequest.setName("testName");
+		supportRequest.setEmail("test@antmedia.io");
+		supportRequest.setTitle("test title");
+		supportRequest.setDescription("test desc");
+		supportRequest.setSendSystemInfo(true);
+
+		try{
+			assertTrue(restServiceSpy.sendSupport(supportRequest));
+		}catch (Exception e){
+			e.printStackTrace();
+		}
 	}
 
 }
