@@ -21,6 +21,14 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
@@ -374,12 +382,27 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		return file;
 	}
+	
+	public CloseableHttpClient getHttpClient() {
+		return HttpClients.createDefault();
+	}
 
 	public File downloadWarFile(String appName, String warFileUrl) throws IOException
 	{
-		try (BufferedInputStream in = new BufferedInputStream(new URL(warFileUrl).openStream())) 
+
+		try (CloseableHttpClient client = getHttpClient()) 
 		{
-			return saveWARFile(appName, in);
+			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
+
+			HttpRequestBase get = (HttpRequestBase) RequestBuilder.get().setUri(warFileUrl).build();
+			get.setConfig(requestConfig);
+
+			HttpResponse response = client.execute(get);
+
+			try (BufferedInputStream in = new BufferedInputStream(response.getEntity().getContent())) 
+			{
+				return saveWARFile(appName, in);
+			}
 		}
 	}
 
@@ -468,8 +491,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return clusterNotifier;
 	}
 
-	
-	
+
+
 	public boolean runCommand(String command) {
 
 		boolean result = false;
