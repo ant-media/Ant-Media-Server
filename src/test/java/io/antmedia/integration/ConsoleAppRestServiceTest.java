@@ -336,10 +336,12 @@ public class ConsoleAppRestServiceTest{
 		int appCount = applications.applications.length;
 
 		String installLocation = "/usr/local/antmedia";
-		String warFile = getStreamAppWar(installLocation);
-		assertNotNull(warFile);
+		String warFilepath = getStreamAppWar(installLocation);
+		assertNotNull(warFilepath);
 
-		boolean created = createApplication(appName, new File(warFile));
+		File warFile = new File(warFilepath);
+		assertTrue(warFile.exists());
+		boolean created = createApplication(appName, warFile);
 		assertTrue(created);
 
 		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
@@ -2565,10 +2567,16 @@ public class ConsoleAppRestServiceTest{
 
 				ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c", command);
 				try {
+					byte[] data = new byte[1024];
+					int length = 0;
+
 					tmpExec = pb.start();
-					String errorOutput = IOUtils.toString(tmpExec.getErrorStream(), Charset.defaultCharset());
-					if (errorOutput != null && !errorOutput.isEmpty()) {
-						log.info(errorOutput);
+					//Reminder: reading error stream through input stream provides stability in test
+					//Otherwise it can fill the buffer and it shows inconsistent and hard to find issue
+					
+					InputStream errorStream = tmpExec.getErrorStream();
+					while ((length = errorStream.read(data, 0, data.length)) > 0) {
+						log.info(new String(data, 0, length));
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
