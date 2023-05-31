@@ -296,32 +296,20 @@ public class ConsoleAppRestServiceTest{
 
 	public String getStreamAppWar(String installLocation) 
 	{
-		try {
-
-			String fileNameCommand = "bash -c 'ls "+installLocation+"/StreamApp*.war';".replaceAll("[\r\n]+$", "");
-			Process execCommand = execute(fileNameCommand);
-			execCommand.waitFor();
-			InputStream inputStream = execCommand.getInputStream();
-			StringBuilder buffer = new StringBuilder();
-			byte[] data = new byte[1024];
-			int length = 0;
-
-			while ((length = inputStream.read(data, 0, data.length)) > 0) {
-				buffer.append(new String(data, 0, length));
+		File file = new File(installLocation);
+		assertTrue(file.isDirectory());
+		
+		File[] listFiles = file.listFiles();
+		for (int i = 0; i < listFiles.length; i++) 
+		{
+			File tmpFile = listFiles[i];
+			if (tmpFile.getName().contains("StreamApp") && tmpFile.getName().contains(".war")) 
+			{
+				return tmpFile.getAbsolutePath();
 			}
-
-			//strip trailing for the end of line
-			String result = buffer.toString().stripTrailing();
-			System.out.println("StreamApp full path is " + result);
-
-			return result;
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		} 
+			
+		}
+		
 		return null;
 	}
 
@@ -335,7 +323,7 @@ public class ConsoleAppRestServiceTest{
 		assertTrue(applications.applications.length > 0);
 		int appCount = applications.applications.length;
 
-		String installLocation = "/usr/local/antmedia";
+		String installLocation = "/usr/local/antmedia";  //"/Users/mekya/softwares/ant-media-server";
 		String warFilepath = getStreamAppWar(installLocation);
 		assertNotNull(warFilepath);
 
@@ -1911,6 +1899,7 @@ public class ConsoleAppRestServiceTest{
 
 
 			rtmpSendingProcess.destroy();
+			log.info("Process is destroyed forcibly for rtmp sending");
 
 			//it should be true this time, because stream mp4 setting is 1 although general setting is disabled
 			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
@@ -2565,12 +2554,11 @@ public class ConsoleAppRestServiceTest{
 		new Thread() {
 			public void run() {
 
-				ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c", command);
 				try {
 					byte[] data = new byte[1024];
 					int length = 0;
 
-					tmpExec = pb.start();
+					tmpExec = Runtime.getRuntime().exec(command);
 					//Reminder: reading error stream through input stream provides stability in test
 					//Otherwise it can fill the buffer and it shows inconsistent and hard to find issue
 					
