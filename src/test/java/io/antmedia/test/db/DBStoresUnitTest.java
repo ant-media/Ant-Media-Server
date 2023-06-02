@@ -219,11 +219,11 @@ public class DBStoresUnitTest {
 	@Test
 	public void testMongoStore() throws Exception {
 
-		DataStore dataStore = new MongoStore("172.18.0.2", "", "", "testdb");
+		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
 		//delete db
 		dataStore.close(true);
 		
-		dataStore = new MongoStore("172.18.0.2", "", "", "testdb");
+		dataStore = new MongoStore("localhost", "", "", "testdb");
 		
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
