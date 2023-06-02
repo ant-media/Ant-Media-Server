@@ -22,6 +22,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 
 public class WebSocketCommunityHandler {
@@ -31,7 +32,7 @@ public class WebSocketCommunityHandler {
 	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
 
 	protected AppSettings appSettings;
-	
+
 	private ApplicationContext appContext;
 
 	protected Session session;
@@ -148,10 +149,11 @@ public class WebSocketCommunityHandler {
 			else if (cmd.equals(WebSocketConstants.PING_COMMAND)) {
 				sendPongMessage(session);
 			}
-			else if (cmd.equals(WebSocketConstants.GET_STREAM_INFO_COMMAND)) 
+			else if (cmd.equals(WebSocketConstants.GET_STREAM_INFO_COMMAND) || cmd.equals(WebSocketConstants.PLAY_COMMAND)) 
 			{
 				sendNotFoundJSON(streamId, session);
 			}
+			
 
 
 		}
@@ -160,13 +162,12 @@ public class WebSocketCommunityHandler {
 		}
 
 	}
-	
-	
+		
 
 	private void startRTMPAdaptor(Session session, final String streamId, boolean enableVideo) {
-
+		int rtmpPort = appAdaptor.getServerSettings().getRtmpPort();
 		//get scope and use its name
-		String outputURL = "rtmp://127.0.0.1/"+ appName +"/" + streamId;
+		String outputURL = "rtmp://127.0.0.1" + ":" + rtmpPort +"/"+ appName +"/" + streamId;
 
 		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL, appSettings.getHeightRtmpForwarding());
 

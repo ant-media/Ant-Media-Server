@@ -28,7 +28,4 @@ __Put as much detail here as possible__
 ### Logs
 __Place logs on [pastebin](http://pastebin.com/) or elsewhere and put links here__
 
-Join [community.antmedia.io](https://community.antmedia.io) and be a part of Ant Media Server Community.
-
-
-
+Ask your questions on [Ant Media Github Discussions](https://github.com/orgs/ant-media/discussions)

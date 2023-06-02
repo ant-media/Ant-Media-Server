@@ -45,7 +45,6 @@ do
 done
 
 ERROR_MESSAGE="There is a problem in installing SSL to Ant Media Server.\n Please take a look at the logs above and try to fix.\n If you do not have any idea, contact@antmedia.io"
-free_domain_requested='false'
 usage() {
 
   echo "Usage commands for different scenarios:"
@@ -217,13 +216,13 @@ get_new_certificate(){
     if [ -z "$email" ]; then
       if [ "$dns_validate" == "route53" ]; then
         echo -e "\033[0;31mPlease make sure you have entered the AWS access key and secret key.\033[0m"
-        $SUDO certbot certonly --dns-route53 --agree-tos --register-unsafely-without-email -d $domain
+        $SUDO certbot certonly --dns-route53 --agree-tos --register-unsafely-without-email -d "$domain"
       elif [ "$dns_validate" == "custom" ]; then
         $SUDO certbot --agree-tos --register-unsafely-without-email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly --cert-name $domain -d $domain
       elif [ "$freedomain" == "true" ]; then
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email --cert-name $domain -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email --cert-name "$domain" -d "$domain"
       else
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --register-unsafely-without-email -d "$domain"
       fi
     else
       if [ "$dns_validate" == "route53" ]; then
@@ -232,9 +231,9 @@ get_new_certificate(){
       elif [ "$dns_validate" == "custom" ]; then
         $SUDO certbot --agree-tos --email $email --manual --preferred-challenges dns --manual-public-ip-logging-ok --force-renewal certonly --cert-name $domain -d $domain
       elif [ "$freedomain" == "true" ]; then
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email --cert-name $domain -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email "$email" --cert-name "$domain" -d "$domain"
       else
-        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email $email -d $domain
+        $SUDO certbot certonly --standalone --non-interactive --agree-tos --email "$email" -d "$domain"
       fi
     fi
 
@@ -387,7 +386,6 @@ generate_password(){
 check_domain_name(){
     if [ -z "$domain" ]; then
       get_freedomain
-      free_domain_requested='true'
     fi
 }
 
@@ -440,36 +438,15 @@ then
 
 fi
 
-if [ "$free_domain_requested" == "true" ]; 
-then
-	$SUDO sed -i "/http.sslConfigurationType=/c\http.sslConfigurationType=ANTMEDIA_SUBDOMAIN"  $INSTALL_DIRECTORY/conf/red5.properties
-	output
-	$SUDO sed -i "/http.sslDomain=/c\http.sslDomain=$domain"  $INSTALL_DIRECTORY/conf/red5.properties
-	output
-elif [ "$fullChainFileExist" == "true" ] && [ "$chainFileExist" == "true" ] && [ "$privateKeyFileExist" == "true" ];
-then
-	$SUDO sed -i "/http.sslConfigurationType=/c\http.sslConfigurationType=CUSTOM_CERTIFICATE"  $INSTALL_DIRECTORY/conf/red5.properties
-	output
-	$SUDO sed -i "/http.sslDomain=/c\http.sslDomain=$domain"  $INSTALL_DIRECTORY/conf/red5.properties
-	output
-elif [ "$domain" != "" ];
-then
-	$SUDO sed -i "/http.sslConfigurationType=/c\http.sslConfigurationType=CUSTOM_DOMAIN"  $INSTALL_DIRECTORY/conf/red5.properties
-	output
-	$SUDO sed -i "/http.sslDomain=/c\http.sslDomain=$domain"  $INSTALL_DIRECTORY/conf/red5.properties
-	output
-fi
+
+$SUDO sed -i "/server.name=/c\server.name=$domain"  "$INSTALL_DIRECTORY/conf/red5.properties"
 
 #restore iptables redirect rule
 ipt_restore
 
 echo ""
 
-$SUDO service antmedia stop
-
-output
-
-$SUDO service antmedia start
+$SUDO service antmedia restart
 
 output
 

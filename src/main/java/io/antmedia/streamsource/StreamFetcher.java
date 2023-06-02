@@ -273,7 +273,7 @@ public class StreamFetcher {
 			}
 			else {
 				//break the loop except above case
-				readTheNextFrame = false;;
+				readTheNextFrame = false;
 			}
 			
 			if (stopRequestReceived) {
@@ -284,8 +284,7 @@ public class StreamFetcher {
 		}
 
 		public int readNextPacket(AVPacket pkt) {
-			int readResult = av_read_frame(inputFormatContext, pkt);
-			return readResult;
+			return av_read_frame(inputFormatContext, pkt);
 		}
 		
 		public void unReferencePacket(AVPacket pkt) {
@@ -685,6 +684,8 @@ public class StreamFetcher {
 		return ((System.currentTimeMillis() - lastPacketReceivedTime) < PACKET_RECEIVED_INTERVAL_TIMEOUT);
 	}
 
+	//TODO: why we're using isInterruped here? It may not give correct value about the status of the stream
+	//@mekya
 	public boolean isStopped() {
 		return thread.isInterrupted();
 	}

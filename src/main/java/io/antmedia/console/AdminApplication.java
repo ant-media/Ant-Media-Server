@@ -21,6 +21,14 @@ import javax.annotation.Nullable;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.HttpHeaders;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.IConnection;
 import org.red5.server.api.IContext;
@@ -38,9 +46,6 @@ import org.springframework.context.ApplicationContext;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
-import io.antmedia.console.rest.CommonRestService;
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
 
@@ -93,8 +98,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		if(isCluster) {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
 			clusterNotifier.registerCreateAppListener( (appName, warFileURI) -> 
-				createApplicationWithURL(appName, warFileURI)
-			);
+			createApplicationWithURL(appName, warFileURI)
+					);
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
 				return deleteApplication(appName, false);
@@ -112,7 +117,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			log.warn("{} application has already been installing", appName);
 			return false;
 		}
-		
+
 		log.info("Creating application with name {}", appName);
 		boolean result = false;
 		try {
@@ -332,7 +337,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			boolean result = runCreateAppScript(appName, warFileFullPath);
 			success = result;
 		}
-		
+
 		vertx.executeBlocking(i -> {
 			warDeployer.deploy(true);
 			currentApplicationCreationProcesses.remove(appName);
@@ -341,7 +346,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return success;
 
 	}
-	
+
 	@Nullable
 	public static File saveWARFile(String appName, InputStream inputStream) 
 	{
@@ -349,9 +354,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		String fileExtension = "war";
 
 		try {
-			
+
 			String tmpsDirectory = System.getProperty("java.io.tmpdir");
-			
+
 			File savedFile = new File(tmpsDirectory + File.separator + appName + "." + fileExtension);
 
 			int read = 0;
@@ -367,9 +372,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 				logger.info("War file uploaded for application, filesize = {} path = {}", savedFile.length(),  savedFile.getPath());
 			}
-			
+
 			file = savedFile;
-			
+
 		}
 		catch (Exception iox) {
 			logger.error(iox.getMessage());
@@ -377,12 +382,27 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		return file;
 	}
+	
+	public CloseableHttpClient getHttpClient() {
+		return HttpClients.createDefault();
+	}
 
 	public File downloadWarFile(String appName, String warFileUrl) throws IOException
 	{
-		try (BufferedInputStream in = new BufferedInputStream(new URL(warFileUrl).openStream())) 
+
+		try (CloseableHttpClient client = getHttpClient()) 
 		{
-			return saveWARFile(appName, in);
+			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
+
+			HttpRequestBase get = (HttpRequestBase) RequestBuilder.get().setUri(warFileUrl).build();
+			get.setConfig(requestConfig);
+
+			HttpResponse response = client.execute(get);
+
+			try (BufferedInputStream in = new BufferedInputStream(response.getEntity().getContent())) 
+			{
+				return saveWARFile(appName, in);
+			}
 		}
 	}
 
@@ -471,12 +491,17 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return clusterNotifier;
 	}
 
+
+
 	public boolean runCommand(String command) {
 
 		boolean result = false;
 		try {
 			Process process = getProcess(command);
-			result = process.waitFor() == 0;
+			if (process != null) 
+			{
+				result = process.waitFor() == 0;
+			}
 		}
 		catch (IOException e) {
 			log.error(ExceptionUtils.getStackTrace(e));
@@ -489,11 +514,26 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	public Process getProcess(String command) throws IOException {
-		ProcessBuilder pb = new ProcessBuilder(command.split(" "));
+		//This code uses a regular expression to check if the command string contains any special characters 
+		// that may cause vulnerabilities, 
+		//such as ;, &, |, <, >, (, ), $, , , \r, \n, \t, *, ?, {, }, [, ], \, ", ', or whitespace characters. 
+		//If the command string contains any of these characters, it is considered unsafe to execute and the code prints an error message."
+
+		String[] parameters = command.split(" ");
+		for (String params : parameters) 
+		{
+			if (params.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*")) {
+				logger.error("Command includes special characters so it's refused to run. Failed argument:{} and full command:{}", params, command);
+				return null;
+			}
+
+		}
+		ProcessBuilder pb = new ProcessBuilder(parameters);
+
+
 		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
 		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
 		return pb.start();
-
 	}
 
 	public void setVertx(Vertx vertx) {

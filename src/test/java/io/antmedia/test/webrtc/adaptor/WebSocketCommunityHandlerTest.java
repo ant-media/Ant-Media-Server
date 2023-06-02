@@ -18,7 +18,7 @@ import javax.websocket.RemoteEndpoint;
 import javax.websocket.RemoteEndpoint.Basic;
 import javax.websocket.Session;
 
-import org.apache.commons.lang.math.RandomUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -42,6 +42,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
@@ -88,7 +89,8 @@ public class WebSocketCommunityHandlerTest {
 	};
 
 	@Before
-	public void before() {
+	public void before() 
+	{
 		appContext = Mockito.mock(ApplicationContext.class);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
@@ -96,6 +98,8 @@ public class WebSocketCommunityHandlerTest {
 		when(scope.getName()).thenReturn("junit");
 
 		when(adaptor.getScope()).thenReturn(scope);
+		
+		when(adaptor.getServerSettings()).thenReturn(new ServerSettings());
 	
 		when(appContext.getBean("web.handler")).thenReturn(adaptor);
 		
@@ -117,6 +121,7 @@ public class WebSocketCommunityHandlerTest {
 		when(session.getUserProperties()).thenReturn(userProperties);
 
 		when(session.isOpen()).thenReturn(true);
+		
 	}
 
 
@@ -249,6 +254,30 @@ public class WebSocketCommunityHandlerTest {
 	}
 	
 	@Test
+	public void testPlayStream() {
+		JSONObject publishObject = new JSONObject();
+		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PLAY_COMMAND);
+		
+		String streamId = "streamId" + (int)(Math.random()*1000);
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		wsHandler.onMessage(session, publishObject.toJSONString());
+		
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.ERROR_CODE, "404");
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_EXIST);
+		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		try {
+			verify(basicRemote).sendText(jsonResponse.toJSONString());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	@Test
 	public void testGetNewRTMPAdaptor() {
 		String rtmpUrl = "rtmp://localhost/LiveApp/232323";
 		int height = 260;
@@ -266,6 +295,7 @@ public class WebSocketCommunityHandlerTest {
 		String streamId = "streamId" + (int)(Math.random()*1000);
 
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
+		
 
 		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
@@ -561,7 +591,7 @@ public class WebSocketCommunityHandlerTest {
 		String type = "dummyType";
 		String streamId = "dummyStreamId";
 		
-		int trackSize = RandomUtils.nextInt(5)+1;
+		int trackSize = RandomUtils.nextInt(0,5)+1;
 		Map<String, String> midSidMap = new HashMap<>();
 		for (int i = 0; i < trackSize; i++) {
 			midSidMap.put("mid"+i, "sid"+i);

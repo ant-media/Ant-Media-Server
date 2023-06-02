@@ -53,7 +53,7 @@ public abstract class DataStore {
 		String streamId = null;
 		try {
 		if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-			streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
+			streamId = RandomStringUtils.randomAlphanumeric(16) + System.currentTimeMillis();
 			broadcast.setStreamId(streamId);
 		}
 		streamId = broadcast.getStreamId();
@@ -936,6 +936,10 @@ public abstract class DataStore {
 		}
 		if (newBroadcast.getListenerHookURL() != null && !newBroadcast.getListenerHookURL().isEmpty()) {
 			broadcast.setListenerHookURL(newBroadcast.getListenerHookURL());
+		}
+
+		if (newBroadcast.getMetaData() != null) {
+			broadcast.setMetaData(newBroadcast.getMetaData());
 		}
 
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());

@@ -1606,7 +1606,7 @@ public abstract class RestServiceBase {
 					return token;
 				}
 				else {
-					message = "Cannot create JWT token. It can be a mock token service. Also please check your JWT Stream key parameter";
+					message = "Cannot create JWT token. The problem can be ->  this is community edition or JWT stream key is not set or it's length is less than 32";
 				}
 			}
 			else {
@@ -1736,6 +1736,15 @@ public abstract class RestServiceBase {
 		}
 	}
 
+	/**
+	 * Get the active streams in the room
+	 * 
+	 * @param roomId: It's the id of the room
+	 * @param streamId: The id of the room to be extracted from the list. It's generally the publisher stream id in websocket communication
+	 * @param store: Datastore object to run the query
+	 * 
+	 * @return null if there is no room recorded in the database, returns map filled with the active streams. Key is the streamId, value is the name
+	 */
 	public static Map<String,String> getRoomInfoFromConference(String roomId, String streamId, DataStore store){
 		HashMap<String,String> streamDetailsMap = null;
 
