@@ -2770,6 +2770,11 @@ public class DBStoresUnitTest {
 
 		assertTrue(dataStore.get(mainTrackId1).getSubTrackStreamIds().isEmpty());
 		assertTrue(dataStore.get(mainTrackId2).getSubTrackStreamIds().isEmpty());
+
+		assertFalse(dataStore.removeSubTrack("nonExistedStreamID", subTrackId));
+		assertFalse(dataStore.removeSubTrack(mainTrackId1, "nonExistedStreamID"));
+
+
 	}
 
 	public void testGetVoDIdByStreamId(DataStore dataStore) {
