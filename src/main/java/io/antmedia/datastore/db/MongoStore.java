@@ -719,7 +719,6 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized(this) {
 			try {
-				logger.warn("result inside edit camera: {}" , result);
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 
 				List<UpdateOperator> updates = new ArrayList<>();
