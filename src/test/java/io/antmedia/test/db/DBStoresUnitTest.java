@@ -2772,7 +2772,7 @@ public class DBStoresUnitTest {
 		assertTrue(dataStore.get(mainTrackId2).getSubTrackStreamIds().isEmpty());
 
 		assertFalse(dataStore.removeSubTrack("nonExistedStreamID", subTrackId));
-		assertFalse(dataStore.removeSubTrack(mainTrackId1, "nonExistedStreamID"));
+		assertFalse(dataStore.removeSubTrack(mainTrackId1, null));
 
 
 	}
