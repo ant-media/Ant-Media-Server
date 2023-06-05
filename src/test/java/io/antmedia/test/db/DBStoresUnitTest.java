@@ -468,6 +468,7 @@ public class DBStoresUnitTest {
 			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize, null, null, null, null);
 			for (Broadcast broadcast : broadcastList) {
 				numberOfCall++;
+				logger.info("Updating streamId:{}", broadcast.getStreamId());  //log stream and check it if all of them different when this test fails
 				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 			}
 
@@ -475,6 +476,8 @@ public class DBStoresUnitTest {
 
 		assertEquals(numberOfCall, numberOfStatusChangeStreams);
 		//check that active broadcast exactly the same as changed above
+		
+		//////this test is sometimes failing below, I think streamId may not be unique so I logged above to confirm it - mekya
 		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
 
 		//change all streams to finished
@@ -2019,11 +2022,14 @@ public class DBStoresUnitTest {
 		connected.setEventType(ConnectionEvent.CONNECTED_EVENT);
 		long eventTime = 20;
 		connected.setTimestamp(eventTime);
+		connected.setType(Subscriber.PLAY_TYPE);
+		String hostAddress = ServerSettings.getLocalHostAddress();
+		connected.setInstanceIP(hostAddress);
 		
 		ConnectionEvent disconnected = new ConnectionEvent();
 		disconnected.setEventType(ConnectionEvent.DISCONNECTED_EVENT);
-		eventTime = 21;
-		disconnected.setTimestamp(eventTime);		
+		long eventTimeDisconnect = 21;
+		disconnected.setTimestamp(eventTimeDisconnect);		
 		
 		// add connected event
 		store.addSubscriberConnectionEvent(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), connected);
@@ -2044,7 +2050,11 @@ public class DBStoresUnitTest {
 		assertEquals(2, events.size());  
 		
 		assertEquals(ConnectionEvent.CONNECTED_EVENT, events.get(0).getEventType());
+		assertEquals(Subscriber.PLAY_TYPE, events.get(0).getType());
+		assertEquals(hostAddress, events.get(0).getInstanceIP());
+		assertEquals(eventTime, events.get(0).getTimestamp());
 		assertEquals(ConnectionEvent.DISCONNECTED_EVENT, events.get(1).getEventType());
+		
 		
 		// add connected event
 		store.addSubscriberConnectionEvent(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), connected);

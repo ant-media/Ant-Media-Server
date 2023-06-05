@@ -53,7 +53,7 @@ public abstract class DataStore {
 		String streamId = null;
 		try {
 		if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-			streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
+			streamId = RandomStringUtils.randomAlphanumeric(16) + System.currentTimeMillis();
 			broadcast.setStreamId(streamId);
 		}
 		streamId = broadcast.getStreamId();
