@@ -628,7 +628,7 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
 		List<Subscriber> subscribers = null;
 		if(streamId != null) {
-			subscribers = getDataStore().listAllSubscribers(streamId, offset, size);
+			subscribers = getDataStore().listAllSubscribers(streamId, offset, size, false);
 		}
 		return subscribers;
 	}	

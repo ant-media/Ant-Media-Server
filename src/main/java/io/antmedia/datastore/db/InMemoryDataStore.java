@@ -684,37 +684,37 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
+	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size, boolean getAll) {
 		List<Subscriber> list = new ArrayList<>();
 		List<Subscriber> returnList = new ArrayList<>();
 
 		Collection<Subscriber> values = subscriberMap.values();
 		int t = 0;
 		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
+
+		if (getAll) {
+			size = Integer.MAX_VALUE; // Set size to maximum to return all elements
+		} else if (size > MAX_ITEM_IN_ONE_LIST) {
 			size = MAX_ITEM_IN_ONE_LIST;
 		}
+
 		if (offset < 0) {
 			offset = 0;
 		}
 
-
-		for(Subscriber subscriber: values) {
+		for (Subscriber subscriber : values) {
 			if (subscriber.getStreamId().equals(streamId)) {
 				list.add(subscriber);
 			}
 		}
 
-
 		Iterator<Subscriber> iterator = list.iterator();
 
-		while(itemCount < size && iterator.hasNext()) {
+		while (itemCount < size && iterator.hasNext()) {
 			if (t < offset) {
 				t++;
 				iterator.next();
-			}
-			else {
-
+			} else {
 				returnList.add(iterator.next());
 				itemCount++;
 			}
@@ -722,6 +722,7 @@ public class InMemoryDataStore extends DataStore {
 
 		return returnList;
 	}
+
 
 	@Override
 	public boolean addSubscriber(String streamId, Subscriber subscriber) {

@@ -695,8 +695,8 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
-	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
-		return super.listAllSubscribers(subscriberMap, streamId, offset, size, gson);
+	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size, boolean getAll) {
+		return super.listAllSubscribers(subscriberMap, streamId, offset, size, gson, getAll);
 	}
 
 	@Override
