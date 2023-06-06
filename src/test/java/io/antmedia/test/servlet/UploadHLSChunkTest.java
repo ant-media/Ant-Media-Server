@@ -37,6 +37,36 @@ public class UploadHLSChunkTest {
     }
 
     @Test
+    public void testStatusListener() {
+
+        try {
+            StatusListener statusListener = new StatusListener("file");
+            assertFalse(statusListener.isTimeoutOrErrorExist());
+
+            statusListener.onComplete(null);
+            assertFalse(statusListener.isTimeoutOrErrorExist());
+
+            statusListener.onStartAsync(null);
+            assertFalse(statusListener.isTimeoutOrErrorExist());
+
+            statusListener.onTimeout(null);
+            assertTrue(statusListener.isTimeoutOrErrorExist());
+
+            statusListener = new StatusListener("file");
+            assertFalse(statusListener.isTimeoutOrErrorExist());
+
+            statusListener.onError(null);
+            assertTrue(statusListener.isTimeoutOrErrorExist());
+
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            fail(e.getMessage());
+        }
+
+    }
+
+    @Test
     public void testGetAppContext() {
         // Create a mock ServletContext object
         ServletContext servletContext = mock(ServletContext.class);

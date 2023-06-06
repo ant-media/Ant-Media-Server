@@ -26,13 +26,13 @@ public class UploadHLSChunk extends HttpServlet {
 	public static final String STREAMS = "/streams";
 	public static final String WEBAPPS = "webapps";
 	protected static Logger logger = LoggerFactory.getLogger(UploadHLSChunk.class);
-	protected IScope scope;
-	protected ApplicationContext appCtx;
+	protected static IScope scope;
+	protected static ApplicationContext appCtx;
 	@Context
-	protected ServletContext servletContext;
-	protected AntMediaApplicationAdapter appInstance;
+	protected static ServletContext servletContext;
+	protected static AntMediaApplicationAdapter appInstance;
 
-	private StorageClient storageClient = null;
+	private static StorageClient storageClient = null;
 
 	@Nullable
 	public ApplicationContext getAppContext() {
@@ -100,6 +100,7 @@ public class UploadHLSChunk extends HttpServlet {
 			return timeoutOrErrorExist;
 		}
 	}
+
 
 	@Override
 	protected void doPut(HttpServletRequest req, HttpServletResponse resp) {
