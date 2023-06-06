@@ -23,7 +23,6 @@ import java.io.*;
 @MultipartConfig
 public class UploadHLSChunk extends HttpServlet {
 
-
 	public static final String STREAMS = "/streams";
 	public static final String WEBAPPS = "webapps";
 	protected static Logger logger = LoggerFactory.getLogger(UploadHLSChunk.class);
@@ -139,6 +138,22 @@ public class UploadHLSChunk extends HttpServlet {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
+	}
+
+	public StorageClient getStorageClient() {
+		return storageClient;
+	}
+
+	public void setStorageClient(StorageClient storageClient) {
+		this.storageClient = storageClient;
+	}
+
+	public void setAppInstance(AntMediaApplicationAdapter appInstance) {
+		this.appInstance = appInstance;
+	}
+
+	public void setServletContext(ServletContext servletContext) {
+		this.servletContext = servletContext;
 	}
 
 }
