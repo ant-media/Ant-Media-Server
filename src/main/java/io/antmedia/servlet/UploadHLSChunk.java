@@ -55,10 +55,11 @@ public class UploadHLSChunk extends HttpServlet {
 	}
 
 	public void initStorageClient() {
-		if (scope == null) {
-			scope = getApplication().getScope();
+		AntMediaApplicationAdapter app = getApplication();
+		if (scope == null && app != null) {
+			scope = app.getScope();
 		}
-		if (scope.getContext().getApplicationContext().containsBean(StorageClient.BEAN_NAME)) {
+		if (scope != null && scope.getContext().getApplicationContext().containsBean(StorageClient.BEAN_NAME)) {
 			storageClient = (StorageClient) scope.getContext().getApplicationContext().getBean(StorageClient.BEAN_NAME);
 		}
 	}
