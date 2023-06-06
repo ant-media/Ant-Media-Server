@@ -21,7 +21,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import java.io.File;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class UploadHLSChunkTest {
@@ -40,7 +40,7 @@ public class UploadHLSChunkTest {
     public void testStatusListener() {
 
         try {
-            StatusListener statusListener = new StatusListener("file");
+            UploadHLSChunk.StatusListener statusListener = new UploadHLSChunk.StatusListener("file");
             assertFalse(statusListener.isTimeoutOrErrorExist());
 
             statusListener.onComplete(null);
@@ -52,7 +52,7 @@ public class UploadHLSChunkTest {
             statusListener.onTimeout(null);
             assertTrue(statusListener.isTimeoutOrErrorExist());
 
-            statusListener = new StatusListener("file");
+            statusListener = new UploadHLSChunk.StatusListener("file");
             assertFalse(statusListener.isTimeoutOrErrorExist());
 
             statusListener.onError(null);
