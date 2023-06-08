@@ -1612,6 +1612,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		storageClient.setEnabled(settings.isS3RecordingEnabled());
 		storageClient.setPermission(settings.getS3Permission());
 		storageClient.setStorageClass(settings.getS3StorageClass());
+		storageClient.setCacheControl(settings.getS3CacheControl());
 		storageClient.reset();
 	}
 
