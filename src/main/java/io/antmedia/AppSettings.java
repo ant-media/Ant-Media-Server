@@ -308,6 +308,7 @@ public class AppSettings implements Serializable{
 	public static final String SETTINGS_S3_BUCKET_NAME = "settings.s3BucketName";
 	public static final String SETTINGS_S3_ENDPOINT = "settings.s3Endpoint";
 	public static final String SETTINGS_S3_PERMISSION = "settings.s3Permission";
+	public static final String SETTINGS_S3_CACHE_CONTROL = "settings.s3CacheControl";
 	public static final String SETTINGS_ENABLE_TIME_TOKEN_PLAY = "settings.enableTimeTokenForPlay";
 	public static final String SETTINGS_ENABLE_TIME_TOKEN_PUBLISH = "settings.enableTimeTokenForPublish";
 
@@ -1420,6 +1421,12 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${"+SETTINGS_S3_ENDPOINT+":#{null}}" )
 	private String s3Endpoint;
+
+	/**
+	 * S3 Cache Control Metadata
+	 */
+	@Value( "${"+SETTINGS_S3_CACHE_CONTROL+":no-store, no-cache, must-revalidate, max-age=0}" )
+	private String s3CacheControl = "no-store, no-cache, must-revalidate, max-age=0";
 
 	/*
 	 * The permission to use in uploading the files to the S3. 
@@ -2828,6 +2835,14 @@ public class AppSettings implements Serializable{
 
 	public void setS3Endpoint(String s3Endpoint) {
 		this.s3Endpoint = s3Endpoint;
+	}
+
+	public String getS3CacheControl() {
+		return s3CacheControl;
+	}
+
+	public void setS3CacheControl(String s3CacheControl) {
+		this.s3CacheControl = s3CacheControl;
 	}
 
 	public void setDashHttpEndpoint(String dashHttpEndpoint) {

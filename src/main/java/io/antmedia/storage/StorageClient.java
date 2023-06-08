@@ -37,6 +37,12 @@ public abstract class StorageClient {
 	 */
 	private String permission = "public-read";
 
+	/**
+	 * Cache control policy for the file that is uploaded to the Storage.
+	 * It may differ according to the implemenation. Default value is no-store, no-cache, must-revalidate, max-age=0
+	 */
+	private String cacheControl = "no-store, no-cache, must-revalidate, max-age=0";
+
 	private boolean enabled;
 
 	/**
@@ -147,5 +153,13 @@ public abstract class StorageClient {
 	
 	public String getStorageClass() {
 		return storageClass;
+	}
+
+	public String getCacheControl() {
+		return cacheControl;
+	}
+
+	public void setCacheControl(String cacheControl) {
+		this.cacheControl = cacheControl;
 	}
 }

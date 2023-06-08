@@ -1,17 +1,19 @@
 package io.antmedia.storage;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Executors;
 
+import io.antmedia.AppSettings;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -26,9 +28,11 @@ import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.StorageClass;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.TransferManagerBuilder;
 import com.amazonaws.services.s3.transfer.Upload;
+import org.springframework.context.ApplicationContext;
 
 public class AmazonS3StorageClient extends StorageClient {
 
@@ -129,8 +133,24 @@ public class AmazonS3StorageClient extends StorageClient {
 	{	
 		if (isEnabled()) {
 			TransferManager tm = getTransferManager();
+			PutObjectRequest putRequest;
 
-			PutObjectRequest putRequest = new PutObjectRequest(getStorageName(), key, file);
+			if (getCacheControl() != null) {
+				try {
+					ObjectMetadata metadata = new ObjectMetadata();
+					metadata.setCacheControl(getCacheControl());
+
+					InputStream fileInputStream = new FileInputStream(file);
+
+					putRequest = new PutObjectRequest(getStorageName(), key, fileInputStream, metadata);
+				} catch (IOException e) {
+					logger.error("S3 - Error: {}", ExceptionUtils.getStackTrace(e));
+					return;
+				}
+			} else {
+				putRequest = new PutObjectRequest(getStorageName(), key, file);
+			}
+
 			putRequest.setCannedAcl(getCannedAcl());
 
 			if(checkStorageClass(getStorageClass())){
