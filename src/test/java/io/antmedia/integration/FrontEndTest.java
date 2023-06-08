@@ -147,7 +147,7 @@ public class FrontEndTest {
 		ChromeOptions chrome_options = new ChromeOptions();
 		chrome_options.addArguments("--disable-extensions");
 		chrome_options.addArguments("--disable-gpu");
-		chrome_options.addArguments("--headless");
+		chrome_options.addArguments("--headless=new");
 		chrome_options.addArguments("--use-fake-ui-for-media-stream",
 				"--use-fake-device-for-media-stream");
 		chrome_options.addArguments("--no-sandbox");
@@ -359,9 +359,29 @@ public class FrontEndTest {
 			this.driver = new ChromeDriver(getChromeOptions());
 			this.driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(10));
 			this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+			
+			//get with default code & it should fallback to hls and play
+			this.driver.get(this.url+"play.html?id="+broadcast.getStreamId());
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 
-			//Test HLS
+				String readyState = this.driver.findElement(By.tagName("video")).getDomProperty("readyState");
+				//this.driver.findElement(By.xpath("//*[@id='video-player']")).
+				logger.info("player ready state -> {}", readyState);
+
+				return readyState != null && readyState.equals("4");
+			});
+			
+
+			//Test HLS with playOrder
 			this.driver.get(this.url+"play.html?id="+broadcast.getStreamId()+"&playOrder=hls");
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+
+				String readyState = this.driver.findElement(By.tagName("video")).getDomProperty("readyState");
+				//this.driver.findElement(By.xpath("//*[@id='video-player']")).
+				logger.info("player ready state -> {}", readyState);
+
+				return readyState != null && readyState.equals("4");
+			});
 
 			//Check we landed on the page
 			String title = this.driver.getTitle();
@@ -398,9 +418,7 @@ public class FrontEndTest {
 				logger.info(log.toString());
 			}
 
-
 			fail(e.getMessage());
-
 		}
 
 	}

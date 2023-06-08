@@ -37,7 +37,6 @@ import org.springframework.web.context.WebApplicationContext;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.filter.TokenFilterManager;
-import io.antmedia.filter.TokenGenerator;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.security.ITokenService;
 import io.antmedia.security.MockTokenService;
@@ -356,7 +355,7 @@ public class TokenFilterTest {
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 
-			verify(tokenService, times(1)).checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN);
+			verify(tokenService, times(1)).checkJwtToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN);
 
 
 		} catch (ServletException|IOException e) {
@@ -617,15 +616,5 @@ public class TokenFilterTest {
 				
 	}
 	
-	@Test
-	public void testTokenGenerator() {
-		TokenGenerator tg = new TokenGenerator();
-		
-		String t1 = tg.getGenetaredToken();
-		String t2 = tg.getGenetaredToken();
-
-		assertEquals(t1,  t2);
-	}
-
 
 }

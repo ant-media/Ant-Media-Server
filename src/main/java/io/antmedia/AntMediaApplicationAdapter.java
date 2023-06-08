@@ -420,7 +420,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					long fileSize = file.length();
 					long unixTime = System.currentTimeMillis();
 
-					String relativePath = "streams/" + subDirectory.getAbsolutePath().substring(baseDirectory.getAbsolutePath().length() - baseDirectory.getName().length());
+					String relativePath = "streams" + File.separator + 
+											subDirectory.getAbsolutePath().substring(baseDirectory.getAbsolutePath().length() - baseDirectory.getName().length())
+											+  File.separator + file.getName();
 
 					String vodId = RandomStringUtils.randomNumeric(24);
 
@@ -700,7 +702,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		long fileSize = file.length();
 		long systemTime = System.currentTimeMillis();
 
-		String relativePath=getRelativePath(filePath);
+		String relativePath = getRelativePath(filePath);
 		String listenerHookURL = null;
 		String streamName = file.getName();
 
@@ -1573,6 +1575,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		store.put(AppSettings.SETTINGS_DASH_SEG_DURATION, newAppsettings.getDashSegDuration() != null ? newAppsettings.getDashSegDuration() : "6");
 
 		store.put(AppSettings.SETTINGS_HLS_FLAGS, newAppsettings.getHlsflags() != null ? newAppsettings.getHlsflags() : "");
+		
+		store.put(AppSettings.SETTINGS_CLUSTER_COMMUNICATION_KEY, newAppsettings.getClusterCommunicationKey() != null ? newAppsettings.getClusterCommunicationKey() : "");
 
 		return store.save();
 	}

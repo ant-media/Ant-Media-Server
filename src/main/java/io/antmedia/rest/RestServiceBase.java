@@ -1607,7 +1607,7 @@ public abstract class RestServiceBase {
 					return token;
 				}
 				else {
-					message = "Cannot create JWT token. It can be a mock token service. Also please check your JWT Stream key parameter";
+					message = "Cannot create JWT token. The problem can be ->  this is community edition or JWT stream key is not set or it's length is less than 32";
 				}
 			}
 			else {
