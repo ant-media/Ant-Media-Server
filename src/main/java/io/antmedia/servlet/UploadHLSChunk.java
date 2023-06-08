@@ -127,7 +127,7 @@ public class UploadHLSChunk extends HttpServlet {
 				InputStream fileContent = req.getInputStream();
 				File targetFile = new File(filepath + ".tmp");
 
-				FileUtils.copyInputStreamToFile(fileContent, targetFile);
+				FileUtils.copyInputStreamToFile(fileContent, targetFile); // TODO: FileUtils is not stable, replace it!
 
 				if (targetFile.exists()) {
 					storageClient.save(filepath, targetFile, false);
