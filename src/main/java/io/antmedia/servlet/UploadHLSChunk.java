@@ -19,12 +19,18 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.core.Context;
 import java.io.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @MultipartConfig
 public class UploadHLSChunk extends HttpServlet {
 
 	public static final String STREAMS = "/streams";
 	public static final String WEBAPPS = "webapps";
+	public static final String PARSE_TIMESTAMP_M3U8 = "-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}\\.\\d{3}\\.m3u8";
+	public static final String BLANK_STRING = "";
+	public static final String HLS_MASTER_FILE_EXTENSION = ".m3u8";
+	public static final String HLS_END_LIST_TAG = "#EXT-X-ENDLIST";
 	protected static Logger logger = LoggerFactory.getLogger(UploadHLSChunk.class);
 	protected static IScope scope;
 	protected static ApplicationContext appCtx;
@@ -121,16 +127,30 @@ public class UploadHLSChunk extends HttpServlet {
 			if (appContext != null && appContext.isRunning())
 			{
 				String applicationName = appContext.getApplicationName();
+				InputStream fileContent = req.getInputStream();
 
 				String filepath = WEBAPPS + applicationName + STREAMS + req.getPathInfo();
 
-				InputStream fileContent = req.getInputStream();
 				File targetFile = new File(filepath + ".tmp");
 
 				FileUtils.copyInputStreamToFile(fileContent, targetFile); // TODO: FileUtils is not stable, replace it!
 
+				String fileName = req.getPathInfo();
+
+				// if stream is not finished, we remove timestamp from m3u8 file name
+				// because some customers try to play the stream from the S3 bucket, and
+				// they shouldn't deal with timestamp in the file name
+				if (fileName.endsWith(HLS_MASTER_FILE_EXTENSION) && !checkIfStreamIsFinished(filepath + ".tmp")) {
+					Pattern regexPattern = Pattern.compile(PARSE_TIMESTAMP_M3U8);
+					Matcher matcher = regexPattern.matcher(fileName);
+					fileName = matcher.replaceAll(BLANK_STRING);
+					fileName += HLS_MASTER_FILE_EXTENSION;
+				}
+
+				String s3FileKey = WEBAPPS + applicationName + STREAMS + fileName;
+
 				if (targetFile.exists()) {
-					storageClient.save(filepath, targetFile, false);
+					storageClient.save(s3FileKey, targetFile, false);
 				} else {
 					logger.error("File does not exist: {}", filepath);
 				}
@@ -139,6 +159,22 @@ public class UploadHLSChunk extends HttpServlet {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 
+	}
+
+	public boolean checkIfStreamIsFinished(String filePath) {
+		boolean isFinished = false;
+		try {
+			File file = new File(filePath);
+			if (file.exists()) {
+				String content = FileUtils.readFileToString(file, "UTF-8");
+				if (content.contains(HLS_END_LIST_TAG)) {
+					isFinished = true;
+				}
+			}
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return isFinished;
 	}
 
 	public StorageClient getStorageClient() {
