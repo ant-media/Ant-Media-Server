@@ -986,6 +986,23 @@ public abstract class MapBasedDataStore extends DataStore {
 		return result;
 	}
 
+	@Override
+	public boolean removeSubTrack(String mainTrackId, String subTrackId) {
+		boolean result = false;
+		synchronized (this) {
+			Broadcast mainTrack = getBroadcastFromMap(mainTrackId);
+			if (mainTrack != null && subTrackId != null) {
+				List<String> subTracks = mainTrack.getSubTrackStreamIds();
+				if(subTracks.remove(subTrackId)) {
+					mainTrack.setSubTrackStreamIds(subTracks);
+					setBroadcastToMap(mainTrack, mainTrackId);
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
+
 
 
 	@Override
