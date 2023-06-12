@@ -956,6 +956,13 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result deleteConferenceRoomV2(@ApiParam(value = "the id of the conference room", required = true) @PathParam("room_id") String roomId) {
 		return new Result(super.deleteConferenceRoom(roomId, getDataStore()));
 	}
+	
+	
+	public void logWarning(String message, String... arguments) {
+		if (logger.isWarnEnabled()) {
+			logger.warn(message , arguments);
+		}
+	}
 
 	@ApiOperation(value = "Add a subtrack to a main track (broadcast).", notes = "", response = Result.class)
 	@POST
@@ -968,6 +975,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 		Result result = new Result(false);
 		Broadcast subTrack = getDataStore().get(subTrackId);
+		String message = "";
 		if (subTrack != null) 
 		{
 			subTrack.setMainTrackStreamId(id);
@@ -976,34 +984,43 @@ public class BroadcastRestService extends RestServiceBase{
 			boolean success = getDataStore().updateBroadcastFields(subTrackId, subTrack);
 			if (success) {
 				success = getDataStore().addSubTrack(id, subTrackId);
+				
+				setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id,
+						"Subtrack:{} cannot be added to main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+			
 				if (success) {
 					//if it's a room, add it to the room as well
 					//Ugly fix
 					//REFACTOR: Migrate conference room to Broadcast object by keeping the interface backward compatible
 					addStreamToConferenceRoom(id, subTrackId, getDataStore());
-					result.setSuccess(true);
 				}
-				else {
-					result.setMessage("Subtrack:" + subTrackId + " cannot be added to main track: " + id);
-					if (logger.isWarnEnabled()) {
-						logger.warn("Subtrack:{} cannot be added to main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
-					}
-				}
+				
 			}
-			else {
-				result.setMessage("Main track of the stream " + subTrackId + " cannot be updated");
-				if (logger.isWarnEnabled()) {
-					logger.warn("Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
-				}
+			else 
+			{
+				message = "Main track of the stream " + subTrackId + " cannot be updated";
+				logWarning("Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
 			}
+		}
+		else 
+		{
+			message = "There is not stream with id:" + subTrackId;
+			logWarning("There is not stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
+		}
+		result.setMessage(message);
+		return result;
+	}
+	
+	public void setResultSuccess(Result result, boolean success, String failMessage, String failLog, String... arguments) 
+	{
+		if (success) {
+			result.setSuccess(true);
 		}
 		else {
-			result.setMessage("There is not stream with id:" + subTrackId);
-			if (logger.isWarnEnabled()) {
-				logger.warn("There is not stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
-			}
+			result.setSuccess(false);
+			result.setMessage(failMessage);
+			logWarning(failLog, arguments);
 		}
-		return result;
 	}
 
 	@ApiOperation(value = "Delete a subtrack from a main track (broadcast).", notes = "", response = Result.class)
@@ -1026,29 +1043,22 @@ public class BroadcastRestService extends RestServiceBase{
 			boolean success = getDataStore().updateBroadcastFields(subTrackId, subTrack);
 			if (success) {
 				success = getDataStore().removeSubTrack(id, subTrackId);
-				if (success) {
-					result.setSuccess(true);
-				}
-				else {
-					result.setMessage("Subtrack:" + subTrackId + " cannot be removed from main track: " + id);
-					if (logger.isWarnEnabled()) {
-						logger.warn("Subtrack:{} cannot be removed from main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
-					}
-				}
+				
+				setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be removed from main track: " + id,
+						"Subtrack:{} cannot be removed from main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
+				
 			}
-			else {
-				result.setMessage("Main track of the stream " + subTrackId + " cannot be updated");
-				if (logger.isWarnEnabled()) {
-					logger.warn("Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
-				}
+			else 
+			{
+				setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be updated",
+						"Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
 			}
 		}
-		else {
-			result.setMessage("There is not stream with id:" + subTrackId);
-			if (logger.isWarnEnabled()) {
-				logger.warn("There is not stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
-			}
+		else 
+		{
+			setResultSuccess(result, false, "There is no stream with id:" + subTrackId, "There is no stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
 		}
+		
 		return result;
 	}
 
