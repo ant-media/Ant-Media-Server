@@ -40,6 +40,10 @@ public class UploadHLSChunk extends HttpServlet {
 
 	private static StorageClient storageClient = null;
 
+	public UploadHLSChunk() {
+		super();
+	}
+
 	@Nullable
 	public ApplicationContext getAppContext() {
 		if (servletContext != null) {
@@ -118,6 +122,10 @@ public class UploadHLSChunk extends HttpServlet {
 			logger.error("Storage client is null, try to init it");
 			initStorageClient();
 		}
+	}
+
+	public void doPutForUnitTests(HttpServletRequest req, HttpServletResponse resp) {
+		doPut(req, resp);
 	}
 
 	public void uploadHLSChunk(HttpServletRequest req, HttpServletResponse resp) {

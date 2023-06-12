@@ -7,7 +7,9 @@ import io.antmedia.storage.StorageClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
@@ -15,6 +17,7 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
 import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -26,14 +29,51 @@ import static org.mockito.Mockito.*;
 
 public class UploadHLSChunkTest {
 
-    @Before
-    public void before() {
+    @Mock
+    private HttpServletRequest mockRequest;
+    @Mock
+    private HttpServletResponse mockResponse;
+    @Mock
+    private ServletContext mockServletContext;
+    @Mock
+    private StorageClient mockStorageClient;
 
+    private UploadHLSChunk servlet;
+
+    @Before
+    public void setUp() throws ServletException {
+        MockitoAnnotations.initMocks(this);
+        servlet = new UploadHLSChunk();
+        servlet.init();
     }
 
     @After
     public void after() {
 
+    }
+
+    @Test
+    public void testDoPut() {
+        when(mockRequest.getServletContext()).thenReturn(mockServletContext);
+        when(mockServletContext.getAttribute("storageClient")).thenReturn(mockStorageClient);
+        when(mockStorageClient.isEnabled()).thenReturn(true);
+
+        //test with null storage client
+        servlet.setServletContext(null);
+        servlet.doPutForUnitTests(mockRequest, mockResponse);
+        verify(mockStorageClient, times(0)).isEnabled();
+        verify(mockRequest, times(1)).getServletContext();
+        verify(mockResponse, never()).setStatus(anyInt());
+
+        // test with storage client
+        StorageClient storageClient = (StorageClient) mockServletContext.getAttribute("storageClient");
+        servlet.setStorageClient(storageClient);
+
+        servlet.doPutForUnitTests(mockRequest, mockResponse);
+
+        verify(mockStorageClient, times(1)).isEnabled();
+        verify(mockRequest, times(3)).getServletContext();
+        verify(mockResponse, never()).setStatus(anyInt());
     }
 
     @Test
