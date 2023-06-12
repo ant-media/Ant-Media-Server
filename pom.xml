@@ -417,7 +417,7 @@
 		<dependency>
             <groupId>io.swagger</groupId>
             <artifactId>swagger-jersey2-jaxrs</artifactId>
-            <version>1.6.9</version>
+            <version>1.6.11</version>
             <exclusions>
                 <exclusion>
                     <artifactId>jersey-container-servlet-core</artifactId>
