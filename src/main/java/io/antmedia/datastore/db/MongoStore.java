@@ -1284,6 +1284,25 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
+	public boolean removeSubTrack(String mainTrackId, String subTrackId) {
+		synchronized(this) {
+			try {
+				if (subTrackId != null) {
+					return datastore.find(Broadcast.class)
+							.filter(Filters.eq(STREAM_ID, mainTrackId))
+							.update(UpdateOperators.pullAll("subTrackStreamIds", Arrays.asList(subTrackId)))
+							.execute()
+							.getMatchedCount() == 1;
+				}
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
 	public int resetBroadcasts(String hostAddress) 
 	{
 		int totalOperationCount = 0;
