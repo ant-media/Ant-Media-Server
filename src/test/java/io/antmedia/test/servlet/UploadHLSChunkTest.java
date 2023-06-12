@@ -7,9 +7,11 @@ import io.antmedia.storage.StorageClient;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.powermock.modules.junit4.PowerMockRunner;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
@@ -23,9 +25,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import java.io.File;
+import java.io.InputStream;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
+import static org.powermock.api.mockito.PowerMockito.whenNew;
 
 public class UploadHLSChunkTest {
 
@@ -35,6 +39,9 @@ public class UploadHLSChunkTest {
     private HttpServletResponse mockResponse;
     @Mock
     private ServletContext mockServletContext;
+
+    @Mock
+    private ConfigurableWebApplicationContext mockAppContext;
     @Mock
     private StorageClient mockStorageClient;
 
@@ -211,4 +218,52 @@ public class UploadHLSChunkTest {
 
         Mockito.verify(storageClient, Mockito.times(1)).getTransferManager();
     }
+
+    @Test
+    public void testUploadHLSChunk_WithInvalidAppContext() throws Exception {
+        when(mockRequest.getServletContext()).thenReturn(mock(ServletContext.class));
+
+        when(mockRequest.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(null);
+
+        servlet.uploadHLSChunk(mockRequest, mockResponse);
+
+        verify(mockRequest, times(2)).getServletContext();
+        verify(mockRequest.getServletContext(), times(1)).getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+        verify(mockResponse, never()).setStatus(anyInt());
+        verify(mockResponse, never()).sendError(anyInt(), anyString());
+        // Additional assertions as needed
+    }
+
+    @Test
+    public void testUploadHLSChunk_WithNonExistingFile() throws Exception {
+        String filePath = "/path/to/nonexistingfile";
+        String fileName = "/example.m3u8";
+
+        when(mockRequest.getServletContext()).thenReturn(mock(ServletContext.class));
+        when(mockRequest.getPathInfo()).thenReturn(fileName);
+
+        when(mockRequest.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(mockAppContext);
+        when(mockAppContext.isRunning()).thenReturn(true);
+
+        File targetFile = mock(File.class);
+        when(targetFile.exists()).thenReturn(false);
+        whenNew(File.class).withArguments(filePath + ".tmp").thenReturn(targetFile);
+
+        servlet.uploadHLSChunk(mockRequest, mockResponse);
+
+        verify(mockRequest, times(2)).getServletContext();
+        verify(mockRequest, times(1)).getInputStream();
+        verify(mockRequest, times(1)).getPathInfo();
+        verify(mockRequest.getServletContext(), times(1)).getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+        verify(mockAppContext, times(1)).isRunning();
+        verify(mockResponse, never()).setStatus(anyInt());
+        verify(mockResponse, never()).sendError(anyInt(), anyString());
+
+        // we should remove the temp file
+        File cleanedFile = new File("webappsnull/streams/example.m3u8.tmp");
+        if (cleanedFile.exists()) {
+            cleanedFile.delete();
+        }
+    }
+
 }
