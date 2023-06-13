@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import com.google.gson.JsonObject;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 
@@ -2018,11 +2019,11 @@ public class RestServiceV2Test {
 				return;
 			}
 
-			final AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+			final AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("cleanapp");
 			appSettingsModel.setJwtStreamSecretKey("testtesttesttesttesttesttesttest");
 			appSettingsModel.setJwtBlacklistEnabled(true);
 
-			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+			result = ConsoleAppRestServiceTest.callSetAppSettings("cleanapp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
 			final String clearJwtBlacklistUrl = ROOT_SERVICE_URL + "/v2/broadcasts/jwt-black-list-clear";
@@ -2045,17 +2046,27 @@ public class RestServiceV2Test {
 			final String validJwt2 = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdHJlYW1JZCI6InRlc3RzdHJlYW0iLCJ0eXBlIjoicHVibGlzaCIsImV4cCI6OTg4NzUwNzUwMX0.f4YTJUOmO7yuGpD7W4i_fffv2IVi1JB3mZVxNv8LSdI";
 			final String validJwt3 = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdHJlYW1JZCI6InRlc3RzdHJlYW0iLCJ0eXBlIjoicHVibGlzaCIsImV4cCI6OTg4NzUwNzUwMn0.bSbIumeAeM-k5zLndtII49z_458L8Lqg3eVweahvpb4";
 
-			String jwtRequestBody1 = new JSONObject().put("jwt", validJwt1).toString();
+
+			JsonObject jwtRequest1 = new JsonObject();
+			jwtRequest1.addProperty("jwt",validJwt1);
+
+			JsonObject jwtRequest2 = new JsonObject();
+			jwtRequest2.addProperty("jwt",validJwt2);
+
+			JsonObject jwtRequest3 = new JsonObject();
+			jwtRequest3.addProperty("jwt",validJwt3);
+
+			String jwtRequestBody1 = gson.toJson(jwtRequest1);
 			HttpPost addJwtRequest1 = new HttpPost(jwtBlacklistUrl);
 			addJwtRequest1.setHeader("Content-Type", "application/json");
 			addJwtRequest1.setEntity(new StringEntity(jwtRequestBody1));
 
-			String jwtRequestBody2 = new JSONObject().put("jwt", validJwt2).toString();
+			String jwtRequestBody2 = gson.toJson(jwtRequest2);
 			HttpPost addJwtRequest2 = new HttpPost(jwtBlacklistUrl);
 			addJwtRequest2.setHeader("Content-Type", "application/json");
 			addJwtRequest2.setEntity(new StringEntity(jwtRequestBody2));
 
-			String jwtRequestBody3 = new JSONObject().put("jwt", validJwt3).toString();
+			String jwtRequestBody3 = gson.toJson(jwtRequest3);
 			HttpPost addJwtRequest3 = new HttpPost(jwtBlacklistUrl);
 			addJwtRequest3.setHeader("Content-Type", "application/json");
 			addJwtRequest3.setEntity(new StringEntity(jwtRequestBody3));
@@ -2151,7 +2162,10 @@ public class RestServiceV2Test {
 
 
 		} catch (Exception e){
-			logger.error(e.toString());
+			e.printStackTrace();
+
+			fail(e.getMessage());
+
 		}
 
 	}
