@@ -308,7 +308,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		newSettings.setHlsflags(null);
 		spyAdapter.updateSettings(newSettings, true, false);
 		
-		assertEquals(null, settings.getVodFinishScript());
+		assertEquals("", settings.getVodFinishScript());
 		assertEquals(null, settings.getHlsPlayListType());
 		assertEquals(null, settings.getHlsflags());
 		assertEquals(newSettings.getHlsflags(), settings.getHlsflags());
@@ -647,7 +647,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdaptor.setAppSettings(appSettings);
 		
 		Broadcast broadcast = new Broadcast();
-		assertNull(spyAdaptor.getListenerHookURL(broadcast));
+		assertEquals("", spyAdaptor.getListenerHookURL(broadcast));
 		
 		String hookURL = "listener_hook_url";
 		appSettings.setListenerHookURL(hookURL);
@@ -1812,6 +1812,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		String nonExistingStreamId = "stream_"+RandomUtils.nextInt(0, 1000);
 		spyAdapter.addPacketListener(nonExistingStreamId, listener);
 		verify(clusterStreamFetcher, times(1)).register(nonExistingStreamId, listener);
+		
+		
+		spyAdapter.removePacketListener(nonExistingStreamId, listener);
+		verify(clusterStreamFetcher, times(1)).remove(nonExistingStreamId, listener);
+		
+		
 	}
 
 	@Test

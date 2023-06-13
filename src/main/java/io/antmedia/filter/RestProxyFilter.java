@@ -41,7 +41,7 @@ public class RestProxyFilter extends AbstractFilter {
 			String streamId = getStreamId(reqURI);
 			if (streamId != null && !streamId.isEmpty()) 
 			{
-				Broadcast broadcast = getDataStore().get(streamId);
+				Broadcast broadcast = getBroadcast(httpReq, streamId);
 				log.debug("STREAM ID = {} BROADCAST = {} ", streamId, broadcast);
 				
 				//If it is not related with the broadcast, we can skip this filter

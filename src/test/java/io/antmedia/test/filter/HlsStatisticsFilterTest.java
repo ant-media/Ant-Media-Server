@@ -1,12 +1,7 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.Assert.*;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 
@@ -251,6 +246,39 @@ public class HlsStatisticsFilterTest {
 		logger.info("session id {}, stream id {}", sessionId, streamId);
 		hlsStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 		return sessionId;
+	}
+
+	@Test
+	public void testViewerCountLimit() {
+		try {
+			HlsStatisticsFilter filter = spy(new HlsStatisticsFilter());
+
+			Broadcast broadcast = new Broadcast();
+			broadcast.setHlsViewerLimit(2);
+			broadcast.setHlsViewerCount(2);
+
+			HttpServletRequest request = mock(HttpServletRequest.class);
+			when(request.getAttribute(HlsStatisticsFilter.BROADCAST_OBJECT)).thenReturn(broadcast);
+			HttpServletResponse response = mock(HttpServletResponse.class);
+			String streamId = "streamId1";
+			assertTrue(filter.isViewerCountExceeded(request, response, streamId));
+			verify(filter, times(1)).getBroadcast(request, streamId);
+
+			broadcast.setHlsViewerCount(1);
+			assertFalse(filter.isViewerCountExceeded(request, response, streamId));
+			verify(filter, times(2)).getBroadcast(request, streamId);
+
+			when(request.getAttribute(HlsStatisticsFilter.BROADCAST_OBJECT)).thenReturn(null);
+			doReturn(broadcast).when(filter).getBroadcast(request, streamId);
+			assertFalse(filter.isViewerCountExceeded(request, response, streamId));
+			verify(filter, times(3)).getBroadcast(request, streamId);
+
+
+		}
+		catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			fail(ExceptionUtils.getStackTrace(e));
+		}
 	}
 
 }

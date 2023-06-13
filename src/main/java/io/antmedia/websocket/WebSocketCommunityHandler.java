@@ -149,10 +149,11 @@ public class WebSocketCommunityHandler {
 			else if (cmd.equals(WebSocketConstants.PING_COMMAND)) {
 				sendPongMessage(session);
 			}
-			else if (cmd.equals(WebSocketConstants.GET_STREAM_INFO_COMMAND)) 
+			else if (cmd.equals(WebSocketConstants.GET_STREAM_INFO_COMMAND) || cmd.equals(WebSocketConstants.PLAY_COMMAND)) 
 			{
 				sendNotFoundJSON(streamId, session);
 			}
+			
 
 
 		}
@@ -310,6 +311,15 @@ public class WebSocketCommunityHandler {
 	}
 	
 
+	
+	@SuppressWarnings("unchecked")
+	public void sendRoomNotActiveInformation(String roomId) {
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.ROOM_NOT_ACTIVE);
+		jsonResponse.put(WebSocketConstants.ROOM, roomId);
+		sendMessage(jsonResponse.toJSONString(), session);
+	}
 	
 	/**
 	 * 

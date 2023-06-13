@@ -27,12 +27,17 @@ import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.filter.AbstractFilter;
+import io.antmedia.filter.JWTFilter;
 import io.antmedia.rest.model.UserType;
 import io.antmedia.settings.ServerSettings;
 
 public class AuthenticationFilter extends AbstractFilter {
 
 	public static final String DISPATCH_PATH_URL = "_path";
+	/**
+	 * Use the same token header with JWT Filter which is {@link JWTFilter#JWT_TOKEN_HEADER }
+	 */
+	@Deprecated
 	public static final String JWT_TOKEN = "ProxyAuthorization";
 	public static final String FORBIDDEN_ERROR = "Not allowed to access this resource. Contact system admin";
 
@@ -103,10 +108,17 @@ public class AuthenticationFilter extends AbstractFilter {
 		 * Is Token filled or not
 		 * Is JWT Server Token valid or invalid 
 		 */
+		String jwtToken = httpRequest.getHeader(JWTFilter.JWT_TOKEN_HEADER);
+		if (jwtToken == null) {
+			//get it for compatibility
+			jwtToken = httpRequest.getHeader(JWT_TOKEN);
+		}
 		if (serverSettings != null 
 				&& serverSettings.isJwtServerControlEnabled()
-				&& httpRequest.getHeader(JWT_TOKEN) != null) {
-			if(checkJWTServerSettings(httpRequest.getHeader(JWT_TOKEN))) {
+				&& jwtToken != null) 
+		{
+			if(checkJWTServerSettings(jwtToken)) {
+
 				chain.doFilter(request, response);
 			}
 			else {

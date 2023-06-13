@@ -18,7 +18,7 @@ import javax.websocket.RemoteEndpoint;
 import javax.websocket.RemoteEndpoint.Basic;
 import javax.websocket.Session;
 
-import org.apache.commons.lang.math.RandomUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -233,6 +233,30 @@ public class WebSocketCommunityHandlerTest {
 	public void testGetStreamInfo() {
 		JSONObject publishObject = new JSONObject();
 		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.GET_STREAM_INFO_COMMAND);
+		
+		String streamId = "streamId" + (int)(Math.random()*1000);
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		wsHandler.onMessage(session, publishObject.toJSONString());
+		
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.ERROR_CODE, "404");
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_EXIST);
+		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		try {
+			verify(basicRemote).sendText(jsonResponse.toJSONString());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	@Test
+	public void testPlayStream() {
+		JSONObject publishObject = new JSONObject();
+		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PLAY_COMMAND);
 		
 		String streamId = "streamId" + (int)(Math.random()*1000);
 		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
@@ -567,7 +591,7 @@ public class WebSocketCommunityHandlerTest {
 		String type = "dummyType";
 		String streamId = "dummyStreamId";
 		
-		int trackSize = RandomUtils.nextInt(5)+1;
+		int trackSize = RandomUtils.nextInt(0,5)+1;
 		Map<String, String> midSidMap = new HashMap<>();
 		for (int i = 0; i < trackSize; i++) {
 			midSidMap.put("mid"+i, "sid"+i);

@@ -2705,7 +2705,7 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 		
 		BroadcastRestService broadcastRestService = new BroadcastRestService();
-		DataStore datastore = new InMemoryDataStore("dummy");
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
 		datastore.save(mainTrack);
 		datastore.save(subtrack);
 		broadcastRestService.setDataStore(datastore);
@@ -2718,8 +2718,72 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(1, mainTrack.getSubTrackStreamIds().size());
 		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
 		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
+		
+		Result result = broadcastRestService.addSubTrack("trackIdNotExist", "subtrackNotExist");
+		assertFalse(result.isSuccess());
+		
+		result = broadcastRestService.addSubTrack("trackIdNotExist", subTrackId);
+		assertFalse(result.isSuccess());
+		
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+		conferenceRoom.setRoomId(mainTrackId);
+		assertTrue(datastore.createConferenceRoom(conferenceRoom));
+		
+		Mockito.doReturn(false).when(datastore).updateBroadcastFields(Mockito.any(), Mockito.any());
+		result = broadcastRestService.addSubTrack(mainTrackId, subTrackId);
+		assertFalse(result.isSuccess());
+		
+		
+		Mockito.doReturn(true).when(datastore).updateBroadcastFields(Mockito.any(), Mockito.any());
+		result = broadcastRestService.addSubTrack(mainTrackId, subTrackId);
+		assertTrue(result.isSuccess());
+		
+		conferenceRoom = datastore.getConferenceRoom(mainTrackId);
+		assertEquals(1,conferenceRoom.getRoomStreamList().size());
 
 		
+	}
+
+	@Test
+	public void testRemoveSubtrack()  {
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+			mainTrack.setSubTrackStreamIds(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+			subtrack.setMainTrackStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		BroadcastRestService broadcastRestService = new BroadcastRestService();
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		datastore.save(mainTrack);
+		datastore.save(subtrack);
+		broadcastRestService.setDataStore(datastore);
+
+		assertTrue(mainTrack.getSubTrackStreamIds().size() == 1);
+		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
+		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
+
+		Result result = broadcastRestService.removeSubTrack(mainTrackId, subTrackId);
+		assertTrue(result.isSuccess());
+
+		result = broadcastRestService.removeSubTrack(mainTrackId, "notExistSubTrackId");
+		assertFalse(result.isSuccess());
+
+		result = broadcastRestService.removeSubTrack("notExistMainTrackId", subTrackId);
+		assertFalse(result.isSuccess());
+
 	}
 	
 	@Test

@@ -24,9 +24,11 @@ import io.antmedia.security.ITokenService;
 public class TokenFilterManager extends AbstractFilter   {
 
 	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
-	private static final String NOT_INITIALIZED= "Not initialized";
+	public static final String NOT_INITIALIZED= "Not initialized";
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterManager.class);
 	private ITokenService tokenService;
+
+	public static final String TOKEN_HEADER_FOR_NODE_COMMUNICATION = "ClusterAuthorization";
 
 
 	@Override
@@ -58,10 +60,9 @@ public class TokenFilterManager extends AbstractFilter   {
 
 
 		AppSettings appSettings = getAppSettings();
-		TokenGenerator tokenGenerator = getTokenGenerator();
 
 		if (appSettings == null) {
-			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Server is getting initialized.");
+			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Server is getting initialized.");
 			logger.warn("AppSettings not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
 			return;
 		}
@@ -72,85 +73,74 @@ public class TokenFilterManager extends AbstractFilter   {
 
 
 
-		/*
-		 * In cluster mode edges make HLS request to Origin. Token isn't passed with this requests.
-		 * So if token enabled, origin returns 403. So we generate an cluster secret, store it in ClusterToken attribute
-		 * then check it here to bypass token control.
+		/**
+		 * In cluster mode, edges make HLS request to Origin. Token isn't passed with these requests.
+		 * So if token is enabled, origin returns 403. In order to resolve this issue
+		 * we generate an jwt token based on application secret key {@code AppSettings#clusterCommunicationKey} and add to the header {@code JWTFilter#JWT_TOKEN_HEADER}
+		 * If there is a header like, it checks and bypass token control.
 		 */
-		String clusterToken = (String) request.getAttribute(TokenGenerator.INTERNAL_COMMUNICATION_TOKEN_NAME);
 
 
 		if (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) 
 		{
+			if (streamId == null) {
+				logger.warn("No streamId found in the request: {}", httpRequest.getRequestURI());
+				return ;
+			}
+			
+			ITokenService tokenServiceTmp = getTokenService();
 
-			if (tokenGenerator == null || clusterToken == null || clusterToken.equals(tokenGenerator.getGenetaredToken())) {
-				//if it enters this block, it means 
-				// 1. server may be is in cluster mode and this is origin node
+			if (tokenServiceTmp == null) {
+				httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, TokenFilterManager.NOT_INITIALIZED);
+				logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
+				return;
+			}
+
+			String jwtInternalCommunicationToken = httpRequest.getHeader(TOKEN_HEADER_FOR_NODE_COMMUNICATION);
+
+			
+			if (jwtInternalCommunicationToken != null) 
+			{
+				//if jwtInternalCommunicationToken is not null, 
+				//it means that this is the origin instance and receiving request from the edge node directly
+				
+				boolean checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
+				if (!checkJwtToken) 
+				{
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Cluster communication token is not valid for streamId:" + streamId);
+					logger.warn("Cluster communication token is not valid for streamId:{}" , streamId);
+					return; 	
+				}
+			}
+			else
+			{
+				// if it enters this block, it means 
+				// 1. server may be is in cluster mode and this is edge node
 				// 2. server in standalone mode
 
-				if(appSettings.isTimeTokenSubscriberOnly() || appSettings.isEnableTimeTokenForPlay() || appSettings.isEnableTimeTokenForPublish()) {
-					ITokenService tokenServiceTmp = getTokenService();
-
-					if(!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
-						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Time Based subscriber id or code is invalid");
-						logger.warn("subscriber request for subscriberIDor subscriberCode is not valid");
-						return; 					
-					}
+				if ((appSettings.isTimeTokenSubscriberOnly() || appSettings.isEnableTimeTokenForPlay()) && 
+						!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Time Based subscriber id or code is invalid");
+					logger.warn("subscriber request for subscriberID or subscriberCode is not valid for streamId: {}", streamId);
+					return; 					
 				}
 
-				if(appSettings.isPlayTokenControlEnabled()) 
-				{
-
-					ITokenService tokenServiceTmp = getTokenService();
-					if (tokenServiceTmp != null) 
-					{
-						if (!tokenServiceTmp.checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
-							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Token");
-							logger.warn("token {} is not valid for stream id:{}", tokenId, streamId);
-							return; 
-						}
-					}
-					else {
-						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
-						logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
-						return;
-					}
-				}
-				
-				if (appSettings.isHashControlPlayEnabled()) 
-				{
-					ITokenService tokenServiceTmp = getTokenService();
-					if (tokenServiceTmp != null) 
-					{
-						if (!tokenServiceTmp.checkHash(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
-							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Hash");
-							logger.warn("hash {} is not valid", tokenId);
-							return; 
-						}
-					}
-					else {
-						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
-						logger.warn("Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
-						return;
-					}
+				if (appSettings.isPlayTokenControlEnabled() && !tokenServiceTmp.checkToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Token for streamId:" + streamId);
+					logger.warn("token {} is not valid for stream id:{}", tokenId, streamId);
+					return; 
 				}
 
-				if (appSettings.isPlayJwtControlEnabled()) 
-				{
-					ITokenService tokenServiceTmp = getTokenService();
-					if (tokenServiceTmp != null) 
-					{
-						if (!tokenServiceTmp.checkJwtToken(tokenId, streamId, Token.PLAY_TOKEN)) {
-							httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid JWT Token");
-							logger.warn("JWT token is not valid");
-							return; 
-						}
-					}
-					else {
-						httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, NOT_INITIALIZED);
-						logger.warn("JWT Token service is not initialized. Server is getting started for stream id:{} from request: {}", streamId, clientIP);
-						return;
-					}
+				if (appSettings.isHashControlPlayEnabled() && !tokenServiceTmp.checkHash(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid Hash");
+					logger.warn("hash {} is not valid", tokenId);
+					return; 
+				}
+
+				if (appSettings.isPlayJwtControlEnabled() && !tokenServiceTmp.checkJwtToken(tokenId, streamId, sessionId, Token.PLAY_TOKEN)) {
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN,"Invalid JWT Token");
+					logger.warn("JWT token is not valid");
+					return; 
 				}
 			}
 			chain.doFilter(request, response);	
@@ -159,15 +149,6 @@ public class TokenFilterManager extends AbstractFilter   {
 			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
 			logger.warn("Invalid method type({}) for stream: {} and request uri: {}", method, streamId, httpRequest.getRequestURI());
 		}
-	}
-
-	private TokenGenerator getTokenGenerator() {
-		TokenGenerator tokenGenerator = null;
-		ConfigurableWebApplicationContext context = getAppContext();
-		if (context != null && context.containsBean(TokenGenerator.BEAN_NAME)) {
-			tokenGenerator = (TokenGenerator)context.getBean(TokenGenerator.BEAN_NAME);
-		}
-		return tokenGenerator;
 	}
 
 	public ITokenService getTokenService() {
@@ -195,7 +176,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		if(requestURI.contains("streams")) {
 			requestURI = requestURI.split("streams")[1];
 		}
-		
+
 		if(requestURI.contains("m4s") || requestURI.contains("mpd")) {
 			startIndex = requestURI.indexOf("/");
 			endIndex = requestURI.lastIndexOf("/");
@@ -213,7 +194,7 @@ public class TokenFilterManager extends AbstractFilter   {
 			return requestURI.substring(startIndex+1, endIndex);
 		}
 
-		
+
 		//if request is adaptive file (ending with _adaptive.m3u8)
 		endIndex = requestURI.lastIndexOf(MuxAdaptor.ADAPTIVE_SUFFIX + ".m3u8");
 		if (endIndex != -1) {
@@ -239,20 +220,20 @@ public class TokenFilterManager extends AbstractFilter   {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
 		}
-		
+
 		//for backward compatibility
 		tsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)+[0-9]{4}.ts$";  // matches ending with _[_240p300kbps0000].ts or _[_300kbps0000].ts or _[_240p0000].ts default ts file extension _[0000].ts
 		if (requestURI.matches(tsRegex)) {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
 		}
-		
+
 		tsRegex = "(.*)[0-9]{"+ Muxer.SEGMENT_INDEX_LENGTH +"}.ts$";  // matches default ts file extension  [0000].ts
 		if (requestURI.matches(tsRegex)) {
 			endIndex = requestURI.lastIndexOf('.'); //because file format is [NAME][0000].ts
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex-Muxer.SEGMENT_INDEX_LENGTH);
 		}
-		
+
 		//for backward compatibility
 		tsRegex = "(.*)[0-9]{4}.ts$";  // matches default ts file extension  [0000].ts
 		if (requestURI.matches(tsRegex)) {
@@ -304,7 +285,7 @@ public class TokenFilterManager extends AbstractFilter   {
 			//if default webm file requested such as: 541211332342978513714151.webm
 			endIndex = requestURI.lastIndexOf(".webm");
 		}
-		
+
 		if (endIndex != -1) 
 		{
 			if (requestURI.matches(underScoreRegex)) 
