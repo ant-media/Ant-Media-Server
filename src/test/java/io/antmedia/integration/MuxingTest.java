@@ -446,7 +446,7 @@ public class MuxingTest {
 		int ret;
 		audioExists = false;
 		videoExists = false;
-		System.out.println("Tested File:"+absolutePath);
+		logger.info("Tested File: {}", absolutePath);
 
 		//AVDictionary dic = null;
 

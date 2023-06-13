@@ -555,6 +555,13 @@ public class VoDRestServiceV2UnitTest {
 		vodList = dataStore.getVodList(0, 50, null, null, null, null);
 		//there are 9 files under src/test directory
 		assertEquals(9, vodList.size());
+		//file path should include the relative path
+		for (VoD voD : vodList) {
+			//file path include the file name
+			assertTrue(voD.getVodName().contains("."));
+			assertTrue(voD.getFilePath().contains(voD.getVodName()));
+		}
+		
 		File f = new File("webapps/junit/streams/test");
 		assertTrue(Files.isSymbolicLink(f.toPath()));
 		
@@ -562,7 +569,7 @@ public class VoDRestServiceV2UnitTest {
 		boolean foundFixturesTest = false;
 		for (VoD voD : vodList) {
 			System.out.println("vod file path: " + voD.getFilePath());
-			if (voD.getFilePath().equals("streams/test/resources/fixtures")) {
+			if (voD.getFilePath().equals("streams/test/resources/fixtures/test.flv")) {
 				foundFixturesTest = true;
 			}
 		}

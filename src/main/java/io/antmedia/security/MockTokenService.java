@@ -47,11 +47,6 @@ public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 	public boolean verifyJwt(String jwtTokenId, String streamId, String type) {
 		return false;
 	}
-
-	@Override
-	public boolean checkJwtToken(String jwtTokenId, String streamId, String type) {
-		return true;
-	}
 	
 	@Override
 	public boolean checkHash(String hash, String streamId, String sessionId, String type) {
@@ -62,6 +57,16 @@ public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 	@Override
 	public boolean checkTimeBasedSubscriber(String subscriberId, String streamId, String sessionId,
 			String subscriberCode, boolean forPublish) {
+		return true;
+	}
+
+	@Override
+	public boolean isJwtTokenValid(String jwtTokenId, String tokenSecret, String streamId, String type) {
+		return true;
+	}
+
+	@Override
+	public boolean checkJwtToken(String jwtTokenId, String streamId, String sessionId, String type) {
 		return true;
 	}
 

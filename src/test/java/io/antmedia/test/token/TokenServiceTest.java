@@ -88,7 +88,7 @@ public class TokenServiceTest {
 		token.setType(Token.PLAY_TOKEN);
 
 		//check token
-		boolean flag = tokenService.checkJwtToken(token.getTokenId(), token.getStreamId(), token.getType());
+		boolean flag = tokenService.checkJwtToken(token.getTokenId(), token.getStreamId(), "session", token.getType());
 
 		// it should be true because mock service always replies as true
 		assertTrue(flag);

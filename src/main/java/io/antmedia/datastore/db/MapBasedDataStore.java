@@ -1047,16 +1047,35 @@ public abstract class MapBasedDataStore extends DataStore {
 		boolean result = false;
 		synchronized (this) {
 			Broadcast broadcast = getBroadcastFromMap(mainTrackId);
-			List<String> subTracks = broadcast.getSubTrackStreamIds();
-			if (subTracks == null) {
-				subTracks = new ArrayList<>();
+			if (broadcast != null && subTrackId != null) {
+				List<String> subTracks = broadcast.getSubTrackStreamIds();
+				if (subTracks == null) {
+					subTracks = new ArrayList<>();
+				}
+				subTracks.add(subTrackId);
+				broadcast.setSubTrackStreamIds(subTracks);
+				setBroadcastToMap(broadcast, mainTrackId);
+				result = true;
 			}
-			subTracks.add(subTrackId);
-			broadcast.setSubTrackStreamIds(subTracks);
-			setBroadcastToMap(broadcast, mainTrackId);
-			result = true;
 		}
 
+		return result;
+	}
+
+	@Override
+	public boolean removeSubTrack(String mainTrackId, String subTrackId) {
+		boolean result = false;
+		synchronized (this) {
+			Broadcast mainTrack = getBroadcastFromMap(mainTrackId);
+			if (mainTrack != null && subTrackId != null) {
+				List<String> subTracks = mainTrack.getSubTrackStreamIds();
+				if(subTracks.remove(subTrackId)) {
+					mainTrack.setSubTrackStreamIds(subTracks);
+					setBroadcastToMap(mainTrack, mainTrackId);
+					result = true;
+				}
+			}
+		}
 		return result;
 	}
 

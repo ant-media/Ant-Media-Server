@@ -55,7 +55,7 @@ public abstract class DataStore {
 		String streamId = null;
 		try {
 		if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-			streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
+			streamId = RandomStringUtils.randomAlphanumeric(16) + System.currentTimeMillis();
 			broadcast.setStreamId(streamId);
 		}
 		streamId = broadcast.getStreamId();
@@ -963,6 +963,10 @@ public abstract class DataStore {
 			broadcast.setListenerHookURL(newBroadcast.getListenerHookURL());
 		}
 
+		if (newBroadcast.getMetaData() != null) {
+			broadcast.setMetaData(newBroadcast.getMetaData());
+		}
+
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
 		broadcast.setDuration(newBroadcast.getDuration());
@@ -1241,6 +1245,14 @@ public abstract class DataStore {
 	 * @return boolean - success 
 	 */
 	public abstract boolean addSubTrack(String mainTrackId, String subTrackId);
+
+	/**
+	 * Remove a subtrack id from a main track (broadcast)
+	 * @param mainTrackId - main track id
+	 * @param subTrackId - main track id
+	 * @return boolean - success
+	 */
+	public abstract boolean removeSubTrack(String mainTrackId, String subTrackId);
 
 	/**
 	 * Resets the broadcasts in the database. 

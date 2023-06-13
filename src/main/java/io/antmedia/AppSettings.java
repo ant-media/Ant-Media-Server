@@ -9,6 +9,7 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.catalina.util.NetMask;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -25,6 +26,7 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
+import io.antmedia.rest.VoDRestService;
 
 /**
  * Application Settings for each application running in Ant Media Server.
@@ -333,6 +335,16 @@ public class AppSettings implements Serializable{
 	
 	public static final String SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME = "settings.addDateTimeToHlsFileName";
 
+	public static final String SETTINGS_PLAY_WEBRTC_STREAM_ONCE_FOR_EACH_SESSION = "settings.playWebRTCStreamOnceForEachSession";
+
+	private static final String SETTINGS_STATS_BASED_ABR_ALGORITHM_ENABLED = "settings.statsBasedABREnabled";
+	private static final String SETTINGS_ABR_DOWN_SCALE_PACKET_LOST_RATIO = "settings.abrDownScalePacketLostRatio";
+	private static final String SETTINGS_ABR_UP_SCALE_PACKET_LOST_RATIO = "settings.abrUpScalePacketLostRatio";
+	private static final String SETTINGS_ABR_UP_SCALE_RTT_MS = "settings.abrUpScaleRTTMs";
+	private static final String SETTINGS_ABR_UP_SCALE_JITTER_MS = "settings.abrUpScaleJitterMs";
+
+	public static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
+
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -384,8 +396,8 @@ public class AppSettings implements Serializable{
 	 * video height, video bitrate, and audio bitrate are set as an example,
 	 * Ex. 480,300000,96000,360,200000,64000.
 	 */
-	@Value( "${"+SETTINGS_ENCODER_SETTINGS_STRING+"}" )
-	private String encoderSettingsString;
+	@Value( "${"+SETTINGS_ENCODER_SETTINGS_STRING+":}" )
+	private String encoderSettingsString = "";
 
 	/**
 	 * This is for making this instance run also as a signaling server.
@@ -407,8 +419,8 @@ public class AppSettings implements Serializable{
 	 * Number of segments(chunks) in m3u8 files
 	 * Set the maximum number of playlist entries, If 0 the list file will contain all the segments,
 	 */
-	@Value( "${"+SETTINGS_HLS_LIST_SIZE+":#{null}}" )
-	private String hlsListSize;
+	@Value( "${"+SETTINGS_HLS_LIST_SIZE+":5}" )
+	private String hlsListSize = "5";
 
 	/**
 	 * Duration of segments in m3u8 files
@@ -553,8 +565,8 @@ public class AppSettings implements Serializable{
 	 * The secret string used for creating hash based tokens
 	 * The key that used in hash generation for hash-based access control.
 	 */
-	@Value( "${"+TOKEN_HASH_SECRET+":''}" )
-	private String tokenHashSecret;
+	@Value( "${"+TOKEN_HASH_SECRET+":}" )
+	private String tokenHashSecret = "";
 
 	/**
 	 * It's mandatory,
@@ -580,7 +592,7 @@ public class AppSettings implements Serializable{
 	 *  For details check: https://antmedia.io/webhook-integration/
 	 */
 	@Value( "${"+SETTINGS_LISTENER_HOOK_URL+":}" )
-	private String listenerHookURL;
+	private String listenerHookURL = "";
 
 	/**
 	 * The control for publishers
@@ -599,7 +611,6 @@ public class AppSettings implements Serializable{
 
 	/**
 	 * The settings for enabling one-time token control mechanism for accessing resources and publishing
-	 * It's mandatory,
 	 * Check for details: https://antmedia.io/secure-video-streaming/. Default value is false.
 	 */
 
@@ -649,9 +660,10 @@ public class AppSettings implements Serializable{
 	/**
 	 * The path for manually saved used VoDs
 	 * Determines the directory to store VOD files.
+	 * @Deprecated use {@link VoDRestService#importVoDs(String)}
 	 */
-	@Value( "${"+SETTINGS_VOD_FOLDER+"}" )
-	private String vodFolder;
+	@Value( "${"+SETTINGS_VOD_FOLDER+":}" )
+	private String vodFolder = "";
 
 	/**
 	 * Overwrite preview files if exist, default value is false
@@ -667,22 +679,22 @@ public class AppSettings implements Serializable{
 	 * Database host address of IP TV Ministra platform.
 	 */
 
-	@Value( "${"+SETTINGS_STALKER_DB_SERVER+"}" )
-	private String stalkerDBServer;
+	@Value( "${"+SETTINGS_STALKER_DB_SERVER+":}" )
+	private String stalkerDBServer = "";
 
 	/**
 	 * Username of stalker portal DB
 	 * Database user name of IP TV Ministra platform.
 	 */
-	@Value( "${"+SETTINGS_STALKER_DB_USER_NAME+"}" )
-	private String stalkerDBUsername;
+	@Value( "${"+SETTINGS_STALKER_DB_USER_NAME+":}" )
+	private String stalkerDBUsername = "";
 
 	/**
 	 * Password of the stalker portal DB User
 	 * Database password of IP TV Ministra platform.
 	 */
-	@Value( "${"+SETTINGS_STALKER_DB_PASSWORD+"}" )
-	private String stalkerDBPassword;
+	@Value( "${"+SETTINGS_STALKER_DB_PASSWORD+":}" )
+	private String stalkerDBPassword = "";
 
 	/**
 	 * It's mandatory,
@@ -750,7 +762,7 @@ public class AppSettings implements Serializable{
 	 * Bash script file path will be called after stream finishes.
 	 */
 	@Value( "${"+SETTINGS_MUXER_FINISH_SCRIPT+":}" )
-	private String muxerFinishScript;
+	private String muxerFinishScript = "";
 
 	/**
 	 * It's mandatory,
@@ -944,7 +956,7 @@ public class AppSettings implements Serializable{
 	private boolean generatePreview;
 
 	@Value( "${" + SETTINGS_WRITE_STATS_TO_DATASTORE +":true}")
-	private boolean writeStatsToDatastore;
+	private boolean writeStatsToDatastore = true;
 
 	/**
 	 * Can be "gpu_and_cpu" or "only_gpu"
@@ -956,7 +968,7 @@ public class AppSettings implements Serializable{
 	 * if it does not open, it tries to open the CPU for encoding
 	 * 
 	 */
-	@Value( "${" + SETTINGS_ENCODER_SELECTION_PREFERENCE+":'gpu_and_cpu'}")
+	@Value( "${" + SETTINGS_ENCODER_SELECTION_PREFERENCE+":gpu_and_cpu}")
 	private String encoderSelectionPreference = "gpu_and_cpu";
 
 	/**
@@ -1042,8 +1054,8 @@ public class AppSettings implements Serializable{
 	 * Applicaiton name for the data store which should exist so that no default value
 	 * such as LiveApp, WebRTCApp etc.
 	 */
-	@Value("${" + SETTINGS_DB_APP_NAME +"}")
-	private String appName;
+	@Value("${" + SETTINGS_DB_APP_NAME +":}")
+	private String appName = "";
 
 	/**
 	 * Timeout for encoding
@@ -1081,14 +1093,14 @@ public class AppSettings implements Serializable{
 	 * It supports comma separated extensions Like mp4,m3u8
 	 * Don't add any leading, trailing white spaces
 	 */
-	@Value("${" + SETTINGS_HTTP_FORWARDING_EXTENSION+ ":''}")
-	private String httpForwardingExtension;
+	@Value("${" + SETTINGS_HTTP_FORWARDING_EXTENSION+ ":}")
+	private String httpForwardingExtension = "";
 
 	/**
 	 * Forward the incoming http request to this base url
 	 */
-	@Value("${" + SETTINGS_HTTP_FORWARDING_BASE_URL+ ":''}")
-	private String httpForwardingBaseURL;
+	@Value("${" + SETTINGS_HTTP_FORWARDING_BASE_URL+ ":}")
+	private String httpForwardingBaseURL = "";
 
 	/**
 	 * Max analyze duration in for determining video and audio existence in RTMP streams
@@ -1273,13 +1285,14 @@ public class AppSettings implements Serializable{
 
 
 	/**
-	 * Application JWT secret key
+	 * Application JWT secret key for accessing the REST API
 	 */
 	@Value( "${"+SETTINGS_JWT_SECRET_KEY+":#{null}}" )
 	private String jwtSecretKey;
 
 	/**
-	 * Application JWT Control Enabled
+	 * Application JWT Control Enabled for accessing the REST API
+	 * TODO: Remove this field. Just check if jwtSecretKey is not empty then it means jwt filter is enabled
 	 */
 	@Value( "${"+SETTINGS_JWT_CONTROL_ENABLED+":false}" )
 	private boolean jwtControlEnabled;
@@ -1306,7 +1319,7 @@ public class AppSettings implements Serializable{
 	private int webRTCKeyframeTime=2000;
 
 	/**
-	 * Application JWT stream secret key
+	 * Application JWT stream secret key. Provide 32 character or more in length
 	 */
 	@Value( "${"+SETTINGS_JWT_STREAM_SECRET_KEY+":#{null}}" )
 	private String jwtStreamSecretKey;
@@ -1486,7 +1499,7 @@ public class AppSettings implements Serializable{
 	 * Enable Webhook Authentication when publishing streams
 	 */
 	@Value( "${"+SETTINGS_WEBHOOK_AUTHENTICATE_URL+":}" )
-	private String webhookAuthenticateURL;
+	private String webhookAuthenticateURL = "";
 	
 	/**
 	 * The maximum audio track in a multitrack playing connection
@@ -1513,7 +1526,7 @@ public class AppSettings implements Serializable{
 	 * Bash script file path will be called after upload process finishes.
 	 */
 	@Value( "${"+SETTINGS_VOD_UPLOAD_FINISH_SCRIPT+":}" )
-	private String vodUploadFinishScript;
+	private String vodUploadFinishScript = "";
 	
 	/**
 	 * Value of the content security policy header(csp) 
@@ -1548,9 +1561,57 @@ public class AppSettings implements Serializable{
 	@Value( "${"+SETTINGS_ADD_DATE_TIME_TO_HLS_FILE_NAME+":false}" )
 	private boolean addDateTimeToHlsFileName;
 
+	/**
+	 * This setting prevents playing stream id more than once in the same websocket/webrtc session. 
+	 * If it is true, trying to play stream id more than once in the same websocket session will produce 'already playing' error
+	 * Default value is true.
+	 * It uses session id to match subscriber
+	 */
+	@Value( "${"+SETTINGS_PLAY_WEBRTC_STREAM_ONCE_FOR_EACH_SESSION+":true}" )
+	private boolean playWebRTCStreamOnceForEachSession = true;
+
 	public boolean isWriteStatsToDatastore() {
 		return writeStatsToDatastore;
 	}
+
+
+	/**
+	 * Enables the WebRTC statistics based Adaptive Bitrate switch algorithm
+	 */
+	@Value( "${"+SETTINGS_STATS_BASED_ABR_ALGORITHM_ENABLED+":true}" )
+	private boolean statsBasedABREnabled = true;
+
+	/**
+	 * Packet lost percentage to decide serving video with lower resolution
+	 */
+	@Value( "${"+SETTINGS_ABR_DOWN_SCALE_PACKET_LOST_RATIO+":1}" )
+	private float abrDownScalePacketLostRatio = 1;
+
+	/**
+	 * Packet lost percentage to decide serving video with higher resolution
+	 */
+	@Value( "${"+SETTINGS_ABR_UP_SCALE_PACKET_LOST_RATIO+":0.1}" )
+	private float abrUpScalePacketLostRatio = 0.1f;
+
+	/**
+	 * Round trip time in ms to decide serving video with higher resolution
+	 */
+	@Value( "${"+SETTINGS_ABR_UP_SCALE_RTT_MS+":150}" )
+	private int abrUpScaleRTTMs = 150;
+
+	/**
+	 * Jitter in ms to decide serving video with higher resolution
+	 */
+	@Value( "${"+SETTINGS_ABR_UP_SCALE_JITTER_MS+":30}" )
+	private int abrUpScaleJitterMs = 30;
+	
+	/**
+	 * Key that is being used to validate the requests between communication in the cluster nodes
+	 * 
+	 * In initialization no matter if spring or field definition is effective, the important thing is that having some random value
+	 */
+	@Value( "${"+SETTINGS_CLUSTER_COMMUNICATION_KEY+ ":+ #{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}" )
+	private String clusterCommunicationKey = RandomStringUtils.randomAlphanumeric(32);
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -2940,4 +3001,61 @@ public class AppSettings implements Serializable{
 	public void setAddDateTimeToHlsFileName(boolean addDateTimeToHlsFileName) {
 		this.addDateTimeToHlsFileName = addDateTimeToHlsFileName;
 	}
+
+	public boolean isPlayWebRTCStreamOnceForEachSession() {
+		return playWebRTCStreamOnceForEachSession;
+	}
+
+	public void setPlayWebRTCStreamOnceForEachSession(boolean playWebRTCStreamOnceForEachSession) {
+		this.playWebRTCStreamOnceForEachSession = playWebRTCStreamOnceForEachSession;
+	}
+
+	public boolean isStatsBasedABREnabled() {
+		return statsBasedABREnabled;
+	}
+
+	public void setStatsBasedABREnabled(boolean statsBasedABREnabled) {
+		this.statsBasedABREnabled = statsBasedABREnabled;
+	}
+
+	public float getAbrDownScalePacketLostRatio() {
+		return abrDownScalePacketLostRatio;
+	}
+
+	public void setAbrDownScalePacketLostRatio(float abrDownScalePacketLostRatio) {
+		this.abrDownScalePacketLostRatio = abrDownScalePacketLostRatio;
+	}
+
+	public float getAbrUpScalePacketLostRatio() {
+		return abrUpScalePacketLostRatio;
+	}
+
+	public void setAbrUpScalePacketLostRatio(float abrUpScalePacketLostRatio) {
+		this.abrUpScalePacketLostRatio = abrUpScalePacketLostRatio;
+	}
+
+	public int getAbrUpScaleRTTMs() {
+		return abrUpScaleRTTMs;
+	}
+
+	public void setAbrUpScaleRTTMs(int abrUpScaleRTTMs) {
+		this.abrUpScaleRTTMs = abrUpScaleRTTMs;
+	}
+
+	public int getAbrUpScaleJitterMs() {
+		return abrUpScaleJitterMs;
+	}
+
+	public void setAbrUpScaleJitterMs(int abrUpScaleJitterMs) {
+		this.abrUpScaleJitterMs = abrUpScaleJitterMs;
+	}
+
+	public String getClusterCommunicationKey() {
+		return clusterCommunicationKey;
+	}
+
+	public void setClusterCommunicationKey(String clusterCommunicationKey) {
+		this.clusterCommunicationKey = clusterCommunicationKey;
+	}
+
 }

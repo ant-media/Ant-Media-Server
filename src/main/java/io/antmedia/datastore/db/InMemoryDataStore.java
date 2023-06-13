@@ -944,15 +944,33 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public boolean addSubTrack(String mainTrackId, String subTrackId) {
-		boolean result = true;
+		boolean result = false;
 		Broadcast mainTrack = broadcastMap.get(mainTrackId);
-		List<String> subTracks = mainTrack.getSubTrackStreamIds();
-		if (subTracks == null) {
-			subTracks = new ArrayList<>();
+		if (mainTrack != null && subTrackId != null) {
+			List<String> subTracks = mainTrack.getSubTrackStreamIds();
+			if (subTracks == null) {
+				subTracks = new ArrayList<>();
+			}
+			subTracks.add(subTrackId);
+			mainTrack.setSubTrackStreamIds(subTracks);
+			broadcastMap.put(mainTrackId, mainTrack);
+			result = true;
 		}
-		subTracks.add(subTrackId);
-		mainTrack.setSubTrackStreamIds(subTracks);
-		broadcastMap.put(mainTrackId, mainTrack);
+		return result;
+	}
+
+	@Override
+	public boolean removeSubTrack(String mainTrackId, String subTrackId) {
+		boolean result = false;
+		Broadcast mainTrack = broadcastMap.get(mainTrackId);
+		if (mainTrack != null && subTrackId != null) {
+			List<String> subTracks = mainTrack.getSubTrackStreamIds();
+			if(subTracks.remove(subTrackId)) {
+				mainTrack.setSubTrackStreamIds(subTracks);
+				broadcastMap.put(mainTrackId, mainTrack);
+				result = true;
+			}
+		}
 		return result;
 	}
   
