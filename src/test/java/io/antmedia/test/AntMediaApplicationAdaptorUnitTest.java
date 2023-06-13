@@ -1849,7 +1849,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdaptor.setAppSettings(appSettings);
 
 		Broadcast broadcast = new Broadcast();
-		assertNull(spyAdaptor.getListenerHookURL(broadcast));
+		assertEquals("", spyAdaptor.getListenerHookURL(broadcast));
 		broadcast.setMp4Enabled(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM);
 		String hookURL = "listener_hook_url";
 		appSettings.setListenerHookURL(hookURL);
@@ -1897,7 +1897,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdaptor.setAppSettings(appSettings);
 
 		Broadcast broadcast = new Broadcast();
-		assertNull(spyAdaptor.getListenerHookURL(broadcast));
+		assertEquals("", spyAdaptor.getListenerHookURL(broadcast));
 		broadcast.setMp4Enabled(MuxAdaptor.RECORDING_ENABLED_FOR_STREAM);
 		String hookURL = "listener_hook_url";
 		appSettings.setListenerHookURL(hookURL);
