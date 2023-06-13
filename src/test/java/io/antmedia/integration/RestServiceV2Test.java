@@ -38,10 +38,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.client.methods.*;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.HttpMultipartMode;
@@ -56,6 +53,7 @@ import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
+import org.json.simple.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -2047,14 +2045,20 @@ public class RestServiceV2Test {
 			final String validJwt2 = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdHJlYW1JZCI6InRlc3RzdHJlYW0iLCJ0eXBlIjoicHVibGlzaCIsImV4cCI6OTg4NzUwNzUwMX0.f4YTJUOmO7yuGpD7W4i_fffv2IVi1JB3mZVxNv8LSdI";
 			final String validJwt3 = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdHJlYW1JZCI6InRlc3RzdHJlYW0iLCJ0eXBlIjoicHVibGlzaCIsImV4cCI6OTg4NzUwNzUwMn0.bSbIumeAeM-k5zLndtII49z_458L8Lqg3eVweahvpb4";
 
-			HttpUriRequest addJwtRequest1 = RequestBuilder.post().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt1).addParameter("whiteList","false").build().toString())
-					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+			String jwtRequestBody1 = new JSONObject().put("jwt", validJwt1).toString();
+			HttpPost addJwtRequest1 = new HttpPost(jwtBlacklistUrl);
+			addJwtRequest1.setHeader("Content-Type", "application/json");
+			addJwtRequest1.setEntity(new StringEntity(jwtRequestBody1));
 
-			HttpUriRequest addJwtRequest2 = RequestBuilder.post().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt2).addParameter("whiteList","false").build().toString())
-					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+			String jwtRequestBody2 = new JSONObject().put("jwt", validJwt2).toString();
+			HttpPost addJwtRequest2 = new HttpPost(jwtBlacklistUrl);
+			addJwtRequest2.setHeader("Content-Type", "application/json");
+			addJwtRequest2.setEntity(new StringEntity(jwtRequestBody2));
 
-			HttpUriRequest addJwtRequest3 = RequestBuilder.post().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt3).addParameter("whiteList","false").build().toString())
-					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+			String jwtRequestBody3 = new JSONObject().put("jwt", validJwt3).toString();
+			HttpPost addJwtRequest3 = new HttpPost(jwtBlacklistUrl);
+			addJwtRequest3.setHeader("Content-Type", "application/json");
+			addJwtRequest3.setEntity(new StringEntity(jwtRequestBody3));
 
 			HttpResponse addJwtResponse1 = client.execute(addJwtRequest1);
 
@@ -2103,9 +2107,10 @@ public class RestServiceV2Test {
 			assertEquals(expectedJwtCount, jwtBlacklist.size());
 
 
-			HttpUriRequest whiteListJwtRequest = RequestBuilder.post().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt1).addParameter("whiteList", "true").build()).build();
+			HttpUriRequest whiteListJwtRequest = RequestBuilder.delete().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt1).build()).build();
 			HttpResponse whiteListJwtResponse = client.execute(whiteListJwtRequest);
 			StringBuffer whiteListJwtResult = readResponse(whiteListJwtResponse);
+
 
 			if (whiteListJwtResponse.getStatusLine().getStatusCode() != 200) {
 				throw new Exception(whiteListJwtResult.toString());
