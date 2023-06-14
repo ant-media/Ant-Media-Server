@@ -1210,23 +1210,34 @@ public class BroadcastRestService extends RestServiceBase{
 			) {
 		return getDataStore().getWebRTCViewerList(offset, size ,sortBy, orderBy, search);
 	}
-	
-	@ApiOperation(value = "Stop player with a specified id", response = Result.class)
+
+	@ApiOperation(value = "Stop player with a specified viewer id", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/webrtc-viewers/stop")
+	@Path("/webrtc-viewers/{webrtc-viewer-id}/stop")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result stopPlaying(@ApiParam(value="the viewer id of webrtc viewer", required = false) @QueryParam("viewerId") String viewerId,
-							  @ApiParam(value="the viewer id of webrtc viewer", required = false) @QueryParam("playToken") String playToken)
+	public Result stopPlayingByViewerId(@ApiParam(value="the viewer id of webrtc viewer", required = false) @PathParam("webrtc-viewer-id") String viewerId)
 	{
 		boolean result = false;
-		if(playToken != null){
-			result = getApplication().stopPlayingByPlayToken(playToken);
-		}else if(viewerId != null){
+		if(viewerId != null){
 			result = getApplication().stopPlayingByViewerId(viewerId);
 		}
 		return new Result(result);
 	}
-	
+
+	@ApiOperation(value = "Stop player with a specified play token", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/webrtc-viewers/stop")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result stopPlayingByPlayToken(
+										@ApiParam(value="the play token of webrtc viewer", required = false) @QueryParam("playToken") String playToken)
+	{
+		boolean result = false;
+		if(playToken != null){
+			result = getApplication().stopPlayingByPlayToken(playToken);
+		}
+		return new Result(result);
+	}
 
 }
