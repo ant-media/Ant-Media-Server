@@ -28,6 +28,7 @@ public class UploadHLSChunk extends HttpServlet {
 	public static final String STREAMS = "/streams";
 	public static final String WEBAPPS = "webapps";
 	public static final String PARSE_TIMESTAMP_M3U8 = "-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}\\.\\d{3}\\.m3u8";
+	public static final String PARSE_TIMESTAMP_ADAPTIVE_M3U8 = "-\\d{4}-\\d{2}-\\d{2}_\\d{2}-\\d{2}-\\d{2}\\.\\d{3}\\_adaptive.m3u8";
 	public static final String BLANK_STRING = "";
 	public static final String HLS_MASTER_FILE_EXTENSION = ".m3u8";
 	public static final String HLS_END_LIST_TAG = "#EXT-X-ENDLIST";
@@ -145,20 +146,27 @@ public class UploadHLSChunk extends HttpServlet {
 
 				String fileName = req.getPathInfo();
 
+				// if stream is not finished, we remove ts file from disk
+				// if stream is finished, we remove m3u8 file from disk
+				boolean deleteLocalFileAfterItsUploaded = !(fileName.endsWith(HLS_MASTER_FILE_EXTENSION) && !checkIfStreamIsFinished(filepath + ".tmp"));
+
 				// if stream is not finished, we remove timestamp from m3u8 file name
 				// because some customers try to play the stream from the S3 bucket, and
 				// they shouldn't deal with timestamp in the file name
 				if (fileName.endsWith(HLS_MASTER_FILE_EXTENSION) && !checkIfStreamIsFinished(filepath + ".tmp")) {
-					Pattern regexPattern = Pattern.compile(PARSE_TIMESTAMP_M3U8);
+					Pattern regexPattern = Pattern.compile(PARSE_TIMESTAMP_M3U8+"|"+PARSE_TIMESTAMP_ADAPTIVE_M3U8);
 					Matcher matcher = regexPattern.matcher(fileName);
 					fileName = matcher.replaceAll(BLANK_STRING);
-					fileName += HLS_MASTER_FILE_EXTENSION;
+					// add .m3u8 extension if it is not there
+					if(!fileName.endsWith(HLS_MASTER_FILE_EXTENSION)) {
+						fileName += HLS_MASTER_FILE_EXTENSION;
+					}
 				}
 
 				String s3FileKey = WEBAPPS + applicationName + STREAMS + fileName;
 
 				if (targetFile.exists()) {
-					storageClient.save(s3FileKey, targetFile, false);
+					storageClient.save(s3FileKey, targetFile, deleteLocalFileAfterItsUploaded);
 				} else {
 					logger.error("File does not exist: {}", filepath);
 				}
