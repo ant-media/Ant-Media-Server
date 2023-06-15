@@ -301,15 +301,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		this.broadcastStream = clientBroadcastStream;
 	}
+	
+	public boolean addMuxer(Muxer muxer) {
+		return addMuxer(muxer, 0);
+	}
 
-	public boolean addMuxer(Muxer muxer)
+	public boolean addMuxer(Muxer muxer, int resolutionHeight)
 	{
 		boolean result = false;
-		if (directMuxingSupported()) 
+		if (directMuxingSupported() && (resolutionHeight == 0 || resolutionHeight == height)) 
 		{	
 			if (isRecording.get()) 
 			{
-				result = prepareMuxer(muxer);
+				result = prepareMuxer(muxer, resolutionHeight);
 			}
 			else 
 			{
@@ -330,7 +334,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return result;
 	}
 
-	private boolean addMuxerInternal(Muxer muxer) 
+	protected boolean addMuxerInternal(Muxer muxer) 
 	{
 		boolean result = false;
 		if (!muxerList.contains(muxer)) 
@@ -1687,17 +1691,18 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	/**
 	 * Start recording is used to start recording on the fly(stream is broadcasting).
-	 * @param recordType
+	 * @param recordType MP4 or WEBM
+	 * @param resolutionHeight	resolution height for the recording
 	 * @return
 	 */
-	public RecordMuxer startRecording(RecordType recordType) {
+	public RecordMuxer startRecording(RecordType recordType, int resolutionHeight) {
 
 		if (!isRecording.get()) {
 			logger.warn("Starting recording return false for stream:{} because stream is being prepared", streamId);
 			return null;
 		}
 
-		if(isAlreadyRecording(recordType)) {
+		if(isAlreadyRecording(recordType, resolutionHeight)) {
 			logger.warn("Record is called while {} is already recording.", streamId);
 			return null;
 		}
@@ -1707,6 +1712,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if(recordType == RecordType.MP4) {
 			Mp4Muxer mp4Muxer = createMp4Muxer();
 			muxer = mp4Muxer;
+			
+			addMuxer(muxer, resolutionHeight);
 		}
 		else if(recordType == RecordType.WEBM) {
 			//WebM record is not supported for incoming RTMP streams
@@ -1715,24 +1722,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.error("Unrecognized record type: {}", recordType);
 		}
 
-		boolean prepared = false;
-		if (muxer != null) {
-			prepared = prepareMuxer(muxer);
-			if (prepared) {
-				return muxer;
-			}
-			else {
-				logger.error("{} prepare method returned false. Recording is not started for {}", recordType, streamId);
-			}
-		}
-		return null;
+		return muxer;
 	}
 
-	public boolean prepareMuxer(Muxer muxer) 
+	public boolean prepareMuxer(Muxer muxer, int resolutionHeight) 
 	{
 		boolean streamAdded = false;
 		
-		muxer.init(scope, streamId, 0, broadcast != null ? broadcast.getSubFolder(): null, 0);
+		muxer.init(scope, streamId, resolutionHeight, broadcast != null ? broadcast.getSubFolder(): null, 0);
 		logger.info("prepareMuxer for stream:{} muxer:{}", streamId, muxer.getClass().getSimpleName());
 
 		if (streamSourceInputFormatContext != null) 
@@ -1776,7 +1773,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	
 			if (prepared) 
 			{
-				addMuxerInternal(muxer);
+				prepared = addMuxerInternal(muxer);
 				logger.info("Muxer:{} is prepared succesfully for streamId:{}", muxer.getClass().getSimpleName(), streamId);
 			}
 			else 
@@ -1790,10 +1787,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return prepared;
 	}
 
-	public boolean isAlreadyRecording(RecordType recordType) {
+	public boolean isAlreadyRecording(RecordType recordType, int resolutionHeight) {
 		for (Muxer muxer : muxerList) {
-			if((muxer instanceof Mp4Muxer && recordType == RecordType.MP4)
-					|| (muxer instanceof WebMMuxer && recordType == RecordType.WEBM)) {
+			if(((muxer instanceof Mp4Muxer && recordType == RecordType.MP4)
+					|| (muxer instanceof WebMMuxer && recordType == RecordType.WEBM))
+					&& (resolutionHeight == 0 || resolutionHeight == height)) {
 				return true;
 			}
 		}
@@ -1820,11 +1818,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	/**
 	 * Stop recording is called to stop recording when the stream is broadcasting(on the fly)
 	 * 
-	 * @param recordType
+	 * @param recordType	MP4 or WEBM
+	 * @param resolutionHeight	resolution height for the recording
 	 * @return
 	 */
-	public RecordMuxer stopRecording(RecordType recordType)
+	public RecordMuxer stopRecording(RecordType recordType, int resolutionHeight)
 	{
+		logger.info("stopRecording is called for streamId:{} and resolution:{}", streamId, resolutionHeight);
 		Muxer muxer = findDynamicRecordMuxer(recordType);
 		if (muxer != null && recordType == RecordType.MP4)
 		{
@@ -1857,7 +1857,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		{
 			RtmpMuxer rtmpMuxer = new RtmpMuxer(rtmpUrl, vertx);
 			rtmpMuxer.setStatusListener(this);
-			if (prepareMuxer(rtmpMuxer)) 
+			if (prepareMuxer(rtmpMuxer, resolutionHeight)) 
 			{
 				result.setSuccess(true);
 			}

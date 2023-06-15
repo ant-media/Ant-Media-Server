@@ -504,6 +504,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					if(broadcast.getMainTrackStreamId() != null && !broadcast.getMainTrackStreamId().isEmpty()) {
 						updateMainBroadcast(broadcast);
 					}
+					logger.info("Deleting streamId:{} because it's a zombi stream", streamId);
 					getDataStore().delete(streamId);
 				}
 				else {
@@ -517,6 +518,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				for (IStreamListener listener : streamListeners) {
 					listener.streamFinished(broadcast.getStreamId());
 				}
+				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
