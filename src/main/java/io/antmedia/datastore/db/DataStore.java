@@ -1222,6 +1222,14 @@ public abstract class DataStore {
 	public abstract boolean addSubTrack(String mainTrackId, String subTrackId);
 
 	/**
+	 * Remove a subtrack id from a main track (broadcast)
+	 * @param mainTrackId - main track id
+	 * @param subTrackId - main track id
+	 * @return boolean - success
+	 */
+	public abstract boolean removeSubTrack(String mainTrackId, String subTrackId);
+
+	/**
 	 * Resets the broadcasts in the database. 
 	 * It sets number of viewers to zero. 
 	 * It also delete the stream if it's zombi stream

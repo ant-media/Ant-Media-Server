@@ -12,11 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -123,6 +119,7 @@ public class DBStoresUnitTest {
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
+		testRemoveTrack(dataStore);
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
     	testBroadcastListSorting(dataStore);	
@@ -200,6 +197,7 @@ public class DBStoresUnitTest {
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
+		testRemoveTrack(dataStore);
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
     	testBroadcastListSorting(dataStore);
@@ -259,6 +257,7 @@ public class DBStoresUnitTest {
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
+		testRemoveTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
 		testBroadcastListSorting(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
@@ -2718,6 +2717,66 @@ public class DBStoresUnitTest {
 		
 
 	}
+
+	/*
+	 * Test remove track
+	 * In the test, we create 2 main track and 1 sub track. Then we add sub track to main tracks.
+	 * We set sub track's main track id to the first main track id.
+	 * After that we remove sub track from main tracks.
+	 * We assert that sub track is removed from both main tracks
+	 */
+	public void testRemoveTrack(DataStore dataStore) {
+
+		String mainTrackId1 = RandomStringUtils.randomAlphanumeric(8);
+		String mainTrackId2 = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack1= new Broadcast();
+		try {
+			mainTrack1.setStreamId(mainTrackId1);
+			mainTrack1.setSubTrackStreamIds(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast mainTrack2= new Broadcast();
+		try {
+			mainTrack2.setStreamId(mainTrackId2);
+			mainTrack2.setSubTrackStreamIds(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+			subtrack.setMainTrackStreamId(mainTrackId1);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(mainTrack1);
+		dataStore.save(mainTrack2);
+		dataStore.save(subtrack);
+
+		assertTrue(dataStore.get(mainTrackId1).getSubTrackStreamIds().size() == 1);
+		assertEquals(subTrackId, mainTrack1.getSubTrackStreamIds().get(0));
+		assertTrue(dataStore.get(mainTrackId2).getSubTrackStreamIds().size() == 1);
+		assertEquals(subTrackId, mainTrack2.getSubTrackStreamIds().get(0));
+		assertEquals(mainTrackId1, dataStore.get(subTrackId).getMainTrackStreamId());
+
+		assertTrue(dataStore.removeSubTrack(mainTrackId1, subTrackId));
+		assertTrue(dataStore.removeSubTrack(mainTrackId2, subTrackId));
+
+		assertTrue(dataStore.get(mainTrackId1).getSubTrackStreamIds().isEmpty());
+		assertTrue(dataStore.get(mainTrackId2).getSubTrackStreamIds().isEmpty());
+
+		assertFalse(dataStore.removeSubTrack("nonExistedStreamID", subTrackId));
+		assertFalse(dataStore.removeSubTrack(mainTrackId1, null));
+
+
+	}
+
 	public void testGetVoDIdByStreamId(DataStore dataStore) {
 		String streamId=RandomStringUtils.randomNumeric(24);
 		String vodId1="vod_1";
