@@ -1097,9 +1097,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> camScheduler.getMuxAdaptor() != null);
 			Thread.sleep(2000);
-			assertTrue(camScheduler.getMuxAdaptor().startRecording(RecordType.MP4) != null);
+			assertTrue(camScheduler.getMuxAdaptor().startRecording(RecordType.MP4, 0) != null);
 			Thread.sleep(5000);
-			assertTrue(camScheduler.getMuxAdaptor().stopRecording(RecordType.MP4) != null);
+			assertTrue(camScheduler.getMuxAdaptor().stopRecording(RecordType.MP4, 0) != null);
 			Thread.sleep(2000);
 			camScheduler.stopStream();
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));

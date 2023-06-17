@@ -69,6 +69,10 @@ public class SupportRestService  extends CommonRestService {
 	private IStatsCollector statsCollector;
 	public static final String LOG_FILE = "ant-media-server.log.zip";
 
+	public static final int SEND_SUPPORT_CONNECT_TIMEOUT_SECONDS= 5;
+
+	public static final int SEND_SUPPORT_SOCKET_TIMEOUT_SECONDS = 20;
+
 	@POST
 	@Path("/request")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -96,7 +100,7 @@ public class SupportRestService  extends CommonRestService {
 
 			HttpPost httpPost = new HttpPost("https://antmedia.io/livedemo/upload/upload.php");
 
-			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
+			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(SEND_SUPPORT_CONNECT_TIMEOUT_SECONDS * 1000).setSocketTimeout(SEND_SUPPORT_SOCKET_TIMEOUT_SECONDS * 1000).build();
 			
 			httpPost.setConfig(requestConfig);
 			

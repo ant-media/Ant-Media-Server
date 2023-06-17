@@ -63,6 +63,8 @@ public class Subscriber {
 	
 	/**
 	 * is subscriber connected
+	 * TODO: Write what the recommend way is to get this information? Let's write some comments when we deprecate something 
+	 * @mekya
 	 */
 	@Deprecated(since="2.4.3", forRemoval=true)
 	@ApiModelProperty(value = "is subscriber connected")
