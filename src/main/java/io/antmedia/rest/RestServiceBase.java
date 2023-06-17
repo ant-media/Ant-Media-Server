@@ -441,14 +441,14 @@ public abstract class RestServiceBase {
 		logger.debug("Updating camera info for stream {}", broadcast.getStreamId());
 
 		if (!checkStreamUrl(broadcast.getStreamUrl())) {
-			return new Result(false);
+			return new Result(false, "Stream URL is not valid");
 		}
 
 		Broadcast broadcastInDB = getDataStore().get(streamId);
 		if (broadcastInDB == null) {
 			streamId = streamId.replaceAll("[\n|\r|\t]", "_");
 			logger.info("Broadcast with stream id: {} is null", streamId);
-			return new Result(false);
+			return new Result(false, "Broadcast with streamId: " + streamId + " does not exist");
 		}
 
 		boolean resultStopStreaming = checkStopStreaming(broadcastInDB);
@@ -463,7 +463,7 @@ public abstract class RestServiceBase {
 			String rtspURL = connectionRes.getMessage();
 			String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
 			String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
-			logger.info("New RTSP URL: {}", rtspURLWithAuth);
+			logger.info("New Stream Source URL: {}", rtspURLWithAuth);
 			broadcast.setStreamUrl(rtspURLWithAuth);
 		}
 
