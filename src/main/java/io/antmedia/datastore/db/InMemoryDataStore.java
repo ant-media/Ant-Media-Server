@@ -941,6 +941,21 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
+
+	@Override
+	public boolean removeSubTrack(String mainTrackId, String subTrackId) {
+		boolean result = false;
+		Broadcast mainTrack = broadcastMap.get(mainTrackId);
+		if (mainTrack != null && subTrackId != null) {
+			List<String> subTracks = mainTrack.getSubTrackStreamIds();
+			if(subTracks.remove(subTrackId)) {
+				mainTrack.setSubTrackStreamIds(subTracks);
+				broadcastMap.put(mainTrackId, mainTrack);
+				result = true;
+			}
+		}
+		return result;
+	}
   
 	@Override
 	public int resetBroadcasts(String hostAddress) {

@@ -420,7 +420,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					long fileSize = file.length();
 					long unixTime = System.currentTimeMillis();
 
-					String relativePath = "streams/" + subDirectory.getAbsolutePath().substring(baseDirectory.getAbsolutePath().length() - baseDirectory.getName().length());
+					String relativePath = "streams" + File.separator + 
+											subDirectory.getAbsolutePath().substring(baseDirectory.getAbsolutePath().length() - baseDirectory.getName().length())
+											+  File.separator + file.getName();
 
 					String vodId = RandomStringUtils.randomNumeric(24);
 
@@ -502,6 +504,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					if(broadcast.getMainTrackStreamId() != null && !broadcast.getMainTrackStreamId().isEmpty()) {
 						updateMainBroadcast(broadcast);
 					}
+					logger.info("Deleting streamId:{} because it's a zombi stream", streamId);
 					getDataStore().delete(streamId);
 				}
 				else {
@@ -515,6 +518,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				for (IStreamListener listener : streamListeners) {
 					listener.streamFinished(broadcast.getStreamId());
 				}
+				logger.info("Leaving closeBroadcast for streamId:{}", streamId);
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -700,7 +704,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		long fileSize = file.length();
 		long systemTime = System.currentTimeMillis();
 
-		String relativePath=getRelativePath(filePath);
+		String relativePath = getRelativePath(filePath);
 		String listenerHookURL = null;
 		String streamName = file.getName();
 
