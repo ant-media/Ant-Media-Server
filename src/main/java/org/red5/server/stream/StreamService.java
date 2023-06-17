@@ -811,7 +811,7 @@ public class StreamService implements IStreamService {
      * @param name
      * @param streamId
      */
-    private void sendNSFailed(IConnection conn, String errorCode, String description, String name, Number streamId) {
+    public void sendNSFailed(IConnection conn, String errorCode, String description, String name, Number streamId) {
         StreamService.sendNetStreamStatus(conn, errorCode, description, name, Status.ERROR, streamId);
     }
 
