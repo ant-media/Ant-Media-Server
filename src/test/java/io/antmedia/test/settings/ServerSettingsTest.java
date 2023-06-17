@@ -1,19 +1,29 @@
 package io.antmedia.test.settings;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.red5.server.scope.WebScope;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import org.webrtc.Logging;
 
+import io.antmedia.AppSettings;
 import io.antmedia.settings.ServerSettings;
 
-import javax.validation.constraints.AssertTrue;
 
-public class ServerSettingsTest {
+
+@ContextConfiguration(locations = { "../test.xml" })
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 	
 	@Test
 	public void testNativeLogLevel() {
@@ -119,4 +129,27 @@ public class ServerSettingsTest {
 		assertEquals(5001,settings.getOriginServerPort());
 		
 	}
+	
+	/*
+	 * This is bug test that confirm wrong that proxy address is not "null". It should be null.
+	 * 
+	 * It should be like this
+	 * @Value( "${"+SETTINGS_PROXY_ADDRESS+":#{null}}" )
+	 * 
+	 * Not like this 
+	 * @Value( "${"+SETTINGS_PROXY_ADDRESS+":null}" )
+	 */
+	@Test
+	public void testDefaultBeanSettings() {
+		
+		
+		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
+		
+		assertNotNull(serverSettings);
+		
+		assertNull(serverSettings.getProxyAddress());
+		
+		
+	}
+	
 }

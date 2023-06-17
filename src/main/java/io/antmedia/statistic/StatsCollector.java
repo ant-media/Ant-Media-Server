@@ -6,8 +6,12 @@ import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
@@ -280,6 +284,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private static final String WEBRTC_VERTX_WORKER_THREAD_QUEUE_SIZE = "webrtc-vertx-worker-thread-queue-size";
 
 
+	public static final String HOOK_HIGH_RESOURCE_USAGE = "highResourceUsage";
+	public static final String HOOK_UNEXPECTED_SERVER_SHUTDOWN = "unexpectedServerShutdown";
+
+
 	private Producer<Long,String> kafkaProducer = null;
 
 	private long cpuMeasurementTimerId = -1;
@@ -308,11 +316,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private String userEmail;
 
+	private String webhookURL;
+	
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> 
 		{
 			addCpuMeasurement(SystemUtils.getSystemCpuLoad());
 
+			
 			//log every 5 minute
 			if (300000/measurementPeriod == time2Log) {
 				if(logger != null) 
@@ -342,6 +353,28 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		else {
 			logger.info("Heartbeats are disabled for this instance");
 		}
+		
+		getVertx().setTimer(10000, h -> {
+			
+			ArrayList<String> appNames = new ArrayList<>();
+			for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
+				IScope scope = iterator.next();
+
+				AntMediaApplicationAdapter adaptor = null;
+
+				if ((adaptor = getAppAdaptor(scope.getContext().getApplicationContext())) != null 
+						&& !adaptor.isShutdownProperly())
+				{
+					appNames.add(scope.getName());
+				}
+			}
+			
+			if (!appNames.isEmpty()) 
+			{
+				sendUnexpectedShutdownHook(appNames);
+			}
+			
+		});
 	}
 
 	private void startKafkaProducer() {
@@ -784,9 +817,50 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		else {
 			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", cpuLoad, cpuLimit);
 		}
+		
+		if (!enoughResource && webhookURL != null && !webhookURL.isEmpty()) {
+		
+			logger.info("Setting timer to call high resource usage hook.");
+			vertx.setTimer(10, e -> 
+			{ 
+				Map<String, String> variables = new HashMap<>();
+				variables.put("action", HOOK_HIGH_RESOURCE_USAGE);
+				variables.put("host", hostAddress);
+				variables.put("resourceInfo", getSystemResourcesInfo(scopes).toString());
+				try {
+					AntMediaApplicationAdapter.sendPOST(webhookURL, variables);
+				} catch (Exception ex) {
+					//Make Exception generic
+					logger.error(ExceptionUtils.getStackTrace(ex));
+				}
+			});
+		}
 
 		return enoughResource; 
 	}
+	
+	
+	private void sendUnexpectedShutdownHook(List<String> appNames) 
+	{
+		if (webhookURL != null && !webhookURL.isEmpty()) 
+		{
+			logger.info("Setting timer to call unexpected server shutdown hook.");
+			vertx.setTimer(10, e -> {
+				Map<String, String> variables = new HashMap<>();
+				variables.put("action", HOOK_HIGH_RESOURCE_USAGE);
+				variables.put("host", hostAddress);
+				variables.put("appNames", String.join(",", appNames));
+				try {
+					AntMediaApplicationAdapter.sendPOST(webhookURL, variables);
+				} catch (Exception ex) {
+					//Make Exception generic
+					logger.error(ExceptionUtils.getStackTrace(ex));
+				}
+			});
+		}
+	}
+	
+
 
 	@Override
 	public int getFreeRam() {
@@ -882,6 +956,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		measurementPeriod = serverSettings.getCpuMeasurementPeriodMs();
 		windowSize = serverSettings.getCpuMeasurementWindowSize();
 		marketplace = serverSettings.getMarketplace();
+		webhookURL = serverSettings.getServerStatusWebHookURL();
 		
 		licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 

@@ -24,6 +24,9 @@
 # -n: TURN Server Usermame: Provide the TURN server username to get relay candidates.
 #
 # -w: TURN Server Password: Provide the TURN server password to get relay candidates.
+#
+# -k: Kafka Address: Provide the Kafka URL address to collect data. (It must contain the port number. Example: localhost:9092)
+#
 
 if [ -z "$RED5_HOME" ]; then
   BASEDIR=$(dirname "$0")
@@ -43,7 +46,7 @@ DB_PASSWORD=
 LICENSE_KEY=
 
 
-while getopts g:s:r:m:h:u:p:l:a:n:w:t option
+while getopts g:s:r:m:h:u:p:l:a:n:w:k:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
@@ -57,6 +60,7 @@ do
     a) TURN_URL=${OPTARG};;
     n) TURN_USERNAME=${OPTARG};;
     w) TURN_PASSWORD=${OPTARG};;
+    k) KAFKA_URL=${OPTARG};;
    esac
 done
 
@@ -109,11 +113,14 @@ if [ ! -z "${SERVER_MODE}" ]; then
   change_server_mode $SERVER_MODE $DB_URL $DB_USERNAME $DB_PASSWORD
 fi
 ################################################
-# set the license key
+# Set the license key
 if [ ! -z "${LICENSE_KEY}" ]; then
   sed -i $SED_COMPATIBILITY 's/server.licence_key=.*/server.licence_key='$LICENSE_KEY'/' $RED5_HOME/conf/red5.properties
 fi
-
+# Set the kafka address
+if [ ! -z "${KAFKA_URL}" ]; then
+  sed -i $SED_COMPATIBILITY 's/server.kafka_brokers=.*/server.kafka_brokers='$KAFKA_URL'/' $RED5_HOME/conf/red5.properties
+fi
 # Turn server configuration.
 if [ ! -z "${TURN_URL}" ]; then
   for applist in $LIST_APPS; do
