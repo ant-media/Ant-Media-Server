@@ -34,7 +34,7 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsInDataStore.class);
 
 	@Override
-	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams) {
+	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData) {
 		
 		boolean result = false;
 		
