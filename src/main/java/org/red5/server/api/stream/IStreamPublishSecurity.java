@@ -50,6 +50,6 @@ public interface IStreamPublishSecurity {
      * False
      * </pre>
      */
-    public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams);
+    public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData);
 
 }
