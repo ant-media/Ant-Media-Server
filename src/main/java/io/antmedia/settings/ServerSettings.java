@@ -243,7 +243,7 @@ public class ServerSettings implements ApplicationContextAware {
 	 * - high resource usage
 	 * - Unexpected shutdown
 	 */
-	@Value("${"+SETTINGS_SERVER_STATUS_WEBHOOK_URL + "#{null}}")
+	@Value("${"+SETTINGS_SERVER_STATUS_WEBHOOK_URL + ":#{null}}")
 	private String serverStatusWebHookURL;
 
 
