@@ -838,10 +838,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void changeStreamQualityParameters(String streamId, String quality, double speed, int inputQueueSize) {
 		long now = System.currentTimeMillis();
 		
-		if ((now - lastQualityUpdateTime) > 1000 &&
+		//increase updating time to 5 seconds because it may cause some issues in mongodb updates and no need to update every 5 seconds
+		if ((now - lastQualityUpdateTime) > 5000 &&
 				((quality != null && !quality.equals(oldQuality)) || oldspeed == 0 || Math.abs(speed - oldspeed) > 0.05)) 
 		{
-			logger.info("Stream quality parameter for streamId:{} quality:{} speed:{} queueSize:{}", streamId, quality, speed, inputQueueSize);
+			
+			logger.info("Stream queue size:{} for streamId:{} ", inputQueueSize, streamId);
 			lastQualityUpdateTime = now;
 			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize);
 			oldQuality = quality;
