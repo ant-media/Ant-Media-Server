@@ -850,7 +850,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return response;
 	}
 
-	public static StringBuilder sendPOST(String url, Map<String, String> variables) throws IOException {
+	public StringBuilder sendPOST(String url, Map<String, String> variables) throws IOException {
 
 		StringBuilder response = null;
 		try (CloseableHttpClient httpClient = getHttpClient()) 
@@ -893,7 +893,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return response;
 	}
 
-	public static CloseableHttpClient getHttpClient() {
+	public CloseableHttpClient getHttpClient() {
 		return HttpClients.createDefault();
 	}
 
