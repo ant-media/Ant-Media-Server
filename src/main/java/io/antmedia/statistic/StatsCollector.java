@@ -322,7 +322,13 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private String userEmail;
 
+	/**
+	 * Webhook url to notify high resource usage, unexpected shutdown. More callbacks can be added
+	 */
 	private String webhookURL;
+
+	private long unexpectedShutDownDelayMs = 30000;
+
 
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> 
@@ -364,7 +370,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		//Notify for unexpected shutdowns
 		if (webhookURL != null && !webhookURL.isEmpty())  {
 			//let is pass some time to make all scopes are ready
-			getVertx().setTimer(30000, h -> {
+			getVertx().setTimer(unexpectedShutDownDelayMs , h -> {
 
 				ArrayList<String> appNames = new ArrayList<>();
 				for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
@@ -834,11 +840,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			logger.info("Setting timer to call high resource usage hook.");
 			vertx.setTimer(10, e -> 
 			{ 
-				JsonObject jsonObject = new JsonObject();
-				jsonObject.addProperty("action", HOOK_HIGH_RESOURCE_USAGE);
-				jsonObject.addProperty("host", hostAddress);
-				jsonObject.addProperty("resourceInfo", getSystemResourcesInfo(scopes).toString());
 				try {
+					JsonObject jsonObject = new JsonObject();
+					jsonObject.addProperty("action", HOOK_HIGH_RESOURCE_USAGE);
+					jsonObject.addProperty("host", hostAddress);
+					jsonObject.addProperty("resourceInfo", getSystemResourcesInfo(scopes).toString());
+					
 					sendPOST(webhookURL, jsonObject);
 				} catch (Exception ex) {
 					//Make Exception generic
@@ -851,7 +858,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	}
 
 
-	private void sendUnexpectedShutdownHook(List<String> appNames) 
+	public void sendUnexpectedShutdownHook(List<String> appNames) 
 	{
 
 		logger.info("Setting timer to call unexpected server shutdown hook.");
@@ -871,9 +878,9 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	}
 
 
-	public StringBuilder sendPOST(String url, JsonObject json) throws IOException {
-		StringBuilder response = null;
+	public int sendPOST(String url, JsonObject json) throws IOException {
 
+		int statusCode = -1;
 		try (CloseableHttpClient httpClient = getHttpClient()) {
 			HttpPost httpPost = new HttpPost(url);
 			RequestConfig requestConfig = RequestConfig.custom()
@@ -892,24 +899,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
 				logger.info("POST Response Status:: {}", httpResponse.getStatusLine().getStatusCode());
-
-				HttpEntity entity = httpResponse.getEntity();
-				if (entity != null) {
-					// read entity if it's available
-					BufferedReader reader = new BufferedReader(new InputStreamReader(entity.getContent()));
-
-					String inputLine;
-					response = new StringBuilder();
-
-					while ((inputLine = reader.readLine()) != null) {
-						response.append(inputLine);
-					}
-					reader.close();
-				}
+				statusCode = httpResponse.getStatusLine().getStatusCode();				
 			}
 		}
 
-		return response;
+		return statusCode;
 	}
 
 
@@ -1175,9 +1169,21 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		return email;
 	}
 
-	public static CloseableHttpClient getHttpClient() {
+	public CloseableHttpClient getHttpClient() {
 		return  HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.build();
+	}
+
+	public long getUnexpectedShutDownDelayMs() {
+		return unexpectedShutDownDelayMs;
+	}
+
+	public void setUnexpectedShutDownDelayMs(long unexpectedShutDownDelayMs) {
+		this.unexpectedShutDownDelayMs = unexpectedShutDownDelayMs;
+	}
+
+	public void setWebhookURL(String webhookURL) {
+		this.webhookURL = webhookURL;
 	}
 
 
