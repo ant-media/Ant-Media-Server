@@ -88,7 +88,7 @@ public class TokenServiceTest {
 		token.setType(Token.PLAY_TOKEN);
 
 		//check token
-		boolean flag = tokenService.checkJwtToken(token.getTokenId(), token.getStreamId(), token.getType());
+		boolean flag = tokenService.checkJwtToken(token.getTokenId(), token.getStreamId(), "session", token.getType());
 
 		// it should be true because mock service always replies as true
 		assertTrue(flag);
@@ -180,7 +180,7 @@ public class TokenServiceTest {
 		Map<String, String> queryParams = new HashMap<>();
 
 		//check is publish allowed or not
-		boolean flag = tokenService.isPublishAllowed(scope, "streamId", "mode", queryParams);
+		boolean flag = tokenService.isPublishAllowed(scope, "streamId", "mode", queryParams, null);
 		
 		//mock service should turn true even is token is not created and saved
 		assertTrue(flag);

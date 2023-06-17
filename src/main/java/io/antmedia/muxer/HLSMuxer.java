@@ -4,11 +4,13 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H265;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_from_context;
 import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
@@ -63,7 +65,7 @@ public class HLSMuxer extends Muxer  {
 
 	private String httpEndpoint;
 	public static final int S3_CONSTANT = 0b010;
-
+	
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
 		this.storageClient = storageClient;
@@ -74,6 +76,10 @@ public class HLSMuxer extends Muxer  {
 
 		extension = ".m3u8";
 		format = "hls";
+		firstKeyFrameReceived = false;
+		
+		firstAudioDts = -1;
+		firstVideoDts = -1;
 
 		this.s3StreamsFolderPath  = s3StreamsFolderPath;
 		this.httpEndpoint = httpEndpoint;
@@ -188,9 +194,10 @@ public class HLSMuxer extends Muxer  {
 		}
 		return 0;
 	}
+	
 
 	@Override
-	public  void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
+	public synchronized void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
 		
 		totalSize += pkt.size();

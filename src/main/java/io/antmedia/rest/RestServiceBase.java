@@ -1294,11 +1294,11 @@ public abstract class RestServiceBase {
 		return mp4Muxer;
 	}
 
-	protected RecordMuxer startRecord(String streamId, RecordType recordType) {
+	protected RecordMuxer startRecord(String streamId, RecordType recordType, int resolutionHeight) {
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if (muxAdaptor != null)
 		{
-			return muxAdaptor.startRecording(recordType);
+			return muxAdaptor.startRecording(recordType, resolutionHeight);
 		}
 
 		return null;
@@ -1308,15 +1308,16 @@ public abstract class RestServiceBase {
 	 *
 	 * @param streamId
 	 * @param recordType
+	 * @param resolutionHeight
 	 * @return
 	 */
-	protected @Nullable RecordMuxer stopRecord(String streamId, RecordType recordType)
+	protected @Nullable RecordMuxer stopRecord(String streamId, RecordType recordType, int resolutionHeight)
 	{
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 
 		if (muxAdaptor != null)
 		{
-			return muxAdaptor.stopRecording(recordType);
+			return muxAdaptor.stopRecording(recordType, resolutionHeight);
 		}
 
 		return null;
@@ -1601,7 +1602,7 @@ public abstract class RestServiceBase {
 					return token;
 				}
 				else {
-					message = "Cannot create JWT token. It can be a mock token service. Also please check your JWT Stream key parameter";
+					message = "Cannot create JWT token. The problem can be ->  this is community edition or JWT stream key is not set or it's length is less than 32";
 				}
 			}
 			else {
@@ -1731,6 +1732,15 @@ public abstract class RestServiceBase {
 		}
 	}
 
+	/**
+	 * Get the active streams in the room
+	 *
+	 * @param roomId: It's the id of the room
+	 * @param streamId: The id of the room to be extracted from the list. It's generally the publisher stream id in websocket communication
+	 * @param store: Datastore object to run the query
+	 *
+	 * @return null if there is no room recorded in the database, returns map filled with the active streams. Key is the streamId, value is the name
+	 */
 	public static Map<String,String> getRoomInfoFromConference(String roomId, String streamId, DataStore store){
 		HashMap<String,String> streamDetailsMap = null;
 
@@ -1823,7 +1833,7 @@ public abstract class RestServiceBase {
 		return id;
 	}
 
-	public Result enableRecordMuxing(String streamId, boolean enableRecording, String type )
+	public Result enableRecordMuxing(String streamId, boolean enableRecording, String type, int resolutionHeight)
 	{
 		boolean result = false;
 		String message = null;
@@ -1842,28 +1852,34 @@ public abstract class RestServiceBase {
 		}
 
 
-		if (streamId != null && recordType != null)
+		if (streamId != null && recordType != null) 
 		{
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null)
 			{
-				if ( (recordType == RecordType.WEBM && (enableRecording && broadcast.getWebMEnabled() != RECORD_ENABLE )  ||
-						( !enableRecording && broadcast.getWebMEnabled() != RECORD_DISABLE))
-						||
-						( recordType == RecordType.MP4  && (enableRecording && broadcast.getMp4Enabled() != RECORD_ENABLE ) ||
-								( !enableRecording && broadcast.getMp4Enabled() != RECORD_DISABLE))
-				)
+				if(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 				{
+					if(recordType == RecordType.MP4) {
+						broadcast.setMp4Enabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
+					else {
+						broadcast.setWebMEnabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
 					result = true;
-					RecordMuxer muxer = null;
-					//if it's not enabled, start it
-					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+				}
+				else {
+					boolean isAlreadyRecording = isAlreadyRecording(streamId, recordType, resolutionHeight);
+					//start recording and there is no active recording or stop recording and there is active recording
+					if (enableRecording != isAlreadyRecording)
 					{
-						if (isInSameNodeInCluster(broadcast.getOriginAdress()))
+						result = true;
+						RecordMuxer muxer = null;
+
+						if (isInSameNodeInCluster(broadcast.getOriginAdress())) 
 						{
 							if (enableRecording)
 							{
-								muxer = startRecord(streamId, recordType);
+								muxer = startRecord(streamId, recordType, resolutionHeight);
 								if (muxer != null) {
 									vodId = RandomStringUtils.randomAlphanumeric(24);
 									muxer.setVodId(vodId);
@@ -1874,7 +1890,7 @@ public abstract class RestServiceBase {
 							}
 							else
 							{
-								muxer = stopRecord(streamId, recordType);
+								muxer = stopRecord(streamId, recordType, resolutionHeight);
 								if (muxer != null) {
 									vodId = muxer.getVodId();
 									message = Long.toString(muxer.getCurrentVoDTimeStamp());
@@ -1895,22 +1911,28 @@ public abstract class RestServiceBase {
 							result = false;
 						}
 					}
-					// If record process works well then change record status in DB
-					if (result)
-					{
-						if (recordType == RecordType.WEBM)
-						{
-							result = getDataStore().setWebMMuxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					else {
+						if(enableRecording) {
+							message = type+" recording couldn't be started";
 						}
-						else if (recordType == RecordType.MP4)
-						{
-							result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+						else {
+							message = type+" recording couldn't be stopped";
 						}
+						result = false;
 					}
+
 				}
-				else
+				// If record process works well then change record status in DB
+				if (result)
 				{
-					message =  type + " recording status  is already: " +enableRecording;
+					if (recordType == RecordType.WEBM)
+					{
+						result = getDataStore().setWebMMuxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
+					else if (recordType == RecordType.MP4)
+					{
+						result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
 				}
 			}
 		}
@@ -1920,6 +1942,11 @@ public abstract class RestServiceBase {
 		}
 
 		return new Result(result, vodId, message);
+	}
+
+	public boolean isAlreadyRecording(String streamId, RecordType recordType, int resolutionHeight) {
+		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
+		return muxAdaptor != null && muxAdaptor.isAlreadyRecording(recordType, resolutionHeight);
 	}
 
 	public Result importVoDs(String directory) {
