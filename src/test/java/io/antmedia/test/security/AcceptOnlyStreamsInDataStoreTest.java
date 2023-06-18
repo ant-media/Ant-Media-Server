@@ -45,7 +45,7 @@ public class AcceptOnlyStreamsInDataStoreTest {
 		
 		IScope scope = Mockito.mock(IScope.class);
 		
-		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null);
+		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null);
 		assertFalse(publishAllowed);
 		
 		
@@ -57,21 +57,21 @@ public class AcceptOnlyStreamsInDataStoreTest {
 		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
 		Mockito.when(scope.getContext()).thenReturn(context);		
 		
-		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null);
+		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null);
 		assertTrue(publishAllowed);
 		
 		
 		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(true);
-		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null);
+		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null);
 		assertFalse(publishAllowed);
 		
 		filter.setEnabled(true);
 		Mockito.when(licenseService.isLicenceSuspended()).thenReturn(false);
-		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null);
+		publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null);
 		assertFalse(publishAllowed);
 		
 		String streamId = dataStore.save(new Broadcast());
-		publishAllowed = filter.isPublishAllowed(scope, streamId, "mode", null);
+		publishAllowed = filter.isPublishAllowed(scope, streamId, "mode", null, null);
 		assertTrue(publishAllowed);
 		
 	}
@@ -119,18 +119,18 @@ public class AcceptOnlyStreamsInDataStoreTest {
 			dataStore.save(offlineBroadcast);
 			
 			
-			assertFalse(filter.isPublishAllowed(scope, preparingBroadcast.getStreamId(), "mode", null));
-			assertFalse(filter.isPublishAllowed(scope, broadcastingBroadcast.getStreamId(), "mode", null));
-			assertTrue(filter.isPublishAllowed(scope, offlineBroadcast.getStreamId(), "mode", null));
+			assertFalse(filter.isPublishAllowed(scope, preparingBroadcast.getStreamId(), "mode", null, null));
+			assertFalse(filter.isPublishAllowed(scope, broadcastingBroadcast.getStreamId(), "mode", null, null));
+			assertTrue(filter.isPublishAllowed(scope, offlineBroadcast.getStreamId(), "mode", null, null));
 			
 			
 			
 			filter.setEnabled(false);
-			assertTrue(filter.isPublishAllowed(scope, "notExistent", "mode", null));
+			assertTrue(filter.isPublishAllowed(scope, "notExistent", "mode", null, null));
 
-			assertFalse(filter.isPublishAllowed(scope, preparingBroadcast.getStreamId(), "mode", null));
-			assertFalse(filter.isPublishAllowed(scope, broadcastingBroadcast.getStreamId(), "mode", null));
-			assertTrue(filter.isPublishAllowed(scope, offlineBroadcast.getStreamId(), "mode", null));
+			assertFalse(filter.isPublishAllowed(scope, preparingBroadcast.getStreamId(), "mode", null, null));
+			assertFalse(filter.isPublishAllowed(scope, broadcastingBroadcast.getStreamId(), "mode", null, null));
+			assertTrue(filter.isPublishAllowed(scope, offlineBroadcast.getStreamId(), "mode", null, null));
 
 		} catch (Exception e) {
 			e.printStackTrace();
