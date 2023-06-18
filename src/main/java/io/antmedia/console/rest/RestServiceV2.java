@@ -461,7 +461,7 @@ public class RestServiceV2 extends CommonRestService {
 		return super.isShutdownProperly(appNamesArray);
 	}
 
-	@ApiOperation(value = "Set application or applications shutdown properly to true", response = Result.class)
+	@ApiOperation(value = "Set application or applications shutdown property to true", response = Result.class)
 	@GET
 	@Path("/shutdown-properly")
 	@Produces(MediaType.APPLICATION_JSON)
