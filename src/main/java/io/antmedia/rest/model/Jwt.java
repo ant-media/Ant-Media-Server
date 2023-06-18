@@ -1,6 +1,13 @@
 package io.antmedia.rest.model;
 
+import dev.morphia.annotations.Entity;
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
+
+@ApiModel(value="jwt", description="The basic jwt class for jwt blacklist")
+@Entity(value = "jwt")
 public class Jwt {
+    @ApiModelProperty(value = "the jwt")
     private String jwt;
 
     // Default constructor

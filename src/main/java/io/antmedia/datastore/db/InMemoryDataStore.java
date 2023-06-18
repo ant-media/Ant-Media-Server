@@ -4,8 +4,11 @@ import java.io.File;
 import java.time.Instant;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.ITokenService;
 import org.apache.commons.io.FilenameUtils;
@@ -38,8 +41,11 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, ConferenceRoom> roomMap = new LinkedHashMap<>();
 	private Map<String, WebRTCViewerInfo> webRTCViewerMap = new LinkedHashMap<>();
 
+	private Gson gson;
 
 	public InMemoryDataStore(String dbName) {
+		GsonBuilder builder = new GsonBuilder();
+		gson = builder.create();
 		available = true;
 	}
 
@@ -899,22 +905,65 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public boolean whiteListToken(String tokenId) {
+			Token token = getToken(tokenId);
+			if(token != null && token.isBlackListed()){
+				token.setBlackListed(false);
+				return saveToken(token);
+			}
+
+
 		return false;
 	}
 
 	@Override
 	public List<String> getBlackListedTokens() {
-		return Collections.emptyList();
+
+		ArrayList<String> tokenBlacklist = new ArrayList<>();
+			tokenMap.forEach((tokenId, token) -> {
+				if(token.isBlackListed()){
+					tokenBlacklist.add(tokenId);
+				}
+			});
+			return tokenBlacklist;
+
 	}
 
 	@Override
 	public Result deleteAllBlacklistedExpiredTokens(ITokenService tokenService) {
-		return null;
+		logger.info("Deleting all expired JWTs from token storage.");
+		AtomicInteger deletedTokenCount = new AtomicInteger();
+
+			tokenMap.forEach((tokenId, token) -> {
+				if(token.isBlackListed() && !tokenService.verifyJwt(tokenId,token.getStreamId(),token.getType())){
+					if(deleteToken(tokenId)){
+						deletedTokenCount.getAndIncrement();
+					}else{
+						logger.warn("Couldn't delete JWT:{}", tokenId);
+					}
+				}
+			});
+
+
+		if(deletedTokenCount.get() > 0){
+			final String successMsg = deletedTokenCount+" JWT deleted successfully from storage.";
+			logger.info(successMsg);
+			return new Result(true, successMsg);
+		}else{
+			final String failMsg = "No JWT deleted from storage.";
+			logger.warn(failMsg);
+			return new Result(false, failMsg);
+		}
 	}
 
 	@Override
 	public boolean whiteListAllTokens() {
-		throw new UnsupportedOperationException("");
+			tokenMap.forEach((tokenId, token) -> {
+				if(token.isBlackListed()){
+					whiteListToken(tokenId);
+				}
+			});
+
+		return true;
 	}
 
 	@Override
@@ -1060,11 +1109,22 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public boolean blackListToken(Token token) {
-        return false;
+		boolean result = false;
+
+			if (token.getStreamId() != null && token.getTokenId() != null) {
+				token.setBlackListed(true);
+				return saveToken(token);
+			}
+
+		return result;
     }
 
 	@Override
 	public Token getBlackListedToken(String tokenId) {
+		Token token = getToken(tokenId);
+		if(token != null && token.isBlackListed()){
+			return token;
+		}
 		return null;
 	}
 }

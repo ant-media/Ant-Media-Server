@@ -613,7 +613,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/jwt-black-list")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result blackListJwt(@ApiParam(value = "jwt to be added to blacklist.", required = true) @RequestBody Jwt jwt)
+	public Result blackListJwt(@ApiParam(value = "jwt to be added to blacklist.", required = true) Jwt jwt)
 	{
 		if(getAppSettings().isJwtBlacklistEnabled()){
 
@@ -662,14 +662,14 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/jwt-black-list")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result whiteListJwt(@ApiParam(value = "Jwt to be removed from blacklist.", required = true) @QueryParam("jwt") String jwt)
+	public Result whiteListJwt(@ApiParam(value = "Jwt to be removed from blacklist.", required = true) Jwt jwt)
 	{
 		if(getAppSettings().isJwtBlacklistEnabled()){
 
-			if(getDataStore().getBlackListedToken(jwt) == null){
+			if(getDataStore().getBlackListedToken(jwt.getJwt()) == null){
 				return new Result(false, "JWT does not exist in blacklist.");
 
-			}else if(getDataStore().whiteListToken(jwt)){
+			}else if(getDataStore().whiteListToken(jwt.getJwt())){
 				return new Result(true, "JWT successfully removed from blacklist.");
 
 			}else{
@@ -719,7 +719,7 @@ public class BroadcastRestService extends RestServiceBase{
 		if(getAppSettings().isJwtBlacklistEnabled()) {
 			getDataStore().whiteListAllTokens();
 			if(getDataStore().getBlackListedTokens().isEmpty()){
-				return new Result(true, "All blacklisted tokens are whitelisted successfully.");
+				return new Result(true, "All blacklisted tokens are removed successfully.");
 			}else{
 				return new Result(false, "JWT blacklist clear failed.");
 			}

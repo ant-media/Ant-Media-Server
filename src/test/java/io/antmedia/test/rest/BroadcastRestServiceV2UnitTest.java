@@ -3192,27 +3192,29 @@ public class BroadcastRestServiceV2UnitTest {
 
 		restServiceSpy.setAppSettings(appSettings);
 		String jwtStr = "test-jwt";
+		Jwt jwt = new Jwt();
+		jwt.setJwt(jwtStr);
 
 		DataStore store = mock(MapDBStore.class);
 
 		restServiceSpy.setDataStore(store);
 
-		Result result1 = restServiceSpy.whiteListJwt(jwtStr);
+		Result result1 = restServiceSpy.whiteListJwt(jwt);
 		assertFalse(result1.isSuccess());
 
 		when(appSettings.isJwtBlacklistEnabled()).thenReturn(true);
 
 		when(store.getBlackListedToken(jwtStr)).thenReturn(null);
-		Result result2 = restServiceSpy.whiteListJwt(jwtStr);
+		Result result2 = restServiceSpy.whiteListJwt(jwt);
 		assertFalse(result2.isSuccess());
 
 		Token token = mock(Token.class);
 		when(store.getBlackListedToken(jwtStr)).thenReturn(token);
-		Result result3 = restServiceSpy.whiteListJwt(jwtStr);
+		Result result3 = restServiceSpy.whiteListJwt(jwt);
 		assertFalse(result3.isSuccess());
 
 		when(store.whiteListToken(jwtStr)).thenReturn(true);
-		Result result4 = restServiceSpy.whiteListJwt(jwtStr);
+		Result result4 = restServiceSpy.whiteListJwt(jwt);
 		assertTrue(result4.isSuccess());
 
 	}
