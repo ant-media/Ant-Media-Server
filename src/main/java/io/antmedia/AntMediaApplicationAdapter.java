@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Pattern;
 
 import javax.validation.constraints.NotNull;
@@ -143,9 +144,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	protected StorageClient storageClient;
 
-	protected IStatsCollector statsCollector;
-
-	protected ArrayList<IStreamListener> streamListeners = new ArrayList<>();
+	protected Queue<IStreamListener> streamListeners = new ConcurrentLinkedQueue<>();
 
 	IClusterStreamFetcher clusterStreamFetcher;
 
@@ -166,7 +165,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		//initialize storage client
 		storageClient = (StorageClient) app.getContext().getBean(StorageClient.BEAN_NAME);
-		statsCollector = (IStatsCollector) app.getContext().getBean(IStatsCollector.BEAN_NAME);
 
 		if (!result.isSuccess()) {
 			//Save App Setting
