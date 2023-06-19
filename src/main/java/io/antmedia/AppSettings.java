@@ -1614,7 +1614,7 @@ public class AppSettings implements Serializable{
 	 * 
 	 * In initialization no matter if spring or field definition is effective, the important thing is that having some random value
 	 */
-	@Value( "${"+SETTINGS_CLUSTER_COMMUNICATION_KEY+ ":+ #{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}" )
+	@Value( "${"+SETTINGS_CLUSTER_COMMUNICATION_KEY+ ":#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}" )
 	private String clusterCommunicationKey = RandomStringUtils.randomAlphanumeric(32);
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
