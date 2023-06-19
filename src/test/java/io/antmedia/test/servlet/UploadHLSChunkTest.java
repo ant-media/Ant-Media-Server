@@ -74,7 +74,7 @@ public class UploadHLSChunkTest {
 		appSettings.setS3CacheControl(null);
 		assertNull(appSettings.getS3CacheControl());
 		when(mockAppContext.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
-				
+
 		//test with null storage client
 		servlet.doPutForUnitTests(mockRequest, mockResponse);
 		verify(mockStorageClient, times(1)).isEnabled();
@@ -82,8 +82,8 @@ public class UploadHLSChunkTest {
 		verify(mockResponse, never()).setStatus(anyInt());
 		verify(servlet, times(1)).uploadHLSChunk(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
 
-		
-	
+
+
 
 		try {
 			when(mockRequest.getInputStream()).thenReturn(Mockito.mock(ServletInputStream.class));
@@ -110,8 +110,8 @@ public class UploadHLSChunkTest {
 			fail(e.getMessage());
 		}
 	}
-	
-	
+
+
 	@Test
 	public void testDoDelete() {
 		when(mockRequest.getServletContext()).thenReturn(mockServletContext);
@@ -123,19 +123,16 @@ public class UploadHLSChunkTest {
 		// test with storage client
 		when(mockAppContext.getBean(StorageClient.BEAN_NAME)).thenReturn(mockStorageClient);
 		when(mockAppContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
-		
-		try {
-			servlet.doDeleteForUnitTests(mockRequest, mockResponse);
-			Mockito.verify(mockStorageClient, never()).delete(Mockito.any());
-			when(mockStorageClient.isEnabled()).thenReturn(true);
-			
-			servlet.doDeleteForUnitTests(mockRequest, mockResponse);
-			Mockito.verify(mockStorageClient).delete(Mockito.any());
-			
-		} catch (ServletException | IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+
+
+		servlet.doDeleteForUnitTests(mockRequest, mockResponse);
+		Mockito.verify(mockStorageClient, never()).delete(Mockito.any());
+		when(mockStorageClient.isEnabled()).thenReturn(true);
+
+		servlet.doDeleteForUnitTests(mockRequest, mockResponse);
+		Mockito.verify(mockStorageClient).delete(Mockito.any());
+
+
 	}
 
 
@@ -163,7 +160,7 @@ public class UploadHLSChunkTest {
 
 		when(mockAppContext.isRunning()).thenReturn(true);
 		assertNull(uploadHLSChunk.getStorageClient(mockRequest));
-		
+
 		when(mockStorageClient.isEnabled()).thenReturn(true);
 		assertNotNull(uploadHLSChunk.getStorageClient(mockRequest));
 
