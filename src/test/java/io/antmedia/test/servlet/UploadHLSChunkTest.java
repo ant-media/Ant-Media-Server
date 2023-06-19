@@ -70,7 +70,10 @@ public class UploadHLSChunkTest {
 
 		// test with storage client
 		when(mockAppContext.getBean(StorageClient.BEAN_NAME)).thenReturn(mockStorageClient);
-		when(mockAppContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+		AppSettings appSettings = new AppSettings();
+		appSettings.setS3CacheControl(null);
+		assertNull(appSettings.getS3CacheControl());
+		when(mockAppContext.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
 				
 		//test with null storage client
 		servlet.doPutForUnitTests(mockRequest, mockResponse);
@@ -103,6 +106,33 @@ public class UploadHLSChunkTest {
 			verify(servlet, times(2)).uploadHLSChunk(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
 
 		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	
+	@Test
+	public void testDoDelete() {
+		when(mockRequest.getServletContext()).thenReturn(mockServletContext);
+		when(mockStorageClient.isEnabled()).thenReturn(false);
+		when(mockServletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE)).thenReturn(mockAppContext);
+		when(mockAppContext.isRunning()).thenReturn(true);
+		when(mockRequest.getServletContext()).thenReturn(mockServletContext);
+
+		// test with storage client
+		when(mockAppContext.getBean(StorageClient.BEAN_NAME)).thenReturn(mockStorageClient);
+		when(mockAppContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+		
+		try {
+			servlet.doDeleteForUnitTests(mockRequest, mockResponse);
+			Mockito.verify(mockStorageClient, never()).delete(Mockito.any());
+			when(mockStorageClient.isEnabled()).thenReturn(true);
+			
+			servlet.doDeleteForUnitTests(mockRequest, mockResponse);
+			Mockito.verify(mockStorageClient).delete(Mockito.any());
+			
+		} catch (ServletException | IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}

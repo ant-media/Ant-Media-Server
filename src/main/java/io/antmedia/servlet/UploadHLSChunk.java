@@ -71,8 +71,11 @@ public class UploadHLSChunk extends HttpServlet {
 				logger.error(ExceptionUtils.getStackTrace(e));
 
 			}
-
 		}
+	}
+	
+	public void doDeleteForUnitTests(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		doDelete(req, resp);
 	}
 
 	@Override
