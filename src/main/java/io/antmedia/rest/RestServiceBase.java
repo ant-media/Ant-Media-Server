@@ -1208,7 +1208,7 @@ public abstract class RestServiceBase {
 						success = true;
 						message = id;
 
-						String vodFinishScript = getAppSettings().getVodFinishScript();
+						String vodFinishScript = getAppSettings().getVodUploadFinishScript();
 						if (vodFinishScript != null && !vodFinishScript.isEmpty()) {
 							getApplication().runScript(vodFinishScript + "  " + savedFile.getAbsolutePath());
 						}

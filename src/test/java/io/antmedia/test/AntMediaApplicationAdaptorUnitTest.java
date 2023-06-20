@@ -305,7 +305,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		newSettings.setHlsflags(null);
 		spyAdapter.updateSettings(newSettings, true, false);
 		
-		assertEquals("", settings.getVodFinishScript());
+		assertEquals("", settings.getVodUploadFinishScript());
 		assertEquals(null, settings.getHlsPlayListType());
 		assertEquals(null, settings.getHlsflags());
 		assertEquals(newSettings.getHlsflags(), settings.getHlsflags());

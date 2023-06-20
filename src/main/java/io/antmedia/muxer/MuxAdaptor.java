@@ -377,7 +377,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		generatePreview = appSettingsLocal.isGeneratePreview();
 		previewHeight = appSettingsLocal.getPreviewHeight();
 		bufferTimeMs = appSettingsLocal.getRtmpIngestBufferTimeMs();
-		dataChannelWebHookURL = appSettingsLocal.getDataChannelWebHook();
+		dataChannelWebHookURL = appSettingsLocal.getDataChannelWebHookURL();
 
 		rtmpEndpointRetryLimit = appSettingsLocal.getEndpointRepublishLimit();
 		healthCheckPeriodMS = appSettingsLocal.getEndpointHealthCheckPeriodMs();
