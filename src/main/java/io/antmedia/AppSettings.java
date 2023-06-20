@@ -267,6 +267,7 @@ public class AppSettings implements Serializable{
 	public static final String SETTINGS_JWT_SECRET_KEY = "settings.jwtSecretKey";
 
 	public static final String SETTINGS_JWT_CONTROL_ENABLED = "settings.jwtControlEnabled";
+	public static final String SETTINGS_JWT_BLACKLIST_ENABLED = "settings.jwtBlacklistEnabled";
 
 	public static final String SETTINGS_IP_FILTER_ENABLED = "settings.ipFilterEnabled";
 
@@ -1297,6 +1298,8 @@ public class AppSettings implements Serializable{
 	@Value( "${"+SETTINGS_JWT_CONTROL_ENABLED+":false}" )
 	private boolean jwtControlEnabled;
 
+	@Value( "${"+SETTINGS_JWT_BLACKLIST_ENABLED+":false}" )
+	private boolean jwtBlacklistEnabled;
 	/**
 	 * Application IP Filter Enabled
 	 */
@@ -2668,6 +2671,13 @@ public class AppSettings implements Serializable{
 		return jwtControlEnabled;
 	}
 
+	public void setJwtBlacklistEnabled(boolean jwtBlacklistEnabled){
+		this.jwtBlacklistEnabled = jwtBlacklistEnabled;
+	}
+
+	public boolean isJwtBlacklistEnabled() {
+		return jwtBlacklistEnabled;
+	}
 	public void setJwtControlEnabled(boolean jwtControlEnabled) {
 		this.jwtControlEnabled = jwtControlEnabled;
 	}

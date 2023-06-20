@@ -10,6 +10,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import io.antmedia.rest.model.Result;
+import io.antmedia.security.ITokenService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -423,6 +425,29 @@ public abstract class DataStore {
 	 */
 
 	public abstract boolean deleteToken (String tokenId);
+
+	/**
+	 * Whitelist specific token.
+	 * @param tokenId id of the token
+	 */
+	public abstract boolean whiteListToken(String tokenId);
+
+	/**
+	 * Get all blacklisted tokens.
+	 */
+	public abstract List<String> getBlackListedTokens();
+
+	/**
+	 * Delete all blacklisted expired tokens.
+	 */
+	public abstract Result deleteAllBlacklistedExpiredTokens(ITokenService tokenService);
+
+	/**
+	 * Whitelist all blacklisted tokens.
+	 *
+	 * @return
+	 */
+	public abstract boolean whiteListAllTokens();
 
 	/**
 	 * retrieve specific token
@@ -1364,7 +1389,18 @@ public abstract class DataStore {
 	 * @param metaData new meta data
 	 */
 	public abstract boolean updateStreamMetaData(String streamId, String metaData);
-	
+
+	/**
+	 * Blacklist token.
+	 * @param token which will be blacklisted.
+	 */
+	public abstract boolean blackListToken(Token token);
+
+	/**
+	 * Get token from blacklist.
+	 * @param tokenId id of the token.
+	 */
+	public abstract Token getBlackListedToken(String tokenId);
 
 	//**************************************
 	//ATTENTION: Write function descriptions while adding new functions

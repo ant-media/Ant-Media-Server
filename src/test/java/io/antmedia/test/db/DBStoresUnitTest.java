@@ -7,6 +7,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,13 +17,14 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.rest.model.Result;
+import io.antmedia.security.ITokenService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -132,6 +135,8 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		testWhitelistAllExpiredTokens(dataStore);
+		testWhitelistAllTokens(dataStore);
 
 	}
 	
@@ -268,6 +273,8 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testWhitelistAllExpiredTokens(dataStore);
+		testWhitelistAllTokens(dataStore);
 	}
 	
 	@Test
@@ -2142,9 +2149,9 @@ public class DBStoresUnitTest {
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
 		dsf.setDbHost("localhost");
-		ApplicationContext context = Mockito.mock(ApplicationContext.class);
-		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
-		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());			
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 		dsf.setApplicationContext(context);
 		return dsf.getDataStore();
 	}
@@ -2288,6 +2295,18 @@ public class DBStoresUnitTest {
 		saveStreamInfo(dataStore, "host1", 1000, 2000, 0, "host1", 1100, 2100, 0);
 		assertEquals(2, dataStore.getDataStore().find(StreamInfo.class).count());
 		deleteStreamInfos(dataStore);		
+	}
+
+	@Test
+	public void testMongoDBJwtBlacklist(){
+		MongoStore dataStore = new MongoStore("localhost", "", "", "testdb");
+		dataStore.whiteListToken("");
+		dataStore.getBlackListedTokens();
+		dataStore.deleteAllBlacklistedExpiredTokens(null);
+		dataStore.whiteListAllTokens();
+		dataStore.blackListToken(new Token());
+		dataStore.getBlackListedToken("");
+
 	}
 
 	public void deleteStreamInfos(MongoStore datastore) {
@@ -2945,4 +2964,98 @@ public class DBStoresUnitTest {
 		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.randomAlphanumeric(8), UPDATED_DATA));
 
 	}
+
+	public void testWhitelistAllExpiredTokens(DataStore dataStore){
+
+		Token token1 = new Token();
+		Token token2 = new Token();
+		Token token3 = new Token();
+
+		String jwt1 = "jwt1";
+		String jwt2 = "jwt2";
+		String jwt3 = "jwt3";
+
+		String tokenType = "publish";
+		String streamId = "test-stream";
+
+		token1.setTokenId(jwt1);
+		token2.setTokenId(jwt2);
+		token3.setTokenId(jwt3);
+
+		token1.setType(tokenType);
+		token2.setType(tokenType);
+		token3.setType(tokenType);
+
+		token1.setStreamId(streamId);
+		token2.setStreamId(streamId);
+		token3.setStreamId(streamId);
+		ITokenService tokenService = mock(ITokenService.class);
+
+		Result res = dataStore.deleteAllBlacklistedExpiredTokens(tokenService);
+		assertFalse(res.isSuccess());
+
+		dataStore.blackListToken(token1);
+		dataStore.blackListToken(token2);
+		dataStore.blackListToken(token3);
+
+		Token jwt = dataStore.getBlackListedToken(token1.getTokenId());
+		assertNotNull(jwt);
+
+		when(tokenService.verifyJwt(jwt1,streamId,tokenType)).thenReturn(false);
+		when(tokenService.verifyJwt(jwt2,streamId,tokenType)).thenReturn(false);
+		when(tokenService.verifyJwt(jwt3,streamId,tokenType)).thenReturn(false);
+
+
+		res = dataStore.deleteAllBlacklistedExpiredTokens(tokenService);
+		assertTrue(res.isSuccess());
+
+	}
+
+	public void testWhitelistAllTokens(DataStore dataStore){
+
+		addJwtsToBlacklist(dataStore);
+
+
+		List<String> jwtBlacklist = dataStore.getBlackListedTokens();
+		assertEquals(3, jwtBlacklist.size());
+
+		Token token = dataStore.getBlackListedToken("jwt1");
+		dataStore.whiteListAllTokens();
+		jwtBlacklist = dataStore.getBlackListedTokens();
+
+		assertEquals(0, jwtBlacklist.size());
+
+
+	}
+
+	private void addJwtsToBlacklist(DataStore dataStore){
+		Token token1 = new Token();
+		Token token2 = new Token();
+		Token token3 = new Token();
+
+		String jwt1 = "jwt1";
+		String jwt2 = "jwt2";
+		String jwt3 = "jwt3";
+
+		String tokenType = "publish";
+		String streamId = "test-stream";
+
+		token1.setTokenId(jwt1);
+		token2.setTokenId(jwt2);
+		token3.setTokenId(jwt3);
+
+
+		token1.setType(tokenType);
+		token2.setType(tokenType);
+		token3.setType(tokenType);
+
+		token1.setStreamId(streamId);
+		token2.setStreamId(streamId);
+		token3.setStreamId(streamId);
+
+		dataStore.blackListToken(token1);
+		dataStore.blackListToken(token2);
+		dataStore.blackListToken(token3);
+	}
+
 }

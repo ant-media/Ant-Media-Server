@@ -28,6 +28,7 @@ import java.util.concurrent.TimeUnit;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import com.google.gson.JsonObject;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 
@@ -38,10 +39,8 @@ import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.client.methods.*;
+import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -55,6 +54,7 @@ import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
+import org.json.simple.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -1994,6 +1994,179 @@ public class RestServiceV2Test {
 
 		return resultResponse;
 
+
+	}
+
+	@Test
+	public void testJwtBlacklist(){
+		ConsoleAppRestServiceTest.resetCookieStore();
+
+		try {
+			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+
+
+			boolean isEnterprise = callIsEnterpriseEdition().getMessage().contains("Enterprise");
+			if(!isEnterprise) {
+				logger.info("This is not enterprise edition so skipping this test");
+				return;
+			}
+
+			final AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("cleanapp");
+			appSettingsModel.setJwtStreamSecretKey("testtesttesttesttesttesttesttest");
+			appSettingsModel.setJwtBlacklistEnabled(true);
+
+			result = ConsoleAppRestServiceTest.callSetAppSettings("cleanapp", appSettingsModel);
+			assertTrue(result.isSuccess());
+
+			final String clearJwtBlacklistUrl = ROOT_SERVICE_URL + "/v2/broadcasts/jwt-black-list-clear";
+			final String jwtBlacklistUrl = ROOT_SERVICE_URL + "/v2/broadcasts/jwt-black-list";
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+			HttpUriRequest clearJwtBlacklistRequest = RequestBuilder.delete().setUri(clearJwtBlacklistUrl).build();
+			HttpResponse clearJwtBlacklistResponse = client.execute(clearJwtBlacklistRequest);
+			StringBuffer clearJwtBlacklistResult = readResponse(clearJwtBlacklistResponse);
+
+			if (clearJwtBlacklistResponse.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(clearJwtBlacklistResult.toString());
+			}
+			result = gson.fromJson(clearJwtBlacklistResult.toString(), Result.class);
+
+			assertTrue(result.isSuccess());
+
+			final String validJwt1 = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdHJlYW1JZCI6InRlc3RzdHJlYW0iLCJ0eXBlIjoicHVibGlzaCIsImV4cCI6OTg4NzUwNzUwMH0.aZRIBC6zHDPw3od9tBCn9gGg3Taab8RpuPUxGr46YM8";
+			final String validJwt2 = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdHJlYW1JZCI6InRlc3RzdHJlYW0iLCJ0eXBlIjoicHVibGlzaCIsImV4cCI6OTg4NzUwNzUwMX0.f4YTJUOmO7yuGpD7W4i_fffv2IVi1JB3mZVxNv8LSdI";
+			final String validJwt3 = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdHJlYW1JZCI6InRlc3RzdHJlYW0iLCJ0eXBlIjoicHVibGlzaCIsImV4cCI6OTg4NzUwNzUwMn0.bSbIumeAeM-k5zLndtII49z_458L8Lqg3eVweahvpb4";
+
+
+			JsonObject jwtRequest1 = new JsonObject();
+			jwtRequest1.addProperty("jwt",validJwt1);
+
+			JsonObject jwtRequest2 = new JsonObject();
+			jwtRequest2.addProperty("jwt",validJwt2);
+
+			JsonObject jwtRequest3 = new JsonObject();
+			jwtRequest3.addProperty("jwt",validJwt3);
+
+			String jwtRequestBody1 = gson.toJson(jwtRequest1);
+			HttpPost addJwtRequest1 = new HttpPost(jwtBlacklistUrl);
+			addJwtRequest1.setHeader("Content-Type", "application/json");
+			addJwtRequest1.setEntity(new StringEntity(jwtRequestBody1));
+
+			String jwtRequestBody2 = gson.toJson(jwtRequest2);
+			HttpPost addJwtRequest2 = new HttpPost(jwtBlacklistUrl);
+			addJwtRequest2.setHeader("Content-Type", "application/json");
+			addJwtRequest2.setEntity(new StringEntity(jwtRequestBody2));
+
+			String jwtRequestBody3 = gson.toJson(jwtRequest3);
+			HttpPost addJwtRequest3 = new HttpPost(jwtBlacklistUrl);
+			addJwtRequest3.setHeader("Content-Type", "application/json");
+			addJwtRequest3.setEntity(new StringEntity(jwtRequestBody3));
+
+			HttpResponse addJwtResponse1 = client.execute(addJwtRequest1);
+
+			StringBuffer addJwtResult1 = readResponse(addJwtResponse1);
+
+			if (addJwtResponse1.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(addJwtResult1.toString());
+			}
+
+			result = gson.fromJson(addJwtResult1.toString(), Result.class);
+			assertTrue(result.isSuccess());
+
+			HttpResponse addJwtResponse2 = client.execute(addJwtRequest2);
+
+			StringBuffer addJwtResult2 = readResponse(addJwtResponse2);
+
+			if (addJwtResponse2.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(addJwtResult2.toString());
+			}
+
+			result = gson.fromJson(addJwtResult2.toString(), Result.class);
+			assertTrue(result.isSuccess());
+
+			HttpResponse addJwtResponse3 = client.execute(addJwtRequest3);
+
+			StringBuffer addJwtResult3 = readResponse(addJwtResponse3);
+
+			if (addJwtResponse3.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(addJwtResult3.toString());
+			}
+
+			result = gson.fromJson(addJwtResult3.toString(), Result.class);
+			assertTrue(result.isSuccess());
+
+			HttpUriRequest getJwtBlacklistRequest = RequestBuilder.get().setUri(jwtBlacklistUrl)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+
+			HttpResponse getJwtBlacklistRequestResponse = client.execute(getJwtBlacklistRequest);
+
+			StringBuffer getJwtBlacklistRequestResult = readResponse(getJwtBlacklistRequestResponse);
+
+			ArrayList jwtBlacklist = gson.fromJson(getJwtBlacklistRequestResult.toString(), ArrayList.class);
+
+			int expectedJwtCount = 3;
+
+			assertEquals(expectedJwtCount, jwtBlacklist.size());
+
+
+			HttpUriRequest whiteListJwtRequest = RequestBuilder.delete().setUri(new URIBuilder(jwtBlacklistUrl).addParameter("jwt",validJwt1).build()).build();
+			HttpResponse whiteListJwtResponse = client.execute(whiteListJwtRequest);
+			StringBuffer whiteListJwtResult = readResponse(whiteListJwtResponse);
+
+
+			if (whiteListJwtResponse.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(whiteListJwtResult.toString());
+			}
+			result = gson.fromJson(whiteListJwtResult.toString(), Result.class);
+
+			assertTrue(result.isSuccess());
+
+			getJwtBlacklistRequestResponse = client.execute(getJwtBlacklistRequest);
+
+			getJwtBlacklistRequestResult = readResponse(getJwtBlacklistRequestResponse);
+
+			jwtBlacklist = gson.fromJson(getJwtBlacklistRequestResult.toString(), ArrayList.class);
+
+			expectedJwtCount = 2;
+
+			assertEquals(expectedJwtCount, jwtBlacklist.size());
+
+			clearJwtBlacklistResponse = client.execute(clearJwtBlacklistRequest);
+			clearJwtBlacklistResult = readResponse(clearJwtBlacklistResponse);
+
+			if (clearJwtBlacklistResponse.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(clearJwtBlacklistResult.toString());
+			}
+			result = gson.fromJson(clearJwtBlacklistResult.toString(), Result.class);
+
+			assertTrue(result.isSuccess());
+
+			getJwtBlacklistRequestResponse = client.execute(getJwtBlacklistRequest);
+
+			getJwtBlacklistRequestResult = readResponse(getJwtBlacklistRequestResponse);
+
+			jwtBlacklist = gson.fromJson(getJwtBlacklistRequestResult.toString(), ArrayList.class);
+
+			expectedJwtCount = 0;
+
+			assertEquals(expectedJwtCount, jwtBlacklist.size());
+
+
+		} catch (Exception e){
+			e.printStackTrace();
+
+			fail(e.getMessage());
+
+		}
 
 	}
 

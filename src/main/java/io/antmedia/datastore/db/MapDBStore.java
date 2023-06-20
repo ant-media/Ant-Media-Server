@@ -4,10 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-import java.util.Map.Entry;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.mapdb.DB;
@@ -16,9 +13,7 @@ import org.mapdb.Serializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.StreamInfo;
-import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.vertx.core.Vertx;
 
 
@@ -73,6 +68,7 @@ public class MapDBStore extends MapBasedDataStore {
 		webRTCViewerMap = db.treeMap(WEBRTC_VIEWER).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
 
+
 		timerId = vertx.setPeriodic(5000, id -> 
 
 		vertx.executeBlocking(b -> {
@@ -124,7 +120,10 @@ public class MapDBStore extends MapBasedDataStore {
 	public void clearStreamInfoList(String streamId) {
 		//used in mongo for cluster mode. useless here.
 	}
-	
+
+
+
+
 	@Override
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		return new ArrayList<>();

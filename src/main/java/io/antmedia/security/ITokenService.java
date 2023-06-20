@@ -112,4 +112,5 @@ public interface ITokenService {
 
 	Map<String, String>  getSubscriberAuthenticatedMap();
 
+	 boolean verifyJwt(String jwtTokenId, String streamId, String type);
 }
