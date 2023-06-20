@@ -426,6 +426,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(null, appSettings.getS3AccessKey());
 		assertEquals(null, appSettings.getS3RegionName());
 		assertEquals(null, appSettings.getS3BucketName());
+		assertEquals("no-store, no-cache, must-revalidate, max-age=0", appSettings.getS3CacheControl());
 		assertEquals(null, appSettings.getS3Endpoint());
 		assertEquals(false, appSettings.isForceDecoding());
 		assertEquals(true, appSettings.isAddOriginalMuxerIntoHLSPlaylist());
@@ -516,7 +517,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					164, numberOfFields);
+					165, numberOfFields);
 		
 	}
 

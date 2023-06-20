@@ -66,7 +66,7 @@ public class SslConfiguratorTest {
     	 sslConfigurator.setType(SslConfigurationType.ANTMEDIA_SUBDOMAIN);
     	 
     	 command = sslConfigurator.getCommand();
-    	 assertEquals("/bin/bash enable_ssl.sh -i " + installDirectory, command);
+    	 assertEquals("sudo /bin/bash enable_ssl.sh -i " + installDirectory, command);
     	 
     	 sslConfigurator.setType(SslConfigurationType.CUSTOM_CERTIFICATE);
     	 sslConfigurator.setFullChainFile(new File("fullchain.pem"));
@@ -74,7 +74,7 @@ public class SslConfiguratorTest {
     	 sslConfigurator.setPrivateKeyFile(new File("privatekey.pem"));
     	 command = sslConfigurator.getCommand();
     	 
-    	 assertEquals("/bin/bash enable_ssl.sh -f "+ installDirectory +"/fullchain.pem -p "+ installDirectory + "/privatekey.pem -c " + installDirectory + "/chain.pem -d test.antmedia.io -i " +installDirectory, command); 
+    	 assertEquals("sudo /bin/bash enable_ssl.sh -f "+ installDirectory +"/fullchain.pem -p "+ installDirectory + "/privatekey.pem -c " + installDirectory + "/chain.pem -d test.antmedia.io -i " +installDirectory, command); 
 
 
     	 sslConfigurator.setType(SslConfigurationType.NO_SSL);

@@ -101,6 +101,7 @@ import org.red5.codec.IVideoStreamCodec;
 import org.red5.codec.StreamCodecInfo;
 import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
+import org.red5.io.flv.impl.Tag;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamPacket;
@@ -1918,6 +1919,38 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.writeBufferedPacket();
 		assertFalse(muxAdaptor.isBuffering());
 
+	}
+	
+	@Test
+	public void testDropPacketIfStopped() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		ClientBroadcastStream clientBroadcastStream = Mockito.spy(new ClientBroadcastStream());
+		clientBroadcastStream.setConnection(Mockito.mock(IStreamCapableConnection.class));
+		StreamCodecInfo info = new StreamCodecInfo();
+
+		clientBroadcastStream.setCodecInfo(info);
+
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope));
+		
+		ITag tag = new Tag((byte)0, 0, 10, IoBuffer.allocate(10), BUFFER_SIZE);
+		StreamPacket streamPacket = new StreamPacket(tag);
+		
+		assertEquals(0, muxAdaptor.getInputQueueSize());
+
+		muxAdaptor.packetReceived(clientBroadcastStream, streamPacket);
+		assertEquals(1, muxAdaptor.getInputQueueSize());
+		
+		
+		muxAdaptor.stop(true);
+		muxAdaptor.packetReceived(clientBroadcastStream, streamPacket);
+		assertEquals(1, muxAdaptor.getInputQueueSize());
+		Mockito.verify(muxAdaptor).closeRtmpConnection();
+		
 	}
 
 	@Test

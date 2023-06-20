@@ -2,10 +2,10 @@ package io.antmedia.storage;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -23,6 +23,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.StorageClass;
@@ -37,8 +38,6 @@ public class AmazonS3StorageClient extends StorageClient {
 	private TransferManager transferManager;
 
 	private long multipartUploadThreshold = 5L * 1024 * 1024;
-
-	private ProgressListener progressListener;
 
 	protected static Logger logger = LoggerFactory.getLogger(AmazonS3StorageClient.class);
 
@@ -82,9 +81,9 @@ public class AmazonS3StorageClient extends StorageClient {
 		if (isEnabled()) {
 			AmazonS3 s3 = getAmazonS3();
 			ListObjectsV2Result objects = s3.listObjectsV2(getStorageName(), prefix);
-			
+
 			convert2List(list, objects.getObjectSummaries());
-			
+
 		}
 		return list;
 	}
@@ -122,55 +121,93 @@ public class AmazonS3StorageClient extends StorageClient {
 	public void save(final File file, String type) {
 		save(type + "/" + file.getName(), file);
 	}
+
+
+	public void save(String key, InputStream inputStream, boolean waitForCompletion) {
+		save(key, null, inputStream, false, waitForCompletion);
+	}
+
 	
-
-
-	public void save(String key, File file, boolean deleteLocalFile)
+	public void save(String key, File file, boolean deleteLocalFile) {
+		save(key, file, null, deleteLocalFile, false);
+	}
+	
+	public void save(String key, File file, InputStream inputStream, boolean deleteLocalFile, boolean waitForCompletion)
 	{	
-		if (isEnabled()) {
+		if (isEnabled()) 
+		{
 			TransferManager tm = getTransferManager();
+			PutObjectRequest putRequest;
+			ObjectMetadata metadata = new ObjectMetadata();
+			
+			if (getCacheControl() != null) 
+			{
+				metadata.setCacheControl(getCacheControl());
+			}
+		
+			
+			if (file != null) 
+			{
+				putRequest = new PutObjectRequest(getStorageName(), key, file).withMetadata(metadata);
+			}
+			else 
+			{
+				putRequest = new PutObjectRequest(getStorageName(), key, inputStream, metadata);
+			}
 
-			PutObjectRequest putRequest = new PutObjectRequest(getStorageName(), key, file);
 			putRequest.setCannedAcl(getCannedAcl());
 
 			if(checkStorageClass(getStorageClass())){
 				putRequest.withStorageClass(getStorageClass().toUpperCase());
 			}
-			
+
 			Upload upload = tm.upload(putRequest);
-			
 			/* 
 			 * TransferManager processes all transfers asynchronously, so this call returns immediately.
 			 * Some blocking calls are removed. Please don't block any threads if it's really not necessary
 			 */
-			logger.info("{} upload has started with key: {}", file.getName(), key);
+			logger.info("File {} upload has started with key: {}", file != null ? file.getName() : "", key);
+
+			listenUploadProgress(key, file, deleteLocalFile, upload);
 			
-			upload.addProgressListener((ProgressListener)event -> 
-			{
-				if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)
-				{
-					logger.error("S3 - Error: Upload failed for {} with key {}", file.getName(), key);
+			if (waitForCompletion) {
+				try {
+					upload.waitForCompletion();
+				} catch (AmazonClientException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
 				}
-				else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT)
-				{	
-					if (deleteLocalFile) 
-					{
-						deleteFile(file);
-					}
-					logger.info("File {} uploaded to S3 with key: {}", file.getName(), key);
+				catch (InterruptedException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+					Thread.currentThread().interrupt();
 				}
-				
-				if (progressListener != null) 
-				{
-					progressListener.progressChanged(event);
-				}
-			});
-			
-			
+			}
 		}
 		else {
 			logger.debug("S3 is not enabled to save the file: {}", key);
 		}
+	}
+
+	private void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload) {
+		upload.addProgressListener((ProgressListener)event -> 
+		{
+			if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)
+			{
+				logger.error("S3 - Error: Upload failed with key {}", key);
+			}
+			else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT)
+			{	
+				if (deleteLocalFile) 
+				{
+					deleteFile(file);
+				}
+				logger.info("File uploaded to S3 with key: {}", key);
+			}
+
+			if (progressListener != null) 
+			{
+				progressListener.progressChanged(event);
+			}
+		});
 	}
 	public boolean checkStorageClass(String s3StorageClass)
 	{
@@ -184,14 +221,14 @@ public class AmazonS3StorageClient extends StorageClient {
 		}
 		return false;
 	}
-	
+
 
 	public TransferManager getTransferManager() {
 		if (transferManager == null) {
 			transferManager = TransferManagerBuilder.standard()
-				.withS3Client(getAmazonS3())
-				.withMultipartUploadThreshold(multipartUploadThreshold )
-				.build();
+					.withS3Client(getAmazonS3())
+					.withMultipartUploadThreshold(multipartUploadThreshold )
+					.build();
 		}
 		return transferManager;
 	}
@@ -208,9 +245,9 @@ public class AmazonS3StorageClient extends StorageClient {
 	public void reset() {
 		this.amazonS3 = null;
 		this.transferManager = null;
-		
+
 	}
-	
+
 
 	public CannedAccessControlList getCannedAcl() 
 	{
@@ -244,10 +281,6 @@ public class AmazonS3StorageClient extends StorageClient {
 
 	public void setMultipartUploadThreshold(long multipartUploadThreshold) {
 		this.multipartUploadThreshold = multipartUploadThreshold;
-	}
-
-	public void setProgressListener(ProgressListener progressListener) {
-		this.progressListener = progressListener;
 	}
 
 }

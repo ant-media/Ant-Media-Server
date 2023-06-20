@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.net.BindException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -38,7 +39,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.catalina.tribes.util.ExceptionUtils;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.ContextLoader;
 import org.red5.server.LoaderBase;
@@ -167,7 +167,7 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
         
         while (!shutdown.get()) {
             try (
-                    ServerSocket serverSocket = new ServerSocket(port); 
+                    ServerSocket serverSocket = new ServerSocket(port, 50, InetAddress.getLoopbackAddress()); 
                     Socket clientSocket = serverSocket.accept(); 
                     PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true); 
                     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
