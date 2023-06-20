@@ -63,7 +63,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		assertEquals("stun:stun1.l.google.com:19302", appSettings.getStunServerURI());
 		assertEquals(false, appSettings.isWebRTCTcpCandidatesEnabled());
-		assertNull(appSettings.getEncoderName());
+		assertEquals("", appSettings.getEncoderName());
 		assertEquals(480, appSettings.getPreviewHeight());
 		assertFalse(appSettings.isUseOriginalWebRTCEnabled());
 		assertEquals(5000, appSettings.getCreatePreviewPeriod());
@@ -84,11 +84,11 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getFileNameFormat());
 		
 		
-		assertNull(appSettings.getTurnServerUsername());
+		assertEquals("", appSettings.getTurnServerUsername());
 		appSettings.setTurnServerUsername("turnserverusername");
 		assertEquals("turnserverusername", appSettings.getTurnServerUsername());
 		
-		assertNull(appSettings.getTurnServerCredential());
+		assertEquals("", appSettings.getTurnServerCredential());
 		appSettings.setTurnServerCredential("turnservercredential");
 		assertEquals("turnservercredential", appSettings.getTurnServerCredential());
 		
