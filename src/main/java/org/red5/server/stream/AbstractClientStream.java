@@ -85,7 +85,7 @@ public abstract class AbstractClientStream extends AbstractStream implements ICl
      * @return Stream capable connection object
      */
     public IStreamCapableConnection getConnection() {
-        return conn.get();
+        return conn != null ? conn.get() : null;
     }
 
     /** {@inheritDoc} */

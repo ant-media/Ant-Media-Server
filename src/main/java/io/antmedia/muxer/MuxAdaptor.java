@@ -252,10 +252,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		TIME_BASE_FOR_MS.num(1);
 		TIME_BASE_FOR_MS.den(1000);
 	}
-	
+
 	private AVRational videoTimeBase = TIME_BASE_FOR_MS;
 	private AVRational audioTimeBase = TIME_BASE_FOR_MS;
-	
+
 	//NOSONAR because we need to keep the reference of the field
 	private AVChannelLayout channelLayout;
 
@@ -301,7 +301,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		this.broadcastStream = clientBroadcastStream;
 	}
-	
+
 	public boolean addMuxer(Muxer muxer) {
 		return addMuxer(muxer, 0);
 	}
@@ -512,7 +512,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 	}
-	
+
 	public static void setUpEndPoints(MuxAdaptor muxAdaptor, Broadcast broadcast, Vertx vertx) 
 	{
 		if (broadcast != null) {
@@ -536,17 +536,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (audioDataConf != null && audioCodecParameters == null) 
 		{
 			AACConfigParser aacParser = new AACConfigParser(audioDataConf, 0);
-						
+
 			if (!aacParser.isErrorOccured()) 
 			{
 				audioCodecParameters = new AVCodecParameters();
 				audioCodecParameters.sample_rate(aacParser.getSampleRate());
-				
+
 				channelLayout = new AVChannelLayout();
 				av_channel_layout_default(channelLayout, aacParser.getChannelCount());
-				
+
 				audioCodecParameters.ch_layout(channelLayout);
-				
+
 				audioCodecParameters.codec_id(AV_CODEC_ID_AAC);
 				audioCodecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
 
@@ -624,7 +624,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			videoStreamIndex = streamIndex;
 			streamIndex++;
 		}
-		
+
 
 		AVCodecParameters parameters = getAudioCodecParameters();
 		if (parameters != null) {
@@ -691,7 +691,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			AVStream stream = inputFormatContext.streams(i);
 			AVCodecParameters codecpar = stream.codecpar();
 			if (codecpar.codec_type() == AVMEDIA_TYPE_VIDEO && !isBlacklistCodec(codecpar.codec_id())) {
-				
+
 				videoTimeBase = inputFormatContext.streams(i).time_base();
 				logger.info("Video format codec Id: {} width:{} height:{} for stream: {} source index:{} target index:{}", codecpar.codec_id(), codecpar.width(), codecpar.height(), streamId, i, streamIndex);
 				width = codecpar.width();
@@ -837,9 +837,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	public void changeStreamQualityParameters(String streamId, String quality, double speed, int inputQueueSize) {
 		long now = System.currentTimeMillis();
-		if ((now - lastQualityUpdateTime) > 1000 &&
-				((quality != null && !quality.equals(oldQuality)) || oldspeed == 0 || Math.abs(speed - oldspeed) > 0.05)) {
 
+		//increase updating time to 5 seconds because it may cause some issues in mongodb updates and no need to update every 5 seconds
+		if ((now - lastQualityUpdateTime) > 5000 &&
+				((quality != null && !quality.equals(oldQuality)) || oldspeed == 0 || Math.abs(speed - oldspeed) > 0.05)) 
+		{
+
+			logger.info("Stream queue size:{} for streamId:{} ", inputQueueSize, streamId);
 			lastQualityUpdateTime = now;
 			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize);
 			oldQuality = quality;
@@ -999,17 +1003,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					return;
 
 				}
-				
+
 				IStreamCodecInfo codecInfo = broadcastStream.getCodecInfo();
 				enableVideo = codecInfo.hasVideo();
 				enableAudio = codecInfo.hasAudio();
-				
+
 				getVideoDataConf(codecInfo);
 				getAudioDataConf(codecInfo);
-				
+
 				// Sometimes AAC Sequenece Header is received later 
 				// so that we check if we get the audio codec parameters correctly
-				
+
 				if (enableVideo && enableAudio && getAudioCodecParameters() != null)
 				{
 					logger.info("Video and audio is enabled in stream:{} queue size: {}", streamId, queueSize.get());
@@ -1232,8 +1236,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 		}
 		changeStreamQualityParameters(this.streamId, null, speed, getInputQueueSize());
-		
-		
+
+
 	}
 
 	public void closeRtmpConnection() {
@@ -1315,9 +1319,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		writeTrailer();
 
-		isRecording.set(false);
-
-
 		if (videoExtraDataPointer != null) {
 			av_free(videoExtraDataPointer.position(0));
 			videoExtraDataPointer.close();
@@ -1332,9 +1333,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		changeStreamQualityParameters(this.streamId, null, 0, getInputQueueSize());
 		getStreamHandler().muxAdaptorRemoved(this);
+
+		isRecording.set(false);
 	}
-	
-	
+
+
 	/**
 	 * This method means that if the MuxAdaptor writes 
 	 * incoming packets to muxers({@link MuxAdaptor#muxerList}) directly without any StreamAdaptor/Encoders
@@ -1419,7 +1422,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public int getInputQueueSize() {
-		return queueSize .get();
+		return queueSize.get();
 	}
 
 	public boolean isStopRequestExist() {
@@ -1440,7 +1443,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					while(!bufferQueue.isEmpty())
 					{
 						IStreamPacket tempPacket = peekTheNextPacketFromBuffer();
-						
+
 						long now = System.currentTimeMillis();
 						long pktTimeDifferenceMs = tempPacket.getTimestamp() - firstPacketReadyToSentTimeMs;
 						long passedTime = now - bufferingFinishTimeMs;
@@ -1489,7 +1492,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}	
 			}
 		}		
-		
+
 		return tempPacket;
 	}
 
@@ -1517,6 +1520,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.info("first received frame timestamp: {} for stream:{} ", lastFrameTimestamp, streamId);
 			firstReceivedFrameTimestamp = lastFrameTimestamp;
 		}
+		if (stopRequestExist) 
+		{
+			//there may be a bug that red5 cannot stop the stream ClientBroadcastStream and it may fill the memory
+			logger.warn("Stop request exist and dropping incoming packet for stream:{}", streamId);
+			//try to close the connection again
+			closeRtmpConnection();
+			return;
+		}
+
+
+
 		queueSize.incrementAndGet();
 
 		CachedEvent event = new CachedEvent();
@@ -1526,6 +1540,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		event.setTimestamp(packet.getTimestamp());
 
 		streamPacketQueue.add(event);
+
 	}
 
 	@Override
@@ -1712,7 +1727,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if(recordType == RecordType.MP4) {
 			Mp4Muxer mp4Muxer = createMp4Muxer();
 			muxer = mp4Muxer;
-			
+
 			addMuxer(muxer, resolutionHeight);
 		}
 		else if(recordType == RecordType.WEBM) {
@@ -1728,7 +1743,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public boolean prepareMuxer(Muxer muxer, int resolutionHeight) 
 	{
 		boolean streamAdded = false;
-		
+
 		muxer.init(scope, streamId, resolutionHeight, broadcast != null ? broadcast.getSubFolder(): null, 0);
 		logger.info("prepareMuxer for stream:{} muxer:{}", streamId, muxer.getClass().getSimpleName());
 
@@ -1770,7 +1785,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (streamAdded) 
 		{
 			prepared = muxer.prepareIO();
-	
+
 			if (prepared) 
 			{
 				prepared = addMuxerInternal(muxer);
@@ -1780,7 +1795,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			{
 				logger.warn("Muxer:{} cannot be prepared for streamId:{}", muxer.getClass().getSimpleName(), streamId);
 			}
-	
+
 			//TODO: Check to release the resources if it's not already released
 		}
 
@@ -1889,7 +1904,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		healthCheckPeriodMS = appSettings.getEndpointHealthCheckPeriodMs();
 		vertx.setPeriodic(healthCheckPeriodMS, id ->
 		{
-			
+
 			String status = statusMap.getValueOrDefault(url, null);
 			logger.info("Checking the endpoint health for: {} and status: {} ", url, status);
 			//Broadcast might get deleted in the process of checking
@@ -2198,7 +2213,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public AVRational getAudioTimeBase() {
 		return audioTimeBase;
 	}
-	
+
 	public void setVideoTimeBase(AVRational videoTimeBase) {
 		this.videoTimeBase = videoTimeBase;
 	}
@@ -2233,7 +2248,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void setAudioDataConf(byte[] audioDataConf) {
 		this.audioDataConf = audioDataConf;
 	}
-	
+
 	public boolean isBlacklistCodec(int codecId) {
 		return (codecId == AV_CODEC_ID_PNG);
 	}

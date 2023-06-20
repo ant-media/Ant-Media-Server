@@ -36,9 +36,9 @@ public class OnvifCamera implements IOnvifCamera {
 		int result = CONNECT_ERROR;
 		String camIP = "";
 		try {
-			
+
 			camIP = getURL(address);
-			
+
 			nvt = new OnvifDevice(camIP, username, password);
 			nvt.getSoap().setLogging(false);
 			nvt.getDevices().getCapabilities().getDevice();
@@ -47,7 +47,7 @@ public class OnvifCamera implements IOnvifCamera {
 			profiles = nvt.getDevices().getProfiles();
 
 
-			if (profiles != null) 
+			if (profiles != null)
 			{
 				for (Profile profile : profiles) {
 					if (profile.getPTZConfiguration() != null) {
@@ -58,7 +58,7 @@ public class OnvifCamera implements IOnvifCamera {
 				if (profileToken == null) {
 					profileToken = profiles.get(0).getToken();
 				}
-				
+
 				result = CONNECTION_SUCCESS;
 			}
 			else {
@@ -71,20 +71,20 @@ public class OnvifCamera implements IOnvifCamera {
 
 			//connection error. Let the user check ip address
 			result = CONNECT_ERROR;
-		} 
+		}
 		return result;
 	}
-	
+
 	@Override
 	public String[] getProfiles() {
 		String profilesStr[] = null;
 		try {
 			List<Profile> profilesLocal = nvt.getDevices().getProfiles();
 
-			if (profilesLocal != null) 
+			if (profilesLocal != null)
 			{
 				int i = 0;
-				profilesStr = new String[profilesLocal.size()]; 
+				profilesStr = new String[profilesLocal.size()];
 				for (Profile profile : profilesLocal) {
 					if (profile.getPTZConfiguration() != null) {
 						profilesStr[i++] = nvt.getMedia().getRTSPStreamUri(profile.getToken());
@@ -93,7 +93,7 @@ public class OnvifCamera implements IOnvifCamera {
 			}
 		} catch (ConnectException | SOAPException e) {
 			// nothing to do
-		} 
+		}
 		return profilesStr;
 	}
 
@@ -125,19 +125,19 @@ public class OnvifCamera implements IOnvifCamera {
 
 		} catch (ConnectException | SOAPException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
-		} 
+		}
 		return rtspURL;
 	}
-	
-	
+
+
 	public boolean moveContinous(float x, float y, float zoom) {
 		return ptzDevices.continuousMove(profileToken, x, y, zoom);
 	}
-	
+
 	public boolean moveRelative(float x, float y, float zoom) {
 		return ptzDevices.relativeMove(profileToken, x, y, zoom);
 	}
-	
+
 	public boolean moveAbsolute(float x, float y, float zoom) {
 		boolean result = false;
 		try {
@@ -256,7 +256,7 @@ public class OnvifCamera implements IOnvifCamera {
 	public boolean setDateTime(java.sql.Date date, java.sql.Time time) {
 		return false;
 	}
-	
+
 	public String getURL (String url) {
 
 		String[] ipAddrParts = null;
