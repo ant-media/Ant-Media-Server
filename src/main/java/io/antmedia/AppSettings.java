@@ -470,19 +470,19 @@ public class AppSettings implements Serializable{
 	 * In data channel, player messages are delivered to nobody,
 	 * In order words, player cannot send messages
 	 */
-	private static final String DATA_CHANNEL_PLAYER_TO_NONE = "none";
+	public static final String DATA_CHANNEL_PLAYER_TO_NONE = "none";
 
 	/**
 	 * @hidden
 	 * In data channel, player messages are delivered to only publisher
 	 */
-	private static final String DATA_CHANNEL_PLAYER_TO_PUBLISHER = "publisher";
+	public static final String DATA_CHANNEL_PLAYER_TO_PUBLISHER = "publisher";
 
 	/**
 	 * @hidden
 	 * In data channel, player messages are delivered to everyone both publisher and all players
 	 */
-	private static final String DATA_CHANNEL_PLAYER_TO_ALL = "all";
+	public static final String DATA_CHANNEL_PLAYER_TO_ALL = "all";
 
 	/**
 	 * @hidden
@@ -517,13 +517,13 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 * WebRTC SDP Semantics:PLAN B
 	 */
-	private static final String SDP_SEMANTICS_PLAN_B = "planB";
+	public static final String SDP_SEMANTICS_PLAN_B = "planB";
 
 	/**
 	 * @hidden
 	 * WebRTC SDP Semantics:UNIFIED PLAN
 	 */
-	private static final String SDP_SEMANTICS_UNIFIED_PLAN = "unifiedPlan";
+	public static final String SDP_SEMANTICS_UNIFIED_PLAN = "unifiedPlan";
 
 	/**
 	 * @hidden
