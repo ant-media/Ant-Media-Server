@@ -75,19 +75,19 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile){
-		if (hlsListSize != null) {
+		if (hlsListSize != null && !hlsListSize.isEmpty()) {
 			this.hlsListSize = hlsListSize;
 		}
 
-		if (hlsTime != null) {
+		if (hlsTime != null && !hlsTime.isEmpty()) {
 			this.hlsTime = hlsTime;
 		}
 
-		if (hlsPlayListType != null) {
+		if (hlsPlayListType != null && !hlsPlayListType.isEmpty()) {
 			this.hlsPlayListType = hlsPlayListType;
 		}
 
-		if (hlsFlags != null) {
+		if (hlsFlags != null && !hlsFlags.isEmpty()) {
 			this.hlsFlags = hlsFlags;
 		}
 		else {

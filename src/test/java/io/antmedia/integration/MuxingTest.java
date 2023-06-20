@@ -295,7 +295,7 @@ public class MuxingTest {
 		String streamName = "aes_hls_test" + (int)(Math.random() * 93377);
 		
 		String hlsEncryptionSetting = appSettings.getHlsEncryptionKeyInfoFile();
-		assertEquals(null,hlsEncryptionSetting);
+		assertEquals("",hlsEncryptionSetting);
 		
 		appSettings.setHlsEncryptionKeyInfoFile("https://gist.githubusercontent.com/SelimEmre/0256120ad418e9f3184160da63977f99/raw/37f4ea5f161d89b6d05555b0421945e3237499a0/hls_aes.keyinfo");
 		ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
