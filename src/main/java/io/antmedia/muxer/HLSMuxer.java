@@ -158,9 +158,9 @@ public class HLSMuxer extends Muxer  {
 	@Override
 	public String getOutputURL() 
 	{
-		if (httpEndpoint != null) 
+		if (httpEndpoint != null )
 		{
-			return httpEndpoint + File.separator + streamId  + extension;
+			return httpEndpoint + File.separator + initialResourceNameWithoutExtension  + extension;
 		}
 		return super.getOutputURL();
 	}
