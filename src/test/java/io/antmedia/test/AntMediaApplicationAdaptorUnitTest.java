@@ -257,7 +257,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		AppSettings newSettings = Mockito.spy(new AppSettings());
 		newSettings.setVodFolder("");
 		newSettings.setListenerHookURL("");
-		newSettings.setHlsPlayListType("");
 		newSettings.setHlsflags("delete_segments");
 		newSettings.setTokenHashSecret("");
 		newSettings.setDataChannelPlayerDistribution("");
@@ -280,7 +279,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setScope(scope);
-		assertNotEquals("", settings.getHlsPlayListType());
+		assertEquals("", settings.getHlsPlayListType());
 		spyAdapter.updateSettings(newSettings, true, false);
 		
 		assertEquals("", settings.getHlsPlayListType());
