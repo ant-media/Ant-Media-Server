@@ -49,7 +49,6 @@ import static org.bytedeco.ffmpeg.global.avformat.avio_open;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_PASS_MINMAX;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
 import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
@@ -67,15 +66,18 @@ import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.IntPointer;
+import org.bytedeco.javacpp.Pointer;
 
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 
 public class Mp4Muxer extends RecordMuxer {
 
-	protected static Logger logger = LoggerFactory.getLogger(Mp4Muxer.class);
 	private AVBSFContext bsfContext;
 	
 	private boolean isAVCConversionRequired = false;
@@ -140,8 +142,8 @@ public class Mp4Muxer extends RecordMuxer {
 	 */
 	@Override
 	protected boolean prepareAudioOutStream(AVStream inStream, AVStream outStream) {
-		if (bsfName != null) {
-			AVBitStreamFilter adtsToAscBsf = av_bsf_get_by_name(this.bsfName);
+		if (bsfVideoName != null) {
+			AVBitStreamFilter adtsToAscBsf = av_bsf_get_by_name(this.bsfVideoName);
 			bsfContext = new AVBSFContext(null);
 
 			int ret = av_bsf_alloc(adtsToAscBsf, bsfContext);
@@ -177,18 +179,24 @@ public class Mp4Muxer extends RecordMuxer {
 		return true;
 	}
 
+	/**
+	 * 
+	 * @param srcFile
+	 * @param dstFile
+	 * @param rotation clockwise rotation
+	 */
 	public static void remux(String srcFile, String dstFile, int rotation) {
 		AVFormatContext inputContext = new AVFormatContext(null);
 		int ret;
 		if ((ret = avformat_open_input(inputContext,srcFile, null, null)) < 0) {
-			logger.warn("cannot open input context {} errror code: {}", srcFile, ret);
+			loggerStatic.warn("cannot open input context {} errror code: {}", srcFile, ret);
 			return;
 		}
 
 		ret = avformat_find_stream_info(inputContext, (AVDictionary)null);
 
 		if (ret < 0) {
-			logger.warn("Cannot find stream info {}", srcFile);
+			loggerStatic.warn("Cannot find stream info {}", srcFile);
 			return;
 		}
 
@@ -201,29 +209,50 @@ public class Mp4Muxer extends RecordMuxer {
 			AVStream stream = avformat_new_stream(outputContext, null);
 			ret = avcodec_parameters_copy(stream.codecpar(), inputContext.streams(i).codecpar());
 			if (ret < 0) {
-				logger.warn("Cannot copy codecpar parameters from {} to {} for stream index {}", srcFile, dstFile, i);
+				loggerStatic.warn("Cannot copy codecpar parameters from {} to {} for stream index {}", srcFile, dstFile, i);
 				return;
 			}
 			stream.codecpar().codec_tag(0);
 
-			if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
-				AVDictionary metadata = new AVDictionary();
-				av_dict_set(metadata, "rotate", rotation+"", 0);
-				stream.metadata(metadata);
+			if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) 
+			{	
+				//display matrix is 3x3
+				int size = 9 * Pointer.sizeof(IntPointer.class);
+
+				//Let me try to explain Why we're allocation with av_malloc here.
+
+				//if we just allocate with new Inpointer(size), the memory is released after some time by garbage collector
+				//Then avformat_free_context(outputContext) also free the memory in side data and we get double-free or corrupted memory
+				//Keep in mind that Memory allocated in the native side with av_malloc is not got free by gc.
+
+				//On the other hand, if av_stream_add_side_data below would copy the side data, there would be no problem.
+				//av_stream_add_side_data just sets the pointer
+				//mekya Jan 29, 22
+				IntPointer rotationMatrixPointer = new IntPointer(avutil.av_malloc(size)).capacity(size);
+				
+				avutil.av_display_rotation_set(rotationMatrixPointer, rotation);
+
+				BytePointer bytePointer = new BytePointer(rotationMatrixPointer);
+				bytePointer.limit(rotationMatrixPointer.sizeof() * rotationMatrixPointer.limit());
+				
+				ret = avformat.av_stream_add_side_data(stream, avcodec.AV_PKT_DATA_DISPLAYMATRIX , bytePointer, bytePointer.limit());
+				if (ret < 0) {
+					loggerStatic.error("Cannot add rotation matrix side data to file:{}", dstFile);
+				}				
 			}
 		}
 
 		AVIOContext pb = new AVIOContext(null);
 		ret = avio_open(pb, dstFile, AVIO_FLAG_WRITE);
 		if (ret < 0) {
-			logger.warn("Cannot open io context {}", dstFile);
+			loggerStatic.warn("Cannot open io context {}", dstFile);
 			return;
 		}
 		outputContext.pb(pb);
 
 		ret = avformat_write_header(outputContext, (AVDictionary)null);
 		if (ret < 0) {
-			logger.warn("Cannot write header to {}", dstFile);
+			loggerStatic.warn("Cannot write header to {}", dstFile);
 			return;
 		}
 
@@ -257,6 +286,7 @@ public class Mp4Muxer extends RecordMuxer {
 	protected void finalizeRecordFile(final File file) throws IOException {
 		if (isAVCConversionRequired ) {
 			logger.info("AVC conversion needed for MP4 {}", fileTmp.getName());
+			//TODO: There are AV_PKT_DATA_DISPLAYMATRIX and 
 			remux(fileTmp.getAbsolutePath(),file.getAbsolutePath(), rotation);
 			Files.delete(fileTmp.toPath());
 		}
@@ -271,7 +301,7 @@ public class Mp4Muxer extends RecordMuxer {
 	 * {@inheritDoc}
 	 */
 	@Override
-	protected void clearResource() {
+	public synchronized void clearResource() {
 		super.clearResource();
 
 		if (bsfContext != null) {
@@ -288,14 +318,14 @@ public class Mp4Muxer extends RecordMuxer {
 			AVFormatContext context, long dts) {
 		int ret;
 		if (bsfContext != null) {
-			ret = av_bsf_send_packet(bsfContext, tmpPacket);
+			ret = av_bsf_send_packet(bsfContext, getTmpPacket());
 			if (ret < 0)
 				return;
 
-			while (av_bsf_receive_packet(bsfContext, tmpPacket) == 0) 
+			while (av_bsf_receive_packet(bsfContext, getTmpPacket()) == 0) 
 			{
 
-				ret = av_write_frame(context, tmpPacket);
+				ret = av_write_frame(context, getTmpPacket());
 				if (ret < 0 && logger.isInfoEnabled()) {
 					byte[] data = new byte[2048];
 					av_strerror(ret, data, data.length);

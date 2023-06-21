@@ -1,7 +1,6 @@
 package io.antmedia.integration;
 
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
-import static org.bytedeco.ffmpeg.global.avformat.av_register_all;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
@@ -22,6 +21,8 @@ import java.io.InputStream;
 import java.lang.ProcessHandle.Info;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -30,6 +31,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
+import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVInputFormat;
@@ -46,6 +48,8 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -70,6 +74,9 @@ public class MuxingTest {
 	public static long videoStartTimeMs;
 	public static boolean audioExists;
 	public static boolean videoExists;
+	
+	protected static Logger logger = LoggerFactory.getLogger(MuxingTest.class);
+
 
 	static {
 		String osName = System.getProperty("os.name", "").toLowerCase();
@@ -103,7 +110,7 @@ public class MuxingTest {
 		if (OS_TYPE == MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
-		av_register_all();
+	//	av_register_all();
 		avformat_network_init();
 
 	}
@@ -209,10 +216,22 @@ public class MuxingTest {
 			fail(e.getMessage());
 		}
 
-		Awaitility.await().atMost(140, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
+		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 			RestServiceV2Test restService = new RestServiceV2Test();
 
-			return 0 == restService.callGetLiveStatistics();
+			if (0 == restService.callGetLiveStatistics()) {
+				return true;
+			}
+			else {
+				List<Broadcast> broadcastList = restService.callGetBroadcastList();
+				if (broadcastList != null) {
+					for (Broadcast broadcast : broadcastList) {
+						logger.info("stream on the server side:{}", broadcast.getStreamId());
+					}
+				}
+				
+			}
+			return false;
 		});
 
 	}
@@ -322,7 +341,7 @@ public class MuxingTest {
 		//rtmpMuxer.prepare(inputFormatContext);
 		rtmpMuxer.addVideoStream(1280, 720, null, avcodec.AV_CODEC_ID_H264, 0, false, null);
 
-		rtmpMuxer.prepareIO();
+		assertTrue(rtmpMuxer.prepareIO());
 
 		while((ret = av_read_frame(inputFormatContext, pkt)) >= 0) 
 		{
@@ -366,8 +385,8 @@ public class MuxingTest {
 			appSettings.setMp4MuxingEnabled(false);
 			boolean hlsEnabled = appSettings.isHlsMuxingEnabled();
 			appSettings.setHlsMuxingEnabled(true);
-			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
-
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
 
 			// send rtmp stream with ffmpeg to red5
 			String streamName = "live_test"  + (int)(Math.random() * 999999);
@@ -427,7 +446,7 @@ public class MuxingTest {
 		int ret;
 		audioExists = false;
 		videoExists = false;
-		System.out.println("Tested File:"+absolutePath);
+		logger.info("Tested File: {}", absolutePath);
 
 		//AVDictionary dic = null;
 
@@ -469,20 +488,20 @@ public class MuxingTest {
 
 		boolean streamExists = false;
 		for (int i = 0; i < streamCount; i++) {
-			AVCodecContext codecContext = inputFormatContext.streams(i).codec();
+			AVCodecParameters codecpar = inputFormatContext.streams(i).codecpar();
 
-			if (codecContext.codec_type() == AVMEDIA_TYPE_VIDEO) 
+			if (codecpar.codec_type() == AVMEDIA_TYPE_VIDEO) 
 			{
-				assertTrue(codecContext.width() != 0);
-				assertTrue(codecContext.height() != 0);
-				assertTrue(codecContext.pix_fmt() != AV_PIX_FMT_NONE);
+				assertTrue(codecpar.width() != 0);
+				assertTrue(codecpar.height() != 0);
+				assertTrue(codecpar.format() != AV_PIX_FMT_NONE);
 				videoStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 
 				videoExists = true;
 				streamExists = true;
-			} else if (codecContext.codec_type() == AVMEDIA_TYPE_AUDIO) 
+			} else if (codecpar.codec_type() == AVMEDIA_TYPE_AUDIO) 
 			{
-				assertTrue(codecContext.sample_rate() != 0);
+				assertTrue(codecpar.sample_rate() != 0);
 				audioStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 				audioExists = true;
 				streamExists = true;

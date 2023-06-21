@@ -1,6 +1,7 @@
 package io.antmedia.plugin;
 
-import java.util.ArrayList;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.bytedeco.ffmpeg.avutil.AVFrame;
 import org.slf4j.Logger;
@@ -12,7 +13,7 @@ public class FrameFeeder {
 
 	private String streamId;
 	
-	private ArrayList<IFrameListener> listeners = new ArrayList<>();
+	private Queue<IFrameListener> listeners = new ConcurrentLinkedQueue<>();
 	private static final Logger logger = LoggerFactory.getLogger(FrameFeeder.class);
 
 

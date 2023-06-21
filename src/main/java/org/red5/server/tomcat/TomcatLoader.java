@@ -477,7 +477,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 						final String contextConfigLocation = servletContext.getInitParameter(org.springframework.web.context.ContextLoader.CONFIG_LOCATION_PARAM) == null ? defaultSpringConfigLocation : servletContext.getInitParameter(org.springframework.web.context.ContextLoader.CONFIG_LOCATION_PARAM);
 						log.debug("Spring context config location: {}", contextConfigLocation);
 						// get the (spring) parent context key
-						final String parentContextKey = defaultParentContextKey;
+						final String parentContextKey = servletContext.getInitParameter(org.springframework.web.context.ContextLoader.LOCATOR_FACTORY_KEY_PARAM) == null ? defaultParentContextKey : servletContext.getInitParameter(org.springframework.web.context.ContextLoader.LOCATOR_FACTORY_KEY_PARAM);
 						log.debug("Spring parent context key: {}", parentContextKey);
 						// set current threads classloader to the webapp classloader
 						Thread.currentThread().setContextClassLoader(webClassLoader);

@@ -137,12 +137,11 @@ public class AppSettingsTest {
 		AppSettings savedSettings = mockApplicationAdapter.getAppSettings();
 		assertTrue(savedSettings.isMp4MuxingEnabled());
 		assertEquals("5", savedSettings.getHlsListSize());
-		assertNull(savedSettings.getVodFolder());
+		assertEquals("", savedSettings.getVodFolder());
 		assertEquals("1", savedSettings.getHlsTime());
 		assertNull(savedSettings.getHlsPlayListType());
 		assertEquals(0, savedSettings.getEncoderSettings().size());
-		
-		
+
 		settings.setHlsListSize("12");
 		settings.setVodFolder("/mnt/storage");
 		settings.setHlsTime("17");
@@ -162,7 +161,7 @@ public class AppSettingsTest {
 		
 		//settings should not be changed because wron encoder parameter
 		assertEquals("5", savedSettings.getHlsListSize());
-		assertNull(savedSettings.getVodFolder());
+		assertEquals("", savedSettings.getVodFolder());
 		assertEquals("1", savedSettings.getHlsTime());
 		assertNull(savedSettings.getHlsPlayListType());
 		assertEquals(0, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 0
@@ -184,7 +183,13 @@ public class AppSettingsTest {
 		assertEquals(720, savedSettings.getEncoderSettings().get(0).getHeight());
 		assertEquals(2500000, savedSettings.getEncoderSettings().get(0).getVideoBitrate());
 		assertEquals(128000, savedSettings.getEncoderSettings().get(0).getAudioBitrate());
-			
+
+
+
+		settings.setPullWarFile(true);
+		assertTrue(settings.isPullWarFile());
+		settings.setWarFileOriginServerAddress("address");
+		assertEquals("address", settings.getWarFileOriginServerAddress());
 	}
 	
 	

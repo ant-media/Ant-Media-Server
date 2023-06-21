@@ -18,6 +18,8 @@ public interface IAntMediaStreamHandler {
 	public static final String PUBLISH_TYPE_PULL = "Pull";
 	public static final String PUBLISH_TYPE_RTMP = "RTMP";
 	public static final String PUBLISH_TYPE_WEBRTC = "WebRTC";
+	public static final String PUBLISH_TYPE_SRT = "SRT";
+	
 	
 	/**
 	 * Called by some muxer like MP4Muxer
@@ -30,7 +32,7 @@ public interface IAntMediaStreamHandler {
 	 * @param duration of the video in milliseconds
 	 * @param resolution height of the video 
 	 */
-	public void muxingFinished(String id, File file, long startTime, long duration , int resolution, String path);
+	public void muxingFinished(String id, File file, long startTime, long duration , int resolution, String path, String vodId);
 	
 	
 	/**

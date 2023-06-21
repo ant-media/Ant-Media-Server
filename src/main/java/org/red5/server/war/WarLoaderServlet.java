@@ -113,7 +113,12 @@ public class WarLoaderServlet extends ContextLoaderListener {
             super.contextInitialized(sce);
             //get the web context
             applicationContext = (ConfigurableWebApplicationContext) servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
-            logger.debug("Root context path: {}", applicationContext.getServletContext().getContextPath());
+            ServletContext tmpServletContext = applicationContext.getServletContext();
+            
+            if (tmpServletContext != null) 
+            {
+            	logger.debug("Root context path: {}", tmpServletContext.getContextPath());
+            }
 
             ConfigurableBeanFactory factory = applicationContext.getBeanFactory();
 

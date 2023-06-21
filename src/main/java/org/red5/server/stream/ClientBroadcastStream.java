@@ -1008,19 +1008,8 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			DataStore dataStore = ((IDataStoreFactory)appCtx.getBean(IDataStoreFactory.BEAN_NAME)).getDataStore();
 			Broadcast broadcast = dataStore.get(publishedName);
 			Vertx vertx = (Vertx) appCtx.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
-			
-			if (broadcast != null) {
-				List<Endpoint> endPointList = broadcast.getEndPointList();
 
-				if (endPointList != null && !endPointList.isEmpty()) 
-				{
-					for (Endpoint endpoint : endPointList) {
-						RtmpMuxer rtmpMuxer = new RtmpMuxer(endpoint.getRtmpUrl(), vertx);
-						rtmpMuxer.setStatusListener(muxAdaptor);
-						muxAdaptor.addMuxer(rtmpMuxer);
-					}
-				}
-			}
+			MuxAdaptor.setUpEndPoints(muxAdaptor, broadcast, vertx);
 		}
 
 	}

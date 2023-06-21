@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -28,16 +29,14 @@ import org.springframework.test.context.ContextConfiguration;
 
 import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
-import dev.morphia.query.Query;
-import dev.morphia.query.experimental.filters.Filters;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
-import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.rest.RestServiceBase.ProcessBuilderFactory;
 import io.antmedia.rest.VoDRestService;
@@ -65,6 +64,12 @@ public class VoDRestServiceV2UnitTest {
 	@Before
 	public void before() {
 		restServiceReal = new VoDRestService();
+		File webapps = new File("webapps");
+		try {
+			AppFunctionalV2Test.delete(webapps);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	@After
@@ -278,6 +283,7 @@ public class VoDRestServiceV2UnitTest {
 
 	@Test
 	public void testUploadVodFile() {
+		AppSettings appSettings = new AppSettings();
 
 		String fileName = RandomStringUtils.randomAlphabetic(11) + ".mp4"; 
 		FileInputStream inputStream;
@@ -293,9 +299,15 @@ public class VoDRestServiceV2UnitTest {
 			MuxingTest.delete(f);
 
 			restServiceReal.setScope(scope);
-
+			restServiceReal.setAppSettings(appSettings);
+			
 			DataStore store = new InMemoryDataStore("testdb");
 			restServiceReal.setDataStore(store);
+			
+			ApplicationContext context = mock(ApplicationContext.class);
+			when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+			
+			restServiceReal.setAppCtx(context);
 
 			assertNull(f.list());
 
@@ -340,6 +352,43 @@ public class VoDRestServiceV2UnitTest {
 		}
 
 	}
+	
+		@Test
+		public void testVoDUploadFinishedScript() {
+			
+			VoDRestService streamSourceRest2 = Mockito.spy(restServiceReal);
+			
+			InMemoryDataStore datastore = new InMemoryDataStore("datastore");
+
+			Scope scope = mock(Scope.class);
+			String scopeName = "junit";
+			when(scope.getName()).thenReturn(scopeName);
+			
+			AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+			when(app.getScope()).thenReturn(scope);
+			
+			ApplicationContext context = mock(ApplicationContext.class);
+			when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+			
+			AppSettings appSettings = new AppSettings();
+			appSettings.setVodUploadFinishScript("src/test/resources/echo.sh");
+			
+			Mockito.doReturn(app).when(streamSourceRest2).getApplication();
+			Mockito.doReturn(datastore).when(streamSourceRest2).getDataStore();
+			Mockito.doReturn(appSettings).when(streamSourceRest2).getAppSettings();
+
+			try {
+				String fileName = RandomStringUtils.randomAlphabetic(11) + ".mp4";
+				FileInputStream inputStream = new FileInputStream("src/test/resources/sample_MP4_480.mp4");
+
+				Result result = streamSourceRest2.uploadVoDFile(fileName, inputStream);				
+				assertTrue(result.isSuccess());
+
+				Mockito.verify(streamSourceRest2.getApplication(),Mockito.times(1)).runScript(Mockito.any());
+			} catch (FileNotFoundException e1) {
+				e1.printStackTrace();
+			}
+		}
 	
 	@Test
 	public void testVoDSorting() {
@@ -479,5 +528,82 @@ public class VoDRestServiceV2UnitTest {
 		}
 		assertTrue(vod1Match);
 		assertTrue(vod2Match);
+	}
+	
+	@Test
+	public void testImportVoDs() {
+		VoDRestService restService=new VoDRestService();
+		InMemoryDataStore dataStore = new InMemoryDataStore("test");
+		restService.setDataStore(dataStore);
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "junit";
+		when(scope.getName()).thenReturn(scopeName);
+
+		AntMediaApplicationAdapter app = new AntMediaApplicationAdapter();
+		app.setDataStore(dataStore);
+		app.setScope(scope);
+		
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+
+		restService.setAppCtx(context);
+		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, null);
+		assertEquals(0, vodList.size());
+		Result result = restService.importVoDs("src/test");
+		assertTrue(result.isSuccess());
+		vodList = dataStore.getVodList(0, 50, null, null, null, null);
+		//there are 9 files under src/test directory
+		assertEquals(9, vodList.size());
+		//file path should include the relative path
+		for (VoD voD : vodList) {
+			//file path include the file name
+			assertTrue(voD.getVodName().contains("."));
+			assertTrue(voD.getFilePath().contains(voD.getVodName()));
+		}
+		
+		File f = new File("webapps/junit/streams/test");
+		assertTrue(Files.isSymbolicLink(f.toPath()));
+		
+		//it should find the flv src/test/resources/fixtures/test.flv
+		boolean foundFixturesTest = false;
+		for (VoD voD : vodList) {
+			System.out.println("vod file path: " + voD.getFilePath());
+			if (voD.getFilePath().equals("streams/test/resources/fixtures/test.flv")) {
+				foundFixturesTest = true;
+			}
+		}
+		
+		assertTrue(foundFixturesTest);
+		
+		
+		result = restService.importVoDs("src/test");
+		assertFalse(result.isSuccess());
+		vodList = dataStore.getVodList(0, 50, null, null, null, null);
+		//there are 9 files under src/test directory it should not increae
+		assertEquals(9, vodList.size());
+		
+		result = restService.importVoDs(null);
+		assertFalse(result.isSuccess());
+		vodList = dataStore.getVodList(0, 50, null, null, null, null);
+		//there are 9 files under src/test directory it should not increae
+		assertEquals(9, vodList.size());
+		
+		result = restService.importVoDs("");
+		assertFalse(result.isSuccess());
+		vodList = dataStore.getVodList(0, 50, null, null, null, null);
+		//there are 9 files under src/test directory it should not increae
+		assertEquals(9, vodList.size());
+		
+		
+		result = restService.unlinksVoD(null);
+		assertFalse(result.isSuccess());
+		
+		result = restService.unlinksVoD("src/test");
+		assertTrue(result.isSuccess());
+		vodList = dataStore.getVodList(0, 50, null, null, null, null);
+		assertEquals(0, vodList.size());
+		
+		
 	}
 }

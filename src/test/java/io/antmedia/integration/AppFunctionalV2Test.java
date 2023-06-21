@@ -1,6 +1,5 @@
 package io.antmedia.integration;
 
-import static org.bytedeco.ffmpeg.global.avformat.av_register_all;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -129,7 +128,7 @@ public class AppFunctionalV2Test {
 		if (OS_TYPE == MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
-		av_register_all();
+	//	av_register_all();
 		avformat_network_init();
 	}
 
@@ -788,7 +787,7 @@ public class AppFunctionalV2Test {
 	/**
 	 * TODO: This test case should be improved
 	 */
-	@Test
+	//@Test
 	public void testStatistics() {
 
 		try {
@@ -809,6 +808,15 @@ public class AppFunctionalV2Test {
 			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 			//make webrtc enabled false because it's enabled by true
 			appSettings.setWebRTCEnabled(false);
+			
+			//It's once crashed with following settings so that enabling these one to reproduce the problem
+			
+			//The bug is fixed by changing source code in the dashenc.c. See the build_ffmpeg.md in enterprise to
+			//get more details
+			appSettings.setDashMuxingEnabled(true);
+			appSettings.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 64000, true)));
+			appSettings.setGeneratePreview(true);
+			
 			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 

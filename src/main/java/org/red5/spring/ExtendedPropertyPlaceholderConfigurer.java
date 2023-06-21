@@ -143,9 +143,17 @@ public class ExtendedPropertyPlaceholderConfigurer extends PropertyPlaceholderCo
         private static final long serialVersionUID = -6365943736917478749L;
 
         public int compare(Resource resource1, Resource resource2) {
-            if (resource1 != null) {
-                if (resource2 != null) {
-                    return resource1.getFilename().compareTo(resource2.getFilename());
+        	String filename = null;
+            if (resource1 != null) 
+            {
+            	filename = resource1.getFilename();
+            }
+            
+            if (filename != null) {
+                
+            	if (resource2 != null) 
+                {
+                    return filename.compareTo(resource2.getFilename());
                 } else {
                     return 1;
                 }

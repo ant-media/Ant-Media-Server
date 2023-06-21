@@ -40,7 +40,7 @@ check_result() {
 }
 
 if [[ -z "$APP_NAME" ]]; then
-    echo "Error: Missing parameter APPLICATON_NAME. Check instructions below"
+    echo "Error: Missing parameter APPLICATION_NAME. Check instructions below"
     usage
     exit 1
 fi

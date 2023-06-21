@@ -80,7 +80,7 @@ public abstract class Adaptor implements Observer, SdpObserver
 		log.warn("onIceCandidate");
 
 		webSocketCommunityHandler
-		.sendTakeCandidateMessage(candidate.sdpMLineIndex, candidate.sdpMid, candidate.sdp, streamId, session);
+		.sendTakeCandidateMessage(candidate.sdpMLineIndex, candidate.sdpMid, candidate.sdp, streamId, session, "", "");
 
 	}
 
@@ -146,7 +146,7 @@ public abstract class Adaptor implements Observer, SdpObserver
 			type = "offer";
 		}
 
-		webSocketCommunityHandler.sendSDPConfiguration(sdp.description, type, streamId, session, null);
+		webSocketCommunityHandler.sendSDPConfiguration(sdp.description, type, streamId, session, null, "", "");
 
 	}
 

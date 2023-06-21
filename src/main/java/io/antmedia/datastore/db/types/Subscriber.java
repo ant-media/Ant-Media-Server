@@ -56,17 +56,32 @@ public class Subscriber {
 	private String b32Secret;
 	
 	/**
-	 * is subscriber connected
-	 */
-	@ApiModelProperty(value = "is subscriber connected")
-	private boolean connected;
-	
-	/**
 	 * type of the subscriber (default is play)
 	 */
 	@ApiModelProperty(value = " type of subscriber (play or publish)")
 	private String type = PLAY_TYPE;
 	
+	/**
+	 * is subscriber connected
+	 * TODO: Write what the recommend way is to get this information? Let's write some comments when we deprecate something 
+	 * @mekya
+	 */
+	@Deprecated(since="2.4.3", forRemoval=true)
+	@ApiModelProperty(value = "is subscriber connected")
+	private boolean connected;
+	
+	/**
+	 * count of subscriber usage
+	 */
+	@ApiModelProperty(value = " count of subscriber usage")
+	private int currentConcurrentConnections = 0;
+
+	/**
+	 * count of subscriber limit
+	 */
+	@ApiModelProperty(value = " count of subscriber usage")
+	private int concurrentConnectionsLimit = 1;
+
 	public String getSubscriberId() {
 		return subscriberId;
 	}
@@ -108,19 +123,10 @@ public class Subscriber {
 	@JsonIgnore
 	public String getSubscriberKey() {
 		return getDBKey(streamId, subscriberId);
-		
 	}
 	
 	public static String getDBKey(String streamId, String subscriberId) {
 		return streamId + "-" +subscriberId;
-	}
-
-	public boolean isConnected() {
-		return connected;
-	}
-
-	public void setConnected(boolean connected) {
-		this.connected = connected;
 	}
 
 	public String getType() {
@@ -133,4 +139,31 @@ public class Subscriber {
 			this.type = type;
 		}
 	}
+	
+	@Deprecated(since="2.4.3", forRemoval=true)
+	public boolean isConnected() {
+		return connected;
+	}
+	
+	@Deprecated(since="2.4.3", forRemoval=true)
+	public void setConnected(boolean connected) {
+		this.connected = connected;
+	}
+	
+	public int getCurrentConcurrentConnections() {
+		return currentConcurrentConnections;
+	}
+
+	public void setCurrentConcurrentConnections(int currentConcurrentConnections) {
+		this.currentConcurrentConnections = currentConcurrentConnections;
+	}
+	
+	public int getConcurrentConnectionsLimit() {
+		return concurrentConnectionsLimit;
+	}
+
+	public void setConcurrentConnectionsLimit(int concurrentConnectionsLimit) {
+		this.concurrentConnectionsLimit = concurrentConnectionsLimit;
+	}
+	
 }

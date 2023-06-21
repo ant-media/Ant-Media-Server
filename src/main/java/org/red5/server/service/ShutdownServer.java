@@ -25,6 +25,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.RandomAccessFile;
 import java.net.BindException;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Files;
@@ -116,14 +117,11 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
         try {
             // check for an embedded jee server
             jeeServer = applicationContext.getBean(LoaderBase.class);
-            // lookup the jee container
-            if (jeeServer == null) {
-                log.info("JEE server was not found");
-            } else {
-                log.info("JEE server was found: {}", jeeServer.toString());
-            }
-        } catch (Exception e) {
-            
+           
+        } 
+        catch (Exception e) 
+        {
+        	log.error(org.apache.commons.lang3.exception.ExceptionUtils.getStackTrace(e));
         }
         // start blocks, so it must be on its own thread
         future = executor.submit(new Runnable(){
@@ -169,7 +167,7 @@ public class ShutdownServer implements ApplicationContextAware, InitializingBean
         
         while (!shutdown.get()) {
             try (
-                    ServerSocket serverSocket = new ServerSocket(port); 
+                    ServerSocket serverSocket = new ServerSocket(port, 50, InetAddress.getLoopbackAddress()); 
                     Socket clientSocket = serverSocket.accept(); 
                     PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true); 
                     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));

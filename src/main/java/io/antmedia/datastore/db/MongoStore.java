@@ -1,5 +1,10 @@
 package io.antmedia.datastore.db;
 
+import static dev.morphia.aggregation.expressions.AccumulatorExpressions.sum;
+import static dev.morphia.aggregation.expressions.Expressions.field;
+import static dev.morphia.query.updates.UpdateOperators.inc;
+import static dev.morphia.query.updates.UpdateOperators.set;
+
 import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -22,24 +27,16 @@ import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
 import dev.morphia.Morphia;
 import dev.morphia.UpdateOptions;
-import dev.morphia.aggregation.experimental.expressions.impls.Expression;
-import dev.morphia.aggregation.experimental.stages.Group;
+import dev.morphia.aggregation.stages.Group;
 import dev.morphia.annotations.Entity;
-import dev.morphia.annotations.Field;
-import dev.morphia.annotations.Index;
-import dev.morphia.annotations.Indexes;
-
-import static dev.morphia.aggregation.experimental.expressions.AccumulatorExpressions.sum;
-import static dev.morphia.aggregation.experimental.expressions.Expressions.field;
 import dev.morphia.query.FindOptions;
+import dev.morphia.query.MorphiaCursor;
 import dev.morphia.query.Query;
 import dev.morphia.query.Sort;
 import dev.morphia.query.Update;
-import dev.morphia.query.experimental.filters.Filter;
-import dev.morphia.query.experimental.filters.Filters;
-import dev.morphia.query.experimental.updates.UpdateOperator;
-import dev.morphia.query.experimental.updates.UpdateOperators;
-import dev.morphia.query.MorphiaCursor;
+import dev.morphia.query.filters.Filters;
+import dev.morphia.query.updates.UpdateOperator;
+import dev.morphia.query.updates.UpdateOperators;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -56,10 +53,10 @@ import io.antmedia.muxer.MuxAdaptor;
 
 public class MongoStore extends DataStore {
 
-	private static final String VOD_ID = "vodId";
+	public static final String VOD_ID = "vodId";
 	private static final String VIEWER_ID = "viewerId";
 	private static final String TOKEN_ID = "tokenId";
-	private static final String STREAM_ID = "streamId";
+	public  static final String STREAM_ID = "streamId";
 	private Datastore datastore;
 	private Datastore vodDatastore;
 	private Datastore tokenDatastore;
@@ -78,6 +75,7 @@ public class MongoStore extends DataStore {
 	private static final String CREATION_DATE = "creationDate";
 	private static final String RTMP_VIEWER_COUNT = "rtmpViewerCount";
 	private static final String HLS_VIEWER_COUNT = "hlsViewerCount";
+	private static final String DASH_VIEWER_COUNT = "dashViewerCount";
 	private static final String WEBRTC_VIEWER_COUNT = "webRTCViewerCount";
 	private static final String META_DATA = "metaData";
 
@@ -124,8 +122,8 @@ public class MongoStore extends DataStore {
 		//If it is DNS seed name, no need to check for username and password since it needs to be integrated to the given uri.
 		//Mongodb Atlas users will have such syntax and won't need to enter seperate username and password to the script since it is already in the uri.
 		
-		//if host includes starts with mongodb or mongodb+srv, let's use the connection string and don't build new one
-		if(host.indexOf("mongodb") == 0)
+		//if host includes starts with mongodb:// or mongodb+srv://, let's use the connection string and don't build new one
+		if(host.indexOf("mongodb://") == 0 || host.indexOf("mongodb+srv://") == 0)
 			return host;
 		String credential = "";
 		if(username != null && !username.isEmpty()) {
@@ -152,20 +150,8 @@ public class MongoStore extends DataStore {
 			return null;
 		}
 		try {
-			String streamId = null;
-			if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-				streamId = RandomStringUtils.randomAlphanumeric(12) + System.currentTimeMillis();
-				broadcast.setStreamId(streamId);
-			}
-			streamId = broadcast.getStreamId();
-			String rtmpURL = broadcast.getRtmpURL();
-			if (rtmpURL != null) {
-				rtmpURL += streamId;
-			}
-			broadcast.setRtmpURL(rtmpURL);
-			if(broadcast.getStatus()==null) {
-				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED);
-			}
+			Broadcast updatedBroadcast = super.saveBroadcast(broadcast);
+			String streamId = updatedBroadcast.getStreamId();
 
 			synchronized(this) {
 				datastore.save(broadcast);
@@ -193,7 +179,7 @@ public class MongoStore extends DataStore {
 		}
 		return null;
 	}
-
+	
 	@Override
 	public VoD getVoD(String id) {
 		synchronized(this) {
@@ -205,7 +191,6 @@ public class MongoStore extends DataStore {
 		}
 		return null;
 	}
-
 	/*
 	 * (non-Javadoc)
 	 * 
@@ -218,17 +203,18 @@ public class MongoStore extends DataStore {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
 
-				Update<Broadcast> ops = query.update(UpdateOperators.set(STATUS, status));
+				Update<Broadcast> ops = query.update(set(STATUS, status));
 
 				if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
 				{
-					ops.add(UpdateOperators.set(START_TIME, System.currentTimeMillis()));
+					ops.add(set(START_TIME, System.currentTimeMillis()));
 				}
 				else if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) 
 				{
-					ops.add(UpdateOperators.set(WEBRTC_VIEWER_COUNT, 0));
-					ops.add(UpdateOperators.set(HLS_VIEWER_COUNT, 0));
-					ops.add(UpdateOperators.set(RTMP_VIEWER_COUNT, 0));
+					ops.add(set(WEBRTC_VIEWER_COUNT, 0));
+					ops.add(set(HLS_VIEWER_COUNT, 0));
+					ops.add(set(RTMP_VIEWER_COUNT, 0));
+					ops.add(set(DASH_VIEWER_COUNT, 0));
 				}
 
 				UpdateResult update = ops.execute();
@@ -252,7 +238,7 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
-				return query.update(UpdateOperators.set(DURATION, duration)).execute().getMatchedCount() == 1;
+				return query.update(set(DURATION, duration)).execute().getMatchedCount() == 1;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -392,7 +378,7 @@ public class MongoStore extends DataStore {
 				{
 					logger.info("Server side search in broadcast for the text -> {}", search);
 					query.filter(Filters.or(
-										Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
+										Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
 										Filters.regex("name").caseInsensitive().pattern(".*" + search + ".*")
 										)
 							    );
@@ -427,17 +413,16 @@ public class MongoStore extends DataStore {
 
 				query.filter(
 						Filters.and(
-								Filters.or(Filters.eq("type", AntMediaApplicationAdapter.IP_CAMERA), Filters.eq("type", AntMediaApplicationAdapter.STREAM_SOURCE))),
-						Filters.and(Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING), Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+								Filters.or(Filters.eq("type", AntMediaApplicationAdapter.IP_CAMERA), Filters.eq("type", AntMediaApplicationAdapter.STREAM_SOURCE)),
+						Filters.and(Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING), Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)))
 						);
 
 				List<Broadcast> streamList = query.iterator().toList();
-				Update<Broadcast> update = query.update(UpdateOperators.set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING));
-				long updatedCount = update.execute().getModifiedCount();
-				if(update.execute().getModifiedCount() != streamList.size()) {
+				final UpdateResult results = query.update(new UpdateOptions().multi(true), set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING));
+				long updatedCount = results.getModifiedCount();
+				if(updatedCount != streamList.size()) {
 					logger.error("Only {} stream status updated out of {}", updatedCount, streamList.size());
 				}
-
 				return streamList;
 			} catch (Exception e) {
 
@@ -512,9 +497,9 @@ public class MongoStore extends DataStore {
 				logger.info("Server side search is called for VoD, searchString =  {}", search);
 				
 				query.filter(Filters.or(
-						Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("streamName").caseInsensitive().pattern(".*" + search + ".*"),
-						Filters.regex("vodId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex(VOD_ID).caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("vodName").caseInsensitive().pattern(".*" + search + ".*")
 						)
 			    );
@@ -607,11 +592,11 @@ public class MongoStore extends DataStore {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
 				List<UpdateOperator> updateOperators = new ArrayList<>();
-				updateOperators.add(UpdateOperators.set("speed", speed));
-				updateOperators.add(UpdateOperators.set("pendingPacketSize", pendingPacketQueue));
+				updateOperators.add(set("speed", speed));
+				updateOperators.add(set("pendingPacketSize", pendingPacketQueue));
 
 				if (quality != null) {
-					updateOperators.add(UpdateOperators.set("quality", quality));
+					updateOperators.add(set("quality", quality));
 				}
 				return query.update(updateOperators).execute().getModifiedCount() == 1;
 			} catch (Exception e) {
@@ -657,7 +642,7 @@ public class MongoStore extends DataStore {
 				query.filter(Filters.or(
 						Filters.regex("streamId").caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("streamName").caseInsensitive().pattern(".*" + search + ".*"),
-						Filters.regex("vodId").caseInsensitive().pattern(".*" + search + ".*"),
+						Filters.regex(VOD_ID).caseInsensitive().pattern(".*" + search + ".*"),
 						Filters.regex("vodName").caseInsensitive().pattern(".*" + search + ".*")
 						));
 			}
@@ -680,6 +665,7 @@ public class MongoStore extends DataStore {
 		}
 	}
 
+	@Override
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
 		synchronized(this) {
 			if (detectedObjects != null) {
@@ -699,7 +685,7 @@ public class MongoStore extends DataStore {
 				if (batchSize > MAX_ITEM_IN_ONE_LIST) {
 					batchSize = MAX_ITEM_IN_ONE_LIST;
 				}
-				return detectionMap.find(TensorFlowObject.class).filter(Filters.text(IMAGE_ID)).iterator(new FindOptions().skip(offsetSize).limit(batchSize)).toList();
+				return detectionMap.find(TensorFlowObject.class).iterator(new FindOptions().skip(offsetSize).limit(batchSize)).toList();
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
@@ -733,77 +719,83 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized(this) {
 			try {
-				logger.warn("result inside edit camera: {}" , result);
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
 
 				List<UpdateOperator> updates = new ArrayList<>();
 
 				if (broadcast.getName() != null) {
-					updates.add(UpdateOperators.set("name",  broadcast.getName()));
+					updates.add(set("name",  broadcast.getName()));
 				}
 
 				if (broadcast.getDescription() != null) {
-					updates.add(UpdateOperators.set("description", broadcast.getDescription()));
+					updates.add(set("description", broadcast.getDescription()));
 				}
 
 				if (broadcast.getUsername() != null) {
-					updates.add(UpdateOperators.set("username", broadcast.getUsername()));
+					updates.add(set("username", broadcast.getUsername()));
 				}
 
 				if (broadcast.getPassword() != null) {
-					updates.add(UpdateOperators.set("password", broadcast.getPassword()));
+					updates.add(set("password", broadcast.getPassword()));
 				}
 
 				if (broadcast.getIpAddr() != null) {
-					updates.add(UpdateOperators.set("ipAddr", broadcast.getIpAddr()));
+					updates.add(set("ipAddr", broadcast.getIpAddr()));
 				}
 
 				if ( broadcast.getStreamUrl() != null) {
-					updates.add(UpdateOperators.set("streamUrl", broadcast.getStreamUrl()));
+					updates.add(set("streamUrl", broadcast.getStreamUrl()));
 				}
 
 				if (broadcast.getLatitude() != null) {
-					updates.add(UpdateOperators.set("latitude", broadcast.getLatitude()));
+					updates.add(set("latitude", broadcast.getLatitude()));
 				}
 
 				if (broadcast.getLongitude() != null) {
-					updates.add(UpdateOperators.set("longitude", broadcast.getLongitude()));
+					updates.add(set("longitude", broadcast.getLongitude()));
 				}
 
 				if (broadcast.getAltitude() != null) {
-					updates.add(UpdateOperators.set("altitude", broadcast.getAltitude()));
+					updates.add(set("altitude", broadcast.getAltitude()));
 				}
 
 				if (broadcast.getMainTrackStreamId() != null) {
-					updates.add(UpdateOperators.set("mainTrackStreamId", broadcast.getMainTrackStreamId()));
+					updates.add(set("mainTrackStreamId", broadcast.getMainTrackStreamId()));
 				}
 
 				if (broadcast.getPlayListItemList() != null) {
-					updates.add(UpdateOperators.set("playListItemList", broadcast.getPlayListItemList()));
+					updates.add(set("playListItemList", broadcast.getPlayListItemList()));
 				}
 
 				if (broadcast.getPlayListStatus() != null) {
-					updates.add(UpdateOperators.set("playListStatus", broadcast.getPlayListStatus()));
+					updates.add(set("playListStatus", broadcast.getPlayListStatus()));
 				}
 
 				if (broadcast.getEndPointList() != null) {
-					updates.add(UpdateOperators.set("endPointList", broadcast.getEndPointList()));
+					updates.add(set("endPointList", broadcast.getEndPointList()));
 				}
 
 				if (broadcast.getSubFolder() != null) {
-					updates.add(UpdateOperators.set("subFolder", broadcast.getSubFolder()));
+					updates.add(set("subFolder", broadcast.getSubFolder()));
+				}
+				
+				if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
+					updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
 				}
 
 				prepareFields(broadcast, updates);
 
-				updates.add(UpdateOperators.set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
-				updates.add(UpdateOperators.set("receivedBytes", broadcast.getReceivedBytes()));
-				updates.add(UpdateOperators.set("bitrate", broadcast.getBitrate()));
-				updates.add(UpdateOperators.set("userAgent", broadcast.getUserAgent()));
-				updates.add(UpdateOperators.set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit()));
-				updates.add(UpdateOperators.set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
-				updates.add(UpdateOperators.set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
-				updates.add(UpdateOperators.set("metaData", broadcast.getMetaData()));
+				updates.add(set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
+				updates.add(set("receivedBytes", broadcast.getReceivedBytes()));
+				updates.add(set("bitrate", broadcast.getBitrate()));
+				updates.add(set("userAgent", broadcast.getUserAgent()));
+				updates.add(set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit()));
+				updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
+				updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
+				updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
+				updates.add(set(META_DATA, broadcast.getMetaData()));
+				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
+				updates.add(set("updateTime", broadcast.getUpdateTime()));
 
 				
 				UpdateResult updateResult = query.update(updates).execute();
@@ -818,23 +810,23 @@ public class MongoStore extends DataStore {
 	private void prepareFields(Broadcast broadcast, List<UpdateOperator> updates) {
 
 		if ( broadcast.getDuration() != 0) {
-			updates.add(UpdateOperators.set(DURATION, broadcast.getDuration()));
+			updates.add(set(DURATION, broadcast.getDuration()));
 		}
 
 		if (broadcast.getStartTime() != 0) {
-			updates.add(UpdateOperators.set(START_TIME, broadcast.getStartTime()));
+			updates.add(set(START_TIME, broadcast.getStartTime()));
 		}
 
 		if (broadcast.getOriginAdress() != null) {
-			updates.add(UpdateOperators.set(ORIGIN_ADDRESS, broadcast.getOriginAdress()));
+			updates.add(set(ORIGIN_ADDRESS, broadcast.getOriginAdress()));
 		}
 
 		if (broadcast.getStatus() != null) {
-			updates.add(UpdateOperators.set(STATUS, broadcast.getStatus()));
+			updates.add(set(STATUS, broadcast.getStatus()));
 		}
 
 		if (broadcast.getAbsoluteStartTimeMs() != 0) {
-			updates.add(UpdateOperators.set("absoluteStartTimeMs", broadcast.getAbsoluteStartTimeMs()));
+			updates.add(set("absoluteStartTimeMs", broadcast.getAbsoluteStartTimeMs()));
 		}
 	}
 
@@ -846,7 +838,25 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
-				UpdateResult result = query.update(UpdateOperators.inc(HLS_VIEWER_COUNT, diffCount)).execute();
+				UpdateResult result = query.update(inc(HLS_VIEWER_COUNT, diffCount)).execute();
+
+				return result.getMatchedCount() == 1;
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+			}
+		}
+		return false;
+	}
+	
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	public boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
+		synchronized(this) {
+			try {
+				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
+				UpdateResult result = query.update(inc(DASH_VIEWER_COUNT, diffCount)).execute();
 
 				return result.getMatchedCount() == 1;
 			} catch (Exception e) {
@@ -880,7 +890,7 @@ public class MongoStore extends DataStore {
 
 				UpdateResult updateResult = null;
 				if (increment) {
-					updateResult = query.update(UpdateOperators.inc(fieldName)).execute();
+					updateResult = query.update(inc(fieldName)).execute();
 				}
 				else {
 					updateResult = query.update(UpdateOperators.dec(fieldName)).execute();
@@ -898,65 +908,9 @@ public class MongoStore extends DataStore {
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		synchronized(this) {
-			Query<StreamInfo> query = datastore.find(StreamInfo.class);
-
-			List<Filter> filterList = new ArrayList<>();
-			if (streamInfo.getVideoPort() != 0) {
-
-				filterList.add(Filters.eq("videoPort", streamInfo.getVideoPort()));
-				filterList.add(Filters.eq("audioPort", streamInfo.getVideoPort()));
-				filterList.add(Filters.eq("dataChannelPort", streamInfo.getVideoPort()));
-
-			}
-			if (streamInfo.getAudioPort() != 0) {
-				filterList.add(Filters.eq("videoPort", streamInfo.getAudioPort()));
-				filterList.add(Filters.eq("audioPort", streamInfo.getAudioPort()));
-				filterList.add(Filters.eq("dataChannelPort", streamInfo.getAudioPort()));
-
-			}
-			if (streamInfo.getDataChannelPort() != 0) {
-				filterList.add(Filters.eq("videoPort", streamInfo.getDataChannelPort()));
-				filterList.add(Filters.eq("audioPort", streamInfo.getDataChannelPort()));
-				filterList.add(Filters.eq("dataChannelPort", streamInfo.getDataChannelPort()));
-			}
-
-			if (!filterList.isEmpty()) {
-
-				Filter[] filterArray = new Filter[filterList.size()];
-				filterList.toArray(filterArray);
-				query.filter(
-						Filters.and(
-								Filters.eq("host", streamInfo.getHost()),
-								Filters.or(filterArray)
-								)
-						);
-			}
-			else {
-				query.filter(
-						Filters.eq("host", streamInfo.getHost())
-						);
-			}
-
-
-			long count = query.delete(new DeleteOptions().multi(true)).getDeletedCount();
-			
-			if (count > 0) 
-			{
-				logger.error("{} port duplications are detected and deleted for host: {}, video port: {}, audio port:{}",
-						count, streamInfo.getHost(), streamInfo.getVideoPort(), streamInfo.getAudioPort());
-			}
-
-
+			//TODO: Why do we run find(StreamInfo.class)
+			datastore.find(StreamInfo.class);
 			datastore.save(streamInfo);
-		}
-	}
-
-	@Override
-	public void addStreamInfoList(List<StreamInfo> streamInfoList) {
-		synchronized(this) {
-			for (StreamInfo streamInfo : streamInfoList) {
-				datastore.save(streamInfo);
-			}
 		}
 	}
 
@@ -1119,7 +1073,7 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized (this) {
 			try {
-				subscriberDatastore.find(Subscriber.class).update(UpdateOperators.set("connected", false)).execute();
+				subscriberDatastore.find(Subscriber.class).update(set("connected", false)).execute();
 
 				result = true;
 			} catch (Exception e) {
@@ -1145,7 +1099,7 @@ public class MongoStore extends DataStore {
 				if (streamId != null && (enabled == MuxAdaptor.RECORDING_ENABLED_FOR_STREAM || enabled == MuxAdaptor.RECORDING_NO_SET_FOR_STREAM || enabled == MuxAdaptor.RECORDING_DISABLED_FOR_STREAM)) {
 					UpdateResult result = datastore.find(Broadcast.class)
 							.filter(Filters.eq(STREAM_ID, streamId))
-							.update(UpdateOperators.set(field, enabled))
+							.update(set(field, enabled))
 							.execute();
 					return result.getMatchedCount() == 1;
 				}
@@ -1182,10 +1136,10 @@ public class MongoStore extends DataStore {
 			try {
 				UpdateResult updateResult = conferenceRoomDatastore.find(ConferenceRoom.class)
 						.filter(Filters.eq("roomId", roomId))
-						.update(UpdateOperators.set("roomId", room.getRoomId()), 
-								UpdateOperators.set("startDate", room.getStartDate()),
-								UpdateOperators.set("endDate", room.getEndDate()),
-								UpdateOperators.set("roomStreamList", room.getRoomStreamList())
+						.update(set("roomId", room.getRoomId()),
+								set("startDate", room.getStartDate()),
+								set("endDate", room.getEndDate()),
+								set("roomStreamList", room.getRoomStreamList())
 								).execute();
 
 
@@ -1273,8 +1227,10 @@ public class MongoStore extends DataStore {
 	public boolean createP2PConnection(P2PConnection conn) {
 		synchronized(this) {
 			try {
-				datastore.save(conn);
-				return true;
+				if (conn != null) {
+					datastore.save(conn);
+					return true;
+				}
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1312,11 +1268,32 @@ public class MongoStore extends DataStore {
 	public boolean addSubTrack(String mainTrackId, String subTrackId) {
 		synchronized(this) {
 			try {
-				return datastore.find(Broadcast.class)
-						.filter(Filters.eq(STREAM_ID, mainTrackId))
-						.update(UpdateOperators.push("subTrackStreamIds", subTrackId))
-						.execute()
-						.getMatchedCount() == 1;
+				if (subTrackId != null) {
+					return datastore.find(Broadcast.class)
+							.filter(Filters.eq(STREAM_ID, mainTrackId))
+							.update(UpdateOperators.push("subTrackStreamIds", subTrackId))
+							.execute()
+							.getMatchedCount() == 1;
+				}
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean removeSubTrack(String mainTrackId, String subTrackId) {
+		synchronized(this) {
+			try {
+				if (subTrackId != null) {
+					return datastore.find(Broadcast.class)
+							.filter(Filters.eq(STREAM_ID, mainTrackId))
+							.update(UpdateOperators.pullAll("subTrackStreamIds", Arrays.asList(subTrackId)))
+							.execute()
+							.getMatchedCount() == 1;
+				}
 
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -1353,10 +1330,10 @@ public class MongoStore extends DataStore {
 								)
 							)
 					.update(
-							UpdateOperators.set(WEBRTC_VIEWER_COUNT, 0),
-							UpdateOperators.set(HLS_VIEWER_COUNT, 0),
-							UpdateOperators.set(RTMP_VIEWER_COUNT, 0),
-							UpdateOperators.set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)
+							set(WEBRTC_VIEWER_COUNT, 0),
+							set(HLS_VIEWER_COUNT, 0),
+							set(RTMP_VIEWER_COUNT, 0),
+							set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)
 							)
 					.execute(new UpdateOptions().multi(true))
 					.getModifiedCount();
@@ -1400,7 +1377,7 @@ public class MongoStore extends DataStore {
 				
 
 				if(cursor.hasNext()) {
-					total = ((Summation) cursor.next()).getTotal();
+					total = (cursor.next()).getTotal();
 				}
 				
 
@@ -1421,6 +1398,7 @@ public class MongoStore extends DataStore {
 		}
 	}
 
+	@Override
 	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
 			String search) {
 		synchronized(this) {
@@ -1466,7 +1444,7 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
-				return query.update(UpdateOperators.set(META_DATA, metaData)).execute().getMatchedCount() == 1;
+				return query.update(set(META_DATA, metaData)).execute().getMatchedCount() == 1;
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}

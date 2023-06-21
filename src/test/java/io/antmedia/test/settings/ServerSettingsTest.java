@@ -1,13 +1,29 @@
 package io.antmedia.test.settings;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.red5.server.scope.WebScope;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationContext;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.annotation.DirtiesContext.ClassMode;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import org.webrtc.Logging;
 
+import io.antmedia.AppSettings;
 import io.antmedia.settings.ServerSettings;
 
-public class ServerSettingsTest {
+
+
+@ContextConfiguration(locations = { "../test.xml" })
+@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 	
 	@Test
 	public void testNativeLogLevel() {
@@ -50,6 +66,39 @@ public class ServerSettingsTest {
 		assertEquals(Logging.Severity.LS_WARNING, settings.getWebRTCLogLevel());
 		assertEquals(ServerSettings.LOG_LEVEL_WARN, settings.getNativeLogLevel());
 		
+		settings.setMarketplace("aws");
+		assertEquals("aws", settings.getMarketplace());
+		
+		
+		
+	}
+	
+	@Test
+	public void testSetAppContext() 
+	{
+		ServerSettings settings = Mockito.spy(new ServerSettings());
+		
+		assertNull(settings.getHostAddressFromEnvironment());
+		
+		Mockito.doReturn(null).when(settings).getHostAddressFromEnvironment();
+		
+		ApplicationContext applicationContext = Mockito.mock(ApplicationContext.class);
+		settings.setApplicationContext(applicationContext);
+		
+		assertEquals(ServerSettings.getLocalHostAddress(), settings.getHostAddress());
+		
+		
+		Mockito.doReturn("").when(settings).getHostAddressFromEnvironment();
+		settings.setUseGlobalIp(true);
+		settings.setApplicationContext(applicationContext);
+		//it should still return public host address
+		assertEquals(ServerSettings.getGlobalHostAddress(), settings.getHostAddress());
+		
+		Mockito.doReturn("144.123.45.67").when(settings).getHostAddressFromEnvironment();
+
+		settings.setApplicationContext(applicationContext);
+		assertEquals("144.123.45.67", settings.getHostAddress());
+		
 		
 		
 	}
@@ -72,4 +121,35 @@ public class ServerSettingsTest {
 		
 	}
 
+	@Test
+	public void testOriginPort() {
+		ServerSettings settings = new ServerSettings();
+		
+		settings.setOriginServerPort(5001);
+		assertEquals(5001,settings.getOriginServerPort());
+		
+	}
+	
+	/*
+	 * This is bug test that confirm wrong that proxy address is not "null". It should be null.
+	 * 
+	 * It should be like this
+	 * @Value( "${"+SETTINGS_PROXY_ADDRESS+":#{null}}" )
+	 * 
+	 * Not like this 
+	 * @Value( "${"+SETTINGS_PROXY_ADDRESS+":null}" )
+	 */
+	@Test
+	public void testDefaultBeanSettings() {
+		
+		
+		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
+		
+		assertNotNull(serverSettings);
+		
+		assertNull(serverSettings.getProxyAddress());
+		
+		
+	}
+	
 }

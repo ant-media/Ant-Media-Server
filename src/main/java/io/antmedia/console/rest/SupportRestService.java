@@ -23,6 +23,7 @@ import javax.ws.rs.core.MediaType;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -48,7 +49,7 @@ import io.antmedia.statistic.IStatsCollector;
 
 @Component
 @Path("/v2/support")
-public class SupportRestService {
+public class SupportRestService  extends CommonRestService {
 	class SupportResponse {
 		private boolean result;
 
@@ -65,11 +66,12 @@ public class SupportRestService {
 
 	@Context
 	private ServletContext servletContext;
-	private ILicenceService licenceService;
 	private IStatsCollector statsCollector;
-	private ServerSettings serverSettings;
-	private Gson gson = new Gson();
 	public static final String LOG_FILE = "ant-media-server.log.zip";
+
+	public static final int SEND_SUPPORT_CONNECT_TIMEOUT_SECONDS= 5;
+
+	public static final int SEND_SUPPORT_SOCKET_TIMEOUT_SECONDS = 20;
 
 	@POST
 	@Path("/request")
@@ -85,23 +87,7 @@ public class SupportRestService {
 		}
 		return new Result(success);
 	}	
-
-	public ILicenceService getLicenceServiceInstance () {
-		if(licenceService == null) {
-
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
-		}
-		return licenceService;
-	}
-
-	public IStatsCollector getStatsCollector () {
-		if(statsCollector == null) {
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			statsCollector = (IStatsCollector)ctxt.getBean(IStatsCollector.BEAN_NAME);
-		}
-		return statsCollector;
-	}
+	
 
 	public boolean sendSupport(SupportRequest supportRequest) throws Exception {
 		boolean success = false;
@@ -114,6 +100,10 @@ public class SupportRestService {
 
 			HttpPost httpPost = new HttpPost("https://antmedia.io/livedemo/upload/upload.php");
 
+			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(SEND_SUPPORT_CONNECT_TIMEOUT_SECONDS * 1000).setSocketTimeout(SEND_SUPPORT_SOCKET_TIMEOUT_SECONDS * 1000).build();
+			
+			httpPost.setConfig(requestConfig);
+			
 			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 			builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
 
@@ -219,7 +209,7 @@ public class SupportRestService {
 	}
 
 
-	public String getCpuInfo() {
+	public static String getCpuInfo() {
 		StringBuilder cpuInfo = new StringBuilder();
 		ProcessBuilder pb = new ProcessBuilder("lscpu");
 		try {
@@ -236,16 +226,7 @@ public class SupportRestService {
 		return cpuInfo.toString();
 	}
 
-	public ServerSettings getServerSettings() {
-		if(serverSettings == null) {
-
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
-			serverSettings = (ServerSettings)ctxt.getBean(ServerSettings.BEAN_NAME);
-		}
-		return serverSettings;
-	}
-
-	public StringBuilder readResponse(HttpResponse response) throws IOException {
+	public static StringBuilder readResponse(HttpResponse response) throws IOException {
 		StringBuilder result = new StringBuilder();
 		if(response.getEntity() != null) {
 			BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
