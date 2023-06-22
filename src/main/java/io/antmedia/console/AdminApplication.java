@@ -520,20 +520,28 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		//If the command string contains any of these characters, it is considered unsafe to execute and the code prints an error message."
 
 		String[] parameters = command.split(" ");
-		for (String params : parameters) 
+		String[] parametersToRun = new String[parameters.length];
+		for (int i = 0; i < parameters.length; i++) 
 		{
-			if (params.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*")) {
-				logger.error("Command includes special characters so it's refused to run. Failed argument:{} and full command:{}", params, command);
-				return null;
+			String param = parameters[i];
+			if (param.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*")) 
+			{
+				logger.error("Command includes special characters so it's refused to run. Failed argument:{} and full command:{}", param, command);
+				param = "'" + param + "'";
 			}
-
+			parametersToRun[i] = param;	
 		}
-		ProcessBuilder pb = new ProcessBuilder(parameters);
 
+		
+		ProcessBuilder pb = getProcessBuilder(parametersToRun);
 
 		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
 		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
 		return pb.start();
+	}
+
+	public ProcessBuilder getProcessBuilder(String[] parametersToRun) {
+		return new ProcessBuilder(parametersToRun);
 	}
 
 	public void setVertx(Vertx vertx) {

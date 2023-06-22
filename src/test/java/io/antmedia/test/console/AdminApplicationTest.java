@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
@@ -93,15 +94,73 @@ public class AdminApplicationTest {
 		AdminApplication app = Mockito.spy(new AdminApplication());
 				
 		try {
+			String shellCommand = "/bin/bash create_app.sh -n oVs9G24e5BQqbaTNVtjh -w true -p /usr/local/antmedia -c false";
 			Process process = app.getProcess("/bin/bash create_app.sh -n oVs9G24e5BQqbaTNVtjh -w true -p /usr/local/antmedia -c false");
 			assertNotNull(process);
 			
-			process = app.getProcess("test & ");
-			assertNull(process);
+			String[] originalParameters = shellCommand.split(" ");
+			
+			ArgumentCaptor<String[]> parameters = ArgumentCaptor.forClass(String[].class);
+			Mockito.verify(app).getProcessBuilder(parameters.capture());
+			String[] params = parameters.getValue();
+			
+			for (int i = 0; i < params.length; i++) {
+				assertEquals(params[i], originalParameters[i]);
+			}
+			
+			
+			shellCommand = "/bin/bash create_app.sh -n ProdApp -w true -p /usr/local/antmedia -c true -m mongodb://amsdfasfsadfdfdfpshot:6xNRRsdfsdfafd9NodO8vAFFBEHidfdfdfa87QDKXdCMubACDbhfQH1g==@amssdfafdafdadbsnapshot.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@amssadfasdfdbsnsdfadfapshot@ -u  -s";
+			process = app.getProcess(shellCommand);
+			assertNotNull(process);
+			
+			originalParameters = shellCommand.split(" ");
+			parameters = ArgumentCaptor.forClass(String[].class);
+			Mockito.verify(app, Mockito.times(2)).getProcessBuilder(parameters.capture());
+			params = parameters.getValue();
+			for (int i = 0; i < params.length; i++) {
+				if (originalParameters[i].contains("mongodb")) {
+					assertEquals("'" + originalParameters[i] + "'",  params[i]);
+				}
+				else {
+					assertEquals(params[i], originalParameters[i]);
+				}
+			}
+			
+			shellCommand = "test & ";
+			process = app.getProcess(shellCommand);
+			assertNotNull(process);
+			
+			originalParameters = shellCommand.split(" ");
+			parameters = ArgumentCaptor.forClass(String[].class);
+			Mockito.verify(app, Mockito.times(3)).getProcessBuilder(parameters.capture());
+			params = parameters.getValue();
+			for (int i = 0; i < params.length; i++) {
+				if (originalParameters[i].contains("&")) {
+					assertEquals("'" + originalParameters[i] + "'",  params[i]);
+				}
+				else {
+					assertEquals(params[i], originalParameters[i]);
+				}
+			}
 			
 			
 			boolean result = app.runCommand("test &");
-			assertFalse(result);
+			assertTrue(result);
+			
+			originalParameters = shellCommand.split(" ");
+			parameters = ArgumentCaptor.forClass(String[].class);
+			Mockito.verify(app, Mockito.times(4)).getProcessBuilder(parameters.capture());
+			params = parameters.getValue();
+			for (int i = 0; i < params.length; i++) {
+				if (originalParameters[i].contains("&")) {
+					assertEquals("'" + originalParameters[i] + "'",  params[i]);
+				}
+				else {
+					assertEquals(params[i], originalParameters[i]);
+				}
+			}
+			
+			
 			
 		} 
 		catch (IOException e) {
