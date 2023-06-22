@@ -33,6 +33,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -102,6 +103,7 @@ import org.red5.codec.IVideoStreamCodec;
 import org.red5.codec.StreamCodecInfo;
 import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
+import org.red5.io.flv.impl.Tag;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamPacket;
@@ -789,7 +791,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
 
 		muxAdaptor.setIsRecording(true);
-		Mockito.doReturn(true).when(muxAdaptor).prepareMuxer(Mockito.any());
+		Mockito.doReturn(true).when(muxAdaptor).prepareMuxer(Mockito.any(), anyInt());
 
 		String rtmpUrl = "rtmp://localhost";
 		int resolutionHeight = 480;
@@ -1921,6 +1923,38 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.writeBufferedPacket();
 		assertFalse(muxAdaptor.isBuffering());
 
+	}
+	
+	@Test
+	public void testDropPacketIfStopped() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		ClientBroadcastStream clientBroadcastStream = Mockito.spy(new ClientBroadcastStream());
+		clientBroadcastStream.setConnection(Mockito.mock(IStreamCapableConnection.class));
+		StreamCodecInfo info = new StreamCodecInfo();
+
+		clientBroadcastStream.setCodecInfo(info);
+
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope));
+		
+		ITag tag = new Tag((byte)0, 0, 10, IoBuffer.allocate(10), BUFFER_SIZE);
+		StreamPacket streamPacket = new StreamPacket(tag);
+		
+		assertEquals(0, muxAdaptor.getInputQueueSize());
+
+		muxAdaptor.packetReceived(clientBroadcastStream, streamPacket);
+		assertEquals(1, muxAdaptor.getInputQueueSize());
+		
+		
+		muxAdaptor.stop(true);
+		muxAdaptor.packetReceived(clientBroadcastStream, streamPacket);
+		assertEquals(1, muxAdaptor.getInputQueueSize());
+		Mockito.verify(muxAdaptor).closeRtmpConnection();
+		
 	}
 
 	@Test
@@ -3273,7 +3307,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.getInputQueueSize() == 0);
 					logger.info("----input queue size: {}", muxAdaptor.getInputQueueSize());
 					startOfRecordingTimeStamp = streamPacket.getTimestamp();
-					assertTrue(muxAdaptor.startRecording(RecordType.MP4) != null);
+					assertTrue(muxAdaptor.startRecording(RecordType.MP4, 0) != null);
 					hlsMuxer = new HLSMuxer(vertx, null, null, 0, null, false);
 					
 					assertTrue(muxAdaptor.addMuxer(hlsMuxer));
@@ -3301,7 +3335,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			if (inputQueueSize > 0) {
 				estimatedLastTimeStamp = timeStamps.get((timeStamps.size() - inputQueueSize));
 			}
-			assertTrue(muxAdaptor.stopRecording(RecordType.MP4) != null);
+			assertTrue(muxAdaptor.stopRecording(RecordType.MP4, 0) != null);
 			
 			assertTrue(muxAdaptor.removeMuxer(hlsMuxer));
 			assertFalse(muxAdaptor.removeMuxer(hlsMuxer));
@@ -3789,5 +3823,56 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+
+	@Test
+	public void testAddMuxer() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = spy(muxAdaptorReal);
+		muxAdaptor.setIsRecording(true);
+		muxAdaptor.setHeight(480);
+		Muxer muxer = mock(Muxer.class);
+
+		doReturn(true).when(muxAdaptor).prepareMuxer(eq(muxer),anyInt());
+		assertTrue(muxAdaptor.addMuxer(muxer, 0));
+
+		doReturn(true).when(muxAdaptor).prepareMuxer(eq(muxer),anyInt());
+		assertTrue(muxAdaptor.addMuxer(muxer, 480));
+
+		doReturn(true).when(muxAdaptor).prepareMuxer(eq(muxer),anyInt());
+		assertFalse(muxAdaptor.addMuxer(muxer, 240));
+
+	}
+
+	@Test
+	public void testIsAlreadyRecording() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = spy(muxAdaptorReal);
+		muxAdaptor.setIsRecording(true);
+		muxAdaptor.setHeight(480);
+		Muxer mp4Muxer = mock(Mp4Muxer.class);
+		Muxer webmMuxer = mock(WebMMuxer.class);
+		muxAdaptor.getMuxerList().add(mp4Muxer);
+		muxAdaptor.getMuxerList().add(webmMuxer);
+
+		assertTrue(muxAdaptor.isAlreadyRecording(RecordType.MP4, 0));
+		assertTrue(muxAdaptor.isAlreadyRecording(RecordType.MP4, 480));
+		assertFalse(muxAdaptor.isAlreadyRecording(RecordType.MP4, 240));
+
+		assertTrue(muxAdaptor.isAlreadyRecording(RecordType.WEBM, 0));
+		assertTrue(muxAdaptor.isAlreadyRecording(RecordType.WEBM, 480));
+		assertFalse(muxAdaptor.isAlreadyRecording(RecordType.WEBM, 240));
 	}
 }

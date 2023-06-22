@@ -87,6 +87,8 @@ public class ServerSettings implements ApplicationContextAware {
 	public static final String SETTINGS_JWT_SERVER_CONTROL_ENABLED = "server.jwtServerControlEnabled";
 	
 	public static final String SETTINGS_JWKS_URL = "server.jwksURL";
+
+	private static final String SETTINGS_SERVER_STATUS_WEBHOOK_URL = "server.statusWebHookURL";
 	
 	/**
 	 * The IP filter that is allowed to access the web panel of Ant Media Server
@@ -234,6 +236,15 @@ public class ServerSettings implements ApplicationContextAware {
 	 */
 	@Value("${"+SETTINGS_RTMP_PORT + ":1935}")
 	private int rtmpPort = 1935;
+
+	
+	/**
+	 * Server status webhook url. It's called for several errors such 
+	 * - high resource usage
+	 * - Unexpected shutdown
+	 */
+	@Value("${"+SETTINGS_SERVER_STATUS_WEBHOOK_URL + ":#{null}}")
+	private String serverStatusWebHookURL;
 
 
 	public String getJwksURL() {
@@ -565,5 +576,13 @@ public class ServerSettings implements ApplicationContextAware {
 		this.sslEnabled = sslEnabled;
 	}
 
+	public String getServerStatusWebHookURL() {
+		return serverStatusWebHookURL;
+	}
+
+	
+	public void setServerStatusWebHookURL(String serverStatusWebHookURL) {
+		this.serverStatusWebHookURL = serverStatusWebHookURL;
+	}
 
 }
