@@ -526,7 +526,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			String param = parameters[i];
 			if (param.matches(".*[;&|<>()$`\\r\\n\\t*?{}\\[\\]\\\\\"'\\s].*")) 
 			{
-				logger.error("Command includes special characters so it's refused to run. Failed argument:{} and full command:{}", param, command);
+				logger.warn("Command includes special characters. Escaping the special characters. Argument:{} and full command:{}", param, command);
 				param = "'" + param + "'";
 			}
 			parametersToRun[i] = param;	
