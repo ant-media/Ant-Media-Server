@@ -138,8 +138,8 @@ public class AppSettingsTest {
 		assertTrue(savedSettings.isMp4MuxingEnabled());
 		assertEquals("5", savedSettings.getHlsListSize());
 		assertEquals("", savedSettings.getVodFolder());
-		assertEquals("1", savedSettings.getHlsTime());
-		assertNull(savedSettings.getHlsPlayListType());
+		assertEquals("2", savedSettings.getHlsTime());
+		assertEquals("", savedSettings.getHlsPlayListType());
 		assertEquals(0, savedSettings.getEncoderSettings().size());
 
 		settings.setHlsListSize("12");
@@ -162,8 +162,8 @@ public class AppSettingsTest {
 		//settings should not be changed because wron encoder parameter
 		assertEquals("5", savedSettings.getHlsListSize());
 		assertEquals("", savedSettings.getVodFolder());
-		assertEquals("1", savedSettings.getHlsTime());
-		assertNull(savedSettings.getHlsPlayListType());
+		assertEquals("2", savedSettings.getHlsTime());
+		assertEquals("", savedSettings.getHlsPlayListType());
 		assertEquals(0, savedSettings.getEncoderSettings().size()); //wrong settings not applied, it is 0
 		
 		
