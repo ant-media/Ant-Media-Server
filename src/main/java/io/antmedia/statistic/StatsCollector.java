@@ -1,13 +1,19 @@
 package io.antmedia.statistic;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Queue;
 import java.util.Set;
@@ -15,8 +21,11 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.entity.StringEntity;
@@ -41,6 +50,7 @@ import org.springframework.beans.factory.DisposableBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
+import com.github.dockerjava.zerodep.shaded.org.apache.hc.core5.http.ContentType;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -119,11 +129,11 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String CPU_USAGE = "cpuUsage";
 
 	public static final String INSTANCE_ID = "instanceId";
-	
+
 	public static final String MARKETPLACE_NAME = "marketplace";
-	
+
 	public static final String USER_EMAIL = "userEmail";
-	
+
 	public static final String LICENSE_VALID = "licenseValid";
 
 	public static final String INSTANCE_TYPE = "instanceType";
@@ -155,7 +165,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String GPU_DEVICE_NAME = "deviceName";
 
 	public static final String GPU_USAGE_INFO = "gpuUsageInfo";
-	
+
 	public static final String FFMPEG_BUILD_INFO = "ffmpegBuildInfo";
 
 	public static final String TOTAL_LIVE_STREAMS = "totalLiveStreamSize";
@@ -167,7 +177,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String LOCAL_WEBRTC_VIEWERS = "localWebRTCViewers";
 
 	public static final String LOCAL_HLS_VIEWERS = "localHLSViewers";
-	
+
 	public static final String LOCAL_DASH_VIEWERS = "localDASHViewers";
 
 	private static final String TIME = "time";
@@ -280,6 +290,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private static final String WEBRTC_VERTX_WORKER_THREAD_QUEUE_SIZE = "webrtc-vertx-worker-thread-queue-size";
 
 
+	public static final String HOOK_HIGH_RESOURCE_USAGE = "highResourceUsage";
+	public static final String HOOK_UNEXPECTED_SERVER_SHUTDOWN = "unexpectedServerShutdown";
+
+
 	private Producer<Long,String> kafkaProducer = null;
 
 	private long cpuMeasurementTimerId = -1;
@@ -308,10 +322,19 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	private String userEmail;
 
+	/**
+	 * Webhook url to notify high resource usage, unexpected shutdown. More callbacks can be added
+	 */
+	private String webhookURL;
+
+	private long unexpectedShutDownDelayMs = 30000;
+
+
 	public void start() {
 		cpuMeasurementTimerId  = getVertx().setPeriodic(measurementPeriod, l -> 
 		{
 			addCpuMeasurement(SystemUtils.getSystemCpuLoad());
+
 
 			//log every 5 minute
 			if (300000/measurementPeriod == time2Log) {
@@ -342,6 +365,33 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		else {
 			logger.info("Heartbeats are disabled for this instance");
 		}
+
+
+		//Notify for unexpected shutdowns
+		if (webhookURL != null && !webhookURL.isEmpty())  {
+			//let is pass some time to make all scopes are ready
+			getVertx().setTimer(unexpectedShutDownDelayMs , h -> {
+
+				ArrayList<String> appNames = new ArrayList<>();
+				for (Iterator<IScope> iterator = scopes.iterator(); iterator.hasNext();) { 
+					IScope scope = iterator.next();
+
+					AntMediaApplicationAdapter adaptor = null;
+
+					if ((adaptor = getAppAdaptor(scope.getContext().getApplicationContext())) != null 
+							&& !adaptor.isShutdownProperly())
+					{
+						appNames.add(scope.getName());
+					}
+				}
+
+				if (!appNames.isEmpty()) 
+				{
+					sendUnexpectedShutdownHook(appNames);
+				}
+
+			});
+		}
 	}
 
 	private void startKafkaProducer() {
@@ -354,7 +404,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			});
 		}	
 	}
-	
+
 	private static int getVertWorkerQueueSizeStatic() {
 		io.vertx.core.json.JsonObject queueSizeMetrics = vertXMetrics.getMetricsSnapshot(VERTX_WORKER_QUEUE_SIZE);
 		io.vertx.core.json.JsonObject jsonObject = null;
@@ -363,7 +413,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}
 		return jsonObject != null ? jsonObject.getInteger("count") : -1;
 	}
-	
+
 	public int getVertWorkerQueueSize() {
 		return getVertWorkerQueueSizeStatic();
 	}
@@ -376,7 +426,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}
 		return jsonObject != null ? jsonObject.getInteger("count") : -1;
 	}
-	
+
 	public int getWebRTCVertxWorkerQueueSize() {
 		return getWebRTCVertxWorkerQueueSizeStatic();
 	}
@@ -389,7 +439,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				}, 
 				null);
 	}
-	
+
 
 	public void collectAndSendWebRTCClientsStats() {
 
@@ -569,7 +619,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(TOTAL_MEMORY, SystemUtils.osTotalPhysicalMemory());
 		jsonObject.addProperty(FREE_MEMORY, SystemUtils.osFreePhysicalMemory());
 		jsonObject.addProperty(IN_USE_MEMORY, SystemUtils.osInUsePhysicalMemory());
-		
+
 		//to handle the problem in raspberry pi4 + ubuntu 20.04
 		try {
 			jsonObject.addProperty(TOTAL_SWAP_SPACE, SystemUtils.osTotalSwapSpace());
@@ -578,7 +628,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}catch (Exception e) {
 			logger.error("swap memory statistic can not be read");
 		}
-		
+
 		jsonObject.addProperty(AVAILABLE_MEMORY, SystemUtils.osAvailableMemory());
 
 		return jsonObject;
@@ -607,10 +657,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(StatsCollector.START_TIME, ManagementFactory.getRuntimeMXBean().getStartTime());
 		return jsonObject;
 	}
-	
+
 	public static AdminApplication getAdminAppAdaptor(ApplicationContext appContext) {
 		AdminApplication adaptor = null;
-		
+
 		if (appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)) 
 		{
 			Object appHandler =appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
@@ -619,14 +669,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				adaptor = (AdminApplication) appHandler;
 			}
 		}
-		
+
 		return adaptor;
 	}
 
 	public static AntMediaApplicationAdapter getAppAdaptor(ApplicationContext appContext) 
 	{
 		AntMediaApplicationAdapter adaptor = null;
-		
+
 		if (appContext.containsBean(AntMediaApplicationAdapter.BEAN_NAME)) 
 		{
 			Object appHandler =appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
@@ -635,7 +685,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 				adaptor = (AntMediaApplicationAdapter) appHandler;
 			}
 		}
-		
+
 		return adaptor;
 	}
 
@@ -652,7 +702,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		//add gpu info 
 		jsonObject.add(StatsCollector.GPU_USAGE_INFO, StatsCollector.getGPUInfoJSObject());
-		
+
 		//add ffmpeg build info 
 		jsonObject.addProperty(StatsCollector.FFMPEG_BUILD_INFO, FFmpegUtilities.getBuildConfiguration());
 
@@ -684,7 +734,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					encodersNotOpened += adaptor.getNumberOfEncoderNotOpenedErrors();
 					publishTimeoutError += adaptor.getNumberOfPublishTimeoutError();
 					localStreams += adaptor.getMuxAdaptors().size();
-					
+
 				}
 			}
 		}
@@ -714,7 +764,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}
 		return 0;
 	}
-	
+
 	private static int getDASHViewers(IScope scope) {
 		if (scope.getContext().getApplicationContext().containsBean(DashViewerStats.BEAN_NAME)) {
 			DashViewerStats dashViewerStats = (DashViewerStats) scope.getContext().getApplicationContext().getBean(DashViewerStats.BEAN_NAME);
@@ -785,8 +835,78 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", cpuLoad, cpuLimit);
 		}
 
+		if (!enoughResource && webhookURL != null && !webhookURL.isEmpty()) {
+
+			logger.info("Setting timer to call high resource usage hook.");
+			vertx.setTimer(10, e -> 
+			{ 
+				try {
+					JsonObject jsonObject = new JsonObject();
+					jsonObject.addProperty("action", HOOK_HIGH_RESOURCE_USAGE);
+					jsonObject.addProperty("host", hostAddress);
+					jsonObject.addProperty("resourceInfo", getSystemResourcesInfo(scopes).toString());
+					
+					sendPOST(webhookURL, jsonObject);
+				} catch (Exception ex) {
+					//Make Exception generic
+					logger.error(ExceptionUtils.getStackTrace(ex));
+				}
+			});
+		}
+
 		return enoughResource; 
 	}
+
+
+	public void sendUnexpectedShutdownHook(List<String> appNames) 
+	{
+
+		logger.info("Setting timer to call unexpected server shutdown hook.");
+		vertx.setTimer(10, e -> {
+			JsonObject jsonObject = new JsonObject();
+			jsonObject.addProperty("action", HOOK_HIGH_RESOURCE_USAGE);
+			jsonObject.addProperty("host", hostAddress);
+			jsonObject.addProperty("appNames", String.join(",", appNames));
+			try {
+				sendPOST(webhookURL, jsonObject);
+			} catch (Exception ex) {
+				//Make Exception generic
+				logger.error(ExceptionUtils.getStackTrace(ex));
+			}
+		});
+
+	}
+
+
+	public int sendPOST(String url, JsonObject json) throws IOException {
+
+		int statusCode = -1;
+		try (CloseableHttpClient httpClient = getHttpClient()) {
+			HttpPost httpPost = new HttpPost(url);
+			RequestConfig requestConfig = RequestConfig.custom()
+					.setConnectTimeout(2000)
+					.setConnectionRequestTimeout(2000)
+					.setSocketTimeout(2000)
+					.build();
+			httpPost.setConfig(requestConfig);
+
+			// Convert the variables map to a JSON object
+
+
+			// Set the post request header and entity
+			httpPost.setHeader(HttpHeaders.CONTENT_TYPE, ContentType.APPLICATION_JSON.getMimeType());
+			httpPost.setEntity(new StringEntity(json.toString()));
+
+			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
+				logger.info("POST Response Status:: {}", httpResponse.getStatusLine().getStatusCode());
+				statusCode = httpResponse.getStatusLine().getStatusCode();				
+			}
+		}
+
+		return statusCode;
+	}
+
+
 
 	@Override
 	public int getFreeRam() {
@@ -882,7 +1002,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		measurementPeriod = serverSettings.getCpuMeasurementPeriodMs();
 		windowSize = serverSettings.getCpuMeasurementWindowSize();
 		marketplace = serverSettings.getMarketplace();
-		
+		webhookURL = serverSettings.getServerStatusWebHookURL();
+
 		licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 
 		setVertx((Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME));
@@ -972,10 +1093,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		instance.addProperty(INSTANCE_TYPE, type);
 		instance.addProperty(INSTANCE_VERSION, version);
 		instance.addProperty(MARKETPLACE_NAME, marketplace);
-		
-		
+
+
 		instance.addProperty(USER_EMAIL, getUserEmail());
-		
+
 		if (RestServiceBase.isEnterprise()) 
 		{
 			Licence lastLicenseStatus = licenseService.getLastLicenseStatus();
@@ -986,7 +1107,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			}
 			instance.addProperty(LICENSE_VALID, status);
 		}
-		
+
 		try (CloseableHttpClient client = getHttpClient())
 		{
 			HttpRequestBase post = (HttpRequestBase)RequestBuilder.post().setUri("https://us-central1-ant-media-server-analytics.cloudfunctions.net/sendHeartbeat").setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
@@ -1002,7 +1123,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			logger.error("Couldn't connect Ant Media Server Analytics");
 		} 
 	}
-	
+
 	public void setUserEmail(String userEmail) {
 		this.userEmail = userEmail;
 	}
@@ -1015,15 +1136,15 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			{ 
 				IScope scope = iterator.next();
 
-				
+
 				AdminApplication adaptor = null;
 
 				if ((adaptor = getAdminAppAdaptor(scope.getContext().getApplicationContext())) != null)
 				{
 					AbstractConsoleDataStore dataStore = adaptor.getDataStoreFactory().getDataStore();
-					
+
 					List<User> userList = dataStore.getUserList();
-					
+
 					userEmail = findAdminUser(userList);
 					break;
 				}
@@ -1033,12 +1154,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	}
 
 	private String findAdminUser(List<User> userList) {
-		
+
 		String email = null;
 		for (Iterator<User> iterator2 = userList.iterator(); iterator2.hasNext();) 
 		{
 			User user = iterator2.next();
-			
+
 			if (user.getUserType() == UserType.ADMIN && CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) 
 			{
 				email = user.getEmail();
@@ -1048,9 +1169,21 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		return email;
 	}
 
-	public static CloseableHttpClient getHttpClient() {
+	public CloseableHttpClient getHttpClient() {
 		return  HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.build();
+	}
+
+	public long getUnexpectedShutDownDelayMs() {
+		return unexpectedShutDownDelayMs;
+	}
+
+	public void setUnexpectedShutDownDelayMs(long unexpectedShutDownDelayMs) {
+		this.unexpectedShutDownDelayMs = unexpectedShutDownDelayMs;
+	}
+
+	public void setWebhookURL(String webhookURL) {
+		this.webhookURL = webhookURL;
 	}
 
 

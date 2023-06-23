@@ -31,6 +31,7 @@ import com.mongodb.MongoClientURI;
 
 import dev.morphia.DeleteOptions;
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -2144,7 +2145,12 @@ public class DBStoresUnitTest {
 		dsf.setDbHost("localhost");
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
-		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());			
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWriteStatsToDatastore(writeStats);
+		Mockito.when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);	
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());	
+		
+		
 		dsf.setApplicationContext(context);
 		return dsf.getDataStore();
 	}

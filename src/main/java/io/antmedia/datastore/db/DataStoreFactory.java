@@ -33,10 +33,6 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	
 	private DataStore dataStore;
 	 
-	@Value( "${" + AppSettings.SETTINGS_WRITE_STATS_TO_DATASTORE +":true}")
-	private boolean writeStatsToDatastore;
-	
-	
 	@Value( "${"+SETTINGS_DB_NAME+":#{null}}" )
 	private String dbName;
 
@@ -59,6 +55,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	private String hostAddress;
 	
 	private Vertx vertx;
+	private boolean writeStatsToDatastore;
 	
 	public String getDbName() {
 		return dbName;
@@ -147,6 +144,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		hostAddress = serverSettings.getHostAddress();
+		writeStatsToDatastore = ((AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME)).isWriteStatsToDatastore();
 		init();
 	}
 

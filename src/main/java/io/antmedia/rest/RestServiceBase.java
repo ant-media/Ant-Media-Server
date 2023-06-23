@@ -438,49 +438,44 @@ public abstract class RestServiceBase {
 	 * @return
 	 */
 	protected Result updateStreamSource(String streamId, Broadcast broadcast) {
+		logger.debug("Updating camera info for stream {}", broadcast.getStreamId());
 
-		boolean result = false;
-
-		boolean resultStopStreaming = false;
-
-		logger.debug("update cam info for stream {}", broadcast.getStreamId());
-
-		if(checkStreamUrl(broadcast.getStreamUrl()))
-		{
-			Broadcast broadcastInDB = getDataStore().get(streamId);
-			if (broadcastInDB != null)
-			{
-				resultStopStreaming = checkStopStreaming(broadcastInDB);
-
-				waitStopStreaming(broadcastInDB, resultStopStreaming);
-
-				if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType())) {
-					String rtspURL = connectToCamera(broadcast).getMessage();
-
-					if (rtspURL != null) {
-
-						String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
-						String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
-						logger.info("new RTSP URL: {}" , rtspURLWithAuth);
-						broadcast.setStreamUrl(rtspURLWithAuth);
-					}
-				}
-
-				result = getDataStore().updateBroadcastFields(streamId, broadcast);
-
-				if(result) {
-					Broadcast fetchedBroadcast = getDataStore().get(streamId);
-					getApplication().startStreaming(fetchedBroadcast);
-				}
-			}
-			else {
-				streamId = streamId.replaceAll("[\n|\r|\t]", "_");
-				logger.info("Broadcast with stream id: {} is null", streamId);
-			}
-
+		if (!checkStreamUrl(broadcast.getStreamUrl())) {
+			return new Result(false, "Stream URL is not valid");
 		}
+
+		Broadcast broadcastInDB = getDataStore().get(streamId);
+		if (broadcastInDB == null) {
+			streamId = streamId.replaceAll("[\n|\r|\t]", "_");
+			logger.info("Broadcast with stream id: {} is null", streamId);
+			return new Result(false, "Broadcast with streamId: " + streamId + " does not exist");
+		}
+
+		boolean resultStopStreaming = checkStopStreaming(broadcastInDB);
+		waitStopStreaming(broadcastInDB, resultStopStreaming);
+
+		if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType())) {
+			Result connectionRes = connectToCamera(broadcast);
+			if (!connectionRes.isSuccess()) {
+				return connectionRes;
+			}
+
+			String rtspURL = connectionRes.getMessage();
+			String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
+			String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
+			logger.info("New Stream Source URL: {}", rtspURLWithAuth);
+			broadcast.setStreamUrl(rtspURLWithAuth);
+		}
+
+		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
+		if (result) {
+			Broadcast fetchedBroadcast = getDataStore().get(streamId);
+			getApplication().startStreaming(fetchedBroadcast);
+		}
+
 		return new Result(result);
 	}
+
 
 	public boolean checkStopStreaming(Broadcast broadcast)
 	{
@@ -1213,7 +1208,7 @@ public abstract class RestServiceBase {
 						success = true;
 						message = id;
 
-						String vodFinishScript = getAppSettings().getVodFinishScript();
+						String vodFinishScript = getAppSettings().getVodUploadFinishScript();
 						if (vodFinishScript != null && !vodFinishScript.isEmpty()) {
 							getApplication().runScript(vodFinishScript + "  " + savedFile.getAbsolutePath());
 						}
