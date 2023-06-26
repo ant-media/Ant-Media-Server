@@ -328,7 +328,6 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 
-
 	@ApiOperation(value = "Adds a third party rtmp end point to the stream. It supports adding after broadcast is started. Resolution can be specified to send a specific adaptive resolution. If an url is already added to a stream, trying to add the same rtmp url will return false.", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -776,7 +775,6 @@ public class BroadcastRestService extends RestServiceBase{
 		return getDataStore().getBroadcastList(offset, size, type, sortBy, orderBy, null);
 	}
 
-
 	@ApiOperation(value = "Set stream specific recording setting, this setting overrides general Mp4 and WebM Muxing Setting", notes = "", response = Result.class)
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -784,12 +782,14 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result enableRecording(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@ApiParam(value = "Change recording status. If true, starts recording. If false stop recording", required = true) @PathParam("recording-status") boolean enableRecording,
-			@ApiParam(value = "Record type: 'mp4' or 'webm'. It's optional parameter.", required = false) @QueryParam("recordType") String recordType) {
+			@ApiParam(value = "Record type: 'mp4' or 'webm'. It's optional parameter.", required = false) @QueryParam("recordType") String recordType,
+			@ApiParam(value = "Resolution height of the broadcast that is wanted to record. ", required = false) @QueryParam("resolutionHeight") int resolutionHeight
+			) {
 		if (logger.isInfoEnabled()) {
-			logger.info("Recording method is called for {} to make it {} and record Type: {}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null);
+			logger.info("Recording method is called for {} to make it {} and record Type: {} resolution:{}", streamId.replaceAll(REPLACE_CHARS, "_"), enableRecording, recordType != null ? recordType.replaceAll(REPLACE_CHARS, "_") : null, resolutionHeight);
 		}
 		recordType = (recordType==null) ? RecordType.MP4.toString() : recordType;  // It means, if recordType is null, function using Mp4 Record by default
-		return enableRecordMuxing(streamId, enableRecording, recordType);
+		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight);
 	}
 
 

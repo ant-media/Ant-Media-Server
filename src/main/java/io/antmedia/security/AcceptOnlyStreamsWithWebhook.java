@@ -4,14 +4,10 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.IDataStoreFactory;
-import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.types.Broadcast;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.RequestBuilder;
@@ -24,7 +20,6 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.gson.JsonObject;
 
@@ -40,7 +35,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsWithWebhook.class);
 
 	@Override
-	public synchronized boolean isPublishAllowed(IScope scope, String streamId, String mode, Map<String, String> queryParams) {
+	public synchronized boolean isPublishAllowed(IScope scope, String streamId, String mode, Map<String, String> queryParams, String metaData) {
 
 		AtomicBoolean result = new AtomicBoolean(false);
 		if (appSettings == null){
@@ -59,10 +54,9 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 				if(queryParams != null){
 					instance.addProperty("queryParams", queryParams.toString());
 				}
-				DataStore dataStore = getDataStore(scope);
-				Broadcast broadcast = dataStore.get(streamId);
-				if(broadcast != null && broadcast.getMetaData() != null){
-					instance.addProperty("metaData", broadcast.getMetaData());
+
+				if(metaData != null){
+					instance.addProperty("metaData", metaData);
 				}
 
 				RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
@@ -93,7 +87,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 
 		if (!result.get()) {
-			IConnection connectionLocal = Red5.getConnectionLocal();
+			IConnection connectionLocal = getConnectionLocal();
 			if (connectionLocal != null) {
 				connectionLocal.close();
 			}
@@ -106,6 +100,9 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 		return result.get();
 	}
 
+	public IConnection getConnectionLocal(){
+		return Red5.getConnectionLocal();
+	}
 
 	public AppSettings getAppSettings() {
 		return appSettings;
@@ -117,11 +114,6 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 	public CloseableHttpClient getHttpClient() {
 		return HttpClients.createDefault();
-	}
-
-	public DataStore getDataStore(IScope scope) {
-		IDataStoreFactory dsf = (IDataStoreFactory) scope.getContext().getBean(IDataStoreFactory.BEAN_NAME);
-		return dsf.getDataStore();
 	}
 
 }
