@@ -900,7 +900,7 @@ public abstract class RestServiceBase {
 		Result result = new Result(false);
 
 		OnvifCamera onvif = new OnvifCamera();
-		int connResult = onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
+		int connResult = onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword(), stream.getSslEnabled());
 		if (connResult == 0) {
 			result.setSuccess(true);
 			//set RTSP URL. This message is directly used in saving stream url to the datastore

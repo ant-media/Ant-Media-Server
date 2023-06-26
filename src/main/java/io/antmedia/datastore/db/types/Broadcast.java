@@ -166,6 +166,9 @@ public class Broadcast {
 	@ApiModelProperty(value = "the password of the IP Camera")
 	private String password;
 
+	@ApiModelProperty(value = "enable secure connection to the IP Camera")
+	private String sslEnabled;
+
 	@ApiModelProperty(value = "the quality of the incoming stream during publishing")
 	private String quality;
 
@@ -819,5 +822,12 @@ public class Broadcast {
 	public void setUpdateTime(long updateTime) {
 		this.updateTime = updateTime;
 	}
-	
+
+	public String getSslEnabled() {
+		return sslEnabled;
+	}
+
+	public void setSslEnabled(String sslEnabled) {
+		this.sslEnabled = sslEnabled;
+	}
 }
