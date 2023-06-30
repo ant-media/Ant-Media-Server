@@ -237,7 +237,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected int height;
 	protected AVFormatContext streamSourceInputFormatContext;
 	private AVCodecParameters videoCodecParameters;
-	private AVCodecParameters audioCodecParameters;
+	protected AVCodecParameters audioCodecParameters;
 	private BytePointer audioExtraDataPointer;
 	private BytePointer videoExtraDataPointer;
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
@@ -257,7 +257,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private AVRational audioTimeBase = TIME_BASE_FOR_MS;
 
 	//NOSONAR because we need to keep the reference of the field
-	private AVChannelLayout channelLayout;
+	protected AVChannelLayout channelLayout;
 
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, boolean isSource, IScope scope) {
 		MuxAdaptor muxAdaptor = null;
