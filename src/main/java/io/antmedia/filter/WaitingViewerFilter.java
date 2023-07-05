@@ -25,7 +25,7 @@ public class WaitingViewerFilter extends AbstractFilter{
         final String method = httpRequest.getMethod();
         if(HttpMethod.HEAD.equals(method) && (httpRequest.getRequestURI().endsWith("m3u8") || httpRequest.getRequestURI().endsWith("m4s"))){
             final String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
-            final Broadcast broadcast = getBroadcast(streamId);
+            final Broadcast broadcast = getBroadcast((HttpServletRequest) request, streamId);
             if(broadcast != null){
                 final String broadcastStatus = broadcast.getStatus();
 

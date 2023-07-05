@@ -36,14 +36,6 @@ public abstract class RecordMuxer extends Muxer {
 
 	private static final int S3_CONSTANT = 0b001;
 
-	/**
-	 * By default first video key frame should be checked
-	 * and below flag should be set to true
-	 * If first video key frame should not be checked,
-	 * then below should be flag in advance
-	 */
-	protected boolean firstKeyFrameReceivedChecked = false;
-
 	private String s3FolderPath = "streams";
 
 	/**
@@ -61,6 +53,8 @@ public abstract class RecordMuxer extends Muxer {
 		this.s3FolderPath = s3FolderPath;
 		firstAudioDts = -1;
 		firstVideoDts = -1;
+		firstKeyFrameReceived = false;
+		
 	}
 
 	protected int[] SUPPORTED_CODECS;
@@ -215,31 +209,7 @@ public abstract class RecordMuxer extends Muxer {
 		logger.info("{} is ready", file.getName());
 	}
 
-	@Override
-	public boolean checkToDropPacket(AVPacket pkt, int codecType) {
-		if (!firstKeyFrameReceivedChecked && codecType == AVMEDIA_TYPE_VIDEO) 
-		{
-			if(firstVideoDts == -1) {
-				firstVideoDts = pkt.dts();
-			}
 
-			int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
-			//we set start time here because we start recording with key frame and drop the other
-			//setting here improves synch between audio and video
-			if (keyFrame == 1) {
-				firstKeyFrameReceivedChecked = true;
-				logger.warn("First key frame received for stream: {}", streamId);
-			} else {
-				logger.info("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
-				// return if firstKeyFrameReceived is not received
-				// below return is important otherwise it does not work with like some encoders(vidiu)
-				return true;
-
-			}
-		}
-		//don't drop packet because it's either audio packet or key frame is received
-		return false;
-	}
 	
 
 	public boolean isUploadingToS3(){return uploadMP4ToS3;}

@@ -78,6 +78,7 @@ public class ViewerStats {
 					event.setEventType(ConnectionEvent.CONNECTED_EVENT);
 					Date curDate = new Date();
 					event.setTimestamp(curDate.getTime());
+					//TODO: There is a bug here. It adds +1 for each ts request 
 					getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
 				}
 			}

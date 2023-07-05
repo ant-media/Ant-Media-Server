@@ -338,7 +338,7 @@ public class Broadcast {
 	 * Meta data filed for the custom usage
 	 */
 	@ApiModelProperty(value = "Meta data filed for the custom usage")
-	private String metaData = "";
+	private String metaData = null;
 	
 	/**
 	 * The flag to enable/disable looping playlist. 

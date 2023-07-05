@@ -71,7 +71,7 @@ public class ContentSecurityPolicyHeaderFilterTest {
         	//reset httpServletRequest
         	httpServletRequest = new MockHttpServletRequest();
         	
-            assertNull(appSettings.getContentSecurityPolicyHeaderValue());
+            assertEquals("", appSettings.getContentSecurityPolicyHeaderValue());
 
             filter.doFilter(httpServletRequest, httpServletResponse, filterChain);
             assertNull(httpServletResponse.getHeader("Content-Security-Policy"));

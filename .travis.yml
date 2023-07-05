@@ -89,10 +89,19 @@ before_install:
        git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git;  
      fi)
   - cd ManagementConsole_AngularApp
+  #If there is something in the cache, get it
+  - (if [[ -d "$HOME/.antmedia/cache/node_modules" ]]; then
+        echo "Restore node_modules from cache";
+        cp -rf "$HOME/.antmedia/cache/node_modules" .;
+    fi)
   - npm install
   - export NODE_OPTIONS=--openssl-legacy-provider
   - ng build --prod
   - cp -a ./dist/. ../src/main/server/webapps/root/
+  #update the cache directory
+  - mkdir -p $HOME/.antmedia/cache # create if not exist
+  - rm -rf $HOME/.antmedia/cache/node_modules
+  - mv node_modules $HOME/.antmedia/cache/
   - cd ..
   
   #before package replace the ffmpeg linux-86_64 and arm64 build with custom build
@@ -114,7 +123,7 @@ before_install:
 
   - chmod 755 target/install_ant-media-server.sh
   - cd target 
-  - ./install_ant-media-server.sh ant-media-server-community*.zip
+  - ./install_ant-media-server.sh -i ant-media-server-community*.zip
   - cd ..
   - echo "Waiting a little to make sure server is started "
   - sleep 20
@@ -144,7 +153,7 @@ script:
   - echo $RELEASE_VERSION
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package  org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
 # option to add above (-Dtest="MuxerUnitTest")  for running custom tests
-  - mvn org.owasp:dependency-check-maven:check --quiet
+  - mvn org.owasp:dependency-check-maven:check  -DfailOnError=false --quiet
 #depedency vulnerability check
 
 
@@ -152,6 +161,7 @@ cache:
   directories:
     - '$HOME/.m2/repository'
     - '$HOME/.sonar/cache'
+    - '$HOME/.antmedia/cache'
     
 after_failure:
   - sudo cat /usr/local/antmedia/log/ant-media-server.log

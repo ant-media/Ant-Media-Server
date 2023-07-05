@@ -155,7 +155,7 @@ public class WaitingViewerFilterTest {
             broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_STOPPED);
             dataStore.save(broadcast);
 
-            when(waitingViewerFilter.getBroadcast(streamId)).thenReturn(broadcast);
+            when(waitingViewerFilter.getBroadcast(mockRequest, streamId)).thenReturn(broadcast);
             when(waitingViewerFilter.getAntMediaApplicationAdapter().getDataStore()).thenReturn(dataStore);
             logger.info("session id {}, stream id {}", sessionId, streamId);
             waitingViewerFilter.doFilter(mockRequest, mockResponse, mockChain);
