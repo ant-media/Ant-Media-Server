@@ -45,6 +45,15 @@ DB_USERNAME=
 DB_PASSWORD=
 LICENSE_KEY=
 
+# Set the default value for JVM_MEMORY_OPTIONS
+DEFAULT_MIN_HEAP_SIZE="1g"
+JVM_MEMORY_OPTIONS="${JVM_MEMORY_OPTIONS:="-Xms$DEFAULT_MIN_HEAP_SIZE"}"
+
+# If the initial Java heap size (-Xms) and the maximum heap size (-Xmx) values are specified as environment variables (ENV) in the Dockerfile, those values will be set.
+if [ -n "$JVM_MEMORY_OPTIONS" ]; then
+  JVM_MEMORY_OPTIONS="$JVM_MEMORY_OPTIONS"
+fi
+
 
 while getopts g:s:r:m:h:u:p:l:a:n:w:k:t option
 do
@@ -192,7 +201,7 @@ echo "Running on " $OS
 # JAVA options
 # You can set JVM additional options here if you want
 if [ -z "$JVM_OPTS" ]; then
-    JVM_OPTS="-Xms256m -Djava.awt.headless=true -Xverify:none -XX:+HeapDumpOnOutOfMemoryError -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:MaxMetaspaceSize=128m  -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=10 -XX:ConcGCThreads=5 -Djava.system.class.loader=org.red5.server.classloading.ServerClassLoader -Xshare:off "
+    JVM_OPTS="$JVM_MEMORY_OPTIONS -Djava.awt.headless=true -Xverify:none -XX:+HeapDumpOnOutOfMemoryError -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:MaxMetaspaceSize=128m  -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=10 -XX:ConcGCThreads=5 -Djava.system.class.loader=org.red5.server.classloading.ServerClassLoader -Xshare:off "
 fi
 # Set up security options
 SECURITY_OPTS="-Djava.security.debug=failure -Djava.security.egd=file:/dev/./urandom"
