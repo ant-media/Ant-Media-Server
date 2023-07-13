@@ -56,6 +56,7 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter implements D
     private String samlAudience;
             //"http://localhost:5080/LiveApp/saml/metadata";
 
+    @Autowired
     private AppSettings appSettings;
 
     @Autowired(required=false)

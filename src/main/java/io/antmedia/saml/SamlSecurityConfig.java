@@ -7,6 +7,8 @@ import org.apache.velocity.app.VelocityEngine;
 import org.opensaml.saml2.metadata.provider.HTTPMetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.opensaml.saml2.metadata.provider.ResourceBackedMetadataProvider;
+import org.opensaml.util.resource.HttpResource;
 import org.opensaml.util.resource.ResourceException;
 import org.opensaml.xml.parse.ParserPool;
 import org.opensaml.xml.parse.StaticBasicParserPool;
@@ -74,10 +76,8 @@ public class SamlSecurityConfig {
     private String metadataUrl;
     //= "https://dev-75335055.okta.com/app/exk1mfkni2bpGXA6k5d7/sso/saml/metadata";
 
-    private final Timer backgroundTaskTimer = new Timer(true);
-    private final MultiThreadedHttpConnectionManager multiThreadedHttpConnectionManager
-            = new MultiThreadedHttpConnectionManager();
 
+    @Autowired
     public AppSettings getAppSettings() {
         return appSettings;
     }
@@ -87,77 +87,35 @@ public class SamlSecurityConfig {
     }
 
     public boolean checkEnable(){
-        if(appSettings.isHlsMuxingEnabled()){
-            return true;
-        }
-        else{
-            return false;
-        }
+        return appSettings.isSamlEnabled();
     }
 
-    @Bean
-    @Qualifier("saml")
-    public Timer getBackgroundTaskTimer() {
-        return backgroundTaskTimer;
-    }
-
-    @Bean
-    @Qualifier("saml")
-    public MultiThreadedHttpConnectionManager getMultiThreadedHttpConnectionManager() {
-        return multiThreadedHttpConnectionManager;
-    }
-
-    // Initialization of the velocity engine
-    @Bean
-    public VelocityEngine velocityEngine() {
-        return VelocityFactory.getEngine();
-    }
-
-    // XML parser pool needed for OpenSAML parsing
     @Bean(initMethod = "initialize")
     public StaticBasicParserPool parserPool() {
         return new StaticBasicParserPool();
     }
 
-    @Bean(name = "parserPoolHolder")
-    public ParserPoolHolder parserPoolHolder() {
-        return new ParserPoolHolder();
-    }
-
-    // Bindings, encoders and decoders used for creating and parsing messages
-    @Bean
-    public HttpClient httpClient() {
-        return new HttpClient(this.multiThreadedHttpConnectionManager);
-    }
-
-    /**
-     * Authentication provider is autowired in websecurity config.
-     */
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     public SAMLAuthenticationProvider samlAuthenticationProvider() {
-        SAMLAuthenticationProvider samlAuthenticationProvider = new SAMLAuthenticationProvider();
-        samlAuthenticationProvider.setForcePrincipalAsString(false);
-        return samlAuthenticationProvider;
+        return new CustomSAMLAuthenticationProvider();
     }
 
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     public SAMLContextProviderImpl contextProvider() {
-        SAMLContextProviderImpl samlContextProviderImpl = new SAMLContextProviderImpl();
-        samlContextProviderImpl.setStorageFactory(new EmptyStorageFactory());
-        return samlContextProviderImpl;
+        return new SAMLContextProviderImpl();
     }
 
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
-    public static SAMLBootstrap sAMLBootstrap() {
+    public static SAMLBootstrap samlBootstrap() {
         return new SAMLBootstrap();
     }
 
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
-    public SAMLDefaultLogger samllogger() {
+    public SAMLDefaultLogger samlLogger() {
         return new SAMLDefaultLogger();
     }
 
@@ -174,7 +132,6 @@ public class SamlSecurityConfig {
         return new WebSSOProfileConsumerHoKImpl();
     }
 
-    //We use default profile
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     public WebSSOProfile webSSOprofile() {
@@ -199,7 +156,6 @@ public class SamlSecurityConfig {
         return new SingleLogoutProfileImpl();
     }
 
-    // Key storage needs to be correctly adjusted to get server up with saml2.0
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     public KeyManager keyManager() {
@@ -207,9 +163,8 @@ public class SamlSecurityConfig {
         samlKeystorePassword = appSettings.getSamlKeystorePassword();
         samlKeystoreAlias = appSettings.getSamlKeystoreAlias();
         DefaultResourceLoader loader = new DefaultResourceLoader();
-        File file = new File(samlKeystoreLocation);
         //Resource storeFile = loader.getResource(samlKeystoreLocation);
-        FileSystemResource storeFile = new FileSystemResource(file);
+        FileSystemResource storeFile = new FileSystemResource(new File(samlKeystoreLocation));
         Map<String, String> passwords = new HashMap<>();
         passwords.put(samlKeystoreAlias, samlKeystorePassword);
         return new JKSKeyManager(storeFile, samlKeystorePassword, passwords, samlKeystoreAlias);
@@ -223,7 +178,6 @@ public class SamlSecurityConfig {
         return webSSOProfileOptions;
     }
 
-    // These profiles and entry points are default implementations
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     public SAMLEntryPoint samlEntryPoint() {
@@ -232,25 +186,13 @@ public class SamlSecurityConfig {
         return samlEntryPoint;
     }
 
-    // Extended metadata
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     public ExtendedMetadata extendedMetadata() {
         ExtendedMetadata extendedMetadata = new ExtendedMetadata();
         extendedMetadata.setIdpDiscoveryEnabled(false);
-        extendedMetadata.setSigningAlgorithm("http://www.w3.org/2001/04/xmldsig-more#rsa-sha256");
-        extendedMetadata.setSignMetadata(true);
-        extendedMetadata.setEcpEnabled(true);
+        extendedMetadata.setSignMetadata(false);
         return extendedMetadata;
-    }
-
-    // TODO: Enable IDP discovery service for different IDPs
-    @Bean
-    @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
-    public SAMLDiscovery samlIDPDiscovery() {
-        SAMLDiscovery idpDiscovery = new SAMLDiscovery();
-        idpDiscovery.setIdpSelectionPath("/saml/discovery");
-        return idpDiscovery;
     }
 
     @Bean
@@ -258,22 +200,28 @@ public class SamlSecurityConfig {
     @Qualifier("okta")
     public ExtendedMetadataDelegate oktaExtendedMetadataProvider() throws MetadataProviderException {
         metadataUrl = appSettings.getSamlMetadata();
-        logger.info("Provided metadata = {} ",metadataUrl);
-        HTTPMetadataProvider metadataProvider
-                = new HTTPMetadataProvider(this.backgroundTaskTimer, httpClient(), metadataUrl);
-        metadataProvider.setParserPool(parserPool());
-        metadataProvider.initialize();
 
-        ExtendedMetadataDelegate extendedMetadataDelegate =
-                new ExtendedMetadataDelegate(metadataProvider, extendedMetadata());
-        extendedMetadataDelegate.setMetadataTrustCheck(true);
-        extendedMetadataDelegate.setMetadataRequireSignature(false);
+        // Use the Spring Security SAML resource mechanism to load
+        // metadata from the Java classpath.  This works from Spring Boot
+        // self contained JAR file.
+        org.opensaml.util.resource.Resource resource = null;
 
-        backgroundTaskTimer.purge();
-        return extendedMetadataDelegate;
+
+        /*
+		try {
+            resource = new ClasspathResource("/saml/metadata/sso.xml");
+		} catch (ResourceException e) {
+			 e.printStackTrace();
+		}
+		*/
+        resource = new HttpResource(metadataUrl);
+
+        Timer timer = new Timer("saml-metadata");
+        ResourceBackedMetadataProvider provider = new ResourceBackedMetadataProvider(timer,resource);
+        provider.setParserPool(parserPool());
+        return new ExtendedMetadataDelegate(provider, extendedMetadata());
     }
 
-    // IDP Metadata configuration - more than one IDP can be configured but we configured only OKTA for now.
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     @Qualifier("metadata")
@@ -286,43 +234,25 @@ public class SamlSecurityConfig {
         return metadataManager;
     }
 
-    // The filter is waiting for connections on URL suffixed with filterSuffix
-    // and presents SP metadata there
-    @Bean
-    @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
-    public MetadataDisplayFilter metadataDisplayFilter() {
-        return new MetadataDisplayFilter();
-    }
-
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     @Qualifier("saml")
     public SavedRequestAwareAuthenticationSuccessHandler successRedirectHandler() {
-        SavedRequestAwareAuthenticationSuccessHandler successRedirectHandler =
-                new SavedRequestAwareAuthenticationSuccessHandler() {
-                    @Override
-                    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws ServletException, IOException {
-                        super.onAuthenticationSuccess(request, response, authentication);
-                        logger.info("Successfully logged in, redirecting");
-                    }
-                };
-        successRedirectHandler.setDefaultTargetUrl("/");
+        SavedRequestAwareAuthenticationSuccessHandler successRedirectHandler = new SavedRequestAwareAuthenticationSuccessHandler();
+        successRedirectHandler.setDefaultTargetUrl("/home");
         return successRedirectHandler;
     }
 
-    // Handler deciding where to redirect user after failed login
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     @Qualifier("saml")
     public SimpleUrlAuthenticationFailureHandler authenticationFailureHandler() {
-        SimpleUrlAuthenticationFailureHandler failureHandler =
-                new SimpleUrlAuthenticationFailureHandler();
+        SimpleUrlAuthenticationFailureHandler failureHandler = new SimpleUrlAuthenticationFailureHandler();
         failureHandler.setUseForward(true);
         failureHandler.setDefaultFailureUrl("/error");
         return failureHandler;
     }
 
-    // Handler for successful logout
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     public SimpleUrlLogoutSuccessHandler successLogoutHandler() {
@@ -331,25 +261,19 @@ public class SamlSecurityConfig {
         return successLogoutHandler;
     }
 
-    // Logout handler terminating local session, local session does not terminate with single logout.
-    // It should be terminated via url /logout
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
-    @Qualifier("saml")
     public SecurityContextLogoutHandler logoutHandler() {
-        SecurityContextLogoutHandler logoutHandler =
-                new SecurityContextLogoutHandler();
+        SecurityContextLogoutHandler logoutHandler = new SecurityContextLogoutHandler();
         logoutHandler.setInvalidateHttpSession(true);
         logoutHandler.setClearAuthentication(true);
         return logoutHandler;
     }
 
-    //We may support single logout in future.
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     public SAMLLogoutProcessingFilter samlLogoutProcessingFilter() {
-        return new SAMLLogoutProcessingFilter(successLogoutHandler(),
-                logoutHandler());
+        return new SAMLLogoutProcessingFilter(successLogoutHandler(), logoutHandler());
     }
 
     @Bean
@@ -360,29 +284,10 @@ public class SamlSecurityConfig {
                 new LogoutHandler[] { logoutHandler() });
     }
 
-    private ArtifactResolutionProfile artifactResolutionProfile() {
-        final ArtifactResolutionProfileImpl artifactResolutionProfile =
-                new ArtifactResolutionProfileImpl(httpClient());
-        artifactResolutionProfile.setProcessor(new SAMLProcessorImpl(soapBinding()));
-        return artifactResolutionProfile;
-    }
-
-    @Bean
-    @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
-    public HTTPArtifactBinding artifactBinding(ParserPool parserPool, VelocityEngine velocityEngine) {
-        return new HTTPArtifactBinding(parserPool, velocityEngine, artifactResolutionProfile());
-    }
-
-    @Bean
-    @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
-    public HTTPSOAP11Binding soapBinding() {
-        return new HTTPSOAP11Binding(parserPool());
-    }
-
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     public HTTPPostBinding httpPostBinding() {
-        return new HTTPPostBinding(parserPool(), velocityEngine());
+        return new HTTPPostBinding(parserPool(), VelocityFactory.getEngine());
     }
 
     @Bean
@@ -393,25 +298,10 @@ public class SamlSecurityConfig {
 
     @Bean
     @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
-    public HTTPSOAP11Binding httpSOAP11Binding() {
-        return new HTTPSOAP11Binding(parserPool());
-    }
-
-    @Bean
-    @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
-    public HTTPPAOS11Binding httpPAOS11Binding() {
-        return new HTTPPAOS11Binding(parserPool());
-    }
-
-    @Bean
-    @ConditionalOnProperty(name="settings.saml.enabled", havingValue="true")
     public SAMLProcessorImpl processor() {
-        Collection<SAMLBinding> bindings = new ArrayList<>();
+        ArrayList<SAMLBinding> bindings = new ArrayList<>();
         bindings.add(httpRedirectDeflateBinding());
         bindings.add(httpPostBinding());
-        bindings.add(artifactBinding(parserPool(), velocityEngine()));
-        bindings.add(httpSOAP11Binding());
-        bindings.add(httpPAOS11Binding());
         return new SAMLProcessorImpl(bindings);
     }
 }
