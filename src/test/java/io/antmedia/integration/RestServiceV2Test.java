@@ -131,7 +131,7 @@ public class RestServiceV2Test {
 		if (OS_TYPE == MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
-		avformat.av_register_all();
+		//avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
 
@@ -1690,6 +1690,18 @@ public class RestServiceV2Test {
 
 			}
 
+			// bugfix test - issue #4319
+			// we're checking if invalid rtmp endpoint could be deleted
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(() -> {
+				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
+				return (IAntMediaStreamHandler.BROADCAST_STATUS_ERROR.equals(tmp2.getEndPointList().get(1).getStatus())
+						|| IAntMediaStreamHandler.BROADCAST_STATUS_FAILED.equals(tmp2.getEndPointList().get(1).getStatus())
+						|| IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(tmp2.getEndPointList().get(1).getStatus()));
+			});
+			
+			result = removeEndpointV2(finalBroadcastStreamId, broadcast.getEndPointList().get(1).getEndpointServiceId());
+			assertTrue(result.isSuccess());
+			
 			execute.destroy();
 
 
@@ -1705,8 +1717,8 @@ public class RestServiceV2Test {
 
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(() -> {
-				Broadcast tmp2 = getBroadcast(finalBroadcastStreamId);
-				return IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(tmp2.getEndPointList().get(0).getStatus());
+				Broadcast tmp3 = getBroadcast(finalBroadcastStreamId);
+				return IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(tmp3.getEndPointList().get(0).getStatus());
 			});
 
 			result = callDeleteBroadcast(broadcast.getStreamId());

@@ -36,56 +36,70 @@ public class ExpireStreamPublishSecurityTest {
 		
 		// Scenario-1
 		// Broadcasts getPlannedStartDate = null & getPlannedEndDate = null
-		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null));	
+		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null, null));
 		
 		// Scenario-2
 		// Broadcast getPlannedStartDate > now & getPlannedEndDate > now
 		broadcast.setPlannedStartDate(9999999999l);
 		broadcast.setPlannedEndDate(9999999999l);
 		
-		assertEquals(false, filter.isPublishAllowed(null, streamId, null, null));	
+		dataStore.save(broadcast);
+		
+		assertEquals(false, filter.isPublishAllowed(null, streamId, null, null, null));
 		
 		// Scenario-3
 		// Broadcast getPlannedStartDate < now & getPlannedEndDate > now
 		broadcast.setPlannedStartDate(99l);
 		broadcast.setPlannedEndDate(9999999999l);
 		
-		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null));	
+		dataStore.save(broadcast);
+		
+		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null, null));
 		
 		// Scenario-4
 		// Broadcast getPlannedStartDate > now & getPlannedEndDate < now
 		broadcast.setPlannedStartDate(9999999999l);
 		broadcast.setPlannedEndDate(99l);
 		
-		assertEquals(false, filter.isPublishAllowed(null, streamId, null, null));	
+		dataStore.save(broadcast);
+		
+		assertEquals(false, filter.isPublishAllowed(null, streamId, null, null, null));
 		
 		// Scenario-5
 		// Broadcast getPlannedStartDate < now & getPlannedEndDate < now
 		broadcast.setPlannedStartDate(99l);
 		broadcast.setPlannedEndDate(99l);
 		
-		assertEquals(false, filter.isPublishAllowed(null, streamId, null, null));	
+		dataStore.save(broadcast);
+		
+		assertEquals(false, filter.isPublishAllowed(null, streamId, null, null, null));
 		
 		// Scenario-6
 		// Broadcast getPlannedStartDate = null & getPlannedEndDate < now
 		broadcast.setPlannedStartDate(0);
 		broadcast.setPlannedEndDate(99l);
 		
-		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null));	
+		dataStore.save(broadcast);
+		
+		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null, null));
 		
 		// Scenario-7
 		// Broadcast getPlannedStartDate > now & getPlannedEndDate = null
 		broadcast.setPlannedStartDate(9999999999l);
 		broadcast.setPlannedEndDate(0);
 		
-		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null));
+		dataStore.save(broadcast);
+		
+		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null, null));
 		
 		broadcast.setPlannedStartDate(0);
 		broadcast.setPlannedEndDate(0);
 		
-		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null));
+		dataStore.save(broadcast);
 		
-		assertEquals(true, filter.isPublishAllowed(null, null, null, null));	
+		assertEquals(true, filter.isPublishAllowed(null, streamId, null, null, null));
+		
+		assertEquals(true, filter.isPublishAllowed(null, null, null, null, null));
 		
 	}
 

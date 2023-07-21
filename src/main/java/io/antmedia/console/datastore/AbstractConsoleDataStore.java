@@ -1,14 +1,17 @@
 package io.antmedia.console.datastore;
 
 import io.antmedia.datastore.db.types.User;
-import io.antmedia.rest.model.UserType;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractConsoleDataStore {
+	
+	protected static Logger logger = LoggerFactory.getLogger(AbstractConsoleDataStore.class);
 	
 	public static final String SERVER_STORAGE_FILE = "server.db";
 	public static final String SERVER_STORAGE_MAP_NAME = "serverdb";
@@ -22,7 +25,7 @@ public abstract class AbstractConsoleDataStore {
 	public abstract boolean addUser(User user);
 
 	public abstract boolean editUser(User user);
-
+	
 	public abstract boolean deleteUser(String username);
 	
 	public abstract boolean doesUsernameExist(String username);
@@ -32,7 +35,7 @@ public abstract class AbstractConsoleDataStore {
 	public abstract List<User> getUserList();
 
 	public abstract User getUser(String username);
-
+	
 	public abstract void clear();
 
 	public abstract void close();

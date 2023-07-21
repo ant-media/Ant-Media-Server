@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
@@ -18,6 +19,8 @@ import io.antmedia.datastore.db.types.VoD;
 import io.vertx.core.Vertx;
 
 import static org.junit.Assert.*;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 
 public class AdminApplicationTest {
 
@@ -84,6 +87,87 @@ public class AdminApplicationTest {
 		assertFalse(result);
 
 	}
+	
+	
+	@Test
+	public void testSpecialChars() {
+		AdminApplication app = Mockito.spy(new AdminApplication());
+				
+		try {
+			String shellCommand = "/bin/bash create_app.sh -n oVs9G24e5BQqbaTNVtjh -w true -p /usr/local/antmedia -c false";
+			Process process = app.getProcess("/bin/bash create_app.sh -n oVs9G24e5BQqbaTNVtjh -w true -p /usr/local/antmedia -c false");
+			assertNotNull(process);
+			
+			String[] originalParameters = shellCommand.split(" ");
+			
+			ArgumentCaptor<String[]> parameters = ArgumentCaptor.forClass(String[].class);
+			Mockito.verify(app).getProcessBuilder(parameters.capture());
+			String[] params = parameters.getValue();
+			
+			for (int i = 0; i < params.length; i++) {
+				assertEquals(params[i], originalParameters[i]);
+			}
+			
+			
+			shellCommand = "/bin/bash create_app.sh -n ProdApp -w true -p /usr/local/antmedia -c true -m mongodb://amsdfasfsadfdfdfpshot:6xNRRsdfsdfafd9NodO8vAFFBEHidfdfdfa87QDKXdCMubACDbhfQH1g==@amssdfafdafdadbsnapshot.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@amssadfasdfdbsnsdfadfapshot@ -u  -s";
+			process = app.getProcess(shellCommand);
+			assertNotNull(process);
+			
+			originalParameters = shellCommand.split(" ");
+			parameters = ArgumentCaptor.forClass(String[].class);
+			Mockito.verify(app, Mockito.times(2)).getProcessBuilder(parameters.capture());
+			params = parameters.getValue();
+			for (int i = 0; i < params.length; i++) {
+				if (originalParameters[i].contains("mongodb")) {
+					assertEquals("'" + originalParameters[i] + "'",  params[i]);
+				}
+				else {
+					assertEquals(params[i], originalParameters[i]);
+				}
+			}
+			
+			shellCommand = "test & ";
+			process = app.getProcess(shellCommand);
+			assertNotNull(process);
+			
+			originalParameters = shellCommand.split(" ");
+			parameters = ArgumentCaptor.forClass(String[].class);
+			Mockito.verify(app, Mockito.times(3)).getProcessBuilder(parameters.capture());
+			params = parameters.getValue();
+			for (int i = 0; i < params.length; i++) {
+				if (originalParameters[i].contains("&")) {
+					assertEquals("'" + originalParameters[i] + "'",  params[i]);
+				}
+				else {
+					assertEquals(params[i], originalParameters[i]);
+				}
+			}
+			
+			
+			boolean result = app.runCommand("test &");
+			assertTrue(result);
+			
+			originalParameters = shellCommand.split(" ");
+			parameters = ArgumentCaptor.forClass(String[].class);
+			Mockito.verify(app, Mockito.times(4)).getProcessBuilder(parameters.capture());
+			params = parameters.getValue();
+			for (int i = 0; i < params.length; i++) {
+				if (originalParameters[i].contains("&")) {
+					assertEquals("'" + originalParameters[i] + "'",  params[i]);
+				}
+				else {
+					assertEquals(params[i], originalParameters[i]);
+				}
+			}
+			
+			
+			
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
 
 	@Test
 	public void testRunCommand() {
@@ -119,9 +203,10 @@ public class AdminApplicationTest {
 
 		runCommand = app.runCommand("");
 		assertFalse(runCommand);
-
+		
+		
+		
 	}
-
 	@Test
 	public void testLiveStreamCount() {
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
@@ -156,23 +241,22 @@ public class AdminApplicationTest {
 	public void testCreateApplicationWitURL() {
 		try {
 			AdminApplication adminApplication = Mockito.spy(new AdminApplication());
+			Mockito.doReturn(false).when(adminApplication).createApplication(Mockito.anyString(), Mockito.any());
 			
-			adminApplication.createApplicationWithURL("app", "https://antmedia.io/rest");
-
+			adminApplication.createApplicationWithURL("app", "https://antmedia.io/rest");		
 			Mockito.verify(adminApplication).downloadWarFile("app", "https://antmedia.io/rest");
-			Mockito.doReturn(false).when(adminApplication).createApplication(Mockito.anyString(), Mockito.anyString());
 			
-			adminApplication.createApplicationWithURL("app", null);
-			//it should be 1 one time because url is null
-			Mockito.verify(adminApplication, Mockito.times(1)).downloadWarFile("app", "https://antmedia.io/rest");
+			adminApplication.createApplicationWithURL("app2", null);
+			//it should be never for app2 because url is null
+			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app2"), Mockito.anyString());
 			
 			
-			adminApplication.createApplicationWithURL("app", "");
-			//it should be 1 one time because url is ""
-			Mockito.verify(adminApplication, Mockito.times(1)).downloadWarFile("app", "https://antmedia.io/rest");
+			adminApplication.createApplicationWithURL("app3", "");
+			//it should be never for app3 because url is ""
+			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app3"), Mockito.anyString());
 
-			adminApplication.createApplicationWithURL("app", "htdfdf");
-			//it should be 2 time because there is an url
+			adminApplication.createApplicationWithURL("app4", "htdfdf");
+			//it should be 2 time because there is an url. It also with different app name.
 			Mockito.verify(adminApplication, Mockito.times(2)).downloadWarFile(Mockito.anyString(),Mockito.anyString());
 
 			
@@ -207,13 +291,40 @@ public class AdminApplicationTest {
 
 		assertEquals(0, adminApplication.getVoDCount(Mockito.mock(IScope.class)));
 
-		String id = dataStore.addVod(Mockito.mock(VoD.class));
+		VoD streamVod = new VoD();
+		String id = dataStore.addVod(streamVod);
 
 		assertEquals(1, adminApplication.getVoDCount(Mockito.mock(IScope.class)));
 
 		dataStore.deleteVod(id);
 
 		assertEquals(0, adminApplication.getVoDCount(Mockito.mock(IScope.class)));
+	}
+	
+	@Test
+	public void testPreventConcurrentInstallationSameWar() 
+	{
+		//create application
+		AdminApplication app = Mockito.spy(new AdminApplication());
+		app.setVertx(vertx);
+		
+		int warDeployDuration = 2000;
+		String appName = "test";
+		
+		WarDeployer warDeployer = new WarDeployer() {
+			public void deploy(boolean startApplication) {
+				long t0 = System.currentTimeMillis();
+				while(System.currentTimeMillis() < t0+warDeployDuration);
+			};
+		};
+		app.setWarDeployer(warDeployer);
+		Mockito.doReturn(true).when(app).runCreateAppScript(Mockito.any(), Mockito.any());
+		
+		app.createApplication(appName, null);
+
+		Mockito.verify(app).runCreateAppScript(appName, null);
+
+		assertFalse(app.createApplicationWithURL(appName, "some_url"));
 	}
 
 }

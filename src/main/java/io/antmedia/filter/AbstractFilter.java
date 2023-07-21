@@ -3,10 +3,12 @@ package io.antmedia.filter;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Queue;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
@@ -26,6 +28,8 @@ import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
 public abstract class AbstractFilter implements Filter{
+	
+	public static final String BROADCAST_OBJECT = "broadcast";
 
 	protected static Logger logger = LoggerFactory.getLogger(AbstractFilter.class);
 	protected FilterConfig config;
@@ -57,7 +61,7 @@ public abstract class AbstractFilter implements Filter{
 		return serverSettings;
 	}
 
-	public boolean checkCIDRList(List<NetMask> allowedCIDRList, final String remoteIPAdrress) {
+	public boolean checkCIDRList(Queue<NetMask> allowedCIDRList, final String remoteIPAdrress) {
 		try {
 			InetAddress addr = InetAddress.getByName(remoteIPAdrress);
 			for (final NetMask nm : allowedCIDRList) {
@@ -143,13 +147,19 @@ public abstract class AbstractFilter implements Filter{
 		return streamStats;
 	}
 	
-	public Broadcast getBroadcast(String streamId) {
-		Broadcast broadcast = null;	
-		ApplicationContext context = getAppContext();
-		if (context != null) 
+	public Broadcast getBroadcast(HttpServletRequest request, String streamId) {
+		Broadcast broadcast = (Broadcast) request.getAttribute(BROADCAST_OBJECT);
+		if (broadcast == null) 
 		{
-			DataStoreFactory dsf = (DataStoreFactory)context.getBean(IDataStoreFactory.BEAN_NAME);
-			broadcast = dsf.getDataStore().get(streamId);
+			ApplicationContext context = getAppContext();
+			if (context != null) 
+			{
+				DataStoreFactory dsf = (DataStoreFactory)context.getBean(IDataStoreFactory.BEAN_NAME);
+				broadcast = dsf.getDataStore().get(streamId);
+				if (broadcast != null) {
+					request.setAttribute(BROADCAST_OBJECT, broadcast);
+				}
+			}
 		}
 		return broadcast;
 	}

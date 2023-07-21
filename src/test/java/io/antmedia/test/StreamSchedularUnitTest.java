@@ -102,7 +102,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@BeforeClass
 	public static void beforeClass() {
-		avformat.av_register_all();
+		//avformat.av_register_all();
 		avformat.avformat_network_init();
 	}
 
@@ -469,7 +469,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(tmp.getStatus());
 			});
 
-
+			//Get latest status of playlist
+			playlist = dataStore.get(streamId);
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getStatus());
 			assertEquals(2, playlist.getCurrentPlayIndex());
 

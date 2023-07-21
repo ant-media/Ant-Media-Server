@@ -104,10 +104,10 @@ public class RTMPAdaptorTest {
 		 */
 		assertNull(session.getUserProperties().get(streamId));
 
-		verify(webSocketHandler).sendPublishStartedMessage(streamId, session, null);
+		verify(webSocketHandler).sendPublishStartedMessage(streamId, session, null, "");
 	}
 
-	
+		
 	@Test
 	public void testUnexpectedLineSize() {
 		//Create FFmpegFRameRecoder
@@ -128,8 +128,8 @@ public class RTMPAdaptorTest {
 			((ByteBuffer)(frameCV.image[0].position(0))).put(rawFrame);
 			
 			//this is false to give 1280, 320, 320 but it let us know it is effective
-			recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-					frameCV.imageChannels, new int[]{1280, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
+			recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
+					frameCV.getImageChannels(), new int[]{1280, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
 
 			AVFrame picture = recorder.getPicture();
 			
@@ -183,7 +183,15 @@ public class RTMPAdaptorTest {
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
 		RTMPAdaptor adaptor = new RTMPAdaptor(f.getAbsolutePath(), null, height);
 		FFmpegFrameRecorder recorder = adaptor.getNewRecorder(f.getAbsolutePath(), width, height, "flv");
-
+		
+		//recorder is started, a new start command throws exception
+		try {
+			recorder.start();
+			fail("It should throw exception");
+		} catch (io.antmedia.recorder.FFmpegFrameRecorder.Exception e1) {
+			//e1.printStackTrace();
+		}
+	
 		//give raw frame
 
 		Frame frameCV = new Frame(640, 480, Frame.DEPTH_UBYTE, 2);
@@ -193,9 +201,22 @@ public class RTMPAdaptorTest {
 			byte[] rawFrame = Files.readAllBytes(rawFrameFile.toPath());
 			
 			((ByteBuffer)(frameCV.image[0].position(0))).put(rawFrame);
+			
+			recorder.debugSetStarted(false);
 
-			recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-					frameCV.imageChannels, new int[]{640, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
+			try {
+				recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
+						frameCV.getImageChannels(), new int[]{640, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
+				
+				fail("It should throw exception above because started is set to false");
+			}
+			catch (Exception e) {
+				
+			}
+			
+			recorder.debugSetStarted(true);
+			recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
+					frameCV.getImageChannels(), new int[]{640, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
 
 			AVFrame picture = recorder.getPicture();
 			assertEquals(width, picture.linesize(0));
@@ -203,8 +224,8 @@ public class RTMPAdaptorTest {
 			assertEquals(width/2, picture.linesize(2));
 			
 			
-			recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-					frameCV.imageChannels, new int[]{640, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
+			recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
+					frameCV.getImageChannels(), new int[]{640, 320, 320}, AV_PIX_FMT_YUV420P, frameCV.image);
 
 			picture = recorder.getPicture();
 			
@@ -332,6 +353,37 @@ public class RTMPAdaptorTest {
 
 		return spy(webSocketHandler);
 	}
+	
+	@Test
+	public void testAddCandidate() {
+		FFmpegFrameRecorder recorder = mock(FFmpegFrameRecorder.class);
+
+		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
+
+		RTMPAdaptor adaptorReal = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
+		RTMPAdaptor rtmpAdaptor = spy(adaptorReal);
+		String streamId = "stramId" + (int)(Math.random()*10000);
+		rtmpAdaptor.setStreamId(streamId);
+		Session session = mock(Session.class);
+		RemoteEndpoint.Basic  basicRemote = mock(RemoteEndpoint.Basic .class);
+		when(session.getBasicRemote()).thenReturn(basicRemote);
+		when(session.isOpen()).thenReturn(true);
+		rtmpAdaptor.setSession(session);
+		
+		
+		rtmpAdaptor.start();
+		String sdp = "candidate:78390311 1 udp 2122260223 10.2.40.82 50237 typ host generation 0 ufrag VUE6 network-id 1 network-cost 50";
+		//it was crashing here
+		rtmpAdaptor.addIceCandidate(new IceCandidate(null, 0, sdp));
+		//it was crashing here
+		rtmpAdaptor.addIceCandidate(new IceCandidate("audio", 0, null));
+		
+		
+		rtmpAdaptor.stop();
+		
+		Awaitility.await().atMost(2, TimeUnit.SECONDS).until(() -> rtmpAdaptor.getSignallingExecutor().isTerminated());
+		
+	}
 
 
 	@Test
@@ -355,7 +407,7 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.onIceCandidate(iceCandidate);
 
 
-		verify(webSocketHandler).sendTakeCandidateMessage(iceCandidate.sdpMLineIndex, iceCandidate.sdpMid, iceCandidate.sdp, streamId, session, "");
+		verify(webSocketHandler).sendTakeCandidateMessage(iceCandidate.sdpMLineIndex, iceCandidate.sdpMid, iceCandidate.sdp, streamId, session, "", "");
 
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND,  WebSocketConstants.TAKE_CANDIDATE_COMMAND);
@@ -364,6 +416,7 @@ public class RTMPAdaptorTest {
 		jsonObject.put(WebSocketConstants.CANDIDATE_SDP, iceCandidate.sdp);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
 		jsonObject.put(WebSocketConstants.LINK_SESSION, "");
+		jsonObject.put(WebSocketConstants.SUBSCRIBER_ID, "");
 
 		try {
 			verify(basicRemote).sendText(jsonObject.toJSONString());
@@ -427,19 +480,20 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.isStarted()
 				);
 
-		verify(webSocketHandler).sendStartMessage(streamId, session);
+		verify(webSocketHandler).sendStartMessage(streamId, session, "");
 
 		SessionDescription sdp = new SessionDescription(Type.OFFER, RandomStringUtils.randomAlphanumeric(6));
 
 		rtmpAdaptor.onCreateSuccess(sdp);
 
-		verify(webSocketHandler).sendSDPConfiguration(sdp.description, "offer", streamId, session, null, "");
+		verify(webSocketHandler).sendSDPConfiguration(sdp.description, "offer", streamId, session, null, "", "");
 		JSONObject jsonResponseObject = new JSONObject();
 		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
 		jsonResponseObject.put(WebSocketConstants.SDP, sdp.description);
 		jsonResponseObject.put(WebSocketConstants.TYPE, "offer");
 		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
 		jsonResponseObject.put(WebSocketConstants.LINK_SESSION, "");
+		jsonResponseObject.put(WebSocketConstants.SUBSCRIBER_ID, "");
 		try {
 			verify(basicRemote).sendText(jsonResponseObject.toJSONString());
 		} catch (IOException e) {
@@ -453,12 +507,13 @@ public class RTMPAdaptorTest {
 		rtmpAdaptor.getSignallingExecutor().isShutdown()
 				);
 
-		verify(webSocketHandler).sendPublishFinishedMessage(streamId, session);
+		verify(webSocketHandler).sendPublishFinishedMessage(streamId, session, "");
 
 		JSONObject jsonObj = new JSONObject();
 		jsonObj.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonObj.put(WebSocketConstants.DEFINITION, WebSocketConstants.PUBLISH_FINISHED);
 		jsonObj.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonObj.put(WebSocketConstants.SUBSCRIBER_ID, "");
 		try {
 			verify(basicRemote).sendText(jsonObj.toJSONString());
 		} catch (IOException e) {

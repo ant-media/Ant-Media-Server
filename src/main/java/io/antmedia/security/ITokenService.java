@@ -2,6 +2,8 @@ package io.antmedia.security;
 
 import java.util.Map;
 
+import javax.annotation.Nonnull;
+
 import io.antmedia.datastore.db.types.Token;
 
 public interface ITokenService {
@@ -62,7 +64,17 @@ public interface ITokenService {
 	 * @param type - type of the token (play/publish)
 	 * @return true or false
 	 */
-	boolean checkJwtToken (String jwtTokenId, String streamId, String type);
+	boolean checkJwtToken (String jwtTokenId, String streamId, String sessionId, String type);
+	
+	/**
+	 * Check the JWT token if it's valid. It accepts the secret key to check the validity;
+	 * @param jwtTokenId
+	 * @param tokenSecret
+	 * @param streamId
+	 * @param type
+	 * @return
+	 */
+	boolean isJwtTokenValid(@Nonnull String jwtTokenId, @Nonnull String tokenSecret, @Nonnull String streamId, @Nonnull String type);
 	
 	/**
 	 * creates token according to the provided parameters

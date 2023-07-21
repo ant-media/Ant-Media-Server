@@ -6,9 +6,9 @@
 # - First parameter is the mode of the cluster. It can be standalone or cluster
 # if the first parameter is cluster than the following parameter should also be given
 #
-# - Second parameter is the host of the mongodb.
-# - Third parameter is the username of the mongodb
-# - Fourth parameter is the password of the mongodb
+# - Second parameter is the url of the database. It can be mongodb:, mongodb+srv:// redis: or redis yaml configuration file
+# - Third parameter is the username of the mongodb. Deprecated. Add username to the host parameter
+# - Fourth parameter is the password of the mongodb. Deprecated. Add password to the host parameter
 #
 change_server_mode() {
   AMS_INSTALL_LOCATION=/usr/local/antmedia
@@ -25,47 +25,89 @@ change_server_mode() {
   if [ $MODE = "cluster" ]; then
     echo "Mode: cluster"
     DB_TYPE=mongodb
-    MONGO_SERVER_IP=$2
-      if [ -z "$MONGO_SERVER_IP" ]; then
-        echo "No Mongo DB Server specified. Missing parameter"
-        usage
-        exit 1
-      fi
+    DB_URL=$2
+    
+    if [ -z "$DB_URL" ]; then
+      echo "No DB URL specified. Missing parameter"
+      usage
+      exit 1
+    fi
+    
+    # if DB_URL is an IP address or localhost or starts with mongodb, assume that it's mongodb IP Address for backward compatibility.
+    if [[ $DB_URL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DB_URL =~ ^localhost$ ||  $DB_URL =~ ^mongo.*$ ]]; then
+      # it should be ^mongo.*$ not ^mongodb.*$ becaue  kubernetes deployment  give -h mongo parameter
+      DB_TYPE=mongodb
+      echo "DB type is mongodb"
+    elif [[ $DB_URL =~ ^redis.*$ ]]; then # if DB_URL starts with redis, then it's redis URL and make DB_TYPE to redis
+      DB_TYPE=redisdb
+      echo "DB type is redis"
+    else  # if DB_URL is something else, then assume that it's redist configuration file and make DB_TYPE to redis
+      DB_TYPE=redisdb
+      echo "DB type is redis"
+    fi
     
     sed -i $SED_COMPATIBILITY -E -e  's/(<!-- cluster start|<!-- cluster start -->)/<!-- cluster start -->/g' $AMS_INSTALL_LOCATION/conf/jee-container.xml
     sed -i $SED_COMPATIBILITY -E -e  's/(cluster end -->|<!-- cluster end -->)/<!-- cluster end -->/g' $AMS_INSTALL_LOCATION/conf/jee-container.xml
         
   else
     echo "Mode: standalone"
-    DB_TYPE=mapdb
-    MONGO_SERVER_IP=localhost
+    DB_URL=$2
+    if [ -z "$DB_URL" ]; then #backward compatible if no DB_URL it's mapdb
+      DB_TYPE=mapdb
+      DB_URL=localhost
+      echo "DB type is mapdb"
+    elif [[ $DB_URL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DB_URL =~ ^localhost$ ||  $DB_URL =~ ^mongo.*$ ]]; then
+      # it should be ^mongo.*$ not ^mongodb.*$ becaue kubernetes deployment give -h mongo parameter
+      DB_TYPE=mongodb
+      echo "DB type is mongodb"
+    elif [[ $DB_URL =~ ^redis.*$ ]]; then # if DB_URL starts with redis, then it's redis URL and make DB_TYPE to redis
+      DB_TYPE=redisdb
+      echo "DB type is redis"
+    else  # if DB_URL is something else, then assume that it's redist configuration file and make DB_TYPE to redis
+      DB_TYPE=redisdb
+      echo "DB type is redis"
+    fi
+    
     sed -i $SED_COMPATIBILITY -E -e  's/(<!-- cluster start -->|<!-- cluster start)/<!-- cluster start /g' $AMS_INSTALL_LOCATION/conf/jee-container.xml
     sed -i $SED_COMPATIBILITY -E -e 's/(<!-- cluster end -->|cluster end -->)/cluster end -->/g' $AMS_INSTALL_LOCATION/conf/jee-container.xml
   fi
 
 if [ "$OS_NAME" != "Darwin" ]; then
   #The c\ command is used to handle the & character in the mongo server url. & character mentions the matched line in s/ command
-  sed -i $SED_COMPATIBILITY "/clusterdb.host=/c\clusterdb.host=${MONGO_SERVER_IP}" $AMS_INSTALL_LOCATION/conf/red5.properties
-  sed -i $SED_COMPATIBILITY "/clusterdb.user=/c\clusterdb.user=$3" $AMS_INSTALL_LOCATION/conf/red5.properties
-  sed -i $SED_COMPATIBILITY "/clusterdb.password=/c\clusterdb.password=$4" $AMS_INSTALL_LOCATION/conf/red5.properties
+ 
+  USER=$3
+  PASS=$4
+  sed -i $SED_COMPATIBILITY "/clusterdb.host=/c\clusterdb.host=${DB_URL}" $AMS_INSTALL_LOCATION/conf/red5.properties
+  sed -i $SED_COMPATIBILITY "/clusterdb.user=/c\clusterdb.user=${USER}" $AMS_INSTALL_LOCATION/conf/red5.properties
+  sed -i $SED_COMPATIBILITY "/clusterdb.password=/c\clusterdb.password=${PASS}" $AMS_INSTALL_LOCATION/conf/red5.properties
 
   for i in $LIST_APPS; do
     sed -i $SED_COMPATIBILITY "/db.type=/c\db.type=$DB_TYPE" $i/WEB-INF/red5-web.properties
-    sed -i $SED_COMPATIBILITY "/db.host=/c\db.host=${MONGO_SERVER_IP}" $i/WEB-INF/red5-web.properties
-    sed -i $SED_COMPATIBILITY "/db.user=/c\db.user=$3" $i/WEB-INF/red5-web.properties
-    sed -i $SED_COMPATIBILITY "/db.password=/c\db.password=$4" $i/WEB-INF/red5-web.properties
+    sed -i $SED_COMPATIBILITY "/db.host=/c\db.host=${DB_URL}" $i/WEB-INF/red5-web.properties
+    sed -i $SED_COMPATIBILITY "/db.user=/c\db.user=${USER}" $i/WEB-INF/red5-web.properties
+    sed -i $SED_COMPATIBILITY "/db.password=/c\db.password=${PASS}" $i/WEB-INF/red5-web.properties
   done
 else
   #for darwin use s/ -> substitute
-  sed -i $SED_COMPATIBILITY "s/clusterdb.host=.*/clusterdb.host=${MONGO_SERVER_IP}/g" $AMS_INSTALL_LOCATION/conf/red5.properties
-  sed -i $SED_COMPATIBILITY "s/clusterdb.user=.*/clusterdb.user=$3/g" $AMS_INSTALL_LOCATION/conf/red5.properties
-  sed -i $SED_COMPATIBILITY "s/clusterdb.password=.*/clusterdb.password=$4/g" $AMS_INSTALL_LOCATION/conf/red5.properties
+  DB_URL="${DB_URL//\//\\/}"
+  USER=""
+  if [ ! -z "${3}" ]; then
+    USER="${3//\//\\/}"
+  fi
+  PASS=""
+  if [ ! -z "${4}" ]; then
+    PASS="${4//\//\\/}"
+  fi
+  
+  sed -i $SED_COMPATIBILITY "s/clusterdb.host=.*/clusterdb.host=${DB_URL}/g" $AMS_INSTALL_LOCATION/conf/red5.properties
+  sed -i $SED_COMPATIBILITY "s/clusterdb.user=.*/clusterdb.user=${USER}/g" $AMS_INSTALL_LOCATION/conf/red5.properties
+  sed -i $SED_COMPATIBILITY "s/clusterdb.password=.*/clusterdb.password=${PASS}/g" $AMS_INSTALL_LOCATION/conf/red5.properties
 
   for i in $LIST_APPS; do
     sed -i $SED_COMPATIBILITY "s/db.type=.*/db.type=$DB_TYPE/g" $i/WEB-INF/red5-web.properties
-    sed -i $SED_COMPATIBILITY "s/db.host=.*/db.host=${MONGO_SERVER_IP}/g" $i/WEB-INF/red5-web.properties
-    sed -i $SED_COMPATIBILITY "s/db.user=.*/db.user=$3/g" $i/WEB-INF/red5-web.properties
-    sed -i $SED_COMPATIBILITY "s/db.password=.*/db.password=$4/g" $i/WEB-INF/red5-web.properties
+    sed -i $SED_COMPATIBILITY "s/db.host=.*/db.host=${DB_URL}/g" $i/WEB-INF/red5-web.properties
+    sed -i $SED_COMPATIBILITY "s/db.user=.*/db.user=${USER}/g" $i/WEB-INF/red5-web.properties
+    sed -i $SED_COMPATIBILITY "s/db.password=.*/db.password=${PASS}/g" $i/WEB-INF/red5-web.properties
   done
 fi
   
@@ -93,4 +135,5 @@ fi
   fi
 
 }
+
 

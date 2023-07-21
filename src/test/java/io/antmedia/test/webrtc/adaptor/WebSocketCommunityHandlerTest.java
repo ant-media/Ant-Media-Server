@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -17,7 +18,7 @@ import javax.websocket.RemoteEndpoint;
 import javax.websocket.RemoteEndpoint.Basic;
 import javax.websocket.Session;
 
-import org.apache.commons.lang.math.RandomUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -41,6 +42,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
@@ -87,7 +89,8 @@ public class WebSocketCommunityHandlerTest {
 	};
 
 	@Before
-	public void before() {
+	public void before() 
+	{
 		appContext = Mockito.mock(ApplicationContext.class);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
 		AntMediaApplicationAdapter adaptor = Mockito.mock(AntMediaApplicationAdapter.class);
@@ -95,6 +98,8 @@ public class WebSocketCommunityHandlerTest {
 		when(scope.getName()).thenReturn("junit");
 
 		when(adaptor.getScope()).thenReturn(scope);
+		
+		when(adaptor.getServerSettings()).thenReturn(new ServerSettings());
 	
 		when(appContext.getBean("web.handler")).thenReturn(adaptor);
 		
@@ -116,6 +121,7 @@ public class WebSocketCommunityHandlerTest {
 		when(session.getUserProperties()).thenReturn(userProperties);
 
 		when(session.isOpen()).thenReturn(true);
+		
 	}
 
 
@@ -248,6 +254,30 @@ public class WebSocketCommunityHandlerTest {
 	}
 	
 	@Test
+	public void testPlayStream() {
+		JSONObject publishObject = new JSONObject();
+		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PLAY_COMMAND);
+		
+		String streamId = "streamId" + (int)(Math.random()*1000);
+		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		wsHandler.onMessage(session, publishObject.toJSONString());
+		
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.ERROR_CODE, "404");
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_EXIST);
+		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
+		
+		try {
+			verify(basicRemote).sendText(jsonResponse.toJSONString());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	@Test
 	public void testGetNewRTMPAdaptor() {
 		String rtmpUrl = "rtmp://localhost/LiveApp/232323";
 		int height = 260;
@@ -265,6 +295,7 @@ public class WebSocketCommunityHandlerTest {
 		String streamId = "streamId" + (int)(Math.random()*1000);
 
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
+		
 
 		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
@@ -342,15 +373,37 @@ public class WebSocketCommunityHandlerTest {
 			wsHandler.onMessage(session, takeCandidate.toJSONString());
 
 			ArgumentCaptor<IceCandidate> argument = ArgumentCaptor.forClass(IceCandidate.class);
-			verify(rtmpAdaptor).addIceCandidate(argument.capture());
+			verify(rtmpAdaptor, times(1)).addIceCandidate(argument.capture());
 			IceCandidate icecandidate = argument.getValue();
 			assertEquals(sdp, icecandidate.sdp);
 			assertEquals(type,icecandidate.sdpMid);
 			assertEquals(label,icecandidate.sdpMLineIndex);
-			
-
 		}
 
+		{
+			
+			JSONObject takeCandidate = new JSONObject();
+			takeCandidate.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CANDIDATE_COMMAND);
+			
+			//don't send canidate id
+			//String type = ""  +(int)(Math.random() * 91000);
+			//takeCandidate.put(WebSocketConstants.CANDIDATE_ID, type );
+			String sdp = ""  +(int)(Math.random() * 91000);;
+			takeCandidate.put(WebSocketConstants.CANDIDATE_SDP, sdp);
+			int label = (int)(Math.random() * 91000);;
+			takeCandidate.put(WebSocketConstants.CANDIDATE_LABEL, label);
+			takeCandidate.put(WebSocketConstants.STREAM_ID, streamId);
+
+			wsHandler.onMessage(session, takeCandidate.toJSONString());
+
+			ArgumentCaptor<IceCandidate> argument = ArgumentCaptor.forClass(IceCandidate.class);
+			verify(rtmpAdaptor, times(2)).addIceCandidate(argument.capture());
+			IceCandidate icecandidate = argument.getValue();
+			assertEquals(sdp, icecandidate.sdp);
+			assertEquals("0",icecandidate.sdpMid);
+			assertEquals(label,icecandidate.sdpMLineIndex);
+			
+		}
 
 		JSONObject stopObject = new JSONObject();
 		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.STOP_COMMAND);
@@ -504,7 +557,7 @@ public class WebSocketCommunityHandlerTest {
 		
 		wsHandler.setSession(session);
 		
-		wsHandler.sendPublishStartedMessage(streamId,  session, roomId); 
+		wsHandler.sendPublishStartedMessage(streamId,  session, roomId, ""); 
 		
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
 		verify(wsHandler).sendMessage(argument.capture(), Mockito.eq(session));
@@ -538,12 +591,12 @@ public class WebSocketCommunityHandlerTest {
 		String type = "dummyType";
 		String streamId = "dummyStreamId";
 		
-		int trackSize = RandomUtils.nextInt(5)+1;
+		int trackSize = RandomUtils.nextInt(0,5)+1;
 		Map<String, String> midSidMap = new HashMap<>();
 		for (int i = 0; i < trackSize; i++) {
 			midSidMap.put("mid"+i, "sid"+i);
 		}
-		JSONObject json = WebSocketCommunityHandler.getSDPConfigurationJSON(description, type, streamId, midSidMap, null);
+		JSONObject json = WebSocketCommunityHandler.getSDPConfigurationJSON(description, type, streamId, midSidMap, null, "");
 		
 		assertEquals(WebSocketConstants.TAKE_CONFIGURATION_COMMAND, json.get(WebSocketConstants.COMMAND));
 		assertEquals(description, json.get(WebSocketConstants.SDP));

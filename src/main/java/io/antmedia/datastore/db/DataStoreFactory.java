@@ -19,6 +19,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	public static final String DB_TYPE_MEMORYDB = "memorydb";
 	public static final String DB_TYPE_MAPDB = "mapdb";
 	public static final String DB_TYPE_MONGODB = "mongodb";
+	public static final String DB_TYPE_REDISDB = "redisdb";
 	
 	public static final String SETTINGS_DB_NAME = "db.name";
 	public static final String SETTINGS_DB_TYPE = "db.type";
@@ -32,13 +33,9 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	
 	private DataStore dataStore;
 	 
-	@Value( "${" + AppSettings.SETTINGS_WRITE_STATS_TO_DATASTORE +":true}")
-	private boolean writeStatsToDatastore;
-	
-	
 	@Value( "${"+SETTINGS_DB_NAME+":#{null}}" )
 	private String dbName;
-	
+
 	/**
 	 * One of the DB_TYPE_*
 	 */
@@ -54,9 +51,11 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	
 	@Value( "${"+SETTINGS_DB_PASS+":#{null}}" )
 	private String dbPassword;
+
 	private String hostAddress;
 	
 	private Vertx vertx;
+	private boolean writeStatsToDatastore;
 	
 	public String getDbName() {
 		return dbName;
@@ -89,15 +88,11 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	public void setDbUser(String dbUser) {
 		this.dbUser = dbUser;
 	}
-
-	public String getDbPassword() {
-		return dbPassword;
-	}
-
+	
 	public void setDbPassword(String dbPassword) {
 		this.dbPassword = dbPassword;
 	}
-	
+
 	public void init()  
 	{
 		if(dbType.contentEquals(DB_TYPE_MONGODB))
@@ -107,6 +102,10 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		else if(dbType .contentEquals(DB_TYPE_MAPDB))
 		{
 			dataStore = new MapDBStore(dbName+".db", vertx);
+		}
+		else if(dbType .contentEquals(DB_TYPE_REDISDB))
+		{
+			dataStore = new RedisStore(dbHost, dbName);
 		}
 		else if(dbType .contentEquals(DB_TYPE_MEMORYDB))
 		{
@@ -145,6 +144,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		hostAddress = serverSettings.getHostAddress();
+		writeStatsToDatastore = ((AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME)).isWriteStatsToDatastore();
 		init();
 	}
 

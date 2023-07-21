@@ -30,7 +30,7 @@ public class JWTFilter extends AbstractFilter {
 
 	protected static Logger log = LoggerFactory.getLogger(JWTFilter.class);
 
-	public static final String JWT_TOKEN = "Authorization";
+	public static final String JWT_TOKEN_HEADER = "Authorization";
 
 	private AppSettings appSettings;
 
@@ -40,12 +40,12 @@ public class JWTFilter extends AbstractFilter {
 
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 
-		if(appSettings != null && !appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN)))) {
+		if(appSettings != null && !appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN_HEADER) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN_HEADER)))) {
 			chain.doFilter(request, response);
 			return;
 		}
 
-		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid JWT Token");
+		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid App JWT Token");
 	}
 
 	private boolean checkJWT( String jwtString) {

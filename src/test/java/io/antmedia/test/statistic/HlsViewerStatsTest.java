@@ -129,7 +129,7 @@ public class HlsViewerStatsTest {
 					eventExist = ConnectionEvent.CONNECTED_EVENT == event2.getEventType();
 				}
 
-				return (subData.isConnected()) && eventExist; }
+				return subData.isConnected() && subData.getCurrentConcurrentConnections() == 1 && eventExist; }
 		);
 	
 		viewerStats.resetViewerMap(streamId, ViewerStats.HLS_TYPE);
@@ -167,10 +167,10 @@ public class HlsViewerStatsTest {
 			
 			when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 
-			AppSettings settings = mock(AppSettings.class);
+			AppSettings settings = new AppSettings();
 
 			//set hls time to 1
-			when(settings.getHlsTime()).thenReturn("1");
+			settings.setHlsTime("1");
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
@@ -242,7 +242,7 @@ public class HlsViewerStatsTest {
 						eventExist = ConnectionEvent.CONNECTED_EVENT == event.getEventType();
 					}
 
-					return (subData.isConnected()) && eventExist; 
+					return subData.isConnected() && subData.getCurrentConcurrentConnections() == 1 && eventExist; 
 			});
 			
 			// Check viewer is online
@@ -328,10 +328,10 @@ public class HlsViewerStatsTest {
 			
 			when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 
-			AppSettings settings = mock(AppSettings.class);
+			AppSettings settings = new AppSettings();
 
 			//set hls time to 1
-			when(settings.getHlsTime()).thenReturn("1");
+			settings.setHlsTime("1");
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());

@@ -1,7 +1,9 @@
 package io.antmedia.security;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
+
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpHeaders;
@@ -18,7 +20,6 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamPublishSecurity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.google.gson.JsonObject;
 
@@ -26,7 +27,6 @@ import io.antmedia.AppSettings;
 
 public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
-	@Autowired
 	private AppSettings appSettings = null;
 
 
@@ -35,7 +35,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsWithWebhook.class);
 
 	@Override
-	public synchronized boolean isPublishAllowed(IScope scope, String streamId, String mode, Map<String, String> queryParams) {
+	public synchronized boolean isPublishAllowed(IScope scope, String streamId, String mode, Map<String, String> queryParams, String metaData) {
 
 		AtomicBoolean result = new AtomicBoolean(false);
 		if (appSettings == null){
@@ -55,6 +55,10 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 					instance.addProperty("queryParams", queryParams.toString());
 				}
 
+				if(metaData != null){
+					instance.addProperty("metaData", metaData);
+				}
+
 				RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 
 				HttpRequestBase post = (HttpRequestBase) RequestBuilder.post().setUri(webhookAuthURL)
@@ -70,7 +74,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 				result.set(statuscode==200);
 
 			}
-			catch (Exception e) {
+			catch (IOException e) {
 				logger.error("Couldn't connect Webhook for Stream Authentication {} " , ExceptionUtils.getStackTrace(e));
 			}
 
@@ -83,7 +87,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 
 		if (!result.get()) {
-			IConnection connectionLocal = Red5.getConnectionLocal();
+			IConnection connectionLocal = getConnectionLocal();
 			if (connectionLocal != null) {
 				connectionLocal.close();
 			}
@@ -96,6 +100,9 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 		return result.get();
 	}
 
+	public IConnection getConnectionLocal(){
+		return Red5.getConnectionLocal();
+	}
 
 	public AppSettings getAppSettings() {
 		return appSettings;
@@ -109,11 +116,4 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 		return HttpClients.createDefault();
 	}
 
-
-	public int readHttpResponse(HttpResponse response){
-
-		int statuscode = response.getStatusLine().getStatusCode();
-		logger.info("Response from webhook is: {}", statuscode);
-		return statuscode;
-	}
 }

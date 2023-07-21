@@ -1,6 +1,7 @@
 package io.antmedia.test.statistic;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -16,6 +17,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.context.ApplicationContext;
 
+import ch.qos.logback.classic.Logger;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
@@ -126,7 +128,7 @@ public class DashViewerStatsTest {
 					eventExist = ConnectionEvent.CONNECTED_EVENT == event2.getEventType();
 				}
 
-				return (subData.isConnected()) && eventExist; }
+				return (subData.isConnected()) && subData.getCurrentConcurrentConnections() == 1  && eventExist; }
 		);
 	
 		viewerStats.resetViewerMap(streamId, ViewerStats.DASH_TYPE);
@@ -137,13 +139,14 @@ public class DashViewerStatsTest {
 	
 	@Test
 	public void testGetTimeout() {
-		AppSettings settings = mock(AppSettings.class);
-		when(settings.getDashFragmentDuration()).thenReturn("");
+		AppSettings settings = new AppSettings();
+		
+		settings.setDashFragmentDuration("");
 		
 		int defaultValue = DashViewerStats.DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT;
 		assertEquals(defaultValue, DashViewerStats.getTimeoutMSFromSettings(settings, defaultValue, DashViewerStats.DASH_TYPE));
 		
-		when(settings.getDashFragmentDuration()).thenReturn("0.5");
+		settings.setDashFragmentDuration("0.5");
 		
 		assertEquals(10000, DashViewerStats.getTimeoutMSFromSettings(settings, defaultValue, DashViewerStats.DASH_TYPE));
 		
@@ -164,10 +167,10 @@ public class DashViewerStatsTest {
 			
 			when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 
-			AppSettings settings = mock(AppSettings.class);
+			AppSettings settings = new AppSettings();
 
 			//set dash fragment duration to 0.5
-			when(settings.getDashFragmentDuration()).thenReturn("0.5");
+			settings.setDashFragmentDuration("0.5");
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
@@ -189,6 +192,7 @@ public class DashViewerStatsTest {
 			assertEquals(10000, viewerStats.getTimeoutMS());
 
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
+			String sessionId2 = "sessionId" + (int)(Math.random() * 10000);
 			
 			// create a subscriber play
 			Subscriber subscriberPlay = new Subscriber();
@@ -196,6 +200,7 @@ public class DashViewerStatsTest {
 			subscriberPlay.setSubscriberId("subscriber1");
 			subscriberPlay.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 			subscriberPlay.setType(Subscriber.PLAY_TYPE);
+			subscriberPlay.setConcurrentConnectionsLimit(2);
 			dsf.getDataStore().addSubscriber(subscriberPlay.getStreamId(), subscriberPlay);
 			
 			Subscriber subscriberPlay2 = new Subscriber();
@@ -212,20 +217,21 @@ public class DashViewerStatsTest {
 			subscriberPlay3.setType(Subscriber.PLAY_TYPE);
 			dsf.getDataStore().addSubscriber(subscriberPlay3.getStreamId(), subscriberPlay3);				
 			
-			
 			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId());
+			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay.getSubscriberId());
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
-					()->viewerStats.getViewerCount(streamId) == 1 );
+					()->viewerStats.getViewerCount(streamId) == 2 );
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
-					()->viewerStats.getIncreaseCounterMap(streamId) == 1 );
+					()->viewerStats.getIncreaseCounterMap(streamId) == 2 );
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
-					()->viewerStats.getTotalViewerCount() == 1 );
+					()->viewerStats.getTotalViewerCount() == 2 );
 			
 			//Viewer timeout increase
 			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId());
+			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay2.getSubscriberId());
 			
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()-> {
@@ -234,17 +240,17 @@ public class DashViewerStatsTest {
 					
 					List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
 					
-					if(events.size() == 1) {
+					if(events.size() == 2) {
 						ConnectionEvent event = events.get(0);
 						eventExist = ConnectionEvent.CONNECTED_EVENT == event.getEventType();
 					}
 
-					return (subData.isConnected()) && eventExist; 
+					return subData.isConnected() && subData.getCurrentConcurrentConnections() == 2 && eventExist; 
 			});
 			
 			// Check viewer is online
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
-					()-> dsf.getDataStore().get(streamId).getDashViewerCount() == 1);
+					()-> dsf.getDataStore().get(streamId).getDashViewerCount() == 2);
 			
 			// Wait some time for detect disconnect
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
@@ -259,10 +265,9 @@ public class DashViewerStatsTest {
 			
 			List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
 			
-			assertEquals(2, events.size());
-			ConnectionEvent eventDis = events.get(1);
-			assertTrue(ConnectionEvent.DISCONNECTED_EVENT == eventDis.getEventType());
-		
+			assertEquals(4, events.size());
+			ConnectionEvent eventDis = events.get(3);
+			assertSame(ConnectionEvent.DISCONNECTED_EVENT, eventDis.getEventType());
 			
 			// Broadcast finished test
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
@@ -277,6 +282,7 @@ public class DashViewerStatsTest {
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);
 			
+
 			assertEquals(1, viewerStats.getViewerCount(streamId));
 			assertEquals(1, viewerStats.getIncreaseCounterMap(streamId));
 			assertEquals(1, viewerStats.getTotalViewerCount());
@@ -295,13 +301,14 @@ public class DashViewerStatsTest {
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
 					()-> viewerStats.getTotalViewerCount() == 0);
 			
+
 			Subscriber subData2 = dsf.getDataStore().getSubscriber(streamId, subscriberPlay3.getSubscriberId());
 			
 			List<ConnectionEvent> events2 = subData2.getStats().getConnectionEvents();
 			
-			assertEquals(2, events2.size());
-			ConnectionEvent eventDis2 = events.get(1);
-			assertTrue(ConnectionEvent.DISCONNECTED_EVENT == eventDis2.getEventType());			
+			assertEquals(2, events2.size());	
+			ConnectionEvent eventDis2 = events2.get(1);
+			assertSame(ConnectionEvent.DISCONNECTED_EVENT, eventDis2.getEventType());		
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -325,11 +332,10 @@ public class DashViewerStatsTest {
 			
 			when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 
-			AppSettings settings = mock(AppSettings.class);
+			AppSettings settings = new AppSettings();
 
 			//set dash fragment duration time to 1
-			when(settings.getDashFragmentDuration()).thenReturn("0.5");
-			
+			settings.setDashFragmentDuration("0.5");
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 			

@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 
+import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.util.ArrayList;
@@ -401,7 +402,7 @@ public class StatsCollectorTest {
 		resMonitor.setKafkaProducer(kafkaProducer);
 		
 		List<WebRTCClientStats> webRTCClientStatList = new ArrayList<>();
-		WebRTCClientStats stats = new WebRTCClientStats(100, 50, 40, 20, 60, 444, 9393838, "info");
+		WebRTCClientStats stats = new WebRTCClientStats(100, 50, 40, 20, 60, 444, 9393838, "info", "192.168.1.1");
 		webRTCClientStatList.add(stats);
 		resMonitor.sendWebRTCClientStats2Kafka(webRTCClientStatList, "stream1");
 		
@@ -457,7 +458,7 @@ public class StatsCollectorTest {
 		streams.add("stream1");
 		Mockito.when(webRTCAdaptor.getStreams()).thenReturn(streams);
 		List<WebRTCClientStats> webRTCClientStatList = new ArrayList<>();
-		WebRTCClientStats stats = new WebRTCClientStats(100, 50, 40, 20, 60, 444, 9393838, "info");
+		WebRTCClientStats stats = new WebRTCClientStats(100, 50, 40, 20, 60, 444, 9393838, "info", "192.168.1.1");
 		webRTCClientStatList.add(stats);
 		 
 		Mockito.when(webRTCAdaptor.getWebRTCClientStats(any())).thenReturn(webRTCClientStatList);
@@ -473,6 +474,62 @@ public class StatsCollectorTest {
 		verify(kafkaProducer, Mockito.times(1)).send(Mockito.any());		
 		
 	}
+	
+	@Test
+	public void testStatusSendUnexpectedShutdownbHook() {
+		ServerSettings serverSettings = new ServerSettings();
+		
+		serverSettings.setCpuMeasurementPeriodMs(10000);
+		//Create StatsCollector
+		StatsCollector statsCollector = Mockito.spy(new StatsCollector());
+		
+		ApplicationContext context = Mockito.mock(ApplicationContext.class);
+		Mockito.when(context.getBean(IServer.ID)).thenReturn(Mockito.mock(IServer.class));
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(serverSettings);
+		
+		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		Mockito.when(context.getBean(WebSocketCommunityHandler.WEBRTC_VERTX_BEAN_NAME)).thenReturn(webRTCVertx);
+		//Call setApplicationContext
+		statsCollector.setApplicationContext(context);
+		
+		statsCollector.start();
+		Mockito.verify(statsCollector, Mockito.never()).sendUnexpectedShutdownHook(Mockito.any());
+		
+		String httpUrl = "http://example.com";
+		serverSettings.setServerStatusWebHookURL(httpUrl);
+		
+		assertEquals(30000, statsCollector.getUnexpectedShutDownDelayMs());
+		statsCollector.setUnexpectedShutDownDelayMs(10);
+		statsCollector.setApplicationContext(context);
+		statsCollector.start();
+		Mockito.verify(statsCollector, Mockito.after(100).never()).sendUnexpectedShutdownHook(Mockito.any());
+		
+		
+		ConcurrentLinkedQueue<IScope> scopes = new ConcurrentLinkedQueue<>();
+		IScope scope = Mockito.mock(IScope.class);
+		IContext mockContext = Mockito.mock(IContext.class);
+		Mockito.when(scope.getContext()).thenReturn(mockContext);
+		AntMediaApplicationAdapter appAdaptor = new AntMediaApplicationAdapter();
+		Mockito.when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
+		Mockito.when(context.containsBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(true);
+		Mockito.when(mockContext.getApplicationContext()).thenReturn(context);
+		
+		scopes.add(scope);
+		statsCollector.setScopes(scopes);
+		
+		
+		statsCollector.setApplicationContext(context);
+		statsCollector.start();
+		Mockito.verify(statsCollector, Mockito.after(100).never()).sendUnexpectedShutdownHook(Mockito.any());
+		
+		appAdaptor.setShutdownProperly(false);
+		statsCollector.setApplicationContext(context);
+		statsCollector.start();
+		Mockito.verify(statsCollector, Mockito.after(500)).sendUnexpectedShutdownHook(Mockito.any());
+		
+	}
+	
+	
 	
 	
 	@Test
@@ -521,6 +578,8 @@ public class StatsCollectorTest {
 	public void testCheckSystemResources() {
 		
 		StatsCollector monitor = Mockito.spy(new StatsCollector());
+		monitor.setVertx(vertx);
+		monitor.setWebRTCVertx(webRTCVertx);
 		
 		long minValue = 100;
 		long maxValue = 1000;
@@ -535,7 +594,13 @@ public class StatsCollectorTest {
 		
 		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(50);
 				
-		assertEquals(true,monitor.enoughResource());
+		assertEquals(true, monitor.enoughResource());
+		try {
+			Mockito.verify(monitor, Mockito.after(100).never()).sendPOST(Mockito.any(), Mockito.any());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 		
 		//CPU value over 70
 		
@@ -546,6 +611,12 @@ public class StatsCollectorTest {
 		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(50);
 			
 		assertEquals(false, monitor.enoughResource());
+		try {
+			Mockito.verify(monitor, Mockito.after(100).never()).sendPOST(Mockito.any(), Mockito.any());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 		
 		//RAM free value under 50
 		
@@ -554,8 +625,16 @@ public class StatsCollectorTest {
 		Mockito.when(monitor.getFreeRam()).thenReturn(10);
 		
 		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(50);
-			
-		assertEquals(false,monitor.enoughResource());
+		monitor.setWebhookURL("http://example.com");
+		
+		assertEquals(false, monitor.enoughResource());
+		
+		try {
+			Mockito.verify(monitor, Mockito.after(500)).sendPOST(Mockito.any(), Mockito.any());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 		
 		// Check false values in Max and Current physical memory
 		
@@ -564,8 +643,18 @@ public class StatsCollectorTest {
 		Mockito.when(monitor.getFreeRam()).thenReturn(500);
 		
 		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(50);
+		
+		
 				
 		assertEquals(true,monitor.enoughResource());
+		
+		try {
+			
+			Mockito.verify(monitor, Mockito.after(100).times(1)).sendPOST(Mockito.any(), Mockito.any());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 
 		
 	}

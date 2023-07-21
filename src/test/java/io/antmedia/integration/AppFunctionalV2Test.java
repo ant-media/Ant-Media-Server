@@ -1,6 +1,5 @@
 package io.antmedia.integration;
 
-import static org.bytedeco.ffmpeg.global.avformat.av_register_all;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_network_init;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -129,7 +128,7 @@ public class AppFunctionalV2Test {
 		if (OS_TYPE == MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
-		av_register_all();
+	//	av_register_all();
 		avformat_network_init();
 	}
 
@@ -402,11 +401,17 @@ public class AppFunctionalV2Test {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamId + "_adaptive.m3u8");
 			});
 
-
 			//stop streaming
 			rtmpSendingProcess.destroy();
 			rtmpSendingProcess.waitFor();
-
+			
+			RestServiceV2Test restService = new RestServiceV2Test();
+			
+			
+			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+				return restService.getBroadcast(streamId) == null;
+			});
+			
 			//start streaming again immediately
 			rtmpSendingProcess = execute(ffmpegPath
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"

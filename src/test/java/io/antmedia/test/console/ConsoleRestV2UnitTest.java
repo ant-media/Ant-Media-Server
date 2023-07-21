@@ -20,6 +20,7 @@ import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
 import org.bytedeco.ffmpeg.global.avformat;
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.junit.*;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
@@ -32,9 +33,15 @@ import org.springframework.web.context.WebApplicationContext;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,6 +55,7 @@ public class ConsoleRestV2UnitTest {
 
 	private RestServiceV2 restService;
 	private MapDBStore dbStore;
+	private Vertx vertx;
 
 	private static final String USER_PASSWORD = "user.password";
 
@@ -84,7 +92,8 @@ public class ConsoleRestV2UnitTest {
 			}
 		}
 		restService = new RestServiceV2();
-		dbStore = new MapDBStore();
+		vertx = Vertx.vertx();
+		dbStore = new MapDBStore(vertx);
 		restService.setDataStore(dbStore);
 	}
 
@@ -92,6 +101,7 @@ public class ConsoleRestV2UnitTest {
 	public void after() {
 		// dbStore.clear();
 		dbStore.close();
+		vertx.close();
 
 		File f = new File("server.db");
 		if (f.exists()) {
@@ -217,17 +227,17 @@ public class ConsoleRestV2UnitTest {
 		}
 
 	}
-	
+
 	@Test
 	public void testSendInfo() {
 		RestServiceV2 restServiceSpy = Mockito.spy(restService);
-		
+
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
-		
+
 		boolean sendUserInfo = restServiceSpy.sendUserInfo("test@antmedia.io", "firstname", "lastname", "scope", "admin");
 		assertTrue(sendUserInfo);
 	}
-	
+
 	@Test
 	public void testGetStatsCollector() {
 		RestServiceV2 restServiceSpy = Mockito.spy(restService);
@@ -599,8 +609,24 @@ public class ConsoleRestV2UnitTest {
 		Mockito.doReturn(null).when(restServiceSpy).getAppAdaptor(Mockito.any());
 		result = restServiceSpy.deleteApplication("test", true);
 		assertFalse(result.isSuccess());
+		
+		
+		result = restServiceSpy.deleteApplication("test??", true);
+		assertFalse(result.isSuccess()); //because there is invalid character
 
+	}
 
+	@Test
+	public void testLiveness() {
+		RestServiceV2 restServiceSpy = Mockito.spy(restService);
+
+		Response liveness = restServiceSpy.liveness();
+		assertEquals(Status.OK.getStatusCode(), liveness.getStatus());
+
+		Mockito.doReturn(null).when(restServiceSpy).getHostname();
+
+		liveness = restServiceSpy.liveness();
+		assertEquals(Status.INTERNAL_SERVER_ERROR.getStatusCode(), liveness.getStatus());
 	}
 
 	@Test
@@ -637,6 +663,162 @@ public class ConsoleRestV2UnitTest {
 		restServiceSpy.setShutdownStatus("app1,app2");
 
 		Mockito.verify(adaptor).setShutdownProperly(true);
+	}
+
+	@Test
+	public void testExtractFQDN() {
+		String domain = CommonRestService.extractFQDN("http://example.com/path/to/page.html");
+		assertEquals("example.com", domain);
+
+		domain = CommonRestService.extractFQDN("https://www.subdomain.example.com");
+		assertEquals("www.subdomain.example.com", domain);
+
+
+		domain = CommonRestService.extractFQDN("ftp://ftp.example.com/files");
+		assertEquals("ftp.example.com", domain);
+
+		domain = CommonRestService.extractFQDN("wss://www.subdomain.example.com");
+		assertEquals("www.subdomain.example.com", domain);
+
+		domain = CommonRestService.extractFQDN("ws://www.subdomain.example.com");
+		assertEquals("www.subdomain.example.com", domain);
+
+		domain = CommonRestService.extractFQDN("");
+		assertNull(domain);
+		domain = CommonRestService.extractFQDN(null);
+		assertNull(domain);
+	}
+
+	@Test
+	public void testConfigureSSL() 
+	{
+		RestServiceV2 restServiceSpy = Mockito.spy(restService);
+		AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+		Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+		Mockito.when(adminApp.runCommand(Mockito.anyString())).thenReturn(true);
+
+		Result result = restServiceSpy.configureSsl(null, null, null, null, null, null, null, null);
+		assertFalse(result.isSuccess());
+		Mockito.verify(adminApp, Mockito.never()).runCommand(Mockito.anyString());
+
+		result = restServiceSpy.configureSsl(null, "", null, null, null, null, null, null);
+		assertFalse(result.isSuccess());
+		Mockito.verify(adminApp, Mockito.never()).runCommand(Mockito.anyString());
+
+		result = restServiceSpy.configureSsl("", "", null, null, null, null, null, null);
+		assertFalse(result.isSuccess());
+		Mockito.verify(adminApp, Mockito.never()).runCommand(Mockito.anyString());
+		
+		result = restServiceSpy.configureSsl("example.com", "", null, null, null, null, null, null);
+		assertFalse(result.isSuccess());
+		Mockito.verify(adminApp, Mockito.never()).runCommand(Mockito.anyString());
+
+
+		result = restServiceSpy.configureSsl("", "ANTMEDIA_SUBDOMAIN", null, null, null, null, null, null);
+		assertTrue(result.isSuccess());
+		Mockito.verify(adminApp, Mockito.times(1)).runCommand(Mockito.anyString());
+
+
+		result = restServiceSpy.configureSsl("", "CUSTOM_DOMAIN", null, null, null, null, null, null);
+		assertFalse(result.isSuccess());
+		Mockito.verify(adminApp, Mockito.times(1)).runCommand(Mockito.anyString());
+
+		result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_DOMAIN", null, null, null, null, null, null);
+		assertTrue(result.isSuccess());
+		Mockito.verify(adminApp, Mockito.times(2)).runCommand(Mockito.anyString());
+
+		//ignores the given domain name
+		result = restServiceSpy.configureSsl("http://example.com", "ANTMEDIA_SUBDOMAIN", null, null, null, null, null, null);
+		assertTrue(result.isSuccess());
+		Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+
+
+		result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", null, null, null, null, null, null);
+		assertFalse(result.isSuccess());
+		Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+
+		try {
+				
+			InputStream fullChainInputStream = new FileInputStream("src/test/resources/test.properties");
+
+			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, null, null, null, null, null);
+			assertFalse(result.isSuccess());
+			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			
+			FormDataContentDisposition fullChainFileContent = Mockito.mock(FormDataContentDisposition.class);
+			Mockito.when(fullChainFileContent.getFileName()).thenReturn(null);
+			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, null, null, null, null);
+			assertFalse(result.isSuccess());
+			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			
+			Mockito.when(fullChainFileContent.getFileName()).thenReturn("");
+			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, null, null, null, null);
+			assertFalse(result.isSuccess());
+			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			
+			Mockito.when(fullChainFileContent.getFileName()).thenReturn("fullchain.pem");
+			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, null, null, null, null);
+			assertFalse(result.isSuccess());
+			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			
+			
+			//private key file
+			InputStream privateKeyFileInputStream = new FileInputStream("src/test/resources/test.properties");
+
+			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, null, null, null);
+			assertFalse(result.isSuccess());
+			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			
+			FormDataContentDisposition privateFileContent = Mockito.mock(FormDataContentDisposition.class);
+			Mockito.when(privateFileContent.getFileName()).thenReturn(null);
+			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, null, null);
+			assertFalse(result.isSuccess());
+			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			
+			Mockito.when(privateFileContent.getFileName()).thenReturn("");
+			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, null, null);
+			assertFalse(result.isSuccess());
+			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			
+			Mockito.when(privateFileContent.getFileName()).thenReturn("fullchain.pem");
+			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, null, null);
+			assertFalse(result.isSuccess());
+			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+		
+			
+			//chain file
+			
+			InputStream chainFileInputStream = new FileInputStream("src/test/resources/test.properties");
+
+			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, chainFileInputStream, null);
+			assertFalse(result.isSuccess());
+			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			
+			FormDataContentDisposition chainFileContent = Mockito.mock(FormDataContentDisposition.class);
+			Mockito.when(chainFileContent.getFileName()).thenReturn(null);
+			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, chainFileInputStream, chainFileContent);
+			assertFalse(result.isSuccess());
+			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			
+			Mockito.when(chainFileContent.getFileName()).thenReturn("");
+			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, chainFileInputStream, chainFileContent);
+			assertFalse(result.isSuccess());
+			Mockito.verify(adminApp, Mockito.times(3)).runCommand(Mockito.anyString());
+			
+			Mockito.when(chainFileContent.getFileName()).thenReturn("fullchain.pem");
+			result = restServiceSpy.configureSsl("http://example.com", "CUSTOM_CERTIFICATE", fullChainInputStream, fullChainFileContent, privateKeyFileInputStream, privateFileContent, chainFileInputStream, chainFileContent);
+			assertTrue(result.isSuccess());
+			Mockito.verify(adminApp, Mockito.times(4)).runCommand(Mockito.anyString());
+			
+			
+			
+
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+
 	}
 
 }

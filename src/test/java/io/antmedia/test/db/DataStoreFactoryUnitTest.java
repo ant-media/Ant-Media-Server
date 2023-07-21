@@ -14,6 +14,7 @@ import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -45,7 +46,8 @@ public class DataStoreFactoryUnitTest {
 		dsf.setDbType("memorydb");
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
-		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());			
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());		
+		Mockito.when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
 		dsf.setApplicationContext(context);
 		dsf.setDataStore(null);
 	}
