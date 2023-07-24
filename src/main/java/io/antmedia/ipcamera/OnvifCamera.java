@@ -262,8 +262,23 @@ public class OnvifCamera implements IOnvifCamera {
 		String[] ipAddrParts = null;
 		String ipAddr = url;
 
+		// if protocol is https, return the url with https
+		if (url != null && url.startsWith("https://")) {
+			ipAddrParts = url.split("//");
+			ipAddr = ipAddrParts[1];
+			if (ipAddr != null) {
+
+				if (ipAddr.contains("/")){
+					ipAddrParts = ipAddr.split("/");
+					ipAddr = ipAddrParts[0];
+				}
+				logger.info("IP: {}", ipAddr);
+			}
+			return "https://" + ipAddr;
+		}
+
+		// if protocol is not https, return ip address with port
 		if(url != null && (url.startsWith(HTTP) ||
-				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
 				url.startsWith("rtsp://"))) {
