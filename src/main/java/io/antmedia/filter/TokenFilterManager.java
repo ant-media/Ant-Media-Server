@@ -26,8 +26,6 @@ public class TokenFilterManager extends AbstractFilter   {
 	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 	public static final String NOT_INITIALIZED= "Not initialized";
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterManager.class);
-	private ITokenService tokenService;
-
 	public static final String TOKEN_HEADER_FOR_NODE_COMMUNICATION = "ClusterAuthorization";
 
 
@@ -149,21 +147,6 @@ public class TokenFilterManager extends AbstractFilter   {
 			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
 			logger.warn("Invalid method type({}) for stream: {} and request uri: {}", method, streamId, httpRequest.getRequestURI());
 		}
-	}
-
-	public ITokenService getTokenService() {
-		if (tokenService == null) {
-			ApplicationContext context = getAppContext();
-			if (context != null) {
-				tokenService = (ITokenService)context.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
-			}
-		}
-		return tokenService;
-	}
-
-
-	public void setTokenService(ITokenService tokenService) {
-		this.tokenService = tokenService;
 	}
 
 

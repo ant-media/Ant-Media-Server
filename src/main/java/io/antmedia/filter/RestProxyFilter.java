@@ -8,17 +8,18 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
 
+import io.antmedia.datastore.db.types.Token;
+import io.antmedia.security.ITokenService;
+import org.apache.http.HttpRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AppSettings;
 import io.antmedia.cluster.IClusterNotifier;
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.servlet.EndpointProxy;
@@ -27,37 +28,41 @@ public class RestProxyFilter extends AbstractFilter {
 
 	protected static Logger log = LoggerFactory.getLogger(RestProxyFilter.class);
 
-	private DataStore dataStore;
+	private AppSettings appSettings;
 
-	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException 
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException
 	{
-		HttpServletRequest httpReq = (HttpServletRequest) request;
-		String reqURI = httpReq.getRequestURI();
+		HttpServletRequest httpRequest =(HttpServletRequest)request;
+		HttpServletResponse httpResponse = (HttpServletResponse)response;
 
-		String method = httpReq.getMethod();
+		String method = httpRequest.getMethod();
 
 		if (HttpMethod.POST.equals(method) || HttpMethod.PUT.equals(method) || HttpMethod.DELETE.equals(method)) 
 		{
-			String streamId = getStreamId(reqURI);
-			if (streamId != null && !streamId.isEmpty()) 
+			String streamId = getStreamId(httpRequest.getRequestURI());
+
+			if (streamId != null && !streamId.isEmpty())
 			{
-				Broadcast broadcast = getBroadcast(httpReq, streamId);
+				Broadcast broadcast = getBroadcast(httpRequest, streamId);
 				log.debug("STREAM ID = {} BROADCAST = {} ", streamId, broadcast);
-				
+
 				//If it is not related with the broadcast, we can skip this filter
-				if (broadcast == null 
+				if (broadcast == null
 						|| !IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())
-						|| isInSameNodeInCluster(request.getRemoteAddr(), broadcast.getOriginAdress()) ) 
+						//|| isInSameNodeInCluster(request.getRemoteAddr(), broadcast.getOriginAdress())
+						|| isForwardedByAnotherNode(streamId, httpRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION)))
 				{
 					chain.doFilter(request, response);
 				}
 				else
 				{
+					String jwtToken = getJwtInternalToken(streamId);
 					AppSettings settings = getAppSettings();
 					String originAdress = "http://" + broadcast.getOriginAdress() + ":" + getServerSetting().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
-					log.info("Redirecting request to origin {}", originAdress);
+					log.info("Redirecting the request to origin {}", originAdress);
 					EndpointProxy endpointProxy = new EndpointProxy();
 					endpointProxy.initTarget(originAdress);
+					endpointProxy.setNodeCommunicationHeader(jwtToken);
 					endpointProxy.service(request, response);
 				}
 			}
@@ -66,6 +71,25 @@ public class RestProxyFilter extends AbstractFilter {
 		{
 			chain.doFilter(request, response);
 		}
+	}
+
+	private boolean isForwardedByAnotherNode(String streamId, String jwtInternalCommunicationToken) {
+		boolean result = false;
+		System.out.println("isForwardedByAnotherNode: " + jwtInternalCommunicationToken);
+		if (jwtInternalCommunicationToken != null)
+		{
+			result = getTokenService().isJwtTokenValid(jwtInternalCommunicationToken, getAppSettings() .getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
+			System.out.println("result: " + result);
+
+			if(result) {
+				log.info("Request forwarded by another node is received for stream id: {}", streamId);
+			}
+		}
+		return  result;
+	}
+
+	private String getJwtInternalToken(String streamId) {
+		return ITokenService.generateJwtToken(getAppSettings().getClusterCommunicationKey(), streamId , System.currentTimeMillis() + 30000, Token.PLAY_TOKEN);
 	}
 
 	public String getStreamId(String reqURI){
@@ -83,21 +107,7 @@ public class RestProxyFilter extends AbstractFilter {
 	public  boolean isInSameNodeInCluster(String requestAddress, String streamOriginAddress) {
 		ApplicationContext context = getAppContext();
 		boolean isCluster = context.containsBean(IClusterNotifier.BEAN_NAME);
-		return !isCluster || requestAddress.equals(getServerSetting().getHostAddress()) 
+		return !isCluster || requestAddress.equals(getServerSetting().getHostAddress())
 				|| getServerSetting().getHostAddress().equals(streamOriginAddress);
 	}
-
-	public DataStore getDataStore() {
-		if(dataStore == null) {
-			ApplicationContext context = getAppContext();
-			if(context != null){
-				dataStore = ((DataStoreFactory) context.getBean(IDataStoreFactory.BEAN_NAME)).getDataStore();
-			}
-			else{
-				log.error("RestProxyFilter is not initialized because context returns null");
-			}
-		}
-		return dataStore;
-	}
-
 }

@@ -1,5 +1,6 @@
 package io.antmedia.rest.servlet;
 
+import io.antmedia.filter.TokenFilterManager;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -29,6 +30,7 @@ public class EndpointProxy extends ProxyServlet {
 	private static final long serialVersionUID = 1L;
 
     protected static Logger log = LoggerFactory.getLogger(EndpointProxy.class);
+    private String nodeCommunicationHeader;
 
 
     /**
@@ -59,6 +61,9 @@ public class EndpointProxy extends ProxyServlet {
 
         this.copyRequestHeaders(servletRequest, (HttpRequest)proxyRequest);
         this.setXForwardedFor(servletRequest, (HttpRequest)proxyRequest);
+
+        ((HttpRequest) proxyRequest).setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, nodeCommunicationHeader);
+
         HttpResponse proxyResponse = null;
 
         try {
@@ -183,4 +188,7 @@ public class EndpointProxy extends ProxyServlet {
         return uri.toString();
     }
 
+    public void setNodeCommunicationHeader(String jwtToken) {
+        this.nodeCommunicationHeader = jwtToken;
+    }
 }

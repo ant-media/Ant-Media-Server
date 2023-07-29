@@ -1,10 +1,16 @@
 package io.antmedia.security;
 
+import java.util.Date;
 import java.util.Map;
 
 import javax.annotation.Nonnull;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import io.antmedia.datastore.db.types.Token;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public interface ITokenService {
 
@@ -24,8 +30,9 @@ public interface ITokenService {
 		}
 
 	}
-	
-	
+
+	static Logger logger = LoggerFactory.getLogger(ITokenService.class);
+
 	/**
 	 * Compare hash string with computed one which is based on streamId,type and secret
 	 * @param hash - client hash
@@ -97,6 +104,35 @@ public interface ITokenService {
 	 */
 
 	Token createJwtToken(String streamId, long exprireDate, String type, String roomId);
+
+
+	/**
+	 * generates token according to the provided parameters
+	 * @param jwtSecretKey - secret key for token creation
+	 * @param streamId - id of the requested stream for token creation
+	 * @param expireDateUnixTimeStampMs - expire date of the token (unix timestamp)
+	 * @param type type of the token (play/publish)
+	 * @return token
+	 */
+	static String generateJwtToken(String jwtSecretKey, String streamId, long expireDateUnixTimeStampMs, String type) {
+		Date expireDateType = new Date(expireDateUnixTimeStampMs);
+		String jwtTokenId = null;
+		try {
+			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+
+			jwtTokenId = JWT.create().
+					withClaim("streamId", streamId).
+					withClaim("type", type).
+					withExpiresAt(expireDateType).
+					sign(algorithm);
+
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return jwtTokenId;
+	}
+
 
 	/**
 	 * gets  map of authenticated sessions
