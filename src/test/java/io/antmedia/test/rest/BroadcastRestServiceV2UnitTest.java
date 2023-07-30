@@ -2993,7 +2993,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceSpy.addStreamToTheRoom("testroom","stream1");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		verify(app, times(1)).joinedTheRoom("testroom", "stream1");
-		restServiceSpy.addStreamToTheRoom("testroom","stream2");
+		restServiceSpy.addStreamToTheRoomDeprecated("testroom","stream2");
 		assertEquals(2,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.addStreamToTheRoom(null,"stream3");
 		assertEquals(2,store.getConferenceRoom("testroom").getRoomStreamList().size());
@@ -3039,7 +3039,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceSpy.deleteStreamFromTheRoom("testroom","stream2");
 		verify(app, times(1)).leftTheRoom("testroom", "stream2");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
-		restServiceSpy.deleteStreamFromTheRoom(null,"stream2");
+		restServiceSpy.deleteStreamFromTheRoomDeprecated(null,"stream2");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.deleteStreamFromTheRoom("testroom","someunknownstream");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
