@@ -1037,7 +1037,7 @@ public class BroadcastRestService extends RestServiceBase{
 		if (subTrack != null)
 		{
 			if(id != null && id.equals(subTrack.getMainTrackStreamId())) {
-				subTrack.setMainTrackStreamId(null);
+				subTrack.setMainTrackStreamId("");
 			}
 
 			boolean success = getDataStore().updateBroadcastFields(subTrackId, subTrack);
@@ -1170,13 +1170,25 @@ public class BroadcastRestService extends RestServiceBase{
 		return new RootRestService.RoomInfo(roomId,RestServiceBase.getRoomInfoFromConference(roomId,streamId,getDataStore()), room);
 	}
 
-	@ApiOperation(value="Adds the specified stream with streamId to the room. ",response = Result.class)
+	@ApiOperation(value="Adds the specified stream with streamId to the room.  Use PUT conference-rooms/{room_id}/{streamId}",response = Result.class)
 	@PUT
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}/add")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result addStreamToTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
+	@Deprecated(since="2.6.2", forRemoval=true)
+	public Result addStreamToTheRoomDeprecated(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
 			@ApiParam(value="Stream id to add to the conference room",required = true) @QueryParam("streamId") String streamId){
+		
+		return addStreamToTheRoom(roomId, streamId);
+	}
+	
+	@ApiOperation(value="Adds the specified stream with streamId to the room. ",response = Result.class)
+	@PUT
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/conference-rooms/{room_id}/{streamId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result addStreamToTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
+			@ApiParam(value="Stream id to add to the conference room",required = true) @PathParam("streamId") String streamId){
 		
 		boolean result = BroadcastRestService.addStreamToConferenceRoom(roomId,streamId,getDataStore());
 		if(result) {
@@ -1185,13 +1197,25 @@ public class BroadcastRestService extends RestServiceBase{
 		return new Result(result);
 	}
 
-	@ApiOperation(value="Deletes the specified stream correlated with streamId in the room. ",response = Result.class)
+	@ApiOperation(value="Deletes the specified stream correlated with streamId in the room. Use DELETE /conference-rooms/{room_id}/{streamId}",response = Result.class)
 	@PUT
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}/delete")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result deleteStreamFromTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
+	@Deprecated(since="2.6.2", forRemoval=true)
+	public Result deleteStreamFromTheRoomDeprecated(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
 			@ApiParam(value="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId){
+		
+		return deleteStreamFromTheRoom(roomId, streamId);
+	}
+	
+	@ApiOperation(value="Deletes the specified stream correlated with streamId in the room. Use ",response = Result.class)
+	@DELETE
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/conference-rooms/{room_id}/{streamId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result deleteStreamFromTheRoom(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
+			@ApiParam(value="Stream id to delete from the conference room",required = true) @PathParam("streamId") String streamId){
 		boolean result = RestServiceBase.removeStreamFromRoom(roomId,streamId,getDataStore());
 		if(result) {
 			getApplication().leftTheRoom(roomId, streamId);
