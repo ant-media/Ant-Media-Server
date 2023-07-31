@@ -28,8 +28,6 @@ public class RestProxyFilter extends AbstractFilter {
 
 	protected static Logger log = LoggerFactory.getLogger(RestProxyFilter.class);
 
-	private AppSettings appSettings;
-
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException
 	{
 		HttpServletRequest httpRequest =(HttpServletRequest)request;
@@ -49,7 +47,7 @@ public class RestProxyFilter extends AbstractFilter {
 				//If it is not related with the broadcast, we can skip this filter
 				if (broadcast == null
 						|| !IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())
-						//|| isInSameNodeInCluster(request.getRemoteAddr(), broadcast.getOriginAdress())
+						|| isInSameNodeInCluster(request.getRemoteAddr(), broadcast.getOriginAdress())
 						|| isForwardedByAnotherNode(streamId, httpRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION)))
 				{
 					chain.doFilter(request, response);
@@ -73,14 +71,11 @@ public class RestProxyFilter extends AbstractFilter {
 		}
 	}
 
-	private boolean isForwardedByAnotherNode(String streamId, String jwtInternalCommunicationToken) {
+	public boolean isForwardedByAnotherNode(String streamId, String jwtInternalCommunicationToken) {
 		boolean result = false;
-		System.out.println("isForwardedByAnotherNode: " + jwtInternalCommunicationToken);
 		if (jwtInternalCommunicationToken != null)
 		{
 			result = getTokenService().isJwtTokenValid(jwtInternalCommunicationToken, getAppSettings() .getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
-			System.out.println("result: " + result);
-
 			if(result) {
 				log.info("Request forwarded by another node is received for stream id: {}", streamId);
 			}
@@ -88,7 +83,7 @@ public class RestProxyFilter extends AbstractFilter {
 		return  result;
 	}
 
-	private String getJwtInternalToken(String streamId) {
+	public String getJwtInternalToken(String streamId) {
 		return ITokenService.generateJwtToken(getAppSettings().getClusterCommunicationKey(), streamId , System.currentTimeMillis() + 30000, Token.PLAY_TOKEN);
 	}
 
