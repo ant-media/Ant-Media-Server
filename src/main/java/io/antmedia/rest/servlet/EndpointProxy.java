@@ -3,7 +3,6 @@ package io.antmedia.rest.servlet;
 import io.antmedia.filter.TokenFilterManager;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
@@ -20,7 +19,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
-import java.net.UnknownHostException;
 
 public class EndpointProxy extends ProxyServlet {
 
@@ -30,7 +28,11 @@ public class EndpointProxy extends ProxyServlet {
 	private static final long serialVersionUID = 1L;
 
     protected static Logger log = LoggerFactory.getLogger(EndpointProxy.class);
-    private String nodeCommunicationHeader;
+    private final String nodeCommunicationHeader;
+
+    public EndpointProxy(String nodeCommunicationHeader) {
+        this.nodeCommunicationHeader = nodeCommunicationHeader;
+    }
 
 
     /**
@@ -186,9 +188,5 @@ public class EndpointProxy extends ProxyServlet {
         }
 
         return uri.toString();
-    }
-
-    public void setNodeCommunicationHeader(String jwtToken) {
-        this.nodeCommunicationHeader = jwtToken;
     }
 }

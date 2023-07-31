@@ -13,7 +13,6 @@ import javax.ws.rs.HttpMethod;
 
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.security.ITokenService;
-import org.apache.http.HttpRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -58,9 +57,8 @@ public class RestProxyFilter extends AbstractFilter {
 					AppSettings settings = getAppSettings();
 					String originAdress = "http://" + broadcast.getOriginAdress() + ":" + getServerSetting().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
 					log.info("Redirecting the request to origin {}", originAdress);
-					EndpointProxy endpointProxy = new EndpointProxy();
+					EndpointProxy endpointProxy = new EndpointProxy(jwtToken);
 					endpointProxy.initTarget(originAdress);
-					endpointProxy.setNodeCommunicationHeader(jwtToken);
 					endpointProxy.service(request, response);
 				}
 			}

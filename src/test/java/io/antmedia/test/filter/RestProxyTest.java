@@ -5,7 +5,6 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Token;
 import io.antmedia.filter.RestProxyFilter;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.servlet.EndpointProxy;
@@ -28,8 +27,6 @@ import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
-
-import com.amazonaws.partitions.model.Endpoint;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -206,8 +203,9 @@ public class RestProxyTest {
 
 	@Test
 	public void testEndpointProxy() {
+		String jwtToken = "something";
 
-		EndpointProxy endpointProxy = spy(new EndpointProxy());
+		EndpointProxy endpointProxy = spy(new EndpointProxy(jwtToken));
 
 		MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
 		MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
@@ -220,9 +218,7 @@ public class RestProxyTest {
 			Mockito.when(statusLine.getStatusCode()).thenReturn(304);
 			Mockito.when(response.getStatusLine()).thenReturn(statusLine);
 			Mockito.when(response.getAllHeaders()).thenReturn(new BasicHeader[]{ new BasicHeader("key", "value"), new BasicHeader("key", "value") } );
-			String jwtToken = "something";
-			endpointProxy.setNodeCommunicationHeader(jwtToken);
-			
+
 			Mockito.doReturn(response).when(endpointProxy).doExecute(Mockito.any(), Mockito.any(), Mockito.any());
 			endpointProxy.service((HttpServletRequest)httpServletRequest, (HttpServletResponse)httpServletResponse);
 			
