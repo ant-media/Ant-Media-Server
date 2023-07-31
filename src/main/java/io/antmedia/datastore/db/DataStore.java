@@ -29,7 +29,7 @@ import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
+import io.antmedia.datastore.db.types.ViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 
 public abstract class DataStore {
@@ -1271,10 +1271,10 @@ public abstract class DataStore {
 		return totalWebRTCViewerCount;
 	}
 
-	protected ArrayList<WebRTCViewerInfo> searchOnWebRTCViewerInfo(ArrayList<WebRTCViewerInfo> list, String search) {
+	protected ArrayList<ViewerInfo> searchOnWebRTCViewerInfo(ArrayList<ViewerInfo> list, String search) {
 		if(search != null && !search.isEmpty()) {
-			for (Iterator<WebRTCViewerInfo> i = list.iterator(); i.hasNext(); ) {
-				WebRTCViewerInfo item = i.next();
+			for (Iterator<ViewerInfo> i = list.iterator(); i.hasNext(); ) {
+				ViewerInfo item = i.next();
 				if(item.getViewerId() != null && !item.getViewerId().toLowerCase().contains(search.toLowerCase())) {
 					i.remove();
 				}
@@ -1283,7 +1283,7 @@ public abstract class DataStore {
 		return list;
 	}
 
-	protected List<WebRTCViewerInfo> sortAndCropWebRTCViewerInfoList(List<WebRTCViewerInfo> list, int offset, int size, String sortBy, String orderBy) {
+	protected List<ViewerInfo> sortAndCropWebRTCViewerInfoList(List<ViewerInfo> list, int offset, int size, String sortBy, String orderBy) {
 		if("viewerId".equals(sortBy)) 
 		{
 			Collections.sort(list, (viewer1, viewer2) -> {
@@ -1316,30 +1316,45 @@ public abstract class DataStore {
 	 *
 	 * @param info information for the WebRTC Viewer
 	 */
-	public abstract void saveViewerInfo(WebRTCViewerInfo info);
+	public abstract void saveViewerInfo(ViewerInfo info);
+	
+	/**
+	 * This is used to update WebRTC Viewer Info to datastore 
+	 *
+	 * @param info information for the WebRTC Viewer
+	 */
+	public abstract boolean updateViewerInfoEndTime(String sessionId, long endTime);
 
 	/**
-	 * Get list of webrtc viewers
+	 * Get list of viewers
 	 *
+	 * @param viewerType 
 	 * @param offset
 	 * @param size
 	 * @param search 
 	 * @param orderBy 
 	 * @param sortBy 
 	 *
-	 * @return list of webrtc viewers
+	 * @return list of viewers
 	 */
-	public abstract List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy, String search);
+	public abstract List<ViewerInfo> getViewerList(String viewerType, int offset, int size, String sortBy, String orderBy, String search);
 
-	public List<WebRTCViewerInfo> getWebRTCViewerList(Map<String, String> webRTCViewerMap, int offset, int size, String sortBy, String orderBy,
+	public List<ViewerInfo> getViewerList(Map<String, String> viewerMap, String viewerType, int offset, int size, String sortBy, String orderBy,
 			String search, Gson gson) {
-		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
+		ArrayList<ViewerInfo> list = new ArrayList<>();
 		synchronized (this) {
 			
-			Collection<String> webRTCViewers = webRTCViewerMap.values();
-			for (String infoString : webRTCViewers) {
-				WebRTCViewerInfo info = gson.fromJson(infoString, WebRTCViewerInfo.class);
-				list.add(info);
+			// Use WebRTC by default
+			if(viewerType == null) {
+				viewerType = "webrtc";
+			}
+			
+			Collection<String> viewers = viewerMap.values();
+			for (String infoString : viewers) {
+				ViewerInfo info = gson.fromJson(infoString, ViewerInfo.class);
+				if(info.getViewerType().equals(viewerType)) {
+					list.add(info);
+				}
 			}
 		}
 		if (search != null && !search.isEmpty()) {
@@ -1355,7 +1370,7 @@ public abstract class DataStore {
 	 *
 	 * @param viewerId WebRTC Viewer Id
 	 */
-	public abstract boolean deleteWebRTCViewerInfo(String viewerId);
+	public abstract boolean deleteWebRTCViewerInfo(String sessionId);
 
 	/**
 	 * This is used to update meta data for a bradcast 

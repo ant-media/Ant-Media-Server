@@ -6,8 +6,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-import java.util.Map.Entry;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.redisson.Redisson;
@@ -17,10 +15,8 @@ import org.redisson.config.Config;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
-import io.antmedia.muxer.IAntMediaStreamHandler;
 
 public class RedisStore extends MapBasedDataStore {
 
@@ -58,7 +54,7 @@ public class RedisStore extends MapBasedDataStore {
 	    	detectionMap = redisson.getMap(dbName+"Detections");
 	    	tokenMap = redisson.getMap(dbName+"Tokens");
 	    	subscriberMap = redisson.getMap(dbName+"Subscribers");	
-	    	webRTCViewerMap = redisson.getMap(dbName+"WebRTCViewers");
+	    	viewerMap = redisson.getMap(dbName+"Viewers");
 	    	streamInfoMap = redisson.getMap(dbName+"StreamInfo");
 	    	p2pMap = redisson.getMap(dbName+"P2P");
 			
@@ -84,7 +80,7 @@ public class RedisStore extends MapBasedDataStore {
 		    	redisson.getMap(dbName+"Detections").delete();
 		    	redisson.getMap(dbName+"tokens").delete();
 		    	redisson.getMap(dbName+"Subscribers").delete();	
-		    	redisson.getMap(dbName+"webRTCViewers").delete();
+		    	redisson.getMap(dbName+"Viewers").delete();
 		    	redisson.getMap(dbName+"StreamInfo").delete();
 		    	redisson.getMap(dbName+"P2P").delete();
 			}
@@ -170,7 +166,4 @@ public class RedisStore extends MapBasedDataStore {
 	public P2PConnection getP2PConnection(String streamId) {
 		return (P2PConnection) p2pMap.get(streamId);
 	}
-
-
-
 }

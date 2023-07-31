@@ -67,7 +67,7 @@ public class DashViewerStatsTest {
 
 		for (int i = 0; i < 100; i++) {
 			String sessionId = String.valueOf((Math.random() * 999999));
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, "dash", "127.0.0.1");
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -81,7 +81,7 @@ public class DashViewerStatsTest {
 		//Add same session ID
 		for (int i = 0; i < 10; i++) {
 			String sessionId = "sameSessionID";
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, "dash", "127.0.0.1");
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -115,7 +115,7 @@ public class DashViewerStatsTest {
 		
 		String sessionId = String.valueOf((Math.random() * 999999));
 		// check if viewer is added
-		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId());
+		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), "dash", "127.0.0.1");
 		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 				boolean eventExist = false;
@@ -217,8 +217,8 @@ public class DashViewerStatsTest {
 			subscriberPlay3.setType(Subscriber.PLAY_TYPE);
 			dsf.getDataStore().addSubscriber(subscriberPlay3.getStreamId(), subscriberPlay3);				
 			
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId());
-			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay.getSubscriberId());
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), "dash", "127.0.0.1");
+			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay.getSubscriberId(), "dash", "127.0.0.1");
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getViewerCount(streamId) == 2 );
@@ -230,8 +230,8 @@ public class DashViewerStatsTest {
 					()->viewerStats.getTotalViewerCount() == 2 );
 			
 			//Viewer timeout increase
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId());
-			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay2.getSubscriberId());
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId(), "dash", "127.0.0.1");
+			viewerStats.registerNewViewer(streamId, sessionId2, subscriberPlay2.getSubscriberId(), "dash", "127.0.0.1");
 			
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()-> {
@@ -277,7 +277,7 @@ public class DashViewerStatsTest {
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			
 			
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay3.getSubscriberId());
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay3.getSubscriberId(), "dash", "127.0.0.1");
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);
@@ -357,7 +357,7 @@ public class DashViewerStatsTest {
 
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
 
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, "dash", "127.0.0.1");
 			
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getViewerCount(streamId) == 1 );
@@ -369,7 +369,7 @@ public class DashViewerStatsTest {
 					()->viewerStats.getTotalViewerCount() == 1 );
 			
 			//Viewer timeout increase
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, "dash", "127.0.0.1");
 			
 			// Check viewer is online
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
@@ -391,7 +391,7 @@ public class DashViewerStatsTest {
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			
 			
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, "dash", "127.0.0.1");
 			
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);

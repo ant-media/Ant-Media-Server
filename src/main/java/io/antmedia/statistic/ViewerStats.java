@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,7 +15,9 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConnectionEvent;
+import io.antmedia.datastore.db.types.ViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
 public class ViewerStats {
@@ -31,6 +34,8 @@ public class ViewerStats {
 	protected DataStoreFactory dataStoreFactory;
 	
 	public static final int DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT = 10000;
+	
+	ServerSettings serverSettings;
 	
 	/**
 	 * Time period in milliseconds to check if viewer is dropped
@@ -49,7 +54,7 @@ public class ViewerStats {
 	 */
 	protected int timeoutMS = 20000;
 	
-	public void registerNewViewer(String streamId, String sessionId, String subscriberId) 
+	public void registerNewViewer(String streamId, String sessionId, String subscriberId, String type, String hostAddress) 
 	{
 		//do not block the thread, run in vertx event queue 
 		vertx.runOnContext(h -> {
@@ -63,9 +68,32 @@ public class ViewerStats {
 				}
 				if (!viewerMap.containsKey(sessionId)) 
 				{
+					
 					int streamIncrementCounter = getIncreaseCounterMap(streamId);
 					streamIncrementCounter++;
 					increaseCounterMap.put(streamId, streamIncrementCounter);
+					
+					// TODO We shoudln't use cookie's session ID. Because it's not changing other tab browser. 
+					ViewerInfo info = new ViewerInfo();
+					String viewerId;
+					
+					info.setStartTime(System.currentTimeMillis());
+					
+					if(subscriberId == null || subscriberId.isEmpty() ||  subscriberId.equals("undefined")) {
+						viewerId = "generated_"+RandomStringUtils.randomAlphanumeric(10);
+					}
+					else {
+						viewerId = subscriberId;
+					}
+					
+					// TODO make sure that HLS chunks sessions are compatible with the system
+					info.setSessionId(sessionId);
+					info.setViewerId(viewerId);
+					info.setEdgeAddress(hostAddress);
+					info.setStreamId(streamId);
+					info.setViewerType(type);
+					
+					getDataStore().saveViewerInfo(info);
 					
 				}
 				viewerMap.put(sessionId, System.currentTimeMillis());
@@ -247,6 +275,11 @@ public class ViewerStats {
 						
 						String sessionId = viewer.getKey();
 						String subscriberId = sessionId2subscriberId.get(sessionId);
+						
+						if(sessionId != null) {
+							// Update ViewerInfo End Time
+							getDataStore().updateViewerInfoEndTime(sessionId, System.currentTimeMillis());
+						}
 						// set subscriber status to not connected
 						if(subscriberId != null) {
 							// add a disconnected event to the subscriber

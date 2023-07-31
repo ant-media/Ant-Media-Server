@@ -7,7 +7,7 @@ public interface IStreamStats {
 	 * @param streamId
 	 * @param sessionId
 	 */
-	void registerNewViewer(String streamId, String sessionId, String subscriberId);
+	void registerNewViewer(String streamId, String sessionId, String subscriberId, String type, String hostAddress);
 	
 	
 	/**

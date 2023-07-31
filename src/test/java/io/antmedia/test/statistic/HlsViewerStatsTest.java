@@ -68,7 +68,7 @@ public class HlsViewerStatsTest {
 
 		for (int i = 0; i < 100; i++) {
 			String sessionId = String.valueOf((Math.random() * 999999));
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, "hls", "127.0.0.1");
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -82,7 +82,7 @@ public class HlsViewerStatsTest {
 		//Add same session ID
 		for (int i = 0; i < 10; i++) {
 			String sessionId = "sameSessionID";
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, "hls", "127.0.0.1");
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -116,7 +116,7 @@ public class HlsViewerStatsTest {
 		
 		String sessionId = String.valueOf((Math.random() * 999999));
 		// check if viewer is added
-		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId());
+		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), "hls", "127.0.0.1");
 		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 				boolean eventExist = false;
@@ -216,7 +216,7 @@ public class HlsViewerStatsTest {
 			dsf.getDataStore().addSubscriber(subscriberPlay3.getStreamId(), subscriberPlay3);				
 			
 			
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId());
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), "hls", "127.0.0.1");
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getViewerCount(streamId) == 1 );
@@ -228,7 +228,7 @@ public class HlsViewerStatsTest {
 					()->viewerStats.getTotalViewerCount() == 1 );
 			
 			//Viewer timeout increase
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId());
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId(), "hls", "127.0.0.1");
 			
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()-> {
@@ -275,7 +275,7 @@ public class HlsViewerStatsTest {
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			
 			
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay3.getSubscriberId());
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay3.getSubscriberId(), "hls", "127.0.0.1");
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);
@@ -354,7 +354,7 @@ public class HlsViewerStatsTest {
 
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
 
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, "hls", "127.0.0.1");
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getViewerCount(streamId) == 1 );
@@ -366,7 +366,7 @@ public class HlsViewerStatsTest {
 					()->viewerStats.getTotalViewerCount() == 1 );
 			
 			//Viewer timeout increase
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, "hls", "127.0.0.1");
 			
 			// Check viewer is online
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
@@ -388,7 +388,7 @@ public class HlsViewerStatsTest {
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			
 			
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, "hls", "127.0.0.1");
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);

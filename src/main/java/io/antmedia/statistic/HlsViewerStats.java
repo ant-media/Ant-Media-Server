@@ -25,7 +25,6 @@ public class HlsViewerStats extends ViewerStats implements IStreamStats, Applica
 		
 		vertx = (Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
-		
 		AppSettings settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
 		timeoutMS = getTimeoutMSFromSettings(settings, timeoutMS, HLS_TYPE);
 		

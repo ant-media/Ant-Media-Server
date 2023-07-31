@@ -37,6 +37,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.filter.DashStatisticsFilter;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.IStreamStats;
 
@@ -134,7 +135,6 @@ public class DashStatisticsFilterTest {
 		
 		try {
 			dashStatisticsFilter.init(filterconfig);
-			//when(dashStatisticsFilter.getStreamStats()).thenReturn(streamStats);
 			
 			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
 			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
@@ -157,12 +157,17 @@ public class DashStatisticsFilterTest {
 			DataStore dataStore = mock(DataStore.class);
 			when(dataStore.isAvailable()).thenReturn(true);
 			when(dsf.getDataStore()).thenReturn(dataStore);
+			
+			ServerSettings serverSettings = mock(ServerSettings.class);
+			
+			when(dashStatisticsFilter.getServerSetting()).thenReturn(serverSettings);
+			when(dashStatisticsFilter.getServerSetting().getHostAddress()).thenReturn("127.0.0.1");
 
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			dashStatisticsFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, "dash", "127.0.0.1");
 			
 			
 			
@@ -206,22 +211,25 @@ public class DashStatisticsFilterTest {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setDashViewerLimit(2);
 		when(dataStore.get(streamId)).thenReturn(broadcast);
-
 		
 		try {
 			dashStatisticsFilter.init(filterconfig);
-			//when(dashStatisticsFilter.getStreamStats()).thenReturn(streamStats);
+			
+			ServerSettings serverSettings = mock(ServerSettings.class);
+			
+			when(dashStatisticsFilter.getServerSetting()).thenReturn(serverSettings);
+			when(dashStatisticsFilter.getServerSetting().getHostAddress()).thenReturn("127.0.0.1");
 			
 			String sessionId = requestDash(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId, null, "dash", "127.0.0.1");
 			broadcast.setDashViewerCount(1);
 			
 			String sessionId2 = requestDash(streamId);		
-			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null);
+			verify(streamStats, times(1)).registerNewViewer(streamId, sessionId2, null, "dash", "127.0.0.1");
 			broadcast.setDashViewerCount(2);
 
 			String sessionId3 = requestDash(streamId);		
-			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null);
+			verify(streamStats, never()).registerNewViewer(streamId, sessionId3, null, "dash", "127.0.0.1");
 		} catch (ServletException|IOException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));

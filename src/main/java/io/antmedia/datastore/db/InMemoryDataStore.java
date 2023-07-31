@@ -26,7 +26,7 @@ import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
+import io.antmedia.datastore.db.types.ViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
@@ -39,7 +39,7 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 	private Map<String, Subscriber> subscriberMap = new LinkedHashMap<>();
 	private Map<String, ConferenceRoom> roomMap = new LinkedHashMap<>();
-	private Map<String, WebRTCViewerInfo> webRTCViewerMap = new LinkedHashMap<>();
+	private Map<String, ViewerInfo> viewerMap = new LinkedHashMap<>();
 
 
 	public InMemoryDataStore(String dbName) {
@@ -999,21 +999,39 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public void saveViewerInfo(WebRTCViewerInfo info) {
-		webRTCViewerMap.put(info.getViewerId(), info);
+	public void saveViewerInfo(ViewerInfo info) {
+		viewerMap.put(info.getSessionId(), info);
+	}
+	
+	@Override
+	public boolean updateViewerInfoEndTime(String sessionId, long endTime) {
+		ViewerInfo viewerInfo = viewerMap.get(sessionId);
+		boolean result = false;
+		if (viewerInfo != null) {
+			viewerInfo.setEndTime(endTime);
+			viewerMap.put(sessionId, viewerInfo);
+			result = true;
+			return result;
+		}
+		 return result;
 	}
 
-	public List<WebRTCViewerInfo> getWebRTCViewerList(int offset, int size, String sortBy, String orderBy,
+	public List<ViewerInfo> getViewerList(String viewerType, int offset, int size, String sortBy, String orderBy,
 			String search) {
 
-		Collection<WebRTCViewerInfo> values = webRTCViewerMap.values();
+		Collection<ViewerInfo> values = viewerMap.values();
+		ArrayList<ViewerInfo> list = new ArrayList<>();
+		
+		// Use WebRTC by default
+		if(viewerType != null) {
+			viewerType = "webrtc";
+		}
 
-		ArrayList<WebRTCViewerInfo> list = new ArrayList<>();
-
-
-		for (WebRTCViewerInfo info : values)
+		for (ViewerInfo info : values)
 		{
-			list.add(info);
+			if(info.getViewerType().equals(viewerType)) {
+				list.add(info);
+			}
 		}
 
 		if(search != null && !search.isEmpty()){
@@ -1024,8 +1042,8 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean deleteWebRTCViewerInfo(String viewerId) {
-		webRTCViewerMap.remove(viewerId);
+	public boolean deleteWebRTCViewerInfo(String sessionId) {
+		viewerMap.remove(sessionId);
 		return true;
 	}
 	
