@@ -76,6 +76,7 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -1737,6 +1738,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public IClusterStreamFetcher createClusterStreamFetcher() {
+		return null;
+	}
+	
+	public Map<String, Queue<IWebRTCClient>> getWebRTCClientsMap() {
 		return null;
 	}
 
