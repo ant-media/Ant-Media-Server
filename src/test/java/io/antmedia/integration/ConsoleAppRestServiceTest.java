@@ -306,6 +306,9 @@ public class ConsoleAppRestServiceTest{
 
 			Process exec = Runtime.getRuntime().exec(command);
 
+			exec = Runtime.getRuntime().exec("rm -rf " + installLocation + "/webapps/root/testapp.war ");
+			assertEquals(0, exec.waitFor());
+
 			InputStream errorStream = exec.getErrorStream();
 			byte[] data = new byte[1024];
 			int length = 0;
@@ -347,7 +350,7 @@ public class ConsoleAppRestServiceTest{
 				assert(true);
 			}
 
-			exec = Runtime.getRuntime().exec("rm -rf " + installLocation + "/webapps/testapp ");
+			exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/testapp ");
 			assertEquals(0, exec.waitFor());
 
 		} catch (IOException e) {
