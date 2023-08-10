@@ -1753,7 +1753,7 @@ public abstract class RestServiceBase {
 			}
 			streamDetailsMap = new HashMap<>();
 
-			List<String> tempList=conferenceRoom.getRoomStreamList();
+			List<String> tempList = conferenceRoom.getRoomStreamList();
 			if(tempList != null) {
 				for (String tmpStreamId : tempList)
 				{
@@ -1770,7 +1770,8 @@ public abstract class RestServiceBase {
 		return streamDetailsMap;
 	}
 
-	public static boolean addStreamToConferenceRoom(String roomId,String streamId,DataStore store){
+	public static boolean addStreamToConferenceRoom(String roomId,String streamId,DataStore store)
+	{
 		if(roomId!=null){
 			List<String> roomStreamList = null;
 			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
