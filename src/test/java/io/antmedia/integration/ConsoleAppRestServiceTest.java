@@ -300,7 +300,7 @@ public class ConsoleAppRestServiceTest{
 
 		String installLocation = "/usr/local/antmedia";
 
-		String command =  installLocation + "/create_app.sh -c true -n testapp -m 'mongodb://user:password@127.0.0.1:27018/admin?readPreference=secondaryPreferred' " + installLocation;
+		String command = "sudo " + installLocation + "/create_app.sh -c true -n testapp -m 'mongodb://user:password@127.0.0.1:27018/admin?readPreference=secondaryPreferred' " + installLocation;
 
 		try {
 
