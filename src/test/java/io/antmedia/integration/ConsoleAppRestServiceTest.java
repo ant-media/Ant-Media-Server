@@ -306,7 +306,6 @@ public class ConsoleAppRestServiceTest{
 			Process exec;
 			File warfile = new File(installLocation + "/webapps/root/testapp.war");
 			boolean exists = warfile.exists();
-
 			if(exists) {
 				exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/root/testapp.war");
 				assertEquals(0, exec.waitFor());
