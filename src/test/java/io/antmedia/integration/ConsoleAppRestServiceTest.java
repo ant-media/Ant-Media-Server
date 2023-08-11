@@ -303,14 +303,17 @@ public class ConsoleAppRestServiceTest{
 		String command = "sudo " + installLocation + "/create_app.sh -c true -n testapp -m 'mongodb://user:password@127.0.0.1:27018/admin?readPreference=secondaryPreferred' " + installLocation;
 
 		try {
+			Process exec;
+			File warfile = new File(installLocation + "/webapps/root/testapp.war");
+			boolean exists = warfile.exists();
 
-			Process exec = Runtime.getRuntime().exec(command);
-			File tempFile = new File(installLocation + "/webapps/root/testapp.war");
-			boolean exists = tempFile.exists();
 			if(exists) {
 				exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/root/testapp.war");
 				assertEquals(0, exec.waitFor());
 			}
+
+			exec = Runtime.getRuntime().exec(command);
+
 			InputStream errorStream = exec.getErrorStream();
 			byte[] data = new byte[1024];
 			int length = 0;
