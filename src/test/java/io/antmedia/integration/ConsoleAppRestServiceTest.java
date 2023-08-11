@@ -306,7 +306,7 @@ public class ConsoleAppRestServiceTest{
 
 			Process exec = Runtime.getRuntime().exec(command);
 
-			exec = Runtime.getRuntime().exec("rm -rf " + installLocation + "/webapps/root/testapp.war ");
+			exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/root/testapp.war ");
 			assertEquals(0, exec.waitFor());
 
 			InputStream errorStream = exec.getErrorStream();
