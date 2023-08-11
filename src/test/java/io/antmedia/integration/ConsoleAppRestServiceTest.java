@@ -305,10 +305,12 @@ public class ConsoleAppRestServiceTest{
 		try {
 
 			Process exec = Runtime.getRuntime().exec(command);
-
-			exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/root/testapp.war ");
-			assertEquals(0, exec.waitFor());
-
+			File tempFile = new File(installLocation + "/webapps/root/testapp.war");
+			boolean exists = tempFile.exists();
+			if(exists) {
+				exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/root/testapp.war");
+				assertEquals(0, exec.waitFor());
+			}
 			InputStream errorStream = exec.getErrorStream();
 			byte[] data = new byte[1024];
 			int length = 0;
