@@ -1829,5 +1829,14 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.stopApplication(true);
 		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).close(true);
 	}
+	
+	@Test
+	public void testGetWebRTCClientMap() {
+		
+		assertNotNull(adapter.getWebRTCClientsMap());
+		
+		assertTrue(adapter.getWebRTCClientsMap().isEmpty());
+		
+	}
 
 }
