@@ -19,6 +19,7 @@ import io.antmedia.statistic.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
@@ -75,6 +76,7 @@ import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.antmedia.track.ISubtrackPoller;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketConstants;
@@ -148,6 +150,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected Queue<IStreamListener> streamListeners = new ConcurrentLinkedQueue<>();
 
 	IClusterStreamFetcher clusterStreamFetcher;
+	
+	protected ISubtrackPoller subtrackPoller;
+
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -587,6 +592,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				for (IStreamListener listener : streamListeners) {
 					listener.streamStarted(broadcast.getStreamId());
+				}
+				
+				String mainTrackStreamId = broadcast.getMainTrackStreamId();
+				if (!StringUtils.isBlank(mainTrackStreamId) && subtrackPoller != null) 
+				{
+					//this makes subtracks to be added faster in the instance if subtrack and maintrack is in the same instance
+					//To add subtrack and maintrack faster in cluser, 
+					//we need to find a better way to trigger operations faster
+					subtrackPoller.notifySubtrackListeners(mainTrackStreamId, Arrays.asList(streamId));
 				}
 
 
@@ -1743,6 +1757,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	
 	public Map<String, Queue<IWebRTCClient>> getWebRTCClientsMap() {
 		return Collections.emptyMap();
+	}
+	
+	public ISubtrackPoller getSubtrackPoller() {
+		return subtrackPoller;
+	}
+
+	public void setSubtrackPoller(ISubtrackPoller subtrackPoller) {
+		this.subtrackPoller = subtrackPoller;
 	}
 
 
