@@ -594,16 +594,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					listener.streamStarted(broadcast.getStreamId());
 				}
 				
-				String mainTrackStreamId = broadcast.getMainTrackStreamId();
-				if (!StringUtils.isBlank(mainTrackStreamId) && subtrackPoller != null) 
-				{
-					//this makes subtracks to be added faster in the instance if subtrack and maintrack is in the same instance
-					//To add subtrack and maintrack faster in cluser, 
-					//we need to find a better way to trigger operations faster
-					subtrackPoller.notifySubtrackListeners(mainTrackStreamId, Arrays.asList(streamId));
-				}
-
-
+	
 				handler.complete();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
