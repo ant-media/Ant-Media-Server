@@ -1,21 +1,19 @@
 package io.antmedia.test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.doReturn;
-
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -26,13 +24,14 @@ import java.math.BigInteger;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 
-import io.antmedia.statistic.IStatsCollector;
-import io.antmedia.statistic.IStreamStats;
-import io.antmedia.statistic.StatsCollector;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
@@ -1853,7 +1852,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Get the subtrackPoller using the getter and verify it's the same as the mock
 		ISubtrackPoller retrievedSubtrackPoller = adapter.getSubtrackPoller();
-		assertEquals(mockSubtrackPoller, retrievedSubtrackPoller, "The retrieved subtrackPoller should match the mock instance.");
+		assertEquals("The retrieved subtrackPoller should match the mock instance.", mockSubtrackPoller, retrievedSubtrackPoller);
 	}
 
 }
