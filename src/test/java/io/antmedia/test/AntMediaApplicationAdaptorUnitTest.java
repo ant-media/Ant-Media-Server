@@ -1,12 +1,12 @@
 package io.antmedia.test;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -82,6 +82,7 @@ import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.antmedia.track.ISubtrackPoller;
 import io.vertx.core.Vertx;
 import io.vertx.core.VertxOptions;
 import io.vertx.core.impl.VertxImpl;
@@ -94,7 +95,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	String streamsFolderPath = "webapps/test/streams";
 
 	Vertx vertx = Vertx.vertx();
-	
+
 	@Rule
 	public TestRule watcher = new TestWatcher() {
 		protected void starting(Description description) {
@@ -128,7 +129,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		if (!junit.exists()) {
 			junit.mkdirs();
 		}
-		
+
 		File webinf = new File(junit, "WEB-INF");
 		if (!webinf.exists()) {
 			webinf.mkdirs();
@@ -150,11 +151,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 	@Test
 	public void testIsIncomingTimeValid() {
 		AppSettings newSettings = new AppSettings();
-		
+
 		IScope scope = mock(IScope.class);
 
 		when(scope.getName()).thenReturn("junit");
-		
+
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		AppSettings appSettings = new AppSettings();
 		spyAdapter.setAppSettings(appSettings);
@@ -162,80 +163,80 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(context.getBean(any())).thenReturn(mock(AcceptOnlyStreamsInDataStore.class));
 		when(scope.getContext()).thenReturn(context);
 		Mockito.doReturn(mock(DataStore.class)).when(spyAdapter).getDataStore();
-		
-		
+
+
 		newSettings = new AppSettings();
-		
+
 		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
-				
+
 		newSettings.setUpdateTime(1000);
-		
+
 		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
-		
+
 		appSettings.setUpdateTime(900);
-		
+
 		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
-		
+
 		appSettings.setUpdateTime(2000);
-		
+
 		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
-		
+
 		newSettings.setUpdateTime(3000);
 		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
-		
-		
-		
+
+
+
 	}
-	
+
 	public static class AppSettingsChild extends AppSettings {
-		
+
 		public String field = "field";
 		public static String fieldStatic = "fieldStatic";
-		
+
 		public static final String fieldFinalStatic = "fieldFinalStatic";
 	}
-	
+
 	@Test
 	public void testFieldValue() {
 
 		AppSettingsChild settings = new AppSettingsChild();
 		AppSettingsChild newSettings = new AppSettingsChild();
-		
+
 		settings.field = "field";
 		newSettings.field = "field2";
-		
+
 		Field field;
 		try {
 			field = settings.getClass().getDeclaredField("field");
 			boolean result = AntMediaApplicationAdapter.setAppSettingsFieldValue(settings, newSettings, field);
 			assertTrue(result);
 			assertEquals(settings.field, newSettings.field);
-			
+
 
 			field = settings.getClass().getDeclaredField("fieldStatic");
 			result = AntMediaApplicationAdapter.setAppSettingsFieldValue(settings, newSettings, field);
 			assertFalse(result);
-			
+
 			field = settings.getClass().getDeclaredField("fieldFinalStatic");
 			result = AntMediaApplicationAdapter.setAppSettingsFieldValue(settings, newSettings, field);
 			assertFalse(result);
-			
-			
+
+
 			AppSettings settings2 = new AppSettings();
 			AppSettings newSettings2 = new AppSettings();
 			settings2.setAcceptOnlyStreamsInDataStore(true);
 			newSettings2.setAcceptOnlyStreamsInDataStore(false);
-			
+
 			field = settings2.getClass().getDeclaredField("acceptOnlyRoomsInDataStore");
 			result = AntMediaApplicationAdapter.setAppSettingsFieldValue(settings2, newSettings2, field);
 			assertTrue(result);
 			assertEquals(settings2.isAcceptOnlyRoomsInDataStore(), newSettings2.isAcceptOnlyRoomsInDataStore());
-			
-			
-			
-			
-			
-			
+
+
+
+
+
+
 		} catch (NoSuchFieldException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -243,11 +244,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-			
-		
+
+
+
 	}
-	
+
 
 	@Test
 	public void testAppSettings() 
@@ -271,20 +272,20 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(context.getBean(any())).thenReturn(mock(AcceptOnlyStreamsInDataStore.class));
 		when(scope.getContext()).thenReturn(context);
 		Mockito.doReturn(mock(DataStore.class)).when(spyAdapter).getDataStore();
-		
+
 		StorageClient storageClient = Mockito.mock(StorageClient.class);
 		spyAdapter.setStorageClient(storageClient);
-		
+
 		assertEquals(storageClient, spyAdapter.getStorageClient());
-		
+
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setScope(scope);
 		assertEquals("", settings.getHlsPlayListType());
 		spyAdapter.updateSettings(newSettings, true, false);
-		
+
 		assertEquals("", settings.getHlsPlayListType());
 		assertEquals(newSettings.getHlsPlayListType(), settings.getHlsPlayListType());
-		
+
 		assertEquals("", settings.getDashSegDuration());
 		assertEquals(newSettings.getDashSegDuration(), settings.getDashSegDuration());
 
@@ -303,7 +304,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		newSettings.setHlsPlayListType(null);
 		newSettings.setHlsflags(null);
 		spyAdapter.updateSettings(newSettings, true, false);
-		
+
 		assertEquals("", settings.getVodUploadFinishScript());
 		assertEquals(null, settings.getHlsPlayListType());
 		assertEquals(null, settings.getHlsflags());
@@ -311,16 +312,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
-		
+
 		spyAdapter.updateSettings(newSettings, false, false);
 		//it should not change times(1) because we don't want it to update the datastore
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
-		
+
 		settings.setUpdateTime(1000);
 		newSettings.setUpdateTime(900);
 		assertFalse(spyAdapter.updateSettings(newSettings, false, true));
-		
+
 	}
 
 	@Test
@@ -328,41 +329,41 @@ public class AntMediaApplicationAdaptorUnitTest {
 	{
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
-		
+
 		DataStore dataStore = new InMemoryDataStore("dbname");
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-		
+
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		IContext context = mock(IContext.class);
 		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
 		StorageClient storageClient = Mockito.mock(StorageClient.class);
 		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
-		
+
 		when(scope.getContext()).thenReturn(context);
 		spyAdapter.setDataStoreFactory(dsf);
-		
+
 		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
 		spyAdapter.setScope(scope);
 		spyAdapter.setAppSettings(new AppSettings());
 		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
-		
-		
+
+
 		// Add 1. Broadcast
 		Broadcast broadcast = new Broadcast();
 		broadcast.setZombi(true);		
-		
-		
+
+
 		// Add 2. Broadcast
 		Broadcast broadcast2 = new Broadcast();
-		
+
 		broadcast2.setWebRTCViewerCount(100);
 		broadcast2.setRtmpViewerCount(10);
 		broadcast2.setHlsViewerCount(1000);
-		
+
 		broadcast2.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
-		
-		
+
+
 		// Add 3. Broadcast
 		Broadcast broadcast3 = new Broadcast();
 		broadcast3.setStatus(spyAdapter.BROADCAST_STATUS_PREPARING);
@@ -370,30 +371,30 @@ public class AntMediaApplicationAdaptorUnitTest {
 		dataStore.save(broadcast);
 		dataStore.save(broadcast2);
 		dataStore.save(broadcast3);
-		
+
 		// Should 3 broadcast in DB
 		assertEquals(3, dataStore.getBroadcastCount());
 
 		Result result = new Result(false);
 		Mockito.when(spyAdapter.createInitializationProcess(Mockito.anyString())).thenReturn(result);
 		//When createInitializationProcess(scope.getName());
-		
+
 		spyAdapter.setDataStore(dataStore);
-		
+
 		spyAdapter.setServerSettings(new ServerSettings());
-		
+
 		spyAdapter.appStart(scope);
-		
+
 		// Should 2 broadcast in DB, because delete zombie stream
 		assertEquals(2, dataStore.getBroadcastCount());
-		
+
 		List<Broadcast> broadcastList = dataStore.getBroadcastList(0, 10, null, null, null, null);
 		for (Broadcast testBroadcast : broadcastList) 
 		{
 			assertEquals(0, testBroadcast.getWebRTCViewerCount());
 			assertEquals(0, testBroadcast.getHlsViewerCount());
 			assertEquals(0, testBroadcast.getRtmpViewerCount());
-			
+
 			assertEquals(spyAdapter.BROADCAST_STATUS_FINISHED, testBroadcast.getStatus());
 		}	
 	}
@@ -405,7 +406,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 	public void testSyncUserVoDBug() {
 		File streamsFolder = new File("webapps/junit/streams");
 		assertFalse(streamsFolder.exists());	
-		
+
 		//any target
 		Path target = new File("/usr").toPath();
 		try {
@@ -414,38 +415,38 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-		
+
+
 		assertTrue(streamsFolder.exists());	
 		assertTrue(Files.isSymbolicLink(streamsFolder.toPath()));
-		
+
 
 		IScope scope = Mockito.mock(IScope.class);
 		Mockito.when(scope.getName()).thenReturn("junit");
-		
+
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		Mockito.doReturn(scope).when(spyAdapter).getScope();
-		
+
 		DataStore dataStore = new InMemoryDataStore("dbname");
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		spyAdapter.setDataStoreFactory(dsf);
-		
-		
+
+
 		spyAdapter.synchUserVoDFolder(null, null);
 		Mockito.verify(spyAdapter, Mockito.never()).deleteSymbolicLink(any(), any());
 		Mockito.verify(spyAdapter, Mockito.never()).createSymbolicLink(any(), any());
-		
+
 		assertTrue(streamsFolder.exists());
-		
+
 		//Don't delete the file if they are the same files
 		spyAdapter.deleteSymbolicLink(new File(""), streamsFolder);
-		
+
 		assertTrue(streamsFolder.exists());
-		
-		
+
+
 	}
-	
+
 	@Test
 	public void testSynchUserVoD() {
 		File streamsFolder = new File(streamsFolderPath);
@@ -641,16 +642,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
 		AppSettings appSettings = new AppSettings();
 		spyAdaptor.setAppSettings(appSettings);
-		
+
 		Broadcast broadcast = new Broadcast();
 		assertEquals("", spyAdaptor.getListenerHookURL(broadcast));
-		
+
 		String hookURL = "listener_hook_url";
 		appSettings.setListenerHookURL(hookURL);
-		
+
 		assertEquals(hookURL, spyAdaptor.getListenerHookURL(broadcast));
-		
-		
+
+
 		spyAdaptor = Mockito.spy(adapter);
 		appSettings = new AppSettings();
 		spyAdaptor.setServerSettings(new ServerSettings());
@@ -660,28 +661,28 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
 		spyAdaptor.setDataStoreFactory(dsf);
 		spyAdaptor.setDataStore(dataStore);
-		
+
 		dataStore.save(broadcast);
-		
+
 		spyAdaptor.startPublish(broadcast.getStreamId(), 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP);
-		
+
 		broadcast = dataStore.get(broadcast.getStreamId());
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(1)).getListenerHookURL(broadcast);
-		
-		
+
+
 		spyAdaptor.closeBroadcast(broadcast.getStreamId());
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(2)).getListenerHookURL(broadcast);
-		
-		
+
+
 		spyAdaptor.publishTimeoutError(broadcast.getStreamId(), "");
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(3)).getListenerHookURL(broadcast);
-		
+
 		spyAdaptor.incrementEncoderNotOpenedError(broadcast.getStreamId());
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(4)).getListenerHookURL(broadcast);
-		
+
 		spyAdaptor.endpointFailedUpdate(broadcast.getStreamId(), "rtmp_url");
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(5)).getListenerHookURL(broadcast);
-		
+
 	}
 
 	@Test
@@ -903,8 +904,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ArgumentCaptor<String> captureVodName = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureVodId = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<String> captureMetadata = ArgumentCaptor.forClass(String.class);
-		
-		
+
+
 
 		//call muxingFinished function
 		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);
@@ -1054,20 +1055,20 @@ public class AntMediaApplicationAdaptorUnitTest {
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("test");
 		adapter.setScope(scope);
-		
+
 		IContext context = mock(IContext.class);
 		when(scope.getContext()).thenReturn(context);
 		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
 
-		
+
 		adapter.setServerSettings(Mockito.spy(new ServerSettings()));
-		
+
 		DataStore dataStore = mock(DataStore.class);
 		DataStoreFactory dataStoreFactory = mock(DataStoreFactory.class);
 		when(dataStoreFactory.getDataStore()).thenReturn(dataStore);
 
 		adapter.setDataStoreFactory(dataStoreFactory);
-		
+
 		//Add first broadcast with wrong URL
 		Broadcast stream = new Broadcast();
 		try {
@@ -1079,7 +1080,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		stream.setStreamUrl("anyurl");
 		dataStore.save(stream);
-		
+
 		//Add second broadcast with correct URL
 		Broadcast stream2 = new Broadcast();
 		try {
@@ -1091,10 +1092,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		stream2.setStreamUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4");		
 		dataStore.save(stream2);
-		
+
 		StreamFetcherManager sfm = new StreamFetcherManager(vertx, dataStore, scope);
 		StreamFetcherManager fetcherManager = Mockito.spy(sfm);
-		
+
 		StreamFetcher streamFetcher = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher2 = mock(StreamFetcher.class);
 
@@ -1102,11 +1103,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, scope, vertx);
 		Mockito.doReturn(streamFetcher2).when(fetcherManager).make(stream2, scope, vertx);
 
-		
+
 		Queue<StreamFetcher> sfQueue = new ConcurrentLinkedQueue<StreamFetcher>();
 		sfQueue.add(streamFetcher);
 		sfQueue.add(streamFetcher2);
-		
+
 		fetcherManager.setStreamFetcherList(sfQueue);
 		adapter.setStreamFetcherManager(fetcherManager);
 
@@ -1132,48 +1133,48 @@ public class AntMediaApplicationAdaptorUnitTest {
 				when(dataStore.getLocalLiveBroadcastCount(any())).thenReturn(0L);
 			};
 		}.start();
-		
+
 		assertEquals(2, fetcherManager.getStreamFetcherList().size());
 		assertEquals(2, sfQueue.size());
-		
+
 
 		assertFalse(adapter.isServerShuttingDown());
-		
+
 		adapter.serverShuttingdown();
-		
+
 		assertTrue(adapter.isServerShuttingDown());
 
 		verify(streamFetcher, times(1)).stopStream();
 		verify(streamFetcher2, times(1)).stopStream();
-		
+
 		assertEquals(0, fetcherManager.getStreamFetcherList().size());
 		assertEquals(0, sfQueue.size());
 
 		verify(cbs, times(1)).stop();
 		verify(muxerAdaptor, times(1)).stop(true);
 	}
-	
+
 	@Test
 	public void testCloseStreamFetchers() {
-		
+
 		Queue<StreamFetcher> streamFetcherList= new ConcurrentLinkedQueue<>();
-		
+
 		StreamFetcher streamFetcher = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher2 = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher3 = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher4 = mock(StreamFetcher.class);
-		
+
 		streamFetcherList.add(streamFetcher);
 		streamFetcherList.add(streamFetcher2);
 		streamFetcherList.add(streamFetcher3);
 		streamFetcherList.add(streamFetcher4);
-		
+
 		StreamFetcherManager fetcherManager = mock(StreamFetcherManager.class);
 		when(fetcherManager.getStreamFetcherList()).thenReturn(streamFetcherList);
 		adapter.setStreamFetcherManager(fetcherManager);
-		
+
 		assertEquals(4, streamFetcherList.size());
-		
+
 		adapter.closeStreamFetchers();
 
 		assertEquals(0, streamFetcherList.size());
@@ -1269,77 +1270,77 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		assertEquals(0, adapter.getNumberOfEncodersBlocked());
 	}
-	
+
 
 	@Test
 	public void testCreateShutdownFile() {
-		
+
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
-		
+
 		String closedFilePath = "webapps/"+scope.getName()+"/.closed";
 		File closedFile = new File(closedFilePath);
-		
+
 		// First stop
 		adapter.createShutdownFile(scope.getName());
-		
+
 		assertEquals(true, closedFile.exists());
-		
+
 		adapter.createShutdownFile(scope.getName());
-		
+
 	}
-	
+
 	@Test
 	public void testCloseBroadcast() {
-		
+
 		DataStore db = new InMemoryDataStore("db");
 		Broadcast broadcast = new Broadcast();
 		broadcast.setListenerHookURL("url");
 		db.save(broadcast);
-		
+
 		Vertx vertx = Mockito.mock(VertxImpl.class);
 		adapter.setDataStore(db);
-		
+
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
 		IContext context = Mockito.mock(IContext.class);
 		when(context.getApplicationContext()).thenReturn(Mockito.mock(org.springframework.context.ApplicationContext.class));
 		when(scope.getContext()).thenReturn(context);
-		
+
 		adapter.setScope(scope);
 		adapter.setVertx(vertx);
-		
+
 		adapter.closeBroadcast(broadcast.getStreamId());
-		
+
 		broadcast = db.get(broadcast.getStreamId());
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
 	}
-	
+
 	@Test
 	public void testInitializationFile() {
-		
+
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
-		
+
 		String initializedFilePath = "webapps/"+scope.getName()+"/.initialized";
 		File initializedFile = new File(initializedFilePath);
-		
+
 		String closedFilePath = "webapps/"+scope.getName()+"/.closed";
 		File closedFile = new File(closedFilePath);
-		
+
 		Result result = new Result(false); 
-		
+
 		// After the upgrade First initialization
 		//initialization file not exist
 		//closed file not exist
 		result = adapter.createInitializationProcess(scope.getName());
-		
+
 		assertEquals(false, closedFile.exists());
 		assertEquals(true, initializedFile.exists());
 		assertEquals(true, result.isSuccess());
 		assertEquals("Initialized file created in "+ scope.getName(), result.getMessage());
-		
-		
+
+
 		//After the upgrade repeated initialization
 		//initialization file exist
 		//closed file not exist
@@ -1349,13 +1350,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 		}
 		result = adapter.createInitializationProcess(scope.getName());
-		
+
 		assertEquals(false, closedFile.exists());
 		assertEquals(true, initializedFile.exists());
 		assertEquals(false, result.isSuccess());
 		assertEquals("Something wrong in "+ scope.getName(), result.getMessage());
-		
-		
+
+
 		//After the upgrade repeated initialization
 		//initialization file exist
 		//closed file exist
@@ -1365,37 +1366,37 @@ public class AntMediaApplicationAdaptorUnitTest {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		try {
 			closedFile.createNewFile();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		result = adapter.createInitializationProcess(scope.getName());
-		
+
 		assertEquals(false, closedFile.exists());
 		assertEquals(true, initializedFile.exists());
 		assertEquals(true, result.isSuccess());
 		assertEquals("System works, deleted closed file in "+ scope.getName(), result.getMessage());
-		
-		
+
+
 		//initiiazed file does not exist but closed file exists
 		initializedFile.delete();
-		
-		
+
+
 		try {
 			closedFile.createNewFile();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		result = adapter.createInitializationProcess(scope.getName());
-		
+
 		assertEquals(false, closedFile.exists());
 		assertEquals(true, initializedFile.exists());
 		assertEquals(true, result.isSuccess());
-		
-		
-		
+
+
+
 		//run create initialization file for odd case
 		result = new Result(true);
 		initializedFile = Mockito.mock(File.class);
@@ -1404,7 +1405,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		
+
 		try {
 			adapter.createInitializationFile("app", result, initializedFile);
 			assertFalse(result.isSuccess());
@@ -1412,15 +1413,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-		
-		
+
+
+
 	}
-	
+
 	boolean threadStarted = false; 
 	@Test
 	public void testVertexThreadWait() {
-		
+
 		Vertx tempVertx = Vertx.vertx(new VertxOptions()
 				.setMetricsOptions(new DropwizardMetricsOptions().setEnabled(true)));
 		AntMediaApplicationAdapter antMediaApplicationAdapter = new AntMediaApplicationAdapter();
@@ -1430,7 +1431,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		antMediaApplicationAdapter.setScope(scope);
 		int sleepTime = 5000;
-		
+
 		tempVertx.executeBlocking(l->{
 			try {
 				threadStarted = true;
@@ -1439,10 +1440,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 				e.printStackTrace();
 			}
 		}, r->{});
-		
-		
+
+
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> threadStarted);
-		
+
 		long t0 = System.currentTimeMillis();
 		antMediaApplicationAdapter.waitUntilThreadsStop();
 		long t1 = System.currentTimeMillis();
@@ -1451,26 +1452,26 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		tempVertx.close();
 	}
-	
+
 	@Test
 	public void testStreamFetcherStartAutomatically() 
 	{
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
-		
+
 		DataStore dataStore = new InMemoryDataStore("dbname");
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-		
+
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		IContext context = mock(IContext.class);
 		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
 		StorageClient storageClient = Mockito.mock(StorageClient.class);
 		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
-		
+
 		when(scope.getContext()).thenReturn(context);
 		spyAdapter.setDataStoreFactory(dsf);
-		
+
 		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
 		spyAdapter.setScope(scope);
 
@@ -1491,64 +1492,64 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setServerSettings(new ServerSettings());
 		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
-		
+
 		spyAdapter.appStart(scope);
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
 
 		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
 		verify(streamFetcherManager, times(1)).startStreams(broadcastListCaptor.capture());
-		
+
 		broadcast = dataStore.get(broadcast.getStreamId());
 		assertEquals(1,  broadcastListCaptor.getValue().size());
 		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().get(0).getStreamId());
 		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().get(0).getStatus());
 	}
-	
+
 	@Test
 	public void testStartStreaming() {
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
-		
+
 		DataStore dataStore = new InMemoryDataStore("dbname");
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-		
+
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		IContext context = mock(IContext.class);
 		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
-		
+
 		when(context.getBean(IDataStoreFactory.BEAN_NAME)).thenReturn(dsf);
-		
-		
+
+
 		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
 		when(context.getApplicationContext()).thenReturn(appContext);
 		when(context.getResource(Mockito.anyString())).thenReturn(Mockito.mock(org.springframework.core.io.Resource.class));
-		
+
 		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 		spyAdapter.setServerSettings(new ServerSettings());
 		spyAdapter.setAppSettings(new AppSettings());
 		spyAdapter.setDataStore(dataStore);
-		
+
 		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
-		
+
 		when(appContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
 		when(appContext.containsBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(true);
 		when(appContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
-				
+
 		when(scope.getContext()).thenReturn(context);
 		spyAdapter.setDataStoreFactory(dsf);
-		
+
 		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
 		spyAdapter.setScope(scope);
-		
+
 		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
 		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
 		when(licenseService.isLicenceSuspended()).thenReturn(false);
-				
-		
-		
+
+
+
 		Broadcast broadcast = new Broadcast();
 		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		broadcast.setStreamUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4");
@@ -1557,43 +1558,43 @@ public class AntMediaApplicationAdaptorUnitTest {
 		boolean startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
 		assertTrue(startStreaming);
 		assertTrue(spyAdapter.getStreamFetcherManager().isStreamRunning(broadcast.getStreamId()));
-		
+
 		StreamFetcher streamFetcher = spyAdapter.getStreamFetcherManager().getStreamFetcher(broadcast.getStreamId());
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> streamFetcher.isThreadActive());
-		
+
 		spyAdapter.getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> !streamFetcher.isThreadActive());
-		
-		
-		
+
+
+
 		when(licenseService.isLicenceSuspended()).thenReturn(true);
 		startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
 		assertFalse(startStreaming);
-		
-		
-		
+
+
+
 	}
-	
+
 	@Test
 	public void testStreamFetcherNotStartAutomatically() 
 	{
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
-		
+
 		DataStore dataStore = new InMemoryDataStore("dbname");
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-		
+
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		IContext context = mock(IContext.class);
 		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
-		
+
 		StorageClient storageClient = Mockito.mock(StorageClient.class);
 		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
-		
+
 		when(scope.getContext()).thenReturn(context);
 		spyAdapter.setDataStoreFactory(dsf);
-		
+
 		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
 		spyAdapter.setScope(scope);
 
@@ -1614,7 +1615,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		spyAdapter.setAppSettings(settings);
 		spyAdapter.setServerSettings(new ServerSettings());
 		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
-		
+
 		spyAdapter.appStart(scope);
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
@@ -1622,16 +1623,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
 		verify(streamFetcherManager, never()).startStreams(broadcastListCaptor.capture());
 	}
-	
+
 	@Test
 	public void testClusterUpdateSettings() {
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
-		
+
 		DataStore dataStore = new InMemoryDataStore("dbname");
 		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
 		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-		
+
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		IContext context = mock(IContext.class);
 		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
@@ -1640,64 +1641,64 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(context.getBean(StorageClient.BEAN_NAME)).thenReturn(storageClient);
 		ServerSettings serverSettings = new ServerSettings();
 		Mockito.doReturn(serverSettings).when(spyAdapter).getServerSettings();
-		
-		
+
+
 		IClusterNotifier clusterNotifier = Mockito.mock(IClusterNotifier.class);
 		when(context.getBean(IClusterNotifier.BEAN_NAME)).thenReturn(clusterNotifier);
-		
-		
+
+
 		when(scope.getContext()).thenReturn(context);
 		spyAdapter.setDataStoreFactory(dsf);
-		
+
 		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
 		spyAdapter.setScope(scope);
-		
+
 		AppSettings settings = new AppSettings();
 		spyAdapter.setAppSettings(settings);
-		
+
 		IClusterStore clusterStore = Mockito.mock(IClusterStore.class);
 		when(clusterNotifier.getClusterStore()).thenReturn(clusterStore);
-		
+
 		when(clusterStore.getSettings(any())).thenReturn(null);
 		when(context.getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME)).thenReturn(Mockito.mock(AcceptOnlyStreamsInDataStore.class));
 		spyAdapter.setServerSettings(new ServerSettings());
 		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
-		
+
 		spyAdapter.appStart(scope);
-		
+
 		verify(clusterNotifier).registerSettingUpdateListener(any(), any());
 		verify(spyAdapter).updateSettings(settings, true, false);
-		
+
 
 		AppSettings clusterStoreSettings = new AppSettings();
 		when(clusterStore.getSettings(any())).thenReturn(clusterStoreSettings);
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(2)).registerSettingUpdateListener(any(), any());
 		verify(spyAdapter).updateSettings(clusterStoreSettings, false, false);
-		
-		
+
+
 		clusterStoreSettings.setToBeDeleted(true);
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis());
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(3)).registerSettingUpdateListener(any(), any());
 		verify(spyAdapter, times(2)).updateSettings(clusterStoreSettings, false, false);
-		
-		
+
+
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()-80000);
 		spyAdapter.appStart(scope);
 		verify(clusterNotifier, times(4)).registerSettingUpdateListener(any(), any());
 		verify(spyAdapter, times(1)).updateSettings(settings, true, false);
 		verify(spyAdapter, times(3)).updateSettings(clusterStoreSettings, false, false);
-		
-		
+
+
 		clusterStoreSettings.setWarFileOriginServerAddress(serverSettings.getHostAddress());
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()+80000);
 		clusterStoreSettings.setPullWarFile(true);
 		spyAdapter.appStart(scope);
 		verify(spyAdapter, times(2)).updateSettings(settings, true, false);
 		assertTrue(settings.isPullWarFile());
-		
-		
+
+
 		clusterStoreSettings.setWarFileOriginServerAddress("other address");
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()+80000);
 		clusterStoreSettings.setPullWarFile(true);
@@ -1705,7 +1706,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(spyAdapter, times(4)).updateSettings(clusterStoreSettings, false, false);
 		assertTrue(settings.isPullWarFile());
 
-		
+
 		clusterStoreSettings.setWarFileOriginServerAddress(serverSettings.getHostAddress());
 		clusterStoreSettings.setUpdateTime(System.currentTimeMillis()+80000);
 		clusterStoreSettings.setPullWarFile(false);
@@ -1713,30 +1714,30 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(spyAdapter, times(5)).updateSettings(clusterStoreSettings, false, false);
 		assertFalse(settings.isPullWarFile());
 
-		
+
 	}
-	
+
 	@Test
 	public void testUpdateMainBroadcast() {
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		DataStore dataStore = new InMemoryDataStore("dbname");
 		spyAdapter.setDataStore(dataStore);
-		
-		
+
+
 		Broadcast subTrack1 = new Broadcast();
 		try {
 			subTrack1.setStreamId("subtrack1");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		Broadcast subTrack2 = new Broadcast();
 		try {
 			subTrack2.setStreamId("subtrack2");
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		Broadcast mainTrack = new Broadcast();
 		try {
 			mainTrack.setStreamId("maintrack");
@@ -1744,67 +1745,67 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 		}
 		mainTrack.setZombi(true);
-		
+
 		subTrack1.setMainTrackStreamId(mainTrack.getStreamId());
 		subTrack2.setMainTrackStreamId(mainTrack.getStreamId());
 
 		mainTrack.getSubTrackStreamIds().add(subTrack1.getStreamId());
 		mainTrack.getSubTrackStreamIds().add(subTrack2.getStreamId());
 
-		
+
 		dataStore.save(subTrack1);
 		dataStore.save(subTrack1);
 		dataStore.save(mainTrack);
-		
+
 		spyAdapter.updateMainBroadcast(subTrack1);
 		assertNotNull(dataStore.get(mainTrack.getStreamId()));
-		
+
 		spyAdapter.updateMainBroadcast(subTrack2);
 		assertNull(dataStore.get(mainTrack.getStreamId()));
-		
+
 	}
 
 	@Test
 	public void testAddRemovePacketListener() {
-		
+
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		MuxAdaptor mockAdaptor = mock(MuxAdaptor.class);
 		String streamId = "stream_"+RandomUtils.nextInt(0, 1000);
-		
-		
+
+
 		MuxAdaptor mockAdaptor2 = mock(MuxAdaptor.class);
 
-		
+
 		List<MuxAdaptor>  muxAdaptors = new ArrayList<MuxAdaptor>();
 		muxAdaptors.add(mockAdaptor);
 		muxAdaptors.add(mockAdaptor2);
 
-		
+
 		when(mockAdaptor2.getStreamId()).thenReturn("dummy");
 		when(mockAdaptor.getStreamId()).thenReturn(streamId);
 
 		IClusterStreamFetcher clusterStreamFetcher = mock(IClusterStreamFetcher.class);
 		doReturn(muxAdaptors).when(spyAdapter).getMuxAdaptors();
 		doReturn(clusterStreamFetcher).when(spyAdapter).createClusterStreamFetcher();
-		
-		
+
+
 		IPacketListener listener = mock(IPacketListener.class);
 		spyAdapter.addPacketListener(streamId, listener);
-		
+
 		verify(mockAdaptor, times(1)).addPacketListener(listener);
-		
+
 		spyAdapter.removePacketListener(streamId, listener);
 		verify(mockAdaptor, times(1)).removePacketListener(listener);
-		
+
 		String nonExistingStreamId = "stream_"+RandomUtils.nextInt(0, 1000);
 		spyAdapter.addPacketListener(nonExistingStreamId, listener);
 		verify(clusterStreamFetcher, times(1)).register(nonExistingStreamId, listener);
-		
-		
+
+
 		spyAdapter.removePacketListener(nonExistingStreamId, listener);
 		verify(clusterStreamFetcher, times(1)).remove(nonExistingStreamId, listener);
-		
-		
+
+
 	}
 
 	@Test
@@ -1812,31 +1813,47 @@ public class AntMediaApplicationAdaptorUnitTest {
 	{
 		DataStore dataStore = Mockito.spy(new InMemoryDataStore("test"));
 		adapter.setDataStore(dataStore);
-		
+
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
-		
+
 		IContext context = mock(IContext.class);
 		ApplicationContext appContext = mock(ApplicationContext.class);
 		when(context.getApplicationContext()).thenReturn(appContext);
 		when(appContext.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
-		
+
 		when(scope.getContext()).thenReturn(context);
-		
-		
+
+
 		adapter.setScope(scope);
-		
+
 		adapter.stopApplication(true);
 		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).close(true);
 	}
-	
+
 	@Test
 	public void testGetWebRTCClientMap() {
-		
+
 		assertNotNull(adapter.getWebRTCClientsMap());
-		
+
 		assertTrue(adapter.getWebRTCClientsMap().isEmpty());
+
+	}
+
+
+	@Test
+	public void testSetAndGetSubtrackPoller() {
 		
+		assertNull(adapter.getSubtrackPoller());
+		
+		// Set the mockSubtrackPoller using the setter
+		
+		ISubtrackPoller mockSubtrackPoller = Mockito.mock(ISubtrackPoller.class);
+		adapter.setSubtrackPoller(mockSubtrackPoller);
+
+		// Get the subtrackPoller using the getter and verify it's the same as the mock
+		ISubtrackPoller retrievedSubtrackPoller = adapter.getSubtrackPoller();
+		assertEquals(mockSubtrackPoller, retrievedSubtrackPoller, "The retrieved subtrackPoller should match the mock instance.");
 	}
 
 }
