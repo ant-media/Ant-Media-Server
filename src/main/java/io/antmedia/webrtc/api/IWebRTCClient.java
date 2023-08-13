@@ -197,4 +197,13 @@ public interface IWebRTCClient {
 	 * @param streamHeight
 	 */
 	public void notifyWebRTCClient(int streamHeight);
+	
+	/**
+	 * Getter for stream Id
+	 * @return
+	 */
+	public String getStreamId();
+	
+
+
 }
