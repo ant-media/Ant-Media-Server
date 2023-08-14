@@ -117,7 +117,6 @@ public class DBStoresUnitTest {
 		testRemoveTrack(dataStore);
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
-		testFullTextSearch(dataStore);
     	testBroadcastListSorting(dataStore);	
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
@@ -128,6 +127,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		testFullTextSearch(dataStore);
 
 	}
 	
@@ -196,7 +196,6 @@ public class DBStoresUnitTest {
 		testRemoveTrack(dataStore);
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
-		testFullTextSearch(dataStore);
     	testBroadcastListSorting(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
@@ -207,7 +206,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-		
+		testFullTextSearch(dataStore);
 
 
 	}
@@ -256,7 +255,6 @@ public class DBStoresUnitTest {
 		testAddTrack(dataStore);
 		testRemoveTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
-		testFullTextSearch(dataStore);
 		testBroadcastListSorting(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
@@ -266,6 +264,7 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testFullTextSearch(dataStore);
 	}
 	
 	@Test
@@ -309,7 +308,6 @@ public class DBStoresUnitTest {
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
-		testFullTextSearch(dataStore);
 		testBroadcastListSorting(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
@@ -319,6 +317,7 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testFullTextSearch(dataStore);
 	}
 	
 	@Test
