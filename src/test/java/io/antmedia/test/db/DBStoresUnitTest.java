@@ -1,13 +1,5 @@
 package io.antmedia.test.db;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -55,6 +47,8 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
+
+import static org.junit.Assert.*;
 
 public class DBStoresUnitTest {
 
@@ -123,6 +117,7 @@ public class DBStoresUnitTest {
 		testRemoveTrack(dataStore);
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
+		testFullTextSearch(dataStore);
     	testBroadcastListSorting(dataStore);	
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
@@ -201,6 +196,7 @@ public class DBStoresUnitTest {
 		testRemoveTrack(dataStore);
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
+		testFullTextSearch(dataStore);
     	testBroadcastListSorting(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
@@ -225,7 +221,7 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		
 		dataStore = new MongoStore("localhost", "", "", "testdb");
-		
+
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);		
@@ -260,6 +256,7 @@ public class DBStoresUnitTest {
 		testAddTrack(dataStore);
 		testRemoveTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
+		testFullTextSearch(dataStore);
 		testBroadcastListSorting(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
@@ -312,6 +309,7 @@ public class DBStoresUnitTest {
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
+		testFullTextSearch(dataStore);
 		testBroadcastListSorting(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
@@ -1186,9 +1184,25 @@ public class DBStoresUnitTest {
 		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
 
 	}
+
+	public void testFullTextSearch(DataStore dataStore) {
+		String searchQueryMatched = "{\"ConnectorComponentId\":\"[6b8d7494a982llll-0f8a2d3d393b]\"}";
+		String searchQueryNotMatched = "{\"ConnectorComponentId\":\"[abc-cba]\"}";
+
+		Broadcast broadcast = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, "{\"ConnectorComponentId\":\"[6b8d7494a982llll-0f8a2d3d393b]\"}");
+		broadcast.setDate(100000);
+		broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+
+		dataStore.save(broadcast);
+
+		List<Broadcast> broadcastList0 = dataStore.getBroadcastList(0, 50, null, null, null, searchQueryMatched);
+		assertFalse(broadcastList0.isEmpty());
+
+		List<Broadcast> broadcastList1 = dataStore.getBroadcastList(0, 50, null, null, null, searchQueryNotMatched);
+		assertTrue(broadcastList1.isEmpty());
+	}
 	
 	public void testBroadcastListSorting(DataStore dataStore) {
-		
 		List<Broadcast> broadcastList2 = dataStore.getBroadcastList(0, 50, null, null, null, null);
 		for (Iterator iterator = broadcastList2.iterator(); iterator.hasNext();) {
 			Broadcast broadcast = (Broadcast) iterator.next();
