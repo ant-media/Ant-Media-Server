@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -377,14 +378,10 @@ public class MongoStore extends DataStore {
 				if(search != null && !search.isEmpty())
 				{
 					logger.info("Server side search in broadcast for the text -> {}", search);
-					query.filter(Filters.or(
-										Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
-										Filters.regex("name").caseInsensitive().pattern(".*" + search + ".*")
-										)
-							    );
-					
-					
-					
+
+					// to make text search, we need to create text index
+					datastore.getCollection(Broadcast.class).createIndex(new Document("name", "text"));
+					query.filter(Filters.text(search));
 				}
 
 				if(type != null && !type.isEmpty()) {
