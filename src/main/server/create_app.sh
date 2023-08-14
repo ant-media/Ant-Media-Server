@@ -32,18 +32,19 @@ AMS_DIR=/usr/local/antmedia
 AS_WAR=false
 IS_CLUSTER=false
 
-while getopts 'n:p:w:h:c:m:u:s:f:' option
+while getopts 'n:p:w:h:c:m:u:s:f:q:' option
 do
   case "${option}" in
     n) APP_NAME=${OPTARG};;
     p) AMS_DIR=${OPTARG};;
     w) AS_WAR=${OPTARG};;
     c) IS_CLUSTER=${OPTARG};;
+    h) DATABASE_HOST=${OPTARG};;
     m) MONGO_HOST=${OPTARG};;
     u) MONGO_USER=${OPTARG};;
     s) MONGO_PASS=${OPTARG};;
     f) WAR_FILE=${OPTARG};;
-    h) usage 
+    q) usage 
        exit 1;;
    esac
 done
@@ -79,13 +80,13 @@ if [[ -z "$AS_WAR" ]]; then
     AS_WAR="false"
 fi
 
-if [[ "$IS_CLUSTER" == "true" ]]; then
-    if [[ -z "$MONGO_HOST" ]]; then
-       echo "Please set mongodb host, username and password for cluster mode. "
-       usage
-       exit 1
-    fi
-fi
+#if [[ "$IS_CLUSTER" == "true" ]]; then
+#    if [[ ! -z "$MONGO_HOST" || ! -z "$DATABASE_HOST" ]]; then
+#       echo "Please set mongodb host, username and password for cluster mode. "
+#       usage
+#       exit 1
+#    fi
+#fi
 
 case $AMS_DIR in
   /*) AMS_DIR=$AMS_DIR;;
@@ -140,10 +141,27 @@ fi
 
 if [[ "$IS_CLUSTER" == "true" ]]; then
     echo "Cluster mode"
-	sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $RED5_PROPERTIES_FILE
-    sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$MONGO_HOST'#' $RED5_PROPERTIES_FILE  
-    sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$MONGO_USER'/' $RED5_PROPERTIES_FILE
-    sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$MONGO_PASS'/' $RED5_PROPERTIES_FILE
+    if [[ $DATABASE_HOST =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DATABASE_HOST =~ ^localhost$ ||  $DATABASE_HOST =~ ^mongo.*$ ]]; then
+      DB_TYPE=mongodb
+      echo "DB type is mongodb"
+    elif [[ $DATABASE_HOST =~ ^redis.*$ ]]; then 
+      DB_TYPE=redisdb
+      echo "DB type is redis"
+    else  
+      DB_TYPE=redisdb
+      echo "DB type is redis"
+    fi  
+
+    if [[ -n "$MONGO_HOST" ]]; then
+  	  sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $RED5_PROPERTIES_FILE
+      sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$MONGO_HOST'#' $RED5_PROPERTIES_FILE  
+      sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$MONGO_USER'/' $RED5_PROPERTIES_FILE
+      sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$MONGO_PASS'/' $RED5_PROPERTIES_FILE
+    elif [[ -n "$DATABASE_HOST" ]]; then
+      sed -i $SED_COMPATIBILITY "s/db.type=.*/db.type=$DB_TYPE/g" $RED5_PROPERTIES_FILE
+      sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$DATABASE_HOST'#' $RED5_PROPERTIES_FILE  
+    fi
+
     ln -s $WAR_FILE $AMS_DIR/webapps/root/$APP_NAME.war
 else 
     echo "Not cluster mode."    
