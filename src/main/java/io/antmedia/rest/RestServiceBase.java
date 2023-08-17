@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
 import javax.ws.rs.core.Context;
 
+import io.antmedia.cluster.IClusterStore;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -316,7 +317,6 @@ public abstract class RestServiceBase {
 		if (id != null && (broadcast = getDataStore().get(id)) != null)
 		{
 			boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
-
 			if (isCluster && !broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 			{
 				logger.error("Please send a Delete Broadcast request to the {} node or Delete Broadcast in a stopped broadcast.", broadcast.getOriginAdress());
@@ -1957,5 +1957,24 @@ public abstract class RestServiceBase {
 	public Result unlinksVoD(String directory) {
 		return getApplication().unlinksVoD(directory);
 	}
+	public IClusterStore getClusterStore()
+	{
+		IClusterStore clusterStore = null;
+		WebApplicationContext ctxt = getWebApplicationContext();
+		if (ctxt != null) {
+			IClusterNotifier clusterNotifier = (IClusterNotifier) ctxt.getBean(IClusterNotifier.BEAN_NAME);
+			clusterStore = clusterNotifier.getClusterStore();
+		}
+		return clusterStore;
+	}
+
+	public WebApplicationContext getWebApplicationContext(){
+		return WebApplicationContextUtils.getWebApplicationContext(servletContext);
+	}
+
+	public void setServletContext(ServletContext servletContext) {
+		this.servletContext = servletContext;
+	}
+
 
 }

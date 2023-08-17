@@ -30,9 +30,14 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import javax.servlet.ServletContext;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import io.antmedia.cluster.ClusterNode;
+import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.cluster.IClusterStore;
+import io.antmedia.muxer.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
@@ -73,11 +78,6 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.DeviceDiscovery;
-import io.antmedia.muxer.HLSMuxer;
-import io.antmedia.muxer.Mp4Muxer;
-import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.muxer.Muxer;
-import io.antmedia.muxer.RecordMuxer;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
@@ -100,6 +100,7 @@ import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
+import org.springframework.web.context.WebApplicationContext;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -3122,5 +3123,47 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNull(streamSourceRest.getOnvifDeviceProfiles("invalid id"));
 
 	}
-	
+
+	@Test
+	public void testBroadcastStatusSetToFinishedIfOriginNodeCrashes(){
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		streamSourceRest.setAppCtx(context);
+		when(context.containsBean(any())).thenReturn(false);
+
+		DataStore store = new InMemoryDataStore("testdb");
+		streamSourceRest.setDataStore(store);
+
+		Broadcast broadcast = new Broadcast(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, "name");
+		broadcast.setOriginAdress("1.1.1.1");
+		streamSourceRest.getDataStore().save(broadcast);
+		ServletContext servletContext = mock(ServletContext.class);
+		streamSourceRest.setServletContext(servletContext);
+		WebApplicationContext webAppContext = mock(WebApplicationContext.class);
+		doReturn(context).when(servletContext).getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+		doReturn(webAppContext).when(streamSourceRest).getWebApplicationContext();
+
+		IClusterNotifier clusterNotifier = mock(IClusterNotifier.class);
+
+		doReturn(clusterNotifier).when(webAppContext).getBean(IClusterNotifier.BEAN_NAME);
+		IClusterStore iClusterStore = mock(IClusterStore.class);
+		doReturn(iClusterStore).when(clusterNotifier).getClusterStore();
+
+		when(context.containsBean(IClusterNotifier.BEAN_NAME)).thenReturn(true);
+
+		List<Broadcast> broadcastList1 = streamSourceRest.getBroadcastList(0, 10, null, null, null, null);
+		assertEquals(1, broadcastList1.size());
+
+		ClusterNode clusterNode = mock(ClusterNode.class);
+
+		Mockito.doReturn(clusterNode).when(iClusterStore).getClusterNodeFromIP(broadcast.getOriginAdress());
+		when(clusterNode.getStatus()).thenReturn(ClusterNode.DEAD);
+		broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		streamSourceRest.getDataStore().save(broadcast);
+
+		List<Broadcast> broadcastList2 = streamSourceRest.getBroadcastList(0, 10, null, null, null, null);
+		assertEquals(1, broadcastList2.size());
+
+	}
 }

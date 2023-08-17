@@ -1,7 +1,10 @@
 package io.antmedia.rest;
 
 import java.util.List;
+import java.util.Objects;
 
+import io.antmedia.cluster.ClusterNode;
+import io.antmedia.cluster.IClusterStore;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
@@ -268,7 +271,22 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "\"asc\" for Ascending, \"desc\" Descending order", required = false) @QueryParam("order_by") String orderBy,
 			@ApiParam(value = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
 			) {
-		return getDataStore().getBroadcastList(offset, size, typeBy, sortBy, orderBy, search);
+		List<Broadcast> broadcastList = getDataStore().getBroadcastList(offset, size, typeBy, sortBy, orderBy, search);
+		boolean isCluster = Objects.requireNonNull(getAppContext()).containsBean(IClusterNotifier.BEAN_NAME);
+		if (isCluster) {
+			IClusterStore clusterStore = getClusterStore();
+			// if broadcasts origin node crashed or down (mostly crash case), set its status to finished.
+			for (Broadcast broadcast : broadcastList) {
+				String broadcastStatus = broadcast.getStatus();
+				ClusterNode originClusterNode = clusterStore.getClusterNodeFromIP(broadcast.getOriginAdress());
+				if ((originClusterNode == null || originClusterNode.getStatus().equals(ClusterNode.DEAD)) && !broadcastStatus.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED)) {
+					broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+					getDataStore().save(broadcast);
+				}
+			}
+
+		}
+		return broadcastList;
 	}
 
 
