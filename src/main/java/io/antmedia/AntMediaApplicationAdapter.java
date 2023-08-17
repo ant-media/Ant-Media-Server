@@ -19,6 +19,7 @@ import io.antmedia.statistic.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
@@ -75,7 +76,9 @@ import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.antmedia.track.ISubtrackPoller;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -147,6 +150,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected Queue<IStreamListener> streamListeners = new ConcurrentLinkedQueue<>();
 
 	IClusterStreamFetcher clusterStreamFetcher;
+	
+	protected ISubtrackPoller subtrackPoller;
+
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -587,8 +593,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				for (IStreamListener listener : streamListeners) {
 					listener.streamStarted(broadcast.getStreamId());
 				}
-
-
+				
+	
 				handler.complete();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -1438,7 +1444,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (encoderSettingsList != null) {
 			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
 				EncoderSettings encoderSettings = iterator.next();
-				if (encoderSettings.getHeight() <= 0 || encoderSettings.getVideoBitrate() <= 0 || encoderSettings.getAudioBitrate() <= 0)
+				if (encoderSettings.getHeight() <= 0)
 				{
 					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
 					return false;
@@ -1738,6 +1744,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public IClusterStreamFetcher createClusterStreamFetcher() {
 		return null;
+	}
+	
+	public Map<String, Queue<IWebRTCClient>> getWebRTCClientsMap() {
+		return Collections.emptyMap();
+	}
+	
+	public ISubtrackPoller getSubtrackPoller() {
+		return subtrackPoller;
+	}
+
+	public void setSubtrackPoller(ISubtrackPoller subtrackPoller) {
+		this.subtrackPoller = subtrackPoller;
 	}
 
 
