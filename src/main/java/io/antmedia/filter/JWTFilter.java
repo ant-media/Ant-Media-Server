@@ -48,34 +48,57 @@ public class JWTFilter extends AbstractFilter {
 		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid App JWT Token");
 	}
 
-	private boolean checkJWT( String jwtString) {
-		boolean result = true;
+	private boolean checkJWT(String jwtString) {
+		boolean result = false;
+
+		String jwksURL = appSettings.getJwksURL();
+
+		if (jwksURL != null && !jwksURL.isEmpty()) {
+			result = isJWKTokenValid(appSettings.getJwksURL(), jwtString);
+		}
+		else {
+			result = isJWTTokenValid(appSettings.getJwtSecretKey(), jwtString);
+		}
+
+		return result;
+	}
+
+	private static boolean isJWKTokenValid(String jwksURL, String jwtString)  {
+
+		boolean result = false;
 		try {
-
-			String jwksURL = appSettings.getJwksURL();
-
-			if (jwksURL != null && !jwksURL.isEmpty()) {
-				DecodedJWT jwt = JWT.decode(jwtString);
-				JwkProvider provider = new UrlJwkProvider(appSettings.getJwksURL());
-				Jwk jwk = provider.get(jwt.getKeyId());
-				Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
-				algorithm.verify(jwt);
-			}
-			else {
-				Algorithm algorithm = Algorithm.HMAC256(appSettings.getJwtSecretKey());
-				JWTVerifier verifier = JWT.require(algorithm)
-						.build();
-				verifier.verify(jwtString);
-			}
-
+			DecodedJWT jwt = JWT.decode(jwtString);
+			JwkProvider provider = new UrlJwkProvider(jwksURL);
+			Jwk jwk = provider.get(jwt.getKeyId());
+			Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
+			algorithm.verify(jwt);
+			result = true;
 		}
 		catch (JWTVerificationException ex) {
 			logger.error(ex.toString());
-			result = false;
 		} catch (JwkException e) {
 			logger.error(e.toString());
-			result = false;
 		}
 		return result;
 	}
+
+
+	public static boolean isJWTTokenValid(String jwtSecretKey, String jwtString) {
+		boolean result = false;
+
+		try {
+			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+			JWTVerifier verifier = JWT.require(algorithm)
+					.build();
+			verifier.verify(jwtString);
+			result = true;
+		}
+		catch (JWTVerificationException ex) {
+			logger.error(ex.toString());
+		} 
+
+		return result;
+	}
+
+
 }

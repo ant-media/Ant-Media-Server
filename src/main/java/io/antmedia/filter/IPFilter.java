@@ -19,8 +19,16 @@ public class IPFilter extends AbstractFilter {
 
 	protected static Logger log = LoggerFactory.getLogger(IPFilter.class);
 
-	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-		if (isAllowed(request.getRemoteAddr())) {
+	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException 
+	
+	{
+		
+		/**
+		 * This filter is being used for accessing applications REST API so that return valid is if {@link #isAllowed) or it's coming from isNodeCommunicationTokenValid
+		 * Check the {@code RestProxyFilter} for getting more information about isNodeCommunicationTokenValid
+		 * 
+		 */
+		if (isAllowed(request.getRemoteAddr()) || RestProxyFilter.isNodeCommunicationTokenValid((HttpServletRequest) request,  getAppSettings().getClusterCommunicationKey())) {
 			chain.doFilter(request, response);
 			return;
 		}
