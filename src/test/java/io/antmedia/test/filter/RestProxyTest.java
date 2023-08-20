@@ -11,6 +11,7 @@ import io.antmedia.rest.servlet.EndpointProxy;
 import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
 
+import org.apache.commons.codec.binary.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.message.BasicHeader;
@@ -237,7 +238,6 @@ public class RestProxyTest {
 
 	@Test
 	public void testIsForwardedByAnotherNodeWithValidToken() {
-		String streamId = "yourStreamId";
 		AppSettings appSettings = new AppSettings();
 		appSettings.setClusterCommunicationKey("something");
 
@@ -247,13 +247,14 @@ public class RestProxyTest {
 		doReturn(appSettings).when(restProxyFilter).getAppSettings();
 		doReturn(tokenService).when(restProxyFilter).getTokenService();
 
-		String jwtInternalCommunicationToken = restProxyFilter.getJwtInternalToken(streamId);
+		String jwtSecretKey = "sdfadfasf";
+		String jwtInternalCommunicationToken = restProxyFilter.generateJwtToken(jwtSecretKey, System.currentTimeMillis()+10000);
 		assertNotNull(jwtInternalCommunicationToken);
 
 		when(tokenService.isJwtTokenValid(anyString(), anyString(), anyString(), Mockito.any()))
 				.thenReturn(true);
 
-		boolean actual = restProxyFilter.isForwardedByAnotherNode(streamId, jwtInternalCommunicationToken);
+		boolean actual = restProxyFilter.isNodeCommunicationTokenValid(jwtInternalCommunicationToken, jwtSecretKey, "reuest");
 
 		assertEquals(true, actual);
 	}
@@ -261,7 +262,7 @@ public class RestProxyTest {
 	@Test
 	public void testIsForwardedByAnotherNodeWithNullToken() {
 		// Arrange
-		String streamId = "yourStreamId";
+		String jwtSecretKey = "yourStreamId";
 		String jwtInternalCommunicationToken = null;
 
 
@@ -269,7 +270,7 @@ public class RestProxyTest {
 		ITokenService tokenService = mock(ITokenService.class); // Replace with the actual TokenService class
 		restProxyFilter.setTokenService(tokenService);
 
-		boolean actual = restProxyFilter.isForwardedByAnotherNode(streamId, jwtInternalCommunicationToken);
+		boolean actual = restProxyFilter.isNodeCommunicationTokenValid(jwtInternalCommunicationToken, jwtSecretKey, null);
 		assertEquals(false, actual);
 	}
 }

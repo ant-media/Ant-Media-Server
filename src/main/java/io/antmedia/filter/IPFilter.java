@@ -28,7 +28,9 @@ public class IPFilter extends AbstractFilter {
 		 * Check the {@code RestProxyFilter} for getting more information about isNodeCommunicationTokenValid
 		 * 
 		 */
-		if (isAllowed(request.getRemoteAddr()) || RestProxyFilter.isNodeCommunicationTokenValid((HttpServletRequest) request,  getAppSettings().getClusterCommunicationKey())) {
+		
+		HttpServletRequest httpRequest = (HttpServletRequest) request;
+		if (isAllowed(request.getRemoteAddr()) || RestProxyFilter.isNodeCommunicationTokenValid(((HttpServletRequest) request).getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION),  getAppSettings().getClusterCommunicationKey(), httpRequest.getRequestURI())) {
 			chain.doFilter(request, response);
 			return;
 		}

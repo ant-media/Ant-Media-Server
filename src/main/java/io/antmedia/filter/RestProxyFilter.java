@@ -63,6 +63,7 @@ public class RestProxyFilter extends AbstractFilter {
 						&& !isRequestDestinedForThisNode(request.getRemoteAddr(), broadcast.getOriginAdress())) 
 				{
 					
+					//token validity is 5 seconds -> 5000
 					String jwtToken = generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);
 					AppSettings settings = getAppSettings();
 					String originAdress = "http://" + broadcast.getOriginAdress() + ":" + getServerSetting().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
@@ -128,7 +129,7 @@ public class RestProxyFilter extends AbstractFilter {
 	}
 	
 	
-	static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs) {
+	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs) {
 		Date expireDateType = new Date(expireDateUnixTimeStampMs);
 		String jwtTokenId = null;
 		try {
@@ -152,18 +153,17 @@ public class RestProxyFilter extends AbstractFilter {
 	 * @return true if there is a token and it's valid. Otherwise it returns false.
 	 * 
 	 */
-	public static  boolean isNodeCommunicationTokenValid(HttpServletRequest httpRequest, String jwtSecretKey) 
+	public static  boolean isNodeCommunicationTokenValid(String jwtInternalCommunicationToken, String jwtSecretKey, String requestURI) 
 	{
 		boolean result = false;
-		String jwtInternalCommunicationToken = httpRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION);
 		if (jwtInternalCommunicationToken != null)
 		{
-			result = JWTFilter.isJWTTokenValid(jwtInternalCommunicationToken, jwtSecretKey);
+			result = JWTFilter.isJWTTokenValid(jwtSecretKey, jwtInternalCommunicationToken);
 			if(result) {
-				logger.info("Request forwarded:{} by another node is validated successfully", httpRequest.getRequestURI());
+				logger.info("Request forwarded:{} by another node is validated successfully", requestURI);
 			}
 			else {
-				logger.warn("Requested forwarded:{} by another node is failed because cluster jwt token is valid", httpRequest.getRequestURI());
+				logger.warn("Requested forwarded:{} by another node is failed because cluster jwt token is valid", requestURI);
 			}
 		}
 		else {

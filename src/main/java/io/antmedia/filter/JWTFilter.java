@@ -11,6 +11,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -83,18 +84,18 @@ public class JWTFilter extends AbstractFilter {
 	}
 
 
-	public static boolean isJWTTokenValid(String jwtSecretKey, String jwtString) {
+	public static boolean isJWTTokenValid(String jwtSecretKey, String jwtToken) {
 		boolean result = false;
 
 		try {
 			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
 			JWTVerifier verifier = JWT.require(algorithm)
 					.build();
-			verifier.verify(jwtString);
+			verifier.verify(jwtToken);
 			result = true;
 		}
 		catch (JWTVerificationException ex) {
-			logger.error(ex.toString());
+			logger.error(ExceptionUtils.getStackTrace(ex));
 		} 
 
 		return result;
