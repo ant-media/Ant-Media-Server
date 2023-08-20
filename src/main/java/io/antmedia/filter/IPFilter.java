@@ -30,7 +30,7 @@ public class IPFilter extends AbstractFilter {
 		 */
 		
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
-		if (isAllowed(request.getRemoteAddr()) || RestProxyFilter.isNodeCommunicationTokenValid(((HttpServletRequest) request).getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION),  getAppSettings().getClusterCommunicationKey(), httpRequest.getRequestURI())) {
+		if (isAllowed(request.getRemoteAddr()) || RestProxyFilter.isNodeCommunicationTokenValid(httpRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION),  getAppSettings().getClusterCommunicationKey(), httpRequest.getRequestURI())) {
 			chain.doFilter(request, response);
 			return;
 		}

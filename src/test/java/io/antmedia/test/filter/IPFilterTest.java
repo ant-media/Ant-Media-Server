@@ -236,6 +236,7 @@ public class IPFilterTest {
     public void testACMRest() throws IOException, ServletException {
         IPFilter ipFilter = Mockito.spy(new IPFilter());
         Mockito.doReturn(false).when(ipFilter).isAllowed(Mockito.anyString());
+        Mockito.doReturn(new AppSettings()).when(ipFilter).getAppSettings();
         ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);
         Mockito.doReturn(webAppContext).when(ipFilter).getAppContext();
 
