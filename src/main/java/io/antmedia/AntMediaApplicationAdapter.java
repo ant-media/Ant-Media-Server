@@ -523,7 +523,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
-	public void updateMainBroadcast(Broadcast broadcast) {
+	/**
+	 * If multiple threads enter the method at the same time, the following method does not work correctly. 
+	 * So we have made it synchronized 
+	 * 
+	 * It fixes the bug that sometimes main track(room) is not deleted in the video conferences
+	 * 
+	 * mekya
+	 * 
+	 * @param broadcast
+	 */
+	public synchronized void updateMainBroadcast(Broadcast broadcast) {
 		Broadcast mainBroadcast = getDataStore().get(broadcast.getMainTrackStreamId());
 		mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
 		if(mainBroadcast.getSubTrackStreamIds().isEmpty() && mainBroadcast.isZombi()) {
