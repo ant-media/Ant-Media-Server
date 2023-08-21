@@ -523,7 +523,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
-	public void updateMainBroadcast(Broadcast broadcast) {
+	/**
+	 * If multiple threads enter the method at the same time, the following method does not work correctly. 
+	 * So we have made it synchronized 
+	 * 
+	 * It fixes the bug that sometimes main track(room) is not deleted in the video conferences
+	 * 
+	 * mekya
+	 * 
+	 * @param broadcast
+	 */
+	public synchronized void updateMainBroadcast(Broadcast broadcast) {
 		Broadcast mainBroadcast = getDataStore().get(broadcast.getMainTrackStreamId());
 		mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
 		if(mainBroadcast.getSubTrackStreamIds().isEmpty() && mainBroadcast.isZombi()) {
@@ -1444,7 +1454,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (encoderSettingsList != null) {
 			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
 				EncoderSettings encoderSettings = iterator.next();
-				if (encoderSettings.getHeight() <= 0 || encoderSettings.getVideoBitrate() <= 0 || encoderSettings.getAudioBitrate() <= 0)
+				if (encoderSettings.getHeight() <= 0)
 				{
 					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
 					return false;

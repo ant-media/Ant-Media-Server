@@ -26,7 +26,9 @@ public class OnvifCamera implements IOnvifCamera {
 	public static final int CONNECT_ERROR = -1;
 	public static final int AUTHENTICATION_ERROR = -2;
 	String profileToken;
-	private static final String HTTP = "http://";
+	private static final String HTTP_PREFIX = "http://";
+	private static final String HTTPS_PREFIX = "https://";
+
 
 
 	protected static Logger logger = LoggerFactory.getLogger(OnvifCamera.class);
@@ -37,9 +39,12 @@ public class OnvifCamera implements IOnvifCamera {
 		String camIP = "";
 		try {
 
-			camIP = getURL(address);
+			//address may include http:// or https:// so get the IPAddress directly
+			camIP = getIPAddress(address);
 
-			nvt = new OnvifDevice(camIP, username, password);
+			String protocol = getProtocol(address);
+			
+			nvt = new OnvifDevice(camIP, protocol, username, password);
 			nvt.getSoap().setLogging(false);
 			nvt.getDevices().getCapabilities().getDevice();
 			nvt.getDevices().getServices(false);
@@ -73,6 +78,19 @@ public class OnvifCamera implements IOnvifCamera {
 			result = CONNECT_ERROR;
 		}
 		return result;
+	}
+
+	public String getProtocol(String address) {
+		String protocol = null;
+		if (address.startsWith(HTTP_PREFIX)) 
+		{
+			protocol = "http";
+		}
+		else if (address.startsWith(HTTPS_PREFIX)) 
+		{
+			protocol = "https";
+		}
+		return protocol;
 	}
 
 	@Override
@@ -257,22 +275,23 @@ public class OnvifCamera implements IOnvifCamera {
 		return false;
 	}
 
-	public String getURL (String url) {
+	public String getIPAddress (String url) {
 
 		String[] ipAddrParts = null;
 		String ipAddr = url;
 
-		if(url != null && (url.startsWith(HTTP) ||
+		if(url != null && (url.startsWith(HTTP_PREFIX) ||
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
-				url.startsWith("rtsp://"))) {
+				url.startsWith("rtsp://"))) 
+		{
 
 			ipAddrParts = url.split("//");
 			ipAddr = ipAddrParts[1];
 		}
-		if (ipAddr != null) {
-
+		if (ipAddr != null) 
+		{
 			if (ipAddr.contains("/")){
 				ipAddrParts = ipAddr.split("/");
 				ipAddr = ipAddrParts[0];

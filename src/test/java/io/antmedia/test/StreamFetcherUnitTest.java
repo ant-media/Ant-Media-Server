@@ -441,10 +441,21 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//it should be -1 because there is a connection error
 		assertEquals(-1, connResult);
+		
+		
+		//Test with protocol
+		newCam.setIpAddr("http://127.0.0.1:8080");
+		connResult = onvif.connect(newCam.getIpAddr(), newCam.getUsername(), newCam.getPassword());
+		logger.info("connResult {}", connResult);
+		
+		//it should be 0 because URL and credentials are correct
+		assertEquals(0, connResult);
 
 		stopCameraEmulator();
 
 	}
+	
+	
 
 
 

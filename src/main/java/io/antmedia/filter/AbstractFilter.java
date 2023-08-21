@@ -10,6 +10,7 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
+import io.antmedia.security.ITokenService;
 import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,6 +36,7 @@ public abstract class AbstractFilter implements Filter{
 	protected FilterConfig config;
 	
 	IStreamStats streamStats;
+	private ITokenService tokenService;
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
@@ -162,6 +164,21 @@ public abstract class AbstractFilter implements Filter{
 			}
 		}
 		return broadcast;
+	}
+
+	public ITokenService getTokenService() {
+		if (tokenService == null) {
+			ApplicationContext context = getAppContext();
+			if (context != null) {
+				tokenService = (ITokenService)context.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+			}
+		}
+		return tokenService;
+	}
+
+
+	public void setTokenService(ITokenService tokenService) {
+		this.tokenService = tokenService;
 	}
 	
 }
