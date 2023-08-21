@@ -55,7 +55,7 @@ public class JWTFilter extends AbstractFilter {
 		String jwksURL = appSettings.getJwksURL();
 
 		if (jwksURL != null && !jwksURL.isEmpty()) {
-			result = isJWKTokenValid(appSettings.getJwksURL(), jwtString);
+			result = isJWKSTokenValid(appSettings.getJwksURL(), jwtString);
 		}
 		else {
 			result = isJWTTokenValid(appSettings.getJwtSecretKey(), jwtString);
@@ -64,7 +64,7 @@ public class JWTFilter extends AbstractFilter {
 		return result;
 	}
 
-	private static boolean isJWKTokenValid(String jwksURL, String jwtString)  {
+	private static boolean isJWKSTokenValid(String jwksURL, String jwtString)  {
 
 		boolean result = false;
 		try {

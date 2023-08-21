@@ -105,35 +105,6 @@ public interface ITokenService {
 
 	Token createJwtToken(String streamId, long exprireDate, String type, String roomId);
 
-
-	/**
-	 * generates token according to the provided parameters
-	 * @param jwtSecretKey - secret key for token creation
-	 * @param streamId - id of the requested stream for token creation
-	 * @param expireDateUnixTimeStampMs - expire date of the token (unix timestamp)
-	 * @param type type of the token (play/publish)
-	 * @return token
-	 */
-	static String generateJwtToken(String jwtSecretKey, String streamId, long expireDateUnixTimeStampMs, String type) {
-		Date expireDateType = new Date(expireDateUnixTimeStampMs);
-		String jwtTokenId = null;
-		try {
-			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
-
-			jwtTokenId = JWT.create().
-					withClaim("streamId", streamId).
-					withClaim("type", type).
-					withExpiresAt(expireDateType).
-					sign(algorithm);
-
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-
-		return jwtTokenId;
-	}
-
-
 	/**
 	 * gets  map of authenticated sessions
 	 * @return list
