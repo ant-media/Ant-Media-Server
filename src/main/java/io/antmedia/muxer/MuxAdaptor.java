@@ -845,7 +845,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if ((now - lastQualityUpdateTime) > STAT_UPDATE_PERIOD_MS) 
 		{
 
-			logger.info("Stream queue size:{} for streamId:{} ", inputQueueSize, streamId);
+			logger.info("Stream queue size:{} speed:{} for streamId:{} ", inputQueueSize, speed, streamId);
 			lastQualityUpdateTime = now;
 			
 			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize, System.currentTimeMillis());

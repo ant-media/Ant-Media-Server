@@ -1031,13 +1031,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs) {
 
 		vertx.setTimer(500, h -> {
-			logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
-			
 			
 			Broadcast broadcastLocal = getDataStore().get(id);
 			if (broadcastLocal != null) 
 			{
-				broadcastLocal.setSpeed(speed);
+				//round the number to three decimal places, 
+				double roundedSpeed = Math.round(speed * 1000.0) / 1000.0;
+
+				logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
+				
+				broadcastLocal.setSpeed(roundedSpeed);
 				broadcastLocal.setPendingPacketSize(pendingPacketSize);
 				broadcastLocal.setUpdateTime(updateTimeMs);
 				broadcastLocal.setQuality(quality);
