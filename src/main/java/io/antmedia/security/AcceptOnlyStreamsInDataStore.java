@@ -20,54 +20,51 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 
 public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
-	
+
 	@Autowired
 	private DataStoreFactory dataStoreFactory;
-	
+
 	private DataStore dataStore;
-	
+
 	@Value("${settings.acceptOnlyStreamsInDataStore:true}")
 	private boolean enabled = true;
 
 	private ILicenceService licenService = null;
-	
+
 	public static final String BEAN_NAME = "acceptOnlyStreamsInDataStore"; 
-	
+
 	protected static Logger logger = LoggerFactory.getLogger(AcceptOnlyStreamsInDataStore.class);
 
 	@Override
 	public boolean isPublishAllowed(IScope scope, String name, String mode, Map<String, String> queryParams, String metaData) {
-		
+
 		boolean result = false;
-		
-		
+
+
 		Broadcast broadcast = getDatastore().get(name);
 
-		if (enabled) 
-		{
-		    if (broadcast == null) 
-		    {
-		        result = false;
-		    } 
-		    else
-		    {
-		        result = isStreamingActive(name, broadcast);
-		    } 
-		   
-		} else {
-		    logger.info("AcceptOnlyStreamsInDataStore is not activated. Accepting all streams {}", name);
-		    
-		    if (broadcast == null) 
-		    {
-		        result = true;
-		    } 
-		    else 
-		    {
-				result = isStreamingActive(name, broadcast);
-		    }
-		}
-		
 	
+
+		if (broadcast == null) 
+		{
+			if (enabled) {
+				logger.info("OnlyStreamsInDataStore is allowed and accepting streamId:{}", name);
+				result = false;
+			}
+			else {
+				logger.info("AcceptOnlyStreamsInDataStore is not activated. Accepting stream {}", name);
+				result = true;
+			}
+		} 
+		else 
+		{
+			result = true;
+			if (AntMediaApplicationAdapter.isStreaming(broadcast)) {
+				logger.info("Does not accept stream:{} because it's streaming", name);
+				result = false;
+			}
+		}
+
 		if (result) 
 		{
 			//check license suspended
@@ -78,8 +75,8 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 				result = false;
 			}
 		}
-		
-		
+
+
 		if (!result) {
 			IConnection connectionLocal = Red5.getConnectionLocal();
 			if (connectionLocal != null) {
@@ -88,28 +85,10 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 			else {
 				logger.warn("Connection object is null for {}", name);
 			}
-			
-		}
-		
-		
-		return result;
-	}
 
-	private boolean isStreamingActive(String name, Broadcast broadcast) {
-		boolean result;
-		if (!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) 
-		        && !broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) 
-		{
-		    result = true;
-		} 
-		else 
-		{
-			//if it's not streaming, it means its status is not updated and it's stuck in broadcasting state
-		    result = !AntMediaApplicationAdapter.isStreaming(broadcast);
-		    if (!result) {
-		    	logger.info("Not accepting streamId:{} because it's streaming", name);
-		    }
 		}
+
+
 		return result;
 	}
 
@@ -148,5 +127,5 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		this.dataStoreFactory = dataStoreFactory;
 	}
 
-	
+
 }
