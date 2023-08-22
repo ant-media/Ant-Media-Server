@@ -485,7 +485,7 @@ public abstract class RestServiceBase {
 		{
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
-		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast.getStreamId())) {
+		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast)) {
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
 		else

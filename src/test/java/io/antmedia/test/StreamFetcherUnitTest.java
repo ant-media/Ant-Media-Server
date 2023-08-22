@@ -188,7 +188,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		app.getStreamFetcherManager().setDatastore(dataStore);
 
 		app.getStreamFetcherManager().setRestartStreamAutomatically(false);
-		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
+		app.getStreamFetcherManager().testSetStreamCheckerInterval(5000);
 
 		app.getStreamFetcherManager().getStreamFetcherList().clear();
 
@@ -276,7 +276,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, appScope, vertx);
 
 			//set checker interval to 2 seconds
-			fetcherManager.setStreamCheckerInterval(1000);
+			fetcherManager.testSetStreamCheckerInterval(1000);
 
 			//set restart period to 5 seconds
 			appSettings.setRestartStreamFetcherPeriod(2);

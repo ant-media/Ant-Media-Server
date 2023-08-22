@@ -11,11 +11,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.MuxAdaptor;
 
 public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 	
@@ -39,24 +41,32 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		boolean result = false;
 		
 		
-		//TODO: check if possible to control timeout value to accept the streams
+		Broadcast broadcast = getDatastore().get(name);
+
 		if (enabled) 
 		{
-			Broadcast broadcast = getDatastore().get(name);
-			result = broadcast != null 
-					&& !broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) 
-					&& !broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
-		}	
-		else 
-		{
-			logger.info("AcceptOnlyStreamsInDataStore is not activated. Accepting all streams {}", name);
-			Broadcast broadcast = getDatastore().get(name);
-			
-			result = broadcast == null
-					|| 
-					(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) 
-					&& !broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING));
+		    if (broadcast == null) 
+		    {
+		        result = false;
+		    } 
+		    else
+		    {
+		        result = isStreamingActive(name, broadcast);
+		    } 
+		   
+		} else {
+		    logger.info("AcceptOnlyStreamsInDataStore is not activated. Accepting all streams {}", name);
+		    
+		    if (broadcast == null) 
+		    {
+		        result = true;
+		    } 
+		    else 
+		    {
+				result = isStreamingActive(name, broadcast);
+		    }
 		}
+		
 	
 		if (result) 
 		{
@@ -82,6 +92,24 @@ public class AcceptOnlyStreamsInDataStore implements IStreamPublishSecurity  {
 		}
 		
 		
+		return result;
+	}
+
+	private boolean isStreamingActive(String name, Broadcast broadcast) {
+		boolean result;
+		if (!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) 
+		        && !broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) 
+		{
+		    result = true;
+		} 
+		else 
+		{
+			//if it's not streaming, it means its status is not updated and it's stuck in broadcasting state
+		    result = !AntMediaApplicationAdapter.isStreaming(broadcast);
+		    if (!result) {
+		    	logger.info("Not accepting streamId:{} because it's streaming", name);
+		    }
+		}
 		return result;
 	}
 

@@ -43,8 +43,11 @@ public class StreamFetcherManager {
 
 	/**
 	 * Time period in milli seconds for checking stream fetchers status, restart issues etc. 
+	 * It's the same value with MuxAdaptor.STAT_UPDATE_PERIOD_MS because it updates the database record and let us understand if stream is alive 
+	 * with {@link AntMediaApplicationAdapter#isStreaming(Broadcast)}
+	 *
 	 */
-	private int streamCheckerIntervalMs = 10000;
+	private int streamCheckerIntervalMs = MuxAdaptor.STAT_UPDATE_PERIOD_MS;
 
 	private DataStore datastore;
 
@@ -88,23 +91,27 @@ public class StreamFetcherManager {
 	 * 
 	 * @param streamCheckerInterval, time period of the stream fetcher check interval in milliseconds
 	 */
-	public void setStreamCheckerInterval(int streamCheckerInterval) {
+	public void testSetStreamCheckerInterval(int streamCheckerInterval) {
 		this.streamCheckerIntervalMs = streamCheckerInterval;
 	}
 
-	public boolean isStreamRunning(String streamId) {
+	public boolean isStreamRunning(Broadcast broadcast) {
 
-		boolean alreadyFetching = false;
+		boolean isStreamLive = false;
 
 		for (StreamFetcher streamFetcher : streamFetcherList) {
-			if (streamFetcher.getStreamId().equals(streamId)) {
-				alreadyFetching = true;
+			if (streamFetcher.getStreamId().equals(broadcast.getStreamId())) {
+				isStreamLive = true;
 				break;
 			}
 		}
+		
+		if (!isStreamLive) {
+			//this stream may be fetching in somewhere in the cluster
+			isStreamLive = !AntMediaApplicationAdapter.isStreaming(broadcast);
+		}
 
-		return alreadyFetching;
-
+		return isStreamLive;
 	}
 
 	public Result startStreamScheduler(StreamFetcher streamScheduler) {
@@ -135,9 +142,8 @@ public class StreamFetcherManager {
 	public Result startStreaming(@Nonnull Broadcast broadcast) {	
 
 		//check if broadcast is already being fetching
-		boolean alreadyFetching;
 
-		alreadyFetching = isStreamRunning(broadcast.getStreamId());
+		boolean alreadyFetching = isStreamRunning(broadcast);
 
 		StreamFetcher streamScheduler = null;
 
@@ -266,7 +272,7 @@ public class StreamFetcherManager {
 		Result result = new Result(false);
 		List<PlayListItem> playListItemList = playlist.getPlayListItemList();
 
-		if (isStreamRunning(playlist.getStreamId())) 
+		if (isStreamRunning(playlist)) 
 		{
 			String msg = "Playlist is already running for stream:"+playlist.getStreamId();
 			logger.warn(msg);
@@ -425,7 +431,7 @@ public class StreamFetcherManager {
 				MuxAdaptor muxAdaptor = streamScheduler.getMuxAdaptor();
 				if (muxAdaptor != null) {
 					//make speed bigger than zero in order to visible in the web panel
-					muxAdaptor.changeStreamQualityParameters(streamId, null, 0.01d, 0);
+					muxAdaptor.updateStreamQualityParameters(streamId, null, 0.01d, 0);
 				}
 				else {
 					logger.warn("Mux adaptor is not initialized for stream fetcher with stream id: {} It's likely that stream fetching is not started yet", streamId);
