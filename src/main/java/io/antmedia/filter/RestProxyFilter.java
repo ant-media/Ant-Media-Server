@@ -1,5 +1,6 @@
 package io.antmedia.filter;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
@@ -12,6 +13,16 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import io.antmedia.datastore.db.DataStore;
+import io.antmedia.datastore.db.IDataStoreFactory;
+import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.rest.RequestWrapper;
+import io.antmedia.settings.ServerSettings;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,21 +63,37 @@ public class RestProxyFilter extends AbstractFilter {
 			if (streamId != null && !streamId.isEmpty())
 			{
 				Broadcast broadcast = getBroadcast(httpRequest, streamId);
-				log.debug("STREAM ID = {} BROADCAST = {} ", streamId, broadcast);
+				boolean subscriberBlockReq = isSubscriberBlockReq(httpRequest.getRequestURI());
 
+				log.debug("STREAM ID = {} BROADCAST = {} ", streamId, broadcast);
 				//If it is not related with the broadcast, we can skip this filter
-				
-				//if broadcast is not null and it's status is broadcast and this node is not destined for this node,
-				//forward the request to the origin address
-				
-				if (broadcast != null && IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()) 
+
+				if (broadcast != null && subscriberBlockReq) {
+					try {
+						//We must wrap request otherwise we cannot read it multiple times.(here and on BroadcastRestService)
+						//Need to extract subscriberId from request body so that we can get its registeredNodeIp and redirect request accordingly.
+						RequestWrapper wrappedRequest = new RequestWrapper((HttpServletRequest) request);
+						JsonObject jsonObject = parseRequestBodyToJson(wrappedRequest);
+						String subscriberId = jsonObject.get("subscriberId").getAsString();
+						DataStore dataStore = getDataStore();
+						Subscriber subscriber = dataStore.getSubscriber(streamId, subscriberId);
+						if (shouldForwardRequest(subscriber)) {
+							forwardRequestToSubscriberNode(wrappedRequest, response, subscriber.getRegisteredNodeIp());
+						} else {
+							chain.doFilter(wrappedRequest, response);
+						}
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				else if (broadcast != null && IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())
 						&& !isRequestDestinedForThisNode(request.getRemoteAddr(), broadcast.getOriginAdress())) 
 				{
 					
 					//token validity is 5 seconds -> 5000
 					String jwtToken = generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);
 					AppSettings settings = getAppSettings();
-					String originAdress = "http://" + broadcast.getOriginAdress() + ":" + getServerSetting().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
+					String originAdress = "http://" + broadcast.getOriginAdress() + ":" + getServerSettings().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
 					log.info("Redirecting the request({}) to origin {}", httpRequest.getRequestURI(), originAdress);
 					EndpointProxy endpointProxy = new EndpointProxy(jwtToken);
 					endpointProxy.initTarget(originAdress);
@@ -101,6 +128,55 @@ public class RestProxyFilter extends AbstractFilter {
 		}
 	}
 
+	private JsonObject parseRequestBodyToJson(RequestWrapper request) throws IOException {
+		String body = IOUtils.toString(request.getBody(), request.getCharacterEncoding());
+		return new JsonParser().parse(body).getAsJsonObject();
+	}
+
+	private boolean shouldForwardRequest(Subscriber subscriber) {
+		return subscriber != null && !isSubscriberRegisteredToThisNode(subscriber.getRegisteredNodeIp());
+	}
+
+	public boolean isSubscriberRegisteredToThisNode(String subscriberRegisteredNode) {
+		ApplicationContext context = getAppContext();
+		boolean isCluster = context.containsBean(IClusterNotifier.BEAN_NAME);
+		if(subscriberRegisteredNode == null){
+			return true;
+		}
+		return !isCluster || ServerSettings.getGlobalHostAddress().equals(subscriberRegisteredNode);
+	}
+
+	private void forwardRequestToSubscriberNode(HttpServletRequest request, ServletResponse response, String registeredNodeIp) throws IOException, ServletException {
+		String jwtToken = generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);
+		AppSettings appSettings = getAppSettings();
+		ServerSettings serverSettings = getServerSettings();
+		String restRouteOfSubscriberNode = "http://" + registeredNodeIp + ":" + serverSettings.getDefaultHttpPort()  + File.separator + appSettings.getAppName() + File.separator+ "rest";
+		EndpointProxy endpointProxy = new EndpointProxy(jwtToken);
+		endpointProxy.initTarget(restRouteOfSubscriberNode);
+		endpointProxy.service(request, response);
+	}
+
+	public String getSubscriberId(HttpServletRequest request) {
+		try {
+			StringBuilder requestBody = new StringBuilder();
+			BufferedReader reader = request.getReader();
+			String line;
+			while ((line = reader.readLine()) != null) {
+				requestBody.append(line);
+			}
+
+			ObjectMapper objectMapper = new ObjectMapper();
+			JsonNode jsonNode = objectMapper.readTree(requestBody.toString());
+
+			if (jsonNode.has("subscriberId")) {
+				return jsonNode.get("subscriberId").asText();
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		return null; // If subscriberId not found
+	}
 
 	public String getStreamId(String reqURI){
 		try{
@@ -124,11 +200,10 @@ public class RestProxyFilter extends AbstractFilter {
 	public  boolean isRequestDestinedForThisNode(String requestAddress, String streamOriginAddress) {
 		ApplicationContext context = getAppContext();
 		boolean isCluster = context.containsBean(IClusterNotifier.BEAN_NAME);
-		return !isCluster || requestAddress.equals(getServerSetting().getHostAddress())
-				|| getServerSetting().getHostAddress().equals(streamOriginAddress);
+		return !isCluster || requestAddress.equals(getServerSettings().getHostAddress())
+				|| getServerSettings().getHostAddress().equals(streamOriginAddress);
 	}
-	
-	
+
 	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs) {
 		Date expireDateType = new Date(expireDateUnixTimeStampMs);
 		String jwtTokenId = null;
@@ -171,4 +246,5 @@ public class RestProxyFilter extends AbstractFilter {
 		}
 		return  result;
 	}
+
 }

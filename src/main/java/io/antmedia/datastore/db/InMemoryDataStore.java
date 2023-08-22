@@ -755,6 +755,36 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
+	public boolean blockSubscriber(String streamId, String subscriberId, boolean playBlocked, boolean publishBlocked, long playBlockTime, long playBlockedUntilTime, long publishBlockTime, long publishBlockedUntilTime) {
+		boolean result = false;
+		if (streamId != null && subscriberId != null) {
+			try {
+				Subscriber subscriber = subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId));
+				if(subscriber == null){
+					return false;
+				}
+				subscriber.setPlayBlocked(playBlocked);
+				subscriber.setPublishBlocked(publishBlocked);
+				subscriber.setPlayBlockTime(playBlockTime);
+				subscriber.setPlayBlockedUntilTime(playBlockedUntilTime);
+				subscriber.setPublishBlockTime(publishBlockTime);
+				subscriber.setPublishBlockedUntilTime(publishBlockedUntilTime);
+
+
+				subscriberMap.put(subscriber.getSubscriberKey(), subscriber);
+
+				result = true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		return result;
+
+
+	}
+
+	@Override
 	public boolean revokeSubscribers(String streamId) {
 		boolean result = false;
 		Collection<Subscriber> subscriberCollection = subscriberMap.values();

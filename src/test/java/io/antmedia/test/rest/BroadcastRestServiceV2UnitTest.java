@@ -3122,5 +3122,61 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNull(streamSourceRest.getOnvifDeviceProfiles("invalid id"));
 
 	}
+
+	@Test
+	public void testBlockSubscriber(){
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
+		AntMediaApplicationAdapter adaptor = Mockito.spy (new AntMediaApplicationAdapter());
+
+		InMemoryDataStore datastore = new InMemoryDataStore("testBlockSubscriber");
+		String streamId = "testStream";
+		String subscriber1Id = "subscriber1";
+		Subscriber subscriber1 = new Subscriber();
+		subscriber1.setSubscriberId(subscriber1Id);
+		subscriber1.setStreamId(streamId);
+		datastore.addSubscriber(streamId, subscriber1);
+
+		Mockito.doReturn(datastore).when(streamSourceRest).getDataStore();
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
+		Mockito.doReturn(true).when(adaptor).stopPlayingBySubscriberId(subscriber1Id);
+
+		boolean playBlocked = true;
+		long playBlockTime = 1692738392933L;
+		long playBlockedUntilTime = 9692738392933L;
+
+		String blockSubscriberData1 = "{" +
+				"\"subscriberId\":\"" + subscriber1Id + "\"," +
+				"\"playBlocked\":" + playBlocked + "," +
+				"\"playBlockTime\":" + playBlockTime + "," +
+				"\"playBlockedUntilTime\":" + playBlockedUntilTime +
+				"}";
+
+		assertTrue(streamSourceRest.blockSubscriber(streamId, blockSubscriberData1).isSuccess());
+
+		String subscriber2Id = "subscriber2";
+		Subscriber subscriber2 = new Subscriber();
+		subscriber2.setSubscriberId(subscriber2Id);
+		subscriber2.setStreamId(streamId);
+		datastore.addSubscriber(streamId, subscriber2);
+
+
+		boolean publishBlocked = true;
+		long publishBlockTime = 1692738392933L;
+		long publishBlockedUntilTime = 9692738392933L;
+
+		String blockSubscriberData2 = "{" +
+				"\"subscriberId\":\"" + subscriber2Id + "\"," +
+				"\"playBlocked\":" + false + "," +
+				"\"publishBlocked\":" + publishBlocked + "," +
+				"\"publishBlockTime\":" + publishBlockTime + "," +
+				"\"publishBlockedUntilTime\":" + publishBlockedUntilTime +
+				"}";
+
+		Mockito.doReturn(true).when(adaptor).stopPublishingBySubscriberId(subscriber2Id);
+
+		assertTrue(streamSourceRest.blockSubscriber(streamId, blockSubscriberData2).isSuccess());
+
+
+	}
 	
 }

@@ -5,13 +5,13 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.filter.RestProxyFilter;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.servlet.EndpointProxy;
 import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
 
-import org.apache.commons.codec.binary.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.message.BasicHeader;
@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -166,7 +167,7 @@ public class RestProxyTest {
 
 		appSettings.setIpFilterEnabled(true);
 		Mockito.doReturn(appSettings).when(restFilter).getAppSettings();
-		Mockito.doReturn(serverSettings).when(restFilter).getServerSetting();
+		Mockito.doReturn(serverSettings).when(restFilter).getServerSettings();
 
 		httpServletRequest.setMethod(HttpMethod.POST);
 		restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
@@ -272,5 +273,98 @@ public class RestProxyTest {
 
 		boolean actual = restProxyFilter.isNodeCommunicationTokenValid(jwtInternalCommunicationToken, jwtSecretKey, null);
 		assertEquals(false, actual);
+	}
+
+	@Test
+	public void testBlockSubscriberCluster() throws ServletException, IOException {
+		RestProxyFilter restFilter = spy(new RestProxyFilter());
+
+		MockHttpServletRequest httpServletRequest1 = new MockHttpServletRequest();
+		String streamId = "testBlockSubscriber";
+		String subscriberId = "subscriberTest";
+		boolean playBlocked = true;
+		long playBlockTime = System.currentTimeMillis();
+		long playBlockedUntilTime = playBlockTime + 5000;
+		String blockSubscriberData = "{\"subscriberId\":\"" + subscriberId + "\",\"playBlocked\":" + playBlocked + ",\"playBlockTime\":" + playBlockTime + ",\"playBlockedUntilTime\":" + playBlockedUntilTime + "}";
+
+		Subscriber subscriber = new Subscriber();
+		subscriber.setSubscriberId(subscriberId);
+		subscriber.setStreamId(streamId);
+		subscriber.setRegisteredNodeIp("1.1.1.1");
+		httpServletRequest1.setRequestURI("broadcasts/"+streamId+"/subscribers/block");
+
+		MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+		MockFilterChain filterChain1 = new MockFilterChain();
+
+		ConfigurableWebApplicationContext webAppContext = mock(ConfigurableWebApplicationContext.class);
+		Mockito.doReturn(webAppContext).when(restFilter).getAppContext();
+		Mockito.doReturn(webAppContext).when(restFilter).getWebApplicationContext();
+		Mockito.doReturn(true).when(webAppContext).isRunning();
+
+		DataStoreFactory dtFactory = mock(DataStoreFactory.class);
+		DataStore dtStore = mock(DataStore.class);
+
+		Broadcast broadcast = new Broadcast();
+		try{
+			broadcast.setStreamId(streamId);
+
+		}
+		catch(Exception e ){
+			logger.error("StreamId can't set");
+			fail();
+		}
+
+		Mockito.doReturn(broadcast).when(dtStore).get(Mockito.anyString());
+		Mockito.doReturn(subscriber).when(dtStore).getSubscriber(streamId, subscriberId);
+
+		Mockito.when(dtFactory.getDataStore()).thenReturn(dtStore);
+		Mockito.when(dtStore.isAvailable()).thenReturn(true);
+
+		Mockito.doReturn(dtFactory).when(webAppContext).getBean(DataStoreFactory.BEAN_NAME);
+		Mockito.doReturn(true).when(webAppContext).containsBean(IClusterNotifier.BEAN_NAME);
+
+		AppSettings appSettings = new AppSettings();
+		ServerSettings serverSettings = spy(new ServerSettings());
+
+		Mockito.doReturn(appSettings).when(restFilter).getAppSettings();
+		Mockito.doReturn(serverSettings).when(restFilter).getServerSettings();
+
+		httpServletRequest1.setMethod(HttpMethod.POST);
+		httpServletRequest1.setContentType("application/json");
+		httpServletRequest1.setContent(blockSubscriberData.getBytes());
+
+		restFilter.doFilter(httpServletRequest1,httpServletResponse,filterChain1);
+		assertEquals(301, httpServletResponse.getStatus());
+
+		subscriber.setRegisteredNodeIp(ServerSettings.getGlobalHostAddress());
+
+		MockHttpServletRequest httpServletRequest2 = new MockHttpServletRequest();
+
+		httpServletRequest2.setRequestURI("broadcasts/"+streamId+"/subscribers/block");
+
+		httpServletRequest2.setMethod(HttpMethod.POST);
+		httpServletRequest2.setContentType("application/json");
+		httpServletRequest2.setContent(blockSubscriberData.getBytes());
+
+		Mockito.doReturn(subscriber).when(dtStore).getSubscriber(streamId, subscriberId);
+
+		restFilter.doFilter(httpServletRequest2,httpServletResponse,filterChain1);
+		assertEquals(301, httpServletResponse.getStatus());
+
+		subscriber.setRegisteredNodeIp(null);
+
+		MockHttpServletRequest httpServletRequest3 = new MockHttpServletRequest();
+
+		httpServletRequest3.setRequestURI("broadcasts/"+streamId+"/subscribers/block");
+
+		httpServletRequest3.setMethod(HttpMethod.POST);
+		httpServletRequest3.setContentType("application/json");
+		httpServletRequest3.setContent(blockSubscriberData.getBytes());
+		MockFilterChain filterChain2 = new MockFilterChain();
+
+		restFilter.doFilter(httpServletRequest3,httpServletResponse,filterChain2);
+		assertEquals(301, httpServletResponse.getStatus());
+
+
 	}
 }

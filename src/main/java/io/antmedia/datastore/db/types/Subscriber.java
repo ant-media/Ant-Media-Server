@@ -1,4 +1,5 @@
 package io.antmedia.datastore.db.types;
+import io.antmedia.datastore.db.DataStore;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -10,7 +11,6 @@ import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
-import dev.morphia.annotations.Embedded;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -81,6 +81,20 @@ public class Subscriber {
 	 */
 	@ApiModelProperty(value = " count of subscriber usage")
 	private int concurrentConnectionsLimit = 1;
+
+	private boolean playBlocked = false;
+
+	private boolean publishBlocked = false;
+
+	private long playBlockTime = 0;
+
+	private long publishBlockTime = 0;
+
+	private long playBlockedUntilTime = 0;
+
+	private long publishBlockedUntilTime = 0;
+
+	private String registeredNodeIp;
 
 	public String getSubscriberId() {
 		return subscriberId;
@@ -165,5 +179,75 @@ public class Subscriber {
 	public void setConcurrentConnectionsLimit(int concurrentConnectionsLimit) {
 		this.concurrentConnectionsLimit = concurrentConnectionsLimit;
 	}
-	
+
+	public boolean isPlayBlocked() {
+		return playBlocked;
+	}
+
+	public void setPlayBlocked(boolean playBlocked) {
+		this.playBlocked = playBlocked;
+	}
+
+	public boolean isPublishBlocked() {
+		return publishBlocked;
+	}
+
+	public void setPublishBlocked(boolean publishBlocked) {
+		this.publishBlocked = publishBlocked;
+	}
+
+	public long getPlayBlockTime() {
+		return playBlockTime;
+	}
+
+	public void setPlayBlockTime(long playBlockTime) {
+		this.playBlockTime = playBlockTime;
+	}
+
+	public long getPublishBlockTime() {
+		return publishBlockTime;
+	}
+
+	public void setPublishBlockTime(long publishBlockTime) {
+		this.publishBlockTime = publishBlockTime;
+	}
+
+	public long getPlayBlockedUntilTime() {
+		return playBlockedUntilTime;
+	}
+
+	public void setPlayBlockedUntilTime(long playBlockedUntilTime) {
+		this.playBlockedUntilTime = playBlockedUntilTime;
+	}
+
+	public long getPublishBlockedUntilTime() {
+		return publishBlockedUntilTime;
+	}
+
+	public void setPublishBlockedUntilTime(long publishBlockedUntil) {
+		this.publishBlockedUntilTime = publishBlockedUntil;
+	}
+
+	public String getRegisteredNodeIp() {
+		return registeredNodeIp;
+	}
+
+	public void setRegisteredNodeIp(String registeredNodeIp) {
+		this.registeredNodeIp = registeredNodeIp;
+	}
+
+	public boolean isBlocked(String type) {
+			long currTime = System.currentTimeMillis();
+			if (type.equals(PLAY_TYPE) && isPlayBlocked()) {
+				long subscriberPlayBlockTime = getPlayBlockTime();
+				long subscriberPlayBlockedUntilTime = getPlayBlockedUntilTime();
+				return (currTime > subscriberPlayBlockTime && currTime < subscriberPlayBlockedUntilTime);
+			} else if (type.equals(PUBLISH_TYPE) && isPublishBlocked()) {
+				long subscriberPublishBlockTime = getPublishBlockTime();
+				long subscriberPublishBlockedUntilTime = getPublishBlockedUntilTime();
+				return (currTime > subscriberPublishBlockTime && currTime < subscriberPublishBlockedUntilTime);
+			}
+
+		return false;
+	}
 }

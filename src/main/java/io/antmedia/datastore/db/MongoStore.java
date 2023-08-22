@@ -1044,6 +1044,36 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
+	public boolean blockSubscriber(String streamId, String subscriberId,
+								   boolean playBlocked, boolean publishBlocked,
+								   long playBlockTime, long playBlockedUntilTime,
+								   long publishBlockTime, long publishBlockedUntilTime) {
+		synchronized (this) {
+			if (streamId == null || subscriberId == null) {
+				return false;
+			}
+
+			try {
+				UpdateResult updateResult = subscriberDatastore.find(Subscriber.class)
+						.filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId))
+						.update(set("playBlocked", playBlocked),
+								set("publishBlocked", publishBlocked),
+								set("playBlockTime", playBlockTime),
+								set("playBlockedUntilTime", playBlockedUntilTime),
+								set("publishBlockTime", publishBlockTime),
+								set("publishBlockedUntilTime", publishBlockedUntilTime))
+						.execute();
+
+				return updateResult.getMatchedCount() == 1;
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+				return false;
+			}
+		}
+	}
+
+
+	@Override
 	public boolean revokeSubscribers(String streamId) {
 		synchronized(this) {
 			Query<Subscriber> query = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId));

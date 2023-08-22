@@ -721,6 +721,35 @@ public abstract class MapBasedDataStore extends DataStore {
 		return result;
 	}
 
+	public boolean blockSubscriber(String streamId, String subscriberId, boolean playBlocked, boolean publishBlocked, long playBlockTime,
+								   long playBlockedUntilTime, long publishBlockTime, long publishBlockedUntilTime) {
+		boolean result = false;
+			synchronized (this) {
+
+				if (streamId != null && subscriberId != null) {
+					try {
+						Subscriber subscriber = gson.fromJson(subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId)), Subscriber.class);
+						subscriber.setPlayBlocked(playBlocked);
+						subscriber.setPublishBlocked(publishBlocked);
+						subscriber.setPlayBlockTime(playBlockTime);
+						subscriber.setPlayBlockedUntilTime(playBlockedUntilTime);
+						subscriber.setPublishBlockTime(publishBlockTime);
+						subscriber.setPublishBlockedUntilTime(publishBlockedUntilTime);
+
+
+						subscriberMap.put(subscriber.getSubscriberKey(), gson.toJson(subscriber));
+
+						result = true;
+					} catch (Exception e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+				}
+			}
+
+
+		return result;
+	}
+
 	@Override
 	public boolean deleteSubscriber(String streamId, String subscriberId) {
 		boolean result = false;

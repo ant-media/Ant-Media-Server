@@ -532,6 +532,21 @@ public abstract class DataStore {
 	public abstract boolean deleteSubscriber(String streamId, String subscriberId);
 
 	/**
+	 * blocks subscribe from playing or publishing
+	 * @param streamId
+	 * @param subscriberId - id of the subsciber to be blocked
+	 * @param playBlocked - if true play for subscriber will be blocked
+	 * @param publishBlocked - if true publish for subscriber will be blocked
+	 * @param playBlockTime- start timestamp of play block
+	 * @param playBlockedUntilTime - end timestamp of play block
+	 * @param publishBlockTime - start timestamp of publish block
+	 * @param publishBlockedUntilTime - end timestamp of publish block
+	 * @return- true if set, false if not
+	 */
+	public abstract boolean blockSubscriber(String streamId, String subscriberId, boolean playBlocked, boolean publishBlocked, long playBlockTime,
+											long playBlockedUntilTime, long publishBlockTime, long publishBlockedUntilTime);
+
+	/**
 	 * deletes all subscriber from the datastore for this stream
 	 * @param streamId
 	 * @return- true if set, false if not
@@ -941,6 +956,7 @@ public abstract class DataStore {
 		if (newBroadcast.getMetaData() != null) {
 			broadcast.setMetaData(newBroadcast.getMetaData());
 		}
+
 
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());

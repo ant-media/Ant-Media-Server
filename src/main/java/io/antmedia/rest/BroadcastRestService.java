@@ -2,6 +2,8 @@ package io.antmedia.rest;
 
 import java.util.List;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
@@ -40,6 +42,11 @@ import io.swagger.annotations.ExternalDocs;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -49,9 +56,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+
+import static io.antmedia.filter.RestProxyFilter.generateJwtToken;
 
 @Api(value = "BroadcastRestService")
 @SwaggerDefinition(
@@ -77,6 +87,9 @@ public class BroadcastRestService extends RestServiceBase{
 	private static final String RELATIVE_MOVE = "relative";
 	private static final String ABSOLUTE_MOVE = "absolute";
 	private static final String CONTINUOUS_MOVE = "continuous";
+
+	private final ObjectMapper objectMapper = new ObjectMapper();
+
 
 	@ApiModel(value="SimpleStat", description="Simple generic statistics class to return single values")
 	public static class SimpleStat {
@@ -151,8 +164,6 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response createBroadcast(@ApiParam(value = "Broadcast object. Set the required fields, it may be null as well.", required = false) Broadcast broadcast,
 			@ApiParam(value = "Only effective if stream is IP Camera or Stream Source. If it's true, it starts automatically pulling stream. Its value is false by default", required = false, defaultValue="false") @QueryParam("autoStart") boolean autoStart) {
-
-
 
 		if (broadcast != null && broadcast.getStreamId() != null) {
 
@@ -594,7 +605,7 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 
-	@ApiOperation(value = " Removes all tokens related with requested stream", notes = "", response = Result.class)
+	@ApiOperation(value = "Removes all tokens related with requested stream", notes = "", response = Result.class)
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/tokens")
@@ -686,6 +697,44 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 
 		return new Result(result);	
+	}
+
+	@ApiOperation(value = "Block specific subscriber from playing or publishing.", response = Result.class)
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/{id}/subscribers/block")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result blockSubscriber(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+								  @RequestBody String subscriberBlockDetails) {
+		boolean result = false;
+		try {
+			Subscriber subscriber = objectMapper.readValue(subscriberBlockDetails, Subscriber.class);
+			String subscriberId = subscriber.getSubscriberId();
+
+			boolean playBlocked = subscriber.isPlayBlocked();
+			boolean publishBlocked = subscriber.isPublishBlocked();
+
+			long playBlockTime = subscriber.getPlayBlockTime();
+			long playBlockedUntilTime = subscriber.getPlayBlockedUntilTime();
+
+			long publishBlockTime = subscriber.getPublishBlockTime();
+			long publishBlockedUntilTime = subscriber.getPublishBlockedUntilTime();
+
+			if (streamId != null) {
+				result = getDataStore().blockSubscriber(streamId, subscriberId, playBlocked, publishBlocked, playBlockTime,
+						playBlockedUntilTime, publishBlockTime, publishBlockedUntilTime);
+				if (playBlocked) {
+					getApplication().stopPlayingBySubscriberId(subscriberId);
+				} else if (publishBlocked) {
+					getApplication().stopPublishingBySubscriberId(subscriberId);
+				}
+			}
+		} catch (JsonProcessingException e) {
+
+			e.printStackTrace();
+
+		}
+		return new Result(result);
 	}
 
 	@ApiOperation(value = " Removes all subscriber related with the requested stream", notes = "", response = Result.class)
@@ -1245,6 +1294,6 @@ public class BroadcastRestService extends RestServiceBase{
 		boolean result = getApplication().stopPlaying(viewerId);
 		return new Result(result);
 	}
-	
+
 
 }

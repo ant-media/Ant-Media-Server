@@ -148,10 +148,12 @@ public class EndpointProxy extends ProxyServlet {
     public HttpResponse doExecute(HttpServletRequest servletRequest, HttpServletResponse servletResponse, HttpRequest proxyRequest) throws IOException {
         try{
         	HttpClient localProxyClient = this.createHttpClient();
-            log.debug("proxy {} uri: {} -- {}", servletRequest.getMethod(), servletRequest.getRequestURI(), proxyRequest.getRequestLine().getUri());
+            log.info("proxy {} uri: {} -- {}", servletRequest.getMethod(), servletRequest.getRequestURI(), proxyRequest.getRequestLine().getUri());
             return localProxyClient.execute(this.getTargetHost(servletRequest), proxyRequest);
         }
         catch (Exception e){
+            e.printStackTrace();
+            log.error(e.getMessage());
             log.error("Can't execute the request to forward in cluster");
             return null;
         }
