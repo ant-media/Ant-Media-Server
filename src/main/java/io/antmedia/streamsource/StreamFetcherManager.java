@@ -108,7 +108,7 @@ public class StreamFetcherManager {
 		
 		if (!isStreamLive) {
 			//this stream may be fetching in somewhere in the cluster
-			isStreamLive = !AntMediaApplicationAdapter.isStreaming(broadcast);
+			isStreamLive = AntMediaApplicationAdapter.isStreaming(broadcast);
 		}
 
 		return isStreamLive;
