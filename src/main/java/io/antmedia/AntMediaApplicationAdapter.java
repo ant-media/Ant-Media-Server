@@ -947,7 +947,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final boolean isStreaming(Broadcast broadcast) {
 		//if updatetime is older than 2 times update period time, regard that it's not streaming
 		return System.currentTimeMillis() - broadcast.getUpdateTime() < (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS) &&
-				//it's status should not be created
 				(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()) 
 					||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(broadcast.getStatus()));
 	}

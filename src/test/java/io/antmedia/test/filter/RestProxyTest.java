@@ -121,7 +121,7 @@ public class RestProxyTest {
 		streamId = restFilter.getStreamId("rest/v2/broadcasts/123456");
 		assertEquals("123456",streamId);
 	}
-
+	
 	@Test
 	public void testDoFilterPassCluster() throws IOException, ServletException {
 		RestProxyFilter restFilter = spy(new RestProxyFilter());
@@ -174,10 +174,22 @@ public class RestProxyTest {
 
 		broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		httpServletRequest.setMethod(HttpMethod.DELETE);
-		filterChain = new MockFilterChain();
+		filterChain = Mockito.spy(new MockFilterChain());
 		httpServletRequest.setQueryString("query string");
 		restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
+		
+		//internal filterchaing is called because it's not streaming
+		Mockito.verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
+		Mockito.verify(restFilter, Mockito.never()).forwardRequestToOrigin(httpServletRequest, httpServletResponse, broadcast);
+		
 		assertEquals(200, httpServletResponse.getStatus());
+		
+		broadcast.setUpdateTime(System.currentTimeMillis());
+		restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
+		//it should be called because isStreaming returns true
+		Mockito.verify(restFilter).forwardRequestToOrigin(httpServletRequest, httpServletResponse, broadcast);
+
+		
 
 		httpServletRequest.setMethod(HttpMethod.PUT);
 		filterChain = new MockFilterChain();
