@@ -1556,7 +1556,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		boolean startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
 		assertTrue(startStreaming);
-		assertTrue(spyAdapter.getStreamFetcherManager().isStreamRunning(broadcast.getStreamId()));
+		assertTrue(spyAdapter.getStreamFetcherManager().isStreamRunning(broadcast));
 
 		StreamFetcher streamFetcher = spyAdapter.getStreamFetcherManager().getStreamFetcher(broadcast.getStreamId());
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> streamFetcher.isThreadActive());

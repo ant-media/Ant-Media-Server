@@ -20,6 +20,7 @@ import org.springframework.context.ApplicationContext;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -56,21 +57,17 @@ public class RestProxyFilter extends AbstractFilter {
 
 				//If it is not related with the broadcast, we can skip this filter
 				
-				//if broadcast is not null and it's status is broadcast and this node is not destined for this node,
-				//forward the request to the origin address
-				
-				if (broadcast != null && IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()) 
+				/** 
+				 * if broadcast is not null and it's streaming and this node is not destined for this node,
+				 * forward the request to the origin address. This also handles the scenario if the origin server is dead or broadcast stuck
+				 * because AntMediaApplicationAdapter.isStreaming checks the last update time
+				 */
+				if (broadcast != null && AntMediaApplicationAdapter.isStreaming(broadcast) 
 						&& !isRequestDestinedForThisNode(request.getRemoteAddr(), broadcast.getOriginAdress())) 
 				{
 					
-					//token validity is 5 seconds -> 5000
-					String jwtToken = generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);
-					AppSettings settings = getAppSettings();
-					String originAdress = "http://" + broadcast.getOriginAdress() + ":" + getServerSetting().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
-					log.info("Redirecting the request({}) to origin {}", httpRequest.getRequestURI(), originAdress);
-					EndpointProxy endpointProxy = new EndpointProxy(jwtToken);
-					endpointProxy.initTarget(originAdress);
-					endpointProxy.service(request, response);
+					
+					forwardRequestToOrigin(request, response, broadcast);
 				}
 				else 
 				{
@@ -99,6 +96,19 @@ public class RestProxyFilter extends AbstractFilter {
 		{
 			chain.doFilter(request, response);
 		}
+	}
+
+
+	public void forwardRequestToOrigin(ServletRequest request, ServletResponse response, Broadcast broadcast) throws ServletException, IOException {
+		
+		//token validity is 5 seconds -> 5000
+		String jwtToken = generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);
+		AppSettings settings = getAppSettings();
+		String originAdress = "http://" + broadcast.getOriginAdress() + ":" + getServerSetting().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
+		log.info("Redirecting the request({}) to origin {}", ((HttpServletRequest)request).getRequestURI(), originAdress);
+		EndpointProxy endpointProxy = new EndpointProxy(jwtToken);
+		endpointProxy.initTarget(originAdress);
+		endpointProxy.service(request, response);
 	}
 
 
