@@ -1334,6 +1334,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			audioExtraDataPointer = null;
 		}
 
+		streamPacketQueue.clear();
+
 		updateStreamQualityParameters(this.streamId, null, 0, getInputQueueSize());
 		getStreamHandler().muxAdaptorRemoved(this);
 
