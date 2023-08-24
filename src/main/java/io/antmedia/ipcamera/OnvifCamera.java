@@ -75,6 +75,7 @@ public class OnvifCamera implements IOnvifCamera {
 		} catch (ConnectException | SOAPException e) {
 
 			//connection error. Let the user check ip address
+			logger.error(ExceptionUtils.getStackTrace(e));
 			result = CONNECT_ERROR;
 		}
 		return result;
