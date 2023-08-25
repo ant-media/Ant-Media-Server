@@ -83,6 +83,9 @@ import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 
 public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
+	
+	public static final int STAT_UPDATE_PERIOD_MS = 5000;
+
 
 	public static final String ADAPTIVE_SUFFIX = "_adaptive";
 	private static Logger logger = LoggerFactory.getLogger(MuxAdaptor.class);
@@ -835,17 +838,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * @param duration,       the total elapsed time in milliseconds
 	 * @param inputQueueSize, input queue size of the packets that is waiting to be processed
 	 */
-	public void changeStreamQualityParameters(String streamId, String quality, double speed, int inputQueueSize) {
+	public void updateStreamQualityParameters(String streamId, String quality, double speed, int inputQueueSize) {
 		long now = System.currentTimeMillis();
 
 		//increase updating time to 5 seconds because it may cause some issues in mongodb updates and no need to update every 5 seconds
-		if ((now - lastQualityUpdateTime) > 5000 &&
-				((quality != null && !quality.equals(oldQuality)) || oldspeed == 0 || Math.abs(speed - oldspeed) > 0.05)) 
+		if ((now - lastQualityUpdateTime) > STAT_UPDATE_PERIOD_MS) 
 		{
 
-			logger.info("Stream queue size:{} for streamId:{} ", inputQueueSize, streamId);
+			logger.info("Stream queue size:{} speed:{} for streamId:{} ", inputQueueSize, speed, streamId);
 			lastQualityUpdateTime = now;
-			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize);
+			
+			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize, System.currentTimeMillis());
 			oldQuality = quality;
 			oldspeed = speed;
 		}
@@ -1235,7 +1238,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.warn("speed is NaN, packetTime: {}, first item packetTime: {}, elapsedTime:{}", packetTime, firstPacket.packetTimeMs, elapsedTime);
 			}
 		}
-		changeStreamQualityParameters(this.streamId, null, speed, getInputQueueSize());
+		updateStreamQualityParameters(this.streamId, null, speed, getInputQueueSize());
 
 
 	}
@@ -1331,7 +1334,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			audioExtraDataPointer = null;
 		}
 
-		changeStreamQualityParameters(this.streamId, null, 0, getInputQueueSize());
+		updateStreamQualityParameters(this.streamId, null, 0, getInputQueueSize());
 		getStreamHandler().muxAdaptorRemoved(this);
 
 		isRecording.set(false);

@@ -59,6 +59,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -2753,12 +2754,14 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
-	public void testRemoveSubtrack()  {
+	public void testRemoveSubtrack()  
+	{
 		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
 		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
 
 		Broadcast mainTrack= new Broadcast();
-		try {
+		try 
+		{
 			mainTrack.setStreamId(mainTrackId);
 			mainTrack.setSubTrackStreamIds(new ArrayList<>(Arrays.asList(subTrackId)));
 		} catch (Exception e) {
@@ -2774,17 +2777,24 @@ public class BroadcastRestServiceV2UnitTest {
 		}
 
 		BroadcastRestService broadcastRestService = new BroadcastRestService();
-		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		DataStore datastore = Mockito.spy(new MapDBStore("dummy", vertx));
 		datastore.save(mainTrack);
 		datastore.save(subtrack);
 		broadcastRestService.setDataStore(datastore);
+		
 
 		assertTrue(mainTrack.getSubTrackStreamIds().size() == 1);
 		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
 		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
 
+		assertNotNull(subtrack.getMainTrackStreamId());
+		
 		Result result = broadcastRestService.removeSubTrack(mainTrackId, subTrackId);
 		assertTrue(result.isSuccess());
+		
+		subtrack = datastore.get(subTrackId);
+		assertEquals("", subtrack.getMainTrackStreamId());
+		
 
 		result = broadcastRestService.removeSubTrack(mainTrackId, "notExistSubTrackId");
 		assertFalse(result.isSuccess());
@@ -2983,7 +2993,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceSpy.addStreamToTheRoom("testroom","stream1");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		verify(app, times(1)).joinedTheRoom("testroom", "stream1");
-		restServiceSpy.addStreamToTheRoom("testroom","stream2");
+		restServiceSpy.addStreamToTheRoomDeprecated("testroom","stream2");
 		assertEquals(2,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.addStreamToTheRoom(null,"stream3");
 		assertEquals(2,store.getConferenceRoom("testroom").getRoomStreamList().size());
@@ -3029,7 +3039,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceSpy.deleteStreamFromTheRoom("testroom","stream2");
 		verify(app, times(1)).leftTheRoom("testroom", "stream2");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
-		restServiceSpy.deleteStreamFromTheRoom(null,"stream2");
+		restServiceSpy.deleteStreamFromTheRoomDeprecated(null,"stream2");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.deleteStreamFromTheRoom("testroom","someunknownstream");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());

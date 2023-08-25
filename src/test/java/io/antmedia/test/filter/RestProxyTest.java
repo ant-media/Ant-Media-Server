@@ -8,8 +8,10 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.filter.RestProxyFilter;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.servlet.EndpointProxy;
+import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
 
+import org.apache.commons.codec.binary.StringUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.message.BasicHeader;
@@ -27,8 +29,6 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
-import com.amazonaws.partitions.model.Endpoint;
-
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -40,11 +40,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.*;
 
 public class RestProxyTest {
 	protected static Logger logger = LoggerFactory.getLogger(IPFilterTest.class);
-
-
 	@Rule
 	public TestRule watcher = new TestWatcher() {
 		protected void starting(Description description) {
@@ -61,26 +60,8 @@ public class RestProxyTest {
 	};
 
 	@Test
-	public void testGetDataStore() {
-		RestProxyFilter restFilter = Mockito.spy(new RestProxyFilter());
-		Mockito.doReturn(null).when(restFilter).getAppContext();
-
-		assertNull(restFilter.getDataStore());
-
-		ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);
-		Mockito.doReturn(webAppContext).when(restFilter).getAppContext();
-		DataStoreFactory dtFactory = Mockito.mock(DataStoreFactory.class);
-		Mockito.doReturn(dtFactory).when(webAppContext).getBean(DataStoreFactory.BEAN_NAME);
-		DataStore dtStore = Mockito.mock(DataStore.class);
-		Mockito.when(dtFactory.getDataStore()).thenReturn(dtStore);
-
-		assertNotNull(restFilter.getDataStore());
-
-	}
-
-	@Test
 	public void testDoFilterPass() throws IOException, ServletException {
-		RestProxyFilter restFilter = Mockito.spy(new RestProxyFilter());
+		RestProxyFilter restFilter = spy(new RestProxyFilter());
 
 		MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
 		httpServletRequest.setRemoteAddr("127.0.0.1");
@@ -88,11 +69,11 @@ public class RestProxyTest {
 		MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
 
-		ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);
+		ConfigurableWebApplicationContext webAppContext = mock(ConfigurableWebApplicationContext.class);
 		Mockito.doReturn(webAppContext).when(restFilter).getAppContext();
 
-		DataStoreFactory dtFactory = Mockito.mock(DataStoreFactory.class);
-		DataStore dtStore = Mockito.mock(DataStore.class);
+		DataStoreFactory dtFactory = mock(DataStoreFactory.class);
+		DataStore dtStore = mock(DataStore.class);
 
 		Mockito.when(dtFactory.getDataStore()).thenReturn(dtStore);
 		Mockito.when(dtStore.isAvailable()).thenReturn(true);
@@ -126,7 +107,7 @@ public class RestProxyTest {
 
 	@Test
 	public void testGetStreamId() {
-		RestProxyFilter restFilter = Mockito.spy(new RestProxyFilter());
+		RestProxyFilter restFilter = spy(new RestProxyFilter());
 
 		String streamId = restFilter.getStreamId("rest/v2/broadcasts");
 		assertNull(streamId);
@@ -140,10 +121,10 @@ public class RestProxyTest {
 		streamId = restFilter.getStreamId("rest/v2/broadcasts/123456");
 		assertEquals("123456",streamId);
 	}
-
+	
 	@Test
 	public void testDoFilterPassCluster() throws IOException, ServletException {
-		RestProxyFilter restFilter = Mockito.spy(new RestProxyFilter());
+		RestProxyFilter restFilter = spy(new RestProxyFilter());
 
 		MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
 		httpServletRequest.setRemoteAddr("10.0.0.0");
@@ -152,11 +133,11 @@ public class RestProxyTest {
 		MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
 		MockFilterChain filterChain = new MockFilterChain();
 
-		ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);
+		ConfigurableWebApplicationContext webAppContext = mock(ConfigurableWebApplicationContext.class);
 		Mockito.doReturn(webAppContext).when(restFilter).getAppContext();
 
-		DataStoreFactory dtFactory = Mockito.mock(DataStoreFactory.class);
-		DataStore dtStore = Mockito.mock(DataStore.class);
+		DataStoreFactory dtFactory = mock(DataStoreFactory.class);
+		DataStore dtStore = mock(DataStore.class);
 
 		Broadcast broadcast = new Broadcast();
 		broadcast.setOriginAdress("127.0.0.1");
@@ -180,7 +161,7 @@ public class RestProxyTest {
 		AppSettings appSettings = new AppSettings();
 		appSettings.setRemoteAllowedCIDR("127.0.0.1/8");
 
-		ServerSettings serverSettings = Mockito.spy(new ServerSettings());
+		ServerSettings serverSettings = spy(new ServerSettings());
 		Mockito.doReturn("172.0.0.0").when(serverSettings).getHostAddress();
 
 		appSettings.setIpFilterEnabled(true);
@@ -193,10 +174,22 @@ public class RestProxyTest {
 
 		broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		httpServletRequest.setMethod(HttpMethod.DELETE);
-		filterChain = new MockFilterChain();
+		filterChain = Mockito.spy(new MockFilterChain());
 		httpServletRequest.setQueryString("query string");
 		restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
+		
+		//internal filterchaing is called because it's not streaming
+		Mockito.verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
+		Mockito.verify(restFilter, Mockito.never()).forwardRequestToOrigin(httpServletRequest, httpServletResponse, broadcast);
+		
 		assertEquals(200, httpServletResponse.getStatus());
+		
+		broadcast.setUpdateTime(System.currentTimeMillis());
+		restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
+		//it should be called because isStreaming returns true
+		Mockito.verify(restFilter).forwardRequestToOrigin(httpServletRequest, httpServletResponse, broadcast);
+
+		
 
 		httpServletRequest.setMethod(HttpMethod.PUT);
 		filterChain = new MockFilterChain();
@@ -223,8 +216,9 @@ public class RestProxyTest {
 
 	@Test
 	public void testEndpointProxy() {
+		String jwtToken = "something";
 
-		EndpointProxy endpointProxy = Mockito.spy(new EndpointProxy());
+		EndpointProxy endpointProxy = spy(new EndpointProxy(jwtToken));
 
 		MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
 		MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
@@ -232,13 +226,12 @@ public class RestProxyTest {
 
 		try {
 			endpointProxy.initTarget("http://127.0.0.1");
-			HttpResponse response = Mockito.mock(HttpResponse.class);
-			StatusLine statusLine = Mockito.mock(StatusLine.class);
+			HttpResponse response = mock(HttpResponse.class);
+			StatusLine statusLine = mock(StatusLine.class);
 			Mockito.when(statusLine.getStatusCode()).thenReturn(304);
 			Mockito.when(response.getStatusLine()).thenReturn(statusLine);
 			Mockito.when(response.getAllHeaders()).thenReturn(new BasicHeader[]{ new BasicHeader("key", "value"), new BasicHeader("key", "value") } );
-			
-			
+
 			Mockito.doReturn(response).when(endpointProxy).doExecute(Mockito.any(), Mockito.any(), Mockito.any());
 			endpointProxy.service((HttpServletRequest)httpServletRequest, (HttpServletResponse)httpServletResponse);
 			
@@ -253,5 +246,43 @@ public class RestProxyTest {
 			fail(e.getMessage());
 		}
 
+	}
+
+	@Test
+	public void testIsForwardedByAnotherNodeWithValidToken() {
+		AppSettings appSettings = new AppSettings();
+		appSettings.setClusterCommunicationKey("something");
+
+		RestProxyFilter restProxyFilter = spy(new RestProxyFilter());
+		ITokenService tokenService = mock(ITokenService.class);
+		restProxyFilter.setTokenService(tokenService);
+		doReturn(appSettings).when(restProxyFilter).getAppSettings();
+		doReturn(tokenService).when(restProxyFilter).getTokenService();
+
+		String jwtSecretKey = "sdfadfasf";
+		String jwtInternalCommunicationToken = restProxyFilter.generateJwtToken(jwtSecretKey, System.currentTimeMillis()+10000);
+		assertNotNull(jwtInternalCommunicationToken);
+
+		when(tokenService.isJwtTokenValid(anyString(), anyString(), anyString(), Mockito.any()))
+				.thenReturn(true);
+
+		boolean actual = restProxyFilter.isNodeCommunicationTokenValid(jwtInternalCommunicationToken, jwtSecretKey, "reuest");
+
+		assertEquals(true, actual);
+	}
+
+	@Test
+	public void testIsForwardedByAnotherNodeWithNullToken() {
+		// Arrange
+		String jwtSecretKey = "yourStreamId";
+		String jwtInternalCommunicationToken = null;
+
+
+		RestProxyFilter restProxyFilter = new RestProxyFilter();
+		ITokenService tokenService = mock(ITokenService.class); // Replace with the actual TokenService class
+		restProxyFilter.setTokenService(tokenService);
+
+		boolean actual = restProxyFilter.isNodeCommunicationTokenValid(jwtInternalCommunicationToken, jwtSecretKey, null);
+		assertEquals(false, actual);
 	}
 }

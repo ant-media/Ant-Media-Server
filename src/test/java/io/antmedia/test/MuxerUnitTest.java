@@ -133,6 +133,7 @@ import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.StreamInfo;
@@ -2166,6 +2167,85 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		logger.info("leaving testMp4Muxing");
 		return null;
+	}
+	
+	@Test
+	public void updateStreamQualityParameters() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		
+		vertx = (Vertx)appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+		
+		
+		
+		String streamId = "streamId";
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		Application.enableSourceHealthUpdate = true;
+		
+		
+		boolean result = muxAdaptor.init(appScope, streamId, false);
+		
+		muxAdaptor.getDataStore().save(broadcast);
+		
+		muxAdaptor.updateStreamQualityParameters(streamId , null, 0.99612, 10);
+		
+		Awaitility.await().atMost(3, TimeUnit.SECONDS).until(() -> {
+			Broadcast broadcast2 = muxAdaptor.getDataStore().get(streamId);
+			logger.info("speed: {}", broadcast2.getSpeed());
+			return "0.996".equals(Double.toString(broadcast2.getSpeed()));
+		});
+		
+		Broadcast broadcast2 = muxAdaptor.getDataStore().get(streamId);
+		assertEquals("0.996", Double.toString(broadcast2.getSpeed()));
+		
+		assertEquals(10, broadcast2.getPendingPacketSize());
+		long lastUpdateTime = broadcast2.getUpdateTime();
+		assertTrue((System.currentTimeMillis() - lastUpdateTime) < 1000);
+		
+		for (int i = 0; i < 100; i++) {
+			//it should not update because it updates for every 5 seconds
+			muxAdaptor.updateStreamQualityParameters(streamId , null, 0.99612 + Math.random(), 12120);
+		}
+		
+		broadcast2 = muxAdaptor.getDataStore().get(streamId);
+		assertEquals("0.996", Double.toString(broadcast2.getSpeed()));
+		
+		assertEquals(10, broadcast2.getPendingPacketSize());
+		assertEquals(lastUpdateTime, broadcast2.getUpdateTime());
+		
+		
+		Awaitility.await().pollDelay(5100, TimeUnit.MILLISECONDS).atMost(6, TimeUnit.SECONDS).until(()-> {
+			muxAdaptor.updateStreamQualityParameters(streamId , null, 1.0123, 12120);
+			return true;
+		});
+		
+		Awaitility.await().atMost(3, TimeUnit.SECONDS).until(() -> {
+			Broadcast broadcastTmp = muxAdaptor.getDataStore().get(streamId);
+			logger.info("speed: {}", broadcastTmp.getSpeed());
+			return "1.012".equals(Double.toString(broadcastTmp.getSpeed()));
+		});
+		
+		broadcast2 = muxAdaptor.getDataStore().get(streamId);
+		assertEquals("1.012", Double.toString(broadcast2.getSpeed()));
+		
+		assertEquals(12120, broadcast2.getPendingPacketSize());
+		assertNotEquals(lastUpdateTime, broadcast2.getUpdateTime());
+		
+		assertTrue((System.currentTimeMillis() - broadcast2.getUpdateTime()) < 1000);
+
+		Application.enableSourceHealthUpdate = false;
+		
 	}
 
 

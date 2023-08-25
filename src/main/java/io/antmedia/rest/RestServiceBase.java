@@ -485,7 +485,7 @@ public abstract class RestServiceBase {
 		{
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
-		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast.getStreamId())) {
+		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast)) {
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
 		else
@@ -1217,6 +1217,7 @@ public abstract class RestServiceBase {
 				}
 			}
 			else {
+				//this message has a wrong meaning on the other hand it has been used in the frontend(webpanel). Both sides should be updated 
 				message = "notMp4File";
 			}
 
@@ -1753,7 +1754,7 @@ public abstract class RestServiceBase {
 			}
 			streamDetailsMap = new HashMap<>();
 
-			List<String> tempList=conferenceRoom.getRoomStreamList();
+			List<String> tempList = conferenceRoom.getRoomStreamList();
 			if(tempList != null) {
 				for (String tmpStreamId : tempList)
 				{
@@ -1770,7 +1771,8 @@ public abstract class RestServiceBase {
 		return streamDetailsMap;
 	}
 
-	public static boolean addStreamToConferenceRoom(String roomId,String streamId,DataStore store){
+	public static boolean addStreamToConferenceRoom(String roomId,String streamId,DataStore store)
+	{
 		if(roomId!=null){
 			List<String> roomStreamList = null;
 			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);

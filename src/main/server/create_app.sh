@@ -134,6 +134,10 @@ check_result
 sed -i $SED_COMPATIBILITY 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
 check_result
 
+if [[ $MONGO_HOST == \'*\' ]]; then
+  MONGO_HOST="${MONGO_HOST:1:-1}"
+fi
+
 if [[ "$IS_CLUSTER" == "true" ]]; then
     echo "Cluster mode"
 	sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $RED5_PROPERTIES_FILE

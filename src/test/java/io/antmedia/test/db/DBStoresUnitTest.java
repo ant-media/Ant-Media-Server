@@ -385,7 +385,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, vodList.size());
 		
 		for (int i = 0; i < 10; i++) {
-			assertNotNull(dataStore.addVod(new VoD("stream", "111223" + (int)(Math.random() * 100000),  "path", "vod", 1517239808, 111, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000), null)));
+			assertNotNull(dataStore.addVod(new VoD("stream", "111223" + (int)(Math.random() * 9100000),  "path", "vod", 1517239808, 111, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000), null)));
 		}
 		
 		vodList = dataStore.getVodList(6, 4, null, null, null, null);
@@ -1490,6 +1490,8 @@ public class DBStoresUnitTest {
 			tmp.setListenerHookURL(listenerHookURL);
 			assertTrue(tmp.isPlaylistLoopEnabled());
 			tmp.setPlaylistLoopEnabled(false);
+			double speed = 1.0;
+			tmp.setSpeed(speed);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -1504,6 +1506,7 @@ public class DBStoresUnitTest {
 			assertEquals(ServerSettings.getLocalHostAddress(), tmp.getOriginAdress());
 			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
 			assertFalse(broadcast2.isPlaylistLoopEnabled());
+			assertEquals(speed, broadcast2.getSpeed(), 0.1);
 
 			result = dataStore.updateDuration(broadcast.getStreamId().toString(), 100000);
 			assertTrue(result);
