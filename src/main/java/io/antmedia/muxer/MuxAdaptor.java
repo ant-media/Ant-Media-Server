@@ -190,6 +190,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	private LinkedList<PacketTime> packetTimeList = new LinkedList<PacketTime>();
 
+	public boolean addID3Data(String data) {
+		for (Muxer muxer : muxerList) {
+			if(muxer instanceof HLSMuxer) {
+				((HLSMuxer)muxer).addID3Data(data);
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static class PacketTime {
 		public final long packetTimeMs;
 		public final long systemTimeMs;
@@ -421,6 +431,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(), getAppSettings().getHlsHttpEndpoint(), getAppSettings().isAddDateTimeToHlsFileName());
 			hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile());
 			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
+			hlsMuxer.setId3Enabled(appSettings.isId3TagEnabled());
 			addMuxer(hlsMuxer);
 			logger.info("adding HLS Muxer for {}", streamId);
 		}

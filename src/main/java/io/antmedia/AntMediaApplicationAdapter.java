@@ -1777,13 +1777,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return null;
 	}
 	
-	public Map<String, Queue<IWebRTCClient>> getWebRTCClientsMap() {
-		return Collections.emptyMap();
-	}
-	
-	public ISubtrackPoller getSubtrackPoller() {
-		return subtrackPoller;
-	}
+
+
+
 
 	public void setSubtrackPoller(ISubtrackPoller subtrackPoller) {
 		this.subtrackPoller = subtrackPoller;

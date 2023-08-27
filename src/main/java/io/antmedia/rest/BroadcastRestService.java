@@ -2,6 +2,7 @@ package io.antmedia.rest;
 
 import java.util.List;
 
+import io.antmedia.muxer.MuxAdaptor;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
 
@@ -1245,6 +1246,24 @@ public class BroadcastRestService extends RestServiceBase{
 		boolean result = getApplication().stopPlaying(viewerId);
 		return new Result(result);
 	}
-	
 
+
+	@ApiOperation(value = "Add ID3 data to HLS stream at the moment", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{stream_id}/id3")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result addID3Data(@ApiParam(value = "the id of the stream", required = true) @PathParam("stream_id") String streamId,
+							 @ApiParam(value = "ID3 data.", required = false) String data) {
+		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
+		if(!getAppSettings().isId3TagEnabled()) {
+			return new Result(false, null, "ID3 tag is not enabled");
+		}
+		if(muxAdaptor != null) {
+			return new Result(muxAdaptor.addID3Data(data));
+		}
+		else {
+			return new Result(false, null, "Stream is not available");
+		}
+	}
 }

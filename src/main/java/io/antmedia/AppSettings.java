@@ -736,6 +736,11 @@ public class AppSettings implements Serializable{
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
 
+	/**
+	 * @hidden
+	 */
+	private static final String SETTINGS_ID3_TAG_ENABLED = "settings.id3TagEnabled";
+
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -2000,6 +2005,12 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${clusterCommunicationKey:${"+SETTINGS_CLUSTER_COMMUNICATION_KEY+ ":#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}}")
 	private String clusterCommunicationKey = RandomStringUtils.randomAlphanumeric(32);
+
+	/**
+	 * Enables the ID3 Tag support for HLS
+	 */
+	@Value("${id3TagEnabled:${"+SETTINGS_ID3_TAG_ENABLED+":false}}")
+	private boolean id3TagEnabled = false;
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -3449,4 +3460,11 @@ public class AppSettings implements Serializable{
 		this.objectDetectionEnabled = objectDetectionEnabled;
 	}
 
+	public boolean isId3TagEnabled() {
+		return id3TagEnabled;
+	}
+
+	public void setId3TagEnabled(boolean id3TagEnabled) {
+		this.id3TagEnabled = id3TagEnabled;
+	}
 }
