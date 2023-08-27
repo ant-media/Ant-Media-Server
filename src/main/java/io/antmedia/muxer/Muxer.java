@@ -1071,7 +1071,6 @@ public abstract class Muxer {
 		ret = av_write_frame(context, tmpPacket);
 		if (ret < 0 && logger.isInfoEnabled()) {
 			logger.info("cannot write audio frame to muxer({}). Error is {} ", file.getName(), getErrorDefinition(ret));
-			System.out.println(ExceptionUtils.getStackTrace(new Exception()));
 		}
 	}
 
