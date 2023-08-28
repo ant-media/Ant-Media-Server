@@ -1002,17 +1002,7 @@ public abstract class Muxer {
 			pkt.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
-			int ret = av_packet_ref(tmpPacket , pkt);
-			if (ret < 0) {
-				logger.error("Cannot copy data packet for {}", streamId);
-				return;
-			}
-
-			ret = av_write_frame(context, tmpPacket);
-
-			if (ret < 0 && logger.isWarnEnabled()) {
-				logPacketIssue("cannot frame to muxer({}) not audio and not video. Error is {} ", file.getName(), getErrorDefinition(ret));
-			}
+			writeDataFrame(pkt, context);
 		}
 
 		pkt.pts(pts);
@@ -1020,6 +1010,21 @@ public abstract class Muxer {
 		pkt.duration(duration);
 		pkt.pos(pos);
 
+	}
+
+	public void writeDataFrame(AVPacket pkt, AVFormatContext context) {
+		int ret = av_packet_ref(tmpPacket , pkt);
+		if (ret < 0) {
+			logger.error("Cannot copy data packet for {}", streamId);
+			return;
+		}
+
+		ret = av_write_frame(context, tmpPacket);
+
+		if (ret < 0 && logger.isWarnEnabled()) {
+			logPacketIssue("cannot frame to muxer({}) not audio and not video. Error is {} ", file.getName(), getErrorDefinition(ret));
+		}
+		av_packet_unref(tmpPacket);
 	}
 
 	public void addExtradataIfRequired(AVPacket pkt, boolean isKeyFrame) 

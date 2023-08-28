@@ -1255,10 +1255,10 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addID3Data(@ApiParam(value = "the id of the stream", required = true) @PathParam("stream_id") String streamId,
 							 @ApiParam(value = "ID3 data.", required = false) String data) {
-		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if(!getAppSettings().isId3TagEnabled()) {
 			return new Result(false, null, "ID3 tag is not enabled");
 		}
+		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if(muxAdaptor != null) {
 			return new Result(muxAdaptor.addID3Data(data));
 		}

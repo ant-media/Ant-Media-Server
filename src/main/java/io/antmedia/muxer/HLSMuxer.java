@@ -243,13 +243,17 @@ public class HLSMuxer extends Muxer  {
 
 	@Override
 	public boolean writeHeader() {
+		createID3StreamIfRequired();
+		return super.writeHeader();
+	}
+
+	public void createID3StreamIfRequired() {
 		if(id3Enabled) {
 			id3DataPkt = avcodec.av_packet_alloc();
 			av_init_packet(id3DataPkt);
 
 			addID3Stream();
 		}
-		return super.writeHeader();
 	}
 
 	/**

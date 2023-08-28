@@ -509,6 +509,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(30, appSettings.getAbrUpScaleJitterMs(), 0.0001);
 		assertEquals(150, appSettings.getAbrUpScaleRTTMs(), 0.0001);
 		assertNotNull(appSettings.getClusterCommunicationKey());
+		assertEquals(false, appSettings.isId3TagEnabled());
 
 
 
