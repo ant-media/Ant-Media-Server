@@ -11,7 +11,7 @@
 package org.webrtc;
 
 /** Object that adjusts the bitrate of a hardware codec. */
-interface BitrateAdjuster {
+public interface BitrateAdjuster {
   /**
    * Sets the target bitrate in bits per second and framerate in frames per second.
    */
