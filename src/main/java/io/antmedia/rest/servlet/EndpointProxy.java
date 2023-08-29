@@ -152,7 +152,6 @@ public class EndpointProxy extends ProxyServlet {
             return localProxyClient.execute(this.getTargetHost(servletRequest), proxyRequest);
         }
         catch (Exception e){
-            e.printStackTrace();
             log.error(e.getMessage());
             log.error("Can't execute the request to forward in cluster");
             return null;

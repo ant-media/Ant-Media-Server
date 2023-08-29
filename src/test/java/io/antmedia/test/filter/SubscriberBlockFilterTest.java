@@ -112,7 +112,7 @@ public class SubscriberBlockFilterTest {
             subscriber.setSubscriberId(subscriberId);
             subscriber.setPlayBlocked(true);
             long currTime = System.currentTimeMillis();
-            subscriber.setPlayBlockTime(System.currentTimeMillis());
+            subscriber.setPlayBlockTime(currTime);
             subscriber.setPlayBlockedUntilTime(currTime + 10000);
             when(dataStore.getSubscriber(streamId,subscriberId)).thenReturn(subscriber);
 
@@ -124,6 +124,11 @@ public class SubscriberBlockFilterTest {
             MockFilterChain filterChain4 = new MockFilterChain();
             subscriber.setPlayBlockedUntilTime(currTime - 15000);
             subscriberBlockFilter.doFilter(httpServletRequest1, httpServletResponse, filterChain4);
+
+
+
+
+
 
         } catch (Exception e) {
             logger.error(ExceptionUtils.getStackTrace(e));

@@ -942,7 +942,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId) {
 		return streamAcceptFilter.isValidStreamParameters(width, height, fps, bitrate, streamId);
 	}
-
+	
+	
+	public static final boolean isStreaming(Broadcast broadcast) {
+		//if updatetime is older than 2 times update period time, regard that it's not streaming
+		return System.currentTimeMillis() - broadcast.getUpdateTime() < (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS) &&
+				(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()) 
+					||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(broadcast.getStatus()));
+	}
 
 	public Result startStreaming(Broadcast broadcast) 
 	{		
@@ -1020,11 +1027,25 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	@Override
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs) {
 
 		vertx.setTimer(500, h -> {
-			logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
-			getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
+			
+			Broadcast broadcastLocal = getDataStore().get(id);
+			if (broadcastLocal != null) 
+			{
+				//round the number to three decimal places, 
+				double roundedSpeed = Math.round(speed * 1000.0) / 1000.0;
+
+				logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
+				
+				broadcastLocal.setSpeed(roundedSpeed);
+				broadcastLocal.setPendingPacketSize(pendingPacketSize);
+				broadcastLocal.setUpdateTime(updateTimeMs);
+				broadcastLocal.setQuality(quality);
+				getDataStore().updateBroadcastFields(id, broadcastLocal);
+			}
+			
 		});
 	}
 

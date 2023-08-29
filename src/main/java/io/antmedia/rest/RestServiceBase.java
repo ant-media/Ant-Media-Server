@@ -485,7 +485,7 @@ public abstract class RestServiceBase {
 		{
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
-		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast.getStreamId())) {
+		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast)) {
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
 		else
@@ -1217,6 +1217,7 @@ public abstract class RestServiceBase {
 				}
 			}
 			else {
+				//this message has a wrong meaning on the other hand it has been used in the frontend(webpanel). Both sides should be updated 
 				message = "notMp4File";
 			}
 

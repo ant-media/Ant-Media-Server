@@ -9,7 +9,6 @@ import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
-import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.security.ITokenService;
 import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
@@ -214,10 +213,8 @@ public abstract class AbstractFilter implements Filter{
 
 	public boolean isSubscriberBlockReq(String requestUri){
 		//Using raw string here as identifier is not a good practice. find a better way
-		if(requestUri.contains("subscribers/block")){
-			return true;
-		}
-		return false;
+		return requestUri.contains("subscribers/block");
+
 	}
 
 	public void setTokenService(ITokenService tokenService) {

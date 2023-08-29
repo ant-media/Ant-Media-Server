@@ -347,7 +347,8 @@ public class StreamFetcher {
 			return false;
 		}
 
-		public void packetRead(AVPacket pkt) {
+		public void packetRead(AVPacket pkt) 
+		{
 			if(!streamPublished) {
 				long currentTime = System.currentTimeMillis();
 				muxAdaptor.setStartTime(currentTime);

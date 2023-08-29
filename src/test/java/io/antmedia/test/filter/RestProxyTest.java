@@ -122,7 +122,7 @@ public class RestProxyTest {
 		streamId = restFilter.getStreamId("rest/v2/broadcasts/123456");
 		assertEquals("123456",streamId);
 	}
-
+	
 	@Test
 	public void testDoFilterPassCluster() throws IOException, ServletException {
 		RestProxyFilter restFilter = spy(new RestProxyFilter());
@@ -175,10 +175,22 @@ public class RestProxyTest {
 
 		broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		httpServletRequest.setMethod(HttpMethod.DELETE);
-		filterChain = new MockFilterChain();
+		filterChain = Mockito.spy(new MockFilterChain());
 		httpServletRequest.setQueryString("query string");
 		restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
+		
+		//internal filterchaing is called because it's not streaming
+		Mockito.verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
+		Mockito.verify(restFilter, Mockito.never()).forwardRequestToOrigin(httpServletRequest, httpServletResponse, broadcast);
+		
 		assertEquals(200, httpServletResponse.getStatus());
+		
+		broadcast.setUpdateTime(System.currentTimeMillis());
+		restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
+		//it should be called because isStreaming returns true
+		Mockito.verify(restFilter).forwardRequestToOrigin(httpServletRequest, httpServletResponse, broadcast);
+
+		
 
 		httpServletRequest.setMethod(HttpMethod.PUT);
 		filterChain = new MockFilterChain();
@@ -365,6 +377,37 @@ public class RestProxyTest {
 		restFilter.doFilter(httpServletRequest3,httpServletResponse,filterChain2);
 		assertEquals(301, httpServletResponse.getStatus());
 
+		MockHttpServletRequest httpServletRequest4 = new MockHttpServletRequest();
+		httpServletRequest4.setRequestURI("broadcasts/"+streamId+"/subscribers/block");
+
+		httpServletRequest4.setMethod(HttpMethod.POST);
+		httpServletRequest4.setContentType("application/json");
+		String emptyJson = "{}";
+		httpServletRequest4.setContent(emptyJson.getBytes());
+		MockFilterChain filterChain3= new MockFilterChain();
+
+		restFilter.doFilter(httpServletRequest4,httpServletResponse,filterChain3 );
+
+		MockHttpServletRequest httpServletRequest5 = new MockHttpServletRequest();
+		httpServletRequest5.setRequestURI("broadcasts/"+streamId+"/subscribers/block");
+
+		httpServletRequest5.setMethod(HttpMethod.POST);
+		httpServletRequest5.setContentType("application/json");
+
+		MockFilterChain filterChain4= new MockFilterChain();
+		restFilter.doFilter(httpServletRequest5, httpServletResponse, filterChain4);
+
+		MockHttpServletRequest httpServletRequest6 = new MockHttpServletRequest();
+		httpServletRequest6.setRequestURI("broadcasts/"+streamId+"/subscribers/block");
+
+		String nonExistingSub = "{\"subscriberId\":\"" + "noSub" + "\",\"playBlocked\":" + playBlocked + ",\"playBlockTime\":" + playBlockTime + ",\"playBlockedUntilTime\":" + playBlockedUntilTime + "}";
+
+		httpServletRequest6.setMethod(HttpMethod.POST);
+		httpServletRequest6.setContentType("application/json");
+		httpServletRequest6.setContent(nonExistingSub.getBytes());
+
+		MockFilterChain filterChain5= new MockFilterChain();
+		restFilter.doFilter(httpServletRequest6, httpServletResponse, filterChain5);
 
 	}
 }

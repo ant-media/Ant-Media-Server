@@ -730,8 +730,7 @@ public class BroadcastRestService extends RestServiceBase{
 				}
 			}
 		} catch (JsonProcessingException e) {
-
-			e.printStackTrace();
+			logger.error("Error while parsing Json " + e.getMessage());
 
 		}
 		return new Result(result);

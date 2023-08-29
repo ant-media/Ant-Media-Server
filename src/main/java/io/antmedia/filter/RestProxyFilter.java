@@ -1,6 +1,5 @@
 package io.antmedia.filter;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.util.Date;
@@ -13,12 +12,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.rest.RequestWrapper;
 import io.antmedia.settings.ServerSettings;
@@ -31,10 +28,10 @@ import org.springframework.context.ApplicationContext;
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.servlet.EndpointProxy;
 
 /**
@@ -67,37 +64,41 @@ public class RestProxyFilter extends AbstractFilter {
 
 				log.debug("STREAM ID = {} BROADCAST = {} ", streamId, broadcast);
 				//If it is not related with the broadcast, we can skip this filter
-
 				if (broadcast != null && subscriberBlockReq) {
 					try {
 						//We must wrap request otherwise we cannot read it multiple times.(here and on BroadcastRestService)
 						//Need to extract subscriberId from request body so that we can get its registeredNodeIp and redirect request accordingly.
 						RequestWrapper wrappedRequest = new RequestWrapper((HttpServletRequest) request);
 						JsonObject jsonObject = parseRequestBodyToJson(wrappedRequest);
-						String subscriberId = jsonObject.get("subscriberId").getAsString();
-						DataStore dataStore = getDataStore();
-						Subscriber subscriber = dataStore.getSubscriber(streamId, subscriberId);
-						if (shouldForwardRequest(subscriber)) {
-							forwardRequestToSubscriberNode(wrappedRequest, response, subscriber.getRegisteredNodeIp());
-						} else {
+						if(jsonObject != null && jsonObject.has("subscriberId")){
+							String subscriberId = jsonObject.get("subscriberId").getAsString();
+							DataStore dataStore = getDataStore();
+							Subscriber subscriber = dataStore.getSubscriber(streamId, subscriberId);
+							if (shouldForwardRequest(subscriber)) {
+								forwardRequestToSubscriberNode(wrappedRequest, response, subscriber.getRegisteredNodeIp());
+							} else {
+								chain.doFilter(wrappedRequest, response);
+							}
+						}else{
 							chain.doFilter(wrappedRequest, response);
 						}
+
 					} catch (IOException e) {
-						e.printStackTrace();
+						logger.error(e.getMessage());
 					}
 				}
-				else if (broadcast != null && IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())
+
+				/** 
+				 * if broadcast is not null and it's streaming and this node is not destined for this node,
+				 * forward the request to the origin address. This also handles the scenario if the origin server is dead or broadcast stuck
+				 * because AntMediaApplicationAdapter.isStreaming checks the last update time
+				 */
+				else if (broadcast != null && AntMediaApplicationAdapter.isStreaming(broadcast)
 						&& !isRequestDestinedForThisNode(request.getRemoteAddr(), broadcast.getOriginAdress())) 
 				{
 					
-					//token validity is 5 seconds -> 5000
-					String jwtToken = generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);
-					AppSettings settings = getAppSettings();
-					String originAdress = "http://" + broadcast.getOriginAdress() + ":" + getServerSettings().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
-					log.info("Redirecting the request({}) to origin {}", httpRequest.getRequestURI(), originAdress);
-					EndpointProxy endpointProxy = new EndpointProxy(jwtToken);
-					endpointProxy.initTarget(originAdress);
-					endpointProxy.service(request, response);
+					
+					forwardRequestToOrigin(request, response, broadcast);
 				}
 				else 
 				{
@@ -130,7 +131,11 @@ public class RestProxyFilter extends AbstractFilter {
 
 	private JsonObject parseRequestBodyToJson(RequestWrapper request) throws IOException {
 		String body = IOUtils.toString(request.getBody(), request.getCharacterEncoding());
-		return new JsonParser().parse(body).getAsJsonObject();
+		JsonElement jsonBody = new JsonParser().parse(body);
+		if(jsonBody.isJsonObject()){
+			return jsonBody.getAsJsonObject();
+		}
+		return null;
 	}
 
 	private boolean shouldForwardRequest(Subscriber subscriber) {
@@ -156,27 +161,18 @@ public class RestProxyFilter extends AbstractFilter {
 		endpointProxy.service(request, response);
 	}
 
-	public String getSubscriberId(HttpServletRequest request) {
-		try {
-			StringBuilder requestBody = new StringBuilder();
-			BufferedReader reader = request.getReader();
-			String line;
-			while ((line = reader.readLine()) != null) {
-				requestBody.append(line);
-			}
-
-			ObjectMapper objectMapper = new ObjectMapper();
-			JsonNode jsonNode = objectMapper.readTree(requestBody.toString());
-
-			if (jsonNode.has("subscriberId")) {
-				return jsonNode.get("subscriberId").asText();
-			}
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		return null; // If subscriberId not found
+	public void forwardRequestToOrigin(ServletRequest request, ServletResponse response, Broadcast broadcast) throws ServletException, IOException {
+		
+		//token validity is 5 seconds -> 5000
+		String jwtToken = generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);
+		AppSettings settings = getAppSettings();
+		String originAdress = "http://" + broadcast.getOriginAdress() + ":" + getServerSettings().getDefaultHttpPort()  + File.separator + settings.getAppName() + "/rest";
+		log.info("Redirecting the request({}) to origin {}", ((HttpServletRequest)request).getRequestURI(), originAdress);
+		EndpointProxy endpointProxy = new EndpointProxy(jwtToken);
+		endpointProxy.initTarget(originAdress);
+		endpointProxy.service(request, response);
 	}
+
 
 	public String getStreamId(String reqURI){
 		try{

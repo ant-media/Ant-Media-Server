@@ -952,6 +952,10 @@ public abstract class DataStore {
 		if (newBroadcast.getListenerHookURL() != null && !newBroadcast.getListenerHookURL().isEmpty()) {
 			broadcast.setListenerHookURL(newBroadcast.getListenerHookURL());
 		}
+		
+		if (newBroadcast.getSpeed() != 0) {
+			broadcast.setSpeed(newBroadcast.getSpeed());
+		}
 
 		if (newBroadcast.getMetaData() != null) {
 			broadcast.setMetaData(newBroadcast.getMetaData());

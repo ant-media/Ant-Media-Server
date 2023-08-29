@@ -133,6 +133,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		testBlockSubscriber(dataStore);
 
 	}
 	
@@ -211,6 +212,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		testBlockSubscriber(dataStore);
 		
 
 
@@ -269,6 +271,8 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testBlockSubscriber(dataStore);
+
 	}
 	
 	@Test
@@ -1490,6 +1494,8 @@ public class DBStoresUnitTest {
 			tmp.setListenerHookURL(listenerHookURL);
 			assertTrue(tmp.isPlaylistLoopEnabled());
 			tmp.setPlaylistLoopEnabled(false);
+			double speed = 1.0;
+			tmp.setSpeed(speed);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -1504,6 +1510,7 @@ public class DBStoresUnitTest {
 			assertEquals(ServerSettings.getLocalHostAddress(), tmp.getOriginAdress());
 			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
 			assertFalse(broadcast2.isPlaylistLoopEnabled());
+			assertEquals(speed, broadcast2.getSpeed(), 0.1);
 
 			result = dataStore.updateDuration(broadcast.getStreamId().toString(), 100000);
 			assertTrue(result);
@@ -2949,6 +2956,44 @@ public class DBStoresUnitTest {
 		assertEquals(UPDATED_DATA, dataStore.get(id).getMetaData());
 		
 		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.randomAlphanumeric(8), UPDATED_DATA));
+
+	}
+
+	public void testBlockSubscriber(DataStore dataStore){
+
+		Broadcast broadcast = new Broadcast();
+		String streamId = "teststream";
+		try
+		{
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+		dataStore.save(broadcast);
+		Subscriber subscriber = new Subscriber();
+		String subscriberId = "subscriberId";
+		subscriber.setSubscriberId(subscriberId);
+		subscriber.setStreamId(streamId);
+		subscriber.setPlayBlocked(true);
+		long currTime = System.currentTimeMillis();
+		subscriber.setPlayBlockTime(currTime);
+		subscriber.setPlayBlockedUntilTime(currTime + 5000);
+
+		dataStore.addSubscriber(streamId, subscriber);
+		dataStore.blockSubscriber(streamId,subscriberId, true, false, currTime, currTime + 5000 , 0,0 );
+
+
+		dataStore.blockSubscriber(null, subscriberId, true, false, currTime, currTime + 5000 , 0,0 );
+
+
+		dataStore.blockSubscriber(streamId,null, true, false, currTime, currTime + 5000 , 0,0 );
+
+		dataStore.blockSubscriber(streamId,"someSubscriber", true, false, currTime, currTime + 5000 , 0,0 );
+
+
+
 
 	}
 }

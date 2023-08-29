@@ -1,5 +1,4 @@
 package io.antmedia.datastore.db.types;
-import io.antmedia.datastore.db.DataStore;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
