@@ -736,11 +736,6 @@ public class AppSettings implements Serializable{
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
 
-	/**
-	 * @hidden
-	 */
-	private static final String SETTINGS_ID3_TAG_ENABLED = "settings.id3TagEnabled";
-
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -2009,7 +2004,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * Enables the ID3 Tag support for HLS
 	 */
-	@Value("${id3TagEnabled:${"+SETTINGS_ID3_TAG_ENABLED+":false}}")
+	@Value("${id3TagEnabled:false}")
 	private boolean id3TagEnabled = false;
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
