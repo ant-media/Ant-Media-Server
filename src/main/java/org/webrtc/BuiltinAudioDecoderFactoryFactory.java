@@ -61,6 +61,10 @@ public class BuiltinAudioDecoderFactoryFactory implements AudioDecoderFactoryFac
 	public void setAudioPacketListener(AudioPacketListener audioPacketListener) {
 		this.audioPacketListener = audioPacketListener;
 	}
+	
+	public AudioPacketListener getAudioPacketListener() {
+		return audioPacketListener;
+	}
 
 	private static native long nativeCreateBuiltinAudioDecoderFactory(BuiltinAudioDecoderFactoryFactory thisObj, boolean customDecoder, ByteBuffer byteBuffer);
 
