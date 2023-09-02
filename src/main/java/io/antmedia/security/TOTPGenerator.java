@@ -58,7 +58,7 @@ import com.google.common.primitives.Longs;
              String crypto){
          String result = null;
 
-         long T = System.currentTimeMillis()/(duration*1000);
+         long T = Math.round(((float)System.currentTimeMillis())/(duration*1000));
        
          byte[] msg = Longs.toByteArray(T);
          byte[] k = secretBytes;
