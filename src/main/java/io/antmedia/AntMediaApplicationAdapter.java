@@ -1642,7 +1642,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (streamId.equals(muxAdaptor.getStreamId())) 
 				{
 					muxAdaptor.addPacketListener(listener);
-					logger.info("Packet listener is added to streamId:{}", streamId);
+					logger.info("Packet listener({}) is added to streamId:{}", listener.getClass().getSimpleName(), streamId);
 					isAdded = true;
 					break;
 				}

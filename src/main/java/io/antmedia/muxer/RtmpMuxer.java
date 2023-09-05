@@ -172,7 +172,7 @@ public class RtmpMuxer extends Muxer {
 			long startTime = System.currentTimeMillis();
 			super.writeHeader();
 			long diff = System.currentTimeMillis() - startTime;
-			logger.info("write header takes {} for rtmp:{}", diff, getOutputURL());
+			logger.info("write header takes {} for rtmp:{} the bitstream filter name is {}", diff, getOutputURL(), bsfVideoName);
 			
 			headerWritten = true;
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -328,10 +328,12 @@ public class RtmpMuxer extends Muxer {
 			if (ret < 0 && logger.isInfoEnabled())
 			{
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-				logPacketIssue("Cannot write audio packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
+				logPacketIssue("Cannot write audio packet for stream:{} and url:{}. Packet pts:{} dts:{} and Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
 			}
 			else {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+				logPacketIssue("Write audio packet for stream:{} and url:{}. Packet pts:{} dts:{} and Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
+
 			}
 		}
 
@@ -353,10 +355,12 @@ public class RtmpMuxer extends Muxer {
 		if (ret < 0 && logger.isInfoEnabled()) 
 		{
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-			logPacketIssue("Cannot write video packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
+			logPacketIssue("Cannot write video packet for stream:{} and url:{}. Packet pts:{}, dts:{} Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(),  getErrorDefinition(ret));
 			
 		}
 		else {
+			logPacketIssue("Write video packet for stream:{} and url:{}. Packet pts:{}, dts:{} Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(),  getErrorDefinition(ret));
+
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		}
 	}
