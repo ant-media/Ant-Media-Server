@@ -3122,5 +3122,26 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNull(streamSourceRest.getOnvifDeviceProfiles("invalid id"));
 
 	}
-	
-}
+
+	@Test
+	public void testAddID3Tag() {
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		restServiceSpy.setAppSettings(new AppSettings());
+		restServiceSpy.getAppSettings().setId3TagEnabled(false);
+		String id3Data = "some data";
+		doReturn(null).when(restServiceSpy).getMuxAdaptor("nonExistingStreamId");
+		MuxAdaptor muxadaptor = mock(MuxAdaptor.class);
+		doReturn(muxadaptor).when(restServiceSpy).getMuxAdaptor("existingStreamId");
+		when(muxadaptor.addID3Data(id3Data)).thenReturn(true);
+
+		assertFalse(restServiceSpy.addID3Data("existingStreamId", id3Data).isSuccess());
+		restServiceSpy.getAppSettings().setId3TagEnabled(true);
+		assertTrue(restServiceSpy.addID3Data("existingStreamId", id3Data).isSuccess());
+
+		assertFalse(restServiceSpy.addID3Data("nonExistingStreamId", id3Data).isSuccess());
+	}
+
+
+	}
