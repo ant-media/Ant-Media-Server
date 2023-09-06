@@ -10,6 +10,10 @@
 
 package org.webrtc;
 
+import javax.annotation.Nullable;
+import java.util.Arrays;
+import org.webrtc.PeerConnection;
+
 /**
  * Representation of a single ICE Candidate, mirroring
  * {@code IceCandidateInterface} in the C++ API.
@@ -53,5 +57,30 @@ public class IceCandidate {
   @CalledByNative
   String getSdp() {
     return sdp;
+  }
+
+  /** equals() checks sdpMid, sdpMLineIndex, and sdp for equality. */
+  @Override
+  public boolean equals(@Nullable Object object) {
+    if (!(object instanceof IceCandidate)) {
+      return false;
+    }
+
+    IceCandidate that = (IceCandidate) object;
+    return objectEquals(this.sdpMid, that.sdpMid) && this.sdpMLineIndex == that.sdpMLineIndex
+        && objectEquals(this.sdp, that.sdp);
+  }
+
+  @Override
+  public int hashCode() {
+    Object[] values = {sdpMid, sdpMLineIndex, sdp};
+    return Arrays.hashCode(values);
+  }
+
+  private static boolean objectEquals(Object o1, Object o2) {
+    if (o1 == null) {
+      return o2 == null;
+    }
+    return o1.equals(o2);
   }
 }

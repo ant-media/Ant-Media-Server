@@ -738,6 +738,7 @@ public abstract class Muxer {
 				)
 		{
 
+			
 			AVStream outStream = avNewStream(outputContext);
 			//if it's not running add to the list
 			registeredStreamIndexList.add(streamIndex);
@@ -752,16 +753,17 @@ public abstract class Muxer {
 				}
 
 			}
-
+			String codecType = "audio";
 			if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
 			{
+				codecType = "video";
 				videoWidth = codecParameters.width();
 				videoHeight = codecParameters.height();
 			}
 
 			avcodec_parameters_copy(outStream.codecpar(), codecParameters);
-			logger.info("Adding timebase to the input time base map index:{} value: {}/{} for stream:{}", 
-					outStream.index(), timebase.num(), timebase.den(), streamId);
+			logger.info("Adding timebase to the input time base map index:{} value: {}/{} for stream:{} type:{}", 
+					outStream.index(), timebase.num(), timebase.den(), streamId, codecType);
 			inputTimeBaseMap.put(streamIndex, timebase);
 			inputOutputStreamIndexMap.put(streamIndex, outStream.index());
 

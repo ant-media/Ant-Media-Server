@@ -10,9 +10,8 @@
 
 package org.webrtc;
 
-import java.nio.ByteBuffer;
-
 import javax.annotation.Nullable;
+import java.nio.ByteBuffer;
 
 public class NV12Buffer implements VideoFrame.Buffer {
   private final int width;

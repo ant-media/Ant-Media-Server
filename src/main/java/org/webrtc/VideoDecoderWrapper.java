@@ -10,6 +10,8 @@
 
 package org.webrtc;
 
+import org.webrtc.VideoDecoder;
+
 /**
  * This class contains the Java glue code for JNI generation of VideoDecoder.
  */
