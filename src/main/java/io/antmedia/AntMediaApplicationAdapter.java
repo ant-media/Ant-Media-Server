@@ -523,7 +523,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
-	public void updateMainBroadcast(Broadcast broadcast) {
+	/**
+	 * If multiple threads enter the method at the same time, the following method does not work correctly. 
+	 * So we have made it synchronized 
+	 * 
+	 * It fixes the bug that sometimes main track(room) is not deleted in the video conferences
+	 * 
+	 * mekya
+	 * 
+	 * @param broadcast
+	 */
+	public synchronized void updateMainBroadcast(Broadcast broadcast) {
 		Broadcast mainBroadcast = getDataStore().get(broadcast.getMainTrackStreamId());
 		mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
 		if(mainBroadcast.getSubTrackStreamIds().isEmpty() && mainBroadcast.isZombi()) {
@@ -932,7 +942,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId) {
 		return streamAcceptFilter.isValidStreamParameters(width, height, fps, bitrate, streamId);
 	}
-
+	
+	
+	public static final boolean isStreaming(Broadcast broadcast) {
+		//if updatetime is older than 2 times update period time, regard that it's not streaming
+		return System.currentTimeMillis() - broadcast.getUpdateTime() < (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS) &&
+				(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()) 
+					||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(broadcast.getStatus()));
+	}
 
 	public Result startStreaming(Broadcast broadcast) 
 	{		
@@ -1010,11 +1027,25 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	@Override
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs) {
 
 		vertx.setTimer(500, h -> {
-			logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
-			getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
+			
+			Broadcast broadcastLocal = getDataStore().get(id);
+			if (broadcastLocal != null) 
+			{
+				//round the number to three decimal places, 
+				double roundedSpeed = Math.round(speed * 1000.0) / 1000.0;
+
+				logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
+				
+				broadcastLocal.setSpeed(roundedSpeed);
+				broadcastLocal.setPendingPacketSize(pendingPacketSize);
+				broadcastLocal.setUpdateTime(updateTimeMs);
+				broadcastLocal.setQuality(quality);
+				getDataStore().updateBroadcastFields(id, broadcastLocal);
+			}
+			
 		});
 	}
 
@@ -1444,7 +1475,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (encoderSettingsList != null) {
 			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
 				EncoderSettings encoderSettings = iterator.next();
-				if (encoderSettings.getHeight() <= 0 || encoderSettings.getVideoBitrate() <= 0 || encoderSettings.getAudioBitrate() <= 0)
+				if (encoderSettings.getHeight() <= 0)
 				{
 					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
 					return false;
@@ -1611,7 +1642,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (streamId.equals(muxAdaptor.getStreamId())) 
 				{
 					muxAdaptor.addPacketListener(listener);
-					logger.info("Packet listener is added to streamId:{}", streamId);
+					logger.info("Packet listener({}) is added to streamId:{}", listener.getClass().getSimpleName(), streamId);
 					isAdded = true;
 					break;
 				}
@@ -1749,7 +1780,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public Map<String, Queue<IWebRTCClient>> getWebRTCClientsMap() {
 		return Collections.emptyMap();
 	}
-	
+
 	public ISubtrackPoller getSubtrackPoller() {
 		return subtrackPoller;
 	}

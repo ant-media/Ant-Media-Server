@@ -1503,6 +1503,8 @@ public class DBStoresUnitTest {
 			tmp.setListenerHookURL(listenerHookURL);
 			assertTrue(tmp.isPlaylistLoopEnabled());
 			tmp.setPlaylistLoopEnabled(false);
+			double speed = 1.0;
+			tmp.setSpeed(speed);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -1517,6 +1519,7 @@ public class DBStoresUnitTest {
 			assertEquals(ServerSettings.getLocalHostAddress(), tmp.getOriginAdress());
 			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
 			assertFalse(broadcast2.isPlaylistLoopEnabled());
+			assertEquals(speed, broadcast2.getSpeed(), 0.1);
 
 			result = dataStore.updateDuration(broadcast.getStreamId().toString(), 100000);
 			assertTrue(result);

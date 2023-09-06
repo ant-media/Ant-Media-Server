@@ -509,6 +509,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(30, appSettings.getAbrUpScaleJitterMs(), 0.0001);
 		assertEquals(150, appSettings.getAbrUpScaleRTTMs(), 0.0001);
 		assertNotNull(appSettings.getClusterCommunicationKey());
+		assertEquals(false, appSettings.isId3TagEnabled());
 
 
 
@@ -516,8 +517,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					164, numberOfFields);
+					165, numberOfFields);
 		
 	}
+	
+	
 
 }

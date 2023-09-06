@@ -17,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import javax.websocket.RemoteEndpoint;
@@ -37,8 +38,11 @@ import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 import org.webrtc.IceCandidate;
 import org.webrtc.JavaI420Buffer;
+import org.webrtc.Logging;
+import org.webrtc.Logging.Severity;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnectionFactory;
+import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 import org.webrtc.VideoFrame;
@@ -60,6 +64,62 @@ import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
 
 public class RTMPAdaptorTest {
+	
+	public static final String sampleSdp = "v=0\n" + 
+			"o=- 5375254573911477518 2 IN IP4 127.0.0.1\n" + 
+			"s=-\n" + 
+			"t=0 0\n" + 
+			"a=group:BUNDLE audio video\n" + 
+			"a=msid-semantic: WMS\n" + 
+			"m=audio 9 UDP/TLS/RTP/SAVPF 111 110\n" + 
+			"c=IN IP4 0.0.0.0\n" + 
+			"a=rtcp:9 IN IP4 0.0.0.0\n" + 
+			"a=ice-ufrag:6SBX\n" + 
+			"a=ice-pwd:2CKrVFu307y/tXJz64A9Rcl7\n" + 
+			"a=ice-options:trickle renomination\n" + 
+			"a=fingerprint:sha-256 CA:3C:A8:57:51:36:C2:6A:3A:1E:3C:F5:2A:5C:52:FE:77:A5:C9:98:59:92:08:D6:7D:12:6F:FC:77:3C:88:A1\n" + 
+			"a=setup:active\n" + 
+			"a=mid:audio\n" + 
+			"a=extmap:1 urn:ietf:params:rtp-hdrext:ssrc-audio-level\n" + 
+			"a=recvonly\n" + 
+			"a=rtcp-mux\n" + 
+			"a=rtpmap:111 opus/48000/2\n" + 
+			"a=rtcp-fb:111 transport-cc\n" + 
+			"a=fmtp:111 minptime=10;useinbandfec=1\n" + 
+			"a=rtpmap:110 telephone-event/48000\n" + 
+			"m=video 9 UDP/TLS/RTP/SAVPF 96 97 98 99 100\n" + 
+			"c=IN IP4 0.0.0.0\n" + 
+			"a=rtcp:9 IN IP4 0.0.0.0\n" + 
+			"a=ice-ufrag:6SBX\n" + 
+			"a=ice-pwd:2CKrVFu307y/tXJz64A9Rcl7\n" + 
+			"a=ice-options:trickle renomination\n" + 
+			"a=fingerprint:sha-256 CA:3C:A8:57:51:36:C2:6A:3A:1E:3C:F5:2A:5C:52:FE:77:A5:C9:98:59:92:08:D6:7D:12:6F:FC:77:3C:88:A1\n" + 
+			"a=setup:active\n" + 
+			"a=mid:video\n" + 
+			"a=extmap:2 urn:ietf:params:rtp-hdrext:toffset\n" + 
+			"a=extmap:3 http://www.webrtc.org/experiments/rtp-hdrext/abs-send-time\n" + 
+			"a=extmap:4 urn:3gpp:video-orientation\n" + 
+			"a=extmap:5 http://www.ietf.org/id/draft-holmer-rmcat-transport-wide-cc-extensions-01\n" + 
+			"a=extmap:6 http://www.webrtc.org/experiments/rtp-hdrext/playout-delay\n" + 
+			"a=extmap:7 http://www.webrtc.org/experiments/rtp-hdrext/video-content-type\n" + 
+			"a=extmap:8 http://www.webrtc.org/experiments/rtp-hdrext/video-timing\n" + 
+			"a=recvonly\n" + 
+			"a=rtcp-mux\n" + 
+			"a=rtcp-rsize\n" + 
+			"a=rtpmap:96 H264/90000\n" + 
+			"a=rtcp-fb:96 goog-remb\n" + 
+			"a=rtcp-fb:96 transport-cc\n" + 
+			"a=rtcp-fb:96 ccm fir\n" + 
+			"a=rtcp-fb:96 nack\n" + 
+			"a=rtcp-fb:96 nack pli\n" + 
+			"a=fmtp:96 level-asymmetry-allowed=1;packetization-mode=1;profile-level-id=42e01f\n" + 
+			"a=rtpmap:97 rtx/90000\n" + 
+			"a=fmtp:97 apt=96\n" + 
+			"a=rtpmap:98 red/90000\n" + 
+			"a=rtpmap:99 rtx/90000\n" + 
+			"a=fmtp:99 apt=98\n" + 
+			"a=rtpmap:100 ulpfec/90000\n";
+	
 	
 	@Rule
 	public TestRule watcher = new TestWatcher() {
@@ -146,7 +206,6 @@ public class RTMPAdaptorTest {
 			//check frame
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
@@ -242,7 +301,6 @@ public class RTMPAdaptorTest {
 			//check frame
 
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
@@ -448,6 +506,49 @@ public class RTMPAdaptorTest {
 		
 		adaptorReal.stop();
 		
+	}
+	
+	
+	
+	@Test
+	public void testInitPeerConnectionFactory() {
+		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
+
+		RTMPAdaptor adaptorReal = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
+		
+		PeerConnectionFactory pcFactory = adaptorReal.createPeerConnectionFactory();
+		assertNotNull(pcFactory);
+		
+		adaptorReal.initPeerConnection(pcFactory);
+		
+		assertNotNull(adaptorReal.getPeerConnection());
+		
+		
+		
+				
+		
+	}
+	@Test
+	public void testDescription() {
+		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
+
+		RTMPAdaptor adaptor = Mockito.spy(new RTMPAdaptor("rtmp_url", webSocketHandler, 360));
+		Session session = mock(Session.class);
+		adaptor.setSession(session);
+		
+		adaptor.start();
+		
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
+			return adaptor.isStarted();
+		});
+		
+		SessionDescription sessionDescription = new SessionDescription(Type.OFFER, sampleSdp);
+		adaptor.setRemoteDescription(sessionDescription);
+
+		Mockito.verify(webSocketHandler, Mockito.timeout(5000)).sendSDPConfiguration(Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+		
+		
+		adaptor.stop();
 	}
 
 	@Test
