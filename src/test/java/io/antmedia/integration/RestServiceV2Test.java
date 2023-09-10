@@ -395,6 +395,7 @@ public class RestServiceV2Test {
 
 			if (response.getStatusLine().getStatusCode() == 404) {
 				//stream is not found
+				logger.info("Response to getBroadcast is 404. It means stream is not found or deleted");
 				return null;
 			}
 			else if (response.getStatusLine().getStatusCode() != 200){
