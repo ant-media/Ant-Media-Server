@@ -303,6 +303,13 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(50, appSettings.getAbrUpScaleJitterMs(), 0.0001);
 		appSettings.setAbrUpScaleRTTMs(100);
 		assertEquals(100, appSettings.getAbrUpScaleRTTMs(), 0.0001);
+		
+		appSettings.setSendAudioLevelToViewers(true);
+		assertTrue(appSettings.isSendAudioLevelToViewers());
+		
+		appSettings.setSendAudioLevelToViewers(false);
+		assertFalse(appSettings.isSendAudioLevelToViewers());
+		
 	}
 	
 	
