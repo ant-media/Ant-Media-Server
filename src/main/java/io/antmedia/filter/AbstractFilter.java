@@ -153,15 +153,15 @@ public abstract class AbstractFilter implements Filter{
 		Broadcast broadcast = (Broadcast) request.getAttribute(BROADCAST_OBJECT);
 		if (broadcast == null) 
 		{
-			ApplicationContext context = getAppContext();
-			if (context != null) 
+			
+			DataStore dataStore = getDataStore();
+			if (dataStore != null) 
 			{
-				DataStoreFactory dsf = (DataStoreFactory)context.getBean(IDataStoreFactory.BEAN_NAME);
-				broadcast = dsf.getDataStore().get(streamId);
+				broadcast = dataStore.get(streamId);
 				if (broadcast != null) {
 					request.setAttribute(BROADCAST_OBJECT, broadcast);
 				}
-			}
+			}	
 		}
 		return broadcast;
 	}
@@ -209,12 +209,6 @@ public abstract class AbstractFilter implements Filter{
 			}
 		}
 		return tokenService;
-	}
-
-	public boolean isSubscriberBlockReq(String requestUri){
-		//Using raw string here as identifier is not a good practice. find a better way
-		return requestUri.contains("subscribers/block");
-
 	}
 
 	public void setTokenService(ITokenService tokenService) {

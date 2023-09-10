@@ -25,11 +25,14 @@ public class SubscriberBlockFilter extends AbstractFilter{
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         final HttpServletRequest httpRequest =(HttpServletRequest)request;
         final String method = httpRequest.getMethod();
-        if(HttpMethod.GET.equals(method) && (httpRequest.getRequestURI().endsWith("m3u8") || httpRequest.getRequestURI().endsWith("m4s"))){
+        
+        
+        if(HttpMethod.GET.equals(method) && (httpRequest.getRequestURI().endsWith("m3u8") || httpRequest.getRequestURI().endsWith("m4s")))
+        {
             final String subscriberId = request.getParameter("subscriberId");
             final String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
             final DataStore dataStore = getDataStore();
-            final Broadcast broadcast = dataStore.get(streamId);
+            final Broadcast broadcast = getBroadcast(httpRequest, streamId);
             final Subscriber subscriber = dataStore.getSubscriber(streamId, subscriberId);
 
             if (broadcast == null || subscriber == null) {
