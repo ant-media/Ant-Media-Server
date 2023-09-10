@@ -346,6 +346,74 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		
 	}
 
+	@Test
+	public void testRtmpPull() throws Exception {
+
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result;
+
+		result = ConsoleAppRestServiceTest.callisFirstLogin();
+
+		if (result.isSuccess()) {
+			Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+			assertTrue(createInitialUser.isSuccess());
+		}
+
+		result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+		assertTrue(result.isSuccess());
+
+		RestServiceV2Test restService = new RestServiceV2Test();
+
+		AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+		appSettingsModel.setRtmpPlaybackEnabled(true);
+
+		result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettingsModel);
+		assertTrue(result.isSuccess());
+
+		String rtmpPullStreamName = "rtmpPullStream" + (int)(Math.random()*10000);
+		String rtmpStreamName = "rtmpStream" + (int)(Math.random()*10000);
+
+		Broadcast rtmpNormalStream = restService.createBroadcast(rtmpStreamName, AntMediaApplicationAdapter.LIVE_STREAM, null, null);
+		String rtmpNormalStreamId = rtmpNormalStream.getStreamId();
+
+		Process rtmpSendingProcess = AppFunctionalV2Test.execute(ffmpegPath
+				+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
+				+ rtmpNormalStreamId);
+
+		Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+				.until(() -> {
+					Broadcast broadcast = restService.getBroadcast(rtmpNormalStreamId);
+					return broadcast != null && broadcast.getStatus() != null &&
+							broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				});
+
+		Broadcast rtmpPullStream = restService.createBroadcast(rtmpPullStreamName, AntMediaApplicationAdapter.STREAM_SOURCE, "rtmp://127.0.0.1/LiveApp/"+ rtmpNormalStreamId , null);
+		String rtmpPullStreamId = rtmpPullStream.getStreamId();
+		result = restService.startStreaming(rtmpPullStreamId);
+		assertTrue(result.isSuccess());
+		Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
+				.until(() -> {
+					Broadcast broadcast = restService.getBroadcast(rtmpPullStreamId);
+					return broadcast != null && broadcast.getStatus() != null &&
+							broadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+				});
+
+		rtmpNormalStream = restService.getBroadcast(rtmpNormalStreamId);
+		assertTrue(rtmpNormalStream.getRtmpViewerCount() == 1);
+		Thread.sleep(5000);
+
+		rtmpSendingProcess.destroy();
+
+
+		result = restService.callDeleteBroadcast(rtmpNormalStreamId);
+		assertTrue(result.isSuccess());
+
+		result = restService.callDeleteBroadcast(rtmpPullStreamId);
+		assertTrue(result.isSuccess());
+
+		getAppSettings().resetDefaults();
+
+	}
 
 
 

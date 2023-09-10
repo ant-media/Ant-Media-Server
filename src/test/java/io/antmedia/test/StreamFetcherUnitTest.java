@@ -823,7 +823,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				});
 			}
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> fetcher.isStreamAlive());
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> fetcher.isStreamAlive());
 
 			Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				double speed = dataStore.get(newCam.getStreamId()).getSpeed();

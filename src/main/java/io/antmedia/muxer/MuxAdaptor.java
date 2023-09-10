@@ -190,6 +190,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	private LinkedList<PacketTime> packetTimeList = new LinkedList<PacketTime>();
 
+	public boolean addID3Data(String data) {
+		for (Muxer muxer : muxerList) {
+			if(muxer instanceof HLSMuxer) {
+				((HLSMuxer)muxer).addID3Data(data);
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static class PacketTime {
 		public final long packetTimeMs;
 		public final long systemTimeMs;
@@ -240,7 +250,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected int height;
 	protected AVFormatContext streamSourceInputFormatContext;
 	private AVCodecParameters videoCodecParameters;
-	private AVCodecParameters audioCodecParameters;
+	protected AVCodecParameters audioCodecParameters;
 	private BytePointer audioExtraDataPointer;
 	private BytePointer videoExtraDataPointer;
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
@@ -260,7 +270,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private AVRational audioTimeBase = TIME_BASE_FOR_MS;
 
 	//NOSONAR because we need to keep the reference of the field
-	private AVChannelLayout channelLayout;
+	protected AVChannelLayout channelLayout;
 
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, boolean isSource, IScope scope) {
 		MuxAdaptor muxAdaptor = null;
@@ -421,6 +431,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(), getAppSettings().getHlsHttpEndpoint(), getAppSettings().isAddDateTimeToHlsFileName());
 			hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile());
 			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
+			hlsMuxer.setId3Enabled(appSettings.isId3TagEnabled());
 			addMuxer(hlsMuxer);
 			logger.info("adding HLS Muxer for {}", streamId);
 		}
