@@ -517,7 +517,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(150, appSettings.getAbrUpScaleRTTMs(), 0.0001);
 		assertNotNull(appSettings.getClusterCommunicationKey());
 		assertEquals(false, appSettings.isId3TagEnabled());
-		assertEquals(false, appSettings.isSendAudioLevelToViewers());
+		assertEquals(true, appSettings.isSendAudioLevelToViewers());
 
 
 
