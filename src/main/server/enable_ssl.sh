@@ -159,10 +159,13 @@ fi
 get_freedomain(){
 
   check_marketplace() {
+    #AWS
     if curl -s http://169.254.169.254/latest/meta-data/ >/dev/null; then
       return 0
+    #AZURE
     elif curl -H Metadata:true -s http://169.254.169.254/metadata/instance?api-version=2021-02-01 >/dev/null; then
       return 0
+    #GCP
     elif curl -H "Metadata-Flavor: Google" -s http://metadata.google.internal/computeMetadata/v1/?recursive=true >/dev/null; then
       return 0
     else
