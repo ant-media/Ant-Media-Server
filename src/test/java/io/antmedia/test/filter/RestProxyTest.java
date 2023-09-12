@@ -181,14 +181,14 @@ public class RestProxyTest {
 		
 		//internal filterchaing is called because it's not streaming
 		Mockito.verify(filterChain).doFilter(httpServletRequest, httpServletResponse);
-		Mockito.verify(restFilter, Mockito.never()).forwardRequestToOrigin(httpServletRequest, httpServletResponse, broadcast);
+		Mockito.verify(restFilter, Mockito.never()).forwardRequestToNode(httpServletRequest, httpServletResponse, broadcast.getOriginAdress());
 		
 		assertEquals(200, httpServletResponse.getStatus());
 		
 		broadcast.setUpdateTime(System.currentTimeMillis());
 		restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
 		//it should be called because isStreaming returns true
-		Mockito.verify(restFilter).forwardRequestToOrigin(httpServletRequest, httpServletResponse, broadcast);
+		Mockito.verify(restFilter).forwardRequestToNode(httpServletRequest, httpServletResponse, broadcast.getOriginAdress());
 
 		
 

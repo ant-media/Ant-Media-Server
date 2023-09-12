@@ -3144,14 +3144,13 @@ public class BroadcastRestServiceV2UnitTest {
 		long playBlockTime = 1692738392933L;
 		long playBlockedUntilTime = 9692738392933L;
 
-		String blockSubscriberData1 = "{" +
-				"\"subscriberId\":\"" + subscriber1Id + "\"," +
-				"\"playBlocked\":" + playBlocked + "," +
-				"\"playBlockTime\":" + playBlockTime + "," +
-				"\"playBlockedUntilTime\":" + playBlockedUntilTime +
-				"}";
+		Subscriber subscriber1Tmp = new Subscriber();
+		subscriber1Tmp.setSubscriberId(subscriber1Id);
+		subscriber1Tmp.setPlayBlocked(true);
+		subscriber1Tmp.setPlayBlockTime(playBlockTime);
+		subscriber1Tmp.setPlayBlockedUntilTime(playBlockedUntilTime);
 
-		assertTrue(streamSourceRest.blockSubscriber(streamId, blockSubscriberData1).isSuccess());
+		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber1Id, subscriber1Tmp).isSuccess());
 
 		String subscriber2Id = "subscriber2";
 		Subscriber subscriber2 = new Subscriber();
@@ -3164,17 +3163,17 @@ public class BroadcastRestServiceV2UnitTest {
 		long publishBlockTime = 1692738392933L;
 		long publishBlockedUntilTime = 9692738392933L;
 
-		String blockSubscriberData2 = "{" +
-				"\"subscriberId\":\"" + subscriber2Id + "\"," +
-				"\"playBlocked\":" + false + "," +
-				"\"publishBlocked\":" + publishBlocked + "," +
-				"\"publishBlockTime\":" + publishBlockTime + "," +
-				"\"publishBlockedUntilTime\":" + publishBlockedUntilTime +
-				"}";
-
+		
+		Subscriber subscriber2Tmp = new Subscriber();
+		subscriber2Tmp.setSubscriberId(subscriber2Id);
+		subscriber2Tmp.setPlayBlocked(false);
+		subscriber2Tmp.setPublishBlocked(publishBlocked);
+		subscriber2Tmp.setPublishBlockTime(publishBlockTime);
+		subscriber2Tmp.setPublishBlockedUntilTime(publishBlockedUntilTime);
+		
 		Mockito.doReturn(true).when(adaptor).stopPublishingBySubscriberId(subscriber2Id);
 
-		assertTrue(streamSourceRest.blockSubscriber(streamId, blockSubscriberData2).isSuccess());
+		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber2Id, subscriber2Tmp).isSuccess());
 
 
 	}

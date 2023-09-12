@@ -44,6 +44,7 @@ import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.testcontainers.shaded.org.apache.commons.lang3.StringUtils;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
@@ -664,7 +665,10 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@ApiParam(value = "Subscriber to be added to this stream", required = true) Subscriber subscriber) {
 		boolean result = false;
-		if (subscriber != null) {
+		String message = "";
+		if (subscriber != null && !StringUtils.isBlank(subscriber.getSubscriberId()) 
+				&& subscriber.getSubscriberId().length() > 5) 
+		{
 			// add stream id inside the Subscriber
 			subscriber.setStreamId(streamId);
 			// create a new stats object before adding to datastore
@@ -673,12 +677,18 @@ public class BroadcastRestService extends RestServiceBase{
 			subscriber.setConnected(false);
 			// subscriber is not viewing anyone
 			subscriber.setCurrentConcurrentConnections(0);
-
+			
 			if (streamId != null) {
 				result = getDataStore().addSubscriber(streamId, subscriber);
 			}
+			else {
+				message = "StreamId is not specified in the request";
+			}
 		}
-		return new Result(result);
+		else {
+			message = "Subscriber object  must be set and subscriberId's length must be at least 5";
+		}
+		return new Result(result, message);
 	}
 
 	@ApiOperation(value = "Delete specific subscriber from data store for selected stream", response = Result.class)

@@ -1029,15 +1029,31 @@ public class AppSettings implements Serializable{
 	@Value( "${timeTokenSubscriberOnly:${"+SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY+":false}}" )
 	private boolean timeTokenSubscriberOnly;
 	/**
-	 * the settings for accepting only time based token subscribers as connections to the streams
+	 * The setting for accepting only time based token(TOTP) subscribers as connections to the streams
 	 */
 	@Value( "${enableTimeTokenForPlay:${"+SETTINGS_ENABLE_TIME_TOKEN_PLAY+":false}}" )
 	private boolean enableTimeTokenForPlay;
+	
 	/**
-	 * the settings for accepting only time based token subscribers as connections to the streams
+	 * TOTP(Time-based One Time Password) Token Secret for Playing. If subscriber is not available in database, server checks the TOTP code
+	 * against this value
+	 */
+	@Value( "${timeTokenSecretForPlay:#{null}}")
+	private String timeTokenSecretForPlay;
+	
+	/**
+	 * The settings for accepting only time based token(TOTP) subscribers as connections to the streams
 	 */
 	@Value( "${enableTimeTokenForPublish:${"+SETTINGS_ENABLE_TIME_TOKEN_PUBLISH+":false}}" )
 	private boolean enableTimeTokenForPublish;
+	
+	/**
+	 * TOTP(Time-based One Time Password) Token Secret for Publishing. 
+	 * If subscriber is not available in database, server checks the TOTP code
+	 * against this value
+	 */
+	@Value( "${timeTokenSecretForPublish:#{null}}")
+	private String timeTokenSecretForPublish;
 
 	/**
 	 * period for the generated time token 
@@ -3489,5 +3505,21 @@ public class AppSettings implements Serializable{
 
 	public void setSendAudioLevelToViewers(boolean sendAudioLevelToViewers) {
 		this.sendAudioLevelToViewers = sendAudioLevelToViewers;
+	}
+
+	public String getTimeTokenSecretForPublish() {
+		return timeTokenSecretForPublish;
+	}
+
+	public void setTimeTokenSecretForPublish(String timeTokenSecretForPublish) {
+		this.timeTokenSecretForPublish = timeTokenSecretForPublish;
+	}
+
+	public String getTimeTokenSecretForPlay() {
+		return timeTokenSecretForPlay;
+	}
+
+	public void setTimeTokenSecretForPlay(String timeTokenSecretForPlay) {
+		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
 	}
 }

@@ -22,6 +22,8 @@ public class Subscriber {
 	public static final String PLAY_TYPE = "play";
 	@JsonIgnore
 	public static final String PUBLISH_TYPE = "publish";
+	@JsonIgnore
+	public static final String PUBLISH_AND_PLAY_TYPE = "publish_and_play";
 
 	@JsonIgnore
 	@Id
