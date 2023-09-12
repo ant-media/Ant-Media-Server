@@ -297,16 +297,18 @@ public class RestProxyTest {
 		boolean playBlocked = true;
 		long playBlockTime = System.currentTimeMillis();
 		long playBlockedUntilTime = playBlockTime + 5000;
-		String blockSubscriberData = "{\"subscriberId\":\"" + subscriberId + "\",\"playBlocked\":" + playBlocked + ",\"playBlockTime\":" + playBlockTime + ",\"playBlockedUntilTime\":" + playBlockedUntilTime + "}";
-
+		
 		Subscriber subscriber = new Subscriber();
 		subscriber.setSubscriberId(subscriberId);
 		subscriber.setStreamId(streamId);
+		subscriber.setPlayBlocked(true);
+		subscriber.setPlayBlockTime(playBlockTime);
+		subscriber.setPlayBlockedUntilTime(playBlockedUntilTime);
 		subscriber.setRegisteredNodeIp("1.1.1.1");
-		httpServletRequest1.setRequestURI("broadcasts/"+streamId+"/subscribers/block");
+		httpServletRequest1.setRequestURI("broadcasts/"+streamId+"/subscribers/"+subscriberId+"/block");
 
 		MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
-		MockFilterChain filterChain1 = new MockFilterChain();
+		MockFilterChain filterChain1 = Mockito.mock(MockFilterChain.class);
 
 		ConfigurableWebApplicationContext webAppContext = mock(ConfigurableWebApplicationContext.class);
 		Mockito.doReturn(webAppContext).when(restFilter).getAppContext();
@@ -343,52 +345,61 @@ public class RestProxyTest {
 
 		httpServletRequest1.setMethod(HttpMethod.POST);
 		httpServletRequest1.setContentType("application/json");
-		httpServletRequest1.setContent(blockSubscriberData.getBytes());
 
-		restFilter.doFilter(httpServletRequest1,httpServletResponse,filterChain1);
-		assertEquals(301, httpServletResponse.getStatus());
+		restFilter.doFilter(httpServletRequest1, httpServletResponse, filterChain1);
+		assertEquals(200, httpServletResponse.getStatus());
+		Mockito.verify(filterChain1).doFilter(Mockito.any(), Mockito.any());
+		
 
 		subscriber.setRegisteredNodeIp(ServerSettings.getGlobalHostAddress());
 
 		MockHttpServletRequest httpServletRequest2 = new MockHttpServletRequest();
 
-		httpServletRequest2.setRequestURI("broadcasts/"+streamId+"/subscribers/block");
+		httpServletRequest2.setRequestURI("broadcasts/"+streamId+"/subscribers/"+ subscriberId +"/block");
 
 		httpServletRequest2.setMethod(HttpMethod.POST);
 		httpServletRequest2.setContentType("application/json");
-		httpServletRequest2.setContent(blockSubscriberData.getBytes());
 
 		Mockito.doReturn(subscriber).when(dtStore).getSubscriber(streamId, subscriberId);
 
 		restFilter.doFilter(httpServletRequest2,httpServletResponse,filterChain1);
-		assertEquals(301, httpServletResponse.getStatus());
+		assertEquals(200, httpServletResponse.getStatus());
+		Mockito.verify(filterChain1, Mockito.times(2)).doFilter(Mockito.any(), Mockito.any());
+		
 
 		subscriber.setRegisteredNodeIp(null);
 
 		MockHttpServletRequest httpServletRequest3 = new MockHttpServletRequest();
 
-		httpServletRequest3.setRequestURI("broadcasts/"+streamId+"/subscribers/block");
+		subscriberId = "not_exist";
+		httpServletRequest3.setRequestURI("broadcasts/"+streamId+"/subscribers/"+ subscriberId +"/block");
 
 		httpServletRequest3.setMethod(HttpMethod.POST);
 		httpServletRequest3.setContentType("application/json");
-		httpServletRequest3.setContent(blockSubscriberData.getBytes());
-		MockFilterChain filterChain2 = new MockFilterChain();
+		MockFilterChain filterChain2 = Mockito.mock(MockFilterChain.class);
 
-		restFilter.doFilter(httpServletRequest3,httpServletResponse,filterChain2);
-		assertEquals(301, httpServletResponse.getStatus());
+		restFilter.doFilter(httpServletRequest3, httpServletResponse, filterChain2);
+		assertEquals(200, httpServletResponse.getStatus());
+		Mockito.verify(filterChain2, Mockito.times(1)).doFilter(Mockito.any(), Mockito.any());
 
+		
+		subscriberId = subscriber.getSubscriberId();
+		subscriber.setRegisteredNodeIp("any_node");
+		Mockito.doReturn(true).when(restFilter).isHostRunning(Mockito.anyString(), Mockito.anyInt());
 		MockHttpServletRequest httpServletRequest4 = new MockHttpServletRequest();
-		httpServletRequest4.setRequestURI("broadcasts/"+streamId+"/subscribers/block");
+		httpServletRequest4.setRequestURI("broadcasts/"+streamId+"/subscribers/"+ subscriberId +"/block");
 
 		httpServletRequest4.setMethod(HttpMethod.POST);
 		httpServletRequest4.setContentType("application/json");
-		String emptyJson = "{}";
-		httpServletRequest4.setContent(emptyJson.getBytes());
+		httpServletRequest4.setRemoteAddr("127.1.1.1");
 		MockFilterChain filterChain3= new MockFilterChain();
 
 		restFilter.doFilter(httpServletRequest4,httpServletResponse,filterChain3 );
+		
+		Mockito.verify(restFilter).forwardRequestToNode(httpServletRequest4, httpServletResponse, "any_node");
 
 		MockHttpServletRequest httpServletRequest5 = new MockHttpServletRequest();
+		//no subscriber is in the URI
 		httpServletRequest5.setRequestURI("broadcasts/"+streamId+"/subscribers/block");
 
 		httpServletRequest5.setMethod(HttpMethod.POST);
@@ -398,13 +409,10 @@ public class RestProxyTest {
 		restFilter.doFilter(httpServletRequest5, httpServletResponse, filterChain4);
 
 		MockHttpServletRequest httpServletRequest6 = new MockHttpServletRequest();
-		httpServletRequest6.setRequestURI("broadcasts/"+streamId+"/subscribers/block");
-
-		String nonExistingSub = "{\"subscriberId\":\"" + "noSub" + "\",\"playBlocked\":" + playBlocked + ",\"playBlockTime\":" + playBlockTime + ",\"playBlockedUntilTime\":" + playBlockedUntilTime + "}";
+		httpServletRequest6.setRequestURI("broadcasts/"+streamId+"/subscribers/"+ subscriberId +"/block");
 
 		httpServletRequest6.setMethod(HttpMethod.POST);
 		httpServletRequest6.setContentType("application/json");
-		httpServletRequest6.setContent(nonExistingSub.getBytes());
 
 		MockFilterChain filterChain5= new MockFilterChain();
 		restFilter.doFilter(httpServletRequest6, httpServletResponse, filterChain5);

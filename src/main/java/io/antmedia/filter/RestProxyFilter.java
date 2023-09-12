@@ -136,7 +136,7 @@ public class RestProxyFilter extends AbstractFilter {
 	}
 
 
-	private boolean isHostRunning(String address, int port) {
+	public boolean isHostRunning(String address, int port) {
 
 		try(Socket socket = new Socket()) {
 			
@@ -185,13 +185,15 @@ public class RestProxyFilter extends AbstractFilter {
 		try{
 
 			reqURI = reqURI.split("subscribers/")[1];
+			//reqURI is now {sid}/block
+			return reqURI.substring(0, reqURI.indexOf("/"));
 		}
-		catch (ArrayIndexOutOfBoundsException e){
-			return null;
+		catch (ArrayIndexOutOfBoundsException | StringIndexOutOfBoundsException e){
+			logger.warn("There is no subscriber id in the URI");
 		}
-
-		//reqURI is now {sid}/block
-		return reqURI.substring(0, reqURI.indexOf("/"));
+		
+		
+		return null;
 	}
 
 	public boolean isSubscriberBlockReq(String requestUri){
