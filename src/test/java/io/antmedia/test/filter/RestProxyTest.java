@@ -127,7 +127,7 @@ public class RestProxyTest {
 	public void testDoFilterPassCluster() throws IOException, ServletException {
 		RestProxyFilter restFilter = spy(new RestProxyFilter());
 
-		MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
+		MockHttpServletRequest httpServletRequest = Mockito.spy(new MockHttpServletRequest());
 		httpServletRequest.setRemoteAddr("10.0.0.0");
 		httpServletRequest.setRequestURI("/broadcasts/23456");
 
@@ -144,7 +144,6 @@ public class RestProxyTest {
 		broadcast.setOriginAdress("127.0.0.1");
 		try{
 			broadcast.setStreamId("stream1");
-
 		}
 		catch(Exception e ){
 			logger.error("StreamId can't set");
@@ -168,8 +167,10 @@ public class RestProxyTest {
 		appSettings.setIpFilterEnabled(true);
 		Mockito.doReturn(appSettings).when(restFilter).getAppSettings();
 		Mockito.doReturn(serverSettings).when(restFilter).getServerSettings();
+		Mockito.doReturn(dtStore).when(restFilter).getDataStore();
 
 		httpServletRequest.setMethod(HttpMethod.POST);
+		
 		restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
 		assertEquals(200, httpServletResponse.getStatus());
 
@@ -186,7 +187,10 @@ public class RestProxyTest {
 		assertEquals(200, httpServletResponse.getStatus());
 		
 		broadcast.setUpdateTime(System.currentTimeMillis());
+		filterChain = new MockFilterChain();
+		Mockito.doReturn(true).when(restFilter).isHostRunning(Mockito.anyString(), Mockito.anyInt());
 		restFilter.doFilter(httpServletRequest,httpServletResponse,filterChain);
+		
 		//it should be called because isStreaming returns true
 		Mockito.verify(restFilter).forwardRequestToNode(httpServletRequest, httpServletResponse, broadcast.getOriginAdress());
 
