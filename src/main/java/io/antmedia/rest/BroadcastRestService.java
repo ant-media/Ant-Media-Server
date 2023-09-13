@@ -659,7 +659,8 @@ public class BroadcastRestService extends RestServiceBase{
 		return subscriberStats;
 	}
 
-	@ApiOperation(value = "Add Subscriber to the requested stream ", response = Result.class)
+	@ApiOperation(value = "Add Subscriber to the requested stream. If the subscriber's type is publish, it also can play the stream which is critical in conferencing"
+			+ "If the subscriber's type is play, it only play the stream", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/subscribers")
@@ -761,37 +762,43 @@ public class BroadcastRestService extends RestServiceBase{
 		return new Result(result);	
 	}
 
-	@ApiOperation(value = "Block specific subscriber from playing or publishing.It's more secure to use this with TOTP secure streaming", response = Result.class)
+	@ApiOperation(value = "Block specific subscriber. It's secure to use this with TOTP streaming. It blocks the subscriber for seconds from the moment this method is called", response = Result.class)
 	@PUT
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/{id}/subscribers/{sid}/block")
+	@Path("/{id}/subscribers/{sid}/block/{seconds}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result blockSubscriber(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
-			@ApiParam(value = "the id of the subscriber", required = true) @PathParam("sid") String subscriberId,
-			Subscriber subscriber) {
+			@ApiParam(value = "the id of the subscriber", required = true) @PathParam("sid") String subscriberId, 
+			@ApiParam(value = "seconds to block the user", required = true)  @PathParam("seconds") int seconds,
+			@ApiParam(value = "block type it can be 'publish', 'play' or 'publish_play'", required = true)  @PathParam("type") String blockType) {
 		boolean result = false;
+		String message = "";
 
 
-		boolean playBlocked = subscriber.isPlayBlocked();
-		boolean publishBlocked = subscriber.isPublishBlocked();
-
-		long playBlockTime = subscriber.getPlayBlockTime();
-		long playBlockedUntilTime = subscriber.getPlayBlockedUntilTime();
-
-		long publishBlockTime = subscriber.getPublishBlockTime();
-		long publishBlockedUntilTime = subscriber.getPublishBlockedUntilTime();
-
-		if (streamId != null) {
-			result = getDataStore().blockSubscriber(streamId, subscriberId, playBlocked, publishBlocked, playBlockTime,
-					playBlockedUntilTime, publishBlockTime, publishBlockedUntilTime);
-			if (playBlocked) {
+		
+		if (!StringUtils.isAnyBlank(streamId, subscriberId)) 
+		{
+			//if the user is not in this node, it's in another node in the cluster.  
+			//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
+			
+			result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);
+			
+			if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType) ) 
+			{
 				getApplication().stopPlayingBySubscriberId(subscriberId);
-			} else if (publishBlocked) {
+			} 
+			
+			if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
 				getApplication().stopPublishingBySubscriberId(subscriberId);
 			}
+			
+			
+		}
+		else {
+			message = "streamId or subscriberId is blank";
 		}
 
-		return new Result(result);
+		return new Result(result, message);
 	}
 
 	@ApiOperation(value = " Removes all subscriber related with the requested stream", notes = "", response = Result.class)

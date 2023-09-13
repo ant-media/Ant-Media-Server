@@ -301,9 +301,8 @@ public class RestProxyTest {
 		Subscriber subscriber = new Subscriber();
 		subscriber.setSubscriberId(subscriberId);
 		subscriber.setStreamId(streamId);
-		subscriber.setPlayBlocked(true);
-		subscriber.setPlayBlockTime(playBlockTime);
-		subscriber.setPlayBlockedUntilTime(playBlockedUntilTime);
+		subscriber.setBlockedType(Subscriber.PLAY_TYPE);
+		subscriber.setBlockedUntilUnitTimeStampMs(System.currentTimeMillis() + 10000);
 		subscriber.setRegisteredNodeIp("1.1.1.1");
 		httpServletRequest1.setRequestURI("broadcasts/"+streamId+"/subscribers/"+subscriberId+"/block");
 

@@ -3140,17 +3140,15 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(true).when(adaptor).stopPlayingBySubscriberId(subscriber1Id);
 
-		boolean playBlocked = true;
-		long playBlockTime = 1692738392933L;
-		long playBlockedUntilTime = 9692738392933L;
-
-		Subscriber subscriber1Tmp = new Subscriber();
-		subscriber1Tmp.setSubscriberId(subscriber1Id);
-		subscriber1Tmp.setPlayBlocked(true);
-		subscriber1Tmp.setPlayBlockTime(playBlockTime);
-		subscriber1Tmp.setPlayBlockedUntilTime(playBlockedUntilTime);
-
-		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber1Id, subscriber1Tmp).isSuccess());
+		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber1Id, 10, Subscriber.PLAY_TYPE).isSuccess());
+		
+		Subscriber subscriberFromDB = datastore.getSubscriber(streamId, subscriber1Id);
+		assertEquals(Subscriber.PLAY_TYPE, subscriberFromDB.getBlockedType());
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 10000);
+		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 10000);
+		
+		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber1Id);
 
 		String subscriber2Id = "subscriber2";
 		Subscriber subscriber2 = new Subscriber();
@@ -3159,22 +3157,37 @@ public class BroadcastRestServiceV2UnitTest {
 		datastore.addSubscriber(streamId, subscriber2);
 
 
-		boolean publishBlocked = true;
-		long publishBlockTime = 1692738392933L;
-		long publishBlockedUntilTime = 9692738392933L;
+		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber2Id, 20, Subscriber.PUBLISH_TYPE).isSuccess());
+		subscriberFromDB = datastore.getSubscriber(streamId, subscriber2Id);
+		assertEquals(Subscriber.PUBLISH_TYPE, subscriberFromDB.getBlockedType());
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 20000);
+		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 20000);
+		
+		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber2Id);
 
 		
-		Subscriber subscriber2Tmp = new Subscriber();
-		subscriber2Tmp.setSubscriberId(subscriber2Id);
-		subscriber2Tmp.setPlayBlocked(false);
-		subscriber2Tmp.setPublishBlocked(publishBlocked);
-		subscriber2Tmp.setPublishBlockTime(publishBlockTime);
-		subscriber2Tmp.setPublishBlockedUntilTime(publishBlockedUntilTime);
+		String subscriber3Id = "subscriber3";
+		Subscriber subscriber3 = new Subscriber();
+		subscriber3.setSubscriberId(subscriber3Id);
+		subscriber3.setStreamId(streamId);
+		datastore.addSubscriber(streamId, subscriber3);
+
+		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber3Id, 20, Subscriber.PUBLISH_AND_PLAY_TYPE).isSuccess());
 		
-		Mockito.doReturn(true).when(adaptor).stopPublishingBySubscriberId(subscriber2Id);
-
-		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber2Id, subscriber2Tmp).isSuccess());
-
+		subscriberFromDB = datastore.getSubscriber(streamId, subscriber3Id);
+		assertEquals(Subscriber.PUBLISH_AND_PLAY_TYPE, subscriberFromDB.getBlockedType());
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 20000);
+		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 20000);
+		
+		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber3Id);
+		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber3Id);
+		
+		
 
 	}
 	

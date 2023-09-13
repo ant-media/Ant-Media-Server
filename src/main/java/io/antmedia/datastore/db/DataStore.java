@@ -535,16 +535,13 @@ public abstract class DataStore {
 	 * blocks subscribe from playing or publishing
 	 * @param streamId
 	 * @param subscriberId - id of the subsciber to be blocked
-	 * @param playBlocked - if true play for subscriber will be blocked
-	 * @param publishBlocked - if true publish for subscriber will be blocked
-	 * @param playBlockTime- start timestamp of play block
-	 * @param playBlockedUntilTime - end timestamp of play block
-	 * @param publishBlockTime - start timestamp of publish block
-	 * @param publishBlockedUntilTime - end timestamp of publish block
+	 * @param blockedType - it can be the value of the static field {@link Subscriber#PLAY_TYPE}, {@link Subscriber#PUBLISH_TYPE}, {@link Subscriber#PUBLISH_AND_PLAY_TYPE}
+	 * 						publish, play, publish_play
+	 * 
+	 * @param seconds - duration of seconds to block the user
 	 * @return- true if set, false if not
 	 */
-	public abstract boolean blockSubscriber(String streamId, String subscriberId, boolean playBlocked, boolean publishBlocked, long playBlockTime,
-											long playBlockedUntilTime, long publishBlockTime, long publishBlockedUntilTime);
+	public abstract boolean blockSubscriber(String streamId, String subscriberId, String blockedType, int seconds);
 
 	/**
 	 * deletes all subscriber from the datastore for this stream

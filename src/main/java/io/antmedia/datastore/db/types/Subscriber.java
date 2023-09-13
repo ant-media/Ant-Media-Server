@@ -22,44 +22,47 @@ public class Subscriber {
 	public static final String PLAY_TYPE = "play";
 	@JsonIgnore
 	public static final String PUBLISH_TYPE = "publish";
+	
+	@JsonIgnore
+	public static final String PUBLISH_AND_PLAY_TYPE = "publish_play";
 
 	@JsonIgnore
 	@Id
 	@ApiModelProperty(value = "the db id of the subscriber")
 	private ObjectId dbId;
-	
+
 	/**
 	 * random subscriber id
 	 */
 	@ApiModelProperty(value = "the subscriber id of the subscriber")
 	private String subscriberId;
-	
+
 	@JsonIgnore
 	/**
 	 * related streamId with subscriber
 	 */
 	@ApiModelProperty(value = "the stream id of the token")
 	private String streamId;	
-	
+
 	/**
 	 * statistics for this subscriber
 	 */
 	@ApiModelProperty(value = "stats for this subscriber")
 	private SubscriberStats stats = new SubscriberStats();
-	
+
 	@JsonProperty(access = Access.WRITE_ONLY)
 	/**
 	 * secret code of the Subscriber
 	 */
 	@ApiModelProperty(value = "secret code of the subscriber")
 	private String b32Secret;
-	
+
 	/**
-	 * type of the subscriber (default is play)
+	 * type of the subscriber (default is play). 
 	 */
-	@ApiModelProperty(value = " type of subscriber (play or publish)")
+	@ApiModelProperty(value = " type of subscriber (play or publish). Pay attention that 'publish' type can also play the streams for making easy to join video conferencing")
 	private String type = PLAY_TYPE;
-	
+
 	/**
 	 * is subscriber connected
 	 * TODO: Write what the recommend way is to get this information? Let's write some comments when we deprecate something 
@@ -68,7 +71,7 @@ public class Subscriber {
 	@Deprecated(since="2.4.3", forRemoval=true)
 	@ApiModelProperty(value = "is subscriber connected")
 	private boolean connected;
-	
+
 	/**
 	 * count of subscriber usage
 	 */
@@ -81,17 +84,17 @@ public class Subscriber {
 	@ApiModelProperty(value = " count of subscriber usage")
 	private int concurrentConnectionsLimit = 1;
 
-	private boolean playBlocked = false;
+	/**
+	 * Type of block. It can be publish, play or publish_play in static field: {@link Subscriber#PLAY_TYPE},
+	 * {@link Subscriber#PUBLISH_TYPE}, {@link Subscriber#PUBLISH_AND_PLAY_TYPE}
+	 */
+	private String blockedType;
 
-	private boolean publishBlocked = false;
-
-	private long playBlockTime = 0;
-
-	private long publishBlockTime = 0;
-
-	private long playBlockedUntilTime = 0;
-
-	private long publishBlockedUntilTime = 0;
+	/**
+	 * If this is set, it means user is blocked until this time
+	 * This is unix timestamp in milliseconds
+	 */
+	private long blockedUntilUnitTimeStampMs = 0;
 
 	private String registeredNodeIp;
 
@@ -102,7 +105,7 @@ public class Subscriber {
 	public void setSubscriberId(String subscriberId) {
 		this.subscriberId = subscriberId;
 	}
-	
+
 	public String getStreamId() {
 		return streamId;
 	}
@@ -131,13 +134,13 @@ public class Subscriber {
 		}
 		this.stats = stats;
 	}
-	
+
 	// database key of a subscriber consists both the stream id and subscriber id
 	@JsonIgnore
 	public String getSubscriberKey() {
 		return getDBKey(streamId, subscriberId);
 	}
-	
+
 	public static String getDBKey(String streamId, String subscriberId) {
 		return streamId + "-" +subscriberId;
 	}
@@ -152,17 +155,17 @@ public class Subscriber {
 			this.type = type;
 		}
 	}
-	
+
 	@Deprecated(since="2.4.3", forRemoval=true)
 	public boolean isConnected() {
 		return connected;
 	}
-	
+
 	@Deprecated(since="2.4.3", forRemoval=true)
 	public void setConnected(boolean connected) {
 		this.connected = connected;
 	}
-	
+
 	public int getCurrentConcurrentConnections() {
 		return currentConcurrentConnections;
 	}
@@ -170,7 +173,7 @@ public class Subscriber {
 	public void setCurrentConcurrentConnections(int currentConcurrentConnections) {
 		this.currentConcurrentConnections = currentConcurrentConnections;
 	}
-	
+
 	public int getConcurrentConnectionsLimit() {
 		return concurrentConnectionsLimit;
 	}
@@ -179,53 +182,6 @@ public class Subscriber {
 		this.concurrentConnectionsLimit = concurrentConnectionsLimit;
 	}
 
-	public boolean isPlayBlocked() {
-		return playBlocked;
-	}
-
-	public void setPlayBlocked(boolean playBlocked) {
-		this.playBlocked = playBlocked;
-	}
-
-	public boolean isPublishBlocked() {
-		return publishBlocked;
-	}
-
-	public void setPublishBlocked(boolean publishBlocked) {
-		this.publishBlocked = publishBlocked;
-	}
-
-	public long getPlayBlockTime() {
-		return playBlockTime;
-	}
-
-	public void setPlayBlockTime(long playBlockTime) {
-		this.playBlockTime = playBlockTime;
-	}
-
-	public long getPublishBlockTime() {
-		return publishBlockTime;
-	}
-
-	public void setPublishBlockTime(long publishBlockTime) {
-		this.publishBlockTime = publishBlockTime;
-	}
-
-	public long getPlayBlockedUntilTime() {
-		return playBlockedUntilTime;
-	}
-
-	public void setPlayBlockedUntilTime(long playBlockedUntilTime) {
-		this.playBlockedUntilTime = playBlockedUntilTime;
-	}
-
-	public long getPublishBlockedUntilTime() {
-		return publishBlockedUntilTime;
-	}
-
-	public void setPublishBlockedUntilTime(long publishBlockedUntil) {
-		this.publishBlockedUntilTime = publishBlockedUntil;
-	}
 
 	public String getRegisteredNodeIp() {
 		return registeredNodeIp;
@@ -235,18 +191,27 @@ public class Subscriber {
 		this.registeredNodeIp = registeredNodeIp;
 	}
 
-	public boolean isBlocked(String type) {
-			long currTime = System.currentTimeMillis();
-			if (type.equals(PLAY_TYPE) && isPlayBlocked()) {
-				long subscriberPlayBlockTime = getPlayBlockTime();
-				long subscriberPlayBlockedUntilTime = getPlayBlockedUntilTime();
-				return (currTime > subscriberPlayBlockTime && currTime < subscriberPlayBlockedUntilTime);
-			} else if (type.equals(PUBLISH_TYPE) && isPublishBlocked()) {
-				long subscriberPublishBlockTime = getPublishBlockTime();
-				long subscriberPublishBlockedUntilTime = getPublishBlockedUntilTime();
-				return (currTime > subscriberPublishBlockTime && currTime < subscriberPublishBlockedUntilTime);
-			}
+	public boolean isBlocked(String type) 
+	{
+		long currTime = System.currentTimeMillis();
+		
+		return (type.equals(blockedType) || PUBLISH_AND_PLAY_TYPE.equals(blockedType))
+				&& getBlockedUntilUnitTimeStampMs() != 0 && getBlockedUntilUnitTimeStampMs() >= currTime;
+	}
 
-		return false;
+	public String getBlockedType() {
+		return blockedType;
+	}
+
+	public void setBlockedType(String blockedType) {
+		this.blockedType = blockedType;
+	}
+
+	public long getBlockedUntilUnitTimeStampMs() {
+		return blockedUntilUnitTimeStampMs;
+	}
+
+	public void setBlockedUntilUnitTimeStampMs(long blockedUntilUnitTimeStampMs) {
+		this.blockedUntilUnitTimeStampMs = blockedUntilUnitTimeStampMs;
 	}
 }

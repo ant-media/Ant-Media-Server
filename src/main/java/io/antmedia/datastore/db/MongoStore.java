@@ -1049,9 +1049,7 @@ public class MongoStore extends DataStore {
 
 	@Override
 	public boolean blockSubscriber(String streamId, String subscriberId,
-								   boolean playBlocked, boolean publishBlocked,
-								   long playBlockTime, long playBlockedUntilTime,
-								   long publishBlockTime, long publishBlockedUntilTime) {
+								   String blockedType, int seconds) {
 		synchronized (this) {
 			if (streamId == null || subscriberId == null) {
 				return false;
@@ -1060,15 +1058,24 @@ public class MongoStore extends DataStore {
 			try {
 				UpdateResult updateResult = subscriberDatastore.find(Subscriber.class)
 						.filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId))
-						.update(set("playBlocked", playBlocked),
-								set("publishBlocked", publishBlocked),
-								set("playBlockTime", playBlockTime),
-								set("playBlockedUntilTime", playBlockedUntilTime),
-								set("publishBlockTime", publishBlockTime),
-								set("publishBlockedUntilTime", publishBlockedUntilTime))
+						.update(set("blockedType", blockedType),
+								set("blockedUntilUnitTimeStampMs", System.currentTimeMillis() + (seconds * 1000)))
 						.execute();
 
-				return updateResult.getMatchedCount() == 1;
+				long matchedCount = updateResult.getMatchedCount();
+				if (matchedCount == 0) 
+				{
+					Subscriber subscriber = new Subscriber();
+					subscriber.setStreamId(streamId);
+					subscriber.setSubscriberId(subscriberId);
+					subscriber.setBlockedType(blockedType);
+					subscriber.setBlockedUntilUnitTimeStampMs(System.currentTimeMillis() + (seconds * 10000));
+					subscriberDatastore.save(subscriber);
+					return true;
+				}
+				else {
+					return updateResult.getMatchedCount() == 1;
+				}
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 				return false;

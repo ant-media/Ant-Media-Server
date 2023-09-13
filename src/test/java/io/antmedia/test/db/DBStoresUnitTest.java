@@ -2976,23 +2976,62 @@ public class DBStoresUnitTest {
 		String subscriberId = "subscriberId";
 		subscriber.setSubscriberId(subscriberId);
 		subscriber.setStreamId(streamId);
-		subscriber.setPlayBlocked(true);
 		long currTime = System.currentTimeMillis();
-		subscriber.setPlayBlockTime(currTime);
-		subscriber.setPlayBlockedUntilTime(currTime + 5000);
 
 		dataStore.addSubscriber(streamId, subscriber);
-		dataStore.blockSubscriber(streamId,subscriberId, true, false, currTime, currTime + 5000 , 0,0 );
+		
+		Subscriber subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		
+		assertNull(subscriberFromDB.getBlockedType());
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId, Subscriber.PLAY_TYPE, 10));
+		subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		assertEquals(Subscriber.PLAY_TYPE, subscriberFromDB.getBlockedType());
+		
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+
+		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 10000);
+		
+		
+		assertFalse(dataStore.blockSubscriber(null, subscriberId, Subscriber.PLAY_TYPE, 10));
+		assertFalse(dataStore.blockSubscriber(streamId, null, Subscriber.PLAY_TYPE, 10));
 
 
-		dataStore.blockSubscriber(null, subscriberId, true, false, currTime, currTime + 5000 , 0,0 );
+		
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId, Subscriber.PUBLISH_TYPE, 50));
+		subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		assertEquals(Subscriber.PUBLISH_TYPE, subscriberFromDB.getBlockedType());
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+
+		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 50000);
 
 
-		dataStore.blockSubscriber(streamId,null, true, false, currTime, currTime + 5000 , 0,0 );
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId, Subscriber.PUBLISH_AND_PLAY_TYPE, 50));
+		subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		assertEquals(Subscriber.PUBLISH_AND_PLAY_TYPE, subscriberFromDB.getBlockedType());
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
 
-		dataStore.blockSubscriber(streamId,"someSubscriber", true, false, currTime, currTime + 5000 , 0,0 );
-
-
+		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 50000);
+		
+		
+		//if subscriber is not in datastore, still blockUser should be supported
+		subscriberId = "subscriberNotInDB";
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId, Subscriber.PUBLISH_AND_PLAY_TYPE, 50));
+		subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 50000);
 
 
 	}
