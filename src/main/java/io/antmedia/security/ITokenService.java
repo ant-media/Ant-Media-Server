@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public interface ITokenService {
+	
+	public static final String HMAC_SHA1 = "HmacSHA1";
 
 	public enum BeanName {
 		TOKEN_SERVICE("token.service");

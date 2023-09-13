@@ -1069,12 +1069,12 @@ public class MongoStore extends DataStore {
 					subscriber.setStreamId(streamId);
 					subscriber.setSubscriberId(subscriberId);
 					subscriber.setBlockedType(blockedType);
-					subscriber.setBlockedUntilUnitTimeStampMs(System.currentTimeMillis() + (seconds * 10000));
+					subscriber.setBlockedUntilUnitTimeStampMs(System.currentTimeMillis() + (seconds * 1000));
 					subscriberDatastore.save(subscriber);
 					return true;
 				}
 				else {
-					return updateResult.getMatchedCount() == 1;
+					return matchedCount == 1;
 				}
 			} catch (Exception e) {
 				logger.error(e.getMessage());
@@ -1114,9 +1114,9 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized (this) {
 			try {
-				subscriberDatastore.find(Subscriber.class).update(set("connected", false)).execute();
+				UpdateResult execute = subscriberDatastore.find(Subscriber.class).update(new UpdateOptions().multi(true), set("connected", false));
 
-				result = true;
+				result = execute.getMatchedCount() > 1;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}

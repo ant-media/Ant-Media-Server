@@ -90,6 +90,7 @@ public class DBStoresUnitTest {
 		DataStore dataStore = new MapDBStore("testdb", vertx);
 		
 		
+		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);
@@ -133,7 +134,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-		testBlockSubscriber(dataStore);
+		
 
 	}
 	
@@ -170,6 +171,7 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() throws Exception {
 		DataStore dataStore = new InMemoryDataStore("testdb");
 		
+		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);
@@ -212,7 +214,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-		testBlockSubscriber(dataStore);
+		
 		
 
 
@@ -228,6 +230,8 @@ public class DBStoresUnitTest {
 		
 		dataStore = new MongoStore("localhost", "", "", "testdb");
 		
+		testBlockSubscriber(dataStore);
+		testTimeBasedSubscriberOperations(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);		
@@ -250,7 +254,6 @@ public class DBStoresUnitTest {
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
-		testTimeBasedSubscriberOperations(dataStore);
 		testClearAtStart(dataStore);
 		testClearAtStartCluster(dataStore);
 		testConferenceRoom(dataStore);
@@ -271,7 +274,7 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
-		testBlockSubscriber(dataStore);
+		
 
 	}
 	
@@ -283,6 +286,7 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
 		
+		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);		
@@ -325,6 +329,7 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		
 	}
 	
 	@Test
@@ -2064,7 +2069,7 @@ public class DBStoresUnitTest {
 		assertTrue(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
 		
 		// reset connection status
-		store.resetSubscribersConnectedStatus();
+		assertTrue(store.resetSubscribersConnectedStatus());
 		// connection status should false again
 		assertFalse(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
 		
