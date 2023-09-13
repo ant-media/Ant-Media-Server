@@ -7,10 +7,17 @@ import java.security.GeneralSecurityException;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.apache.commons.lang3.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.amazonaws.util.Base32;
 import com.google.common.primitives.Longs;
 
 
  public class TOTPGenerator {
+	 
+	 protected static Logger logger = LoggerFactory.getLogger(TOTPGenerator.class);
 	 
 	 private static final long[] DIGITS_POWER
      // 0 1  2   3    4     5      6       7        8         9          10
@@ -38,6 +45,35 @@ import com.google.common.primitives.Longs;
              throw new UndeclaredThrowableException(gse);
          }
      }
+     
+     /**
+      * This generated B32 Secret code on the fly for the subscriberId that is not recorded in the database
+      * 
+      * @param subscriberId
+      * @param streamId
+      * @param secretFromSettings
+      * @return
+      */
+     public static String getSecretCodeForNotRecordedSubscriberId(String subscriberId, String streamId, String type, String secretFromSettings) {
+ 		
+ 		
+ 		String secretCode = null;
+ 		if (secretFromSettings != null) 
+ 		{
+ 			secretCode = secretFromSettings + subscriberId + streamId + type;
+ 			//make the subscriber id has a length of multiple of 8
+ 			int paddingLength = 8 - (secretCode.length()) % 8;
+ 			//add X to make it decodeable
+ 			secretCode += StringUtils.repeat('X', paddingLength) ;
+ 			return Base32.encodeAsString(secretCode.getBytes());
+ 		}
+ 		else 
+ 		{
+ 			logger.warn("TOTP secret is not valid. It should be not null and it's length must multiple of 8 for streamId:{} and subsriberId:{}", streamId, subscriberId);
+ 		}
+ 		return null;
+ 	}
+     
 
      /**
       * This method generates a TOTP value for the given

@@ -7,6 +7,8 @@ import javax.annotation.Nonnull;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.Token;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -60,9 +62,10 @@ public interface ITokenService {
 	 * @param streamId - id of the stream
 	 * @param sessionId - id of the current session
 	 * @param subscriberCode - with TOTP generated code 
+	 * @param type - {@link Subscriber#PUBLISH_AND_PLAY_TYPE or @link Subscriber#PUBLISH_TYPE or @link Subscriber#PLAY_TYPE}
 	 * @return true or false
 	 */
-	boolean checkTimeBasedSubscriber(String subscriberId, String streamId, String sessionId, String subscriberCode, boolean forPublish);
+	boolean checkTimeBasedSubscriber(String subscriberId, String streamId, String sessionId, String subscriberCode,  String type);
 	
 	/**
 	 * Checks the JWT token validity

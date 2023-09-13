@@ -37,6 +37,7 @@ import org.springframework.web.context.WebApplicationContext;
 import com.amazonaws.util.Base32;
 
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.security.ITokenService;
@@ -309,7 +310,7 @@ public class TokenFilterTest {
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			// checkTimeBasedSubscriber is called once
-			verify(tokenService, times(1)).checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCode, false);
+			verify(tokenService, times(1)).checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCode, Subscriber.PLAY_TYPE);
 			
 			
 		} catch (ServletException|IOException e) {

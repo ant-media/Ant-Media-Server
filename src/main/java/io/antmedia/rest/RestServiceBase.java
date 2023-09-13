@@ -1550,6 +1550,15 @@ public abstract class RestServiceBase {
 		}
 		return list;
 	}
+	
+	protected ITokenService getTokenService() 
+	{
+		ApplicationContext appContext = getAppContext();
+		if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) {
+			return (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+		}
+		return null;
+	}
 
 	protected Object getToken (String streamId, long expireDate, String type, String roomId)
 	{
@@ -1557,11 +1566,10 @@ public abstract class RestServiceBase {
 		String message = "Define Stream ID, Token Type and Expire Date (unix time)";
 		if(streamId != null && type != null && expireDate > 0) {
 
-			ApplicationContext appContext = getAppContext();
+			ITokenService tokenService = getTokenService();
 
-			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString()))
+			if(tokenService != null)
 			{
-				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
 				token = tokenService.createToken(streamId, expireDate, type, roomId);
 				if(token != null)
 				{
@@ -1592,11 +1600,10 @@ public abstract class RestServiceBase {
 
 		if(streamId != null && type != null && expireDate > 0) {
 
-			ApplicationContext appContext = getAppContext();
+			ITokenService tokenService = getTokenService();
 
-			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString()))
+			if(tokenService != null)
 			{
-				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
 				token = tokenService.createJwtToken(streamId, expireDate, type, roomId);
 				if(token != null)
 				{

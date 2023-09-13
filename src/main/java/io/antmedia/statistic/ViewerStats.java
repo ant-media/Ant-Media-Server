@@ -79,7 +79,9 @@ public class ViewerStats {
 					Date curDate = new Date();
 					event.setTimestamp(curDate.getTime());
 					//TODO: There is a bug here. It adds +1 for each ts request 
-					getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
+					if (getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event)) {
+						logger.info("CONNECTED_EVENT for subscriberId:{} streamId:{}", subscriberId, streamId);
+					}
 				}
 			}
 			
@@ -254,7 +256,9 @@ public class ViewerStats {
 							event.setEventType(ConnectionEvent.DISCONNECTED_EVENT);
 							Date curDate = new Date();
 							event.setTimestamp(curDate.getTime());
-							getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
+							if (getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event)) {
+								logger.info("DISCONNECTED_EVENT for subscriberId:{} and streamId:{}", subscriberId, streamId);
+							}
 						}
 					}
 				}
