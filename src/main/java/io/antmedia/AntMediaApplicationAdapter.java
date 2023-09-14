@@ -15,6 +15,8 @@ import java.util.regex.Pattern;
 
 import javax.validation.constraints.NotNull;
 
+import io.antmedia.srt.ISRTAdaptor;
+import io.antmedia.srt.SRTAdaptor;
 import io.antmedia.statistic.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -983,6 +985,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) 
 		{
+
 			IBroadcastStream broadcastStream = getBroadcastStream(getScope(), broadcast.getStreamId());
 			if (broadcastStream != null) 
 			{
@@ -995,6 +998,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					logger.warn("Connection is null. It should not happen for stream: {}. Analyze the logs", broadcast.getStreamId());
 				}
 				result.setSuccess(true);
+			}else if(broadcast.getPublishType() != null && broadcast.getPublishType().equals(SRTAdaptor.PUBLISH_TYPE)){
+				ISRTAdaptor srtAdaptor = (ISRTAdaptor)  getScope().getContext().getBean(ISRTAdaptor.BeanName.SRT_ADAPTOR.toString());
+				boolean srtStopped = srtAdaptor.stopSRTStream(broadcast.getStreamId());
+				result.setSuccess(srtStopped);
+
 			}
 		}
 		return result;
