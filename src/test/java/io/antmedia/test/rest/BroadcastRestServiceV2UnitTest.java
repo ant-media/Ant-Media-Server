@@ -33,6 +33,8 @@ import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
+import io.antmedia.srt.ISRTAdaptor;
+import io.antmedia.srt.SRTAdaptor;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
@@ -1943,24 +1945,52 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testStopLiveStream() {
 		BroadcastRestService restService = new BroadcastRestService();
 		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
+
 		DataStore ds = Mockito.mock(DataStore.class);
 		String streamId = "test-stream";
+		String srtStreamId = "srtTestStream";
+
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		Mockito.doReturn(scope).when(app).getScope();
+
+		IContext context = mock(IContext.class);
+		Mockito.doReturn(context).when(scope).getContext();
+		
+		ISRTAdaptor srtAdaptor = mock(ISRTAdaptor.class);
+
+		when(context.getBean(ISRTAdaptor.BeanName.SRT_ADAPTOR.toString())).thenReturn(srtAdaptor);
+		when(srtAdaptor.stopSRTStream(srtStreamId)).thenReturn(true);
 
 		Broadcast broadcast = new Broadcast();
+		Broadcast srtBroadcast = new Broadcast();
+
 		try {
 			broadcast.setStreamId(streamId);
+			srtBroadcast.setStreamId(srtStreamId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+		srtBroadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+		srtBroadcast.setPublishType(SRTAdaptor.PUBLISH_TYPE);
 
 		Mockito.doReturn(broadcast).when(ds).get(streamId);
+		Mockito.doReturn(srtBroadcast).when(ds).get(srtStreamId);
+
 		restService.setDataStore(ds);
 		restService.setApplication(app);
 
 		restService.stopStreamingV2(streamId);
+		restService.stopStreamingV2(srtStreamId);
 
-		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(null, streamId);
+
+		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(scope, streamId);
+		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(scope, srtStreamId);
+
+		Mockito.verify(srtAdaptor, Mockito.times(1)).stopSRTStream(srtStreamId);
+
 	}
 
 	@Test
@@ -2955,24 +2985,34 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
-	public void testaddStreamToTheRoom(){
-		ApplicationContext currentcontext = mock(ApplicationContext.class);
-		restServiceReal.setAppCtx(currentcontext);
+	public void testAddStreamToTheRoom() {
+		ApplicationContext currentContext = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(currentContext);
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 		
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
-		when(currentcontext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		when(currentContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 		
-		ConferenceRoom room=new ConferenceRoom();
+		ConferenceRoom room = new ConferenceRoom();
 		room.setRoomId("testroom");
 		store.createConferenceRoom(room);
+
+		ConferenceRoom multiTrackRoom = new ConferenceRoom();
+		multiTrackRoom.setMode(ConferenceRoom.MULTI_TRACK_MODE);
+		multiTrackRoom.setRoomId("multiTrackRoom");
+		store.createConferenceRoom(multiTrackRoom);
+
 		Broadcast broadcast1=new Broadcast();
 		Broadcast broadcast2=new Broadcast();
 		Broadcast broadcast3=new Broadcast();
 		Broadcast broadcast4=new Broadcast();
 		Broadcast broadcast5=new Broadcast();
+		Broadcast broadcast6=new Broadcast();
+		Broadcast multiTrackRoomBroadcast = new Broadcast();
+
+
 		try {
 			broadcast1.setStreamId("stream1");
 			broadcast1.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -2982,6 +3022,10 @@ public class BroadcastRestServiceV2UnitTest {
 			broadcast3.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast4.setStreamId("stream4");
 			broadcast5.setStreamId("stream5");
+			broadcast6.setStreamId("stream6");
+			multiTrackRoomBroadcast.setStreamId(multiTrackRoom.getRoomId());
+
+
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -2990,6 +3034,9 @@ public class BroadcastRestServiceV2UnitTest {
 		store.save(broadcast3);
 		store.save(broadcast4);
 		store.save(broadcast5);
+		store.save(broadcast6);
+		store.save(multiTrackRoomBroadcast);
+
 		restServiceSpy.addStreamToTheRoom("testroom","stream1");
 		assertEquals(1,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		verify(app, times(1)).joinedTheRoom("testroom", "stream1");
@@ -3003,17 +3050,22 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(3,store.getConferenceRoom("testroom").getRoomStreamList().size());
 		restServiceSpy.addStreamToTheRoom("testroom", "stream5");
 		assertEquals(4,store.getConferenceRoom("testroom").getRoomStreamList().size());
+		restServiceSpy.addStreamToTheRoom(multiTrackRoom.getRoomId(), broadcast6.getStreamId());
+		multiTrackRoomBroadcast = store.get(multiTrackRoom.getRoomId());
+		assertTrue(multiTrackRoomBroadcast.getSubTrackStreamIds().contains(broadcast6.getStreamId()));
+		assertEquals(multiTrackRoomBroadcast.getStreamId(), broadcast6.getMainTrackStreamId());
+
 	}
 
 	@Test
-	public void testremoveStreamFromRoom(){
-		ApplicationContext currentcontext = mock(ApplicationContext.class);
-		restServiceReal.setAppCtx(currentcontext);
+	public void testRemoveStreamFromRoom(){
+		ApplicationContext currentContext = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(currentContext);
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
 		
 		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
-		when(currentcontext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+		when(currentContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
 		
 		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 		ConferenceRoom room=new ConferenceRoom();
