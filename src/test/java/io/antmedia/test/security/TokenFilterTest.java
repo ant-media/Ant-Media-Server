@@ -428,8 +428,10 @@ public class TokenFilterTest {
 		
 		if (code.charAt(0) == '0') {
 			//first character can be zero.
-			assertTrue(intCode > 1000);
-			//if both first three characters are zero, meet the ice bear in the desert :)
+			assertTrue("First 4 characters are zero, this is why this test failed. It may happen with low possibility."
+					+ "With this luck, you may meet the ice bear in the desert :)"
+					+ "Have a break and relax, then try again ;)", intCode > 100);
+			//first 4 characters are zero, meet the ice bear in the desert :)
 		}
 		else {
 			assertTrue(intCode > 100000);
