@@ -96,6 +96,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String HOOK_ACTION_PUBLISH_TIMEOUT_ERROR = "publishTimeoutError";
 	public static final String HOOK_ACTION_ENCODER_NOT_OPENED_ERROR =  "encoderNotOpenedError";
 	public static final String HOOK_ACTION_ENDPOINT_FAILED = "endpointFailed";
+	public static final String HOOK_ACTION_BAD_STREAM_HEALTH = "badStreamHealth";
+
 
 	public static final String STREAMS = "streams";
 
@@ -480,6 +482,23 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return listenerHookURL;
 
 	}
+	void badStreamHealthHook(String streamId,String parameterName, double healthParameter) {
+		Broadcast broadcast = getDataStore().get(streamId);
+
+		if (broadcast != null) {
+			final String listenerHookURL = getListenerHookURL(broadcast);
+			if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
+				final String name = broadcast.getName();
+				final String category = broadcast.getCategory();
+				final String metaData = broadcast.getMetaData();
+				logger.info("Calling Bad Stream Health hook for stream:{}", streamId);
+				Map<String, Double> badHealth = new HashMap<>();
+				badHealth.put(parameterName, healthParameter);
+
+				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_BAD_STREAM_HEALTH, name, category, null, null, badHealth.toString()));
+			}
+		}
+	}
 
 	public void closeBroadcast(String streamId) {
 
@@ -578,7 +597,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			try {
 
 				Broadcast broadcast = updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, getDataStore().get(streamId));
-
 				final String listenerHookURL = getListenerHookURL(broadcast);
 				if (listenerHookURL != null && !listenerHookURL.isEmpty())
 				{
@@ -1044,6 +1062,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				broadcastLocal.setUpdateTime(updateTimeMs);
 				broadcastLocal.setQuality(quality);
 				getDataStore().updateBroadcastFields(id, broadcastLocal);
+				if( speed < 0.9 || speed >1.0 ) {
+					badStreamHealthHook(id, "speed", speed);
+				}
 			}
 			
 		});
