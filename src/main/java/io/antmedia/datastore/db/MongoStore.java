@@ -782,6 +782,10 @@ public class MongoStore extends DataStore {
 				if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
 					updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
 				}
+				if (broadcast.getSpeed() != 0) {
+					updates.add(set("speed", broadcast.getSpeed()));
+				}
+				
 
 				prepareFields(broadcast, updates);
 

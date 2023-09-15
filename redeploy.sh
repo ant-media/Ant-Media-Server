@@ -27,7 +27,7 @@ if [ $OUT -ne 0 ]; then
 fi
 
 
-cp -rf $SRC_CONF_DIR   $ANT_MEDIA_SERVER_DIR/conf/
+#cp -rf $SRC_CONF_DIR   $ANT_MEDIA_SERVER_DIR/conf/
 
 OUT=$?
 
