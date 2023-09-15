@@ -29,7 +29,9 @@ import org.springframework.context.ApplicationContext;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
+import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
+import dev.morphia.query.filters.Filters;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
@@ -2074,6 +2076,38 @@ public class DBStoresUnitTest {
 		assertFalse(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
 		
 		store.revokeSubscribers(streamId);
+		
+		{
+			//save subscriber again 
+			
+			String subscriberId = "subscriberId" + (int)(Math.random()*112313);
+			Subscriber subscriber = new Subscriber();
+			subscriber.setStreamId(streamId);
+			subscriber.setSubscriberId(subscriberId);
+			subscriber.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
+			subscriber.setType(Subscriber.PLAY_TYPE);
+			assertTrue(store.addSubscriber(subscriber.getStreamId(), subscriber));
+			
+			Subscriber subscriberFromDB = store.getSubscriber(streamId, subscriberId);
+			
+			assertNull(subscriberFromDB.getRegisteredNodeIp());
+			String nodeIp = "nodeip" + (int)(Math.random()*112313);
+			subscriberFromDB.setRegisteredNodeIp(nodeIp);
+			
+			assertTrue(store.addSubscriber(subscriber.getStreamId(), subscriberFromDB));
+			
+			subscriberFromDB = store.getSubscriber(streamId, subscriberId);
+			assertEquals(nodeIp, subscriberFromDB.getRegisteredNodeIp());
+			
+			if (store instanceof MongoStore) {
+				MongoStore mongoStore = (MongoStore) store;
+				Datastore subscriberDatastore = mongoStore.getSubscriberDatastore();
+				long count = subscriberDatastore.find(Subscriber.class).filter(Filters.eq("streamId", streamId), Filters.eq("subscriberId", subscriberId)).count();
+			
+				assertEquals(1, count);
+			}
+			
+		}
 	}
 	
 	@Test

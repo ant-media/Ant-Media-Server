@@ -1492,4 +1492,8 @@ public class MongoStore extends DataStore {
 		}
 		return false;
 	}
+	
+	public Datastore getSubscriberDatastore() {
+		return subscriberDatastore;
+	}
 }

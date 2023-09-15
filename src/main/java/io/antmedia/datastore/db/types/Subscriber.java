@@ -58,10 +58,10 @@ public class Subscriber {
 	private String b32Secret;
 
 	/**
-	 * type of the subscriber (default is play). 
+	 * type of the subscriber 
 	 */
 	@ApiModelProperty(value = " type of subscriber (play or publish). Pay attention that 'publish' type can also play the streams for making easy to join video conferencing")
-	private String type = PLAY_TYPE;
+	private String type;
 
 	/**
 	 * is subscriber connected
