@@ -18,6 +18,10 @@ import java.io.IOException;
 
 public class SubscriberBlockFilter extends AbstractFilter{
 
+	/**
+	 * We have this filter because we block subscriber according to the subscriberId and streamId.
+	 * In other words, subscriber can be blocked even if TOTP is not enabled
+	 */
 
     protected static Logger logger = LoggerFactory.getLogger(SubscriberBlockFilter.class);
 
@@ -27,7 +31,10 @@ public class SubscriberBlockFilter extends AbstractFilter{
         final String method = httpRequest.getMethod();
         
         
-        if(HttpMethod.GET.equals(method) && (httpRequest.getRequestURI().endsWith("m3u8") || httpRequest.getRequestURI().endsWith("m4s")))
+        if(HttpMethod.GET.equals(method) && (httpRequest.getRequestURI().endsWith("m3u8") 
+        		|| httpRequest.getRequestURI().endsWith("ts") 
+        		|| httpRequest.getRequestURI().endsWith("m4s")
+        		|| httpRequest.getRequestURI().endsWith("mpd")))
         {
             final String subscriberId = request.getParameter("subscriberId");
             final String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
@@ -44,7 +51,7 @@ public class SubscriberBlockFilter extends AbstractFilter{
                 chain.doFilter(request, response);
             } else {
                 HttpServletResponse httpResponse = (HttpServletResponse) response;
-                httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Subscriber unauthorized");
+                httpResponse.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Subscriber is blocked");
             }
         } else {
             chain.doFilter(request, response);
