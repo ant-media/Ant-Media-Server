@@ -88,18 +88,14 @@ import com.google.common.primitives.Longs;
       *              {@link truncationDigits} digits
       */
 
-     public static String generateTOTP(byte[] secretBytes,
-             int duration,
+     public static String generateTOTPWithTimeConstant(byte[] secretBytes,
              int codeDigits,
-             String crypto){
+             String crypto, long timeConstant)
+     {
          String result = null;
 
-         long durationMs = duration * 1000L;
-         float division = ((float)System.currentTimeMillis())/durationMs;
-         
-         long T = Math.round((division + 1) / 2); 
-       
-         byte[] msg = Longs.toByteArray(T);
+                
+         byte[] msg = Longs.toByteArray(timeConstant);
          byte[] k = secretBytes;
 
          byte[] hash = hmac_sha(crypto, k, msg);
@@ -120,6 +116,17 @@ import com.google.common.primitives.Longs;
              result = "0" + result;
          }
          return result;
+     }
+          
+     public static String generateTOTP(byte[] secretBytes,
+             int duration,
+             int codeDigits,
+             String crypto) 
+     {
+    	 long durationMs = duration * 1000L;
+    	 double division = ((double)System.currentTimeMillis())/durationMs;
+    	 long timeConstant = (long)Math.floor(division); 
+    	 return generateTOTPWithTimeConstant(secretBytes, codeDigits, crypto, timeConstant);
      }
 
  }
