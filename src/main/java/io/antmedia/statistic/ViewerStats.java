@@ -77,7 +77,7 @@ public class ViewerStats {
 				streamsViewerMap.put(streamId, viewerMap);
 				if(subscriberId != null) {
 					
-					Subscriber subscriber = dataStore.getSubscriber(streamId, subscriberId);
+					Subscriber subscriber = getDataStore().getSubscriber(streamId, subscriberId);
 					if (subscriber == null) {
 						subscriber = new Subscriber();
 						subscriber.setStreamId(streamId);
@@ -86,7 +86,7 @@ public class ViewerStats {
 					subscriber.setRegisteredNodeIp(serverSettings.getHostAddress());
 					
 					//if subscriber is coming from the DB following command just updates the one in the db
-					dataStore.addSubscriber(streamId, subscriber);
+					getDataStore().addSubscriber(streamId, subscriber);
 					
 					
 					// map sessionId to subscriberId
