@@ -13,7 +13,6 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
-import dev.morphia.utils.IndexType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
@@ -21,8 +20,10 @@ import io.swagger.annotations.ApiModelProperty;
 @Indexes({ @Index(fields = @Field("roomId")) })
 @ApiModel(value="ConferenceRoom", description="The Conference Room class")
 public class ConferenceRoom {
-	
-	
+	public static final String MULTI_TRACK_MODE = "multitrack";
+
+	public static final String LEGACY_MODE = "legacy";
+
 	@JsonIgnore
 	@Id
 	@ApiModelProperty(value = "The db id of the Conference Room")
