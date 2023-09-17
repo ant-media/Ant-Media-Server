@@ -335,7 +335,10 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 			return restService.getBroadcast(streamId) == null;
 		});	
 
-		assertEquals(broadcastList.size(), restService.callGetBroadcastList().size());
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		.until(() -> {
+			return broadcastList.size() == restService.callGetBroadcastList().size();
+		});	
 		
 		//Make sure thread is stopped
 		Awaitility.await().atMost(20, TimeUnit.SECONDS)
