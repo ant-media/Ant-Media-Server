@@ -330,5 +330,9 @@ public class ViewerStats {
 		}
 		
 	}
+	
+	public void setServerSettings(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
+	}
 
 }

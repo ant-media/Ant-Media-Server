@@ -100,6 +100,7 @@ public class DashViewerStatsTest {
 
 		DataStore dataStore = new InMemoryDataStore("datastore");
 		viewerStats.setDataStore(dataStore);
+		viewerStats.setServerSettings(new ServerSettings());
 		
 		String streamId = "stream1";
 		
