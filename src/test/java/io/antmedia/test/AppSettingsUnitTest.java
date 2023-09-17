@@ -310,6 +310,12 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setSendAudioLevelToViewers(false);
 		assertFalse(appSettings.isSendAudioLevelToViewers());
 		
+		appSettings.setTimeTokenSecretForPlay("secretplay");
+		assertEquals("secretplay", appSettings.getTimeTokenSecretForPlay());
+		
+		
+		appSettings.setTimeTokenSecretForPublish("secretpublish");
+		assertEquals("secretpublish", appSettings.getTimeTokenSecretForPublish());
 	}
 	
 	

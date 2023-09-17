@@ -2,6 +2,7 @@ package io.antmedia.test.rest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -3231,6 +3232,68 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue(restServiceSpy.addID3Data("existingStreamId", id3Data).isSuccess());
 
 		assertFalse(restServiceSpy.addID3Data("nonExistingStreamId", id3Data).isSuccess());
+	}
+	
+	@Test
+	public void testGetTOTP() {
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		restServiceSpy.setAppSettings(new AppSettings());
+		
+		Result result = restServiceSpy.getTOTP(null, null, "play");
+		assertFalse(result.isSuccess());
+		
+		
+		String subscriberId = "sub1";
+		String streamId = "stream1";
+		String type = "publish";
+		String secret = "secret";
+		
+		
+		result = restServiceSpy.getTOTP(streamId, subscriberId, "play");
+		assertFalse(result.isSuccess());
+		
+		restServiceSpy.getAppSettings().setTimeTokenSecretForPlay(secret);
+		result = restServiceSpy.getTOTP(streamId, subscriberId, "play");
+		assertTrue(result.isSuccess());
+		
+		String totp = result.getDataId();
+		
+		
+		restServiceSpy.getAppSettings().setTimeTokenSecretForPublish(secret);
+		result = restServiceSpy.getTOTP(streamId, subscriberId, "publish");
+		assertTrue(result.isSuccess());
+		String totp2 = result.getDataId();
+		//value of TOTP is checked in integration tests in enterprise side
+		
+		assertNotEquals(totp, totp2);
+		
+		
+		Subscriber subscriber = new Subscriber();
+		subscriber.setType(Subscriber.PUBLISH_TYPE);
+		subscriber.setStreamId(streamId);
+		subscriber.setSubscriberId(subscriberId);
+		
+		
+		store.addSubscriber(streamId, subscriber);
+		
+		result = restServiceSpy.getTOTP(streamId, subscriberId, "publish");
+		assertTrue(result.isSuccess());
+		String totp3 = result.getDataId();
+		
+		assertEquals(totp2, totp3);
+		
+		
+		subscriber.setB32Secret("abcdabcd");
+		store.addSubscriber(streamId, subscriber);
+		
+		result = restServiceSpy.getTOTP(streamId, subscriberId, "publish");
+		assertTrue(result.isSuccess());
+		String totp4 = result.getDataId();
+		
+		assertNotEquals(totp4, totp3);
+		
 	}
 
 

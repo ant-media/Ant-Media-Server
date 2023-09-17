@@ -62,9 +62,12 @@ import com.google.common.primitives.Longs;
  		{
  			secretCode = secretFromSettings + subscriberId + streamId + type;
  			//make the subscriber id has a length of multiple of 8
- 			int paddingLength = 8 - (secretCode.length()) % 8;
- 			//add X to make it decodeable
- 			secretCode += StringUtils.repeat('X', paddingLength) ;
+ 			int remainder = secretCode.length() % 8;
+ 			if ( remainder != 0) {
+ 				int paddingLength = 8 - remainder;
+ 				//add X to make it decodeable
+ 				secretCode += StringUtils.repeat('X', paddingLength) ;
+ 			}
  			return Base32.encodeAsString(secretCode.getBytes());
  		}
  		else 

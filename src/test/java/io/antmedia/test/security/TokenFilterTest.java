@@ -1,6 +1,7 @@
 package io.antmedia.test.security;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -438,6 +439,26 @@ public class TokenFilterTest {
 		}
 		
 		assertTrue(intCode < 1000000);
+	}
+	
+	@Test
+	public void testGeneratedSecret() {
+		String subscriberId = "sub1";
+		String streamId = "stream1";
+		String type = "publish";
+		String secret = "secret";
+		String generatedSecretCode = TOTPGenerator.getSecretCodeForNotRecordedSubscriberId(subscriberId, streamId, type, secret);
+		
+		assertEquals(Base32.encodeAsString((secret+subscriberId+streamId+type).getBytes()), generatedSecretCode);
+		
+		secret = "secret123";
+		generatedSecretCode = TOTPGenerator.getSecretCodeForNotRecordedSubscriberId(subscriberId, streamId, type, secret);
+		assertEquals(Base32.encodeAsString((secret+subscriberId+streamId+type+"XXXXX").getBytes()), generatedSecretCode);
+		
+		generatedSecretCode = TOTPGenerator.getSecretCodeForNotRecordedSubscriberId(subscriberId, streamId, type, null);
+		assertNull(generatedSecretCode);
+		
+		
 	}
 	
 }
