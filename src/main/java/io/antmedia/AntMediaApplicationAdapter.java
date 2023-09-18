@@ -1062,7 +1062,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				broadcastLocal.setUpdateTime(updateTimeMs);
 				broadcastLocal.setQuality(quality);
 				getDataStore().updateBroadcastFields(id, broadcastLocal);
-				if( speed < 0.9 || speed >1.0 ) {
+				if( speed < 0.9 || speed >1.3 ) {
 					badStreamHealthHook(id, "speed", speed);
 				}
 			}
