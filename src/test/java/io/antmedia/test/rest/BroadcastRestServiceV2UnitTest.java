@@ -2,6 +2,7 @@ package io.antmedia.test.rest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -3176,6 +3177,74 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 
 	@Test
+	public void testBlockSubscriber(){
+		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
+		AntMediaApplicationAdapter adaptor = Mockito.spy (new AntMediaApplicationAdapter());
+
+		InMemoryDataStore datastore = new InMemoryDataStore("testBlockSubscriber");
+		String streamId = "testStream";
+		String subscriber1Id = "subscriber1";
+		Subscriber subscriber1 = new Subscriber();
+		subscriber1.setSubscriberId(subscriber1Id);
+		subscriber1.setStreamId(streamId);
+		datastore.addSubscriber(streamId, subscriber1);
+
+		Mockito.doReturn(datastore).when(streamSourceRest).getDataStore();
+		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
+		Mockito.doReturn(true).when(adaptor).stopPlayingBySubscriberId(subscriber1Id);
+
+		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber1Id, 10, Subscriber.PLAY_TYPE).isSuccess());
+		
+		Subscriber subscriberFromDB = datastore.getSubscriber(streamId, subscriber1Id);
+		assertEquals(Subscriber.PLAY_TYPE, subscriberFromDB.getBlockedType());
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 10000);
+		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 10000);
+		
+		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber1Id);
+
+		String subscriber2Id = "subscriber2";
+		Subscriber subscriber2 = new Subscriber();
+		subscriber2.setSubscriberId(subscriber2Id);
+		subscriber2.setStreamId(streamId);
+		datastore.addSubscriber(streamId, subscriber2);
+
+
+		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber2Id, 20, Subscriber.PUBLISH_TYPE).isSuccess());
+		subscriberFromDB = datastore.getSubscriber(streamId, subscriber2Id);
+		assertEquals(Subscriber.PUBLISH_TYPE, subscriberFromDB.getBlockedType());
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 20000);
+		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 20000);
+		
+		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber2Id);
+
+		
+		String subscriber3Id = "subscriber3";
+		Subscriber subscriber3 = new Subscriber();
+		subscriber3.setSubscriberId(subscriber3Id);
+		subscriber3.setStreamId(streamId);
+		datastore.addSubscriber(streamId, subscriber3);
+
+		assertTrue(streamSourceRest.blockSubscriber(streamId, subscriber3Id, 20, Subscriber.PUBLISH_AND_PLAY_TYPE).isSuccess());
+		
+		subscriberFromDB = datastore.getSubscriber(streamId, subscriber3Id);
+		assertEquals(Subscriber.PUBLISH_AND_PLAY_TYPE, subscriberFromDB.getBlockedType());
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 20000);
+		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 20000);
+		
+		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber3Id);
+		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber3Id);
+		
+		
+
+	}
+	
+
 	public void testAddID3Tag() {
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
@@ -3194,6 +3263,68 @@ public class BroadcastRestServiceV2UnitTest {
 
 		assertFalse(restServiceSpy.addID3Data("nonExistingStreamId", id3Data).isSuccess());
 	}
-
-
+	
+	@Test
+	public void testGetTOTP() {
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		restServiceSpy.setAppSettings(new AppSettings());
+		
+		Result result = restServiceSpy.getTOTP(null, null, "play");
+		assertFalse(result.isSuccess());
+		
+		
+		String subscriberId = "sub1";
+		String streamId = "stream1";
+		String type = "publish";
+		String secret = "secret";
+		
+		
+		result = restServiceSpy.getTOTP(streamId, subscriberId, "play");
+		assertFalse(result.isSuccess());
+		
+		restServiceSpy.getAppSettings().setTimeTokenSecretForPlay(secret);
+		result = restServiceSpy.getTOTP(streamId, subscriberId, "play");
+		assertTrue(result.isSuccess());
+		
+		String totp = result.getDataId();
+		
+		
+		restServiceSpy.getAppSettings().setTimeTokenSecretForPublish(secret);
+		result = restServiceSpy.getTOTP(streamId, subscriberId, "publish");
+		assertTrue(result.isSuccess());
+		String totp2 = result.getDataId();
+		//value of TOTP is checked in integration tests in enterprise side
+		
+		assertNotEquals(totp, totp2);
+		
+		
+		Subscriber subscriber = new Subscriber();
+		subscriber.setType(Subscriber.PUBLISH_TYPE);
+		subscriber.setStreamId(streamId);
+		subscriber.setSubscriberId(subscriberId);
+		
+		
+		store.addSubscriber(streamId, subscriber);
+		
+		result = restServiceSpy.getTOTP(streamId, subscriberId, "publish");
+		assertTrue(result.isSuccess());
+		String totp3 = result.getDataId();
+		
+		assertEquals(totp2, totp3);
+		
+		
+		subscriber.setB32Secret("abcdabcd");
+		store.addSubscriber(streamId, subscriber);
+		
+		result = restServiceSpy.getTOTP(streamId, subscriberId, "publish");
+		assertTrue(result.isSuccess());
+		String totp4 = result.getDataId();
+		
+		assertNotEquals(totp4, totp3);
+		
 	}
+
+
+}

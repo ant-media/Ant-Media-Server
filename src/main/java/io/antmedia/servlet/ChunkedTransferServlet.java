@@ -229,7 +229,7 @@ public class ChunkedTransferServlet extends HttpServlet {
 			
 			if (finalFile.getParentFile().exists()) {
 				Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-				logger.info("File:{} was generated ", finalFile.getName());
+				logger.debug("File:{} was generated ", finalFile.getName());
 			}
 			else {
 				logger.warn("Parent file of {} not exist", finalFile.getParent());
