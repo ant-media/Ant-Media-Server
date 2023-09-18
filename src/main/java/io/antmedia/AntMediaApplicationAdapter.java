@@ -1782,6 +1782,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean stopPlaying(String viewerId) {
 		return false;
 	}
+
+	public boolean stopPlayingBySubscriberId(String subscriberId){
+		return false;
+	}
+
+	public boolean stopPublishingBySubscriberId(String subscriberId){
+		return false;
+	}
+
 	public void stopPublish(String streamId) {
 		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
 	}
