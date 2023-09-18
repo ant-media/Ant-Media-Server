@@ -104,6 +104,9 @@ public class HlsViewerStatsTest {
 		
 		String streamId = "stream1";
 		
+		viewerStats.setServerSettings(new ServerSettings());
+
+		
 		viewerStats.resetViewerMap(streamId, ViewerStats.HLS_TYPE);
 		
 		// create a subscriber play

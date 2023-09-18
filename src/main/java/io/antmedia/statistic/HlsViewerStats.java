@@ -5,10 +5,12 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
+
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
 public class HlsViewerStats extends ViewerStats implements IStreamStats, ApplicationContextAware{
@@ -25,6 +27,7 @@ public class HlsViewerStats extends ViewerStats implements IStreamStats, Applica
 		
 		vertx = (Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
+		serverSettings = (ServerSettings)applicationContext.getBean(ServerSettings.BEAN_NAME);
 		
 		AppSettings settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
 		timeoutMS = getTimeoutMSFromSettings(settings, timeoutMS, HLS_TYPE);

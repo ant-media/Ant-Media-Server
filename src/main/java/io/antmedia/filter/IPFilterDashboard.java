@@ -29,7 +29,7 @@ public class IPFilterDashboard extends AbstractFilter{
 
 
 	public boolean isAllowedDashboard(final String remoteIPAdrress){
-		ServerSettings serverSettings = getServerSetting();
+		ServerSettings serverSettings = getServerSettings();
 		if (serverSettings != null){
 			return checkCIDRList(serverSettings.getAllowedCIDRList(),remoteIPAdrress);
 		}
