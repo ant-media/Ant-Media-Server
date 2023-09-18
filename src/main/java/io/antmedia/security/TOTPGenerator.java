@@ -72,7 +72,11 @@ import com.google.common.primitives.Longs;
  		}
  		else 
  		{
- 			logger.warn("TOTP secret is not valid. It should be not null and it's length must multiple of 8 for streamId:{} and subsriberId:{}", streamId, subscriberId);
+ 			//fix: Logging should not be vulnerable to injection attacks javasecurity:S5145
+ 			streamId = streamId.replaceAll("[\n\r]", "_");
+ 			subscriberId = subscriberId.replaceAll("[\n\r]", "_");
+ 			logger.warn("TOTP secret is not valid. It should be not null and it's length must multiple of 8 for streamId:{} and subsriberId:{}", 
+ 					streamId, subscriberId);
  		}
  		return null;
  	}
