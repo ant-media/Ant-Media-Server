@@ -490,7 +490,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
 				final String name = broadcast.getName();
 				final String category = broadcast.getCategory();
-				final String metaData = broadcast.getMetaData();
 				logger.info("Calling Bad Stream Health hook for stream:{}", streamId);
 				Map<String, Double> badHealth = new HashMap<>();
 				badHealth.put(parameterName, healthParameter);
