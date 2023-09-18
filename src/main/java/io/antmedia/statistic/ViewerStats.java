@@ -14,7 +14,9 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConnectionEvent;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
 public class ViewerStats {
@@ -42,6 +44,9 @@ public class ViewerStats {
 	Map<String, Integer> increaseCounterMap = new ConcurrentHashMap<>();
 	
 	private Object lock = new Object();
+	
+	protected ServerSettings serverSettings;
+
 	
 	/**
 	 * Time out value in milliseconds, it is regarded as user is not watching stream 
@@ -71,6 +76,19 @@ public class ViewerStats {
 				viewerMap.put(sessionId, System.currentTimeMillis());
 				streamsViewerMap.put(streamId, viewerMap);
 				if(subscriberId != null) {
+					
+					Subscriber subscriber = getDataStore().getSubscriber(streamId, subscriberId);
+					if (subscriber == null) {
+						subscriber = new Subscriber();
+						subscriber.setStreamId(streamId);
+						subscriber.setSubscriberId(subscriberId);
+					}
+					subscriber.setRegisteredNodeIp(serverSettings.getHostAddress());
+					
+					//if subscriber is coming from the DB following command just updates the one in the db
+					getDataStore().addSubscriber(streamId, subscriber);
+					
+					
 					// map sessionId to subscriberId
 					sessionId2subscriberId.put(sessionId, subscriberId);
 					// add a connected event to the subscriber
@@ -79,7 +97,9 @@ public class ViewerStats {
 					Date curDate = new Date();
 					event.setTimestamp(curDate.getTime());
 					//TODO: There is a bug here. It adds +1 for each ts request 
-					getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
+					if (getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event)) {
+						logger.info("CONNECTED_EVENT for subscriberId:{} streamId:{}", subscriberId, streamId);
+					}
 				}
 			}
 			
@@ -254,7 +274,9 @@ public class ViewerStats {
 							event.setEventType(ConnectionEvent.DISCONNECTED_EVENT);
 							Date curDate = new Date();
 							event.setTimestamp(curDate.getTime());
-							getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
+							if (getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event)) {
+								logger.info("DISCONNECTED_EVENT for subscriberId:{} and streamId:{}", subscriberId, streamId);
+							}
 						}
 					}
 				}
@@ -307,6 +329,10 @@ public class ViewerStats {
 			}
 		}
 		
+	}
+	
+	public void setServerSettings(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
 	}
 
 }

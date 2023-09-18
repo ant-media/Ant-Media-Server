@@ -35,6 +35,7 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.muxer.MuxAdaptor;
@@ -420,7 +421,7 @@ public class TokenFilterTest {
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			// checkTimeBasedSubscriber is called once
-			verify(tokenService, times(1)).checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCode, false);
+			verify(tokenService, times(1)).checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCode, Subscriber.PLAY_TYPE);
 			
 			
 			

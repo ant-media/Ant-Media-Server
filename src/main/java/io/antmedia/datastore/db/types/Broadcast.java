@@ -819,5 +819,5 @@ public class Broadcast {
 	public void setUpdateTime(long updateTime) {
 		this.updateTime = updateTime;
 	}
-	
+
 }
