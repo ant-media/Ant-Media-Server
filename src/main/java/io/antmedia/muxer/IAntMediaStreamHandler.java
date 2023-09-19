@@ -37,7 +37,7 @@ public interface IAntMediaStreamHandler {
 	
 	
 	/**
-	 * Update stream quality, speed and number of pending packet size 
+	 * Update stream quality, speed and number of pending packet size and update time
 	 * in datastore
 	 * 
 	 * @param id this is the id of the stream
@@ -51,7 +51,7 @@ public interface IAntMediaStreamHandler {
 	 * @param pendingPacketSize
 	 * Number of packets pending to be processed
 	 */
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize);
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs);
 
     /***
      * Adds a MuxAdaptor when a muxAdaptor is created

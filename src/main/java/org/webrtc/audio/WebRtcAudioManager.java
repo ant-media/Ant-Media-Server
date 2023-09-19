@@ -34,7 +34,7 @@ class WebRtcAudioManager {
   //@CalledByNative
   static int getOutputBufferSize(
       Object context, Object audioManager, int sampleRate, int numberOfOutputChannels) {
-//    return isLowLatencyOutputSupported(context)
+////    return isLowLatencyOutputSupported(context)
 //        ? getLowLatencyFramesPerBuffer(audioManager)
 //        : getMinOutputFrameSize(sampleRate, numberOfOutputChannels);
         

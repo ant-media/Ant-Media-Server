@@ -485,7 +485,7 @@ public abstract class RestServiceBase {
 		{
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
-		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast.getStreamId())) {
+		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast)) {
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
 		else
@@ -1217,6 +1217,7 @@ public abstract class RestServiceBase {
 				}
 			}
 			else {
+				//this message has a wrong meaning on the other hand it has been used in the frontend(webpanel). Both sides should be updated 
 				message = "notMp4File";
 			}
 
@@ -1549,6 +1550,15 @@ public abstract class RestServiceBase {
 		}
 		return list;
 	}
+	
+	protected ITokenService getTokenService() 
+	{
+		ApplicationContext appContext = getAppContext();
+		if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) {
+			return (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+		}
+		return null;
+	}
 
 	protected Object getToken (String streamId, long expireDate, String type, String roomId)
 	{
@@ -1556,11 +1566,10 @@ public abstract class RestServiceBase {
 		String message = "Define Stream ID, Token Type and Expire Date (unix time)";
 		if(streamId != null && type != null && expireDate > 0) {
 
-			ApplicationContext appContext = getAppContext();
+			ITokenService tokenService = getTokenService();
 
-			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString()))
+			if(tokenService != null)
 			{
-				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
 				token = tokenService.createToken(streamId, expireDate, type, roomId);
 				if(token != null)
 				{
@@ -1591,11 +1600,10 @@ public abstract class RestServiceBase {
 
 		if(streamId != null && type != null && expireDate > 0) {
 
-			ApplicationContext appContext = getAppContext();
+			ITokenService tokenService = getTokenService();
 
-			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString()))
+			if(tokenService != null)
 			{
-				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
 				token = tokenService.createJwtToken(streamId, expireDate, type, roomId);
 				if(token != null)
 				{
@@ -1753,7 +1761,7 @@ public abstract class RestServiceBase {
 			}
 			streamDetailsMap = new HashMap<>();
 
-			List<String> tempList=conferenceRoom.getRoomStreamList();
+			List<String> tempList = conferenceRoom.getRoomStreamList();
 			if(tempList != null) {
 				for (String tmpStreamId : tempList)
 				{
@@ -1770,24 +1778,44 @@ public abstract class RestServiceBase {
 		return streamDetailsMap;
 	}
 
-	public static boolean addStreamToConferenceRoom(String roomId,String streamId,DataStore store){
-		if(roomId!=null){
-			List<String> roomStreamList = null;
-			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
-			if(conferenceRoom!=null){
-				roomStreamList = conferenceRoom.getRoomStreamList();
-				if(!roomStreamList.contains(streamId)){
-					Broadcast broadcast=store.get(streamId);
-					if(broadcast != null) {
-						roomStreamList.add(streamId);
-						conferenceRoom.setRoomStreamList(roomStreamList);
-						store.editConferenceRoom(roomId, conferenceRoom);
-						return true;
-					}
-				}
-			}
+	public static boolean addStreamToConferenceRoom(String roomId, String streamId, DataStore dataStore) {
+		if (roomId == null || streamId == null) {
+			return false;
 		}
-		return false;
+
+		ConferenceRoom conferenceRoom = dataStore.getConferenceRoom(roomId);
+		if (conferenceRoom == null) {
+			return false;
+		}
+
+		List<String> roomStreamList = conferenceRoom.getRoomStreamList();
+		if (roomStreamList.contains(streamId)) {
+			return false;
+		}
+
+		Broadcast broadcast = dataStore.get(streamId);
+		if (broadcast == null) {
+			return false;
+		}
+
+		roomStreamList.add(streamId);
+		conferenceRoom.setRoomStreamList(roomStreamList);
+		dataStore.editConferenceRoom(roomId, conferenceRoom);
+
+		if (conferenceRoom.getMode().equals(ConferenceRoom.MULTI_TRACK_MODE)) {
+			Broadcast multiTrackConferenceBroadcast = dataStore.get(conferenceRoom.getRoomId());
+			String multiTrackConferenceStreamId = multiTrackConferenceBroadcast.getStreamId();
+			broadcast.setMainTrackStreamId(multiTrackConferenceStreamId);
+			boolean success = dataStore.updateBroadcastFields(streamId, broadcast);
+
+			if (success) {
+				return dataStore.addSubTrack(multiTrackConferenceStreamId, streamId);
+			}
+
+			return false;
+		}
+
+		return true;
 	}
 
 

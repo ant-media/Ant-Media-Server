@@ -10,10 +10,10 @@
 
 package org.webrtc;
 
-import java.util.ArrayList;
-import java.util.List;
 
 import javax.annotation.Nullable;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Description of media constraints for {@code MediaStream} and

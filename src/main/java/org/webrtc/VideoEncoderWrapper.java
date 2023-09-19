@@ -10,9 +10,9 @@
 
 package org.webrtc;
 
-import java.util.List;
-
+// Explicit imports necessary for JNI generation.
 import javax.annotation.Nullable;
+import org.webrtc.VideoEncoder;
 
 /**
  * This class contains the Java glue code for JNI generation of VideoEncoder.
@@ -38,9 +38,9 @@ class VideoEncoderWrapper {
   @CalledByNative
   static VideoEncoder.Callback createEncoderCallback(final long nativeEncoder) {
     return (EncodedImage frame,
-               VideoEncoder.CodecSpecificInfo info, List<NaluIndex> naluSequence) -> nativeOnEncodedFrame(nativeEncoder, frame, naluSequence);
+               VideoEncoder.CodecSpecificInfo info) -> nativeOnEncodedFrame(nativeEncoder, frame);
   }
 
   private static native void nativeOnEncodedFrame(
-      long nativeVideoEncoderWrapper, EncodedImage frame, List<NaluIndex> naluSequence);
+      long nativeVideoEncoderWrapper, EncodedImage frame);
 }

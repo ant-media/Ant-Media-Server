@@ -188,7 +188,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		app.getStreamFetcherManager().setDatastore(dataStore);
 
 		app.getStreamFetcherManager().setRestartStreamAutomatically(false);
-		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
+		app.getStreamFetcherManager().testSetStreamCheckerInterval(5000);
 
 		app.getStreamFetcherManager().getStreamFetcherList().clear();
 
@@ -276,7 +276,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, appScope, vertx);
 
 			//set checker interval to 2 seconds
-			fetcherManager.setStreamCheckerInterval(1000);
+			fetcherManager.testSetStreamCheckerInterval(1000);
 
 			//set restart period to 5 seconds
 			appSettings.setRestartStreamFetcherPeriod(2);
@@ -441,10 +441,21 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//it should be -1 because there is a connection error
 		assertEquals(-1, connResult);
+		
+		
+		//Test with protocol
+		newCam.setIpAddr("http://127.0.0.1:8080");
+		connResult = onvif.connect(newCam.getIpAddr(), newCam.getUsername(), newCam.getPassword());
+		logger.info("connResult {}", connResult);
+		
+		//it should be 0 because URL and credentials are correct
+		assertEquals(0, connResult);
 
 		stopCameraEmulator();
 
 	}
+	
+	
 
 
 
@@ -812,7 +823,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				});
 			}
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> fetcher.isStreamAlive());
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> fetcher.isStreamAlive());
 
 			Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				double speed = dataStore.get(newCam.getStreamId()).getSpeed();

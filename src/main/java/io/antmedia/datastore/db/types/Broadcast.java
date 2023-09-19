@@ -857,5 +857,5 @@ public class Broadcast {
 	public void setStopOnNoViewerTimeElapseSeconds(long stopOnNoViewerTimeElapseSeconds) {
 		this.stopOnNoViewerTimeElapseSeconds = stopOnNoViewerTimeElapseSeconds;
 	}
-	
+
 }

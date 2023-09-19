@@ -29,8 +29,9 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
   }
 
   public static class Builder {
-//    private final Context context;
-//    private final AudioManager audioManager;
+    //private final Context context;
+    //private ScheduledExecutorService scheduler;
+    //private final AudioManager audioManager;
     private int inputSampleRate;
     private int outputSampleRate;
     private int audioSource = WebRtcAudioRecord.DEFAULT_AUDIO_SOURCE;
@@ -44,15 +45,23 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
     private boolean useHardwareNoiseSuppressor = isBuiltInNoiseSuppressorSupported();
     private boolean useStereoInput;
     private boolean useStereoOutput;
-	private IAudioRecordListener audioRecordListener;
+    //private AudioAttributes audioAttributes;
+    private boolean useLowLatency;
+    private boolean enableVolumeLogger;
+    private IAudioRecordListener audioRecordListener;
 	private IAudioTrackListener audioTrackListener;
 
     private Builder(Object context) {
-    	  //TODO: Check that sample rate other than 16K may be compatible
-    	  //TODO: Check that the channel count stereo or not
+     // this.context = context;
+     // this.audioManager = (AudioManager) context.getSystemService(Context.AUDIO_SERVICE);
+    	 //TODO: Check that sample rate other than 16K may be compatible
+  	  //TODO: Check that the channel count stereo or not
       this.inputSampleRate = WebRtcAudioManager.getSampleRate(null);
       this.outputSampleRate = WebRtcAudioManager.getSampleRate(null);
+      this.useLowLatency = false;
+      this.enableVolumeLogger = true;
     }
+
 
     /**
      * Call this method if the default handling of querying the native sample rate shall be
@@ -188,10 +197,32 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
     }
 
     /**
+     * Control if the low-latency mode should be used. The default is disabled.
+     */
+    public Builder setUseLowLatency(boolean useLowLatency) {
+      this.useLowLatency = useLowLatency;
+      return this;
+    }
+
+    /**
+     * Set custom {@link AudioAttributes} to use.
+     */
+   // public Builder setAudioAttributes(AudioAttributes audioAttributes) {
+   //   this.audioAttributes = audioAttributes;
+   //   return this;
+   // }
+
+    /** Disables the volume logger on the audio output track. */
+    public Builder setEnableVolumeLogger(boolean enableVolumeLogger) {
+      this.enableVolumeLogger = enableVolumeLogger;
+      return this;
+    }
+
+    /**
      * Construct an AudioDeviceModule based on the supplied arguments. The caller takes ownership
      * and is responsible for calling release().
      */
-    public AudioDeviceModule createAudioDeviceModule() {
+    public JavaAudioDeviceModule createAudioDeviceModule() {
       Logging.d(TAG, "createAudioDeviceModule");
       if (useHardwareNoiseSuppressor) {
         Logging.d(TAG, "HW NS will be used.");
@@ -209,11 +240,15 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
         }
         Logging.d(TAG, "HW AEC will not be used.");
       }
-      final WebRtcAudioRecord audioInput = new WebRtcAudioRecord(null, null, audioSource,
-          audioFormat, audioRecordErrorCallback, audioRecordStateCallback, samplesReadyCallback,
-          useHardwareAcousticEchoCanceler, useHardwareNoiseSuppressor, audioRecordListener);
-      final WebRtcAudioTrack audioOutput = new WebRtcAudioTrack(
-          null, null, audioTrackErrorCallback, audioTrackStateCallback, audioTrackListener);
+      // Low-latency mode was introduced in API version 26, see
+      // https://developer.android.com/reference/android/media/AudioTrack#PERFORMANCE_MODE_LOW_LATENCY
+    
+      final WebRtcAudioRecord audioInput = new WebRtcAudioRecord(null, null, null,
+          audioSource, audioFormat, audioRecordErrorCallback, audioRecordStateCallback,
+          samplesReadyCallback, useHardwareAcousticEchoCanceler, useHardwareNoiseSuppressor, audioRecordListener);
+      final WebRtcAudioTrack audioOutput =
+          new WebRtcAudioTrack(null, null, null, audioTrackErrorCallback,
+              audioTrackStateCallback, useLowLatency, enableVolumeLogger, audioTrackListener);
       return new JavaAudioDeviceModule(null, null, audioInput, audioOutput,
           inputSampleRate, outputSampleRate, useStereoInput, useStereoOutput);
     }
@@ -343,8 +378,9 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
 
   private JavaAudioDeviceModule(Object context, Object audioManager,
       WebRtcAudioRecord audioInput, WebRtcAudioTrack audioOutput, int inputSampleRate,
-      int outputSampleRate, boolean useStereoInput, boolean useStereoOutput) 
-  {
+      int outputSampleRate, boolean useStereoInput, boolean useStereoOutput) {
+  //  this.context = context;
+  //  this.audioManager = audioManager;
     this.audioInput = audioInput;
     this.audioOutput = audioOutput;
     this.inputSampleRate = inputSampleRate;

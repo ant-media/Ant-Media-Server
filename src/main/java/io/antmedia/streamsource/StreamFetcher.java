@@ -140,16 +140,29 @@ public class StreamFetcher {
 
 		String transportType = appSettings.getRtspPullTransportType();
 		if (streamUrl.startsWith("rtsp://") && !transportType.isEmpty()) {
-			logger.info("Setting rtsp transport type to {} for stream source: {}", transportType, streamUrl);
-			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);			
+			
+			
+			logger.info("Setting rtsp transport type to {} for stream source: {} and timeout:{}us", transportType, streamUrl, this.timeoutMicroSeconds);
+			/*
+			 * AppSettings#rtspPullTransportType
+			 */
+			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
+			
+			/*
+			 * AppSettings#rtspTimeoutDurationMs 
+			 */
+			String timeoutStr = String.valueOf(this.timeoutMicroSeconds);
+			av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
+			
+			
+			
 		}
 
-		String timeoutStr = String.valueOf(this.timeoutMicroSeconds);
-		av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
-
+		//analyze duration is a generic parameter 
 		int analyzeDurationUs = appSettings.getMaxAnalyzeDurationMS() * 1000;
 		String analyzeDuration = String.valueOf(analyzeDurationUs);
 		av_dict_set(optionsDictionary, "analyzeduration", analyzeDuration, 0);
+
 
 		int ret;
 
@@ -347,7 +360,8 @@ public class StreamFetcher {
 			return false;
 		}
 
-		public void packetRead(AVPacket pkt) {
+		public void packetRead(AVPacket pkt) 
+		{
 			if(!streamPublished) {
 				long currentTime = System.currentTimeMillis();
 				muxAdaptor.setStartTime(currentTime);

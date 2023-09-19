@@ -1029,15 +1029,31 @@ public class AppSettings implements Serializable{
 	@Value( "${timeTokenSubscriberOnly:${"+SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY+":false}}" )
 	private boolean timeTokenSubscriberOnly;
 	/**
-	 * the settings for accepting only time based token subscribers as connections to the streams
+	 * The setting for accepting only time based token(TOTP) subscribers as connections to the streams
 	 */
 	@Value( "${enableTimeTokenForPlay:${"+SETTINGS_ENABLE_TIME_TOKEN_PLAY+":false}}" )
 	private boolean enableTimeTokenForPlay;
+	
 	/**
-	 * the settings for accepting only time based token subscribers as connections to the streams
+	 * TOTP(Time-based One Time Password) Token Secret for Playing. If subscriber is not available in database, server checks the TOTP code
+	 * against this value
+	 */
+	@Value( "${timeTokenSecretForPlay:#{null}}")
+	private String timeTokenSecretForPlay;
+	
+	/**
+	 * The settings for accepting only time based token(TOTP) subscribers as connections to the streams
 	 */
 	@Value( "${enableTimeTokenForPublish:${"+SETTINGS_ENABLE_TIME_TOKEN_PUBLISH+":false}}" )
 	private boolean enableTimeTokenForPublish;
+	
+	/**
+	 * TOTP(Time-based One Time Password) Token Secret for Publishing. 
+	 * If subscriber is not available in database, server checks the TOTP code
+	 * against this value
+	 */
+	@Value( "${timeTokenSecretForPublish:#{null}}")
+	private String timeTokenSecretForPublish;
 
 	/**
 	 * period for the generated time token 
@@ -2000,6 +2016,32 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${clusterCommunicationKey:${"+SETTINGS_CLUSTER_COMMUNICATION_KEY+ ":#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}}")
 	private String clusterCommunicationKey = RandomStringUtils.randomAlphanumeric(32);
+
+	/**
+	 * Enables the ID3 Tag support for HLS
+	 */
+	@Value("${id3TagEnabled:false}")
+	private boolean id3TagEnabled = false;
+	
+	/**
+	 * Ant Media Server can get the audio level from incoming RTP Header in WebRTC streaming and send to the viewers.
+	 * It's very useful in video conferencing to detect if user speaks.
+	 * Ant Media Server sends audio level through webrtc data channel with JSON format
+	 * {
+	 *  "streamId":${streamId},
+	 *  "eventType": "UPDATE_AUDIO_LEVEL",
+	 *  "audioLevel": ${audioLevel},
+	 *  "command": "event"
+	 * }
+	 * 
+	 * ${streamId} is the id of the stream that this messages carries its audio level
+	 * ${audioLevel} is the audio level of the stream. It's between 0 and 127. If it's 0, it means audio level is max. 
+	 * If it's 127, it means it's audio level is min.  
+	 * 
+	 * Ant Media Server sends audio level 5 times in a second
+	 */
+	@Value("${sendAudioLevelToViewers:true}")
+	private boolean sendAudioLevelToViewers = true;
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -3449,4 +3491,35 @@ public class AppSettings implements Serializable{
 		this.objectDetectionEnabled = objectDetectionEnabled;
 	}
 
+	public boolean isId3TagEnabled() {
+		return id3TagEnabled;
+	}
+
+	public void setId3TagEnabled(boolean id3TagEnabled) {
+		this.id3TagEnabled = id3TagEnabled;
+	}
+
+	public boolean isSendAudioLevelToViewers() {
+		return sendAudioLevelToViewers;
+	}
+
+	public void setSendAudioLevelToViewers(boolean sendAudioLevelToViewers) {
+		this.sendAudioLevelToViewers = sendAudioLevelToViewers;
+	}
+
+	public String getTimeTokenSecretForPublish() {
+		return timeTokenSecretForPublish;
+	}
+
+	public void setTimeTokenSecretForPublish(String timeTokenSecretForPublish) {
+		this.timeTokenSecretForPublish = timeTokenSecretForPublish;
+	}
+
+	public String getTimeTokenSecretForPlay() {
+		return timeTokenSecretForPlay;
+	}
+
+	public void setTimeTokenSecretForPlay(String timeTokenSecretForPlay) {
+		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
+	}
 }
