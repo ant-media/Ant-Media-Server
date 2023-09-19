@@ -911,7 +911,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result enableAutoStartStop(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
 									  @ApiParam(value = "Enable or disable auto start on viewer and auto stop on no viewer for stream. If true enables, if false disables.", required = true) @PathParam("enabled") boolean enabled,
-									  @ApiParam(value = "The time in seconds needs to pass to stop stream after no viewer left. Default is 0.", required = false) @QueryParam("timeElapseToStop") long timeElapseToStop) {
+									  @ApiParam(value = "The time in seconds needs to elapse to stop stream after no viewer left. Default is 0.", required = false) @QueryParam("timeElapseToStop") long timeElapseToStop) {
 
 		final Result result = new Result(false);
 		final Broadcast stream = getDataStore().get(streamId);

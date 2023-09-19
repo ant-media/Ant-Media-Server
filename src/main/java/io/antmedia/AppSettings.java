@@ -736,6 +736,10 @@ public class AppSettings implements Serializable{
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
 
+	/**
+	 * @hidden
+	 */
+	private static final String SETTINGS_STOP_BROADCAST_ON_NO_VIEWER = "settings.stopBroadcastOnNoViewer";
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -2022,6 +2026,12 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${id3TagEnabled:false}")
 	private boolean id3TagEnabled = false;
+
+	/**
+	 * Enables the stop broadcast on no viewer checker
+	 */
+	@Value("${stopBroadcastsOnNoViewerEnabled:false}")
+	private boolean stopBroadcastsOnNoViewerEnabled = false;
 	
 	/**
 	 * Ant Media Server can get the audio level from incoming RTP Header in WebRTC streaming and send to the viewers.
@@ -3522,4 +3532,13 @@ public class AppSettings implements Serializable{
 	public void setTimeTokenSecretForPlay(String timeTokenSecretForPlay) {
 		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
 	}
+
+	public boolean isStopBroadcastsOnNoViewerEnabled() {
+		return stopBroadcastsOnNoViewerEnabled;
+	}
+
+	public void setStopBroadcastsOnNoViewerEnabled(boolean stopBroadcastsOnNoViewerEnabled) {
+		this.stopBroadcastsOnNoViewerEnabled = stopBroadcastsOnNoViewerEnabled;
+	}
+
 }

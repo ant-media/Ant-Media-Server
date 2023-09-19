@@ -219,7 +219,7 @@ public abstract class DataStore {
 
 	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
 	
-	public abstract List<Broadcast> getExternalStreamsList();
+	public abstract List<Broadcast> getExternalStreamsList(boolean getBroadcastingStreams);
 	
 	/**
 	 * Closes the database
@@ -1384,7 +1384,7 @@ public abstract class DataStore {
 	 * @param metaData new meta data
 	 */
 	public abstract boolean updateStreamMetaData(String streamId, String metaData);
-	
+
 
 	//**************************************
 	//ATTENTION: Write function descriptions while adding new functions

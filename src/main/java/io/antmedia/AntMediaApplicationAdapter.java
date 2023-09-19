@@ -20,7 +20,6 @@ import io.antmedia.statistic.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
@@ -151,6 +150,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	
 	protected ISubtrackPoller subtrackPoller;
 
+	private long stopBroadcastOnNoViewerCheckerPeriodMs = 5000;
+
+	private boolean stopBroadcastsOnNoViewerCheckerStarted = false;
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -214,7 +216,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 			getStreamFetcherManager();
 			if(appSettings.isStartStreamFetcherAutomatically()) {
-				List<Broadcast> streams = getDataStore().getExternalStreamsList();
+				List<Broadcast> streams = getDataStore().getExternalStreamsList(false);
 				logger.info("Stream source size: {}", streams.size());
 				streamFetcherManager.startStreams(streams);
 			}
@@ -239,7 +241,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		setStorageclientSettings(appSettings);
 
-		vertx.setPeriodic(5000, yt-> stopBroadcastOnNoViewer());
+		if(appSettings.isStopBroadcastsOnNoViewerEnabled()){
+			startStopBroadcastOnNoViewerChecker();
+		}
 
 
 		logger.info("{} started", app.getName());
@@ -247,25 +251,41 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return true;
 	}
 
-	public void stopBroadcastOnNoViewer(){
-		List<Broadcast> allBroadcasts = getDataStore().getBroadcastList(0,DataStore.MAX_ITEM_IN_ONE_LIST,null,null,null,null);
+	public void startStopBroadcastOnNoViewerChecker() {
+		if(!stopBroadcastsOnNoViewerCheckerStarted){
+			logger.debug("Starting stop broadcast on no viewer checker.");
+			vertx.setPeriodic(stopBroadcastOnNoViewerCheckerPeriodMs, yt-> stopBroadcastOnNoViewer());
+			stopBroadcastsOnNoViewerCheckerStarted = true;
+		}
+	}
+
+	public void stopBroadcastOnNoViewer() {
+		List<Broadcast> allBroadcasts = getDataStore().getExternalStreamsList(true);
 		for (Broadcast broadcast : allBroadcasts) {
-			final String broadcastStatus = broadcast.getStatus();
-			final boolean stopOnNoViewerEnabled = broadcast.isAutoStartStopEnabled();
-			final long currentTime = System.currentTimeMillis();
-
-			if(stopOnNoViewerEnabled && broadcastStatus.equals(BROADCAST_STATUS_BROADCASTING) &&
-					!broadcast.isAnyoneWatching() && ((broadcast.getNoViewerTime() + broadcast.getStopOnNoViewerTimeElapseSeconds() * 1000) <= currentTime)){
-
+			if (shouldStopBroadcast(broadcast)) {
 				logger.info("Auto stopping stream with id {} because no viewer.", broadcast.getStreamId());
 				broadcast.setStatus(BROADCAST_STATUS_STOPPED);
-				getDataStore().updateBroadcastFields(broadcast.getStreamId(),broadcast);
+				getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
 				stopStreaming(broadcast);
-
 			}
+		}
+	}
 
+	private boolean shouldStopBroadcast(Broadcast broadcast) {
+		long currentTime = System.currentTimeMillis();
+		String broadcastStatus = broadcast.getStatus();
+		boolean stopOnNoViewerEnabled = broadcast.isAutoStartStopEnabled();
+		long noViewerTimeLimit = broadcast.getNoViewerTime() + broadcast.getStopOnNoViewerTimeElapseSeconds() * 1000;
+
+		if (stopOnNoViewerEnabled && BROADCAST_STATUS_BROADCASTING.equals(broadcastStatus) &&
+				!broadcast.isAnyoneWatching() && noViewerTimeLimit <= currentTime) {
+			boolean isCluster = getContext().getApplicationContext().containsBean(IClusterNotifier.BEAN_NAME);
+			String nodeAddress = getServerSettings().getHostAddress();
+			String broadcastOriginAddress = broadcast.getOriginAdress();
+			return !isCluster || nodeAddress.equals(broadcastOriginAddress);
 		}
 
+		return false;
 	}
 
 	/**
@@ -1491,6 +1511,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logger.info("Saving settings to cluster db -> {} for app: {}", saveSettings, getScope().getName());
 			}
 
+			if(newSettings.isStopBroadcastsOnNoViewerEnabled() && !stopBroadcastsOnNoViewerCheckerStarted){
+				startStopBroadcastOnNoViewerChecker();
+			}
+
 			result = true;
 		}
 		else {
@@ -1838,6 +1862,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		this.subtrackPoller = subtrackPoller;
 	}
 
-
+	public boolean isStopBroadcastsOnNoViewerCheckerStarted() {
+		return stopBroadcastsOnNoViewerCheckerStarted;
+	}
 
 }
