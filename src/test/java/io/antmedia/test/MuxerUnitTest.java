@@ -3834,22 +3834,22 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.getBufferQueue().add(createPacket(Constants.TYPE_AUDIO_DATA, 14));
 		muxAdaptor.getBufferQueue().add(createPacket(Constants.TYPE_AUDIO_DATA, 30));
 
-		IStreamPacket p = muxAdaptor.peekTheNextPacketFromBuffer();
+		IStreamPacket p = muxAdaptor.getBufferQueue().pollFirst();
 		assertTrue(p.getDataType() == Constants.TYPE_AUDIO_DATA && p.getTimestamp() == 10);
-		muxAdaptor.getBufferQueue().remove(p);
-		p = muxAdaptor.peekTheNextPacketFromBuffer();
-		assertTrue(p.getDataType() == Constants.TYPE_VIDEO_DATA && p.getTimestamp() == 15);
-		muxAdaptor.getBufferQueue().remove(p);
-		p = muxAdaptor.peekTheNextPacketFromBuffer();
+
+		p = muxAdaptor.getBufferQueue().pollFirst();
 		assertTrue(p.getDataType() == Constants.TYPE_AUDIO_DATA && p.getTimestamp() == 14);
-		muxAdaptor.getBufferQueue().remove(p);
-		p = muxAdaptor.peekTheNextPacketFromBuffer();
+		
+		p = muxAdaptor.getBufferQueue().pollFirst();
+		assertTrue(p.getDataType() == Constants.TYPE_VIDEO_DATA && p.getTimestamp() == 15);
+		
+		p = muxAdaptor.getBufferQueue().pollFirst();
 		assertTrue(p.getDataType() == Constants.TYPE_AUDIO_DATA && p.getTimestamp() == 20);
-		muxAdaptor.getBufferQueue().remove(p);
-		p = muxAdaptor.peekTheNextPacketFromBuffer();
+		
+		p = muxAdaptor.getBufferQueue().pollFirst();
 		assertTrue(p.getDataType() == Constants.TYPE_VIDEO_DATA && p.getTimestamp() == 25);
-		muxAdaptor.getBufferQueue().remove(p);
-		p = muxAdaptor.peekTheNextPacketFromBuffer();
+		
+		p = muxAdaptor.getBufferQueue().pollFirst();
 		assertTrue(p.getDataType() == Constants.TYPE_AUDIO_DATA && p.getTimestamp() == 30);
 	}
 

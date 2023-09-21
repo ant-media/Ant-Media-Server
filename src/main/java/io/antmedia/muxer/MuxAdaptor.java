@@ -1471,7 +1471,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				{
 					while(!bufferQueue.isEmpty())
 					{
-						IStreamPacket tempPacket = peekTheNextPacketFromBuffer();
+						IStreamPacket tempPacket = bufferQueue.first();
 
 						long now = System.currentTimeMillis();
 						long pktTimeDifferenceMs = tempPacket.getTimestamp() - firstPacketReadyToSentTimeMs;
@@ -1497,7 +1497,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					IStreamPacket streamPacket = !bufferQueue.isEmpty() ? bufferQueue.first() : null;
 					int bufferedDuration = 0;
 					if (streamPacket != null) {
-						bufferedDuration = lastFrameTimestamp - streamPacket.getTimestamp();
+						bufferedDuration = bufferQueue.last().getTimestamp() - streamPacket.getTimestamp();
 					}
 					logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, bufferedDuration, bufferTimeMs, streamId);
 					bufferLogCounter = 0;
@@ -1507,28 +1507,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 	}
 
-	public IStreamPacket peekTheNextPacketFromBuffer() 
-	{
-		IStreamPacket tempPacket = !bufferQueue.isEmpty() ? bufferQueue.first() : null;
-		if(tempPacket != null && tempPacket.getDataType() == Constants.TYPE_AUDIO_DATA) 
-		{
-			long minDTS = tempPacket.getTimestamp() & 0xffffffffL;
-			for (IStreamPacket p : bufferQueue) 
-			{
-				if(p.getDataType() == Constants.TYPE_AUDIO_DATA) 
-				{
-					long dts = p.getTimestamp() & 0xffffffffL;
-					if(dts < minDTS) {
-						tempPacket = p;
-						minDTS = dts;
-					}
-				}	
-			}
-		}		
-
-		return tempPacket;
-	}
-
 
 	private void writeAllBufferedPackets()
 	{
@@ -1536,7 +1514,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.info("write all buffered packets for stream: {} ", streamId);
 			while (!bufferQueue.isEmpty()) {
 
-				IStreamPacket tempPacket = peekTheNextPacketFromBuffer();
+				IStreamPacket tempPacket = bufferQueue.first();
 				writeStreamPacket(tempPacket);
 				bufferQueue.remove(tempPacket);
 			}
