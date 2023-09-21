@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -112,7 +113,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private long packetPollerId = -1;
 
-	private Queue<IStreamPacket> bufferQueue = new ConcurrentLinkedQueue<>();
+    private ConcurrentSkipListSet<IStreamPacket> bufferQueue = new ConcurrentSkipListSet<>((a, b) -> Long.compare(a.getTimestamp(), b.getTimestamp()));
+
 
 	private volatile boolean stopRequestExist = false;
 
@@ -906,6 +908,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				return;
 			}
 
+			logger.info("writeVideoBuffer video data packet timestamp:{} and packet timestamp:{}", dts, packet.getTimestamp());
 			measureIngestTime(dts, ((CachedEvent)packet).getReceivedTime());
 			if (!firstVideoPacketSkipped) {
 				firstVideoPacketSkipped = true;
@@ -951,6 +954,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			//we get 2 less bytes because first 2 bytes is related to the audio tag. It's not part of the generic packet
 			ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-2);
 			byteBuffer.put(packet.getData().buf().position(2));
+
+			logger.info("writeAudioBuffer video data packet timestamp:{} and packet timestamp:{}", dts, packet.getTimestamp());
 
 
 			synchronized (muxerList) 
@@ -1054,7 +1059,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				if (!firstKeyFrameReceivedChecked && packet.getDataType() == Constants.TYPE_VIDEO_DATA) 
 				{
-
 					byte frameType = packet.getData().position(0).get();
 
 					if ((frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY) 
@@ -1084,29 +1088,40 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 				else if (bufferTimeMs > 0)
 				{
+					//it's a ordered queue according to timestamp
 					bufferQueue.add(packet);
-					IStreamPacket pktHead = bufferQueue.peek();
+					
+					IStreamPacket pktHead = bufferQueue.first();
+					IStreamPacket pktTrailer = bufferQueue.last();
 
 					if (pktHead != null) {
-						int bufferedDuration = packet.getTimestamp() - pktHead.getTimestamp();
+						int bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
 
 						if (bufferedDuration > bufferTimeMs*5) {
 							//if buffered duration is more than 5 times of the buffer time, remove packets from the head until it reach bufferTimeMs * 2
 
 							//set buffering true to not let writeBufferedPacket method work
 							buffering = true;
-							while ( (pktHead = bufferQueue.poll()) != null) {
-
-								bufferedDuration = packet.getTimestamp() - pktHead.getTimestamp();
+						
+							Iterator<IStreamPacket> iterator = bufferQueue.iterator();
+							
+							while (iterator.hasNext()) 
+							{
+								pktHead = iterator.next();
+								
+								bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
 								if (bufferedDuration < bufferTimeMs * 2) {
 									break;
 								}
-							}
+								iterator.remove();
+							} 
+							
+
 						}
 
 						if (pktHead != null) {
 
-							bufferedDuration = packet.getTimestamp() - pktHead.getTimestamp();
+							bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
 
 
 							if (bufferedDuration > bufferTimeMs) 
@@ -1116,7 +1131,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 									//have the buffering finish time ms
 									bufferingFinishTimeMs = System.currentTimeMillis();
 									//have the first packet sent time
-									firstPacketReadyToSentTimeMs  = packet.getTimestamp();
+									firstPacketReadyToSentTimeMs  = pktTrailer.getTimestamp();
 									logger.info("Switching buffering from true to false for stream: {}", streamId);
 								}
 								//make buffering false whenever bufferDuration is bigger than bufferTimeMS
@@ -1479,7 +1494,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 				bufferLogCounter++; //we use this parameter in execute method as well
 				if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) {
-					IStreamPacket streamPacket = bufferQueue.peek();
+					IStreamPacket streamPacket = !bufferQueue.isEmpty() ? bufferQueue.first() : null;
 					int bufferedDuration = 0;
 					if (streamPacket != null) {
 						bufferedDuration = lastFrameTimestamp - streamPacket.getTimestamp();
@@ -1492,12 +1507,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 	}
 
-	public IStreamPacket peekTheNextPacketFromBuffer() {
-		IStreamPacket tempPacket = bufferQueue.peek();
-		if(tempPacket.getDataType() == Constants.TYPE_AUDIO_DATA) {
+	public IStreamPacket peekTheNextPacketFromBuffer() 
+	{
+		IStreamPacket tempPacket = !bufferQueue.isEmpty() ? bufferQueue.first() : null;
+		if(tempPacket != null && tempPacket.getDataType() == Constants.TYPE_AUDIO_DATA) 
+		{
 			long minDTS = tempPacket.getTimestamp() & 0xffffffffL;
-			for (IStreamPacket p : bufferQueue) {
-				if(p.getDataType() == Constants.TYPE_AUDIO_DATA) {
+			for (IStreamPacket p : bufferQueue) 
+			{
+				if(p.getDataType() == Constants.TYPE_AUDIO_DATA) 
+				{
 					long dts = p.getTimestamp() & 0xffffffffL;
 					if(dts < minDTS) {
 						tempPacket = p;
@@ -2162,7 +2181,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		this.avc = avc;
 	}
 
-	public Queue<IStreamPacket> getBufferQueue() {
+	public ConcurrentSkipListSet<IStreamPacket> getBufferQueue() {
 		return bufferQueue;
 	}
 

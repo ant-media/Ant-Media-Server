@@ -60,6 +60,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -1832,6 +1833,68 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		muxAdaptor.closeResources();
 	}
+	
+	@Test
+	public void testOrderedBufferedQueue() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+		
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		ConcurrentSkipListSet<IStreamPacket> bufferQueue = muxAdaptor.getBufferQueue();
+		
+
+		ITag tag = mock(ITag.class);
+		IStreamPacket pkt;
+		{
+			when(tag.getTimestamp()).thenReturn(1000);
+			pkt = new StreamPacket(tag);
+			bufferQueue.add(pkt);
+			
+			
+			tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(2000);
+			pkt = new StreamPacket(tag);
+			bufferQueue.add(pkt);
+			
+			tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(3000);
+			pkt = new StreamPacket(tag);
+			bufferQueue.add(pkt);
+			
+			assertEquals(1000, bufferQueue.pollFirst().getTimestamp());
+			assertEquals(2000, bufferQueue.pollFirst().getTimestamp());
+			assertEquals(3000, bufferQueue.pollFirst().getTimestamp());
+		}
+		
+		{
+			tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(1000);
+			pkt = new StreamPacket(tag);
+			bufferQueue.add(pkt);
+			
+			tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(3000);
+			pkt = new StreamPacket(tag);
+			bufferQueue.add(pkt);
+			
+			assertEquals(1000, bufferQueue.first().getTimestamp());
+			assertEquals(3000, bufferQueue.last().getTimestamp());
+			
+			tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(2000);
+			pkt = new StreamPacket(tag);
+			bufferQueue.add(pkt);
+			
+			assertEquals(1000, bufferQueue.pollFirst().getTimestamp());
+			assertEquals(2000, bufferQueue.pollFirst().getTimestamp());
+			assertEquals(3000, bufferQueue.pollFirst().getTimestamp());
+		}
+		
+		
+	}
 
 	@Test
 	public void testWriteBufferedPacket() {
@@ -1853,7 +1916,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//it should false because there is no packet in the queue
 		assertTrue(muxAdaptor.isBuffering());
 
-		Queue<IStreamPacket> bufferQueue = muxAdaptor.getBufferQueue();
+		ConcurrentSkipListSet<IStreamPacket> bufferQueue = muxAdaptor.getBufferQueue();
 		muxAdaptor.setBuffering(false);
 		AVStream stream = Mockito.mock(AVStream.class);
 		when(stream.time_base()).thenReturn(MuxAdaptor.TIME_BASE_FOR_MS);
