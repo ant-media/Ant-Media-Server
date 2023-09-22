@@ -908,7 +908,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				return;
 			}
 
-			logger.info("writeVideoBuffer video data packet timestamp:{} and packet timestamp:{}", dts, packet.getTimestamp());
+			logger.trace("writeVideoBuffer video data packet timestamp:{} and packet timestamp:{} streamId:{}", dts, packet.getTimestamp(), streamId);
 			measureIngestTime(dts, ((CachedEvent)packet).getReceivedTime());
 			if (!firstVideoPacketSkipped) {
 				firstVideoPacketSkipped = true;
@@ -955,7 +955,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			ByteBuffer byteBuffer = ByteBuffer.allocateDirect(bodySize-2);
 			byteBuffer.put(packet.getData().buf().position(2));
 
-			logger.info("writeAudioBuffer video data packet timestamp:{} and packet timestamp:{}", dts, packet.getTimestamp());
+			logger.trace("writeAudioBuffer video data packet timestamp:{} and packet timestamp:{} streamId:{}", dts, packet.getTimestamp(), streamId);
 
 
 			synchronized (muxerList) 
