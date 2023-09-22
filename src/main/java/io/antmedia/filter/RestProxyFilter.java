@@ -153,7 +153,7 @@ public class RestProxyFilter extends AbstractFilter {
 	public void forwardRequestToNode(ServletRequest request, ServletResponse response, String registeredNodeIp) throws IOException, ServletException 
 	{
 		//token validity is 5 seconds -> 5000
-		String jwtToken = generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);
+		String jwtToken = JWTFilter.generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);
 		AppSettings appSettings = getAppSettings();
 		ServerSettings serverSettings = getServerSettings();
 		String restRouteOfSubscriberNode = "http://" + registeredNodeIp + ":" + serverSettings.getDefaultHttpPort()  + File.separator + appSettings.getAppName() + File.separator+ "rest";
@@ -214,23 +214,6 @@ public class RestProxyFilter extends AbstractFilter {
 		boolean isCluster = context.containsBean(IClusterNotifier.BEAN_NAME);
 		return !isCluster || requestAddress.equals(getServerSettings().getHostAddress())
 				|| getServerSettings().getHostAddress().equals(nodeAddress);
-	}
-
-	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs) {
-		Date expireDateType = new Date(expireDateUnixTimeStampMs);
-		String jwtTokenId = null;
-		try {
-			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
-
-			jwtTokenId = JWT.create().
-					withExpiresAt(expireDateType).
-					sign(algorithm);
-
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-		}
-
-		return jwtTokenId;
 	}
 
 	/**

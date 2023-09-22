@@ -6,6 +6,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.RestProxyFilter;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.servlet.EndpointProxy;
@@ -265,7 +266,7 @@ public class RestProxyTest {
 		doReturn(tokenService).when(restProxyFilter).getTokenService();
 
 		String jwtSecretKey = "sdfadfasf";
-		String jwtInternalCommunicationToken = restProxyFilter.generateJwtToken(jwtSecretKey, System.currentTimeMillis()+10000);
+		String jwtInternalCommunicationToken = JWTFilter.generateJwtToken(jwtSecretKey, System.currentTimeMillis()+10000);
 		assertNotNull(jwtInternalCommunicationToken);
 
 		when(tokenService.isJwtTokenValid(anyString(), anyString(), anyString(), Mockito.any()))
