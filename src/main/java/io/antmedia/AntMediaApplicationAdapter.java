@@ -482,7 +482,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return listenerHookURL;
 
 	}
-	void badStreamHealthHook(String streamId,String parameterName, double healthParameter) {
+	public void badStreamHealthHook(String streamId,String parameterName, double healthParameter) {
 		Broadcast broadcast = getDataStore().get(streamId);
 
 		if (broadcast != null) {
