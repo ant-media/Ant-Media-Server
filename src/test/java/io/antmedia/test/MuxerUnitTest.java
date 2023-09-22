@@ -1895,6 +1895,54 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		
 	}
+	
+	
+	@Test
+	public void testAddBufferQueue() 
+	{
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+
+		muxAdaptor.setBufferTimeMs(1000);
+
+		
+		assertFalse(muxAdaptor.isBuffering());
+		
+		muxAdaptor.setBuffering(true);
+		
+		for (int i = 0; i <= 11; i++) 
+		{
+			ITag tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(i*100);
+			IStreamPacket pkt = new StreamPacket(tag);
+			muxAdaptor.addBufferQueue(pkt);
+			if (i < 11) {
+				assertTrue(muxAdaptor.isBuffering());
+			}
+			else if (i == 11) {
+				assertFalse(muxAdaptor.isBuffering());
+			}
+		}
+		
+		
+		for (int i = 12; i <= 51; i++) 
+		{
+			ITag tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(i*100);
+			IStreamPacket pkt = new StreamPacket(tag);
+			muxAdaptor.addBufferQueue(pkt);
+			long bufferedDuration = muxAdaptor.getBufferQueue().last().getTimestamp() - muxAdaptor.getBufferQueue().first().getTimestamp();
+			if (i < 51) {
+				assertEquals(i*100, bufferedDuration);
+			}
+		}
+		
+		//it exceeds the 5 times of the buffer time so it should truncate less than the 2 times of buffer time -> 2*1000 = 2000. 
+		//for our sample, It turns out that -> 1900 because there is 100ms difference in the packets
+		long bufferedDuration = muxAdaptor.getBufferQueue().last().getTimestamp() - muxAdaptor.getBufferQueue().first().getTimestamp();
+		assertEquals(1900, bufferedDuration);
+		
+	}
 
 	@Test
 	public void testWriteBufferedPacket() {

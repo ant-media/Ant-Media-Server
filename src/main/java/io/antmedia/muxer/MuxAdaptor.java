@@ -84,7 +84,7 @@ import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 
 public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
-	
+
 	public static final int STAT_UPDATE_PERIOD_MS = 5000;
 
 
@@ -113,7 +113,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private long packetPollerId = -1;
 
-    private ConcurrentSkipListSet<IStreamPacket> bufferQueue = new ConcurrentSkipListSet<>((a, b) -> Long.compare(a.getTimestamp(), b.getTimestamp()));
+	private ConcurrentSkipListSet<IStreamPacket> bufferQueue = new ConcurrentSkipListSet<>((a, b) -> Long.compare(a.getTimestamp(), b.getTimestamp()));
 
 
 	private volatile boolean stopRequestExist = false;
@@ -860,7 +860,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			logger.info("Stream queue size:{} speed:{} for streamId:{} ", inputQueueSize, speed, streamId);
 			lastQualityUpdateTime = now;
-			
+
 			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize, System.currentTimeMillis());
 			oldQuality = quality;
 			oldspeed = speed;
@@ -1088,65 +1088,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 				else if (bufferTimeMs > 0)
 				{
-					//it's a ordered queue according to timestamp
-					bufferQueue.add(packet);
-					
-					IStreamPacket pktHead = bufferQueue.first();
-					IStreamPacket pktTrailer = bufferQueue.last();
-
-					if (pktHead != null) {
-						int bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
-
-						if (bufferedDuration > bufferTimeMs*5) {
-							//if buffered duration is more than 5 times of the buffer time, remove packets from the head until it reach bufferTimeMs * 2
-
-							//set buffering true to not let writeBufferedPacket method work
-							buffering = true;
-						
-							Iterator<IStreamPacket> iterator = bufferQueue.iterator();
-							
-							while (iterator.hasNext()) 
-							{
-								pktHead = iterator.next();
-								
-								bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
-								if (bufferedDuration < bufferTimeMs * 2) {
-									break;
-								}
-								iterator.remove();
-							} 
-							
-
-						}
-
-						if (pktHead != null) {
-
-							bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
-
-
-							if (bufferedDuration > bufferTimeMs) 
-							{ 
-								if (buffering) 
-								{
-									//have the buffering finish time ms
-									bufferingFinishTimeMs = System.currentTimeMillis();
-									//have the first packet sent time
-									firstPacketReadyToSentTimeMs  = pktTrailer.getTimestamp();
-									logger.info("Switching buffering from true to false for stream: {}", streamId);
-								}
-								//make buffering false whenever bufferDuration is bigger than bufferTimeMS
-								//buffering is set to true when there is no packet left in the queue
-								buffering = false;
-							}
-
-							bufferLogCounter++;
-							if (bufferLogCounter % COUNT_TO_LOG_BUFFER == 0) {
-								logger.info("ReadPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, bufferedDuration, bufferTimeMs, streamId);
-								bufferLogCounter = 0;
-							}
-						}
-					}
-
+					addBufferQueue(packet);
 				}
 
 			}
@@ -1162,6 +1104,64 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 			isPipeReaderJobRunning.compareAndSet(true, false);
+		}
+	}
+
+
+	public void addBufferQueue(IStreamPacket packet) {
+		//it's a ordered queue according to timestamp
+		bufferQueue.add(packet);
+
+		IStreamPacket pktHead = bufferQueue.first();
+		IStreamPacket pktTrailer = bufferQueue.last();
+
+		if (pktHead != null) {
+			int bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
+
+			if (bufferedDuration > bufferTimeMs*5) {
+				//if buffered duration is more than 5 times of the buffer time, remove packets from the head until it reach bufferTimeMs * 2
+
+				//set buffering true to not let writeBufferedPacket method work
+				buffering = true;
+
+				Iterator<IStreamPacket> iterator = bufferQueue.iterator();
+
+				while (iterator.hasNext()) 
+				{
+					pktHead = iterator.next();
+
+					bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
+					if (bufferedDuration < bufferTimeMs * 2) {
+						break;
+					}
+					iterator.remove();
+				} 
+			}
+
+			bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
+
+			logger.info("bufferedDuration:{} trailer timestamp:{} head timestamp:{}", bufferedDuration, pktTrailer.getTimestamp(), pktHead.getTimestamp());
+			if (bufferedDuration > bufferTimeMs) 
+			{ 
+				if (buffering) 
+				{
+					//have the buffering finish time ms
+					bufferingFinishTimeMs = System.currentTimeMillis();
+					//have the first packet sent time
+					firstPacketReadyToSentTimeMs  = pktTrailer.getTimestamp();
+					logger.info("Switching buffering from true to false for stream: {}", streamId);
+				}
+				//make buffering false whenever bufferDuration is bigger than bufferTimeMS
+				//buffering is set to true when there is no packet left in the queue
+				buffering = false;
+			}
+
+			bufferLogCounter++;
+			if (bufferLogCounter % COUNT_TO_LOG_BUFFER == 0) {
+				logger.info("ReadPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, bufferedDuration, bufferTimeMs, streamId);
+				bufferLogCounter = 0;
+			}
+
 		}
 	}
 
@@ -1474,8 +1474,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						IStreamPacket tempPacket = bufferQueue.first();
 
 						long now = System.currentTimeMillis();
-						long pktTimeDifferenceMs = tempPacket.getTimestamp() - firstPacketReadyToSentTimeMs;
+						
+						//elapsed time since the buffering  finished 
 						long passedTime = now - bufferingFinishTimeMs;
+						
+						//time difference between this packet and the packet's timestamp when buffer is big enough to send
+						long pktTimeDifferenceMs = tempPacket.getTimestamp() - firstPacketReadyToSentTimeMs;
+						
 						if (pktTimeDifferenceMs < passedTime)
 						{
 							writeStreamPacket(tempPacket);
@@ -2262,6 +2267,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public boolean isBlacklistCodec(int codecId) {
 		return (codecId == AV_CODEC_ID_PNG);
+	}
+
+
+	public void setBufferTimeMs(long bufferTimeMs) {
+		this.bufferTimeMs = bufferTimeMs;
 	}
 
 }
