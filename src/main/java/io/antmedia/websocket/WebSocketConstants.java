@@ -514,5 +514,9 @@ public class WebSocketConstants {
 	 */
 	public static final String MAX_TRACK_COUNT = "maxTrackCount";
 
+	/**
+	 * get video track assignments
+	 */
+	public static final String GET_VIDEO_TRACK_ASSIGNMENTS = "getVideoTrackAssigments";
 	
 }
