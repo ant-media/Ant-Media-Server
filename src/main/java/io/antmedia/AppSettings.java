@@ -1464,7 +1464,9 @@ public class AppSettings implements Serializable{
 	private int encodingTimeout = 5000;
 
 	/**
-	 * If webrtc client is not started in this time, it'll close automatically
+	 * If webrtc client(publish or play) is not started in this time, it'll close automatically.
+	 * It's also being used as a timeout to let publisher reconnect in fluctuating networks or ungraceful termination such as
+	 * closing the browser without closing the connection.
 	 */
 	@Value("${webRTCClientStartTimeoutMs:${" + SETTINGS_WEBRTC_CLIENT_START_TIMEOUT +":10000}}")
 	private int webRTCClientStartTimeoutMs = 10000;
