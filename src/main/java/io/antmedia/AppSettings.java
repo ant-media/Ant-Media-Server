@@ -1504,7 +1504,7 @@ public class AppSettings implements Serializable{
 	private String httpForwardingBaseURL = "";
 
 	/**
-	 * Max analyze duration in for determining video and audio existence in RTMP streams
+	 * Max analyze duration in for determining video and audio existence in RTMP, SRT and Stream Sources
 	 */
 	@Value("${maxAnalyzeDurationMS:${" + SETTINGS_RTMP_MAX_ANALYZE_DURATION_MS+ ":1500}}")
 	private int maxAnalyzeDurationMS = 1500;
