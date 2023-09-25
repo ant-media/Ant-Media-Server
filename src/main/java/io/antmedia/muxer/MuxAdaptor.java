@@ -1176,8 +1176,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			if (videoCodec instanceof AVCVideo)
 			{
 				IoBuffer videoBuffer = videoCodec.getDecoderConfiguration();
-				videoDataConf = new byte[videoBuffer.limit()-5];
-				videoBuffer.position(5).get(videoDataConf);
+				if (videoBuffer != null) {
+					videoDataConf = new byte[videoBuffer.limit()-5];
+					videoBuffer.position(5).get(videoDataConf);
+				}
 			}
 			else {
 				logger.warn("Video codec is not AVC(H264) for stream: {}", streamId);
