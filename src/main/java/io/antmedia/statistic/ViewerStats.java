@@ -28,6 +28,9 @@ public class ViewerStats {
 	public static final String HLS_TYPE = "hls";
 	public static final String DASH_TYPE = "dash";
 	
+	//hls or dash
+	private String type;
+	
 	private DataStore dataStore;
 	
 	protected DataStoreFactory dataStoreFactory;
@@ -53,6 +56,8 @@ public class ViewerStats {
 	 * if last request time is older than timeout value
 	 */
 	protected int timeoutMS = 20000;
+	
+
 	
 	public void registerNewViewer(String streamId, String sessionId, String subscriberId) 
 	{
@@ -96,6 +101,8 @@ public class ViewerStats {
 					event.setEventType(ConnectionEvent.CONNECTED_EVENT);
 					Date curDate = new Date();
 					event.setTimestamp(curDate.getTime());
+					event.setEventProtocol(getType());
+					
 					//TODO: There is a bug here. It adds +1 for each ts request 
 					if (getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event)) {
 						logger.info("CONNECTED_EVENT for subscriberId:{} streamId:{}", subscriberId, streamId);
@@ -274,6 +281,7 @@ public class ViewerStats {
 							event.setEventType(ConnectionEvent.DISCONNECTED_EVENT);
 							Date curDate = new Date();
 							event.setTimestamp(curDate.getTime());
+							event.setEventProtocol(getType());
 							if (getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event)) {
 								logger.info("DISCONNECTED_EVENT for subscriberId:{} and streamId:{}", subscriberId, streamId);
 							}
@@ -333,6 +341,14 @@ public class ViewerStats {
 	
 	public void setServerSettings(ServerSettings serverSettings) {
 		this.serverSettings = serverSettings;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
 	}
 
 }

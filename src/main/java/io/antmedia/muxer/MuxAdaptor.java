@@ -1004,106 +1004,110 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (isPipeReaderJobRunning.compareAndSet(false, true)) 
 		{
-			if (!isRecording.get()) {				
+			try 
+			{
+				if (!isRecording.get()) {				
 
-				if (checkStreamsStartTime == -1) {
-					checkStreamsStartTime  = System.currentTimeMillis();
+					if (checkStreamsStartTime == -1) {
+						checkStreamsStartTime  = System.currentTimeMillis();
+					}
+
+
+					if (stopRequestExist) {
+						logger.info("Stop request exists for stream:{}", streamId);
+						broadcastStream.removeStreamListener(MuxAdaptor.this);
+						logger.warn("closing adaptor for {} ", streamId);
+						closeResources();
+						logger.warn("closed adaptor for {}", streamId);
+						getStreamHandler().stopPublish(streamId);
+						//finally code execute and reset the isPipeReaderJobRunning
+						return;
+
+					}
+
+					IStreamCodecInfo codecInfo = broadcastStream.getCodecInfo();
+					enableVideo = codecInfo.hasVideo();
+					enableAudio = codecInfo.hasAudio();
+
+					getVideoDataConf(codecInfo);
+					getAudioDataConf(codecInfo);
+
+					// Sometimes AAC Sequenece Header is received later 
+					// so that we check if we get the audio codec parameters correctly
+
+					if (enableVideo && enableAudio && getAudioCodecParameters() != null)
+					{
+						logger.info("Video and audio is enabled in stream:{} queue size: {}", streamId, queueSize.get());
+						prepareParameters();
+					}
+					else {
+						checkMaxAnalyzeTotalTime();
+					}
+				}
+
+				if (!isRecording.get())
+				{
+
+					//if it's not recording, return
+					//finally code execute and reset the isPipeReaderJobRunning
+					return;
 				}
 
 
+				IStreamPacket packet;
+				while ((packet = streamPacketQueue.poll()) != null) {
+
+					queueSize.decrementAndGet();
+
+					if (!firstKeyFrameReceivedChecked && packet.getDataType() == Constants.TYPE_VIDEO_DATA) 
+					{
+						byte frameType = packet.getData().position(0).get();
+
+						if ((frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY) 
+						{
+							firstKeyFrameReceivedChecked = true;
+							if(!appAdapter.isValidStreamParameters(width, height, fps, 0, streamId)) {
+								logger.info("Stream({}) has not passed specified validity checks so it's stopping", streamId);
+								closeRtmpConnection();
+								break;
+							}
+						} else {
+							logger.warn("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
+							// return if firstKeyFrameReceived is not received
+							// below return is important otherwise it does not work with like some encoders(vidiu)
+							return;
+						}
+					}
+
+					//TODO: if server does not accept packets, it does not update the quality
+					long dts = packet.getTimestamp() & 0xffffffffL;
+					updateQualityParameters(dts, TIME_BASE_FOR_MS);
+
+
+					if (bufferTimeMs == 0) 
+					{
+						writeStreamPacket(packet);
+					}
+					else if (bufferTimeMs > 0)
+					{
+						addBufferQueue(packet);
+					}
+
+				}
+
 				if (stopRequestExist) {
-					logger.info("Stop request exists for stream:{}", streamId);
 					broadcastStream.removeStreamListener(MuxAdaptor.this);
 					logger.warn("closing adaptor for {} ", streamId);
 					closeResources();
 					logger.warn("closed adaptor for {}", streamId);
 					getStreamHandler().stopPublish(streamId);
-					isPipeReaderJobRunning.compareAndSet(true, false);
-					return;
-
-				}
-
-				IStreamCodecInfo codecInfo = broadcastStream.getCodecInfo();
-				enableVideo = codecInfo.hasVideo();
-				enableAudio = codecInfo.hasAudio();
-
-				getVideoDataConf(codecInfo);
-				getAudioDataConf(codecInfo);
-
-				// Sometimes AAC Sequenece Header is received later 
-				// so that we check if we get the audio codec parameters correctly
-
-				if (enableVideo && enableAudio && getAudioCodecParameters() != null)
-				{
-					logger.info("Video and audio is enabled in stream:{} queue size: {}", streamId, queueSize.get());
-					prepareParameters();
-				}
-				else {
-					checkMaxAnalyzeTotalTime();
-				}
+				}	
 			}
-
-			if (!isRecording.get())
-			{
-
-				//if it's not recording, return
+			finally {
+				//make sure pipeReader is set again no matter if there is an exception above. 
+				//Because isPipeReaderJobRunning is not set, it may fill the memory and causes Out Of Memory
 				isPipeReaderJobRunning.compareAndSet(true, false);
-				return;
 			}
-
-
-			IStreamPacket packet;
-			while ((packet = streamPacketQueue.poll()) != null) {
-
-				queueSize.decrementAndGet();
-
-				if (!firstKeyFrameReceivedChecked && packet.getDataType() == Constants.TYPE_VIDEO_DATA) 
-				{
-					byte frameType = packet.getData().position(0).get();
-
-					if ((frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY) 
-					{
-						firstKeyFrameReceivedChecked = true;
-						if(!appAdapter.isValidStreamParameters(width, height, fps, 0, streamId)) {
-							logger.info("Stream({}) has not passed specified validity checks so it's stopping", streamId);
-							closeRtmpConnection();
-							break;
-						}
-					} else {
-						logger.warn("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
-						// return if firstKeyFrameReceived is not received
-						// below return is important otherwise it does not work with like some encoders(vidiu)
-						return;
-					}
-				}
-
-				//TODO: if server does not accept packets, it does not update the quality
-				long dts = packet.getTimestamp() & 0xffffffffL;
-				updateQualityParameters(dts, TIME_BASE_FOR_MS);
-
-
-				if (bufferTimeMs == 0) 
-				{
-					writeStreamPacket(packet);
-				}
-				else if (bufferTimeMs > 0)
-				{
-					addBufferQueue(packet);
-				}
-
-			}
-
-			if (stopRequestExist) {
-				broadcastStream.removeStreamListener(MuxAdaptor.this);
-				logger.warn("closing adaptor for {} ", streamId);
-				closeResources();
-				logger.warn("closed adaptor for {}", streamId);
-				getStreamHandler().stopPublish(streamId);
-			}	
-
-
-
-			isPipeReaderJobRunning.compareAndSet(true, false);
 		}
 	}
 
@@ -1172,8 +1176,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			if (videoCodec instanceof AVCVideo)
 			{
 				IoBuffer videoBuffer = videoCodec.getDecoderConfiguration();
-				videoDataConf = new byte[videoBuffer.limit()-5];
-				videoBuffer.position(5).get(videoDataConf);
+				if (videoBuffer != null) {
+					videoDataConf = new byte[videoBuffer.limit()-5];
+					videoBuffer.position(5).get(videoDataConf);
+				}
 			}
 			else {
 				logger.warn("Video codec is not AVC(H264) for stream: {}", streamId);
@@ -1458,6 +1464,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return stopRequestExist;
 	}
 
+	public void debugSetStopRequestExist(boolean stopRequest) {
+		this.stopRequestExist = stopRequest;
+	}
+
 
 	/**
 	 * This method is called when rtmpIngestBufferTime is bigger than zero
@@ -1467,47 +1477,51 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		synchronized (this) {
 
 			if (isBufferedWriterRunning.compareAndSet(false, true)) {
-				if (!buffering)
-				{
-					while(!bufferQueue.isEmpty())
+				try {
+					if (!buffering)
 					{
-						IStreamPacket tempPacket = bufferQueue.first();
-
-						long now = System.currentTimeMillis();
-						
-						//elapsed time since the buffering  finished 
-						long passedTime = now - bufferingFinishTimeMs;
-						
-						//time difference between this packet and the packet's timestamp when buffer is big enough to send
-						long pktTimeDifferenceMs = tempPacket.getTimestamp() - firstPacketReadyToSentTimeMs;
-						
-						if (pktTimeDifferenceMs < passedTime)
+						while(!bufferQueue.isEmpty())
 						{
-							writeStreamPacket(tempPacket);
+							IStreamPacket tempPacket = bufferQueue.first();
 
-							bufferQueue.remove(tempPacket); //remove the packet from the queue
+							long now = System.currentTimeMillis();
+
+							//elapsed time since the buffering  finished 
+							long passedTime = now - bufferingFinishTimeMs;
+
+							//time difference between this packet and the packet's timestamp when buffer is big enough to send
+							long pktTimeDifferenceMs = tempPacket.getTimestamp() - firstPacketReadyToSentTimeMs;
+
+							if (pktTimeDifferenceMs < passedTime)
+							{
+								writeStreamPacket(tempPacket);
+
+								bufferQueue.remove(tempPacket); //remove the packet from the queue
+							}
+							else {
+								break;
+							}
+
 						}
-						else {
-							break;
-						}
+
+						//update buffering. If bufferQueue is empty, it should start buffering
+						buffering = bufferQueue.isEmpty();
 
 					}
-
-					//update buffering. If bufferQueue is empty, it should start buffering
-					buffering = bufferQueue.isEmpty();
-
-				}
-				bufferLogCounter++; //we use this parameter in execute method as well
-				if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) {
-					IStreamPacket streamPacket = !bufferQueue.isEmpty() ? bufferQueue.first() : null;
-					int bufferedDuration = 0;
-					if (streamPacket != null) {
-						bufferedDuration = bufferQueue.last().getTimestamp() - streamPacket.getTimestamp();
+					bufferLogCounter++; //we use this parameter in execute method as well
+					if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) {
+						IStreamPacket streamPacket = !bufferQueue.isEmpty() ? bufferQueue.first() : null;
+						int bufferedDuration = 0;
+						if (streamPacket != null) {
+							bufferedDuration = bufferQueue.last().getTimestamp() - streamPacket.getTimestamp();
+						}
+						logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, bufferedDuration, bufferTimeMs, streamId);
+						bufferLogCounter = 0;
 					}
-					logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, bufferedDuration, bufferTimeMs, streamId);
-					bufferLogCounter = 0;
 				}
-				isBufferedWriterRunning.compareAndSet(true, false);
+				finally {
+					isBufferedWriterRunning.compareAndSet(true, false);
+				}
 			}
 		}
 	}
@@ -2272,6 +2286,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void setBufferTimeMs(long bufferTimeMs) {
 		this.bufferTimeMs = bufferTimeMs;
+	}
+
+
+	public AtomicBoolean getIsPipeReaderJobRunning() {
+		return isPipeReaderJobRunning;
 	}
 
 }
