@@ -1203,8 +1203,8 @@ public class DBStoresUnitTest {
 	}
 
 	public void testFullTextSearch(DataStore dataStore) {
-		String searchQueryMatched = "{\"ConnectorComponentId\":\"[6b8d7491-a86a-4c64-a982-0f8a2d3d393b.9c9df16c-eac1-4593-8010-d28e92f8a694]\"}";
-		String searchQueryNotMatched = "{\"ConnectorComponentId\":\"[6b8d7491.9c9df16c]\"}";
+		String searchQueryMatched = "\"ConnectorComponentId\":\"[6b8d7491-a86a-4c64-a982-0f8a2d3d393b.9c9df16c-eac1-4593-8010-d28e92f8a694]\"";
+		String searchQueryNotMatched = "\"ConnectorComponentId\":\"[6b8d7491.9c9df16c]\"";
 
 		Broadcast broadcast = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, "{\"tenantId\":\"fd216128-e4da-11ed-9c89-bfe723cdc436\",\"erCollectionId\":\"5fb69a0a-26d7-4ce7-81c5-ac7ab4949a27\",\"ConnectorComponentId\":\"[6b8d7491-a86a-4c64-a982-0f8a2d3d393b.9c9df16c-eac1-4593-8010-d28e92f8a694]\"}");
 		broadcast.setDate(100000);
