@@ -126,7 +126,8 @@ public class DBStoresUnitTest {
 		testRemoveTrack(dataStore);
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
-    	testBroadcastListSorting(dataStore);	
+    	testBroadcastListSorting(dataStore);
+		testFullTextSearch(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
@@ -207,6 +208,7 @@ public class DBStoresUnitTest {
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
     	testBroadcastListSorting(dataStore);
+		testFullTextSearch(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
@@ -216,7 +218,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-		
+
 		
 
 
@@ -231,7 +233,7 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		
 		dataStore = new MongoStore("localhost", "", "", "testdb");
-		
+
 		testBlockSubscriber(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
 		testBugFreeStreamId(dataStore);
@@ -268,6 +270,7 @@ public class DBStoresUnitTest {
 		testRemoveTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
 		testBroadcastListSorting(dataStore);
+		testFullTextSearch(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
@@ -323,6 +326,7 @@ public class DBStoresUnitTest {
 		testAddTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
 		testBroadcastListSorting(dataStore);
+		testFullTextSearch(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
@@ -1211,6 +1215,23 @@ public class DBStoresUnitTest {
 		assertEquals(roomList.get(2).getRoomId(), room2.getRoomId());
 		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
 
+	}
+
+	public void testFullTextSearch(DataStore dataStore) {
+		String searchQueryMatched = "\"ConnectorComponentId\":\"[6b8d7491-a86a-4c64-a982-0f8a2d3d393b.9c9df16c-eac1-4593-8010-d28e92f8a694]\"";
+		String searchQueryNotMatched = "\"ConnectorComponentId\":\"[6b8d7491.9c9df16c]\"";
+
+		Broadcast broadcast = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, "{\"tenantId\":\"fd216128-e4da-11ed-9c89-bfe723cdc436\",\"erCollectionId\":\"5fb69a0a-26d7-4ce7-81c5-ac7ab4949a27\",\"ConnectorComponentId\":\"[6b8d7491-a86a-4c64-a982-0f8a2d3d393b.9c9df16c-eac1-4593-8010-d28e92f8a694]\"}");
+		broadcast.setDate(100000);
+		broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+
+		dataStore.save(broadcast);
+
+		List<Broadcast> broadcastList0 = dataStore.getBroadcastList(0, 50, null, null, null, searchQueryMatched);
+		assertFalse(broadcastList0.isEmpty());
+
+		List<Broadcast> broadcastList1 = dataStore.getBroadcastList(0, 50, null, null, null, searchQueryNotMatched);
+		assertTrue(broadcastList1.isEmpty());
 	}
 	
 	public void testBroadcastListSorting(DataStore dataStore) {

@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -358,12 +359,23 @@ public class MongoStore extends DataStore {
 		return null;
 	}
 
+	private boolean checkIfRegexValid(String regex) {
+		try {
+			Pattern.compile(regex);
+			return true;
+		}
+		catch (Exception e) {
+			return false;
+		}
+	}
+
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class);
+				datastore.ensureIndexes();
 
 				if (size > MAX_ITEM_IN_ONE_LIST) {
 					size = MAX_ITEM_IN_ONE_LIST;
@@ -377,11 +389,17 @@ public class MongoStore extends DataStore {
 				if(search != null && !search.isEmpty())
 				{
 					logger.info("Server side search in broadcast for the text -> {}", search);
-					query.filter(Filters.or(
-										Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
-										Filters.regex("name").caseInsensitive().pattern(".*" + search + ".*")
-										)
-							    );
+
+					// if search is not a valid regex, then search as a text in name
+					if (!checkIfRegexValid(search)) {
+						query.filter(Filters.text(search));
+					} else {
+						query.filter(Filters.or(
+								Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
+								Filters.regex("name").caseInsensitive().pattern(".*" + search + ".*")
+								)
+						);
+					}
 					
 					
 					

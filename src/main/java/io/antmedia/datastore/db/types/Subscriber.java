@@ -37,7 +37,6 @@ public class Subscriber {
 	@ApiModelProperty(value = "the subscriber id of the subscriber")
 	private String subscriberId;
 
-	@JsonIgnore
 	/**
 	 * related streamId with subscriber
 	 */

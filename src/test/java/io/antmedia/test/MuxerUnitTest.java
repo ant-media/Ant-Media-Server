@@ -60,6 +60,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -524,19 +525,19 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		logger.info("codecpar.bit_rate(): {}\n" +
-						"		codecpar.bits_per_coded_sample(): {} \n" +
-						"		codecpar.bits_per_raw_sample(): {} \n" +
-						"		codecpar.block_align(): {}\n" +
-						"		codecpar.channel_layout(): {}\n" +
-						"		codecpar.channels(): {}\n" +
-						"		codecpar.codec_id(): {}\n" +
-						"		codecpar.codec_tag(): {}\n" +
-						"		codecpar.codec_type(): {} \n" +
-						"		codecpar.format(): {}\n" +
-						"		codecpar.frame_size():{} \n" +
-						"		codecpar.level():{} \n" +
-						"		codecpar.profile():{} \n" +
-						"		codecpar.sample_rate(): {}",
+				"		codecpar.bits_per_coded_sample(): {} \n" +
+				"		codecpar.bits_per_raw_sample(): {} \n" +
+				"		codecpar.block_align(): {}\n" +
+				"		codecpar.channel_layout(): {}\n" +
+				"		codecpar.channels(): {}\n" +
+				"		codecpar.codec_id(): {}\n" +
+				"		codecpar.codec_tag(): {}\n" +
+				"		codecpar.codec_type(): {} \n" +
+				"		codecpar.format(): {}\n" +
+				"		codecpar.frame_size():{} \n" +
+				"		codecpar.level():{} \n" +
+				"		codecpar.profile():{} \n" +
+				"		codecpar.sample_rate(): {}",
 
 				codecpar.bit_rate(),
 				codecpar.bits_per_coded_sample(),
@@ -564,10 +565,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 					logger.info("		pkt.duration():{} \n" +
-									"					pkt.flags(): {} \n" +
-									"					pkt.pos(): {}\n" +
-									"					pkt.size(): {}\n" +
-									"					pkt.stream_index():{} ",
+							"					pkt.flags(): {} \n" +
+							"					pkt.pos(): {}\n" +
+							"					pkt.size(): {}\n" +
+							"					pkt.stream_index():{} ",
 							pkt.duration(),
 							pkt.flags(),
 							pkt.pos(),
@@ -1607,9 +1608,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		long activeBroadcastCountFinal = activeBroadcastCount;
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-				.until(() -> {
-					return activeBroadcastCountFinal + 2 == appAdaptor.getDataStore().getActiveBroadcastCount();
-				});
+		.until(() -> {
+			return activeBroadcastCountFinal + 2 == appAdaptor.getDataStore().getActiveBroadcastCount();
+		});
 
 		if (activeBroadcastCount == 1) {
 			Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any());
@@ -1644,15 +1645,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		when(stream.getAbsoluteStartTimeMs()).thenReturn(absoluteTimeMS);
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-				.until(() ->
-						appAdaptor.getDataStore().get(streamId).getAbsoluteStartTimeMs() == absoluteTimeMS);
+		.until(() ->
+		appAdaptor.getDataStore().get(streamId).getAbsoluteStartTimeMs() == absoluteTimeMS);
 
 		spyAdaptor.stopPublish(stream.getPublishedName());
 
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-				.until(() ->
-						appAdaptor.getDataStore().get(streamId) == null);
+		.until(() ->
+		appAdaptor.getDataStore().get(streamId) == null);
 
 
 	}
@@ -1793,7 +1794,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			int finalDuration = 20000;
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() ->
-					MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), finalDuration));
+			MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), finalDuration));
 
 			assertEquals(0, MuxingTest.videoStartTimeMs);
 			assertEquals(0, MuxingTest.audioStartTimeMs);
@@ -1834,6 +1835,116 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
+	public void testOrderedBufferedQueue() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		ConcurrentSkipListSet<IStreamPacket> bufferQueue = muxAdaptor.getBufferQueue();
+
+
+		ITag tag = mock(ITag.class);
+		IStreamPacket pkt;
+		{
+			when(tag.getTimestamp()).thenReturn(1000);
+			pkt = new StreamPacket(tag);
+			bufferQueue.add(pkt);
+
+
+			tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(2000);
+			pkt = new StreamPacket(tag);
+			bufferQueue.add(pkt);
+
+			tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(3000);
+			pkt = new StreamPacket(tag);
+			bufferQueue.add(pkt);
+
+			assertEquals(1000, bufferQueue.pollFirst().getTimestamp());
+			assertEquals(2000, bufferQueue.pollFirst().getTimestamp());
+			assertEquals(3000, bufferQueue.pollFirst().getTimestamp());
+		}
+
+		{
+			tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(1000);
+			pkt = new StreamPacket(tag);
+			bufferQueue.add(pkt);
+
+			tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(3000);
+			pkt = new StreamPacket(tag);
+			bufferQueue.add(pkt);
+
+			assertEquals(1000, bufferQueue.first().getTimestamp());
+			assertEquals(3000, bufferQueue.last().getTimestamp());
+
+			tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(2000);
+			pkt = new StreamPacket(tag);
+			bufferQueue.add(pkt);
+
+			assertEquals(1000, bufferQueue.pollFirst().getTimestamp());
+			assertEquals(2000, bufferQueue.pollFirst().getTimestamp());
+			assertEquals(3000, bufferQueue.pollFirst().getTimestamp());
+		}
+
+
+	}
+
+
+	@Test
+	public void testAddBufferQueue() 
+	{
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+
+		muxAdaptor.setBufferTimeMs(1000);
+
+
+		assertFalse(muxAdaptor.isBuffering());
+
+		muxAdaptor.setBuffering(true);
+
+		for (int i = 0; i <= 11; i++) 
+		{
+			ITag tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(i*100);
+			IStreamPacket pkt = new StreamPacket(tag);
+			muxAdaptor.addBufferQueue(pkt);
+			if (i < 11) {
+				assertTrue(muxAdaptor.isBuffering());
+			}
+			else if (i == 11) {
+				assertFalse(muxAdaptor.isBuffering());
+			}
+		}
+
+
+		for (int i = 12; i <= 51; i++) 
+		{
+			ITag tag = mock(ITag.class);
+			when(tag.getTimestamp()).thenReturn(i*100);
+			IStreamPacket pkt = new StreamPacket(tag);
+			muxAdaptor.addBufferQueue(pkt);
+			long bufferedDuration = muxAdaptor.getBufferQueue().last().getTimestamp() - muxAdaptor.getBufferQueue().first().getTimestamp();
+			if (i < 51) {
+				assertEquals(i*100, bufferedDuration);
+			}
+		}
+
+		//it exceeds the 5 times of the buffer time so it should truncate less than the 2 times of buffer time -> 2*1000 = 2000. 
+		//for our sample, It turns out that -> 1900 because there is 100ms difference in the packets
+		long bufferedDuration = muxAdaptor.getBufferQueue().last().getTimestamp() - muxAdaptor.getBufferQueue().first().getTimestamp();
+		assertEquals(1900, bufferedDuration);
+
+	}
+
+	@Test
 	public void testWriteBufferedPacket() {
 
 		if (appScope == null) {
@@ -1853,7 +1964,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//it should false because there is no packet in the queue
 		assertTrue(muxAdaptor.isBuffering());
 
-		Queue<IStreamPacket> bufferQueue = muxAdaptor.getBufferQueue();
+		ConcurrentSkipListSet<IStreamPacket> bufferQueue = muxAdaptor.getBufferQueue();
 		muxAdaptor.setBuffering(false);
 		AVStream stream = Mockito.mock(AVStream.class);
 		when(stream.time_base()).thenReturn(MuxAdaptor.TIME_BASE_FOR_MS);
@@ -2110,7 +2221,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			if (checkDuration) {
 				int finalDuration = duration;
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() ->
-						MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), finalDuration));
+				MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), finalDuration));
 			}
 			return muxAdaptor.getMuxerList().get(0).getFile();
 		} catch (Exception e) {
@@ -2461,10 +2572,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		mp4Muxer.writeTrailer();
 
 		Awaitility.await().atMost(20, TimeUnit.SECONDS)
-				.pollInterval(1, TimeUnit.SECONDS)
-				.until(() -> {
-					return MuxingTest.testFile("webapps/junit/streams/" + streamName + ".mp4", 10000);
-				});
+		.pollInterval(1, TimeUnit.SECONDS)
+		.until(() -> {
+			return MuxingTest.testFile("webapps/junit/streams/" + streamName + ".mp4", 10000);
+		});
 
 
 	}
@@ -2866,15 +2977,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			//wait to let hls muxer delete ts and m3u8 file
 
 			Awaitility.await().atMost(hlsListSize * hlsTime * 1000 + 3000, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS)
-					.until(() -> {
-						File[] filesTmp = dir.listFiles(new FilenameFilter() {
-							@Override
-							public boolean accept(File dir, String name) {
-								return name.endsWith(".ts") || name.endsWith(".m3u8");
-							}
-						});
-						return 0 == filesTmp.length;
-					});
+			.until(() -> {
+				File[] filesTmp = dir.listFiles(new FilenameFilter() {
+					@Override
+					public boolean accept(File dir, String name) {
+						return name.endsWith(".ts") || name.endsWith(".m3u8");
+					}
+				});
+				return 0 == filesTmp.length;
+			});
 
 
 			assertFalse(hlsFile.exists());
@@ -3061,15 +3172,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			//wait to let hls muxer delete ts and m3u8 file
 
 			Awaitility.await().atMost(hlsListSize * hlsTime * 1000 + 3000, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS)
-					.until(() -> {
-						File[] filesTmp = dir.listFiles(new FilenameFilter() {
-							@Override
-							public boolean accept(File dir, String name) {
-								return name.endsWith(".ts") || name.endsWith(".m3u8");
-							}
-						});
-						return 0 == filesTmp.length;
-					});
+			.until(() -> {
+				File[] filesTmp = dir.listFiles(new FilenameFilter() {
+					@Override
+					public boolean accept(File dir, String name) {
+						return name.endsWith(".ts") || name.endsWith(".m3u8");
+					}
+				});
+				return 0 == filesTmp.length;
+			});
 
 
 		} catch (Exception e) {
@@ -3183,15 +3294,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//wait to let hls muxer delete ts and m3u8 file
 			Awaitility.await().atMost(hlsListSize * hlsTime * 1000 + 3000, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS)
-					.until(() -> {
-						File[] filesTmp = dir.listFiles(new FilenameFilter() {
-							@Override
-							public boolean accept(File dir, String name) {
-								return name.endsWith(".ts") || name.endsWith(".m3u8");
-							}
-						});
-						return 0 == filesTmp.length;
-					});
+			.until(() -> {
+				File[] filesTmp = dir.listFiles(new FilenameFilter() {
+					@Override
+					public boolean accept(File dir, String name) {
+						return name.endsWith(".ts") || name.endsWith(".m3u8");
+					}
+				});
+				return 0 == filesTmp.length;
+			});
 
 
 			assertFalse(hlsFile.exists());
@@ -3595,10 +3706,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.start();
 
 		Awaitility.await().atLeast(getAppSettings().getMaxAnalyzeDurationMS() * 2, TimeUnit.MILLISECONDS)
-				.atMost(getAppSettings().getMaxAnalyzeDurationMS() * 2 + 1000, TimeUnit.MILLISECONDS)
-				.until(() -> {
-					return muxAdaptor.isStopRequestExist();
-				});
+		.atMost(getAppSettings().getMaxAnalyzeDurationMS() * 2 + 1000, TimeUnit.MILLISECONDS)
+		.until(() -> {
+			return muxAdaptor.isStopRequestExist();
+		});
 
 		Mockito.verify(muxAdaptor, Mockito.timeout(500)).closeRtmpConnection();
 
@@ -3771,22 +3882,22 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.getBufferQueue().add(createPacket(Constants.TYPE_AUDIO_DATA, 14));
 		muxAdaptor.getBufferQueue().add(createPacket(Constants.TYPE_AUDIO_DATA, 30));
 
-		IStreamPacket p = muxAdaptor.peekTheNextPacketFromBuffer();
+		IStreamPacket p = muxAdaptor.getBufferQueue().pollFirst();
 		assertTrue(p.getDataType() == Constants.TYPE_AUDIO_DATA && p.getTimestamp() == 10);
-		muxAdaptor.getBufferQueue().remove(p);
-		p = muxAdaptor.peekTheNextPacketFromBuffer();
-		assertTrue(p.getDataType() == Constants.TYPE_VIDEO_DATA && p.getTimestamp() == 15);
-		muxAdaptor.getBufferQueue().remove(p);
-		p = muxAdaptor.peekTheNextPacketFromBuffer();
+
+		p = muxAdaptor.getBufferQueue().pollFirst();
 		assertTrue(p.getDataType() == Constants.TYPE_AUDIO_DATA && p.getTimestamp() == 14);
-		muxAdaptor.getBufferQueue().remove(p);
-		p = muxAdaptor.peekTheNextPacketFromBuffer();
+
+		p = muxAdaptor.getBufferQueue().pollFirst();
+		assertTrue(p.getDataType() == Constants.TYPE_VIDEO_DATA && p.getTimestamp() == 15);
+
+		p = muxAdaptor.getBufferQueue().pollFirst();
 		assertTrue(p.getDataType() == Constants.TYPE_AUDIO_DATA && p.getTimestamp() == 20);
-		muxAdaptor.getBufferQueue().remove(p);
-		p = muxAdaptor.peekTheNextPacketFromBuffer();
+
+		p = muxAdaptor.getBufferQueue().pollFirst();
 		assertTrue(p.getDataType() == Constants.TYPE_VIDEO_DATA && p.getTimestamp() == 25);
-		muxAdaptor.getBufferQueue().remove(p);
-		p = muxAdaptor.peekTheNextPacketFromBuffer();
+
+		p = muxAdaptor.getBufferQueue().pollFirst();
 		assertTrue(p.getDataType() == Constants.TYPE_AUDIO_DATA && p.getTimestamp() == 30);
 	}
 
@@ -3929,5 +4040,34 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String data = "test data";
 		hlsMuxer.addID3Data(data);
 		verify(hlsMuxer, times(1)).writeDataFrame(any(), any());
+	}
+
+	@Test
+	public void testMuxAdaptorPipeReader() {
+
+
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = spy(muxAdaptorReal);
+
+		try {
+			muxAdaptor.execute();
+
+			assertFalse(muxAdaptor.getIsPipeReaderJobRunning().get());
+
+			muxAdaptor.setIsRecording(true);
+			muxAdaptor.debugSetStopRequestExist(true);
+			muxAdaptor.execute();
+			fail("It should throw exception");
+		}
+		catch (Exception e) {
+
+		}
+
+		assertFalse(muxAdaptor.getIsPipeReaderJobRunning().get());
+
+
+
 	}
 }
