@@ -1144,7 +1144,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
 
-			logger.info("bufferedDuration:{} trailer timestamp:{} head timestamp:{}", bufferedDuration, pktTrailer.getTimestamp(), pktHead.getTimestamp());
+			logger.trace("bufferedDuration:{} trailer timestamp:{} head timestamp:{}", bufferedDuration, pktTrailer.getTimestamp(), pktHead.getTimestamp());
 			if (bufferedDuration > bufferTimeMs) 
 			{ 
 				if (buffering) 
