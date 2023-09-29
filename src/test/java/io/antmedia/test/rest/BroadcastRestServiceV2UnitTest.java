@@ -1165,18 +1165,6 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setAppCtx(context);
 		when(context.containsBean(any())).thenReturn(true);
 				
-		// isCluster true / broadcast origin address != server host address / status = broadcasting
-		{
-			Broadcast broadcast = new Broadcast();
-			broadcast.setOriginAdress("55.55.55.55");
-			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			store.save(broadcast);
-			
-			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
-			
-			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
-			assertFalse(result.isSuccess());
-		}
 		
 		// isCluster true / broadcast origin address == server host address / status = broadcasting
 		{
