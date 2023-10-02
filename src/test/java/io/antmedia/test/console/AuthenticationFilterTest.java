@@ -39,7 +39,7 @@ public class AuthenticationFilterTest {
 	    AuthenticationFilter filter = Mockito.spy(new AuthenticationFilter());
 		
 		ServerSettings serverSettings = new ServerSettings();
-		Mockito.doReturn(serverSettings).when(filter).getServerSetting();
+		Mockito.doReturn(serverSettings).when(filter).getServerSettings();
 		
 		HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
 		HttpServletResponse response =  Mockito.mock(HttpServletResponse.class);
@@ -117,7 +117,7 @@ public class AuthenticationFilterTest {
 			Mockito.verify(response, Mockito.times(1)).sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database is not available. Please try again");
 			
 			AbstractConsoleDataStore store = Mockito.mock(AbstractConsoleDataStore.class);
-			Mockito.doReturn(store).when(filter).getDataStore();
+			Mockito.doReturn(store).when(filter).getAbstractConsoleDataStore();
 			filter.doFilter(request, response, chain);
 			Mockito.verify(response, Mockito.times(1)).sendError(HttpServletResponse.SC_FORBIDDEN, "No user in this session");
 			
@@ -209,7 +209,7 @@ public class AuthenticationFilterTest {
 		Mockito.doReturn(null).when(filter).getWebApplicationContext();
 		
 		AbstractConsoleDataStore store = Mockito.mock(AbstractConsoleDataStore.class);
-		Mockito.doReturn(store).when(filter).getDataStore();
+		Mockito.doReturn(store).when(filter).getAbstractConsoleDataStore();
 		User user = Mockito.mock(User.class);
 		Mockito.when(store.getUser(Mockito.any())).thenReturn(user);
 		
@@ -367,7 +367,7 @@ public class AuthenticationFilterTest {
 	        ServerSettings serverSettings = new ServerSettings();
 	        serverSettings.setJwtServerControlEnabled(true);
 	        serverSettings.setJwtServerSecretKey("testtesttesttesttesttesttesttest");
-	        Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSetting();
+	        Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSettings();
 	        
 	        String validToken = JWT.create().sign(Algorithm.HMAC256(serverSettings.getJwtServerSecretKey()));
 	        String invalidToken = JWT.create().sign(Algorithm.HMAC256("invalid-key-invalid-key-invalid-key"));
@@ -375,7 +375,7 @@ public class AuthenticationFilterTest {
 	        String jwkstoken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6InFWMWhqT0o2RFlFOWIzRDFSU0lHSSJ9.eyJpc3MiOiJodHRwczovL2FudG1lZGlhLnVzLmF1dGgwLmNvbS8iLCJzdWIiOiI3UVEzWTlLSzJPY1dOSzRwMXpydGU1UzQxSWR4amxLc0BjbGllbnRzIiwiYXVkIjoiaHR0cHM6Ly9hbnRtZWRpYS51cy5hdXRoMC5jb20vYXBpL3YyLyIsImlhdCI6MTYyODE1MTQ4NSwiZXhwIjoxNjI4MjM3ODg1LCJhenAiOiI3UVEzWTlLSzJPY1dOSzRwMXpydGU1UzQxSWR4amxLcyIsImd0eSI6ImNsaWVudC1jcmVkZW50aWFscyJ9.dgtT0dqL_JiA1AJRIWYyJMU7KG_EpJzucqlmIdEt36rL35G9QLWcxJVWCM-OFDAje9UaNDqFVHMNfXzDhvXrs5LvPlEFSZVAZUtMgjP0X94hlCjKIrvhnfN2lcDZFsSMIqXJeoPMjlRvGItrphRQaMr5ow3eCcvRYVK1MXvptGisdh1rTVBWPRRvaFH8x5yISw98DwNauVWW949o8JDIkortDQEXHmpipC7NoACCzZmGlmBv6ubaZxyTwh7QAp68kx6_tIcmj7nm6cLdoheFjH-io-ee6oTkLRr2krRqSjJrY9A_hJYH4Gixpe-F7mMeE8dMuRGhWue3pfMJmy8ulQ";
 
    			AbstractConsoleDataStore store = Mockito.mock(AbstractConsoleDataStore.class);
-   			Mockito.doReturn(store).when(authenticationFilter).getDataStore();
+   			Mockito.doReturn(store).when(authenticationFilter).getAbstractConsoleDataStore();
 
 	        // JWT Token null && JWT Server filter enable scenario
    			// It will try to login with user/pass details
@@ -407,7 +407,7 @@ public class AuthenticationFilterTest {
 
 	            serverSettings.setJwtServerControlEnabled(false);
 
-	            Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSetting();
+	            Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSettings();
 
 	            httpServletRequest.addHeader("ProxyAuthorization", validToken);
 
@@ -485,7 +485,7 @@ public class AuthenticationFilterTest {
 	            serverSettings.setJwksURL("https://antmedia.us.auth0.com");
 	            serverSettings.setJwtServerSecretKey("4Hr7PWwrTf6YFynkO5QeNQrlxe5r7HtfUdLhis2i_vbXdtF1VI0SwnP0ZSlhf0Yh");
 
-	            Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSetting();
+	            Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSettings();
 
 	            httpServletRequest.addHeader("ProxyAuthorization", jwkstoken);
 
@@ -508,7 +508,7 @@ public class AuthenticationFilterTest {
 	            serverSettings.setJwksURL("");
 	            serverSettings.setJwtServerSecretKey("random");
 
-	            Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSetting();
+	            Mockito.doReturn(serverSettings).when(authenticationFilter).getServerSettings();
 
 	            httpServletRequest.addHeader("ProxyAuthorization", jwkstoken);
 
