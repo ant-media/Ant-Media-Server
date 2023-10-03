@@ -92,7 +92,7 @@ public class AntmediaAppender extends AppenderBase<ILoggingEvent> {
 
 				RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 
-				HttpRequestBase post = (HttpRequestBase)RequestBuilder.post().setUri("https://log-api.eu.newrelic.com/log/v1?Api-Key=eu01xxb7b9935b86e79ff5ea60715385FFFFNRAL")
+				HttpRequestBase post = (HttpRequestBase)RequestBuilder.post().setUri("https://log-api.eu.newrelic.com/log/v1?Api-Key=eu01xx03e8e936f6760014346295526cFFFFNRAL")
 						.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 						.setEntity(new StringEntity(instance.toString())).build();
 
