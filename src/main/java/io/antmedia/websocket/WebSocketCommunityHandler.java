@@ -327,13 +327,13 @@ public class WebSocketCommunityHandler {
 	 * @param roomId is the id of the room
 	 * @param subscriberId 
 	 */
-	public void sendRoomInformation(Map<String,String> streamIdNameMap , String roomId) 
+	public void sendRoomInformation(String roomId,Map<String,String> streamIdNameMap,HashMap<String,String> streamMetaData )
 	{
 		JSONObject jsObject = new JSONObject();
 		JSONArray jsonStreamIdArray = new JSONArray();
 		JSONArray jsonStreamListArray = new JSONArray();
 		
-		prepareStreamListJSON(streamIdNameMap, jsonStreamIdArray, jsonStreamListArray, new HashMap<String, String>());
+		prepareStreamListJSON(streamIdNameMap, jsonStreamIdArray, jsonStreamListArray,streamMetaData);
         
 		jsObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ROOM_INFORMATION_NOTIFICATION);
 		jsObject.put(WebSocketConstants.STREAMS_IN_ROOM, jsonStreamIdArray);

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true
+sudo -u usama mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true
 
 OUT=$?
 
@@ -8,7 +8,7 @@ if [ $OUT -ne 0 ]; then
     exit $OUT
 fi
 
-ANT_MEDIA_SERVER_DIR=~/softwares/ant-media-server
+ANT_MEDIA_SERVER_DIR=/usr/local/antmedia
 
 ANT_MEDIA_SERVER_JAR=./target/ant-media-server-server.jar
 ANT_MEDIA_SERVER_SERVICE_JAR=./target/ant-media-server-service.jar

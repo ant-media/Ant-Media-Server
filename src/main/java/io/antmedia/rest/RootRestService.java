@@ -51,12 +51,15 @@ public class RootRestService extends RestServiceBase {
 	public static class RoomInfo{
 		private String roomId;
 		private Map<String,String> streamDetailsMap;
+		private Map<String,String> streamMetaDataMap;
+
 		private long endDate = 0;
 		private long startDate = 0;
 
-		public RoomInfo(String roomId, Map<String, String> streamDetailsMap, ConferenceRoom room) {
+		public RoomInfo(String roomId, Map<String, String> streamDetailsMap, Map<String, String> streamMetaDataMap, ConferenceRoom room) {
 			this.roomId = roomId;
 			this.streamDetailsMap = streamDetailsMap;
+			this.streamMetaDataMap = streamMetaDataMap;
 			if(room != null) {
 				this.endDate = room.getEndDate();
 				this.startDate = room.getStartDate();
@@ -78,6 +81,13 @@ public class RootRestService extends RestServiceBase {
 
 		public Map<String,String> getStreamDetailsMap() {
 			return streamDetailsMap;
+		}
+		public Map<String,String> getstreamMetaDataMap() {
+			return streamMetaDataMap;
+		}
+
+		public void setStreamMetaDataMap(Map<String,String> streamMetaDataMap) {
+			this.streamMetaDataMap = streamMetaDataMap;
 		}
 
 		public void setStreamDetailsMap(Map<String,String> streamDetailsMap) {

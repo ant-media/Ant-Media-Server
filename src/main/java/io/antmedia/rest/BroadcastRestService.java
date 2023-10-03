@@ -1,5 +1,6 @@
 package io.antmedia.rest;
 
+import java.util.HashMap;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
@@ -17,6 +18,7 @@ import javax.ws.rs.core.Response.Status;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.redisson.misc.Hash;
 import org.springframework.stereotype.Component;
 
 import com.amazonaws.util.Base32;
@@ -1279,7 +1281,14 @@ public class BroadcastRestService extends RestServiceBase{
 	public RootRestService.RoomInfo getRoomInfo(@ApiParam(value="Room id", required=true) @PathParam("room_id") String roomId,
 			@ApiParam(value="If Stream Id is entered, that stream id will be isolated from the result",required = false) @QueryParam("streamId") String streamId){
 		ConferenceRoom room = getDataStore().getConferenceRoom(roomId);
-		return new RootRestService.RoomInfo(roomId,RestServiceBase.getRoomInfoFromConference(roomId,streamId,getDataStore()), room);
+		HashMap<String,HashMap> roomInfo = RestServiceBase.getRoomInfoFromConference(roomId,streamId,getDataStore());
+		HashMap<String,String> DetailsMap = null;
+		HashMap<String,String> MetaDataMap = null;
+		if(roomInfo != null) {
+			DetailsMap = roomInfo.get("streamDetailsMap");
+			MetaDataMap = roomInfo.get("streamMetaDataMap");
+		}
+		return new RootRestService.RoomInfo(roomId,DetailsMap,MetaDataMap, room);
 	}
 
 	@ApiOperation(value="Adds the specified stream with streamId to the room.  Use PUT conference-rooms/{room_id}/{streamId}",response = Result.class)

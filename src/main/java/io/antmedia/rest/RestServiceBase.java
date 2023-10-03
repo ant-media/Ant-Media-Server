@@ -34,6 +34,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.server.api.scope.IBroadcastScope;
 import org.red5.server.api.scope.IScope;
+import org.redisson.misc.Hash;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -1743,17 +1744,21 @@ public abstract class RestServiceBase {
 	 *
 	 * @return null if there is no room recorded in the database, returns map filled with the active streams. Key is the streamId, value is the name
 	 */
-	public static Map<String,String> getRoomInfoFromConference(String roomId, String streamId, DataStore store){
+	public static HashMap<String,HashMap> getRoomInfoFromConference(String roomId, String streamId, DataStore store){
 		HashMap<String,String> streamDetailsMap = null;
+		HashMap<String,String> streamMetaDataMap = null;
+		HashMap<String,HashMap> roomInfo = null;
 
 		if (roomId != null)
 		{
 			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
 			if (conferenceRoom == null) {
 				logger.warn("There is no room with id:{}", roomId.replaceAll("[\n|\r|\t]", "_"));
-				return streamDetailsMap;
+				return roomInfo;
 			}
 			streamDetailsMap = new HashMap<>();
+			streamMetaDataMap = new HashMap<>();
+			roomInfo = new HashMap<>();
 
 			List<String> tempList = conferenceRoom.getRoomStreamList();
 			if(tempList != null) {
@@ -1763,13 +1768,17 @@ public abstract class RestServiceBase {
 					if (broadcast != null && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 					{
 						streamDetailsMap.put(tmpStreamId, broadcast.getName());
+						streamMetaDataMap.put(tmpStreamId, broadcast.getMetaData());
 					}
 				}
 				//remove the itself from the streamDetailsMap
 				streamDetailsMap.remove(streamId);
+				streamMetaDataMap.remove(streamId);
+				roomInfo.put("streamDetailsMap",streamDetailsMap);
+				roomInfo.put("streamMetaDataMap",streamMetaDataMap);
 			}
 		}
-		return streamDetailsMap;
+		return roomInfo;
 	}
 
 	public static boolean addStreamToConferenceRoom(String roomId, String streamId, DataStore dataStore) {

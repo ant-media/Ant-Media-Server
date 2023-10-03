@@ -469,8 +469,14 @@ public class WebSocketCommunityHandlerTest {
 		streamDetailsMap.put("streamId2","streamName2");
 		streamDetailsMap.put("streamId3",null);
 		streamDetailsMap.put("streamId4","streamName4");
+
+		HashMap<String,String> streamMetaDataMap = new HashMap<>();
+		streamDetailsMap.put("streamId1",null);
+		streamDetailsMap.put("streamId2","streamName2");
+		streamDetailsMap.put("streamId3",null);
+		streamDetailsMap.put("streamId4","streamName4");
 		wsHandler.setSession(session);
-		wsHandler.sendRoomInformation(streamDetailsMap, roomId);
+		wsHandler.sendRoomInformation(roomId, streamDetailsMap,streamMetaDataMap);
 		
 		
 		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
