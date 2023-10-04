@@ -34,6 +34,7 @@ TL;DR
 - <a href="https://antmedia.io/webrtc-samples?utm_source=github&utm_medium=readme&utm_campaign=ams">Try WebRTC Demos</a>
 - <a href="https://www.g2.com/products/ant-media-server-ant-media-server/reviews" target="_blank">Discover the reviews on G2</a>
 - <a href="https://aws.amazon.com/marketplace/pp/prodview-464ritgzkzod6">AWS Free Trial: Start now!</a>
+- <a href="https://antmedia.io/aws-streaming-service-wizard">Create your own streaming service at scale in 5 minutes</a>
 
 ## Why Choose Ant Media Server?
 
