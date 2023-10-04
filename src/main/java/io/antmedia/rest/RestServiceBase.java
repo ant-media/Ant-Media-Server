@@ -92,7 +92,7 @@ public abstract class RestServiceBase {
 
 
 		public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
-								   int totalWebRTCWatchersCount, int totalDASHWatchersCount) {
+				int totalWebRTCWatchersCount, int totalDASHWatchersCount) {
 			this.totalRTMPWatchersCount = totalRTMPWatchersCount;
 			this.totalHLSWatchersCount = totalHLSWatchersCount;
 			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
@@ -107,7 +107,7 @@ public abstract class RestServiceBase {
 		public final int activeLiveStreamCount;
 
 		public AppBroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
-									  int totalWebRTCWatchersCount, int totalDASHWatchersCount, int activeLiveStreamCount )
+				int totalWebRTCWatchersCount, int totalDASHWatchersCount, int activeLiveStreamCount )
 		{
 			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount, totalDASHWatchersCount);
 			this.activeLiveStreamCount = activeLiveStreamCount;
@@ -242,7 +242,7 @@ public abstract class RestServiceBase {
 	}
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
-										  String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs) {
+			String settingsListenerHookURL, ServerSettings serverSettings, long absoluteStartTimeMs) {
 
 		if (broadcast == null) {
 			broadcast = new Broadcast();
@@ -315,30 +315,24 @@ public abstract class RestServiceBase {
 
 		if (id != null && (broadcast = getDataStore().get(id)) != null)
 		{
-			boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
+			//no need to check if the stream is another node because RestProxyFilter makes this arrangement
+			
+			stopResult = stopBroadcastInternal(broadcast);
 
-			if (isCluster && !broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+			result.setSuccess(getDataStore().delete(id));
+
+			if(result.isSuccess())
 			{
-				logger.error("Please send a Delete Broadcast request to the {} node or Delete Broadcast in a stopped broadcast.", broadcast.getOriginAdress());
-				result.setSuccess(false);
-			}
-			else {
-				stopResult = stopBroadcastInternal(broadcast);
-
-				result.setSuccess(getDataStore().delete(id));
-
-				if(result.isSuccess())
-				{
-					if (stopResult) {
-						logger.info("broadcast {} is deleted and stopped successfully", broadcast.getStreamId());
-						result.setMessage("broadcast is deleted and stopped successfully");
-					}
-					else {
-						logger.info("broadcast {} is deleted but could not stopped", broadcast);
-						result.setMessage("broadcast is deleted but could not stopped ");
-					}
+				if (stopResult) {
+					logger.info("broadcast {} is deleted and stopped successfully", broadcast.getStreamId());
+					result.setMessage("broadcast is deleted and stopped successfully");
+				}
+				else {
+					logger.info("broadcast {} is deleted but could not stopped", broadcast);
+					result.setMessage("broadcast is deleted but could not stopped ");
 				}
 			}
+
 		}
 		else
 		{
@@ -724,7 +718,7 @@ public abstract class RestServiceBase {
 						"-u", stalkerDBUsername,
 						"-p"+stalkerDBPassword,
 						"-e",   query
-				).redirectErrorStream(true).start();
+						).redirectErrorStream(true).start();
 			} catch (IOException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -992,7 +986,7 @@ public abstract class RestServiceBase {
 				url.startsWith(RTSP) ||
 				url.startsWith("udp://") ||
 				url.startsWith("srt://")
-		)) {
+				)) {
 			streamUrlControl=true;
 			ipAddrParts = url.split("//");
 			ipAddr = ipAddrParts[1];
@@ -1550,7 +1544,7 @@ public abstract class RestServiceBase {
 		}
 		return list;
 	}
-	
+
 	protected ITokenService getTokenService() 
 	{
 		ApplicationContext appContext = getAppContext();
