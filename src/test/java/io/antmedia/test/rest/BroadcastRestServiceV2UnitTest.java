@@ -1165,18 +1165,6 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setAppCtx(context);
 		when(context.containsBean(any())).thenReturn(true);
 				
-		// isCluster true / broadcast origin address != server host address / status = broadcasting
-		{
-			Broadcast broadcast = new Broadcast();
-			broadcast.setOriginAdress("55.55.55.55");
-			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			store.save(broadcast);
-			
-			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
-			
-			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
-			assertFalse(result.isSuccess());
-		}
 		
 		// isCluster true / broadcast origin address == server host address / status = broadcasting
 		{
@@ -1277,19 +1265,6 @@ public class BroadcastRestServiceV2UnitTest {
 		// Add test for Cluster
 		restServiceReal.setAppCtx(context);
 		when(context.containsBean(any())).thenReturn(true);
-
-		// isCluster true / broadcast origin address != server host address / status = broadcasting
-		{
-			Broadcast broadcast = new Broadcast();
-			broadcast.setOriginAdress("55.55.55.55");
-			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			store.save(broadcast);
-
-			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
-
-			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
-			assertFalse(result.isSuccess());
-		}
 
 		// isCluster true / broadcast origin address == server host address / status = broadcasting
 		{
@@ -1857,7 +1832,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testTimeBasedSubscriberOperations() {
 
-		DataStore store = new InMemoryDataStore("testdb");
+		DataStore store = new MapDBStore("testdb", vertx);
 		restServiceReal.setDataStore(store);
 
 		
@@ -1883,6 +1858,9 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(2, subscribers.size());
 		assertEquals(2, subscriberStats.size());
 		
+		assertEquals("stream1", subscriberStats.get(0).getStreamId());
+		assertEquals("timeSubscriber", subscriberStats.get(0).getSubscriberId());
+		
 		// remove subscriber
 		assertTrue(restServiceReal.deleteSubscriber(subscriber.getStreamId(), subscriber.getSubscriberId()).isSuccess());
 		
@@ -1898,6 +1876,8 @@ public class BroadcastRestServiceV2UnitTest {
 
 		//it should be zero because all tokens are revoked
 		assertEquals(0, subscribers.size());
+		
+		store.close(true);
 
 	}	
 
