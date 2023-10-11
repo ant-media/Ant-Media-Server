@@ -136,6 +136,13 @@ public class ServerSettings implements ApplicationContextAware {
 
 	@Value( "${"+SETTINGS_LOG_LEVEL+":'INFO'}" )
 	private String logLevel = null;
+	
+	/**
+	 * if the license is offline. It checks license key against hardware
+	 * So license key should be provided by company specifically
+	 */
+	@Value( "${offlineLicense:false}" )
+	private boolean offlineLicense = false;
 
 	/**
 	 * Native Log Level is used for ffmpeg and WebRTC logs
@@ -583,6 +590,14 @@ public class ServerSettings implements ApplicationContextAware {
 	
 	public void setServerStatusWebHookURL(String serverStatusWebHookURL) {
 		this.serverStatusWebHookURL = serverStatusWebHookURL;
+	}
+
+	public boolean isOfflineLicense() {
+		return offlineLicense;
+	}
+
+	public void setOfflineLicense(boolean offlineLicense) {
+		this.offlineLicense = offlineLicense;
 	}
 
 }
