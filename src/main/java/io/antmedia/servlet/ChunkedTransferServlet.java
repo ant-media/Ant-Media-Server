@@ -227,8 +227,13 @@ public class ChunkedTransferServlet extends HttpServlet {
 				}
 			}
 			
-			Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
-			logger.info("File:{} was generated ", finalFile.getName());
+			if (finalFile.getParentFile().exists()) {
+				Files.move(tmpFile.toPath(), finalFile.toPath(), StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+				logger.debug("File:{} was generated ", finalFile.getName());
+			}
+			else {
+				logger.warn("Parent file of {} not exist", finalFile.getParent());
+			}
 		}
 		catch (ClientAbortException e) {
 			logger.warn("Client aborted - Reading input stream for file: {}", finalFile.getAbsolutePath());

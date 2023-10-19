@@ -3,6 +3,7 @@ package io.antmedia.datastore.db.types;
 import java.util.ArrayList;
 import java.util.List;
 
+import dev.morphia.utils.IndexType;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -18,7 +19,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 @ApiModel(value="Broadcast", description="The basic broadcast class")
 @Entity(value = "broadcast")
-@Indexes({ @Index(fields = @Field("name")), @Index(fields = @Field("streamId")) })
+@Indexes({ @Index(fields = @Field(value = "name", type = IndexType.TEXT)), @Index(fields = @Field("streamId")) })
 public class Broadcast {
 
 
@@ -819,5 +820,5 @@ public class Broadcast {
 	public void setUpdateTime(long updateTime) {
 		this.updateTime = updateTime;
 	}
-	
+
 }

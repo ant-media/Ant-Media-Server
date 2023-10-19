@@ -19,6 +19,7 @@ import io.antmedia.statistic.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
@@ -75,7 +76,9 @@ import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.antmedia.track.ISubtrackPoller;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -147,6 +150,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected Queue<IStreamListener> streamListeners = new ConcurrentLinkedQueue<>();
 
 	IClusterStreamFetcher clusterStreamFetcher;
+	
+	protected ISubtrackPoller subtrackPoller;
+
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -517,7 +523,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
-	public void updateMainBroadcast(Broadcast broadcast) {
+	/**
+	 * If multiple threads enter the method at the same time, the following method does not work correctly. 
+	 * So we have made it synchronized 
+	 * 
+	 * It fixes the bug that sometimes main track(room) is not deleted in the video conferences
+	 * 
+	 * mekya
+	 * 
+	 * @param broadcast
+	 */
+	public synchronized void updateMainBroadcast(Broadcast broadcast) {
 		Broadcast mainBroadcast = getDataStore().get(broadcast.getMainTrackStreamId());
 		mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
 		if(mainBroadcast.getSubTrackStreamIds().isEmpty() && mainBroadcast.isZombi()) {
@@ -587,8 +603,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				for (IStreamListener listener : streamListeners) {
 					listener.streamStarted(broadcast.getStreamId());
 				}
-
-
+				
+	
 				handler.complete();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -926,7 +942,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId) {
 		return streamAcceptFilter.isValidStreamParameters(width, height, fps, bitrate, streamId);
 	}
-
+	
+	
+	public static final boolean isStreaming(Broadcast broadcast) {
+		//if updatetime is older than 2 times update period time, regard that it's not streaming
+		return System.currentTimeMillis() - broadcast.getUpdateTime() < (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS) &&
+				(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()) 
+					||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(broadcast.getStatus()));
+	}
 
 	public Result startStreaming(Broadcast broadcast) 
 	{		
@@ -1004,11 +1027,25 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	@Override
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs) {
 
 		vertx.setTimer(500, h -> {
-			logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
-			getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
+			
+			Broadcast broadcastLocal = getDataStore().get(id);
+			if (broadcastLocal != null) 
+			{
+				//round the number to three decimal places, 
+				double roundedSpeed = Math.round(speed * 1000.0) / 1000.0;
+
+				logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
+				
+				broadcastLocal.setSpeed(roundedSpeed);
+				broadcastLocal.setPendingPacketSize(pendingPacketSize);
+				broadcastLocal.setUpdateTime(updateTimeMs);
+				broadcastLocal.setQuality(quality);
+				getDataStore().updateBroadcastFields(id, broadcastLocal);
+			}
+			
 		});
 	}
 
@@ -1438,7 +1475,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (encoderSettingsList != null) {
 			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
 				EncoderSettings encoderSettings = iterator.next();
-				if (encoderSettings.getHeight() <= 0 || encoderSettings.getVideoBitrate() <= 0 || encoderSettings.getAudioBitrate() <= 0)
+				if (encoderSettings.getHeight() <= 0)
 				{
 					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
 					return false;
@@ -1605,7 +1642,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (streamId.equals(muxAdaptor.getStreamId())) 
 				{
 					muxAdaptor.addPacketListener(listener);
-					logger.info("Packet listener is added to streamId:{}", streamId);
+					logger.info("Packet listener({}) is added to streamId:{}", listener.getClass().getSimpleName(), streamId);
 					isAdded = true;
 					break;
 				}
@@ -1724,6 +1761,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean stopPlaying(String viewerId) {
 		return false;
 	}
+
+	public boolean stopPlayingBySubscriberId(String subscriberId){
+		return false;
+	}
+
+	public boolean stopPublishingBySubscriberId(String subscriberId){
+		return false;
+	}
+
 	public void stopPublish(String streamId) {
 		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
 	}
@@ -1738,6 +1784,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public IClusterStreamFetcher createClusterStreamFetcher() {
 		return null;
+	}
+	
+	public Map<String, Queue<IWebRTCClient>> getWebRTCClientsMap() {
+		return Collections.emptyMap();
+	}
+
+	public ISubtrackPoller getSubtrackPoller() {
+		return subtrackPoller;
+	}
+
+	public void setSubtrackPoller(ISubtrackPoller subtrackPoller) {
+		this.subtrackPoller = subtrackPoller;
 	}
 
 

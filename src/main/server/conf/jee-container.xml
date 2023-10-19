@@ -104,6 +104,11 @@
 
 		<property name="valves">
 			<list>
+			    <!-- This valve replaces the apparent client remote IP address and hostname for the request with the IP address list presented by a proxy or a load balancer via a request headers (e.g. "X-Forwarded-For").
+					If the request is coming to the server through load balancer, this valve lets Tomcat see the client original ip address(that makes the request to tthe load balancer) as client Remote IP
+					If load balancer address is not in the internalProxies and trustedProxies, this operation may fail.
+					
+				-->
 				<bean id="valve.access" class="org.apache.catalina.valves.RemoteIpValve" />
 				<bean id="valve.access" class="org.apache.catalina.valves.AccessLogValve">
 					<property name="directory" value="log" />

@@ -10,6 +10,8 @@
 
 package org.webrtc;
 
+import org.webrtc.CalledByNative;
+import org.webrtc.Loggable;
 import org.webrtc.Logging.Severity;
 
 class JNILogging {

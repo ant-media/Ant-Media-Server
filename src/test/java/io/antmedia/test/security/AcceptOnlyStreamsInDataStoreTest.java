@@ -20,6 +20,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 
 public class AcceptOnlyStreamsInDataStoreTest {
@@ -106,23 +107,32 @@ public class AcceptOnlyStreamsInDataStoreTest {
 			Broadcast preparingBroadcast = new Broadcast();
 			preparingBroadcast.setStreamId("preparingStream");
 			preparingBroadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+			preparingBroadcast.setUpdateTime(System.currentTimeMillis());
 			dataStore.save(preparingBroadcast);
 			
 			Broadcast broadcastingBroadcast = new Broadcast();
 			broadcastingBroadcast.setStreamId("broadcastingStream");
 			broadcastingBroadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+			broadcastingBroadcast.setUpdateTime(System.currentTimeMillis());
 			dataStore.save(broadcastingBroadcast);
+			
+			Broadcast stuckedBroadcast = new Broadcast();
+			stuckedBroadcast.setStreamId("stuckedBroadcast");
+			stuckedBroadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+			stuckedBroadcast.setUpdateTime(System.currentTimeMillis() - 2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS -1000);
+			dataStore.save(stuckedBroadcast);
 			
 			Broadcast offlineBroadcast = new Broadcast();
 			offlineBroadcast.setStreamId("offlineStream");
 			offlineBroadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+			offlineBroadcast.setUpdateTime(System.currentTimeMillis());
 			dataStore.save(offlineBroadcast);
 			
 			
 			assertFalse(filter.isPublishAllowed(scope, preparingBroadcast.getStreamId(), "mode", null, null));
 			assertFalse(filter.isPublishAllowed(scope, broadcastingBroadcast.getStreamId(), "mode", null, null));
 			assertTrue(filter.isPublishAllowed(scope, offlineBroadcast.getStreamId(), "mode", null, null));
-			
+			assertTrue(filter.isPublishAllowed(scope, stuckedBroadcast.getStreamId(), "mode", null, null));
 			
 			
 			filter.setEnabled(false);
@@ -131,6 +141,8 @@ public class AcceptOnlyStreamsInDataStoreTest {
 			assertFalse(filter.isPublishAllowed(scope, preparingBroadcast.getStreamId(), "mode", null, null));
 			assertFalse(filter.isPublishAllowed(scope, broadcastingBroadcast.getStreamId(), "mode", null, null));
 			assertTrue(filter.isPublishAllowed(scope, offlineBroadcast.getStreamId(), "mode", null, null));
+			assertTrue(filter.isPublishAllowed(scope, stuckedBroadcast.getStreamId(), "mode", null, null));
+
 
 		} catch (Exception e) {
 			e.printStackTrace();

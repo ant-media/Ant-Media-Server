@@ -25,6 +25,7 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.filter.TokenSessionFilter;
@@ -102,7 +103,7 @@ public class TokenServiceTest {
 
 		//check subscriber
 		boolean flag = tokenService.checkTimeBasedSubscriber("subscriber2", "stream1", "sdafsd",
-				"fssdg", false);
+				"fssdg", Subscriber.PLAY_TYPE);
 
 		// it should be true because mock service always replies as true
 		assertTrue(flag);
