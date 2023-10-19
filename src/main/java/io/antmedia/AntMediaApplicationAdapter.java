@@ -20,6 +20,7 @@ import io.antmedia.statistic.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
@@ -73,7 +74,9 @@ import io.antmedia.statistic.type.WebRTCVideoSendStats;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.antmedia.track.ISubtrackPoller;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
+import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
@@ -148,6 +151,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected Queue<IStreamListener> streamListeners = new ConcurrentLinkedQueue<>();
 
 	IClusterStreamFetcher clusterStreamFetcher;
+	
+	protected ISubtrackPoller subtrackPoller;
+
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -519,7 +525,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
-	public void updateMainBroadcast(Broadcast broadcast) {
+	/**
+	 * If multiple threads enter the method at the same time, the following method does not work correctly. 
+	 * So we have made it synchronized 
+	 * 
+	 * It fixes the bug that sometimes main track(room) is not deleted in the video conferences
+	 * 
+	 * mekya
+	 * 
+	 * @param broadcast
+	 */
+	public synchronized void updateMainBroadcast(Broadcast broadcast) {
 		Broadcast mainBroadcast = getDataStore().get(broadcast.getMainTrackStreamId());
 		mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
 		if(mainBroadcast.getSubTrackStreamIds().isEmpty() && mainBroadcast.isZombi()) {
@@ -648,8 +664,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				for (IStreamListener listener : streamListeners) {
 					listener.streamStarted(broadcast.getStreamId());
 				}
-
-
+				
+	
 				handler.complete();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -990,7 +1006,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean isValidStreamParameters(int width, int height, int fps, int bitrate, String streamId) {
 		return streamAcceptFilter.isValidStreamParameters(width, height, fps, bitrate, streamId);
 	}
-
+	
+	
+	public static final boolean isStreaming(Broadcast broadcast) {
+		//if updatetime is older than 2 times update period time, regard that it's not streaming
+		return System.currentTimeMillis() - broadcast.getUpdateTime() < (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS) &&
+				(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()) 
+					||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(broadcast.getStatus()));
+	}
 
 	public Result startStreaming(Broadcast broadcast) 
 	{		
@@ -1068,11 +1091,25 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	@Override
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs) {
 
 		vertx.setTimer(500, h -> {
-			logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
-			getDataStore().updateSourceQualityParameters(id, quality, speed, pendingPacketSize);
+			
+			Broadcast broadcastLocal = getDataStore().get(id);
+			if (broadcastLocal != null) 
+			{
+				//round the number to three decimal places, 
+				double roundedSpeed = Math.round(speed * 1000.0) / 1000.0;
+
+				logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
+				
+				broadcastLocal.setSpeed(roundedSpeed);
+				broadcastLocal.setPendingPacketSize(pendingPacketSize);
+				broadcastLocal.setUpdateTime(updateTimeMs);
+				broadcastLocal.setQuality(quality);
+				getDataStore().updateBroadcastFields(id, broadcastLocal);
+			}
+			
 		});
 	}
 
@@ -1503,7 +1540,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (encoderSettingsList != null) {
 			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
 				EncoderSettings encoderSettings = iterator.next();
-				if (encoderSettings.getHeight() <= 0 || encoderSettings.getVideoBitrate() <= 0 || encoderSettings.getAudioBitrate() <= 0)
+				if (encoderSettings.getHeight() <= 0)
 				{
 					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
 					return false;
@@ -1539,102 +1576,33 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		 * If we know the case above, we will write better codes. 
 		 * 
 		 */
-		PreferenceStore store = new PreferenceStore(WEBAPPS_PATH + appName + "/WEB-INF/red5-web.properties");
-
-		store.put(AppSettings.SETTINGS_MP4_MUXING_ENABLED, String.valueOf(newAppsettings.isMp4MuxingEnabled()));
-		store.put(AppSettings.SETTINGS_WEBM_MUXING_ENABLED, String.valueOf(newAppsettings.isWebMMuxingEnabled()));
-		store.put(AppSettings.SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME, String.valueOf(newAppsettings.isAddDateTimeToMp4FileName()));
-		store.put(AppSettings.SETTINGS_HLS_MUXING_ENABLED, String.valueOf(newAppsettings.isHlsMuxingEnabled()));
-		store.put(AppSettings.SETTINGS_DASH_MUXING_ENABLED, String.valueOf(newAppsettings.isDashMuxingEnabled()));
-		store.put(AppSettings.SETTINGS_DELETE_DASH_FILES_ON_ENDED, String.valueOf(newAppsettings.isDeleteDASHFilesOnEnded()));
-
-		store.put(AppSettings.SETTINGS_HLS_ENABLED_VIA_DASH_LOW_LATENCY, String.valueOf(newAppsettings.isHlsEnabledViaDash()));
-		store.put(AppSettings.SETTINGS_HLS_ENABLE_LOW_LATENCY, String.valueOf(newAppsettings.islLHLSEnabled()));
-		store.put(AppSettings.SETTINGS_DASH_ENABLE_LOW_LATENCY, String.valueOf(newAppsettings.islLDashEnabled()));
-
-		store.put(AppSettings.SETTINGS_RTSP_TIMEOUT_DURATION_MS, String.valueOf(newAppsettings.getRtspTimeoutDurationMs()));
-
-		store.put(AppSettings.SETTINGS_UPLOAD_EXTENSIONS_TO_S3, String.valueOf(newAppsettings.getUploadExtensionsToS3()));
-		store.put(AppSettings.SETTINGS_S3_STORAGE_CLASS, String.valueOf(newAppsettings.getS3StorageClass()));
-
-
-		store.put(AppSettings.SETTINGS_ACCEPT_ONLY_STREAMS_IN_DATA_STORE, String.valueOf(newAppsettings.isAcceptOnlyStreamsInDataStore()));
-		store.put(AppSettings.SETTINGS_OBJECT_DETECTION_ENABLED, String.valueOf(newAppsettings.isObjectDetectionEnabled()));
-		store.put(AppSettings.SETTINGS_PUBLISH_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishTokenControlEnabled()));
-		store.put(AppSettings.SETTINGS_PLAY_TOKEN_CONTROL_ENABLED, String.valueOf(newAppsettings.isPlayTokenControlEnabled()));
-		store.put(AppSettings.SETTINGS_TIME_TOKEN_SUBSCRIBER_ONLY, String.valueOf(newAppsettings.isTimeTokenSubscriberOnly()));
-		store.put(AppSettings.SETTINGS_ENABLE_TIME_TOKEN_PLAY, String.valueOf(newAppsettings.isEnableTimeTokenForPlay()));
-		store.put(AppSettings.SETTINGS_ENABLE_TIME_TOKEN_PUBLISH, String.valueOf(newAppsettings.isEnableTimeTokenForPublish()));
-
-		store.put(AppSettings.SETTINGS_ENDPOINT_HEALTH_CHECK_PERIOD_MS, String.valueOf(newAppsettings.getEndpointHealthCheckPeriodMs()));
-		store.put(AppSettings.SETTINGS_ENDPOINT_REPUBLISH_LIMIT, String.valueOf(newAppsettings.getEndpointRepublishLimit()));
-
-
-		store.put(AppSettings.SETTINGS_PUBLISH_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isPublishJwtControlEnabled()));
-		store.put(AppSettings.SETTINGS_PLAY_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isPlayJwtControlEnabled()));
-		store.put(AppSettings.SETTINGS_JWT_STREAM_SECRET_KEY, newAppsettings.getJwtStreamSecretKey() != null ? newAppsettings.getJwtStreamSecretKey() : "");
-
-		store.put(AppSettings.SETTINGS_WEBRTC_ENABLED, String.valueOf(newAppsettings.isWebRTCEnabled()));
-		store.put(AppSettings.SETTINGS_WEBRTC_FRAME_RATE, String.valueOf(newAppsettings.getWebRTCFrameRate()));
-		store.put(AppSettings.SETTINGS_HASH_CONTROL_PUBLISH_ENABLED, String.valueOf(newAppsettings.isHashControlPublishEnabled()));
-		store.put(AppSettings.SETTINGS_HASH_CONTROL_PLAY_ENABLED, String.valueOf(newAppsettings.isHashControlPlayEnabled()));
-
-		store.put(AppSettings.SETTINGS_REMOTE_ALLOWED_CIDR, newAppsettings.getRemoteAllowedCIDR() != null 
-				? newAppsettings.getRemoteAllowedCIDR() 
-						: DEFAULT_LOCALHOST);
-
-		store.put(AppSettings.SETTINGS_VOD_FOLDER, newAppsettings.getVodFolder() != null ? newAppsettings.getVodFolder() : "");
-		store.put(AppSettings.SETTINGS_HLS_LIST_SIZE, String.valueOf(newAppsettings.getHlsListSize()));
-		store.put(AppSettings.SETTINGS_HLS_TIME, String.valueOf(newAppsettings.getHlsTime()));
-		store.put(AppSettings.SETTINGS_HLS_PLAY_LIST_TYPE, newAppsettings.getHlsPlayListType() != null ?  newAppsettings.getHlsPlayListType() : "");
-		store.put(AppSettings.SETTINGS_ENCODER_SETTINGS_STRING, AppSettings.encodersList2Str(newAppsettings.getEncoderSettings()));
-		store.put(AppSettings.TOKEN_HASH_SECRET, newAppsettings.getTokenHashSecret() != null ? newAppsettings.getTokenHashSecret() : "");
-		store.put(AppSettings.SETTINGS_PREVIEW_OVERWRITE, String.valueOf(newAppsettings.isPreviewOverwrite()));
-		store.put(AppSettings.SETTINGS_ALLOWED_PUBLISHER_IPS, newAppsettings.getAllowedPublisherCIDR() != null ? 
-				String.valueOf(newAppsettings.getAllowedPublisherCIDR())
-				: "");
-		store.put(AppSettings.SETTINGS_H264_ENABLED, String.valueOf(newAppsettings.isH264Enabled()));
-		store.put(AppSettings.SETTINGS_VP8_ENABLED, String.valueOf(newAppsettings.isVp8Enabled()));
-		store.put(AppSettings.SETTINGS_H265_ENABLED, String.valueOf(newAppsettings.isH265Enabled()));
-		store.put(AppSettings.SETTINGS_DATA_CHANNEL_ENABLED, String.valueOf(newAppsettings.isDataChannelEnabled()));
-		store.put(AppSettings.SETTINGS_DATA_CHANNEL_PLAYER_DISTRIBUTION, String.valueOf(newAppsettings.getDataChannelPlayerDistribution()));
-
-		store.put(AppSettings.SETTINGS_MAX_RESOLUTION_ACCEPT, String.valueOf(newAppsettings.getMaxResolutionAccept()));
-
-
-		store.put(AppSettings.SETTINGS_LISTENER_HOOK_URL, newAppsettings.getListenerHookURL() != null ? newAppsettings.getListenerHookURL() : "");
-
-		store.put(AppSettings.SETTINGS_STREAM_FETCHER_RESTART_PERIOD, String.valueOf(newAppsettings.getRestartStreamFetcherPeriod()));
-
-		store.put(AppSettings.SETTINGS_JWT_CONTROL_ENABLED, String.valueOf(newAppsettings.isJwtControlEnabled()));
-		store.put(AppSettings.SETTINGS_JWT_SECRET_KEY, newAppsettings.getJwtSecretKey() != null ? newAppsettings.getJwtSecretKey() : "");
-
-		store.put(AppSettings.SETTINGS_S3_RECORDING_ENABLED, String.valueOf(newAppsettings.isS3RecordingEnabled()));
-		// app setting S3
-		store.put(AppSettings.SETTINGS_S3_ACCESS_KEY, newAppsettings.getS3AccessKey() != null ? newAppsettings.getS3AccessKey() : "");
-		store.put(AppSettings.SETTINGS_S3_SECRET_KEY, newAppsettings.getS3SecretKey() != null ? newAppsettings.getS3SecretKey() : "");
-		store.put(AppSettings.SETTINGS_S3_REGION_NAME, newAppsettings.getS3RegionName() != null ? newAppsettings.getS3RegionName() : "");
-		store.put(AppSettings.SETTINGS_S3_BUCKET_NAME, newAppsettings.getS3BucketName() != null ? newAppsettings.getS3BucketName() : "");
-		store.put(AppSettings.SETTINGS_S3_ENDPOINT, newAppsettings.getS3Endpoint() != null ? newAppsettings.getS3Endpoint() : "");
-		store.put(AppSettings.SETTINGS_S3_PERMISSION, newAppsettings.getS3Permission() != null ? newAppsettings.getS3Permission() : "");
-
-		store.put(AppSettings.SETTINGS_IP_FILTER_ENABLED, String.valueOf(newAppsettings.isIpFilterEnabled()));
-		store.put(AppSettings.SETTINGS_GENERATE_PREVIEW, String.valueOf(newAppsettings.isGeneratePreview()));
-
-		store.put(AppSettings.SETTINGS_HLS_ENCRYPTION_KEY_INFO_FILE, newAppsettings.getHlsEncryptionKeyInfoFile() != null ? newAppsettings.getHlsEncryptionKeyInfoFile() : "");
-		store.put(AppSettings.SETTINGS_WEBHOOK_AUTHENTICATE_URL, newAppsettings.getWebhookAuthenticateURL() != null ? String.valueOf(newAppsettings.getWebhookAuthenticateURL()) : "");
-
-		store.put(AppSettings.SETTINGS_FORCE_ASPECT_RATIO_IN_TRANSCODING, String.valueOf(newAppsettings.isForceAspectRatioInTranscoding()));
-
-		store.put(AppSettings.SETTINGS_VOD_UPLOAD_FINISH_SCRIPT, newAppsettings.getVodFinishScript() != null ? String.valueOf(newAppsettings.getVodFinishScript()) : "");
-		//default value for DASH frag Duration is 0.5 seconds
-		store.put(AppSettings.SETTINGS_DASH_FRAGMENT_DURATION, newAppsettings.getDashFragmentDuration() != null ? newAppsettings.getDashFragmentDuration() : "0.5");
-		//default value for DASH Seg Duration is 6 seconds.
-		store.put(AppSettings.SETTINGS_DASH_SEG_DURATION, newAppsettings.getDashSegDuration() != null ? newAppsettings.getDashSegDuration() : "6");
-
-		store.put(AppSettings.SETTINGS_HLS_FLAGS, newAppsettings.getHlsflags() != null ? newAppsettings.getHlsflags() : "");
 		
-		store.put(AppSettings.SETTINGS_CLUSTER_COMMUNICATION_KEY, newAppsettings.getClusterCommunicationKey() != null ? newAppsettings.getClusterCommunicationKey() : "");
+		PreferenceStore store = new PreferenceStore(WEBAPPS_PATH + appName + "/WEB-INF/red5-web.properties");
+		
+		Field[] declaredFields = newAppsettings.getClass().getDeclaredFields();
+
+		for (Field field : declaredFields) 
+		{     
+			if (!Modifier.isFinal(field.getModifiers()) && !Modifier.isStatic(field.getModifiers())) 
+			{
+				if (field.trySetAccessible()) 
+				{	   
+					try {
+						Object value = field.get(newAppsettings);
+						if (value instanceof List) {
+							store.put(field.getName(), AppSettings.encodersList2Str(newAppsettings.getEncoderSettings()));
+						}
+						else {
+							store.put(field.getName(), value != null ? String.valueOf(value) : "");
+						}
+					} catch (IllegalArgumentException | IllegalAccessException e) {
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+					field.setAccessible(false);
+				}
+			}
+			
+		}
 
 		return store.save();
 	}
@@ -1738,7 +1706,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (streamId.equals(muxAdaptor.getStreamId())) 
 				{
 					muxAdaptor.addPacketListener(listener);
-					logger.info("Packet listener is added to streamId:{}", streamId);
+					logger.info("Packet listener({}) is added to streamId:{}", listener.getClass().getSimpleName(), streamId);
 					isAdded = true;
 					break;
 				}
@@ -1854,11 +1822,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		streamListeners.remove(listener);
 	}
 
-	public boolean stopPlayingByViewerId(String viewerId) {
+	public boolean stopPlaying(String viewerId) {
 		return false;
 	}
 
-	public boolean stopPlayingByPlayToken(String playToken) {
+
+	public boolean stopPlayingBySubscriberId(String subscriberId){
+		return false;
+	}
+
+	public boolean stopPublishingBySubscriberId(String subscriberId){
 		return false;
 	}
 
@@ -1876,6 +1849,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public IClusterStreamFetcher createClusterStreamFetcher() {
 		return null;
+	}
+	
+	public Map<String, Queue<IWebRTCClient>> getWebRTCClientsMap() {
+		return Collections.emptyMap();
+	}
+
+	public ISubtrackPoller getSubtrackPoller() {
+		return subtrackPoller;
+	}
+
+	public void setSubtrackPoller(ISubtrackPoller subtrackPoller) {
+		this.subtrackPoller = subtrackPoller;
 	}
 
 

@@ -144,7 +144,7 @@ public class ThreadUtils {
   }
 
   /**
-   * Post |callable| to |handler| and wait for the result.
+   * Post `callable` to `handler` and wait for the result.
    */
   /*
   public static <V> V invokeAtFrontUninterruptibly(
@@ -191,7 +191,7 @@ public class ThreadUtils {
   */
 
   /**
-   * Post |runner| to |handler|, at the front, and wait for completion.
+   * Post `runner` to `handler`, at the front, and wait for completion.
    */
   /*
   public static void invokeAtFrontUninterruptibly(final Handler handler, final Runnable runner) {

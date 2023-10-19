@@ -16,6 +16,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
@@ -26,8 +27,6 @@ public class TokenFilterManager extends AbstractFilter   {
 	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 	public static final String NOT_INITIALIZED= "Not initialized";
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterManager.class);
-	private ITokenService tokenService;
-
 	public static final String TOKEN_HEADER_FOR_NODE_COMMUNICATION = "ClusterAuthorization";
 
 
@@ -119,7 +118,7 @@ public class TokenFilterManager extends AbstractFilter   {
 				// 2. server in standalone mode
 
 				if ((appSettings.isTimeTokenSubscriberOnly() || appSettings.isEnableTimeTokenForPlay()) && 
-						!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, false)) {
+						!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, Subscriber.PLAY_TYPE)) {
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Time Based subscriber id or code is invalid");
 					logger.warn("subscriber request for subscriberID or subscriberCode is not valid for streamId: {}", streamId);
 					return; 					
@@ -149,21 +148,6 @@ public class TokenFilterManager extends AbstractFilter   {
 			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
 			logger.warn("Invalid method type({}) for stream: {} and request uri: {}", method, streamId, httpRequest.getRequestURI());
 		}
-	}
-
-	public ITokenService getTokenService() {
-		if (tokenService == null) {
-			ApplicationContext context = getAppContext();
-			if (context != null) {
-				tokenService = (ITokenService)context.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
-			}
-		}
-		return tokenService;
-	}
-
-
-	public void setTokenService(ITokenService tokenService) {
-		this.tokenService = tokenService;
 	}
 
 

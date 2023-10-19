@@ -15,6 +15,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -36,6 +37,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -74,6 +76,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService.SimpleStat;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
@@ -395,6 +398,7 @@ public class RestServiceV2Test {
 
 			if (response.getStatusLine().getStatusCode() == 404) {
 				//stream is not found
+				logger.info("Response to getBroadcast is 404. It means stream is not found or deleted");
 				return null;
 			}
 			else if (response.getStatusLine().getStatusCode() != 200){
@@ -667,6 +671,47 @@ public class RestServiceV2Test {
 		}
 
 
+	}
+	
+	public static List<SubscriberStats> getSubscriberStats(String streamId) 
+	{	 
+		try {
+			String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ streamId +"/subscriber-stats/list/0/10";
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+			HttpUriRequest post = RequestBuilder.get().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.build();
+
+			HttpResponse response = client.execute(post);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			
+			System.out.println("Get subscriber list string: " + result.toString());
+			Type listType = new TypeToken<List<SubscriberStats>>() {
+			}.getType();
+
+			return gson.fromJson(result.toString(), listType);
+			
+		} catch (UnsupportedEncodingException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		return null;
 	}
 
 

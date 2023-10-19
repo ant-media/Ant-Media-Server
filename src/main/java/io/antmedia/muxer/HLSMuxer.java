@@ -1,39 +1,27 @@
 package io.antmedia.muxer;
 
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H265;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
-import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_from_context;
-import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
-import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
-import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.nio.file.StandardOpenOption;
-import java.util.Set;
 
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
-import org.bytedeco.ffmpeg.avformat.AVIOContext;
-import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
-import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.javacpp.BytePointer;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.shaded.org.apache.commons.lang3.StringUtils;
 
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
@@ -65,7 +53,13 @@ public class HLSMuxer extends Muxer  {
 
 	private String httpEndpoint;
 	public static final int S3_CONSTANT = 0b010;
-	
+
+	//TODO: make this configurable
+	private int id3StreamIndex = 2;
+	private AVPacket id3DataPkt;
+
+	private boolean id3Enabled = false;
+
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
 		this.storageClient = storageClient;
@@ -87,19 +81,19 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile){
-		if (hlsListSize != null) {
+		if (hlsListSize != null && !hlsListSize.isEmpty()) {
 			this.hlsListSize = hlsListSize;
 		}
 
-		if (hlsTime != null) {
+		if (hlsTime != null && !hlsTime.isEmpty()) {
 			this.hlsTime = hlsTime;
 		}
 
-		if (hlsPlayListType != null) {
+		if (hlsPlayListType != null && !hlsPlayListType.isEmpty()) {
 			this.hlsPlayListType = hlsPlayListType;
 		}
 
-		if (hlsFlags != null) {
+		if (hlsFlags != null && !hlsFlags.isEmpty()) {
 			this.hlsFlags = hlsFlags;
 		}
 		else {
@@ -130,13 +124,12 @@ public class HLSMuxer extends Muxer  {
 
 			logger.info("hls time: {}, hls list size: {} for stream:{}", hlsTime, hlsListSize, streamId);
 
-			if (httpEndpoint == null) 
-			{
-				segmentFilename = file.getParentFile() + File.separator + initialResourceNameWithoutExtension;
-			}
-			else 
+			if (StringUtils.isNotBlank(httpEndpoint)) 			
 			{
 				segmentFilename = httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + initialResourceNameWithoutExtension;
+			}
+			else {
+				segmentFilename = file.getParentFile() + File.separator + initialResourceNameWithoutExtension;
 			}
 			segmentFilename += SEGMENT_SUFFIX_TS;
 					
@@ -154,11 +147,11 @@ public class HLSMuxer extends Muxer  {
 		}
 
 	}
-	
+
 	@Override
 	public String getOutputURL() 
 	{
-		if (httpEndpoint != null )
+		if (StringUtils.isNotBlank(httpEndpoint))
 		{
 			return httpEndpoint + File.separator + initialResourceNameWithoutExtension  + extension;
 		}
@@ -206,10 +199,62 @@ public class HLSMuxer extends Muxer  {
 		if (startTime == 0) {
 			startTime = currentTime;
 		}
-		
+
 		super.writePacket(pkt, inputTimebase, outputTimebase, codecType);
 	}
 
+	public synchronized void addID3Data(String data) {
+		int id3TagSize = data.length() + 3; // TXXX frame size (excluding 10 byte header)
+		int tagSize = id3TagSize + 10;
+
+		ByteBuffer byteBuffer = ByteBuffer.allocate(tagSize+10);
+
+		byteBuffer.put("ID3".getBytes());
+		byteBuffer.put(new byte[]{0x03, 0x00}); // version
+		byteBuffer.put((byte) 0x00); // flags
+		byteBuffer.putInt(tagSize); // size
+
+		// TXXX frame
+		byteBuffer.put("TXXX".getBytes());
+		byteBuffer.putInt(id3TagSize); // size
+		byteBuffer.put(new byte[]{0x00, 0x00}); // flags
+		byteBuffer.put((byte) 0x03); // encoding
+		byteBuffer.put((byte) 0x00); // description 00
+		byteBuffer.put(data.getBytes()); // description
+		byteBuffer.put((byte) 0x00); // end of string
+
+		byteBuffer.rewind();
+
+		writeID3Packet(byteBuffer);
+	}
+
+	public synchronized void writeID3Packet(ByteBuffer data)
+	{
+		long pts = System.currentTimeMillis() - startTime;
+		id3DataPkt.pts(pts);
+		id3DataPkt.dts(pts);
+		id3DataPkt.stream_index(id3StreamIndex);
+
+		id3DataPkt.data(new BytePointer(data));
+		id3DataPkt.size(data.limit());
+		id3DataPkt.position(0);
+		writePacket(id3DataPkt, (AVCodecContext)null);
+	}
+
+	@Override
+	public boolean writeHeader() {
+		createID3StreamIfRequired();
+		return super.writeHeader();
+	}
+
+	public void createID3StreamIfRequired() {
+		if(id3Enabled) {
+			id3DataPkt = avcodec.av_packet_alloc();
+			av_init_packet(id3DataPkt);
+
+			addID3Stream();
+		}
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -218,7 +263,7 @@ public class HLSMuxer extends Muxer  {
 	public synchronized void writeTrailer() {
 		super.writeTrailer();
 		
-		if (httpEndpoint == null) 
+		if (!StringUtils.isNotBlank(this.httpEndpoint)) 
 		{
 			logger.info("Delete File onexit:{} upload to S3:{} stream:{} hls time:{} hlslist size:{}",
 					deleteFileOnExit, uploadHLSToS3, streamId, hlsTime, hlsListSize);
@@ -285,7 +330,19 @@ public class HLSMuxer extends Muxer  {
 	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
 		bsfVideoName = "h264_mp4toannexb";
-		return super.addStream(codecParameters, timebase, streamIndex);
+
+		boolean ret = super.addStream(codecParameters, timebase, streamIndex);
+
+		return ret;
+	}
+
+	public boolean addID3Stream() {
+		AVCodecParameters codecParameter = new AVCodecParameters();
+
+		codecParameter.codec_type(AVMEDIA_TYPE_DATA);
+		codecParameter.codec_id(AV_CODEC_ID_TIMED_ID3);
+
+		return super.addStream(codecParameter, MuxAdaptor.TIME_BASE_FOR_MS, id3StreamIndex);
 	}
 	
 	public String getHlsListSize() {
@@ -327,5 +384,9 @@ public class HLSMuxer extends Muxer  {
 	public String getSegmentFilename() {
 		return segmentFilename;
 
+	}
+
+	public void setId3Enabled(boolean id3Enabled) {
+		this.id3Enabled = id3Enabled;
 	}
 }

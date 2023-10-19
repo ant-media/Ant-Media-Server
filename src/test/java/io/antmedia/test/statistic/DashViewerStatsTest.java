@@ -105,6 +105,7 @@ public class DashViewerStatsTest {
 
 		DataStore dataStore = new InMemoryDataStore("datastore");
 		viewerStats.setDataStore(dataStore);
+		viewerStats.setServerSettings(new ServerSettings());
 		
 		String streamId = "stream1";
 		
@@ -146,13 +147,14 @@ public class DashViewerStatsTest {
 	
 	@Test
 	public void testGetTimeout() {
-		AppSettings settings = mock(AppSettings.class);
-		when(settings.getDashFragmentDuration()).thenReturn("");
+		AppSettings settings = new AppSettings();
+		
+		settings.setDashFragmentDuration("");
 		
 		int defaultValue = DashViewerStats.DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT;
 		assertEquals(defaultValue, DashViewerStats.getTimeoutMSFromSettings(settings, defaultValue, DashViewerStats.DASH_TYPE));
 		
-		when(settings.getDashFragmentDuration()).thenReturn("0.5");
+		settings.setDashFragmentDuration("0.5");
 		
 		assertEquals(10000, DashViewerStats.getTimeoutMSFromSettings(settings, defaultValue, DashViewerStats.DASH_TYPE));
 		
@@ -177,10 +179,10 @@ public class DashViewerStatsTest {
 			
 			when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 
-			AppSettings settings = mock(AppSettings.class);
+			AppSettings settings = new AppSettings();
 
 			//set dash fragment duration to 0.5
-			when(settings.getDashFragmentDuration()).thenReturn("0.5");
+			settings.setDashFragmentDuration("0.5");
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
@@ -415,11 +417,10 @@ public class DashViewerStatsTest {
 			
 			when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 
-			AppSettings settings = mock(AppSettings.class);
+			AppSettings settings = new AppSettings();
 
 			//set dash fragment duration time to 1
-			when(settings.getDashFragmentDuration()).thenReturn("0.5");
-			
+			settings.setDashFragmentDuration("0.5");
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 			

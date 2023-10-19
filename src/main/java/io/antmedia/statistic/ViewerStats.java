@@ -15,7 +15,9 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConnectionEvent;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
 public class ViewerStats {
@@ -30,6 +32,9 @@ public class ViewerStats {
 	public static final String WEBRTC_TYPE = "webrtc";
 
 
+	//hls or dash
+	private String type;
+	
 	private DataStore dataStore;
 	
 	protected DataStoreFactory dataStoreFactory;
@@ -47,14 +52,16 @@ public class ViewerStats {
 	
 	private Object lock = new Object();
 	
+	protected ServerSettings serverSettings;
+
+	
 	/**
 	 * Time out value in milliseconds, it is regarded as user is not watching stream 
 	 * if last request time is older than timeout value
 	 */
-	protected int timeoutMS = 20000;
+	protected int timeoutMS = 10000;
 	
-	public void registerNewViewer(String streamId, String sessionId, String subscriberId, String viewerType, String jwt,  AntMediaApplicationAdapter antMediaApplicationAdapter)
-	{
+	public void registerNewViewer(String streamId, String sessionId, String subscriberId, String viewerType, String jwt,  AntMediaApplicationAdapter antMediaApplicationAdapter) {
 		//do not block the thread, run in vertx event queue 
 		vertx.runOnContext(h -> {
 			synchronized (lock) {
@@ -81,6 +88,19 @@ public class ViewerStats {
 				viewerMap.put(sessionId, System.currentTimeMillis());
 				streamsViewerMap.put(streamId, viewerMap);
 				if(subscriberId != null) {
+					
+					Subscriber subscriber = getDataStore().getSubscriber(streamId, subscriberId);
+					if (subscriber == null) {
+						subscriber = new Subscriber();
+						subscriber.setStreamId(streamId);
+						subscriber.setSubscriberId(subscriberId);
+					}
+					subscriber.setRegisteredNodeIp(serverSettings.getHostAddress());
+					
+					//if subscriber is coming from the DB following command just updates the one in the db
+					getDataStore().addSubscriber(streamId, subscriber);
+					
+					
 					// map sessionId to subscriberId
 					sessionId2subscriberId.put(sessionId, subscriberId);
 					// add a connected event to the subscriber
@@ -88,8 +108,12 @@ public class ViewerStats {
 					event.setEventType(ConnectionEvent.CONNECTED_EVENT);
 					Date curDate = new Date();
 					event.setTimestamp(curDate.getTime());
+					event.setEventProtocol(getType());
+					
 					//TODO: There is a bug here. It adds +1 for each ts request 
-					getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
+					if (getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event)) {
+						logger.info("CONNECTED_EVENT for subscriberId:{} streamId:{}", subscriberId, streamId);
+					}
 				}
 			}
 			
@@ -273,7 +297,10 @@ public class ViewerStats {
 							event.setEventType(ConnectionEvent.DISCONNECTED_EVENT);
 							Date curDate = new Date();
 							event.setTimestamp(curDate.getTime());
-							getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
+							event.setEventProtocol(getType());
+							if (getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event)) {
+								logger.info("DISCONNECTED_EVENT for subscriberId:{} and streamId:{}", subscriberId, streamId);
+							}
 						}
 					}
 				}
@@ -327,4 +354,18 @@ public class ViewerStats {
 		}
 		
 	}
+
+	
+	public void setServerSettings(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
 }

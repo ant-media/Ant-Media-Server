@@ -75,9 +75,9 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 	}
 
 	@Override
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize) {
+	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTime) {
 		if (enableSourceHealthUpdate) {
-			super.setQualityParameters(id, quality, speed, pendingPacketSize);
+			super.setQualityParameters(id, quality, speed, pendingPacketSize, updateTime);
 		}
 	}
 	

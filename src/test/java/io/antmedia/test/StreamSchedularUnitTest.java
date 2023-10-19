@@ -284,22 +284,22 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Mockito.when(streamFetcher.getMuxAdaptor()).thenReturn(muxAdaptor);
 		streamFetcherManager.checkStreamFetchersStatus();
-		Mockito.verify(muxAdaptor).changeStreamQualityParameters("streamId", null, 0.01d, 0);
+		Mockito.verify(muxAdaptor).updateStreamQualityParameters("streamId", null, 0.01d, 0);
 
 		Mockito.when(streamFetcher.getMuxAdaptor()).thenReturn(null);
 		streamFetcherManager.checkStreamFetchersStatus();
-		Mockito.verify(muxAdaptor, Mockito.times(1)).changeStreamQualityParameters("streamId", null, 0.01d, 0);
+		Mockito.verify(muxAdaptor, Mockito.times(1)).updateStreamQualityParameters("streamId", null, 0.01d, 0);
 
 
 		Mockito.when(streamFetcher.getStreamId()).thenReturn(null);
 		Mockito.when(streamFetcher.getMuxAdaptor()).thenReturn(muxAdaptor);
 		streamFetcherManager.checkStreamFetchersStatus();
-		Mockito.verify(muxAdaptor, Mockito.times(1)).changeStreamQualityParameters("streamId", null, 0.01d, 0);
+		Mockito.verify(muxAdaptor, Mockito.times(1)).updateStreamQualityParameters("streamId", null, 0.01d, 0);
 
 
 		streamFetcherManager.setDatastore(null);
 		streamFetcherManager.checkStreamFetchersStatus();
-		Mockito.verify(muxAdaptor, Mockito.times(1)).changeStreamQualityParameters("streamId", null, 0.01d, 0);
+		Mockito.verify(muxAdaptor, Mockito.times(1)).updateStreamQualityParameters("streamId", null, 0.01d, 0);
 
 
 
@@ -842,7 +842,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		streams.add(newZombiSource);
 
 		//let stream fetching start
-		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
+		app.getStreamFetcherManager().testSetStreamCheckerInterval(5000);
 		//do not restart if it fails
 		app.getStreamFetcherManager().setRestartStreamAutomatically(false);
 		app.getStreamFetcherManager().startStreams(streams);

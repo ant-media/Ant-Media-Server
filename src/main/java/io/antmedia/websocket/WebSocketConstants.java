@@ -177,7 +177,15 @@ public class WebSocketConstants {
 	public static final String STREAM_TIME_INVALID = "stream_not_active_or_expired";
 	
 	
+	/**
+	 * This is sent back to the user if token is not valid
+	 */
 	public static final String UNAUTHORIZED = "unauthorized_access";
+	
+	/**
+	 * This is sent back to the user when subscriber is blocked to play or publish
+	 */
+	public static final String BLOCKED = "user_blocked";
 	
 	/**
 	 * This is sent back to the user when a new play message received while
