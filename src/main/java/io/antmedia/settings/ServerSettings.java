@@ -80,16 +80,16 @@ public class ServerSettings implements ApplicationContextAware {
 	private static final String SETTINGS_SERVER_NAME = "server.name";
 
 	private static final String SETTINGS_MARKET_PLACE_NAME = "server.marketplace";
-	
+
 	public static final String SETTINGS_JWT_SERVER_SECRET_KEY = "server.jwtServerSecretKey";
-		
+
 	/** jwt server filter control*/
 	public static final String SETTINGS_JWT_SERVER_CONTROL_ENABLED = "server.jwtServerControlEnabled";
-	
+
 	public static final String SETTINGS_JWKS_URL = "server.jwksURL";
 
 	private static final String SETTINGS_SERVER_STATUS_WEBHOOK_URL = "server.statusWebHookURL";
-	
+
 	/**
 	 * The IP filter that is allowed to access the web panel of Ant Media Server
 	 */
@@ -114,7 +114,7 @@ public class ServerSettings implements ApplicationContextAware {
 	 */
 	@Value( "${"+SETTINGS_SERVER_NAME+":#{null}}" )
 	private String serverName;
-	
+
 	/**
 	 * Customer License Key
 	 */
@@ -136,7 +136,7 @@ public class ServerSettings implements ApplicationContextAware {
 
 	@Value( "${"+SETTINGS_LOG_LEVEL+":'INFO'}" )
 	private String logLevel = null;
-	
+
 	/**
 	 * if the license is offline. It checks license key against hardware
 	 * So license key should be provided by Ant Media specifically.
@@ -235,8 +235,8 @@ public class ServerSettings implements ApplicationContextAware {
 	 */
 	@Value("${"+SETTINGS_SRT_PORT + ":4200}")
 	private int srtPort = 4200;
-	
-	
+
+
 	private boolean sslEnabled = false;
 	/**
 	 * The RTMP port that server opens to listen incoming RTMP connections
@@ -244,7 +244,7 @@ public class ServerSettings implements ApplicationContextAware {
 	@Value("${"+SETTINGS_RTMP_PORT + ":1935}")
 	private int rtmpPort = 1935;
 
-	
+
 	/**
 	 * Server status webhook url. It's called for several errors such 
 	 * - high resource usage
@@ -315,7 +315,7 @@ public class ServerSettings implements ApplicationContextAware {
 		if (globalHostAddress == null) 
 		{
 			try (InputStream in = new URL("http://checkip.amazonaws.com").openStream()){
-				
+
 				globalHostAddress = IOUtils.toString(in, Charset.defaultCharset()).trim();
 			} catch (IOException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -369,10 +369,10 @@ public class ServerSettings implements ApplicationContextAware {
 			hostAddress = getLocalHostAddress();
 			logger.info("Using local host address is {}", hostAddress);
 		}
-		
+
 		if (applicationContext.containsBean("tomcat.server")) {
 			TomcatLoader tomcatLoader = (TomcatLoader) applicationContext.getBean("tomcat.server");
-			
+
 			List<TomcatConnector> connectors = tomcatLoader.getConnectors();
 			for (TomcatConnector tomcatConnector : connectors) {
 				if (tomcatConnector.isSecure()) {
@@ -381,16 +381,20 @@ public class ServerSettings implements ApplicationContextAware {
 				}
 			}
 		}
-		
-		ILicenceService licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 
-		if (ILicenceService.LICENCE_TYPE_MARKETPLACE.equals(licenseService.getLicenseType())) {
-			buildForMarket = true;
+		if (applicationContext.containsBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())) 
+		{
+
+			ILicenceService licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+
+			if (ILicenceService.LICENCE_TYPE_MARKETPLACE.equals(licenseService.getLicenseType())) {
+				buildForMarket = true;
+			}
+			else if (ILicenceService.LICENCE_TYPE_OFFLINE.equals(licenseService.getLicenseType())) {
+				offlineLicense = true;
+			}
 		}
-		else if (ILicenceService.LICENCE_TYPE_OFFLINE.equals(licenseService.getLicenseType())) {
-			offlineLicense = true;
-		}
-		
+
 
 	}
 
@@ -568,7 +572,7 @@ public class ServerSettings implements ApplicationContextAware {
 	public void setMarketplace(String marketplace) {
 		this.marketplace = marketplace;
 	}
-	
+
 	public String getJwtServerSecretKey() {
 		return jwtServerSecretKey;
 	}
@@ -597,7 +601,7 @@ public class ServerSettings implements ApplicationContextAware {
 		return serverStatusWebHookURL;
 	}
 
-	
+
 	public void setServerStatusWebHookURL(String serverStatusWebHookURL) {
 		this.serverStatusWebHookURL = serverStatusWebHookURL;
 	}
@@ -605,7 +609,7 @@ public class ServerSettings implements ApplicationContextAware {
 	public boolean isOfflineLicense() {
 		return offlineLicense;
 	}
-	
+
 	public void setOfflineLicense(boolean offlineLicense) {
 		this.offlineLicense = offlineLicense;
 	}
