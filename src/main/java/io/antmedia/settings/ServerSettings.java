@@ -29,6 +29,8 @@ import org.webrtc.Logging;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
+import io.antmedia.licence.ILicenceService;
+
 @PropertySource("/conf/red5.properties")
 @JsonIgnoreProperties(ignoreUnknown=true)
 public class ServerSettings implements ApplicationContextAware {
@@ -72,8 +74,6 @@ public class ServerSettings implements ApplicationContextAware {
 	private static final String SETTINGS_NATIVE_LOG_LEVEL = "nativeLogLevel";
 
 	private static final String SETTINGS_LOG_LEVEL = "logLevel";
-
-	private static final String SETTINGS_MARKET_BUILD = "server.market_build";
 
 	private static final String SETTINGS_LICENSE_KEY = "server.licence_key";
 
@@ -122,9 +122,9 @@ public class ServerSettings implements ApplicationContextAware {
 	private String licenceKey;
 
 	/**
-	 * The setting for customized marketplace build
+	 * The setting for customized marketplace build.
+	 * It's initialized by getting the value from the LicenceBean
 	 */
-	@Value( "${"+SETTINGS_MARKET_BUILD+":false}" )
 	private boolean buildForMarket = false;
 
 	/**
@@ -139,9 +139,9 @@ public class ServerSettings implements ApplicationContextAware {
 	
 	/**
 	 * if the license is offline. It checks license key against hardware
-	 * So license key should be provided by company specifically
+	 * So license key should be provided by Ant Media specifically.
+	 * It's initialized by getting the value from the LicenceBean
 	 */
-	@Value( "${offlineLicense:false}" )
 	private boolean offlineLicense = false;
 
 	/**
@@ -381,6 +381,16 @@ public class ServerSettings implements ApplicationContextAware {
 				}
 			}
 		}
+		
+		ILicenceService licenseService = (ILicenceService) applicationContext.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+
+		if (ILicenceService.LICENCE_TYPE_MARKETPLACE.equals(licenseService.getLicenseType())) {
+			buildForMarket = true;
+		}
+		else if (ILicenceService.LICENCE_TYPE_OFFLINE.equals(licenseService.getLicenseType())) {
+			offlineLicense = true;
+		}
+		
 
 	}
 
@@ -595,9 +605,10 @@ public class ServerSettings implements ApplicationContextAware {
 	public boolean isOfflineLicense() {
 		return offlineLicense;
 	}
-
+	
 	public void setOfflineLicense(boolean offlineLicense) {
 		this.offlineLicense = offlineLicense;
 	}
+
 
 }

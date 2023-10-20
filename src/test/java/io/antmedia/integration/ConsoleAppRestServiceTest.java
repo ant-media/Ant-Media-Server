@@ -567,13 +567,11 @@ public class ConsoleAppRestServiceTest{
 
 			assertEquals("newServerName", serverSettings.getServerName());
 			assertEquals("newLicenseKey", serverSettings.getLicenceKey());
-			assertEquals(!isMarketRelease, serverSettings.isBuildForMarket());
 
 			// return back to original values
 
 			serverSettings.setServerName(serverName);
 			serverSettings.setLicenceKey(licenseKey);
-			serverSettings.setBuildForMarket(isMarketRelease);
 
 			//save original settings
 			result = callSetServerSettings(serverSettings);
