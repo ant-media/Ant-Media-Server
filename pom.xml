@@ -665,7 +665,7 @@
 		<dependency>
 		   <groupId>org.redisson</groupId>
 		   <artifactId>redisson</artifactId>
-		   <version>3.17.4</version>
+		   <version>${redisson.version}</version>
 		   <scope>provided</scope>
 		</dependency>  
 
