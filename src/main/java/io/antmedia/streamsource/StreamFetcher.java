@@ -17,6 +17,7 @@ import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.antmedia.FFmpegUtilities;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
@@ -173,7 +174,7 @@ public class StreamFetcher {
 			byte[] data = new byte[100];
 			avutil.av_strerror(ret, data, data.length);
 
-			String errorStr=new String(data, 0, data.length);
+			String errorStr = FFmpegUtilities.byteArrayToString(data);
 
 			result.setMessage(errorStr);		
 

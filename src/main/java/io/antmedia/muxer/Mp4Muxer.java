@@ -57,6 +57,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
+import io.antmedia.FFmpegUtilities;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
@@ -329,7 +330,7 @@ public class Mp4Muxer extends RecordMuxer {
 				if (ret < 0 && logger.isInfoEnabled()) {
 					byte[] data = new byte[2048];
 					av_strerror(ret, data, data.length);
-					logger.info("cannot write audio frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), new String(data, 0, data.length));
+					logger.info("cannot write audio frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), FFmpegUtilities.byteArrayToString(data));
 					logger.info("input timebase num/den {}/{}"
 							+ "output timebase num/den {}/{}", inputTimebase.num(), inputTimebase.den(),
 							outputTimebase.num(),  outputTimebase.den());
