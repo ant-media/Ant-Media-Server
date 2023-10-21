@@ -12,6 +12,12 @@ import dev.morphia.annotations.Indexes;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
+/**
+ * Use subscriber class
+ * @author mekya
+ *
+ */
+@Deprecated
 @ApiModel(value="WebRTCViewerInfo", description="Stores the info for a WebRTC viewer")
 @Entity(value = "WebRTCViewerInfo")
 @Indexes({ @Index(fields = @Field("viewerId")) })
