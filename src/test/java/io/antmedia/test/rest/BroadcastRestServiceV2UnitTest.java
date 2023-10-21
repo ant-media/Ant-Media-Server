@@ -34,8 +34,6 @@ import java.util.concurrent.TimeUnit;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import io.antmedia.srt.ISRTAdaptor;
-import io.antmedia.srt.SRTAdaptor;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
@@ -1929,7 +1927,6 @@ public class BroadcastRestServiceV2UnitTest {
 
 		DataStore ds = Mockito.mock(DataStore.class);
 		String streamId = "test-stream";
-		String srtStreamId = "srtTestStream";
 
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
@@ -1939,39 +1936,23 @@ public class BroadcastRestServiceV2UnitTest {
 		IContext context = mock(IContext.class);
 		Mockito.doReturn(context).when(scope).getContext();
 		
-		ISRTAdaptor srtAdaptor = mock(ISRTAdaptor.class);
-
-		when(context.getBean(ISRTAdaptor.BeanName.SRT_ADAPTOR.toString())).thenReturn(srtAdaptor);
-		when(srtAdaptor.stopSRTStream(srtStreamId)).thenReturn(true);
-
 		Broadcast broadcast = new Broadcast();
-		Broadcast srtBroadcast = new Broadcast();
 
 		try {
 			broadcast.setStreamId(streamId);
-			srtBroadcast.setStreamId(srtStreamId);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
-		srtBroadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
-		srtBroadcast.setPublishType(SRTAdaptor.PUBLISH_TYPE);
 
 		Mockito.doReturn(broadcast).when(ds).get(streamId);
-		Mockito.doReturn(srtBroadcast).when(ds).get(srtStreamId);
 
 		restService.setDataStore(ds);
 		restService.setApplication(app);
 
 		restService.stopStreamingV2(streamId);
-		restService.stopStreamingV2(srtStreamId);
-
 
 		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(scope, streamId);
-		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(scope, srtStreamId);
-
-		Mockito.verify(srtAdaptor, Mockito.times(1)).stopSRTStream(srtStreamId);
-
 	}
 
 	@Test

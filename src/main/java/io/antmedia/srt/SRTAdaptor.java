@@ -7,9 +7,6 @@ package io.antmedia.srt;
  * Real implementation is in Enterprise project
  *
  */
-public class SRTAdaptor implements ISRTAdaptor{
-    @Override
-    public boolean stopSRTStream(String streamId) {
-        return false;
-    }
+public class SRTAdaptor {
+
 }
