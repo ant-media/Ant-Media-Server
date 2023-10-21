@@ -508,8 +508,12 @@ public abstract class DataStore {
 		List<Subscriber> subscribers= listAllSubscribers(streamId, offset, size);
 		List<SubscriberStats> subscriberStats = new ArrayList<>();
 
+		
 		for(Subscriber subscriber : subscribers) {
-			subscriberStats.add(subscriber.getStats());
+			SubscriberStats stat = subscriber.getStats();
+			stat.setStreamId(subscriber.getStreamId());
+			stat.setSubscriberId(subscriber.getSubscriberId());
+			subscriberStats.add(stat);
 		}
 
 		return subscriberStats;

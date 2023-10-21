@@ -3,6 +3,7 @@ package io.antmedia.filter;
 
 import java.io.IOException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Date;
 
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -99,6 +100,28 @@ public class JWTFilter extends AbstractFilter {
 		} 
 
 		return result;
+	}
+	
+	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs) {
+		return generateJwtToken(jwtSecretKey, expireDateUnixTimeStampMs, "");
+	}
+	
+	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs, String issuer) {
+		Date expireDateType = new Date(expireDateUnixTimeStampMs);
+		String jwtTokenId = null;
+		try {
+			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+
+			jwtTokenId = JWT.create().
+					withExpiresAt(expireDateType).
+					withIssuer(issuer).
+					sign(algorithm);
+
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return jwtTokenId;
 	}
 
 

@@ -26,6 +26,8 @@ public class DashViewerStats extends ViewerStats implements IStreamStats, Applic
 	public void setApplicationContext(ApplicationContext applicationContext)  {
 		dataStoreFactory = (DataStoreFactory) applicationContext.getBean(IDataStoreFactory.BEAN_NAME);
 		
+		setType(ViewerStats.DASH_TYPE);
+
 		vertx = (Vertx) applicationContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
 		serverSettings = (ServerSettings)applicationContext.getBean(ServerSettings.BEAN_NAME);
