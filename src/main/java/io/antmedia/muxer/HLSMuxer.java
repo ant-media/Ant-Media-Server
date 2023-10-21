@@ -46,7 +46,7 @@ public class HLSMuxer extends Muxer  {
 	private String hlsEncryptionKeyInfoFile = null;
 
 	protected StorageClient storageClient = null;
-	private String subFolder = null;
+	private String subFolder = null; 
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
 	private String segmentFilename;
@@ -204,29 +204,6 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	public synchronized void addID3Data(String data) {
-		int id3TagSize = data.length() + 3; // TXXX frame size (excluding 10 byte header)
-		int tagSize = id3TagSize + 10;
-
-		/*
-		ByteBuffer byteBuffer = ByteBuffer.allocate(tagSize+10);
-
-		byteBuffer.put("ID3".getBytes());
-		byteBuffer.put(new byte[]{0x03, 0x00}); // version
-		byteBuffer.put((byte) 0x00); // flags
-		byteBuffer.putInt(tagSize); // size
-
-		// TXXX frame
-		byteBuffer.put("TXXX".getBytes());
-		byteBuffer.putInt(id3TagSize); // size
-		byteBuffer.put(new byte[]{0x00, 0x00}); // flags
-		byteBuffer.put((byte) 0x03); // encoding
-		byteBuffer.put((byte) 0x00); // description 00
-		byteBuffer.put(data.getBytes()); // description
-		byteBuffer.put((byte) 0x00); // end of string
-
-		byteBuffer.rewind();
- 		*/
-
 		ByteBuffer byteBuffer = ByteBuffer.allocate(data.length());
 		byteBuffer.put(data.getBytes()); // description
 
