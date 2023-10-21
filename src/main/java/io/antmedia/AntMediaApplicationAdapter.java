@@ -8,7 +8,12 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
@@ -16,11 +21,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.validation.constraints.NotNull;
 
-import io.antmedia.statistic.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
@@ -66,6 +69,9 @@ import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.shutdown.IShutdownListener;
+import io.antmedia.statistic.DashViewerStats;
+import io.antmedia.statistic.HlsViewerStats;
+import io.antmedia.statistic.ViewerStats;
 import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
@@ -1047,6 +1053,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.LIVE_STREAM)) 
 		{
+
 			IBroadcastStream broadcastStream = getBroadcastStream(getScope(), broadcast.getStreamId());
 			if (broadcastStream != null) 
 			{

@@ -104,6 +104,10 @@ public class JWTFilter extends AbstractFilter {
 	}
 	
 	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs) {
+		return generateJwtToken(jwtSecretKey, expireDateUnixTimeStampMs, "");
+	}
+	
+	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs, String issuer) {
 		Date expireDateType = new Date(expireDateUnixTimeStampMs);
 		String jwtTokenId = null;
 		try {
@@ -111,6 +115,7 @@ public class JWTFilter extends AbstractFilter {
 
 			jwtTokenId = JWT.create().
 					withExpiresAt(expireDateType).
+					withIssuer(issuer).
 					sign(algorithm);
 
 		} catch (Exception e) {
