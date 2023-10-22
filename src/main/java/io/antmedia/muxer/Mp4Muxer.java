@@ -328,9 +328,7 @@ public class Mp4Muxer extends RecordMuxer {
 
 				ret = av_write_frame(context, getTmpPacket());
 				if (ret < 0 && logger.isInfoEnabled()) {
-					byte[] data = new byte[2048];
-					av_strerror(ret, data, data.length);
-					logger.info("cannot write audio frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), FFmpegUtilities.byteArrayToString(data));
+					logger.info("cannot write audio frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), getErrorDefinition(ret));
 					logger.info("input timebase num/den {}/{}"
 							+ "output timebase num/den {}/{}", inputTimebase.num(), inputTimebase.den(),
 							outputTimebase.num(),  outputTimebase.den());
