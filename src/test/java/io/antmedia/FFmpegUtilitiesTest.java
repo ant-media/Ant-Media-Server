@@ -27,7 +27,7 @@ public class FFmpegUtilitiesTest {
     @Test
     public void testAvStrErrorUsage() {
         byte[] buffer = new byte[128];
-        avutil.av_strerror(-42, buffer, 128);
-        assertEquals(FFmpegUtilities.byteArrayToString(buffer), "Illegal byte sequence");
+        avutil.av_strerror(-22, buffer, 128);
+        assertEquals("Invalid argument", FFmpegUtilities.byteArrayToString(buffer));
     }
 }
