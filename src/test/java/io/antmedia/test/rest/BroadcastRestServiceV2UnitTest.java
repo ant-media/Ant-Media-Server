@@ -1924,10 +1924,20 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testStopLiveStream() {
 		BroadcastRestService restService = new BroadcastRestService();
 		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
+
 		DataStore ds = Mockito.mock(DataStore.class);
 		String streamId = "test-stream";
 
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		Mockito.doReturn(scope).when(app).getScope();
+
+		IContext context = mock(IContext.class);
+		Mockito.doReturn(context).when(scope).getContext();
+		
 		Broadcast broadcast = new Broadcast();
+
 		try {
 			broadcast.setStreamId(streamId);
 		} catch (Exception e) {
@@ -1936,12 +1946,13 @@ public class BroadcastRestServiceV2UnitTest {
 		broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
 
 		Mockito.doReturn(broadcast).when(ds).get(streamId);
+
 		restService.setDataStore(ds);
 		restService.setApplication(app);
 
 		restService.stopStreamingV2(streamId);
 
-		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(null, streamId);
+		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(scope, streamId);
 	}
 
 	@Test

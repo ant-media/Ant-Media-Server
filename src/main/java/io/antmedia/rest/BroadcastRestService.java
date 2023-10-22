@@ -1335,6 +1335,16 @@ public class BroadcastRestService extends RestServiceBase{
 		return new Result(result);
 	}
 
+	/**
+	 * @deprecated use subscriber rest methods, it will be deleted next versions
+	 * @param offset
+	 * @param size
+	 * @param sortBy
+	 * @param orderBy
+	 * @param search
+	 * @return
+	 */
+	@Deprecated(since = "2.7.0", forRemoval = true)
 	@GET
 	@Path("/webrtc-viewers/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1347,6 +1357,12 @@ public class BroadcastRestService extends RestServiceBase{
 		return getDataStore().getWebRTCViewerList(offset, size ,sortBy, orderBy, search);
 	}
 
+	/**
+	 * @deprecated use subscriber rest methods, it will be deleted next versions
+	 * @param viewerId
+	 * @return
+	 */
+	@Deprecated(since = "2.7.0", forRemoval = true)
 	@ApiOperation(value = "Stop player with a specified id", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)

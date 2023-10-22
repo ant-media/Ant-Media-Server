@@ -1071,9 +1071,6 @@ public class CommonRestService {
 		store.put(LICENSE_KEY, licenceKey);
 		getServerSettingsInternal().setLicenceKey(licenceKey);
 
-		store.put(MARKET_BUILD, String.valueOf(serverSettings.isBuildForMarket()));
-		getServerSettingsInternal().setBuildForMarket(serverSettings.isBuildForMarket());
-
 		store.put(NODE_GROUP, String.valueOf(serverSettings.getNodeGroup()));
 		getServerSettingsInternal().setNodeGroup(serverSettings.getNodeGroup());
 
