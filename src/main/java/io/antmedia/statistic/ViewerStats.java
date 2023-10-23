@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -22,19 +23,21 @@ import io.vertx.core.Vertx;
 public class ViewerStats {
 	
 	protected static Logger logger = LoggerFactory.getLogger(ViewerStats.class);
-	
+
 	protected Vertx vertx;
 	
 	public static final String HLS_TYPE = "hls";
 	public static final String DASH_TYPE = "dash";
-	
+	public static final String RTMP_TYPE = "rtmp";
+	public static final String WEBRTC_TYPE = "webrtc";
+
+
 	//hls or dash
 	private String type;
 	
 	private DataStore dataStore;
 	
 	protected DataStoreFactory dataStoreFactory;
-	
 	public static final int DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT = 10000;
 	
 	/**
@@ -43,6 +46,7 @@ public class ViewerStats {
 	private int timePeriodMS = DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT;
 	
 	Map<String, Map<String, Long>> streamsViewerMap = new ConcurrentHashMap<>();
+	Map<String, String> sessionId2Jwt = new ConcurrentHashMap<>();
 	Map<String, String> sessionId2subscriberId = new ConcurrentHashMap<>();
 	Map<String, Integer> increaseCounterMap = new ConcurrentHashMap<>();
 	
@@ -55,18 +59,13 @@ public class ViewerStats {
 	 * Time out value in milliseconds, it is regarded as user is not watching stream 
 	 * if last request time is older than timeout value
 	 */
-	protected int timeoutMS = 20000;
+	protected int timeoutMS = 10000;
 	
-
-	
-	public void registerNewViewer(String streamId, String sessionId, String subscriberId) 
-	{
+	public void registerNewViewer(String streamId, String sessionId, String subscriberId, String viewerType, String jwt,  AntMediaApplicationAdapter antMediaApplicationAdapter) {
 		//do not block the thread, run in vertx event queue 
 		vertx.runOnContext(h -> {
-			
 			synchronized (lock) {
 				//synchronize with database update calculations, because some odd cases may happen
-				
 				Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
 				if (viewerMap == null) {
 					viewerMap = new ConcurrentHashMap<>();
@@ -76,7 +75,15 @@ public class ViewerStats {
 					int streamIncrementCounter = getIncreaseCounterMap(streamId);
 					streamIncrementCounter++;
 					increaseCounterMap.put(streamId, streamIncrementCounter);
-					
+
+					if(subscriberId != null && !subscriberId.equals("undefined")){
+						antMediaApplicationAdapter.sendStartPlayWebHook(streamId, subscriberId, jwt, viewerType);
+					}else{
+						antMediaApplicationAdapter.sendStartPlayWebHook(streamId, sessionId, jwt, viewerType);
+					}
+					if(jwt != null){
+						sessionId2Jwt.put(sessionId, jwt);
+					}
 				}
 				viewerMap.put(sessionId, System.currentTimeMillis());
 				streamsViewerMap.put(streamId, viewerMap);
@@ -113,7 +120,7 @@ public class ViewerStats {
 		});
 		
 	}
-	
+
 	public void resetViewerMap(String streamID, String type) {
 		
 		Iterator<Entry<String, Long>> viewerIterator;
@@ -128,6 +135,9 @@ public class ViewerStats {
 				if(sessionId2subscriberId.containsKey(sessionId)) {
 					sessionId2subscriberId.remove(sessionId);					
 				}
+				if(sessionId2Jwt.containsKey(sessionId)){
+					sessionId2Jwt.remove(sessionId);
+				}
 			}
 			
 			streamsViewerMap.get(streamID).clear();
@@ -138,7 +148,7 @@ public class ViewerStats {
 			logger.info("Reset {} Stream ID: {} remove failed or null", type, streamID);
 		}
 	}
-	
+
 	public int getViewerCount(String streamId) {
 		Map<String, Long> viewerMap = streamsViewerMap.get(streamId);
 		int viewerCount = 0;
@@ -234,7 +244,7 @@ public class ViewerStats {
 		this.vertx = vertx;
 	}
 	
-	public void updateViewerCountProcess(String type) {
+	public void updateViewerCountProcess(String viewerType, AntMediaApplicationAdapter antMediaApplicationAdapter) {
 		
 		Iterator<Entry<String, Map<String, Long>>> streamIterator = streamsViewerMap.entrySet().iterator();
 		
@@ -271,9 +281,15 @@ public class ViewerStats {
 						// regard it as not a viewer
 						viewerIterator.remove();
 						numberOfDecrement++;
-						
+
 						String sessionId = viewer.getKey();
 						String subscriberId = sessionId2subscriberId.get(sessionId);
+						String jwt = sessionId2Jwt.get(sessionId);
+						if(subscriberId !=null && !subscriberId.equals("undefined")){
+							antMediaApplicationAdapter.sendStopPlayWebHook(streamId, subscriberId, jwt, viewerType);
+						}else{
+							antMediaApplicationAdapter.sendStopPlayWebHook(streamId, sessionId, jwt, viewerType);
+						}
 						// set subscriber status to not connected
 						if(subscriberId != null) {
 							// add a disconnected event to the subscriber
@@ -300,9 +316,9 @@ public class ViewerStats {
 					
 					int diffCount = numberOfIncrement + numberOfDecrement;
 
-					logger.info("Update {} viewer in stream ID:{} increment count:{} decrement count:{} diff:{}", type, streamId, numberOfIncrement, numberOfDecrement, diffCount);
+					logger.info("Update {} viewer in stream ID:{} increment count:{} decrement count:{} diff:{}", viewerType, streamId, numberOfIncrement, numberOfDecrement, diffCount);
 					
-					if(type.equals(ViewerStats.HLS_TYPE)) {
+					if(viewerType.equals(ViewerStats.HLS_TYPE)) {
 						getDataStore().updateHLSViewerCount(streamViewerEntry.getKey(), diffCount);
 					}
 					else {
@@ -338,6 +354,7 @@ public class ViewerStats {
 		}
 		
 	}
+
 	
 	public void setServerSettings(ServerSettings serverSettings) {
 		this.serverSettings = serverSettings;

@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.HttpMethod;
 
+import io.antmedia.statistic.ViewerStats;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,8 +48,12 @@ public class HlsStatisticsFilter extends AbstractFilter {
 				logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
 				IStreamStats stats = getStreamStats(HlsViewerStats.BEAN_NAME);
 				if (stats != null) {
-					stats.registerNewViewer(streamId, sessionId, subscriberId);
-					
+					String tokenId =  httpRequest.getParameter("token");
+					if(tokenId != null && tokenId.equals("undefined")){
+						tokenId = null;
+					}
+					stats.registerNewViewer(streamId, sessionId, subscriberId, ViewerStats.HLS_TYPE, tokenId, getAntMediaApplicationAdapter());
+
 				}
 			}
 		}

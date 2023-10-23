@@ -65,10 +65,11 @@ public class HlsViewerStatsTest {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+		AntMediaApplicationAdapter antMediaApplicationAdapter = mock(AntMediaApplicationAdapter.class);
 
 		for (int i = 0; i < 100; i++) {
 			String sessionId = String.valueOf((Math.random() * 999999));
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -82,7 +83,7 @@ public class HlsViewerStatsTest {
 		//Add same session ID
 		for (int i = 0; i < 10; i++) {
 			String sessionId = "sameSessionID";
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 		}
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
@@ -118,8 +119,12 @@ public class HlsViewerStatsTest {
 		dataStore.addSubscriber(subscriberPlay.getStreamId(), subscriberPlay);
 		
 		String sessionId = String.valueOf((Math.random() * 999999));
+
+		AntMediaApplicationAdapter antMediaApplicationAdapter = mock(AntMediaApplicationAdapter.class);
+
+
 		// check if viewer is added
-		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId());
+		viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), "jwt", null, antMediaApplicationAdapter);
 		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 				()-> {
 				boolean eventExist = false;
@@ -167,26 +172,30 @@ public class HlsViewerStatsTest {
 			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
 
 			when(context.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
-			
+
 			when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 
-			AppSettings settings = new AppSettings();
-
+			AppSettings settings = mock(AppSettings.class);
+			AntMediaApplicationAdapter antMediaApplicationAdapter = mock(AntMediaApplicationAdapter.class);
+			when((AntMediaApplicationAdapter) context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(antMediaApplicationAdapter);
+			antMediaApplicationAdapter.setDataStoreFactory(dsf);
+			antMediaApplicationAdapter.setAppSettings(settings);
+			when(settings.isWriteStatsToDatastore()).thenReturn(true);
 			//set hls time to 1
 			settings.setHlsTime("1");
-			
+
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
-			
+
 			HlsViewerStats viewerStats = new HlsViewerStats();
-			
+
 			viewerStats.setTimePeriodMS(1000);
 			viewerStats.setApplicationContext(context);
-			
+
 			Broadcast broadcast = new Broadcast();
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast.setName("name");
-			
+
 			dsf.setWriteStatsToDatastore(true);
 			dsf.setApplicationContext(context);
 			String streamId = dsf.getDataStore().save(broadcast);
@@ -195,7 +204,7 @@ public class HlsViewerStatsTest {
 			assertEquals(10000, viewerStats.getTimeoutMS());
 
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
-			
+
 			// create a subscriber play
 			Subscriber subscriberPlay = new Subscriber();
 			subscriberPlay.setStreamId(streamId);
@@ -203,118 +212,118 @@ public class HlsViewerStatsTest {
 			subscriberPlay.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 			subscriberPlay.setType(Subscriber.PLAY_TYPE);
 			dsf.getDataStore().addSubscriber(subscriberPlay.getStreamId(), subscriberPlay);
-			
+
 			Subscriber subscriberPlay2 = new Subscriber();
 			subscriberPlay2.setStreamId(streamId);
 			subscriberPlay2.setSubscriberId("subscriber2");
 			subscriberPlay2.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 			subscriberPlay2.setType(Subscriber.PLAY_TYPE);
-			dsf.getDataStore().addSubscriber(subscriberPlay2.getStreamId(), subscriberPlay2);			
-			
+			dsf.getDataStore().addSubscriber(subscriberPlay2.getStreamId(), subscriberPlay2);
+
 			Subscriber subscriberPlay3 = new Subscriber();
 			subscriberPlay3.setStreamId(streamId);
 			subscriberPlay3.setSubscriberId("subscriber3");
 			subscriberPlay3.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 			subscriberPlay3.setType(Subscriber.PLAY_TYPE);
-			dsf.getDataStore().addSubscriber(subscriberPlay3.getStreamId(), subscriberPlay3);				
-			
-			
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId());
-			
+			dsf.getDataStore().addSubscriber(subscriberPlay3.getStreamId(), subscriberPlay3);
+
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay.getSubscriberId(), null, null, antMediaApplicationAdapter);
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getViewerCount(streamId) == 1 );
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getIncreaseCounterMap(streamId) == 1 );
-			
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getTotalViewerCount() == 1 );
-			
+
+
 			//Viewer timeout increase
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId());
-			
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay2.getSubscriberId(), null, null, antMediaApplicationAdapter);
+
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()-> {
 					boolean eventExist = false;
 					Subscriber subData = dsf.getDataStore().getSubscriber(streamId, subscriberPlay.getSubscriberId());
-					
+
 					List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
-					
+
 					if(events.size() == 1) {
 						ConnectionEvent event = events.get(0);
-						eventExist = ConnectionEvent.CONNECTED_EVENT == event.getEventType();
+						eventExist = ConnectionEvent.CONNECTED_EVENT.equals(event.getEventType());
 					}
 
-					return subData.isConnected() && subData.getCurrentConcurrentConnections() == 1 && eventExist; 
+					return subData.isConnected() && subData.getCurrentConcurrentConnections() == 1 && eventExist;
 			});
-			
+
 			// Check viewer is online
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 1);
-			
+
 			// Wait some time for detect disconnect
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 0);
-			
+
 			assertEquals(0, viewerStats.getViewerCount(streamId));
 			assertEquals(0, viewerStats.getIncreaseCounterMap(streamId));
 			assertEquals(0, viewerStats.getTotalViewerCount());
-			
-			// a disconnection event should be added 
+
+			// a disconnection event should be added
 			Subscriber subData = dsf.getDataStore().getSubscriber(streamId, subscriberPlay2.getSubscriberId());
-			
+
 			List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
-			
+
 			assertEquals(2, events.size());
 			ConnectionEvent eventDis = events.get(1);
-			assertTrue(ConnectionEvent.DISCONNECTED_EVENT == eventDis.getEventType());
-		
-			
+			assertTrue(ConnectionEvent.DISCONNECTED_EVENT.equals(eventDis.getEventType()));
+
+
 			// Broadcast finished test
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 			dsf.getDataStore().save(broadcast);
-			
+
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
-			
-			
-			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay3.getSubscriberId());
-			
+
+
+			viewerStats.registerNewViewer(streamId, sessionId, subscriberPlay3.getSubscriberId(), null, null, antMediaApplicationAdapter);
+
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);
-			
+
 			assertEquals(1, viewerStats.getViewerCount(streamId));
 			assertEquals(1, viewerStats.getIncreaseCounterMap(streamId));
 			assertEquals(1, viewerStats.getTotalViewerCount());
-			
+
 			// Wait some time for detect disconnect
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().get(streamId).getHlsViewerCount() == 0);
-			
-			// Check Viewer 
+
+			// Check Viewer
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 0);
-			
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
 					()-> viewerStats.getIncreaseCounterMap(streamId) == 0);
-			
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
 					()-> viewerStats.getTotalViewerCount() == 0);
-			
+
 			Subscriber subData2 = dsf.getDataStore().getSubscriber(streamId, subscriberPlay3.getSubscriberId());
-			
+
 			List<ConnectionEvent> events2 = subData2.getStats().getConnectionEvents();
-			
+
 			assertEquals(2, events2.size());
 			ConnectionEvent eventDis2 = events.get(1);
-			assertTrue(ConnectionEvent.DISCONNECTED_EVENT == eventDis2.getEventType());			
-			
+			assertTrue(ConnectionEvent.DISCONNECTED_EVENT.equals(eventDis2.getEventType()));
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
-	}	
+
+	}
 
 	@Test
 	public void testSetApplicationContext() {
@@ -331,8 +340,12 @@ public class HlsViewerStatsTest {
 			
 			when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 
-			AppSettings settings = new AppSettings();
-
+			AppSettings settings = mock(AppSettings.class);
+			AntMediaApplicationAdapter antMediaApplicationAdapter = mock(AntMediaApplicationAdapter.class);
+			when((AntMediaApplicationAdapter) context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(antMediaApplicationAdapter);
+			antMediaApplicationAdapter.setDataStoreFactory(dsf);
+			antMediaApplicationAdapter.setAppSettings(settings);
+			when(settings.isWriteStatsToDatastore()).thenReturn(true);
 			//set hls time to 1
 			settings.setHlsTime("1");
 			
@@ -357,7 +370,7 @@ public class HlsViewerStatsTest {
 
 			String sessionId = "sessionId" + (int)(Math.random() * 10000);
 
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(
 					()->viewerStats.getViewerCount(streamId) == 1 );
@@ -369,7 +382,7 @@ public class HlsViewerStatsTest {
 					()->viewerStats.getTotalViewerCount() == 1 );
 			
 			//Viewer timeout increase
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 			
 			// Check viewer is online
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
@@ -391,7 +404,7 @@ public class HlsViewerStatsTest {
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			
 			
-			viewerStats.registerNewViewer(streamId, sessionId, null);
+			viewerStats.registerNewViewer(streamId, sessionId, null, null, null, antMediaApplicationAdapter);
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> viewerStats.getViewerCount(streamId) == 1);
@@ -410,7 +423,7 @@ public class HlsViewerStatsTest {
 			
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
 					()-> viewerStats.getIncreaseCounterMap(streamId) == 0);
-			
+
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(
 					()-> viewerStats.getTotalViewerCount() == 0);
 			

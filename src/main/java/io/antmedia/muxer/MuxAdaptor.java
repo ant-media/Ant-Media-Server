@@ -1752,7 +1752,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			return null;
 		}
 
-
 		RecordMuxer muxer = null;
 		if(recordType == RecordType.MP4) {
 			Mp4Muxer mp4Muxer = createMp4Muxer();
@@ -1917,10 +1916,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public void sendEndpointErrorNotifyHook(String url){
+		AntMediaApplicationAdapter adaptor = getAntMediaApplicationAdaptor();
+		adaptor.endpointFailedUpdate(this.streamId, url);
+	}
+
+	protected AntMediaApplicationAdapter getAntMediaApplicationAdaptor(){
 		IContext context = MuxAdaptor.this.scope.getContext();
 		ApplicationContext appCtx = context.getApplicationContext();
-		AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
-		adaptor.endpointFailedUpdate(this.streamId, url);
+		return (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
 	}
 
 	/**

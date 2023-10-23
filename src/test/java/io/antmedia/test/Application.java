@@ -23,9 +23,14 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	public static boolean enableSourceHealthUpdate = false;
 	public static List<String> notifyVodId = new ArrayList<>();;
-	
 
-	
+	public static List<String> notifyViewerId = new ArrayList<>();;
+
+	public static List<String> notifyViewerType = new ArrayList<>();;
+
+	public static List<String> notifyToken = new ArrayList<>();;
+
+
 	@Override
 	public void muxingFinished(String id, File file, long startTime, long duration, int resolution, String previewPath, String vodId) {
 		super.muxingFinished(id, file, startTime, duration, resolution, previewPath, vodId);
@@ -46,12 +51,14 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 		notifyStreamName.clear();
 		notifyCategory.clear();
 		notifyVodName.clear();
-
+		notifyViewerId.clear();
+		notifyViewerType.clear();
+		notifyToken.clear();
 	}
 
 	@Override
 	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
-			String vodName, String vodId, String metadata) {
+                                    String vodName, String vodId, String viewerId, String viewerType, String token, String metadata) {
 		logger.info("notify hook action: {}", action);
 		notifyHookAction.add(action);
 		notitfyURL.add(url);
@@ -60,6 +67,9 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 		notifyCategory.add(category);
 		notifyVodName.add(vodName);
 		notifyVodId.add(vodId);
+		notifyViewerId.add(viewerId);
+		notifyViewerType.add(viewerType);
+		notifyToken.add(token);
 
 		return null;
 	}

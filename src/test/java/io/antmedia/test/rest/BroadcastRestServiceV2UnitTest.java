@@ -3091,6 +3091,8 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceSpy.setApplication(testApp);
 		restServiceSpy.stopPlaying(viewerId);
 		verify(testApp, times(1)).stopPlaying(viewerId);
+
+
 	}
 	
 	@Test

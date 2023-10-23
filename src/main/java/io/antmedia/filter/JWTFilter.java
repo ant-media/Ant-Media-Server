@@ -51,6 +51,7 @@ public class JWTFilter extends AbstractFilter {
 	}
 
 	private boolean checkJWT(String jwtString) {
+
 		boolean result = false;
 
 		String jwksURL = appSettings.getJwksURL();

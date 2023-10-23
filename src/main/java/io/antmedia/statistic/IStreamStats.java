@@ -1,13 +1,17 @@
 package io.antmedia.statistic;
 
+import io.antmedia.AntMediaApplicationAdapter;
+
 public interface IStreamStats {
 
 	/**
 	 * Register a new viewer to a stream
+	 *
 	 * @param streamId
 	 * @param sessionId
+	 * @param jwt
 	 */
-	void registerNewViewer(String streamId, String sessionId, String subscriberId);
+	void registerNewViewer(String streamId, String sessionId, String subscriberId, String viewerType, String jwt, AntMediaApplicationAdapter antMediaApplicationAdapter);
 	
 	
 	/**

@@ -46,7 +46,12 @@ public class WebRTCViewerInfo {
 	@ApiModelProperty(value = "IP address of the edge to which viewer is connected")
 	private String edgeAddress;
 
-	
+	/**
+	 * Play token of the viewer
+	 */
+	@ApiModelProperty(value = "the token of the viewer")
+	private String tokenId;
+
 	public ObjectId getDbId() {
 		return dbId;
 	}
@@ -78,5 +83,12 @@ public class WebRTCViewerInfo {
 	public void setEdgeAddress(String edgeAddress) {
 		this.edgeAddress = edgeAddress;
 	}
-	
+
+	public String getTokenId() {
+		return tokenId;
+	}
+
+	public void setTokenId(String tokenId) {
+		this.tokenId = tokenId;
+	}
 }
