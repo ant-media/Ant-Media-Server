@@ -10,16 +10,13 @@
 
 package org.webrtc;
 
+import javax.annotation.Nullable;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.EnumSet;
 import java.util.logging.Level;
-
-import javax.annotation.Nullable;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import java.util.logging.Logger;
+import org.webrtc.Loggable;
 
 /**
  * Java wrapper for WebRTC logging. Logging defaults to java.util.logging.Logger, but a custom
@@ -43,14 +40,16 @@ import org.slf4j.LoggerFactory;
  * loaded, using PeerConnectionFactory.initialize.
  */
 public class Logging {
-	
-  private static final String TAG_MESSAGE = "Tag:{} - Message:{}";
-
-private static Logger logger = LoggerFactory.getLogger(Logging.class);
-  
+  private static final Logger fallbackLogger = createFallbackLogger();
+  private static volatile boolean loggingEnabled;
   @Nullable private static Loggable loggable;
   private static Severity loggableSeverity;
 
+  private static Logger createFallbackLogger() {
+    final Logger fallbackLogger = Logger.getLogger("org.webrtc.Logging");
+    fallbackLogger.setLevel(Level.ALL);
+    return fallbackLogger;
+  }
 
   static void injectLoggable(Loggable injectedLoggable, Severity severity) {
     if (injectedLoggable != null) {
@@ -103,7 +102,7 @@ private static Logger logger = LoggerFactory.getLogger(Logging.class);
   @Deprecated
   public static void enableTracing(String path, EnumSet<TraceLevel> levels) {}
 
-  // Enable diagnostic logging for messages of |severity| to the platform debug
+  // Enable diagnostic logging for messages of `severity` to the platform debug
   // output. On Android, the output will be directed to Logcat.
   // Note: this function starts collecting the output of the RTC_LOG() macros.
   // TODO(bugs.webrtc.org/8491): Remove NoSynchronizedMethodCheck suppression.
@@ -115,6 +114,7 @@ private static Logger logger = LoggerFactory.getLogger(Logging.class);
           + "Delete the Loggable before calling this method.");
     }
     nativeEnableLogToDebugOutput(severity.ordinal());
+    loggingEnabled = true;
   }
 
   public static void log(Severity severity, String tag, String message) {
@@ -131,27 +131,28 @@ private static Logger logger = LoggerFactory.getLogger(Logging.class);
     }
 
     // Try native logging if no loggable is injected.
-/*    if (loggingEnabled) {
+    if (loggingEnabled) {
       nativeLog(severity.ordinal(), tag, message);
       return;
     }
-*/
+
     // Fallback to system log.
     Level level;
     switch (severity) {
       case LS_ERROR:
-        logger.error(TAG_MESSAGE, tag, message);
+        level = Level.SEVERE;
         break;
       case LS_WARNING:
-        logger.warn(TAG_MESSAGE, tag, message);
+        level = Level.WARNING;
         break;
       case LS_INFO:
-        logger.info(TAG_MESSAGE, tag, message);
+        level = Level.INFO;
         break;
       default:
         level = Level.FINE;
         break;
     }
+    fallbackLogger.log(level, tag + ": " + message);
   }
 
   public static void d(String tag, String message) {

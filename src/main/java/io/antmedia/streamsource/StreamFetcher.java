@@ -17,6 +17,7 @@ import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.antmedia.FFmpegUtilities;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
@@ -34,6 +35,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
 
@@ -140,16 +142,29 @@ public class StreamFetcher {
 
 		String transportType = appSettings.getRtspPullTransportType();
 		if (streamUrl.startsWith("rtsp://") && !transportType.isEmpty()) {
-			logger.info("Setting rtsp transport type to {} for stream source: {}", transportType, streamUrl);
-			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);			
+			
+			
+			logger.info("Setting rtsp transport type to {} for stream source: {} and timeout:{}us", transportType, streamUrl, this.timeoutMicroSeconds);
+			/*
+			 * AppSettings#rtspPullTransportType
+			 */
+			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
+			
+			/*
+			 * AppSettings#rtspTimeoutDurationMs 
+			 */
+			String timeoutStr = String.valueOf(this.timeoutMicroSeconds);
+			av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
+			
+			
+			
 		}
 
-		String timeoutStr = String.valueOf(this.timeoutMicroSeconds);
-		av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
-
+		//analyze duration is a generic parameter 
 		int analyzeDurationUs = appSettings.getMaxAnalyzeDurationMS() * 1000;
 		String analyzeDuration = String.valueOf(analyzeDurationUs);
 		av_dict_set(optionsDictionary, "analyzeduration", analyzeDuration, 0);
+
 
 		int ret;
 
@@ -157,11 +172,7 @@ public class StreamFetcher {
 
 		if ((ret = avformat_open_input(inputFormatContext, streamUrl, null, optionsDictionary)) < 0) {
 
-			byte[] data = new byte[100];
-			avutil.av_strerror(ret, data, data.length);
-
-			String errorStr=new String(data, 0, data.length);
-
+			String errorStr = Muxer.getErrorDefinition(ret);
 			result.setMessage(errorStr);		
 
 			logger.error("cannot open stream: {} with error:: {}",  streamUrl, result.getMessage());
@@ -347,7 +358,8 @@ public class StreamFetcher {
 			return false;
 		}
 
-		public void packetRead(AVPacket pkt) {
+		public void packetRead(AVPacket pkt) 
+		{
 			if(!streamPublished) {
 				long currentTime = System.currentTimeMillis();
 				muxAdaptor.setStartTime(currentTime);

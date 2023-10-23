@@ -10,11 +10,10 @@
 
 package org.webrtc;
 
+import javax.annotation.Nullable;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
-
-import javax.annotation.Nullable;
 
 /**
  * Represent a video codec as encoded in SDP.
@@ -68,6 +67,11 @@ public class VideoCodecInfo {
   public int hashCode() {
     Object[] values = {name.toUpperCase(Locale.ROOT), params};
     return Arrays.hashCode(values);
+  }
+
+  @Override
+  public String toString() {
+    return "VideoCodec{" + name + " " + params + "}";
   }
 
   @CalledByNative

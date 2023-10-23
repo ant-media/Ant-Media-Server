@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.FFmpegUtilities;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -284,22 +285,22 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Mockito.when(streamFetcher.getMuxAdaptor()).thenReturn(muxAdaptor);
 		streamFetcherManager.checkStreamFetchersStatus();
-		Mockito.verify(muxAdaptor).changeStreamQualityParameters("streamId", null, 0.01d, 0);
+		Mockito.verify(muxAdaptor).updateStreamQualityParameters("streamId", null, 0.01d, 0);
 
 		Mockito.when(streamFetcher.getMuxAdaptor()).thenReturn(null);
 		streamFetcherManager.checkStreamFetchersStatus();
-		Mockito.verify(muxAdaptor, Mockito.times(1)).changeStreamQualityParameters("streamId", null, 0.01d, 0);
+		Mockito.verify(muxAdaptor, Mockito.times(1)).updateStreamQualityParameters("streamId", null, 0.01d, 0);
 
 
 		Mockito.when(streamFetcher.getStreamId()).thenReturn(null);
 		Mockito.when(streamFetcher.getMuxAdaptor()).thenReturn(muxAdaptor);
 		streamFetcherManager.checkStreamFetchersStatus();
-		Mockito.verify(muxAdaptor, Mockito.times(1)).changeStreamQualityParameters("streamId", null, 0.01d, 0);
+		Mockito.verify(muxAdaptor, Mockito.times(1)).updateStreamQualityParameters("streamId", null, 0.01d, 0);
 
 
 		streamFetcherManager.setDatastore(null);
 		streamFetcherManager.checkStreamFetchersStatus();
-		Mockito.verify(muxAdaptor, Mockito.times(1)).changeStreamQualityParameters("streamId", null, 0.01d, 0);
+		Mockito.verify(muxAdaptor, Mockito.times(1)).updateStreamQualityParameters("streamId", null, 0.01d, 0);
 
 
 
@@ -738,7 +739,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			byte[] data = new byte[1024];
 			avutil.av_strerror(ret, data, data.length);
-			logger.error("cannot open input context with error: " + new String(data, 0, data.length) + "ret value = "+ String.valueOf(ret));
+			logger.error("cannot open input context with error: {} ret value = {}",
+					FFmpegUtilities.byteArrayToString(data), ret);
 			return;
 		}
 
@@ -759,7 +761,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				byte[] data = new byte[1024];
 				avutil.av_strerror(ret, data, data.length);
 
-				logger.error("cannot read frame from input context: " + new String(data, 0, data.length));	
+				logger.error("cannot read frame from input context: {}",  FFmpegUtilities.byteArrayToString(data));
 			}
 
 			av_packet_unref(pkt);
@@ -842,7 +844,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		streams.add(newZombiSource);
 
 		//let stream fetching start
-		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
+		app.getStreamFetcherManager().testSetStreamCheckerInterval(5000);
 		//do not restart if it fails
 		app.getStreamFetcherManager().setRestartStreamAutomatically(false);
 		app.getStreamFetcherManager().startStreams(streams);

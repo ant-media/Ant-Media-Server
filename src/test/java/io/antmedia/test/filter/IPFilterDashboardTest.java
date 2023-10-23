@@ -32,7 +32,7 @@ public class IPFilterDashboardTest {
 		 assertFalse(ipFilter.isAllowedDashboard("127.0.0.1"));
 		 
 
-		 Mockito.doReturn(null).when(ipFilter).getServerSetting();
+		 Mockito.doReturn(null).when(ipFilter).getServerSettings();
 		 assertFalse(ipFilter.isAllowedDashboard("127.0.0.1"));
 		 
 		 
@@ -53,7 +53,7 @@ public class IPFilterDashboardTest {
         ServerSettings serverSettings = new ServerSettings();
         serverSettings.setAllowedDashboardCIDR("127.0.0.1/8");
         
-        Mockito.doReturn(serverSettings).when(ipFilter).getServerSetting();
+        Mockito.doReturn(serverSettings).when(ipFilter).getServerSettings();
         
         ipFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 
@@ -72,7 +72,7 @@ public class IPFilterDashboardTest {
         ServerSettings serverSettings = new ServerSettings();
         
         serverSettings.setAllowedDashboardCIDR("127.0.0.1/8");
-        Mockito.doReturn(serverSettings).when(ipFilter).getServerSetting();
+        Mockito.doReturn(serverSettings).when(ipFilter).getServerSettings();
         
         httpServletRequest.setPathInfo("");
         

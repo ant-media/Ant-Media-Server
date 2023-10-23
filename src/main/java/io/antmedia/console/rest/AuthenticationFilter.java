@@ -41,7 +41,7 @@ public class AuthenticationFilter extends AbstractFilter {
 	public static final String JWT_TOKEN = "ProxyAuthorization";
 	public static final String FORBIDDEN_ERROR = "Not allowed to access this resource. Contact system admin";
 
-	public AbstractConsoleDataStore getDataStore()
+	public AbstractConsoleDataStore getAbstractConsoleDataStore()
 	{
 		AbstractConsoleDataStore dataStore = null;
 
@@ -100,7 +100,7 @@ public class AuthenticationFilter extends AbstractFilter {
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		String path = ((HttpServletRequest) request).getRequestURI();
 
-		ServerSettings serverSettings = getServerSetting();
+		ServerSettings serverSettings = getServerSettings();
 		
 		/*
 		 * JWT Filter checking below parameters:
@@ -145,7 +145,7 @@ public class AuthenticationFilter extends AbstractFilter {
 			String method = httpRequest.getMethod();
 
 			String userEmail = (String)httpRequest.getSession().getAttribute(CommonRestService.USER_EMAIL);
-			AbstractConsoleDataStore store = getDataStore();
+			AbstractConsoleDataStore store = getAbstractConsoleDataStore();
 			if (store != null) 
 			{
 				User currentUser = store.getUser(userEmail);
@@ -251,17 +251,17 @@ public class AuthenticationFilter extends AbstractFilter {
 		boolean result = true;
 		try {
 
-			String jwksURL = getServerSetting().getJwksURL();
+			String jwksURL = getServerSettings().getJwksURL();
 
 			if (jwksURL != null && !jwksURL.isEmpty()) {
 				DecodedJWT jwt = JWT.decode(jwtString);
-				JwkProvider provider = new UrlJwkProvider(getServerSetting().getJwksURL());
+				JwkProvider provider = new UrlJwkProvider(getServerSettings().getJwksURL());
 				Jwk jwk = provider.get(jwt.getKeyId());
 				Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
 				algorithm.verify(jwt);
 			}
 			else {
-				Algorithm algorithm = Algorithm.HMAC256(getServerSetting().getJwtServerSecretKey());
+				Algorithm algorithm = Algorithm.HMAC256(getServerSettings().getJwtServerSecretKey());
 				JWTVerifier verifier = JWT.require(algorithm)
 						.build();
 				verifier.verify(jwtString);

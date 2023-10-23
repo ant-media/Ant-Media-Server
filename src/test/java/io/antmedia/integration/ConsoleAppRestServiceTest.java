@@ -24,6 +24,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.antmedia.console.rest.CommonRestService;
 import org.apache.commons.io.FileUtils;
@@ -293,7 +295,76 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
+	@Test
+	public void testQuotesBug() {
 
+		String installLocation = "/usr/local/antmedia";
+
+		String command = "sudo " + installLocation + "/create_app.sh -c true -n testapp -m 'mongodb://user:password@127.0.0.1:27018/admin?readPreference=secondaryPreferred' " + installLocation;
+
+		try {
+			Process exec;
+			File warfile = new File(installLocation + "/webapps/root/testapp.war");
+			boolean exists = warfile.exists();
+			if(exists) {
+				exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/root/testapp.war");
+				assertEquals(0, exec.waitFor());
+			}
+
+			exec = Runtime.getRuntime().exec(command);
+
+			InputStream errorStream = exec.getErrorStream();
+			byte[] data = new byte[1024];
+			int length = 0;
+			while ((length = errorStream.read(data, 0, data.length)) > 0)
+			{
+				System.out.println("error stream -> " + new String(data, 0, length));
+			}
+
+			InputStream inputStream = exec.getInputStream();
+			while ((length = inputStream.read(data, 0, data.length)) > 0)
+			{
+				System.out.println("inputStream stream -> " + new String(data, 0, length));
+			}
+			exec.waitFor();
+
+			File propertiesFile = new File( installLocation + "/webapps/testapp/WEB-INF/red5-web.properties");
+			String content = Files.readString(propertiesFile.toPath());
+
+			Pattern hostPattern = Pattern.compile("db.host=(.*)");
+			Matcher hostMatcher = hostPattern.matcher(content);
+
+			if(hostMatcher.find()){
+				String host= hostMatcher.group(1);
+				String expressions [] = {"^'(.*)'$","^\"(.*)\"$"}; //check if host property is wrapped in single or double quotes
+
+				assertEquals(false,host == null || host.equals("")); // check if host is empty
+
+				for(String expression :expressions){
+					Pattern quotesPattern = Pattern.compile(expression);
+					Matcher quotesMatcher = quotesPattern.matcher(host);
+					boolean match  = quotesMatcher.matches();
+					if(match){
+						System.out.println("Failed: Host property stored in the property file within quotes ");
+					}
+					assertEquals(false,match);
+				}
+			}else {
+				System.out.println("host property not found in the file.");
+				assert(true);
+			}
+
+			exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/testapp ");
+			assertEquals(0, exec.waitFor());
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
 	public String getStreamAppWar(String installLocation) 
 	{
 		File file = new File(installLocation);
@@ -496,13 +567,11 @@ public class ConsoleAppRestServiceTest{
 
 			assertEquals("newServerName", serverSettings.getServerName());
 			assertEquals("newLicenseKey", serverSettings.getLicenceKey());
-			assertEquals(!isMarketRelease, serverSettings.isBuildForMarket());
 
 			// return back to original values
 
 			serverSettings.setServerName(serverName);
 			serverSettings.setLicenceKey(licenseKey);
-			serverSettings.setBuildForMarket(isMarketRelease);
 
 			//save original settings
 			result = callSetServerSettings(serverSettings);
@@ -1054,6 +1123,12 @@ public class ConsoleAppRestServiceTest{
 				});
 
 				AppFunctionalV2Test.destroyProcess();
+				
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> {
+					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
+					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+				});
 			}
 
 			{

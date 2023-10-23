@@ -1,15 +1,13 @@
 package io.antmedia.muxer;
 
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H265;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
-import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_from_context;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
@@ -18,6 +16,8 @@ import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVRational;
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.javacpp.BytePointer;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,14 +46,20 @@ public class HLSMuxer extends Muxer  {
 	private String hlsEncryptionKeyInfoFile = null;
 
 	protected StorageClient storageClient = null;
-	private String subFolder = null;
+	private String subFolder = null; 
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
 	private String segmentFilename;
 
 	private String httpEndpoint;
 	public static final int S3_CONSTANT = 0b010;
-	
+
+	//TODO: make this configurable
+	private int id3StreamIndex = 2;
+	private AVPacket id3DataPkt;
+
+	private boolean id3Enabled = false;
+
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
 		this.storageClient = storageClient;
@@ -141,7 +147,7 @@ public class HLSMuxer extends Muxer  {
 		}
 
 	}
-	
+
 	@Override
 	public String getOutputURL() 
 	{
@@ -193,10 +199,45 @@ public class HLSMuxer extends Muxer  {
 		if (startTime == 0) {
 			startTime = currentTime;
 		}
-		
+
 		super.writePacket(pkt, inputTimebase, outputTimebase, codecType);
 	}
 
+	public synchronized void addID3Data(String data) {
+		ByteBuffer byteBuffer = ByteBuffer.allocate(data.length());
+		byteBuffer.put(data.getBytes()); // description
+
+		byteBuffer.rewind();
+		writeID3Packet(byteBuffer);
+	}
+
+	public synchronized void writeID3Packet(ByteBuffer data)
+	{
+		long pts = System.currentTimeMillis() - startTime;
+		id3DataPkt.pts(pts);
+		id3DataPkt.dts(pts);
+		id3DataPkt.stream_index(id3StreamIndex);
+
+		id3DataPkt.data(new BytePointer(data));
+		id3DataPkt.size(data.limit());
+		id3DataPkt.position(0);
+		writePacket(id3DataPkt, (AVCodecContext)null);
+	}
+
+	@Override
+	public boolean writeHeader() {
+		createID3StreamIfRequired();
+		return super.writeHeader();
+	}
+
+	public void createID3StreamIfRequired() {
+		if(id3Enabled) {
+			id3DataPkt = avcodec.av_packet_alloc();
+			av_init_packet(id3DataPkt);
+
+			addID3Stream();
+		}
+	}
 
 	/**
 	 * {@inheritDoc}
@@ -272,7 +313,19 @@ public class HLSMuxer extends Muxer  {
 	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
 		bsfVideoName = "h264_mp4toannexb";
-		return super.addStream(codecParameters, timebase, streamIndex);
+
+		boolean ret = super.addStream(codecParameters, timebase, streamIndex);
+
+		return ret;
+	}
+
+	public boolean addID3Stream() {
+		AVCodecParameters codecParameter = new AVCodecParameters();
+
+		codecParameter.codec_type(AVMEDIA_TYPE_DATA);
+		codecParameter.codec_id(AV_CODEC_ID_TIMED_ID3);
+
+		return super.addStream(codecParameter, MuxAdaptor.TIME_BASE_FOR_MS, id3StreamIndex);
 	}
 	
 	public String getHlsListSize() {
@@ -314,5 +367,9 @@ public class HLSMuxer extends Muxer  {
 	public String getSegmentFilename() {
 		return segmentFilename;
 
+	}
+
+	public void setId3Enabled(boolean id3Enabled) {
+		this.id3Enabled = id3Enabled;
 	}
 }

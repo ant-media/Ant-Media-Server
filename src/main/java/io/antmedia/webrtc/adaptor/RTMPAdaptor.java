@@ -22,6 +22,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webrtc.BuiltinAudioDecoderFactoryFactory;
 import org.webrtc.IceCandidate;
+import org.webrtc.Loggable;
+import org.webrtc.Logging;
 import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
@@ -36,6 +38,7 @@ import org.webrtc.VideoFrame.Buffer;
 import org.webrtc.VideoSink;
 import org.webrtc.VideoTrack;
 import org.webrtc.WrappedNativeI420Buffer;
+import org.webrtc.Logging.Severity;
 import org.webrtc.audio.JavaAudioDeviceModule;
 import org.webrtc.audio.WebRtcAudioTrack;
 
@@ -252,6 +255,46 @@ public class RTMPAdaptor extends Adaptor {
 				.setAudioDecoderFactoryFactory(audioDecoderFactoryFactory)
 				.createPeerConnectionFactory();
 	}
+	
+	public boolean initPeerConnection(PeerConnectionFactory pcf) {
+		peerConnectionFactory = createPeerConnectionFactory();
+
+		List<IceServer> iceServers = new ArrayList<>();
+		iceServers.add(IceServer.builder(getStunServerUri()).createIceServer());
+
+		Builder iceServerBuilder = IceServer.builder(stunServerUri);
+
+		if (turnServerUsername != null && !turnServerUsername.isEmpty())
+		{
+			iceServerBuilder.setUsername(turnServerUsername);
+		}
+
+		if (turnServerCredential != null && !turnServerCredential.isEmpty()) 
+		{
+			iceServerBuilder.setPassword(turnServerCredential);
+		}
+
+		iceServers.add(iceServerBuilder.createIceServer());
+
+
+		PeerConnection.RTCConfiguration rtcConfig =
+				new PeerConnection.RTCConfiguration(iceServers);
+
+
+		// Enable DTLS for normal calls and disable for loopback calls.
+		//rtcConfig.enableDtlsSrtp = true;
+		rtcConfig.minPort = portRangeMin;
+		rtcConfig.maxPort = portRangeMax;
+		rtcConfig.tcpCandidatePolicy = tcpCandidatesEnabled 
+				? TcpCandidatePolicy.ENABLED 
+						: TcpCandidatePolicy.DISABLED;
+
+		peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, RTMPAdaptor.this);
+		
+		Logging.enableLogToDebugOutput(Severity.LS_ERROR);
+		
+		return true;
+	}
 
 	@Override
 	public void start() {
@@ -265,37 +308,7 @@ public class RTMPAdaptor extends Adaptor {
 
 				peerConnectionFactory = createPeerConnectionFactory();
 
-				List<IceServer> iceServers = new ArrayList<>();
-				iceServers.add(IceServer.builder(getStunServerUri()).createIceServer());
-
-				Builder iceServerBuilder = IceServer.builder(stunServerUri);
-
-				if (turnServerUsername != null && !turnServerUsername.isEmpty())
-				{
-					iceServerBuilder.setUsername(turnServerUsername);
-				}
-
-				if (turnServerCredential != null && !turnServerCredential.isEmpty()) 
-				{
-					iceServerBuilder.setPassword(turnServerCredential);
-				}
-
-				iceServers.add(iceServerBuilder.createIceServer());
-
-
-				PeerConnection.RTCConfiguration rtcConfig =
-						new PeerConnection.RTCConfiguration(iceServers);
-
-
-				// Enable DTLS for normal calls and disable for loopback calls.
-				rtcConfig.enableDtlsSrtp = true;
-				rtcConfig.minPort = portRangeMin;
-				rtcConfig.maxPort = portRangeMax;
-				rtcConfig.tcpCandidatePolicy = tcpCandidatesEnabled 
-						? TcpCandidatePolicy.ENABLED 
-								: TcpCandidatePolicy.DISABLED;
-
-				peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, RTMPAdaptor.this);
+				initPeerConnection(peerConnectionFactory);
 
 				webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession(), "");
 
@@ -547,7 +560,7 @@ public class RTMPAdaptor extends Adaptor {
 
 	public void setRemoteDescription(final SessionDescription sdp) {
 		signallingExecutor.execute(() -> 
-		peerConnection.setRemoteDescription(RTMPAdaptor.this, sdp)
+			peerConnection.setRemoteDescription(RTMPAdaptor.this, sdp)
 				);
 
 	}
