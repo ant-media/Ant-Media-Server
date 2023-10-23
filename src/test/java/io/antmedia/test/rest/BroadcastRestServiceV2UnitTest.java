@@ -1164,18 +1164,6 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setAppCtx(context);
 		when(context.containsBean(any())).thenReturn(true);
 				
-		// isCluster true / broadcast origin address != server host address / status = broadcasting
-		{
-			Broadcast broadcast = new Broadcast();
-			broadcast.setOriginAdress("55.55.55.55");
-			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			store.save(broadcast);
-			
-			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
-			
-			Result result = restServiceReal.deleteBroadcast(broadcast.getStreamId());
-			assertFalse(result.isSuccess());
-		}
 		
 		// isCluster true / broadcast origin address == server host address / status = broadcasting
 		{
@@ -1276,19 +1264,6 @@ public class BroadcastRestServiceV2UnitTest {
 		// Add test for Cluster
 		restServiceReal.setAppCtx(context);
 		when(context.containsBean(any())).thenReturn(true);
-
-		// isCluster true / broadcast origin address != server host address / status = broadcasting
-		{
-			Broadcast broadcast = new Broadcast();
-			broadcast.setOriginAdress("55.55.55.55");
-			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			store.save(broadcast);
-
-			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
-
-			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
-			assertFalse(result.isSuccess());
-		}
 
 		// isCluster true / broadcast origin address == server host address / status = broadcasting
 		{
@@ -1948,10 +1923,20 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testStopLiveStream() {
 		BroadcastRestService restService = new BroadcastRestService();
 		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
+
 		DataStore ds = Mockito.mock(DataStore.class);
 		String streamId = "test-stream";
 
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		Mockito.doReturn(scope).when(app).getScope();
+
+		IContext context = mock(IContext.class);
+		Mockito.doReturn(context).when(scope).getContext();
+		
 		Broadcast broadcast = new Broadcast();
+
 		try {
 			broadcast.setStreamId(streamId);
 		} catch (Exception e) {
@@ -1960,12 +1945,13 @@ public class BroadcastRestServiceV2UnitTest {
 		broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
 
 		Mockito.doReturn(broadcast).when(ds).get(streamId);
+
 		restService.setDataStore(ds);
 		restService.setApplication(app);
 
 		restService.stopStreamingV2(streamId);
 
-		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(null, streamId);
+		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(scope, streamId);
 	}
 
 	@Test

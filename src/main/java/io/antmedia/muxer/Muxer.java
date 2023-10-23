@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.antmedia.FFmpegUtilities;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
@@ -1112,7 +1113,7 @@ public abstract class Muxer {
 	public static String getErrorDefinition(int errorCode) {
 		byte[] data = new byte[128];
 		av_strerror(errorCode, data, data.length);
-		return new String(data, 0, data.length);
+		return FFmpegUtilities.byteArrayToString(data);
 	}
 
 	/**
