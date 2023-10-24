@@ -1187,6 +1187,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
+	@Override
+	public void appStop(IScope app) {
+		super.appStop(app);
+		//we may use this method for stopApplication
+		logger.info("appStop is being called for {}", app.getName());
+	}
+	
+	
 	public void stopApplication(boolean deleteDB) {
 		logger.info("{} is closing streams", getScope().getName());
 		serverShuttingDown = true;
@@ -1197,10 +1205,26 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		waitUntilThreadsStop();
 
 		createShutdownFile(getScope().getName());
-
-		getDataStore().close(deleteDB);
-
+		
+		
+		closeDB(deleteDB);
+		
 	}
+		
+	public void closeDB(boolean deleteDB) {
+		boolean isClusterMode = getScope().getContext().hasBean(IClusterNotifier.BEAN_NAME);
+		if (deleteDB && isClusterMode) 
+		{
+			//let the other nodes have enough time to synch
+			getVertx().setTimer(ClusterNode.NODE_UPDATE_PERIOD + 2000, l-> 
+				getDataStore().close(deleteDB)
+			);
+		}
+		else {
+			getDataStore().close(deleteDB);
+		}
+	}
+	
 
 
 	public Result createInitializationProcess(String appName){

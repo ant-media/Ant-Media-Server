@@ -321,10 +321,28 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	public boolean createApplication(String appName, String warFileFullPath) {
+		if(currentApplicationCreationProcesses.contains(appName)) {
+			log.warn("{} application has already been installing", appName);
+			return false;
+		}
 		currentApplicationCreationProcesses.add(appName);
 		boolean success = false;
 		logger.info("Running create app script, war file name (null if default): {}, app name: {} ", warFileFullPath, appName);
 
+		//check if there is a non-completed deployment 
+		Path currentPath = Paths.get("");
+		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
+		if (appScope == null || !appScope.isRunning()) 
+		{
+			File f = new File(currentPath.toAbsolutePath().toString() + "/webapps/" + appName);
+			logger.info(" f directory :{}" , f.getAbsolutePath());
+			if (f.exists()) {
+				logger.error("It detects an non-completed app deployment directory with name {}. It's being deleted.", appName);
+				runDeleteAppScript(appName);
+			}
+		}
+		
+		
 		if(isCluster) {
 			String dbConnectionURL = getDataStoreFactory().getDbHost();
 			String mongoUser = getDataStoreFactory().getDbUser();
@@ -406,7 +424,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 	}
 
-	public boolean deleteApplication(String appName, boolean deleteDB) {
+	public synchronized boolean deleteApplication(String appName, boolean deleteDB) {
 
 		boolean success = false;
 		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
