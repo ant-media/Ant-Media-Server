@@ -57,6 +57,7 @@ public class AdminApplicationTest {
 
 		WebScope appScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(appScope).when(rootScope).getScope(Mockito.anyString());
+		Mockito.when(appScope.isRunning()).thenReturn(true);
 
 		AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adapter).when(app).getApplicationAdaptor(Mockito.any());
