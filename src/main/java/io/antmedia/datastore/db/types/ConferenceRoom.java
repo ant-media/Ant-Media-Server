@@ -22,6 +22,8 @@ import io.swagger.annotations.ApiModelProperty;
 public class ConferenceRoom {
 	public static final String MULTI_TRACK_MODE = "multitrack";
 
+	public static final int UNLIMITED_PARTICIPANT_CAPACITY = -1;
+
 	public static final String LEGACY_MODE = "legacy";
 
 	@JsonIgnore
@@ -43,7 +45,10 @@ public class ConferenceRoom {
 	
 	@ApiModelProperty(value = "Conference Room Mode: legacy | mcu | multi-track")
 	private String mode = "legacy";
-	
+
+	@ApiModelProperty(value = "Maximum number of participants/streams that can participate in conference room. Default is unlimited.")
+	private int maxParticipantCapacity = UNLIMITED_PARTICIPANT_CAPACITY;
+
 	@JsonIgnore
 	private boolean zombi;
 	
@@ -107,6 +112,21 @@ public class ConferenceRoom {
 
 	public void setOriginAdress(String originAdress) {
 		this.originAdress = originAdress;
+	}
+
+	public boolean isCapacityFull(){
+		if(getMaxParticipantCapacity() == UNLIMITED_PARTICIPANT_CAPACITY){
+			return false;
+		}
+		return roomStreamList.size() >= maxParticipantCapacity;
+	}
+
+	public int getMaxParticipantCapacity() {
+		return maxParticipantCapacity;
+	}
+
+	public void setMaxParticipantCapacity(int maxParticipantCapacity) {
+		this.maxParticipantCapacity = maxParticipantCapacity;
 	}
 
 }

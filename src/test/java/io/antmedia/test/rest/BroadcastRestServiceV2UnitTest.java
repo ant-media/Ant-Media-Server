@@ -3287,5 +3287,61 @@ public class BroadcastRestServiceV2UnitTest {
 		
 	}
 
+	@Test
+	public void testRoomMaxParticipantCapacity() throws Exception {
+		ApplicationContext currentContext = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(currentContext);
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(currentContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+
+		ConferenceRoom room = new ConferenceRoom();
+		room.setRoomId("testroom");
+		int maxParticipantCapacity = 1;
+
+		room.setMaxParticipantCapacity(maxParticipantCapacity);
+		store.createConferenceRoom(room);
+
+		String broadcast1Id = "stream1";
+		String broadcast2Id = "stream2";
+		String broadcast3Id = "stream3";
+
+		Broadcast broadcast1=new Broadcast();
+		broadcast1.setStreamId(broadcast1Id);
+
+
+		Broadcast broadcast2=new Broadcast();
+		broadcast2.setStreamId(broadcast2Id);
+		Broadcast broadcast3=new Broadcast();
+		broadcast3.setStreamId(broadcast3Id);
+
+		store.save(broadcast1);
+		store.save(broadcast2);
+
+		store.save(broadcast3);
+
+		assertTrue(restServiceSpy.addStreamToTheRoom(room.getRoomId(),broadcast1Id).isSuccess());
+		assertEquals(1, store.getConferenceRoom(room.getRoomId()).getRoomStreamList().size());
+		verify(app, times(1)).joinedTheRoom(room.getRoomId(), broadcast1Id);
+
+		assertFalse(restServiceSpy.addStreamToTheRoom(room.getRoomId(),broadcast2Id).isSuccess());
+		assertEquals(1, store.getConferenceRoom(room.getRoomId()).getRoomStreamList().size());
+
+		room.setMaxParticipantCapacity(ConferenceRoom.UNLIMITED_PARTICIPANT_CAPACITY);
+
+		store.editConferenceRoom(room.getRoomId(), room);
+		
+		assertTrue(restServiceSpy.addStreamToTheRoom(room.getRoomId(),broadcast2Id).isSuccess());
+		assertEquals(2, store.getConferenceRoom(room.getRoomId()).getRoomStreamList().size());
+
+		assertTrue(restServiceSpy.addStreamToTheRoom(room.getRoomId(),broadcast3Id).isSuccess());
+		assertEquals(3, store.getConferenceRoom(room.getRoomId()).getRoomStreamList().size());
+
+
+	}
+
 
 }
