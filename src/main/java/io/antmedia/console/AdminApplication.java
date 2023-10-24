@@ -326,11 +326,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		logger.info("Running create app script, war file name (null if default): {}, app name: {} ", warFileFullPath, appName);
 
 		if(isCluster) {
-			String mongoHost = getDataStoreFactory().getDbHost();
+			String dbConnectionURL = getDataStoreFactory().getDbHost();
 			String mongoUser = getDataStoreFactory().getDbUser();
 			String mongoPass = getDataStoreFactory().getDbPassword();
 
-			boolean result = runCreateAppScript(appName, true, mongoHost, mongoUser, mongoPass, warFileFullPath);
+			boolean result = runCreateAppScript(appName, true, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
 			success = result;
 		}
 		else {
@@ -411,8 +411,12 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		boolean success = false;
 		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
 
-		if (appScope != null) 
+		//appScope is running after application has started
+		if (appScope != null && appScope.isRunning()) 
 		{
+			
+			logger.info("Deleting app:{} and appscope is running:{}", 
+					appName, appScope.isRunning());
 			getApplicationAdaptor(appScope).stopApplication(deleteDB);
 
 			success = runDeleteAppScript(appName);
