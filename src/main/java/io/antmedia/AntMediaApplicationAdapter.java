@@ -1216,7 +1216,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (deleteDB && isClusterMode) 
 		{
 			//let the other nodes have enough time to synch
-			getVertx().setTimer(ClusterNode.NODE_UPDATE_PERIOD + 2000, l-> 
+			getVertx().setTimer(ClusterNode.NODE_UPDATE_PERIOD + 1000, l-> 
 				getDataStore().close(deleteDB)
 			);
 		}

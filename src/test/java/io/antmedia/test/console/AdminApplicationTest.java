@@ -1,14 +1,21 @@
 package io.antmedia.test.console;
 
+import java.io.File;
 import java.io.IOException;
 
+import org.apache.catalina.Container;
+import org.apache.catalina.Host;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.red5.server.LoaderBase;
+import org.red5.server.api.IApplicationContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
+import org.red5.server.tomcat.TomcatLoader;
 import org.red5.server.tomcat.WarDeployer;
 
 import io.antmedia.AntMediaApplicationAdapter;
@@ -36,6 +43,59 @@ public class AdminApplicationTest {
 		vertx.close();
 	}
 
+	
+	@Test
+	public void testUndeployedDirectoryWhileCreatingApp() {
+		
+		String appName = RandomStringUtils.randomAlphabetic(19);
+		AdminApplication app = Mockito.spy(new AdminApplication());
+		app.setVertx(vertx);
+		
+		WebScope rootScope = Mockito.mock(WebScope.class);
+		Mockito.doReturn(rootScope).when(app).getRootScope();
+		
+		WarDeployer warDeployer = Mockito.mock(WarDeployer.class);
+		app.setWarDeployer(warDeployer);
+		
+		app.createApplication(appName, null);
+		
+		Mockito.verify(app).runCreateAppScript(appName, null);
+		Mockito.verify(app, Mockito.times(0)).runDeleteAppScript(Mockito.anyString());
+		
+		WebScope appScope = Mockito.mock(WebScope.class);
+		Mockito.doReturn(appScope).when(rootScope).getScope(Mockito.anyString());
+		Mockito.when(appScope.isRunning()).thenReturn(false);
+		app.getCurrentApplicationCreationProcesses().remove(appName);
+		app.createApplication(appName, null);
+		
+		Mockito.verify(app, Mockito.times(2)).runCreateAppScript(appName, null);
+		Mockito.verify(app, Mockito.times(0)).runDeleteAppScript(Mockito.anyString());
+		
+		Mockito.when(appScope.isRunning()).thenReturn(true);
+		app.getCurrentApplicationCreationProcesses().remove(appName);
+		assertFalse(app.createApplication(appName, null));
+		
+		Mockito.verify(app, Mockito.times(2)).runCreateAppScript(appName, null);
+		Mockito.verify(app, Mockito.times(0)).runDeleteAppScript(Mockito.anyString());
+		
+		File f = new File("webapps/" + appName);
+		if (!f.exists()) {
+			f.mkdirs();
+		}
+		
+		assertTrue(f.exists());
+		app.getCurrentApplicationCreationProcesses().remove(appName);
+		assertFalse(app.createApplication(appName, null));
+		
+		
+		Mockito.when(appScope.isRunning()).thenReturn(false);
+		app.getCurrentApplicationCreationProcesses().remove(appName);
+		app.createApplication(appName, null);
+		Mockito.verify(app, Mockito.times(3)).runCreateAppScript(appName, null);
+		Mockito.verify(app, Mockito.times(1)).runDeleteAppScript(Mockito.anyString());
+		
+		
+	}
 
 	@Test
 	public void testCreateDeleteApplication() 
@@ -49,6 +109,7 @@ public class AdminApplicationTest {
 
 		WebScope appScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(appScope).when(rootScope).getScope(Mockito.anyString());
+				
 		Mockito.when(appScope.isRunning()).thenReturn(true);
 		
 		WarDeployer warDeployer = Mockito.mock(WarDeployer.class);
@@ -57,6 +118,7 @@ public class AdminApplicationTest {
 
 		Mockito.verify(app).runCreateAppScript("test", null);
 		Mockito.verify(warDeployer, Mockito.timeout(4000)).deploy(true);
+				
 
 		AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adapter).when(app).getApplicationAdaptor(Mockito.any());
@@ -332,6 +394,36 @@ public class AdminApplicationTest {
 		Mockito.verify(app).runCreateAppScript(appName, null);
 
 		assertFalse(app.createApplicationWithURL(appName, "some_url"));
+		
+		assertFalse(app.createApplication(appName, "some_url"));
+	}
+	
+	@Test
+	public void testTomcatLoaderRemoveContext() {
+		TomcatLoader tomcatLoader = new TomcatLoader();
+		Host host = Mockito.mock(Host.class);
+		tomcatLoader.setBaseHost(host);
+		Container[] container = new Container[0];
+		Mockito.when(host.findChildren()).thenReturn(container);
+		Mockito.when(host.getName()).thenReturn("host");
+		
+		String path = "path";
+		
+		IApplicationContext applicationContext = Mockito.mock(IApplicationContext.class);
+		LoaderBase.setRed5ApplicationContext(path, applicationContext);
+		tomcatLoader.removeContext(path);
+		
+		Mockito.verify(applicationContext).stop();
+		assertNull(LoaderBase.getRed5ApplicationContext(path));
+		
+		
+		LoaderBase.setRed5ApplicationContext(tomcatLoader.getHostId() + path, applicationContext);
+		tomcatLoader.removeContext(path);
+		Mockito.verify(applicationContext, Mockito.times(2)).stop();
+		assertNull(LoaderBase.getRed5ApplicationContext(tomcatLoader.getHostId() + path));
+
+		
+		tomcatLoader.removeContext(path);
 	}
 
 }

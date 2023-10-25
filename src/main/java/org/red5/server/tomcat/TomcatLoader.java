@@ -823,7 +823,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	 * 
 	 * @return host id
 	 */
-	protected String getHostId() {
+	public String getHostId() {
 		String hostId = host.getName();
 		log.debug("Host id: {}", hostId);
 		return hostId;

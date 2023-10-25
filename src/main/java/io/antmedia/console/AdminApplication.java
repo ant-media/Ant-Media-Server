@@ -332,10 +332,12 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		//check if there is a non-completed deployment 
 		Path currentPath = Paths.get("");
 		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
-		if (appScope == null || !appScope.isRunning()) 
-		{
+		if (appScope != null && appScope.isRunning()) {
+			logger.info("{} already exists and active", appName);
+			return false;
+		}
+		else {
 			File f = new File(currentPath.toAbsolutePath().toString() + "/webapps/" + appName);
-			logger.info(" f directory :{}" , f.getAbsolutePath());
 			if (f.exists()) {
 				logger.error("It detects an non-completed app deployment directory with name {}. It's being deleted.", appName);
 				runDeleteAppScript(appName);
@@ -357,12 +359,20 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 
 		vertx.executeBlocking(i -> {
-			warDeployer.deploy(true);
-			currentApplicationCreationProcesses.remove(appName);
+			try {
+				warDeployer.deploy(true);
+			}
+			finally {
+				currentApplicationCreationProcesses.remove(appName);
+			}
 		});
 
 		return success;
 
+	}
+	
+	public Queue<String> getCurrentApplicationCreationProcesses() {
+		return currentApplicationCreationProcesses;
 	}
 
 	@Nullable
