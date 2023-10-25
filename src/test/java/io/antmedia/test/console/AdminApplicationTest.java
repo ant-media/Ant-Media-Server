@@ -43,21 +43,20 @@ public class AdminApplicationTest {
 		//create application
 		AdminApplication app = Mockito.spy(new AdminApplication());
 		app.setVertx(vertx);
-		WarDeployer warDeployer = Mockito.mock(WarDeployer.class);
-		app.setWarDeployer(warDeployer);
-		app.createApplication("test", null);
-
-		Mockito.verify(app).runCreateAppScript("test", null);
-		Mockito.verify(warDeployer, Mockito.timeout(4000)).deploy(true);
-
-
-		//delete application
+		
 		WebScope rootScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(rootScope).when(app).getRootScope();
 
 		WebScope appScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(appScope).when(rootScope).getScope(Mockito.anyString());
 		Mockito.when(appScope.isRunning()).thenReturn(true);
+		
+		WarDeployer warDeployer = Mockito.mock(WarDeployer.class);
+		app.setWarDeployer(warDeployer);
+		app.createApplication("test", null);
+
+		Mockito.verify(app).runCreateAppScript("test", null);
+		Mockito.verify(warDeployer, Mockito.timeout(4000)).deploy(true);
 
 		AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adapter).when(app).getApplicationAdaptor(Mockito.any());
@@ -308,6 +307,13 @@ public class AdminApplicationTest {
 		//create application
 		AdminApplication app = Mockito.spy(new AdminApplication());
 		app.setVertx(vertx);
+		
+		WebScope rootScope = Mockito.mock(WebScope.class);
+		Mockito.doReturn(rootScope).when(app).getRootScope();
+
+		WebScope appScope = Mockito.mock(WebScope.class);
+		Mockito.doReturn(appScope).when(rootScope).getScope(Mockito.anyString());
+		Mockito.when(appScope.isRunning()).thenReturn(true);
 		
 		int warDeployDuration = 2000;
 		String appName = "test";
