@@ -330,20 +330,13 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		logger.info("Running create app script, war file name (null if default): {}, app name: {} ", warFileFullPath, appName);
 
 		//check if there is a non-completed deployment 
-		Path currentPath = Paths.get("");
+		
 		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
 		if (appScope != null && appScope.isRunning()) {
-			logger.info("{} already exists and active", appName);
+			logger.info("{} already exists and running", appName);
+			currentApplicationCreationProcesses.remove(appName);
 			return false;
 		}
-		else {
-			File f = new File(currentPath.toAbsolutePath().toString() + "/webapps/" + appName);
-			if (f.exists()) {
-				logger.error("It detects an non-completed app deployment directory with name {}. It's being deleted.", appName);
-				runDeleteAppScript(appName);
-			}
-		}
-		
 		
 		if(isCluster) {
 			String dbConnectionURL = getDataStoreFactory().getDbHost();
@@ -459,6 +452,13 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 		else {
 			logger.info("Application scope for app:{} is not available to delete.", appName);
+			Path currentPath = Paths.get("");
+			File f = new File(currentPath.toAbsolutePath().toString() + "/webapps/" + appName);
+			if (f.exists()) {
+				logger.error("It detects an non-completed app deployment directory with name {}. It's being deleted.", appName);
+				success = runDeleteAppScript(appName);
+			}
+	
 		}
 
 		return success;

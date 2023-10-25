@@ -45,11 +45,14 @@ public class AdminApplicationTest {
 
 	
 	@Test
-	public void testUndeployedDirectoryWhileCreatingApp() {
+	public void testUndeployedDirectoryWhileDeletingApp() throws Exception {
 		
 		String appName = RandomStringUtils.randomAlphabetic(19);
 		AdminApplication app = Mockito.spy(new AdminApplication());
 		app.setVertx(vertx);
+		
+		AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
+		Mockito.doReturn(adapter).when(app).getApplicationAdaptor(Mockito.any());
 		
 		WebScope rootScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(rootScope).when(app).getRootScope();
@@ -57,26 +60,26 @@ public class AdminApplicationTest {
 		WarDeployer warDeployer = Mockito.mock(WarDeployer.class);
 		app.setWarDeployer(warDeployer);
 		
-		app.createApplication(appName, null);
+		app.deleteApplication(appName, false);
 		
-		Mockito.verify(app).runCreateAppScript(appName, null);
 		Mockito.verify(app, Mockito.times(0)).runDeleteAppScript(Mockito.anyString());
 		
 		WebScope appScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(appScope).when(rootScope).getScope(Mockito.anyString());
 		Mockito.when(appScope.isRunning()).thenReturn(false);
 		app.getCurrentApplicationCreationProcesses().remove(appName);
-		app.createApplication(appName, null);
+		app.deleteApplication(appName, false);
 		
-		Mockito.verify(app, Mockito.times(2)).runCreateAppScript(appName, null);
 		Mockito.verify(app, Mockito.times(0)).runDeleteAppScript(Mockito.anyString());
+		
+		Mockito.verify(appScope, Mockito.never()).destroy();
 		
 		Mockito.when(appScope.isRunning()).thenReturn(true);
 		app.getCurrentApplicationCreationProcesses().remove(appName);
-		assertFalse(app.createApplication(appName, null));
+		assertFalse(app.deleteApplication(appName, false));
 		
-		Mockito.verify(app, Mockito.times(2)).runCreateAppScript(appName, null);
-		Mockito.verify(app, Mockito.times(0)).runDeleteAppScript(Mockito.anyString());
+		Mockito.verify(app, Mockito.times(1)).runDeleteAppScript(Mockito.anyString());
+		Mockito.verify(appScope, Mockito.times(1)).destroy();
 		
 		File f = new File("webapps/" + appName);
 		if (!f.exists()) {
@@ -84,15 +87,12 @@ public class AdminApplicationTest {
 		}
 		
 		assertTrue(f.exists());
-		app.getCurrentApplicationCreationProcesses().remove(appName);
-		assertFalse(app.createApplication(appName, null));
-		
-		
+		app.getCurrentApplicationCreationProcesses().remove(appName);		
 		Mockito.when(appScope.isRunning()).thenReturn(false);
 		app.getCurrentApplicationCreationProcesses().remove(appName);
-		app.createApplication(appName, null);
-		Mockito.verify(app, Mockito.times(3)).runCreateAppScript(appName, null);
-		Mockito.verify(app, Mockito.times(1)).runDeleteAppScript(Mockito.anyString());
+		app.deleteApplication(appName, false);
+		
+		Mockito.verify(app, Mockito.times(2)).runDeleteAppScript(Mockito.anyString());
 		
 		
 	}
@@ -116,13 +116,20 @@ public class AdminApplicationTest {
 		app.setWarDeployer(warDeployer);
 		app.createApplication("test", null);
 
+		Mockito.verify(app, Mockito.never()).runCreateAppScript("test", null);
+		
+		
+		Mockito.when(appScope.isRunning()).thenReturn(false);
+		app.createApplication("test", null);
+
 		Mockito.verify(app).runCreateAppScript("test", null);
 		Mockito.verify(warDeployer, Mockito.timeout(4000)).deploy(true);
 				
 
 		AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adapter).when(app).getApplicationAdaptor(Mockito.any());
-
+		Mockito.when(appScope.isRunning()).thenReturn(true);
+		
 		boolean result = app.deleteApplication("test", true);
 		assertFalse(result);
 
@@ -391,6 +398,10 @@ public class AdminApplicationTest {
 		
 		app.createApplication(appName, null);
 
+		Mockito.verify(app, Mockito.never()).runCreateAppScript(appName, null);
+		
+		Mockito.when(appScope.isRunning()).thenReturn(false);
+		app.createApplication(appName, null);
 		Mockito.verify(app).runCreateAppScript(appName, null);
 
 		assertFalse(app.createApplicationWithURL(appName, "some_url"));
