@@ -1260,16 +1260,6 @@ public abstract class RestServiceBase {
 		return selectedMuxAdaptor;
 	}
 
-	public boolean addRtmpMuxerToMuxAdaptor(String streamId, String rtmpURL) {
-		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
-		boolean result = false;
-		if (muxAdaptor != null) {
-			//result = muxAdaptor.addRTMPEndpoint(rtmpURL);
-		}
-
-		return result;
-	}
-
 	@Nullable
 	protected Mp4Muxer getMp4Muxer(MuxAdaptor muxAdaptor) {
 		Mp4Muxer mp4Muxer = null;
@@ -1288,7 +1278,9 @@ public abstract class RestServiceBase {
 			return muxAdaptor.startRecording(recordType, resolutionHeight);
 		}
 		else {
-			logger.info("No mux adaptor found for {} recordType:{} resolutionHeight:{}", streamId, recordType, resolutionHeight);
+			logger.info("No mux adaptor found for {} recordType:{} resolutionHeight:{}", streamId != null  ? 
+					streamId.replaceAll("[\n\r]", "_") : "null ", 
+					recordType, resolutionHeight);
 		}
 
 		return null;
