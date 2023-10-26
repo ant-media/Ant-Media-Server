@@ -1287,6 +1287,9 @@ public abstract class RestServiceBase {
 		{
 			return muxAdaptor.startRecording(recordType, resolutionHeight);
 		}
+		else {
+			logger.info("No mux adaptor found for {} recordType:{} resolutionHeight:{}", streamId, recordType, resolutionHeight);
+		}
 
 		return null;
 	}
