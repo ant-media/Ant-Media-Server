@@ -1254,18 +1254,7 @@ public abstract class RestServiceBase {
 
 		if(application != null)
 		{
-			List<MuxAdaptor> muxAdaptors = application.getMuxAdaptors();
-			synchronized (muxAdaptors) {
-
-				for (MuxAdaptor muxAdaptor : muxAdaptors)
-				{
-					if (streamId.equals(muxAdaptor.getStreamId()))
-					{
-						selectedMuxAdaptor = muxAdaptor;
-						break;
-					}
-				}
-			}
+			selectedMuxAdaptor = application.getMuxAdaptor(streamId);
 		}
 
 		return selectedMuxAdaptor;
