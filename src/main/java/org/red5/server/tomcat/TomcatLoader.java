@@ -241,10 +241,12 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	 */
 	@Override
 	public void removeContext(String path) {
+	
 		Container[] children = host.findChildren();
 		for (Container c : children) {
 			if (c instanceof StandardContext && c.getName().equals(path)) {
 				try {
+					log.info("Stopping standard context for {}", path);
 					((StandardContext) c).stop();
 					host.removeChild(c);
 					break;
@@ -253,11 +255,20 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 				}
 			}
 		}
+		
 		IApplicationContext ctx = LoaderBase.removeRed5ApplicationContext(path);
 		if (ctx != null) {
 			ctx.stop();
 		} else {
-			log.warn("Context could not be stopped, it was null for path: {}", path);
+			//try with host Id
+			ctx = LoaderBase.removeRed5ApplicationContext(getHostId() + path);
+			if (ctx != null) {
+				ctx.stop();
+			}
+			else {
+				log.warn("Context could not be stopped, it was null for path: {}", path);
+			}
+			
 		}
 	}
 
@@ -654,6 +665,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 					appctx.setServletContext(servletContext);
 					// set the root webapp ctx attr on the each servlet context so spring can find it later
 					servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, appctx);
+					log.info("Setting root web app context attribute for {}", applicationName);
 					appctx.refresh();
 
 				}
@@ -811,7 +823,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	 * 
 	 * @return host id
 	 */
-	protected String getHostId() {
+	public String getHostId() {
 		String hostId = host.getName();
 		log.debug("Host id: {}", hostId);
 		return hostId;

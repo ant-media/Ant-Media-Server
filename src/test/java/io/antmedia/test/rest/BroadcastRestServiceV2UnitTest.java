@@ -1670,6 +1670,7 @@ public class BroadcastRestServiceV2UnitTest {
 
         MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
         when(mockMuxAdaptor.getMuxerList()).thenReturn(mockMuxers);
+       
         
         when(mockMuxAdaptor.startRecording(RecordType.MP4, 0)).thenReturn(Mockito.mock(Mp4Muxer.class));
         
@@ -1679,20 +1680,19 @@ public class BroadcastRestServiceV2UnitTest {
         mockMuxAdaptors.add(mockMuxAdaptor);
 
         when(application.getMuxAdaptors()).thenReturn(mockMuxAdaptors);
+        
         when(restServiceSpy.getApplication()).thenReturn(application);
 
         Response response = restServiceSpy.createBroadcast(new Broadcast(broadcastName), false);
         Broadcast testBroadcast = (Broadcast) response.getEntity();
 		when(mockMuxAdaptor.getStreamId()).thenReturn(testBroadcast.getStreamId());
-
+		when(application.getMuxAdaptor(testBroadcast.getStreamId())).thenReturn(mockMuxAdaptor);
         assertTrue(restServiceSpy.enableRecordMuxing(testBroadcast.getStreamId(), true,"mp4", 0).isSuccess());
 
         verify(mockMuxAdaptor,never()).startRecording(RecordType.MP4, 0);
 
 		mockMuxers.clear();
 		mockMuxers.add(mockHLSMuxer);
-		
-		
 		
 		//disable
 		assertTrue(restServiceSpy.enableRecordMuxing(testBroadcast.getStreamId(), false, "mp4", 0).isSuccess());

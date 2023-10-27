@@ -418,6 +418,41 @@ public class ConsoleAppRestServiceTest{
 			return tmpApplications.applications.length == appCount;
 		});
 	}
+	
+	@Test
+	public void testCreateDeleteAppAggresive() {
+		
+		Applications applications = getApplications();
+		int appCount = applications.applications.length;
+
+		String appName = RandomString.make(20);
+		log.info("app:{} will be created", appName);
+		Result result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
+			return deleteApplication(appName).isSuccess();
+		});
+		
+		result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
+			return deleteApplication(appName).isSuccess();
+		});
+		
+		result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
+			return deleteApplication(appName).isSuccess();
+		});
+		
+		result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+	}
 
 	@Test
 	public void testCreateApp() 
@@ -431,7 +466,7 @@ public class ConsoleAppRestServiceTest{
 		Result result = createApplication(appName);
 		assertTrue(result.isSuccess());
 
-		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
 			Applications tmpApplications = getApplications();
 			return tmpApplications.applications.length == appCount + 1;
@@ -2831,6 +2866,7 @@ public class ConsoleAppRestServiceTest{
 
 			String content = EntityUtils.toString(response.getEntity());
 
+			log.info("Respose for create application is {}", content);
 			if (response.getStatusLine().getStatusCode() != 200) {
 				System.out.println(response.getStatusLine()+content);
 			}
