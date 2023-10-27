@@ -1112,6 +1112,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 
 		MuxAdaptor muxerAdaptor = mock(MuxAdaptor.class);
+		Mockito.when(muxerAdaptor.getStreamId()).thenReturn("stream1");
 		adapter.muxAdaptorAdded(muxerAdaptor);
 
 		Broadcast broadcast = mock(Broadcast.class);
@@ -1820,6 +1821,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		IClusterStreamFetcher clusterStreamFetcher = mock(IClusterStreamFetcher.class);
 		doReturn(muxAdaptors).when(spyAdapter).getMuxAdaptors();
+		doReturn(mockAdaptor).when(spyAdapter).getMuxAdaptor(streamId);
+		doReturn(mockAdaptor2).when(spyAdapter).getMuxAdaptor("dummy");
+
 		doReturn(clusterStreamFetcher).when(spyAdapter).createClusterStreamFetcher();
 
 
