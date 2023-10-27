@@ -383,10 +383,11 @@
             <version>${selenium-java.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- as far as I understand selenium-java and selenium-http-jdk-client need to have same version -->
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-http-jdk-client</artifactId>
-            <version>${selenium-http-jdk-client.version}</version>
+            <version>${selenium-java.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
