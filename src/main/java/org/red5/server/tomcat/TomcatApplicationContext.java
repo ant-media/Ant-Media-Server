@@ -100,6 +100,13 @@ public class TomcatApplicationContext implements IApplicationContext {
                 }
             }
         }
+        else {
+        	log.warn("Context is not standardContext to stop {}", context.getPath());
+        }
     }
+
+	public Context getContext() {
+		return context;
+	}
 
 }
