@@ -386,7 +386,7 @@
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-http-jdk-client</artifactId>
-            <version>${selenium-java.version}</version>
+            <version>${selenium-http-jdk-client.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
