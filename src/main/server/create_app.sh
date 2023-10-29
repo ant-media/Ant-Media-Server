@@ -10,11 +10,11 @@ usage() {
   echo "-p: (Optional) Path is the install location of Ant Media Server which is /usr/local/antmedia by default."
   echo "-w: (Optional) The flag to deploy application as war file. Default value is false"
   echo "-c: (Optional) The flag to deploy application in cluster mode. Default value is false"
-  echo "-m:  Mongo DB host. If it's a cluster, it's mandatory. Otherwise optional"
-  echo "-u:  Mongo DB user. If it's a cluster, it's mandatory. Otherwise optional"
-  echo "-s:  Mongo DB password. If it's a cluster, it's mandatory. Otherwise optional"
-  echo "-h:  MongoDB or Redist host. It's either IP address or full connection string such as mongodb://[username:password@]host1[:port1]"
-  echo "-q: print this usage"
+  echo "-m:  Mongo DB or Redis host. If it's a cluster, it's mandatory. Otherwise optional"
+  echo "-u:  Mongo DB user or Redis user. If it's a cluster, it's mandatory. Otherwise optional"
+  echo "-s:  Mongo DB or Redis password. If it's a cluster, it's mandatory. Otherwise optional"
+  echo "-t:  DB Type. This flag determines the DB type. mongodb or redis"
+  echo "-h: print this usage"
   echo "-f: war file path for custom app deployment"
   echo " "
   echo "Example: "
@@ -33,19 +33,19 @@ AMS_DIR=/usr/local/antmedia
 AS_WAR=false
 IS_CLUSTER=false
 
-while getopts 'n:p:w:h:c:m:u:s:f:q:' option
+while getopts 'n:p:w:h:c:m:u:t:s:f:' option
 do
   case "${option}" in
     n) APP_NAME=${OPTARG};;
     p) AMS_DIR=${OPTARG};;
     w) AS_WAR=${OPTARG};;
     c) IS_CLUSTER=${OPTARG};;
-    h) DATABASE_HOST=${OPTARG};;
-    m) MONGO_HOST=${OPTARG};;
-    u) MONGO_USER=${OPTARG};;
-    s) MONGO_PASS=${OPTARG};;
+    m) DB_HOST=${OPTARG};;
+    u) DB_USER=${OPTARG};;
+    s) DB_PASS=${OPTARG};;
     f) WAR_FILE=${OPTARG};;
-    q) usage 
+    t) DB_TYPE=${OPTARG};;
+    h) usage 
        exit 1;;
    esac
 done
@@ -80,14 +80,6 @@ fi
 if [[ -z "$AS_WAR" ]]; then
     AS_WAR="false"
 fi
-
-#if [[ "$IS_CLUSTER" == "true" ]]; then
-#    if [[ ! -z "$MONGO_HOST" || ! -z "$DATABASE_HOST" ]]; then
-#       echo "Please set mongodb host, username and password for cluster mode. "
-#       usage
-#       exit 1
-#    fi
-#fi
 
 case $AMS_DIR in
   /*) AMS_DIR=$AMS_DIR;;
@@ -136,33 +128,22 @@ check_result
 sed -i $SED_COMPATIBILITY 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
 check_result
 
-if [[ $MONGO_HOST == \'*\' ]]; then
-  MONGO_HOST="${MONGO_HOST:1:-1}"
+if [[ $DB_HOST == \'*\' ]]; then
+  DB_HOST="${DB_HOST:1:-1}"
 fi
 
 if [[ "$IS_CLUSTER" == "true" ]]; then
     echo "Cluster mode"
-    if [[ $DATABASE_HOST =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DATABASE_HOST =~ ^localhost$ ||  $DATABASE_HOST =~ ^mongo.*$ ]]; then
+    #Automatically find which DB it is
+    if [[ $DB_HOST =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DB_HOST =~ ^localhost$ ||  $DB_HOST =~ ^mongo.*$ ]]; then
       DB_TYPE=mongodb
-      echo "DB type is mongodb"
-    elif [[ $DATABASE_HOST =~ ^redis.*$ ]]; then 
+    elif [[ $DB_HOST =~ ^redis.*$ ]]; then 
       DB_TYPE=redisdb
-      echo "DB type is redis"
-    else  
-      DB_TYPE=redisdb
-      echo "DB type is redis"
-    fi  
-
-    if [[ -n "$MONGO_HOST" ]]; then
-  	  sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $RED5_PROPERTIES_FILE
-      sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$MONGO_HOST'#' $RED5_PROPERTIES_FILE  
-      sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$MONGO_USER'/' $RED5_PROPERTIES_FILE
-      sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$MONGO_PASS'/' $RED5_PROPERTIES_FILE
-    elif [[ -n "$DATABASE_HOST" ]]; then
-      sed -i $SED_COMPATIBILITY "s/db.type=.*/db.type=$DB_TYPE/g" $RED5_PROPERTIES_FILE
-      sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$DATABASE_HOST'#' $RED5_PROPERTIES_FILE  
     fi
-
+    sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $RED5_PROPERTIES_FILE
+    sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$DB_HOST'#' $RED5_PROPERTIES_FILE  
+    sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$DB_USER'/' $RED5_PROPERTIES_FILE
+    sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$DB_PASS'/' $RED5_PROPERTIES_FILE
     ln -s $WAR_FILE $AMS_DIR/webapps/root/$APP_NAME.war
 else 
     echo "Not cluster mode."    
