@@ -342,8 +342,9 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			String dbConnectionURL = getDataStoreFactory().getDbHost();
 			String mongoUser = getDataStoreFactory().getDbUser();
 			String mongoPass = getDataStoreFactory().getDbPassword();
+			String databaseType = getDataStoreFactory().getDbType();
 
-			boolean result = runCreateAppScript(appName, true, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
+			boolean result = runCreateAppScript(appName, true, dbConnectionURL, mongoUser, mongoPass, databaseType, warFileFullPath);
 			success = result;
 		}
 		else {
@@ -466,15 +467,15 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 
 	public boolean runCreateAppScript(String appName, String warFilePath) {
-		return runCreateAppScript(appName, false, null, null, null, warFilePath);
+		return runCreateAppScript(appName, false, null, null, null, null, warFilePath);
 	}
 
 	public boolean runCreateAppScript(String appName) {
-		return runCreateAppScript(appName, false, null, null, null, null);
+		return runCreateAppScript(appName, false, null, null, null, null, null);
 	}
 
 	public boolean runCreateAppScript(String appName, boolean isCluster, 
-			String mongoHost, String mongoUser, String mongoPass, String warFileName) {
+			String mongoHost, String mongoUser, String mongoPass, String databaseType, String warFileName) {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
@@ -499,11 +500,12 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 					+ " -c " + isCluster;
 		} 
 
-		if(isCluster) 
+		if(isCluster)
 		{
 			command += " -m " + mongoHost
 					+ " -u "  + mongoUser
-					+ " -s "  + mongoPass;
+					+ " -s "  + mongoPass
+					+ " -t "  + databaseType;
 		}
 
 		log.info("Creating application with command: {}", command);
@@ -582,5 +584,10 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 	public void setWarDeployer(WarDeployer warDeployer) {
 		this.warDeployer = warDeployer;
+	}
+
+	// This method is written for unit tests
+	public void setIsCluster(boolean isCluster) {
+		this.isCluster = isCluster;
 	}
 }

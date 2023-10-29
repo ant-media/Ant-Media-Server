@@ -3,6 +3,8 @@ package io.antmedia.test.console;
 import java.io.File;
 import java.io.IOException;
 
+import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import org.apache.catalina.Container;
 import org.apache.catalina.Host;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -13,6 +15,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.LoaderBase;
 import org.red5.server.api.IApplicationContext;
+import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
 import org.red5.server.tomcat.TomcatLoader;
@@ -407,6 +410,48 @@ public class AdminApplicationTest {
 		assertFalse(app.createApplicationWithURL(appName, "some_url"));
 		
 		assertFalse(app.createApplication(appName, "some_url"));
+	}
+
+	@Test
+	public void testCreateApplicationWithClusterMode() {
+		String appName = "testClusterMode";
+		String dbConnectionURL = "dbConnectionURL";
+		String mongoUser = "mongoUser";
+		String mongoPass = "mongoPass";
+		String databaseType = "mongodb";
+
+		//create application
+		AdminApplication app = Mockito.spy(new AdminApplication());
+		app.setVertx(vertx);
+
+		WebScope rootScope = Mockito.mock(WebScope.class);
+		Mockito.doReturn(rootScope).when(app).getRootScope();
+
+		WebScope appScope = Mockito.mock(WebScope.class);
+		Mockito.doReturn(appScope).when(rootScope).getScope(Mockito.anyString());
+
+		Mockito.when(appScope.isRunning()).thenReturn(true);
+
+		IContext context = Mockito.mock(IContext.class);
+
+		Mockito.doReturn(context).when(app).getContext();
+
+		Mockito.doReturn(true).when(context).hasBean(IClusterNotifier.BEAN_NAME);
+
+		ConsoleDataStoreFactory dataStoreFactory = Mockito.mock(ConsoleDataStoreFactory.class);
+		Mockito.doReturn(dataStoreFactory).when(app).getDataStoreFactory();
+		Mockito.doReturn(dbConnectionURL).when(dataStoreFactory).getDbHost();
+		Mockito.doReturn(mongoUser).when(dataStoreFactory).getDbUser();
+		Mockito.doReturn(mongoPass).when(dataStoreFactory).getDbPassword();
+		Mockito.doReturn(databaseType).when(dataStoreFactory).getDbType();
+
+		app.setIsCluster(true);
+
+		WarDeployer warDeployer = Mockito.mock(WarDeployer.class);
+		app.setWarDeployer(warDeployer);
+		app.createApplication(appName, null);
+
+		Mockito.verify(app, Mockito.never()).runCreateAppScript(appName, null);
 	}
 	
 	@Test
