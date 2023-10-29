@@ -321,16 +321,29 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	public boolean createApplication(String appName, String warFileFullPath) {
+		if(currentApplicationCreationProcesses.contains(appName)) {
+			log.warn("{} application has already been installing", appName);
+			return false;
+		}
 		currentApplicationCreationProcesses.add(appName);
 		boolean success = false;
 		logger.info("Running create app script, war file name (null if default): {}, app name: {} ", warFileFullPath, appName);
 
+		//check if there is a non-completed deployment 
+		
+		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
+		if (appScope != null && appScope.isRunning()) {
+			logger.info("{} already exists and running", appName);
+			currentApplicationCreationProcesses.remove(appName);
+			return false;
+		}
+		
 		if(isCluster) {
-			String mongoHost = getDataStoreFactory().getDbHost();
+			String dbConnectionURL = getDataStoreFactory().getDbHost();
 			String mongoUser = getDataStoreFactory().getDbUser();
 			String mongoPass = getDataStoreFactory().getDbPassword();
 
-			boolean result = runCreateAppScript(appName, true, mongoHost, mongoUser, mongoPass, warFileFullPath);
+			boolean result = runCreateAppScript(appName, true, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
 			success = result;
 		}
 		else {
@@ -339,12 +352,20 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 
 		vertx.executeBlocking(i -> {
-			warDeployer.deploy(true);
-			currentApplicationCreationProcesses.remove(appName);
+			try {
+				warDeployer.deploy(true);
+			}
+			finally {
+				currentApplicationCreationProcesses.remove(appName);
+			}
 		});
 
 		return success;
 
+	}
+	
+	public Queue<String> getCurrentApplicationCreationProcesses() {
+		return currentApplicationCreationProcesses;
 	}
 
 	@Nullable
@@ -406,13 +427,17 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 	}
 
-	public boolean deleteApplication(String appName, boolean deleteDB) {
+	public synchronized boolean deleteApplication(String appName, boolean deleteDB) {
 
 		boolean success = false;
 		WebScope appScope = (WebScope)getRootScope().getScope(appName);	
 
-		if (appScope != null) 
+		//appScope is running after application has started
+		if (appScope != null && appScope.isRunning()) 
 		{
+			
+			logger.info("Deleting app:{} and appscope is running:{}", 
+					appName, appScope.isRunning());
 			getApplicationAdaptor(appScope).stopApplication(deleteDB);
 
 			success = runDeleteAppScript(appName);
@@ -427,6 +452,13 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		}
 		else {
 			logger.info("Application scope for app:{} is not available to delete.", appName);
+			Path currentPath = Paths.get("");
+			File f = new File(currentPath.toAbsolutePath().toString() + "/webapps/" + appName);
+			if (f.exists()) {
+				logger.error("It detects an non-completed app deployment directory with name {}. It's being deleted.", appName);
+				success = runDeleteAppScript(appName);
+			}
+	
 		}
 
 		return success;

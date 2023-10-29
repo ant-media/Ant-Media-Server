@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.FFmpegUtilities;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -738,7 +739,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			byte[] data = new byte[1024];
 			avutil.av_strerror(ret, data, data.length);
-			logger.error("cannot open input context with error: " + new String(data, 0, data.length) + "ret value = "+ String.valueOf(ret));
+			logger.error("cannot open input context with error: {} ret value = {}",
+					FFmpegUtilities.byteArrayToString(data), ret);
 			return;
 		}
 
@@ -759,7 +761,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				byte[] data = new byte[1024];
 				avutil.av_strerror(ret, data, data.length);
 
-				logger.error("cannot read frame from input context: " + new String(data, 0, data.length));	
+				logger.error("cannot read frame from input context: {}",  FFmpegUtilities.byteArrayToString(data));
 			}
 
 			av_packet_unref(pkt);

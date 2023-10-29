@@ -1254,28 +1254,10 @@ public abstract class RestServiceBase {
 
 		if(application != null)
 		{
-			List<MuxAdaptor> muxAdaptors = application.getMuxAdaptors();
-			for (MuxAdaptor muxAdaptor : muxAdaptors)
-			{
-				if (streamId.equals(muxAdaptor.getStreamId()))
-				{
-					selectedMuxAdaptor = muxAdaptor;
-					break;
-				}
-			}
+			selectedMuxAdaptor = application.getMuxAdaptor(streamId);
 		}
 
 		return selectedMuxAdaptor;
-	}
-
-	public boolean addRtmpMuxerToMuxAdaptor(String streamId, String rtmpURL) {
-		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
-		boolean result = false;
-		if (muxAdaptor != null) {
-			//result = muxAdaptor.addRTMPEndpoint(rtmpURL);
-		}
-
-		return result;
 	}
 
 	@Nullable
@@ -1294,6 +1276,11 @@ public abstract class RestServiceBase {
 		if (muxAdaptor != null)
 		{
 			return muxAdaptor.startRecording(recordType, resolutionHeight);
+		}
+		else {
+			logger.info("No mux adaptor found for {} recordType:{} resolutionHeight:{}", streamId != null  ? 
+					streamId.replaceAll("[\n\r]", "_") : "null ", 
+					recordType, resolutionHeight);
 		}
 
 		return null;

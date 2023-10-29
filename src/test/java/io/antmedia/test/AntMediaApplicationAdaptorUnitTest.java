@@ -1112,6 +1112,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 
 		MuxAdaptor muxerAdaptor = mock(MuxAdaptor.class);
+		Mockito.when(muxerAdaptor.getStreamId()).thenReturn("stream1");
 		adapter.muxAdaptorAdded(muxerAdaptor);
 
 		Broadcast broadcast = mock(Broadcast.class);
@@ -1622,6 +1623,41 @@ public class AntMediaApplicationAdaptorUnitTest {
 		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
 		verify(streamFetcherManager, never()).startStreams(broadcastListCaptor.capture());
 	}
+	
+	
+	@Test
+	public void testCloseDB() {
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		
+		
+		
+		IContext context = mock(IContext.class);
+		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+		IScope scope = mock(IScope.class);
+		when(scope.getContext()).thenReturn(context);
+		spyAdapter.setScope(scope);
+		
+		DataStore dataStore = Mockito.mock(DataStore.class);
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+		spyAdapter.setDataStoreFactory(dsf);
+		
+		spyAdapter.closeDB(true);
+		Mockito.verify(dataStore).close(true);
+		
+		spyAdapter.closeDB(false);
+		Mockito.verify(dataStore, Mockito.times(1)).close(false);
+	
+		
+		
+		when(context.hasBean(IClusterNotifier.BEAN_NAME)).thenReturn(true);
+		spyAdapter.closeDB(true);
+		Mockito.verify(dataStore).close(true);
+		
+		Mockito.verify(dataStore, Mockito.timeout(ClusterNode.NODE_UPDATE_PERIOD + 2000).times(2)).close(true);
+		
+		
+	}
 
 	@Test
 	public void testClusterUpdateSettings() {
@@ -1785,6 +1821,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		IClusterStreamFetcher clusterStreamFetcher = mock(IClusterStreamFetcher.class);
 		doReturn(muxAdaptors).when(spyAdapter).getMuxAdaptors();
+		doReturn(mockAdaptor).when(spyAdapter).getMuxAdaptor(streamId);
+		doReturn(mockAdaptor2).when(spyAdapter).getMuxAdaptor("dummy");
+
 		doReturn(clusterStreamFetcher).when(spyAdapter).createClusterStreamFetcher();
 
 

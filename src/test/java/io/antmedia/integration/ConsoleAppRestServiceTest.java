@@ -418,6 +418,41 @@ public class ConsoleAppRestServiceTest{
 			return tmpApplications.applications.length == appCount;
 		});
 	}
+	
+	@Test
+	public void testCreateDeleteAppAggresive() {
+		
+		Applications applications = getApplications();
+		int appCount = applications.applications.length;
+
+		String appName = RandomString.make(20);
+		log.info("app:{} will be created", appName);
+		Result result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
+			return deleteApplication(appName).isSuccess();
+		});
+		
+		result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
+			return deleteApplication(appName).isSuccess();
+		});
+		
+		result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
+			return deleteApplication(appName).isSuccess();
+		});
+		
+		result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+	}
 
 	@Test
 	public void testCreateApp() 
@@ -431,7 +466,7 @@ public class ConsoleAppRestServiceTest{
 		Result result = createApplication(appName);
 		assertTrue(result.isSuccess());
 
-		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
 			Applications tmpApplications = getApplications();
 			return tmpApplications.applications.length == appCount + 1;
@@ -567,13 +602,11 @@ public class ConsoleAppRestServiceTest{
 
 			assertEquals("newServerName", serverSettings.getServerName());
 			assertEquals("newLicenseKey", serverSettings.getLicenceKey());
-			assertEquals(!isMarketRelease, serverSettings.isBuildForMarket());
 
 			// return back to original values
 
 			serverSettings.setServerName(serverName);
 			serverSettings.setLicenceKey(licenseKey);
-			serverSettings.setBuildForMarket(isMarketRelease);
 
 			//save original settings
 			result = callSetServerSettings(serverSettings);
@@ -1125,6 +1158,12 @@ public class ConsoleAppRestServiceTest{
 				});
 
 				AppFunctionalV2Test.destroyProcess();
+				
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> {
+					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
+					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+				});
 			}
 
 			{
@@ -2827,6 +2866,7 @@ public class ConsoleAppRestServiceTest{
 
 			String content = EntityUtils.toString(response.getEntity());
 
+			log.info("Respose for create application is {}", content);
 			if (response.getStatusLine().getStatusCode() != 200) {
 				System.out.println(response.getStatusLine()+content);
 			}

@@ -127,6 +127,10 @@ public class SupportRestService  extends CommonRestService {
 			builder.addTextBody("ramUsage", SystemUtils.osFreePhysicalMemory()+"/"+SystemUtils.osTotalPhysicalMemory());
 			builder.addTextBody("diskUsage", SystemUtils.osHDFreeSpace(null)+"/"+SystemUtils.osHDTotalSpace(null));
 			builder.addTextBody("version", version.getVersionType()+" "+version.getVersionName()+" "+version.getBuildNumber());
+			builder.addTextBody("isMarketplace", getServerSettings().isBuildForMarket() + "");
+			if (getServerSettings().isBuildForMarket()) {
+				builder.addTextBody("marketplace", getServerSettings().getMarketplace());
+			}
 
 			HttpEntity httpEntity = builder.build();
 

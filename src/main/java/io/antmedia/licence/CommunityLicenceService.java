@@ -29,5 +29,10 @@ public class CommunityLicenceService implements ILicenceService{
 	public boolean isLicenceSuspended() {
 		return false;
 	}
+	
+	@Override
+	public String getLicenseType() {
+		return LICENCE_TYPE_COMMUNITY;
+	}
 
 }
