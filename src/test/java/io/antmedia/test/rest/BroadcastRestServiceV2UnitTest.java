@@ -1832,7 +1832,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testTimeBasedSubscriberOperations() {
 
-		DataStore store = new MapDBStore("testdb", vertx);
+		DataStore store = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
 		restServiceReal.setDataStore(store);
 
 		
