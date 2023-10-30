@@ -27,6 +27,8 @@
 #
 # -k: Kafka Address: Provide the Kafka URL address to collect data. (It must contain the port number. Example: localhost:9092)
 #
+# -j: 
+#
 
 if [ -z "$RED5_HOME" ]; then
   BASEDIR=$(dirname "$0")
@@ -44,18 +46,10 @@ DB_URL=
 DB_USERNAME=
 DB_PASSWORD=
 LICENSE_KEY=
-
-# Set the default value for JVM_MEMORY_OPTIONS
 DEFAULT_MIN_HEAP_SIZE="1g"
-JVM_MEMORY_OPTIONS="${JVM_MEMORY_OPTIONS:="-Xms$DEFAULT_MIN_HEAP_SIZE"}"
+JVM_MEMORY_OPTIONS="-Xms$DEFAULT_MIN_HEAP_SIZE"
 
-# If the initial Java heap size (-Xms) and the maximum heap size (-Xmx) values are specified as environment variables (ENV) in the Dockerfile, those values will be set.
-if [ -n "$JVM_MEMORY_OPTIONS" ]; then
-  JVM_MEMORY_OPTIONS="$JVM_MEMORY_OPTIONS"
-fi
-
-
-while getopts g:s:r:m:h:u:p:l:a:n:w:k:t option
+while getopts g:s:r:m:h:u:p:l:a:n:w:k:j:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
@@ -70,6 +64,7 @@ do
     n) TURN_USERNAME=${OPTARG};;
     w) TURN_PASSWORD=${OPTARG};;
     k) KAFKA_URL=${OPTARG};;
+    j) DEFAULT_MIN_HEAP_SIZE=${OPTARG};;
    esac
 done
 
@@ -78,6 +73,14 @@ OS_NAME=`uname`
 if [ "$OS_NAME" = "Darwin" ]; then
   AMS_INSTALL_LOCATION=`pwd`
   SED_COMPATIBILITY='.bak'
+fi
+
+# Set the default value for JVM_MEMORY_OPTIONS
+DEFAULT_MIN_HEAP_SIZE="1g"
+
+# If the initial Java heap size (-Xms) and the maximum heap size (-Xmx) values are specified as environment variables (ENV) in the Dockerfile, those values will be set.
+if [ -n "$JVM_MEMORY_OPTIONS" ]; then
+  JVM_MEMORY_OPTIONS="-Xms$DEFAULT_MIN_HEAP_SIZE"
 fi
 
 # Set use global IP
