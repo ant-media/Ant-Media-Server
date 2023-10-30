@@ -27,7 +27,7 @@
 #
 # -k: Kafka Address: Provide the Kafka URL address to collect data. (It must contain the port number. Example: localhost:9092)
 #
-# -j: 
+# -j: JVM Options: Set the Java heap size (-Xms). Default value is 1g. (Example usage: ./start.sh -j 4g)
 #
 
 if [ -z "$RED5_HOME" ]; then
@@ -46,6 +46,8 @@ DB_URL=
 DB_USERNAME=
 DB_PASSWORD=
 LICENSE_KEY=
+
+# Set the default value for JVM_MEMORY_OPTIONS
 DEFAULT_MIN_HEAP_SIZE="1g"
 JVM_MEMORY_OPTIONS="-Xms$DEFAULT_MIN_HEAP_SIZE"
 
@@ -75,10 +77,7 @@ if [ "$OS_NAME" = "Darwin" ]; then
   SED_COMPATIBILITY='.bak'
 fi
 
-# Set the default value for JVM_MEMORY_OPTIONS
-DEFAULT_MIN_HEAP_SIZE="1g"
-
-# If the initial Java heap size (-Xms) and the maximum heap size (-Xmx) values are specified as environment variables (ENV) in the Dockerfile, those values will be set.
+# Set JVM -Xms parameter
 if [ -n "$JVM_MEMORY_OPTIONS" ]; then
   JVM_MEMORY_OPTIONS="-Xms$DEFAULT_MIN_HEAP_SIZE"
 fi
