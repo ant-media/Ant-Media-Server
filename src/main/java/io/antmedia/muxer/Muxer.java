@@ -253,16 +253,25 @@ public abstract class Muxer {
 
 
 	public boolean openIO() {
-		
+
+		IContext context = this.scope.getContext();
+		ApplicationContext appCtx = context.getApplicationContext();
+
 		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0) 
 		{
-			//if it's different from zero, it means no file is need to be open. 
-			//If it's zero, Not "no file" and it means that file is need to be open .			
+			//if it's different from zero, it means no file is need to be open.
+			//If it's zero, Not "no file" and it means that file is need to be open .
+			String Url =  getOutputURL();
 			AVIOContext pb = new AVIOContext(null);
-
-			int ret = avformat.avio_open(pb,  getOutputURL(), AVIO_FLAG_WRITE);
+			if(Url.startsWith("rtmps")){
+				String [] splitUrl = Url.split("/");
+				String streamKey = splitUrl[splitUrl.length-1];
+				String appName = appCtx.getApplicationName().substring(1);
+				Url = Url.replace(streamKey,appName+"/"+streamKey);
+			}
+			int ret = avformat.avio_open(pb,Url , AVIO_FLAG_WRITE);
 			if (ret < 0) {
-				logger.warn("Could not open output url: {} ",  getOutputURL());
+				logger.warn("Could not open output url: {} ",  Url);
 				return false;
 			}
 			getOutputFormatContext().pb(pb);
