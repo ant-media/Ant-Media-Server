@@ -265,14 +265,14 @@ public abstract class Muxer {
 			AVIOContext pb = new AVIOContext(null);
 
 			String [] splitUrl = Url.split("/");
-			String streamKey = splitUrl[splitUrl.length-1];
 			String rtmpAppName = splitUrl[splitUrl.length-2];
+			AVDictionary options = new AVDictionary(null);
+
 			if(rtmpAppName.contains(".")){
-				String appName = appCtx.getApplicationName().substring(1);
-				Url = Url.replace(streamKey,appName+"/"+streamKey);
+				av_dict_set(options, "rtmp_app", "", 0);
 			}
 
-			int ret = avformat.avio_open(pb,Url , AVIO_FLAG_WRITE);
+			int ret = avformat.avio_open2(pb,Url , AVIO_FLAG_WRITE,null, options);
 			if (ret < 0) {
 				logger.warn("Could not open output url: {} ",  Url);
 				return false;
