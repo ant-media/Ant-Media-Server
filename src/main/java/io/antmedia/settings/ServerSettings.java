@@ -148,7 +148,7 @@ public class ServerSettings implements ApplicationContextAware {
 	 * Native Log Level is used for ffmpeg and WebRTC logs
 	 */
 	@Value( "${"+SETTINGS_NATIVE_LOG_LEVEL+":'ERROR'}" )
-	private String nativeLogLevel = LOG_LEVEL_WARN;
+	private String nativeLogLevel = LOG_LEVEL_ERROR;
 
 	/**
 	 * Enable heart beat for Ant Media Server
@@ -394,7 +394,7 @@ public class ServerSettings implements ApplicationContextAware {
 				offlineLicense = true;
 			}
 		}
-
+		setNativeLogLevel(LOG_LEVEL_ERROR);
 
 	}
 
