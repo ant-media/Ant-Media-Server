@@ -263,12 +263,15 @@ public abstract class Muxer {
 			//If it's zero, Not "no file" and it means that file is need to be open .
 			String Url =  getOutputURL();
 			AVIOContext pb = new AVIOContext(null);
-			if(Url.startsWith("rtmps")){
-				String [] splitUrl = Url.split("/");
-				String streamKey = splitUrl[splitUrl.length-1];
+
+			String [] splitUrl = Url.split("/");
+			String streamKey = splitUrl[splitUrl.length-1];
+			String rtmpAppName = splitUrl[splitUrl.length-2];
+			if(rtmpAppName.contains(".")){
 				String appName = appCtx.getApplicationName().substring(1);
 				Url = Url.replace(streamKey,appName+"/"+streamKey);
 			}
+
 			int ret = avformat.avio_open(pb,Url , AVIO_FLAG_WRITE);
 			if (ret < 0) {
 				logger.warn("Could not open output url: {} ",  Url);
