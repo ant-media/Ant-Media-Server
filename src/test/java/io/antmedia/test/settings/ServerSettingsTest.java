@@ -32,7 +32,7 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 		ServerSettings settings = new ServerSettings();
 		
 		assertEquals(Logging.Severity.LS_WARNING, settings.getWebRTCLogLevel());
-		assertEquals(ServerSettings.LOG_LEVEL_WARN, settings.getNativeLogLevel());
+		assertEquals(ServerSettings.LOG_LEVEL_ERROR, settings.getNativeLogLevel());
 		
 		settings.setNativeLogLevel(ServerSettings.LOG_LEVEL_ALL);
 		assertEquals(Logging.Severity.LS_VERBOSE, settings.getWebRTCLogLevel());
