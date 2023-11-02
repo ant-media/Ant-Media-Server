@@ -140,16 +140,11 @@ public class StreamFetcher {
 
 		AVDictionary optionsDictionary = new AVDictionary();
 
-		String transportType = appSettings.getRtspPullTransportType();
-		if (streamUrl.startsWith("rtsp://") && !transportType.isEmpty()) {
+		if (streamUrl.startsWith("rtsp://")) {
 			
 			
-			logger.info("Setting rtsp transport type to {} for stream source: {} and timeout:{}us", transportType, streamUrl, this.timeoutMicroSeconds);
-			/*
-			 * AppSettings#rtspPullTransportType
-			 */
-			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
-			
+			logger.info("Setting stream source: {} and timeout:{}us", streamUrl, this.timeoutMicroSeconds);
+
 			/*
 			 * AppSettings#rtspTimeoutDurationMs 
 			 */
