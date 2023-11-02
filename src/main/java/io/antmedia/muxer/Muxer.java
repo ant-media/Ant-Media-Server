@@ -37,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.antmedia.FFmpegUtilities;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -253,19 +255,21 @@ public abstract class Muxer {
 
 
 	public boolean openIO() {
+		String Url =  getOutputURL();
+		String regex = "rtmp://[a-zA-Z0-9\\.]+/([^/]+)/.*"; // check if app name is present in the URL rtmp://a.rtmp.youtube.com/live2/y8qd-42g5-1b53-fh15-2v0c
 
-		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0)
+		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0 && Url != null)
 		{
 			//if it's different from zero, it means no file is need to be open.
 			//If it's zero, Not "no file" and it means that file is need to be open .
-			String Url =  getOutputURL();
 			AVIOContext pb = new AVIOContext(null);
 
-			String [] splitUrl = Url.split("/");
-			String rtmpAppName = splitUrl[splitUrl.length-2];
+
+			Pattern pattern = Pattern.compile(regex);
+			Matcher matcher = pattern.matcher(Url);
 			AVDictionary options = new AVDictionary(null);
 
-			if(rtmpAppName.contains(".")){
+			if (!matcher.matches()) {
 				av_dict_set(options, "rtmp_app", "", 0);
 			}
 
