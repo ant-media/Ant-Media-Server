@@ -254,10 +254,7 @@ public abstract class Muxer {
 
 	public boolean openIO() {
 
-		IContext context = this.scope.getContext();
-		ApplicationContext appCtx = context.getApplicationContext();
-
-		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0) 
+		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0)
 		{
 			//if it's different from zero, it means no file is need to be open.
 			//If it's zero, Not "no file" and it means that file is need to be open .
