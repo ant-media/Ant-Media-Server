@@ -1,7 +1,5 @@
 package io.antmedia.plugin.api;
 
-import io.antmedia.datastore.db.types.ConferenceRoom;
-
 /*
  * Interface class to inform the plugins with stream start/start event.
  */

@@ -1568,6 +1568,9 @@ public class ConsoleAppRestServiceTest{
 
 			// get Server Settings
 			ServerSettings serverSettings = callGetServerSettings();
+			
+			//it should not marketplace build
+			assertFalse(serverSettings.isBuildForMarket());
 
 			//set test license key
 			serverSettings.setLicenceKey("test-test");
@@ -1583,7 +1586,7 @@ public class ConsoleAppRestServiceTest{
 			//it should not be null because test license key is active
 			assertNotNull(activeLicence);
 
-			//set build for market as true
+			//set build for market as true - it should not effect
 			serverSettings.setBuildForMarket(true);
 
 			//save this setting
@@ -1591,7 +1594,12 @@ public class ConsoleAppRestServiceTest{
 
 			//check that setting is saved
 			assertTrue (flag.isSuccess());
-
+			
+			serverSettings = callGetServerSettings();
+				
+			//it should not marketplace build and it cannot be changed true rest api
+			assertFalse(serverSettings.isBuildForMarket());
+			
 
 			//check license status
 
@@ -1601,18 +1609,7 @@ public class ConsoleAppRestServiceTest{
 			assertNotNull(activeLicence);
 
 			//its status is null
-			assertNull(activeLicence.getStatus());
-
-
-
-			//set build for market setting to default
-			serverSettings.setBuildForMarket(false);
-
-			//save default setting
-			flag = callSetServerSettings(serverSettings);
-
-			//check that setting is saved
-			assertTrue (flag.isSuccess());
+			assertEquals("NO_LICENSE_FOUND", activeLicence.getStatus());
 
 
 		} catch (Exception e) {
