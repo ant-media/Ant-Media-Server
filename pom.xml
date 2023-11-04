@@ -2,7 +2,7 @@
     <parent>
         <groupId>io.antmedia</groupId>
         <artifactId>parent</artifactId>
-        <version>2.7.0-SNAPSHOT</version>
+        <version>2.7.1-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ant-media-server</artifactId>
@@ -69,7 +69,8 @@
         <finalName>${project.artifactId}</finalName>
         <maven.build.timestamp.format>yyyyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
-
+        <!-- keep it blank -->
+		<enterprise.profile></enterprise.profile>
     </properties>
 
     <build>
@@ -382,6 +383,7 @@
             <version>${selenium-java.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- as far as I understand selenium-java and selenium-http-jdk-client need to have same version -->
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-http-jdk-client</artifactId>
@@ -664,7 +666,7 @@
 		<dependency>
 		   <groupId>org.redisson</groupId>
 		   <artifactId>redisson</artifactId>
-		   <version>3.17.4</version>
+		   <version>${redisson.version}</version>
 		   <scope>provided</scope>
 		</dependency>  
 
@@ -867,7 +869,7 @@
                 </dependency>
                 <dependency>
                     <groupId>io.antmedia.enterprise</groupId>
-                    <artifactId>ant-media-enterprise</artifactId>
+                    <artifactId>ant-media-enterprise${enterprise.profile}</artifactId>
                     <version>${project.parent.version}</version>
                     <type>jar</type>
                 </dependency>
@@ -944,7 +946,7 @@
                                     <artifactItems>
                                         <artifactItem>
                                             <groupId>io.antmedia.enterprise</groupId>
-                                            <artifactId>ant-media-enterprise</artifactId>
+                                            <artifactId>ant-media-enterprise${enterprise.profile}</artifactId>
                                             <version>${ant-media-server-enterprise.version}</version>
                                             <type>jar</type>
                                             <overWrite>true</overWrite>

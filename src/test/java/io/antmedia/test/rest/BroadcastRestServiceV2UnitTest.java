@@ -1670,6 +1670,7 @@ public class BroadcastRestServiceV2UnitTest {
 
         MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
         when(mockMuxAdaptor.getMuxerList()).thenReturn(mockMuxers);
+       
         
         when(mockMuxAdaptor.startRecording(RecordType.MP4, 0)).thenReturn(Mockito.mock(Mp4Muxer.class));
         
@@ -1679,20 +1680,19 @@ public class BroadcastRestServiceV2UnitTest {
         mockMuxAdaptors.add(mockMuxAdaptor);
 
         when(application.getMuxAdaptors()).thenReturn(mockMuxAdaptors);
+        
         when(restServiceSpy.getApplication()).thenReturn(application);
 
         Response response = restServiceSpy.createBroadcast(new Broadcast(broadcastName), false);
         Broadcast testBroadcast = (Broadcast) response.getEntity();
 		when(mockMuxAdaptor.getStreamId()).thenReturn(testBroadcast.getStreamId());
-
+		when(application.getMuxAdaptor(testBroadcast.getStreamId())).thenReturn(mockMuxAdaptor);
         assertTrue(restServiceSpy.enableRecordMuxing(testBroadcast.getStreamId(), true,"mp4", 0).isSuccess());
 
         verify(mockMuxAdaptor,never()).startRecording(RecordType.MP4, 0);
 
 		mockMuxers.clear();
 		mockMuxers.add(mockHLSMuxer);
-		
-		
 		
 		//disable
 		assertTrue(restServiceSpy.enableRecordMuxing(testBroadcast.getStreamId(), false, "mp4", 0).isSuccess());
@@ -1832,7 +1832,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testTimeBasedSubscriberOperations() {
 
-		DataStore store = new MapDBStore("testdb", vertx);
+		DataStore store = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
 		restServiceReal.setDataStore(store);
 
 		
@@ -1924,10 +1924,20 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testStopLiveStream() {
 		BroadcastRestService restService = new BroadcastRestService();
 		AntMediaApplicationAdapter app = Mockito.spy(new AntMediaApplicationAdapter());
+
 		DataStore ds = Mockito.mock(DataStore.class);
 		String streamId = "test-stream";
 
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		Mockito.doReturn(scope).when(app).getScope();
+
+		IContext context = mock(IContext.class);
+		Mockito.doReturn(context).when(scope).getContext();
+		
 		Broadcast broadcast = new Broadcast();
+
 		try {
 			broadcast.setStreamId(streamId);
 		} catch (Exception e) {
@@ -1936,12 +1946,13 @@ public class BroadcastRestServiceV2UnitTest {
 		broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
 
 		Mockito.doReturn(broadcast).when(ds).get(streamId);
+
 		restService.setDataStore(ds);
 		restService.setApplication(app);
 
 		restService.stopStreamingV2(streamId);
 
-		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(null, streamId);
+		Mockito.verify(app, Mockito.times(1)).getBroadcastStream(scope, streamId);
 	}
 
 	@Test

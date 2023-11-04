@@ -29,6 +29,7 @@ import org.red5.server.api.Red5;
 import org.slf4j.Logger;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
+import org.webrtc.PeerConnectionFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AsciiArt;
@@ -50,8 +51,6 @@ public class Launcher {
 	private static String implementationVersion;
 	private static String versionType = null;  //community or enterprise
 	
-	public static final String INSTANCE_STARTED_FILE = System.getProperty("java.io.tmpdir") + File.separator + ".amsinstance";
-
 	/**
 	 * Launch Red5 under it's own classloader
 	 * 
@@ -95,6 +94,10 @@ public class Launcher {
 		root.refresh();
 		log.trace("Root server context refreshed");
 		log.debug("Launcher exit");
+		PeerConnectionFactory.initialize(
+				PeerConnectionFactory.InitializationOptions.builder()
+				.setFieldTrials(null)
+				.createInitializationOptions());
 		
 	}
 
@@ -136,11 +139,6 @@ public class Launcher {
 				writeToFile(idFile.getAbsolutePath(), instanceId);
 				
 			}
-			File f = new File(INSTANCE_STARTED_FILE);
-			if (!f.exists()) {
-				writeToFile(INSTANCE_STARTED_FILE, instanceId);
-			}
-			
 		}
 		return instanceId;
 	}

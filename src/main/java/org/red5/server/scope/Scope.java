@@ -1108,7 +1108,9 @@ public class Scope extends BasicScope implements IScope, IScopeStatistics, Scope
                 // post notification
                 ((Server) getServer()).notifyScopeCreated(this);
             }
+            
             running = result;
+            log.info("Scope:{} is {} running ", getName(), running ? "" : "NOT");
         }
         return result;
     }

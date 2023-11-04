@@ -453,6 +453,24 @@ public class AuthenticationFilterTest {
 	            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
 	        }
 	        
+	        // JWT Token filled && JWT Server filter enable && valid token scenario
+	        {   
+	        	//reset filterchain
+	        	filterChain = new MockFilterChain();
+	        	
+	        	//reset httpServletResponse
+	        	httpServletResponse = new MockHttpServletResponse();
+	        	
+	        	//reset httpServletRequest
+	        	httpServletRequest = new MockHttpServletRequest();
+	        	
+	        	//Authorization is not correct header to access the resources
+	            httpServletRequest.addHeader("Authorization", validToken);
+
+	            authenticationFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+	            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
+	        }
+	        
 	        // JWT Token null && JWT Server filter enable && requestURI is "rest/v2/authentication-status" parameters scenario
 	        {   
 	        	//reset filterchain
