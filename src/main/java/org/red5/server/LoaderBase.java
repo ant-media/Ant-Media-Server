@@ -116,14 +116,12 @@ public abstract class LoaderBase implements ApplicationContextAware {
      *            Red5 application context
      */
     public static void setRed5ApplicationContext(String path, IApplicationContext context) {
-        log.debug("Set red5 application context - path: {} context: {}", path, context);
-        //log.trace("Map at set: {}", red5AppCtx);
+        log.info("Set application context - path: {} context: {}", path, context);
         if (context != null) {
             red5AppCtx.put(path, context);
         } else {
             red5AppCtx.remove(path);
         }
-        //log.trace("Map after set: {}", red5AppCtx);
     }
 
     /**
@@ -135,7 +133,7 @@ public abstract class LoaderBase implements ApplicationContextAware {
      * @return Red5 application context
      */
     public static IApplicationContext removeRed5ApplicationContext(String path) {
-        log.debug("Remove red5 application context - path: {}", path);
+        log.info("Remove application context - path: {}", path);
         return red5AppCtx.remove(path);
     }
 

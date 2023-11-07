@@ -17,6 +17,7 @@ import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.antmedia.FFmpegUtilities;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
@@ -34,6 +35,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
 
@@ -170,11 +172,7 @@ public class StreamFetcher {
 
 		if ((ret = avformat_open_input(inputFormatContext, streamUrl, null, optionsDictionary)) < 0) {
 
-			byte[] data = new byte[100];
-			avutil.av_strerror(ret, data, data.length);
-
-			String errorStr=new String(data, 0, data.length);
-
+			String errorStr = Muxer.getErrorDefinition(ret);
 			result.setMessage(errorStr);		
 
 			logger.error("cannot open stream: {} with error:: {}",  streamUrl, result.getMessage());
