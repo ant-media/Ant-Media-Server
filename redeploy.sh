@@ -8,7 +8,7 @@ if [ $OUT -ne 0 ]; then
     exit $OUT
 fi
 
-ANT_MEDIA_SERVER_DIR=~/softwares/ant-media-server
+ANT_MEDIA_SERVER_DIR=/usr/local/antmedia
 
 ANT_MEDIA_SERVER_JAR=./target/ant-media-server-server.jar
 ANT_MEDIA_SERVER_SERVICE_JAR=./target/ant-media-server-service.jar
