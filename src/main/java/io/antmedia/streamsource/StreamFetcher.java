@@ -53,6 +53,9 @@ public class StreamFetcher {
 	 * Last packet received time
 	 */
 	private long lastPacketReceivedTime = 0;
+
+	private long firstDts = 0;
+
 	private boolean threadActive = false;
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
@@ -68,7 +71,7 @@ public class StreamFetcher {
 	private boolean restartStream = true;
 
 	/**
-	 * This flag closes the stream in the worker thread. It should be a field of StreamFetcher. 
+	 * This flag closes the stream in the worker thread. It should be a field of StreamFetcher.
 	 * Because WorkerThread instance can be re-created and we can lost the flag value.
 	 * This case causes stream NOT TO BE STOPPED
 	 */
@@ -78,17 +81,22 @@ public class StreamFetcher {
 	 * Buffer time in milliseconds
 	 */
 	private int bufferTime = 0;
-	
+
 	private static final int COUNT_TO_LOG_BUFFER = 500;
-	
+
 	private int bufferLogCounter;
-	
+
 	private ConcurrentLinkedQueue<AVPacket> availableBufferQueue = new ConcurrentLinkedQueue<>();
 
 	private AppSettings appSettings;
 	private Vertx vertx;
-	
+
 	private DataStore dataStore;
+
+	private long packetCounter = 0;
+
+	private static final long MAX_ALLOWABLE_DTS_DIFFERENCE_ADDITION = 10000;
+
 
 	public interface IStreamFetcherListener {
 
@@ -114,7 +122,7 @@ public class StreamFetcher {
 
 	public StreamFetcher(String streamUrl, String streamId, String streamType, IScope scope, Vertx vertx)  {
 		if (streamUrl == null  || streamId == null) {
-			
+
 			throw new NullPointerException("Stream is not initialized properly. Check "
 					+ " stream id ("+ streamId +") and stream url ("+ streamUrl + ") values");
 		}
@@ -142,25 +150,25 @@ public class StreamFetcher {
 
 		String transportType = appSettings.getRtspPullTransportType();
 		if (streamUrl.startsWith("rtsp://") && !transportType.isEmpty()) {
-			
-			
+
+
 			logger.info("Setting rtsp transport type to {} for stream source: {} and timeout:{}us", transportType, streamUrl, this.timeoutMicroSeconds);
 			/*
 			 * AppSettings#rtspPullTransportType
 			 */
 			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
-			
+
 			/*
-			 * AppSettings#rtspTimeoutDurationMs 
+			 * AppSettings#rtspTimeoutDurationMs
 			 */
 			String timeoutStr = String.valueOf(this.timeoutMicroSeconds);
 			av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
-			
-			
-			
+
+
+
 		}
 
-		//analyze duration is a generic parameter 
+		//analyze duration is a generic parameter
 		int analyzeDurationUs = appSettings.getMaxAnalyzeDurationMS() * 1000;
 		String analyzeDuration = String.valueOf(analyzeDurationUs);
 		av_dict_set(optionsDictionary, "analyzeduration", analyzeDuration, 0);
@@ -173,17 +181,17 @@ public class StreamFetcher {
 		if ((ret = avformat_open_input(inputFormatContext, streamUrl, null, optionsDictionary)) < 0) {
 
 			String errorStr = Muxer.getErrorDefinition(ret);
-			result.setMessage(errorStr);		
+			result.setMessage(errorStr);
 
 			logger.error("cannot open stream: {} with error:: {}",  streamUrl, result.getMessage());
 			av_dict_free(optionsDictionary);
 			optionsDictionary.close();
 			return result;
 		}
-		
+
 		av_dict_free(optionsDictionary);
 		optionsDictionary.close();
-		
+
 		logger.debug("find stream info: {}  " , streamUrl);
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
@@ -233,7 +241,7 @@ public class StreamFetcher {
 		private volatile long firstPacketReadyToSentTimeMs;
 
 		private long lastPacketTimeMsInQueue;
-		
+
 		long firstPacketTime = 0;
 		long bufferDuration = 0;
 		long timeOffset = 0;
@@ -245,9 +253,9 @@ public class StreamFetcher {
 			setThreadActive(true);
 			AVPacket pkt = null;
 			try {
-				inputFormatContext = new AVFormatContext(null); 
+				inputFormatContext = new AVFormatContext(null);
 				pkt = avcodec.av_packet_alloc();
-				
+
 				if(prepareInputContext()) {
 					boolean readTheNextFrame = true;
 					while (readTheNextFrame) {
@@ -274,9 +282,9 @@ public class StreamFetcher {
 				unReferencePacket(pkt);
 			}
 			else if(AntMediaApplicationAdapter.VOD.equals(streamType) && readResult != AVERROR_EOF) {
-				/* 
-				 * For VOD stream source, if the return of read frame is error (but not end of file), 
-				 * don't break the loop immediately. Instead jump to next frame. 
+				/*
+				 * For VOD stream source, if the return of read frame is error (but not end of file),
+				 * don't break the loop immediately. Instead jump to next frame.
 				 * Otherwise same VOD will be streamed from the beginning of the file again.
 				 */
 				logger.warn("Frame can't be read for VOD {}", streamUrl);
@@ -286,7 +294,7 @@ public class StreamFetcher {
 				//break the loop except above case
 				readTheNextFrame = false;
 			}
-			
+
 			if (stopRequestReceived) {
 				logger.warn("Stop request received, breaking the loop for {} ", streamId);
 				readTheNextFrame = false;
@@ -297,7 +305,7 @@ public class StreamFetcher {
 		public int readNextPacket(AVPacket pkt) {
 			return av_read_frame(inputFormatContext, pkt);
 		}
-		
+
 		public void unReferencePacket(AVPacket pkt) {
 			av_packet_unref(pkt);
 		}
@@ -305,7 +313,7 @@ public class StreamFetcher {
 		public boolean prepareInputContext() throws Exception {
 			logger.info("Preparing the StreamFetcher for {} for streamId:{}", streamUrl, streamId);
 			Result result = prepare(inputFormatContext);
-			
+
 			if (result.isSuccess()) {
 				boolean audioExist = false;
 				boolean videoExist = false;
@@ -325,32 +333,32 @@ public class StreamFetcher {
 						}
 					}
 				}
-				
-				
+
+
 				muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
 				// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 				// because there is no video frame
-				muxAdaptor.setFirstKeyFrameReceivedChecked(!videoExist); 
+				muxAdaptor.setFirstKeyFrameReceivedChecked(!videoExist);
 				muxAdaptor.setEnableVideo(videoExist);
 				muxAdaptor.setEnableAudio(audioExist);
 				Broadcast broadcast = getDataStore().get(streamId);
 				muxAdaptor.setBroadcast(broadcast);
 				//if stream is rtsp, then it's not AVC
 				muxAdaptor.setAvc(!streamUrl.toLowerCase().startsWith("rtsp"));
-									
+
 				MuxAdaptor.setUpEndPoints(muxAdaptor, broadcast, vertx);
-				
+
 				muxAdaptor.init(scope, streamId, false);
 
 				logger.info("{} stream count in stream {} is {}", streamId, streamUrl, inputFormatContext.nb_streams());
-				
+
 				if(muxAdaptor.prepareFromInputFormatContext(inputFormatContext)) {
 					return true;
 				}
 				else {
 					logger.error("MuxAdaptor.Prepare for {} returned false", streamId);
 				}
-			} 
+			}
 			else {
 				logger.error("Prepare for opening the {} has failed", streamUrl);
 				setCameraError(result);
@@ -358,7 +366,7 @@ public class StreamFetcher {
 			return false;
 		}
 
-		public void packetRead(AVPacket pkt) 
+		public void packetRead(AVPacket pkt)
 		{
 			if(!streamPublished) {
 				long currentTime = System.currentTimeMillis();
@@ -367,11 +375,11 @@ public class StreamFetcher {
 				getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL);
 
 				if (bufferTime > 0) {
-					packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l-> 
-						vertx.executeBlocking(h-> {
-							writeBufferedPacket();
-							h.complete();
-						}, false, null)
+					packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l->
+							vertx.executeBlocking(h-> {
+								writeBufferedPacket();
+								h.complete();
+							}, false, null)
 					);
 				}
 			}
@@ -379,47 +387,35 @@ public class StreamFetcher {
 			streamPublished = true;
 			lastPacketReceivedTime = System.currentTimeMillis();
 
-			/**
-			 * Check that dts values are monotically increasing for each stream
-			 */
-			int packetIndex = pkt.stream_index();
-			if (lastDTS[packetIndex] >= pkt.dts()) {
-				logger.info("last dts{} is bigger than incoming dts {}", pkt.dts(), lastDTS[packetIndex]);
-				pkt.dts(lastDTS[packetIndex] + 1);
-				
-			}
-			lastDTS[packetIndex] = pkt.dts();
-			if (pkt.dts() > pkt.pts()) {
-				logger.info("dts ({}) is bigger than pts({})", pkt.dts(), pkt.pts());
-				pkt.pts(pkt.dts());
-			}
+			correctPacketDtsPts(pkt);
+
 
 			/***************************************************
 			 *  Memory of being paranoid or failing while looking for excellence without understanding the whole picture
-			 *  
-			 *  Increasing pkt.dts plus 1 is a simple hack for fixing dts error if current dts has a value lower 
-			 *  than the last received dts. Because dts should be monotonically increasing. I made this simple hack and it is working. 
-			 *  After that I thought the same may happen for the pts value as well and I have added below fix. 
+			 *
+			 *  Increasing pkt.dts plus 1 is a simple hack for fixing dts error if current dts has a value lower
+			 *  than the last received dts. Because dts should be monotonically increasing. I made this simple hack and it is working.
+			 *  After that I thought the same may happen for the pts value as well and I have added below fix.
 			 *  Actually not a fix, it is a bug. Because pts values does not have to be monotonically increasing
 			 *  and if stream has B-Frames then pts value can be lower than the last PTS value. So below
 			 *  code snippet make the stream does not play smoothly. It took about 10 hours to find it this error.
-			 *  
+			 *
 			 *  I have written this simple memory for me
-			 *  and for the guys who is developing or reviewing this code. 
-			 *  Even if it is time consuming or not reasonable, these kind of tryouts sometimes makes me excited. 
-			 *  I think I may expect to find something great by trying something crazy :) 
-			 *  
+			 *  and for the guys who is developing or reviewing this code.
+			 *  Even if it is time consuming or not reasonable, these kind of tryouts sometimes makes me excited.
+			 *  I think I may expect to find something great by trying something crazy :)
+			 *
 			 *  @mekya - June 12, 2018
-			 *  
+			 *
 			 *  ---------------------------------------------------
-			 *  
+			 *
 			 *  if (lastPTS[packetIndex] >= pkt.pts()) {
 			 * 	   pkt.pts(lastPTS[packetIndex] + 1);
 			 *  }
 			 *  lastPTS[packetIndex] = pkt.pts();
 			 *
 			 ******************************************************/
-			if (bufferTime > 0) 
+			if (bufferTime > 0)
 			{
 				/*
 				 * If there is a bufferTime in the server.
@@ -431,16 +427,16 @@ public class StreamFetcher {
 
 				AVPacket pktHead = bufferQueue.peek();
 				/**
-				 * BufferQueue may be polled in writer thread. 
+				 * BufferQueue may be polled in writer thread.
 				 * It's a very rare case to happen so that check if it's null
 				 */
 				if (pktHead != null) {
 					lastPacketTimeMsInQueue = av_rescale_q(pkt.pts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 					firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 					bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
-					
+
 					if ( bufferDuration > bufferTime) {
-						
+
 						if (buffering) {
 							//have the buffering finish time ms
 							bufferingFinishTimeMs = System.currentTimeMillis();
@@ -457,7 +453,7 @@ public class StreamFetcher {
 
 				if(AntMediaApplicationAdapter.VOD.equals(streamType)) {
 
-					
+
 					if(firstPacketTime == 0) {
 						int streamIndex = pkt.stream_index();
 						firstPacketTime = System.currentTimeMillis();
@@ -486,15 +482,64 @@ public class StreamFetcher {
 							Thread.currentThread().interrupt();
 						}
 					}
-					
-				}
-				
-				muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
 
+				}
+				muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
 			}
-			
+
 		}
-		
+
+		/**
+		 * Check that dts values are correctly increasing for each stream
+		 */
+		public void correctPacketDtsPts(AVPacket pkt) {
+			int packetIndex = pkt.stream_index();
+
+			if (packetCounter == 1) {
+				firstDts = pkt.dts();
+			}
+
+
+			if (isInitialDtsInvalid(lastDTS[packetIndex], pkt.dts())) {
+				pkt.dts(lastDTS[packetIndex] + 1);
+			}
+
+			if (isDtsIncrementedCorrect(lastDTS[packetIndex], pkt.dts())) {
+				logger.info("Unexpected DTS difference between last DTS {} and incoming DTS {}. Incoming dts value should be greater than last dts value. Correcting it.",
+						lastDTS[packetIndex], pkt.dts());
+				pkt.dts(lastDTS[packetIndex] + firstDts);
+				pkt.pts(pkt.dts());
+			}
+
+			lastDTS[packetIndex] = pkt.dts();
+			ensurePtsNotSmallerThanDts(pkt);
+
+			incrementPacketCounterForFirstPkt();
+		}
+
+		//useful when first pkt arrives. this function makes dts and pts values start from 0,0
+		private boolean isInitialDtsInvalid(long lastDts, long incomingDts) {
+			return lastDts >= incomingDts && lastDts == -1;
+		}
+
+		private boolean isDtsIncrementedCorrect(long lastDts, long incomingDts) {
+			return lastDts >= incomingDts && lastDts != -1
+					|| (incomingDts - lastDts) > (firstDts + MAX_ALLOWABLE_DTS_DIFFERENCE_ADDITION);
+		}
+
+		private void ensurePtsNotSmallerThanDts(AVPacket pkt) {
+			if (pkt.dts() > pkt.pts()) {
+				pkt.pts(pkt.dts());
+			}
+		}
+
+		private void incrementPacketCounterForFirstPkt() {
+			if (packetCounter != 2) {
+				packetCounter++;
+			}
+		}
+
+
 		public void close(AVPacket pkt) {
 			if (packetWriterJobName != -1) {
 				logger.info("Removing packet writer job {}", packetWriterJobName);
@@ -533,7 +578,7 @@ public class StreamFetcher {
 
 			setThreadActive(false);
 
-			if(streamFetcherListener != null) {	
+			if(streamFetcherListener != null) {
 				stopRequestReceived = true;
 				restartStream = false;
 
@@ -554,44 +599,44 @@ public class StreamFetcher {
 			stopRequestReceived = false;
 		}
 
-		private void writeAllBufferedPackets() 
+		private void writeAllBufferedPackets()
 		{
 			synchronized (this) {
 				//different threads may write writeBufferedPacket and this method at the same time
-				
+
 				logger.info("write all buffered packets for stream: {}", streamId);
 				while (!bufferQueue.isEmpty()) {
-	
+
 					AVPacket pkt = bufferQueue.poll();
 					muxAdaptor.writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
 					unReferencePacket(pkt);
 				}
-	
+
 				AVPacket pkt;
 				while ((pkt = bufferQueue.poll()) != null) {
 					pkt.close();
 				}
-				
+
 				while ((pkt = availableBufferQueue.poll()) != null) {
 					pkt.close();
 				}
 			}
-			
+
 		}
 
 		//TODO: Code duplication with MuxAdaptor.writeBufferedPacket. It should be refactored.
-		public void writeBufferedPacket() 
+		public void writeBufferedPacket()
 		{
 			synchronized (this) {
-			
-				if (isJobRunning.compareAndSet(false, true)) 
+
+				if (isJobRunning.compareAndSet(false, true))
 				{
 					if (!buffering) {
 						while(!bufferQueue.isEmpty()) {
-							AVPacket tempPacket = bufferQueue.peek(); 
+							AVPacket tempPacket = bufferQueue.peek();
 							long pktTime = av_rescale_q(tempPacket.pts(), inputFormatContext.streams(tempPacket.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 							long now = System.currentTimeMillis();
-							long pktTimeDifferenceMs = pktTime - firstPacketReadyToSentTimeMs; 
+							long pktTimeDifferenceMs = pktTime - firstPacketReadyToSentTimeMs;
 							long passedTime = now - bufferingFinishTimeMs;
 							if (pktTimeDifferenceMs < passedTime) {
 								muxAdaptor.writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
@@ -603,30 +648,30 @@ public class StreamFetcher {
 								//break the loop and don't block the thread because it's not correct time to send the packet
 								break;
 							}
-							
+
 						}
-						
+
 						//update buffering. If bufferQueue is empty, it should start buffering
 						buffering = bufferQueue.isEmpty();
 					}
-					
+
 					logBufferStatus();
-					
+
 					isJobRunning.compareAndSet(true, false);
 				}
-			
+
 			}
 		}
-		
-		
+
+
 		public void logBufferStatus() {
-			bufferLogCounter++; //we use this parameter in execute method as well 
+			bufferLogCounter++; //we use this parameter in execute method as well
 			if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) {
 				logger.info("WriteBufferedPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, getBufferedDurationMs(), bufferTime, streamId);
 				bufferLogCounter = 0;
 			}
 		}
-		
+
 		public long getBufferedDurationMs() {
 			AVPacket pktHead = bufferQueue.peek();
 			if (pktHead != null) {
@@ -636,8 +681,8 @@ public class StreamFetcher {
 			return 0;
 		}
 	}
-	
-	
+
+
 
 	public void startStream() {
 		new Thread() {
@@ -667,18 +712,18 @@ public class StreamFetcher {
 		}.start();
 
 	}
-	
+
 	public DataStore getDataStore() {
 		if (dataStore == null) {
 			dataStore = getInstance().getDataStore();
 		}
 		return dataStore;
 	}
-	
+
 	public void setDataStore(DataStore dataStore) {
 		this.dataStore = dataStore;
 	}
-	
+
 
 	public AVPacket getAVPacket() {
 		if (!availableBufferQueue.isEmpty()) {
@@ -702,11 +747,11 @@ public class StreamFetcher {
 		return thread.isInterrupted();
 	}
 
-	public void stopStream() 
+	public void stopStream()
 	{
 		logger.warn("stop stream called for {}", streamUrl);
 		stopRequestReceived = true;
-	}	
+	}
 
 	public boolean isStopRequestReceived() {
 		return stopRequestReceived;
@@ -827,11 +872,11 @@ public class StreamFetcher {
 	public String getStreamUrl() {
 		return streamUrl;
 	}
-	
+
 	public void setStreamId(String streamId) {
 		this.streamId = streamId;
 	}
-	
+
 	public void setStreamUrl(String streamUrl) {
 		this.streamUrl = streamUrl;
 	}
