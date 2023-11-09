@@ -58,6 +58,8 @@ public class RtmpMuxer extends Muxer {
 		parseRtmpURL(this.url);
 	}
 	void parseRtmpURL(String url){
+		if(url == null)
+			return;
 		String regex = "rtmp://[a-zA-Z0-9\\.]+/([^/]+)/.*"; // check if app name is present in the URL rtmp://Domain.com/AppName/StreamId
 
 		Pattern rtmpAppName = Pattern.compile(regex);
