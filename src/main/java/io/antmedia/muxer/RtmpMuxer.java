@@ -13,15 +13,12 @@ import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
-import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_PASS_MINMAX;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
+import static org.bytedeco.ffmpeg.global.avutil.*;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
@@ -30,6 +27,7 @@ import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
@@ -56,8 +54,19 @@ public class RtmpMuxer extends Muxer {
 		super(vertx);
 		format = "flv";
 		this.url = url;
-	}
 
+		parseRtmpURL(this.url);
+	}
+	void parseRtmpURL(String url){
+		String regex = "rtmp://[a-zA-Z0-9\\.]+/([^/]+)/.*"; // check if app name is present in the URL rtmp://Domain.com/AppName/StreamId
+
+		Pattern rtmpAppName = Pattern.compile(regex);
+		Matcher checkAppName = rtmpAppName.matcher(url);
+
+		if (!checkAppName.matches()) {
+			super.setOption("app_name","");
+		}
+	}
 	@Override
 	public String getOutputURL() {
 		return url;
@@ -94,7 +103,6 @@ public class RtmpMuxer extends Muxer {
 		}
 		return outputFormatContext;
 	}
-
 	public void setStatus(String status)
 	{
 

@@ -53,6 +53,7 @@ import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.avutil.AVOption;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
@@ -182,6 +183,7 @@ public abstract class Muxer {
 	protected boolean firstKeyFrameReceived = true;
 	private long lastPts;
 
+	protected AVDictionary option = new AVDictionary(null);
 
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
@@ -256,7 +258,6 @@ public abstract class Muxer {
 
 	public boolean openIO() {
 		String Url =  getOutputURL();
-		String regex = "rtmp://[a-zA-Z0-9\\.]+/([^/]+)/.*"; // check if app name is present in the URL rtmp://a.rtmp.youtube.com/live2/y8qd-42g5-1b53-fh15-2v0c
 
 		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0 && Url != null)
 		{
@@ -264,16 +265,7 @@ public abstract class Muxer {
 			//If it's zero, Not "no file" and it means that file is need to be open .
 			AVIOContext pb = new AVIOContext(null);
 
-
-			Pattern pattern = Pattern.compile(regex);
-			Matcher matcher = pattern.matcher(Url);
-			AVDictionary options = new AVDictionary(null);
-
-			if (!matcher.matches()) {
-				av_dict_set(options, "rtmp_app", "", 0);
-			}
-
-			int ret = avformat.avio_open2(pb,Url , AVIO_FLAG_WRITE,null, options);
+			int ret = avformat.avio_open2(pb,Url , AVIO_FLAG_WRITE,null, option);
 			if (ret < 0) {
 				logger.warn("Could not open output url: {} ",  Url);
 				return false;
@@ -894,6 +886,12 @@ public abstract class Muxer {
 		this.isRunning = isRunning;
 	}
 
+	public void setOption(String optionName,String value){
+		av_dict_set(option, optionName, value, 0);
+	}
+	public AVDictionary getOption(){
+		return option;
+	}
 	public abstract boolean isCodecSupported(int codecId);
 
 	public abstract AVFormatContext getOutputFormatContext();

@@ -1123,7 +1123,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//This is for testing writeHeader after writeTrailer.
 		rtmpMuxer.writeHeader();
 	}
-
+	@Test
+	public void testRtmpUrlWithoutAppName(){
+		RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0",vertx)); //RTMP URl without Appname
+		AVDictionary opt = rtmpMuxer.getOption();
+		AVDictionaryEntry optEntry = av_dict_get(opt,"app_name",null,0);
+        assert optEntry.key().getString().equals("app_name");
+	}
 	@Test
 	public void testMp4MuxerDirectStreaming() {
 
