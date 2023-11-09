@@ -148,7 +148,7 @@ public class StreamFetcher {
 			/*
 			 * AppSettings#rtspPullTransportType
 			 */
-		//	av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
+			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
 			
 			/*
 			 * AppSettings#rtspTimeoutDurationMs 
