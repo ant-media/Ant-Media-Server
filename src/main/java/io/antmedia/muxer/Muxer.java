@@ -400,6 +400,7 @@ public abstract class Muxer {
 			avformat_free_context(outputFormatContext);
 			outputFormatContext = null;
 		}
+		av_dict_free(option);
 	}
 
 	/**
