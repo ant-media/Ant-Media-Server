@@ -64,7 +64,7 @@ public class RtmpMuxer extends Muxer {
 		Matcher checkAppName = rtmpAppName.matcher(url);
 
 		if (!checkAppName.matches()) {
-			super.setOption("app_name","");
+			setOption("rtmp_app","");
 		}
 	}
 	@Override

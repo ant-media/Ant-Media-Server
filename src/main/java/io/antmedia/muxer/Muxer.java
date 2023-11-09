@@ -264,7 +264,7 @@ public abstract class Muxer {
 			//If it's zero, Not "no file" and it means that file is need to be open .
 			AVIOContext pb = new AVIOContext(null);
 
-			int ret = avformat.avio_open2(pb,Url , AVIO_FLAG_WRITE,null, option);
+			int ret = avformat.avio_open2(pb,Url , AVIO_FLAG_WRITE,null, getOption());
 			if (ret < 0) {
 				logger.warn("Could not open output url: {} ",  Url);
 				return false;
