@@ -279,7 +279,7 @@ public class StreamFetcher {
 				 * don't break the loop immediately. Instead jump to next frame. 
 				 * Otherwise same VOD will be streamed from the beginning of the file again.
 				 */
-				logger.warn("Frame can't be read for VOD {}", streamUrl);
+				logger.warn("Frame can't be read for VOD {} error is {}", streamUrl,  Muxer.getErrorDefinition(readResult));
 				unReferencePacket(pkt);
 			}
 			else {
