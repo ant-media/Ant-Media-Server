@@ -135,7 +135,7 @@ public final class Red5 {
         if (connection != null) {
             connThreadLocal.set(new WeakReference<IConnection>(connection));
             IScope scope = connection.getScope();
-            if (scope != null) {
+            if (scope != null && scope.getClassLoader() != null) {
                 Thread.currentThread().setContextClassLoader(scope.getClassLoader());
             }
         } else {
