@@ -583,7 +583,7 @@
         <dependency>
             <groupId>org.glassfish.jersey.ext</groupId>
             <artifactId>jersey-spring5</artifactId>
-            <version>2.35</version>
+            <version>2.41</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.media</groupId>
