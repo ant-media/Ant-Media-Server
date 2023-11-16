@@ -10,8 +10,8 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpSessionEvent;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSessionEvent;
 
 import org.junit.After;
 import org.junit.Before;

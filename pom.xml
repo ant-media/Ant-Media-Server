@@ -282,7 +282,7 @@
         <dependency>
 		    <groupId>org.mitre.dsmiley.httpproxy</groupId>
 		    <artifactId>smiley-http-proxy-servlet</artifactId>
-		    <version>1.12.1</version>
+		    <version>${smiley-http-proxy-servlet.version}</version>
 		</dependency>
         <dependency>
             <groupId>org.apache.tomcat</groupId>
@@ -582,8 +582,8 @@
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.ext</groupId>
-            <artifactId>jersey-spring5</artifactId>
-            <version>2.41</version>
+            <artifactId>jersey-spring6</artifactId>
+            <version>${jersey.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.media</groupId>
@@ -613,11 +613,6 @@
             <artifactId>powermock-api-mockito2</artifactId>
             <version>2.0.9</version>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>javax.websocket</groupId>
-            <artifactId>javax.websocket-api</artifactId>
-            <version>1.1</version>
         </dependency>
         <dependency>
             <groupId>org.awaitility</groupId>

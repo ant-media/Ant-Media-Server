@@ -4,8 +4,8 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.After;

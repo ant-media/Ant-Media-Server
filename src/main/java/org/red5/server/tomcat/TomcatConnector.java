@@ -25,7 +25,6 @@ import java.util.Map;
 import org.apache.catalina.connector.Connector;
 import org.apache.catalina.core.AprLifecycleListener;
 import org.apache.coyote.ProtocolHandler;
-import org.apache.coyote.http11.Http11AprProtocol;
 import org.apache.coyote.http11.Http11Nio2Protocol;
 import org.apache.coyote.http11.Http11NioProtocol;
 import org.apache.coyote.http2.Http2Protocol;
@@ -83,7 +82,6 @@ public class TomcatConnector {
             //https://bz.apache.org/bugzilla/show_bug.cgi?id=65051
             //connector.addUpgradeProtocol(new Http2Protocol());
             AprLifecycleListener listener = new AprLifecycleListener();
-            listener.setUseAprConnector(false);
             listener.setUseOpenSSL(true);
             listener.setSSLEngine("off");
             connector.addLifecycleListener(listener);
@@ -102,9 +100,7 @@ public class TomcatConnector {
             } else if (handler instanceof Http11NioProtocol) {
                 ((Http11NioProtocol) handler).setAddress(address.getAddress());
             }
-            else if (handler instanceof Http11AprProtocol) {
-            	 ((Http11AprProtocol) handler).setAddress(address.getAddress());            	 
-            }
+           
      
             // set initialized flag
             initialized = true;

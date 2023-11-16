@@ -17,11 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import javax.websocket.RemoteEndpoint;
-import javax.websocket.Session;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
@@ -38,11 +34,8 @@ import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 import org.webrtc.IceCandidate;
 import org.webrtc.JavaI420Buffer;
-import org.webrtc.Logging;
-import org.webrtc.Logging.Severity;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnectionFactory;
-import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 import org.webrtc.VideoFrame;
@@ -62,6 +55,8 @@ import io.antmedia.webrtc.adaptor.RTMPAdaptor.AudioFrame;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor.WebRTCVideoSink;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
+import jakarta.websocket.RemoteEndpoint;
+import jakarta.websocket.Session;
 
 public class RTMPAdaptorTest {
 	

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpEntity;

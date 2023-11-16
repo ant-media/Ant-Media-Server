@@ -3,7 +3,7 @@ package io.antmedia.console.rest;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

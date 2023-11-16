@@ -25,7 +25,7 @@ import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;

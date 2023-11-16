@@ -22,9 +22,9 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
 
 import org.slf4j.Logger;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
