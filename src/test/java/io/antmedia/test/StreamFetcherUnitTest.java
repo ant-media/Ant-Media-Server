@@ -776,6 +776,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 	
 	
+	@Test
+	public void testAudioOnlySourceClassFM() {
+		logger.info("running testAudioOnlySourceClassFM");
+		//test AudioOnly Source
+		testFetchStreamSources("http://media-ice.musicradio.com/ClassicFM", false, false);
+		logger.info("leaving testAudioOnlySource");
+	}
+	
 	public void testFetchStreamSources(String source, boolean restartStream, boolean checkContext) {
 		testFetchStreamSources(source, restartStream, checkContext, true);
 	}

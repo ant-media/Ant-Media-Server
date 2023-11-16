@@ -1,5 +1,32 @@
 package io.antmedia.test.console;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.WebApplicationContext;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.cluster.IClusterNotifier;
@@ -9,46 +36,15 @@ import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.console.datastore.MapDBStore;
 import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.console.rest.RestServiceV2;
-import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.licence.ILicenceService;
-import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
-import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
-import org.bytedeco.ffmpeg.global.avformat;
-import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
-import org.junit.*;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
-import org.mapdb.elsa.ElsaSerializerBase;
-import org.mockito.Mockito;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.WebApplicationContext;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.Assert.*;
-import static org.junit.Assert.assertNotNull;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 
 public class ConsoleRestV2UnitTest {

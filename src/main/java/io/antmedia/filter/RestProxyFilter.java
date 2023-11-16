@@ -12,7 +12,6 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.HttpMethod;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -31,6 +30,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.rest.servlet.EndpointProxy;
 import io.antmedia.settings.ServerSettings;
+import jakarta.ws.rs.HttpMethod;
 
 /**
  * This filter forwards incoming requests to the origin node that is responsible for that stream.

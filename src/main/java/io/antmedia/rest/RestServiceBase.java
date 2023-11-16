@@ -26,7 +26,6 @@ import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
 import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -72,6 +71,7 @@ import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import jakarta.ws.rs.core.Context;
 
 public abstract class RestServiceBase {
 
