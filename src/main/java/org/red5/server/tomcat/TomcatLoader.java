@@ -54,7 +54,6 @@ import org.apache.catalina.core.ContainerBase;
 import org.apache.catalina.core.StandardContext;
 import org.apache.catalina.core.StandardHost;
 import org.apache.catalina.core.StandardWrapper;
-import org.apache.catalina.loader.WebappClassLoaderBase;
 import org.apache.catalina.loader.WebappLoader;
 import org.apache.catalina.realm.NullRealm;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -216,14 +215,14 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 		org.apache.catalina.Context ctx = embedded.addWebapp(host, contextPath, docBase);
 		if (ctx != null) {
 			// grab the current classloader
-			WebappClassLoaderBase classLoader = (WebappClassLoaderBase) Thread.currentThread().getContextClassLoader();
+			ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
 			ctx.setParentClassLoader(classLoader);
 			// get the associated loader for the context
 			Object ldr = ctx.getLoader();
 			log.trace("Context loader (null if the context has not been started): {}", ldr);
 			if (ldr == null) {
 				WebappLoader wldr = new WebappLoader();
-				wldr.setLoaderInstance(classLoader);
+				//wldr.setLoaderInstance(classLoader);
 				// add the Loader to the context
 				ctx.setLoader(wldr);
 			}
