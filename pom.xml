@@ -1,4 +1,7 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <parent>
         <groupId>io.antmedia</groupId>
         <artifactId>parent</artifactId>
@@ -263,12 +266,6 @@
                 </execution>
               </executions>
             </plugin>
-
-            <!-- >>>>>>> master <plugin> <groupId>com.webcohesion.enunciate</groupId>
-                <artifactId>enunciate-maven-plugin</artifactId> <version>${enunciate.version}</version>
-                <executions> <execution> <goals> <goal>docs</goal> </goals> <configuration>
-                <configFile>enunciate.xml</configFile> <docsDir>${project.build.directory}</docsDir>
-                </configuration> </execution> </executions> </plugin> -->
         </plugins>
          </pluginManagement>
     </build>
@@ -348,8 +345,6 @@
             <version>${protobuf-java.version}</version>
             <scope>provided</scope>
         </dependency>
-        <!-- <dependency> <groupId>uk.org.lidalia</groupId> <artifactId>sysout-over-slf4j</artifactId>
-            <version>1.0.2</version> </dependency> -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
@@ -407,7 +402,7 @@
 			<version>${commons-beanutils.version}</version>
 		</dependency>
 		<dependency>
-			<artifactId>bcprov-jdk15on</artifactId>
+			<artifactId>bcprov-jdk18on</artifactId>
 			<groupId>org.bouncycastle</groupId>
 			<version>${bc.version}</version>
 		</dependency>
@@ -419,7 +414,7 @@
 		<dependency>
             <groupId>io.swagger</groupId>
             <artifactId>swagger-jersey2-jaxrs</artifactId>
-            <version>1.6.11</version>
+            <version>${swagger-jersey2-jaxrs.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>jersey-container-servlet-core</artifactId>
@@ -650,21 +645,19 @@
         <dependency>
   			<groupId>com.auth0</groupId>
   			<artifactId>jwks-rsa</artifactId>
-  			<version>0.20.2</version>
+  			<version>${jwks-rsa.version}</version>
 		</dependency>
 		<dependency>
   			<groupId>com.auth0</groupId>
   			<artifactId>java-jwt</artifactId>
-  			<version>3.18.3</version>
+  			<version>${java-jwt.version}</version>
 		</dependency>		
-
 		<dependency>
 		   <groupId>org.redisson</groupId>
 		   <artifactId>redisson</artifactId>
 		   <version>${redisson.version}</version>
 		   <scope>provided</scope>
 		</dependency>  
-
     </dependencies>
     <profiles>
         <profile>

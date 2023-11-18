@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 
+import org.apache.commons.lang3.StringUtils;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
@@ -21,7 +22,6 @@ import org.bytedeco.javacpp.BytePointer;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.shaded.org.apache.commons.lang3.StringUtils;
 
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
