@@ -2,6 +2,7 @@ package io.antmedia.settings;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -33,7 +34,9 @@ import io.antmedia.licence.ILicenceService;
 
 @PropertySource("/conf/red5.properties")
 @JsonIgnoreProperties(ignoreUnknown=true)
-public class ServerSettings implements ApplicationContextAware {
+public class ServerSettings implements ApplicationContextAware, Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	public static final String BEAN_NAME = "ant.media.server.settings";
 
@@ -97,7 +100,7 @@ public class ServerSettings implements ApplicationContextAware {
 	private String allowedDashboardCIDR;
 
 	@JsonIgnore
-	private Queue<NetMask> allowedCIDRList = new ConcurrentLinkedQueue<>();
+	private transient Queue<NetMask> allowedCIDRList = new ConcurrentLinkedQueue<>();
 
 
 	private static Logger logger = LoggerFactory.getLogger(ServerSettings.class);
