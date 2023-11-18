@@ -48,7 +48,6 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	private static final String SETTINGS_NODE_GROUP = "nodeGroup";
 
-
 	public static final String LOG_LEVEL_ALL = "ALL";
 	public static final String LOG_LEVEL_TRACE = "TRACE";
 	public static final String LOG_LEVEL_DEBUG = "DEBUG";
@@ -437,6 +436,7 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 		return allowedDashboardCIDR;
 	}
 
+	@JsonIgnore
 	public Queue<NetMask> getAllowedCIDRList() {
 		if (allowedCIDRList.isEmpty()) {
 			fillFromInput(allowedDashboardCIDR, allowedCIDRList);
