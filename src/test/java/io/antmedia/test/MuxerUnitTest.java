@@ -169,6 +169,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
+
 	protected static Logger logger = LoggerFactory.getLogger(MuxerUnitTest.class);
 	protected static final int BUFFER_SIZE = 10240;
 
@@ -199,7 +200,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public static void beforeClass() {
 		//avformat.av_register_all();
 		avformat.avformat_network_init();
-		avutil.av_log_set_level(avutil.AV_LOG_INFO);
+		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
 	}
 
 	@Before
