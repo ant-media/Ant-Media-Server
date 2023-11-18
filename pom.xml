@@ -1,7 +1,4 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" 
-xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
-xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <parent>
         <groupId>io.antmedia</groupId>
         <artifactId>parent</artifactId>
@@ -302,26 +299,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jcl-over-slf4j</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jul-to-slf4j</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>log4j-over-slf4j</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-access</artifactId>
-            <version>${logback.version}</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
@@ -704,7 +681,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
                                 <configuration>
                                     <outputDirectory>${project.build.directory}/lib</outputDirectory>
                                     <includeScope>compile</includeScope>
-                                    <excludeScope>test</excludeScope>
                                     <excludeGroupIds>org.tensorflow,</excludeGroupIds>
                                     <excludeArtifactIds>cuda,cuda-platform</excludeArtifactIds>
                                     <excludeTransitive>false</excludeTransitive>
@@ -889,7 +865,6 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
                                 <configuration>
                                     <outputDirectory>${project.build.directory}/lib</outputDirectory>
                                     <includeScope>compile</includeScope>
-                                    <excludeScope>test</excludeScope>
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
                             </execution>
