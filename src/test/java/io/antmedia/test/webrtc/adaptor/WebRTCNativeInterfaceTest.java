@@ -18,11 +18,13 @@ import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.powermock.api.mockito.PowerMockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webrtc.AudioSource;
@@ -146,16 +148,29 @@ public class WebRTCNativeInterfaceTest {
 	public void setup() {
 
 	}
+	
+	@BeforeClass
+	public static void beforeClass() {
+		PeerConnectionFactory.initialize(
+				PeerConnectionFactory.InitializationOptions.builder()
+				.setFieldTrials(null)
+				.createInitializationOptions());
+	}
 
 	@Test
 	public void testNotifyEncodedData() {		  
 
-		WebRtcAudioRecord audioRecord = spy(new WebRtcAudioRecord(null, null, null, 0, 0,null, null, null, false, false, null));
-		doNothing().when(audioRecord).nativeEncodedDataIsReady(anyLong(), anyString(), anyInt());
+	   // YourClass yourClassSpy = PowerMockito.spy(new YourClass());
+
+		WebRtcAudioRecord audioRecord = PowerMockito.spy(new WebRtcAudioRecord(null, null, null, 0, 0,null, null, null, false, false, null));
+		doNothing().when(audioRecord).encodedDataIsReady(anyLong(), anyString(), anyInt());
+		
 		String trackId = "track1";
 		audioRecord.getEncodedByteBuffers().put(trackId, ByteBuffer.allocate(1000));
 		ByteBuffer audio = ByteBuffer.allocate(100);
 		audioRecord.notifyEncodedData(trackId, audio);
+		
+		
 	}
 
 	public static final String VIDEO_TRACK_ID = "ARDAMSv";
