@@ -1966,8 +1966,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		ConcurrentSkipListSet<IStreamPacket> bufferQueue = muxAdaptor.getBufferQueue();
 		muxAdaptor.setBuffering(false);
-		AVStream stream = Mockito.mock(AVStream.class);
-		when(stream.time_base()).thenReturn(MuxAdaptor.TIME_BASE_FOR_MS);
 
 
 		ITag tag = mock(ITag.class);
