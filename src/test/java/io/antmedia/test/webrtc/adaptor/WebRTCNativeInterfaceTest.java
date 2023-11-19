@@ -24,7 +24,6 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-import org.powermock.api.mockito.PowerMockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webrtc.AudioSource;
@@ -52,7 +51,6 @@ import org.webrtc.RtpTransceiver.RtpTransceiverDirection;
 import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 import org.webrtc.SoftwareVideoDecoderFactory;
-import org.webrtc.SoftwareVideoEncoderFactory;
 import org.webrtc.VideoCodecInfo;
 import org.webrtc.VideoCodecType;
 import org.webrtc.VideoDecoderFactory;
@@ -162,7 +160,7 @@ public class WebRTCNativeInterfaceTest {
 
 	   // YourClass yourClassSpy = PowerMockito.spy(new YourClass());
 
-		WebRtcAudioRecord audioRecord = PowerMockito.spy(new WebRtcAudioRecord(null, null, null, 0, 0,null, null, null, false, false, null));
+		WebRtcAudioRecord audioRecord = spy(new WebRtcAudioRecord(null, null, null, 0, 0,null, null, null, false, false, null));
 		doNothing().when(audioRecord).encodedDataIsReady(anyLong(), anyString(), anyInt());
 		
 		String trackId = "track1";

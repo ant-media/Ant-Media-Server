@@ -24,6 +24,7 @@ import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avutil.AVFrame;
 import org.json.simple.JSONObject;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -133,6 +134,14 @@ public class RTMPAdaptorTest {
 	@Before
 	public void setup() {
 
+	}
+	
+	@BeforeClass
+	public static void beforeClass() {
+		PeerConnectionFactory.initialize(
+				PeerConnectionFactory.InitializationOptions.builder()
+				.setFieldTrials(null)
+				.createInitializationOptions());
 	}
 
 
@@ -413,8 +422,9 @@ public class RTMPAdaptorTest {
 
 		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
 
-		RTMPAdaptor adaptorReal = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
-		RTMPAdaptor rtmpAdaptor = spy(adaptorReal);
+		RTMPAdaptor rtmpAdaptor = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
+		rtmpAdaptor.setRecorder(recorder);
+		
 		String streamId = "stramId" + (int)(Math.random()*10000);
 		rtmpAdaptor.setStreamId(streamId);
 		Session session = mock(Session.class);
@@ -527,7 +537,7 @@ public class RTMPAdaptorTest {
 	public void testDescription() {
 		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
 
-		RTMPAdaptor adaptor = Mockito.spy(new RTMPAdaptor("rtmp_url", webSocketHandler, 360));
+		RTMPAdaptor adaptor = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
 		Session session = mock(Session.class);
 		adaptor.setSession(session);
 		
