@@ -296,6 +296,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			appSettings.setRestartStreamFetcherPeriod(0);
 
 			//wait 10-12 seconds
+					
 
 			//check that stream fetcher stop and start stream is not called
 			//wait 3 seconds
