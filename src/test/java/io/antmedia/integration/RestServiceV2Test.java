@@ -105,7 +105,6 @@ public class RestServiceV2Test {
 	}
 
 	private static String ffmpegPath = "ffmpeg";
-	private static Gson gson = new Gson();
 
 	@Rule
 	public TestRule watcher = new TestWatcher() {
@@ -211,6 +210,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
+			Gson gson = new Gson();
 			Result tmp = gson.fromJson(result.toString(), Result.class);
 
 			return tmp;
@@ -238,6 +238,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
+			Gson gson = new Gson();
 			Result tmp = gson.fromJson(result.toString(), Result.class);
 
 			return tmp;
@@ -279,7 +280,7 @@ public class RestServiceV2Test {
 		}
 
 		try {
-
+			Gson gson = new Gson();
 			HttpUriRequest post = RequestBuilder.put().setUri(url + "?socialNetworks=" + socialNetworks)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
@@ -317,7 +318,8 @@ public class RestServiceV2Test {
 		Broadcast broadcast = null; 
 
 		try {
-
+			Gson gson = new Gson();
+			
 			HttpUriRequest post = RequestBuilder.post().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
@@ -485,6 +487,7 @@ public class RestServiceV2Test {
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
+		Gson gson = new Gson();
 		System.out.println("result string: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
@@ -569,6 +572,7 @@ public class RestServiceV2Test {
 			throw new Exception(result.toString());
 		}
 		logger.info("result string: {} ",result.toString());
+		Gson gson = new Gson();
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
 
@@ -651,6 +655,7 @@ public class RestServiceV2Test {
 
 			Version versionList = null;
 
+			Gson gson = new Gson();
 			versionList = gson.fromJson(result.toString(), Version.class);
 			//check that they are same
 			assertEquals(model.getParent().getVersion()
@@ -688,7 +693,7 @@ public class RestServiceV2Test {
 			System.out.println("Get subscriber list string: " + result.toString());
 			Type listType = new TypeToken<List<SubscriberStats>>() {
 			}.getType();
-
+			Gson gson = new Gson();
 			return gson.fromJson(result.toString(), listType);
 			
 		} catch (UnsupportedEncodingException e) {
@@ -728,7 +733,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
-
+			Gson gson = new Gson();
 			return (int)gson.fromJson(result.toString(), SimpleStat.class).number;
 
 		} catch (Exception e) {
@@ -757,7 +762,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
-
+			Gson gson = new Gson();
 			return gson.fromJson(result.toString(), BroadcastStatistics.class);
 
 		} catch (Exception e) {
@@ -787,7 +792,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
-
+			Gson gson = new Gson();
 			return gson.fromJson(result.toString(), BroadcastStatistics.class);
 
 		} catch (Exception e) {
@@ -820,7 +825,7 @@ public class RestServiceV2Test {
 			System.out.println("result string: " + result.toString());
 			Type listType = new TypeToken<List<Broadcast>>() {
 			}.getType();
-
+			Gson gson = new Gson();
 			return gson.fromJson(result.toString(), listType);
 
 		} catch (Exception e) {
@@ -855,7 +860,7 @@ public class RestServiceV2Test {
 			System.out.println("Get vod list string: " + result.toString());
 			Type listType = new TypeToken<List<VoD>>() {
 			}.getType();
-
+			Gson gson = new Gson();
 			return gson.fromJson(result.toString(), listType);
 
 		} catch (Exception e) {
@@ -886,7 +891,7 @@ public class RestServiceV2Test {
 			System.out.println("result string: " + result.toString());
 			Type listType = new TypeToken<VoD>() {
 			}.getType();
-
+			Gson gson = new Gson();
 			return gson.fromJson(result.toString(), listType);
 
 		} catch (Exception e) {
@@ -916,7 +921,7 @@ public class RestServiceV2Test {
 			throw new Exception(result.toString());
 		}
 		System.out.println("result string: " + result.toString());
-
+		Gson gson = new Gson();
 		return gson.fromJson(result.toString(), Broadcast.class);
 	}
 
@@ -1070,6 +1075,8 @@ public class RestServiceV2Test {
 				Broadcast broadcastReturnedTemp = callGetBroadcast(broadcast.getStreamId());
 				return (AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED).equals(broadcastReturnedTemp.getStatus());
 			});
+			
+			execute.destroy();
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1185,6 +1192,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
+			Gson gson = new Gson();
 			Result result2 = gson.fromJson(result.toString(), Result.class);
 			return result2;
 		} catch (Exception e) {
@@ -1212,6 +1220,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result of deleteVoD for id: "+ id +" string: " + result.toString());
+			Gson gson = new Gson();
 			Result result2 = gson.fromJson(result.toString(), Result.class);
 			return result2;
 		} catch (Exception e) {
@@ -1345,7 +1354,7 @@ public class RestServiceV2Test {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/rtmp-endpoint";
 		
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-
+		Gson gson = new Gson();
 		HttpUriRequest post = RequestBuilder.post().setUri(url)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.setEntity(new StringEntity(gson.toJson(endpoint))).build();
@@ -1357,7 +1366,6 @@ public class RestServiceV2Test {
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-		Gson gson = new Gson();
 		System.out.println("result string: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 
@@ -1796,7 +1804,7 @@ public class RestServiceV2Test {
 
 			//define invalid stream url
 			broadcast.setStreamUrl("rrtsp://admin:Admin12345@71.234.93.90:5011/12");
-
+			Gson gson = new Gson();
 			try {
 				gson.fromJson(callAddStreamSource(broadcast), Result.class);
 				//it should throw exceptionbecause url is invalid
