@@ -91,5 +91,21 @@
 	   <packageUrl regex="true">^pkg:maven/org\.yaml/snakeyaml@.*$</packageUrl>
 	   <vulnerabilityName>CVE-2022-1471</vulnerabilityName>
 	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-5.1.2-1.5.8.jar
+	   This vulnerability is about to github actions of the original repo. It's not related to Ant Media Server.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/ffmpeg@.*$</packageUrl>
+	   <cve>CVE-2023-34112</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: cuda-11.8-8.6-1.5.8.jar
+	   This vulnerability is about to github actions of the original repo. It's not related to Ant Media Server.
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/cuda@.*$</packageUrl>
+	   <cve>CVE-2023-34112</cve>
+	</suppress>
 	
 </suppressions>
