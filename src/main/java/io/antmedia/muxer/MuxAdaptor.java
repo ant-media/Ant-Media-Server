@@ -366,7 +366,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return init(conn.getScope(), name, isAppend);
 	}
 
-	protected void enableSettings() {
+	public void enableSettings() {
 		AppSettings appSettingsLocal = getAppSettings();
 		hlsMuxingEnabled = appSettingsLocal.isHlsMuxingEnabled();
 		dashMuxingEnabled = appSettingsLocal.isDashMuxingEnabled();
@@ -381,6 +381,20 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		hlsListSize = appSettingsLocal.getHlsListSize();
 		hlsTime = appSettingsLocal.getHlsTime();
 		hlsPlayListType = appSettingsLocal.getHlsPlayListType();
+
+		Broadcast.HLSParameters broadcastHLSParameters = getBroadcast().getHlsParameters();
+		if(broadcastHLSParameters != null) {
+			if(broadcastHLSParameters.getHlsListSize() != null) {
+				hlsListSize = broadcastHLSParameters.getHlsListSize();
+			}
+			if(broadcastHLSParameters.getHlsTime() != null) {
+				hlsTime = broadcastHLSParameters.getHlsTime();
+			}
+			if(broadcastHLSParameters.getHlsPlayListType() != null) {
+				hlsPlayListType = broadcastHLSParameters.getHlsPlayListType();
+			}
+		}
+
 		dashSegDuration = appSettingsLocal.getDashSegDuration();
 		dashFragmentDuration = appSettingsLocal.getDashFragmentDuration();
 		targetLatency = appSettingsLocal.getTargetLatency();
@@ -430,12 +444,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (hlsMuxingEnabled) {
 
-			HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(), getAppSettings().getHlsHttpEndpoint(), getAppSettings().isAddDateTimeToHlsFileName());
-			hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile());
-			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
-			hlsMuxer.setId3Enabled(appSettings.isId3TagEnabled());
-			addMuxer(hlsMuxer);
-			logger.info("adding HLS Muxer for {}", streamId);
+			addHLSMuxer();
 		}
 
 		getDashMuxer();
@@ -448,6 +457,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		getStreamHandler().muxAdaptorAdded(this);
 		return true;
+	}
+
+	public HLSMuxer addHLSMuxer() {
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(), getAppSettings().getHlsHttpEndpoint(), getAppSettings().isAddDateTimeToHlsFileName());
+		hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile());
+		hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
+		hlsMuxer.setId3Enabled(appSettings.isId3TagEnabled());
+		addMuxer(hlsMuxer);
+		logger.info("adding HLS Muxer for {}", streamId);
+
+		return hlsMuxer;
 	}
 
 	public Muxer getDashMuxer()
