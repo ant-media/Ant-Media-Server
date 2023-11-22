@@ -29,6 +29,7 @@ import org.red5.server.api.Red5;
 import org.slf4j.Logger;
 import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
+import org.webrtc.PeerConnectionFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AsciiArt;
@@ -93,6 +94,10 @@ public class Launcher {
 		root.refresh();
 		log.trace("Root server context refreshed");
 		log.debug("Launcher exit");
+		PeerConnectionFactory.initialize(
+				PeerConnectionFactory.InitializationOptions.builder()
+				.setFieldTrials(null)
+				.createInitializationOptions());
 		
 	}
 
