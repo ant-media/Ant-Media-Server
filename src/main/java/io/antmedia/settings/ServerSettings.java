@@ -394,7 +394,7 @@ public class ServerSettings implements ApplicationContextAware {
 				offlineLicense = true;
 			}
 		}
-		setNativeLogLevel(LOG_LEVEL_ERROR);
+		setNativeLogLevel(nativeLogLevel);
 
 	}
 

@@ -29,6 +29,7 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 	
 	@Test
 	public void testNativeLogLevel() {
+
 		ServerSettings settings = new ServerSettings();
 		
 		assertEquals(Logging.Severity.LS_WARNING, settings.getWebRTCLogLevel());
@@ -89,6 +90,8 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 		
 		assertEquals(ServerSettings.getLocalHostAddress(), settings.getHostAddress());
 		
+		Mockito.verify(settings).setNativeLogLevel(settings.getNativeLogLevel());
+		
 		
 		Mockito.doReturn("").when(settings).getHostAddressFromEnvironment();
 		settings.setUseGlobalIp(true);
@@ -114,9 +117,7 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 		settings.setApplicationContext(applicationContext);
 		
 		assertTrue(settings.isOfflineLicense());
-		
-		
-		
+				
 	}
 	
 	@Test
