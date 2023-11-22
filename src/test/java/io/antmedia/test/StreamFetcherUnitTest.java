@@ -1,6 +1,6 @@
 package io.antmedia.test;
 
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
+import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -23,6 +23,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
@@ -67,7 +71,6 @@ import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcher.WorkerThread;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
-import static org.bytedeco.ffmpeg.global.avutil.AVERROR_EOF;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -909,7 +912,23 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().pollDelay(4, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
 
 	}
+	@Test
+	public  void testSwitchTcpUdp() throws CharacterCodingException {
+		startCameraEmulator();
+		StreamFetcher fetcher = spy(new StreamFetcher("rtsp://127.0.0.1:6554/test.flv", "", "streamSource", appScope, vertx));
+		AVFormatContext inputFormatContext = spy(new AVFormatContext(null));
 
+		fetcher.prepareInput(inputFormatContext);
+
+		ByteBuffer transportType = ByteBuffer.allocate(8);
+		if(av_opt_get(inputFormatContext,"rtsp_transport" , AV_OPT_TYPE_STRING, transportType)>=0){
+			final CharsetDecoder dec = StandardCharsets.UTF_8.newDecoder();
+			String newContent = dec.decode(transportType).toString();
+            assertTrue(newContent.equals("0x000000")); ;
+		}
+
+		stopCameraEmulator();
+	}
 	@Test
 	public void testHLSFlagResult() {
 
