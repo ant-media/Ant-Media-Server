@@ -386,8 +386,9 @@ public class RestServiceV2 extends CommonRestService {
 
 	@ApiOperation(value = "Trigger garbage collector.", notes = "", response = Result.class)
 	@POST
-	@Path("/triggerGc")
+	@Path("/system/gc")
 	@Produces(MediaType.APPLICATION_JSON)
+	@SuppressWarnings("squid:S1215")
 	public Result triggerGc() {
 		System.gc();
 		return new Result(true);
