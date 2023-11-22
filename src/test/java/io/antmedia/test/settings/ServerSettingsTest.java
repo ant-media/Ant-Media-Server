@@ -90,7 +90,8 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 		
 		assertEquals(ServerSettings.getLocalHostAddress(), settings.getHostAddress());
 		
-		Mockito.verify(settings).setNativeLogLevel(settings.getNativeLogLevel());
+		String nativeLogLevel = settings.getNativeLogLevel();
+		Mockito.verify(settings).setNativeLogLevel(nativeLogLevel);
 		
 		
 		Mockito.doReturn("").when(settings).getHostAddressFromEnvironment();
