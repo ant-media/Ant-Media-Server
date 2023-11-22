@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webrtc.AudioSource;
 import org.webrtc.AudioTrack;
+import org.webrtc.BuiltinAudioDecoderFactoryFactory;
 import org.webrtc.CapturerObserver;
 import org.webrtc.DataChannel;
 import org.webrtc.H264Utils;
@@ -58,7 +59,13 @@ import org.webrtc.VideoEncoder;
 import org.webrtc.VideoEncoderFactory;
 import org.webrtc.VideoSource;
 import org.webrtc.VideoTrack;
+import org.webrtc.audio.JavaAudioDeviceModule;
 import org.webrtc.audio.WebRtcAudioRecord;
+import org.webrtc.audio.WebRtcAudioTrack;
+
+import io.antmedia.webrtc.adaptor.RTMPAdaptor;
+import io.antmedia.webrtc.api.IAudioTrackListener;
+import io.antmedia.websocket.WebSocketCommunityHandler;
 
 public class WebRTCNativeInterfaceTest {
 
@@ -180,22 +187,47 @@ public class WebRTCNativeInterfaceTest {
 
 	public void initPeerConnection(VideoEncoderFactory encoderFactory, VideoDecoderFactory decoderFactory) {
 
-		PeerConnectionFactory.initialize(
-				PeerConnectionFactory.InitializationOptions.builder()
-				.setFieldTrials(null)
-				.createInitializationOptions());
 
 		PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
-
 		options.disableNetworkMonitor = true;
-		options.networkIgnoreMask = Options.ADAPTER_TYPE_LOOPBACK;
+		options.networkIgnoreMask = PeerConnectionFactory.Options.ADAPTER_TYPE_LOOPBACK;
+
+		BuiltinAudioDecoderFactoryFactory audioDecoderFactoryFactory = new BuiltinAudioDecoderFactoryFactory();
+
+		// in receiving stream only Audio Track should be enabled
+		// in sending stream only AudioRecord should be enabled 
+		JavaAudioDeviceModule adm = (JavaAudioDeviceModule)
+				JavaAudioDeviceModule.builder(null)
+				.setUseHardwareAcousticEchoCanceler(false)
+				.setUseHardwareNoiseSuppressor(false)
+				.setAudioRecordErrorCallback(null)
+				.setAudioTrackErrorCallback(null)
+				.setAudioTrackListener(new IAudioTrackListener() {
+
+					@Override
+					public void playoutStopped() {
+						//no need to implement
+					}
+
+					@Override
+					public void playoutStarted() {
+					}
+				})
+				.createAudioDeviceModule();
+		
+
+
+		WebRtcAudioTrack webRtcAudioTrack = adm.getAudioTrack();
+		
 
 		PeerConnectionFactory peerConnectionFactory = PeerConnectionFactory.builder()
 				.setOptions(options)
-				//.setAudioDeviceModule(adm)
+				.setAudioDeviceModule(adm)
 				.setVideoEncoderFactory(encoderFactory)
 				.setVideoDecoderFactory(decoderFactory)
+				.setAudioDecoderFactoryFactory(audioDecoderFactoryFactory)
 				.createPeerConnectionFactory();
+		
 
 		assertNotNull(peerConnectionFactory);
 
