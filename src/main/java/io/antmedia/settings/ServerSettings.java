@@ -150,7 +150,7 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	 * Native Log Level is used for ffmpeg and WebRTC logs
 	 */
 	@Value( "${"+SETTINGS_NATIVE_LOG_LEVEL+":'ERROR'}" )
-	private String nativeLogLevel = LOG_LEVEL_WARN;
+	private String nativeLogLevel = LOG_LEVEL_ERROR;
 
 	/**
 	 * Enable heart beat for Ant Media Server
@@ -396,7 +396,7 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 				offlineLicense = true;
 			}
 		}
-
+		setNativeLogLevel(nativeLogLevel);
 
 	}
 

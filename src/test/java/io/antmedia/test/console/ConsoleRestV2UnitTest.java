@@ -684,6 +684,15 @@ public class ConsoleRestV2UnitTest {
 		domain = CommonRestService.extractFQDN(null);
 		assertNull(domain);
 	}
+	
+	@Test
+	public void testTriggerGC() {
+		//just increase coverage and make sure that method is there.
+		//It's better to check if it calls System.gc. We may add it later with Powermockito. It's good enough at this stage 
+		RestServiceV2 restServiceSpy = Mockito.spy(restService);
+		Result result = restServiceSpy.triggerGc();
+		assertTrue(result.isSuccess());
+	}
 
 	@Test
 	public void testConfigureSSL() 

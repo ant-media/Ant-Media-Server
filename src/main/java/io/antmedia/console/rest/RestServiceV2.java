@@ -384,6 +384,16 @@ public class RestServiceV2 extends CommonRestService {
 		return super.getVersion();
 	}
 
+	@ApiOperation(value = "Trigger garbage collector.", notes = "", response = Result.class)
+	@POST
+	@Path("/system/gc")
+	@Produces(MediaType.APPLICATION_JSON)
+	@SuppressWarnings("squid:S1215")
+	public Result triggerGc() {
+		System.gc();
+		return new Result(true);
+	}
+
 	@ApiOperation(value = "Gets the applications in the server. Returns the name of the applications in JSON format.", response = Result.class)
 	@GET
 	@Path("/applications")
