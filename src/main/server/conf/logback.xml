@@ -35,6 +35,7 @@
         <appender-ref ref="FILE" />
         <appender-ref ref="AntmediaLogger"/>
     </root>
+    <logger name="org.red5" level="${logLevel}" />
     <logger name="org.springframework" level="${logLevel}" />
     <logger name="org.springframework.scheduling" level="${logLevel}" />
     <logger name="org.apache" level="${logLevel}" />

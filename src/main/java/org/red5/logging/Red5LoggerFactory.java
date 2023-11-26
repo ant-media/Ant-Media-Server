@@ -56,21 +56,8 @@ public class Red5LoggerFactory {
             ClassLoader cl = Thread.currentThread().getContextClassLoader();
             System.out.printf("class loader: %s%n", cl);
         }
-        Logger logger = null;
-        if (useLogback) {
-            // determine the red5 app name or servlet context name
-            String contextName = CoreConstants.DEFAULT_CONTEXT_NAME;
-            // route the Launcher entries to the correct context
-            String[] parts = Thread.currentThread().getName().split("Loader:/");
-            if (parts.length > 1) {
-                contextName = parts[1];
-            }
-            logger = Red5LoggerFactory.getLogger(clazz, contextName);
-        }
-        if (logger == null) {
-        	 logger = LoggerFactory.getLogger(clazz); 
-        }
-        return logger;
+        return  LoggerFactory.getLogger(clazz); 
+        
     }
 
     @SuppressWarnings({ "rawtypes" })
