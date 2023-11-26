@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webrtc.AudioSource;
@@ -45,7 +46,6 @@ import org.webrtc.PeerConnection.SdpSemantics;
 import org.webrtc.PeerConnection.SignalingState;
 import org.webrtc.PeerConnection.TcpCandidatePolicy;
 import org.webrtc.PeerConnectionFactory;
-import org.webrtc.PeerConnectionFactory.Options;
 import org.webrtc.RtpSender;
 import org.webrtc.RtpTransceiver;
 import org.webrtc.RtpTransceiver.RtpTransceiverDirection;
@@ -63,9 +63,8 @@ import org.webrtc.audio.JavaAudioDeviceModule;
 import org.webrtc.audio.WebRtcAudioRecord;
 import org.webrtc.audio.WebRtcAudioTrack;
 
-import io.antmedia.webrtc.adaptor.RTMPAdaptor;
+import io.antmedia.webrtc.api.IAudioRecordListener;
 import io.antmedia.webrtc.api.IAudioTrackListener;
-import io.antmedia.websocket.WebSocketCommunityHandler;
 
 public class WebRTCNativeInterfaceTest {
 
@@ -153,7 +152,7 @@ public class WebRTCNativeInterfaceTest {
 	public void setup() {
 
 	}
-	
+
 	@BeforeClass
 	public static void beforeClass() {
 		PeerConnectionFactory.initialize(
@@ -163,19 +162,41 @@ public class WebRTCNativeInterfaceTest {
 	}
 
 	@Test
-	public void testNotifyEncodedData() {		  
+	public void testNotifyEncodedData() {	
 
-	   // YourClass yourClassSpy = PowerMockito.spy(new YourClass());
+		JavaAudioDeviceModule adm = (JavaAudioDeviceModule)JavaAudioDeviceModule.builder(null)
+				.setUseHardwareAcousticEchoCanceler(false)
+				.setUseHardwareNoiseSuppressor(false)
+				.setAudioRecordErrorCallback(null)
+				.setAudioTrackErrorCallback(null)
+				.setAudioRecordListener(new IAudioRecordListener() {
 
-		WebRtcAudioRecord audioRecord = spy(new WebRtcAudioRecord(null, null, null, 0, 0,null, null, null, false, false, null));
-		doNothing().when(audioRecord).encodedDataIsReady(anyLong(), anyString(), anyInt());
+					@Override
+					public void audioRecordStoppped() {
+					}
+
+					@Override
+					public void audioRecordStarted() {
+
+					}
+				})
+				.createAudioDeviceModule();
+
+		//initialize to get native fields filled
+		PeerConnectionFactory peerConnectionFactory = getPeerConnectionFactory(null, null, adm);
+		assertNotNull(peerConnectionFactory);
+
+		WebRtcAudioRecord audioRecord = spy(adm.getAudioRecord());
 		
 		String trackId = "track1";
 		audioRecord.getEncodedByteBuffers().put(trackId, ByteBuffer.allocate(1000));
 		ByteBuffer audio = ByteBuffer.allocate(100);
 		audioRecord.notifyEncodedData(trackId, audio);
 		
+		Mockito.verify(audioRecord).encodedDataIsReady(anyLong(), anyString(), anyInt());
 		
+
+
 	}
 
 	public static final String VIDEO_TRACK_ID = "ARDAMSv";
@@ -188,46 +209,8 @@ public class WebRTCNativeInterfaceTest {
 	public void initPeerConnection(VideoEncoderFactory encoderFactory, VideoDecoderFactory decoderFactory) {
 
 
-		PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
-		options.disableNetworkMonitor = true;
-		options.networkIgnoreMask = PeerConnectionFactory.Options.ADAPTER_TYPE_LOOPBACK;
+		PeerConnectionFactory peerConnectionFactory = getPeerConnectionFactory(encoderFactory, decoderFactory);
 
-		BuiltinAudioDecoderFactoryFactory audioDecoderFactoryFactory = new BuiltinAudioDecoderFactoryFactory();
-
-		// in receiving stream only Audio Track should be enabled
-		// in sending stream only AudioRecord should be enabled 
-		JavaAudioDeviceModule adm = (JavaAudioDeviceModule)
-				JavaAudioDeviceModule.builder(null)
-				.setUseHardwareAcousticEchoCanceler(false)
-				.setUseHardwareNoiseSuppressor(false)
-				.setAudioRecordErrorCallback(null)
-				.setAudioTrackErrorCallback(null)
-				.setAudioTrackListener(new IAudioTrackListener() {
-
-					@Override
-					public void playoutStopped() {
-						//no need to implement
-					}
-
-					@Override
-					public void playoutStarted() {
-					}
-				})
-				.createAudioDeviceModule();
-		
-
-
-		WebRtcAudioTrack webRtcAudioTrack = adm.getAudioTrack();
-		
-
-		PeerConnectionFactory peerConnectionFactory = PeerConnectionFactory.builder()
-				.setOptions(options)
-				.setAudioDeviceModule(adm)
-				.setVideoEncoderFactory(encoderFactory)
-				.setVideoDecoderFactory(decoderFactory)
-				.setAudioDecoderFactoryFactory(audioDecoderFactoryFactory)
-				.createPeerConnectionFactory();
-		
 
 		assertNotNull(peerConnectionFactory);
 
@@ -258,7 +241,7 @@ public class WebRTCNativeInterfaceTest {
 
 		RtpSender videoSender = peerConnection.addTrack(videoTrack, mediaStreamLabels);
 		assertNotNull(videoSender);
-		
+
 		List<RtpTransceiver> transceivers = peerConnection.getTransceivers();
 		RtpTransceiver rtpTransceiver = null;
 		boolean found = false;
@@ -274,7 +257,7 @@ public class WebRTCNativeInterfaceTest {
 		RtpTransceiverDirection direction = rtpTransceiver.getDirection();
 		assertEquals(RtpTransceiverDirection.SEND_RECV, direction);
 		rtpTransceiver.setDirection(RtpTransceiverDirection.SEND_ONLY);
-		
+
 
 		MediaConstraints audioConstraints = new MediaConstraints();
 		audioConstraints.mandatory.add(
@@ -293,7 +276,7 @@ public class WebRTCNativeInterfaceTest {
 		assertNotNull(audioSender);
 
 
-		
+
 		transceivers = peerConnection.getTransceivers();
 		found = true;
 		for (RtpTransceiver transceiver : transceivers) 
@@ -304,7 +287,7 @@ public class WebRTCNativeInterfaceTest {
 				rtpTransceiver = transceiver;
 			}
 		}
-		
+
 		assertTrue(found);
 		direction = rtpTransceiver.getDirection();
 		assertEquals(RtpTransceiverDirection.SEND_RECV, direction);
@@ -344,11 +327,11 @@ public class WebRTCNativeInterfaceTest {
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> { return onCreateSuccess; });
 
 		assertTrue(this.sdp.description.contains("H264"));
-		
+
 		assertFalse(this.sdp.description.contains("a=sendrecv"));
-		
+
 		assertTrue(this.sdp.description.contains("a=sendonly"));
-		
+
 
 		onSetSuccess = false;
 		peerConnection.setLocalDescription(new SdpObserver() {
@@ -379,6 +362,57 @@ public class WebRTCNativeInterfaceTest {
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> { return onSetSuccess; });
 
+	}
+
+	private PeerConnectionFactory getPeerConnectionFactory(VideoEncoderFactory encoderFactory,
+			VideoDecoderFactory decoderFactory) {
+		return getPeerConnectionFactory(encoderFactory, decoderFactory, null);
+	}
+
+	private PeerConnectionFactory getPeerConnectionFactory(VideoEncoderFactory encoderFactory,
+			VideoDecoderFactory decoderFactory, JavaAudioDeviceModule adm) {
+		PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
+		options.disableNetworkMonitor = true;
+		options.networkIgnoreMask = PeerConnectionFactory.Options.ADAPTER_TYPE_LOOPBACK;
+
+		BuiltinAudioDecoderFactoryFactory audioDecoderFactoryFactory = new BuiltinAudioDecoderFactoryFactory();
+
+		if (adm == null) {
+			// in receiving stream only Audio Track should be enabled
+			// in sending stream only AudioRecord should be enabled 
+			adm = (JavaAudioDeviceModule)
+					JavaAudioDeviceModule.builder(null)
+					.setUseHardwareAcousticEchoCanceler(false)
+					.setUseHardwareNoiseSuppressor(false)
+					.setAudioRecordErrorCallback(null)
+					.setAudioTrackErrorCallback(null)
+					.setAudioTrackListener(new IAudioTrackListener() {
+
+						@Override
+						public void playoutStopped() {
+							//no need to implement
+						}
+
+						@Override
+						public void playoutStarted() {
+						}
+					})
+					.createAudioDeviceModule();
+
+		}
+
+		WebRtcAudioTrack webRtcAudioTrack = adm.getAudioTrack();
+
+
+
+		PeerConnectionFactory peerConnectionFactory = PeerConnectionFactory.builder()
+				.setOptions(options)
+				.setAudioDeviceModule(adm)
+				.setVideoEncoderFactory(encoderFactory)
+				.setVideoDecoderFactory(decoderFactory)
+				.setAudioDecoderFactoryFactory(audioDecoderFactoryFactory)
+				.createPeerConnectionFactory();
+		return peerConnectionFactory;
 	}
 
 	@Test
