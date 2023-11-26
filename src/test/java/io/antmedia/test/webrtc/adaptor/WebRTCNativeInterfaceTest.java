@@ -162,22 +162,23 @@ public class WebRTCNativeInterfaceTest {
 	}
 
 	@Test
-	public void testNotifyEncodedData() {	
-
-		JavaAudioDeviceModule adm = (JavaAudioDeviceModule)JavaAudioDeviceModule.builder(null)
+	public void testCheckNotifyEncodedData() {	
+	
+		JavaAudioDeviceModule adm =	(JavaAudioDeviceModule)
+				JavaAudioDeviceModule.builder(null)
 				.setUseHardwareAcousticEchoCanceler(false)
 				.setUseHardwareNoiseSuppressor(false)
 				.setAudioRecordErrorCallback(null)
 				.setAudioTrackErrorCallback(null)
-				.setAudioRecordListener(new IAudioRecordListener() {
+				.setAudioTrackListener(new IAudioTrackListener() {
 
 					@Override
-					public void audioRecordStoppped() {
+					public void playoutStopped() {
+						//no need to implement
 					}
 
 					@Override
-					public void audioRecordStarted() {
-
+					public void playoutStarted() {
 					}
 				})
 				.createAudioDeviceModule();
