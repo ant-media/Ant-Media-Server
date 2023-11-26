@@ -1,5 +1,18 @@
 #!/bin/bash
 
+# -----------------------------------------------------------------------------
+# update.sh - Update Script
+# -----------------------------------------------------------------------------
+
+# Description:
+#   This script facilitates the seamless update of Ant Media Server to the latest version,
+#   ensuring you have the most up-to-date features, improvements, and bug fixes. 
+#   For more information: https://github.com/ant-media/Ant-Media-Server/releases
+
+# Usage:
+#   1. Run the script directly in the terminal using "./update.sh".
+#   2. Utilize the dashboard's integrated update feature for a user-friendly experience.
+
 INSTALL_DIRECTORY=/usr/local/antmedia
 
 REMOTE_VERSION=$(curl -s "https://antmedia.io/rest/VERSION" | jq -r .version)
