@@ -87,7 +87,8 @@ public class ConsoleRestV2UnitTest {
 				e.printStackTrace();
 			}
 		}
-		restService = new RestServiceV2();
+		restService = Mockito.spy(new RestServiceV2());
+		Mockito.doReturn(new ServerSettings()).when(restService).getServerSettings();
 		vertx = Vertx.vertx();
 		dbStore = new MapDBStore(vertx);
 		restService.setDataStore(dbStore);

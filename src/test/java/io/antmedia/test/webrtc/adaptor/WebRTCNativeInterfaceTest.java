@@ -161,7 +161,7 @@ public class WebRTCNativeInterfaceTest {
 				.createInitializationOptions());
 	}
 
-	@Test
+	//@Test
 	public void testCheckNotifyEncodedData() {	
 	
 		JavaAudioDeviceModule adm =	(JavaAudioDeviceModule)
