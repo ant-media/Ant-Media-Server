@@ -139,10 +139,10 @@ public class TomcatConnector {
 			}
 			// apply the bind address to the handler
 			ProtocolHandler handler = connector.getProtocolHandler();
-			if (handler instanceof Http11Nio2Protocol nio2) {
-				nio2.setAddress(address.getAddress());
-			} else if (handler instanceof Http11NioProtocol nio) {
-				nio.setAddress(address.getAddress());
+			if (handler instanceof Http11Nio2Protocol) {
+				((Http11Nio2Protocol)handler).setAddress(address.getAddress());
+			} else if (handler instanceof Http11NioProtocol) {
+				((Http11NioProtocol)handler).setAddress(address.getAddress());
 			}
 
 
