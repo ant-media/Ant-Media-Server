@@ -7,7 +7,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.spy;
 
 import java.nio.ByteBuffer;
@@ -63,7 +62,6 @@ import org.webrtc.audio.JavaAudioDeviceModule;
 import org.webrtc.audio.WebRtcAudioRecord;
 import org.webrtc.audio.WebRtcAudioTrack;
 
-import io.antmedia.webrtc.api.IAudioRecordListener;
 import io.antmedia.webrtc.api.IAudioTrackListener;
 
 public class WebRTCNativeInterfaceTest {
@@ -155,13 +153,10 @@ public class WebRTCNativeInterfaceTest {
 
 	@BeforeClass
 	public static void beforeClass() {
-		PeerConnectionFactory.initialize(
-				PeerConnectionFactory.InitializationOptions.builder()
-				.setFieldTrials(null)
-				.createInitializationOptions());
+		
 	}
 
-	//@Test
+	@Test
 	public void testCheckNotifyEncodedData() {	
 	
 		JavaAudioDeviceModule adm =	(JavaAudioDeviceModule)
@@ -372,6 +367,12 @@ public class WebRTCNativeInterfaceTest {
 
 	private PeerConnectionFactory getPeerConnectionFactory(VideoEncoderFactory encoderFactory,
 			VideoDecoderFactory decoderFactory, JavaAudioDeviceModule adm) {
+		
+		PeerConnectionFactory.initialize(
+					PeerConnectionFactory.InitializationOptions.builder()
+					.setFieldTrials(null)
+					.createInitializationOptions());
+				
 		PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 		options.disableNetworkMonitor = true;
 		options.networkIgnoreMask = PeerConnectionFactory.Options.ADAPTER_TYPE_LOOPBACK;

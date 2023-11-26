@@ -138,10 +138,6 @@ public class RTMPAdaptorTest {
 	
 	@BeforeClass
 	public static void beforeClass() {
-		PeerConnectionFactory.initialize(
-				PeerConnectionFactory.InitializationOptions.builder()
-				.setFieldTrials(null)
-				.createInitializationOptions());
 	}
 
 
