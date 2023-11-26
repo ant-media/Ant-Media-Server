@@ -105,8 +105,7 @@ public class ConsoleRestV2UnitTest {
 				e.printStackTrace();
 			}
 		}
-		restService = Mockito.spy(new RestServiceV2());
-		Mockito.doReturn(new ServerSettings()).when(restService).getServerSettings();
+		restService = new RestServiceV2();
 		vertx = Vertx.vertx();
 		dbStore = new MapDBStore(vertx);
 		restService.setDataStore(dbStore);
@@ -132,21 +131,24 @@ public class ConsoleRestV2UnitTest {
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 1000000000);
 		User user = new User(userName, password, UserType.ADMIN, "all");
-		Result result = restService.addUser(user);
+		RestServiceV2 restServiceSpy = Mockito.spy(restService);
+		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
+
+		Result result = restServiceSpy.addUser(user);
 
 		// System.out.println("error id: " + result.errorId);
 		assertTrue(result.isSuccess());
-		assertEquals(1, restService.getUserList().size());
+		assertEquals(1, restServiceSpy.getUserList().size());
 
-		assertNotNull(restService.getUserList());
+		assertNotNull(restServiceSpy.getUserList());
 
 		userName = "username" + (int) (Math.random() * 1000000000);
 		user = new User(userName, "second pass", UserType.ADMIN, "all");
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
-		result = restService.addUser(user);
-		assertEquals(2, restService.getUserList().size());
+		result = restServiceSpy.addUser(user);
+		assertEquals(2, restServiceSpy.getUserList().size());
 	}
 
 
@@ -156,7 +158,11 @@ public class ConsoleRestV2UnitTest {
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 1000000000);
 		User user = new User(userName, password, UserType.ADMIN, "system");
-		Result result = restService.addUser(user);
+		RestServiceV2 restServiceSpy = Mockito.spy(restService);
+		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
+
+		
+		Result result = restServiceSpy.addUser(user);
 
 		// System.out.println("error id: " + result.errorId);
 		assertTrue(result.isSuccess());
@@ -167,7 +173,7 @@ public class ConsoleRestV2UnitTest {
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
-		result = restService.addUser(user);
+		result = restServiceSpy.addUser(user);
 
 		assertTrue(result.isSuccess());
 
@@ -175,7 +181,7 @@ public class ConsoleRestV2UnitTest {
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
-		result = restService.addUser(user);
+		result = restServiceSpy.addUser(user);
 
 		assertFalse(result.isSuccess());
 
@@ -183,17 +189,17 @@ public class ConsoleRestV2UnitTest {
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
-		result = restService.addUser(user);
+		result = restServiceSpy.addUser(user);
 
 		assertFalse(result.isSuccess());
 
 		user.setEmail("ksks" + (int) (Math.random() * 1000000000));
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
-		result = restService.addUser(user);
+		result = restServiceSpy.addUser(user);
 		assertTrue(result.isSuccess());
 
-		result = restService.addUser(null);
+		result = restServiceSpy.addUser(null);
 
 		assertFalse(result.isSuccess());
 	}
