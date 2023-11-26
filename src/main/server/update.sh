@@ -13,6 +13,11 @@
 #   1. Run the script directly in the terminal using "./update.sh".
 #   2. Utilize the dashboard's integrated update feature for a user-friendly experience.
 
+# Note:
+#   - Ensure internet connectivity for downloading the latest Ant Media Server release.
+
+# -----------------------------------------------------------------------------
+
 INSTALL_DIRECTORY=/usr/local/antmedia
 
 REMOTE_VERSION=$(curl -s "https://antmedia.io/rest/VERSION" | jq -r .version)
