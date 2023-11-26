@@ -26,7 +26,7 @@ check_ams() {
   	   curl --progress-bar -o ams_enterprise.zip "$check_license"
   	   ANT_MEDIA_SERVER_ZIP_FILE="ams_enterprise.zip"
   	fi
-    bash install_ant-media-server.sh -i $ANT_MEDIA_SERVER_ZIP_FILE -r true
+        bash install_ant-media-server.sh -i $ANT_MEDIA_SERVER_ZIP_FILE -r true
 
 }
 
