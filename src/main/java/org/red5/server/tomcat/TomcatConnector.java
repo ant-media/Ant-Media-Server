@@ -48,7 +48,7 @@ public class TomcatConnector {
 
 	private Connector connector;
 
-	private Map<String, String> connectionProperties;
+	private Map<String, String> connectionProperties = new HashMap<>();
 
 	private String protocol = "org.apache.coyote.http11.Http11NioProtocol";
 
@@ -110,27 +110,48 @@ public class TomcatConnector {
 
 				SSLHostConfig sslHostConfig = new SSLHostConfig();
 
-				sslHostConfig.setEnabledProtocols(connectionProperties.get("sslEnabledProtocols").split(","));
-				log.info("sslEnabledProtocols:{} and ciphers: {}",connectionProperties.get("sslEnabledProtocols"), connectionProperties.get("ciphers"));
+				String enabledProtocols = connectionProperties.get("sslEnabledProtocols");
+				if (enabledProtocols != null) {
+					sslHostConfig.setEnabledProtocols(enabledProtocols.split(","));
+				}
+				log.info("sslEnabledProtocols:{} and ciphers: {}",enabledProtocols, connectionProperties.get("ciphers"));
 
-				sslHostConfig.setCiphers(connectionProperties.get("ciphers"));
+				String ciphers = connectionProperties.get("ciphers");
+				if (ciphers != null) 
+					sslHostConfig.setCiphers(ciphers);
 
-				sslHostConfig.setHonorCipherOrder(Boolean.valueOf(connectionProperties.get("useServerCipherSuitesOrder")));
+				String useServerCipherSuitesOrder = connectionProperties.get("useServerCipherSuitesOrder");
+				if (useServerCipherSuitesOrder != null) 
+					sslHostConfig.setHonorCipherOrder(Boolean.valueOf(useServerCipherSuitesOrder));
 
-				sslHostConfig.setCertificateVerification(connectionProperties.get("clientAuth"));
+				String clientAuth = connectionProperties.get("clientAuth");
+				if (clientAuth != null) 
+					sslHostConfig.setCertificateVerification(clientAuth);
 
 				SSLHostConfigCertificate certificate = new SSLHostConfigCertificate(sslHostConfig, Type.RSA);
 
 				//SSLCertificateFile
-				certificate.setCertificateFile(connectionProperties.get("SSLCertificateFile"));
-
+				String sSLCertificateFile = connectionProperties.get("SSLCertificateFile");
+				if (sSLCertificateFile != null) 
+					certificate.setCertificateFile(sSLCertificateFile);
+				else
+					log.warn("No certificate file configured for SSL");
 
 				//SSLCertificateChainFile
-				certificate.setCertificateChainFile(connectionProperties.get("SSLCertificateChainFile"));
+				String sSLCertificateChainFile = connectionProperties.get("SSLCertificateChainFile");
+				if (sSLCertificateChainFile != null) 
+					certificate.setCertificateChainFile(sSLCertificateChainFile);
+				else
+					log.warn("No certificate chain file configured for SSL");
 
+				
 				//SSLCertificateKeyFile
-				certificate.setCertificateKeyFile(connectionProperties.get("SSLCertificateKeyFile"));
-
+				String sSLCertificateKeyFile = connectionProperties.get("SSLCertificateKeyFile");
+				if (sSLCertificateKeyFile != null) 
+					certificate.setCertificateKeyFile(sSLCertificateKeyFile);
+				else
+					log.warn("No certificate key file configured for SSL");
+				
 
 				sslHostConfig.addCertificate(certificate);
 
@@ -181,9 +202,6 @@ public class TomcatConnector {
 	 *            connection properties to set
 	 */
 	public void setConnectionProperties(Map<String, String> props) {
-		if (connectionProperties == null) {
-			this.connectionProperties = new HashMap<String, String>();
-		}
 		this.connectionProperties.putAll(props);
 	}
 
@@ -286,5 +304,11 @@ public class TomcatConnector {
 	public void setUpgradeHttp2Protocol(boolean upgradeHttp2Protocol) {
 		this.upgradeHttp2Protocol = upgradeHttp2Protocol;
 	}
+
+	public boolean isInitialized() {
+		return initialized;
+	}
+	
+	
 
 }
