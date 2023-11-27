@@ -20,8 +20,9 @@
 
 INSTALL_DIRECTORY=/usr/local/antmedia
 
-REMOTE_VERSION=$(curl -s "https://antmedia.io/rest/VERSION" | jq -r .version)
+REMOTE_VERSION=$(curl -s "https://antmedia.io/rest/VERSION")
 LOCAL_VERSION=$(unzip -p $INSTALL_DIRECTORY/ant-media-server/ant-media-server.jar | grep -a "Implementation-Version"|cut -d' ' -f2 | tr -d '\r')
+GITHUB_VERSION=$(curl -s -H "Accept: application/vnd.github+json" https://api.github.com/repos/ant-media/Ant-Media-Server/releases/latest | jq -r '.tag_name' | cut -d 'v' -f 2)
 
 # If not installed jq package, install it
 if [ ! command -v jq &> /dev/null ]; then
@@ -35,14 +36,18 @@ check_ams() {
 	get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
 	#Check if it is Enterprise or Community
 	if [ -z "$get_license_key" ]; then
- 	    echo "Downloading the latest version of Ant Media Server Community Edition."
+        if [ "$GITHUB_LATEST_VERSION" == "$REMOTE_VERSION" ]; then
+            echo "Downloading the latest version of Ant Media Server Community Edition."
     	    curl --progress-bar -o ams_community.zip -L "$(curl -s -H "Accept: application/vnd.github+json" https://api.github.com/repos/ant-media/Ant-Media-Server/releases/latest | jq -r '.assets[0].browser_download_url')"   
     	    ANT_MEDIA_SERVER_ZIP_FILE="ams_community.zip"
         else
-    	   check_license=$(curl -s https://api.antmedia.io/?license="$get_license_key" | tr -d "\"")
-    	   echo "Downloading the latest version of Ant Media Server Enterprise Edition."
-  	   curl --progress-bar -o ams_enterprise.zip "$check_license"
-  	   ANT_MEDIA_SERVER_ZIP_FILE="ams_enterprise.zip"
+            exit 1
+        fi
+    else
+        check_license=$(curl -s https://api.antmedia.io/?license="$get_license_key" | tr -d "\"")
+    	echo "Downloading the latest version of Ant Media Server Enterprise Edition."
+  	    curl --progress-bar -o ams_enterprise.zip "$check_license"
+  	    ANT_MEDIA_SERVER_ZIP_FILE="ams_enterprise.zip"
   	fi
         bash install_ant-media-server.sh -i $ANT_MEDIA_SERVER_ZIP_FILE -r true
 
