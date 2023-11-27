@@ -514,5 +514,25 @@ public class WebSocketConstants {
 	 */
 	public static final String MAX_TRACK_COUNT = "maxTrackCount";
 
+	/**
+	 * Command to get broadcast object
+	 */
+	public static final String GET_BROADCAST_OBJECT_COMMAND = "getBroadcastObject";
+
+	/**
+	 * Command to get video track assignments
+	 */
+	public static final String GET_VIDEO_TRACK_ASSIGNMENTS_COMMAND = "getVideoTrackAssignmentsCommand";
+
+	/**
+	 * broadcast object notification
+	 */
+	public static final String BROADCAST_OBJECT_NOTIFICATION = "broadcastObject";
+
+	/**
+	 * broadcast object constant
+	 */
+	public static final String BROADCAST = "broadcast";
+
 	
 }
