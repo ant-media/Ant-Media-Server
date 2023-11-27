@@ -66,6 +66,7 @@ public class RtmpMuxer extends Muxer {
 		Matcher checkAppName = rtmpAppName.matcher(url);
 
 		if (!checkAppName.matches()) {
+			//this is the fix to send stream for urls without app
 			setOption("rtmp_app","");
 		}
 	}

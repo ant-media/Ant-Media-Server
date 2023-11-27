@@ -182,7 +182,7 @@ public abstract class Muxer {
 	protected boolean firstKeyFrameReceived = true;
 	private long lastPts;
 
-	protected AVDictionary option = new AVDictionary(null);
+	protected AVDictionary optionDictionary = new AVDictionary(null);
 
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
@@ -256,17 +256,18 @@ public abstract class Muxer {
 
 
 	public boolean openIO() {
-		String Url =  getOutputURL();
+	
 
-		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0 && Url != null)
+		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0)
 		{
 			//if it's different from zero, it means no file is need to be open.
 			//If it's zero, Not "no file" and it means that file is need to be open .
+			String url =  getOutputURL();
 			AVIOContext pb = new AVIOContext(null);
 
-			int ret = avformat.avio_open2(pb,Url , AVIO_FLAG_WRITE,null, getOption());
+			int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
 			if (ret < 0) {
-				logger.warn("Could not open output url: {} ",  Url);
+				logger.warn("Could not open output url: {} ",  url);
 				return false;
 			}
 			getOutputFormatContext().pb(pb);
@@ -400,7 +401,7 @@ public abstract class Muxer {
 			avformat_free_context(outputFormatContext);
 			outputFormatContext = null;
 		}
-		av_dict_free(option);
+		av_dict_free(optionDictionary);
 	}
 
 	/**
@@ -887,10 +888,10 @@ public abstract class Muxer {
 	}
 
 	public void setOption(String optionName,String value){
-		av_dict_set(option, optionName, value, 0);
+		av_dict_set(optionDictionary, optionName, value, 0);
 	}
-	public AVDictionary getOption(){
-		return option;
+	public AVDictionary getOptionDictionary(){
+		return optionDictionary;
 	}
 	public abstract boolean isCodecSupported(int codecId);
 

@@ -7,7 +7,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
-
+import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.av_stream_get_side_data;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
@@ -1123,12 +1123,32 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//This is for testing writeHeader after writeTrailer.
 		rtmpMuxer.writeHeader();
 	}
+	
 	@Test
 	public void testRtmpUrlWithoutAppName(){
-		RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0",vertx)); //RTMP URl without Appname
-		AVDictionary opt = rtmpMuxer.getOption();
-		AVDictionaryEntry optEntry = av_dict_get(opt,"rtmp_app",null,0);
-        assert optEntry.key().getString().equals("rtmp_app");
+		{
+			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0",vertx)); //RTMP URl without Appname
+			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			AVDictionaryEntry optEntry = av_dict_get(opt,"rtmp_app",null,0);
+			assertEquals("rtmp_app", optEntry.key().getString());
+			assertEquals("", optEntry.value().getString());
+		}
+		
+		
+		{
+			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0/test",vertx)); //RTMP URl without Appname
+			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app",null,0);
+	        assertNull(optEntry);
+	        
+	     	//if it's different from zero, it means no file is need to be open.
+			//If it's zero, Not "no file" and it means that file is need to be open .
+	        assertEquals(0, rtmpMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
+	        
+	        
+	        rtmpMuxer.clearResource();
+		}
+        
 	}
 	@Test
 	public void testMp4MuxerDirectStreaming() {
