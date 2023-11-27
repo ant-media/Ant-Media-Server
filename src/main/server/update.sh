@@ -18,7 +18,7 @@
 
 # -----------------------------------------------------------------------------
 
-INSTALL_DIRECTORY=/usr/local/antmedia
+INSTALL_DIRECTORY="$(pwd)"
 
 REMOTE_VERSION=$(curl -s "https://antmedia.io/rest/VERSION")
 LOCAL_VERSION=$(unzip -p $INSTALL_DIRECTORY/ant-media-server.jar | grep -a "Implementation-Version"|cut -d' ' -f2 | tr -d '\r')
