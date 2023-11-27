@@ -2,7 +2,6 @@ package io.antmedia.integration;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
@@ -19,27 +18,19 @@ import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
-
-import io.antmedia.AppSettings;
-import io.antmedia.EncoderSettings;
+import jakarta.servlet.ServletContext;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
@@ -51,7 +42,6 @@ import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
-import org.apache.http.message.BasicNameValuePair;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
 import org.awaitility.Awaitility;
@@ -72,16 +62,19 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
-import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.VoD;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.BroadcastRestService.SimpleStat;
 import io.antmedia.rest.RestServiceBase.BroadcastStatistics;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
+import jakarta.ws.rs.core.Context;
 
 public class RestServiceV2Test {
 
@@ -112,7 +105,6 @@ public class RestServiceV2Test {
 	}
 
 	private static String ffmpegPath = "ffmpeg";
-	private static Gson gson = new Gson();
 
 	@Rule
 	public TestRule watcher = new TestWatcher() {
@@ -218,6 +210,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
+			Gson gson = new Gson();
 			Result tmp = gson.fromJson(result.toString(), Result.class);
 
 			return tmp;
@@ -245,6 +238,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
+			Gson gson = new Gson();
 			Result tmp = gson.fromJson(result.toString(), Result.class);
 
 			return tmp;
@@ -286,7 +280,7 @@ public class RestServiceV2Test {
 		}
 
 		try {
-
+			Gson gson = new Gson();
 			HttpUriRequest post = RequestBuilder.put().setUri(url + "?socialNetworks=" + socialNetworks)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
@@ -324,7 +318,8 @@ public class RestServiceV2Test {
 		Broadcast broadcast = null; 
 
 		try {
-
+			Gson gson = new Gson();
+			
 			HttpUriRequest post = RequestBuilder.post().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
@@ -492,6 +487,7 @@ public class RestServiceV2Test {
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
+		Gson gson = new Gson();
 		System.out.println("result string: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
@@ -576,6 +572,7 @@ public class RestServiceV2Test {
 			throw new Exception(result.toString());
 		}
 		logger.info("result string: {} ",result.toString());
+		Gson gson = new Gson();
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 		assertNotNull(tmp);
 
@@ -658,6 +655,7 @@ public class RestServiceV2Test {
 
 			Version versionList = null;
 
+			Gson gson = new Gson();
 			versionList = gson.fromJson(result.toString(), Version.class);
 			//check that they are same
 			assertEquals(model.getParent().getVersion()
@@ -695,7 +693,7 @@ public class RestServiceV2Test {
 			System.out.println("Get subscriber list string: " + result.toString());
 			Type listType = new TypeToken<List<SubscriberStats>>() {
 			}.getType();
-
+			Gson gson = new Gson();
 			return gson.fromJson(result.toString(), listType);
 			
 		} catch (UnsupportedEncodingException e) {
@@ -735,7 +733,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
-
+			Gson gson = new Gson();
 			return (int)gson.fromJson(result.toString(), SimpleStat.class).number;
 
 		} catch (Exception e) {
@@ -764,7 +762,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
-
+			Gson gson = new Gson();
 			return gson.fromJson(result.toString(), BroadcastStatistics.class);
 
 		} catch (Exception e) {
@@ -794,7 +792,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
-
+			Gson gson = new Gson();
 			return gson.fromJson(result.toString(), BroadcastStatistics.class);
 
 		} catch (Exception e) {
@@ -827,7 +825,7 @@ public class RestServiceV2Test {
 			System.out.println("result string: " + result.toString());
 			Type listType = new TypeToken<List<Broadcast>>() {
 			}.getType();
-
+			Gson gson = new Gson();
 			return gson.fromJson(result.toString(), listType);
 
 		} catch (Exception e) {
@@ -862,7 +860,7 @@ public class RestServiceV2Test {
 			System.out.println("Get vod list string: " + result.toString());
 			Type listType = new TypeToken<List<VoD>>() {
 			}.getType();
-
+			Gson gson = new Gson();
 			return gson.fromJson(result.toString(), listType);
 
 		} catch (Exception e) {
@@ -893,7 +891,7 @@ public class RestServiceV2Test {
 			System.out.println("result string: " + result.toString());
 			Type listType = new TypeToken<VoD>() {
 			}.getType();
-
+			Gson gson = new Gson();
 			return gson.fromJson(result.toString(), listType);
 
 		} catch (Exception e) {
@@ -923,7 +921,7 @@ public class RestServiceV2Test {
 			throw new Exception(result.toString());
 		}
 		System.out.println("result string: " + result.toString());
-
+		Gson gson = new Gson();
 		return gson.fromJson(result.toString(), Broadcast.class);
 	}
 
@@ -1077,6 +1075,8 @@ public class RestServiceV2Test {
 				Broadcast broadcastReturnedTemp = callGetBroadcast(broadcast.getStreamId());
 				return (AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED).equals(broadcastReturnedTemp.getStatus());
 			});
+			
+			execute.destroy();
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -1192,6 +1192,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result string: " + result.toString());
+			Gson gson = new Gson();
 			Result result2 = gson.fromJson(result.toString(), Result.class);
 			return result2;
 		} catch (Exception e) {
@@ -1219,6 +1220,7 @@ public class RestServiceV2Test {
 				throw new Exception(result.toString());
 			}
 			System.out.println("result of deleteVoD for id: "+ id +" string: " + result.toString());
+			Gson gson = new Gson();
 			Result result2 = gson.fromJson(result.toString(), Result.class);
 			return result2;
 		} catch (Exception e) {
@@ -1352,7 +1354,7 @@ public class RestServiceV2Test {
 		String url = ROOT_SERVICE_URL + "/v2/broadcasts/"+ broadcastId +"/rtmp-endpoint";
 		
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-
+		Gson gson = new Gson();
 		HttpUriRequest post = RequestBuilder.post().setUri(url)
 				.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 				.setEntity(new StringEntity(gson.toJson(endpoint))).build();
@@ -1364,7 +1366,6 @@ public class RestServiceV2Test {
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
-		Gson gson = new Gson();
 		System.out.println("result string: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
 
@@ -1803,7 +1804,7 @@ public class RestServiceV2Test {
 
 			//define invalid stream url
 			broadcast.setStreamUrl("rrtsp://admin:Admin12345@71.234.93.90:5011/12");
-
+			Gson gson = new Gson();
 			try {
 				gson.fromJson(callAddStreamSource(broadcast), Result.class);
 				//it should throw exceptionbecause url is invalid

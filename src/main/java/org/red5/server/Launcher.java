@@ -27,7 +27,6 @@ import java.util.UUID;
 import org.red5.logging.Red5LoggerFactory;
 import org.red5.server.api.Red5;
 import org.slf4j.Logger;
-import org.slf4j.bridge.SLF4JBridgeHandler;
 import org.springframework.context.support.FileSystemXmlApplicationContext;
 import org.webrtc.PeerConnectionFactory;
 
@@ -67,8 +66,6 @@ public class Launcher {
 		}
 		
 		Red5LoggerFactory.setUseLogback(useLogback);
-		// install the slf4j bridge (mostly for JUL logging)
-		SLF4JBridgeHandler.install();
 
 		// get the first logger
 		final Logger log = Red5LoggerFactory.getLogger(Launcher.class);

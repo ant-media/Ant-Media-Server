@@ -9,6 +9,8 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
+
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.tika.utils.ExceptionUtils;
 import org.awaitility.Awaitility;
 import org.openqa.selenium.By;
@@ -24,7 +26,6 @@ import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.shaded.org.apache.commons.lang3.RandomStringUtils;
 
 import java.io.File;
 import java.io.IOException;
