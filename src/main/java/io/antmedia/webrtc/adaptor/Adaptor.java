@@ -1,6 +1,6 @@
 package io.antmedia.webrtc.adaptor;
 
-import javax.websocket.Session;
+import jakarta.websocket.Session;
 
 import org.red5.logging.Red5LoggerFactory;
 import org.slf4j.Logger;

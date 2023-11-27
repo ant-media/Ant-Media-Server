@@ -31,9 +31,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
@@ -101,6 +98,8 @@ import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)

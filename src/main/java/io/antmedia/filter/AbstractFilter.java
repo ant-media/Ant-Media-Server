@@ -4,12 +4,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Queue;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-
-import io.antmedia.security.ITokenService;
 import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,13 +13,17 @@ import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
 
 public abstract class AbstractFilter implements Filter{
 	

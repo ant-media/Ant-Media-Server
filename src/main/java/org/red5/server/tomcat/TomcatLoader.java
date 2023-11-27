@@ -33,9 +33,9 @@ import java.util.concurrent.Future;
 import javax.management.JMX;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
-import javax.security.auth.message.config.AuthConfigFactory;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
+import jakarta.security.auth.message.config.AuthConfigFactory;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -221,7 +221,8 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 			Object ldr = ctx.getLoader();
 			log.trace("Context loader (null if the context has not been started): {}", ldr);
 			if (ldr == null) {
-				WebappLoader wldr = new WebappLoader(classLoader);
+				WebappLoader wldr = new WebappLoader();
+				//wldr.setLoaderInstance(classLoader);
 				// add the Loader to the context
 				ctx.setLoader(wldr);
 			}

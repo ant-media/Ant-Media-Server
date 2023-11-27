@@ -169,6 +169,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
+
 	protected static Logger logger = LoggerFactory.getLogger(MuxerUnitTest.class);
 	protected static final int BUFFER_SIZE = 10240;
 
@@ -199,7 +200,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public static void beforeClass() {
 		//avformat.av_register_all();
 		avformat.avformat_network_init();
-		avutil.av_log_set_level(avutil.AV_LOG_INFO);
+		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
 	}
 
 	@Before
@@ -1992,8 +1993,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		ConcurrentSkipListSet<IStreamPacket> bufferQueue = muxAdaptor.getBufferQueue();
 		muxAdaptor.setBuffering(false);
-		AVStream stream = Mockito.mock(AVStream.class);
-		when(stream.time_base()).thenReturn(MuxAdaptor.TIME_BASE_FOR_MS);
 
 
 		ITag tag = mock(ITag.class);
@@ -3772,18 +3771,18 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(listener, Mockito.times(1)).setVideoStreamInfo(eq(muxAdaptor.getStreamId()), any());
 		verify(listener, Mockito.times(1)).setAudioStreamInfo(eq(muxAdaptor.getStreamId()), any());
 
-		AVStream stream = mock(AVStream.class);
-		AVCodecParameters codecParameters = mock(AVCodecParameters.class);
-		when(stream.codecpar()).thenReturn(codecParameters);
-		when(codecParameters.codec_type()).thenReturn(AVMEDIA_TYPE_VIDEO);
+		AVStream stream = new AVStream();
+		AVCodecParameters codecParameters = new AVCodecParameters();
+		stream.codecpar(codecParameters);
+		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
 
-		AVPacket pkt = mock(AVPacket.class);
-		when(pkt.flags()).thenReturn(AV_PKT_FLAG_KEY);
+		AVPacket pkt = new AVPacket();
+		pkt.flags(AV_PKT_FLAG_KEY);
 
 		muxAdaptor.writePacket(stream, pkt);
 		verify(listener, Mockito.times(1)).onVideoPacket(streamId, pkt);
 
-		when(codecParameters.codec_type()).thenReturn(AVMEDIA_TYPE_AUDIO);
+		codecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
 		muxAdaptor.writePacket(stream, pkt);
 		verify(listener, Mockito.times(1)).onAudioPacket(streamId, pkt);
 

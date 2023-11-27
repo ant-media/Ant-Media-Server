@@ -9,21 +9,10 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
-
-import javax.servlet.AsyncContext;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletInputStream;
-import javax.servlet.ServletOutputStream;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.apache.catalina.connector.ClientAbortException;
 import org.junit.After;
@@ -42,6 +31,14 @@ import io.antmedia.servlet.IChunkedCacheManager;
 import io.antmedia.servlet.MockChunkedCacheManager;
 import io.antmedia.servlet.cmafutils.AtomParser;
 import io.antmedia.servlet.cmafutils.ICMAFChunkListener;
+import jakarta.servlet.AsyncContext;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletInputStream;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public class ChunkedTransferServletTest {
 
