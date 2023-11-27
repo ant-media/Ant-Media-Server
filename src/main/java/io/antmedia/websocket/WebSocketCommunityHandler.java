@@ -3,9 +3,6 @@ package io.antmedia.websocket;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import javax.websocket.Session;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -24,6 +21,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
+import jakarta.websocket.Session;
 
 public class WebSocketCommunityHandler {
 
