@@ -1,6 +1,10 @@
 package io.antmedia.rest;
 
+import java.net.URI;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -11,12 +15,22 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.container.AsyncResponse;
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.Suspended;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriInfo;
 
+import io.antmedia.licence.ILicenceService;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.json.simple.JSONObject;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import com.amazonaws.util.Base32;
@@ -59,6 +73,8 @@ import io.swagger.annotations.ExternalDocs;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 
 @Api(value = "BroadcastRestService")
 @SwaggerDefinition(
@@ -1308,6 +1324,97 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return new Result(result);
 	}
+
+	@ApiOperation(value = "Publish a webrtc stream through WebRTC-HTTP ingestion protocol(WHIP). HTTP for signaling.")
+	@POST
+	@Consumes({ "application/sdp" })
+	@Path("/whip/{streamId}")
+	@ApiModelProperty(readOnly = true)
+	@Produces(MediaType.APPLICATION_JSON)
+	public CompletableFuture<Response> startWhipPublish(@Context UriInfo uriInfo, @PathParam("streamId") String streamId,
+														@QueryParam("tokenId") String tokenId,
+														@QueryParam("enableVideo") boolean enableVideo,
+														@QueryParam("enableAudio") boolean enableAudio,
+														@QueryParam("subscriberId") String subscriberId,
+														@QueryParam("subscriberCode") String subscriberCode,
+														@QueryParam("streamName") String streamName,
+														@QueryParam("mainTrack") String mainTrack,
+														@QueryParam("metaData") String metaData,
+												 		@ApiParam String sdp) {
+		CompletableFuture<String> completionSignal = new CompletableFuture<>();
+
+		JSONObject publishData = new JSONObject();
+		publishData.put("streamId", streamId);
+		publishData.put("enableVideo", enableVideo);
+		publishData.put("enableAudio", enableAudio);
+		publishData.put("subscriberId", subscriberId);
+		publishData.put("subscriberCode", subscriberCode);
+		publishData.put("streamName", streamName);
+		publishData.put("mainTrack", mainTrack);
+		publishData.put("metaData", metaData);
+
+		String sessionId = RandomStringUtils.randomAlphanumeric(6);
+
+		getApplication().startHttpSignaling(publishData, sdp, sessionId, completionSignal);
+
+		 return completionSignal.exceptionally(e -> {
+			logger.error("Could not complete webrtc http signaling.");
+			e.printStackTrace();
+			return null;
+		}).thenApply(serverSdp -> {
+			if(StringUtils.isBlank(serverSdp)){
+                return Response.status(Status.FORBIDDEN)
+						.build();
+			}
+
+			 String turnAddr = getApplication().getAppSettings().getStunServerURI();
+			 String turnServerUsername = getApplication().getAppSettings().getTurnServerUsername();
+			 String turnServerPassword = getApplication().getAppSettings().getTurnServerCredential();
+			 String turnServerInfo = "";
+
+			 if(StringUtils.isNotBlank(turnServerUsername) && StringUtils.isNotBlank(turnServerPassword)){
+				 turnServerInfo = turnAddr + "?transport=udp; rel=\"ice-server\" username="+turnServerUsername+";"+" credential="+turnServerPassword;
+			 }
+
+			 String defaultStunStr = "stun:stun1.l.google.com:19302; rel=ice-server";
+
+			 String eTag = sessionId; // Replace with parsed ETag
+			 String resource = uriInfo.getRequestUri().toString()+"/"+eTag;
+			 ArrayList<String> extensions = new ArrayList<String>();
+			 extensions.add(defaultStunStr);
+			 if(StringUtils.isNotBlank(turnServerInfo)){
+				 extensions.add(turnServerInfo);
+			 }
+
+			 Response response = Response.created(URI.create(resource))
+					 .entity(serverSdp)
+					 .header("ETag", eTag)
+					 .header("Link", String.join(",", extensions))
+					 .type("application/sdp")
+					 .build();
+			return response;
+
+		});
+
+
+
+	}
+
+	@ApiOperation(value = "Stop a webrtc stream through WebRTC-HTTP ingestion protocol(WHIP). HTTP for signaling.")
+	@DELETE
+	@Consumes({ "application/sdp" })
+	@Path("/whip/{streamId}/{eTag}")
+	@ApiModelProperty(readOnly = true)
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response stopWhipPublish(@PathParam("streamId") String streamId,@PathParam("eTag") String eTag){
+
+		boolean stopWhipBroadcastRes = getApplication().stopWhipBroadcast(streamId, eTag);
+		if(stopWhipBroadcastRes){
+			return Response.ok().build();
+		}
+		return Response.status(Status.NOT_FOUND).build();
+	}
+
 
 	@ApiOperation(value="Deletes the specified stream correlated with streamId in the room. Use DELETE /conference-rooms/{room_id}/{streamId}",response = Result.class)
 	@PUT

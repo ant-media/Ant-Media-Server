@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.validation.constraints.NotNull;
@@ -1774,6 +1775,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public boolean stopPlaying(String viewerId) {
+		return false;
+	}
+
+	public void startHttpSignaling(JSONObject publishData, String sdp, String sessionId, CompletableFuture<String> completableFuture){
+
+	}
+
+	public boolean stopWhipBroadcast(String streamId, String eTag){
 		return false;
 	}
 
