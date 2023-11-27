@@ -140,7 +140,7 @@ public class StreamFetcher {
 
 		AVDictionary optionsDictionary = new AVDictionary();
 
-		String transportType = appSettings.getRtspPullTransportType();
+			String transportType = appSettings.getRtspPullTransportType();
 		if (streamUrl.startsWith("rtsp://") && !transportType.isEmpty()) {
 			
 			

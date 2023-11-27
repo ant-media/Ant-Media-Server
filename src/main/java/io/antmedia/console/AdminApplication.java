@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,16 +16,12 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import javax.annotation.Nullable;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.RequestBuilder;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
@@ -47,6 +42,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.vertx.core.Vertx;
+import jakarta.annotation.Nullable;
 
 
 /**

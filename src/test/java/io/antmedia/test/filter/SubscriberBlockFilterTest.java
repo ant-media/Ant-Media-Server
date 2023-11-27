@@ -1,17 +1,12 @@
 package io.antmedia.test.filter;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import java.io.IOException;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
 
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.ws.rs.HttpMethod;
-
-import io.antmedia.datastore.db.types.Subscriber;
-import io.antmedia.filter.SubscriberBlockFilter;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -31,8 +26,11 @@ import org.springframework.web.context.WebApplicationContext;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.filter.SubscriberBlockFilter;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
+import jakarta.ws.rs.HttpMethod;
 
 public class SubscriberBlockFilterTest {
 

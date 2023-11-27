@@ -17,17 +17,14 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
-
-import javax.websocket.RemoteEndpoint;
-import javax.websocket.Session;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avutil.AVFrame;
 import org.json.simple.JSONObject;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TestRule;
@@ -38,11 +35,8 @@ import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 import org.webrtc.IceCandidate;
 import org.webrtc.JavaI420Buffer;
-import org.webrtc.Logging;
-import org.webrtc.Logging.Severity;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnectionFactory;
-import org.webrtc.SdpObserver;
 import org.webrtc.SessionDescription;
 import org.webrtc.SessionDescription.Type;
 import org.webrtc.VideoFrame;
@@ -62,6 +56,8 @@ import io.antmedia.webrtc.adaptor.RTMPAdaptor.AudioFrame;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor.WebRTCVideoSink;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
+import jakarta.websocket.RemoteEndpoint;
+import jakarta.websocket.Session;
 
 public class RTMPAdaptorTest {
 	
@@ -138,6 +134,10 @@ public class RTMPAdaptorTest {
 	@Before
 	public void setup() {
 
+	}
+	
+	@BeforeClass
+	public static void beforeClass() {
 	}
 
 
@@ -418,8 +418,9 @@ public class RTMPAdaptorTest {
 
 		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
 
-		RTMPAdaptor adaptorReal = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
-		RTMPAdaptor rtmpAdaptor = spy(adaptorReal);
+		RTMPAdaptor rtmpAdaptor = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
+		rtmpAdaptor.setRecorder(recorder);
+		
 		String streamId = "stramId" + (int)(Math.random()*10000);
 		rtmpAdaptor.setStreamId(streamId);
 		Session session = mock(Session.class);
@@ -532,7 +533,7 @@ public class RTMPAdaptorTest {
 	public void testDescription() {
 		WebSocketCommunityHandler webSocketHandler = getSpyWebSocketHandler();
 
-		RTMPAdaptor adaptor = Mockito.spy(new RTMPAdaptor("rtmp_url", webSocketHandler, 360));
+		RTMPAdaptor adaptor = new RTMPAdaptor("rtmp_url", webSocketHandler, 360);
 		Session session = mock(Session.class);
 		adaptor.setSession(session);
 		

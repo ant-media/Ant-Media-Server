@@ -2,13 +2,12 @@ package io.antmedia.console.rest;
 
 import java.io.IOException;
 import java.security.interfaces.RSAPublicKey;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.HttpMethod;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
@@ -31,6 +30,7 @@ import io.antmedia.filter.AbstractFilter;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.rest.model.UserType;
 import io.antmedia.settings.ServerSettings;
+import jakarta.ws.rs.HttpMethod;
 
 public class AuthenticationFilter extends AbstractFilter {
 

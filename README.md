@@ -1,27 +1,12 @@
-
-
 <div align='center'>
-   <a href="https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server" target="_blank">
-    <img src="https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server/badge.svg"/>
-   </a>
-   <a href="https://sonarcloud.io/dashboard?id=io.antmedia%3Aant-media-server" target="_blank">
-    <img src="https://sonarcloud.io/api/project_badges/measure?project=io.antmedia%3Aant-media-server&metric=alert_status"/>
-   </a>
-   <a href="https://linkedin.com/company/antmedia" target="_blank">
-    <img alt="Follow Us on LinkedIn" src="https://img.shields.io/badge/LinkedIn-Follow-black?style=social&logo=linkedin"/>
-   </a>
-   <a href="https://twitter.com/antmedia_io" target="_blank">
-    <img alt="Follow Us on Twitter" src="https://img.shields.io/twitter/follow/antmedia_io?style=social"/>
-   </a>
-   <a href="https://www.youtube.com/c/AntMediaServer">
-    <img alt="Subscribe on our Youtube Channel" src="https://img.shields.io/youtube/channel/subscribers/UChT5CVgvLj0lGyzpHLvMOUw?style=social" />
-    </a>
-   <a href="https://github.com/ant-media/Ant-Media-Server">
-    <img alt="GitHub Repository Stars Count" src="https://img.shields.io/github/stars/ant-media/Ant-Media-Server?style=social" />
-  </a>
-   <a href="https://www.g2.com/products/ant-media-server-ant-media-server/reviews" target="_blank">
-    <img alt="Review your experience on G2" src="https://img.shields.io/badge/Leader-G2%20Reviews-red?style=social"/>
-   </a>
+   <a href="https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server" target="_blank"><img src="https://maven-badges.herokuapp.com/maven-central/io.antmedia/ant-media-server/badge.svg"/></a>
+   <a href="https://sonarcloud.io/dashboard?id=io.antmedia%3Aant-media-server" target="_blank"><img src="https://sonarcloud.io/api/project_badges/measure?project=io.antmedia%3Aant-media-server&metric=alert_status"/></a>
+   <a href="https://app.travis-ci.com/github/ant-media/Ant-Media-Server?serverType=git" target="_blank"><img src="https://app.travis-ci.com/ant-media/Ant-Media-Server.svg?branch=master"/></a>
+   <a href="https://linkedin.com/company/antmedia" target="_blank"><img alt="Follow Us on LinkedIn" src="https://img.shields.io/badge/LinkedIn-Follow-black?style=social&logo=linkedin"/></a>
+   <a href="https://twitter.com/antmedia_io" target="_blank"><img alt="Follow Us on Twitter" src="https://img.shields.io/twitter/follow/antmedia_io?style=social"/></a>
+   <a href="https://www.youtube.com/c/AntMediaServer"><img alt="Subscribe on our Youtube Channel" src="https://img.shields.io/youtube/channel/subscribers/UChT5CVgvLj0lGyzpHLvMOUw?style=social" /></a>
+   <a href="https://github.com/ant-media/Ant-Media-Server"><img alt="GitHub Repository Stars Count" src="https://img.shields.io/github/stars/ant-media/Ant-Media-Server?style=social" /></a>
+   <a href="https://www.g2.com/products/ant-media-server-ant-media-server/reviews" target="_blank"><img alt="Review your experience on G2" src="https://img.shields.io/badge/Leader-G2%20Reviews-red?style=social"/></a>
 </div>
 <br />
 
