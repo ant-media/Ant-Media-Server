@@ -25,8 +25,8 @@ import java.sql.DriverManager;
 import java.util.ArrayList;
 import java.util.Enumeration;
 
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
 
 import org.red5.io.amf.Output;
 import org.red5.logging.Red5LoggerFactory;

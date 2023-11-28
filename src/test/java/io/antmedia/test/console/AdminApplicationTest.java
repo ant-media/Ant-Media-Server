@@ -2,10 +2,13 @@ package io.antmedia.test.console;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
 
 import org.apache.catalina.Container;
 import org.apache.catalina.Host;
+import org.apache.catalina.connector.Connector;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.coyote.UpgradeProtocol;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -15,6 +18,7 @@ import org.red5.server.LoaderBase;
 import org.red5.server.api.IApplicationContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.scope.WebScope;
+import org.red5.server.tomcat.TomcatConnector;
 import org.red5.server.tomcat.TomcatLoader;
 import org.red5.server.tomcat.WarDeployer;
 
@@ -43,58 +47,58 @@ public class AdminApplicationTest {
 		vertx.close();
 	}
 
-	
+
 	@Test
 	public void testUndeployedDirectoryWhileDeletingApp() throws Exception {
-		
+
 		String appName = RandomStringUtils.randomAlphabetic(19);
 		AdminApplication app = Mockito.spy(new AdminApplication());
 		app.setVertx(vertx);
-		
+
 		AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adapter).when(app).getApplicationAdaptor(Mockito.any());
-		
+
 		WebScope rootScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(rootScope).when(app).getRootScope();
-		
+
 		WarDeployer warDeployer = Mockito.mock(WarDeployer.class);
 		app.setWarDeployer(warDeployer);
-		
+
 		app.deleteApplication(appName, false);
-		
+
 		Mockito.verify(app, Mockito.times(0)).runDeleteAppScript(Mockito.anyString());
-		
+
 		WebScope appScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(appScope).when(rootScope).getScope(Mockito.anyString());
 		Mockito.when(appScope.isRunning()).thenReturn(false);
 		app.getCurrentApplicationCreationProcesses().remove(appName);
 		app.deleteApplication(appName, false);
-		
+
 		Mockito.verify(app, Mockito.times(0)).runDeleteAppScript(Mockito.anyString());
-		
+
 		Mockito.verify(appScope, Mockito.never()).destroy();
-		
+
 		Mockito.when(appScope.isRunning()).thenReturn(true);
 		app.getCurrentApplicationCreationProcesses().remove(appName);
 		assertFalse(app.deleteApplication(appName, false));
-		
+
 		Mockito.verify(app, Mockito.times(1)).runDeleteAppScript(Mockito.anyString());
 		Mockito.verify(appScope, Mockito.times(1)).destroy();
-		
+
 		File f = new File("webapps/" + appName);
 		if (!f.exists()) {
 			f.mkdirs();
 		}
-		
+
 		assertTrue(f.exists());
 		app.getCurrentApplicationCreationProcesses().remove(appName);		
 		Mockito.when(appScope.isRunning()).thenReturn(false);
 		app.getCurrentApplicationCreationProcesses().remove(appName);
 		app.deleteApplication(appName, false);
-		
+
 		Mockito.verify(app, Mockito.times(2)).runDeleteAppScript(Mockito.anyString());
-		
-		
+
+
 	}
 
 	@Test
@@ -103,33 +107,33 @@ public class AdminApplicationTest {
 		//create application
 		AdminApplication app = Mockito.spy(new AdminApplication());
 		app.setVertx(vertx);
-		
+
 		WebScope rootScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(rootScope).when(app).getRootScope();
 
 		WebScope appScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(appScope).when(rootScope).getScope(Mockito.anyString());
-				
+
 		Mockito.when(appScope.isRunning()).thenReturn(true);
-		
+
 		WarDeployer warDeployer = Mockito.mock(WarDeployer.class);
 		app.setWarDeployer(warDeployer);
 		app.createApplication("test", null);
 
 		Mockito.verify(app, Mockito.never()).runCreateAppScript("test", null);
-		
-		
+
+
 		Mockito.when(appScope.isRunning()).thenReturn(false);
 		app.createApplication("test", null);
 
 		Mockito.verify(app).runCreateAppScript("test", null);
 		Mockito.verify(warDeployer, Mockito.timeout(4000)).deploy(true);
-				
+
 
 		AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
 		Mockito.doReturn(adapter).when(app).getApplicationAdaptor(Mockito.any());
 		Mockito.when(appScope.isRunning()).thenReturn(true);
-		
+
 		boolean result = app.deleteApplication("test", true);
 		assertFalse(result);
 
@@ -156,32 +160,32 @@ public class AdminApplicationTest {
 		assertFalse(result);
 
 	}
-	
-	
+
+
 	@Test
 	public void testSpecialChars() {
 		AdminApplication app = Mockito.spy(new AdminApplication());
-				
+
 		try {
 			String shellCommand = "/bin/bash create_app.sh -n oVs9G24e5BQqbaTNVtjh -w true -p /usr/local/antmedia -c false";
 			Process process = app.getProcess("/bin/bash create_app.sh -n oVs9G24e5BQqbaTNVtjh -w true -p /usr/local/antmedia -c false");
 			assertNotNull(process);
-			
+
 			String[] originalParameters = shellCommand.split(" ");
-			
+
 			ArgumentCaptor<String[]> parameters = ArgumentCaptor.forClass(String[].class);
 			Mockito.verify(app).getProcessBuilder(parameters.capture());
 			String[] params = parameters.getValue();
-			
+
 			for (int i = 0; i < params.length; i++) {
 				assertEquals(params[i], originalParameters[i]);
 			}
-			
-			
+
+
 			shellCommand = "/bin/bash create_app.sh -n ProdApp -w true -p /usr/local/antmedia -c true -m mongodb://amsdfasfsadfdfdfpshot:6xNRRsdfsdfafd9NodO8vAFFBEHidfdfdfa87QDKXdCMubACDbhfQH1g==@amssdfafdafdadbsnapshot.mongo.cosmos.azure.com:10255/?ssl=true&replicaSet=globaldb&retrywrites=false&maxIdleTimeMS=120000&appName=@amssadfasdfdbsnsdfadfapshot@ -u  -s";
 			process = app.getProcess(shellCommand);
 			assertNotNull(process);
-			
+
 			originalParameters = shellCommand.split(" ");
 			parameters = ArgumentCaptor.forClass(String[].class);
 			Mockito.verify(app, Mockito.times(2)).getProcessBuilder(parameters.capture());
@@ -194,11 +198,11 @@ public class AdminApplicationTest {
 					assertEquals(params[i], originalParameters[i]);
 				}
 			}
-			
+
 			shellCommand = "test & ";
 			process = app.getProcess(shellCommand);
 			assertNotNull(process);
-			
+
 			originalParameters = shellCommand.split(" ");
 			parameters = ArgumentCaptor.forClass(String[].class);
 			Mockito.verify(app, Mockito.times(3)).getProcessBuilder(parameters.capture());
@@ -211,11 +215,11 @@ public class AdminApplicationTest {
 					assertEquals(params[i], originalParameters[i]);
 				}
 			}
-			
-			
+
+
 			boolean result = app.runCommand("test &");
 			assertTrue(result);
-			
+
 			originalParameters = shellCommand.split(" ");
 			parameters = ArgumentCaptor.forClass(String[].class);
 			Mockito.verify(app, Mockito.times(4)).getProcessBuilder(parameters.capture());
@@ -228,9 +232,9 @@ public class AdminApplicationTest {
 					assertEquals(params[i], originalParameters[i]);
 				}
 			}
-			
-			
-			
+
+
+
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
@@ -272,9 +276,9 @@ public class AdminApplicationTest {
 
 		runCommand = app.runCommand("");
 		assertFalse(runCommand);
-		
-		
-		
+
+
+
 	}
 	@Test
 	public void testLiveStreamCount() {
@@ -311,15 +315,15 @@ public class AdminApplicationTest {
 		try {
 			AdminApplication adminApplication = Mockito.spy(new AdminApplication());
 			Mockito.doReturn(false).when(adminApplication).createApplication(Mockito.anyString(), Mockito.any());
-			
+
 			adminApplication.createApplicationWithURL("app", "https://antmedia.io/rest");		
 			Mockito.verify(adminApplication).downloadWarFile("app", "https://antmedia.io/rest");
-			
+
 			adminApplication.createApplicationWithURL("app2", null);
 			//it should be never for app2 because url is null
 			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app2"), Mockito.anyString());
-			
-			
+
+
 			adminApplication.createApplicationWithURL("app3", "");
 			//it should be never for app3 because url is ""
 			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app3"), Mockito.anyString());
@@ -328,7 +332,7 @@ public class AdminApplicationTest {
 			//it should be 2 time because there is an url. It also with different app name.
 			Mockito.verify(adminApplication, Mockito.times(2)).downloadWarFile(Mockito.anyString(),Mockito.anyString());
 
-			
+
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -369,24 +373,24 @@ public class AdminApplicationTest {
 
 		assertEquals(0, adminApplication.getVoDCount(Mockito.mock(IScope.class)));
 	}
-	
+
 	@Test
 	public void testPreventConcurrentInstallationSameWar() 
 	{
 		//create application
 		AdminApplication app = Mockito.spy(new AdminApplication());
 		app.setVertx(vertx);
-		
+
 		WebScope rootScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(rootScope).when(app).getRootScope();
 
 		WebScope appScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(appScope).when(rootScope).getScope(Mockito.anyString());
 		Mockito.when(appScope.isRunning()).thenReturn(true);
-		
+
 		int warDeployDuration = 2000;
 		String appName = "test";
-		
+
 		WarDeployer warDeployer = new WarDeployer() {
 			public void deploy(boolean startApplication) {
 				long t0 = System.currentTimeMillis();
@@ -395,20 +399,20 @@ public class AdminApplicationTest {
 		};
 		app.setWarDeployer(warDeployer);
 		Mockito.doReturn(true).when(app).runCreateAppScript(Mockito.any(), Mockito.any());
-		
+
 		app.createApplication(appName, null);
 
 		Mockito.verify(app, Mockito.never()).runCreateAppScript(appName, null);
-		
+
 		Mockito.when(appScope.isRunning()).thenReturn(false);
 		app.createApplication(appName, null);
 		Mockito.verify(app).runCreateAppScript(appName, null);
 
 		assertFalse(app.createApplicationWithURL(appName, "some_url"));
-		
+
 		assertFalse(app.createApplication(appName, "some_url"));
 	}
-	
+
 	@Test
 	public void testTomcatLoaderRemoveContext() {
 		TomcatLoader tomcatLoader = new TomcatLoader();
@@ -417,24 +421,80 @@ public class AdminApplicationTest {
 		Container[] container = new Container[0];
 		Mockito.when(host.findChildren()).thenReturn(container);
 		Mockito.when(host.getName()).thenReturn("host");
-		
+
 		String path = "path";
-		
+
 		IApplicationContext applicationContext = Mockito.mock(IApplicationContext.class);
 		LoaderBase.setRed5ApplicationContext(path, applicationContext);
 		tomcatLoader.removeContext(path);
-		
+
 		Mockito.verify(applicationContext).stop();
 		assertNull(LoaderBase.getRed5ApplicationContext(path));
-		
-		
+
+
 		LoaderBase.setRed5ApplicationContext(tomcatLoader.getHostId() + path, applicationContext);
 		tomcatLoader.removeContext(path);
 		Mockito.verify(applicationContext, Mockito.times(2)).stop();
 		assertNull(LoaderBase.getRed5ApplicationContext(tomcatLoader.getHostId() + path));
 
-		
+
 		tomcatLoader.removeContext(path);
+	}
+
+	@Test
+	public void testTomcatConnector() {
+		{
+			TomcatConnector tomcatConnector = new TomcatConnector();
+			tomcatConnector.setAddress("127.0.0.1");
+			tomcatConnector.init();
+
+			Connector connector = tomcatConnector.getConnector();
+
+			UpgradeProtocol[] protocols = connector.findUpgradeProtocols();
+			assertEquals(0, protocols.length);
+			
+			assertTrue(tomcatConnector.isInitialized());
+		}
+
+		{
+			TomcatConnector tomcatConnector = new TomcatConnector();
+			tomcatConnector.setAddress("127.0.0.1");
+			tomcatConnector.setSecure(true);
+			tomcatConnector.init();
+
+			Connector connector = tomcatConnector.getConnector();
+
+			UpgradeProtocol[] protocols = connector.findUpgradeProtocols();
+			assertEquals(0, protocols.length);
+			assertTrue(tomcatConnector.isInitialized());
+
+		}
+		
+		{
+			TomcatConnector tomcatConnector = new TomcatConnector();
+			tomcatConnector.setAddress("127.0.0.1");
+			tomcatConnector.setSecure(true);
+			HashMap<String, String> map = new HashMap<>();
+			map.put("sslEnabledProtocols", "TLSv1.2");
+			map.put("ciphers", "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256");
+			map.put("useServerCipherSuitesOrder", "true");
+			map.put("SSLCertificateFile", "conf/fullchain.pem");
+			map.put("SSLCertificateChainFile", "conf/chain.pem");
+			map.put("SSLCertificateKeyFile", "conf/key.pem");
+			map.put("clientAuth", "false");
+
+			tomcatConnector.setConnectionProperties(map);
+			tomcatConnector.setUpgradeHttp2Protocol(true);
+
+			tomcatConnector.init();
+
+			Connector connector = tomcatConnector.getConnector();
+
+			UpgradeProtocol[] protocols = connector.findUpgradeProtocols();
+			assertEquals(1, protocols.length);
+			assertTrue(tomcatConnector.isInitialized());
+
+		}
 	}
 
 }

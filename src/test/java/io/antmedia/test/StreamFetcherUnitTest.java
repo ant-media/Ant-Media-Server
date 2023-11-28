@@ -299,6 +299,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			appSettings.setRestartStreamFetcherPeriod(0);
 
 			//wait 10-12 seconds
+					
 
 			//check that stream fetcher stop and start stream is not called
 			//wait 3 seconds
@@ -703,16 +704,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testBugUnexpectedStream()
 	{
 
-		AVFormatContext inputFormatContext = Mockito.mock(AVFormatContext.class);
-		when(inputFormatContext.nb_streams()).thenReturn(1);
+		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 
-		AVStream stream = Mockito.mock(AVStream.class);
-		when(inputFormatContext.streams(0)).thenReturn(stream);
-		AVCodecParameters pars = Mockito.mock(AVCodecParameters.class);
-		when(stream.codecpar()).thenReturn(pars);
-
-		when(pars.codec_type()).thenReturn(AVMEDIA_TYPE_DATA);
+		AVStream stream = avformat.avformat_new_stream(inputFormatContext, null);
+		AVCodecParameters pars = new AVCodecParameters();
 		stream.codecpar(pars);
+		pars.codec_type(AVMEDIA_TYPE_DATA);
+		stream.codecpar(pars);
+		
+		
+		
 
 		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(null, null, "streams"));
 
@@ -724,6 +725,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		mp4Muxer.addStream(pars, MuxAdaptor.TIME_BASE_FOR_MS, 0);
 
 		Mockito.verify(mp4Muxer, Mockito.never()).avNewStream(Mockito.any());
+		
+		avformat.avformat_free_context(inputFormatContext);
 	}
 
 	@Test
@@ -778,6 +781,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testAudioOnlySource");
 	}
 	
+	
+	@Test
+	public void testAudioOnlySourceClassFM() {
+		logger.info("running testAudioOnlySourceClassFM");
+		//test AudioOnly Source
+		testFetchStreamSources("http://media-ice.musicradio.com/ClassicFM", false, false);
+		logger.info("leaving testAudioOnlySource");
+	}
 	
 	public void testFetchStreamSources(String source, boolean restartStream, boolean checkContext) {
 		testFetchStreamSources(source, restartStream, checkContext, true);

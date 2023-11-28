@@ -1868,6 +1868,11 @@ public class ConsoleAppRestServiceTest{
 			});
 
 			rtmpSendingProcess.destroy();
+			
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return null == RestServiceV2Test.callGetBroadcast(streamName);
+			});
 
 
 			//restore mp4 muxing
@@ -1929,6 +1934,10 @@ public class ConsoleAppRestServiceTest{
 			}
 
 			rtmpSendingProcess.destroy();
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return null == RestServiceV2Test.callGetBroadcast(streamName);
+			});
 
 			//restore mp4 muxing
 			appSettings.setMp4MuxingEnabled(mp4MuxingEnabled);

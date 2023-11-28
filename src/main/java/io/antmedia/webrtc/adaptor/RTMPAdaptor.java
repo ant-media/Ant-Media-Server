@@ -210,10 +210,16 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 	public PeerConnectionFactory createPeerConnectionFactory(){
-		PeerConnectionFactory.initialize(
-				PeerConnectionFactory.InitializationOptions.builder()
-				.createInitializationOptions());
+		
+		//PeerConnection library is initialized in the Launcher.java so no need to initialize here again
+		
+		 PeerConnectionFactory.initialize(
+			PeerConnectionFactory.InitializationOptions.builder()
+			.setFieldTrials(null)
+			.createInitializationOptions());
+		
 
+		
 		//support internal webrtc codecs
 		SoftwareVideoEncoderFactory encoderFactory = null;
 		org.webrtc.VideoDecoderFactory decoderFactory = getVideoDecoderFactory();
@@ -245,8 +251,12 @@ public class RTMPAdaptor extends Adaptor {
 					}
 				})
 				.createAudioDeviceModule();
+		
+
 
 		webRtcAudioTrack = adm.getAudioTrack();
+		
+
 		return  PeerConnectionFactory.builder()
 				.setOptions(options)
 				.setAudioDeviceModule(adm)
@@ -301,14 +311,13 @@ public class RTMPAdaptor extends Adaptor {
 		videoEncoderExecutor = Executors.newSingleThreadScheduledExecutor();
 		audioEncoderExecutor = Executors.newSingleThreadScheduledExecutor();
 		signallingExecutor = Executors.newSingleThreadScheduledExecutor();
-
+		
 		signallingExecutor.execute(() -> {
 
 			try {
 
-				peerConnectionFactory = createPeerConnectionFactory();
-
 				initPeerConnection(peerConnectionFactory);
+				
 
 				webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession(), "");
 
@@ -350,6 +359,7 @@ public class RTMPAdaptor extends Adaptor {
 		logger.info("Scheduling stop procedure for stream: {}", getStreamId());
 		signallingExecutor.execute(() -> {
 
+			
 			logger.info("Executing stop procedure for stream: {}", getStreamId());
 			webSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession(), "");
 
@@ -363,6 +373,7 @@ public class RTMPAdaptor extends Adaptor {
 				logger.error(ExceptionUtils.getStackTrace(e1));
 				Thread.currentThread().interrupt();
 			}
+			
 			try {
 				if (peerConnection != null) {
 					peerConnection.close();
@@ -374,6 +385,7 @@ public class RTMPAdaptor extends Adaptor {
 			} catch (FrameRecorder.Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
+			
 
 		});
 		signallingExecutor.shutdown();

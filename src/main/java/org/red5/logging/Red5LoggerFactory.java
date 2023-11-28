@@ -55,89 +55,9 @@ public class Red5LoggerFactory {
             System.out.printf("getLogger for: %s thread: %s%n", clazz.getName(), Thread.currentThread().getName());
             ClassLoader cl = Thread.currentThread().getContextClassLoader();
             System.out.printf("class loader: %s%n", cl);
-            // if cl is WebappClassLoader type we can probably get the context from it
-            //if (cl instanceof WebappClassLoader) {
-            //    getContextName()
-            //}
         }
-        Logger logger = null;
-        if (useLogback) {
-            // determine the red5 app name or servlet context name
-            String contextName = CoreConstants.DEFAULT_CONTEXT_NAME;
-            // route the Launcher entries to the correct context
-            String[] parts = Thread.currentThread().getName().split("Loader:/");
-            if (parts.length > 1) {
-                contextName = parts[1];
-            }
-            logger = Red5LoggerFactory.getLogger(clazz, contextName);
-            /*
-            // get a reference to our caller
-            Class caller = Thread.currentThread().getStackTrace()[2].getClassName();
-            if (DEBUG) {
-                System.out.printf("Caller class: %s classloader: %s%n", caller, caller.getClassLoader());
-            }
-            // if the incoming class extends StatefulScopeWrappingAdapter we lookup the context by scope name
-            boolean scopeAware = StatefulScopeWrappingAdapter.class.isAssignableFrom(caller);
-            if (DEBUG) {
-                System.out.printf("scopeAware: %s%n", scopeAware);
-            }
-            if (scopeAware) {
-                try {
-                    Class wrapper = null;
-                    if ((wrapper = caller.asSubclass(StatefulScopeWrappingAdapter.class)) != null) {
-                        Method getScope = wrapper.getMethod("getScope", new Class[0]);
-                        // NPE will occur here if the scope is not yet set on the application adapter
-                        IScope scope = (IScope) getScope.invoke(null, new Object[0]);
-                        if (DEBUG) {
-                            System.out.printf("scope: %s%n", scope);
-                        }
-                        contextName = scope.getName();
-                    }
-                } catch (Exception cce) {
-                    //cclog.warn("Exception {}", e);
-                }
-            } else {
-                // if the incoming class is a servlet we lookup the context name
-                boolean servletScopeAware = Servlet.class.isAssignableFrom(caller);
-                if (DEBUG) {
-                    System.out.printf("servletScopeAware: %s%n", servletScopeAware);
-                }
-                if (servletScopeAware) {
-                    try {
-                        Class wrapper = null;
-                        if ((wrapper = caller.asSubclass(Servlet.class)) != null) {
-                            //ServletConfig getServletConfig
-                            Method getServletConfig = wrapper.getMethod("getServletConfig", new Class[0]);
-                            // NPE will occur here if the scope is not yet set on the application adapter
-                            ServletConfig config = (ServletConfig) getServletConfig.invoke(null, new Object[0]);
-                            if (DEBUG) {
-                                System.out.printf("config: %s%n", config);
-                            }
-                            contextName = config.getServletContext().getContextPath().replaceAll("/", "");
-                            if ("".equals(contextName)) {
-                                contextName = "root";
-                            }
-                        }
-                    } catch (Exception cce) {
-                        //cclog.warn("Exception {}", e);
-                    }
-                } else {
-                    // route the Launcher entries to the correct context
-                    String[] parts = Thread.currentThread().getName().split("Loader:/");
-                    if (parts.length > 1) {
-                        contextName = parts[1];
-                    } else {
-                        contextName = CoreConstants.DEFAULT_CONTEXT_NAME;
-                    }
-                }
-            }
-            logger = Red5LoggerFactory.getLogger(clazz, contextName);
-            */
-        }
-        if (logger == null) {
-            logger = LoggerFactory.getLogger(clazz);
-        }
-        return logger;
+        return  LoggerFactory.getLogger(clazz); 
+        
     }
 
     @SuppressWarnings({ "rawtypes" })
@@ -166,7 +86,6 @@ public class Red5LoggerFactory {
                 // get the logger from the context or default context
                 if (context != null) {
                     logger = context.getLogger(name);
-                    //                    System.out.printf("Application name: %s in context: %s%n", context.getProperty(KEY_APP_NAME), contextName);
                 }
             } catch (Exception e) {
                 // no logback, use whatever logger is in-place
