@@ -418,6 +418,10 @@ public class AppSettings implements Serializable{
 	/**
 	 * @hidden
 	 */
+	private static final String SETTINGS_RTSP_PULL_TRANSPORT_TYPE = "settings.rtspPullTransportType";
+	/**
+	 * @hidden
+	 */
 	private static final String SETTINGS_H264_ENABLED = "settings.h264Enabled";
 	/**
 	 * @hidden
@@ -1511,6 +1515,12 @@ public class AppSettings implements Serializable{
 	@Value("${disableIPv6Candidates:${" + SETTINGS_DISABLE_IPV6_CANDIDATES+ ":true}}")
 	private boolean disableIPv6Candidates = true;
 
+	/**
+	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
+	 * It can be tcp or udp
+	 */
+	@Value("${rtspPullTransportType:${" + SETTINGS_RTSP_PULL_TRANSPORT_TYPE+ ":tcp}}")
+	private String rtspPullTransportType = "tcp";
 
 	/**
 	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
@@ -2775,6 +2785,13 @@ public class AppSettings implements Serializable{
 		this.disableIPv6Candidates = disableIPv6Candidates;
 	}
 
+	public String getRtspPullTransportType() {
+		return rtspPullTransportType;
+	}
+
+	public void setRtspPullTransportType(String rtspPullTransportType) {
+		this.rtspPullTransportType = rtspPullTransportType;
+	}
 	public int getRtspTimeoutDurationMs() {
 		return rtspTimeoutDurationMs;
 	}

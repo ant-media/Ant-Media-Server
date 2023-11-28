@@ -7,9 +7,9 @@ import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
+import static org.bytedeco.ffmpeg.global.avutil.AVERROR_EOF;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AVERROR_EOF;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
@@ -17,14 +17,12 @@ import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import io.antmedia.FFmpegUtilities;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avutil;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,11 +138,16 @@ public class StreamFetcher {
 
 		AVDictionary optionsDictionary = new AVDictionary();
 
-		if (streamUrl.startsWith("rtsp://")) {
+			String transportType = appSettings.getRtspPullTransportType();
+		if (streamUrl.startsWith("rtsp://") && !transportType.isEmpty()) {
 			
 			
-			logger.info("Setting stream source: {} and timeout:{}us", streamUrl, this.timeoutMicroSeconds);
-
+			logger.info("Setting rtsp transport type to {} for stream source: {} and timeout:{}us", transportType, streamUrl, this.timeoutMicroSeconds);
+			/*
+			 * AppSettings#rtspPullTransportType
+			 */
+			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
+			
 			/*
 			 * AppSettings#rtspTimeoutDurationMs 
 			 */
