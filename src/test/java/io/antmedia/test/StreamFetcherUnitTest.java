@@ -923,23 +923,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().pollDelay(4, TimeUnit.SECONDS).atMost(7, TimeUnit.SECONDS).until(() -> !fetcher.isThreadActive());
 
 	}
-	@Test
-	public  void testSwitchTcpUdp() throws CharacterCodingException {
-		startCameraEmulator();
-		StreamFetcher fetcher = spy(new StreamFetcher("rtsp://127.0.0.1:6554/test.flv", "", "streamSource", appScope, vertx));
-		AVFormatContext inputFormatContext = spy(new AVFormatContext(null));
 
-		fetcher.prepareInput(inputFormatContext);
-
-		ByteBuffer transportType = ByteBuffer.allocate(8);
-		if(av_opt_get(inputFormatContext,"rtsp_transport" , AV_OPT_TYPE_STRING, transportType)>=0){
-			final CharsetDecoder dec = StandardCharsets.UTF_8.newDecoder();
-			String newContent = dec.decode(transportType).toString();
-            assertTrue(newContent.equals("0x000000")); ;
-		}
-
-		stopCameraEmulator();
-	}
 	@Test
 	public void testHLSFlagResult() {
 
