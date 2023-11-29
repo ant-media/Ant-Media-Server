@@ -2,6 +2,7 @@ package io.antmedia.rest;
 
 import java.util.List;
 
+import com.google.gson.Gson;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.springframework.stereotype.Component;
@@ -685,6 +686,28 @@ public class BroadcastRestService extends RestServiceBase{
 			message = "Subscriber object  must be set and subscriberId's length must be at least 3";
 		}
 		return new Result(result, message);
+	}
+
+	/**
+	 * Retrieves subscriber details based on the provided streamId and subscriberId.
+	 *
+	 * @param id             The identifier of the stream (required)
+	 * @param subscriberId   The identifier of the subscriber
+	 * @return               Response with subscriber details in JSON format. Includes subscriber stats.
+	 */
+	@ApiOperation(value = "Retrieve the details of a subscriber based on the provided streamId and subscriberId. Includes subscriber stats.", response = Result.class)
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{streamId}/subscribers/{subscriberId}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response getSubscriber(
+			@ApiParam(value = "The ID of the stream", required = true) @PathParam("streamId") String streamId,
+			@ApiParam(value = "Subscriber ID", required = true) @PathParam("subscriberId") String subscriberId) {
+		Subscriber subscriber = getDataStore().getSubscriber(streamId, subscriberId);
+		if (subscriber == null) {
+			return Response.status(Status.NOT_FOUND).build();
+		}
+		return Response.status(Status.OK).entity(new Gson().toJson(subscriber)).build();
 	}
 	
 	@ApiOperation(value="Return TOTP for the subscriberId, streamId, type. This is a helper method. You can generate TOTP on your end."

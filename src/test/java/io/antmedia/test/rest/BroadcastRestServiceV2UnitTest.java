@@ -31,6 +31,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.google.gson.Gson;
+import io.antmedia.datastore.db.types.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
@@ -59,16 +61,6 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.ConferenceRoom;
-import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.StreamInfo;
-import io.antmedia.datastore.db.types.Subscriber;
-import io.antmedia.datastore.db.types.SubscriberStats;
-import io.antmedia.datastore.db.types.TensorFlowObject;
-import io.antmedia.datastore.db.types.Token;
-import io.antmedia.datastore.db.types.VoD;
-import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.ipcamera.onvifdiscovery.DeviceDiscovery;
 import io.antmedia.muxer.HLSMuxer;
@@ -3286,5 +3278,32 @@ public class BroadcastRestServiceV2UnitTest {
 		
 	}
 
+	@Test
+	public void testGetSubscriber() throws Exception {
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		String streamId = "teststream";
+		String subscriberId = "testSubscriber";
+
+		Subscriber subscriber1 = (Subscriber) restServiceSpy.getSubscriber(streamId, subscriberId).getEntity();
+		assertNull(subscriber1);
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId(streamId);
+		store.save(broadcast);
+		Subscriber subscriber = new Subscriber();
+		subscriber.setStreamId(streamId);
+		subscriber.setSubscriberId(subscriberId);
+		subscriber.getStats().addConnectionEvent(new ConnectionEvent());
+
+		store.addSubscriber(streamId, subscriber);
+
+		Subscriber subscriber2 = new Gson().fromJson((String) restServiceSpy.getSubscriber(streamId, subscriberId).getEntity(), Subscriber.class);
+
+		assertNotNull(subscriber2);
+		assertTrue(subscriber2.getSubscriberId().equals(subscriberId));
+		assertTrue(subscriber2.getStats().getConnectionEvents().size() == 1);
+
+	}
 
 }
