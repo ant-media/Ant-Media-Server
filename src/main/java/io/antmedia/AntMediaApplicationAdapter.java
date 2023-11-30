@@ -9,6 +9,7 @@ import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -87,7 +88,7 @@ import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
-
+import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";
@@ -120,9 +121,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 
 	private List<IStreamPublishSecurity> streamPublishSecurityList;
-	private HashMap<String, OnvifCamera> onvifCameraList = new HashMap<>();
+	private Map<String, OnvifCamera> onvifCameraList = new ConcurrentHashMap<>();
 	protected StreamFetcherManager streamFetcherManager;
-	protected List<MuxAdaptor> muxAdaptors;
+	protected Map<String, MuxAdaptor> muxAdaptors = new ConcurrentHashMap<>();
 	private DataStore dataStore;
 	private DataStoreFactory dataStoreFactory;
 
@@ -1086,7 +1087,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void closeRTMPStreams() 
 	{
-		List<MuxAdaptor> adaptors = getMuxAdaptors();
+		Collection<MuxAdaptor> adaptors = getMuxAdaptors();
 		synchronized (adaptors) 
 		{
 			for (MuxAdaptor adaptor : adaptors) {
@@ -1187,6 +1188,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
+	@Override
+	public void appStop(IScope app) {
+		super.appStop(app);
+		//we may use this method for stopApplication
+		logger.info("appStop is being called for {}", app.getName());
+	}
+	
+	
 	public void stopApplication(boolean deleteDB) {
 		logger.info("{} is closing streams", getScope().getName());
 		serverShuttingDown = true;
@@ -1197,10 +1206,26 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		waitUntilThreadsStop();
 
 		createShutdownFile(getScope().getName());
-
-		vertx.setTimer(ClusterNode.NODE_UPDATE_PERIOD, l-> getDataStore().close(deleteDB));
-
+		
+		
+		closeDB(deleteDB);
+		
 	}
+		
+	public void closeDB(boolean deleteDB) {
+		boolean isClusterMode = getScope().getContext().hasBean(IClusterNotifier.BEAN_NAME);
+		if (deleteDB && isClusterMode) 
+		{
+			//let the other nodes have enough time to synch
+			getVertx().setTimer(ClusterNode.NODE_UPDATE_PERIOD + 1000, l-> 
+				getDataStore().close(deleteDB)
+			);
+		}
+		else {
+			getDataStore().close(deleteDB);
+		}
+	}
+	
 
 
 	public Result createInitializationProcess(String appName){
@@ -1306,19 +1331,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	@Override
 	public void muxAdaptorAdded(MuxAdaptor muxAdaptor){
-		getMuxAdaptors().add(muxAdaptor);
+		muxAdaptors.put(muxAdaptor.getStreamId(), muxAdaptor);
 	}
 
 	@Override
 	public void muxAdaptorRemoved(MuxAdaptor muxAdaptor) {
-		getMuxAdaptors().remove(muxAdaptor);
+		muxAdaptors.remove(muxAdaptor.getStreamId());
 	}
 
-	public List<MuxAdaptor> getMuxAdaptors() {
-		if(muxAdaptors == null){
-			muxAdaptors = Collections.synchronizedList(new ArrayList<MuxAdaptor>());
-		}
-		return muxAdaptors;
+	public MuxAdaptor getMuxAdaptor(String streamId) {
+		return muxAdaptors.get(streamId);
+	}
+	
+	public Collection<MuxAdaptor> getMuxAdaptors() {
+		return muxAdaptors.values();
 	}
 
 
@@ -1639,22 +1665,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public boolean addPacketListener(String streamId, IPacketListener listener) {
 		boolean isAdded = false;
-		List<MuxAdaptor> muxAdaptorsLocal = getMuxAdaptors();
-		synchronized (muxAdaptorsLocal) 
-		{
-			for (MuxAdaptor muxAdaptor : muxAdaptorsLocal) 
-			{
-				if (streamId.equals(muxAdaptor.getStreamId())) 
-				{
-					muxAdaptor.addPacketListener(listener);
-					logger.info("Packet listener({}) is added to streamId:{}", listener.getClass().getSimpleName(), streamId);
-					isAdded = true;
-					break;
-				}
-			}
+		MuxAdaptor muxAdaptorsLocal = getMuxAdaptor(streamId);
+		
+		if (muxAdaptorsLocal != null) {
+			muxAdaptorsLocal.addPacketListener(listener);
+			logger.info("Packet listener({}) is added to streamId:{}", listener.getClass().getSimpleName(), streamId);
+			isAdded = true;
 		}
-
-
+		
 		if(!isAdded) {
 			logger.info("Stream:{} is not in this server. It's creating cluster stream fetcher to get the stream", streamId);
 			if(clusterStreamFetcher == null) {
@@ -1690,18 +1708,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public boolean removePacketListener(String streamId, IPacketListener listener) {
 		boolean isRemoved = false;
 		
-		List<MuxAdaptor> muxAdaptorsLocal = getMuxAdaptors();
-		synchronized (muxAdaptorsLocal) 
-		{
-			for (MuxAdaptor muxAdaptor : muxAdaptorsLocal) 
-			{
-				if (streamId.equals(muxAdaptor.getStreamId())) 
-				{
-					isRemoved = muxAdaptor.removePacketListener(listener);
-					break;
-
-				}
-			}
+		MuxAdaptor muxAdaptorsLocal = getMuxAdaptor(streamId);
+		
+		if (muxAdaptorsLocal != null) {
+			isRemoved = muxAdaptorsLocal.removePacketListener(listener);
 		}
 		
 

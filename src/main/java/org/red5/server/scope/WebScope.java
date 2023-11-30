@@ -21,7 +21,7 @@ package org.red5.server.scope;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 import org.red5.server.LoaderBase;
 import org.red5.server.api.IApplicationContext;

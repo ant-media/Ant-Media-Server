@@ -14,9 +14,9 @@ import org.mitre.dsmiley.httpproxy.ProxyServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 
@@ -73,7 +73,7 @@ public class EndpointProxy extends ProxyServlet {
             if (proxyResponse != null) 
             {
 	            int statusCode = proxyResponse.getStatusLine().getStatusCode();
-	            servletResponse.setStatus(statusCode, proxyResponse.getStatusLine().getReasonPhrase());
+	            servletResponse.setStatus(statusCode);
 	            this.copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
 	            if (statusCode == 304) {
 	                servletResponse.setIntHeader("Content-Length", 0);

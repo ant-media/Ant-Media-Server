@@ -31,9 +31,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
@@ -101,6 +98,8 @@ import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 @ContextConfiguration(locations = { "test.xml" })
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
@@ -1670,6 +1669,7 @@ public class BroadcastRestServiceV2UnitTest {
 
         MuxAdaptor mockMuxAdaptor = Mockito.mock(MuxAdaptor.class);
         when(mockMuxAdaptor.getMuxerList()).thenReturn(mockMuxers);
+       
         
         when(mockMuxAdaptor.startRecording(RecordType.MP4, 0)).thenReturn(Mockito.mock(Mp4Muxer.class));
         
@@ -1679,20 +1679,19 @@ public class BroadcastRestServiceV2UnitTest {
         mockMuxAdaptors.add(mockMuxAdaptor);
 
         when(application.getMuxAdaptors()).thenReturn(mockMuxAdaptors);
+        
         when(restServiceSpy.getApplication()).thenReturn(application);
 
         Response response = restServiceSpy.createBroadcast(new Broadcast(broadcastName), false);
         Broadcast testBroadcast = (Broadcast) response.getEntity();
 		when(mockMuxAdaptor.getStreamId()).thenReturn(testBroadcast.getStreamId());
-
+		when(application.getMuxAdaptor(testBroadcast.getStreamId())).thenReturn(mockMuxAdaptor);
         assertTrue(restServiceSpy.enableRecordMuxing(testBroadcast.getStreamId(), true,"mp4", 0).isSuccess());
 
         verify(mockMuxAdaptor,never()).startRecording(RecordType.MP4, 0);
 
 		mockMuxers.clear();
 		mockMuxers.add(mockHLSMuxer);
-		
-		
 		
 		//disable
 		assertTrue(restServiceSpy.enableRecordMuxing(testBroadcast.getStreamId(), false, "mp4", 0).isSuccess());
@@ -1832,7 +1831,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testTimeBasedSubscriberOperations() {
 
-		DataStore store = new MapDBStore("testdb", vertx);
+		DataStore store = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
 		restServiceReal.setDataStore(store);
 
 		
