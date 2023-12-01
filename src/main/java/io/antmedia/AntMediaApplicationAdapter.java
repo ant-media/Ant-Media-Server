@@ -1781,7 +1781,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return false;
 	}
 
-	public boolean stopPublishingBySubscriberId(String subscriberId){
+	public boolean stopPublishingBySubscriberId(String streamId, String subscriberId) {
+
+		IClientBroadcastStream broadcastStream = (IClientBroadcastStream) getBroadcastStream(getScope(), streamId);
+		if (broadcastStream != null) {
+			Map broadcastParameters = broadcastStream.getParameters();
+			if (broadcastParameters != null && broadcastParameters.containsKey("subscriberId") && broadcastParameters.get("subscriberId").equals(subscriberId)) {
+				IStreamCapableConnection connection = broadcastStream.getConnection();
+				if (connection != null) {
+					connection.close();
+				}
+				return true;
+			}
+
+		}
+
 		return false;
 	}
 

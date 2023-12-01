@@ -3178,7 +3178,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 20000);
 		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 20000);
 		
-		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber2Id);
+		Mockito.verify(adaptor).stopPublishingBySubscriberId(streamId, subscriber2Id);
 
 		
 		String subscriber3Id = "subscriber3";
@@ -3197,7 +3197,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) <= 20000);
 		assertFalse((subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis()) > 20000);
 		
-		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber3Id);
+		Mockito.verify(adaptor).stopPublishingBySubscriberId(streamId, subscriber3Id);
 		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber3Id);
 		
 		

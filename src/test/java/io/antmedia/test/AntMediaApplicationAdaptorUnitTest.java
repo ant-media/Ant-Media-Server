@@ -51,6 +51,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.api.stream.IStreamCapableConnection;
+import org.red5.server.scope.Scope;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
 
@@ -162,6 +164,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		when(context.getBean(any())).thenReturn(mock(AcceptOnlyStreamsInDataStore.class));
 		when(scope.getContext()).thenReturn(context);
 		Mockito.doReturn(mock(DataStore.class)).when(spyAdapter).getDataStore();
+
 
 
 		newSettings = new AppSettings();
@@ -1894,4 +1897,29 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals("The retrieved subtrackPoller should match the mock instance.", mockSubtrackPoller, retrievedSubtrackPoller);
 	}
 
+	@Test
+	public void testStopRtmpPublishBySubscriberId(){
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+
+		String streamId = "testStream";
+		String subscriberId = "testSubscriber";
+		IScope scope = mock(Scope.class);
+
+		ClientBroadcastStream cbs = mock(ClientBroadcastStream.class);
+		when(spyAdapter.getScope()).thenReturn(scope);
+		when(spyAdapter.getBroadcastStream(scope, streamId)).thenReturn(cbs);
+		Map broadcastParameters = new HashMap();
+
+		when(cbs.getParameters()).thenReturn(broadcastParameters);
+
+		IStreamCapableConnection connection = mock(IStreamCapableConnection.class);
+		when(cbs.getConnection()).thenReturn(connection);
+
+
+		assertFalse(spyAdapter.stopPublishingBySubscriberId(streamId,subscriberId));
+
+		broadcastParameters.put("subscriberId", subscriberId);
+		assertTrue(spyAdapter.stopPublishingBySubscriberId(streamId,subscriberId));
+
+	}
 }
