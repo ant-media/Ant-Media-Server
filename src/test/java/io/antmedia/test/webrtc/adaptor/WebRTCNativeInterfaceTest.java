@@ -62,6 +62,7 @@ import org.webrtc.audio.JavaAudioDeviceModule;
 import org.webrtc.audio.WebRtcAudioRecord;
 import org.webrtc.audio.WebRtcAudioTrack;
 
+import io.antmedia.webrtc.api.IAudioRecordListener;
 import io.antmedia.webrtc.api.IAudioTrackListener;
 
 public class WebRTCNativeInterfaceTest {
@@ -174,6 +175,18 @@ public class WebRTCNativeInterfaceTest {
 
 					@Override
 					public void playoutStarted() {
+					}
+				})
+				.setAudioRecordListener(new IAudioRecordListener() {
+					
+					@Override
+					public void audioRecordStoppped() {
+						
+					}
+					
+					@Override
+					public void audioRecordStarted() {
+						
 					}
 				})
 				.createAudioDeviceModule();
