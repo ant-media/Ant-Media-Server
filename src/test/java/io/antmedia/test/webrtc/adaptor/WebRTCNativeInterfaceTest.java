@@ -191,9 +191,14 @@ public class WebRTCNativeInterfaceTest {
 		
 		Mockito.verify(audioRecord).encodedDataIsReady(anyLong(), anyString(), anyInt());
 		
-
+		
+		assertNotNull(audioRecord.getAudioRecordListener());	
+		audioRecord.triggerAudioRecordStopped();
+		//Check for https://github.com/ant-media/Ant-Media-Server/issues/5808
+		assertNotNull(audioRecord.getAudioRecordListener());
 
 	}
+	
 
 	public static final String VIDEO_TRACK_ID = "ARDAMSv";
 
