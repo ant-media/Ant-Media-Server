@@ -3,6 +3,7 @@ package io.antmedia.test.webrtc.adaptor;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -154,12 +155,12 @@ public class WebRTCNativeInterfaceTest {
 
 	@BeforeClass
 	public static void beforeClass() {
-		
+
 	}
 
 	@Test
 	public void testCheckNotifyEncodedData() {	
-	
+
 		JavaAudioDeviceModule adm =	(JavaAudioDeviceModule)
 				JavaAudioDeviceModule.builder(null)
 				.setUseHardwareAcousticEchoCanceler(false)
@@ -177,18 +178,6 @@ public class WebRTCNativeInterfaceTest {
 					public void playoutStarted() {
 					}
 				})
-				.setAudioRecordListener(new IAudioRecordListener() {
-					
-					@Override
-					public void audioRecordStoppped() {
-						
-					}
-					
-					@Override
-					public void audioRecordStarted() {
-						
-					}
-				})
 				.createAudioDeviceModule();
 
 		//initialize to get native fields filled
@@ -196,22 +185,117 @@ public class WebRTCNativeInterfaceTest {
 		assertNotNull(peerConnectionFactory);
 
 		WebRtcAudioRecord audioRecord = spy(adm.getAudioRecord());
-		
+
 		String trackId = "track1";
 		audioRecord.getEncodedByteBuffers().put(trackId, ByteBuffer.allocate(1000));
 		ByteBuffer audio = ByteBuffer.allocate(100);
 		audioRecord.notifyEncodedData(trackId, audio);
-		
+
 		Mockito.verify(audioRecord).encodedDataIsReady(anyLong(), anyString(), anyInt());
-		
-		
-		assertNotNull(audioRecord.getAudioRecordListener());	
-		audioRecord.triggerAudioRecordStopped();
-		//Check for https://github.com/ant-media/Ant-Media-Server/issues/5808
-		assertNotNull(audioRecord.getAudioRecordListener());
+
 
 	}
-	
+
+	@Test
+	public void testAudioRecordListener() {
+
+		{
+			JavaAudioDeviceModule adm =	(JavaAudioDeviceModule)
+					JavaAudioDeviceModule.builder(null)
+					.setUseHardwareAcousticEchoCanceler(false)
+					.setUseHardwareNoiseSuppressor(false)
+					.setAudioRecordErrorCallback(null)
+					.setAudioTrackErrorCallback(null)
+					.setAudioTrackListener(new IAudioTrackListener() {
+
+						@Override
+						public void playoutStopped() {
+							//no need to implement
+						}
+
+						@Override
+						public void playoutStarted() {
+						}
+					})
+					.setAudioRecordListener(new IAudioRecordListener() {
+
+						@Override
+						public void audioRecordStoppped() {
+
+						}
+
+						@Override
+						public void audioRecordStarted() {
+
+						}
+					})
+					.createAudioDeviceModule();
+
+			//initialize to get native fields filled
+			PeerConnectionFactory peerConnectionFactory = getPeerConnectionFactory(null, null, adm);
+			assertNotNull(peerConnectionFactory);
+
+			WebRtcAudioRecord audioRecord = spy(adm.getAudioRecord());
+
+			String trackId = "track1";
+			audioRecord.getEncodedByteBuffers().put(trackId, ByteBuffer.allocate(1000));
+			ByteBuffer audio = ByteBuffer.allocate(100);
+			audioRecord.notifyEncodedData(trackId, audio);
+
+			Mockito.verify(audioRecord).encodedDataIsReady(anyLong(), anyString(), anyInt());
+
+			audioRecord.triggerAudioRecordStarted();
+			assertNotNull(audioRecord.getAudioRecordListener());	
+			audioRecord.triggerAudioRecordStopped();
+			//Check for https://github.com/ant-media/Ant-Media-Server/issues/5808
+			assertNotNull(audioRecord.getAudioRecordListener());
+		}
+		
+		{
+			JavaAudioDeviceModule adm =	(JavaAudioDeviceModule)
+					JavaAudioDeviceModule.builder(null)
+					.setUseHardwareAcousticEchoCanceler(false)
+					.setUseHardwareNoiseSuppressor(false)
+					.setAudioRecordErrorCallback(null)
+					.setAudioTrackErrorCallback(null)
+					.setAudioTrackListener(new IAudioTrackListener() {
+
+						@Override
+						public void playoutStopped() {
+							//no need to implement
+						}
+
+						@Override
+						public void playoutStarted() {
+						}
+					})
+					.createAudioDeviceModule();
+
+			//initialize to get native fields filled
+			PeerConnectionFactory peerConnectionFactory = getPeerConnectionFactory(null, null, adm);
+			assertNotNull(peerConnectionFactory);
+
+			WebRtcAudioRecord audioRecord = spy(adm.getAudioRecord());
+
+			String trackId = "track1";
+			audioRecord.getEncodedByteBuffers().put(trackId, ByteBuffer.allocate(1000));
+			ByteBuffer audio = ByteBuffer.allocate(100);
+			audioRecord.notifyEncodedData(trackId, audio);
+
+			Mockito.verify(audioRecord).encodedDataIsReady(anyLong(), anyString(), anyInt());
+
+			audioRecord.triggerAudioRecordStarted();
+			assertNull(audioRecord.getAudioRecordListener());	
+			audioRecord.triggerAudioRecordStopped();
+			//Check for https://github.com/ant-media/Ant-Media-Server/issues/5808
+			assertNull(audioRecord.getAudioRecordListener());
+		}
+
+
+
+	}
+
+
 
 	public static final String VIDEO_TRACK_ID = "ARDAMSv";
 
@@ -385,12 +469,12 @@ public class WebRTCNativeInterfaceTest {
 
 	private PeerConnectionFactory getPeerConnectionFactory(VideoEncoderFactory encoderFactory,
 			VideoDecoderFactory decoderFactory, JavaAudioDeviceModule adm) {
-		
+
 		PeerConnectionFactory.initialize(
-					PeerConnectionFactory.InitializationOptions.builder()
-					.setFieldTrials(null)
-					.createInitializationOptions());
-				
+				PeerConnectionFactory.InitializationOptions.builder()
+				.setFieldTrials(null)
+				.createInitializationOptions());
+
 		PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 		options.disableNetworkMonitor = true;
 		options.networkIgnoreMask = PeerConnectionFactory.Options.ADAPTER_TYPE_LOOPBACK;
