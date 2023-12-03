@@ -125,6 +125,64 @@ delete_alias() {
   fi
 }
 
+marketplace_check() {
+  INSTALL_DIRECTORY="/usr/local/antmedia"
+  REST_URL='http://localhost:5080/rest/v2/server-settings'
+
+  # Store original values
+  ORIGINAL_SERVER_JWT_CONTROL=$(grep "^server.jwtServerControlEnabled=" $INSTALL_DIRECTORY/conf/red5.properties)
+  ORIGINAL_SERVER_JWT_SECRET=$(grep "^server.jwtServerSecretKey=" $INSTALL_DIRECTORY/conf/red5.properties)
+
+  # JWT Secret Key
+  SECRET_KEY=$(openssl rand -base64 32 | head -c 32)
+
+  # Update red5.properties
+  sed -i "s^server.jwtServerControlEnabled=.*^server.jwtServerControlEnabled=true^" $INSTALL_DIRECTORY/conf/red5.properties
+  sed -i "s^server.jwtServerSecretKey=.*^server.jwtServerSecretKey=$SECRET_KEY^" $INSTALL_DIRECTORY/conf/red5.properties
+
+  # Restart antmedia
+  systemctl restart antmedia
+
+  jwt_generate() {
+    # Header
+    header='{"typ":"JWT","alg":"HS256"}'
+    base64_header=$(echo -n "$header" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+    # Payload
+    current_time=$(date +%s)
+    expiration_time=$((current_time + 31536000)) # 365 days from now
+    payload='{"name":"antmedia.io","exp":'$expiration_time'}'
+    base64_payload=$(echo -n "$payload" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+    # Signature
+    signature=$(echo -n "$base64_header.$base64_payload" | openssl dgst -sha256 -hmac "$SECRET_KEY" -binary | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+    # JWT
+    echo "$base64_header.$base64_payload.$signature"
+  }
+
+  # Get JWT key
+  JWT_KEY=$(jwt_generate)
+
+  # Make REST API call and check response
+  if response=$(curl -s -L "$REST_URL" --header "ProxyAuthorization: $JWT_KEY" | jq -e '.buildForMarket' 2>/dev/null); then
+    echo "true"
+  else
+    echo "false"
+  fi
+
+  # Revert to original values
+  sed -i "s/^server.jwtServerControlEnabled=.*/$ORIGINAL_SERVER_JWT_CONTROL/" $INSTALL_DIRECTORY/conf/red5.properties
+  sed -i "s/^server.jwtServerSecretKey=.*/$ORIGINAL_SERVER_JWT_SECRET/" $INSTALL_DIRECTORY/conf/red5.properties
+}
+
+wait_for_dns_validation() {
+  local hostname=$1
+
+  while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
+    now=$(date +"%H:%M:%S")
+    echo "$now > Waiting for DNS validation."
+    sleep 10
+  done
+}
+
 
 fullChainFileExist=false
 if [ ! -z "$FULL_CHAIN_FILE" ] && [ -f "$FULL_CHAIN_FILE" ]; then
@@ -157,24 +215,12 @@ if [ "$chainFileExist" != "$privateKeyFileExist" ]; then
 fi
 
 get_freedomain(){
-
-  check_marketplace() {
-    if curl -s http://169.254.169.254/latest/meta-data/ >/dev/null; then
-      return 0
-    elif curl -H Metadata:true -s http://169.254.169.254/metadata/instance?api-version=2021-02-01 >/dev/null; then
-      return 0
-    elif curl -H "Metadata-Flavor: Google" -s http://metadata.google.internal/computeMetadata/v1/?recursive=true >/dev/null; then
-      return 0
-    else
-      echo "This enable_ssl.sh script only supports running in AWS, Azure, or GCP environments."
-      exit 1
-    fi 
-  }
   hostname="ams-$RANDOM"
+  result_marketplace=$(marketplace_check)
   get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
   ip=`curl -s http://checkip.amazonaws.com`
   if [ ! -z $get_license_key ]; then
-    if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then
+    if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then   
       check_api=`curl -s -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=$get_license_key"`
       if [ $? != 0 ]; then
         echo "There is a problem with the script. Please re-run the enable_ssl.sh script."
@@ -186,25 +232,22 @@ get_freedomain(){
         echo "The license key is invalid."
         exit 401
       fi
+      wait_for_dns_validation "$hostname"
+      domain="$hostname"".antmedia.cloud"
+      echo "DNS success, installing the SSL certificate."
       freedomain="true"
     else
       domain=`cat $INSTALL_DIRECTORY/conf/red5.properties |egrep "ams-[0-9]*.antmedia.cloud" -o | uniq`
     fi
-  elif [ check_marketplace ]; then
+  elif [ "$result_marketplace" == "true" ]; then
     check_api=`curl -s -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=marketplace"`
-    freedomain="true"
+    wait_for_dns_validation "$hostname"
+    domain="$hostname"".antmedia.cloud"
+    freedomain="true" 
   else
     echo "Please make sure you enter your license key and use the Enterprise edition."
     exit 1
   fi
-
-  while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
-    now=$(date +"%H:%M:%S")
-    echo "$now > Waiting for DNS validation."
-    sleep 10
-  done
-  domain="$hostname"".antmedia.cloud"
-  echo "DNS success, installing the SSL certificate."
 }
 
 get_new_certificate(){
