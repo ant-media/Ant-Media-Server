@@ -1522,10 +1522,20 @@ public class AppSettings implements Serializable{
 
 	/**
 	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
-	 * It can be tcp or udp
+	 * It can have string or integer values. 
+	 * One value can be given at a for as string. It can be udp, tcp udp_multicast, http, https
+	 * Multiple values can be given at a time by OR operation 
+	 * udp -> 1 << 0 = 1
+	 * tcp -> 1 << 1 = 2
+	 * udp_multicast -> 1 << 2 = 4
+	 * http -> 1 << 8 = 256
+	 * https -> 1 << 9 = 512
+	 * 
+	 * Default value is 3 which is udp(1) OR tcp(2)
+	 * 0x01 | 0x10 = 0x11 = 3
 	 */
-	@Value("${rtspPullTransportType:${" + SETTINGS_RTSP_PULL_TRANSPORT_TYPE+ ":tcp}}")
-	private String rtspPullTransportType = "tcp";
+	@Value("${rtspPullTransportType:${" + SETTINGS_RTSP_PULL_TRANSPORT_TYPE+ ":3}}")
+	private String rtspPullTransportType = "3";
 
 	/**
 	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources

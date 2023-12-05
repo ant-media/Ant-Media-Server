@@ -16,8 +16,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 
@@ -401,7 +399,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(1500, appSettings.getMaxAnalyzeDurationMS());
 		assertEquals(false, appSettings.isGeneratePreview());
 		assertEquals(true, appSettings.isDisableIPv6Candidates());
-		assertEquals("tcp", appSettings.getRtspPullTransportType());
+		assertEquals("3", appSettings.getRtspPullTransportType());
 		assertEquals(5000, appSettings.getRtspTimeoutDurationMs());
 		assertEquals(0, appSettings.getMaxResolutionAccept());
 		assertEquals(true, appSettings.isH264Enabled());

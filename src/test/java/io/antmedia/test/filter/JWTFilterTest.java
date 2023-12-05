@@ -4,7 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 
 import org.junit.Test;
 import org.mockito.Mockito;
