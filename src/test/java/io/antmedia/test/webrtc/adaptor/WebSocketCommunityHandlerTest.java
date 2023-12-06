@@ -457,6 +457,27 @@ public class WebSocketCommunityHandlerTest {
 	}
 	
 	@Test
+	public void testThrowExceptionInSendMessage() {
+		wsHandler.setSession(session);
+		
+		try {
+			Mockito.doThrow(new IOException("exception")).when(basicRemote).sendText(Mockito.anyString());
+			wsHandler.sendMessage("test", session);
+			
+			
+			Mockito.doThrow(new IOException()).when(basicRemote).sendText(Mockito.anyString());
+			wsHandler.sendMessage("test", session);
+			
+			Mockito.doThrow(new IOException("WebSocket session has been closed")).when(basicRemote).sendText(Mockito.anyString());
+			wsHandler.sendMessage("test", session);		
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	
+	@Test
 	public void testSendRoomInformation() 
 	{
 		String roomId = "roomId12345";
