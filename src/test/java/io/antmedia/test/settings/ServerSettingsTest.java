@@ -1,6 +1,7 @@
 package io.antmedia.test.settings;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -17,6 +18,7 @@ import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
 import org.webrtc.Logging;
 
 import io.antmedia.AppSettings;
+import io.antmedia.licence.ILicenceService;
 import io.antmedia.settings.ServerSettings;
 
 
@@ -27,10 +29,11 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 	
 	@Test
 	public void testNativeLogLevel() {
+
 		ServerSettings settings = new ServerSettings();
 		
 		assertEquals(Logging.Severity.LS_WARNING, settings.getWebRTCLogLevel());
-		assertEquals(ServerSettings.LOG_LEVEL_WARN, settings.getNativeLogLevel());
+		assertEquals(ServerSettings.LOG_LEVEL_ERROR, settings.getNativeLogLevel());
 		
 		settings.setNativeLogLevel(ServerSettings.LOG_LEVEL_ALL);
 		assertEquals(Logging.Severity.LS_VERBOSE, settings.getWebRTCLogLevel());
@@ -87,6 +90,9 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 		
 		assertEquals(ServerSettings.getLocalHostAddress(), settings.getHostAddress());
 		
+		String nativeLogLevel = settings.getNativeLogLevel();
+		Mockito.verify(settings).setNativeLogLevel(nativeLogLevel);
+		
 		
 		Mockito.doReturn("").when(settings).getHostAddressFromEnvironment();
 		settings.setUseGlobalIp(true);
@@ -99,8 +105,20 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 		settings.setApplicationContext(applicationContext);
 		assertEquals("144.123.45.67", settings.getHostAddress());
 		
+		Mockito.when(applicationContext.containsBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(true);
+		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
+		Mockito.when(applicationContext.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		Mockito.when(licenseService.getLicenseType()).thenReturn(ILicenceService.LICENCE_TYPE_MARKETPLACE);
+		settings.setApplicationContext(applicationContext);
+		
+		assertTrue(settings.isBuildForMarket());
 		
 		
+		Mockito.when(licenseService.getLicenseType()).thenReturn(ILicenceService.LICENCE_TYPE_OFFLINE);
+		settings.setApplicationContext(applicationContext);
+		
+		assertTrue(settings.isOfflineLicense());
+				
 	}
 	
 	@Test
@@ -149,7 +167,13 @@ public class ServerSettingsTest extends AbstractJUnit4SpringContextTests {
 		
 		assertNull(serverSettings.getProxyAddress());
 		
+		assertFalse(serverSettings.isSslEnabled());
+		serverSettings.setSslEnabled(true);
+		assertTrue(serverSettings.isSslEnabled());
 		
+		assertFalse(serverSettings.isOfflineLicense());
+		serverSettings.setOfflineLicense(true);
+		assertTrue(serverSettings.isOfflineLicense());
 	}
 	
 }

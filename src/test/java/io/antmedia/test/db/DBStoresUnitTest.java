@@ -29,7 +29,9 @@ import org.springframework.context.ApplicationContext;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
+import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
+import dev.morphia.query.filters.Filters;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
@@ -90,6 +92,7 @@ public class DBStoresUnitTest {
 		DataStore dataStore = new MapDBStore("testdb", vertx);
 		
 		
+		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);
@@ -123,7 +126,8 @@ public class DBStoresUnitTest {
 		testRemoveTrack(dataStore);
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
-    	testBroadcastListSorting(dataStore);	
+    	testBroadcastListSorting(dataStore);
+		testFullTextSearch(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
@@ -133,6 +137,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		
 
 	}
 	
@@ -169,6 +174,7 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() throws Exception {
 		DataStore dataStore = new InMemoryDataStore("testdb");
 		
+		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);
@@ -202,6 +208,7 @@ public class DBStoresUnitTest {
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
     	testBroadcastListSorting(dataStore);
+		testFullTextSearch(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
@@ -211,6 +218,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+
 		
 
 
@@ -225,7 +233,9 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		
 		dataStore = new MongoStore("localhost", "", "", "testdb");
-		
+
+		testBlockSubscriber(dataStore);
+		testTimeBasedSubscriberOperations(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);		
@@ -248,7 +258,6 @@ public class DBStoresUnitTest {
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
-		testTimeBasedSubscriberOperations(dataStore);
 		testClearAtStart(dataStore);
 		testClearAtStartCluster(dataStore);
 		testConferenceRoom(dataStore);
@@ -261,6 +270,7 @@ public class DBStoresUnitTest {
 		testRemoveTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
 		testBroadcastListSorting(dataStore);
+		testFullTextSearch(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
@@ -269,6 +279,8 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		
+
 	}
 	
 	@Test
@@ -279,6 +291,7 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
 		
+		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);		
@@ -313,6 +326,7 @@ public class DBStoresUnitTest {
 		testAddTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
 		testBroadcastListSorting(dataStore);
+		testFullTextSearch(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
@@ -321,6 +335,7 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		
 	}
 	
 	@Test
@@ -1186,6 +1201,23 @@ public class DBStoresUnitTest {
 		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
 
 	}
+
+	public void testFullTextSearch(DataStore dataStore) {
+		String searchQueryMatched = "\"ConnectorComponentId\":\"[6b8d7491-a86a-4c64-a982-0f8a2d3d393b.9c9df16c-eac1-4593-8010-d28e92f8a694]\"";
+		String searchQueryNotMatched = "\"ConnectorComponentId\":\"[6b8d7491.9c9df16c]\"";
+
+		Broadcast broadcast = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, "{\"tenantId\":\"fd216128-e4da-11ed-9c89-bfe723cdc436\",\"erCollectionId\":\"5fb69a0a-26d7-4ce7-81c5-ac7ab4949a27\",\"ConnectorComponentId\":\"[6b8d7491-a86a-4c64-a982-0f8a2d3d393b.9c9df16c-eac1-4593-8010-d28e92f8a694]\"}");
+		broadcast.setDate(100000);
+		broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+
+		dataStore.save(broadcast);
+
+		List<Broadcast> broadcastList0 = dataStore.getBroadcastList(0, 50, null, null, null, searchQueryMatched);
+		assertFalse(broadcastList0.isEmpty());
+
+		List<Broadcast> broadcastList1 = dataStore.getBroadcastList(0, 50, null, null, null, searchQueryNotMatched);
+		assertTrue(broadcastList1.isEmpty());
+	}
 	
 	public void testBroadcastListSorting(DataStore dataStore) {
 		
@@ -1490,6 +1522,8 @@ public class DBStoresUnitTest {
 			tmp.setListenerHookURL(listenerHookURL);
 			assertTrue(tmp.isPlaylistLoopEnabled());
 			tmp.setPlaylistLoopEnabled(false);
+			double speed = 1.0;
+			tmp.setSpeed(speed);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -1504,6 +1538,7 @@ public class DBStoresUnitTest {
 			assertEquals(ServerSettings.getLocalHostAddress(), tmp.getOriginAdress());
 			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
 			assertFalse(broadcast2.isPlaylistLoopEnabled());
+			assertEquals(speed, broadcast2.getSpeed(), 0.1);
 
 			result = dataStore.updateDuration(broadcast.getStreamId().toString(), 100000);
 			assertTrue(result);
@@ -2057,11 +2092,43 @@ public class DBStoresUnitTest {
 		assertTrue(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
 		
 		// reset connection status
-		store.resetSubscribersConnectedStatus();
+		assertTrue(store.resetSubscribersConnectedStatus());
 		// connection status should false again
 		assertFalse(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
 		
 		store.revokeSubscribers(streamId);
+		
+		{
+			//save subscriber again 
+			
+			String subscriberId = "subscriberId" + (int)(Math.random()*112313);
+			Subscriber subscriber = new Subscriber();
+			subscriber.setStreamId(streamId);
+			subscriber.setSubscriberId(subscriberId);
+			subscriber.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
+			subscriber.setType(Subscriber.PLAY_TYPE);
+			assertTrue(store.addSubscriber(subscriber.getStreamId(), subscriber));
+			
+			Subscriber subscriberFromDB = store.getSubscriber(streamId, subscriberId);
+			
+			assertNull(subscriberFromDB.getRegisteredNodeIp());
+			String nodeIp = "nodeip" + (int)(Math.random()*112313);
+			subscriberFromDB.setRegisteredNodeIp(nodeIp);
+			
+			assertTrue(store.addSubscriber(subscriber.getStreamId(), subscriberFromDB));
+			
+			subscriberFromDB = store.getSubscriber(streamId, subscriberId);
+			assertEquals(nodeIp, subscriberFromDB.getRegisteredNodeIp());
+			
+			if (store instanceof MongoStore) {
+				MongoStore mongoStore = (MongoStore) store;
+				Datastore subscriberDatastore = mongoStore.getSubscriberDatastore();
+				long count = subscriberDatastore.find(Subscriber.class).filter(Filters.eq("streamId", streamId), Filters.eq("subscriberId", subscriberId)).count();
+			
+				assertEquals(1, count);
+			}
+			
+		}
 	}
 	
 	@Test
@@ -2949,6 +3016,83 @@ public class DBStoresUnitTest {
 		assertEquals(UPDATED_DATA, dataStore.get(id).getMetaData());
 		
 		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.randomAlphanumeric(8), UPDATED_DATA));
+
+	}
+
+	public void testBlockSubscriber(DataStore dataStore){
+
+		Broadcast broadcast = new Broadcast();
+		String streamId = "teststream";
+		try
+		{
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+		dataStore.save(broadcast);
+		Subscriber subscriber = new Subscriber();
+		String subscriberId = "subscriberId";
+		subscriber.setSubscriberId(subscriberId);
+		subscriber.setStreamId(streamId);
+		long currTime = System.currentTimeMillis();
+
+		dataStore.addSubscriber(streamId, subscriber);
+		
+		Subscriber subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		
+		assertNull(subscriberFromDB.getBlockedType());
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId, Subscriber.PLAY_TYPE, 10));
+		subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		assertEquals(Subscriber.PLAY_TYPE, subscriberFromDB.getBlockedType());
+		
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+
+		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 10000);
+		
+		
+		assertFalse(dataStore.blockSubscriber(null, subscriberId, Subscriber.PLAY_TYPE, 10));
+		assertFalse(dataStore.blockSubscriber(streamId, null, Subscriber.PLAY_TYPE, 10));
+
+
+		
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId, Subscriber.PUBLISH_TYPE, 50));
+		subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		assertEquals(Subscriber.PUBLISH_TYPE, subscriberFromDB.getBlockedType());
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+
+		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 50000);
+
+
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId, Subscriber.PUBLISH_AND_PLAY_TYPE, 50));
+		subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		assertEquals(Subscriber.PUBLISH_AND_PLAY_TYPE, subscriberFromDB.getBlockedType());
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+
+		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 50000);
+		
+		
+		//if subscriber is not in datastore, still blockUser should be supported
+		subscriberId = "subscriberNotInDB";
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId, Subscriber.PUBLISH_AND_PLAY_TYPE, 50));
+		subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 50000);
+
 
 	}
 }

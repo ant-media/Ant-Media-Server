@@ -1,8 +1,8 @@
 package io.antmedia.rest.servlet;
 
+import io.antmedia.filter.TokenFilterManager;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
@@ -14,12 +14,11 @@ import org.mitre.dsmiley.httpproxy.ProxyServlet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
-import java.net.UnknownHostException;
 
 public class EndpointProxy extends ProxyServlet {
 
@@ -29,6 +28,11 @@ public class EndpointProxy extends ProxyServlet {
 	private static final long serialVersionUID = 1L;
 
     protected static Logger log = LoggerFactory.getLogger(EndpointProxy.class);
+    private final String nodeCommunicationHeader;
+
+    public EndpointProxy(String nodeCommunicationHeader) {
+        this.nodeCommunicationHeader = nodeCommunicationHeader;
+    }
 
 
     /**
@@ -59,6 +63,9 @@ public class EndpointProxy extends ProxyServlet {
 
         this.copyRequestHeaders(servletRequest, (HttpRequest)proxyRequest);
         this.setXForwardedFor(servletRequest, (HttpRequest)proxyRequest);
+
+        ((HttpRequest) proxyRequest).setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, nodeCommunicationHeader);
+
         HttpResponse proxyResponse = null;
 
         try {
@@ -66,7 +73,7 @@ public class EndpointProxy extends ProxyServlet {
             if (proxyResponse != null) 
             {
 	            int statusCode = proxyResponse.getStatusLine().getStatusCode();
-	            servletResponse.setStatus(statusCode, proxyResponse.getStatusLine().getReasonPhrase());
+	            servletResponse.setStatus(statusCode);
 	            this.copyResponseHeaders(proxyResponse, servletRequest, servletResponse);
 	            if (statusCode == 304) {
 	                servletResponse.setIntHeader("Content-Length", 0);
@@ -141,10 +148,11 @@ public class EndpointProxy extends ProxyServlet {
     public HttpResponse doExecute(HttpServletRequest servletRequest, HttpServletResponse servletResponse, HttpRequest proxyRequest) throws IOException {
         try{
         	HttpClient localProxyClient = this.createHttpClient();
-            log.debug("proxy {} uri: {} -- {}", servletRequest.getMethod(), servletRequest.getRequestURI(), proxyRequest.getRequestLine().getUri());
+            log.info("proxy {} uri: {} -- {}", servletRequest.getMethod(), servletRequest.getRequestURI(), proxyRequest.getRequestLine().getUri());
             return localProxyClient.execute(this.getTargetHost(servletRequest), proxyRequest);
         }
         catch (Exception e){
+            log.error(e.getMessage());
             log.error("Can't execute the request to forward in cluster");
             return null;
         }
@@ -182,5 +190,4 @@ public class EndpointProxy extends ProxyServlet {
 
         return uri.toString();
     }
-
 }

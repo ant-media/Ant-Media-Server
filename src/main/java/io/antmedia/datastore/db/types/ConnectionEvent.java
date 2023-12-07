@@ -21,7 +21,6 @@ public class ConnectionEvent {
 	 */
 	@ApiModelProperty(value = "the unix timestamp of the event in milliseconds")
 	private long timestamp;
-	
 	/**
 	 * type of the event Connection/Disconnection
 	 */
@@ -33,6 +32,9 @@ public class ConnectionEvent {
 	
 	@ApiModelProperty(value = "Connection type. It can be publish or play")
 	private String type;
+	
+	@ApiModelProperty(value = "Event protocol. It can be webrtc, hls, dash")
+	private String eventProtocol;
 
 	public long getTimestamp() {
 		return timestamp;
@@ -64,6 +66,14 @@ public class ConnectionEvent {
 
 	public void setType(String type) {
 		this.type = type;
+	}
+
+	public String getEventProtocol() {
+		return eventProtocol;
+	}
+
+	public void setEventProtocol(String eventProtocol) {
+		this.eventProtocol = eventProtocol;
 	}
 	
 	

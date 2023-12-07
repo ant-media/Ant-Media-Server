@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -358,12 +359,23 @@ public class MongoStore extends DataStore {
 		return null;
 	}
 
+	private boolean checkIfRegexValid(String regex) {
+		try {
+			Pattern.compile(regex);
+			return true;
+		}
+		catch (Exception e) {
+			return false;
+		}
+	}
+
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class);
+				datastore.ensureIndexes();
 
 				if (size > MAX_ITEM_IN_ONE_LIST) {
 					size = MAX_ITEM_IN_ONE_LIST;
@@ -377,11 +389,17 @@ public class MongoStore extends DataStore {
 				if(search != null && !search.isEmpty())
 				{
 					logger.info("Server side search in broadcast for the text -> {}", search);
-					query.filter(Filters.or(
-										Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
-										Filters.regex("name").caseInsensitive().pattern(".*" + search + ".*")
-										)
-							    );
+
+					// if search is not a valid regex, then search as a text in name
+					if (!checkIfRegexValid(search)) {
+						query.filter(Filters.text(search));
+					} else {
+						query.filter(Filters.or(
+								Filters.regex(STREAM_ID).caseInsensitive().pattern(".*" + search + ".*"),
+								Filters.regex("name").caseInsensitive().pattern(".*" + search + ".*")
+								)
+						);
+					}
 					
 					
 					
@@ -782,6 +800,10 @@ public class MongoStore extends DataStore {
 				if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
 					updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
 				}
+				if (broadcast.getSpeed() != 0) {
+					updates.add(set("speed", broadcast.getSpeed()));
+				}
+				
 
 				prepareFields(broadcast, updates);
 
@@ -1044,6 +1066,43 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
+	public boolean blockSubscriber(String streamId, String subscriberId,
+								   String blockedType, int seconds) {
+		synchronized (this) {
+			if (streamId == null || subscriberId == null) {
+				return false;
+			}
+
+			try {
+				UpdateResult updateResult = subscriberDatastore.find(Subscriber.class)
+						.filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId))
+						.update(set("blockedType", blockedType),
+								set("blockedUntilUnitTimeStampMs", System.currentTimeMillis() + (seconds * 1000)))
+						.execute();
+
+				long matchedCount = updateResult.getMatchedCount();
+				if (matchedCount == 0) 
+				{
+					Subscriber subscriber = new Subscriber();
+					subscriber.setStreamId(streamId);
+					subscriber.setSubscriberId(subscriberId);
+					subscriber.setBlockedType(blockedType);
+					subscriber.setBlockedUntilUnitTimeStampMs(System.currentTimeMillis() + (seconds * 1000));
+					subscriberDatastore.save(subscriber);
+					return true;
+				}
+				else {
+					return matchedCount == 1;
+				}
+			} catch (Exception e) {
+				logger.error(e.getMessage());
+				return false;
+			}
+		}
+	}
+
+
+	@Override
 	public boolean revokeSubscribers(String streamId) {
 		synchronized(this) {
 			Query<Subscriber> query = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId));
@@ -1073,9 +1132,9 @@ public class MongoStore extends DataStore {
 		boolean result = false;
 		synchronized (this) {
 			try {
-				subscriberDatastore.find(Subscriber.class).update(set("connected", false)).execute();
+				UpdateResult execute = subscriberDatastore.find(Subscriber.class).update(new UpdateOptions().multi(true), set("connected", false));
 
-				result = true;
+				result = execute.getMatchedCount() > 1;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1450,5 +1509,9 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return false;
+	}
+	
+	public Datastore getSubscriberDatastore() {
+		return subscriberDatastore;
 	}
 }

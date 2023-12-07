@@ -3,11 +3,14 @@ package io.antmedia.integration;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
+
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.tika.utils.ExceptionUtils;
 import org.awaitility.Awaitility;
 import org.openqa.selenium.By;
@@ -253,7 +256,8 @@ public class FrontEndTest {
 		this.driver = new ChromeDriver(getChromeOptions());
 		this.driver.manage().timeouts().pageLoadTimeout( Duration.ofSeconds(10));
 		this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-		this.driver.get(this.url+"index.html?id=stream1");
+		String streamId = "stream1" + RandomStringUtils.randomAlphanumeric(15);
+		this.driver.get(this.url+"index.html?id=" + streamId);
 		WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(15));
 
 		//Check we landed on the page
@@ -276,10 +280,14 @@ public class FrontEndTest {
 
 		//wait for creating  files
 		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/stream1.m3u8");
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/"+ streamId + ".m3u8");
 		});
 
 		assertTrue(checkAlert());
+		
+		//check if there is any subscriber
+		List<SubscriberStats> subscriberStats = restServiceTest.getSubscriberStats(streamId);
+		assertEquals(0, subscriberStats.size());
 
 		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='stop_publish_button']")));
 

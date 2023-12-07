@@ -10,6 +10,8 @@
 
 package org.webrtc;
 
+import org.webrtc.PeerConnection;
+
 /**
  * Easily storable/serializable version of a native C++ RTCCertificatePEM.
  */

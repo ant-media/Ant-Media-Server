@@ -2,13 +2,7 @@ package io.antmedia.filter;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.List;
 import java.util.Queue;
-
-import javax.servlet.Filter;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
 
 import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
@@ -19,13 +13,17 @@ import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
 
 public abstract class AbstractFilter implements Filter{
 	
@@ -35,6 +33,7 @@ public abstract class AbstractFilter implements Filter{
 	protected FilterConfig config;
 	
 	IStreamStats streamStats;
+	private ITokenService tokenService;
 
 	@Override
 	public void init(FilterConfig filterConfig) throws ServletException {
@@ -51,7 +50,7 @@ public abstract class AbstractFilter implements Filter{
 		return appSettings;
 	}
 
-	public ServerSettings getServerSetting() 
+	public ServerSettings getServerSettings()
 	{
 		ServerSettings serverSettings = null;
 		ConfigurableWebApplicationContext context = getAppContext();
@@ -76,6 +75,7 @@ public abstract class AbstractFilter implements Filter{
 		}
 		return false;
 	}
+
 
 	public ConfigurableWebApplicationContext getAppContext() 
 	{
@@ -151,17 +151,66 @@ public abstract class AbstractFilter implements Filter{
 		Broadcast broadcast = (Broadcast) request.getAttribute(BROADCAST_OBJECT);
 		if (broadcast == null) 
 		{
-			ApplicationContext context = getAppContext();
-			if (context != null) 
+			
+			DataStore dataStore = getDataStore();
+			if (dataStore != null) 
 			{
-				DataStoreFactory dsf = (DataStoreFactory)context.getBean(IDataStoreFactory.BEAN_NAME);
-				broadcast = dsf.getDataStore().get(streamId);
+				broadcast = dataStore.get(streamId);
 				if (broadcast != null) {
 					request.setAttribute(BROADCAST_OBJECT, broadcast);
 				}
-			}
+			}	
 		}
 		return broadcast;
+	}
+	public DataStore getDataStore(){
+		ConfigurableWebApplicationContext appContext = getWebApplicationContext();
+		if (appContext != null && appContext.isRunning())
+		{
+			Object dataStoreFactory = appContext.getBean(IDataStoreFactory.BEAN_NAME);
+
+			if (dataStoreFactory instanceof IDataStoreFactory)
+			{
+				DataStore dataStore = ((IDataStoreFactory)dataStoreFactory).getDataStore();
+				if (dataStore.isAvailable())
+				{
+					return dataStore;
+				}
+				else {
+					logger.info("DataStore is not available. It may be closed or not initialized");
+				}
+			}
+			else {
+				//return app context if it's not app's IDataStoreFactory
+				return null;
+			}
+		}
+		else
+		{
+			if (appContext == null) {
+				logger.warn("App context not initialized ");
+			}
+			else {
+				logger.warn("App context not running yet." );
+			}
+		}
+
+		return null;
+
+	}
+
+	public ITokenService getTokenService() {
+		if (tokenService == null) {
+			ApplicationContext context = getAppContext();
+			if (context != null) {
+				tokenService = (ITokenService)context.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+			}
+		}
+		return tokenService;
+	}
+
+	public void setTokenService(ITokenService tokenService) {
+		this.tokenService = tokenService;
 	}
 	
 }

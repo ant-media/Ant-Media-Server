@@ -1,6 +1,7 @@
 package io.antmedia.test.security;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -12,13 +13,13 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -37,6 +38,7 @@ import org.springframework.web.context.WebApplicationContext;
 import com.amazonaws.util.Base32;
 
 import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.security.ITokenService;
@@ -309,7 +311,7 @@ public class TokenFilterTest {
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			
 			// checkTimeBasedSubscriber is called once
-			verify(tokenService, times(1)).checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCode, false);
+			verify(tokenService, times(1)).checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCode, Subscriber.PLAY_TYPE);
 			
 			
 		} catch (ServletException|IOException e) {
@@ -427,14 +429,36 @@ public class TokenFilterTest {
 		
 		if (code.charAt(0) == '0') {
 			//first character can be zero.
-			assertTrue(intCode > 1000);
-			//if both first three characters are zero, meet the ice bear in the desert :)
+			assertTrue("First 4 characters are zero, this is why this test failed. It may happen with low possibility."
+					+ "With this luck, you may meet the ice bear in the desert :)"
+					+ "Have a break and relax, then try again ;)", intCode > 100);
+			//first 4 characters are zero, meet the ice bear in the desert :)
 		}
 		else {
 			assertTrue(intCode > 100000);
 		}
 		
 		assertTrue(intCode < 1000000);
+	}
+	
+	@Test
+	public void testGeneratedSecret() {
+		String subscriberId = "sub1";
+		String streamId = "stream1";
+		String type = "publish";
+		String secret = "secret";
+		String generatedSecretCode = TOTPGenerator.getSecretCodeForNotRecordedSubscriberId(subscriberId, streamId, type, secret);
+		
+		assertEquals(Base32.encodeAsString((secret+subscriberId+streamId+type).getBytes()), generatedSecretCode);
+		
+		secret = "secret123";
+		generatedSecretCode = TOTPGenerator.getSecretCodeForNotRecordedSubscriberId(subscriberId, streamId, type, secret);
+		assertEquals(Base32.encodeAsString((secret+subscriberId+streamId+type+"XXXXX").getBytes()), generatedSecretCode);
+		
+		generatedSecretCode = TOTPGenerator.getSecretCodeForNotRecordedSubscriberId(subscriberId, streamId, type, null);
+		assertNull(generatedSecretCode);
+		
+		
 	}
 	
 }

@@ -7,9 +7,9 @@ import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
+import static org.bytedeco.ffmpeg.global.avutil.AVERROR_EOF;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AVERROR_EOF;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
@@ -23,7 +23,6 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avutil;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +33,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.Result;
 import io.vertx.core.Vertx;
 
@@ -138,18 +138,31 @@ public class StreamFetcher {
 
 		AVDictionary optionsDictionary = new AVDictionary();
 
-		String transportType = appSettings.getRtspPullTransportType();
+			String transportType = appSettings.getRtspPullTransportType();
 		if (streamUrl.startsWith("rtsp://") && !transportType.isEmpty()) {
-			logger.info("Setting rtsp transport type to {} for stream source: {}", transportType, streamUrl);
-			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);			
+			
+			
+			logger.info("Setting rtsp transport type to {} for stream source: {} and timeout:{}us", transportType, streamUrl, this.timeoutMicroSeconds);
+			/*
+			 * AppSettings#rtspPullTransportType
+			 */
+			av_dict_set(optionsDictionary, "rtsp_transport", transportType, 0);
+			
+			/*
+			 * AppSettings#rtspTimeoutDurationMs 
+			 */
+			String timeoutStr = String.valueOf(this.timeoutMicroSeconds);
+			av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
+			
+			
+			
 		}
 
-		String timeoutStr = String.valueOf(this.timeoutMicroSeconds);
-		av_dict_set(optionsDictionary, "timeout", timeoutStr, 0);
-
+		//analyze duration is a generic parameter 
 		int analyzeDurationUs = appSettings.getMaxAnalyzeDurationMS() * 1000;
 		String analyzeDuration = String.valueOf(analyzeDurationUs);
 		av_dict_set(optionsDictionary, "analyzeduration", analyzeDuration, 0);
+
 
 		int ret;
 
@@ -157,11 +170,7 @@ public class StreamFetcher {
 
 		if ((ret = avformat_open_input(inputFormatContext, streamUrl, null, optionsDictionary)) < 0) {
 
-			byte[] data = new byte[100];
-			avutil.av_strerror(ret, data, data.length);
-
-			String errorStr=new String(data, 0, data.length);
-
+			String errorStr = Muxer.getErrorDefinition(ret);
 			result.setMessage(errorStr);		
 
 			logger.error("cannot open stream: {} with error:: {}",  streamUrl, result.getMessage());
@@ -268,7 +277,8 @@ public class StreamFetcher {
 				 * don't break the loop immediately. Instead jump to next frame. 
 				 * Otherwise same VOD will be streamed from the beginning of the file again.
 				 */
-				logger.warn("Frame can't be read for VOD {}", streamUrl);
+				String errorDefinition = Muxer.getErrorDefinition(readResult);
+				logger.warn("Frame can't be read for VOD {} error is {}", streamUrl,  errorDefinition);
 				unReferencePacket(pkt);
 			}
 			else {
@@ -347,7 +357,8 @@ public class StreamFetcher {
 			return false;
 		}
 
-		public void packetRead(AVPacket pkt) {
+		public void packetRead(AVPacket pkt) 
+		{
 			if(!streamPublished) {
 				long currentTime = System.currentTimeMillis();
 				muxAdaptor.setStartTime(currentTime);

@@ -13,15 +13,12 @@ import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
-import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_PASS_MINMAX;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
+import static org.bytedeco.ffmpeg.global.avutil.*;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
@@ -30,6 +27,7 @@ import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
@@ -56,8 +54,22 @@ public class RtmpMuxer extends Muxer {
 		super(vertx);
 		format = "flv";
 		this.url = url;
-	}
 
+		parseRtmpURL(this.url);
+	}
+	void parseRtmpURL(String url){
+		if(url == null)
+			return;
+		String regex = "rtmp://[a-zA-Z0-9\\.]+/([^/]+)/.*"; // check if app name is present in the URL rtmp://Domain.com/AppName/StreamId
+
+		Pattern rtmpAppName = Pattern.compile(regex);
+		Matcher checkAppName = rtmpAppName.matcher(url);
+
+		if (!checkAppName.matches()) {
+			//this is the fix to send stream for urls without app
+			setOption("rtmp_app","");
+		}
+	}
 	@Override
 	public String getOutputURL() {
 		return url;
@@ -94,7 +106,6 @@ public class RtmpMuxer extends Muxer {
 		}
 		return outputFormatContext;
 	}
-
 	public void setStatus(String status)
 	{
 
@@ -172,7 +183,7 @@ public class RtmpMuxer extends Muxer {
 			long startTime = System.currentTimeMillis();
 			super.writeHeader();
 			long diff = System.currentTimeMillis() - startTime;
-			logger.info("write header takes {} for rtmp:{}", diff, getOutputURL());
+			logger.info("write header takes {} for rtmp:{} the bitstream filter name is {}", diff, getOutputURL(), bsfVideoName);
 			
 			headerWritten = true;
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -328,10 +339,12 @@ public class RtmpMuxer extends Muxer {
 			if (ret < 0 && logger.isInfoEnabled())
 			{
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-				logPacketIssue("Cannot write audio packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
+				logPacketIssue("Cannot write audio packet for stream:{} and url:{}. Packet pts:{} dts:{} and Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
 			}
 			else {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+				logPacketIssue("Write audio packet for stream:{} and url:{}. Packet pts:{} dts:{} and Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
+
 			}
 		}
 
@@ -353,10 +366,12 @@ public class RtmpMuxer extends Muxer {
 		if (ret < 0 && logger.isInfoEnabled()) 
 		{
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-			logPacketIssue("Cannot write video packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
+			logPacketIssue("Cannot write video packet for stream:{} and url:{}. Packet pts:{}, dts:{} Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(),  getErrorDefinition(ret));
 			
 		}
 		else {
+			logPacketIssue("Write video packet for stream:{} and url:{}. Packet pts:{}, dts:{} Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(),  getErrorDefinition(ret));
+
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		}
 	}

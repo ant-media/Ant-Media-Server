@@ -1,19 +1,15 @@
 package io.antmedia.test.filter;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.servlet.ServletException;
-
-import io.antmedia.cluster.ClusterNode;
-import io.antmedia.cluster.IClusterNotifier;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.settings.ServerSettings;
-import org.apache.catalina.ha.tcp.SimpleTcpCluster;
 import org.awaitility.Awaitility;
 import org.junit.Rule;
 import org.junit.Test;
@@ -29,14 +25,12 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
-
 import io.antmedia.AppSettings;
+import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.filter.IPFilter;
-import io.antmedia.filter.RestProxyFilter;
-
-import static org.junit.Assert.*;
+import jakarta.servlet.ServletException;
 
 public class IPFilterTest {
 	
@@ -236,6 +230,7 @@ public class IPFilterTest {
     public void testACMRest() throws IOException, ServletException {
         IPFilter ipFilter = Mockito.spy(new IPFilter());
         Mockito.doReturn(false).when(ipFilter).isAllowed(Mockito.anyString());
+        Mockito.doReturn(new AppSettings()).when(ipFilter).getAppSettings();
         ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);
         Mockito.doReturn(webAppContext).when(ipFilter).getAppContext();
 

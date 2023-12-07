@@ -177,7 +177,15 @@ public class WebSocketConstants {
 	public static final String STREAM_TIME_INVALID = "stream_not_active_or_expired";
 	
 	
+	/**
+	 * This is sent back to the user if token is not valid
+	 */
 	public static final String UNAUTHORIZED = "unauthorized_access";
+	
+	/**
+	 * This is sent back to the user when subscriber is blocked to play or publish
+	 */
+	public static final String BLOCKED = "user_blocked";
 	
 	/**
 	 * This is sent back to the user when a new play message received while
@@ -505,6 +513,26 @@ public class WebSocketConstants {
 	 * maximum number of tracks 
 	 */
 	public static final String MAX_TRACK_COUNT = "maxTrackCount";
+
+	/**
+	 * Command to get broadcast object
+	 */
+	public static final String GET_BROADCAST_OBJECT_COMMAND = "getBroadcastObject";
+
+	/**
+	 * Command to get video track assignments
+	 */
+	public static final String GET_VIDEO_TRACK_ASSIGNMENTS_COMMAND = "getVideoTrackAssignmentsCommand";
+
+	/**
+	 * broadcast object notification
+	 */
+	public static final String BROADCAST_OBJECT_NOTIFICATION = "broadcastObject";
+
+	/**
+	 * broadcast object constant
+	 */
+	public static final String BROADCAST = "broadcast";
 
 	
 }

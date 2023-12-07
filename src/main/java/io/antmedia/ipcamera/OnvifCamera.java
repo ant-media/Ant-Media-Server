@@ -3,7 +3,7 @@ package io.antmedia.ipcamera;
 import java.net.ConnectException;
 import java.util.List;
 
-import javax.xml.soap.SOAPException;
+import jakarta.xml.soap.SOAPException;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.onvif.ver10.schema.AutoFocusMode;
@@ -75,6 +75,7 @@ public class OnvifCamera implements IOnvifCamera {
 		} catch (ConnectException | SOAPException e) {
 
 			//connection error. Let the user check ip address
+			logger.error(ExceptionUtils.getStackTrace(e));
 			result = CONNECT_ERROR;
 		}
 		return result;
