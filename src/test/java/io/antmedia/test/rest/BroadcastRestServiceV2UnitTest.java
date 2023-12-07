@@ -1881,6 +1881,32 @@ public class BroadcastRestServiceV2UnitTest {
 	}	
 
 	@Test
+	public void testIsMainTrack() {
+		DataStore store = Mockito.mock(DataStore.class);
+		restServiceReal.setDataStore(store);
+		Broadcast broadcast = Mockito.spy(new Broadcast());
+
+		// should return false because stream id is null
+		assertFalse(restServiceReal.isMainTrack(null));
+
+		// should return false when broadcast does not exist
+		when(store.get("streamId")).thenReturn(null);
+		assertFalse(restServiceReal.isMainTrack("streamId"));
+
+		// should return false when broadcast is not main track
+		when(broadcast.getSubTrackStreamIds()).thenReturn(new ArrayList());
+		when(broadcast.getMainTrackStreamId()).thenReturn("mainTrackStreamId");
+		when(store.get("streamId")).thenReturn(broadcast);
+		assertFalse(restServiceReal.isMainTrack("streamId"));
+
+		// should return true when broadcast is main track
+		when(broadcast.getSubTrackStreamIds()).thenReturn(List.copyOf(Arrays.asList("subTrackStreamId1", "subTrackStreamId2")));
+		when(broadcast.getMainTrackStreamId()).thenReturn(null);
+		when(store.get("streamId")).thenReturn(broadcast);
+		assertTrue(restServiceReal.isMainTrack("streamId"));
+	}
+
+	@Test
 	public void testObjectDetectionOperations() {
 
 		DataStore store = new InMemoryDataStore("testdb");
