@@ -43,12 +43,12 @@ check_ams() {
           else
               exit 1
           fi
-    else
-        check_license=$(curl -s https://api.antmedia.io/?license="$get_license_key" | tr -d "\"")
-    	echo "Downloading the latest version of Ant Media Server Enterprise Edition."
+        else
+            check_license=$(curl -s https://api.antmedia.io/?license="$get_license_key" | tr -d "\"")
+    	    echo "Downloading the latest version of Ant Media Server Enterprise Edition."
   	    curl --progress-bar -o ams_enterprise.zip "$check_license"
   	    ANT_MEDIA_SERVER_ZIP_FILE="ams_enterprise.zip"
-  	 fi
+  	fi
     bash install_ant-media-server.sh -i $ANT_MEDIA_SERVER_ZIP_FILE -r true
 
 }
