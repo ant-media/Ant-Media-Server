@@ -1211,8 +1211,9 @@ public class BroadcastRestService extends RestServiceBase{
 		if (broadcast == null) {
 			return false;
 		}
-        return !getDataStore().get(streamId).getSubTrackStreamIds().isEmpty() &
-                getDataStore().get(streamId).getMainTrackStreamId() == null;
+        return getDataStore().get(streamId).getMainTrackStreamId() == null &&
+				!getDataStore().get(streamId).getSubTrackStreamIds().isEmpty();
+
     }
 
 	@ApiOperation(value = "Send stream participants a message through Data Channel in a WebRTC stream", notes = "", response = Result.class)
