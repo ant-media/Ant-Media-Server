@@ -54,12 +54,12 @@ check_ams() {
 }
 
 # Exit the script, If the local version is greater than the remote version 
-if [ "$(printf "%s\n" "$LOCAL_VERSION" "$REMOTE_VERSION" | sort -V | tail -n 1)" != "$LOCAL_VERSION" ]; then
-    echo "There has been an error, please contact support@antmedia.io."
-    exit 1
+if [ "$(printf "%s\n" "$LOCAL_VERSION" "$REMOTE_VERSION" | sort -V | tail -n 1)" = "$LOCAL_VERSION" ]; then
+    echo "No update required."
 elif [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
     check_ams
 else
     # If the versions are equal, there is no need for an update
-    echo "No update required."
+    echo "There has been an error, please contact support@antmedia.io."
+    exit 1
 fi
