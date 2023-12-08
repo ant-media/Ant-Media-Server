@@ -2884,6 +2884,8 @@ public class BroadcastRestServiceV2UnitTest {
 
 		ApplicationContext context = mock(ApplicationContext.class);
 
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
 		restServiceReal.setAppCtx(context);
 		restServiceReal.setApplication(appSpy);
 		restServiceReal.setScope(scope);
