@@ -216,7 +216,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	/**
 	 * Accessed from multiple threads so make it volatile
 	 */
-	private volatile boolean buffering;
+	private AtomicBoolean buffering = new AtomicBoolean(false);
 	private int bufferLogCounter;
 
 	/**
@@ -1126,7 +1126,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				//if buffered duration is more than 5 times of the buffer time, remove packets from the head until it reach bufferTimeMs * 2
 
 				//set buffering true to not let writeBufferedPacket method work
-				buffering = true;
+				buffering.set(true);
 
 				Iterator<IStreamPacket> iterator = bufferQueue.iterator();
 
@@ -1147,7 +1147,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.trace("bufferedDuration:{} trailer timestamp:{} head timestamp:{}", bufferedDuration, pktTrailer.getTimestamp(), pktHead.getTimestamp());
 			if (bufferedDuration > bufferTimeMs) 
 			{ 
-				if (buffering) 
+				if (buffering.get()) 
 				{
 					//have the buffering finish time ms
 					bufferingFinishTimeMs = System.currentTimeMillis();
@@ -1157,7 +1157,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 				//make buffering false whenever bufferDuration is bigger than bufferTimeMS
 				//buffering is set to true when there is no packet left in the queue
-				buffering = false;
+				buffering.set(false);
 			}
 
 			bufferLogCounter++;
@@ -1478,7 +1478,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			if (isBufferedWriterRunning.compareAndSet(false, true)) {
 				try {
-					if (!buffering)
+					if (!buffering.get())
 					{
 						while(!bufferQueue.isEmpty())
 						{
@@ -1505,7 +1505,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						}
 
 						//update buffering. If bufferQueue is empty, it should start buffering
-						buffering = bufferQueue.isEmpty();
+						buffering.set(bufferQueue.isEmpty());
 
 					}
 					bufferLogCounter++; //we use this parameter in execute method as well
@@ -2150,11 +2150,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public boolean isBuffering() {
-		return buffering;
+		return buffering.get();
 	}
 
 	public void setBuffering(boolean buffering) {
-		this.buffering = buffering;
+		this.buffering.set(buffering);
 	}
 
 	public String getDataChannelWebHookURL() {
