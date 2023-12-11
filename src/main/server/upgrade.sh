@@ -29,6 +29,12 @@ if [ ! command -v jq &> /dev/null ]; then
     sudo apt-get install -y jq
 fi
 
+# Check if a variable DIR is provided (this is for the automation)
+if [ -n "$DIR" ]; then
+    INSTALL_DIRECTORY="$DIR"
+fi
+
+
 check_ams() {
 
 	#Download the latest version of the installation script
