@@ -181,6 +181,11 @@ public class WebSocketConstants {
 	 * This is sent back to the user if token is not valid
 	 */
 	public static final String UNAUTHORIZED = "unauthorized_access";
+
+	/**
+	 * This is sent back to the user if room password is wrong
+	 */
+	public static final String ROOM_PASSWORD_WRONG = "room_password_wrong";
 	
 	/**
 	 * This is sent back to the user when subscriber is blocked to play or publish
@@ -423,6 +428,10 @@ public class WebSocketConstants {
 	 */
 	public static final String MAIN_TRACK = "mainTrack";
 
+	/**
+	 * It's sent as parameter room password.
+	 */
+	public static final String ROOM_PASSWORD = "roomPassword";
 
 	/**
 	 * It's sent as parameter conference mode

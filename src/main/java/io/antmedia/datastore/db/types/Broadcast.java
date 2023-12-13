@@ -1,8 +1,10 @@
 package io.antmedia.datastore.db.types;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.google.common.hash.Hashing;
 import dev.morphia.utils.IndexType;
 import org.bson.types.ObjectId;
 
@@ -354,6 +356,11 @@ public class Broadcast {
 	 * This parameter updates consistently according to broadcast status
 	 */
 	private long updateTime = 0;
+
+	/**
+	 * SHA256 hash of conference room password. if null no password set.
+	 */
+	private String roomPasswordHash;
 
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
@@ -819,6 +826,41 @@ public class Broadcast {
 
 	public void setUpdateTime(long updateTime) {
 		this.updateTime = updateTime;
+	}
+
+	public String getRoomPasswordHash() {
+		return roomPasswordHash;
+	}
+
+	public void setRoomPassword(String roomPassword) {
+		if(roomPassword == null){
+			return;
+		}
+		String roomPasswordSha256Hash = Hashing.sha256()
+				.hashString(roomPassword, StandardCharsets.UTF_8)
+				.toString();
+		this.roomPasswordHash = roomPasswordSha256Hash;
+	}
+
+	public boolean isRoomPasswordCorrect(String roomPassword){
+		if(getRoomPasswordHash() == null){
+			return true;
+		}
+
+		if(roomPassword == null){
+			return false;
+		}
+
+		String roomPasswordSha256Hash = Hashing.sha256()
+				.hashString(roomPassword, StandardCharsets.UTF_8)
+				.toString();
+
+		if(getRoomPasswordHash().equals(roomPasswordSha256Hash)){
+			return true;
+		}
+
+		return false;
+
 	}
 
 }

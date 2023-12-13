@@ -1391,4 +1391,27 @@ public class BroadcastRestService extends RestServiceBase{
 			return new Result(false, null, "Stream is not available");
 		}
 	}
+
+	@ApiOperation(value = "Check room password", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{streamId}/checkRoomPassword")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result checkRoomPassword(@ApiParam(value = "the id of the room stream", required = true) @PathParam("streamId") String streamId,
+							 @ApiParam(value = "Room password", required = false) @QueryParam("password") String password) {
+		Broadcast roomBroadcast = getDataStore().get(streamId);
+		Result result = new Result(false);
+		if(roomBroadcast != null){
+
+			if(roomBroadcast.isRoomPasswordCorrect(password)){
+				result.setSuccess(true);
+				return result;
+			}
+			 result.setMessage("Wrong room password");
+			 return result;
+		}
+		result.setMessage("No room found");
+		return result;
+
+	}
 }
