@@ -1,11 +1,14 @@
 package io.antmedia.datastore.db.types;
 
 import java.nio.charset.StandardCharsets;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
 import com.google.common.hash.Hashing;
 import dev.morphia.utils.IndexType;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -361,6 +364,11 @@ public class Broadcast {
 	 * SHA256 hash of conference room password. if null no password set.
 	 */
 	private String roomPasswordHash;
+
+	/**
+	 * 16 byte salt for room password.
+	 */
+	private String roomPasswordSalt;
 
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
@@ -832,13 +840,17 @@ public class Broadcast {
 		return roomPasswordHash;
 	}
 
-	public void setRoomPassword(String roomPassword) {
+	public void setRoomPassword(String roomPassword){
 		if(roomPassword == null){
 			return;
 		}
+		String salt = RandomStringUtils.random(16, 0, 0, true, true, null, new SecureRandom());
+
 		String roomPasswordSha256Hash = Hashing.sha256()
-				.hashString(roomPassword, StandardCharsets.UTF_8)
+				.hashString(salt + roomPassword, StandardCharsets.UTF_8)
 				.toString();
+
+		setRoomPasswordSalt(salt);
 		this.roomPasswordHash = roomPasswordSha256Hash;
 	}
 
@@ -852,7 +864,7 @@ public class Broadcast {
 		}
 
 		String roomPasswordSha256Hash = Hashing.sha256()
-				.hashString(roomPassword, StandardCharsets.UTF_8)
+				.hashString(getRoomPasswordSalt() + roomPassword, StandardCharsets.UTF_8)
 				.toString();
 
 		if(getRoomPasswordHash().equals(roomPasswordSha256Hash)){
@@ -861,6 +873,14 @@ public class Broadcast {
 
 		return false;
 
+	}
+
+	public String getRoomPasswordSalt() {
+		return roomPasswordSalt;
+	}
+
+	public void setRoomPasswordSalt(String roomPasswordSalt) {
+		this.roomPasswordSalt = roomPasswordSalt;
 	}
 
 }
