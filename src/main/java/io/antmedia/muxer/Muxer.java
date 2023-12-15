@@ -778,8 +778,10 @@ public abstract class Muxer {
 			result = true;
 
 		}
-		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {
-			if(codecParameters.codec_id() == AV_CODEC_ID_TIMED_ID3) {
+		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) 
+		{
+			if(codecParameters.codec_id() == AV_CODEC_ID_TIMED_ID3) 
+			{
 				AVStream outStream = avNewStream(outputContext);
 				registeredStreamIndexList.add(streamIndex);
 
@@ -1059,6 +1061,7 @@ public abstract class Muxer {
 	protected void writeVideoFrame(AVPacket pkt, AVFormatContext context) {
 		int ret;
 		
+		
 		if (videoBsfFilterContext != null) 
 		{
 			ret = av_bsf_send_packet(videoBsfFilterContext, pkt);
@@ -1068,6 +1071,7 @@ public abstract class Muxer {
 			}
 			while (av_bsf_receive_packet(videoBsfFilterContext, pkt) == 0)
 			{
+				logger.trace("write video packet pts:{} dts:{}", pkt.pts(), pkt.dts());
 				ret = av_write_frame(context, tmpPacket);
 				if (ret < 0 && logger.isWarnEnabled()) {
 					logger.warn("cannot write video frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), getErrorDefinition(ret));
@@ -1076,6 +1080,7 @@ public abstract class Muxer {
 		}
 		else 
 		{
+			logger.trace("write video packet pts:{} dts:{}", pkt.pts(), pkt.dts());
 			ret = av_write_frame(context, pkt);
 			if (ret < 0 && logger.isWarnEnabled()) {
 				//TODO: this is written for some muxers like HLS because normalized video time is coming from WebRTC
@@ -1088,6 +1093,7 @@ public abstract class Muxer {
 	protected void writeAudioFrame(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
 			AVFormatContext context, long dts) {
 		int ret;
+		logger.trace("write audio packet pts:{} dts:{}", pkt.pts(), pkt.dts());
 		ret = av_write_frame(context, tmpPacket);
 		if (ret < 0 && logger.isInfoEnabled()) {
 			logger.info("cannot write audio frame to muxer({}). Error is {} ", file.getName(), getErrorDefinition(ret));
