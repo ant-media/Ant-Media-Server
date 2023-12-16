@@ -76,8 +76,21 @@ public class PacketFeeder{
 		}
 	}
 
+	/**
+	 * 
+	 * @param encodedVideoFrame
+	 * @param dts
+	 * @param frameRotation
+	 * @param streamIndex
+	 * @param isKeyFrame
+	 * @param firstFrameTimeStamp
+	 * @param pts
+	 * @param frameOriginalTimeMs may be different than pts and dts because pts and dts may be normalized value according to audio to protect audio-synch issues
+	 *  in WebRTC Ingesting. 
+	 * On the other hand, we may need original value in WebRTC this is why we add this parameter
+	 */
 	public void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,
-			boolean isKeyFrame,long firstFrameTimeStamp, long pts) {
+			boolean isKeyFrame,long firstFrameTimeStamp, long pts, long frameOriginalTimeMs) {
 		if(!listeners.isEmpty()) {
 			videoPkt.stream_index(streamIndex);
 			videoPkt.pts(pts);

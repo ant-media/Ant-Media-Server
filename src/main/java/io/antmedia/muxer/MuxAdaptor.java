@@ -929,7 +929,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			synchronized (muxerList) 
 			{
-				packetFeeder.writeVideoBuffer(byteBuffer, dts, 0, videoStreamIndex, (frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY, 0, pts);
+				packetFeeder.writeVideoBuffer(byteBuffer, dts, 0, videoStreamIndex, (frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY, 0, pts, pts);
 
 				for (Muxer muxer : muxerList) 
 				{
