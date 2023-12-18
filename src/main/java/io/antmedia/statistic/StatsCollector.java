@@ -205,7 +205,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private Vertx vertx;
 	private Queue<Integer> cpuMeasurements = new ConcurrentLinkedQueue<>();
 
-	Gson gson = new Gson();
+	private static Gson gson = new Gson();
 
 	private int windowSize = 5;
 	private int measurementPeriod = 1000;
@@ -292,6 +292,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	public static final String HOOK_HIGH_RESOURCE_USAGE = "highResourceUsage";
 	public static final String HOOK_UNEXPECTED_SERVER_SHUTDOWN = "unexpectedServerShutdown";
+
+	private static final String SOFTWARE_VERSION = "softwareVersion";
 
 
 	private Producer<Long,String> kafkaProducer = null;
@@ -699,6 +701,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.add(SYSTEM_MEMORY_INFO, getSysteMemoryInfoJSObject());
 		jsonObject.add(FILE_SYSTEM_INFO, getFileSystemInfoJSObject());
 		jsonObject.add(JVM_NATIVE_MEMORY_USAGE, getJVMNativeMemoryInfoJSObject());
+		
+		jsonObject.add(SOFTWARE_VERSION, gson.toJsonTree(RestServiceBase.getSoftwareVersion()));
 
 		//add gpu info 
 		jsonObject.add(StatsCollector.GPU_USAGE_INFO, StatsCollector.getGPUInfoJSObject());
