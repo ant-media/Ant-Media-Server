@@ -1,6 +1,9 @@
 package io.antmedia.storage;
 
 import java.io.File;
+import java.io.InputStream;
+
+import com.amazonaws.event.ProgressListener;
 
 public abstract class StorageClient {
 	
@@ -37,12 +40,20 @@ public abstract class StorageClient {
 	 */
 	private String permission = "public-read";
 
+	/**
+	 * Cache control policy for the file that is uploaded to the Storage.
+	 * It may differ according to the implemenation. Default value is no-store, no-cache, must-revalidate, max-age=0
+	 */
+	private String cacheControl = "no-store, no-cache, must-revalidate, max-age=0";
+
 	private boolean enabled;
 
 	/**
 	 * Storage type. In S3 there is standard, glacier, etc. 
 	 */
 	private String storageClass;
+	
+	protected ProgressListener progressListener;
 
 	
 	/**
@@ -54,6 +65,14 @@ public abstract class StorageClient {
 	public abstract void delete(String key);
 	
 	/**
+	 * Save input stream to the storage with key parameter
+	 * 
+	 * @param key
+	 * @param inputStream
+	 */
+	public abstract void save(String key, InputStream inputStream, boolean waitForCompletion);
+	
+	/**
 	 * Save file to storage and delete the local file according to the parameter
 	 * 
 	 * @param key
@@ -61,6 +80,11 @@ public abstract class StorageClient {
 	 * @param deleteLocalFile
 	 */
 	public abstract void save(String key, File file, boolean deleteLocalFile);
+	
+	
+	public void setProgressListener(ProgressListener progressListener) {
+		this.progressListener = progressListener;
+	}
 	
 	/**
 	 * Save file to storage and delete the local file 
@@ -147,5 +171,13 @@ public abstract class StorageClient {
 	
 	public String getStorageClass() {
 		return storageClass;
+	}
+
+	public String getCacheControl() {
+		return cacheControl;
+	}
+
+	public void setCacheControl(String cacheControl) {
+		this.cacheControl = cacheControl;
 	}
 }

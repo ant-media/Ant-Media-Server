@@ -10,13 +10,20 @@ import java.sql.Time;
 public interface IOnvifCamera {
 	/**
 	 * 
-	 * @param address
+	 * @param address it can be direct ip address with port or it can start with http:// or https://
 	 * @param username
 	 * @param password
 	 * @return true if connected
 	 * 		   false if not connected
 	 */
 	int connect(String address, String username, String password);
+	
+	/**
+	 * 
+	 * @return profile list
+	 */
+	String[] getProfiles();
+
 	
 	void disconnect();
 	

@@ -13,15 +13,12 @@ import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
-import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_PASS_MINMAX;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
+import static org.bytedeco.ffmpeg.global.avutil.*;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
@@ -30,11 +27,12 @@ import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
-import org.bytedeco.javacpp.IntPointer;
+import org.bytedeco.javacpp.SizeTPointer;
 
 import io.vertx.core.Vertx;
 
@@ -56,8 +54,22 @@ public class RtmpMuxer extends Muxer {
 		super(vertx);
 		format = "flv";
 		this.url = url;
-	}
 
+		parseRtmpURL(this.url);
+	}
+	void parseRtmpURL(String url){
+		if(url == null)
+			return;
+		String regex = "rtmp://[a-zA-Z0-9\\.]+/([^/]+)/.*"; // check if app name is present in the URL rtmp://Domain.com/AppName/StreamId
+
+		Pattern rtmpAppName = Pattern.compile(regex);
+		Matcher checkAppName = rtmpAppName.matcher(url);
+
+		if (!checkAppName.matches()) {
+			//this is the fix to send stream for urls without app
+			setOption("rtmp_app","");
+		}
+	}
 	@Override
 	public String getOutputURL() {
 		return url;
@@ -94,7 +106,6 @@ public class RtmpMuxer extends Muxer {
 		}
 		return outputFormatContext;
 	}
-
 	public void setStatus(String status)
 	{
 
@@ -125,28 +136,38 @@ public class RtmpMuxer extends Muxer {
 			return false;
 		}
 		preparedIO.set(true);
-		this.vertx.executeBlocking(b ->
+		boolean result = false;
+		//if there is a stream in the output format context, try to push
+		if (getOutputFormatContext().nb_streams() > 0) 
 		{
-
-			if (openIO())
+			this.vertx.executeBlocking(b ->
 			{
-				if (videoBsfFilterContext == null)
+	
+				if (openIO())
 				{
-					writeHeader();
-					return;
+					if (videoBsfFilterContext == null)
+					{
+						writeHeader();
+						return;
+					}
+					isRunning.set(true);
+					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 				}
-				isRunning.set(true);
-				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-			}
-			else
-			{
-				clearResource();
-				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
-				logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
-			}
-		}, null);
+				else
+				{
+					clearResource();
+					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+					logger.error("Cannot initializeOutputFormatContextIO for rtmp endpoint:{}", url);
+				}
+			}, null);
+			
+			result = true;
+		}
+		else {
+			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+		}
 		
-		return true;
+		return result;
 	}
 
 	/**
@@ -162,7 +183,7 @@ public class RtmpMuxer extends Muxer {
 			long startTime = System.currentTimeMillis();
 			super.writeHeader();
 			long diff = System.currentTimeMillis() - startTime;
-			logger.info("write header takes {} for rtmp:{}", diff, getOutputURL());
+			logger.info("write header takes {} for rtmp:{} the bitstream filter name is {}", diff, getOutputURL(), bsfVideoName);
 			
 			headerWritten = true;
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -233,7 +254,7 @@ public class RtmpMuxer extends Muxer {
 	
 
 	@Override
-	public void writePacket(AVPacket pkt, final AVRational inputTimebase, final AVRational outputTimebase, int codecType)
+	public synchronized void writePacket(AVPacket pkt, final AVRational inputTimebase, final AVRational outputTimebase, int codecType)
 	{
 		AVFormatContext context = getOutputFormatContext();
 		if (context.streams(pkt.stream_index()).codecpar().codec_type() ==  AVMEDIA_TYPE_AUDIO && !headerWritten) {
@@ -279,17 +300,17 @@ public class RtmpMuxer extends Muxer {
 				{
 					if (!headerWritten)
 					{
-						IntPointer size = new IntPointer(1);
+						SizeTPointer size = new SizeTPointer(1);
 						BytePointer extradataBytePointer = avcodec.av_packet_get_side_data(getTmpPacket(), AV_PKT_DATA_NEW_EXTRADATA,  size);
 						if (size.get() != 0)
 						{
 							allocatedExtraDataPointer = new BytePointer(avutil.av_malloc(size.get() + AV_INPUT_BUFFER_PADDING_SIZE)).capacity(size.get() + AV_INPUT_BUFFER_PADDING_SIZE);
-							byte[] extraDataArray = new byte[size.get()];
+							byte[] extraDataArray = new byte[(int)size.get()];
 							extradataBytePointer.get(extraDataArray, 0, extraDataArray.length);
 							allocatedExtraDataPointer.put(extraDataArray, 0, extraDataArray.length);
 							logger.info("extradata size:{} extradata: {} allocated pointer: {}", size.get(), extradataBytePointer, allocatedExtraDataPointer);
 							context.streams(pkt.stream_index()).codecpar().extradata(allocatedExtraDataPointer);
-							context.streams(pkt.stream_index()).codecpar().extradata_size(size.get());
+							context.streams(pkt.stream_index()).codecpar().extradata_size((int)size.get());
 							writeHeader();
 							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 						}
@@ -298,23 +319,7 @@ public class RtmpMuxer extends Muxer {
 					if (headerWritten)
 					{
 						
-						boolean isKeyFrame = false;
-						if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
-							isKeyFrame = true;
-						}
-						
-						addExtradataIfRequired(pkt, isKeyFrame);
-						
-						ret = av_write_frame(context, getTmpPacket());
-						if (ret < 0 && logger.isInfoEnabled()) 
-						{
-							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-							logPacketIssue("Cannot write video packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
-							
-						}
-						else{
-							setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-						}
+						avWriteFrame(pkt, context);
 					}
 					else {
 						setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
@@ -324,16 +329,7 @@ public class RtmpMuxer extends Muxer {
 			}
 			else
 			{
-				ret = av_write_frame(context, getTmpPacket());
-				if (ret < 0 && logger.isInfoEnabled()) 
-				{
-					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-					logPacketIssue("Cannot write video packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
-					
-				}
-				else {
-					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-				}
+				avWriteFrame(pkt, context);
 			}
 			av_packet_unref(getTmpPacket());
 		}
@@ -343,10 +339,12 @@ public class RtmpMuxer extends Muxer {
 			if (ret < 0 && logger.isInfoEnabled())
 			{
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
-				logPacketIssue("Cannot write audio packet for stream:{} and url:{}. Error is {}", streamId, getOutputURL(), getErrorDefinition(ret));
+				logPacketIssue("Cannot write audio packet for stream:{} and url:{}. Packet pts:{} dts:{} and Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
 			}
 			else {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+				logPacketIssue("Write audio packet for stream:{} and url:{}. Packet pts:{} dts:{} and Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
+
 			}
 		}
 
@@ -354,6 +352,28 @@ public class RtmpMuxer extends Muxer {
 		pkt.dts(dts);
 		pkt.duration(duration);
 		pkt.pos(pos);
+	}
+
+	public void avWriteFrame(AVPacket pkt, AVFormatContext context) {
+		int ret;
+		boolean isKeyFrame = false;
+		if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
+			isKeyFrame = true;
+		}
+		addExtradataIfRequired(pkt, isKeyFrame);
+		
+		ret = av_write_frame(context, getTmpPacket());
+		if (ret < 0 && logger.isInfoEnabled()) 
+		{
+			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
+			logPacketIssue("Cannot write video packet for stream:{} and url:{}. Packet pts:{}, dts:{} Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(),  getErrorDefinition(ret));
+			
+		}
+		else {
+			logPacketIssue("Write video packet for stream:{} and url:{}. Packet pts:{}, dts:{} Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(),  getErrorDefinition(ret));
+
+			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		}
 	}
 
 

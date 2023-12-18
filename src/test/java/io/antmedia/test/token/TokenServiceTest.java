@@ -10,8 +10,8 @@ import static org.mockito.Mockito.when;
 import java.util.HashMap;
 import java.util.Map;
 
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpSessionEvent;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSessionEvent;
 
 import org.junit.After;
 import org.junit.Before;
@@ -25,6 +25,7 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.filter.TokenSessionFilter;
@@ -88,7 +89,7 @@ public class TokenServiceTest {
 		token.setType(Token.PLAY_TOKEN);
 
 		//check token
-		boolean flag = tokenService.checkJwtToken(token.getTokenId(), token.getStreamId(), token.getType());
+		boolean flag = tokenService.checkJwtToken(token.getTokenId(), token.getStreamId(), "session", token.getType());
 
 		// it should be true because mock service always replies as true
 		assertTrue(flag);
@@ -102,7 +103,7 @@ public class TokenServiceTest {
 
 		//check subscriber
 		boolean flag = tokenService.checkTimeBasedSubscriber("subscriber2", "stream1", "sdafsd",
-				"fssdg", false);
+				"fssdg", Subscriber.PLAY_TYPE);
 
 		// it should be true because mock service always replies as true
 		assertTrue(flag);
@@ -180,7 +181,7 @@ public class TokenServiceTest {
 		Map<String, String> queryParams = new HashMap<>();
 
 		//check is publish allowed or not
-		boolean flag = tokenService.isPublishAllowed(scope, "streamId", "mode", queryParams);
+		boolean flag = tokenService.isPublishAllowed(scope, "streamId", "mode", queryParams, null);
 		
 		//mock service should turn true even is token is not created and saved
 		assertTrue(flag);

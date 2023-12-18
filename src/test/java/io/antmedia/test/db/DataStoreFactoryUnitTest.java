@@ -14,6 +14,7 @@ import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -25,6 +26,7 @@ import io.antmedia.rest.VoDRestService;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.security.ExpireStreamPublishSecurity;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.vertx.core.Vertx;
 
@@ -44,7 +46,8 @@ public class DataStoreFactoryUnitTest {
 		dsf.setDbType("memorydb");
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
-		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());			
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());		
+		Mockito.when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
 		dsf.setApplicationContext(context);
 		dsf.setDataStore(null);
 	}
@@ -123,6 +126,10 @@ public class DataStoreFactoryUnitTest {
 		HlsViewerStats hvs = new HlsViewerStats();
 		hvs.setDataStoreFactory(dsf);
 		assertEquals(datastore, hvs.getDataStore());
+		
+		DashViewerStats dvs = new DashViewerStats();
+		dvs.setDataStoreFactory(dsf);
+		assertEquals(datastore, dvs.getDataStore());
 
 	}
 

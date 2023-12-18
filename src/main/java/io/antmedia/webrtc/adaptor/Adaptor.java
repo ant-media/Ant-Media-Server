@@ -1,6 +1,6 @@
 package io.antmedia.webrtc.adaptor;
 
-import javax.websocket.Session;
+import jakarta.websocket.Session;
 
 import org.red5.logging.Red5LoggerFactory;
 import org.slf4j.Logger;
@@ -80,7 +80,7 @@ public abstract class Adaptor implements Observer, SdpObserver
 		log.warn("onIceCandidate");
 
 		webSocketCommunityHandler
-		.sendTakeCandidateMessage(candidate.sdpMLineIndex, candidate.sdpMid, candidate.sdp, streamId, session);
+		.sendTakeCandidateMessage(candidate.sdpMLineIndex, candidate.sdpMid, candidate.sdp, streamId, session, "", "");
 
 	}
 
@@ -146,7 +146,7 @@ public abstract class Adaptor implements Observer, SdpObserver
 			type = "offer";
 		}
 
-		webSocketCommunityHandler.sendSDPConfiguration(sdp.description, type, streamId, session, null);
+		webSocketCommunityHandler.sendSDPConfiguration(sdp.description, type, streamId, session, null, "", "");
 
 	}
 

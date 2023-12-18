@@ -1,11 +1,9 @@
 package io.antmedia.websocket;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import javax.websocket.Session;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -22,7 +20,9 @@ import io.antmedia.AppSettings;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.IAntMediaStreamHandler;
+import io.antmedia.settings.ServerSettings;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
+import jakarta.websocket.Session;
 
 public class WebSocketCommunityHandler {
 
@@ -30,10 +30,8 @@ public class WebSocketCommunityHandler {
 	
 	private static Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandler.class);
 
-	private JSONParser jsonParser = new JSONParser();
+	protected AppSettings appSettings;
 
-	private AppSettings appSettings;
-	
 	private ApplicationContext appContext;
 
 	protected Session session;
@@ -65,6 +63,8 @@ public class WebSocketCommunityHandler {
 	}
 
 	public void onMessage(Session session, String message) {
+		//json parser is not thread-safe
+		JSONParser jsonParser = new JSONParser();
 		try {
 
 			if (message == null) {
@@ -131,7 +131,8 @@ public class WebSocketCommunityHandler {
 				String sdp = (String) jsonObject.get(WebSocketConstants.CANDIDATE_SDP);
 				long sdpMLineIndex = (long)jsonObject.get(WebSocketConstants.CANDIDATE_LABEL);
 
-				addICECandidate(streamId, connectionContext, sdpMid, sdp, sdpMLineIndex);
+				
+				addICECandidate(streamId, connectionContext, ((sdpMid != null) ? sdpMid : "0"), sdp, sdpMLineIndex);
 
 			}
 			else if (cmd.equals(WebSocketConstants.STOP_COMMAND)) {
@@ -147,10 +148,11 @@ public class WebSocketCommunityHandler {
 			else if (cmd.equals(WebSocketConstants.PING_COMMAND)) {
 				sendPongMessage(session);
 			}
-			else if (cmd.equals(WebSocketConstants.GET_STREAM_INFO_COMMAND)) 
+			else if (cmd.equals(WebSocketConstants.GET_STREAM_INFO_COMMAND) || cmd.equals(WebSocketConstants.PLAY_COMMAND)) 
 			{
 				sendNotFoundJSON(streamId, session);
 			}
+			
 
 
 		}
@@ -159,13 +161,12 @@ public class WebSocketCommunityHandler {
 		}
 
 	}
-	
-	
+		
 
 	private void startRTMPAdaptor(Session session, final String streamId, boolean enableVideo) {
-
+		int rtmpPort = appAdaptor.getServerSettings().getRtmpPort();
 		//get scope and use its name
-		String outputURL = "rtmp://127.0.0.1/"+ appName +"/" + streamId;
+		String outputURL = "rtmp://127.0.0.1" + ":" + rtmpPort +"/"+ appName +"/" + streamId;
 
 		RTMPAdaptor connectionContext = getNewRTMPAdaptor(outputURL, appSettings.getHeightRtmpForwarding());
 
@@ -174,7 +175,7 @@ public class WebSocketCommunityHandler {
 		connectionContext.setSession(session);
 		connectionContext.setStreamId(streamId);
 		connectionContext.setPortRange(appSettings.getWebRTCPortRangeMin(), appSettings.getWebRTCPortRangeMax());
-		connectionContext.setStunServerUri(appSettings.getStunServerURI());
+		connectionContext.setStunServerUri(appSettings.getStunServerURI(), appSettings.getTurnServerUsername(), appSettings.getTurnServerCredential());
 		connectionContext.setTcpCandidatesEnabled(appSettings.isWebRTCTcpCandidatesEnabled());
 		connectionContext.setEnableVideo(enableVideo);	
 		connectionContext.start();
@@ -218,13 +219,13 @@ public class WebSocketCommunityHandler {
 	}
 
 	@SuppressWarnings("unchecked")
-	public  void sendSDPConfiguration(String description, String type, String streamId, Session session, Map<String, String> midSidMap) {
+	public  void sendSDPConfiguration(String description, String type, String streamId, Session session, Map<String, String> midSidMap, String linkedSessionForSignaling, String subscriberId) {
 
-		sendMessage(getSDPConfigurationJSON (description, type,  streamId, midSidMap).toJSONString(), session);
+		sendMessage(getSDPConfigurationJSON (description, type,  streamId, midSidMap, linkedSessionForSignaling, subscriberId).toJSONString(), session);
 	}
 
 	@SuppressWarnings("unchecked")
-	public  void sendPublishStartedMessage(String streamId, Session session, String roomName) {
+	public  void sendPublishStartedMessage(String streamId, Session session, String roomName, String subscriberId) {
 		
 		JSONObject jsonObj = new JSONObject();
 		jsonObj.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
@@ -235,6 +236,7 @@ public class WebSocketCommunityHandler {
 			jsonObj.put(WebSocketConstants.ATTR_ROOM_NAME, roomName); //keep it for compatibility
 			jsonObj.put(WebSocketConstants.ROOM, roomName);
 		}
+		jsonObj.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 
 		sendMessage(jsonObj.toJSONString(), session);
 	}
@@ -256,21 +258,22 @@ public class WebSocketCommunityHandler {
 	
 
 	@SuppressWarnings("unchecked")
-	public  void sendPublishFinishedMessage(String streamId, Session session) {
+	public  void sendPublishFinishedMessage(String streamId, Session session, String subscriberId) {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonObject.put(WebSocketConstants.DEFINITION,  WebSocketConstants.PUBLISH_FINISHED);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
-
+		jsonObject.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 		sendMessage(jsonObject.toJSONString(), session);
 	}
 
 	@SuppressWarnings("unchecked")
-	public  void sendStartMessage(String streamId, Session session) 
+	public  void sendStartMessage(String streamId, Session session, String subscriberId) 
 	{
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.START_COMMAND);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonObject.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 
 		sendMessage(jsonObject.toJSONString(), session);
 	}
@@ -281,14 +284,14 @@ public class WebSocketCommunityHandler {
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_ID_SPECIFIED);
-		sendMessage(jsonResponse.toJSONString(), session);	
+		sendMessage(jsonResponse.toJSONString(), session);
 	}
 	
 	@SuppressWarnings("unchecked")
-	public void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session)
+	public void sendTakeCandidateMessage(long sdpMLineIndex, String sdpMid, String sdp, String streamId, Session session, String linkedSessionForSignaling, String subscriberId)
 	{
 
-		sendMessage(getTakeCandidateJSON(sdpMLineIndex, sdpMid, sdp, streamId).toJSONString(), session);
+		sendMessage(getTakeCandidateJSON(sdpMLineIndex, sdpMid, sdp, streamId, linkedSessionForSignaling, subscriberId).toJSONString(), session);
 	}
 
 
@@ -298,9 +301,17 @@ public class WebSocketCommunityHandler {
 			if (session.isOpen()) {
 				try {
 					session.getBasicRemote().sendText(message);
-				} catch (Exception e) { 
+				} 
+				catch (Exception e) { 
 					//capture all exceptions because some unexpected events may happen it causes some internal errors
-					logger.error(ExceptionUtils.getStackTrace(e));
+					String exceptioMessage = e.getMessage();
+					
+					//ignore following messages
+					if (exceptioMessage == null || !exceptioMessage.contains("WebSocket session has been closed")) 
+					{
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+					
 				}
 			}
 		}
@@ -308,10 +319,20 @@ public class WebSocketCommunityHandler {
 	
 
 	
+	@SuppressWarnings("unchecked")
+	public void sendRoomNotActiveInformation(String roomId) {
+		JSONObject jsonResponse = new JSONObject();
+		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
+		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.ROOM_NOT_ACTIVE);
+		jsonResponse.put(WebSocketConstants.ROOM, roomId);
+		sendMessage(jsonResponse.toJSONString(), session);
+	}
+	
 	/**
 	 * 
 	 * @param streamIdNameMap this is the map that keys are stream ids and values are stream names
 	 * @param roomId is the id of the room
+	 * @param subscriberId 
 	 */
 	public void sendRoomInformation(Map<String,String> streamIdNameMap , String roomId) 
 	{
@@ -351,7 +372,6 @@ public class WebSocketCommunityHandler {
 		JSONArray jsonStreamListArray = new JSONArray();
 		
 		prepareStreamListJSON(streamIdNameMap, jsonStreamIdArray, jsonStreamListArray, streamMetaDataMap);
-		
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.NOTIFICATION_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.JOINED_THE_ROOM);
 		jsonResponse.put(WebSocketConstants.STREAM_ID, newStreamId);
@@ -360,12 +380,13 @@ public class WebSocketCommunityHandler {
 		jsonResponse.put(WebSocketConstants.STREAM_LIST_IN_ROOM, jsonStreamListArray);	
 		jsonResponse.put(WebSocketConstants.ATTR_ROOM_NAME, room);	
 		jsonResponse.put(WebSocketConstants.ROOM, room);	
-
+		jsonResponse.put(WebSocketConstants.MAX_TRACK_COUNT, appSettings.getMaxVideoTrackCount());	
+		
 		sendMessage(jsonResponse.toJSONString(), session);
 	}
 
 
-	public static JSONObject getTakeCandidateJSON(long sdpMLineIndex, String sdpMid, String sdp, String streamId) {
+	public static JSONObject getTakeCandidateJSON(long sdpMLineIndex, String sdpMid, String sdp, String streamId, String linkedSessionForSignaling, String subscriberId) {
 
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND,  WebSocketConstants.TAKE_CANDIDATE_COMMAND);
@@ -373,17 +394,21 @@ public class WebSocketCommunityHandler {
 		jsonObject.put(WebSocketConstants.CANDIDATE_ID, sdpMid);
 		jsonObject.put(WebSocketConstants.CANDIDATE_SDP, sdp);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonObject.put(WebSocketConstants.LINK_SESSION, linkedSessionForSignaling);
+		jsonObject.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 
 		return jsonObject;
 	}
 
-	public static JSONObject getSDPConfigurationJSON(String description, String type, String streamId, Map<String, String> midSidMap) {
+	public static JSONObject getSDPConfigurationJSON(String description, String type, String streamId, Map<String, String> midSidMap, String linkedSessionForSignaling, String subscriberId) {
 
 		JSONObject jsonResponseObject = new JSONObject();
 		jsonResponseObject.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CONFIGURATION_COMMAND);
 		jsonResponseObject.put(WebSocketConstants.SDP, description);
 		jsonResponseObject.put(WebSocketConstants.TYPE, type);
 		jsonResponseObject.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonResponseObject.put(WebSocketConstants.LINK_SESSION, linkedSessionForSignaling);
+		jsonResponseObject.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 		
 		if(midSidMap != null) {
 			JSONObject jsonIdMappingObject = new JSONObject();
@@ -419,19 +444,22 @@ public class WebSocketCommunityHandler {
 		this.appAdaptor = appAdaptor;
 	}
 	
-	public void sendRemoteDescriptionSetFailure(Session session, String streamId) {
+	public void sendRemoteDescriptionSetFailure(Session session, String streamId, String subscriberId) {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonObject.put(WebSocketConstants.DEFINITION, WebSocketConstants.NOT_SET_REMOTE_DESCRIPTION);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonObject.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 		sendMessage(jsonObject.toJSONString(), session);
 	}
 	
-	public void sendLocalDescriptionSetFailure(Session session, String streamId) {
+	public void sendLocalDescriptionSetFailure(Session session, String streamId, String subscriberId) {
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonObject.put(WebSocketConstants.DEFINITION, WebSocketConstants.NOT_SET_LOCAL_DESCRIPTION);
 		jsonObject.put(WebSocketConstants.STREAM_ID, streamId);
+		jsonObject.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
+		
 		sendMessage(jsonObject.toJSONString(), session);
 	}
 	

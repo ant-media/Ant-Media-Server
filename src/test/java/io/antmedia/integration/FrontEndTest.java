@@ -3,11 +3,14 @@ package io.antmedia.integration;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
+
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.tika.utils.ExceptionUtils;
 import org.awaitility.Awaitility;
 import org.openqa.selenium.By;
@@ -147,11 +150,12 @@ public class FrontEndTest {
 		ChromeOptions chrome_options = new ChromeOptions();
 		chrome_options.addArguments("--disable-extensions");
 		chrome_options.addArguments("--disable-gpu");
-		chrome_options.addArguments("--headless");
+		chrome_options.addArguments("--headless=new");
 		chrome_options.addArguments("--use-fake-ui-for-media-stream",
 				"--use-fake-device-for-media-stream");
 		chrome_options.addArguments("--no-sandbox");
 		chrome_options.addArguments("--log-level=1");
+		chrome_options.addArguments("--remote-allow-origins=*");
 		LoggingPreferences logPrefs = new LoggingPreferences();
 		//To get console log
 		logPrefs.enable(LogType.BROWSER, Level.ALL);
@@ -183,9 +187,10 @@ public class FrontEndTest {
 			this.driver = new ChromeDriver(getChromeOptions());
 			this.driver.manage().timeouts().pageLoadTimeout( Duration.ofSeconds(10));
 			this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-			this.driver.get(this.url+"audio_publish.html");
+			this.driver.get(this.url+"audio_publish.html?id=stream1");
 			WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(15));
 
+			this.driver.switchTo().frame(0);
 			String publishButtonText = "//*[@id='start_publish_button']";
 			wait.until(ExpectedConditions.elementToBeClickable(By.xpath(publishButtonText)));
 
@@ -251,13 +256,16 @@ public class FrontEndTest {
 		this.driver = new ChromeDriver(getChromeOptions());
 		this.driver.manage().timeouts().pageLoadTimeout( Duration.ofSeconds(10));
 		this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
-		this.driver.get(this.url+"index.html");
+		String streamId = "stream1" + RandomStringUtils.randomAlphanumeric(15);
+		this.driver.get(this.url+"index.html?id=" + streamId);
 		WebDriverWait wait = new WebDriverWait(driver,Duration.ofSeconds(15));
 
 		//Check we landed on the page
 		String title = this.driver.getTitle();
-		assertEquals("Ant Media Server WebRTC Publish", title);
+		assertEquals("WebRTC Samples > Publish", title);
 		System.out.println(this.url + " " + this.driver + " " + title);
+		
+		this.driver.switchTo().frame(0);
 
 		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='start_publish_button']")));
 		assertTrue(checkAlert());
@@ -272,10 +280,14 @@ public class FrontEndTest {
 
 		//wait for creating  files
 		Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/stream1.m3u8");
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/"+ streamId + ".m3u8");
 		});
 
 		assertTrue(checkAlert());
+		
+		//check if there is any subscriber
+		List<SubscriberStats> subscriberStats = restServiceTest.getSubscriberStats(streamId);
+		assertEquals(0, subscriberStats.size());
 
 		wait.until(ExpectedConditions.elementToBeClickable(By.xpath("//*[@id='stop_publish_button']")));
 
@@ -343,17 +355,8 @@ public class FrontEndTest {
 					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://localhost/LiveApp/"
 					+ broadcast.getStreamId());
 
-			ChromeOptions chrome_options = new ChromeOptions();
-			chrome_options.addArguments("--disable-extensions");
-			chrome_options.addArguments("--disable-gpu");
-			chrome_options.addArguments("--headless");
-			chrome_options.addArguments("--no-sandbox");
-			chrome_options.addArguments("--log-level=1");
-
 			LoggingPreferences logPrefs = new LoggingPreferences();
 			//To get console log
-			logPrefs.enable(LogType.BROWSER, Level.ALL);
-			chrome_options.setCapability( "goog:loggingPrefs", logPrefs );
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				Broadcast tmpBroadcast = restService.getBroadcast(broadcast.getStreamId());
@@ -361,12 +364,32 @@ public class FrontEndTest {
 				return tmpBroadcast != null && IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(tmpBroadcast.getStatus());
 			});
 
-			this.driver = new ChromeDriver(chrome_options);
+			this.driver = new ChromeDriver(getChromeOptions());
 			this.driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(10));
 			this.driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+			
+			//get with default code & it should fallback to hls and play
+			this.driver.get(this.url+"play.html?id="+broadcast.getStreamId());
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 
-			//Test HLS
+				String readyState = this.driver.findElement(By.tagName("video")).getDomProperty("readyState");
+				//this.driver.findElement(By.xpath("//*[@id='video-player']")).
+				logger.info("player ready state -> {}", readyState);
+
+				return readyState != null && readyState.equals("4");
+			});
+			
+
+			//Test HLS with playOrder
 			this.driver.get(this.url+"play.html?id="+broadcast.getStreamId()+"&playOrder=hls");
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+
+				String readyState = this.driver.findElement(By.tagName("video")).getDomProperty("readyState");
+				//this.driver.findElement(By.xpath("//*[@id='video-player']")).
+				logger.info("player ready state -> {}", readyState);
+
+				return readyState != null && readyState.equals("4");
+			});
 
 			//Check we landed on the page
 			String title = this.driver.getTitle();
@@ -403,9 +426,7 @@ public class FrontEndTest {
 				logger.info(log.toString());
 			}
 
-
 			fail(e.getMessage());
-
 		}
 
 	}

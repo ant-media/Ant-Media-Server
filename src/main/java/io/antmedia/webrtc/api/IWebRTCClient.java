@@ -28,6 +28,7 @@ public interface IWebRTCClient {
 	/**
 	 * Send audio packet to connected client
 	 * @param audioPacket
+	 * @param audioLevel 
 	 */
 	public void sendAudioPacket(ByteBuffer audioPacket, long timestamp, String trackId);
 	
@@ -196,4 +197,13 @@ public interface IWebRTCClient {
 	 * @param streamHeight
 	 */
 	public void notifyWebRTCClient(int streamHeight);
+	
+	/**
+	 * Getter for stream Id
+	 * @return
+	 */
+	public String getStreamId();
+	
+
+
 }

@@ -7,6 +7,8 @@ import static org.junit.Assert.fail;
 import static org.mockito.Mockito.spy;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +21,7 @@ import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.event.ProgressEvent;
 import com.amazonaws.event.ProgressEventType;
 import com.amazonaws.event.ProgressListener;
@@ -28,6 +31,7 @@ import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.transfer.TransferManager;
 import com.amazonaws.services.s3.transfer.Upload;
 
+import io.antmedia.AppSettings;
 import io.antmedia.storage.AmazonS3StorageClient;
 
 public class AmazonS3StorageClientTest {
@@ -116,6 +120,21 @@ public class AmazonS3StorageClientTest {
 						
 			storage.save("streams/any_file", new File("any_file"));
 			
+			storage.setProgressListener(Mockito.mock(com.amazonaws.event.ProgressListener.class));
+			storage.save("streams/any_file", new File("any_file"));
+			
+			storage.setMultipartUploadThreshold(5*1024*1024);
+			
+			storage.save("streams/any_file", new File("any_file"));
+			
+			assertEquals(5*1024*1024, storage.getMultipartUploadThreshold());
+			storage.setRegion("us-east-1");
+			
+			TransferManager transferManager = storage.getTransferManager();
+			assertEquals(transferManager, storage.getTransferManager());
+			
+			
+			
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -131,6 +150,7 @@ public class AmazonS3StorageClientTest {
 		assertTrue(storage.checkStorageClass("REDUCED_REDUNdancy"));
 		assertTrue(storage.checkStorageClass("ONEZONE_IA"));
 	}
+	
 	@Test
 	public void testDeleteLocalFile() {
 		AmazonS3StorageClient storage = spy(new AmazonS3StorageClient());
@@ -175,6 +195,24 @@ public class AmazonS3StorageClientTest {
 			progressListener.progressChanged(new ProgressEvent(ProgressEventType.TRANSFER_COMPLETED_EVENT));
 			Mockito.verify(storage, Mockito.times(2)).deleteFile(Mockito.any());
 			assertFalse(file.exists());
+		}
+		
+		{
+			File file = new File("filename");
+			try {
+				file.createNewFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			try {
+				storage.setCacheControl(null);
+				storage.save("key", new FileInputStream(file), true);
+				Mockito.verify(upload).waitForCompletion();
+				assertTrue(file.exists());
+			} catch (FileNotFoundException | AmazonClientException | InterruptedException e) {
+				e.printStackTrace();
+				fail(e.getMessage());
+			}
 		}
 		
 		

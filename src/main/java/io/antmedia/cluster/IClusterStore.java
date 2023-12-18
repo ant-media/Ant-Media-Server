@@ -10,6 +10,8 @@ public interface IClusterStore
 
 	public ClusterNode getClusterNode(String nodeId);
 	
+	public ClusterNode getClusterNodeFromIP(String ipAddress);
+	
 	public long getNodeCount();
 		
 	public boolean deleteNode(String nodeId);
@@ -19,7 +21,7 @@ public interface IClusterStore
 	public boolean saveSettings(AppSettings settings);
 
 	public AppSettings getSettings(String appName);
-	
+		
 	public List<AppSettings> getAllSettings();
 	
 	/**

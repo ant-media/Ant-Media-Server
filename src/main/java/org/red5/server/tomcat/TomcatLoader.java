@@ -33,9 +33,9 @@ import java.util.concurrent.Future;
 import javax.management.JMX;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
-import javax.security.auth.message.config.AuthConfigFactory;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
+import jakarta.security.auth.message.config.AuthConfigFactory;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -221,7 +221,8 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 			Object ldr = ctx.getLoader();
 			log.trace("Context loader (null if the context has not been started): {}", ldr);
 			if (ldr == null) {
-				WebappLoader wldr = new WebappLoader(classLoader);
+				WebappLoader wldr = new WebappLoader();
+				//wldr.setLoaderInstance(classLoader);
 				// add the Loader to the context
 				ctx.setLoader(wldr);
 			}
@@ -241,10 +242,12 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	 */
 	@Override
 	public void removeContext(String path) {
+	
 		Container[] children = host.findChildren();
 		for (Container c : children) {
 			if (c instanceof StandardContext && c.getName().equals(path)) {
 				try {
+					log.info("Stopping standard context for {}", path);
 					((StandardContext) c).stop();
 					host.removeChild(c);
 					break;
@@ -253,11 +256,20 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 				}
 			}
 		}
+		
 		IApplicationContext ctx = LoaderBase.removeRed5ApplicationContext(path);
 		if (ctx != null) {
 			ctx.stop();
 		} else {
-			log.warn("Context could not be stopped, it was null for path: {}", path);
+			//try with host Id
+			ctx = LoaderBase.removeRed5ApplicationContext(getHostId() + path);
+			if (ctx != null) {
+				ctx.stop();
+			}
+			else {
+				log.warn("Context could not be stopped, it was null for path: {}", path);
+			}
+			
 		}
 	}
 
@@ -654,6 +666,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 					appctx.setServletContext(servletContext);
 					// set the root webapp ctx attr on the each servlet context so spring can find it later
 					servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, appctx);
+					log.info("Setting root web app context attribute for {}", applicationName);
 					appctx.refresh();
 
 				}
@@ -811,7 +824,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	 * 
 	 * @return host id
 	 */
-	protected String getHostId() {
+	public String getHostId() {
 		String hostId = host.getName();
 		log.debug("Host id: {}", hostId);
 		return hostId;
@@ -901,6 +914,10 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 	 */
 	public void setCluster(Cluster cluster) {
 		this.cluster = cluster;
+	}
+	
+	public List<TomcatConnector> getConnectors() {
+		return connectors;
 	}
 
 }

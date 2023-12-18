@@ -2,6 +2,7 @@ package io.antmedia.storage;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
@@ -10,6 +11,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.amazonaws.AmazonClientException;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -21,6 +23,7 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.s3.model.StorageClass;
@@ -31,6 +34,10 @@ import com.amazonaws.services.s3.transfer.Upload;
 public class AmazonS3StorageClient extends StorageClient {
 
 	private AmazonS3 amazonS3;
+
+	private TransferManager transferManager;
+
+	private long multipartUploadThreshold = 5L * 1024 * 1024;
 
 	protected static Logger logger = LoggerFactory.getLogger(AmazonS3StorageClient.class);
 
@@ -60,7 +67,8 @@ public class AmazonS3StorageClient extends StorageClient {
 		if ((getEndpoint() == null || getEndpoint().isEmpty()) && getRegion() != null) {
 			builder = builder.withRegion(Regions.fromName(getRegion()));
 		}
-		builder.withClientConfiguration(new ClientConfiguration().withMaxConnections(100)
+		builder.withClientConfiguration(
+				new ClientConfiguration().withMaxConnections(100)
 				.withConnectionTimeout(120 * 1000)
 				.withMaxErrorRetry(15));
 
@@ -73,9 +81,9 @@ public class AmazonS3StorageClient extends StorageClient {
 		if (isEnabled()) {
 			AmazonS3 s3 = getAmazonS3();
 			ListObjectsV2Result objects = s3.listObjectsV2(getStorageName(), prefix);
-			
+
 			convert2List(list, objects.getObjectSummaries());
-			
+
 		}
 		return list;
 	}
@@ -114,12 +122,39 @@ public class AmazonS3StorageClient extends StorageClient {
 		save(type + "/" + file.getName(), file);
 	}
 
-	public void save(String key, File file, boolean deleteLocalFile)
-	{	
-		if (isEnabled()) {
-			TransferManager tm = getTransferManager();
 
-			PutObjectRequest putRequest = new PutObjectRequest(getStorageName(), key, file);
+	public void save(String key, InputStream inputStream, boolean waitForCompletion) {
+		save(key, null, inputStream, false, waitForCompletion);
+	}
+
+	
+	public void save(String key, File file, boolean deleteLocalFile) {
+		save(key, file, null, deleteLocalFile, false);
+	}
+	
+	public void save(String key, File file, InputStream inputStream, boolean deleteLocalFile, boolean waitForCompletion)
+	{	
+		if (isEnabled()) 
+		{
+			TransferManager tm = getTransferManager();
+			PutObjectRequest putRequest;
+			ObjectMetadata metadata = new ObjectMetadata();
+			
+			if (getCacheControl() != null) 
+			{
+				metadata.setCacheControl(getCacheControl());
+			}
+		
+			
+			if (file != null) 
+			{
+				putRequest = new PutObjectRequest(getStorageName(), key, file).withMetadata(metadata);
+			}
+			else 
+			{
+				putRequest = new PutObjectRequest(getStorageName(), key, inputStream, metadata);
+			}
+
 			putRequest.setCannedAcl(getCannedAcl());
 
 			if(checkStorageClass(getStorageClass())){
@@ -127,51 +162,75 @@ public class AmazonS3StorageClient extends StorageClient {
 			}
 
 			Upload upload = tm.upload(putRequest);
-		
 			/* 
 			 * TransferManager processes all transfers asynchronously, so this call returns immediately.
 			 * Some blocking calls are removed. Please don't block any threads if it's really not necessary
 			 */
-			logger.info("{} upload has started with key: {}", file.getName(), key);
+			logger.info("File {} upload has started with key: {}", file != null ? file.getName() : "", key);
 
-			upload.addProgressListener((ProgressListener)event -> 
-			{
-				if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)
-				{
-					logger.error("S3 - Error: Upload failed for {} with key {}", file.getName(), key);
-				}
-				else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT)
-				{	
-					if (deleteLocalFile) 
-					{
-						deleteFile(file);
-					}
-					logger.info("File {} uploaded to S3 with key: {}", file.getName(), key);
-				}
-			});
-
-
+			listenUploadProgress(key, file, deleteLocalFile, upload);
 			
+			if (waitForCompletion) {
+				try {
+					upload.waitForCompletion();
+				} catch (AmazonClientException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+				catch (InterruptedException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+					Thread.currentThread().interrupt();
+				}
+			}
 		}
 		else {
 			logger.debug("S3 is not enabled to save the file: {}", key);
 		}
 	}
-	public boolean checkStorageClass(String s3StorageClass){
+
+	private void listenUploadProgress(String key, File file, boolean deleteLocalFile, Upload upload) {
+		upload.addProgressListener((ProgressListener)event -> 
+		{
+			if (event.getEventType() == ProgressEventType.TRANSFER_FAILED_EVENT)
+			{
+				logger.error("S3 - Error: Upload failed with key {}", key);
+			}
+			else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT)
+			{	
+				if (deleteLocalFile) 
+				{
+					deleteFile(file);
+				}
+				logger.info("File uploaded to S3 with key: {}", key);
+			}
+
+			if (progressListener != null) 
+			{
+				progressListener.progressChanged(event);
+			}
+		});
+	}
+	public boolean checkStorageClass(String s3StorageClass)
+	{
 		logger.debug("Requested storage class = {}" , s3StorageClass);
 		//All of the inputs are upper case and case sensitive like GLACIER
-		for(int i = 0; i < StorageClass.values().length; i++){
-			if(s3StorageClass.equalsIgnoreCase(StorageClass.values()[i].toString())){
+		for(int i = 0; i < StorageClass.values().length; i++)
+		{
+			if(StorageClass.values()[i].toString().equalsIgnoreCase(s3StorageClass) ){
 				return true;
 			}
 		}
 		return false;
 	}
 
+
 	public TransferManager getTransferManager() {
-		return TransferManagerBuilder.standard()
-				.withS3Client(getAmazonS3())
-				.build();
+		if (transferManager == null) {
+			transferManager = TransferManagerBuilder.standard()
+					.withS3Client(getAmazonS3())
+					.withMultipartUploadThreshold(multipartUploadThreshold )
+					.build();
+		}
+		return transferManager;
 	}
 
 	public void deleteFile(File file) {
@@ -185,6 +244,8 @@ public class AmazonS3StorageClient extends StorageClient {
 	@Override
 	public void reset() {
 		this.amazonS3 = null;
+		this.transferManager = null;
+
 	}
 
 
@@ -212,6 +273,14 @@ public class AmazonS3StorageClient extends StorageClient {
 			break;
 		}
 		return CannedAccessControlList.PublicRead;
+	}
+
+	public long getMultipartUploadThreshold() {
+		return multipartUploadThreshold;
+	}
+
+	public void setMultipartUploadThreshold(long multipartUploadThreshold) {
+		this.multipartUploadThreshold = multipartUploadThreshold;
 	}
 
 }

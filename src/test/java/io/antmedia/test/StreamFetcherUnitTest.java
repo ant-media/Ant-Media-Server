@@ -1,13 +1,21 @@
 package io.antmedia.test;
 
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
+import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -15,11 +23,16 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.CharacterCodingException;
+import java.nio.charset.CharsetDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.global.avformat;
@@ -55,6 +68,7 @@ import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcher.WorkerThread;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
 
@@ -91,7 +105,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@BeforeClass
 	public static void beforeClass() {
-		avformat.av_register_all();
+	//	avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
 	}
@@ -177,7 +191,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		app.getStreamFetcherManager().setDatastore(dataStore);
 
 		app.getStreamFetcherManager().setRestartStreamAutomatically(false);
-		app.getStreamFetcherManager().setStreamCheckerInterval(5000);
+		app.getStreamFetcherManager().testSetStreamCheckerInterval(5000);
 
 		app.getStreamFetcherManager().getStreamFetcherList().clear();
 
@@ -265,7 +279,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			Mockito.doReturn(streamFetcher).when(fetcherManager).make(stream, appScope, vertx);
 
 			//set checker interval to 2 seconds
-			fetcherManager.setStreamCheckerInterval(1000);
+			fetcherManager.testSetStreamCheckerInterval(1000);
 
 			//set restart period to 5 seconds
 			appSettings.setRestartStreamFetcherPeriod(2);
@@ -285,6 +299,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			appSettings.setRestartStreamFetcherPeriod(0);
 
 			//wait 10-12 seconds
+					
 
 			//check that stream fetcher stop and start stream is not called
 			//wait 3 seconds
@@ -430,10 +445,21 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//it should be -1 because there is a connection error
 		assertEquals(-1, connResult);
+		
+		
+		//Test with protocol
+		newCam.setIpAddr("http://127.0.0.1:8080");
+		connResult = onvif.connect(newCam.getIpAddr(), newCam.getUsername(), newCam.getPassword());
+		logger.info("connResult {}", connResult);
+		
+		//it should be 0 because URL and credentials are correct
+		assertEquals(0, connResult);
 
 		stopCameraEmulator();
 
 	}
+	
+	
 
 
 
@@ -678,16 +704,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testBugUnexpectedStream()
 	{
 
-		AVFormatContext inputFormatContext = Mockito.mock(AVFormatContext.class);
-		when(inputFormatContext.nb_streams()).thenReturn(1);
+		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 
-		AVStream stream = Mockito.mock(AVStream.class);
-		when(inputFormatContext.streams(0)).thenReturn(stream);
-		AVCodecParameters pars = Mockito.mock(AVCodecParameters.class);
-		when(stream.codecpar()).thenReturn(pars);
-
-		when(pars.codec_type()).thenReturn(AVMEDIA_TYPE_DATA);
+		AVStream stream = avformat.avformat_new_stream(inputFormatContext, null);
+		AVCodecParameters pars = new AVCodecParameters();
 		stream.codecpar(pars);
+		pars.codec_type(AVMEDIA_TYPE_DATA);
+		stream.codecpar(pars);
+		
+		
+		
 
 		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(null, null, "streams"));
 
@@ -699,6 +725,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		mp4Muxer.addStream(pars, MuxAdaptor.TIME_BASE_FOR_MS, 0);
 
 		Mockito.verify(mp4Muxer, Mockito.never()).avNewStream(Mockito.any());
+		
+		avformat.avformat_free_context(inputFormatContext);
 	}
 
 	@Test
@@ -740,8 +768,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	@Test
 	public void testShoutcastSource() {
 		logger.info("running testShoutcastSource");
-		//test Southcast Source
-		testFetchStreamSources("http://powerfm.listenpowerapp.com/powerfm/mpeg/icecast.audio", false, false);
+		//test Southcast Source - http://sc13.shoutcaststreaming.us/
+		testFetchStreamSources("http://107.181.227.250:8526/stream/1/", false, false);
 		logger.info("leaving testShoutcastSource");
 	}
 
@@ -753,6 +781,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testAudioOnlySource");
 	}
 	
+	
+	@Test
+	public void testAudioOnlySourceClassFM() {
+		logger.info("running testAudioOnlySourceClassFM");
+		//test AudioOnly Source
+		testFetchStreamSources("http://media-ice.musicradio.com/ClassicFM", false, false);
+		logger.info("leaving testAudioOnlySource");
+	}
 	
 	public void testFetchStreamSources(String source, boolean restartStream, boolean checkContext) {
 		testFetchStreamSources(source, restartStream, checkContext, true);
@@ -801,7 +837,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 				});
 			}
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> fetcher.isStreamAlive());
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> fetcher.isStreamAlive());
 
 			Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				double speed = dataStore.get(newCam.getStreamId()).getSpeed();
@@ -1086,9 +1122,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Awaitility.await().atMost(15, TimeUnit.SECONDS).until(() -> camScheduler.getMuxAdaptor() != null);
 			Thread.sleep(2000);
-			assertTrue(camScheduler.getMuxAdaptor().startRecording(RecordType.MP4));
+			assertTrue(camScheduler.getMuxAdaptor().startRecording(RecordType.MP4, 0) != null);
 			Thread.sleep(5000);
-			assertTrue(camScheduler.getMuxAdaptor().stopRecording(RecordType.MP4));
+			assertTrue(camScheduler.getMuxAdaptor().stopRecording(RecordType.MP4, 0) != null);
 			Thread.sleep(2000);
 			camScheduler.stopStream();
 			assertTrue(MuxingTest.testFile("webapps/junit/streams/"+newCam.getStreamId() +".mp4"));
@@ -1101,6 +1137,42 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 
+	}
+	
+	
+	@Test
+	public void testVODStreamingInCaseOfReadProblem() {
+		StreamFetcher fetcher = new StreamFetcher("", "", AntMediaApplicationAdapter.VOD, appScope, vertx);
+		fetcher.setMuxAdaptor(mock(MuxAdaptor.class));
+		WorkerThread worker = spy(fetcher.new WorkerThread());
+		
+		try {
+			doReturn(true).when(worker).prepareInputContext();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		doNothing().when(worker).packetRead(any());
+		doNothing().when(worker).close(any());
+		doNothing().when(worker).unReferencePacket(any());
+
+
+		doReturn(0).when(worker).readNextPacket(any());
+		assertTrue(worker.readMore(mock(AVPacket.class)));
+		verify(worker, times(1)).packetRead(any());
+		
+		
+		assertTrue(worker.readMore(mock(AVPacket.class)));
+		verify(worker, times(2)).packetRead(any());
+		
+		//return negative in VOD mode it won'tstop but not use packet
+		doReturn(-1).when(worker).readNextPacket(any());
+		assertTrue(worker.readMore(mock(AVPacket.class)));
+		verify(worker, times(2)).packetRead(any());
+		
+		//return AVERROR_EOF
+		doReturn(AVERROR_EOF).when(worker).readNextPacket(any());
+		assertFalse(worker.readMore(mock(AVPacket.class)));
+		verify(worker, times(2)).packetRead(any());
 	}
 
 

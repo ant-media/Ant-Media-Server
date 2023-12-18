@@ -3,14 +3,16 @@ package io.antmedia.filter;
 
 import java.io.IOException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Date;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +32,7 @@ public class JWTFilter extends AbstractFilter {
 
 	protected static Logger log = LoggerFactory.getLogger(JWTFilter.class);
 
-	public static final String JWT_TOKEN = "Authorization";
+	public static final String JWT_TOKEN_HEADER = "Authorization";
 
 	private AppSettings appSettings;
 
@@ -40,42 +42,87 @@ public class JWTFilter extends AbstractFilter {
 
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 
-		if(appSettings != null && !appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN)))) {
+		if(appSettings != null && !appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN_HEADER) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN_HEADER)))) {
 			chain.doFilter(request, response);
 			return;
 		}
 
-		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid JWT Token");
+		((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid App JWT Token");
 	}
 
-	private boolean checkJWT( String jwtString) {
-		boolean result = true;
+	private boolean checkJWT(String jwtString) {
+		boolean result = false;
+
+		String jwksURL = appSettings.getJwksURL();
+
+		if (jwksURL != null && !jwksURL.isEmpty()) {
+			result = isJWKSTokenValid(appSettings.getJwksURL(), jwtString);
+		}
+		else {
+			result = isJWTTokenValid(appSettings.getJwtSecretKey(), jwtString);
+		}
+
+		return result;
+	}
+
+	private static boolean isJWKSTokenValid(String jwksURL, String jwtString)  {
+
+		boolean result = false;
 		try {
-
-			String jwksURL = appSettings.getJwksURL();
-
-			if (jwksURL != null && !jwksURL.isEmpty()) {
-				DecodedJWT jwt = JWT.decode(jwtString);
-				JwkProvider provider = new UrlJwkProvider(appSettings.getJwksURL());
-				Jwk jwk = provider.get(jwt.getKeyId());
-				Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
-				algorithm.verify(jwt);
-			}
-			else {
-				Algorithm algorithm = Algorithm.HMAC256(appSettings.getJwtSecretKey());
-				JWTVerifier verifier = JWT.require(algorithm)
-						.build();
-				verifier.verify(jwtString);
-			}
-
+			DecodedJWT jwt = JWT.decode(jwtString);
+			JwkProvider provider = new UrlJwkProvider(jwksURL);
+			Jwk jwk = provider.get(jwt.getKeyId());
+			Algorithm algorithm = Algorithm.RSA256((RSAPublicKey) jwk.getPublicKey(), null);
+			algorithm.verify(jwt);
+			result = true;
 		}
 		catch (JWTVerificationException ex) {
 			logger.error(ex.toString());
-			result = false;
 		} catch (JwkException e) {
 			logger.error(e.toString());
-			result = false;
 		}
 		return result;
 	}
+
+
+	public static boolean isJWTTokenValid(String jwtSecretKey, String jwtToken) {
+		boolean result = false;
+
+		try {
+			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+			JWTVerifier verifier = JWT.require(algorithm)
+					.build();
+			verifier.verify(jwtToken);
+			result = true;
+		}
+		catch (JWTVerificationException ex) {
+			logger.error(ExceptionUtils.getStackTrace(ex));
+		} 
+
+		return result;
+	}
+	
+	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs) {
+		return generateJwtToken(jwtSecretKey, expireDateUnixTimeStampMs, "");
+	}
+	
+	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs, String issuer) {
+		Date expireDateType = new Date(expireDateUnixTimeStampMs);
+		String jwtTokenId = null;
+		try {
+			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+
+			jwtTokenId = JWT.create().
+					withExpiresAt(expireDateType).
+					withIssuer(issuer).
+					sign(algorithm);
+
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return jwtTokenId;
+	}
+
+
 }

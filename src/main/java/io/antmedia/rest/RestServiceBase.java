@@ -20,12 +20,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
+import jakarta.servlet.ServletContext;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -58,10 +58,12 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
+import io.antmedia.muxer.RecordMuxer;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.storage.StorageClient;
@@ -69,6 +71,7 @@ import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import jakarta.ws.rs.core.Context;
 
 public abstract class RestServiceBase {
 
@@ -84,12 +87,16 @@ public abstract class RestServiceBase {
 		@ApiModelProperty(value = "the total WebRTC viewers of the stream")
 		public final int totalWebRTCWatchersCount;
 
+		@ApiModelProperty(value = "the total DASH viewers of the stream")
+		public final int totalDASHWatchersCount;
+
 
 		public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
-				int totalWebRTCWatchersCount) {
+				int totalWebRTCWatchersCount, int totalDASHWatchersCount) {
 			this.totalRTMPWatchersCount = totalRTMPWatchersCount;
 			this.totalHLSWatchersCount = totalHLSWatchersCount;
 			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
+			this.totalDASHWatchersCount = totalDASHWatchersCount;
 		}
 	}
 
@@ -100,9 +107,9 @@ public abstract class RestServiceBase {
 		public final int activeLiveStreamCount;
 
 		public AppBroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
-				int totalWebRTCWatchersCount, int activeLiveStreamCount) 
+				int totalWebRTCWatchersCount, int totalDASHWatchersCount, int activeLiveStreamCount )
 		{
-			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount);
+			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount, totalDASHWatchersCount);
 			this.activeLiveStreamCount = activeLiveStreamCount;
 		}
 
@@ -216,7 +223,7 @@ public abstract class RestServiceBase {
 
 	public DataStoreFactory getDataStoreFactory() {
 		if(dataStoreFactory == null) {
-			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext); 
+			WebApplicationContext ctxt = WebApplicationContextUtils.getWebApplicationContext(servletContext);
 			if (ctxt != null) {
 				dataStoreFactory = (DataStoreFactory) ctxt.getBean("dataStoreFactory");
 			}
@@ -246,7 +253,7 @@ public abstract class RestServiceBase {
 
 		String listenerHookURL = broadcast.getListenerHookURL();
 
-		if ((listenerHookURL == null || listenerHookURL.isEmpty()) 
+		if ((listenerHookURL == null || listenerHookURL.isEmpty())
 				&& settingsListenerHookURL != null && !settingsListenerHookURL.isEmpty()) {
 
 			broadcast.setListenerHookURL(settingsListenerHookURL);
@@ -254,7 +261,7 @@ public abstract class RestServiceBase {
 		String fqdn = serverSettings.getServerName();
 
 		if (fqdn == null || fqdn.length() == 0) {
-			fqdn = serverSettings.getHostAddress(); 
+			fqdn = serverSettings.getHostAddress();
 		}
 		broadcast.setOriginAdress(serverSettings.getHostAddress());
 		broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
@@ -306,32 +313,26 @@ public abstract class RestServiceBase {
 		boolean stopResult = false;
 		Broadcast broadcast = null;
 
-		if (id != null && (broadcast = getDataStore().get(id)) != null) 
+		if (id != null && (broadcast = getDataStore().get(id)) != null)
 		{
-			boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
+			//no need to check if the stream is another node because RestProxyFilter makes this arrangement
 
-			if (isCluster && !broadcast.getOriginAdress().equals(getServerSettings().getHostAddress()) && broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
+			stopResult = stopBroadcastInternal(broadcast);
+
+			result.setSuccess(getDataStore().delete(id));
+
+			if(result.isSuccess())
 			{
-				logger.error("Please send a Delete Broadcast request to the {} node or Delete Broadcast in a stopped broadcast.", broadcast.getOriginAdress());
-				result.setSuccess(false);
-			}
-			else {
-				stopResult = stopBroadcastInternal(broadcast);
-
-				result.setSuccess(getDataStore().delete(id));
-
-				if(result.isSuccess()) 
-				{
-					if (stopResult) {
-						logger.info("broadcast {} is deleted and stopped successfully", broadcast.getStreamId());
-						result.setMessage("broadcast is deleted and stopped successfully");
-					}
-					else {
-						logger.info("broadcast {} is deleted but could not stopped", broadcast);
-						result.setMessage("broadcast is deleted but could not stopped ");
-					}
+				if (stopResult) {
+					logger.info("broadcast {} is deleted and stopped successfully", broadcast.getStreamId());
+					result.setMessage("broadcast is deleted and stopped successfully");
+				}
+				else {
+					logger.info("broadcast {} is deleted but could not stopped", broadcast);
+					result.setMessage("broadcast is deleted but could not stopped ");
 				}
 			}
+
 		}
 		else
 		{
@@ -346,10 +347,10 @@ public abstract class RestServiceBase {
 
 		if(streamIds != null)
 		{
-			for (String id : streamIds) 
+			for (String id : streamIds)
 			{
 				result = deleteBroadcast(id);
-				if (!result.isSuccess()) 
+				if (!result.isSuccess())
 				{
 					logger.warn("It cannot delete {} and breaking the loop", id);
 					break;
@@ -367,7 +368,7 @@ public abstract class RestServiceBase {
 	protected boolean stopBroadcastInternal(Broadcast broadcast) {
 		boolean result = false;
 		if (broadcast != null) {
-			result = getApplication().stopStreaming(broadcast).isSuccess(); 
+			result = getApplication().stopStreaming(broadcast).isSuccess();
 			if (result) {
 				logger.info("broadcast is stopped streamId: {}", broadcast.getStreamId());
 			}
@@ -407,16 +408,16 @@ public abstract class RestServiceBase {
 		return new Result(result);
 	}
 
-	private static void removeEmptyPlayListItems(Broadcast broadcast) 
+	private static void removeEmptyPlayListItems(Broadcast broadcast)
 	{
 		List<PlayListItem> playListItemList = broadcast.getPlayListItemList();
-		if (playListItemList != null) 
+		if (playListItemList != null)
 		{
 			Iterator<PlayListItem> iterator = playListItemList.iterator();
-			while (iterator.hasNext()) 
+			while (iterator.hasNext())
 			{
 				PlayListItem listItem = iterator.next();
-				if (listItem.getStreamUrl() == null || listItem.getStreamUrl().isEmpty()) 
+				if (listItem.getStreamUrl() == null || listItem.getStreamUrl().isEmpty())
 				{
 					iterator.remove();
 				}
@@ -431,64 +432,59 @@ public abstract class RestServiceBase {
 	 * @return
 	 */
 	protected Result updateStreamSource(String streamId, Broadcast broadcast) {
+		logger.debug("Updating camera info for stream {}", broadcast.getStreamId());
 
-		boolean result = false;
-
-		boolean resultStopStreaming = false;
-
-		logger.debug("update cam info for stream {}", broadcast.getStreamId());
-
-		if(checkStreamUrl(broadcast.getStreamUrl())) 
-		{
-			Broadcast broadcastInDB = getDataStore().get(streamId);
-			if (broadcastInDB != null) 
-			{
-				resultStopStreaming = checkStopStreaming(broadcastInDB);
-
-				waitStopStreaming(broadcastInDB, resultStopStreaming);
-
-				if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType())) {
-					String rtspURL = connectToCamera(broadcast).getMessage();
-
-					if (rtspURL != null) {
-
-						String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
-						String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
-						logger.info("new RTSP URL: {}" , rtspURLWithAuth);
-						broadcast.setStreamUrl(rtspURLWithAuth);
-					}
-				}
-
-				result = getDataStore().updateBroadcastFields(streamId, broadcast);
-
-				if(result) {
-					Broadcast fetchedBroadcast = getDataStore().get(streamId);
-					getApplication().startStreaming(fetchedBroadcast);
-				}
-			}
-			else {
-				streamId = streamId.replaceAll("[\n|\r|\t]", "_");
-				logger.info("Broadcast with stream id: {} is null", streamId);
-			}
-
+		if (!checkStreamUrl(broadcast.getStreamUrl())) {
+			return new Result(false, "Stream URL is not valid");
 		}
+
+		Broadcast broadcastInDB = getDataStore().get(streamId);
+		if (broadcastInDB == null) {
+			streamId = streamId.replaceAll("[\n|\r|\t]", "_");
+			logger.info("Broadcast with stream id: {} is null", streamId);
+			return new Result(false, "Broadcast with streamId: " + streamId + " does not exist");
+		}
+
+		boolean resultStopStreaming = checkStopStreaming(broadcastInDB);
+		waitStopStreaming(broadcastInDB, resultStopStreaming);
+
+		if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType())) {
+			Result connectionRes = connectToCamera(broadcast);
+			if (!connectionRes.isSuccess()) {
+				return connectionRes;
+			}
+
+			String rtspURL = connectionRes.getMessage();
+			String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
+			String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
+			logger.info("New Stream Source URL: {}", rtspURLWithAuth);
+			broadcast.setStreamUrl(rtspURLWithAuth);
+		}
+
+		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
+		if (result) {
+			Broadcast fetchedBroadcast = getDataStore().get(streamId);
+			getApplication().startStreaming(fetchedBroadcast);
+		}
+
 		return new Result(result);
 	}
 
+
 	public boolean checkStopStreaming(Broadcast broadcast)
 	{
-		// If broadcast status is broadcasting, this will force stop the streaming.	
+		// If broadcast status is broadcasting, this will force stop the streaming.
 
-		if(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
+		if(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
 		{
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
-		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast.getStreamId())) {
+		else if(getApplication().getStreamFetcherManager().isStreamRunning(broadcast)) {
 			return getApplication().stopStreaming(broadcast).isSuccess();
 		}
 		else
 		{
-			// If broadcast status is stopped, this will return true. 
+			// If broadcast status is stopped, this will return true.
 			return true;
 		}
 	}
@@ -518,15 +514,14 @@ public abstract class RestServiceBase {
 		return true;
 	}
 
-	 /**
-	  * @deprecated (we don't use this function anymore. It's just only for backward compatible)
-	  */
-	@Deprecated(since="2.0.0", forRemoval=true)
+
+
+	@Deprecated
 	public Result addEndpoint(String id, String rtmpUrl) {
 		boolean success = false;
 		String message = null;
 		try {
-			if (validateStreamURL(rtmpUrl)) 
+			if (validateStreamURL(rtmpUrl))
 			{
 				Endpoint endpoint = new Endpoint();
 				endpoint.setRtmpUrl(rtmpUrl);
@@ -550,13 +545,13 @@ public abstract class RestServiceBase {
 		String endpointServiceId = endpoint.getEndpointServiceId();
 		if (endpointServiceId == null || endpointServiceId.isEmpty()) {
 			//generate custom endpoint invidual ID
-			endpointServiceId = "custom"+RandomStringUtils.randomAlphabetic(6);		
+			endpointServiceId = "custom"+RandomStringUtils.randomAlphabetic(6);
 		}
 		endpoint.setEndpointServiceId(endpointServiceId);
 
 
 		try {
-			if (validateStreamURL(endpoint.getRtmpUrl())) 
+			if (validateStreamURL(endpoint.getRtmpUrl()))
 			{
 				success = getDataStore().addEndpoint(id, endpoint);
 			}
@@ -567,10 +562,7 @@ public abstract class RestServiceBase {
 		return new Result(success, endpointServiceId, message);
 	}
 
-	 /**
-	  * @deprecated (we don't use this function anymore. It's just only for backward compatible)
-	  */
-	@Deprecated(since="2.0.0", forRemoval=true)
+	@Deprecated
 	public Result removeEndpoint(String id, String rtmpUrl) 
 	{
 		Endpoint endpoint = new Endpoint();
@@ -581,7 +573,7 @@ public abstract class RestServiceBase {
 		return new Result(removed);
 	}
 
-	public Result removeRTMPEndpoint(String id, Endpoint endpoint) 
+	public Result removeRTMPEndpoint(String id, Endpoint endpoint)
 	{
 		boolean removed = getDataStore().removeEndpoint(id, endpoint, false);
 
@@ -596,7 +588,7 @@ public abstract class RestServiceBase {
 
 	public Result processRTMPEndpoint(String streamId, String originAddress, String rtmpUrl, boolean addEndpoint, int resolution) {
 		Result result = new Result(false);
-		if(isInSameNodeInCluster(originAddress)) 
+		if(isInSameNodeInCluster(originAddress))
 		{
 			if(addEndpoint) {
 				result = getMuxAdaptor(streamId).startRtmpStreaming(rtmpUrl, resolution);
@@ -613,7 +605,7 @@ public abstract class RestServiceBase {
 	}
 
 
-	public Result importLiveStreams2Stalker() 
+	public Result importLiveStreams2Stalker()
 	{
 
 		String stalkerDBServer = getAppSettings().getStalkerDBServer();
@@ -625,7 +617,7 @@ public abstract class RestServiceBase {
 		int errorId = -1;
 		if (stalkerDBServer != null && stalkerDBServer.length() > 0
 				&& stalkerDBUsername != null && stalkerDBUsername.length() > 0
-				&& stalkerDBPassword != null && stalkerDBPassword.length() > 0) 
+				&& stalkerDBPassword != null && stalkerDBPassword.length() > 0)
 		{
 
 
@@ -648,9 +640,9 @@ public abstract class RestServiceBase {
 				fqdn = getServerSettings().getHostAddress();
 			}
 
-			int number = 1; 
+			int number = 1;
 			for (Broadcast broadcast : broadcastList) {
-				String cmd = "ffmpeg http://"+ fqdn + ":"+serverSettings.getDefaultHttpPort()+"/" 
+				String cmd = "ffmpeg http://"+ fqdn + ":"+serverSettings.getDefaultHttpPort()+"/"
 						+ getScope().getName() + "/streams/"+broadcast.getStreamId()+".m3u8";
 
 				insertQueryString.append("INSERT INTO stalker_db.itv(name, number, tv_genre_id, base_ch, cmd, languages)"
@@ -695,7 +687,7 @@ public abstract class RestServiceBase {
 
 				if (exitWith == 0) {
 					result = true;
-				}	
+				}
 			}
 
 		} catch (IOException e) {
@@ -703,7 +695,7 @@ public abstract class RestServiceBase {
 		} catch (InterruptedException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			Thread.currentThread().interrupt();
-		} 
+		}
 		return result;
 	}
 
@@ -712,7 +704,7 @@ public abstract class RestServiceBase {
 		String mysqlClientPath = getAppSettings().getMySqlClientPath();
 		if (processBuilderFactory != null) {
 
-			process = processBuilderFactory.make(mysqlClientPath, 
+			process = processBuilderFactory.make(mysqlClientPath,
 					"-h", stalkerDBServer,
 					"-u", stalkerDBUsername,
 					"-p"+stalkerDBPassword,
@@ -721,11 +713,11 @@ public abstract class RestServiceBase {
 		else {
 			try {
 				process = new ProcessBuilder(
-						mysqlClientPath, 
+						mysqlClientPath,
 						"-h", stalkerDBServer,
 						"-u", stalkerDBUsername,
 						"-p"+stalkerDBPassword,
-						"-e",   query  
+						"-e",   query
 						).redirectErrorStream(true).start();
 			} catch (IOException e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -736,7 +728,7 @@ public abstract class RestServiceBase {
 
 	}
 
-	public Result importVoDsToStalker() 
+	public Result importVoDsToStalker()
 	{
 
 		String stalkerDBServer = getAppSettings().getStalkerDBServer();
@@ -752,7 +744,7 @@ public abstract class RestServiceBase {
 			if (vodFolderPath != null && !vodFolderPath.isEmpty()) {
 
 				long totalVodNumber = getDataStore().getTotalVodNumber();
-				int pageCount = (int) totalVodNumber/DataStore.MAX_ITEM_IN_ONE_LIST 
+				int pageCount = (int) totalVodNumber/DataStore.MAX_ITEM_IN_ONE_LIST
 						+ ((totalVodNumber % DataStore.MAX_ITEM_IN_ONE_LIST != 0) ? 1 : 0);
 
 				List<VoD> vodList = new ArrayList<>();
@@ -779,7 +771,7 @@ public abstract class RestServiceBase {
 						File vodFolder = new File(vodFolderPath);
 						int lastIndexOf = vod.getFilePath().lastIndexOf(vodFolder.getName());
 						String filePath = vod.getFilePath().substring(lastIndexOf);
-						String cmd = "ffmpeg http://"+ fqdn + ":"+serverSettings.getDefaultHttpPort()+"/" 
+						String cmd = "ffmpeg http://"+ fqdn + ":"+serverSettings.getDefaultHttpPort()+"/"
 								+ getScope().getName() + "/streams/" + filePath;
 
 						insertQueryString.append("SET @last_id=LAST_INSERT_ID();");
@@ -855,7 +847,7 @@ public abstract class RestServiceBase {
 
 				connResult = getApplication().startStreaming(savedBroadcast);
 				//if IP Camera is not being started while adding, do not record it to datastore
-				if (!connResult.isSuccess()) 
+				if (!connResult.isSuccess())
 				{
 					getDataStore().delete(savedBroadcast.getStreamId());
 				}
@@ -874,7 +866,7 @@ public abstract class RestServiceBase {
 
 		IStatsCollector monitor = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
 
-		if(monitor.enoughResource()) 
+		if(monitor.enoughResource())
 		{
 			if (stream.getType().equals(AntMediaApplicationAdapter.IP_CAMERA)) {
 				result = addIPCamera(stream);
@@ -885,12 +877,12 @@ public abstract class RestServiceBase {
 			else{
 				result.setMessage("Auto start query needs an IP camera or stream source.");
 			}
-		} 
+		}
 		else {
 
-			logger.error("Stream Fetcher can not be created due to high cpu load/limit: {}/{} ram free/minfree:{}/{}", 
+			logger.error("Stream Fetcher can not be created due to high cpu load/limit: {}/{} ram free/minfree:{}/{}",
 					monitor.getCpuLoad(), monitor.getCpuLimit(), monitor.getFreeRam(), monitor.getMinFreeRamSize());
-			result.setMessage("Resource usage is high");		
+			result.setMessage("Resource usage is high");
 			result.setErrorId(HIGH_CPU_ERROR);
 		}
 
@@ -1050,7 +1042,7 @@ public abstract class RestServiceBase {
 
 		IWebRTCAdaptor webRTCAdaptor = getWebRTCAdaptor();
 
-		if (webRTCAdaptor != null) 
+		if (webRTCAdaptor != null)
 		{
 			Collection<WebRTCClientStats> webRTCClientStats = webRTCAdaptor.getWebRTCClientStats(streamId);
 
@@ -1133,23 +1125,23 @@ public abstract class RestServiceBase {
 		return new Result(success, message);
 	}
 
-	protected Result deleteVoDs(String[] vodIds) 
+	protected Result deleteVoDs(String[] vodIds)
 	{
 		Result result = new Result(false);
 		if(vodIds != null)
 		{
-			for (String id : vodIds) 
+			for (String id : vodIds)
 			{
 				result = deleteVoD(id);
-				
-				if (!result.isSuccess()) 
+
+				if (!result.isSuccess())
 				{
 					logger.warn("VoD:{} cannot be deleted and breaking the loop", id);
 					break;
 				}
 			}
 		}
-		else 
+		else
 		{
 			logger.warn("Requested deletion for VoD Ids is empty");
 		}
@@ -1209,23 +1201,24 @@ public abstract class RestServiceBase {
 					if(id != null) {
 						success = true;
 						message = id;
-						
-						String vodFinishScript = getAppSettings().getVodFinishScript();
+
+						String vodFinishScript = getAppSettings().getVodUploadFinishScript();
 						if (vodFinishScript != null && !vodFinishScript.isEmpty()) {
 							getApplication().runScript(vodFinishScript + "  " + savedFile.getAbsolutePath());
 						}
-						
-					} 
+
+					}
 				}
-			} 
+			}
 			else {
+				//this message has a wrong meaning on the other hand it has been used in the frontend(webpanel). Both sides should be updated
 				message = "notMp4File";
 			}
 
-		} 
+		}
 		catch (IOException iox) {
 			logger.error(iox.getMessage());
-		} 
+		}
 
 
 		return new Result(success, id, message);
@@ -1254,35 +1247,17 @@ public abstract class RestServiceBase {
 	}
 
 
-	public MuxAdaptor getMuxAdaptor(String streamId) 
+	public MuxAdaptor getMuxAdaptor(String streamId)
 	{
 		AntMediaApplicationAdapter application = getApplication();
 		MuxAdaptor selectedMuxAdaptor = null;
 
 		if(application != null)
 		{
-			List<MuxAdaptor> muxAdaptors = application.getMuxAdaptors();
-			for (MuxAdaptor muxAdaptor : muxAdaptors) 
-			{
-				if (streamId.equals(muxAdaptor.getStreamId())) 
-				{
-					selectedMuxAdaptor = muxAdaptor;
-					break;
-				}
-			}
+			selectedMuxAdaptor = application.getMuxAdaptor(streamId);
 		}
 
 		return selectedMuxAdaptor;
-	}
-
-	public boolean addRtmpMuxerToMuxAdaptor(String streamId, String rtmpURL) {
-		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
-		boolean result = false;
-		if (muxAdaptor != null) {
-			//result = muxAdaptor.addRTMPEndpoint(rtmpURL);
-		}
-
-		return result;
 	}
 
 	@Nullable
@@ -1296,28 +1271,38 @@ public abstract class RestServiceBase {
 		return mp4Muxer;
 	}
 
-	protected boolean startRecord(String streamId, RecordType recordType) {
-		boolean result = false;
+	protected RecordMuxer startRecord(String streamId, RecordType recordType, int resolutionHeight) {
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
-		if (muxAdaptor != null) 
+		if (muxAdaptor != null)
 		{
-			result = muxAdaptor.startRecording(recordType);
+			return muxAdaptor.startRecording(recordType, resolutionHeight);
+		}
+		else {
+			logger.info("No mux adaptor found for {} recordType:{} resolutionHeight:{}", streamId != null  ?
+					streamId.replaceAll("[\n\r]", "_") : "null ",
+					recordType, resolutionHeight);
 		}
 
-		return result;
+		return null;
 	}
 
-	protected boolean stopRecord(String streamId, RecordType recordType) 
+	/**
+	 *
+	 * @param streamId
+	 * @param recordType
+	 * @param resolutionHeight
+	 * @return
+	 */
+	protected @Nullable RecordMuxer stopRecord(String streamId, RecordType recordType, int resolutionHeight)
 	{
-		boolean result = false;
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 
-		if (muxAdaptor != null) 
+		if (muxAdaptor != null)
 		{
-			result = muxAdaptor.stopRecording(recordType);
+			return muxAdaptor.stopRecording(recordType, resolutionHeight);
 		}
 
-		return result;
+		return null;
 	}
 
 	protected BroadcastStatistics getBroadcastStatistics(String id) {
@@ -1325,7 +1310,8 @@ public abstract class RestServiceBase {
 		int totalRTMPViewer = -1;
 		int totalWebRTCViewer = -1;
 		int totalHLSViewer = -1;
-		if (id != null) 
+		int totalDASHViewer = -1;
+		if (id != null)
 		{
 			IBroadcastScope broadcastScope = getScope().getBroadcastScope(id);
 
@@ -1336,23 +1322,28 @@ public abstract class RestServiceBase {
 			Broadcast broadcast = getDataStore().get(id);
 			if (broadcast != null) {
 				totalHLSViewer = broadcast.getHlsViewerCount();
+				totalDASHViewer = broadcast.getDashViewerCount();
 				totalWebRTCViewer = broadcast.getWebRTCViewerCount();
-			}			
+			}
 		}
 
-		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer);
+		return new BroadcastStatistics(totalRTMPViewer, totalHLSViewer, totalWebRTCViewer,totalDASHViewer);
 	}
 
 	protected AppBroadcastStatistics getBroadcastTotalStatistics() {
 
 		int totalWebRTCViewer = -1;
 		int totalHLSViewer = -1;
+		int totalDASHViewer = -1;
 
 		if (getAppContext().containsBean(HlsViewerStats.BEAN_NAME)) {
 			HlsViewerStats hlsViewerStats = (HlsViewerStats) getAppContext().getBean(HlsViewerStats.BEAN_NAME);
-			if (hlsViewerStats != null) {
-				totalHLSViewer = hlsViewerStats.getTotalViewerCount();
-			}
+			totalHLSViewer = hlsViewerStats.getTotalViewerCount();
+		}
+
+		if (getAppContext().containsBean(DashViewerStats.BEAN_NAME)) {
+			DashViewerStats dashViewerStats = (DashViewerStats) getAppContext().getBean(DashViewerStats.BEAN_NAME);
+			totalDASHViewer = dashViewerStats.getTotalViewerCount();
 		}
 
 
@@ -1364,14 +1355,14 @@ public abstract class RestServiceBase {
 
 		int activeBroadcastCount = (int)getDataStore().getActiveBroadcastCount();
 
-		return new AppBroadcastStatistics(-1, totalHLSViewer, totalWebRTCViewer, activeBroadcastCount);
+		return new AppBroadcastStatistics(-1, totalHLSViewer, totalWebRTCViewer, totalDASHViewer, activeBroadcastCount);
 	}
 
 
 	protected Result getCameraErrorById(String streamId) {
 		Result result = new Result(false);
 
-		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList()) 
+		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList())
 		{
 			if (camScheduler.getStreamId().equals(streamId)) {
 				result = camScheduler.getCameraError();
@@ -1384,23 +1375,23 @@ public abstract class RestServiceBase {
 
 
 
-	public Result startStreamSource(String id) 
+	public Result startStreamSource(String id)
 	{
-		Result result = new Result(false);	
+		Result result = new Result(false);
 		Broadcast broadcast = getDataStore().get(id);
 
-		if (broadcast != null) 
+		if (broadcast != null)
 		{
-			if(broadcast.getStreamUrl() != null || AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) 
+			if(broadcast.getStreamUrl() != null || Objects.equals(broadcast.getType(), AntMediaApplicationAdapter.PLAY_LIST))
 			{
 				result = getApplication().startStreaming(broadcast);
 			}
-			else if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType())) 
+			else if (Objects.equals(broadcast.getType(), AntMediaApplicationAdapter.IP_CAMERA))
 			{
 				//if streamURL is not defined before for IP Camera, connect to it again and define streamURL
 				result = connectToCamera(broadcast);
 
-				if (result.isSuccess()) 
+				if (result.isSuccess())
 				{
 					String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
 					String rtspURLWithAuth = RTSP + authparam + result.getMessage().substring(RTSP.length());
@@ -1419,33 +1410,33 @@ public abstract class RestServiceBase {
 		}
 		return result;
 	}
-	
+
 	public Result skipPlaylistItemProcess(String id, String skipItem) {
-		Result result = new Result(false);	
-		
+		Result result = new Result(false);
+
 		stopStreaming(id);
 		Broadcast broadcast = getDataStore().get(id);
-		
+
 		if(broadcast == null) {
 			result.setMessage("There is no playlist found. Please check Stream ID again");
 			return result;
 		}
-		
+
 		if(skipItem == null) {
 			broadcast.setCurrentPlayIndex(broadcast.getCurrentPlayIndex()+1);
 		}
 		else {
 			broadcast.setCurrentPlayIndex(Integer.parseInt(skipItem));
 		}
-		
+
 		result = getApplication().getStreamFetcherManager().startPlaylist(broadcast);
-		
+
 		return result;
 	}
 
 
 
-	public Result stopStreaming(String id) 
+	public Result stopStreaming(String id)
 	{
 		Result result = new Result(false);
 		Broadcast broadcast = getDataStore().get(id);
@@ -1503,10 +1494,16 @@ public abstract class RestServiceBase {
 		return list;
 	}
 
+	protected String[] getOnvifDeviceProfiles(String id) {
+		OnvifCamera camera = getApplication().getOnvifCamera(id);
+		return camera.getProfiles();
+	}
+
+
 	public String[] getIPArray(List<URL> onvifDevices) {
 
 		String[] list = null;
-		if (onvifDevices != null) 
+		if (onvifDevices != null)
 		{
 			list = new String[onvifDevices.size()];
 			for (int i = 0; i < onvifDevices.size(); i++) {
@@ -1548,7 +1545,7 @@ public abstract class RestServiceBase {
 		List<TensorFlowObject> list = null;
 
 		if (id != null) {
-			list = getDataStore().getDetectionList(id, offset, size);	
+			list = getDataStore().getDetectionList(id, offset, size);
 		}
 
 		if (list == null) {
@@ -1558,19 +1555,27 @@ public abstract class RestServiceBase {
 		return list;
 	}
 
-	protected Object getToken (String streamId, long expireDate, String type, String roomId) 
+	protected ITokenService getTokenService()
+	{
+		ApplicationContext appContext = getAppContext();
+		if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) {
+			return (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
+		}
+		return null;
+	}
+
+	protected Object getToken (String streamId, long expireDate, String type, String roomId)
 	{
 		Token token = null;
 		String message = "Define Stream ID, Token Type and Expire Date (unix time)";
 		if(streamId != null && type != null && expireDate > 0) {
 
-			ApplicationContext appContext = getAppContext();
+			ITokenService tokenService = getTokenService();
 
-			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) 
+			if(tokenService != null)
 			{
-				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
 				token = tokenService.createToken(streamId, expireDate, type, roomId);
-				if(token != null) 
+				if(token != null)
 				{
 					if (getDataStore().saveToken(token)) {
 						//returns token only everything is OK
@@ -1592,25 +1597,24 @@ public abstract class RestServiceBase {
 		return new Result(false, message);
 	}
 
-	protected Object getJwtToken (String streamId, long expireDate, String type, String roomId) 
+	protected Object getJwtToken (String streamId, long expireDate, String type, String roomId)
 	{
 		Token token = null;
 		String message = "Define Stream ID, Token Type and Expire Date (unix time)";
 
 		if(streamId != null && type != null && expireDate > 0) {
 
-			ApplicationContext appContext = getAppContext();
+			ITokenService tokenService = getTokenService();
 
-			if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) 
+			if(tokenService != null)
 			{
-				ITokenService tokenService = (ITokenService)appContext.getBean(ITokenService.BeanName.TOKEN_SERVICE.toString());
 				token = tokenService.createJwtToken(streamId, expireDate, type, roomId);
 				if(token != null)
 				{
 					return token;
 				}
 				else {
-					message = "Cannot create JWT token. It can be a mock token service. Also please check your JWT Stream key parameter";
+					message = "Cannot create JWT token. The problem can be ->  this is community edition or JWT stream key is not set or it's length is less than 32";
 				}
 			}
 			else {
@@ -1643,15 +1647,18 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	public static boolean deleteConferenceRoom(String roomName, DataStore store) {
+	public static boolean deleteConferenceRoom(String roomId, DataStore store) {
 
-		if(roomName != null) {
-			return store.deleteConferenceRoom(roomName);
+		if(roomId != null) {
+			if (logger.isInfoEnabled()) {
+				logger.info("Deleting conference room:{} from database ", roomId.replaceAll(REPLACE_CHARS, "_"));
+			}
+			return store.deleteConferenceRoom(roomId);
 		}
 		return false;
 	}
 
-	protected ConferenceRoom editConferenceRoom(ConferenceRoom room) 
+	protected ConferenceRoom editConferenceRoom(ConferenceRoom room)
 	{
 		if(room != null && getDataStore().editConferenceRoom(room.getRoomId(), room)) {
 			return room;
@@ -1698,8 +1705,8 @@ public abstract class RestServiceBase {
 		Class<RestServiceBase> clazz = RestServiceBase.class;
 		String className = clazz.getSimpleName() + ".class";
 		String classPath = clazz.getResource(className).toString();
-		String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + 
-				"/META-INF/MANIFEST.MF"; 
+		String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) +
+				"/META-INF/MANIFEST.MF";
 
 		try {
 			url = new URL(manifestPath);
@@ -1710,7 +1717,7 @@ public abstract class RestServiceBase {
 		Manifest manifest;
 
 		try {
-			if (url != null) 
+			if (url != null)
 			{
 				manifest = new Manifest(url.openStream());
 				version.setBuildNumber(manifest.getMainAttributes().getValue(RestServiceBase.BUILD_NUMBER));
@@ -1737,7 +1744,16 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	public static Map<String,String> getRoomInfoFromConference(String roomId, String streamId,DataStore store){
+	/**
+	 * Get the active streams in the room
+	 *
+	 * @param roomId: It's the id of the room
+	 * @param streamId: The id of the room to be extracted from the list. It's generally the publisher stream id in websocket communication
+	 * @param store: Datastore object to run the query
+	 *
+	 * @return null if there is no room recorded in the database, returns map filled with the active streams. Key is the streamId, value is the name
+	 */
+	public static Map<String,String> getRoomInfoFromConference(String roomId, String streamId, DataStore store){
 		HashMap<String,String> streamDetailsMap = null;
 
 		if (roomId != null)
@@ -1749,7 +1765,7 @@ public abstract class RestServiceBase {
 			}
 			streamDetailsMap = new HashMap<>();
 
-			List<String> tempList=conferenceRoom.getRoomStreamList();
+			List<String> tempList = conferenceRoom.getRoomStreamList();
 			if(tempList != null) {
 				for (String tmpStreamId : tempList)
 				{
@@ -1766,28 +1782,48 @@ public abstract class RestServiceBase {
 		return streamDetailsMap;
 	}
 
-	public static boolean addStreamToConferenceRoom(String roomId,String streamId,DataStore store){
-		if(roomId!=null){
-			List<String> roomStreamList = null;
-			ConferenceRoom conferenceRoom = store.getConferenceRoom(roomId);
-			if(conferenceRoom!=null){
-				roomStreamList = conferenceRoom.getRoomStreamList();
-				if(!roomStreamList.contains(streamId)){
-					Broadcast broadcast=store.get(streamId);
-					if(broadcast != null) {
-						roomStreamList.add(streamId);
-						conferenceRoom.setRoomStreamList(roomStreamList);
-						store.editConferenceRoom(roomId, conferenceRoom);
-						return true;
-					}
-				}
-			}
+	public static boolean addStreamToConferenceRoom(String roomId, String streamId, DataStore dataStore) {
+		if (roomId == null || streamId == null) {
+			return false;
 		}
-		return false;
+
+		ConferenceRoom conferenceRoom = dataStore.getConferenceRoom(roomId);
+		if (conferenceRoom == null) {
+			return false;
+		}
+
+		List<String> roomStreamList = conferenceRoom.getRoomStreamList();
+		if (roomStreamList.contains(streamId)) {
+			return false;
+		}
+
+		Broadcast broadcast = dataStore.get(streamId);
+		if (broadcast == null) {
+			return false;
+		}
+
+		roomStreamList.add(streamId);
+		conferenceRoom.setRoomStreamList(roomStreamList);
+		dataStore.editConferenceRoom(roomId, conferenceRoom);
+
+		if (conferenceRoom.getMode().equals(ConferenceRoom.MULTI_TRACK_MODE)) {
+			Broadcast multiTrackConferenceBroadcast = dataStore.get(conferenceRoom.getRoomId());
+			String multiTrackConferenceStreamId = multiTrackConferenceBroadcast.getStreamId();
+			broadcast.setMainTrackStreamId(multiTrackConferenceStreamId);
+			boolean success = dataStore.updateBroadcastFields(streamId, broadcast);
+
+			if (success) {
+				return dataStore.addSubTrack(multiTrackConferenceStreamId, streamId);
+			}
+
+			return false;
+		}
+
+		return true;
 	}
 
 
-	public static boolean removeStreamFromRoom(String roomId, String streamId,DataStore store)
+	public static synchronized boolean removeStreamFromRoom(String roomId, String streamId,DataStore store)
 	{
 		if (roomId != null)
 		{
@@ -1805,6 +1841,9 @@ public abstract class RestServiceBase {
 					roomStreamList.remove(streamId);
 					conferenceRoom.setRoomStreamList(roomStreamList);
 					store.editConferenceRoom(roomId, conferenceRoom);
+					if (logger.isInfoEnabled()) {
+						logger.info("stream:{} is removed from room:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), roomId.replaceAll(REPLACE_CHARS, "_"));
+					}
 					return true;
 				}
 			}
@@ -1826,82 +1865,128 @@ public abstract class RestServiceBase {
 		return id;
 	}
 
-	public Result enableRecordMuxing(String streamId, boolean enableRecording, String  type ) {
+	public Result enableRecordMuxing(String streamId, boolean enableRecording, String type, int resolutionHeight)
+	{
 		boolean result = false;
 		String message = null;
-		String status = (enableRecording)?"started":"stopped"; 
-		if (streamId != null) 
+		String status = (enableRecording)?"started":"stopped";
+		String vodId = null;
+
+		RecordType recordType = null;
+		//type cannot be null
+		if (type.equals(RecordType.MP4.toString()))
 		{
-			
+			recordType = RecordType.MP4;
+		}
+		else if (type.equals(RecordType.WEBM.toString()))
+		{
+			recordType = RecordType.WEBM;
+		}
+
+
+		if (streamId != null && recordType != null)
+		{
 			Broadcast broadcast = getDataStore().get(streamId);
-			if (broadcast != null) 
+			if (broadcast != null)
 			{
-				if ( (type.equals(RecordType.WEBM.toString()) && (enableRecording && broadcast.getWebMEnabled() != RECORD_ENABLE )  ||
-						( !enableRecording && broadcast.getWebMEnabled() != RECORD_DISABLE))
-						|| 							
-						( type.equals(RecordType.MP4.toString()) && (enableRecording && broadcast.getMp4Enabled() != RECORD_ENABLE ) ||
-								( !enableRecording && broadcast.getMp4Enabled() != RECORD_DISABLE))
-						)
+				if(!broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 				{
+					if(recordType == RecordType.MP4) {
+						broadcast.setMp4Enabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
+					else {
+						broadcast.setWebMEnabled(enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
 					result = true;
-					//if it's not enabled, start it
-					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-					{	
-						if (isInSameNodeInCluster(broadcast.getOriginAdress())) {
-							if(enableRecording && type.equals(RecordType.WEBM.toString())) {
-								result = startRecord(streamId, RecordType.WEBM);
-							}
-							else if(!enableRecording && type.equals(RecordType.WEBM.toString())) {
-								result = stopRecord(streamId, RecordType.WEBM);
-							}
-							else if (enableRecording && type.equals(RecordType.MP4.toString())) {
-								result = startRecord(streamId, RecordType.MP4);
-							}
-							else if(!enableRecording && type.equals(RecordType.MP4.toString())){
-								result = stopRecord(streamId, RecordType.MP4);
-							}
-							//Check process status result
-							if (result) 
+				}
+				else {
+					boolean isAlreadyRecording = isAlreadyRecording(streamId, recordType, resolutionHeight);
+					//start recording and there is no active recording or stop recording and there is active recording
+					if (enableRecording != isAlreadyRecording)
+					{
+						result = true;
+						RecordMuxer muxer = null;
+
+						if (isInSameNodeInCluster(broadcast.getOriginAdress()))
+						{
+							if (enableRecording)
 							{
-								message=Long.toString(System.currentTimeMillis());
-								logger.warn("{} recording is {} for stream: {}", type,status,streamId);
+								muxer = startRecord(streamId, recordType, resolutionHeight);
+								if (muxer != null) {
+									vodId = RandomStringUtils.randomAlphanumeric(24);
+									muxer.setVodId(vodId);
+									message = Long.toString(muxer.getCurrentVoDTimeStamp());
+									logger.warn("{} recording is {} for stream: {}", type,status,streamId);
+								}
+
 							}
 							else
 							{
-								logFailedOperation(enableRecording,streamId,(type.equals(RecordType.MP4.toString()))?RecordType.MP4:RecordType.WEBM);
-								message= type +" recording couldn't be " + status;
+								muxer = stopRecord(streamId, recordType, resolutionHeight);
+								if (muxer != null) {
+									vodId = muxer.getVodId();
+									message = Long.toString(muxer.getCurrentVoDTimeStamp());
+								}
+							}
+
+							//Check process status result
+							if (muxer == null)
+							{
+								result = false;
+								logFailedOperation(enableRecording, streamId, recordType);
+								message= recordType +" recording couldn't be " + status;
 							}
 						}
-						else {
+						else
+						{
 							message="Please send " + type + " recording request to " + broadcast.getOriginAdress() + " node or send request in a stopped status.";
 							result = false;
 						}
 					}
-					// If record process works well then change record status in DB
-					if(result && enableRecording && type.equals(RecordType.WEBM.toString())) {
-						result = getDataStore().setWebMMuxing(streamId, RECORD_ENABLE);
+					else {
+						if(enableRecording) {
+							message = type+" recording couldn't be started";
+						}
+						else {
+							message = type+" recording couldn't be stopped";
+						}
+						result = false;
 					}
-					else if(result && enableRecording && type.equals(RecordType.MP4.toString())) {
-						result = getDataStore().setMp4Muxing(streamId, RECORD_ENABLE);
-					}
-					else if(result && !enableRecording &&  type.equals(RecordType.WEBM.toString())) {
-						result = getDataStore().setWebMMuxing(streamId, RECORD_DISABLE);
-					}
-					else if(result && !enableRecording &&  type.equals(RecordType.MP4.toString())) {
-						result = getDataStore().setMp4Muxing(streamId, RECORD_DISABLE);
-					}
+
 				}
-				else
+				// If record process works well then change record status in DB
+				if (result)
 				{
-					message =  type + " recording status  is already: " +enableRecording;
+					if (recordType == RecordType.WEBM)
+					{
+						result = getDataStore().setWebMMuxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
+					else if (recordType == RecordType.MP4)
+					{
+						result = getDataStore().setMp4Muxing(streamId, enableRecording ? RECORD_ENABLE : RECORD_DISABLE);
+					}
 				}
 			}
 		}
-		else 
+		else
 		{
-			message = "No stream for this id: " + streamId + " or wrong setting parameter";
+			message = "No stream for this id: " + streamId + " or unexpected record type. Record type is "+ recordType;
 		}
 
-		return new Result(result, message);
+		return new Result(result, vodId, message);
 	}
+
+	public boolean isAlreadyRecording(String streamId, RecordType recordType, int resolutionHeight) {
+		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
+		return muxAdaptor != null && muxAdaptor.isAlreadyRecording(recordType, resolutionHeight);
+	}
+
+	public Result importVoDs(String directory) {
+		return getApplication().importVoDFolder(directory);
+	}
+
+	public Result unlinksVoD(String directory) {
+		return getApplication().unlinksVoD(directory);
+	}
+
 }

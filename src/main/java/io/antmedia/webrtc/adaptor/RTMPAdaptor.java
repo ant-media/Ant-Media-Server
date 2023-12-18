@@ -22,11 +22,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.webrtc.BuiltinAudioDecoderFactoryFactory;
 import org.webrtc.IceCandidate;
+import org.webrtc.Loggable;
+import org.webrtc.Logging;
 import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnection;
 import org.webrtc.PeerConnection.IceServer;
 import org.webrtc.PeerConnection.TcpCandidatePolicy;
+import org.webrtc.PeerConnection.IceServer.Builder;
 import org.webrtc.PeerConnectionFactory;
 import org.webrtc.SessionDescription;
 import org.webrtc.SoftwareVideoEncoderFactory;
@@ -35,6 +38,7 @@ import org.webrtc.VideoFrame.Buffer;
 import org.webrtc.VideoSink;
 import org.webrtc.VideoTrack;
 import org.webrtc.WrappedNativeI420Buffer;
+import org.webrtc.Logging.Severity;
 import org.webrtc.audio.JavaAudioDeviceModule;
 import org.webrtc.audio.WebRtcAudioTrack;
 
@@ -96,6 +100,8 @@ public class RTMPAdaptor extends Adaptor {
 	private int videoFrameCount = 0;
 
 	private long videoFrameLastTimestampMs;
+	private String turnServerUsername;
+	private String turnServerCredential;
 
 	public static class AudioFrame 
 	{
@@ -204,10 +210,16 @@ public class RTMPAdaptor extends Adaptor {
 	}
 
 	public PeerConnectionFactory createPeerConnectionFactory(){
-		PeerConnectionFactory.initialize(
-				PeerConnectionFactory.InitializationOptions.builder()
-				.createInitializationOptions());
+		
+		//PeerConnection library is initialized in the Launcher.java so no need to initialize here again
+		
+		 PeerConnectionFactory.initialize(
+			PeerConnectionFactory.InitializationOptions.builder()
+			.setFieldTrials(null)
+			.createInitializationOptions());
+		
 
+		
 		//support internal webrtc codecs
 		SoftwareVideoEncoderFactory encoderFactory = null;
 		org.webrtc.VideoDecoderFactory decoderFactory = getVideoDecoderFactory();
@@ -239,8 +251,12 @@ public class RTMPAdaptor extends Adaptor {
 					}
 				})
 				.createAudioDeviceModule();
+		
+
 
 		webRtcAudioTrack = adm.getAudioTrack();
+		
+
 		return  PeerConnectionFactory.builder()
 				.setOptions(options)
 				.setAudioDeviceModule(adm)
@@ -249,37 +265,61 @@ public class RTMPAdaptor extends Adaptor {
 				.setAudioDecoderFactoryFactory(audioDecoderFactoryFactory)
 				.createPeerConnectionFactory();
 	}
+	
+	public boolean initPeerConnection(PeerConnectionFactory pcf) {
+		peerConnectionFactory = createPeerConnectionFactory();
+
+		List<IceServer> iceServers = new ArrayList<>();
+		iceServers.add(IceServer.builder(getStunServerUri()).createIceServer());
+
+		Builder iceServerBuilder = IceServer.builder(stunServerUri);
+
+		if (turnServerUsername != null && !turnServerUsername.isEmpty())
+		{
+			iceServerBuilder.setUsername(turnServerUsername);
+		}
+
+		if (turnServerCredential != null && !turnServerCredential.isEmpty()) 
+		{
+			iceServerBuilder.setPassword(turnServerCredential);
+		}
+
+		iceServers.add(iceServerBuilder.createIceServer());
+
+
+		PeerConnection.RTCConfiguration rtcConfig =
+				new PeerConnection.RTCConfiguration(iceServers);
+
+
+		// Enable DTLS for normal calls and disable for loopback calls.
+		//rtcConfig.enableDtlsSrtp = true;
+		rtcConfig.minPort = portRangeMin;
+		rtcConfig.maxPort = portRangeMax;
+		rtcConfig.tcpCandidatePolicy = tcpCandidatesEnabled 
+				? TcpCandidatePolicy.ENABLED 
+						: TcpCandidatePolicy.DISABLED;
+
+		peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, RTMPAdaptor.this);
+		
+		Logging.enableLogToDebugOutput(Severity.LS_ERROR);
+		
+		return true;
+	}
 
 	@Override
 	public void start() {
 		videoEncoderExecutor = Executors.newSingleThreadScheduledExecutor();
 		audioEncoderExecutor = Executors.newSingleThreadScheduledExecutor();
 		signallingExecutor = Executors.newSingleThreadScheduledExecutor();
-
+		
 		signallingExecutor.execute(() -> {
 
 			try {
 
-				peerConnectionFactory = createPeerConnectionFactory();
+				initPeerConnection(peerConnectionFactory);
+				
 
-				List<IceServer> iceServers = new ArrayList<>();
-				iceServers.add(IceServer.builder(getStunServerUri()).createIceServer());
-
-				PeerConnection.RTCConfiguration rtcConfig =
-						new PeerConnection.RTCConfiguration(iceServers);
-
-
-				// Enable DTLS for normal calls and disable for loopback calls.
-				rtcConfig.enableDtlsSrtp = true;
-				rtcConfig.minPort = portRangeMin;
-				rtcConfig.maxPort = portRangeMax;
-				rtcConfig.tcpCandidatePolicy = tcpCandidatesEnabled 
-						? TcpCandidatePolicy.ENABLED 
-								: TcpCandidatePolicy.DISABLED;
-
-				peerConnection = peerConnectionFactory.createPeerConnection(rtcConfig, RTMPAdaptor.this);
-
-				webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession());
+				webSocketCommunityHandler.sendStartMessage(getStreamId(), getSession(), "");
 
 				videoEncoderFuture = videoEncoderExecutor.scheduleWithFixedDelay(this::encodeVideo, 10, 10, TimeUnit.MILLISECONDS);
 				audioEncoderFuture = audioEncoderExecutor.scheduleWithFixedDelay(this::encodeAudio, 10, 10, TimeUnit.MILLISECONDS);
@@ -319,8 +359,9 @@ public class RTMPAdaptor extends Adaptor {
 		logger.info("Scheduling stop procedure for stream: {}", getStreamId());
 		signallingExecutor.execute(() -> {
 
+			
 			logger.info("Executing stop procedure for stream: {}", getStreamId());
-			webSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession());
+			webSocketCommunityHandler.sendPublishFinishedMessage(getStreamId(), getSession(), "");
 
 
 			audioEncoderExecutor.shutdownNow();
@@ -332,6 +373,7 @@ public class RTMPAdaptor extends Adaptor {
 				logger.error(ExceptionUtils.getStackTrace(e1));
 				Thread.currentThread().interrupt();
 			}
+			
 			try {
 				if (peerConnection != null) {
 					peerConnection.close();
@@ -343,6 +385,7 @@ public class RTMPAdaptor extends Adaptor {
 			} catch (FrameRecorder.Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
+			
 
 		});
 		signallingExecutor.shutdown();
@@ -450,35 +493,37 @@ public class RTMPAdaptor extends Adaptor {
 					recorder.setFrameNumber(frameNumber);
 					lastFrameNumber = frameNumber;
 
-					Frame frameCV = new Frame(videoFrameContext.videoFrame.getRotatedWidth(), videoFrameContext.videoFrame.getRotatedHeight(), Frame.DEPTH_UBYTE, 2);
+					try (Frame frameCV = new Frame(videoFrameContext.videoFrame.getRotatedWidth(), videoFrameContext.videoFrame.getRotatedHeight(), Frame.DEPTH_UBYTE, 2))
+					{
 
-					Buffer buffer = videoFrameContext.videoFrame.getBuffer();
-					int[] stride = new int[3];
-					if (buffer instanceof WrappedNativeI420Buffer) {
-						WrappedNativeI420Buffer wrappedBuffer = (WrappedNativeI420Buffer) buffer;
-						((ByteBuffer)(frameCV.image[0].position(0))).put(wrappedBuffer.getDataY());
-						((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataU());
-						((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataV());
+						Buffer buffer = videoFrameContext.videoFrame.getBuffer();
+						int[] stride = new int[3];
+						if (buffer instanceof WrappedNativeI420Buffer) {
+							WrappedNativeI420Buffer wrappedBuffer = (WrappedNativeI420Buffer) buffer;
+							((ByteBuffer)(frameCV.image[0].position(0))).put(wrappedBuffer.getDataY());
+							((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataU());
+							((ByteBuffer)(frameCV.image[0])).put(wrappedBuffer.getDataV());
 
-						stride[0] = wrappedBuffer.getStrideY();
-						stride[1] = wrappedBuffer.getStrideU();
-						stride[2] = wrappedBuffer.getStrideV();
+							stride[0] = wrappedBuffer.getStrideY();
+							stride[1] = wrappedBuffer.getStrideU();
+							stride[2] = wrappedBuffer.getStrideV();
 
-						try {
-							recorder.recordImage(frameCV.imageWidth, frameCV.imageHeight, frameCV.imageDepth,
-									frameCV.imageChannels, stride, AV_PIX_FMT_YUV420P, frameCV.image);
+							try {
+								recorder.recordImage(frameCV.getImageWidth(), frameCV.getImageHeight(), frameCV.getImageDepth(),
+										frameCV.getImageChannels(), stride, AV_PIX_FMT_YUV420P, frameCV.image);
 
-						} catch (FrameRecorder.Exception e) {
-							logger.error(ExceptionUtils.getStackTrace(e));
-							errorLoopCount += 1;
-							if (errorLoopCount > 5){
-								webSocketCommunityHandler.sendServerError(getStreamId(), getSession());
-								stop();
+							} catch (FrameRecorder.Exception e) {
+								logger.error(ExceptionUtils.getStackTrace(e));
+								errorLoopCount += 1;
+								if (errorLoopCount > 5){
+									webSocketCommunityHandler.sendServerError(getStreamId(), getSession());
+									stop();
+								}
 							}
 						}
-					}
-					else {
-						logger.error("Buffer is not type of WrappedNativeI420Buffer for stream: {}", recorder.getFilename());
+						else {
+							logger.error("Buffer is not type of WrappedNativeI420Buffer for stream: {}", recorder.getFilename());
+						}
 					}
 				}
 				else {
@@ -516,7 +561,7 @@ public class RTMPAdaptor extends Adaptor {
 		}
 
 
-		webSocketCommunityHandler.sendPublishStartedMessage(getStreamId(), getSession(), null);
+		webSocketCommunityHandler.sendPublishStartedMessage(getStreamId(), getSession(), null, "");
 
 	}
 
@@ -527,20 +572,29 @@ public class RTMPAdaptor extends Adaptor {
 
 	public void setRemoteDescription(final SessionDescription sdp) {
 		signallingExecutor.execute(() -> 
-		peerConnection.setRemoteDescription(RTMPAdaptor.this, sdp)
+			peerConnection.setRemoteDescription(RTMPAdaptor.this, sdp)
 				);
 
 	}
 
 	public void addIceCandidate(final IceCandidate iceCandidate) {
-		signallingExecutor.execute(() -> {
+		if (iceCandidate.sdpMid != null && iceCandidate.sdp != null) 
+		{
 
-			if (!peerConnection.addIceCandidate(iceCandidate))
-			{
-				log.error("Add ice candidate failed for {}", iceCandidate);
-			}
+			signallingExecutor.execute(() -> {
 
-		});
+				if (!peerConnection.addIceCandidate(iceCandidate))
+				{
+					log.error("Add ice candidate failed for {}", iceCandidate);
+				}
+
+			});
+		}
+		else 
+		{
+			logger.error("It does not add ICE Candidate because sdpMid or sdp are null. "
+					+ "Check the values sdpMid:{} ,sdp:{}", iceCandidate.sdpMid, iceCandidate.sdp);
+		}
 	}
 
 	public boolean isStarted() {
@@ -563,8 +617,10 @@ public class RTMPAdaptor extends Adaptor {
 		return stunServerUri;
 	}
 
-	public void setStunServerUri(String stunServerUri) {
+	public void setStunServerUri(String stunServerUri, String username, String credential) {
 		this.stunServerUri = stunServerUri;
+		this.turnServerUsername = username;
+		this.turnServerCredential = credential;	
 	}
 
 	public void setPortRange(int webRTCPortRangeMin, int webRTCPortRangeMax) {
@@ -615,7 +671,7 @@ public class RTMPAdaptor extends Adaptor {
 	public void setEnableVideo(boolean enableVideo) {
 		this.enableVideo = enableVideo;
 	}
-	
+
 	public boolean isEnableVideo() {
 		return enableVideo;
 	}

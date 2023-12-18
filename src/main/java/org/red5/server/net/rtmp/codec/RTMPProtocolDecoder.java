@@ -234,11 +234,64 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
         // represents "packet" header length via "format" only 1 byte in the chunk header is needed here
         int headerLength = RTMPUtils.getHeaderLength(chunkHeader.getFormat());
         headerLength += chunkHeader.getSize() - 1;
+        //minus 1 because the first byte is already read in  ChunkHeader.read(in)
+        
+        //Check if extended timestamp exists -> https://rtmp.veriskope.com/docs/spec/#54-protocol-control-messages
+        
+        int extendedTimestampLength = 0;
+        int lastPositionBeforeCheck = in.position();
+
+        switch (chunkHeader.getFormat()) {
+	        case  HEADER_NEW:
+	        case  HEADER_SAME_SOURCE:
+	        case  HEADER_TIMER_CHANGE:
+	            /*
+	             * The presence of this field is indicated by setting the timestamp field of a Type 0 chunk, or the timestamp delta field of a 
+	             * Type 1 or 2 chunk, to 16777215 (0xFFFFFF). 
+	             * This field is present in Type 3 chunks when the most recent Type 0, 1, or 2 chunk for the same chunk stream ID indicated 
+	             * the presence of an extended timestamp field.
+	             */
+	        	
+	        	//according to the reference first 3 bytes are timestamp
+	        	//if timestamp is 0xFFFFFF, then it means there is extended timestamp with 4 bytes
+	        	if (in.remaining() >= 3) 
+	        	{
+	        		//following read is 3 byte so make sure there are 3 bytes in the buffer
+		        	int timeValue = RTMPUtils.readUnsignedMediumInt(in);
+		        	if (timeValue == 0xffffff) {
+		        		log.info("Extended timestamp exists because timevalue is 0xffffff chunkheader:{}",chunkHeader);
+		        		extendedTimestampLength = 4;
+		        	}
+	        	}
+	        	break;
+	        case HEADER_CONTINUE:
+	        	Header lastHeader = rtmp.getLastReadHeader(chunkHeader.getChannelId());
+	        	/*
+	        	* This field is present in Type 3 chunks when the most recent Type 0, 1, or 2 chunk for the same chunk stream ID indicated 
+	            * the presence of an extended timestamp field.
+	            * */
+	        	if (lastHeader != null && lastHeader.getExtendedTimestamp() != 0) {
+	        		log.info("Extended timestamp exists in HEADER_CONTINUE last header:{} chunk header:{}", lastHeader, chunkHeader);
+	        		extendedTimestampLength = 4;
+	        	}
+	        	break;
+	        default:
+	        	break;
+        }
+        
+        //reset the position to not break anything
+        in.position(lastPositionBeforeCheck);
+        
+        headerLength += extendedTimestampLength;
+        
+        
         if (in.remaining() < headerLength) {
+        	log.trace("Buffer remaining:{} is smaller than required header length: {}", in.remaining(), headerLength);
             state.bufferDecoding(headerLength - in.remaining());
             in.position(position);
             return null;
         }
+        
         final Header header = decodeHeader(chunkHeader, state, in, rtmp);
         // get the channel id
         final int channelId = header != null ? header.getChannelId() : chunkHeader.getChannelId();

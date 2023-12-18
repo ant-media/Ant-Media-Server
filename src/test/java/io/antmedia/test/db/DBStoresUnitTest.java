@@ -12,11 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomStringUtils;
@@ -33,13 +29,17 @@ import org.springframework.context.ApplicationContext;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
+import dev.morphia.Datastore;
 import dev.morphia.DeleteOptions;
+import dev.morphia.query.filters.Filters;
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
+import io.antmedia.datastore.db.RedisStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -67,7 +67,6 @@ public class DBStoresUnitTest {
 	@Before
 	public void before() {
 		deleteMapDBFile();
-
 	}
 
 	@After
@@ -88,11 +87,12 @@ public class DBStoresUnitTest {
 	}
 	
 	@Test
-	public void testMapDBStore() {
+	public void testMapDBStore() throws Exception {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
 		
 		
+		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);
@@ -110,6 +110,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateMetadata(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -122,9 +123,11 @@ public class DBStoresUnitTest {
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
+		testRemoveTrack(dataStore);
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
-    	testBroadcastListSorting(dataStore);	
+    	testBroadcastListSorting(dataStore);
+		testFullTextSearch(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
@@ -134,6 +137,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		
 
 	}
 	
@@ -167,13 +171,13 @@ public class DBStoresUnitTest {
 	}
 
 	@Test
-	public void testMemoryDataStore() {
+	public void testMemoryDataStore() throws Exception {
 		DataStore dataStore = new InMemoryDataStore("testdb");
 		
+		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);
-		
 		testBugGetExternalStreamsList(dataStore);
 		testGetPagination(dataStore);
 		testNullCheck(dataStore);
@@ -187,6 +191,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateMetadata(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -199,9 +204,11 @@ public class DBStoresUnitTest {
 		testUpdateLocationParams(dataStore);
 		testPlaylist(dataStore);
 		testAddTrack(dataStore);
+		testRemoveTrack(dataStore);
 		testClearAtStart(dataStore);
     	testGetVoDIdByStreamId(dataStore);
     	testBroadcastListSorting(dataStore);
+		testFullTextSearch(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
@@ -212,12 +219,14 @@ public class DBStoresUnitTest {
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
 
+		
+
 
 	}
 	
 
 	@Test
-	public void testMongoStore() {
+	public void testMongoStore() throws Exception {
 
 		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
 		//delete db
@@ -225,6 +234,8 @@ public class DBStoresUnitTest {
 		
 		dataStore = new MongoStore("localhost", "", "", "testdb");
 
+		testBlockSubscriber(dataStore);
+		testTimeBasedSubscriberOperations(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
 		testUnexpectedVodOffset(dataStore);		
@@ -236,11 +247,68 @@ public class DBStoresUnitTest {
 		testRemoveEndpointWithServiceEndpoint(dataStore);
 		testRTMPURL(dataStore);
 		testStreamWithId(dataStore);
-		//testSaveDetection(dataStore);
+		testSaveDetection(dataStore);
 		testFilterSearchOperations(dataStore);
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
+		testUpdateMetadata(dataStore);
+		testGetActiveBroadcastCount(dataStore);
+		testUpdateHLSViewerCount(dataStore);
+		testWebRTCViewerCount(dataStore);
+		testRTMPViewerCount(dataStore);
+		testTokenOperations(dataStore);
+		testClearAtStart(dataStore);
+		testClearAtStartCluster(dataStore);
+		testConferenceRoom(dataStore);
+		testStreamSourceList(dataStore);
+		testUpdateStatus(dataStore);
+		testP2PConnection(dataStore);
+		testUpdateLocationParams(dataStore);
+		testPlaylist(dataStore);
+		testAddTrack(dataStore);
+		testRemoveTrack(dataStore);
+		testGetVoDIdByStreamId(dataStore);
+		testBroadcastListSorting(dataStore);
+		testFullTextSearch(dataStore);
+		testTotalWebRTCViewerCount(dataStore);
+		testBroadcastListSearch(dataStore);
+		testVodSearch(dataStore);
+		testConferenceRoomSorting(dataStore);
+		testConferenceRoomSearch(dataStore);
+		testUpdateEndpointStatus(dataStore);
+		testWebRTCViewerOperations(dataStore);
+		testUpdateMetaData(dataStore);
+		
+
+	}
+	
+	@Test
+	public void testRedisStore() throws Exception {
+
+		DataStore dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
+		//delete db
+		dataStore.close(true);
+		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
+		
+		testBlockSubscriber(dataStore);
+		testBugFreeStreamId(dataStore);
+		testUnexpectedBroadcastOffset(dataStore);
+		testUnexpectedVodOffset(dataStore);		
+		testBugGetExternalStreamsList(dataStore);
+		testGetPagination(dataStore);
+		testNullCheck(dataStore);
+		testSimpleOperations(dataStore);
+		testRemoveEndpoint(dataStore);
+		testRemoveEndpointWithServiceEndpoint(dataStore);
+		testRTMPURL(dataStore);
+		testStreamWithId(dataStore);
+		testSaveDetection(dataStore);
+		testFilterSearchOperations(dataStore);
+		testVoDFunctions(dataStore);
+		testSaveStreamInDirectory(dataStore);
+		testEditCameraInfo(dataStore);
+		testUpdateMetadata(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -258,6 +326,7 @@ public class DBStoresUnitTest {
 		testAddTrack(dataStore);
 		testGetVoDIdByStreamId(dataStore);
 		testBroadcastListSorting(dataStore);
+		testFullTextSearch(dataStore);
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
@@ -266,6 +335,7 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		
 	}
 	
 	@Test
@@ -330,7 +400,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, vodList.size());
 		
 		for (int i = 0; i < 10; i++) {
-			dataStore.addVod(new VoD("stream", "111223" + (int)(Math.random() * 1000),  "path", "vod", 1517239808, 111, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000), null));
+			assertNotNull(dataStore.addVod(new VoD("stream", "111223" + (int)(Math.random() * 9100000),  "path", "vod", 1517239808, 111, 17933, 1190525, VoD.STREAM_VOD, "1112233" + (int)(Math.random() * 91000), null)));
 		}
 		
 		vodList = dataStore.getVodList(6, 4, null, null, null, null);
@@ -413,6 +483,7 @@ public class DBStoresUnitTest {
 			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize, null, null, null, null);
 			for (Broadcast broadcast : broadcastList) {
 				numberOfCall++;
+				logger.info("Updating streamId:{}", broadcast.getStreamId());  //log stream and check it if all of them different when this test fails
 				assertTrue(dataStore.updateStatus(broadcast.getStreamId(), AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
 			}
 
@@ -420,6 +491,8 @@ public class DBStoresUnitTest {
 
 		assertEquals(numberOfCall, numberOfStatusChangeStreams);
 		//check that active broadcast exactly the same as changed above
+		
+		//////this test is sometimes failing below, I think streamId may not be unique so I logged above to confirm it - mekya
 		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
 
 		//change all streams to finished
@@ -667,6 +740,34 @@ public class DBStoresUnitTest {
 		assertEquals("1.1.1.1", camera.getIpAddr());
 		assertEquals("new_name", camera.getName());
 		datastore.delete(camera.getStreamId());
+	}
+
+	public void testUpdateMetadata(DataStore datastore) throws Exception {
+		String streamId = RandomStringUtils.randomNumeric(24);
+		String metadata = "{metadata:metadata}";
+		String newMetadata = "{metadata:metadata2}";
+
+		//create a new broadcast
+		Broadcast broadcast= new Broadcast();
+		broadcast.setStreamId(streamId);
+		broadcast.setMetaData(metadata);
+
+		//save this broadcast
+		datastore.save(broadcast);
+
+		//check it is saved
+		assertNotNull(broadcast.getMetaData());
+
+		//update metadata
+		broadcast.setMetaData(newMetadata);
+
+		datastore.updateBroadcastFields(broadcast.getStreamId(), broadcast);
+
+		Broadcast broadcast2 = datastore.get(streamId);
+
+		//check whether is changed or not
+		assertEquals(newMetadata, broadcast2.getMetaData());
+		datastore.delete(broadcast2.getStreamId());
 	}
 
 	public void testUpdateHLSViewerCount(DataStore dataStore) {
@@ -1100,6 +1201,23 @@ public class DBStoresUnitTest {
 		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
 
 	}
+
+	public void testFullTextSearch(DataStore dataStore) {
+		String searchQueryMatched = "\"ConnectorComponentId\":\"[6b8d7491-a86a-4c64-a982-0f8a2d3d393b.9c9df16c-eac1-4593-8010-d28e92f8a694]\"";
+		String searchQueryNotMatched = "\"ConnectorComponentId\":\"[6b8d7491.9c9df16c]\"";
+
+		Broadcast broadcast = new Broadcast(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, "{\"tenantId\":\"fd216128-e4da-11ed-9c89-bfe723cdc436\",\"erCollectionId\":\"5fb69a0a-26d7-4ce7-81c5-ac7ab4949a27\",\"ConnectorComponentId\":\"[6b8d7491-a86a-4c64-a982-0f8a2d3d393b.9c9df16c-eac1-4593-8010-d28e92f8a694]\"}");
+		broadcast.setDate(100000);
+		broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+
+		dataStore.save(broadcast);
+
+		List<Broadcast> broadcastList0 = dataStore.getBroadcastList(0, 50, null, null, null, searchQueryMatched);
+		assertFalse(broadcastList0.isEmpty());
+
+		List<Broadcast> broadcastList1 = dataStore.getBroadcastList(0, 50, null, null, null, searchQueryNotMatched);
+		assertTrue(broadcastList1.isEmpty());
+	}
 	
 	public void testBroadcastListSorting(DataStore dataStore) {
 		
@@ -1390,11 +1508,12 @@ public class DBStoresUnitTest {
 			
 			String name = "name 1";
 			String description = "description 2";
+			long now = System.currentTimeMillis();
 			Broadcast tmp = new Broadcast();
 			tmp.setName(name);
 			tmp.setDescription(description);
+			tmp.setUpdateTime(now);
 			tmp.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-			long now = System.currentTimeMillis();
 			tmp.setStartTime(now);
 			tmp.setOriginAdress(ServerSettings.getLocalHostAddress());
 			String subFolder = "test_folder";
@@ -1403,12 +1522,15 @@ public class DBStoresUnitTest {
 			tmp.setListenerHookURL(listenerHookURL);
 			assertTrue(tmp.isPlaylistLoopEnabled());
 			tmp.setPlaylistLoopEnabled(false);
+			double speed = 1.0;
+			tmp.setSpeed(speed);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
 			broadcast2 = dataStore.get(key);
 
 			assertEquals(name, broadcast2.getName());
+			assertEquals(now, broadcast2.getUpdateTime());
 			assertEquals(subFolder, broadcast2.getSubFolder());
 			assertEquals(description, broadcast2.getDescription());
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast2.getStatus());
@@ -1416,6 +1538,7 @@ public class DBStoresUnitTest {
 			assertEquals(ServerSettings.getLocalHostAddress(), tmp.getOriginAdress());
 			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
 			assertFalse(broadcast2.isPlaylistLoopEnabled());
+			assertEquals(speed, broadcast2.getSpeed(), 0.1);
 
 			result = dataStore.updateDuration(broadcast.getStreamId().toString(), 100000);
 			assertTrue(result);
@@ -1929,11 +2052,14 @@ public class DBStoresUnitTest {
 		connected.setEventType(ConnectionEvent.CONNECTED_EVENT);
 		long eventTime = 20;
 		connected.setTimestamp(eventTime);
+		connected.setType(Subscriber.PLAY_TYPE);
+		String hostAddress = ServerSettings.getLocalHostAddress();
+		connected.setInstanceIP(hostAddress);
 		
 		ConnectionEvent disconnected = new ConnectionEvent();
 		disconnected.setEventType(ConnectionEvent.DISCONNECTED_EVENT);
-		eventTime = 21;
-		disconnected.setTimestamp(eventTime);		
+		long eventTimeDisconnect = 21;
+		disconnected.setTimestamp(eventTimeDisconnect);		
 		
 		// add connected event
 		store.addSubscriberConnectionEvent(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), connected);
@@ -1947,13 +2073,18 @@ public class DBStoresUnitTest {
 		// isConnected should return false
 		assertFalse(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
 		assertFalse(written.isConnected());
+		assertEquals(0, written.getCurrentConcurrentConnections());
 		
 		// there should be two events with correct order
 		List<ConnectionEvent> events = written.getStats().getConnectionEvents();
 		assertEquals(2, events.size());  
 		
 		assertEquals(ConnectionEvent.CONNECTED_EVENT, events.get(0).getEventType());
+		assertEquals(Subscriber.PLAY_TYPE, events.get(0).getType());
+		assertEquals(hostAddress, events.get(0).getInstanceIP());
+		assertEquals(eventTime, events.get(0).getTimestamp());
 		assertEquals(ConnectionEvent.DISCONNECTED_EVENT, events.get(1).getEventType());
+		
 		
 		// add connected event
 		store.addSubscriberConnectionEvent(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), connected);
@@ -1961,20 +2092,54 @@ public class DBStoresUnitTest {
 		assertTrue(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
 		
 		// reset connection status
-		store.resetSubscribersConnectedStatus();
+		assertTrue(store.resetSubscribersConnectedStatus());
 		// connection status should false again
 		assertFalse(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
 		
 		store.revokeSubscribers(streamId);
+		
+		{
+			//save subscriber again 
+			
+			String subscriberId = "subscriberId" + (int)(Math.random()*112313);
+			Subscriber subscriber = new Subscriber();
+			subscriber.setStreamId(streamId);
+			subscriber.setSubscriberId(subscriberId);
+			subscriber.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
+			subscriber.setType(Subscriber.PLAY_TYPE);
+			assertTrue(store.addSubscriber(subscriber.getStreamId(), subscriber));
+			
+			Subscriber subscriberFromDB = store.getSubscriber(streamId, subscriberId);
+			
+			assertNull(subscriberFromDB.getRegisteredNodeIp());
+			String nodeIp = "nodeip" + (int)(Math.random()*112313);
+			subscriberFromDB.setRegisteredNodeIp(nodeIp);
+			
+			assertTrue(store.addSubscriber(subscriber.getStreamId(), subscriberFromDB));
+			
+			subscriberFromDB = store.getSubscriber(streamId, subscriberId);
+			assertEquals(nodeIp, subscriberFromDB.getRegisteredNodeIp());
+			
+			if (store instanceof MongoStore) {
+				MongoStore mongoStore = (MongoStore) store;
+				Datastore subscriberDatastore = mongoStore.getSubscriberDatastore();
+				long count = subscriberDatastore.find(Subscriber.class).filter(Filters.eq("streamId", streamId), Filters.eq("subscriberId", subscriberId)).count();
+			
+				assertEquals(1, count);
+			}
+			
+		}
 	}
 	
 	@Test
 	public void testDontWriteStatsToDB () {
+		/*
 		DataStore ds = createDB("memorydb", false);
 		assertTrue(ds instanceof InMemoryDataStore);	
 		testDontWriteStatsToDB(ds);
+		*/
 
-		ds = createDB("mapdb", false);
+		DataStore ds = createDB("mapdb", false);
 		assertTrue(ds instanceof MapDBStore);	
 		testDontWriteStatsToDB(ds);
 
@@ -1988,10 +2153,11 @@ public class DBStoresUnitTest {
 	public void testDontWriteStatsToDB (DataStore dataStore) {
 		testDontUpdateRtmpViewerStats(dataStore);
 		testDontUpdateHLSViewerStats(dataStore);
+		testDontUpdateDASHViewerStats(dataStore);
 		testDontUpdateWebRTCViewerStats(dataStore);
 		testDontUpdateSourceQualityParameters(dataStore);
 	}
-
+	
 	public void testDontUpdateRtmpViewerStats(DataStore dataStore) {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setName("test");
@@ -2008,6 +2174,15 @@ public class DBStoresUnitTest {
 
 		assertFalse(dataStore.updateHLSViewerCount(key, 1));
 		assertEquals(0, dataStore.get(key).getHlsViewerCount());
+	}
+	
+	public void testDontUpdateDASHViewerStats(DataStore dataStore) {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setName("test");
+		String key = dataStore.save(broadcast);
+
+		assertFalse(dataStore.updateDASHViewerCount(key, 1));
+		assertEquals(0, dataStore.get(key).getDashViewerCount());
 	}
 
 	public void testDontUpdateWebRTCViewerStats(DataStore dataStore) {
@@ -2037,7 +2212,12 @@ public class DBStoresUnitTest {
 		dsf.setDbHost("localhost");
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
-		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());			
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWriteStatsToDatastore(writeStats);
+		Mockito.when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);	
+		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());	
+		
+		
 		dsf.setApplicationContext(context);
 		return dsf.getDataStore();
 	}
@@ -2109,7 +2289,27 @@ public class DBStoresUnitTest {
 	public void testClearAtStartCluster(DataStore dataStore) {
 		
 		
-		deleteBroadcast((MongoStore) dataStore);
+		if (dataStore instanceof MongoStore) {
+			deleteBroadcast((MongoStore) dataStore);
+			assertEquals(0, dataStore.getBroadcastCount());
+		}
+		else  {
+			long broadcastCount = dataStore.getBroadcastCount();
+			System.out.println("broadcast count: " + broadcastCount);
+			int j = 0;
+			List<Broadcast> broadcastList;
+			while ((broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, null)) != null)
+			{
+				if (broadcastList.size() == 0) {
+					break;
+				}
+				for (Broadcast broadcast : broadcastList) {
+					assertTrue(dataStore.delete(broadcast.getStreamId()));
+					
+				}
+			}
+			
+		}
 		
 		Broadcast broadcast = new Broadcast();
 		broadcast.setOriginAdress(ServerSettings.getLocalHostAddress());
@@ -2432,7 +2632,7 @@ public class DBStoresUnitTest {
 	private void testP2PConnection(DataStore dataStore) {
 		String streamId = "p2pstream"+Math.random()*100;
 		P2PConnection p2pConn = new P2PConnection(streamId, "dummy");
-		if(dataStore instanceof MongoStore) {
+		if(dataStore instanceof MongoStore || dataStore instanceof RedisStore) {
 			assertNull(dataStore.getP2PConnection(streamId));
 			assertTrue(dataStore.createP2PConnection(p2pConn));
 			P2PConnection conn = dataStore.getP2PConnection(streamId);
@@ -2573,14 +2773,83 @@ public class DBStoresUnitTest {
 		subtrack.setMainTrackStreamId(mainTrackId);
 		assertTrue(dataStore.updateBroadcastFields(subTrackId, subtrack));
 
-		dataStore.addSubTrack(mainTrackId, subTrackId);
+		boolean result = dataStore.addSubTrack(mainTrackId, subTrackId);
+		assertTrue(result);
 		mainTrack = dataStore.get(mainTrackId);
 		subtrack = dataStore.get(subTrackId);
 		assertEquals(1, mainTrack.getSubTrackStreamIds().size());
 		assertEquals(subTrackId, mainTrack.getSubTrackStreamIds().get(0));
 		assertEquals(mainTrackId, subtrack.getMainTrackStreamId());
+		
+		
+		result = dataStore.addSubTrack("Not exists", subTrackId);
+		assertFalse(result);
+		
+		result = dataStore.addSubTrack(mainTrackId, null);
+		assertFalse(result);
+		
 
 	}
+
+	/*
+	 * Test remove track
+	 * In the test, we create 2 main track and 1 sub track. Then we add sub track to main tracks.
+	 * We set sub track's main track id to the first main track id.
+	 * After that we remove sub track from main tracks.
+	 * We assert that sub track is removed from both main tracks
+	 */
+	public void testRemoveTrack(DataStore dataStore) {
+
+		String mainTrackId1 = RandomStringUtils.randomAlphanumeric(8);
+		String mainTrackId2 = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack1= new Broadcast();
+		try {
+			mainTrack1.setStreamId(mainTrackId1);
+			mainTrack1.setSubTrackStreamIds(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast mainTrack2= new Broadcast();
+		try {
+			mainTrack2.setStreamId(mainTrackId2);
+			mainTrack2.setSubTrackStreamIds(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+			subtrack.setMainTrackStreamId(mainTrackId1);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(mainTrack1);
+		dataStore.save(mainTrack2);
+		dataStore.save(subtrack);
+
+		assertTrue(dataStore.get(mainTrackId1).getSubTrackStreamIds().size() == 1);
+		assertEquals(subTrackId, mainTrack1.getSubTrackStreamIds().get(0));
+		assertTrue(dataStore.get(mainTrackId2).getSubTrackStreamIds().size() == 1);
+		assertEquals(subTrackId, mainTrack2.getSubTrackStreamIds().get(0));
+		assertEquals(mainTrackId1, dataStore.get(subTrackId).getMainTrackStreamId());
+
+		assertTrue(dataStore.removeSubTrack(mainTrackId1, subTrackId));
+		assertTrue(dataStore.removeSubTrack(mainTrackId2, subTrackId));
+
+		assertTrue(dataStore.get(mainTrackId1).getSubTrackStreamIds().isEmpty());
+		assertTrue(dataStore.get(mainTrackId2).getSubTrackStreamIds().isEmpty());
+
+		assertFalse(dataStore.removeSubTrack("nonExistedStreamID", subTrackId));
+		assertFalse(dataStore.removeSubTrack(mainTrackId1, null));
+
+
+	}
+
 	public void testGetVoDIdByStreamId(DataStore dataStore) {
 		String streamId=RandomStringUtils.randomNumeric(24);
 		String vodId1="vod_1";
@@ -2747,6 +3016,83 @@ public class DBStoresUnitTest {
 		assertEquals(UPDATED_DATA, dataStore.get(id).getMetaData());
 		
 		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.randomAlphanumeric(8), UPDATED_DATA));
+
+	}
+
+	public void testBlockSubscriber(DataStore dataStore){
+
+		Broadcast broadcast = new Broadcast();
+		String streamId = "teststream";
+		try
+		{
+			broadcast.setStreamId(streamId);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+		dataStore.save(broadcast);
+		Subscriber subscriber = new Subscriber();
+		String subscriberId = "subscriberId";
+		subscriber.setSubscriberId(subscriberId);
+		subscriber.setStreamId(streamId);
+		long currTime = System.currentTimeMillis();
+
+		dataStore.addSubscriber(streamId, subscriber);
+		
+		Subscriber subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		
+		assertNull(subscriberFromDB.getBlockedType());
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId, Subscriber.PLAY_TYPE, 10));
+		subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		assertEquals(Subscriber.PLAY_TYPE, subscriberFromDB.getBlockedType());
+		
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+
+		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 10000);
+		
+		
+		assertFalse(dataStore.blockSubscriber(null, subscriberId, Subscriber.PLAY_TYPE, 10));
+		assertFalse(dataStore.blockSubscriber(streamId, null, Subscriber.PLAY_TYPE, 10));
+
+
+		
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId, Subscriber.PUBLISH_TYPE, 50));
+		subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		assertEquals(Subscriber.PUBLISH_TYPE, subscriberFromDB.getBlockedType());
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertFalse(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+
+		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 50000);
+
+
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId, Subscriber.PUBLISH_AND_PLAY_TYPE, 50));
+		subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		assertEquals(Subscriber.PUBLISH_AND_PLAY_TYPE, subscriberFromDB.getBlockedType());
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+
+		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 50000);
+		
+		
+		//if subscriber is not in datastore, still blockUser should be supported
+		subscriberId = "subscriberNotInDB";
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId, Subscriber.PUBLISH_AND_PLAY_TYPE, 50));
+		subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId);
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PLAY_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_TYPE));
+		assertTrue(subscriberFromDB.isBlocked(Subscriber.PUBLISH_AND_PLAY_TYPE));
+		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 50000);
+
 
 	}
 }

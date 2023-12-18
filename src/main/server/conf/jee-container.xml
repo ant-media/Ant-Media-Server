@@ -34,7 +34,6 @@
 			</bean>
 		</property>
 	</bean>
-	<bean id="tokenGenerator" class="io.antmedia.filter.TokenGenerator" />
 	cluster end -->
 
 
@@ -51,6 +50,7 @@
 						value="org.apache.coyote.http11.Http11Nio2Protocol" />
 					<property name="address" value="${http.host}:${http.port}" />
 					<property name="redirectPort" value="${https.port}" />
+					<property name="upgradeHttp2Protocol" value="${http.upgradeHttp2Protocol:true}" />
 					<property name="connectionProperties">
 						<map>
 							<entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}" />
@@ -69,27 +69,25 @@
 						<property name="protocol" value="org.apache.coyote.http11.Http11Nio2Protocol"/> 
 						<property name="address" value="${http.host}:${https.port}" /> 
 						<property name="redirectPort" value="${http.port}" /> 
+						<property name="upgradeHttp2Protocol" value="${http.upgradeHttp2Protocol:true}" />
+
 						<property name="connectionProperties"> 
 							<map> 
-								<entry key="port" value="${https.port}" /> 
-								<entry key="redirectPort" value="${http.port}" /> 
-								<entry key="SSLEnabled" value="true" /> 
-								<entry key="sslEnabledProtocols" value="TLSv1.2" /> 
-								<entry key="sslProtocol" value="TLSv1.2" />
-                            	                                <entry key="useServerCipherSuitesOrder" value="true" />
-                            	                                <entry key="ciphers" value="TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_DHE_RSA_WITH_AES_256_CCM_8,TLS_DHE_RSA_WITH_AES_256_CCM" />
-								<entry key="SSLCertificateFile" value="${http.ssl_certificate_file}" />
-								<entry key="SSLCertificateChainFile" value="${http.ssl_certificate_chain_file}" />
-                                                                <entry key="SSLCertificateKeyFile" value="${http.ssl_certificate_key_file}" />
-								<entry key="clientAuth" value="false" /> 
-								<entry key="allowUnsafeLegacyRenegotiation" value="true" /> 
-								<entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}"/> 
-								<entry key="keepAliveTimout" value="-1"/> 
-								<entry key="useExecutor" value="true"/> 
-								<entry key="maxThreads" value="${http.max_threads}"/> 
-								<entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/> 
-								<entry key="processorCache" value="${http.processor_cache}"/> 
-								<entry key="relaxedQueryChars" value="{}" />
+								<entry key="sslEnabledProtocols" value="TLSv1.2" />
+                                <entry key="useServerCipherSuitesOrder" value="true" />
+                                <entry key="ciphers" value="TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256,TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_DHE_RSA_WITH_AES_256_CCM_8,TLS_DHE_RSA_WITH_AES_256_CCM" />
+                                <entry key="SSLCertificateFile" value="${http.ssl_certificate_file}" />
+                                <entry key="SSLCertificateChainFile" value="${http.ssl_certificate_chain_file}" />
+                                <entry key="SSLCertificateKeyFile" value="${http.ssl_certificate_key_file}" />
+                                <entry key="clientAuth" value="false" />
+                                <entry key="maxKeepAliveRequests" value="${http.max_keep_alive_requests}"/>
+                                <entry key="keepAliveTimout" value="-1"/>
+                                <entry key="useExecutor" value="true"/>
+                                <entry key="maxThreads" value="${http.max_threads}"/>
+                                <entry key="acceptorThreadCount" value="${http.acceptor_thread_count}"/>
+                                <entry key="processorCache" value="${http.processor_cache}"/>
+                                <entry key="relaxedQueryChars" value="{}" />
+
 							</map> 
 						</property> 
 					</bean>
@@ -105,6 +103,11 @@
 
 		<property name="valves">
 			<list>
+			    <!-- This valve replaces the apparent client remote IP address and hostname for the request with the IP address list presented by a proxy or a load balancer via a request headers (e.g. "X-Forwarded-For").
+					If the request is coming to the server through load balancer, this valve lets Tomcat see the client original ip address(that makes the request to tthe load balancer) as client Remote IP
+					If load balancer address is not in the internalProxies and trustedProxies, this operation may fail.
+					
+				-->
 				<bean id="valve.access" class="org.apache.catalina.valves.RemoteIpValve" />
 				<bean id="valve.access" class="org.apache.catalina.valves.AccessLogValve">
 					<property name="directory" value="log" />
@@ -117,7 +120,6 @@
 				
 				<!-- cluster start
 				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve">
-					<property name="tokenGenerator" ref="tokenGenerator" />
 					<property name="asyncSupported" value="true" />
 				</bean>
 				cluster end --> 

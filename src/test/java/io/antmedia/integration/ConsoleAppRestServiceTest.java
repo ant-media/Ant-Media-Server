@@ -10,10 +10,12 @@ import static org.junit.Assert.fail;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Instant;
@@ -22,23 +24,33 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import io.antmedia.console.rest.CommonRestService;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.entity.mime.HttpMultipartMode;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
+import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.awaitility.Awaitility;
 import org.codehaus.plexus.util.ExceptionUtils;
+import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -72,6 +84,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.TOTPGenerator;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.StatsCollector;
 import io.antmedia.test.StreamFetcherUnitTest;
 import net.bytebuddy.utility.RandomString;
 
@@ -90,7 +103,7 @@ public class ConsoleAppRestServiceTest{
 	private static final String LOG_LEVEL_TEST = "TEST";
 
 	private static String TEST_USER_EMAIL = "test@antmedia.io";
-	private static String TEST_USER_PASS = "testtest";
+	private static String TEST_USER_PASS = "05a671c66aefea124cc08b76ea6d30bb"; // hash of "testtest"
 	private static Process tmpExec;
 	private static final String SERVER_ADDR = ServerSettings.getLocalHostAddress(); 
 	private static final String SERVICE_URL = "http://localhost:5080/LiveApp/rest";
@@ -107,7 +120,7 @@ public class ConsoleAppRestServiceTest{
 		System.out.println("ROOT SERVICE URL: " + ROOT_SERVICE_URL);
 
 	}
-	
+
 	public static class Applications {
 		public String[] applications;
 	}
@@ -231,19 +244,19 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testCreateAppShellBug() {
-		
+
 		String installLocation = "/usr/local/antmedia";
 		//String installLocation = "/Users/mekya/softwares/ant-media-server";
-		
+
 		String command = "sudo " + installLocation + "/create_app.sh -c true -n testapp -m 127.0.0.1:27018 -u user -s password -p " + installLocation;
-		
+
 		try {
-			
+
 			Process exec = Runtime.getRuntime().exec(command);
-			
+
 			InputStream errorStream = exec.getErrorStream();
 			byte[] data = new byte[1024];
 			int length = 0;
@@ -251,29 +264,29 @@ public class ConsoleAppRestServiceTest{
 			{
 				System.out.println("error stream -> " + new String(data, 0, length));
 			}
-			
+
 			InputStream inputStream = exec.getInputStream();
 			while ((length = inputStream.read(data, 0, data.length)) > 0) 
 			{
 				System.out.println("inputStream stream -> " + new String(data, 0, length));
 			}
-			
-		
+
+
 			exec.waitFor();
-			
-			
+
+
 			File propertiesFile = new File( installLocation + "/webapps/testapp/WEB-INF/red5-web.properties");
-	        String content = Files.readString(propertiesFile.toPath());
-	        
-	        content.contains("db.type=mongodb");
-	        content.contains("db.user=user");
-	        content.contains("db.host=127.0.0.1:27018");
-	        content.contains("db.password=password");
-	        
-	        
-	        exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/testapp ");
-	        assertEquals(0, exec.waitFor());
-	        
+			String content = Files.readString(propertiesFile.toPath());
+
+			content.contains("db.type=mongodb");
+			content.contains("db.user=user");
+			content.contains("db.host=127.0.0.1:27018");
+			content.contains("db.password=password");
+
+
+			exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/testapp ");
+			assertEquals(0, exec.waitFor());
+
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -282,43 +295,200 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
-	
-	
 	@Test
-	public void testCreateApp() 
+	public void testQuotesBug() {
+
+		String installLocation = "/usr/local/antmedia";
+
+		String command = "sudo " + installLocation + "/create_app.sh -c true -n testapp -m 'mongodb://user:password@127.0.0.1:27018/admin?readPreference=secondaryPreferred' " + installLocation;
+
+		try {
+			Process exec;
+			File warfile = new File(installLocation + "/webapps/root/testapp.war");
+			boolean exists = warfile.exists();
+			if(exists) {
+				exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/root/testapp.war");
+				assertEquals(0, exec.waitFor());
+			}
+
+			exec = Runtime.getRuntime().exec(command);
+
+			InputStream errorStream = exec.getErrorStream();
+			byte[] data = new byte[1024];
+			int length = 0;
+			while ((length = errorStream.read(data, 0, data.length)) > 0)
+			{
+				System.out.println("error stream -> " + new String(data, 0, length));
+			}
+
+			InputStream inputStream = exec.getInputStream();
+			while ((length = inputStream.read(data, 0, data.length)) > 0)
+			{
+				System.out.println("inputStream stream -> " + new String(data, 0, length));
+			}
+			exec.waitFor();
+
+			File propertiesFile = new File( installLocation + "/webapps/testapp/WEB-INF/red5-web.properties");
+			String content = Files.readString(propertiesFile.toPath());
+
+			Pattern hostPattern = Pattern.compile("db.host=(.*)");
+			Matcher hostMatcher = hostPattern.matcher(content);
+
+			if(hostMatcher.find()){
+				String host= hostMatcher.group(1);
+				String expressions [] = {"^'(.*)'$","^\"(.*)\"$"}; //check if host property is wrapped in single or double quotes
+
+				assertEquals(false,host == null || host.equals("")); // check if host is empty
+
+				for(String expression :expressions){
+					Pattern quotesPattern = Pattern.compile(expression);
+					Matcher quotesMatcher = quotesPattern.matcher(host);
+					boolean match  = quotesMatcher.matches();
+					if(match){
+						System.out.println("Failed: Host property stored in the property file within quotes ");
+					}
+					assertEquals(false,match);
+				}
+			}else {
+				System.out.println("host property not found in the file.");
+				assert(true);
+			}
+
+			exec = Runtime.getRuntime().exec("sudo rm -rf " + installLocation + "/webapps/testapp ");
+			assertEquals(0, exec.waitFor());
+
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
+	public String getStreamAppWar(String installLocation) 
 	{
+		File file = new File(installLocation);
+		assertTrue(file.isDirectory());
 		
-		Applications applications = getApplications();
-		int appCount = applications.applications.length;
+		File[] listFiles = file.listFiles();
+		for (int i = 0; i < listFiles.length; i++) 
+		{
+			File tmpFile = listFiles[i];
+			if (tmpFile.getName().contains("StreamApp") && tmpFile.getName().contains(".war")) 
+			{
+				return tmpFile.getAbsolutePath();
+			}
+			
+		}
 		
+		return null;
+	}
+
+	@Test
+	public void testCreateCustomApp() 
+	{
 		String appName = RandomString.make(20);
 		log.info("app:{} will be created", appName);
-		Result result = createApplication(appName);
-		assertTrue(result.isSuccess());
-		
+
+		Applications applications = getApplications();
+		assertTrue(applications.applications.length > 0);
+		int appCount = applications.applications.length;
+
+		String installLocation = "/usr/local/antmedia";  //"/Users/mekya/softwares/ant-media-server";
+		String warFilepath = getStreamAppWar(installLocation);
+		assertNotNull(warFilepath);
+
+		File warFile = new File(warFilepath);
+		assertTrue(warFile.exists());
+		boolean created = createApplication(appName, warFile);
+		assertTrue(created);
+
 		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
-			.until(() ->  {
-				Applications tmpApplications = getApplications();
-				return tmpApplications.applications.length == appCount + 1;
-			});
-		
-		
-		result = deleteApplication(appName);
+		.until(() ->  {
+			Applications tmpApplications = getApplications();
+			return tmpApplications.applications.length == appCount + 1;
+		});
+
+		Result result = deleteApplication(appName);
 		assertTrue(result.isSuccess());
-		
+
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
 			Applications tmpApplications = getApplications();
 			return tmpApplications.applications.length == appCount;
 		});
+	}
+	
+	@Test
+	public void testCreateDeleteAppAggresive() {
 		
+		Applications applications = getApplications();
+		int appCount = applications.applications.length;
+
+		String appName = RandomString.make(20);
+		log.info("app:{} will be created", appName);
+		Result result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
+			return deleteApplication(appName).isSuccess();
+		});
+		
+		result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
+			return deleteApplication(appName).isSuccess();
+		});
+		
+		result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
+			return deleteApplication(appName).isSuccess();
+		});
+		
+		result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+	}
+
+	@Test
+	public void testCreateApp() 
+	{
+
+		Applications applications = getApplications();
+		int appCount = applications.applications.length;
+
+		String appName = RandomString.make(20);
+		log.info("app:{} will be created", appName);
+		Result result = createApplication(appName);
+		assertTrue(result.isSuccess());
+
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		.until(() ->  {
+			Applications tmpApplications = getApplications();
+			return tmpApplications.applications.length == appCount + 1;
+		});
+
+
+		result = deleteApplication(appName);
+		assertTrue(result.isSuccess());
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		.until(() ->  {
+			Applications tmpApplications = getApplications();
+			return tmpApplications.applications.length == appCount;
+		});
+
 		//create the application again with the same name because there was a bug for that
-		
+
 		//just wait for 5+ seconds to make sure cluster is synched
 		Awaitility.await().pollInterval(6, TimeUnit.SECONDS).until(() -> true);
 		result = createApplication(appName);
 		assertTrue(result.isSuccess());
-		
+
 		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
 			Applications tmpApplications = getApplications();
@@ -326,13 +496,13 @@ public class ConsoleAppRestServiceTest{
 		});
 		result = deleteApplication(appName);
 		assertTrue(result.isSuccess());
-		
+
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
 			Applications tmpApplications = getApplications();
 			return tmpApplications.applications.length == appCount;
 		});
-		
+
 	}
 
 	/**
@@ -432,13 +602,11 @@ public class ConsoleAppRestServiceTest{
 
 			assertEquals("newServerName", serverSettings.getServerName());
 			assertEquals("newLicenseKey", serverSettings.getLicenceKey());
-			assertEquals(!isMarketRelease, serverSettings.isBuildForMarket());
 
 			// return back to original values
 
 			serverSettings.setServerName(serverName);
 			serverSettings.setLicenceKey(licenseKey);
-			serverSettings.setBuildForMarket(isMarketRelease);
 
 			//save original settings
 			result = callSetServerSettings(serverSettings);
@@ -534,7 +702,7 @@ public class ConsoleAppRestServiceTest{
 			//get Log Level Check (Default Log Level INFO)
 			ServerSettings serverSettings = callGetServerSettings();
 			String logLevel = serverSettings.getLogLevel();
-			
+
 			assertEquals(LOG_LEVEL_INFO, logLevel);
 
 			// change Log Level Check (INFO -> WARN)
@@ -684,7 +852,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 			appSettings = callGetAppSettings(appName);
-			
+
 			String remoteAllowedCIDR = appSettings.getRemoteAllowedCIDR();
 			assertEquals("127.0.0.1", remoteAllowedCIDR);
 
@@ -693,7 +861,7 @@ public class ConsoleAppRestServiceTest{
 
 			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
-			
+
 			appSettings = callGetAppSettings(appName);
 			assertEquals("", appSettings.getRemoteAllowedCIDR());
 
@@ -775,7 +943,7 @@ public class ConsoleAppRestServiceTest{
 			appSettingsModel.setEncoderSettings(Arrays.asList(new EncoderSettings(240, 300000, 64000,true)));
 
 			appSettingsModel.setGeneratePreview(true);
-			
+
 			result = callSetAppSettings("LiveApp", appSettingsModel);
 			assertTrue(result.isSuccess());
 
@@ -990,6 +1158,12 @@ public class ConsoleAppRestServiceTest{
 				});
 
 				AppFunctionalV2Test.destroyProcess();
+				
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> {
+					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
+					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+				});
 			}
 
 			{
@@ -1108,7 +1282,7 @@ public class ConsoleAppRestServiceTest{
 			.pollDelay(5, TimeUnit.SECONDS)
 			.atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" 	+ broadcast.getStreamId() + ".m3u8") && 
-						!MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "_0p0005.ts")
+						!MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "_0p00000000005.ts")
 						|| clusterResult.isSuccess();
 			});
 
@@ -1298,7 +1472,7 @@ public class ConsoleAppRestServiceTest{
 			//it should be false, because publishing is not allowed and hls files are not created
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8?token=" + accessToken.getTokenId(), true)==404 
-						&& ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "0005.ts?token=" + accessToken.getTokenId(), true) == 404;
+						&& ConsoleAppRestServiceTest.getStatusCode("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "000000005.ts?token=" + accessToken.getTokenId(), true) == 404;
 			});
 
 			rtmpSendingProcess.destroy();
@@ -1323,8 +1497,8 @@ public class ConsoleAppRestServiceTest{
 			.pollDelay(5, TimeUnit.SECONDS)
 			.atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(()-> {
 				return  !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + ".m3u8") &&
-						 !MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "0005.ts") ||
-						 clusterResult.isSuccess();
+						!MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/"+ appName + "/streams/" + broadcast.getStreamId() + "000000005.ts") ||
+						clusterResult.isSuccess();
 			});
 
 			rtmpSendingProcessToken.destroy();
@@ -1394,6 +1568,9 @@ public class ConsoleAppRestServiceTest{
 
 			// get Server Settings
 			ServerSettings serverSettings = callGetServerSettings();
+			
+			//it should not marketplace build
+			assertFalse(serverSettings.isBuildForMarket());
 
 			//set test license key
 			serverSettings.setLicenceKey("test-test");
@@ -1409,7 +1586,7 @@ public class ConsoleAppRestServiceTest{
 			//it should not be null because test license key is active
 			assertNotNull(activeLicence);
 
-			//set build for market as true
+			//set build for market as true - it should not effect
 			serverSettings.setBuildForMarket(true);
 
 			//save this setting
@@ -1417,7 +1594,12 @@ public class ConsoleAppRestServiceTest{
 
 			//check that setting is saved
 			assertTrue (flag.isSuccess());
-
+			
+			serverSettings = callGetServerSettings();
+				
+			//it should not marketplace build and it cannot be changed true rest api
+			assertFalse(serverSettings.isBuildForMarket());
+			
 
 			//check license status
 
@@ -1427,18 +1609,7 @@ public class ConsoleAppRestServiceTest{
 			assertNotNull(activeLicence);
 
 			//its status is null
-			assertNull(activeLicence.getStatus());
-
-
-
-			//set build for market setting to default
-			serverSettings.setBuildForMarket(false);
-
-			//save default setting
-			flag = callSetServerSettings(serverSettings);
-
-			//check that setting is saved
-			assertTrue (flag.isSuccess());
+			assertEquals("NO_LICENSE_FOUND", activeLicence.getStatus());
 
 
 		} catch (Exception e) {
@@ -1581,6 +1752,23 @@ public class ConsoleAppRestServiceTest{
 
 			assertTrue(jsObject.containsKey("totalLiveStreamSize"));
 
+
+			String ffmpegBuildConf = (String) jsObject.get(StatsCollector.FFMPEG_BUILD_INFO);
+
+			assertTrue(ffmpegBuildConf.contains("--enable-cuda"));
+			assertTrue(ffmpegBuildConf.contains("--enable-libnpp"));
+			assertTrue(ffmpegBuildConf.contains("--extra-cflags=-I/usr/local/cuda/include"));
+			assertTrue(ffmpegBuildConf.contains("--extra-ldflags=-L/usr/local/cuda/lib64"));
+
+			//crystalhd is not supported in after 20.04 so remove them
+			assertTrue(ffmpegBuildConf.contains("--disable-decoder=h264_crystalhd"));
+			assertTrue(ffmpegBuildConf.contains("--disable-decoder=mpeg2_crystalhd"));
+			assertTrue(ffmpegBuildConf.contains("--disable-decoder=vc1_crystalhd"));
+			assertTrue(ffmpegBuildConf.contains("--disable-decoder=mpeg4_crystalhd"));
+			assertTrue(ffmpegBuildConf.contains("--disable-decoder=msmpeg4_crystalhd"));
+			assertTrue(ffmpegBuildConf.contains("--disable-decoder=wmv3_crystalhd"));
+
+
 			System.out.println("system resource info: " + systemResourcesInfo);
 
 		}
@@ -1635,8 +1823,8 @@ public class ConsoleAppRestServiceTest{
 			appSettings.setHlsMuxingEnabled(true);
 			Result result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
-			
-			
+
+
 			//check app settings in await because there may be some updates from cluster 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS)
 			.until(() -> {
@@ -1664,6 +1852,7 @@ public class ConsoleAppRestServiceTest{
 
 				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
 				assertTrue(result.isSuccess());
+				assertNotNull(result.getDataId());
 
 				//it should be true this time, because stream mp4 setting is 1 although general setting is disabled
 
@@ -1679,6 +1868,11 @@ public class ConsoleAppRestServiceTest{
 			});
 
 			rtmpSendingProcess.destroy();
+			
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return null == RestServiceV2Test.callGetBroadcast(streamName);
+			});
 
 
 			//restore mp4 muxing
@@ -1710,9 +1904,6 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 
-
-
-
 			rtmpSendingProcess = execute(
 					ffmpegPath + " -re -i src/test/resources/test.flv -c copy -an -f flv rtmp://"
 							+ SERVER_ADDR + "/LiveApp/" + streamName);
@@ -1728,10 +1919,12 @@ public class ConsoleAppRestServiceTest{
 				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 1);
 				assertTrue(result.isSuccess());
 				assertNotNull(result.getMessage());
+				assertNotNull(result.getDataId());
 				Thread.sleep(recordDuration);
 
 				result = RestServiceV2Test.callEnableMp4Muxing(streamName, 0);
 				assertTrue(result.isSuccess());
+				assertNotNull(result.getDataId());
 
 				//it should be true this time, because stream mp4 setting is 1 although general setting is disabled
 
@@ -1741,6 +1934,10 @@ public class ConsoleAppRestServiceTest{
 			}
 
 			rtmpSendingProcess.destroy();
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return null == RestServiceV2Test.callGetBroadcast(streamName);
+			});
 
 			//restore mp4 muxing
 			appSettings.setMp4MuxingEnabled(mp4MuxingEnabled);
@@ -1818,6 +2015,7 @@ public class ConsoleAppRestServiceTest{
 
 
 			rtmpSendingProcess.destroy();
+			log.info("Process is destroyed forcibly for rtmp sending");
 
 			//it should be true this time, because stream mp4 setting is 1 although general setting is disabled
 			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
@@ -2233,7 +2431,7 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	public static Result callSetAppSettings(String appName, AppSettings appSettingsModel) throws Exception {
-		
+
 		String url = ROOT_SERVICE_URL + "/applications/settings/" + appName;
 		try (CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build())
@@ -2471,19 +2669,24 @@ public class ConsoleAppRestServiceTest{
 		tmpExec = null;
 		new Thread() {
 			public void run() {
-				try {
 
-					tmpExec = Runtime.getRuntime().exec(command);
-					InputStream errorStream = tmpExec.getErrorStream();
+				try {
 					byte[] data = new byte[1024];
 					int length = 0;
 
+					tmpExec = Runtime.getRuntime().exec(command);
+					//Reminder: reading error stream through input stream provides stability in test
+					//Otherwise it can fill the buffer and it shows inconsistent and hard to find issue
+					
+					InputStream errorStream = tmpExec.getErrorStream();
 					while ((length = errorStream.read(data, 0, data.length)) > 0) {
 						log.info(new String(data, 0, length));
 					}
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+
+
 			};
 		}.start();
 
@@ -2582,7 +2785,7 @@ public class ConsoleAppRestServiceTest{
 	public static void setHttpCookieStore(BasicCookieStore httpCookieStore) {
 		ConsoleAppRestServiceTest.httpCookieStore = httpCookieStore;
 	}
-	
+
 	public static Result createApplication(String appName) {
 		Result result = new Result(false);
 
@@ -2591,7 +2794,7 @@ public class ConsoleAppRestServiceTest{
 			HttpUriRequest post = RequestBuilder.post().setUri(url)
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.build();
-			
+
 			System.out.println("create app url:"+ url);
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
@@ -2613,7 +2816,47 @@ public class ConsoleAppRestServiceTest{
 		return result;
 
 	}
-	
+
+
+	public static boolean createApplication(String appName, File warFile) {
+		boolean result = false;
+
+		try {
+
+			assertTrue(warFile.exists());
+			MultipartEntityBuilder builder = MultipartEntityBuilder.create();      
+			builder.setMode(HttpMultipartMode.STRICT);
+
+			InputStream inputStream = new FileInputStream(warFile.getPath());
+
+			builder.addBinaryBody("file", inputStream, ContentType.DEFAULT_BINARY, warFile.getName());
+
+			HttpEntity entity = builder.build();
+
+			HttpPut httpPut = new HttpPut(ROOT_SERVICE_URL + "/applications/" + appName);
+
+			httpPut.setEntity(entity);
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).setDefaultCookieStore(httpCookieStore).build();
+			CloseableHttpResponse response = client.execute(httpPut);
+
+			String content = EntityUtils.toString(response.getEntity());
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				System.out.println(response.getStatusLine()+content);
+			}
+
+			System.out.println("result string: " + content);
+			return  gson.fromJson(content, Result.class).isSuccess();
+
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return false;
+
+	}
+
 	public static Result deleteApplication(String appName) {
 		Result result = new Result(false);
 
@@ -2629,6 +2872,7 @@ public class ConsoleAppRestServiceTest{
 
 			String content = EntityUtils.toString(response.getEntity());
 
+			log.info("Respose for create application is {}", content);
 			if (response.getStatusLine().getStatusCode() != 200) {
 				System.out.println(response.getStatusLine()+content);
 			}
@@ -2641,12 +2885,12 @@ public class ConsoleAppRestServiceTest{
 		return result;
 
 	}
-	
-	
-	
+
+
+
 	public static Applications getApplications() {
 		try {
-			
+
 			HttpUriRequest get = RequestBuilder.get().setUri(ROOT_SERVICE_URL+"/applications")
 					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 					.build();
@@ -2656,16 +2900,16 @@ public class ConsoleAppRestServiceTest{
 			CloseableHttpResponse response = client.execute(get);
 
 			String content = EntityUtils.toString(response.getEntity());
-			
+
 			if (response.getStatusLine().getStatusCode() != 200) {
 				System.out.println(response.getStatusLine()+content);
 			}
-			
+
 			Type listType = new TypeToken<List<String>>() {}.getType();
 			System.out.println("content:"+content);
-			
-			
-			 return gson.fromJson(content, Applications.class);
+
+
+			return gson.fromJson(content, Applications.class);
 
 		} catch (Exception e) {
 			e.printStackTrace();

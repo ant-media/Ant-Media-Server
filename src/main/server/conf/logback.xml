@@ -3,7 +3,7 @@
     <property file="${red5.root}/conf/red5.properties"/>
     <appender class="ch.qos.logback.core.ConsoleAppender" name="CONSOLE">
         <encoder>
-            <pattern>%d{ISO8601} [%thread] %logger - %msg%n</pattern>
+            <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -20,10 +20,10 @@
         <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
           <fileNamePattern>/var/log/antmedia/ant-media-server.%i.log.gz</fileNamePattern>
           <minIndex>1</minIndex>
-          <maxIndex>2</maxIndex>
+          <maxIndex>3</maxIndex>
         </rollingPolicy>
         <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-          <maxFileSize>500MB</maxFileSize>
+          <maxFileSize>50MB</maxFileSize>
         </triggeringPolicy>
         <encoder>
             <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
@@ -33,15 +33,15 @@
     <root level="${logLevel}">
         <appender-ref ref="CONSOLE" />
         <appender-ref ref="FILE" />
-        <appender-ref ref="ERROR_FILE" />
         <appender-ref ref="AntmediaLogger"/>
     </root>
+    <logger name="org.red5" level="${logLevel}" />
     <logger name="org.springframework" level="${logLevel}" />
     <logger name="org.springframework.scheduling" level="${logLevel}" />
     <logger name="org.apache" level="${logLevel}" />
     <logger name="org.apache.jasper.servlet" level="${logLevel}" />
     <logger name="ch.qos" level="${logLevel}" />
-    <logger name="com.antstreaming" level="${logLevel}"/>
+    <logger name="io.antmedia" level="${logLevel}"/>
     <logger name="org.quartz" level="${logLevel}"/>
     <logger name="org.apache.catalina.core.ApplicationContext" level="${logLevel}" />
 </configuration>

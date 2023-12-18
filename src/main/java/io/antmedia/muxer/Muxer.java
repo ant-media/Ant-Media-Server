@@ -1,19 +1,7 @@
 package io.antmedia.muxer;
 
-import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_alloc;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_free;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_get_by_name;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_init;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_receive_packet;
-import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_send_packet;
-import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_free;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_ref;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
-import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
-import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_from_context;
-import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avformat.*;
 import static org.bytedeco.ffmpeg.global.avformat.AVIO_FLAG_WRITE;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
 import static org.bytedeco.ffmpeg.global.avformat.av_write_trailer;
@@ -41,6 +29,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,7 +37,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import io.antmedia.FFmpegUtilities;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
@@ -59,6 +51,7 @@ import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
@@ -100,6 +93,8 @@ import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
  *
  */
 public abstract class Muxer {
+
+	private long currentVoDTimeStamp = 0;
 
 	protected String extension;
 	protected String format;
@@ -163,8 +158,14 @@ public abstract class Muxer {
 	protected AVPacket videoPkt;
 	protected int rotation;
 
+	/**
+	 * ts and m4s files index length
+	 */
+	public static final int SEGMENT_INDEX_LENGTH = 9;
 
 	protected Map<Integer, Integer> inputOutputStreamIndexMap = new ConcurrentHashMap<>();
+
+	private int resolution;
 
 	public  static final AVRational avRationalTimeBase;
 	static {
@@ -172,6 +173,16 @@ public abstract class Muxer {
 		avRationalTimeBase.num(1);
 		avRationalTimeBase.den(1);
 	}
+
+	/**
+	 * By default first video key frame are not checked, so it's true.
+	 *
+	 * If the first video key frame should be checked, make this setting to false. It's being used in RecordMuxer and HLSMuxer
+	 */
+	protected boolean firstKeyFrameReceived = true;
+	private long lastPts;
+
+	protected AVDictionary optionDictionary = new AVDictionary(null);
 
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
@@ -245,13 +256,18 @@ public abstract class Muxer {
 
 
 	public boolean openIO() {
-		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0) 
+	
+
+		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0)
 		{
+			//if it's different from zero, it means no file is need to be open.
+			//If it's zero, Not "no file" and it means that file is need to be open .
+			String url =  getOutputURL();
 			AVIOContext pb = new AVIOContext(null);
 
-			int ret = avformat.avio_open(pb,  getOutputURL(), AVIO_FLAG_WRITE);
+			int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
 			if (ret < 0) {
-				logger.warn("Could not open output url: {} ",  getOutputURL());
+				logger.warn("Could not open output url: {} ",  url);
 				return false;
 			}
 			getOutputFormatContext().pb(pb);
@@ -301,7 +317,8 @@ public abstract class Muxer {
 				av_dict_set(optionsDictionary, key, options.get(key), 0);
 			}
 
-		}		
+		}	
+			
 
 		int ret = avformat_write_header(getOutputFormatContext(), optionsDictionary);		
 		if (ret < 0) {
@@ -372,13 +389,19 @@ public abstract class Muxer {
 		}
 
 		/* close output */
-		if (outputFormatContext != null && (outputFormatContext.flags() & AVFMT_NOFILE) == 0 && outputFormatContext.pb() != null)
+		if (outputFormatContext != null &&
+				(outputFormatContext.oformat().flags() & AVFMT_NOFILE) == 0 
+						&& outputFormatContext.pb() != null
+						&& (outputFormatContext.flags() & AVFormatContext.AVFMT_FLAG_CUSTOM_IO) == 0)
+		{
 			avio_closep(outputFormatContext.pb());
+		}
 
 		if (outputFormatContext != null) {
 			avformat_free_context(outputFormatContext);
 			outputFormatContext = null;
 		}
+		av_dict_free(optionDictionary);
 	}
 
 	/**
@@ -436,7 +459,6 @@ public abstract class Muxer {
 			logPacketIssue("Not writing packet for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
 			return;
 		}
-
 		int inputStreamIndex = pkt.stream_index();
 		int outputStreamIndex = inputOutputStreamIndexMap.get(inputStreamIndex);
 		AVStream outStream = outputFormatContext.streams(outputStreamIndex);
@@ -492,9 +514,9 @@ public abstract class Muxer {
 	 * Inits the file to write. Multiple encoders can init the muxer. It is
 	 * redundant to init multiple times.
 	 */
-	public void init(IScope scope, String name, int resolution, String subFolder, int bitrate) {
+	public void init(IScope scope, String name, int resolution, String subFolder, int videoBitrate) {
 		this.streamId = name;
-		init(scope, name, resolution, true, subFolder, bitrate);
+		init(scope, name, resolution, true, subFolder, videoBitrate);
 	}
 
 	/**
@@ -525,6 +547,7 @@ public abstract class Muxer {
 		if (!isInitialized) {
 			isInitialized = true;
 			this.scope = scope;
+			this.resolution = resolution;
 
 			//Refactor: Getting AppSettings smells here
 			IContext context = this.scope.getContext();
@@ -573,11 +596,14 @@ public abstract class Muxer {
 		// set default name
 		String resourceName = name;
 		int bitrateKbps = bitrate / 1000;
+		
+		// added before the if statement because of if addDateTimeToResourceName parameter return false, currentVoDTimeStamp returns 0
+		LocalDateTime ldt =  LocalDateTime.now();
+		currentVoDTimeStamp = ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
 		// add date time parameter to resource name if it is set
 		if (addDateTimeToResourceName) 
 		{
-			LocalDateTime ldt =  LocalDateTime.now();
 			resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
 			if (logger.isInfoEnabled()) {
 				logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
@@ -662,7 +688,7 @@ public abstract class Muxer {
 	 * @param streamIndex, is the stream index of source
 	 * @return
 	 */
-	public synchronized boolean addAudioStream(int sampleRate, int channelLayout, int codecId, int streamIndex) {
+	public synchronized boolean addAudioStream(int sampleRate, AVChannelLayout channelLayout, int codecId, int streamIndex) {
 		boolean result = false;
 		AVFormatContext outputContext = getOutputFormatContext();
 		if (outputContext != null && isCodecSupported(codecId))
@@ -670,7 +696,7 @@ public abstract class Muxer {
 			registeredStreamIndexList.add(streamIndex);
 			AVStream outStream = avformat_new_stream(outputContext, null);
 			outStream.codecpar().sample_rate(sampleRate);
-			outStream.codecpar().channel_layout(channelLayout);
+			outStream.codecpar().ch_layout(channelLayout);
 			outStream.codecpar().codec_id(codecId);
 			outStream.codecpar().codec_type(AVMEDIA_TYPE_AUDIO);
 			outStream.codecpar().codec_tag(0);
@@ -719,6 +745,7 @@ public abstract class Muxer {
 				)
 		{
 
+			
 			AVStream outStream = avNewStream(outputContext);
 			//if it's not running add to the list
 			registeredStreamIndexList.add(streamIndex);
@@ -733,16 +760,17 @@ public abstract class Muxer {
 				}
 
 			}
-
+			String codecType = "audio";
 			if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
 			{
+				codecType = "video";
 				videoWidth = codecParameters.width();
 				videoHeight = codecParameters.height();
 			}
 
 			avcodec_parameters_copy(outStream.codecpar(), codecParameters);
-			logger.info("Adding timebase to the input time base map index:{} value: {}/{} for stream:{}", 
-					outStream.index(), timebase.num(), timebase.den(), streamId);
+			logger.info("Adding timebase to the input time base map index:{} value: {}/{} for stream:{} type:{}", 
+					outStream.index(), timebase.num(), timebase.den(), streamId, codecType);
 			inputTimeBaseMap.put(streamIndex, timebase);
 			inputOutputStreamIndexMap.put(streamIndex, outStream.index());
 
@@ -751,6 +779,16 @@ public abstract class Muxer {
 
 		}
 		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {
+			if(codecParameters.codec_id() == AV_CODEC_ID_TIMED_ID3) {
+				AVStream outStream = avNewStream(outputContext);
+				registeredStreamIndexList.add(streamIndex);
+
+				avcodec_parameters_copy(outStream.codecpar(), codecParameters);
+				logger.info("Adding ID3 stream timebase to the input time base map index:{} value: {}/{} for stream:{}",
+						outStream.index(), timebase.num(), timebase.den(), streamId);
+				inputTimeBaseMap.put(streamIndex, timebase);
+				inputOutputStreamIndexMap.put(streamIndex, outStream.index());
+			}
 			//if it's data, do not add and return true
 			result = true;
 		}
@@ -798,6 +836,7 @@ public abstract class Muxer {
 			return;
 		}
 
+		
 		/*
 		 * Rotation field is used add metadata to the mp4.
 		 * this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
@@ -848,6 +887,12 @@ public abstract class Muxer {
 		this.isRunning = isRunning;
 	}
 
+	public void setOption(String optionName,String value){
+		av_dict_set(optionDictionary, optionName, value, 0);
+	}
+	public AVDictionary getOptionDictionary(){
+		return optionDictionary;
+	}
 	public abstract boolean isCodecSupported(int codecId);
 
 	public abstract AVFormatContext getOutputFormatContext();
@@ -860,6 +905,27 @@ public abstract class Muxer {
 	 * @return true to drop the packet, false to not drop packet
 	 */
 	public boolean checkToDropPacket(AVPacket pkt, int codecType) {
+		if (!firstKeyFrameReceived && codecType == AVMEDIA_TYPE_VIDEO) 
+		{
+			if(firstVideoDts == -1) {
+				firstVideoDts = pkt.dts();
+			}
+
+			int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
+			//we set start time here because we start recording with key frame and drop the other
+			//setting here improves synch between audio and video
+			if (keyFrame == 1) {
+				firstKeyFrameReceived = true;
+				logger.warn("First key frame received for stream: {}", streamId);
+			} else {
+				logger.info("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
+				// return if firstKeyFrameReceived is not received
+				// below return is important otherwise it does not work with like some encoders(vidiu)
+				return true;
+
+			}
+		}
+		//don't drop packet because it's either audio packet or key frame is received
 		return false;
 	}
 
@@ -885,9 +951,8 @@ public abstract class Muxer {
 	 * @param outputTimebase
 	 * output time base is required to calculate the correct dts and pts values for the container
 	 */
-	protected void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
+	protected synchronized void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
-
 		AVFormatContext context = getOutputFormatContext();
 
 		long pts = pkt.pts();
@@ -934,14 +999,15 @@ public abstract class Muxer {
 			if (ret < 0) {
 				logger.error("Cannot copy video packet for {}", streamId);
 				return;
-			}
-
+			}			
 			/*
 			 * We add this check because when encoder calls this method the packet needs extra data inside
 			 * However, SFUForwarder calls writeVideoBuffer and the method packets itself there
 			 * To prevent memory issues and crashes we don't repacket if the packet is ready to use from SFU forwarder
 			 */
 			addExtradataIfRequired(pkt, isKeyFrame);
+
+			lastPts = tmpPacket.pts();
 
 			writeVideoFrame(tmpPacket, context);
 			av_packet_unref(tmpPacket);
@@ -951,11 +1017,7 @@ public abstract class Muxer {
 			pkt.pts(av_rescale_q_rnd(pkt.pts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts(), inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
-			int ret = av_write_frame(context, pkt);
-
-			if (ret < 0 && logger.isWarnEnabled()) {
-				logPacketIssue("cannot frame to muxer({}) not audio and not video. Error is {} ", file.getName(), getErrorDefinition(ret));
-			}
+			writeDataFrame(pkt, context);
 		}
 
 		pkt.pts(pts);
@@ -963,6 +1025,21 @@ public abstract class Muxer {
 		pkt.duration(duration);
 		pkt.pos(pos);
 
+	}
+
+	public void writeDataFrame(AVPacket pkt, AVFormatContext context) {
+		int ret = av_packet_ref(tmpPacket , pkt);
+		if (ret < 0) {
+			logger.error("Cannot copy data packet for {}", streamId);
+			return;
+		}
+
+		ret = av_write_frame(context, tmpPacket);
+
+		if (ret < 0 && logger.isWarnEnabled()) {
+			logPacketIssue("cannot frame to muxer({}) not audio and not video. Error is {} ", file.getName(), getErrorDefinition(ret));
+		}
+		av_packet_unref(tmpPacket);
 	}
 
 	public void addExtradataIfRequired(AVPacket pkt, boolean isKeyFrame) 
@@ -981,25 +1058,28 @@ public abstract class Muxer {
 
 	protected void writeVideoFrame(AVPacket pkt, AVFormatContext context) {
 		int ret;
+		
 		if (videoBsfFilterContext != null) 
 		{
 			ret = av_bsf_send_packet(videoBsfFilterContext, pkt);
-			if (ret < 0)
+			if (ret < 0) {
+				logger.warn("Cannot send packet to bit stream filter for stream:{}", streamId);
 				return;
-
+			}
 			while (av_bsf_receive_packet(videoBsfFilterContext, pkt) == 0)
 			{
 				ret = av_write_frame(context, tmpPacket);
 				if (ret < 0 && logger.isWarnEnabled()) {
 					logger.warn("cannot write video frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), getErrorDefinition(ret));
 				}
-
 			}
 		}
-		else {
-
+		else 
+		{
 			ret = av_write_frame(context, pkt);
 			if (ret < 0 && logger.isWarnEnabled()) {
+				//TODO: this is written for some muxers like HLS because normalized video time is coming from WebRTC
+				//WebRTCVideoForwarder#getVideoTime. Fix this problem when upgrading the webrtc stack
 				logger.warn("cannot write video frame to muxer({}). Pts: {} dts:{}  Error is {} ", file.getName(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
 			}
 		}
@@ -1017,7 +1097,9 @@ public abstract class Muxer {
 	public static long getDurationInMs(File f, String streamId) {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		int ret;
-		streamId = streamId.replaceAll("[\n\r\t]", "_");
+		if (streamId != null) {
+			streamId = streamId.replaceAll("[\n\r\t]", "_");
+		}
 		if (avformat_open_input(inputFormatContext, f.getAbsolutePath(), null, (AVDictionary)null) < 0) 
 		{
 			loggerStatic.info("cannot open input context for duration for stream: {} for file:{}", streamId, f.getName());
@@ -1043,7 +1125,7 @@ public abstract class Muxer {
 	public static String getErrorDefinition(int errorCode) {
 		byte[] data = new byte[128];
 		av_strerror(errorCode, data, data.length);
-		return new String(data, 0, data.length);
+		return FFmpegUtilities.byteArrayToString(data);
 	}
 
 	/**
@@ -1103,5 +1185,15 @@ public abstract class Muxer {
 		return isRunning;
 	}
 	
-	
+	public long getCurrentVoDTimeStamp() {
+		return currentVoDTimeStamp;
+	}
+
+	public void setCurrentVoDTimeStamp(long currentVoDTimeStamp) {
+		this.currentVoDTimeStamp = currentVoDTimeStamp;
+	}
+
+	public int getResolution() {
+		return resolution;
+	}
 }

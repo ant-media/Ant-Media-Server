@@ -66,7 +66,7 @@ if [ -z "$APP_NAME" ]; then
 fi
 
 if [[ -z "$APP_NAME" ]]; then
-    echo "Error: Missing parameter APPLICATON_NAME. Check instructions below"
+    echo "Error: Missing parameter APPLICATION_NAME. Check instructions below"
     usage
     exit 1
 fi
@@ -109,7 +109,7 @@ check_result
 
 WAR_FILE_NAME=`basename $WAR_FILE`
 
-jar -xf $WAR_FILE_NAME
+unzip $WAR_FILE_NAME
 check_result
 
 rm $WAR_FILE_NAME
@@ -134,6 +134,10 @@ check_result
 sed -i $SED_COMPATIBILITY 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
 check_result
 
+if [[ $MONGO_HOST == \'*\' ]]; then
+  MONGO_HOST="${MONGO_HOST:1:-1}"
+fi
+
 if [[ "$IS_CLUSTER" == "true" ]]; then
     echo "Cluster mode"
 	sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='mongodb'/' $RED5_PROPERTIES_FILE
@@ -148,12 +152,12 @@ fi
 
 if [[ $AS_WAR == "true" ]]; then
   echo "Application will deployed as war" 
-  jar -cvf $AMS_DIR/webapps/$APP_NAME.war -C $APP_DIR .  
+  cd $APP_DIR 
+  zip -r ../$APP_NAME.war *  
   rm -r $APP_DIR
 else
   echo "Application is deployed as directory."
+  chown -R antmedia:antmedia $APP_DIR -f
 fi
-
-chown -R antmedia:antmedia $APP_DIR
 
 echo "$APP_NAME is created."

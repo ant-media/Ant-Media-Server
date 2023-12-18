@@ -10,10 +10,12 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import javax.servlet.ServletException;
-
 import org.awaitility.Awaitility;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,17 +25,32 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
-
 import io.antmedia.AppSettings;
+import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.filter.IPFilter;
+import jakarta.servlet.ServletException;
 
 public class IPFilterTest {
 	
 	protected static Logger logger = LoggerFactory.getLogger(IPFilterTest.class);
 
-	
+
+    @Rule
+    public TestRule watcher = new TestWatcher() {
+        protected void starting(Description description) {
+            System.out.println("Starting test: " + description.getMethodName());
+        }
+
+        protected void failed(Throwable e, Description description) {
+            System.out.println("Failed test: " + description.getMethodName() );
+            e.printStackTrace();
+        }
+        protected void finished(Description description) {
+            System.out.println("Finishing test: " + description.getMethodName());
+        }
+    };
 	
 	@Test
 	public void testBugNullContext() {
@@ -89,7 +106,17 @@ public class IPFilterTest {
 		 assertNull(ipFilter.getAppContext());
 		 
 	}
-	
+
+    @Test
+    public void testIsCluster(){
+        IPFilter ipFilter = Mockito.spy(new IPFilter());
+
+       
+
+        ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);
+        Mockito.doReturn(webAppContext).when(ipFilter).getAppContext();
+        Mockito.doReturn(false).when(webAppContext).containsBean(IClusterNotifier.BEAN_NAME);
+    }
 	
     @Test
     public void testDoFilterPass() throws IOException, ServletException {
@@ -129,6 +156,8 @@ public class IPFilterTest {
     @Test
     public void testDoFilterFail() throws IOException, ServletException {
         IPFilter ipFilter = Mockito.spy(new IPFilter());
+        ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);
+        Mockito.doReturn(webAppContext).when(ipFilter).getAppContext();
 
         MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
         httpServletRequest.setRemoteAddr("192.168.0.1");
@@ -201,6 +230,9 @@ public class IPFilterTest {
     public void testACMRest() throws IOException, ServletException {
         IPFilter ipFilter = Mockito.spy(new IPFilter());
         Mockito.doReturn(false).when(ipFilter).isAllowed(Mockito.anyString());
+        Mockito.doReturn(new AppSettings()).when(ipFilter).getAppSettings();
+        ConfigurableWebApplicationContext webAppContext = Mockito.mock(ConfigurableWebApplicationContext.class);
+        Mockito.doReturn(webAppContext).when(ipFilter).getAppContext();
 
         MockHttpServletRequest httpServletRequest = new MockHttpServletRequest();
         httpServletRequest.setRequestURI("http://127.0.0.1:5080/WebRTCAppEE/rest/v2/acm/msg");

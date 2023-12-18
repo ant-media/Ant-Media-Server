@@ -12,17 +12,12 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
-import javax.servlet.ServletContext;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
+import jakarta.servlet.ServletContext;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
@@ -33,22 +28,22 @@ import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
-
-import com.google.gson.Gson;
 
 import io.antmedia.SystemUtils;
-import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
-import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.Context;
+import jakarta.ws.rs.core.MediaType;
 
 @Component
 @Path("/v2/support")
-public class SupportRestService {
+public class SupportRestService  extends CommonRestService {
 	class SupportResponse {
 		private boolean result;
 
@@ -65,11 +60,12 @@ public class SupportRestService {
 
 	@Context
 	private ServletContext servletContext;
-	private ILicenceService licenceService;
 	private IStatsCollector statsCollector;
-	private ServerSettings serverSettings;
-	private Gson gson = new Gson();
 	public static final String LOG_FILE = "ant-media-server.log.zip";
+
+	public static final int SEND_SUPPORT_CONNECT_TIMEOUT_SECONDS= 5;
+
+	public static final int SEND_SUPPORT_SOCKET_TIMEOUT_SECONDS = 20;
 
 	@POST
 	@Path("/request")
@@ -86,32 +82,6 @@ public class SupportRestService {
 		return new Result(success);
 	}	
 	
-	private WebApplicationContext getContext() {
-		return WebApplicationContextUtils.getWebApplicationContext(servletContext);
-	}
-
-
-	public ILicenceService getLicenceServiceInstance () {
-		if(licenceService == null) {
-
-			WebApplicationContext ctxt =getContext();
-			if (ctxt != null) {
-				licenceService = (ILicenceService)ctxt.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
-			}
-		}
-		return licenceService;
-	}
-
-	public IStatsCollector getStatsCollector () {
-		if(statsCollector == null) 
-		{
-			WebApplicationContext ctxt =getContext();
-			if (ctxt != null) {
-				statsCollector = (IStatsCollector)ctxt.getBean(IStatsCollector.BEAN_NAME);
-			}
-		}
-		return statsCollector;
-	}
 
 	public boolean sendSupport(SupportRequest supportRequest) throws Exception {
 		boolean success = false;
@@ -124,6 +94,10 @@ public class SupportRestService {
 
 			HttpPost httpPost = new HttpPost("https://antmedia.io/livedemo/upload/upload.php");
 
+			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(SEND_SUPPORT_CONNECT_TIMEOUT_SECONDS * 1000).setSocketTimeout(SEND_SUPPORT_SOCKET_TIMEOUT_SECONDS * 1000).build();
+			
+			httpPost.setConfig(requestConfig);
+			
 			MultipartEntityBuilder builder = MultipartEntityBuilder.create();
 			builder.setMode(HttpMultipartMode.BROWSER_COMPATIBLE);
 
@@ -147,6 +121,10 @@ public class SupportRestService {
 			builder.addTextBody("ramUsage", SystemUtils.osFreePhysicalMemory()+"/"+SystemUtils.osTotalPhysicalMemory());
 			builder.addTextBody("diskUsage", SystemUtils.osHDFreeSpace(null)+"/"+SystemUtils.osHDTotalSpace(null));
 			builder.addTextBody("version", version.getVersionType()+" "+version.getVersionName()+" "+version.getBuildNumber());
+			builder.addTextBody("isMarketplace", getServerSettings().isBuildForMarket() + "");
+			if (getServerSettings().isBuildForMarket()) {
+				builder.addTextBody("marketplace", getServerSettings().getMarketplace());
+			}
 
 			HttpEntity httpEntity = builder.build();
 
@@ -229,7 +207,7 @@ public class SupportRestService {
 	}
 
 
-	public String getCpuInfo() {
+	public static String getCpuInfo() {
 		StringBuilder cpuInfo = new StringBuilder();
 		ProcessBuilder pb = new ProcessBuilder("lscpu");
 		try {
@@ -246,18 +224,7 @@ public class SupportRestService {
 		return cpuInfo.toString();
 	}
 
-	public ServerSettings getServerSettings() {
-		if(serverSettings == null) {
-
-			WebApplicationContext ctxt =getContext();
-			if (ctxt != null) { 
-				serverSettings = (ServerSettings)ctxt.getBean(ServerSettings.BEAN_NAME);
-			}
-		}
-		return serverSettings;
-	}
-
-	public StringBuilder readResponse(HttpResponse response) throws IOException {
+	public static StringBuilder readResponse(HttpResponse response) throws IOException {
 		StringBuilder result = new StringBuilder();
 		if(response.getEntity() != null) {
 			BufferedReader rd = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));

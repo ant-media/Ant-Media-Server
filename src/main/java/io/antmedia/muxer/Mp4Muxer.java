@@ -49,13 +49,15 @@ import static org.bytedeco.ffmpeg.global.avformat.avio_open;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
 import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_PASS_MINMAX;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
 import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+
+import io.antmedia.FFmpegUtilities;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
@@ -65,6 +67,13 @@ import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.javacpp.BytePointer;
+import org.bytedeco.javacpp.IntPointer;
+import org.bytedeco.javacpp.Pointer;
+
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 
@@ -171,6 +180,12 @@ public class Mp4Muxer extends RecordMuxer {
 		return true;
 	}
 
+	/**
+	 * 
+	 * @param srcFile
+	 * @param dstFile
+	 * @param rotation clockwise rotation
+	 */
 	public static void remux(String srcFile, String dstFile, int rotation) {
 		AVFormatContext inputContext = new AVFormatContext(null);
 		int ret;
@@ -200,10 +215,31 @@ public class Mp4Muxer extends RecordMuxer {
 			}
 			stream.codecpar().codec_tag(0);
 
-			if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
-				AVDictionary metadata = new AVDictionary();
-				av_dict_set(metadata, "rotate", rotation+"", 0);
-				stream.metadata(metadata);
+			if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) 
+			{	
+				//display matrix is 3x3
+				int size = 9 * Pointer.sizeof(IntPointer.class);
+
+				//Let me try to explain Why we're allocation with av_malloc here.
+
+				//if we just allocate with new Inpointer(size), the memory is released after some time by garbage collector
+				//Then avformat_free_context(outputContext) also free the memory in side data and we get double-free or corrupted memory
+				//Keep in mind that Memory allocated in the native side with av_malloc is not got free by gc.
+
+				//On the other hand, if av_stream_add_side_data below would copy the side data, there would be no problem.
+				//av_stream_add_side_data just sets the pointer
+				//mekya Jan 29, 22
+				IntPointer rotationMatrixPointer = new IntPointer(avutil.av_malloc(size)).capacity(size);
+				
+				avutil.av_display_rotation_set(rotationMatrixPointer, rotation);
+
+				BytePointer bytePointer = new BytePointer(rotationMatrixPointer);
+				bytePointer.limit(rotationMatrixPointer.sizeof() * rotationMatrixPointer.limit());
+				
+				ret = avformat.av_stream_add_side_data(stream, avcodec.AV_PKT_DATA_DISPLAYMATRIX , bytePointer, bytePointer.limit());
+				if (ret < 0) {
+					loggerStatic.error("Cannot add rotation matrix side data to file:{}", dstFile);
+				}				
 			}
 		}
 
@@ -251,6 +287,7 @@ public class Mp4Muxer extends RecordMuxer {
 	protected void finalizeRecordFile(final File file) throws IOException {
 		if (isAVCConversionRequired ) {
 			logger.info("AVC conversion needed for MP4 {}", fileTmp.getName());
+			//TODO: There are AV_PKT_DATA_DISPLAYMATRIX and 
 			remux(fileTmp.getAbsolutePath(),file.getAbsolutePath(), rotation);
 			Files.delete(fileTmp.toPath());
 		}
@@ -291,9 +328,7 @@ public class Mp4Muxer extends RecordMuxer {
 
 				ret = av_write_frame(context, getTmpPacket());
 				if (ret < 0 && logger.isInfoEnabled()) {
-					byte[] data = new byte[2048];
-					av_strerror(ret, data, data.length);
-					logger.info("cannot write audio frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), new String(data, 0, data.length));
+					logger.info("cannot write audio frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), getErrorDefinition(ret));
 					logger.info("input timebase num/den {}/{}"
 							+ "output timebase num/den {}/{}", inputTimebase.num(), inputTimebase.den(),
 							outputTimebase.num(),  outputTimebase.den());

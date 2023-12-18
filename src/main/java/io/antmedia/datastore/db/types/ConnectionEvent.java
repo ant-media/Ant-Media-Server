@@ -17,16 +17,24 @@ public class ConnectionEvent {
 	public static final String DISCONNECTED_EVENT = "disconnected";
 	
 	/**
-	 * timestamp of this event
+	 * Timestamp of this event. Unix timestamp in milliseconds
 	 */
-	@ApiModelProperty(value = "the timestamp of the event")
+	@ApiModelProperty(value = "the unix timestamp of the event in milliseconds")
 	private long timestamp;
-	
 	/**
 	 * type of the event Connection/Disconnection
 	 */
-	@ApiModelProperty(value = "the type of the event")
+	@ApiModelProperty(value = "The type of the event. It can have connected or disconnected values")
 	private String eventType;
+	
+	@ApiModelProperty(value = "IP address of the instance that this event happened")
+	private String instanceIP;
+	
+	@ApiModelProperty(value = "Connection type. It can be publish or play")
+	private String type;
+	
+	@ApiModelProperty(value = "Event protocol. It can be webrtc, hls, dash")
+	private String eventProtocol;
 
 	public long getTimestamp() {
 		return timestamp;
@@ -43,5 +51,31 @@ public class ConnectionEvent {
 	public void setEventType(String eventType) {
 		this.eventType = eventType;
 	}
+
+	public String getInstanceIP() {
+		return instanceIP;
+	}
+
+	public void setInstanceIP(String instanceIP) {
+		this.instanceIP = instanceIP;
+	}
+
+	public String getType() {
+		return type;
+	}
+
+	public void setType(String type) {
+		this.type = type;
+	}
+
+	public String getEventProtocol() {
+		return eventProtocol;
+	}
+
+	public void setEventProtocol(String eventProtocol) {
+		this.eventProtocol = eventProtocol;
+	}
+	
+	
 	
 }

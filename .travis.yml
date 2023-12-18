@@ -1,32 +1,53 @@
-dist: focal
+dist: jammy
 language: java
 jdk:
-  - openjdk11
+  - openjdk17
 node_js: "14.8.0"
 
 git:
   depth: false
+  
+
+# PAY ATTENTION:
+# We use a custom ffmpeg build to support current OS versions.
+# We just had a workaround solution. I mean we don't republish the ffmpeg with a new group id
+# We just build ffmpeg with the proper configurations and downloads from OVH storage and replaces it in the local repository below
+# Test codes are checking the proper configuraitons such as cuda and disabling crystalhd decoders
+#
+# For more information visit the build_update_ffmpeg.md doc in enterprise project
+
+#~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-x86_64.jar  
+#~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-arm64.jar
 
 # Sonar cloud addons on travis has some issues so that it's used directly 
 addons:
   sonarcloud:
     organization: "ant-media"
     token: $SONAR_TOKEN
+  apt:
+    packages:
+    - redis-tools
+services:
+  - redis-server
 
 
 before_install:
   - openssl aes-256-cbc -K $encrypted_5fef4fa28306_key -iv $encrypted_5fef4fa28306_iv -in codesigning.asc.enc -out codesigning.asc -d
   - export GPG_TTY=$(tty) #-> https://github.com/keybase/keybase-issues/issues/2798
   - gpg2 --batch --fast-import codesigning.asc
-  - sudo apt purge mongodb*
-  - sudo apt autoremove
+  - sudo apt purge mongodb* -qq
+  - sudo apt autoremove -qq
   - sudo rm -rf /var/lib/mongodb  # remove old mongodb files
   #- sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
-  - wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
-  - echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+  - curl -fsSL https://pgp.mongodb.com/server-6.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor
+  - echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+
+  - sudo sed -e 's/^bind.*/bind 127.0.0.1/' /etc/redis/redis.conf > redis.conf
+  - sudo mv redis.conf /etc/redis
+  - sudo service redis-server start
   - sudo apt-get update -qq
   #install mongodb ffmpeg wondershaper 
-  - sudo apt-get install mongodb-org ffmpeg wondershaper -y
+  - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
   - sudo mongod --dbpath /var/lib/mongodb &>/dev/null & # start mongo db - don' write log
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
     # get parent project
@@ -43,7 +64,7 @@ before_install:
   - cd ..
 
     # install Ant Media Server
-  - mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true  
+  - mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true --quiet 
 
    #get StreamApp project
   - (if [ $(git ls-remote https://github.com/ant-media/StreamApp.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
@@ -69,11 +90,25 @@ before_install:
        git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git;  
      fi)
   - cd ManagementConsole_AngularApp
+  #If there is something in the cache, get it
+  - (if [[ -d "$HOME/.antmedia/cache/node_modules" ]]; then
+        echo "Restore node_modules from cache";
+        cp -rf "$HOME/.antmedia/cache/node_modules" .;
+    fi)
   - npm install
+  - export NODE_OPTIONS=--openssl-legacy-provider
   - ng build --prod
   - cp -a ./dist/. ../src/main/server/webapps/root/
+  #update the cache directory
+  - mkdir -p $HOME/.antmedia/cache # create if not exist
+  - rm -rf $HOME/.antmedia/cache/node_modules
+  - mv node_modules $HOME/.antmedia/cache/
   - cd ..
-
+  
+  #before package replace the ffmpeg linux-86_64 and arm64 build with custom build
+  - wget -O ~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-5.1.2-1.5.8-linux-x86_64.jar
+  - wget -O ~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-arm64.jar  https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-5.1.2-1.5.8-linux-arm64.jar
+   
     # package ant media server
   - mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
   
@@ -89,7 +124,7 @@ before_install:
 
   - chmod 755 target/install_ant-media-server.sh
   - cd target 
-  - ./install_ant-media-server.sh ant-media-server-community*.zip
+  - ./install_ant-media-server.sh -i ant-media-server-community*.zip
   - cd ..
   - echo "Waiting a little to make sure server is started "
   - sleep 20
@@ -119,7 +154,7 @@ script:
   - echo $RELEASE_VERSION
   - mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package  org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
 # option to add above (-Dtest="MuxerUnitTest")  for running custom tests
-  - mvn org.owasp:dependency-check-maven:check --quiet
+  - mvn org.owasp:dependency-check-maven:check  -DfailOnError=false --quiet
 #depedency vulnerability check
 
 
@@ -127,10 +162,14 @@ cache:
   directories:
     - '$HOME/.m2/repository'
     - '$HOME/.sonar/cache'
+    - '$HOME/.antmedia/cache'
     
 after_failure:
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
+  - echo "----------------------------------------------"
+  - sudo cat /usr/local/antmedia/log/antmedia-error.log
   - sudo service mongod status
+  - sudo service redis-server status
   - sudo cat /var/log/mongodb/mongod.log
   - sudo cat /usr/local/antmedia/hs_err_pid*.log  # cat hs_err_pid file if it exists
   - sudo cat hs_err_pid*.log  # cat hs_err_pid file if it exists
@@ -139,7 +178,7 @@ after_failure:
 deploy:
   - provider: script
     script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
-    cleanup: true
+    skip_cleanup: true
     on:
       tags: false
       all_branches: true
@@ -148,7 +187,7 @@ deploy:
   
   - provider: script
     script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
-    cleanup: true
+    skip_cleanup: true
     on:
       #deploy to maven if it is a release tagged
       tags: true

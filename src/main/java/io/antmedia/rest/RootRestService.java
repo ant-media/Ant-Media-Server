@@ -1,13 +1,11 @@
 package io.antmedia.rest;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.rest.model.Version;
 import io.swagger.annotations.Api;
@@ -17,8 +15,10 @@ import io.swagger.annotations.ExternalDocs;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
-
-import java.util.Map;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
 
 @Api(value = "Rest Service")
 @SwaggerDefinition(
@@ -31,8 +31,7 @@ import java.util.Map;
         consumes = {"application/json"},
         produces = {"application/json"},
         schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
-        externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io"),
-        basePath = "/v2"
+        externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io")
 )
 @Component
 @Path("/v2")
