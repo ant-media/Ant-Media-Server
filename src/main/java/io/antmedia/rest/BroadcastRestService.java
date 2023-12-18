@@ -710,8 +710,13 @@ public class BroadcastRestService extends RestServiceBase{
 			Subscriber subscriber = getDataStore().getSubscriber(streamId, subscriberId);
 			if (subscriber != null && StringUtils.isNotBlank(subscriber.getB32Secret())) 
 			{
-				
-				totp = TOTPGenerator.generateTOTP(Base32.decode(subscriber.getB32Secret().getBytes()), getAppSettings().getTimeTokenPeriod(),  6, ITokenService.HMAC_SHA1);
+				try{
+					byte[] decodedSubscriberSecret = Base32.decode(subscriber.getB32Secret().getBytes());
+					totp = TOTPGenerator.generateTOTP(decodedSubscriberSecret, getAppSettings().getTimeTokenPeriod(),  6, ITokenService.HMAC_SHA1);
+
+				}catch (IllegalArgumentException e){
+					message = e.getMessage() + " Subscriber b32Secret code should be multiple of 8 characters.";
+				}
 			}
 			else 
 			{	
