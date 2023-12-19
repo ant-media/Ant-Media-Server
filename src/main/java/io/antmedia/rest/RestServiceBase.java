@@ -563,7 +563,7 @@ public abstract class RestServiceBase {
 	}
 
 	@Deprecated
-	public Result removeEndpoint(String id, String rtmpUrl) 
+	public Result removeEndpoint(String id, String rtmpUrl)
 	{
 		Endpoint endpoint = new Endpoint();
 		endpoint.setRtmpUrl(rtmpUrl);
