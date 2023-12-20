@@ -3798,7 +3798,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		packetFeeder.addListener(listener);
 
 		ByteBuffer encodedVideoFrame = ByteBuffer.allocate(100);
-		packetFeeder.writeVideoBuffer(encodedVideoFrame, 50, 0, 0, false, 0, 50, 50);
+		packetFeeder.writeVideoBuffer(encodedVideoFrame, 50, 0, 0, false, 0, 50);
 		verify(listener, Mockito.times(1)).onVideoPacket(eq(streamId), any());
 
 		ByteBuffer audioFrame = ByteBuffer.allocate(100);
