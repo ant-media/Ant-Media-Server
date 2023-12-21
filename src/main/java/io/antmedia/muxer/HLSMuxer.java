@@ -372,4 +372,14 @@ public class HLSMuxer extends Muxer  {
 	public void setId3Enabled(boolean id3Enabled) {
 		this.id3Enabled = id3Enabled;
 	}
+	
+	@Override
+	protected synchronized void clearResource() {
+		super.clearResource();
+		if (id3DataPkt != null) {
+			av_packet_free(id3DataPkt);
+			id3DataPkt = null;
+		}
+
+	}
 }
