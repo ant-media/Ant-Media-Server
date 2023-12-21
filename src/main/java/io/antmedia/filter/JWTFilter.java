@@ -41,8 +41,11 @@ public class JWTFilter extends AbstractFilter {
 		appSettings = getAppSettings();
 
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
-
-		if(appSettings != null && !appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN_HEADER) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN_HEADER)))) {
+		if(appSettings == null){
+			((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Application is getting initialized");
+			return;
+		}
+		if(!appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN_HEADER) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN_HEADER)))) {
 			chain.doFilter(request, response);
 			return;
 		}
