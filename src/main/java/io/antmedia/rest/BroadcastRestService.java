@@ -786,8 +786,9 @@ public class BroadcastRestService extends RestServiceBase{
 				getApplication().stopPlayingBySubscriberId(subscriberId);
 			} 
 			
-			if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
-				getApplication().stopPublishingBySubscriberId(subscriberId);
+			if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType))
+			{
+				getApplication().stopPublishingBySubscriberId(streamId, subscriberId);
 			}
 			
 			
