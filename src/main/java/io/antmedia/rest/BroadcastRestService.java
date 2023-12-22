@@ -1204,15 +1204,17 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	public boolean isMainTrack(String streamId) {
-		if (streamId == null) {
-			return false;
+		boolean result = false;
+		if (streamId != null) 
+		{	
+			Broadcast broadcast = getDataStore().get(streamId);
+			if (broadcast != null) 
+			{
+				result = !broadcast.getSubTrackStreamIds().isEmpty();
+			}
 		}
-		Broadcast broadcast = getDataStore().get(streamId);
-		if (broadcast == null) {
-			return false;
-		}
-        return getDataStore().get(streamId).getMainTrackStreamId() == null &&
-				!getDataStore().get(streamId).getSubTrackStreamIds().isEmpty();
+        
+        return result;
 
     }
 
