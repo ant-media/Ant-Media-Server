@@ -1213,7 +1213,22 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 
 		return basicStreamInfo;
-	}	
+	}
+
+	public boolean isMainTrack(String streamId) {
+		boolean result = false;
+		if (streamId != null) 
+		{	
+			Broadcast broadcast = getDataStore().get(streamId);
+			if (broadcast != null) 
+			{
+				result = !broadcast.getSubTrackStreamIds().isEmpty();
+			}
+		}
+        
+        return result;
+
+    }
 
 	@ApiOperation(value = "Send stream participants a message through Data Channel in a WebRTC stream", notes = "", response = Result.class)
 	@POST
@@ -1229,7 +1244,7 @@ public class BroadcastRestService extends RestServiceBase{
 			// check if data channel is enabled in the settings
 			if(application.isDataChannelEnabled()) {
 				// check if stream with given stream id exists
-				if(application.doesWebRTCStreamExist(id)) {
+				if(application.doesWebRTCStreamExist(id) || isMainTrack(id)) {
 					// send the message through the application
 					boolean status = application.sendDataChannelMessage(id,message);
 					if(status) {
