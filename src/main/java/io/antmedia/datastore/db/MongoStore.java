@@ -1196,6 +1196,7 @@ public class MongoStore extends DataStore {
 				UpdateResult updateResult = conferenceRoomDatastore.find(ConferenceRoom.class)
 						.filter(Filters.eq("roomId", roomId))
 						.update(set("roomId", room.getRoomId()),
+								set("maxViewers", room.getMaxViewers()),
 								set("startDate", room.getStartDate()),
 								set("endDate", room.getEndDate()),
 								set("roomStreamList", room.getRoomStreamList())

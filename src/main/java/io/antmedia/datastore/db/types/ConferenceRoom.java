@@ -30,7 +30,10 @@ public class ConferenceRoom {
 	private ObjectId dbId;
 	
 	@ApiModelProperty(value = "The id of the Conference Room")
-	private String roomId; 
+	private String roomId;
+
+	@ApiModelProperty(value = "Maximum number of viewers allowed to join the Conference Room")
+	private int maxViewers = -1;
 	
 	@ApiModelProperty(value = "The start date of the Conference Room. It's unix timestamp in seconds.")
 	private long startDate;
@@ -59,6 +62,14 @@ public class ConferenceRoom {
 
 	public void setRoomId(String roomId) {
 		this.roomId = roomId;
+	}
+
+	public int getMaxViewers() {
+		return maxViewers;
+	}
+
+	public void setMaxViewers(int maxViewers) {
+		this.maxViewers = maxViewers;
 	}
 
 	public long getStartDate() {
