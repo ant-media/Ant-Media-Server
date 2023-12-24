@@ -68,6 +68,7 @@ import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -1362,12 +1363,9 @@ public abstract class RestServiceBase {
 	protected Result getCameraErrorById(String streamId) {
 		Result result = new Result(false);
 
-		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList())
-		{
-			if (camScheduler.getStreamId().equals(streamId)) {
-				result = camScheduler.getCameraError();
-				break;
-			}
+		StreamFetcher camScheduler = getApplication().getStreamFetcherManager().getStreamFetcher(streamId);
+		if (camScheduler != null) {
+			result = camScheduler.getCameraError();
 		}
 
 		return result;
@@ -1411,25 +1409,45 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	public Result skipPlaylistItemProcess(String id, String skipItem) {
+	public Result playNextItem(String id, Integer index) {
 		Result result = new Result(false);
 
-		stopStreaming(id);
 		Broadcast broadcast = getDataStore().get(id);
 
 		if(broadcast == null) {
-			result.setMessage("There is no playlist found. Please check Stream ID again");
+			result.setMessage("There is no playlist found. Please check Stream id again");
+			return result;
+		}
+		else if (!AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
+			result.setMessage("This broadcast type is not playlist. This method is only available for playlists");
 			return result;
 		}
 
-		if(skipItem == null) {
-			broadcast.setCurrentPlayIndex(broadcast.getCurrentPlayIndex()+1);
+		if(index == null) {
+			index = -1;
+		}
+		
+		
+		if (index < broadcast.getPlayListItemList().size()) 
+		{	
+			StreamFetcher streamFetcher = getApplication().getStreamFetcherManager().getStreamFetcher(id);
+			if (streamFetcher != null) 
+			{	
+				IStreamFetcherListener streamFetcherListener = streamFetcher.getStreamFetcherListener();
+				//don't let the streamFetcherListener be called again because it already automatically plays the next item
+				streamFetcher.setStreamFetcherListener(null);
+				result = getApplication().getStreamFetcherManager().playItemInList(broadcast, streamFetcherListener, index);
+			}
+			else {
+				result.setMessage("No active playlist for id:" + id + ". Start the playlist first");
+			}
+			
 		}
 		else {
-			broadcast.setCurrentPlayIndex(Integer.parseInt(skipItem));
+			result.setMessage("Index is out of the list. Please specify the correct index");
 		}
 
-		result = getApplication().getStreamFetcherManager().startPlaylist(broadcast);
+		
 
 		return result;
 	}

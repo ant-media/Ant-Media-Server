@@ -217,7 +217,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollDelay(3, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			//check that it is not started
 			boolean flag3 = false;
-			for (StreamFetcher camScheduler : app.getStreamFetcherManager().getStreamFetcherList())
+			for (StreamFetcher camScheduler : app.getStreamFetcherManager().getStreamFetcherList().values())
 			{
 				Broadcast broadcastTmp = dataStore.get(camScheduler.getStreamId());
 				if (broadcastTmp.getIpAddr().equals(newCam.getIpAddr()))

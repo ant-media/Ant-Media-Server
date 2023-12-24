@@ -277,7 +277,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Mockito.when(streamFetcher.isStreamAlive()).thenReturn(true);
 
 
-		streamFetcherManager.getStreamFetcherList().add(streamFetcher);
+		streamFetcherManager.getStreamFetcherList().put(streamFetcher.getStreamId(), streamFetcher);
 
 
 		streamFetcherManager.checkStreamFetchersStatus();
@@ -653,7 +653,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			{
 				// It means that it will skip next playlist item
-				service.skipPlaylistItem(streamId, null);
+				service.playNextItem(streamId, null);
 
 				// Check it currentPlayIndex is 1
 				Awaitility.await().atMost(20, TimeUnit.SECONDS)
@@ -665,7 +665,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			{
 				// It means that it will skip 100. playlist item. If there is no playlist item, It will reset to 0.
-				service.skipPlaylistItem(streamId, "100");
+				service.playNextItem(streamId, 100);
 
 				// Check it currentPlayIndex is 0
 				Awaitility.await().atMost(20, TimeUnit.SECONDS)
@@ -677,7 +677,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			{
 				// It means that it will skip 2. playlist item.
-				service.skipPlaylistItem(streamId, "2");
+				service.playNextItem(streamId, 2);
 
 				// Check it currentPlayIndex is 1
 				Awaitility.await().atMost(20, TimeUnit.SECONDS)

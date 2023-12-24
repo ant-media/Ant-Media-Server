@@ -579,7 +579,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	@Override
 	public void startPublish(String streamId, long absoluteStartTimeMs, String publishType) {
-		vertx.executeBlocking( handler -> {
+		vertx.executeBlocking( () -> {
 			try {
 
 				Broadcast broadcast = updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, getDataStore().get(streamId));
@@ -607,16 +607,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				for (IStreamListener listener : streamListeners) {
 					listener.streamStarted(broadcast.getStreamId());
-				}
-				
-	
-				handler.complete();
+				}	
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
-				handler.fail(ExceptionUtils.getStackTrace(e));
 			}
+			return null;
 
-		}, null);
+		});
 
 
 		if (absoluteStartTimeMs == 0) 
@@ -1105,11 +1102,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void closeStreamFetchers() {
 		if (streamFetcherManager != null) {
-			Queue<StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
-			for (StreamFetcher streamFetcher : fetchers) {
+			Map<String, StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
+			for (StreamFetcher streamFetcher : fetchers.values()) {
 				streamFetcher.stopStream();
-				fetchers.remove(streamFetcher);
 			}
+			
+			fetchers.clear();
+			
 		}
 	}
 

@@ -28,8 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomUtils;
@@ -1103,9 +1102,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.doReturn(streamFetcher2).when(fetcherManager).make(stream2, scope, vertx);
 
 
-		Queue<StreamFetcher> sfQueue = new ConcurrentLinkedQueue<StreamFetcher>();
-		sfQueue.add(streamFetcher);
-		sfQueue.add(streamFetcher2);
+		Map<String, StreamFetcher> sfQueue = new ConcurrentHashMap<>();
+		sfQueue.put(stream.getStreamId(), streamFetcher);
+		sfQueue.put(stream2.getStreamId(), streamFetcher2);
 
 		fetcherManager.setStreamFetcherList(sfQueue);
 		adapter.setStreamFetcherManager(fetcherManager);
@@ -1157,17 +1156,17 @@ public class AntMediaApplicationAdaptorUnitTest {
 	@Test
 	public void testCloseStreamFetchers() {
 
-		Queue<StreamFetcher> streamFetcherList= new ConcurrentLinkedQueue<>();
+		Map<String, StreamFetcher> streamFetcherList= new ConcurrentHashMap<>();
 
 		StreamFetcher streamFetcher = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher2 = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher3 = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher4 = mock(StreamFetcher.class);
 
-		streamFetcherList.add(streamFetcher);
-		streamFetcherList.add(streamFetcher2);
-		streamFetcherList.add(streamFetcher3);
-		streamFetcherList.add(streamFetcher4);
+		streamFetcherList.put("streamFetcher", streamFetcher);
+		streamFetcherList.put("streamFetcher2", streamFetcher2);
+		streamFetcherList.put("streamFetcher3", streamFetcher3);
+		streamFetcherList.put("streamFetcher4", streamFetcher4);
 
 		StreamFetcherManager fetcherManager = mock(StreamFetcherManager.class);
 		when(fetcherManager.getStreamFetcherList()).thenReturn(streamFetcherList);
