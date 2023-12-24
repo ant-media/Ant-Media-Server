@@ -653,8 +653,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			{
 				// It means that it will skip next playlist item
-				service.playNextItem(streamId, null);
-
+				Result result = service.playNextItem(streamId, null);
+				assertTrue(result.isSuccess());
+				
 				// Check it currentPlayIndex is 1
 				Awaitility.await().atMost(20, TimeUnit.SECONDS)
 				.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 1);
@@ -664,24 +665,24 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 
 			{
-				// It means that it will skip 100. playlist item. If there is no playlist item, It will reset to 0.
-				service.playNextItem(streamId, 100);
+				// It means that it will skip 100. playlist item. If there is no playlist item, It will result false
+				Result result = service.playNextItem(streamId, 100);
 
-				// Check it currentPlayIndex is 0
-				Awaitility.await().atMost(20, TimeUnit.SECONDS)
-				.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 0);
+				assertFalse(result.isSuccess());
+				
+				assertEquals(1, dataStore.get(streamId).getCurrentPlayIndex());
 
 				Awaitility.await().atMost(20, TimeUnit.SECONDS)
 				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
 			}
 
 			{
-				// It means that it will skip 2. playlist item.
+				// It means that it will play the item in the index 2. playlist item.
 				service.playNextItem(streamId, 2);
 
 				// Check it currentPlayIndex is 1
 				Awaitility.await().atMost(20, TimeUnit.SECONDS)
-				.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 1);
+				.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 2);
 
 				Awaitility.await().atMost(20, TimeUnit.SECONDS)
 				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
