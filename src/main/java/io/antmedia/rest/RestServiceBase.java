@@ -1363,9 +1363,11 @@ public abstract class RestServiceBase {
 	protected Result getCameraErrorById(String streamId) {
 		Result result = new Result(false);
 
-		StreamFetcher camScheduler = getApplication().getStreamFetcherManager().getStreamFetcher(streamId);
-		if (camScheduler != null) {
-			result = camScheduler.getCameraError();
+		if (streamId != null) {
+			StreamFetcher camScheduler = getApplication().getStreamFetcherManager().getStreamFetcher(streamId);
+			if (camScheduler != null) {
+				result = camScheduler.getCameraError();
+			}
 		}
 
 		return result;
@@ -1426,8 +1428,8 @@ public abstract class RestServiceBase {
 		if(index == null) {
 			index = -1;
 		}
-		
-		
+
+
 		if (index < broadcast.getPlayListItemList().size()) 
 		{	
 			StreamFetcher streamFetcher = getApplication().getStreamFetcherManager().getStreamFetcher(id);
@@ -1441,13 +1443,13 @@ public abstract class RestServiceBase {
 			else {
 				result.setMessage("No active playlist for id:" + id + ". Start the playlist first");
 			}
-			
+
 		}
 		else {
 			result.setMessage("Index is out of the list. Please specify the correct index");
 		}
 
-		
+
 
 		return result;
 	}
