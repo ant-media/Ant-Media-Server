@@ -12,6 +12,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.tika.utils.ExceptionUtils;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -105,7 +106,7 @@ public class StreamFetcherManager {
 		if (streamFetcherList.containsKey(broadcast.getStreamId())) {
 			isStreamLive = true;
 		}
-				
+
 		if (!isStreamLive) {
 			//this stream may be fetching in somewhere in the cluster
 			isStreamLive = AntMediaApplicationAdapter.isStreaming(broadcast);
@@ -125,7 +126,7 @@ public class StreamFetcherManager {
 				//this log has been put while we refactor streamFetcherList
 				logger.warn("There is already a strem schedule exists for streamId:{} ", streamScheduler.getStreamId());
 			}
-			
+
 			streamFetcherList.put(streamScheduler.getStreamId(), streamScheduler);
 
 			if (streamFetcherScheduleJobName == -1) {
@@ -176,13 +177,16 @@ public class StreamFetcherManager {
 	{
 		logger.warn("inside of stopStreaming for {}", streamId);
 		Result result = new Result(false);
-
-		StreamFetcher scheduler = streamFetcherList.remove(streamId);
-		if (scheduler != null) {
-			scheduler.stopStream();
-			result.setSuccess(true);
-		}
 		
+		if (StringUtils.isNotBlank(streamId)) 
+		{
+			StreamFetcher scheduler = streamFetcherList.remove(streamId);
+			if (scheduler != null) {
+				scheduler.stopStream();
+				result.setSuccess(true);
+			}
+		}
+
 		result.setMessage(result.isSuccess() ? "Stream stopped" : "No matching stream source in this server:"+streamId);
 		result.setDataId(streamId);
 		return result;
@@ -223,7 +227,7 @@ public class StreamFetcherManager {
 		}
 		return result;		
 	}
-	
+
 	public void playNextItemInList(String streamId, IStreamFetcherListener listener) {
 		// Get current playlist in database, it may be updated
 		Broadcast playlist = datastore.get(streamId);
@@ -244,9 +248,9 @@ public class StreamFetcherManager {
 		// It's necessary for skip new Stream Fetcher
 		stopStreaming(playlist.getStreamId());
 		Result result = new Result(false);
-		
+
 		//Check playlist is not stopped and there is an item to play
-		
+
 		if(!IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus())
 				&& skipNextPlaylistQueue(playlist, index) != null)
 		{
@@ -260,7 +264,7 @@ public class StreamFetcherManager {
 				//update broadcast informations
 				PlayListItem fetchedBroadcast = playlist.getPlayListItemList().get(currentStreamIndex);
 				datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
-				
+
 				StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast.getStreamUrl(), playlist.getStreamId(), fetchedBroadcast.getType(), scope,vertx);
 				newStreamScheduler.setStreamFetcherListener(listener);
 				newStreamScheduler.setRestartStream(false);
@@ -276,12 +280,12 @@ public class StreamFetcherManager {
 		else {
 			result.setMessage("Playlist is either stopped or there is no item to play");
 		}
-		
-		
+
+
 		return result;
 
 	}
-	
+
 
 	public Result startPlaylist(Broadcast playlist){
 
@@ -370,7 +374,7 @@ public class StreamFetcherManager {
 		if (index < 0) {
 			currentStreamIndex = playlist.getCurrentPlayIndex()+1;
 		}
-		
+
 		if(playlist.getPlayListItemList().size() <= currentStreamIndex) 
 		{
 			//update playlist first broadcast
