@@ -2177,6 +2177,7 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Result cameraErrorV2 = streamSourceRest.getCameraErrorV2(newCam.getStreamId());
 		assertFalse(cameraErrorV2.isSuccess());
+		
 
 		//define CPU load below limit
 		int cpuLoad2 = 70;
@@ -2196,6 +2197,15 @@ public class BroadcastRestServiceV2UnitTest {
 		//should be true since it wouldn't return true because there is no ip camera or stream source defined in the declaration.
 		assertFalse(result.isSuccess());
 		assertEquals("Auto start query needs an IP camera or stream source.",result.getMessage() );
+		
+		
+		
+		cameraErrorV2 = streamSourceRest.getCameraErrorV2("any_stream");
+		assertFalse(cameraErrorV2.isSuccess());
+		
+		cameraErrorV2 = streamSourceRest.getCameraErrorV2(null);
+		assertFalse(cameraErrorV2.isSuccess());
+		
 
 	}
 

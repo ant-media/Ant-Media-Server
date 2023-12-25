@@ -637,39 +637,6 @@ public class RestServiceV2 extends CommonRestService {
 			if (!applicationAlreadyExist)
 			{
 				result = super.createApplication(appName, inputStream);
-				if (result.isSuccess()) 
-				{
-
-					boolean applicationCreated = false;
-					for (int i = 0; i < 20; i++) 
-					{
-						try {
-							Thread.sleep(1000);
-
-							IScope scope = getApplication().getRootScope().getScope(appName);
-							if (scope != null) {
-								applicationCreated = true;
-								break;
-							}
-
-
-						} 
-						catch (InterruptedException e) {
-							logger.error(ExceptionUtils.getStackTrace(e));
-						    Thread.currentThread().interrupt();
-						}
-					}
-					
-					
-					if (!applicationCreated) {
-						result.setSuccess(applicationCreated);
-						result.setMessage("Application " + appName + "is not created in the 20 seconds.");
-					}
-
-
-
-				}
-
 			}
 			else
 			{

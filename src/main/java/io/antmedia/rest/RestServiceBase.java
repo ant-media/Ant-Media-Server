@@ -1374,6 +1374,12 @@ public abstract class RestServiceBase {
 			if (camScheduler != null) {
 				result = camScheduler.getCameraError();
 			}
+			else {
+				result.setMessage("Camera is not found with streamId: " + streamId);
+			}
+		}
+		else {
+			result.setMessage("StreamId parameter is " + streamId + " Please use none null values");
 		}
 
 		return result;
