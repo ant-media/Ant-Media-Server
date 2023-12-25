@@ -217,7 +217,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.waitAtMost(10, TimeUnit.SECONDS).pollDelay(3, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			//check that it is not started
 			boolean flag3 = false;
-			for (StreamFetcher camScheduler : app.getStreamFetcherManager().getStreamFetcherList())
+			for (StreamFetcher camScheduler : app.getStreamFetcherManager().getStreamFetcherList().values())
 			{
 				Broadcast broadcastTmp = dataStore.get(camScheduler.getStreamId());
 				if (broadcastTmp.getIpAddr().equals(newCam.getIpAddr()))
@@ -260,16 +260,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//Create a mock StreamFetcher and add it to StreamFetcherManager
 			StreamFetcher streamFetcher = Mockito.mock(StreamFetcher.class);
-			Broadcast stream =  Mockito.mock(Broadcast.class);
+			Broadcast stream = new Broadcast();
 
 			String streamId = String.valueOf((Math.random() * 100000));
 			stream.setStreamId(streamId);
 
 			String streamUrl = "anyurl";
 			stream.setStreamUrl(streamUrl);
-			streamFetcher.setStreamId(stream.getStreamId());
-			streamFetcher.setStreamUrl(streamUrl);
-
+			when(streamFetcher.getStreamId()).thenReturn(stream.getStreamId());
+			when(streamFetcher.getStreamUrl()).thenReturn(streamUrl);
+			
 			when(streamFetcher.isStreamAlive()).thenReturn(true);
 			when(streamFetcher.getCameraError()).thenReturn(new Result(true));
 

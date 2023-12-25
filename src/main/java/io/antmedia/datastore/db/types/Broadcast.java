@@ -110,7 +110,7 @@ public class Broadcast {
 	private List<Endpoint> endPointList;
 
 
-	@ApiModelProperty(value = "the list broadcasts of Playlist Items. This list has values when the broadcast type is playlist")
+	@ApiModelProperty(value = "the list broadcasts in the playlis. This list has values when the broadcast type is playlist")
 	private List<PlayListItem> playListItemList;
 
 	/**

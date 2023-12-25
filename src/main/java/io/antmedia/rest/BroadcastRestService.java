@@ -922,6 +922,18 @@ public class BroadcastRestService extends RestServiceBase{
 	{
 		return super.startStreamSource(id);
 	}
+	
+	@ApiOperation(value = "Specify the next playlist item to play according to the index. This method is only for playlists.", response = Result.class)
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/playlists/{id}/next")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result playNextItem(@ApiParam(value = "The id of the playlist stream.", required = true) @PathParam("id") String id,			
+			@ApiParam(value = "The next item to play. If it's not specified or it's -1, it plays next item. If it's number, it skips that item in the playlist to play. The first item index is 0. ", required = false) @QueryParam("index") Integer index			
+			) 
+	{ 
+		return super.playNextItem(id, index);
+	}
 
 	@ApiOperation(value = "Stop streaming for the active stream. It both stops ingested(RTMP, WebRTC) or pulled stream sources (IP Cameras and Stream Sources)", response = Result.class)
 	@POST

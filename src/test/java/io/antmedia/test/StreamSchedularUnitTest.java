@@ -70,6 +70,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public Application app = null;
 	public static String VALID_MP4_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL_2 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL_3 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
 	public static String INVALID_MP4_URL = "invalid_link";
 	public static String INVALID_403_MP4_URL = "https://httpstat.us/403";
 	private WebScope appScope;
@@ -274,7 +277,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Mockito.when(streamFetcher.isStreamAlive()).thenReturn(true);
 
 
-		streamFetcherManager.getStreamFetcherList().add(streamFetcher);
+		streamFetcherManager.getStreamFetcherList().put(streamFetcher.getStreamId(), streamFetcher);
 
 
 		streamFetcherManager.checkStreamFetchersStatus();
@@ -576,6 +579,130 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 
+	}
+	
+	@Test
+	public void testSkipPlaylistItem() {
+
+		BroadcastRestService service = new BroadcastRestService();
+
+		service.setApplication(app);
+
+
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+
+		IStatsCollector statCollector = Mockito.mock(IStatsCollector.class);
+		when(statCollector.enoughResource()).thenReturn(true);
+		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(statCollector);
+
+
+		//create a test db
+		IDataStoreFactory dsf = (IDataStoreFactory) appScope.getContext().getBean(IDataStoreFactory.BEAN_NAME);
+
+		DataStore dataStore = dsf.getDataStore(); //new InMemoryDataStore("dts");
+		assertNotNull(dataStore);
+		service.setDataStore(dataStore);
+		service.setAppCtx(context);
+
+		app.setDataStore(dataStore);
+
+
+		//create a stream Manager
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope)); // aaaa
+		//app.getAppAdaptor().getStreamFetcherManager();
+
+		app.setStreamFetcherManager(streamFetcherManager);
+
+		String streamId = "testPlaylistStreamId";
+
+		try {
+
+			//create a broadcast
+			PlayListItem broadcastItem1 = new PlayListItem(VALID_LONG_DURATION_MP4_URL, AntMediaApplicationAdapter.VOD);
+
+			//create a broadcast
+			PlayListItem broadcastItem2 = new PlayListItem(VALID_LONG_DURATION_MP4_URL_2, AntMediaApplicationAdapter.VOD);
+
+			//create a broadcast
+			PlayListItem broadcastItem3 = new PlayListItem(VALID_LONG_DURATION_MP4_URL_3, AntMediaApplicationAdapter.VOD);
+
+			List<PlayListItem> broadcastList = new ArrayList<>();
+
+			broadcastList.add(broadcastItem1);
+			broadcastList.add(broadcastItem2);
+			broadcastList.add(broadcastItem3);
+
+			Broadcast playlist = new Broadcast();
+			playlist.setStreamId(streamId);
+			playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
+			playlist.setPlayListItemList(broadcastList);
+			playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+
+			dataStore.save(playlist);
+
+			Result startPlaylist = streamFetcherManager.startPlaylist(playlist);
+			assertTrue(startPlaylist.isSuccess());
+
+			// Check it currentPlayIndex is 0
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+			.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 0);
+
+			{
+				// It means that it will skip next playlist item
+				Result result = service.playNextItem(streamId, null);
+				assertTrue(result.isSuccess());
+				
+				// Check it currentPlayIndex is 1
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 1);
+
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+			}
+
+			{
+				// It means that it will skip 100. playlist item. If there is no playlist item, It will result false
+				Result result = service.playNextItem(streamId, 100);
+
+				assertFalse(result.isSuccess());
+				
+				assertEquals(1, dataStore.get(streamId).getCurrentPlayIndex());
+
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+			}
+
+			{
+				// It means that it will play the item in the index 2. playlist item.
+				service.playNextItem(streamId, 2);
+
+				// Check it currentPlayIndex is 1
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 2);
+
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+			}
+			
+			{
+				Result stopPlayList = streamFetcherManager.stopPlayList(streamId);
+				assertTrue(stopPlayList.isSuccess());
+			}
+
+			//convert to original settings
+			getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+			Application.enableSourceHealthUpdate = false;
+
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 
 

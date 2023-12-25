@@ -2177,6 +2177,7 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Result cameraErrorV2 = streamSourceRest.getCameraErrorV2(newCam.getStreamId());
 		assertFalse(cameraErrorV2.isSuccess());
+		
 
 		//define CPU load below limit
 		int cpuLoad2 = 70;
@@ -2196,6 +2197,15 @@ public class BroadcastRestServiceV2UnitTest {
 		//should be true since it wouldn't return true because there is no ip camera or stream source defined in the declaration.
 		assertFalse(result.isSuccess());
 		assertEquals("Auto start query needs an IP camera or stream source.",result.getMessage() );
+		
+		
+		
+		cameraErrorV2 = streamSourceRest.getCameraErrorV2("any_stream");
+		assertFalse(cameraErrorV2.isSuccess());
+		
+		cameraErrorV2 = streamSourceRest.getCameraErrorV2(null);
+		assertFalse(cameraErrorV2.isSuccess());
+		
 
 	}
 
@@ -2457,8 +2467,21 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		result = streamSourceRest.addStreamSource(newCam);
 
-		//should be true, because CPU load is above limit and other parameters defined correctly
+		//should be true, because CPU limit is above load and other parameters defined correctly
 		assertTrue(result.isSuccess());
+		
+		
+		//Add mp4 file
+		Broadcast mp4FileSteramSource = new Broadcast("testAddStreamSource", "10.2.40.64:8080", "admin", "admin",
+				"http://11.2.40.63:8554/live1.mp4", AntMediaApplicationAdapter.STREAM_SOURCE);
+		
+		result = streamSourceRest.addStreamSource(mp4FileSteramSource);
+		assertTrue(result.isSuccess());
+		
+		//Because InMemoryDataStore is used, change in the object is reflected here
+		assertEquals(AntMediaApplicationAdapter.VOD, mp4FileSteramSource.getType());
+
+
 	}
 	
 	@Test
@@ -2617,6 +2640,7 @@ public class BroadcastRestServiceV2UnitTest {
 		source.setDescription("");
 		source.setIs360(false);
 		source.setPublicStream(false);
+		source.setStreamUrl("http://test.example.com/test.m3u8");
 		source.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
@@ -2624,7 +2648,6 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new InMemoryDataStore("testAddStreamSourceWithEndPoint")).when(streamSourceRest).getDataStore();
-		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Mockito.when(adaptor.startStreaming(Mockito.any())).thenReturn(new Result(true));
 		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
