@@ -631,12 +631,8 @@ public class RestServiceV2 extends CommonRestService {
 		if (appName != null && appName.matches("^[a-zA-Z0-9]*$"))
 		{
 
-			boolean applicationAlreadyExist = false;
 
-			IScope scope = getApplication().getRootScope().getScope(appName);
-			if (scope != null) {
-				applicationAlreadyExist = true;
-			}
+			boolean applicationAlreadyExist = isApplicationExists(appName);
 
 			if (!applicationAlreadyExist)
 			{
@@ -650,7 +646,7 @@ public class RestServiceV2 extends CommonRestService {
 						try {
 							Thread.sleep(1000);
 
-							scope = getApplication().getRootScope().getScope(appName);
+							IScope scope = getApplication().getRootScope().getScope(appName);
 							if (scope != null) {
 								applicationCreated = true;
 								break;
@@ -660,6 +656,7 @@ public class RestServiceV2 extends CommonRestService {
 						} 
 						catch (InterruptedException e) {
 							logger.error(ExceptionUtils.getStackTrace(e));
+						    Thread.currentThread().interrupt();
 						}
 					}
 					
@@ -685,6 +682,10 @@ public class RestServiceV2 extends CommonRestService {
 		}
 
 		return result;
+	}
+
+	public boolean isApplicationExists(String appName) {
+		return getApplication().getRootScope().getScope(appName)  != null;
 	}
 
 
