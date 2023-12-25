@@ -260,16 +260,16 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//Create a mock StreamFetcher and add it to StreamFetcherManager
 			StreamFetcher streamFetcher = Mockito.mock(StreamFetcher.class);
-			Broadcast stream =  Mockito.mock(Broadcast.class);
+			Broadcast stream = new Broadcast();
 
 			String streamId = String.valueOf((Math.random() * 100000));
 			stream.setStreamId(streamId);
 
 			String streamUrl = "anyurl";
 			stream.setStreamUrl(streamUrl);
-			streamFetcher.setStreamId(stream.getStreamId());
-			streamFetcher.setStreamUrl(streamUrl);
-
+			when(streamFetcher.getStreamId()).thenReturn(stream.getStreamId());
+			when(streamFetcher.getStreamUrl()).thenReturn(streamUrl);
+			
 			when(streamFetcher.isStreamAlive()).thenReturn(true);
 			when(streamFetcher.getCameraError()).thenReturn(new Result(true));
 

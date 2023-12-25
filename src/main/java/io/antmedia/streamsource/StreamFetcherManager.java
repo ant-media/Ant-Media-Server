@@ -102,7 +102,7 @@ public class StreamFetcherManager {
 	public boolean isStreamRunning(Broadcast broadcast) {
 
 		boolean isStreamLive = false;
-
+		
 		if (streamFetcherList.containsKey(broadcast.getStreamId())) {
 			isStreamLive = true;
 		}
