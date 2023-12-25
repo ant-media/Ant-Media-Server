@@ -559,7 +559,7 @@ public class BroadcastRestService extends RestServiceBase{
 			return Response.status(Status.BAD_REQUEST).entity(result).build();
 		}
 	}
-	
+
 
 	@ApiOperation(value = "Generates JWT token for specified stream. It's not required to let the server generate JWT. Generally JWT tokens should be generated on the client side.")
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "Returns token", response=Token.class), 
@@ -652,18 +652,18 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@ApiOperation(value = "Add Subscriber to the requested stream. If the subscriber's type is publish, it also can play the stream which is critical in conferencing"
-			+ "If the subscriber's type is play, it only play the stream", response = Result.class)
+			+ "If the subscriber's type is play, it only play the stream. If b32Secret is not set, it will use from the AppSettings. b32Secret's length should be multiple of 8 and use b32 characters A–Z, 2–7", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/subscribers")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSubscriber(
-			@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
+			@ApiParam(value = "The id of the stream", required = true) @PathParam("id") String streamId,
 			@ApiParam(value = "Subscriber to be added to this stream", required = true) Subscriber subscriber) {
 		boolean result = false;
 		String message = "";
 		if (subscriber != null && !StringUtils.isBlank(subscriber.getSubscriberId()) 
-				&& subscriber.getSubscriberId().length() > 3) 
+				&& subscriber.getSubscriberId().length() > 3 && StringUtils.isNotBlank(streamId)) 
 		{
 			// add stream id inside the Subscriber
 			subscriber.setStreamId(streamId);
@@ -673,23 +673,37 @@ public class BroadcastRestService extends RestServiceBase{
 			subscriber.setConnected(false);
 			// subscriber is not viewing anyone
 			subscriber.setCurrentConcurrentConnections(0);
-			
-			if (streamId != null) {
+
+			boolean secretCodeLengthCorrect = true;
+			if (StringUtils.isNotBlank(subscriber.getB32Secret())) {
+
+				try {
+					//Check secret code is correct format
+					Base32.decode(subscriber.getB32Secret().getBytes());
+				}
+				catch (Exception e) {
+					logger.warn("Secret code is not b32 compatible. It will not add subscriber ");
+					secretCodeLengthCorrect = false;
+				}
+			}
+
+			if (secretCodeLengthCorrect) {
 				result = getDataStore().addSubscriber(streamId, subscriber);
 			}
 			else {
-				message = "StreamId is not specified in the request";
+				message = "Secret code is not multiple of 8 bytes length. Use b32Secret which is a string and its lenght is multiple of 8 bytes and allowed characters A-Z, 2-7";
 			}
+
 		}
 		else {
-			message = "Subscriber object  must be set and subscriberId's length must be at least 3";
+			message = "Missing parameter: Make sure you set subscriber object correctly and make subscriberId's length at least 3";
 		}
 		return new Result(result, message);
 	}
-	
+
 	@ApiOperation(value="Return TOTP for the subscriberId, streamId, type. This is a helper method. You can generate TOTP on your end."
 			+ "If subscriberId is not in the database, it generates TOTP from the secret in the AppSettings. Secret code is for the subscriberId not in the database"
-			
+
 			+ " secretCode = Base32.encodeAsString({secretFromSettings(publishsecret or playsecret according to the type)} + {subscriberId} + {streamId} + {type(publish or play)} + {Number of X to have the length multiple of 8}"
 			+ "'+' means concatenating the strings. There is no explicit '+' in the secretCode ")
 	@GET
@@ -699,9 +713,9 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result getTOTP(@ApiParam(value="The id of the stream that TOTP will be generated", required=true) @PathParam("id") String streamId, 
 			@ApiParam(value="The id of the subscriber that TOTP will be generated ", required=true) @PathParam("sid") String subscriberId, 
 			@ApiParam(value="The type of token. It's being used if subscriber is not in the database. It can be publish, play", 
-						required=false) @QueryParam("type") String type) 
+			required=false) @QueryParam("type") String type) 
 	{
-		
+
 		boolean result = false;
 		String message = "";
 		String totp = "";
@@ -710,8 +724,8 @@ public class BroadcastRestService extends RestServiceBase{
 			Subscriber subscriber = getDataStore().getSubscriber(streamId, subscriberId);
 			if (subscriber != null && StringUtils.isNotBlank(subscriber.getB32Secret())) 
 			{
-				
-				totp = TOTPGenerator.generateTOTP(Base32.decode(subscriber.getB32Secret().getBytes()), getAppSettings().getTimeTokenPeriod(),  6, ITokenService.HMAC_SHA1);
+				byte[] decodedSubscriberSecret = Base32.decode(subscriber.getB32Secret().getBytes());
+				totp = TOTPGenerator.generateTOTP(decodedSubscriberSecret, getAppSettings().getTimeTokenPeriod(),  6, ITokenService.HMAC_SHA1);
 			}
 			else 
 			{	
@@ -720,28 +734,28 @@ public class BroadcastRestService extends RestServiceBase{
 				{
 					secretFromSettings = getAppSettings().getTimeTokenSecretForPlay();
 				}
-				
+
 				if (StringUtils.isNotBlank(secretFromSettings)) {
 					//Secret code is generated by using this  secretFromSettings + subscriberId + streamId + type + "add number of X to have the length multiple of 8"
 					totp = TOTPGenerator.generateTOTP(Base32.decode(TOTPGenerator.getSecretCodeForNotRecordedSubscriberId(subscriberId, streamId, type, secretFromSettings).getBytes()),
-						getAppSettings().getTimeTokenPeriod(), 6, ITokenService.HMAC_SHA1);
+							getAppSettings().getTimeTokenPeriod(), 6, ITokenService.HMAC_SHA1);
 				}
 				else {
 					message = "Secret is not set in AppSettings. Please set timtokensecret publish or play in Applicaiton settings";
 				}
-				
+
 			}
 			if (!StringUtils.isBlank(totp)) {
 				result = true;
 			}
-			
+
 		}
 		else {
 			message = "streamId or subscriberId is blank";
 		}
-		
+
 		return new Result(result, totp, message);
-		
+
 	}
 
 	@ApiOperation(value = "Delete specific subscriber from data store for selected stream", response = Result.class)
@@ -773,24 +787,24 @@ public class BroadcastRestService extends RestServiceBase{
 		String message = "";
 
 
-		
+
 		if (!StringUtils.isAnyBlank(streamId, subscriberId)) 
 		{
 			//if the user is not in this node, it's in another node in the cluster.  
 			//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
-			
+
 			result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);
-			
+
 			if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType) ) 
 			{
 				getApplication().stopPlayingBySubscriberId(subscriberId);
 			} 
-			
+
 			if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
 				getApplication().stopPublishingBySubscriberId(subscriberId);
 			}
-			
-			
+
+
 		}
 		else {
 			message = "streamId or subscriberId is blank";
@@ -922,7 +936,7 @@ public class BroadcastRestService extends RestServiceBase{
 	{
 		return super.startStreamSource(id);
 	}
-	
+
 	@ApiOperation(value = "Specify the next playlist item to play according to the index. This method is only for playlists.", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -1225,10 +1239,10 @@ public class BroadcastRestService extends RestServiceBase{
 				result = !broadcast.getSubTrackStreamIds().isEmpty();
 			}
 		}
-        
-        return result;
 
-    }
+		return result;
+
+	}
 
 	@ApiOperation(value = "Send stream participants a message through Data Channel in a WebRTC stream", notes = "", response = Result.class)
 	@POST

@@ -1829,6 +1829,37 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	@Test
+	public void testSubscriberNone32BitSecret() {
+		DataStore store = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
+		restServiceReal.setDataStore(store);
+		
+		restServiceReal.setAppSettings(new AppSettings());
+		
+		Subscriber subscriber = new Subscriber();
+		subscriber.setSubscriberId("timeSubscriber");
+		subscriber.setStreamId("stream1");
+		subscriber.setType(Subscriber.PLAY_TYPE);
+		subscriber.setB32Secret("1234567");
+		
+		//it should be false, because b32secret length is not multiple of 8 
+		assertFalse(restServiceReal.addSubscriber(subscriber.getStreamId(), subscriber).isSuccess());
+		
+		//1 is not b32 character
+		//b32 characters -> A–Z, followed by 2–7
+		subscriber.setB32Secret("abcdabc1");
+		//it returns false because 1 is not b32 character
+		assertFalse(restServiceReal.addSubscriber(subscriber.getStreamId(), subscriber).isSuccess());
+		
+		
+		subscriber.setB32Secret("abcdabcf");
+		assertTrue(restServiceReal.addSubscriber(subscriber.getStreamId(), subscriber).isSuccess());
+		Result result = restServiceReal.getTOTP(subscriber.getStreamId(), subscriber.getSubscriberId(), subscriber.getType());
+		assertTrue(result.isSuccess());
+		
+		
+	}
+	
+	@Test
 	public void testTimeBasedSubscriberOperations() {
 
 		DataStore store = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
@@ -3289,7 +3320,7 @@ public class BroadcastRestServiceV2UnitTest {
 		String subscriberId = "sub1";
 		String streamId = "stream1";
 		String type = "publish";
-		String secret = "secret";
+		String secret = "secret1";
 		
 		
 		result = restServiceSpy.getTOTP(streamId, subscriberId, "play");
