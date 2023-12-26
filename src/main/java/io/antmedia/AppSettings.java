@@ -2052,8 +2052,8 @@ public class AppSettings implements Serializable{
 	 * 
 	 * Ant Media Server sends audio level 5 times in a second
 	 */
-	@Value("${sendAudioLevelToViewers:true}")
-	private boolean sendAudioLevelToViewers = true;
+	@Value("${sendAudioLevelToViewers:false}")
+	private boolean sendAudioLevelToViewers = false;
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
