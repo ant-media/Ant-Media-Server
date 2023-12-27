@@ -369,7 +369,7 @@ public class StreamFetcher {
 				getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL);
 
 				if (bufferTime > 0) {
-					
+
 					//we need to init here because inputFormatContext should be created before initializing the bufferQueue
 					bufferQueue = new ConcurrentSkipListSet<>((a, b) ->
 					{ 
@@ -378,17 +378,17 @@ public class StreamFetcher {
 
 						return Long.compare(packet1TimeStamp, packet2TimeStamp);
 					});
-					
+
 					packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l-> 
 					vertx.executeBlocking(() -> {
 						writeBufferedPacket();
 						return null;
 					}, false));
-					
-					
-					
+
+
+
 				}
-				
+
 			}
 
 			streamPublished = true;
@@ -527,62 +527,84 @@ public class StreamFetcher {
 		}
 
 		public void close(AVPacket pkt) {
-			if (packetWriterJobName != -1) {
-				logger.info("Removing packet writer job {}", packetWriterJobName);
-				vertx.cancelTimer(packetWriterJobName);
-			}
-			writeAllBufferedPackets();
-
-
-			if (muxAdaptor != null) {
-				logger.info("Writing trailer in Muxadaptor {}", streamId);
-				muxAdaptor.writeTrailer();
-				getInstance().muxAdaptorRemoved(muxAdaptor);
-				muxAdaptor = null;
-			}
-
-			if (pkt != null) {
-				av_packet_free(pkt);
-				pkt.close();
-			}
-
-			if (inputFormatContext != null) {
-				try {
-					avformat_close_input(inputFormatContext);
+			try {
+				if (packetWriterJobName != -1) {
+					logger.info("Removing packet writer job {}", packetWriterJobName);
+					vertx.cancelTimer(packetWriterJobName);
 				}
-				catch (Exception e) {
-					logger.info(e.getMessage());
+				writeAllBufferedPackets();
+
+
+				if (muxAdaptor != null) {
+					logger.info("Writing trailer in Muxadaptor {}", streamId);
+					muxAdaptor.writeTrailer();
+					getInstance().muxAdaptorRemoved(muxAdaptor);
+					muxAdaptor = null;
 				}
-				inputFormatContext = null;
+
+				if (pkt != null) {
+					av_packet_free(pkt);
+					pkt.close();
+				}
+
+				if (inputFormatContext != null) {
+					try {
+						avformat_close_input(inputFormatContext);
+					}
+					catch (Exception e) {
+						logger.info(e.getMessage());
+					}
+					inputFormatContext = null;
+				}
+
+				
+				if(streamPublished) {
+					//If stream is not getting started, this is not called
+					getInstance().closeBroadcast(streamId);
+					streamPublished=false;
+				}
+
+
+				setThreadActive(false);
+
+				if(streamFetcherListener != null) {	
+					stopRequestReceived = true;
+					restartStream = false;
+
+					streamFetcherListener.streamFinished(streamFetcherListener);
+				}
+
+				if(!stopRequestReceived && restartStream) {
+					logger.info("Stream fetcher will try to fetch source {} after {} ms", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS);
+					
+					//update broadcast status to preparing
+					Broadcast broadcast = new Broadcast();
+					broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+					
+					getInstance().getDataStore().updateBroadcastFields(streamId, broadcast);
+					
+					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
+
+						thread = new WorkerThread();
+						thread.start();
+					});
+				}
+				else 
+				{
+					//make sure closing the broadcast
+					getInstance().closeBroadcast(streamId);
+					logger.info("It will not try again to for streamUrl:{} because stopRequestReceived:{} and restartStream:{} and streamFetcherListener is {} null", 
+							streamUrl, stopRequestReceived, restartStream, streamFetcherListener != null ? "not" : "");
+				}
+
+				logger.debug("Leaving thread for {}", streamUrl);
+
+				stopRequestReceived = false;
 			}
-
-			if(streamPublished) {
-				getInstance().closeBroadcast(streamId);
-				streamPublished=false;
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+				
 			}
-
-
-			setThreadActive(false);
-
-			if(streamFetcherListener != null) {	
-				stopRequestReceived = true;
-				restartStream = false;
-
-				streamFetcherListener.streamFinished(streamFetcherListener);
-			}
-
-			if(!stopRequestReceived && restartStream) {
-				logger.info("Stream fetcher will try to fetch source {} after {} ms", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS);
-				vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
-
-					thread = new WorkerThread();
-					thread.start();
-				});
-			}
-
-			logger.debug("Leaving thread for {}", streamUrl);
-
-			stopRequestReceived = false;
 		}
 
 		private void writeAllBufferedPackets() 
@@ -590,17 +612,20 @@ public class StreamFetcher {
 			synchronized (this) {
 				//different threads may write writeBufferedPacket and this method at the same time
 
-				logger.info("write all buffered packets for stream: {}", streamId);
-				while (!bufferQueue.isEmpty()) {
+				if (bufferQueue != null) 
+				{
+					logger.info("write all buffered packets for stream: {}", streamId);
+					while (!bufferQueue.isEmpty()) {
 
-					AVPacket pkt = bufferQueue.pollFirst();
-					writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
-					unReferencePacket(pkt);
-				}
+						AVPacket pkt = bufferQueue.pollFirst();
+						writePacket(inputFormatContext.streams(pkt.stream_index()), pkt);
+						unReferencePacket(pkt);
+					}
 
-				AVPacket pkt;
-				while ((pkt = bufferQueue.pollFirst()) != null) {
-					pkt.close();
+					AVPacket pkt;
+					while ((pkt = bufferQueue.pollFirst()) != null) {
+						pkt.close();
+					}
 				}
 			}
 
@@ -610,14 +635,18 @@ public class StreamFetcher {
 			int packetIndex = pkt.stream_index();
 			if (lastDTS[packetIndex] >= pkt.dts()) 
 			{
-				logger.info("last dts: {} is bigger than incoming dts: {} for stream index:{} - Consider creating some buffer by set \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings", pkt.dts(), lastDTS[packetIndex], packetIndex);
+				logger.info("last dts: {} is bigger than incoming dts: {} for stream index:{} -"
+						+ " If you see this log frequently, TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings", 
+						lastDTS[packetIndex], pkt.dts(), packetIndex);
 				pkt.dts(lastDTS[packetIndex] + 1);
 			}
 
 
 			lastDTS[packetIndex] = pkt.dts();
 			if (pkt.dts() > pkt.pts()) {
-				logger.info("dts ({}) is bigger than pts({}) - To fix it, please try setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings", pkt.dts(), pkt.pts());
+				logger.info("dts ({}) is bigger than pts({}) - "
+						+  "If you see this log frequently, TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings",
+						pkt.dts(), pkt.pts());
 				pkt.pts(pkt.dts());
 			}
 
