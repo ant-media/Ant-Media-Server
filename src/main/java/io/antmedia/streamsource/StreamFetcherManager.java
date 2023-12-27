@@ -295,6 +295,7 @@ public class StreamFetcherManager {
 
 		if (isStreamRunning(playlist)) 
 		{
+			logger.warn("Playlist is already running for stream:{}", playlist.getStreamId());
 			String msg = "Playlist is already running for stream:"+playlist.getStreamId();
 			logger.warn(msg);
 			result.setMessage(msg);
@@ -313,6 +314,7 @@ public class StreamFetcherManager {
 			if(checkStreamUrlWithHTTP(playlistBroadcastItem.getStreamUrl()).isSuccess()) 
 			{
 
+				logger.info("Starting playlist item:{} for streamId:{}", playlistBroadcastItem.getStreamUrl(), playlist.getStreamId());
 				// Check Stream URL is valid.
 				// If stream URL is not valid, it's trying next broadcast and trying.
 				// Create Stream Fetcher with Playlist Broadcast Item

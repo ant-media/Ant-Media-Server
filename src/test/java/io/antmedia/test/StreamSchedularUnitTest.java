@@ -532,7 +532,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> {
-				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getStatus());
+				String status = dataStore.get("testId").getStatus();
+				logger.info("Status for testId: {}", status);
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(status);
 			});
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS)
