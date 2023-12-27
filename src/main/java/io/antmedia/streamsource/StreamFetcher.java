@@ -54,7 +54,7 @@ public class StreamFetcher {
 	 * Last packet received time
 	 */
 	private long lastPacketReceivedTime = 0;
-	private boolean threadActive = false;
+	private AtomicBoolean threadActive = new AtomicBoolean(false);
 	private Result cameraError = new Result(false,"");
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
 	private IScope scope;
@@ -246,6 +246,12 @@ public class StreamFetcher {
 			//update broadcast status to preparing 
 			
 			Broadcast broadcast = getDataStore().get(streamId);
+			if (broadcast == null) {
+				//if broadcast null, it means it's deleted
+				logger.info("Broadcast with streamId:{} is deleted before thread is started", streamId);
+				return;
+			}
+			
 			getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 			
 			setThreadActive(true);
@@ -270,6 +276,7 @@ public class StreamFetcher {
 
 
 			close(pkt);
+			setThreadActive(false);
 		}
 
 
@@ -572,7 +579,7 @@ public class StreamFetcher {
 				}
 
 
-				setThreadActive(false);
+				
 
 				if(streamFetcherListener != null) {	
 					stopRequestReceived = true;
@@ -742,12 +749,13 @@ public class StreamFetcher {
 
 
 	public void startStream() {
+		
 		new Thread() {
 			@Override
 			public void run() {
 				try {
 					int i = 0;
-					while (threadActive) {
+					while (threadActive.get()) {
 						Thread.sleep(100);
 						if (i % 50 == 0) {
 							logger.info("waiting for thread to be finished for stream {}", streamUrl);
@@ -755,7 +763,6 @@ public class StreamFetcher {
 						}
 						i++;
 					}
-					Thread.sleep(2000);
 				} catch (InterruptedException e) {
 					logger.error(e.getMessage());
 					Thread.currentThread().interrupt();
@@ -825,11 +832,10 @@ public class StreamFetcher {
 			@Override
 			public void run() {
 				try {
-					while (threadActive) {
+					while (threadActive.get()) {
 						Thread.sleep(100);
 					}
 
-					Thread.sleep(2000);
 				} catch (InterruptedException e) {
 					logger.error(e.getMessage());
 					Thread.currentThread().interrupt();
@@ -852,11 +858,11 @@ public class StreamFetcher {
 	}
 
 	public void setThreadActive(boolean threadActive) {
-		this.threadActive = threadActive;
+		this.threadActive.set(threadActive);
 	}
 
 	public boolean isThreadActive() {
-		return threadActive;
+		return threadActive.get();
 	}
 	public Result getCameraError() {
 		return cameraError;
