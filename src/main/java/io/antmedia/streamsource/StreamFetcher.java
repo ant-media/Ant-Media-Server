@@ -602,11 +602,13 @@ public class StreamFetcher {
 					//Make sure closing the broadcast. If it's not restarting, its status should be FINISHED 
 					//nomatter even if streaming does not happen 
 					//@mekya
+					
+					logger.info("It will not try again for streamUrl:{} because stopRequestReceived:{} and restartStream:{} and streamFetcherListener is {} null", 
+							streamUrl, stopRequestReceived, restartStream, streamFetcherListener != null ? "not" : "");
+					
 					if (!closeCalled) {
 						getInstance().closeBroadcast(streamId);
 					}
-					logger.info("It will not try again for streamUrl:{} because stopRequestReceived:{} and restartStream:{} and streamFetcherListener is {} null", 
-							streamUrl, stopRequestReceived, restartStream, streamFetcherListener != null ? "not" : "");
 				}
 
 				logger.debug("Leaving thread for {}", streamUrl);
@@ -810,7 +812,7 @@ public class StreamFetcher {
 
 	public void stopStream() 
 	{
-		logger.warn("stop stream called for {}", streamUrl);
+		logger.info("stop stream called for {}", streamUrl);
 		stopRequestReceived = true;
 	}	
 

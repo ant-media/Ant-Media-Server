@@ -191,6 +191,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		app.setDataStoreFactory(dsf);
 
+		app.setDataStore(dataStore);
 		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
 		// object updates the reference in inmemorydatastore
 		app.getStreamFetcherManager().setDatastore(dataStore);
@@ -209,13 +210,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		//set status to broadcasting
-		dataStore.updateStatus(id, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		dataStore.updateStatus(id, AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 		Broadcast broadcast = dataStore.get(id);
 		logger.info("broadcast stream id {}" , id);
-		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcast.getStatus());
 
 		//start StreamFetcher
 		app.getStreamFetcherManager().startStreams(Arrays.asList(broadcast));
+		
 
 		assertEquals(1, app.getStreamFetcherManager().getStreamFetcherList().size());
 
@@ -239,7 +241,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//check that broadcast status in datastore in finished or not broadcasting
 		broadcast = dataStore.get(id);
-		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING, broadcast.getStatus());
+		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
 		assertEquals(0, broadcast.getSpeed(), 2L);
 
 
@@ -247,6 +249,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
 
 		app.stopStreaming(newCam);
+	
 
 		logger.info("leaving testBugUpdateStreamFetcherStatus");
 
