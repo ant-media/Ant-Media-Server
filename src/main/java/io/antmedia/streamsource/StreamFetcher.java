@@ -242,6 +242,11 @@ public class StreamFetcher {
 
 		@Override
 		public void run() {
+			
+			//update broadcast status to preparing 
+			Broadcast broadcast = new Broadcast();
+			broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+			getInstance().getDataStore().updateBroadcastFields(streamId, broadcast);
 
 			setThreadActive(true);
 			AVPacket pkt = null;
@@ -249,7 +254,8 @@ public class StreamFetcher {
 				inputFormatContext = new AVFormatContext(null); 
 				pkt = avcodec.av_packet_alloc();
 
-				if(prepareInputContext()) {
+				if(prepareInputContext()) 
+				{
 					boolean readTheNextFrame = true;
 					while (readTheNextFrame) {
 						readTheNextFrame = readMore(pkt);
@@ -558,10 +564,12 @@ public class StreamFetcher {
 				}
 
 				
+				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
 					getInstance().closeBroadcast(streamId);
 					streamPublished=false;
+					closeCalled = true;
 				}
 
 
@@ -577,12 +585,6 @@ public class StreamFetcher {
 				if(!stopRequestReceived && restartStream) {
 					logger.info("Stream fetcher will try to fetch source {} after {} ms", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS);
 					
-					//update broadcast status to preparing
-					Broadcast broadcast = new Broadcast();
-					broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
-					
-					getInstance().getDataStore().updateBroadcastFields(streamId, broadcast);
-					
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
 
 						thread = new WorkerThread();
@@ -591,9 +593,13 @@ public class StreamFetcher {
 				}
 				else 
 				{
-					//make sure closing the broadcast
-					getInstance().closeBroadcast(streamId);
-					logger.info("It will not try again to for streamUrl:{} because stopRequestReceived:{} and restartStream:{} and streamFetcherListener is {} null", 
+					//Make sure closing the broadcast. If it's not restarting, its status should be FINISHED 
+					//nomatter even if streaming does not happen 
+					//@mekya
+					if (!closeCalled) {
+						getInstance().closeBroadcast(streamId);
+					}
+					logger.info("It will not try again for streamUrl:{} because stopRequestReceived:{} and restartStream:{} and streamFetcherListener is {} null", 
 							streamUrl, stopRequestReceived, restartStream, streamFetcherListener != null ? "not" : "");
 				}
 

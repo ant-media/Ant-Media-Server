@@ -56,6 +56,7 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.integration.AppFunctionalV2Test;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
@@ -201,10 +202,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 					"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.IP_CAMERA);
 
 			newCam.setStreamId("new_cam" + (int)(Math.random()*10000));
-
+			
 			StreamFetcher streamScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
 			assertFalse(streamScheduler.isExceptionInThread());
+			
+			assertNotNull(streamScheduler.getDataStore().save(newCam));
+
+			
 
 			streamScheduler.startStream();
 
@@ -216,6 +221,10 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 					);
 			//this should be false because stream is not alive 
 			assertFalse(streamScheduler.isStreamAlive());
+			
+			
+			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, streamScheduler.getDataStore().get(newCam.getStreamId()).getStatus());
+			
 
 			streamScheduler.stopStream();
 
@@ -226,6 +235,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			assertFalse(streamScheduler.isStreamAlive());
 
 			assertFalse(streamScheduler.isExceptionInThread());
+			
+			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, streamScheduler.getDataStore().get(newCam.getStreamId()).getStatus());
+
 
 			logger.info("leaving testStreamSchedularConnectionTimeout");
 
