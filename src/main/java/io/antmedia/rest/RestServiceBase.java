@@ -1018,7 +1018,7 @@ public abstract class RestServiceBase {
 		Result result=new Result(false);
 
 		if(checkStreamUrl(stream.getStreamUrl())) {
-			boolean isVoD = stream.getStreamUrl().endsWith("mp4") || stream.getStreamUrl().endsWith("webm");
+			boolean isVoD = stream.getStreamUrl().endsWith("mp4") || stream.getStreamUrl().endsWith("webm") || stream.getStreamUrl().endsWith("flv");
 			
 			if (isVoD) {
 				stream.setType(AntMediaApplicationAdapter.VOD);

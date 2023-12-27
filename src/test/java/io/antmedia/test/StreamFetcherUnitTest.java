@@ -1,5 +1,7 @@
 package io.antmedia.test;
 
+import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
+import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -28,13 +30,16 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avformat.AVInputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.junit.After;
@@ -550,6 +555,98 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
+	@Test
+	public void testPacketOrder() {
+		try {
+			getAppSettings().setDeleteHLSFilesOnEnded(false);
+			
+			String file = "src/test/resources/test_video_360p.flv";
+			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin",
+					file,
+					AntMediaApplicationAdapter.STREAM_SOURCE);
+			
+			newCam.setStreamId("streaskdjfksf");
+
+			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
+
+			fetcher.setMuxAdaptor(Mockito.mock(MuxAdaptor.class));
+			fetcher.setBufferTime(20000);
+
+			fetcher.setRestartStream(false);
+			
+			AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
+			AVInputFormat findInputFormat = avformat.av_find_input_format("flv");
+			if (avformat_open_input(inputFormatContext, (String) file, findInputFormat,
+					(AVDictionary) null) < 0) {
+				//	return false;
+			}
+
+			long startFindStreamInfoTime = System.currentTimeMillis();
+
+			int ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
+			if (ret < 0) {
+				fail("Cannot find stream info");
+			}
+			
+
+			WorkerThread worker = spy(fetcher.new WorkerThread());
+			
+			worker.setInputFormatContext(inputFormatContext);
+			
+			//give unordered pkts
+			AVPacket pkt = new AVPacket();
+			pkt.pts(100);
+			pkt.dts(100);
+			logger.info("sending first packet");
+			worker.packetRead(pkt);
+			
+			pkt = new AVPacket();
+			pkt.pts(0);
+			pkt.dts(0);
+			worker.packetRead(pkt);
+			
+			assertEquals(100, worker.getBufferedDurationMs());
+			
+			
+			pkt = new AVPacket();
+			pkt.pts(50);
+			pkt.dts(50);
+			worker.packetRead(pkt);
+			
+			assertEquals(100, worker.getBufferedDurationMs());
+			
+			pkt = new AVPacket();
+			pkt.pts(500);
+			pkt.dts(500);
+			worker.packetRead(pkt);
+			
+			assertEquals(500, worker.getBufferedDurationMs());
+			
+			
+			//check them in the buffer with the correct order
+			ConcurrentSkipListSet<AVPacket> bufferQueue = worker.getBufferQueue();
+			pkt = bufferQueue.pollFirst();
+			assertEquals(0, pkt.pts());
+			
+			pkt = bufferQueue.pollFirst();
+			assertEquals(50, pkt.pts());
+			
+			pkt = bufferQueue.pollFirst();
+			assertEquals(100, pkt.pts());
+			
+		
+			
+			pkt = bufferQueue.pollFirst();
+			assertEquals(500, pkt.pts());
+			
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+		getAppSettings().setDeleteHLSFilesOnEnded(true);
+	}
 
 
 	@Test

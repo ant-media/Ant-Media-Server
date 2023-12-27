@@ -84,8 +84,6 @@ public class StreamFetcher {
 
 	private int bufferLogCounter;
 
-	private ConcurrentLinkedQueue<AVPacket> availableBufferQueue = new ConcurrentLinkedQueue<>();
-
 	private AppSettings appSettings;
 	private Vertx vertx;
 
@@ -228,7 +226,7 @@ public class StreamFetcher {
 
 		private AtomicBoolean buffering = new AtomicBoolean(false);
 
-		private ConcurrentSkipListSet<AVPacket> bufferQueue = new ConcurrentSkipListSet<>((a, b) -> Long.compare(a.dts(), b.dts()));
+		private ConcurrentSkipListSet<AVPacket> bufferQueue = null;
 
 
 		private volatile long bufferingFinishTimeMs;
@@ -371,19 +369,33 @@ public class StreamFetcher {
 				getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL);
 
 				if (bufferTime > 0) {
+					
+					//we need to init here because inputFormatContext should be created before initializing the bufferQueue
+					bufferQueue = new ConcurrentSkipListSet<>((a, b) ->
+					{ 
+						long packet1TimeStamp = av_rescale_q(a.dts(), inputFormatContext.streams(a.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+						long packet2TimeStamp = av_rescale_q(b.dts(), inputFormatContext.streams(b.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+
+						return Long.compare(packet1TimeStamp, packet2TimeStamp);
+					});
+					
 					packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l-> 
 					vertx.executeBlocking(() -> {
 						writeBufferedPacket();
 						return null;
 					}, false));
+					
+					
+					
 				}
+				
 			}
 
 			streamPublished = true;
 			lastPacketReceivedTime = System.currentTimeMillis();
 
-			
-			
+
+
 
 			/***************************************************
 			 * 
@@ -450,12 +462,12 @@ public class StreamFetcher {
 				 * It's a very rare case to happen so that check if it's null
 				 */
 				if (pktHead != null) {
-					
-					
+
+
 					lastPacketTimeMsInQueue = av_rescale_q(pktTrailer.dts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
-					
+
 					firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
-					
+
 					bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
 
 					if ( bufferDuration > bufferTime) {
@@ -590,31 +602,28 @@ public class StreamFetcher {
 				while ((pkt = bufferQueue.pollFirst()) != null) {
 					pkt.close();
 				}
-
-				while ((pkt = availableBufferQueue.poll()) != null) {
-					pkt.close();
-				}
 			}
 
 		}
-		
+
 		public void writePacket(AVStream stream, AVPacket pkt) {
 			int packetIndex = pkt.stream_index();
-			if (lastDTS[packetIndex] >= pkt.dts()) {
-				logger.info("last dts: {} is bigger than incoming dts: {} for stream index:{}", pkt.dts(), lastDTS[packetIndex], packetIndex);
+			if (lastDTS[packetIndex] >= pkt.dts()) 
+			{
+				logger.info("last dts: {} is bigger than incoming dts: {} for stream index:{} - Consider creating some buffer by set \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings", pkt.dts(), lastDTS[packetIndex], packetIndex);
 				pkt.dts(lastDTS[packetIndex] + 1);
 			}
 
 
 			lastDTS[packetIndex] = pkt.dts();
 			if (pkt.dts() > pkt.pts()) {
-				logger.info("dts ({}) is bigger than pts({})", pkt.dts(), pkt.pts());
+				logger.info("dts ({}) is bigger than pts({}) - To fix it, please try setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings", pkt.dts(), pkt.pts());
 				pkt.pts(pkt.dts());
 			}
-			
+
 			muxAdaptor.writePacket(stream, pkt);
 		}
-		
+
 
 		//TODO: Code duplication with MuxAdaptor.writeBufferedPacket. It should be refactored.
 		public void writeBufferedPacket() 
@@ -629,22 +638,21 @@ public class StreamFetcher {
 							while(!bufferQueue.isEmpty()) 
 							{
 								AVPacket tempPacket = bufferQueue.first(); 
-								
+
 								long pktTime = av_rescale_q(tempPacket.pts(), inputFormatContext.streams(tempPacket.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
-								
+
 								long now = System.currentTimeMillis();
-								
+
 								long pktTimeDifferenceMs = pktTime - firstPacketReadyToSentTimeMs; 
-								
+
 								long passedTime = now - bufferingFinishTimeMs;
-								
+
 								if (pktTimeDifferenceMs < passedTime) 
 								{
-									
+
 									writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
 									unReferencePacket(tempPacket);
 									bufferQueue.remove(tempPacket); //remove the packet from the queue
-									availableBufferQueue.offer(tempPacket);
 								}
 								else {
 									//break the loop and don't block the thread because it's not correct time to send the packet
@@ -684,6 +692,16 @@ public class StreamFetcher {
 				return lastPacketTimeMsInQueue - firstPacketInQueueTime;
 			}
 			return 0;
+		}
+
+
+		public ConcurrentSkipListSet<AVPacket> getBufferQueue() {
+			return bufferQueue;
+		}
+
+
+		public void setInputFormatContext(AVFormatContext inputFormatContext) {
+			this.inputFormatContext = inputFormatContext;
 		}
 	}
 
@@ -731,9 +749,6 @@ public class StreamFetcher {
 
 
 	public AVPacket getAVPacket() {
-		if (!availableBufferQueue.isEmpty()) {
-			return availableBufferQueue.poll();
-		}
 		return new AVPacket();
 	}
 

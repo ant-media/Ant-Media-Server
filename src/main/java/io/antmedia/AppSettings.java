@@ -1126,7 +1126,7 @@ public class AppSettings implements Serializable{
 	 * Restart time for fetched streams from external sources,
 	 * Default value is 0
 	 */
-	@Value( "${streamFetcherRestartPeriod:${"+SETTINGS_STREAM_FETCHER_RESTART_PERIOD+":0}}" )
+	@Value( "${restartStreamFetcherPeriod:${"+SETTINGS_STREAM_FETCHER_RESTART_PERIOD+":0}}" )
 	private int restartStreamFetcherPeriod;
 
 	/**
