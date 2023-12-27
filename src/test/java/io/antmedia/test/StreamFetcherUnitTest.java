@@ -1244,7 +1244,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		WorkerThread worker = spy(fetcher.new WorkerThread());
 		
 		try {
-			doReturn(true).when(worker).prepareInputContext();
+			Broadcast broadcast = new Broadcast();
+			doReturn(true).when(worker).prepareInputContext(broadcast);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

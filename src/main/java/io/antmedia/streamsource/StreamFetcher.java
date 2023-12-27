@@ -244,17 +244,17 @@ public class StreamFetcher {
 		public void run() {
 			
 			//update broadcast status to preparing 
-			Broadcast broadcast = new Broadcast();
-			broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
-			getInstance().getDataStore().updateBroadcastFields(streamId, broadcast);
-
+			
+			Broadcast broadcast = getDataStore().get(streamId);
+			getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+			
 			setThreadActive(true);
 			AVPacket pkt = null;
 			try {
 				inputFormatContext = new AVFormatContext(null); 
 				pkt = avcodec.av_packet_alloc();
 
-				if(prepareInputContext()) 
+				if(prepareInputContext(broadcast)) 
 				{
 					boolean readTheNextFrame = true;
 					while (readTheNextFrame) {
@@ -310,7 +310,7 @@ public class StreamFetcher {
 			av_packet_unref(pkt);
 		}
 
-		public boolean prepareInputContext() throws Exception {
+		public boolean prepareInputContext(Broadcast broadcast) throws Exception {
 			logger.info("Preparing the StreamFetcher for {} for streamId:{}", streamUrl, streamId);
 			Result result = prepare(inputFormatContext);
 
@@ -341,7 +341,6 @@ public class StreamFetcher {
 				muxAdaptor.setFirstKeyFrameReceivedChecked(!videoExist); 
 				muxAdaptor.setEnableVideo(videoExist);
 				muxAdaptor.setEnableAudio(audioExist);
-				Broadcast broadcast = getDataStore().get(streamId);
 				muxAdaptor.setBroadcast(broadcast);
 				//if stream is rtsp, then it's not AVC
 				muxAdaptor.setAvc(!streamUrl.toLowerCase().startsWith("rtsp"));
