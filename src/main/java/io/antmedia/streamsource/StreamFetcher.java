@@ -175,7 +175,7 @@ public class StreamFetcher {
 			String errorStr = Muxer.getErrorDefinition(ret);
 			result.setMessage(errorStr);		
 
-			logger.error("cannot open stream: {} with error:: {}",  streamUrl, result.getMessage());
+			logger.error("cannot open stream: {} with error:: {} and streamId:{}",  streamUrl, result.getMessage(), streamId);
 			av_dict_free(optionsDictionary);
 			optionsDictionary.close();
 			return result;
@@ -382,7 +382,7 @@ public class StreamFetcher {
 				}
 			} 
 			else {
-				logger.error("Prepare for opening the {} has failed", streamUrl);
+				logger.error("Prepare for opening the {} has failed for streamId:{}", streamUrl, streamId);
 				setCameraError(result);
 			}
 			return false;
@@ -613,7 +613,7 @@ public class StreamFetcher {
 				}
 
 				if(!stopRequestReceived && restartStream) {
-					logger.info("Stream fetcher will try to fetch source {} after {} ms", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS);
+					logger.info("Stream fetcher will try to fetch source {} after {} ms for streamId:{}", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS, streamId);
 
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
 

@@ -78,7 +78,7 @@ import io.antmedia.streamsource.StreamFetcherManager;
 import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
-@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	private WebScope appScope;
@@ -1043,9 +1043,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertNotNull(newCam.getStreamUrl());
 
 			String id = getInstance().getDataStore().save(newCam);
+			
 
 			assertNotNull(newCam.getStreamId());
-
+			assertEquals(id, newCam.getStreamId());
+			
 			StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
 			fetcher.setRestartStream(false);
@@ -1056,12 +1058,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			// start
 			fetcher.startStream();
 
+			
 			//wait for fetching stream
 			
 			String hlsFile = "webapps/junit/streams/"+newCam.getStreamId() +".m3u8";
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).until(() -> {
 				return new File(hlsFile).exists();
 			});
+			
 
 			//wait for packaging files
 			fetcher.stopStream();
@@ -1079,7 +1083,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			{
 				// start again to check append_list working
-				logger.info("Starting stream again for streamId:{} and streamId from fetcher:{}", newCam.getStreamId(), fetcher.getStreamId());
+				logger.info("Starting stream again for streamId:{} and streamId from fetcher:{} dataStore:{}", newCam.getStreamId(), fetcher.getStreamId(), getInstance().getDataStore().hashCode());
 				assertNotNull(getInstance().getDataStore().get(newCam.getStreamId()));
 				fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
@@ -1107,10 +1111,6 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 				assertFalse(fetcher.isThreadActive());
 			}
-
-
-
-
 
 
 			BufferedReader br = new BufferedReader(new FileReader("webapps/junit/streams/"+newCam.getStreamId() +".m3u8"));

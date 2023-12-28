@@ -661,6 +661,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (broadcast == null) 
 		{
 
+			logger.info("Saving zombi broadast to data store with streamId:{}", streamId);
 			broadcast = saveUndefinedBroadcast(streamId, null, this, status, absoluteStartTimeMs, publishType, "", "");
 		} 
 		else {
