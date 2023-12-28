@@ -14,6 +14,7 @@ import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
+import java.util.NoSuchElementException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -258,7 +259,7 @@ public class StreamFetcher {
 				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
 				setThreadActive(true);
-				
+
 
 				inputFormatContext = new AVFormatContext(null); 
 				pkt = avcodec.av_packet_alloc();
@@ -482,33 +483,41 @@ public class StreamFetcher {
 				av_packet_ref(packet, pkt);
 				bufferQueue.add(packet);
 
-				AVPacket pktHead = bufferQueue.first();
-				AVPacket pktTrailer = packet;
-				/**
-				 * BufferQueue may be polled in writer thread. 
-				 * It's a very rare case to happen so that check if it's null
-				 */
-				if (pktHead != null) {
+				try {
+					//NoSuchElementException may be thrown 
+					AVPacket pktHead = bufferQueue.first();
+					//NoSuchElementException may be thrown here as well - it's multithread @mekya
+					AVPacket pktTrailer = bufferQueue.last();
+					/**
+					 * BufferQueue may be polled in writer thread. 
+					 * It's a very rare case to happen so that check if it's null
+					 */
+					if (pktHead != null) {
 
 
-					lastPacketTimeMsInQueue = av_rescale_q(pktTrailer.dts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+						lastPacketTimeMsInQueue = av_rescale_q(pktTrailer.dts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 
-					firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+						firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 
-					bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
+						bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
 
-					if ( bufferDuration > bufferTime) {
+						if ( bufferDuration > bufferTime) {
 
-						if (buffering.get()) {
-							//have the buffering finish time ms
-							bufferingFinishTimeMs = System.currentTimeMillis();
-							//have the first packet sent time
-							firstPacketReadyToSentTimeMs  = firstPacketTime;
+							if (buffering.get()) {
+								//have the buffering finish time ms
+								bufferingFinishTimeMs = System.currentTimeMillis();
+								//have the first packet sent time
+								firstPacketReadyToSentTimeMs  = firstPacketTime;
+							}
+							buffering.set(false);
 						}
-						buffering.set(false);
-					}
 
-					logBufferStatus();
+						logBufferStatus();
+					}
+				}
+				catch (NoSuchElementException e) {
+					//Ignore this exception, it may happen
+					logger.warn("It may be expected to get this error in multithread environment -> {}", e.getMessage());
 				}
 			}
 			else {
@@ -744,8 +753,9 @@ public class StreamFetcher {
 		}
 
 		public long getBufferedDurationMs() {
-			AVPacket pktHead = bufferQueue.first();
-			if (pktHead != null) {
+
+			if (bufferQueue != null && !bufferQueue.isEmpty()) {
+				AVPacket pktHead = bufferQueue.first();
 				long firstPacketInQueueTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 				return lastPacketTimeMsInQueue - firstPacketInQueueTime;
 			}
