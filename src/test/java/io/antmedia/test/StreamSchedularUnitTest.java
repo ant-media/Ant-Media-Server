@@ -1201,6 +1201,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 					e.printStackTrace();
 				}
 			}
+			//wait here to let the emulator get ready
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
