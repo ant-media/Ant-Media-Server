@@ -1057,7 +1057,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			fetcher.startStream();
 
 			//wait for fetching stream
-
+			
 			String hlsFile = "webapps/junit/streams/"+newCam.getStreamId() +".m3u8";
 			Awaitility.await().pollDelay(5, TimeUnit.SECONDS).until(() -> {
 				return new File(hlsFile).exists();
@@ -1073,14 +1073,23 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			});
 
 			assertFalse(fetcher.isThreadActive());
-
+			
 			//assertTrue(MuxingTest.testFile(hlsFile));
 
 
 			{
 				// start again to check append_list working
-				fetcher.startStream();
+				logger.info("Starting stream again for streamId:{} and streamId from fetcher:{}", newCam.getStreamId(), fetcher.getStreamId());
+				assertNotNull(getInstance().getDataStore().get(newCam.getStreamId()));
+				fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
+				fetcher.setRestartStream(false);
+				
+				assertFalse(fetcher.isThreadActive());
+				assertFalse(fetcher.isStreamAlive());
+				
+				fetcher.startStream();
+				
 				//wait for fetching stream
 
 				Awaitility.await().pollDelay(5, TimeUnit.SECONDS).until(() -> {
