@@ -242,42 +242,57 @@ public class StreamFetcher {
 
 		@Override
 		public void run() {
-			
-			//update broadcast status to preparing 
-			
-			Broadcast broadcast = getDataStore().get(streamId);
-			if (broadcast == null) {
-				//if broadcast null, it means it's deleted
-				logger.info("Broadcast with streamId:{} is deleted before thread is started", streamId);
-				return;
-			}
-			
-			getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
-			
-			setThreadActive(true);
+
+
 			AVPacket pkt = null;
 			try {
+				//update broadcast status to preparing 
+
+				Broadcast broadcast = getDataStore().get(streamId);
+				if (broadcast == null) {
+					//if broadcast null, it means it's deleted
+					logger.info("Broadcast with streamId:{} is deleted before thread is started", streamId);
+					return;
+				}
+
+				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
+
+				setThreadActive(true);
+				
+
 				inputFormatContext = new AVFormatContext(null); 
 				pkt = avcodec.av_packet_alloc();
-
 				if(prepareInputContext(broadcast)) 
 				{
+
 					boolean readTheNextFrame = true;
 					while (readTheNextFrame) {
-						readTheNextFrame = readMore(pkt);
+						try {
+							//stay in the loop if exception occurs
+							readTheNextFrame = readMore(pkt);
+						}
+						catch (Exception e) {
+							logger.error(ExceptionUtils.getStackTrace(e));
+							exceptionInThread  = true;
+						}
 					}
 					logger.info("Leaving the stream fetcher loop for stream: {}", streamId);
+
 				}
 			}
-			catch (OutOfMemoryError | Exception e) {
+			catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 				exceptionInThread  = true;
 			}
+			finally {
 
+				close(pkt);
 
-			close(pkt);
-			setThreadActive(false);
-		}
+				setThreadActive(false);
+			}
+
+		}	
+
 
 
 		public boolean readMore(AVPacket pkt) {
@@ -468,7 +483,7 @@ public class StreamFetcher {
 				bufferQueue.add(packet);
 
 				AVPacket pktHead = bufferQueue.first();
-				AVPacket pktTrailer = bufferQueue.last();
+				AVPacket pktTrailer = packet;
 				/**
 				 * BufferQueue may be polled in writer thread. 
 				 * It's a very rare case to happen so that check if it's null
@@ -569,7 +584,7 @@ public class StreamFetcher {
 					inputFormatContext = null;
 				}
 
-				
+
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
@@ -579,7 +594,7 @@ public class StreamFetcher {
 				}
 
 
-				
+
 
 				if(streamFetcherListener != null) {	
 					stopRequestReceived = true;
@@ -590,7 +605,7 @@ public class StreamFetcher {
 
 				if(!stopRequestReceived && restartStream) {
 					logger.info("Stream fetcher will try to fetch source {} after {} ms", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS);
-					
+
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
 
 						thread = new WorkerThread();
@@ -602,10 +617,10 @@ public class StreamFetcher {
 					//Make sure closing the broadcast. If it's not restarting, its status should be FINISHED 
 					//nomatter even if streaming does not happen 
 					//@mekya
-					
+
 					logger.info("It will not try again for streamUrl:{} because stopRequestReceived:{} and restartStream:{} and streamFetcherListener is {} null", 
 							streamUrl, stopRequestReceived, restartStream, streamFetcherListener != null ? "not" : "");
-					
+
 					if (!closeCalled) {
 						getInstance().closeBroadcast(streamId);
 					}
@@ -617,7 +632,7 @@ public class StreamFetcher {
 			}
 			catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
-				
+
 			}
 		}
 
@@ -751,7 +766,7 @@ public class StreamFetcher {
 
 
 	public void startStream() {
-		
+
 		new Thread() {
 			@Override
 			public void run() {

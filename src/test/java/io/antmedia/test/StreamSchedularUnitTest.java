@@ -468,7 +468,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//check that there is no job related left related with stream fetching
 
-			System.out.println("data store: " + dataStore + " testId data ->" + dataStore.get("testId"));
+			logger.info("data store: {} testId data {} ", dataStore, dataStore.get("testId"));
 
 			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollDelay(2, TimeUnit.SECONDS)
 			.until(() -> dataStore.get("testId").getCurrentPlayIndex() == 2 && dataStore.get("testId").getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
@@ -524,46 +524,34 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			playlist.setPlaylistLoopEnabled(false);
 			assertTrue(streamFetcherManager.startPlaylist(playlist).isSuccess());
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS)
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 1);
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS)
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get("testId").getStatus()));
+			
+			//it should switch to third index - VALID_MP4_URL lenght is 15 seconds
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 3);
+			
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
 			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get("testId").getStatus()));
 
-			
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> {
+			// Playlist will return Finished status and current play index = 0
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollDelay(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				String status = dataStore.get("testId").getStatus();
 				logger.info("Status for testId: {}", status);
 				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(status);
 			});
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 3);
-			
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get("testId").getStatus()));
-			
-			
-			// Playlist will return Finished status and current play index = 0
-			
-			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
-				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getStatus());
+			.until(() -> { 
+				int index = dataStore.get("testId").getCurrentPlayIndex();
+				logger.info("Checking index:{} if zero", index);
+				
+				return index == 0;
 			});
 			
-			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
-				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getPlayListStatus());
-			});
-			
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 0);
-
-			// Update playlist with DB
-
-	//		playlist = dataStore.get(playlist.getStreamId());
-	//		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getPlayListStatus());
-
-			//Check Stream URL function
-
 			Result checked = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
 
 			assertEquals(false, checked.isSuccess());

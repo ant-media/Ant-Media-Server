@@ -347,7 +347,7 @@ public class StreamFetcherManager {
 					result = startPlaylist(playlist);
 				}
 				else {
-					playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+					playlist.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 					// Update Datastore current play broadcast
 					datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
 					result.setSuccess(false);
@@ -356,7 +356,7 @@ public class StreamFetcherManager {
 			}
 		}
 		else {
-			String msg = "There is no playlist for stream id:" + playlist.getStreamId();
+			String msg = "There is no playlist  for stream id:" + playlist.getStreamId();
 			logger.warn(msg);
 			result.setMessage(msg);
 		}
@@ -380,6 +380,7 @@ public class StreamFetcherManager {
 		if(playlist.getPlayListItemList().size() <= currentStreamIndex) 
 		{
 			//update playlist first broadcast
+			
 			playlist.setCurrentPlayIndex(0);
 			if (!playlist.isPlaylistLoopEnabled()) 
 			{
@@ -390,6 +391,9 @@ public class StreamFetcherManager {
 
 				//return null if it's not looping
 				return null;
+			}
+			else {
+				logger.info("Playlist has finished and playlist loop is enabled so setting index to 0 for playlist:{}", playlist.getStreamId());
 			}
 
 		}
