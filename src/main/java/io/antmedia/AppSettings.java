@@ -218,10 +218,6 @@ public class AppSettings implements Serializable{
 	/**
 	 * @hidden
 	 */
-	private static final String SETTINGS_STREAM_FETCHER_BUFFER_TIME = "settings.streamFetcherBufferTime";
-	/**
-	 * @hidden
-	 */
 	private static final String SETTINGS_STREAM_FETCHER_RESTART_PERIOD = "settings.streamFetcherRestartPeriod";
 	/**
 	 * @hidden
@@ -1125,28 +1121,30 @@ public class AppSettings implements Serializable{
 	private int createPreviewPeriod = 5000;
 
 	/**
-	 * It's mandatory,
-	 * Restart stream fetcher period in seconds
+	 * Period of restarting stream fetchers automaticallyin seconds. 
+	 * If it's more than 0, stream fetcher (aka. stream source) are restarted every seconds that is specified in this parameter.
 	 * Restart time for fetched streams from external sources,
 	 * Default value is 0
 	 */
-	@Value( "${streamFetcherRestartPeriod:${"+SETTINGS_STREAM_FETCHER_RESTART_PERIOD+":0}}" )
+	@Value( "${restartStreamFetcherPeriod:${"+SETTINGS_STREAM_FETCHER_RESTART_PERIOD+":0}}" )
 	private int restartStreamFetcherPeriod;
 
 	/**
-	 * Stream fetchers are started automatically if it is set true
+	 * Flag to specify Stream sources whether to start automatically when server is started. 
+	 * If it is true, stream sources are started automatically when server is started
+	 * If it's false, stream sources need to be started programmatically or manually by the user
 	 */
 	@Value( "${streamFetcherAutoStart:${"+SETTINGS_STREAM_FETCHER_AUTO_START+":false}}" )
 	private boolean startStreamFetcherAutomatically;
 
 	/**
-	 * It's mandatory,
 	 * Stream fetcher buffer time in milliseconds,
-	 * Stream is buffered for this duration and after that it will be started,
-	 * Buffering time for fetched streams from external sources. 0 means no buffer,
+	 * Stream is buffered for this duration and after that it will be started. It's also good for re-ordering packets.
+	 * 
+	 * 0 means no buffer,
 	 * Default value is 0
 	 */
-	//@Value( "${"+SETTINGS_STREAM_FETCHER_BUFFER_TIME+"}" )
+	@Value( "${streamFetcherBufferTime:0}" )
 	private int streamFetcherBufferTime = 0;
 
 

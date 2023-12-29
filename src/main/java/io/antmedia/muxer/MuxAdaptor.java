@@ -1395,21 +1395,21 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		logger.info("Number of items in the queue while adaptor is being started to prepare is {}", getInputQueueSize());
 		startTimeMs = System.currentTimeMillis();
 
-		vertx.executeBlocking(b -> {
+		vertx.executeBlocking(() -> {
 			logger.info("before prepare for {}", streamId);
 			Boolean successful = false;
 			try {
 
 				packetPollerId = vertx.setPeriodic(10, t-> 
-				vertx.executeBlocking(p-> {
+				vertx.executeBlocking(()-> {
 					try {
 						execute();
 					}
 					catch (Exception e) {
 						logger.error(ExceptionUtils.getStackTrace(e));
 					}
-					p.complete();
-				}, false, null));
+					return null;
+				}, false));
 
 
 
@@ -1419,15 +1419,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					logger.info("Scheduling the buffered packet writer for stream: {} buffer duration:{}ms", streamId, bufferTimeMs);
 					bufferedPacketWriterId = vertx.setPeriodic(10, k -> 
 
-					vertx.executeBlocking(p-> {
+					vertx.executeBlocking(()-> {
 						try {
 							writeBufferedPacket();
 						}
 						catch (Exception e) {
 							logger.error(ExceptionUtils.getStackTrace(e));
 						}
-						p.complete();
-					}, false, null)
+						return null;
+					}, false)
 							);
 
 				}
@@ -1441,12 +1441,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
-			b.complete(successful);
+			return successful;
 
-		}, 
-				false,  // run unordered
-				r -> 
-		logger.info("muxadaptor start has finished with {} for stream: {}", r.result(), streamId)
+		}, false  // run unordered
 				);
 	}
 
@@ -1509,7 +1506,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 					}
 					bufferLogCounter++; //we use this parameter in execute method as well
-					if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) {
+					if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) 
+					{
 						IStreamPacket streamPacket = !bufferQueue.isEmpty() ? bufferQueue.first() : null;
 						int bufferedDuration = 0;
 						if (streamPacket != null) {

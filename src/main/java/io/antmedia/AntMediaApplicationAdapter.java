@@ -651,25 +651,34 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
+	
 	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast) {
+		return updateBroadcastStatus(streamId, absoluteStartTimeMs, publishType, broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+	}
+
+	
+	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast, String status) {
 		if (broadcast == null) 
 		{
 
-			broadcast = saveUndefinedBroadcast(streamId, null, this, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING, absoluteStartTimeMs, publishType, "", "");
+			logger.info("Saving zombi broadast to data store with streamId:{}", streamId);
+			broadcast = saveUndefinedBroadcast(streamId, null, this, status, absoluteStartTimeMs, publishType, "", "");
 		} 
 		else {
 
-			broadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
+			broadcast.setStatus(status);
 			long now = System.currentTimeMillis();
 			broadcast.setStartTime(now);
 			broadcast.setUpdateTime(now);
 			broadcast.setOriginAdress(getServerSettings().getHostAddress());
 			broadcast.setWebRTCViewerCount(0);
 			broadcast.setHlsViewerCount(0);
+			broadcast.setDashViewerCount(0);
 			broadcast.setPublishType(publishType);
+			//updateBroadcastFields just updates broadcast with the updated fields. No need to give real object 
 			boolean result = getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
 
-			logger.info(" Status of stream {} is set to Broadcasting with result: {}", broadcast.getStreamId(), result);
+			logger.info(" Status of stream {} is set to {} with result: {}", broadcast.getStreamId(), status, result);
 		}
 		return broadcast;
 	}
