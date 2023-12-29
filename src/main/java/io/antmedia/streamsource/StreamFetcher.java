@@ -492,32 +492,30 @@ public class StreamFetcher {
 					 * BufferQueue may be polled in writer thread. 
 					 * It's a very rare case to happen so that check if it's null
 					 */
-					if (pktHead != null) {
 
+					lastPacketTimeMsInQueue = av_rescale_q(pktTrailer.dts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 
-						lastPacketTimeMsInQueue = av_rescale_q(pktTrailer.dts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+					firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 
-						firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+					bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
 
-						bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
+					if ( bufferDuration > bufferTime) {
 
-						if ( bufferDuration > bufferTime) {
-
-							if (buffering.get()) {
-								//have the buffering finish time ms
-								bufferingFinishTimeMs = System.currentTimeMillis();
-								//have the first packet sent time
-								firstPacketReadyToSentTimeMs  = firstPacketTime;
-							}
-							buffering.set(false);
+						if (buffering.get()) {
+							//have the buffering finish time ms
+							bufferingFinishTimeMs = System.currentTimeMillis();
+							//have the first packet sent time
+							firstPacketReadyToSentTimeMs  = firstPacketTime;
 						}
-
-						logBufferStatus();
+						buffering.set(false);
 					}
+
+					logBufferStatus();
+
 				}
 				catch (NoSuchElementException e) {
-					//Ignore this exception, it may happen
-					logger.warn("It may be expected to get this error in multithread environment -> {}", e.getMessage());
+					//You may or may not ignore this exception @mekya
+					logger.warn("You may or may not ignore this exception. I mean It can happen time to time in multithread environment -> {}", e.getMessage());
 				}
 			}
 			else {

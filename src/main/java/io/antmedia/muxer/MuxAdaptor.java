@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -1114,12 +1115,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void addBufferQueue(IStreamPacket packet) {
 		//it's a ordered queue according to timestamp
+
 		bufferQueue.add(packet);
 
-		IStreamPacket pktHead = bufferQueue.first();
-		IStreamPacket pktTrailer = bufferQueue.last();
+		try {
+			IStreamPacket pktHead = bufferQueue.first();
+			IStreamPacket pktTrailer = bufferQueue.last();
 
-		if (pktHead != null) {
 			int bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
 
 			if (bufferedDuration > bufferTimeMs*5) {
@@ -1165,8 +1167,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.info("ReadPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, bufferedDuration, bufferTimeMs, streamId);
 				bufferLogCounter = 0;
 			}
-
 		}
+		catch (NoSuchElementException e) {
+			//You may or may not ignore this exception @mekya
+			logger.warn("You may or may not ignore this exception. I mean It can happen time to time in multithread environment -> {}", e.getMessage());
+		}
+
+
 	}
 
 
