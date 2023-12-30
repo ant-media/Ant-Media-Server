@@ -155,6 +155,8 @@ public class WebRTCNativeInterfaceTest {
 
 	@BeforeClass
 	public static void beforeClass() {
+		PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder().createInitializationOptions());
+
 
 	}
 
@@ -469,11 +471,6 @@ public class WebRTCNativeInterfaceTest {
 
 	private PeerConnectionFactory getPeerConnectionFactory(VideoEncoderFactory encoderFactory,
 			VideoDecoderFactory decoderFactory, JavaAudioDeviceModule adm) {
-
-		PeerConnectionFactory.initialize(
-				PeerConnectionFactory.InitializationOptions.builder()
-				.setFieldTrials(null)
-				.createInitializationOptions());
 
 		PeerConnectionFactory.Options options = new PeerConnectionFactory.Options();
 		options.disableNetworkMonitor = true;
