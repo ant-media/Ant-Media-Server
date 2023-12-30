@@ -2030,6 +2030,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				endpointStatusUpdaterTimer.set(-1l);
 				try {
 					//update broadcast object
+					logger.info("Updating endpoint status in datastore for streamId:{}", streamId);
 					broadcast = getDataStore().get(broadcast.getStreamId());
 
 					updateBroadcastRecord();
