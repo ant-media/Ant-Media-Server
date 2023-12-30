@@ -486,13 +486,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(newCam.getStreamUrl());
 
 		try {
-			newCam.setStreamId((int)Math.random()*100000 + "");
+			newCam.setStreamId((int)(Math.random()*100000) + "streamId");
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 
 		assertNotNull(newCam.getStreamId());
+		
+		getInstance().getDataStore().save(newCam);
 
 		StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 		fetcher.setRestartStream(false);
@@ -531,6 +533,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
+		getInstance().getDataStore().save(newCam2);
 
 		assertNotNull(newCam2.getStreamId());
 
