@@ -252,7 +252,7 @@ public class StreamFetcher {
 				Broadcast broadcast = getDataStore().get(streamId);
 				if (broadcast == null) {
 					//if broadcast null, it means it's deleted
-					logger.info("Broadcast with streamId:{} is deleted before thread is started", streamId);
+					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
 					return;
 				}
 
