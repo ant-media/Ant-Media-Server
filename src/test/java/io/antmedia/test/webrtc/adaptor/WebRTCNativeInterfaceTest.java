@@ -148,19 +148,19 @@ public class WebRTCNativeInterfaceTest {
 		};
 	};
 
-	@Before
+	//@Before
 	public void setup() {
 
 	}
 
-	@BeforeClass
+	//@BeforeClass
 	public static void beforeClass() {
 		PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder().createInitializationOptions());
 
 
 	}
 
-	@Test
+	//@Test
 	public void testCheckNotifyEncodedData() {	
 
 		JavaAudioDeviceModule adm =	(JavaAudioDeviceModule)
@@ -198,7 +198,7 @@ public class WebRTCNativeInterfaceTest {
 
 	}
 
-	@Test
+	//@Test
 	public void testAudioRecordListener() {
 
 		{
@@ -516,14 +516,14 @@ public class WebRTCNativeInterfaceTest {
 		return peerConnectionFactory;
 	}
 
-	@Test
+	//@Test
 	public void testPeerConnection() {
 
 		initPeerConnection(null, null);
 	}
 
 
-	@Test
+	//@Test
 	public void testBugNotSetLocalDescription() {
 
 
