@@ -1498,7 +1498,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				//we should set to be deleted because app deletion fully depends on the cluster synch
 				appSettings.setToBeDeleted(newSettings.isToBeDeleted());
 				boolean saveSettings = clusterNotifier.getClusterStore().saveSettings(appSettings);
-				logger.info("Saving settings to cluster db -> {} for app: {}", saveSettings, getScope().getName());
+				logger.info("Saving settings to cluster db -> {} for app: {} and updateTime:{}", saveSettings, getScope().getName(), appSettings.getUpdateTime());
 			}
 
 			result = true;
