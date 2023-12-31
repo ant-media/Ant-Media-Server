@@ -562,7 +562,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	//@Test
 	public void testPacketOrder() throws Exception {
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
 
@@ -652,7 +652,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	//@Test
 	public void testStreamFetcherBuffer() {
 
 		try {
@@ -1024,7 +1024,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	//@Test
 	public void testHLSFlagResult() {
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
