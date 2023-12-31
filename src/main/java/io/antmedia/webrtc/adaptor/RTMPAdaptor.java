@@ -211,13 +211,7 @@ public class RTMPAdaptor extends Adaptor {
 
 	public PeerConnectionFactory createPeerConnectionFactory(){
 		
-		//PeerConnection library is initialized in the Launcher.java so no need to initialize here again
-		
-		 PeerConnectionFactory.initialize(
-			PeerConnectionFactory.InitializationOptions.builder()
-			.setFieldTrials(null)
-			.createInitializationOptions());
-		
+		//PeerConnection library is loaded in the Launcher.java so no need to initialize here again
 
 		
 		//support internal webrtc codecs

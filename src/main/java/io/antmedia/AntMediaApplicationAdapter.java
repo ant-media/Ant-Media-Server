@@ -202,10 +202,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			else if (getServerSettings().getHostAddress().equals(storedSettings.getWarFileOriginServerAddress()) 
 					&& storedSettings.isPullWarFile()) 
 			{
+				logger.info("This instance is the host of the app:{} to be deployed to the cluster", app.getName());
 				//get the current value of isPullWarFile here otherwise it will be set to false below
 				boolean isPullWarFile = storedSettings.isPullWarFile();
 				storedSettings = appSettings;
 				updateClusterSettings = true;
+				
 				//keep the settings to let the app distributed to all nodes
 				storedSettings.setPullWarFile(isPullWarFile);
 				storedSettings.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
@@ -1460,7 +1462,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (checkUpdateTime && !isIncomingTimeValid(newSettings)) {
 			//if current app settings update time is bigger than the newSettings, don't update the bean
 			//it may happen in cluster mode, app settings may be updated locally then a new update just may come instantly from cluster settings.
-			logger.debug("Not saving the settings because current appsettings update time({}) is later than incoming settings update time({}) ", appSettings.getUpdateTime(), newSettings.getUpdateTime() );
+			logger.info("Not saving the settings because current appsettings update time({}) is later than incoming settings update time({}) ", appSettings.getUpdateTime(), newSettings.getUpdateTime() );
 			return result;
 		}
 
