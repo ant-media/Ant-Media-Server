@@ -290,7 +290,7 @@ public class StatsCollectorTest {
 	public void testGetterSetter() {
 		StatsCollector resMonitor = new StatsCollector();
 		
-		assertEquals(70, resMonitor.getCpuLimit());
+		assertEquals(75, resMonitor.getCpuLimit());
 		resMonitor.setCpuLimit(45);
 		assertEquals(45, resMonitor.getCpuLimit());
 		
@@ -299,6 +299,13 @@ public class StatsCollectorTest {
 		
 		resMonitor.setCpuLimit(9);
 		assertEquals(10, resMonitor.getCpuLimit());
+		
+		assertEquals(75, resMonitor.getMemoryLimit());
+		resMonitor.setMemoryLimit(45);
+		assertEquals(45, resMonitor.getMemoryLimit());
+		resMonitor.setMemoryLimit(150);
+		assertEquals(100, resMonitor.getMemoryLimit());
+		
 		
 		Vertx vertx = Vertx.vertx();
 		resMonitor.setVertx(vertx);
@@ -590,9 +597,8 @@ public class StatsCollectorTest {
 		
 		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
 		
-		Mockito.when(monitor.getFreeRam()).thenReturn(500);
+		Mockito.when(monitor.getMemoryLoad()).thenReturn(10);
 		
-		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(50);
 				
 		assertEquals(true, monitor.enoughResource());
 		try {
@@ -606,9 +612,7 @@ public class StatsCollectorTest {
 		
 		Mockito.when(monitor.getCpuLoad()).thenReturn(80);
 		
-		Mockito.when(monitor.getFreeRam()).thenReturn(500);
 		
-		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(50);
 			
 		assertEquals(false, monitor.enoughResource());
 		try {
@@ -618,13 +622,14 @@ public class StatsCollectorTest {
 			fail(e.getMessage());
 		}
 		
-		//RAM free value under 50
+		//RAM load is 80
 		
 		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
 		
-		Mockito.when(monitor.getFreeRam()).thenReturn(10);
 		
-		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(50);
+		Mockito.when(monitor.getMemoryLoad()).thenReturn(80);
+		
+	
 		monitor.setWebhookURL("http://example.com");
 		
 		assertEquals(false, monitor.enoughResource());
@@ -640,13 +645,11 @@ public class StatsCollectorTest {
 		
 		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
 		
-		Mockito.when(monitor.getFreeRam()).thenReturn(500);
 		
-		Mockito.when(monitor.getMinFreeRamSize()).thenReturn(50);
+		Mockito.when(monitor.getMemoryLoad()).thenReturn(10);
 		
 		
-				
-		assertEquals(true,monitor.enoughResource());
+		assertEquals(true, monitor.enoughResource());
 		
 		try {
 			

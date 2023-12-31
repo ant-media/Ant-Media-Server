@@ -827,7 +827,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 
 	
-	private int getMemoryLoad() {
+	public int getMemoryLoad() {
 		long availableMemory = SystemUtils.osAvailableMemory();
 		long totalMemory = SystemUtils.osTotalPhysicalMemory();
 		return (int) (((double)(totalMemory - availableMemory) / totalMemory) * 100);
@@ -1212,7 +1212,16 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	}
 
 	public void setMemoryLimit(int memoryLimit) {
-		this.memoryLimit = memoryLimit;
+		if (memoryLimit > 100) {
+			this.memoryLimit = 100;
+		}
+		else if (memoryLimit < 10) {
+			this.memoryLimit = 10;
+		}
+		else {
+			this.memoryLimit = memoryLimit;
+		}
+		
 	}
 
 

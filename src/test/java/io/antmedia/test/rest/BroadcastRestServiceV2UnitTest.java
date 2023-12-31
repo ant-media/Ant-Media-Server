@@ -2494,7 +2494,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		monitorService.setCpuLoad(cpuLoad2);
 		monitorService.setCpuLimit(cpuLimit2);
-		monitorService.setMinFreeRamSize(0);
+		monitorService.setMemoryLimit(100);
 		
 		result = streamSourceRest.addStreamSource(newCam);
 
@@ -2708,7 +2708,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		monitorService.setCpuLoad(cpuLoad2);
 		monitorService.setCpuLimit(cpuLimit2);
-		monitorService.setMinFreeRamSize(0);
+		monitorService.setMemoryLimit(100);
 
 		result = streamSourceRest.addStreamSource(source);
 		assertNull(source.getEndPointList());
