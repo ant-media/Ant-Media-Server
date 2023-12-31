@@ -172,7 +172,7 @@ public class RTMPAdaptorTest {
 	}
 
 
-	//@Test
+	@Test
 	public void testUnexpectedLineSize() {
 		//Create FFmpegFRameRecoder
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
@@ -216,14 +216,14 @@ public class RTMPAdaptorTest {
 
 	}
 
-	//@Test
+	@Test
 	public void testEncodeDifferentRes() {
 		testEncode(640, 480);
 
 		testEncode(480, 360);
 	}
 
-	//@Test
+	@Test
 	public void testAudioOnlyInitialization() 
 	{
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
@@ -238,7 +238,7 @@ public class RTMPAdaptorTest {
 		assertFalse(adaptor.isEnableVideo());
 		adaptor.encodeAudio();
 		assertNotNull(adaptor.getRecorder());
-
+		
 	}
 
 	public void testEncode(int width, int height) {
