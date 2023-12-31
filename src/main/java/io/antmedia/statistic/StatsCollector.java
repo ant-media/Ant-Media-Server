@@ -224,7 +224,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	 * Min Free Ram Size that free memory should be always more than min
 	 * Use {@link #memoryLimit}
 	 */
-	@Deprecated(since="2.8", forRemoval=true)
 	private int minFreeRamSize = 50;
 
 	private String kafkaBrokers = null;
@@ -840,16 +839,25 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		if(getCpuLoad() < getCpuLimit()) 
 		{		
-						
-			long memoryLoad = getMemoryLoad();
-			if (memoryLoad < getMemoryLimit())  
-			{
-				//if it does not calculate the free ram, return true
-				enoughResource = true;		
+			if (SystemUtils.OS_TYPE == SystemUtils.LINUX) {
+				long memoryLoad = getMemoryLoad();
+				enoughResource = memoryLoad < getMemoryLimit();
+				if (!enoughResource)  
+				{
+					logger.error("Not enough resource. Due to memory limit. Memory usage should be less than %{} but it is %{}", getMemoryLimit(), memoryLoad);
+				}
 			}
-			else {
-				logger.error("Not enough resource. Due to memorly limit. Memory usage should be less than %{} but it is %{}", getMemoryLimit(), memoryLoad);
+			else {		
+				int freeRam = getFreeRam();
+				enoughResource = (freeRam > getMinFreeRamSize() || freeRam == -1) ;
+				if (!enoughResource)  
+				{
+					logger.error("Not enough resource. Due to memory limit. Free memory should be more than {}MB but it is {}MB", getMinFreeRamSize(), freeRam);
+				}
 			}
+				
+			
+			
 
 		}
 		else {
