@@ -32,6 +32,8 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.webrtc.IceCandidate;
 import org.webrtc.JavaI420Buffer;
@@ -117,6 +119,7 @@ public class RTMPAdaptorTest {
 			"a=rtpmap:100 ulpfec/90000\n";
 
 
+	private static Logger logger = LoggerFactory.getLogger(RTMPAdaptorTest.class);
 	@Rule
 	public TestRule watcher = new TestWatcher() {
 		protected void starting(Description description) {
@@ -138,10 +141,14 @@ public class RTMPAdaptorTest {
 
 	@BeforeClass
 	public static void beforeClass() {
+		
+		logger.info("Loading native library - 0");
 		PeerConnectionFactory.initialize(
 				PeerConnectionFactory.InitializationOptions.builder()
 				.setFieldTrials(null)
 				.createInitializationOptions());
+		
+		logger.info("Loading native library - 1");
 
 	}
 
