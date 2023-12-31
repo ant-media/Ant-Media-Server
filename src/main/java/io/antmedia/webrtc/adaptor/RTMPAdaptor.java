@@ -448,15 +448,19 @@ public class RTMPAdaptor extends Adaptor {
 
 	public void recordSamples(AudioFrame audioFrameContext) 
 	{
+		if (recorder == null) {
+			logger.warn("Recorder is null for streamId:{}", getStreamId());
+			return;
+		}
 		try {
-
+			
 			ShortBuffer audioBuffer = audioFrameContext.data.asShortBuffer();
 
 			boolean result = recorder.recordSamples(audioFrameContext.sampleRate, audioFrameContext.channels, audioBuffer);
 			if (!result) {
 				logger.info("could not audio sample for stream Id {}", getStreamId());
 			}
-		} catch (Exception e) {
+		} catch (FrameRecorder.Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 	}
