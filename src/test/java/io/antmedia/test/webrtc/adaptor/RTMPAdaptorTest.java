@@ -131,17 +131,22 @@ public class RTMPAdaptorTest {
 		};
 	};
 
-	//@Before
+	@Before
 	public void setup() {
 
 	}
 
-	//@BeforeClass
+	@BeforeClass
 	public static void beforeClass() {
+		PeerConnectionFactory.initialize(
+				PeerConnectionFactory.InitializationOptions.builder()
+				.setFieldTrials(null)
+				.createInitializationOptions());
+
 	}
 
 
-	//@Test
+	@Test
 	public void testOnAddStream() {
 
 		FFmpegFrameRecorder recorder = mock(FFmpegFrameRecorder.class);
@@ -313,8 +318,6 @@ public class RTMPAdaptorTest {
 	{
 		File f = new File("target/test-classes/encoded_frame"+(int)(Math.random()*10010)+".flv");
 		RTMPAdaptor adaptor = new RTMPAdaptor(f.getAbsolutePath(), Mockito.mock(WebSocketCommunityHandler.class), 480);
-
-		PeerConnectionFactory.initialize(PeerConnectionFactory.InitializationOptions.builder().createInitializationOptions());
 
 		adaptor.start();
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> adaptor.isStarted());
