@@ -159,7 +159,7 @@
    	<bean id="statsCollector" class="io.antmedia.statistic.StatsCollector" init-method="start">
    	   <property name="cpuLimit" value="${server.cpu_limit}"/>
        <property name="kafkaBrokers" value="${server.kafka_brokers}" />
-       <property name="minFreeRamSize" value="${server.min_free_ram}"/>
+       <property name="memoryLimit" value="${server.memory_limit_percentage:75}" />
    	</bean>
    	
     <bean id="srtAdaptor" class="#{ T(io.antmedia.rest.RestServiceBase).isEnterprise() ? 'io.antmedia.enterprise.srt.SRTAdaptor' : 'io.antmedia.srt.SRTAdaptor' }">

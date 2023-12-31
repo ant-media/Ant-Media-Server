@@ -212,11 +212,19 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	private int staticSendPeriod = 15000;
 
 	private int cpuLoad;
-	private int cpuLimit = 70;
+	private int cpuLimit = 75;
+	
+	
+	/**
+	 * Memory limit in percentage
+	 */
+	private int memoryLimit = 75;
 
 	/**
 	 * Min Free Ram Size that free memory should be always more than min
+	 * Use {@link #memoryLimit}
 	 */
+	@Deprecated(since="2.8", forRemoval=true)
 	private int minFreeRamSize = 50;
 
 	private String kafkaBrokers = null;
@@ -815,7 +823,15 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		}		
 		cpuLoad = total/cpuMeasurements.size();
 	}
+	
 
+
+	
+	private int getMemoryLoad() {
+		long availableMemory = SystemUtils.osAvailableMemory();
+		long totalMemory = SystemUtils.osTotalPhysicalMemory();
+		return (int) (((double)(totalMemory - availableMemory) / totalMemory) * 100);
+	}
 
 	@Override
 	public boolean enoughResource(){
@@ -824,14 +840,15 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		if(getCpuLoad() < getCpuLimit()) 
 		{		
-			int freeRam = getFreeRam();
-			if (freeRam > getMinFreeRamSize() || freeRam == -1)  
+						
+			long memoryLoad = getMemoryLoad();
+			if (memoryLoad < getMemoryLimit())  
 			{
 				//if it does not calculate the free ram, return true
 				enoughResource = true;		
 			}
 			else {
-				logger.error("Not enough resource. Due to not free RAM. Free RAM should be more than  {} but it is: {}", minFreeRamSize, getFreeRam());
+				logger.error("Not enough resource. Due to memorly limit. Memory usage should be less than %{} but it is %{}", getMemoryLimit(), memoryLoad);
 			}
 
 		}
@@ -1188,6 +1205,14 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 	public void setWebhookURL(String webhookURL) {
 		this.webhookURL = webhookURL;
+	}
+
+	public int getMemoryLimit() {
+		return memoryLimit;
+	}
+
+	public void setMemoryLimit(int memoryLimit) {
+		this.memoryLimit = memoryLimit;
 	}
 
 
