@@ -352,7 +352,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			if (300000/measurementPeriod == time2Log) {
 				if(logger != null) 
 				{
-					logger.info("System cpu load:{} process cpu load:{} available memory: {} KB used memory(RSS): {} KB", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.convertByteSize(SystemUtils.osAvailableMemory(), "KB"), SystemUtils.convertByteSize(Pointer.physicalBytes(), "KB"));
+					logger.info("System CPU:%{} Process CPU:%{} System Load Average:{} Memory:%{}", cpuLoad, SystemUtils.getProcessCpuLoad(), SystemUtils.getSystemLoadAverageLastMinute(), getMemoryLoad());
 
 					int vertxWorkerQueueSize = getVertWorkerQueueSizeStatic();
 
