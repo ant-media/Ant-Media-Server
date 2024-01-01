@@ -121,6 +121,8 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 	public static final String MAX_MEMORY = "maxMemory";
 
 	public static final String PROCESS_CPU_LOAD = "processCPULoad";
+	
+	public static final String SYSTEM_LOAD_AVERAGE_IN_LAST_MINUTE = "systemLoadAverageLastMinute";
 
 	public static final String SYSTEM_CPU_LOAD = "systemCPULoad";
 
@@ -543,6 +545,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		jsonObject.addProperty(PROCESS_CPU_TIME, SystemUtils.getProcessCpuTime());
 		jsonObject.addProperty(SYSTEM_CPU_LOAD, SystemUtils.getSystemCpuLoad());
 		jsonObject.addProperty(PROCESS_CPU_LOAD, SystemUtils.getProcessCpuLoad());
+		jsonObject.addProperty(SYSTEM_LOAD_AVERAGE_IN_LAST_MINUTE, SystemUtils.getSystemLoadAverageLastMinute());
 		return jsonObject;
 	}
 
