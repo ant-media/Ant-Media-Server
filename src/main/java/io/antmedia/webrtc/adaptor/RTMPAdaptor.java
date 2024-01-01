@@ -211,13 +211,7 @@ public class RTMPAdaptor extends Adaptor {
 
 	public PeerConnectionFactory createPeerConnectionFactory(){
 		
-		//PeerConnection library is initialized in the Launcher.java so no need to initialize here again
-		
-		 PeerConnectionFactory.initialize(
-			PeerConnectionFactory.InitializationOptions.builder()
-			.setFieldTrials(null)
-			.createInitializationOptions());
-		
+		//PeerConnection library is loaded in the Launcher.java so no need to initialize here again
 
 		
 		//support internal webrtc codecs
@@ -448,15 +442,19 @@ public class RTMPAdaptor extends Adaptor {
 
 	public void recordSamples(AudioFrame audioFrameContext) 
 	{
+		if (recorder == null) {
+			logger.warn("Recorder is null for streamId:{}", getStreamId());
+			return;
+		}
 		try {
-
+			
 			ShortBuffer audioBuffer = audioFrameContext.data.asShortBuffer();
 
 			boolean result = recorder.recordSamples(audioFrameContext.sampleRate, audioFrameContext.channels, audioBuffer);
 			if (!result) {
 				logger.info("could not audio sample for stream Id {}", getStreamId());
 			}
-		} catch (Exception e) {
+		} catch (FrameRecorder.Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 	}
