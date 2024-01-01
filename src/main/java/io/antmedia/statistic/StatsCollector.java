@@ -20,6 +20,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
@@ -834,6 +835,10 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		long totalMemory = SystemUtils.osTotalPhysicalMemory();
 		return (int) (((double)(totalMemory - availableMemory) / totalMemory) * 100);
 	}
+	
+	public int getOSType() {
+		return SystemUtils.OS_TYPE;
+	}
 
 	@Override
 	public boolean enoughResource(){
@@ -842,7 +847,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 
 		if(getCpuLoad() < getCpuLimit()) 
 		{		
-			if (SystemUtils.OS_TYPE == SystemUtils.LINUX) {
+			if (getOSType() == SystemUtils.LINUX) {
 				long memoryLoad = getMemoryLoad();
 				enoughResource = memoryLoad < getMemoryLimit();
 				if (!enoughResource)  
@@ -867,7 +872,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", cpuLoad, cpuLimit);
 		}
 
-		if (!enoughResource && webhookURL != null && !webhookURL.isEmpty()) {
+		if (!enoughResource && StringUtils.isNotBlank(webhookURL)) {
 
 			logger.info("Setting timer to call high resource usage hook.");
 			vertx.setTimer(10, e -> 

@@ -306,6 +306,9 @@ public class StatsCollectorTest {
 		resMonitor.setMemoryLimit(150);
 		assertEquals(100, resMonitor.getMemoryLimit());
 		
+		resMonitor.setMemoryLimit(0);
+		assertEquals(10, resMonitor.getMemoryLimit());
+		
 		
 		Vertx vertx = Vertx.vertx();
 		resMonitor.setVertx(vertx);
@@ -594,12 +597,9 @@ public class StatsCollectorTest {
 		//Cpu Limit = 70 & Min Free Ram Size = 50 MB
 		
 		//check default values
-		
+		Mockito.when(monitor.getOSType()).thenReturn(SystemUtils.LINUX);
 		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
-		
 		Mockito.when(monitor.getMemoryLoad()).thenReturn(10);
-		
-				
 		assertEquals(true, monitor.enoughResource());
 		try {
 			Mockito.verify(monitor, Mockito.after(100).never()).sendPOST(Mockito.any(), Mockito.any());
@@ -608,12 +608,21 @@ public class StatsCollectorTest {
 			fail(e.getMessage());
 		}
 		
-		//CPU value over 70
+		Mockito.when(monitor.getOSType()).thenReturn(SystemUtils.MAC_OS_X);
+		Mockito.when(monitor.getFreeRam()).thenReturn(100);
+		assertEquals(true, monitor.enoughResource());
+		try {
+			Mockito.verify(monitor, Mockito.after(100).never()).sendPOST(Mockito.any(), Mockito.any());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 		
+		
+		//CPU value over 70
+		Mockito.when(monitor.getOSType()).thenReturn(SystemUtils.LINUX);
 		Mockito.when(monitor.getCpuLoad()).thenReturn(80);
 		
-		
-			
 		assertEquals(false, monitor.enoughResource());
 		try {
 			Mockito.verify(monitor, Mockito.after(100).never()).sendPOST(Mockito.any(), Mockito.any());
@@ -625,11 +634,7 @@ public class StatsCollectorTest {
 		//RAM load is 80
 		
 		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
-		
-		
 		Mockito.when(monitor.getMemoryLoad()).thenReturn(80);
-		
-	
 		monitor.setWebhookURL("http://example.com");
 		
 		assertEquals(false, monitor.enoughResource());
@@ -641,10 +646,32 @@ public class StatsCollectorTest {
 			fail(e.getMessage());
 		}
 		
+		Mockito.when(monitor.getOSType()).thenReturn(SystemUtils.MAC_OS_X);
+		Mockito.when(monitor.getFreeRam()).thenReturn(10);
+		assertEquals(false, monitor.enoughResource());
+		
+		try {
+			Mockito.verify(monitor, Mockito.after(1500).times(2)).sendPOST(Mockito.any(), Mockito.any());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		Mockito.when(monitor.getFreeRam()).thenReturn(-1);
+		assertEquals(true, monitor.enoughResource());
+		
+		try {
+			Mockito.verify(monitor, Mockito.after(1500).times(2)).sendPOST(Mockito.any(), Mockito.any());
+		} catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		
+		
 		// Check false values in Max and Current physical memory
 		
+		Mockito.when(monitor.getOSType()).thenReturn(SystemUtils.LINUX);
 		Mockito.when(monitor.getCpuLoad()).thenReturn(10);
-		
 		
 		Mockito.when(monitor.getMemoryLoad()).thenReturn(10);
 		
@@ -653,7 +680,7 @@ public class StatsCollectorTest {
 		
 		try {
 			
-			Mockito.verify(monitor, Mockito.after(100).times(1)).sendPOST(Mockito.any(), Mockito.any());
+			Mockito.verify(monitor, Mockito.after(100).times(2)).sendPOST(Mockito.any(), Mockito.any());
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
