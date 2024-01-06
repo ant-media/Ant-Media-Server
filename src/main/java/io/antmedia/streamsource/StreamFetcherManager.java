@@ -124,7 +124,7 @@ public class StreamFetcherManager {
 
 			if (streamFetcherList.containsKey(streamScheduler.getStreamId())) {
 				//this log has been put while we refactor streamFetcherList
-				logger.warn("There is already a strem schedule exists for streamId:{} ", streamScheduler.getStreamId());
+				logger.warn("There is already a stream schedule exists for streamId:{} ", streamScheduler.getStreamId());
 			}
 
 			streamFetcherList.put(streamScheduler.getStreamId(), streamScheduler);
@@ -400,9 +400,9 @@ public class StreamFetcherManager {
 		else {
 			// update playlist currentPlayIndex value.
 			playlist.setCurrentPlayIndex(currentStreamIndex);
-			logger.info("Next index to play in play list is {} for stream: {}", playlist.getCurrentPlayIndex(), playlist.getStreamId());
 		}
 
+		logger.info("Next index to play in play list is {} for stream: {}", playlist.getCurrentPlayIndex(), playlist.getStreamId());
 
 		return playlist;
 	}
