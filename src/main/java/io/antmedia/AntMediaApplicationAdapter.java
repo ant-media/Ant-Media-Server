@@ -1154,6 +1154,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			for (Broadcast broadcast : localLiveBroadcasts) {
 				//if it's not closed properly, let's set the state to failed
 				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+				broadcast.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 				broadcast.setWebRTCViewerCount(0);
 				broadcast.setHlsViewerCount(0);
 				broadcast.setDashViewerCount(0);
