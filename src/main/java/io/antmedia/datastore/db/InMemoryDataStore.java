@@ -181,6 +181,24 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return activeBroadcastCount;
 	}
+	
+	
+	public long getLocalLiveBroadcastCount(String hostAddress) {
+		return getActiveBroadcastCount();
+	}
+	
+	public List<Broadcast> getLocalLiveBroadcasts(String hostAddress) 
+	{
+		List<Broadcast> broadcastList = new ArrayList<>();
+		Collection<Broadcast> values = broadcastMap.values();
+		for (Broadcast broadcast : values) {
+			String status = broadcast.getStatus();
+			if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)) {
+				broadcastList.add(broadcast);
+			}
+		}
+		return broadcastList;
+	}
 
 
 	@Override

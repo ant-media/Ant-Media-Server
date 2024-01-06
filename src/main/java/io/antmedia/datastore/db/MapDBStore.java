@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -117,6 +118,16 @@ public class MapDBStore extends MapBasedDataStore {
 			}
 
 		}
+	}
+	
+	public long getLocalLiveBroadcastCount(String hostAddress) {
+		return getActiveBroadcastCount();
+	}
+	
+	@Override
+	public List<Broadcast> getLocalLiveBroadcasts(String hostAddress) 
+	{
+		return getActiveBroadcastList(null);
 	}
 
 

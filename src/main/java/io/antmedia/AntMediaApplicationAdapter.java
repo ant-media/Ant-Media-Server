@@ -1126,6 +1126,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void waitUntilLiveStreamsStopped() {
 		int i = 0;
 		int waitPeriod = 1000;
+		boolean everythingHasStopped = true;
 		while(getDataStore().getLocalLiveBroadcastCount(getServerSettings().getHostAddress()) > 0) {
 			try {
 				if (i > 3) {
@@ -1133,9 +1134,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 							+ "total wait time: {}ms", getScope().getName(), i*waitPeriod);
 				}
 				if (i>10) {
-					logger.error("*********************************************************************************");
-					logger.error("Not all live streams're stopped. It's even breaking the loop to finish the server");
-					logger.error("*********************************************************************************");
+					logger.error("Not all live streams're stopped gracefully. It will update the streams' status to finished explicitly");
+					everythingHasStopped = false;
 					break;
 				}
 				i++;
@@ -1146,6 +1146,28 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				Thread.currentThread().interrupt();
 			}
 		}
+		
+		if (!everythingHasStopped) 
+		{
+			List<Broadcast> localLiveBroadcasts = getDataStore().getLocalLiveBroadcasts(getServerSettings().getHostAddress());
+			List<String> streamIdList = new ArrayList<>(); 
+			for (Broadcast broadcast : localLiveBroadcasts) {
+				//if it's not closed properly, let's set the state to failed
+				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+				broadcast.setWebRTCViewerCount(0);
+				broadcast.setHlsViewerCount(0);
+				broadcast.setDashViewerCount(0);
+				
+				getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
+				streamIdList.add(broadcast.getStreamId());
+			}
+			
+			if (logger.isWarnEnabled()) {
+				logger.warn("Following streams status set to finished explicitly because they're not stopped properly: {}", String.join(",", streamIdList));
+			}
+		}
+		
+		
 	}
 
 

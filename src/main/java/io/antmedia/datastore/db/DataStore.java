@@ -683,20 +683,42 @@ public abstract class DataStore {
 	 */
 	public abstract long getActiveBroadcastCount();
 
-	public long getActiveBroadcastCount(Map<String, String> broadcastMap, Gson gson) {
+	public long getActiveBroadcastCount(Map<String, String> broadcastMap, Gson gson, String hostAddress) {
 		int activeBroadcastCount = 0;
 		synchronized (this) {
 			
 			Collection<String> values = broadcastMap.values();
-			for (String broadcastString : values) {
+			for (String broadcastString : values) 
+			{
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
-				if (status != null && status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
+						(hostAddress == null || hostAddress.equals(broadcast.getOriginAdress()))) 
+				{
 					activeBroadcastCount++;
 				}
 			}
 		}
 		return activeBroadcastCount;
+	}
+	
+	public List<Broadcast> getActiveBroadcastList(Map<String, String> broadcastMap, Gson gson, String hostAddress) {
+		List<Broadcast> broadcastList = new ArrayList<>();
+		synchronized (this) {
+			
+			Collection<String> values = broadcastMap.values();
+			for (String broadcastString : values) 
+			{
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				String status = broadcast.getStatus();
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
+						(hostAddress == null || hostAddress.equals(broadcast.getOriginAdress()))) 
+				{
+					broadcastList.add(broadcast);
+				}
+			}
+		}
+		return broadcastList;
 	}
 
 	/**
@@ -970,19 +992,15 @@ public abstract class DataStore {
 		broadcast.setUserAgent(newBroadcast.getUserAgent());
 		broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
 		broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
+		broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
 	}
 
-	/**
-	 * This method returns the local active broadcast count.ro
-	 * Mongodb implementation is different because of cluster.
-	 * Other implementations just return active broadcasts in db
-	 * @return
-	 */
-	public long getLocalLiveBroadcastCount(String hostAddress) {
-		return getActiveBroadcastCount();
-	}
+
+	public abstract long getLocalLiveBroadcastCount(String hostAddress);
+	
+	public abstract List<Broadcast> getLocalLiveBroadcasts(String hostAddress);
 
 	/**
 	 * Below search methods and sortandcrop methods are used for getting the searched items and sorting and pagination.
