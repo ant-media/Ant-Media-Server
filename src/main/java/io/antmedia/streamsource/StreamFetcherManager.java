@@ -81,9 +81,11 @@ public class StreamFetcherManager {
 		this.scope=scope;
 		this.appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
 		this.licenseService = (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
-		AMSShutdownManager.getInstance().subscribe(()-> {
-			serverShuttingDown = true;
-		});
+		AMSShutdownManager.getInstance().subscribe(()-> shuttingDown());
+	}
+	
+	public void shuttingDown() {
+		serverShuttingDown = true;
 	}
 
 	public StreamFetcher make(Broadcast stream, IScope scope, Vertx vertx) {

@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -693,7 +694,7 @@ public abstract class DataStore {
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
-						(hostAddress == null || hostAddress.equals(broadcast.getOriginAdress()))) 
+						(StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress()))) 
 				{
 					activeBroadcastCount++;
 				}
@@ -712,7 +713,7 @@ public abstract class DataStore {
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
-						(hostAddress == null || hostAddress.equals(broadcast.getOriginAdress()))) 
+					  (StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress())))
 				{
 					broadcastList.add(broadcast);
 				}

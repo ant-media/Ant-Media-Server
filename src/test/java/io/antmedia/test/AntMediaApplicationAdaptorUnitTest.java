@@ -62,6 +62,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
@@ -1046,6 +1047,40 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testWaitUntilLiveStreamsStopped() {
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("test");
+		adapter.setScope(scope);
+
+		IContext context = mock(IContext.class);
+		when(scope.getContext()).thenReturn(context);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+
+
+		adapter.setServerSettings(Mockito.spy(new ServerSettings()));
+		
+		adapter.setDataStore(new InMemoryDataStore("testWaitUntilLiveStreamsStopped"));
+		
+		int numberOfCall = (int)(Math.random()*999);
+		
+		for (int i=0; i < numberOfCall; i++) 
+		{
+			Broadcast stream = new Broadcast();
+			stream.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+			
+			adapter.getDataStore().save(stream);
+		}
+		
+		assertEquals(numberOfCall, adapter.getDataStore().getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+		
+		adapter.waitUntilLiveStreamsStopped();
+		
+		
+		assertEquals(0, adapter.getDataStore().getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+
 	}
 
 	@Test
