@@ -449,11 +449,8 @@ public class DBStoresUnitTest {
 		assertEquals(0, dataStore.getBroadcastCount());
 
 
-		long streamCount = (int)(Math.random()  * 500);
+		long streamCount = 10 + (int)(Math.random()  * 500);
 
-		if (streamCount < 10) {
-			streamCount = 10;
-		}
 
 		System.out.println("Stream count to be added: " + streamCount);
 
@@ -467,7 +464,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, dataStore.getActiveBroadcastCount());
 
 		//change random number of streams status to broadcasting
-		long numberOfStatusChangeStreams = (int)(Math.random() * 500);
+		long numberOfStatusChangeStreams = 10 + (int)(Math.random() * 500);
 		if (streamCount < numberOfStatusChangeStreams) {
 			numberOfStatusChangeStreams = streamCount;
 		}
