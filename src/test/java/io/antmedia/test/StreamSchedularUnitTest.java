@@ -704,6 +704,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				startPlaylist = streamFetcherManager.startPlaylist(playlist);
 				assertTrue(startPlaylist.isSuccess());
 				
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+				
 				streamFetcherManager.shuttingDown();
 				
 				Result result = service.playNextItem(streamId, -1);
@@ -711,7 +714,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				logger.info("result message:{}", result.getMessage());
 				assertTrue(result.getMessage().contains("server is shutting down"));
 				
-				Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+				Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> {
 					return !streamFetcherManager.isStreamRunning(playlist);
 				});
 				
