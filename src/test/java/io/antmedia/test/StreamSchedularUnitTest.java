@@ -60,6 +60,7 @@ import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
+import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -690,9 +691,33 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
 			}
 			
+			
 			{
 				Result stopPlayList = streamFetcherManager.stopPlayList(streamId);
 				assertTrue(stopPlayList.isSuccess());
+			}
+			
+			{	
+				Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+					return !streamFetcherManager.isStreamRunning(playlist);
+				});
+				startPlaylist = streamFetcherManager.startPlaylist(playlist);
+				assertTrue(startPlaylist.isSuccess());
+				
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+				
+				streamFetcherManager.shuttingDown();
+				
+				Result result = service.playNextItem(streamId, -1);
+				assertFalse(result.isSuccess());
+				logger.info("result message:{}", result.getMessage());
+				assertTrue(result.getMessage().contains("server is shutting down"));
+				
+				Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> {
+					return !streamFetcherManager.isStreamRunning(playlist);
+				});
+				
 			}
 
 			//convert to original settings

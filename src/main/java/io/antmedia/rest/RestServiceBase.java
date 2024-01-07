@@ -1451,7 +1451,13 @@ public abstract class RestServiceBase {
 			{	
 				IStreamFetcherListener streamFetcherListener = streamFetcher.getStreamFetcherListener();
 				//don't let the streamFetcherListener be called again because it already automatically plays the next item
+				
 				streamFetcher.setStreamFetcherListener(null);
+				
+				if (logger.isInfoEnabled()) {
+					logger.info("Switching to next item by REST method for playlist:{} and forwarding stream fetcher listener:{}", id.replaceAll("[\n\r]", "_"), streamFetcherListener.hashCode());
+				}
+				
 				result = getApplication().getStreamFetcherManager().playItemInList(broadcast, streamFetcherListener, index);
 			}
 			else {

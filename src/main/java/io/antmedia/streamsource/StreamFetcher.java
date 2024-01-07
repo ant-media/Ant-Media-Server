@@ -603,10 +603,11 @@ public class StreamFetcher {
 
 
 
-				if(streamFetcherListener != null) {	
+				if(streamFetcherListener != null) 
+				{	
 					stopRequestReceived = true;
 					restartStream = false;
-
+					logger.info("Calling streamFinished listener for streamId:{} and it will not restart the stream automatically because callback is getting the responsbility", streamId);
 					streamFetcherListener.streamFinished(streamFetcherListener);
 				}
 
@@ -621,12 +622,8 @@ public class StreamFetcher {
 				}
 				else 
 				{
-					//Make sure closing the broadcast. If it's not restarting, its status should be FINISHED 
-					//nomatter even if streaming does not happen 
-					//@mekya
-
-					logger.info("It will not try again for streamUrl:{} because stopRequestReceived:{} and restartStream:{} and streamFetcherListener is {} null", 
-							streamUrl, stopRequestReceived, restartStream, streamFetcherListener != null ? "not" : "");
+					logger.info("Stream fetcher will not try again for streamUrl:{} because stopRequestReceived:{} and restartStream:{}", 
+							streamUrl, stopRequestReceived, restartStream);
 
 					if (!closeCalled) {
 						getInstance().closeBroadcast(streamId);
