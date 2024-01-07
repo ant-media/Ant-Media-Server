@@ -6,6 +6,7 @@ import java.io.IOException;
 
 import jakarta.servlet.ServletException;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
@@ -45,6 +46,28 @@ public class JWTFilterTest {
 		
 		System.out.println("Valid Token: " + token);
 
+        // App Settings Null (App getting initialized)
+        {
+            //reset filterchain
+            filterChain = new MockFilterChain();
+
+            //reset httpServletResponse
+            httpServletResponse = Mockito.spy(new MockHttpServletResponse());
+
+            //reset httpServletRequest
+            httpServletRequest = new MockHttpServletRequest();
+
+            appSettings.setJwtControlEnabled(true);
+
+            Mockito.doReturn(null).when(jwtFilter).getAppSettings();
+
+            httpServletRequest.addHeader("Authorization", token);
+
+            jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+            assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
+            Mockito.verify(httpServletResponse).sendError(HttpServletResponse.SC_FORBIDDEN, "Application is getting initialized");
+
+        }
         // JWT Token enable and invalid token scenario
         {   
         	//reset filterchain

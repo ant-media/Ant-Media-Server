@@ -340,7 +340,7 @@ public class TokenFilterTest {
 		when(settings.getClusterCommunicationKey()).thenReturn(RandomStringUtils.randomAlphabetic(10));
 
 		
-		
+
 		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 
 		
@@ -367,7 +367,7 @@ public class TokenFilterTest {
 			when(mockRequest.getRemoteAddr()).thenReturn(clientIP);
 			
 			when(mockRequest.getParameter("token")).thenReturn(tokenId);
-						
+
 			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+".m3u8");
 			
 			when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_OK);
@@ -385,28 +385,28 @@ public class TokenFilterTest {
 			verify(settings, times(1)).isPlayTokenControlEnabled();
 			verify(mockResponse).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Token for streamId:" + streamId);
 			verify(mockChain, never()).doFilter(mockRequest, mockResponse);
-			
-			
+
+
 			when(mockRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION)).thenReturn(RandomStringUtils.randomAlphanumeric(32));
 			when(tokenService.isJwtTokenValid(anyString(), anyString(), anyString(), anyString())).thenReturn(true);
-			
+
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
-			//play token should not be called again because there is header(TOKEN_HEADER_FOR_NODE_COMMUNICATION) and token service returns true so it just bypass 
+			//play token should not be called again because there is header(TOKEN_HEADER_FOR_NODE_COMMUNICATION) and token service returns true so it just bypass
 			verify(settings, times(1)).isPlayTokenControlEnabled();
 			verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
-			
 
-			
+
+
 			when(tokenService.isJwtTokenValid(anyString(), anyString(), anyString(), anyString())).thenReturn(false);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
-			//it should not be called again because there is TOKEN_HEADER_FOR_NODE_COMMUNICATION header and it is not valid 
+			//it should not be called again because there is TOKEN_HEADER_FOR_NODE_COMMUNICATION header and it is not valid
 			verify(settings, times(1)).isPlayTokenControlEnabled();
-			//it should not be called again because there is TOKEN_HEADER_FOR_NODE_COMMUNICATION header and it is not valid 
+			//it should not be called again because there is TOKEN_HEADER_FOR_NODE_COMMUNICATION header and it is not valid
 			verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
 			verify(mockResponse).sendError(HttpServletResponse.SC_FORBIDDEN, "Cluster communication token is not valid for streamId:" + streamId);
 
-			
-			
+
+
 		} catch (ServletException|IOException e) {
 			e.printStackTrace();
 			fail(ExceptionUtils.getStackTrace(e));
@@ -448,17 +448,17 @@ public class TokenFilterTest {
 		String type = "publish";
 		String secret = "secret";
 		String generatedSecretCode = TOTPGenerator.getSecretCodeForNotRecordedSubscriberId(subscriberId, streamId, type, secret);
-		
+
 		assertEquals(Base32.encodeAsString((secret+subscriberId+streamId+type).getBytes()), generatedSecretCode);
-		
+
 		secret = "secret123";
 		generatedSecretCode = TOTPGenerator.getSecretCodeForNotRecordedSubscriberId(subscriberId, streamId, type, secret);
 		assertEquals(Base32.encodeAsString((secret+subscriberId+streamId+type+"XXXXX").getBytes()), generatedSecretCode);
-		
+
 		generatedSecretCode = TOTPGenerator.getSecretCodeForNotRecordedSubscriberId(subscriberId, streamId, type, null);
 		assertNull(generatedSecretCode);
-		
-		
+
+
 	}
-	
+
 }

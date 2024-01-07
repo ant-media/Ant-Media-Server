@@ -92,6 +92,7 @@ public class DBStoresUnitTest {
 		DataStore dataStore = new MapDBStore("testdb", vertx);
 		
 		
+		testGetActiveBroadcastCount(dataStore);
 		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -110,8 +111,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
-		testUpdateMetadata(dataStore);
-		testGetActiveBroadcastCount(dataStore);
+		testUpdateMetadata(dataStore);	
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
@@ -449,11 +449,8 @@ public class DBStoresUnitTest {
 		assertEquals(0, dataStore.getBroadcastCount());
 
 
-		long streamCount = (int)(Math.random()  * 500);
+		long streamCount = 10 + (int)(Math.random()  * 500);
 
-		if (streamCount < 10) {
-			streamCount = 10;
-		}
 
 		System.out.println("Stream count to be added: " + streamCount);
 
@@ -467,7 +464,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, dataStore.getActiveBroadcastCount());
 
 		//change random number of streams status to broadcasting
-		long numberOfStatusChangeStreams = (int)(Math.random() * 500);
+		long numberOfStatusChangeStreams = 10 + (int)(Math.random() * 500);
 		if (streamCount < numberOfStatusChangeStreams) {
 			numberOfStatusChangeStreams = streamCount;
 		}
@@ -489,11 +486,17 @@ public class DBStoresUnitTest {
 
 		}
 
+		assertTrue(numberOfCall > 0);
 		assertEquals(numberOfCall, numberOfStatusChangeStreams);
 		//check that active broadcast exactly the same as changed above
 		
 		//////this test is sometimes failing below, I think streamId may not be unique so I logged above to confirm it - mekya
 		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
+		
+		assertEquals(numberOfStatusChangeStreams, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+		
+		List<Broadcast> localLiveBroadcasts = dataStore.getLocalLiveBroadcasts(ServerSettings.getLocalHostAddress());
+		assertEquals(numberOfStatusChangeStreams, localLiveBroadcasts.size());
 
 		//change all streams to finished
 		streamCount = dataStore.getBroadcastCount();
@@ -511,6 +514,12 @@ public class DBStoresUnitTest {
 
 		//check that no active broadcast
 		assertEquals(0, dataStore.getActiveBroadcastCount());
+		assertEquals(0, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+		localLiveBroadcasts = dataStore.getLocalLiveBroadcasts(ServerSettings.getLocalHostAddress());
+		assertEquals(0, localLiveBroadcasts.size());
+
+
+		
 	}
 	
 	

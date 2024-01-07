@@ -140,38 +140,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 		
-	}
-	
-	/*
-	@Test
-	public void testXMLApplication() {
-		
-		XmlWebApplicationContext applicationContext = new XmlWebApplicationContext();
-		    applicationContext.setConfigLocations(
-		            "red5-web.xml");
-		    applicationContext.setServletContext(new MockServletContext(new ResourceLoader() {
-				
-				@Override
-				public Resource getResource(String location) {
-					return new FileSystemResource("src/test/resources/WEB-INF/xml/" + location);
-				}
-				
-				@Override
-				public ClassLoader getClassLoader() {
-					return getClassLoader();
-				}
-			}));
-		    applicationContext.refresh();
-		    
-		    
-		    assertNotNull(applicationContext);
-		    
-		   
-		
-		 
-	}
-	*/
-	
+	}	
 	
 	@Test
 	public void testEncodeSettings() {
@@ -326,6 +295,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testBeanAppSettings() {
 		testUnsetAppSettings((AppSettings) applicationContext.getBean("app.settings"));
 	}
+	
+	
 	
 	
 	public void testUnsetAppSettings(AppSettings appSettings) {

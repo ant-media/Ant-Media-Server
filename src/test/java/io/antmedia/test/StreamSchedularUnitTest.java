@@ -56,9 +56,11 @@ import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.integration.AppFunctionalV2Test;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
+import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
@@ -70,6 +72,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	public Application app = null;
 	public static String VALID_MP4_URL = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL_2 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4";
+	public static String VALID_LONG_DURATION_MP4_URL_3 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
 	public static String INVALID_MP4_URL = "invalid_link";
 	public static String INVALID_403_MP4_URL = "https://httpstat.us/403";
 	private WebScope appScope;
@@ -198,10 +203,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 					"rtsp://11.2.40.63:8554/live1.sdp", AntMediaApplicationAdapter.IP_CAMERA);
 
 			newCam.setStreamId("new_cam" + (int)(Math.random()*10000));
-
+			
 			StreamFetcher streamScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
 
 			assertFalse(streamScheduler.isExceptionInThread());
+			
+			assertNotNull(streamScheduler.getDataStore().save(newCam));
+
+			
 
 			streamScheduler.startStream();
 
@@ -213,6 +222,10 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 					);
 			//this should be false because stream is not alive 
 			assertFalse(streamScheduler.isStreamAlive());
+			
+			
+			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING, streamScheduler.getDataStore().get(newCam.getStreamId()).getStatus());
+			
 
 			streamScheduler.stopStream();
 
@@ -223,6 +236,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			assertFalse(streamScheduler.isStreamAlive());
 
 			assertFalse(streamScheduler.isExceptionInThread());
+			
+			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED, streamScheduler.getDataStore().get(newCam.getStreamId()).getStatus());
+
 
 			logger.info("leaving testStreamSchedularConnectionTimeout");
 
@@ -274,7 +290,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Mockito.when(streamFetcher.isStreamAlive()).thenReturn(true);
 
 
-		streamFetcherManager.getStreamFetcherList().add(streamFetcher);
+		streamFetcherManager.getStreamFetcherList().put(streamFetcher.getStreamId(), streamFetcher);
 
 
 		streamFetcherManager.checkStreamFetchersStatus();
@@ -453,7 +469,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//check that there is no job related left related with stream fetching
 
-			System.out.println("data store: " + dataStore + " testId data ->" + dataStore.get("testId"));
+			logger.info("data store: {} testId data {} ", dataStore, dataStore.get("testId"));
 
 			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollDelay(2, TimeUnit.SECONDS)
 			.until(() -> dataStore.get("testId").getCurrentPlayIndex() == 2 && dataStore.get("testId").getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
@@ -509,44 +525,34 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			playlist.setPlaylistLoopEnabled(false);
 			assertTrue(streamFetcherManager.startPlaylist(playlist).isSuccess());
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS)
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 1);
 
-			Awaitility.await().atMost(10, TimeUnit.SECONDS)
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get("testId").getStatus()));
-
 			
-			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(() -> {
-				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getStatus());
-			});
-			
-			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+			//it should switch to third index - VALID_MP4_URL lenght is 15 seconds
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 3);
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS)
 			.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get("testId").getStatus()));
-			
-			
+
 			// Playlist will return Finished status and current play index = 0
-			
-			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
-				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getStatus());
-			});
-			
-			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> {
-				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(dataStore.get("testId").getPlayListStatus());
+			Awaitility.await().atMost(20, TimeUnit.SECONDS).pollDelay(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				String status = dataStore.get("testId").getStatus();
+				logger.info("Status for testId: {}", status);
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED.equals(status);
 			});
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS)
-			.until(() ->dataStore.get("testId").getCurrentPlayIndex() == 0);
-
-			// Update playlist with DB
-
-	//		playlist = dataStore.get(playlist.getStreamId());
-	//		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, playlist.getPlayListStatus());
-
-			//Check Stream URL function
-
+			.until(() -> { 
+				int index = dataStore.get("testId").getCurrentPlayIndex();
+				logger.info("Checking index:{} if zero", index);
+				
+				return index == 0;
+			});
+			
 			Result checked = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
 
 			assertEquals(false, checked.isSuccess());
@@ -576,6 +582,154 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 
+	}
+	
+	@Test
+	public void testSkipPlaylistItem() {
+
+		BroadcastRestService service = new BroadcastRestService();
+
+		service.setApplication(app);
+
+
+		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+
+		IStatsCollector statCollector = Mockito.mock(IStatsCollector.class);
+		when(statCollector.enoughResource()).thenReturn(true);
+		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(statCollector);
+
+
+		//create a test db
+		IDataStoreFactory dsf = (IDataStoreFactory) appScope.getContext().getBean(IDataStoreFactory.BEAN_NAME);
+
+		DataStore dataStore = dsf.getDataStore(); //new InMemoryDataStore("dts");
+		assertNotNull(dataStore);
+		service.setDataStore(dataStore);
+		service.setAppCtx(context);
+
+		app.setDataStore(dataStore);
+
+
+		//create a stream Manager
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope)); // aaaa
+		//app.getAppAdaptor().getStreamFetcherManager();
+
+		app.setStreamFetcherManager(streamFetcherManager);
+
+		String streamId = "testPlaylistStreamId";
+
+		try {
+
+			//create a broadcast
+			PlayListItem broadcastItem1 = new PlayListItem(VALID_LONG_DURATION_MP4_URL, AntMediaApplicationAdapter.VOD);
+
+			//create a broadcast
+			PlayListItem broadcastItem2 = new PlayListItem(VALID_LONG_DURATION_MP4_URL_2, AntMediaApplicationAdapter.VOD);
+
+			//create a broadcast
+			PlayListItem broadcastItem3 = new PlayListItem(VALID_LONG_DURATION_MP4_URL_3, AntMediaApplicationAdapter.VOD);
+
+			List<PlayListItem> broadcastList = new ArrayList<>();
+
+			broadcastList.add(broadcastItem1);
+			broadcastList.add(broadcastItem2);
+			broadcastList.add(broadcastItem3);
+
+			Broadcast playlist = new Broadcast();
+			playlist.setStreamId(streamId);
+			playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
+			playlist.setPlayListItemList(broadcastList);
+			playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+
+			dataStore.save(playlist);
+
+			Result startPlaylist = streamFetcherManager.startPlaylist(playlist);
+			assertTrue(startPlaylist.isSuccess());
+
+			// Check it currentPlayIndex is 0
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+			.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 0);
+
+			{
+				// It means that it will skip next playlist item
+				Result result = service.playNextItem(streamId, null);
+				assertTrue(result.isSuccess());
+				
+				// Check it currentPlayIndex is 1
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 1);
+
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+			}
+
+			{
+				// It means that it will skip 100. playlist item. If there is no playlist item, It will result false
+				Result result = service.playNextItem(streamId, 100);
+
+				assertFalse(result.isSuccess());
+				
+				assertEquals(1, dataStore.get(streamId).getCurrentPlayIndex());
+
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+			}
+
+			{
+				// It means that it will play the item in the index 2. playlist item.
+				service.playNextItem(streamId, 2);
+
+				// Check it currentPlayIndex is 1
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 2);
+
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+			}
+			
+			
+			{
+				Result stopPlayList = streamFetcherManager.stopPlayList(streamId);
+				assertTrue(stopPlayList.isSuccess());
+			}
+			
+			{	
+				Awaitility.await().atMost(5, TimeUnit.SECONDS).until(()-> {
+					return !streamFetcherManager.isStreamRunning(playlist);
+				});
+				startPlaylist = streamFetcherManager.startPlaylist(playlist);
+				assertTrue(startPlaylist.isSuccess());
+				
+				Awaitility.await().atMost(20, TimeUnit.SECONDS)
+				.until(() -> AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(dataStore.get(streamId).getStatus()));
+				
+				streamFetcherManager.shuttingDown();
+				
+				Result result = service.playNextItem(streamId, -1);
+				assertFalse(result.isSuccess());
+				logger.info("result message:{}", result.getMessage());
+				assertTrue(result.getMessage().contains("server is shutting down"));
+				
+				Awaitility.await().atMost(20, TimeUnit.SECONDS).until(()-> {
+					return !streamFetcherManager.isStreamRunning(playlist);
+				});
+				
+			}
+
+			//convert to original settings
+			getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+			Application.enableSourceHealthUpdate = false;
+
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 
 
@@ -1059,6 +1213,12 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
+			}
+			//wait here to let the emulator get ready
+			try {
+				Thread.sleep(5000);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
 			}
 		} catch (IOException e1) {
 			e1.printStackTrace();

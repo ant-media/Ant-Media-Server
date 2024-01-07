@@ -129,7 +129,7 @@ public abstract class RecordMuxer extends Muxer {
 		super.writeTrailer();
 
 
-		vertx.executeBlocking(l->{
+		vertx.executeBlocking(()->{
 			try {
 
 				IContext context = RecordMuxer.this.scope.getContext();
@@ -159,8 +159,8 @@ public abstract class RecordMuxer extends Muxer {
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
-			l.complete();
-		}, null);
+			return null;
+		});
 
 	}
 
