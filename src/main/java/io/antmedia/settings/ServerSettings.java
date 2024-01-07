@@ -69,6 +69,8 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	private static final String SETTINGS_SRT_PORT = "server.srt_port";
 
+	private static final String SETTINGS_SRT_ACCEPT_WITHOUT_ID = "srt.accept_without_id";
+
 	private static final String SETTINGS_RTMP_PORT = "rtmp.port";
 
 	private static final String ALLOWED_DASH_BOARD_CIDR = "server.allowed_dashboard_CIDR";
@@ -238,6 +240,11 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	@Value("${"+SETTINGS_SRT_PORT + ":4200}")
 	private int srtPort = 4200;
 
+	/**
+	 * Its null By default Set Name of the application which will aspect the SRT Streams without Streamid.
+	 */
+	@Value( "${"+SETTINGS_SRT_ACCEPT_WITHOUT_ID+":#{null}}" )
+	private String appNameAcceptWithoutId;
 
 	private boolean sslEnabled = false;
 	/**
@@ -568,6 +575,9 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	public int getRtmpPort() {
 		return rtmpPort;
 	}
+
+	public void setSrtAcceptWithoutId(String appName){ this.appNameAcceptWithoutId = appName; }
+	public String getSrtAcceptWithoutId(){return appNameAcceptWithoutId;}
 	public String getMarketplace() {
 		return marketplace;
 	}
