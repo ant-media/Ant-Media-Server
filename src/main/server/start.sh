@@ -49,7 +49,6 @@ LICENSE_KEY=
 
 # Set the default value for JVM_MEMORY_OPTIONS
 DEFAULT_MIN_HEAP_SIZE="1g"
-JVM_MEMORY_OPTIONS="-Xms$DEFAULT_MIN_HEAP_SIZE"
 
 while getopts g:s:r:m:h:u:p:l:a:n:w:k:j:t option
 do
@@ -78,9 +77,7 @@ if [ "$OS_NAME" = "Darwin" ]; then
 fi
 
 # Set JVM -Xms parameter
-if [ -n "$JVM_MEMORY_OPTIONS" ]; then
-  JVM_MEMORY_OPTIONS="-Xms$DEFAULT_MIN_HEAP_SIZE"
-fi
+JVM_MEMORY_OPTIONS="-Xms$DEFAULT_MIN_HEAP_SIZE"
 
 # Set use global IP
 sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $RED5_HOME/conf/red5.properties
