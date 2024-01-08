@@ -17,9 +17,6 @@
     </appender>
     <root level="TRACE">
         <appender-ref ref="CONSOLE" />
-<!--
-        <appender-ref ref="FILE" />
- -->
     </root>
  
     <logger name="org.red5.server" level="TRACE">
@@ -28,7 +25,7 @@
     <logger name="org.red5.server.net.rtmp" level="TRACE" />
     <logger name="org.springframework" level="INFO" />
     <logger name="org.apache" level="INFO" />
-    <logger name="com.antstreaming.muxer" level="DEBUG" />
+    <logger name="io.antmedia.muxer" level="DEBUG" />
 	
     <logger name="org.quartz" level="OFF" />
     

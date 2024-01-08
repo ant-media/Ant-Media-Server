@@ -224,6 +224,14 @@ public class JavaAudioDeviceModule implements AudioDeviceModule {
      */
     public JavaAudioDeviceModule createAudioDeviceModule() {
       Logging.d(TAG, "createAudioDeviceModule");
+      
+      StackTraceElement[] elements = Thread.currentThread().getStackTrace();
+	  Logging.d(TAG, "stackTrace");
+
+      for (StackTraceElement element : elements) {
+    	  Logging.d(TAG, element.toString());
+      }
+      
       if (useHardwareNoiseSuppressor) {
         Logging.d(TAG, "HW NS will be used.");
       } else {

@@ -211,7 +211,11 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public long getActiveBroadcastCount() {
-		return super.getActiveBroadcastCount(map, gson);
+		return super.getActiveBroadcastCount(map, gson, null);
+	}
+	 
+	public List<Broadcast> getActiveBroadcastList(String hostAddress) {
+		return super.getActiveBroadcastList(map, gson, hostAddress);
 	}
 
 	@Override

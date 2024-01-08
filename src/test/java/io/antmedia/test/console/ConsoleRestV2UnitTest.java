@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.times;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -28,6 +29,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
+import org.red5.server.api.scope.IScope;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -365,13 +367,51 @@ public class ConsoleRestV2UnitTest {
 				apps.add("tahirrrr");
 				AdminApplication adminApp = Mockito.mock(AdminApplication.class);
 				Mockito.when(adminApp.getApplications()).thenReturn(apps);
+				IScope rootScope = Mockito.mock(IScope.class);
+				String appName = "taso";
+				
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
 
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+				
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
 
-				restServiceSpy.createApplication("taso", inputStream);
+				restServiceSpy.createApplication(appName, inputStream);
 
-				Mockito.verify(adminApp).createApplication("taso",tmpsDirectory + "taso.war");
+				Mockito.verify(adminApp).createApplication(appName, tmpsDirectory + "taso.war");
+			}
+			
+			{
+				
+				RestServiceV2 restServiceSpy = Mockito.spy(restService);
+
+				AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+				IScope rootScope = Mockito.mock(IScope.class);
+				String appName = "taso";
+				
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+				Mockito.doReturn(true).when(adminApp).createApplication(Mockito.anyString(), Mockito.anyString());
+
+				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+				
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+
+				Result result = restServiceSpy.createApplication(appName, inputStream);
+
+				assertTrue(result.isSuccess());
+				Mockito.verify(adminApp).createApplication(appName, tmpsDirectory + "taso.war");
+				
+				
+				Mockito.doReturn(true).when(adminApp).createApplication(Mockito.anyString(), Mockito.anyString());
+				Mockito.when(rootScope.getScope(appName)).thenReturn(null);
+				result = restServiceSpy.createApplication(appName, inputStream);
+				assertFalse(result.isSuccess());
+				Mockito.verify(adminApp, times(2)).createApplication(appName, tmpsDirectory + "taso.war");
+				
 			}
 
 			{
@@ -384,10 +424,17 @@ public class ConsoleRestV2UnitTest {
 
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+				IScope rootScope = Mockito.mock(IScope.class);
+				String appName = "taso";
+				
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
 
-				restServiceSpy.createApplication("taso", null);
+				restServiceSpy.createApplication(appName, null);
 
-				Mockito.verify(adminApp).createApplication("taso", null);
+				Mockito.verify(adminApp).createApplication(appName, null);
 			}
 
 
@@ -401,10 +448,15 @@ public class ConsoleRestV2UnitTest {
 
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+				String appName = "LiveApp";
+				IScope rootScope = Mockito.mock(IScope.class);
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
 
-				restServiceSpy.createApplication("LiveApp", inputStream);
+				restServiceSpy.createApplication(appName, inputStream);
 
-				Mockito.verify(adminApp, Mockito.never()).createApplication("LiveApp", "LiveApp.war");
+				Mockito.verify(adminApp, Mockito.never()).createApplication(appName, appName + ".war");
 			}
 
 			{
@@ -427,10 +479,16 @@ public class ConsoleRestV2UnitTest {
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(true).when(restServiceSpy).isClusterMode();
 				Mockito.doReturn(settings).when(restServiceSpy).getServerSettings();
+				var appName = "taso";
+				IScope rootScope = Mockito.mock(IScope.class);
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
 
-				restServiceSpy.createApplication("taso", inputStream);
+				restServiceSpy.createApplication(appName, inputStream);
 
-				Mockito.verify(adminApp).createApplication("taso", tmpsDirectory + "taso.war");
+				Mockito.verify(adminApp).createApplication(appName, tmpsDirectory + appName + ".war");
 			}
 
 			{
