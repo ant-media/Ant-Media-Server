@@ -1,7 +1,7 @@
 #!/bin/bash
 
 check_marketplace() {
-  INSTALL_DIRECTORY="/usr/local/antmedia"
+  INSTALL_DIRECTORY="$1"
   REST_URL='http://localhost:5080/rest/v2/server-settings'
 
   # Store original values
