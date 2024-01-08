@@ -159,14 +159,14 @@ if [ "$fullChainFileExist" != "$privateKeyFileExist" ]; then
    exit 1
 fi
 
-# private key file should exist if it's custome ssl
+# private key file should exist if it's customer ssl
 if [ "$chainFileExist" != "$privateKeyFileExist" ]; then
    usage
    echo -e "Missing chain file. Please check this link: https://github.com/ant-media/Ant-Media-Server/wiki/Frequently-Asked-Questions#how-to-install-custom-ssl-by-building-full-chain-certificate-\n"
    exit 1
 fi
 
-source $INSTALL_DIRECTORY/conf/jwt_marketplace_check.sh
+source $INSTALL_DIRECTORY/conf/jwt_marketplace_check.sh "$INSTALL_DIRECTORY"
 
 get_freedomain(){
   hostname="ams-$RANDOM"
