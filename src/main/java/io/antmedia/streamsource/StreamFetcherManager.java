@@ -27,6 +27,7 @@ import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.rest.model.Result;
+import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.vertx.core.Vertx;
 import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
@@ -70,6 +71,8 @@ public class StreamFetcherManager {
 	private AppSettings appSettings;
 
 	private ILicenceService licenseService;
+	
+	boolean serverShuttingDown = false;
 
 
 	public StreamFetcherManager(Vertx vertx, DataStore datastore,IScope scope) {
@@ -78,6 +81,11 @@ public class StreamFetcherManager {
 		this.scope=scope;
 		this.appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
 		this.licenseService = (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
+		AMSShutdownManager.getInstance().subscribe(()-> shuttingDown());
+	}
+	
+	public void shuttingDown() {
+		serverShuttingDown = true;
 	}
 
 	public StreamFetcher make(Broadcast stream, IScope scope, Vertx vertx) {
@@ -124,7 +132,7 @@ public class StreamFetcherManager {
 
 			if (streamFetcherList.containsKey(streamScheduler.getStreamId())) {
 				//this log has been put while we refactor streamFetcherList
-				logger.warn("There is already a strem schedule exists for streamId:{} ", streamScheduler.getStreamId());
+				logger.warn("There is already a stream schedule exists for streamId:{} ", streamScheduler.getStreamId());
 			}
 
 			streamFetcherList.put(streamScheduler.getStreamId(), streamScheduler);
@@ -248,6 +256,13 @@ public class StreamFetcherManager {
 		// It's necessary for skip new Stream Fetcher
 		stopStreaming(playlist.getStreamId());
 		Result result = new Result(false);
+		
+		if (serverShuttingDown) {
+			logger.info("Playlist will not try to play the next item because server is shutting down");
+			result.setMessage("Playlist will not try to play the next item because server is shutting down");
+			return result;
+		}
+		
 
 		//Check playlist is not stopped and there is an item to play
 
@@ -400,9 +415,9 @@ public class StreamFetcherManager {
 		else {
 			// update playlist currentPlayIndex value.
 			playlist.setCurrentPlayIndex(currentStreamIndex);
-			logger.info("Next index to play in play list is {} for stream: {}", playlist.getCurrentPlayIndex(), playlist.getStreamId());
 		}
 
+		logger.info("Next index to play in play list is {} for stream: {}", playlist.getCurrentPlayIndex(), playlist.getStreamId());
 
 		return playlist;
 	}
