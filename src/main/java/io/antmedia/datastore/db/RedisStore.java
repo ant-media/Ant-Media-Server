@@ -170,6 +170,16 @@ public class RedisStore extends MapBasedDataStore {
 	public P2PConnection getP2PConnection(String streamId) {
 		return (P2PConnection) p2pMap.get(streamId);
 	}
+	
+	public long getLocalLiveBroadcastCount(String hostAddress) {
+		return getActiveBroadcastCount(map, gson, hostAddress);
+	}
+	
+	@Override
+	public List<Broadcast> getLocalLiveBroadcasts(String hostAddress) 
+	{
+		return getActiveBroadcastList(hostAddress);
+	}
 
 
 
