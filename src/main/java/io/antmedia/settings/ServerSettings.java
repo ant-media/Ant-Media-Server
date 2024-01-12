@@ -69,8 +69,6 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	private static final String SETTINGS_SRT_PORT = "server.srt_port";
 
-	private static final String SETTINGS_SRT_Default_AppName = "srt.defaultAppName";
-
 	private static final String SETTINGS_RTMP_PORT = "rtmp.port";
 
 	private static final String ALLOWED_DASH_BOARD_CIDR = "server.allowed_dashboard_CIDR";
@@ -241,10 +239,10 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	private int srtPort = 4200;
 
 	/**
-	 * Its null By default Set Name of the application which will aspect the SRT Streams without Streamid.
+	 * Its null By default Set Name of the application which will aspect the SRT Streams without StreamId.
 	 */
-	@Value( "${"+SETTINGS_SRT_Default_AppName+":LiveApp}" )
-	private String SRTDefaultAppName;
+	@Value( "${appIngestsSrtStreamsWithoutStreamId:LiveApp}" )
+	private String appIngestsSrtStreamsWithoutStreamId;
 
 	private boolean sslEnabled = false;
 	/**
@@ -576,8 +574,6 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 		return rtmpPort;
 	}
 
-	public void setSrtDefaultAppName(String appName){ this.SRTDefaultAppName = appName; }
-	public String getSrtDefaultAppName(){return SRTDefaultAppName;}
 	public String getMarketplace() {
 		return marketplace;
 	}
@@ -626,6 +622,16 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	public void setOfflineLicense(boolean offlineLicense) {
 		this.offlineLicense = offlineLicense;
 	}
+
+	public String getAppIngestsSrtStreamsWithoutStreamId() {
+		return appIngestsSrtStreamsWithoutStreamId;
+	}
+
+	public void setAppIngestsSrtStreamsWithoutStreamId(String appIngestsSrtStreamsWithoutStreamId) {
+		this.appIngestsSrtStreamsWithoutStreamId = appIngestsSrtStreamsWithoutStreamId;
+	}
+
+
 
 
 }
