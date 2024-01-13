@@ -239,10 +239,10 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	private int srtPort = 4200;
 
 	/**
-	 * Its null By default Set Name of the application which will aspect the SRT Streams without StreamId.
+	 * Nme of the application which will ingestthe SRT Streams that don't have streamid.
 	 */
 	@Value( "${appIngestsSrtStreamsWithoutStreamId:LiveApp}" )
-	private String appIngestsSrtStreamsWithoutStreamId;
+	private String appIngestsSrtStreamsWithoutStreamId="LiveApp";
 
 	private boolean sslEnabled = false;
 	/**
