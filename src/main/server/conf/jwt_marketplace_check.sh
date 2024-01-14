@@ -1,23 +1,13 @@
 #!/bin/bash
+#
+# Marketplace products are created with jwtServerControlEnabled and random jwtServerSecretKey.
+#
+
+INSTALL_DIRECTORY="$1"
 
 check_marketplace() {
-  INSTALL_DIRECTORY="$1"
   REST_URL='http://localhost:5080/rest/v2/server-settings'
-
-  # Store original values
-  ORIGINAL_SERVER_JWT_CONTROL=$(grep "^server.jwtServerControlEnabled=" $INSTALL_DIRECTORY/conf/red5.properties)
-  ORIGINAL_SERVER_JWT_SECRET=$(grep "^server.jwtServerSecretKey=" $INSTALL_DIRECTORY/conf/red5.properties)
-
-  # JWT Secret Key
-  SECRET_KEY=$(openssl rand -base64 32 | head -c 32)
-
-  # Update red5.properties
-  sed -i "s^server.jwtServerControlEnabled=.*^server.jwtServerControlEnabled=true^" $INSTALL_DIRECTORY/conf/red5.properties
-  sed -i "s^server.jwtServerSecretKey=.*^server.jwtServerSecretKey=$SECRET_KEY^" $INSTALL_DIRECTORY/conf/red5.properties
-
-  # Restart antmedia
-  systemctl restart antmedia
-
+  SECRET_KEY=$(grep 'server.jwtServerSecretKey=' $INSTALL_DIRECTORY/conf/red5.properties | awk -F '=' '{print $2}')
   jwt_generate() {
     # Header
     header='{"typ":"JWT","alg":"HS256"}'
@@ -42,8 +32,4 @@ check_marketplace() {
   else
     echo "false"
   fi
-
-  # Revert to original values
-  sed -i "s/^server.jwtServerControlEnabled=.*/$ORIGINAL_SERVER_JWT_CONTROL/" $INSTALL_DIRECTORY/conf/red5.properties
-  sed -i "s/^server.jwtServerSecretKey=.*/$ORIGINAL_SERVER_JWT_SECRET/" $INSTALL_DIRECTORY/conf/red5.properties
 }
