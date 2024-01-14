@@ -238,6 +238,11 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	@Value("${"+SETTINGS_SRT_PORT + ":4200}")
 	private int srtPort = 4200;
 
+	/**
+	 * Nme of the application which will ingestthe SRT Streams that don't have streamid.
+	 */
+	@Value( "${appIngestsSrtStreamsWithoutStreamId:LiveApp}" )
+	private String appIngestsSrtStreamsWithoutStreamId="LiveApp";
 
 	private boolean sslEnabled = false;
 	/**
@@ -568,6 +573,7 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	public int getRtmpPort() {
 		return rtmpPort;
 	}
+
 	public String getMarketplace() {
 		return marketplace;
 	}
@@ -616,6 +622,16 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	public void setOfflineLicense(boolean offlineLicense) {
 		this.offlineLicense = offlineLicense;
 	}
+
+	public String getAppIngestsSrtStreamsWithoutStreamId() {
+		return appIngestsSrtStreamsWithoutStreamId;
+	}
+
+	public void setAppIngestsSrtStreamsWithoutStreamId(String appIngestsSrtStreamsWithoutStreamId) {
+		this.appIngestsSrtStreamsWithoutStreamId = appIngestsSrtStreamsWithoutStreamId;
+	}
+
+
 
 
 }

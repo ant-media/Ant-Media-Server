@@ -347,13 +347,14 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			success = result;
 		}
 
-		vertx.executeBlocking(i -> {
+		vertx.executeBlocking(() -> {
 			try {
 				warDeployer.deploy(true);
 			}
 			finally {
 				currentApplicationCreationProcesses.remove(appName);
 			}
+			return null;
 		});
 
 		return success;
@@ -528,6 +529,28 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			Process process = getProcess(command);
 			if (process != null) 
 			{
+				new Thread() 
+				{
+					@Override
+					public void run() 
+					{
+						InputStream inputStream = process.getInputStream();
+						byte[] data = new byte[1024];
+						int length;
+						try 
+						{
+							while ((length = inputStream.read(data,0, data.length)) > 0) 
+							{
+								log.info(new String(data, 0, length));
+							}
+						} 
+						catch (IOException e) 
+						{	
+							log.error(ExceptionUtils.getStackTrace(e));
+						}
+					}
+				}.start();
+				
 				result = process.waitFor() == 0;
 			}
 		}
@@ -563,8 +586,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		
 		ProcessBuilder pb = getProcessBuilder(parametersToRun);
 
-		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
-		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
 		return pb.start();
 	}
 

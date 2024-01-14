@@ -191,7 +191,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
-                    <argLine>@{argLine} -Xmx750M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/src/main/server/lib/native-linux-x86_64</argLine>
+                    <argLine>@{argLine} -Xmx1500M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/src/main/server/lib/native-linux-x86_64</argLine>
                 	<skipAfterFailureCount>1</skipAfterFailureCount>
                 </configuration>
             </plugin>
@@ -352,13 +352,6 @@
         <dependency>
             <groupId>org.seleniumhq.selenium</groupId>
             <artifactId>selenium-java</artifactId>
-            <version>${selenium-java.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <!-- as far as I understand selenium-java and selenium-http-jdk-client need to have same version -->
-        <dependency>
-            <groupId>org.seleniumhq.selenium</groupId>
-            <artifactId>selenium-http-jdk-client</artifactId>
             <version>${selenium-java.version}</version>
             <scope>test</scope>
         </dependency>

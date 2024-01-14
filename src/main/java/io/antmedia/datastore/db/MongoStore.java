@@ -1281,6 +1281,21 @@ public class MongoStore extends DataStore {
 							)).count();
 		}
 	}
+	
+	@Override
+	public List<Broadcast> getLocalLiveBroadcasts(String hostAddress) 
+	{
+		synchronized(this) {
+			return datastore.find(Broadcast.class)
+					.filter(Filters.and(
+							Filters.or(
+									Filters.eq(ORIGIN_ADDRESS, hostAddress),
+									Filters.exists(ORIGIN_ADDRESS).not()
+									),
+							Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)
+							)).iterator().toList();
+		}
+	}
 
 	@Override
 	public boolean createP2PConnection(P2PConnection conn) {
