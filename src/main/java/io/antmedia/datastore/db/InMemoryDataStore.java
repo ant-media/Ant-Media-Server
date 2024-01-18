@@ -21,8 +21,10 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -1084,5 +1086,15 @@ public class InMemoryDataStore extends DataStore {
 			result = true;
 		}
 		return result;
+	}
+	
+	@Override
+	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
+		return null;
+	}
+	
+	@Override
+	public boolean save(String subscriberId, PushNotificationToken pushNotificationToken) {
+		return false;
 	}
 }

@@ -24,8 +24,10 @@ import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
@@ -1404,6 +1406,17 @@ public abstract class DataStore {
 	 * @param metaData new meta data
 	 */
 	public abstract boolean updateStreamMetaData(String streamId, String metaData);
+
+	/**
+	 * Saves push notification token to the database to send push notification later
+	 * 
+	 * @param subscriberId
+	 * @param pushNotificationToken
+	 * @return true if it's successful, false if it fails
+	 */
+	public abstract boolean save(String subscriberId, PushNotificationToken pushNotificationToken);
+
+	public abstract SubscriberMetadata getSubscriberMetaData(String subscriberId);
 	
 
 	//**************************************

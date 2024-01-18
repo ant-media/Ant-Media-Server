@@ -18,7 +18,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.vertx.core.Vertx;
 
@@ -145,6 +147,16 @@ public class MapDBStore extends MapBasedDataStore {
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		//no need to implement this method, it is used in cluster mode
+	}
+	
+	@Override
+	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
+		return null;
+	}
+	
+	@Override
+	public boolean save(String subscriberId, PushNotificationToken pushNotificationToken) {
+		return false;
 	}
 
 }

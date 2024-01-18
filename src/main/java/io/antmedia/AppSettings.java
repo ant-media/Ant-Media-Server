@@ -2052,7 +2052,23 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${sendAudioLevelToViewers:true}")
 	private boolean sendAudioLevelToViewers = true;
-
+	
+	/**
+	 * Firebase Service Account Key JSON to send push notification
+	 * through Firebase Cloud Messaging
+	 */
+	@Value("${firebaseAccountKeyJSON:#{null}}")
+	private String firebaseAccountKeyJSON = null;
+	
+	/**
+	 * This is JWT Secret to authenticate the user for push notifications.
+	 * 
+	 * JWT token should be generated with the following secret: subscriberId(username, email, etc.) + subscriberAuthenticationKey
+	 * 
+	 */
+	@Value("${subscriberAuthenticationKey:#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}")
+	private String subscriberAuthenticationKey = RandomStringUtils.randomAlphanumeric(32);
+	
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
 	}
@@ -3532,4 +3548,21 @@ public class AppSettings implements Serializable{
 	public void setTimeTokenSecretForPlay(String timeTokenSecretForPlay) {
 		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
 	}
+
+	public String getFirebaseAccountKeyJSON() {
+		return firebaseAccountKeyJSON;
+	}
+
+	public void setFirebaseAccountKeyJSON(String firebaseAccountKeyJSON) {
+		this.firebaseAccountKeyJSON = firebaseAccountKeyJSON;
+	}
+
+	public String getSubscriberAuthenticationKey() {
+		return subscriberAuthenticationKey;
+	}
+
+	public void setSubscriberAuthenticationKey(String subscriberAuthenticationKey) {
+		this.subscriberAuthenticationKey = subscriberAuthenticationKey;
+	}
+
 }
