@@ -2,7 +2,7 @@ dist: jammy
 language: java
 jdk:
   - openjdk17
-node_js: "14.8.0"
+node_js: "16.20.2"
 
 git:
   depth: false
