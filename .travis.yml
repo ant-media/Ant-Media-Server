@@ -76,6 +76,13 @@ before_install:
         git clone --depth=1 https://github.com/ant-media/StreamApp.git; 
     fi)
   - cd StreamApp; 
+  - npm install
+  - npm run compile
+  - cd embedded-player
+  - npm install
+  - npm run compile
+  - npm run deploy
+  - cd ..
   - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet;
   - cd ..;
 
