@@ -1832,6 +1832,10 @@ public abstract class RestServiceBase {
 			return false;
 		}
 
+		if(conferenceRoom.isCapacityFull()){
+			return false;
+		}
+
 		List<String> roomStreamList = conferenceRoom.getRoomStreamList();
 		if (roomStreamList.contains(streamId)) {
 			return false;

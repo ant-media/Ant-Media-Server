@@ -168,8 +168,12 @@ public class WebSocketConstants {
 	 * joining the video conference
 	 */
 	public static final String ROOM_TIME_INVALID = "room_not_active_or_expired";
-	
-	
+
+	/**
+	 * This is sent back to the user when conference room participant capacity is full.
+	 */
+	public static final String ROOM_CAPACITY_FULL = "room_capacity_full";
+
 	/**
 	 * This is sent back to the user when stream plannedStartDate and plannedEndDate 
 	 * values are in interval or not.
