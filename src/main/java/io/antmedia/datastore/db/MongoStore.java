@@ -59,7 +59,8 @@ public class MongoStore extends DataStore {
 	public static final String VOD_ID = "vodId";
 	private static final String VIEWER_ID = "viewerId";
 	private static final String TOKEN_ID = "tokenId";
-	public  static final String STREAM_ID = "streamId";
+	public static final String STREAM_ID = "streamId";
+	public static final String SUBSCRIBER_ID = "subscriberId"; 
 	private Datastore datastore;
 	private Datastore vodDatastore;
 	private Datastore tokenDatastore;
@@ -1534,11 +1535,33 @@ public class MongoStore extends DataStore {
 	
 	@Override
 	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
+		synchronized(this) {
+			try {
+				return datastore.find(SubscriberMetadata.class).filter(Filters.eq(SUBSCRIBER_ID, subscriberId)).first();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
 		return null;
 	}
 	
 	@Override
-	public boolean save(String subscriberId, PushNotificationToken pushNotificationToken) {
-		return false;
+	public void putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata) {
+		
+		try {
+			//delete the subscriberId if exists to make it compatible with all datastores
+			Query<SubscriberMetadata> query = datastore.find(SubscriberMetadata.class).filter(Filters.eq(SUBSCRIBER_ID, subscriberId));
+			long deletedCount = query.delete().getDeletedCount();
+			if (deletedCount > 0) {
+				logger.info("There is a SubsriberMetadata exists in database. It's deleted(deletedCount:{}) and it'll put to make it easy and compatible.", deletedCount);
+			}
+				
+			metadata.setSubscriberId(subscriberId);
+			synchronized(this) {
+				datastore.save(metadata);
+			}
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
 	}
 }

@@ -1408,14 +1408,20 @@ public abstract class DataStore {
 	public abstract boolean updateStreamMetaData(String streamId, String metaData);
 
 	/**
-	 * Saves push notification token to the database to send push notification later
+	 * Put subscriber metadata. It overwrites the metadata, if you need to update something, 
+	 * first get the {@link #getSubscriberMetaData(String)} , update it and put it
 	 * 
 	 * @param subscriberId
-	 * @param pushNotificationToken
-	 * @return true if it's successful, false if it fails
+	 * @param SubscriberMetadata
+	 * @return 
 	 */
-	public abstract boolean save(String subscriberId, PushNotificationToken pushNotificationToken);
+	public abstract void putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata);
 
+	/**
+	 * Get subscriber metadata
+	 * @param subscriberId
+	 * @return
+	 */
 	public abstract SubscriberMetadata getSubscriberMetaData(String subscriberId);
 	
 

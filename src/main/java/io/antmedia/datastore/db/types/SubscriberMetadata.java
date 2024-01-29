@@ -7,10 +7,15 @@ import org.bson.types.ObjectId;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import dev.morphia.annotations.Entity;
+import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
+import dev.morphia.annotations.Index;
+import dev.morphia.annotations.Indexes;
+import dev.morphia.utils.IndexType;
 import io.swagger.annotations.ApiModelProperty;
 
 @Entity
+@Indexes({ @Index(fields = @Field("subscriberId")) })
 public class SubscriberMetadata {
 	
 

@@ -40,6 +40,7 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 	private Map<String, Subscriber> subscriberMap = new LinkedHashMap<>();
+	private Map<String, SubscriberMetadata> subscriberMetadataMap = new LinkedHashMap<>();
 	private Map<String, ConferenceRoom> roomMap = new LinkedHashMap<>();
 	private Map<String, WebRTCViewerInfo> webRTCViewerMap = new LinkedHashMap<>();
 
@@ -1090,11 +1091,12 @@ public class InMemoryDataStore extends DataStore {
 	
 	@Override
 	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
-		return null;
+		return subscriberMetadataMap.get(subscriberId);
 	}
 	
 	@Override
-	public boolean save(String subscriberId, PushNotificationToken pushNotificationToken) {
-		return false;
+	public void putSubscriberMetaData(String subscriberId, SubscriberMetadata subscriberMetadata) {
+		subscriberMetadata.setSubscriberId(subscriberId);
+		subscriberMetadataMap.put(subscriberId, subscriberMetadata);
 	}
 }

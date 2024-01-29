@@ -1,6 +1,7 @@
 package io.antmedia.datastore.db.types;
 
 import dev.morphia.annotations.Entity;
+import io.antmedia.pushnotification.IPushNotificationService.PushNotificationServiceTypes;
 import io.swagger.annotations.ApiModel;
 
 @ApiModel(value="PushNotificationToken", description="The endpoint class, such as Facebook, Twitter or custom RTMP endpoints")
@@ -10,6 +11,7 @@ public class PushNotificationToken {
 	private String token;
 
 	/**
+	 * {@link PushNotificationServiceTypes}
 	 * fcm or apn
 	 * fcm: Firebase Cloud Messagnig
 	 * apn: Apple Push Notification

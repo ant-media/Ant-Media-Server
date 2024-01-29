@@ -63,6 +63,7 @@ public class RedisStore extends MapBasedDataStore {
 	    	webRTCViewerMap = redisson.getMap(dbName+"WebRTCViewers");
 	    	streamInfoMap = redisson.getMap(dbName+"StreamInfo");
 	    	p2pMap = redisson.getMap(dbName+"P2P");
+	    	subscriberMetadataMap = redisson.getMap(dbName+"SubscriberMetaData");
 			
 			available = true;
     	}
@@ -182,17 +183,5 @@ public class RedisStore extends MapBasedDataStore {
 	{
 		return getActiveBroadcastList(hostAddress);
 	}
-
-	
-	@Override
-	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
-		return null;
-	}
-	
-	@Override
-	public boolean save(String subscriberId, PushNotificationToken pushNotificationToken) {
-		return false;
-	}
-
 
 }

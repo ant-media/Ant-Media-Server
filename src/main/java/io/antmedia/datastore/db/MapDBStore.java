@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Map.Entry;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -31,6 +32,8 @@ public class MapDBStore extends MapBasedDataStore {
 
 	private Vertx vertx;
 	private long timerId;
+
+	private AtomicBoolean committing = new AtomicBoolean(false);
 	protected static Logger logger = LoggerFactory.getLogger(MapDBStore.class);
 	private static final String MAP_NAME = "BROADCAST";
 	private static final String VOD_MAP_NAME = "VOD";
@@ -39,6 +42,8 @@ public class MapDBStore extends MapBasedDataStore {
 	private static final String SUBSCRIBER = "SUBSCRIBER";
 	private static final String CONFERENCE_ROOM_MAP_NAME = "CONFERENCE_ROOM";
 	private static final String WEBRTC_VIEWER = "WEBRTC_VIEWER";
+	private static final String SUBSCRIBER_METADATA = "SUBSCRIBER_METADATA";
+
 
 
 	public MapDBStore(String dbName, Vertx vertx) {
@@ -75,20 +80,34 @@ public class MapDBStore extends MapBasedDataStore {
 
 		webRTCViewerMap = db.treeMap(WEBRTC_VIEWER).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
 				.counterEnable().createOrOpen();
+		
+		subscriberMetadataMap =  db.treeMap(SUBSCRIBER_METADATA).keySerializer(Serializer.STRING).valueSerializer(Serializer.STRING)
+				.counterEnable().createOrOpen();
 
-		timerId = vertx.setPeriodic(5000, id -> 
-
-		vertx.executeBlocking(b -> {
-
-			synchronized (this) 
-			{
-				if (available) {
-					db.commit();
-				}
-			}
-
-		}, false, null)
-				);
+		timerId = vertx.setPeriodic(5000,
+			id -> 
+				vertx.executeBlocking(() -> {
+					
+						//if it's committing, just let the thread proceed here and become free immediately for other jobs
+						if (committing.compareAndSet(false, true)) 
+						{
+							try {
+								synchronized (this) 
+								{
+									if (available) {
+										db.commit();
+									}
+								}
+							}
+							finally {
+								committing.compareAndSet(true, false);
+							}
+						}
+					
+					return null;
+		
+				}, 
+			false));
 
 		available = true;
 	}
@@ -149,14 +168,6 @@ public class MapDBStore extends MapBasedDataStore {
 		//no need to implement this method, it is used in cluster mode
 	}
 	
-	@Override
-	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
-		return null;
-	}
-	
-	@Override
-	public boolean save(String subscriberId, PushNotificationToken pushNotificationToken) {
-		return false;
-	}
+
 
 }
