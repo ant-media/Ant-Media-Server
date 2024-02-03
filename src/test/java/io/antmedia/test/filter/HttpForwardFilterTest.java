@@ -62,8 +62,8 @@ public class HttpForwardFilterTest {
 	         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 	         //chain filter should not be called because  base url is et
 	         Mockito.verify(filterChain, Mockito.times(5)).doFilter(httpServletRequest, httpServletResponse);
-	         Mockito.verify(httpServletResponse).sendRedirect("http://url//streams/test.m3u8");
-	       
+	         Mockito.verify(httpServletResponse).sendRedirect("http://url/streams/test.m3u8");
+	         
 	         
 	         httpServletRequest.setRequestURI(null);
 	         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
@@ -119,6 +119,29 @@ public class HttpForwardFilterTest {
 	         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
 	         //it should not increase because it's  ok to forward
 	         Mockito.verify(filterChain, Mockito.times(9)).doFilter(httpServletRequest, httpServletResponse);
+	         
+	         {
+	        	 appSettings.setHttpForwardingExtension("m3u8");
+	        	 appSettings.setHttpForwardingBaseURL("http://url");
+		         httpServletRequest.setRequestURI("/LiveApp/streams/test.m3u8");
+
+		         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+		         //chain filter should not be called because  base url is et
+		       //  Mockito.verify(filterChain, Mockito.times(5)).doFilter(httpServletRequest, httpServletResponse);
+		         Mockito.verify(httpServletResponse, Mockito.times(2)).sendRedirect("http://url/streams/test.m3u8");
+	         }
+	         
+	         {
+	        	 appSettings.setHttpForwardingExtension("m3u8");
+	        	 appSettings.setHttpForwardingBaseURL("http://url");
+		         httpServletRequest.setRequestURI("LiveApp/streams/test.m3u8");
+
+		         httpForwardFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+		         //chain filter should not be called because  base url is et
+		       //  Mockito.verify(filterChain, Mockito.times(5)).doFilter(httpServletRequest, httpServletResponse);
+		         Mockito.verify(httpServletResponse, Mockito.times(3)).sendRedirect("http://url/streams/test.m3u8");
+	        	 
+	         }
 	          
 	         
 	    }
