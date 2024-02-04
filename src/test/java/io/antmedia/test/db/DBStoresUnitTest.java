@@ -3136,9 +3136,9 @@ public class DBStoresUnitTest {
 		assertNotNull(subscriberMetaData);
 		assertEquals(subscriberId, subscriberMetaData.getSubscriberId());
 		assertEquals(1, subscriberMetaData.getPushNotificationTokens().size());
-		assertEquals(tokenValue, subscriberMetaData.getPushNotificationTokens().get(0).getToken());
-		assertEquals("fcm", subscriberMetaData.getPushNotificationTokens().get(0).getServiceName());
-		assertNull(subscriberMetaData.getPushNotificationTokens().get(0).getExtraData());
+		assertEquals(tokenValue, subscriberMetaData.getPushNotificationTokens().get(tokenValue).getToken());
+		assertEquals("fcm", subscriberMetaData.getPushNotificationTokens().get(tokenValue).getServiceName());
+		assertNull(subscriberMetaData.getPushNotificationTokens().get(tokenValue).getExtraData());
 
 		
 		String tokenValue2 = RandomStringUtils.randomAlphabetic(65);
@@ -3156,13 +3156,13 @@ public class DBStoresUnitTest {
 		assertNotNull(subscriberMetaData);
 		assertEquals(subscriberId, subscriberMetaData.getSubscriberId());
 		assertEquals(2, subscriberMetaData.getPushNotificationTokens().size());
-		assertEquals(tokenValue, subscriberMetaData.getPushNotificationTokens().get(0).getToken());
-		assertEquals("fcm", subscriberMetaData.getPushNotificationTokens().get(0).getServiceName());
-		assertNull(subscriberMetaData.getPushNotificationTokens().get(0).getExtraData());
+		assertEquals(tokenValue, subscriberMetaData.getPushNotificationTokens().get(tokenValue).getToken());
+		assertEquals("fcm", subscriberMetaData.getPushNotificationTokens().get(tokenValue).getServiceName());
+		assertNull(subscriberMetaData.getPushNotificationTokens().get(tokenValue).getExtraData());
 		
-		assertEquals(tokenValue2, subscriberMetaData.getPushNotificationTokens().get(1).getToken());
-		assertEquals("apn", subscriberMetaData.getPushNotificationTokens().get(1).getServiceName());
-		assertEquals(extraData, subscriberMetaData.getPushNotificationTokens().get(1).getExtraData());
+		assertEquals(tokenValue2, subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getToken());
+		assertEquals("apn", subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getServiceName());
+		assertEquals(extraData, subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getExtraData());
 		
 	}
 }
