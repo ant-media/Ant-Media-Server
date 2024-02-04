@@ -7,13 +7,10 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.WebApplicationContext;
 
-import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.pushnotification.IPushNotificationService;
 import io.antmedia.rest.model.Result;
-import io.swagger.annotations.Api;
 import jakarta.servlet.ServletContext;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.FormParam;
@@ -26,10 +23,9 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 
-@Api(value = "")
 @Component
 @Path("/v2/push-notification")
-public class PushNotificationService {
+public class PushNotificationRestService {
 	
 	@Context
 	protected ServletContext servletContext;

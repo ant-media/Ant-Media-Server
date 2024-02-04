@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -764,9 +765,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(1, getInstance().getMuxAdaptors().size());
 
 			String str3=fetcher3.getCameraError().getMessage();
+			assertTrue(fetcher3.getCameraError().isSuccess());
 			logger.info("error:   "+str3);
 
-			assertNull(fetcher3.getCameraError().getMessage());
+			assertTrue(StringUtils.isBlank(fetcher3.getCameraError().getMessage()));
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				return fetcher3.isStreamAlive();
