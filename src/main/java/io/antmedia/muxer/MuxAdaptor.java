@@ -196,7 +196,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public boolean addID3Data(String data) {
 		for (Muxer muxer : muxerList) {
 			if(muxer instanceof HLSMuxer) {
-				logger.info("mux aadaptor addID3Data HLSMuxer");
 				((HLSMuxer)muxer).addID3Data(data);
 				return true;
 			}
@@ -725,7 +724,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			{
 				logger.info("Audio format sample rate:{} bitrate:{} for stream: {} source index:{} target index:{}",codecpar.sample_rate(), codecpar.bit_rate(), streamId, i, streamIndex);
 				audioTimeBase = inputFormatContext.streams(i).time_base();
-				System.out.println("audio time base: " + audioTimeBase.num() + "/" + audioTimeBase.den());
 				addStream2Muxers(codecpar, stream.time_base(), i);
 				audioStreamIndex = streamIndex;
 				audioCodecParameters = codecpar;
@@ -963,7 +961,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			synchronized (muxerList) 
 			{
-				System.out.println("rtmp audio ts: " + dts);
 				packetFeeder.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
 
 				for (Muxer muxer : muxerList) 
@@ -1576,10 +1573,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		event.setDataType(packet.getDataType());
 		event.setReceivedTime(System.currentTimeMillis());
 		event.setTimestamp(packet.getTimestamp());
-
-		if(packet.getDataType() == Constants.TYPE_AUDIO_DATA) {
-			System.out.println(System.currentTimeMillis() + " aaaaa: "+packet.getTimestamp());
-		}
 
 		streamPacketQueue.add(event);
 
