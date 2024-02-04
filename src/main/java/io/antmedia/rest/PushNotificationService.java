@@ -16,6 +16,7 @@ import io.antmedia.rest.model.Result;
 import io.swagger.annotations.Api;
 import jakarta.servlet.ServletContext;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.FormParam;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -72,7 +73,6 @@ public class PushNotificationService {
 	
 	
 	@GET
-	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@Path("/subscriber-auth-token")
 	public Result getSubscriberAuthenticationToken(@QueryParam("subscriberId") String subscriberId, @QueryParam("timeoutSeconds") int timeoutDurationInSeconds) {
@@ -90,7 +90,7 @@ public class PushNotificationService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@Path("/subscribers")
-	public Result sendPushNotification(List<String> subscriberIdList, String jsonMessage, @QueryParam("serviceName") String serviceName) {
+	public Result sendPushNotification(@FormParam("subscribers") List<String> subscriberIdList, String jsonMessage, @QueryParam("serviceName") String serviceName) {
 		if (StringUtils.isBlank(serviceName)) {
 			return getPushNotificationService().sendNotification(subscriberIdList, jsonMessage);
 		}
@@ -102,8 +102,8 @@ public class PushNotificationService {
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	@Path("/topics/{topic}")
-	public Result sendPushNotification(@PathParam("topic") String topic, String jsonMessage, String serviceName) {
+	@Path("/topics/{topic}/{serviceName}")
+	public Result sendPushNotification(@PathParam("topic") String topic, String jsonMessage, @PathParam("serviceName") String serviceName) {
 		if (StringUtils.isBlank(serviceName)) {
 			return getPushNotificationService().sendNotification(topic, jsonMessage);
 		}
