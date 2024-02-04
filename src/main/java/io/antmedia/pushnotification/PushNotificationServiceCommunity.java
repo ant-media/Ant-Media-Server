@@ -9,10 +9,6 @@ public class PushNotificationServiceCommunity implements IPushNotificationServic
 	
 	private static final String MESSAGE_TO_USE_ENTERPRISE_EDITION = "Push Notification Service is not available community edition. Please use enterprise edition";
 
-	@Override
-	public Result sendNotification(List<String> registerationTokens, String jsonMessage, String serviceName) {
-		return new Result(false, MESSAGE_TO_USE_ENTERPRISE_EDITION);
-	}
 	
 	@Override
 	public Result sendNotification(String topic, String jsonMessage, String serviceName) {
@@ -20,12 +16,17 @@ public class PushNotificationServiceCommunity implements IPushNotificationServic
 	}
 	
 	@Override
-	public Result sendNotification(List<PushNotificationToken> registerationTokens, String jsonMessage) {
+	public Result sendNotification(String topic, String jsonMessage) {
 		return new Result(false, MESSAGE_TO_USE_ENTERPRISE_EDITION);
 	}
-	
+
 	@Override
-	public Result sendNotification(String topic, String jsonMessage) {
+	public Result sendNotification(List<String> subscriberIds, String jsonMessage) {
+		return new Result(false, MESSAGE_TO_USE_ENTERPRISE_EDITION);
+	}
+
+	@Override
+	public Result sendNotification(List<String> subscriberIds, String jsonMessage, String serviceName) {
 		return new Result(false, MESSAGE_TO_USE_ENTERPRISE_EDITION);
 	}
 

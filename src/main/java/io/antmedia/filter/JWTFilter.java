@@ -105,6 +105,27 @@ public class JWTFilter extends AbstractFilter {
 		return result;
 	}
 	
+	
+	
+	public static boolean isJWTTokenValid(String jwtSecretKey, String jwtToken, String issuer) {
+		boolean result = false;
+
+		try {
+			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+			JWTVerifier verifier = JWT.require(algorithm)
+					.withIssuer(issuer)
+					.build();
+			verifier.verify(jwtToken);
+			result = true;
+		}
+		catch (JWTVerificationException ex) {
+			logger.error(ExceptionUtils.getStackTrace(ex));
+		} 
+
+		return result;
+	}
+	
+	
 	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs) {
 		return generateJwtToken(jwtSecretKey, expireDateUnixTimeStampMs, "");
 	}

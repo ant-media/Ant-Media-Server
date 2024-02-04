@@ -2,7 +2,6 @@ package io.antmedia.pushnotification;
 
 import java.util.List;
 
-import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.rest.model.Result;
 
 public interface IPushNotificationService {
@@ -25,18 +24,7 @@ public interface IPushNotificationService {
 			return this.name;
 		}
 	}
-	
-	
-	/**
-	 * Send push notification according to service name 
-	 * 
-	 * @param registerationTokens
-	 * @param jsonMessage
-	 * @param serviceName: fcm or apn
-	 * @return
-	 */
-	Result sendNotification(List<String> registerationTokens, String jsonMessage, String serviceName);
-	
+		
 	/**
 	 * Send push notifcaiton according to service name
 	 * 
@@ -56,11 +44,21 @@ public interface IPushNotificationService {
 	 */
 	Result sendNotification(String topic, String jsonMessage) ;
 	
+	
 	/**
-	 * Send notification to the registrationTokens
-	 * @param registerationTokens
+	 * Send notification according to the subscriberIds
+	 * @param subscriberIds
 	 * @param jsonMessage
 	 * @return
 	 */
-	Result sendNotification(List<PushNotificationToken> registerationTokens, String jsonMessage);
+	Result sendNotification(List<String> subscriberIds, String jsonMessage);
+	
+	
+	/**
+	 * Send notification according to the subscriberIds and service
+	 * @param subscriberIds
+	 * @param jsonMessage
+	 * @return
+	 */
+	Result sendNotification(List<String> subscriberIds, String jsonMessage, String serviceName);
 }
