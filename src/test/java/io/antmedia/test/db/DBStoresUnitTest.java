@@ -3122,11 +3122,11 @@ public class DBStoresUnitTest {
 		assertNull(subscriberMetaData);
 		
 		SubscriberMetadata metadata = new SubscriberMetadata();
-		List<PushNotificationToken> pushNotificationTokens = new ArrayList<>();
+		Map<String, PushNotificationToken> pushNotificationTokens = new HashMap<>();
 		String tokenValue = RandomStringUtils.randomAlphabetic(65);
 		
 		PushNotificationToken token = new PushNotificationToken(tokenValue, PushNotificationServiceTypes.FIREBASE_CLOUD_MESSAGING.toString());
-		pushNotificationTokens.add(token);
+		pushNotificationTokens.put(tokenValue, token);
 		
 		metadata.setPushNotificationTokens(pushNotificationTokens);
 		dataStore.putSubscriberMetaData(subscriberId, metadata);
@@ -3146,7 +3146,7 @@ public class DBStoresUnitTest {
 		PushNotificationToken token2 = new PushNotificationToken(tokenValue2, PushNotificationServiceTypes.APPLE_PUSH_NOTIFICATION.toString());
 		String extraData = RandomStringUtils.randomAlphanumeric(12);
 		token2.setExtraData(extraData);
-		subscriberMetaData.getPushNotificationTokens().add(token2);
+		subscriberMetaData.getPushNotificationTokens().put(tokenValue2, token2);
 		
 		
 		dataStore.putSubscriberMetaData(subscriberId, subscriberMetaData);

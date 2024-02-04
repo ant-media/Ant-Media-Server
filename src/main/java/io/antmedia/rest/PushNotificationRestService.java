@@ -107,6 +107,11 @@ public class PushNotificationRestService {
 			return getPushNotificationService().sendNotification(topic, jsonMessage, serviceName);
 		}
 	}
+
+
+	public void setServletContext(ServletContext servletContext) {
+		this.servletContext = servletContext;
+	}
 		
 		
 

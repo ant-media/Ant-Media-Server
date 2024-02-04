@@ -1,6 +1,7 @@
 package io.antmedia.datastore.db.types;
 
 import java.util.List;
+import java.util.Map;
 
 import org.bson.types.ObjectId;
 
@@ -31,7 +32,7 @@ public class SubscriberMetadata {
 	private String subscriberId;
 	
 	@ApiModelProperty(value = "Push notification tokens provided by FCM and APN")
-	private List<PushNotificationToken> pushNotificationTokens;
+	private Map<String, PushNotificationToken> pushNotificationTokens;
 
 	public ObjectId getDbId() {
 		return dbId;
@@ -49,11 +50,11 @@ public class SubscriberMetadata {
 		this.subscriberId = subscriberId;
 	}
 
-	public List<PushNotificationToken> getPushNotificationTokens() {
+	public Map<String, PushNotificationToken> getPushNotificationTokens() {
 		return pushNotificationTokens;
 	}
 
-	public void setPushNotificationTokens(List<PushNotificationToken> pushNotificationTokens) {
+	public void setPushNotificationTokens(Map<String, PushNotificationToken> pushNotificationTokens) {
 		this.pushNotificationTokens = pushNotificationTokens;
 	}
 	

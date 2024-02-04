@@ -537,7 +537,7 @@ public class WebSocketConstants {
 
 	public static final String SEND_PUSH_NOTIFICATION_COMMAND = "sendPushNotification";
 
-	public static final String REGISTER_PUSH_NOTIFICATION_TOKEN = "reigsterPushNotificationToken";
+	public static final String REGISTER_PUSH_NOTIFICATION_TOKEN_COMMAND = "registerPushNotificationToken";
 
 	public static final String AUTH_TOKEN_NOT_VALID_ERROR_DEFINITION = "authenticationTokenNotValid";
 
