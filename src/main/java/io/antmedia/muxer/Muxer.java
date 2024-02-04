@@ -1289,4 +1289,8 @@ public abstract class Muxer {
 	public int getResolution() {
 		return resolution;
 	}
+
+	public long getLastPts() {
+		return lastPts;
+	}
 }
