@@ -7,7 +7,7 @@ INSTALL_DIRECTORY="$1"
 
 check_marketplace() {
   REST_URL='http://localhost:5080/rest/v2/server-settings'
-  SECRET_KEY=$(grep 'server.jwtServerSecretKey=' $INSTALL_DIRECTORY/conf/red5.properties | awk -F '=' '{print $2}')
+  SECRET_KEY=$(grep -oP '^server\.jwtServerSecretKey=\K.*' $INSTALL_DIRECTORY/conf/red5.properties)
   jwt_generate() {
     # Header
     header='{"typ":"JWT","alg":"HS256"}'
