@@ -135,6 +135,15 @@ wait_for_dns_validation() {
   done
 }
 
+# Install jq
+install_jq() {
+    if ! [ command -v jq &> /dev/null ]; then
+        sudo apt update -qq
+        sudo apt install -y jq
+    fi
+}
+
+install_jq
 
 fullChainFileExist=false
 if [ ! -z "$FULL_CHAIN_FILE" ] && [ -f "$FULL_CHAIN_FILE" ]; then
