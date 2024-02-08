@@ -24,8 +24,10 @@ import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
@@ -1404,6 +1406,23 @@ public abstract class DataStore {
 	 * @param metaData new meta data
 	 */
 	public abstract boolean updateStreamMetaData(String streamId, String metaData);
+
+	/**
+	 * Put subscriber metadata. It overwrites the metadata, if you need to update something, 
+	 * first get the {@link #getSubscriberMetaData(String)} , update it and put it
+	 * 
+	 * @param subscriberId
+	 * @param SubscriberMetadata
+	 * @return 
+	 */
+	public abstract void putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata);
+
+	/**
+	 * Get subscriber metadata
+	 * @param subscriberId
+	 * @return
+	 */
+	public abstract SubscriberMetadata getSubscriberMetaData(String subscriberId);
 	
 
 	//**************************************
