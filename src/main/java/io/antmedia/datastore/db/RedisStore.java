@@ -19,7 +19,9 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 
 public class RedisStore extends MapBasedDataStore {
@@ -61,6 +63,7 @@ public class RedisStore extends MapBasedDataStore {
 	    	webRTCViewerMap = redisson.getMap(dbName+"WebRTCViewers");
 	    	streamInfoMap = redisson.getMap(dbName+"StreamInfo");
 	    	p2pMap = redisson.getMap(dbName+"P2P");
+	    	subscriberMetadataMap = redisson.getMap(dbName+"SubscriberMetaData");
 			
 			available = true;
     	}
@@ -180,7 +183,5 @@ public class RedisStore extends MapBasedDataStore {
 	{
 		return getActiveBroadcastList(hostAddress);
 	}
-
-
 
 }
