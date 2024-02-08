@@ -99,7 +99,8 @@ public class JWTFilter extends AbstractFilter {
 			result = true;
 		}
 		catch (JWTVerificationException ex) {
-			logger.error(ExceptionUtils.getStackTrace(ex));
+			logger.error("JWT token is not valid for a jwtToken");
+
 		} 
 
 		return result;
@@ -119,10 +120,59 @@ public class JWTFilter extends AbstractFilter {
 			result = true;
 		}
 		catch (JWTVerificationException ex) {
-			logger.error(ExceptionUtils.getStackTrace(ex));
+			logger.error("JWT token is not valid for issuer name: {}", issuer);
+
 		} 
 
 		return result;
+	}
+	
+	/**
+	 * This method checks the claim value in the JWT token. For instance, we just need to give claimName as `subscriberId` and claimValue as the subscribers' id such as email
+	 * 
+	 *Typical usage is like that 
+	 *isJWTTokenValid(jwtSecretKey, jwtToken, "subscriberId", "myemail@example.com");
+	 *
+	 * @param jwtSecretKey
+	 * @param jwtToken
+	 * @param claimName
+	 * @param claimValue
+	 * @return
+	 */
+	public static boolean isJWTTokenValid(String jwtSecretKey, String jwtToken, String claimName, String claimValue) {
+		boolean result = false;
+
+		try {
+			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+			JWTVerifier verifier = JWT.require(algorithm)
+					.withClaim(claimName, claimValue)
+					.build();
+			verifier.verify(jwtToken);
+			result = true;
+		}
+		catch (JWTVerificationException ex) {
+			logger.error("JWT token is not valid for claim name: {}", claimName);
+		} 
+
+		return result;
+	}
+	
+	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs, String claimName, String claimValue) {
+		Date expireDateType = new Date(expireDateUnixTimeStampMs);
+		String jwtTokenId = null;
+		try {
+			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+
+			jwtTokenId = JWT.create().
+					withExpiresAt(expireDateType).
+					withClaim(claimName, claimValue).
+					sign(algorithm);
+
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return jwtTokenId;
 	}
 	
 	

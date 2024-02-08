@@ -11,6 +11,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.pushnotification.IPushNotificationService;
 import io.antmedia.rest.model.Result;
+import io.antmedia.websocket.WebSocketConstants;
 import jakarta.servlet.ServletContext;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.FormParam;
@@ -77,7 +78,7 @@ public class PushNotificationRestService {
 			timeoutDurationInSeconds = 3600;
 		}
 		long expireTimeMs = System.currentTimeMillis() + (timeoutDurationInSeconds * 1000);
-		String jwtToken = JWTFilter.generateJwtToken(getAppSettings().getSubscriberAuthenticationKey(), expireTimeMs, subscriberId);
+		String jwtToken = JWTFilter.generateJwtToken(getAppSettings().getSubscriberAuthenticationKey(), expireTimeMs, WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 		
 		return new Result(true, jwtToken, "Token is available in dataId field");
 	}

@@ -19,6 +19,7 @@ import io.antmedia.filter.JWTFilter;
 import io.antmedia.pushnotification.IPushNotificationService;
 import io.antmedia.rest.PushNotificationRestService;
 import io.antmedia.rest.model.Result;
+import io.antmedia.websocket.WebSocketConstants;
 import jakarta.servlet.ServletContext;
 
 public class PushNotificationRestServiceTest {
@@ -87,13 +88,13 @@ public class PushNotificationRestServiceTest {
 		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
         
         Result result = pushNotificationRestService.getSubscriberAuthenticationToken("subscriber1", 0);
-        assertTrue(JWTFilter.isJWTTokenValid(appSettings.getSubscriberAuthenticationKey(), result.getDataId(), "subscriber1"));
+        assertTrue(JWTFilter.isJWTTokenValid(appSettings.getSubscriberAuthenticationKey(), result.getDataId(), WebSocketConstants.SUBSCRIBER_ID, "subscriber1"));
         
-        assertFalse(JWTFilter.isJWTTokenValid(appSettings.getSubscriberAuthenticationKey(), result.getDataId(), "subscriber12"));
+        assertFalse(JWTFilter.isJWTTokenValid(appSettings.getSubscriberAuthenticationKey(), result.getDataId(), WebSocketConstants.SUBSCRIBER_ID, "subscriber12"));
         
         result = pushNotificationRestService.getSubscriberAuthenticationToken("subscriber1", 3);
         
-        assertTrue(JWTFilter.isJWTTokenValid(appSettings.getSubscriberAuthenticationKey(), result.getDataId(), "subscriber1"));
+        assertTrue(JWTFilter.isJWTTokenValid(appSettings.getSubscriberAuthenticationKey(), result.getDataId(), WebSocketConstants.SUBSCRIBER_ID, "subscriber1"));
         String token = result.getDataId();
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> {
 			return !JWTFilter.isJWTTokenValid(appSettings.getSubscriberAuthenticationKey(), token,
