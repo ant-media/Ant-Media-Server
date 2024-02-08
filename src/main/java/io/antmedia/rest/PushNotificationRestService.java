@@ -10,6 +10,7 @@ import org.springframework.web.context.WebApplicationContext;
 import io.antmedia.AppSettings;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.pushnotification.IPushNotificationService;
+import io.antmedia.rest.model.PushNotificationToSubscribers;
 import io.antmedia.rest.model.Result;
 import io.antmedia.websocket.WebSocketConstants;
 import jakarta.servlet.ServletContext;
@@ -87,20 +88,20 @@ public class PushNotificationRestService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
 	@Path("/subscribers")
-	public Result sendPushNotification(@FormParam("subscribers") List<String> subscriberIdList, String jsonMessage, @QueryParam("serviceName") String serviceName) {
+	public Result sendPushNotification(PushNotificationToSubscribers pushNotificationToSubcribers, @QueryParam("serviceName") String serviceName) {
 		if (StringUtils.isBlank(serviceName)) {
-			return getPushNotificationService().sendNotification(subscriberIdList, jsonMessage);
+			return getPushNotificationService().sendNotification(pushNotificationToSubcribers.getSubscribers() , pushNotificationToSubcribers.getJsonMessage());
 		}
 		else {
-			return getPushNotificationService().sendNotification(subscriberIdList, jsonMessage, serviceName);
+			return getPushNotificationService().sendNotification(pushNotificationToSubcribers.getSubscribers(), pushNotificationToSubcribers.getJsonMessage(), serviceName);
 		}
 	}
 	
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	@Path("/topics/{topic}/{serviceName}")
-	public Result sendPushNotification(@PathParam("topic") String topic, String jsonMessage, @PathParam("serviceName") String serviceName) {
+	@Path("/topics/{topic}")
+	public Result sendPushNotification(@PathParam("topic") String topic, String jsonMessage, @QueryParam("serviceName") String serviceName) {
 		if (StringUtils.isBlank(serviceName)) {
 			return getPushNotificationService().sendNotification(topic, jsonMessage);
 		}

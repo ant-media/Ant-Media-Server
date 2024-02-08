@@ -18,6 +18,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.pushnotification.IPushNotificationService;
 import io.antmedia.rest.PushNotificationRestService;
+import io.antmedia.rest.model.PushNotificationToSubscribers;
 import io.antmedia.rest.model.Result;
 import io.antmedia.websocket.WebSocketConstants;
 import jakarta.servlet.ServletContext;
@@ -52,18 +53,20 @@ public class PushNotificationRestServiceTest {
 		verify(pushNotificationService, times(2)).sendNotification("topic", "jsonMessage");
 		
 		
-		
-		pushNotificationRestService.sendPushNotification(Arrays.asList("subscriber1", "subscriber2"), "jsonMessage", "fcm");
+		PushNotificationToSubscribers pushNotificationToSubscribers = new PushNotificationToSubscribers();
+		pushNotificationToSubscribers.setJsonMessage("jsonMessage");
+		pushNotificationToSubscribers.setSubscribers(Arrays.asList("subscriber1", "subscriber2"));
+		pushNotificationRestService.sendPushNotification(pushNotificationToSubscribers, "fcm");
 		verify(pushNotificationService).sendNotification(Arrays.asList("subscriber1", "subscriber2"), "jsonMessage","fcm");
 		
 		
-		pushNotificationRestService.sendPushNotification(Arrays.asList("subscriber1", "subscriber2"), "jsonMessage", "apns");
+		pushNotificationRestService.sendPushNotification(pushNotificationToSubscribers, "apns");
 		verify(pushNotificationService).sendNotification(Arrays.asList("subscriber1", "subscriber2"), "jsonMessage","apns");
 		
-		pushNotificationRestService.sendPushNotification(Arrays.asList("subscriber1", "subscriber2"), "jsonMessage", "");
+		pushNotificationRestService.sendPushNotification(pushNotificationToSubscribers,"");
 		verify(pushNotificationService).sendNotification(Arrays.asList("subscriber1", "subscriber2"), "jsonMessage");
 		
-		pushNotificationRestService.sendPushNotification(Arrays.asList("subscriber1", "subscriber2"), "jsonMessage", null);
+		pushNotificationRestService.sendPushNotification(pushNotificationToSubscribers, null);
 		verify(pushNotificationService, times(2)).sendNotification(Arrays.asList("subscriber1", "subscriber2"), "jsonMessage");
 		
 		
