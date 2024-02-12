@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,8 +24,10 @@ import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
@@ -683,20 +686,42 @@ public abstract class DataStore {
 	 */
 	public abstract long getActiveBroadcastCount();
 
-	public long getActiveBroadcastCount(Map<String, String> broadcastMap, Gson gson) {
+	public long getActiveBroadcastCount(Map<String, String> broadcastMap, Gson gson, String hostAddress) {
 		int activeBroadcastCount = 0;
 		synchronized (this) {
 			
 			Collection<String> values = broadcastMap.values();
-			for (String broadcastString : values) {
+			for (String broadcastString : values) 
+			{
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
-				if (status != null && status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
+						(StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress()))) 
+				{
 					activeBroadcastCount++;
 				}
 			}
 		}
 		return activeBroadcastCount;
+	}
+	
+	public List<Broadcast> getActiveBroadcastList(Map<String, String> broadcastMap, Gson gson, String hostAddress) {
+		List<Broadcast> broadcastList = new ArrayList<>();
+		synchronized (this) {
+			
+			Collection<String> values = broadcastMap.values();
+			for (String broadcastString : values) 
+			{
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				String status = broadcast.getStatus();
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
+					  (StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress())))
+				{
+					broadcastList.add(broadcast);
+				}
+			}
+		}
+		return broadcastList;
 	}
 
 	/**
@@ -970,6 +995,7 @@ public abstract class DataStore {
 		broadcast.setUserAgent(newBroadcast.getUserAgent());
 		broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
 		broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
+		broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
 		broadcast.setAutoStartStopEnabled(newBroadcast.isAutoStartStopEnabled());
@@ -977,15 +1003,10 @@ public abstract class DataStore {
 		broadcast.setStopOnNoViewerTimeElapseSeconds(newBroadcast.getStopOnNoViewerTimeElapseSeconds());
 	}
 
-	/**
-	 * This method returns the local active broadcast count.ro
-	 * Mongodb implementation is different because of cluster.
-	 * Other implementations just return active broadcasts in db
-	 * @return
-	 */
-	public long getLocalLiveBroadcastCount(String hostAddress) {
-		return getActiveBroadcastCount();
-	}
+
+	public abstract long getLocalLiveBroadcastCount(String hostAddress);
+	
+	public abstract List<Broadcast> getLocalLiveBroadcasts(String hostAddress);
 
 	/**
 	 * Below search methods and sortandcrop methods are used for getting the searched items and sorting and pagination.
@@ -1389,6 +1410,22 @@ public abstract class DataStore {
 	 */
 	public abstract boolean updateStreamMetaData(String streamId, String metaData);
 
+	/**
+	 * Put subscriber metadata. It overwrites the metadata, if you need to update something, 
+	 * first get the {@link #getSubscriberMetaData(String)} , update it and put it
+	 * 
+	 * @param subscriberId
+	 * @param SubscriberMetadata
+	 * @return 
+	 */
+	public abstract void putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata);
+
+	/**
+	 * Get subscriber metadata
+	 * @param subscriberId
+	 * @return
+	 */
+	public abstract SubscriberMetadata getSubscriberMetaData(String subscriberId);
 
 	//**************************************
 	//ATTENTION: Write function descriptions while adding new functions

@@ -11,11 +11,13 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -23,6 +25,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -38,6 +41,7 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 	private Map<String, Subscriber> subscriberMap = new LinkedHashMap<>();
+	private Map<String, SubscriberMetadata> subscriberMetadataMap = new LinkedHashMap<>();
 	private Map<String, ConferenceRoom> roomMap = new LinkedHashMap<>();
 	private Map<String, WebRTCViewerInfo> webRTCViewerMap = new LinkedHashMap<>();
 
@@ -180,6 +184,24 @@ public class InMemoryDataStore extends DataStore {
 			}
 		}
 		return activeBroadcastCount;
+	}
+	
+	
+	public long getLocalLiveBroadcastCount(String hostAddress) {
+		return getActiveBroadcastCount();
+	}
+	
+	public List<Broadcast> getLocalLiveBroadcasts(String hostAddress) 
+	{
+		List<Broadcast> broadcastList = new ArrayList<>();
+		Collection<Broadcast> values = broadcastMap.values();
+		for (Broadcast broadcast : values) {
+			String status = broadcast.getStatus();
+			if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status)) {
+				broadcastList.add(broadcast);
+			}
+		}
+		return broadcastList;
 	}
 
 
@@ -1070,5 +1092,16 @@ public class InMemoryDataStore extends DataStore {
 			result = true;
 		}
 		return result;
+	}
+	
+	@Override
+	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
+		return subscriberMetadataMap.get(subscriberId);
+	}
+	
+	@Override
+	public void putSubscriberMetaData(String subscriberId, SubscriberMetadata subscriberMetadata) {
+		subscriberMetadata.setSubscriberId(subscriberId);
+		subscriberMetadataMap.put(subscriberId, subscriberMetadata);
 	}
 }

@@ -11,12 +11,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
-
-import javax.websocket.RemoteEndpoint;
-import javax.websocket.RemoteEndpoint.Basic;
-import javax.websocket.Session;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.json.simple.JSONArray;
@@ -46,6 +40,9 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
+import jakarta.websocket.RemoteEndpoint;
+import jakarta.websocket.RemoteEndpoint.Basic;
+import jakarta.websocket.Session;
 
 public class WebSocketCommunityHandlerTest {
 
@@ -200,6 +197,13 @@ public class WebSocketCommunityHandlerTest {
 		
 		
 		// case no status
+		
+		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
+		
+
+		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
+
+		
 		streamId = "streamId" + (int)(Math.random()*10000);
 		broadcast = new Broadcast();
 		try {
@@ -212,7 +216,9 @@ public class WebSocketCommunityHandlerTest {
 		dataStore.save(broadcast);
 		
 		wsHandler.onMessage(session, publishObject.toJSONString());
-
+		
+		
+		verify(rtmpAdaptor).start();
 		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(Mockito.anyString(), Mockito.any());
 		
 		
@@ -224,6 +230,7 @@ public class WebSocketCommunityHandlerTest {
 		
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
+		verify(rtmpAdaptor, Mockito.times(2)).start();
 		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(Mockito.anyString(), Mockito.any());
 				
 		
@@ -457,6 +464,27 @@ public class WebSocketCommunityHandlerTest {
 		assertEquals("already_playing", WebSocketConstants.ALREADY_PLAYING);
 		assertEquals("targetBitrate", WebSocketConstants.TARGET_BITRATE);
 		assertEquals("bitrateMeasurement", WebSocketConstants.BITRATE_MEASUREMENT);
+	}
+	
+	@Test
+	public void testThrowExceptionInSendMessage() {
+		wsHandler.setSession(session);
+		
+		try {
+			Mockito.doThrow(new IOException("exception")).when(basicRemote).sendText(Mockito.anyString());
+			wsHandler.sendMessage("test", session);
+			
+			
+			Mockito.doThrow(new IOException()).when(basicRemote).sendText(Mockito.anyString());
+			wsHandler.sendMessage("test", session);
+			
+			Mockito.doThrow(new IOException("WebSocket session has been closed")).when(basicRemote).sendText(Mockito.anyString());
+			wsHandler.sendMessage("test", session);		
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 	
 	@Test

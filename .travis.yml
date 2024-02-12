@@ -1,8 +1,8 @@
-dist: focal
+dist: jammy
 language: java
 jdk:
-  - openjdk11
-node_js: "14.8.0"
+  - openjdk17
+node_js: "16.20.2"
 
 git:
   depth: false
@@ -39,8 +39,9 @@ before_install:
   - sudo apt autoremove -qq
   - sudo rm -rf /var/lib/mongodb  # remove old mongodb files
   #- sudo apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 2930ADAE8CAF5059EE73BB4B58712A2291FA4AD5
-  - wget -qO - https://www.mongodb.org/static/pgp/server-5.0.asc | sudo apt-key add -
-  - echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/5.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-5.0.list
+  - curl -fsSL https://pgp.mongodb.com/server-6.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor
+  - echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+
   - sudo sed -e 's/^bind.*/bind 127.0.0.1/' /etc/redis/redis.conf > redis.conf
   - sudo mv redis.conf /etc/redis
   - sudo service redis-server start
@@ -75,6 +76,13 @@ before_install:
         git clone --depth=1 https://github.com/ant-media/StreamApp.git; 
     fi)
   - cd StreamApp; 
+  - npm install
+  - npm run compile
+  - cd embedded-player
+  - npm install
+  - npm run compile
+  - npm run deploy
+  - cd ..
   - mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet;
   - cd ..;
 

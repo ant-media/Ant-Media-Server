@@ -25,7 +25,7 @@ import java.util.Properties;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import javax.management.StandardMBean;
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 import org.quartz.impl.StdSchedulerFactory;
 import org.red5.logging.Red5LoggerFactory;

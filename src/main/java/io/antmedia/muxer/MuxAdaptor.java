@@ -24,6 +24,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -216,7 +217,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	/**
 	 * Accessed from multiple threads so make it volatile
 	 */
-	private volatile boolean buffering;
+	private AtomicBoolean buffering = new AtomicBoolean(false);
 	private int bufferLogCounter;
 
 	/**
@@ -1114,19 +1115,20 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void addBufferQueue(IStreamPacket packet) {
 		//it's a ordered queue according to timestamp
+
 		bufferQueue.add(packet);
 
-		IStreamPacket pktHead = bufferQueue.first();
-		IStreamPacket pktTrailer = bufferQueue.last();
+		try {
+			IStreamPacket pktHead = bufferQueue.first();
+			IStreamPacket pktTrailer = bufferQueue.last();
 
-		if (pktHead != null) {
 			int bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
 
 			if (bufferedDuration > bufferTimeMs*5) {
 				//if buffered duration is more than 5 times of the buffer time, remove packets from the head until it reach bufferTimeMs * 2
 
 				//set buffering true to not let writeBufferedPacket method work
-				buffering = true;
+				buffering.set(true);
 
 				Iterator<IStreamPacket> iterator = bufferQueue.iterator();
 
@@ -1147,7 +1149,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.trace("bufferedDuration:{} trailer timestamp:{} head timestamp:{}", bufferedDuration, pktTrailer.getTimestamp(), pktHead.getTimestamp());
 			if (bufferedDuration > bufferTimeMs) 
 			{ 
-				if (buffering) 
+				if (buffering.get()) 
 				{
 					//have the buffering finish time ms
 					bufferingFinishTimeMs = System.currentTimeMillis();
@@ -1157,7 +1159,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 				//make buffering false whenever bufferDuration is bigger than bufferTimeMS
 				//buffering is set to true when there is no packet left in the queue
-				buffering = false;
+				buffering.set(false);
 			}
 
 			bufferLogCounter++;
@@ -1165,8 +1167,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.info("ReadPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, bufferedDuration, bufferTimeMs, streamId);
 				bufferLogCounter = 0;
 			}
-
 		}
+		catch (NoSuchElementException e) {
+			//You may or may not ignore this exception @mekya
+			logger.warn("You may or may not ignore this exception. I mean It can happen time to time in multithread environment -> {}", e.getMessage());
+		}
+
+
 	}
 
 
@@ -1395,21 +1402,21 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		logger.info("Number of items in the queue while adaptor is being started to prepare is {}", getInputQueueSize());
 		startTimeMs = System.currentTimeMillis();
 
-		vertx.executeBlocking(b -> {
+		vertx.executeBlocking(() -> {
 			logger.info("before prepare for {}", streamId);
 			Boolean successful = false;
 			try {
 
 				packetPollerId = vertx.setPeriodic(10, t-> 
-				vertx.executeBlocking(p-> {
+				vertx.executeBlocking(()-> {
 					try {
 						execute();
 					}
 					catch (Exception e) {
 						logger.error(ExceptionUtils.getStackTrace(e));
 					}
-					p.complete();
-				}, false, null));
+					return null;
+				}, false));
 
 
 
@@ -1419,15 +1426,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					logger.info("Scheduling the buffered packet writer for stream: {} buffer duration:{}ms", streamId, bufferTimeMs);
 					bufferedPacketWriterId = vertx.setPeriodic(10, k -> 
 
-					vertx.executeBlocking(p-> {
+					vertx.executeBlocking(()-> {
 						try {
 							writeBufferedPacket();
 						}
 						catch (Exception e) {
 							logger.error(ExceptionUtils.getStackTrace(e));
 						}
-						p.complete();
-					}, false, null)
+						return null;
+					}, false)
 							);
 
 				}
@@ -1441,12 +1448,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
-			b.complete(successful);
+			return successful;
 
-		}, 
-				false,  // run unordered
-				r -> 
-		logger.info("muxadaptor start has finished with {} for stream: {}", r.result(), streamId)
+		}, false  // run unordered
 				);
 	}
 
@@ -1478,7 +1482,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			if (isBufferedWriterRunning.compareAndSet(false, true)) {
 				try {
-					if (!buffering)
+					if (!buffering.get())
 					{
 						while(!bufferQueue.isEmpty())
 						{
@@ -1505,11 +1509,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						}
 
 						//update buffering. If bufferQueue is empty, it should start buffering
-						buffering = bufferQueue.isEmpty();
+						buffering.set(bufferQueue.isEmpty());
 
 					}
 					bufferLogCounter++; //we use this parameter in execute method as well
-					if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) {
+					if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) 
+					{
 						IStreamPacket streamPacket = !bufferQueue.isEmpty() ? bufferQueue.first() : null;
 						int bufferedDuration = 0;
 						if (streamPacket != null) {
@@ -2025,6 +2030,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				endpointStatusUpdaterTimer.set(-1l);
 				try {
 					//update broadcast object
+					logger.info("Updating endpoint status in datastore for streamId:{}", streamId);
 					broadcast = getDataStore().get(broadcast.getStreamId());
 
 					updateBroadcastRecord();
@@ -2150,11 +2156,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public boolean isBuffering() {
-		return buffering;
+		return buffering.get();
 	}
 
 	public void setBuffering(boolean buffering) {
-		this.buffering = buffering;
+		this.buffering.set(buffering);
 	}
 
 	public String getDataChannelWebHookURL() {

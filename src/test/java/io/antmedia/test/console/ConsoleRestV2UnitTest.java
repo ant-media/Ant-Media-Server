@@ -1,5 +1,38 @@
 package io.antmedia.test.console;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.times;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+
+import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.rules.TestRule;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
+import org.mockito.Mockito;
+import org.red5.server.api.scope.IScope;
+import org.springframework.context.ApplicationContext;
+import org.springframework.web.context.WebApplicationContext;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.cluster.IClusterNotifier;
@@ -9,46 +42,15 @@ import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.console.datastore.MapDBStore;
 import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.console.rest.RestServiceV2;
-import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.licence.ILicenceService;
-import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
-import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.vertx.core.Vertx;
-import org.bytedeco.ffmpeg.global.avformat;
-import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
-import org.junit.*;
-import org.junit.rules.TestRule;
-import org.junit.rules.TestWatcher;
-import org.junit.runner.Description;
-import org.mapdb.elsa.ElsaSerializerBase;
-import org.mockito.Mockito;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.WebApplicationContext;
-
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.UnknownHostException;
-import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.Assert.*;
-import static org.junit.Assert.assertNotNull;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 
 public class ConsoleRestV2UnitTest {
@@ -81,6 +83,20 @@ public class ConsoleRestV2UnitTest {
 			"2019-04-24 19:01:24,334 [main] INFO  o.s.c.s.FileSystemXmlApplicationContext - Refreshing org.springframework.context.support.FileSystemXmlApplicationContext@f0f2775: startup date [Wed Apr 24 19:01:24 EET 2019]; root of context hierarchy";
 
 
+	@Rule
+	public TestRule watcher = new TestWatcher() {
+		protected void starting(Description description) {
+			System.out.println("Starting test: " + description.getMethodName());
+		}
+
+		protected void failed(Throwable e, Description description) {
+			System.out.println("Failed test: " + description.getMethodName());
+		};
+		protected void finished(Description description) {
+			System.out.println("Finishing test: " + description.getMethodName());
+		};
+	};
+	
 	@Before
 	public void before() {
 		File f = new File("server.db");
@@ -117,21 +133,24 @@ public class ConsoleRestV2UnitTest {
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 1000000000);
 		User user = new User(userName, password, UserType.ADMIN, "all");
-		Result result = restService.addUser(user);
+		RestServiceV2 restServiceSpy = Mockito.spy(restService);
+		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
+
+		Result result = restServiceSpy.addUser(user);
 
 		// System.out.println("error id: " + result.errorId);
 		assertTrue(result.isSuccess());
-		assertEquals(1, restService.getUserList().size());
+		assertEquals(1, restServiceSpy.getUserList().size());
 
-		assertNotNull(restService.getUserList());
+		assertNotNull(restServiceSpy.getUserList());
 
 		userName = "username" + (int) (Math.random() * 1000000000);
 		user = new User(userName, "second pass", UserType.ADMIN, "all");
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
-		result = restService.addUser(user);
-		assertEquals(2, restService.getUserList().size());
+		result = restServiceSpy.addUser(user);
+		assertEquals(2, restServiceSpy.getUserList().size());
 	}
 
 
@@ -141,7 +160,11 @@ public class ConsoleRestV2UnitTest {
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 1000000000);
 		User user = new User(userName, password, UserType.ADMIN, "system");
-		Result result = restService.addUser(user);
+		RestServiceV2 restServiceSpy = Mockito.spy(restService);
+		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
+
+		
+		Result result = restServiceSpy.addUser(user);
 
 		// System.out.println("error id: " + result.errorId);
 		assertTrue(result.isSuccess());
@@ -152,7 +175,7 @@ public class ConsoleRestV2UnitTest {
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
-		result = restService.addUser(user);
+		result = restServiceSpy.addUser(user);
 
 		assertTrue(result.isSuccess());
 
@@ -160,7 +183,7 @@ public class ConsoleRestV2UnitTest {
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
-		result = restService.addUser(user);
+		result = restServiceSpy.addUser(user);
 
 		assertFalse(result.isSuccess());
 
@@ -168,17 +191,17 @@ public class ConsoleRestV2UnitTest {
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
-		result = restService.addUser(user);
+		result = restServiceSpy.addUser(user);
 
 		assertFalse(result.isSuccess());
 
 		user.setEmail("ksks" + (int) (Math.random() * 1000000000));
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
-		result = restService.addUser(user);
+		result = restServiceSpy.addUser(user);
 		assertTrue(result.isSuccess());
 
-		result = restService.addUser(null);
+		result = restServiceSpy.addUser(null);
 
 		assertFalse(result.isSuccess());
 	}
@@ -344,13 +367,51 @@ public class ConsoleRestV2UnitTest {
 				apps.add("tahirrrr");
 				AdminApplication adminApp = Mockito.mock(AdminApplication.class);
 				Mockito.when(adminApp.getApplications()).thenReturn(apps);
+				IScope rootScope = Mockito.mock(IScope.class);
+				String appName = "taso";
+				
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
 
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+				
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
 
-				restServiceSpy.createApplication("taso", inputStream);
+				restServiceSpy.createApplication(appName, inputStream);
 
-				Mockito.verify(adminApp).createApplication("taso",tmpsDirectory + "taso.war");
+				Mockito.verify(adminApp).createApplication(appName, tmpsDirectory + "taso.war");
+			}
+			
+			{
+				
+				RestServiceV2 restServiceSpy = Mockito.spy(restService);
+
+				AdminApplication adminApp = Mockito.mock(AdminApplication.class);
+				IScope rootScope = Mockito.mock(IScope.class);
+				String appName = "taso";
+				
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+				Mockito.doReturn(true).when(adminApp).createApplication(Mockito.anyString(), Mockito.anyString());
+
+				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
+				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+				
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+
+				Result result = restServiceSpy.createApplication(appName, inputStream);
+
+				assertTrue(result.isSuccess());
+				Mockito.verify(adminApp).createApplication(appName, tmpsDirectory + "taso.war");
+				
+				
+				Mockito.doReturn(true).when(adminApp).createApplication(Mockito.anyString(), Mockito.anyString());
+				Mockito.when(rootScope.getScope(appName)).thenReturn(null);
+				result = restServiceSpy.createApplication(appName, inputStream);
+				assertFalse(result.isSuccess());
+				Mockito.verify(adminApp, times(2)).createApplication(appName, tmpsDirectory + "taso.war");
+				
 			}
 
 			{
@@ -363,10 +424,17 @@ public class ConsoleRestV2UnitTest {
 
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+				IScope rootScope = Mockito.mock(IScope.class);
+				String appName = "taso";
+				
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
 
-				restServiceSpy.createApplication("taso", null);
+				restServiceSpy.createApplication(appName, null);
 
-				Mockito.verify(adminApp).createApplication("taso", null);
+				Mockito.verify(adminApp).createApplication(appName, null);
 			}
 
 
@@ -380,10 +448,15 @@ public class ConsoleRestV2UnitTest {
 
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
+				String appName = "LiveApp";
+				IScope rootScope = Mockito.mock(IScope.class);
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
 
-				restServiceSpy.createApplication("LiveApp", inputStream);
+				restServiceSpy.createApplication(appName, inputStream);
 
-				Mockito.verify(adminApp, Mockito.never()).createApplication("LiveApp", "LiveApp.war");
+				Mockito.verify(adminApp, Mockito.never()).createApplication(appName, appName + ".war");
 			}
 
 			{
@@ -406,10 +479,16 @@ public class ConsoleRestV2UnitTest {
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(true).when(restServiceSpy).isClusterMode();
 				Mockito.doReturn(settings).when(restServiceSpy).getServerSettings();
+				var appName = "taso";
+				IScope rootScope = Mockito.mock(IScope.class);
+				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
+				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
+				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
 
-				restServiceSpy.createApplication("taso", inputStream);
+				restServiceSpy.createApplication(appName, inputStream);
 
-				Mockito.verify(adminApp).createApplication("taso", tmpsDirectory + "taso.war");
+				Mockito.verify(adminApp).createApplication(appName, tmpsDirectory + appName + ".war");
 			}
 
 			{
@@ -687,6 +766,15 @@ public class ConsoleRestV2UnitTest {
 		assertNull(domain);
 		domain = CommonRestService.extractFQDN(null);
 		assertNull(domain);
+	}
+	
+	@Test
+	public void testTriggerGC() {
+		//just increase coverage and make sure that method is there.
+		//It's better to check if it calls System.gc. We may add it later with Powermockito. It's good enough at this stage 
+		RestServiceV2 restServiceSpy = Mockito.spy(restService);
+		Result result = restServiceSpy.triggerGc();
+		assertTrue(result.isSuccess());
 	}
 
 	@Test

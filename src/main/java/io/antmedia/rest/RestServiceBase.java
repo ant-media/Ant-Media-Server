@@ -25,8 +25,7 @@ import java.util.jar.Manifest;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nullable;
-import javax.servlet.ServletContext;
-import javax.ws.rs.core.Context;
+import jakarta.servlet.ServletContext;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -69,9 +68,11 @@ import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import jakarta.ws.rs.core.Context;
 
 public abstract class RestServiceBase {
 
@@ -316,7 +317,7 @@ public abstract class RestServiceBase {
 		if (id != null && (broadcast = getDataStore().get(id)) != null)
 		{
 			//no need to check if the stream is another node because RestProxyFilter makes this arrangement
-			
+
 			stopResult = stopBroadcastInternal(broadcast);
 
 			result.setSuccess(getDataStore().delete(id));
@@ -1017,6 +1018,14 @@ public abstract class RestServiceBase {
 		Result result=new Result(false);
 
 		if(checkStreamUrl(stream.getStreamUrl())) {
+			
+			//small improvement for user experience
+			boolean isVoD = stream.getStreamUrl().startsWith("http") && (stream.getStreamUrl().endsWith("mp4") || stream.getStreamUrl().endsWith("webm") || stream.getStreamUrl().endsWith("flv"));
+			
+			if (isVoD) {
+				stream.setType(AntMediaApplicationAdapter.VOD);
+			}
+			
 			Date currentDate = new Date();
 			long unixTime = currentDate.getTime();
 
@@ -1211,7 +1220,7 @@ public abstract class RestServiceBase {
 				}
 			}
 			else {
-				//this message has a wrong meaning on the other hand it has been used in the frontend(webpanel). Both sides should be updated 
+				//this message has a wrong meaning on the other hand it has been used in the frontend(webpanel). Both sides should be updated
 				message = "notMp4File";
 			}
 
@@ -1254,28 +1263,10 @@ public abstract class RestServiceBase {
 
 		if(application != null)
 		{
-			List<MuxAdaptor> muxAdaptors = application.getMuxAdaptors();
-			for (MuxAdaptor muxAdaptor : muxAdaptors)
-			{
-				if (streamId.equals(muxAdaptor.getStreamId()))
-				{
-					selectedMuxAdaptor = muxAdaptor;
-					break;
-				}
-			}
+			selectedMuxAdaptor = application.getMuxAdaptor(streamId);
 		}
 
 		return selectedMuxAdaptor;
-	}
-
-	public boolean addRtmpMuxerToMuxAdaptor(String streamId, String rtmpURL) {
-		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
-		boolean result = false;
-		if (muxAdaptor != null) {
-			//result = muxAdaptor.addRTMPEndpoint(rtmpURL);
-		}
-
-		return result;
 	}
 
 	@Nullable
@@ -1294,6 +1285,11 @@ public abstract class RestServiceBase {
 		if (muxAdaptor != null)
 		{
 			return muxAdaptor.startRecording(recordType, resolutionHeight);
+		}
+		else {
+			logger.info("No mux adaptor found for {} recordType:{} resolutionHeight:{}", streamId != null  ?
+					streamId.replaceAll("[\n\r]", "_") : "null ",
+					recordType, resolutionHeight);
 		}
 
 		return null;
@@ -1375,12 +1371,17 @@ public abstract class RestServiceBase {
 	protected Result getCameraErrorById(String streamId) {
 		Result result = new Result(false);
 
-		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList())
-		{
-			if (camScheduler.getStreamId().equals(streamId)) {
+		if (streamId != null) {
+			StreamFetcher camScheduler = getApplication().getStreamFetcherManager().getStreamFetcher(streamId);
+			if (camScheduler != null) {
 				result = camScheduler.getCameraError();
-				break;
 			}
+			else {
+				result.setMessage("Camera is not found with streamId: " + streamId);
+			}
+		}
+		else {
+			result.setMessage("StreamId parameter is " + streamId + " Please use none null values");
 		}
 
 		return result;
@@ -1421,6 +1422,55 @@ public abstract class RestServiceBase {
 		else {
 			result.setMessage("No Stream Exists with id:"+id);
 		}
+		return result;
+	}
+
+	public Result playNextItem(String id, Integer index) {
+		Result result = new Result(false);
+
+		Broadcast broadcast = getDataStore().get(id);
+
+		if(broadcast == null) {
+			result.setMessage("There is no playlist found. Please check Stream id again");
+			return result;
+		}
+		else if (!AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
+			result.setMessage("This broadcast type is not playlist. This method is only available for playlists");
+			return result;
+		}
+
+		if(index == null) {
+			index = -1;
+		}
+
+
+		if (index < broadcast.getPlayListItemList().size()) 
+		{	
+			StreamFetcher streamFetcher = getApplication().getStreamFetcherManager().getStreamFetcher(id);
+			if (streamFetcher != null) 
+			{	
+				IStreamFetcherListener streamFetcherListener = streamFetcher.getStreamFetcherListener();
+				//don't let the streamFetcherListener be called again because it already automatically plays the next item
+				
+				streamFetcher.setStreamFetcherListener(null);
+				
+				if (logger.isInfoEnabled()) {
+					logger.info("Switching to next item by REST method for playlist:{} and forwarding stream fetcher listener:{}", id.replaceAll("[\n\r]", "_"), streamFetcherListener.hashCode());
+				}
+				
+				result = getApplication().getStreamFetcherManager().playItemInList(broadcast, streamFetcherListener, index);
+			}
+			else {
+				result.setMessage("No active playlist for id:" + id + ". Start the playlist first");
+			}
+
+		}
+		else {
+			result.setMessage("Index is out of the list. Please specify the correct index");
+		}
+
+
+
 		return result;
 	}
 
@@ -1545,7 +1595,7 @@ public abstract class RestServiceBase {
 		return list;
 	}
 
-	protected ITokenService getTokenService() 
+	protected ITokenService getTokenService()
 	{
 		ApplicationContext appContext = getAppContext();
 		if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) {
@@ -1874,7 +1924,7 @@ public abstract class RestServiceBase {
 		}
 
 
-		if (streamId != null && recordType != null) 
+		if (streamId != null && recordType != null)
 		{
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null)
@@ -1897,7 +1947,7 @@ public abstract class RestServiceBase {
 						result = true;
 						RecordMuxer muxer = null;
 
-						if (isInSameNodeInCluster(broadcast.getOriginAdress())) 
+						if (isInSameNodeInCluster(broadcast.getOriginAdress()))
 						{
 							if (enableRecording)
 							{

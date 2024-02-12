@@ -2,14 +2,14 @@ package io.antmedia.console.rest;
 
 import java.io.IOException;
 import java.security.interfaces.RSAPublicKey;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.HttpMethod;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import com.auth0.jwk.Jwk;
@@ -30,15 +30,12 @@ import io.antmedia.filter.AbstractFilter;
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.rest.model.UserType;
 import io.antmedia.settings.ServerSettings;
+import jakarta.ws.rs.HttpMethod;
 
 public class AuthenticationFilter extends AbstractFilter {
 
 	public static final String DISPATCH_PATH_URL = "_path";
-	/**
-	 * Use the same token header with JWT Filter which is {@link JWTFilter#JWT_TOKEN_HEADER }
-	 */
-	@Deprecated
-	public static final String JWT_TOKEN = "ProxyAuthorization";
+	public static final String PROXY_AUTHORIZATION_HEADER_JWT_TOKEN = "ProxyAuthorization";
 	public static final String FORBIDDEN_ERROR = "Not allowed to access this resource. Contact system admin";
 
 	public AbstractConsoleDataStore getAbstractConsoleDataStore()
@@ -108,14 +105,16 @@ public class AuthenticationFilter extends AbstractFilter {
 		 * Is Token filled or not
 		 * Is JWT Server Token valid or invalid 
 		 */
-		String jwtToken = httpRequest.getHeader(JWTFilter.JWT_TOKEN_HEADER);
-		if (jwtToken == null) {
-			//get it for compatibility
-			jwtToken = httpRequest.getHeader(JWT_TOKEN);
-		}
+		
+		//Pay attention
+		//Header: PROXY_AUTHORIZATION_HEADER_JWT_TOKEN(ProxyAuthorization) is for accessing web panel
+		//Header: JWTFilter.JWT_TOKEN_HEADER(Authorization) is for accessing the app settings
+		
+		//It should be different otherwise there is a problem in accessing the app rest methods through web panel 
+		String jwtToken = httpRequest.getHeader(PROXY_AUTHORIZATION_HEADER_JWT_TOKEN); 
 		if (serverSettings != null 
 				&& serverSettings.isJwtServerControlEnabled()
-				&& jwtToken != null) 
+				&& !StringUtils.isBlank(jwtToken)) 
 		
 		{
 			if(checkJWT(jwtToken)) {

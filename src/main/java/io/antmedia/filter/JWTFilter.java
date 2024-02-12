@@ -5,12 +5,12 @@ import java.io.IOException;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Date;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -41,8 +41,11 @@ public class JWTFilter extends AbstractFilter {
 		appSettings = getAppSettings();
 
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
-
-		if(appSettings != null && !appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN_HEADER) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN_HEADER)))) {
+		if(appSettings == null){
+			((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Application is getting initialized");
+			return;
+		}
+		if(!appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN_HEADER) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN_HEADER)))) {
 			chain.doFilter(request, response);
 			return;
 		}
@@ -96,11 +99,82 @@ public class JWTFilter extends AbstractFilter {
 			result = true;
 		}
 		catch (JWTVerificationException ex) {
-			logger.error(ExceptionUtils.getStackTrace(ex));
+			logger.error("JWT token is not valid for a jwtToken");
+
 		} 
 
 		return result;
 	}
+	
+	
+	
+	public static boolean isJWTTokenValid(String jwtSecretKey, String jwtToken, String issuer) {
+		boolean result = false;
+
+		try {
+			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+			JWTVerifier verifier = JWT.require(algorithm)
+					.withIssuer(issuer)
+					.build();
+			verifier.verify(jwtToken);
+			result = true;
+		}
+		catch (JWTVerificationException ex) {
+			logger.error("JWT token is not valid for issuer name: {}", issuer);
+
+		} 
+
+		return result;
+	}
+	
+	/**
+	 * This method checks the claim value in the JWT token. For instance, we just need to give claimName as `subscriberId` and claimValue as the subscribers' id such as email
+	 * 
+	 *Typical usage is like that 
+	 *isJWTTokenValid(jwtSecretKey, jwtToken, "subscriberId", "myemail@example.com");
+	 *
+	 * @param jwtSecretKey
+	 * @param jwtToken
+	 * @param claimName
+	 * @param claimValue
+	 * @return
+	 */
+	public static boolean isJWTTokenValid(String jwtSecretKey, String jwtToken, String claimName, String claimValue) {
+		boolean result = false;
+
+		try {
+			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+			JWTVerifier verifier = JWT.require(algorithm)
+					.withClaim(claimName, claimValue)
+					.build();
+			verifier.verify(jwtToken);
+			result = true;
+		}
+		catch (JWTVerificationException ex) {
+			logger.error("JWT token is not valid for claim name: {}", claimName);
+		} 
+
+		return result;
+	}
+	
+	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs, String claimName, String claimValue) {
+		Date expireDateType = new Date(expireDateUnixTimeStampMs);
+		String jwtTokenId = null;
+		try {
+			Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+
+			jwtTokenId = JWT.create().
+					withExpiresAt(expireDateType).
+					withClaim(claimName, claimValue).
+					sign(algorithm);
+
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+
+		return jwtTokenId;
+	}
+	
 	
 	public static String generateJwtToken(String jwtSecretKey, long expireDateUnixTimeStampMs) {
 		return generateJwtToken(jwtSecretKey, expireDateUnixTimeStampMs, "");

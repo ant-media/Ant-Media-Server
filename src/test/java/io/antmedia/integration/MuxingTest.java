@@ -223,7 +223,7 @@ public class MuxingTest {
 				List<Broadcast> broadcastList = restService.callGetBroadcastList();
 				if (broadcastList != null) {
 					for (Broadcast broadcast : broadcastList) {
-						logger.info("stream on the server side:{}", broadcast.getStreamId());
+						logger.info("stream on the server side:{} status:{}", broadcast.getStreamId(), broadcast.getStatus());
 					}
 				}
 				
@@ -416,7 +416,12 @@ public class MuxingTest {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".mp4", 5000);
 			});
 
-			rtmpSendingProcess.destroy();
+			rtmpSendingProcess.destroyForcibly();
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return null == RestServiceV2Test.getBroadcast(streamName);
+			});
+			
 
 			appSettings.setMp4MuxingEnabled(mp4Enabled);
 			appSettings.setHlsMuxingEnabled(hlsEnabled);

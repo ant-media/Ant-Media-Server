@@ -7,7 +7,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
-
+import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.av_stream_get_side_data;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
@@ -169,6 +169,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 @DirtiesContext(classMode = ClassMode.AFTER_CLASS)
 public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
+
 	protected static Logger logger = LoggerFactory.getLogger(MuxerUnitTest.class);
 	protected static final int BUFFER_SIZE = 10240;
 
@@ -199,7 +200,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public static void beforeClass() {
 		//avformat.av_register_all();
 		avformat.avformat_network_init();
-		avutil.av_log_set_level(avutil.AV_LOG_INFO);
+		avutil.av_log_set_level(avutil.AV_LOG_ERROR);
 	}
 
 	@Before
@@ -1123,7 +1124,57 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//This is for testing writeHeader after writeTrailer.
 		rtmpMuxer.writeHeader();
 	}
-
+	
+	@Test
+	public void testRtmpUrlWithoutAppName(){
+		{
+			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0",vertx)); //RTMP URl without Appname
+			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			AVDictionaryEntry optEntry = av_dict_get(opt,"rtmp_app",null,0);
+			assertEquals("rtmp_app", optEntry.key().getString());
+			assertEquals("", optEntry.value().getString());
+		}
+		
+		
+		{
+			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmp://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0/test",vertx)); //RTMP URl without Appname
+			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app",null,0);
+	        assertNull(optEntry);
+	        
+	     	//if it's different from zero, it means no file is need to be open.
+			//If it's zero, Not "no file" and it means that file is need to be open .
+	        assertEquals(0, rtmpMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
+	        
+	        
+	        rtmpMuxer.clearResource();
+		}
+		
+		{
+			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmps://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0",vertx)); //RTMP URl without Appname
+			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			AVDictionaryEntry optEntry = av_dict_get(opt,"rtmp_app",null,0);
+			assertEquals("rtmp_app", optEntry.key().getString());
+			assertEquals("", optEntry.value().getString());
+			
+		}
+		
+		{
+			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmps://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0/test",vertx)); //RTMP URl without Appname
+			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app",null,0);
+	        assertNull(optEntry);
+	        
+	     	//if it's different from zero, it means no file is need to be open.
+			//If it's zero, Not "no file" and it means that file is need to be open .
+	        assertEquals(0, rtmpMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
+	        
+	        
+	        rtmpMuxer.clearResource();
+			
+		}
+        
+	}
 	@Test
 	public void testMp4MuxerDirectStreaming() {
 
@@ -1966,8 +2017,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		ConcurrentSkipListSet<IStreamPacket> bufferQueue = muxAdaptor.getBufferQueue();
 		muxAdaptor.setBuffering(false);
-		AVStream stream = Mockito.mock(AVStream.class);
-		when(stream.time_base()).thenReturn(MuxAdaptor.TIME_BASE_FOR_MS);
 
 
 		ITag tag = mock(ITag.class);
@@ -3746,18 +3795,18 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(listener, Mockito.times(1)).setVideoStreamInfo(eq(muxAdaptor.getStreamId()), any());
 		verify(listener, Mockito.times(1)).setAudioStreamInfo(eq(muxAdaptor.getStreamId()), any());
 
-		AVStream stream = mock(AVStream.class);
-		AVCodecParameters codecParameters = mock(AVCodecParameters.class);
-		when(stream.codecpar()).thenReturn(codecParameters);
-		when(codecParameters.codec_type()).thenReturn(AVMEDIA_TYPE_VIDEO);
+		AVStream stream = new AVStream();
+		AVCodecParameters codecParameters = new AVCodecParameters();
+		stream.codecpar(codecParameters);
+		codecParameters.codec_type(AVMEDIA_TYPE_VIDEO);
 
-		AVPacket pkt = mock(AVPacket.class);
-		when(pkt.flags()).thenReturn(AV_PKT_FLAG_KEY);
+		AVPacket pkt = new AVPacket();
+		pkt.flags(AV_PKT_FLAG_KEY);
 
 		muxAdaptor.writePacket(stream, pkt);
 		verify(listener, Mockito.times(1)).onVideoPacket(streamId, pkt);
 
-		when(codecParameters.codec_type()).thenReturn(AVMEDIA_TYPE_AUDIO);
+		codecParameters.codec_type(AVMEDIA_TYPE_AUDIO);
 		muxAdaptor.writePacket(stream, pkt);
 		verify(listener, Mockito.times(1)).onAudioPacket(streamId, pkt);
 
@@ -4040,6 +4089,27 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String data = "test data";
 		hlsMuxer.addID3Data(data);
 		verify(hlsMuxer, times(1)).writeDataFrame(any(), any());
+	}
+
+	@Test
+	public void testID3Timing() {
+		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class),
+				"streams", 0, "http://example.com", false));
+		hlsMuxer.setId3Enabled(true);
+		hlsMuxer.createID3StreamIfRequired();
+		long lastPts = RandomUtils.nextLong();
+		doReturn(lastPts).when(hlsMuxer).getLastPts();
+
+		doNothing().when(hlsMuxer).writeDataFrame(any(), any());
+		String data = "test data";
+		hlsMuxer.addID3Data(data);
+		ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
+
+		verify(hlsMuxer, times(1)).writeDataFrame(argument.capture(), any());
+
+		assertEquals(lastPts, argument.getValue().pts());
+		assertEquals(lastPts, argument.getValue().dts());
+
 	}
 
 	@Test
