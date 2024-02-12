@@ -534,5 +534,52 @@ public class WebSocketConstants {
 	 */
 	public static final String BROADCAST = "broadcast";
 
+
+	public static final String SEND_PUSH_NOTIFICATION_COMMAND = "sendPushNotification";
+
+	public static final String REGISTER_PUSH_NOTIFICATION_TOKEN_COMMAND = "registerPushNotificationToken";
+
+	public static final String AUTH_TOKEN_NOT_VALID_ERROR_DEFINITION = "authenticationTokenNotValid";
+
+	/**
+	 * Push Notificaiton Service Registration Token
+	 */
+	public static final String PNS_REGISTRATION_TOKEN = "pnsRegistrationToken";
+
+	/**
+	 * Push Notificaiton Service type, it can fcm or apn
+	 * FCM: Firebase Cloud Messaging
+	 * APN: Apple Notification Service
+	 */
+	public static final String PNS_TYPE = "pnsType";
+
+	public static final String MISSING_PARAMETER_DEFINITION = "missingParameter";
+
+	/**
+	 * Information field in websocket communication
+	 */
+	public static final String INFORMATION = "information";
+
+	/**
+	 * Success field in websocket communication. If it's value true, the operation is successful.
+	 * If it's value is false, the operation is failed
+	 */
+	public static final String SUCCESS = "success";
+
+	/**
+	 * Topic field to send push notification
+	 */
+	public static final String PUSH_NOTIFICATION_TOPIC = "pushNotificationTopic";
+
+	/**
+	 * Subscriber id list to send push notification
+	 */
+	public static final String SUBSCRIBER_ID_LIST_TO_NOTIFY = "subscriberIdsToNotify";
+
+	/**
+	 * Push Notification Content
+	 */
+	public static final String PUSH_NOTIFICATION_CONTENT = "pushNotificationContent";
+
 	
 }

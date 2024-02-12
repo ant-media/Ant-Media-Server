@@ -39,11 +39,11 @@ public class Result {
 	 * @param message
 	 */
 	public Result(boolean success, String message) {
-		this(success, null, message);
+		this(success, "", message);
 	}
 	
 	public Result(boolean success) {
-		this(success, null, null);
+		this(success, "", "");
 	}
 	
 	public Result(boolean success, String dataId, String message) {

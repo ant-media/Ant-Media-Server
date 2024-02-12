@@ -218,10 +218,6 @@ public class AppSettings implements Serializable{
 	/**
 	 * @hidden
 	 */
-	private static final String SETTINGS_STREAM_FETCHER_BUFFER_TIME = "settings.streamFetcherBufferTime";
-	/**
-	 * @hidden
-	 */
 	private static final String SETTINGS_STREAM_FETCHER_RESTART_PERIOD = "settings.streamFetcherRestartPeriod";
 	/**
 	 * @hidden
@@ -1125,28 +1121,30 @@ public class AppSettings implements Serializable{
 	private int createPreviewPeriod = 5000;
 
 	/**
-	 * It's mandatory,
-	 * Restart stream fetcher period in seconds
+	 * Period of restarting stream fetchers automaticallyin seconds. 
+	 * If it's more than 0, stream fetcher (aka. stream source) are restarted every seconds that is specified in this parameter.
 	 * Restart time for fetched streams from external sources,
 	 * Default value is 0
 	 */
-	@Value( "${streamFetcherRestartPeriod:${"+SETTINGS_STREAM_FETCHER_RESTART_PERIOD+":0}}" )
+	@Value( "${restartStreamFetcherPeriod:${"+SETTINGS_STREAM_FETCHER_RESTART_PERIOD+":0}}" )
 	private int restartStreamFetcherPeriod;
 
 	/**
-	 * Stream fetchers are started automatically if it is set true
+	 * Flag to specify Stream sources whether to start automatically when server is started. 
+	 * If it is true, stream sources are started automatically when server is started
+	 * If it's false, stream sources need to be started programmatically or manually by the user
 	 */
 	@Value( "${streamFetcherAutoStart:${"+SETTINGS_STREAM_FETCHER_AUTO_START+":false}}" )
 	private boolean startStreamFetcherAutomatically;
 
 	/**
-	 * It's mandatory,
 	 * Stream fetcher buffer time in milliseconds,
-	 * Stream is buffered for this duration and after that it will be started,
-	 * Buffering time for fetched streams from external sources. 0 means no buffer,
+	 * Stream is buffered for this duration and after that it will be started. It's also good for re-ordering packets.
+	 * 
+	 * 0 means no buffer,
 	 * Default value is 0
 	 */
-	//@Value( "${"+SETTINGS_STREAM_FETCHER_BUFFER_TIME+"}" )
+	@Value( "${streamFetcherBufferTime:0}" )
 	private int streamFetcherBufferTime = 0;
 
 
@@ -1517,10 +1515,20 @@ public class AppSettings implements Serializable{
 
 	/**
 	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
-	 * It can be tcp or udp
+	 * It can have string or integer values. 
+	 * One value can be given at a for as string. It can be udp, tcp udp_multicast, http, https
+	 * Multiple values can be given at a time by OR operation 
+	 * udp -> 1 << 0 = 1
+	 * tcp -> 1 << 1 = 2
+	 * udp_multicast -> 1 << 2 = 4
+	 * http -> 1 << 8 = 256
+	 * https -> 1 << 9 = 512
+	 * 
+	 * Default value is 3 which is udp(1) OR tcp(2)
+	 * 0x01 | 0x10 = 0x11 = 3
 	 */
-	@Value("${rtspPullTransportType:${" + SETTINGS_RTSP_PULL_TRANSPORT_TYPE+ ":tcp}}")
-	private String rtspPullTransportType = "tcp";
+	@Value("${rtspPullTransportType:${" + SETTINGS_RTSP_PULL_TRANSPORT_TYPE+ ":3}}")
+	private String rtspPullTransportType = "3";
 
 	/**
 	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
@@ -2044,7 +2052,23 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${sendAudioLevelToViewers:true}")
 	private boolean sendAudioLevelToViewers = true;
-
+	
+	/**
+	 * Firebase Service Account Key JSON to send push notification
+	 * through Firebase Cloud Messaging
+	 */
+	@Value("${firebaseAccountKeyJSON:#{null}}")
+	private String firebaseAccountKeyJSON = null;
+	
+	/**
+	 * This is JWT Secret to authenticate the user for push notifications.
+	 * 
+	 * JWT token should be generated with the following secret: subscriberId(username, email, etc.) + subscriberAuthenticationKey
+	 * 
+	 */
+	@Value("${subscriberAuthenticationKey:#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}")
+	private String subscriberAuthenticationKey = RandomStringUtils.randomAlphanumeric(32);
+	
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
 	}
@@ -3524,4 +3548,21 @@ public class AppSettings implements Serializable{
 	public void setTimeTokenSecretForPlay(String timeTokenSecretForPlay) {
 		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
 	}
+
+	public String getFirebaseAccountKeyJSON() {
+		return firebaseAccountKeyJSON;
+	}
+
+	public void setFirebaseAccountKeyJSON(String firebaseAccountKeyJSON) {
+		this.firebaseAccountKeyJSON = firebaseAccountKeyJSON;
+	}
+
+	public String getSubscriberAuthenticationKey() {
+		return subscriberAuthenticationKey;
+	}
+
+	public void setSubscriberAuthenticationKey(String subscriberAuthenticationKey) {
+		this.subscriberAuthenticationKey = subscriberAuthenticationKey;
+	}
+
 }

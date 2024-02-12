@@ -16,7 +16,7 @@ import io.antmedia.rest.model.UserType;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
 
-@ApiModel(value="User", description="The basic user class")
+@ApiModel(value="User", description="The basic user class for accessing the web panel")
 @Entity(value = "user")
 @Indexes({ @Index(fields = @Field("email")), @Index(fields = @Field("fullName")) })
 public class User {

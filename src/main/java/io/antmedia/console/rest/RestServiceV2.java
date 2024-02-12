@@ -6,22 +6,10 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
-import jakarta.ws.rs.core.MediaType;
-import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
+import org.red5.server.api.scope.IScope;
 import org.springframework.stereotype.Component;
 
 import com.google.gson.Gson;
@@ -42,6 +30,18 @@ import io.swagger.annotations.ExternalDocs;
 import io.swagger.annotations.Info;
 import io.swagger.annotations.License;
 import io.swagger.annotations.SwaggerDefinition;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
+import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 
 
@@ -57,7 +57,7 @@ import io.swagger.annotations.SwaggerDefinition;
 		produces = {"application/json"},
 		schemes = {SwaggerDefinition.Scheme.HTTP, SwaggerDefinition.Scheme.HTTPS},
 		externalDocs = @ExternalDocs(value = "External Docs", url = "https://antmedia.io")
-)
+		)
 @Component
 @Path("/v2")
 public class RestServiceV2 extends CommonRestService {
@@ -499,12 +499,12 @@ public class RestServiceV2 extends CommonRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result configureSsl(@ApiParam(value = "SSL settings", required = true) @QueryParam("domain") String domain, @QueryParam("type") String type,
-							   @FormDataParam("fullChainFile") InputStream fullChainFile,
-							   @FormDataParam("fullChainFile") FormDataContentDisposition fullChainFileDetail,
-							   @FormDataParam("privateKeyFile") InputStream privateKeyFile,
-							   @FormDataParam("privateKeyFile") FormDataContentDisposition privateKeyFileDetail,
-							   @FormDataParam("chainFile") InputStream chainFile,
-							   @FormDataParam("chainFile") FormDataContentDisposition chainFileDetail)
+			@FormDataParam("fullChainFile") InputStream fullChainFile,
+			@FormDataParam("fullChainFile") FormDataContentDisposition fullChainFileDetail,
+			@FormDataParam("privateKeyFile") InputStream privateKeyFile,
+			@FormDataParam("privateKeyFile") FormDataContentDisposition privateKeyFileDetail,
+			@FormDataParam("chainFile") InputStream chainFile,
+			@FormDataParam("chainFile") FormDataContentDisposition chainFileDetail)
 
 	{
 		return super.configureSsl(domain, type, fullChainFile, fullChainFileDetail, privateKeyFile, privateKeyFileDetail, chainFile, chainFileDetail);
@@ -597,7 +597,7 @@ public class RestServiceV2 extends CommonRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public String getLogFile(@ApiParam(value = "Char size of the log", required = true) @PathParam("charSize") int charSize, @ApiParam(value = "Log type. ERROR can be used to get only error logs", required = true) @QueryParam("logType") String logType,
-							 @ApiParam(value = "Offset of the retrieved log", required = true) @PathParam("offsetSize") long offsetSize) throws IOException {
+			@ApiParam(value = "Offset of the retrieved log", required = true) @PathParam("offsetSize") long offsetSize) throws IOException {
 		return super.getLogFile(charSize,logType, offsetSize);
 	}
 
@@ -630,17 +630,9 @@ public class RestServiceV2 extends CommonRestService {
 		Result result;
 		if (appName != null && appName.matches("^[a-zA-Z0-9]*$"))
 		{
-			List<String> applications = getApplication().getApplications();
 
-			boolean applicationAlreadyExist = false;
-			for (String applicationName : applications)
-			{
-				if (applicationName.equalsIgnoreCase(appName))
-				{
-					applicationAlreadyExist = true;
-					break;
-				}
-			}
+
+			boolean applicationAlreadyExist = isApplicationExists(appName);
 
 			if (!applicationAlreadyExist)
 			{
@@ -659,6 +651,10 @@ public class RestServiceV2 extends CommonRestService {
 		return result;
 	}
 
+	public boolean isApplicationExists(String appName) {
+		return getApplication().getRootScope().getScope(appName)  != null;
+	}
+
 
 	@ApiOperation(value = "Deletes application with the given name.", response = Result.class)
 	@DELETE
@@ -666,7 +662,7 @@ public class RestServiceV2 extends CommonRestService {
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result deleteApplication(@ApiParam(value = "Name of the application to delete", required = true) @PathParam("appName") String appName,
-									@QueryParam("deleteDB") boolean deleteDB) {
+			@QueryParam("deleteDB") boolean deleteDB) {
 		if (appName != null) {
 			return super.deleteApplication(appName, deleteDB);
 		}
