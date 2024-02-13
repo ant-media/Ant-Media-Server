@@ -5,16 +5,15 @@ import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.filter.WaitingViewerFilter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.After;
@@ -172,7 +171,7 @@ public class WaitingViewerFilterTest {
 
 
 
-        } catch (ServletException|IOException e) {
+        } catch (ServletException | IOException e) {
             logger.error(ExceptionUtils.getStackTrace(e));
             fail(ExceptionUtils.getStackTrace(e));
         }
