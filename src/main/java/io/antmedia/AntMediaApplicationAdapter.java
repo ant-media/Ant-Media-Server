@@ -1492,9 +1492,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		//if there is any wrong encoder settings, return false
 		List<EncoderSettings> encoderSettingsList = newSettings.getEncoderSettings();
-		if (!isEncoderSettingsValid(encoderSettingsList)) {
-			return result;
-		}
 
 		//synch again because of string to list mapping- TODO: There is a better way for string to list mapping
 		//in properties files
@@ -1533,20 +1530,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		return result;
-	}
-
-	private boolean isEncoderSettingsValid(List<EncoderSettings> encoderSettingsList) {
-		if (encoderSettingsList != null) {
-			for (Iterator<EncoderSettings> iterator = encoderSettingsList.iterator(); iterator.hasNext();) {
-				EncoderSettings encoderSettings = iterator.next();
-				if (encoderSettings.getHeight() <= 0)
-				{
-					logger.error("Unexpected encoder parameter. None of the parameters(height:{}, video bitrate:{}, audio bitrate:{}) can be zero or less", encoderSettings.getHeight(), encoderSettings.getVideoBitrate(), encoderSettings.getAudioBitrate());
-					return false;
-				}
-			}
-		}
-		return true;
 	}
 
 	/**
