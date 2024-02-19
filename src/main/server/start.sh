@@ -266,4 +266,3 @@ elif [ "$RED5_MAINCLASS" = "org.red5.server.Shutdown" ]; then
     echo "Stopping Ant Media Server"
 fi
 exec "$JAVA" -Dred5.root="${RED5_HOME}" $JAVA_OPTS -cp "${RED5_CLASSPATH}" "$RED5_MAINCLASS" $RED5_OPTS 2>>${RED5_HOME}/log/antmedia-error.log
-
