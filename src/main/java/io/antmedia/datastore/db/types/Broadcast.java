@@ -15,6 +15,7 @@ import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import org.springframework.beans.factory.annotation.Value;
 
 
 @ApiModel(value="Broadcast", description="The basic broadcast class")
@@ -354,6 +355,59 @@ public class Broadcast {
 	 * This parameter updates consistently according to broadcast status
 	 */
 	private long updateTime = 0;
+
+
+	@Entity
+	public static class HLSParameters
+	{
+
+		/**
+		 * Number of segments(chunks) in m3u8 files
+		 * Set the maximum number of playlist entries, If 0 the list file will contain all the segments,
+		 */
+		private String hlsTime;
+
+		/**
+		 * Duration of segments in m3u8 files
+		 * Target segment length in seconds,
+		 * Segment will be cut on the next key frame after this time has passed.
+		 */
+		private String hlsListSize;
+
+		/**
+		 * Playlist type of m3u8 files
+		 * Can be EVENT or VOD
+		 */
+		private String hlsPlayListType;
+
+		//getters setters
+		public String getHlsTime() {
+			return hlsTime;
+		}
+
+		public void setHlsTime(String hlsTime) {
+			this.hlsTime = hlsTime;
+		}
+
+		public String getHlsListSize() {
+			return hlsListSize;
+		}
+
+		public void setHlsListSize(String hlsListSize) {
+			this.hlsListSize = hlsListSize;
+		}
+
+		public String getHlsPlayListType() {
+			return hlsPlayListType;
+		}
+
+		public void setHlsPlayListType(String hlsPlayListType) {
+			this.hlsPlayListType = hlsPlayListType;
+		}
+	}
+
+	@ApiModelProperty(value = "the HLS parameters of the broadcast")
+	private HLSParameters hlsParameters = null;
 
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
@@ -819,6 +873,13 @@ public class Broadcast {
 
 	public void setUpdateTime(long updateTime) {
 		this.updateTime = updateTime;
+	}
+
+	public HLSParameters getHlsParameters() {
+		return hlsParameters;
+	}
+	public void setHlsParameters(HLSParameters hlsParameters) {
+		this.hlsParameters = hlsParameters;
 	}
 
 }
