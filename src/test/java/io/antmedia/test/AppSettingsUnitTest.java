@@ -283,6 +283,22 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appSettings.setTimeTokenSecretForPublish("secretpublish");
 		assertEquals("secretpublish", appSettings.getTimeTokenSecretForPublish());
+		
+		String apnKeyId = "apnkeyid";
+		appSettings.setApnKeyId(apnKeyId);
+		assertEquals(apnKeyId, appSettings.getApnKeyId());
+		
+		String teamId = "apnTeamId";
+		appSettings.setApnTeamId(teamId);
+		assertEquals(teamId, appSettings.getApnTeamId());
+		
+		String apnServer = "apnServer";
+		appSettings.setApnsServer(apnServer);
+		assertEquals(apnServer, appSettings.getApnsServer());
+		
+		String privateKey = "privateKey";
+		appSettings.setApnPrivateKey(privateKey);
+		assertEquals(privateKey, appSettings.getApnPrivateKey());
 	}
 	
 	
