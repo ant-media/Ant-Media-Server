@@ -2,6 +2,8 @@ package io.antmedia.pushnotification;
 
 import java.util.List;
 
+import org.json.simple.JSONObject;
+
 import io.antmedia.rest.model.Result;
 
 public interface IPushNotificationService {
@@ -33,7 +35,7 @@ public interface IPushNotificationService {
 	 * @param serviceName: fcm or apn
 	 * @return
 	 */
-	Result sendNotification(String topic, String jsonMessage, String serviceName);
+	Result sendNotification(String topic, JSONObject jsonMessage, String serviceName);
 	
 	/**
 	 * Send notification to both services if they are enabled
@@ -42,7 +44,7 @@ public interface IPushNotificationService {
 	 * @param jsonMessage
 	 * @return
 	 */
-	Result sendNotification(String topic, String jsonMessage) ;
+	Result sendNotification(String topic, JSONObject jsonMessage) ;
 	
 	
 	/**
@@ -51,7 +53,7 @@ public interface IPushNotificationService {
 	 * @param jsonMessage
 	 * @return
 	 */
-	Result sendNotification(List<String> subscriberIds, String jsonMessage);
+	Result sendNotification(List<String> subscriberIds, JSONObject jsonMessage);
 	
 	
 	/**
@@ -60,5 +62,5 @@ public interface IPushNotificationService {
 	 * @param jsonMessage
 	 * @return
 	 */
-	Result sendNotification(List<String> subscriberIds, String jsonMessage, String serviceName);
+	Result sendNotification(List<String> subscriberIds, JSONObject jsonMessage, String serviceName);
 }
