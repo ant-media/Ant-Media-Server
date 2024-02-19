@@ -1,6 +1,8 @@
 package io.antmedia.test.filter;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
@@ -150,5 +152,33 @@ public class JWTFilterTest {
             assertEquals(HttpStatus.FORBIDDEN.value(),httpServletResponse.getStatus());
         }        
     }
+    
+    
+    @Test
+	public void testGenerateAndVerifyTokenWithIssuer() {
+
+		String token = JWTFilter.generateJwtToken("testtesttesttesttesttesttesttest", System.currentTimeMillis() + 10000, "test");
+		assertTrue(JWTFilter.isJWTTokenValid("testtesttesttesttesttesttesttest", token, "test"));
+		
+		assertFalse(JWTFilter.isJWTTokenValid("testtesttesttesttesttesttesttest", token, "test2"));
+		
+	}
+    
+    @Test
+	public void testJWTTokenValidWithSubscribers() {
+
+		
+		String token = JWTFilter.generateJwtToken("testtesttesttesttesttesttesttest", System.currentTimeMillis() + 10000, "subscriberId", "test");
+		
+		
+		assertFalse(JWTFilter.isJWTTokenValid("testtesttesttesttesttesttesttest", token, "subscriberId", "test2"));
+
+		assertFalse(JWTFilter.isJWTTokenValid("testtesttesttesttesttesttesttest", token, "subscriberId_df", "test2"));
+
+
+		assertTrue(JWTFilter.isJWTTokenValid("testtesttesttesttesttesttesttest", token, "subscriberId", "test"));
+
+
+	}	
 
 }

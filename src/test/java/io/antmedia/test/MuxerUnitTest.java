@@ -4092,6 +4092,27 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
+	public void testID3Timing() {
+		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class),
+				"streams", 0, "http://example.com", false));
+		hlsMuxer.setId3Enabled(true);
+		hlsMuxer.createID3StreamIfRequired();
+		long lastPts = RandomUtils.nextLong();
+		doReturn(lastPts).when(hlsMuxer).getLastPts();
+
+		doNothing().when(hlsMuxer).writeDataFrame(any(), any());
+		String data = "test data";
+		hlsMuxer.addID3Data(data);
+		ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
+
+		verify(hlsMuxer, times(1)).writeDataFrame(argument.capture(), any());
+
+		assertEquals(lastPts, argument.getValue().pts());
+		assertEquals(lastPts, argument.getValue().dts());
+
+	}
+
+	@Test
 	public void testMuxAdaptorPipeReader() {
 
 
