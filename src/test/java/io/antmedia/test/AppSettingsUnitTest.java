@@ -497,12 +497,16 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getTimeTokenSecretForPlay());
 		assertNotNull(appSettings.getSubscriberAuthenticationKey());
 		assertNull(appSettings.getFirebaseAccountKeyJSON());
+		assertNull(appSettings.getApnKeyId());
+		assertNull(appSettings.getApnTeamId());
+		assertNull(appSettings.getApnPrivateKey());
+		assertEquals("api.sandbox.push.apple.com", appSettings.getApnsServer());
 		
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					170, numberOfFields);
+					174, numberOfFields);
 		
 	}
 	
