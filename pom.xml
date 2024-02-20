@@ -619,6 +619,11 @@
 		  <artifactId>firebase-admin</artifactId>
 		  <version>9.2.0</version>
 		</dependency>
+		<dependency>
+		    <groupId>com.eatthepath</groupId>
+		    <artifactId>pushy</artifactId>
+		    <version>0.15.4</version>
+		</dependency>
     </dependencies>
     <profiles>
         <profile>
