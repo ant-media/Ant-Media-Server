@@ -2,7 +2,8 @@ package io.antmedia.pushnotification;
 
 import java.util.List;
 
-import io.antmedia.datastore.db.types.PushNotificationToken;
+import org.json.simple.JSONObject;
+
 import io.antmedia.rest.model.Result;
 
 public class PushNotificationServiceCommunity implements IPushNotificationService {
@@ -11,22 +12,22 @@ public class PushNotificationServiceCommunity implements IPushNotificationServic
 
 	
 	@Override
-	public Result sendNotification(String topic, String jsonMessage, String serviceName) {
+	public Result sendNotification(String topic, JSONObject jsonMessage, String serviceName) {
 		return new Result(false, MESSAGE_TO_USE_ENTERPRISE_EDITION);
 	}
 	
 	@Override
-	public Result sendNotification(String topic, String jsonMessage) {
+	public Result sendNotification(String topic, JSONObject jsonMessage) {
 		return new Result(false, MESSAGE_TO_USE_ENTERPRISE_EDITION);
 	}
 
 	@Override
-	public Result sendNotification(List<String> subscriberIds, String jsonMessage) {
+	public Result sendNotification(List<String> subscriberIds, JSONObject jsonMessage) {
 		return new Result(false, MESSAGE_TO_USE_ENTERPRISE_EDITION);
 	}
 
 	@Override
-	public Result sendNotification(List<String> subscriberIds, String jsonMessage, String serviceName) {
+	public Result sendNotification(List<String> subscriberIds, JSONObject jsonMessage, String serviceName) {
 		return new Result(false, MESSAGE_TO_USE_ENTERPRISE_EDITION);
 	}
 
