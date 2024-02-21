@@ -17,6 +17,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -25,11 +27,11 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.lang3.RandomUtils;
@@ -54,6 +56,16 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
 
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.messaging.BatchResponse;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.MulticastMessage;
+import com.google.firebase.messaging.SendResponse;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.cluster.ClusterNode;
@@ -63,6 +75,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
+import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
@@ -147,6 +160,65 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 	}
 
+	
+	public void testFirebase() throws IOException, FirebaseMessagingException {
+		FileInputStream serviceAccount =
+				new FileInputStream("path/to/serviceAccountKey.json");
+
+				FirebaseOptions options = new FirebaseOptions.Builder()
+				  .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+				  .build();
+
+				FirebaseApp.initializeApp(options);
+				
+				{
+				String registrationToken = "YOUR_REGISTRATION_TOKEN";
+
+				// See documentation on defining a message payload.
+				Message message = Message.builder()
+				    .putData("score", "850")
+				    .putData("time", "2:45")
+				    .setToken(registrationToken)
+				    .build();
+
+				// Send a message to the device corresponding to the provided
+				// registration token.
+				String response = FirebaseMessaging.getInstance().send(message);
+				// Response is a message ID string.
+				System.out.println("Successfully sent message: " + response);
+				}
+				
+				{
+				
+				
+				List<String> registrationTokens = Arrays.asList(
+					    "YOUR_REGISTRATION_TOKEN_1",
+					    // ...
+					    "YOUR_REGISTRATION_TOKEN_n"
+					);
+
+					MulticastMessage message = MulticastMessage.builder()
+					    .putData("score", "850")
+					    .putData("time", "2:45")
+					    .addAllTokens(registrationTokens)
+					    .build();
+					BatchResponse response = FirebaseMessaging.getInstance().sendMulticast(message);
+					
+					if (response.getFailureCount() > 0) {
+						  List<SendResponse> responses = response.getResponses();
+						  List<String> failedTokens = new ArrayList<>();
+						  for (int i = 0; i < responses.size(); i++) {
+						    if (!responses.get(i).isSuccessful()) {
+						      // The order of responses corresponds to the order of the registration tokens.
+						      failedTokens.add(registrationTokens.get(i));
+						    }
+						  }
+
+						  System.out.println("List of tokens that caused failures: " + failedTokens);
+					}
+				}
+				
+	}
 	@Test
 	public void testIsIncomingTimeValid() {
 		AppSettings newSettings = new AppSettings();
@@ -1048,6 +1120,40 @@ public class AntMediaApplicationAdaptorUnitTest {
 			fail(e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testWaitUntilLiveStreamsStopped() {
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("test");
+		adapter.setScope(scope);
+
+		IContext context = mock(IContext.class);
+		when(scope.getContext()).thenReturn(context);
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+
+
+		adapter.setServerSettings(Mockito.spy(new ServerSettings()));
+		
+		adapter.setDataStore(new InMemoryDataStore("testWaitUntilLiveStreamsStopped"));
+		
+		int numberOfCall = (int)(Math.random()*999);
+		
+		for (int i=0; i < numberOfCall; i++) 
+		{
+			Broadcast stream = new Broadcast();
+			stream.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+			
+			adapter.getDataStore().save(stream);
+		}
+		
+		assertEquals(numberOfCall, adapter.getDataStore().getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+		
+		adapter.waitUntilLiveStreamsStopped();
+		
+		
+		assertEquals(0, adapter.getDataStore().getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+
+	}
 
 	@Test
 	public void testShutDown() {
@@ -1103,9 +1209,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.doReturn(streamFetcher2).when(fetcherManager).make(stream2, scope, vertx);
 
 
-		Queue<StreamFetcher> sfQueue = new ConcurrentLinkedQueue<StreamFetcher>();
-		sfQueue.add(streamFetcher);
-		sfQueue.add(streamFetcher2);
+		Map<String, StreamFetcher> sfQueue = new ConcurrentHashMap<>();
+		sfQueue.put(stream.getStreamId(), streamFetcher);
+		sfQueue.put(stream2.getStreamId(), streamFetcher2);
 
 		fetcherManager.setStreamFetcherList(sfQueue);
 		adapter.setStreamFetcherManager(fetcherManager);
@@ -1157,17 +1263,17 @@ public class AntMediaApplicationAdaptorUnitTest {
 	@Test
 	public void testCloseStreamFetchers() {
 
-		Queue<StreamFetcher> streamFetcherList= new ConcurrentLinkedQueue<>();
+		Map<String, StreamFetcher> streamFetcherList= new ConcurrentHashMap<>();
 
 		StreamFetcher streamFetcher = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher2 = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher3 = mock(StreamFetcher.class);
 		StreamFetcher streamFetcher4 = mock(StreamFetcher.class);
 
-		streamFetcherList.add(streamFetcher);
-		streamFetcherList.add(streamFetcher2);
-		streamFetcherList.add(streamFetcher3);
-		streamFetcherList.add(streamFetcher4);
+		streamFetcherList.put("streamFetcher", streamFetcher);
+		streamFetcherList.put("streamFetcher2", streamFetcher2);
+		streamFetcherList.put("streamFetcher3", streamFetcher3);
+		streamFetcherList.put("streamFetcher4", streamFetcher4);
 
 		StreamFetcherManager fetcherManager = mock(StreamFetcherManager.class);
 		when(fetcherManager.getStreamFetcherList()).thenReturn(streamFetcherList);

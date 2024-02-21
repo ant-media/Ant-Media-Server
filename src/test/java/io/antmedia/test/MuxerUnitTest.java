@@ -1149,6 +1149,30 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	        
 	        rtmpMuxer.clearResource();
 		}
+		
+		{
+			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmps://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0",vertx)); //RTMP URl without Appname
+			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			AVDictionaryEntry optEntry = av_dict_get(opt,"rtmp_app",null,0);
+			assertEquals("rtmp_app", optEntry.key().getString());
+			assertEquals("", optEntry.value().getString());
+			
+		}
+		
+		{
+			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmps://a.rtmp.youtube.com/y8qd-42g5-1b53-fh15-2v0/test",vertx)); //RTMP URl without Appname
+			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app",null,0);
+	        assertNull(optEntry);
+	        
+	     	//if it's different from zero, it means no file is need to be open.
+			//If it's zero, Not "no file" and it means that file is need to be open .
+	        assertEquals(0, rtmpMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
+	        
+	        
+	        rtmpMuxer.clearResource();
+			
+		}
         
 	}
 	@Test
@@ -4065,6 +4089,27 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String data = "test data";
 		hlsMuxer.addID3Data(data);
 		verify(hlsMuxer, times(1)).writeDataFrame(any(), any());
+	}
+
+	@Test
+	public void testID3Timing() {
+		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class),
+				"streams", 0, "http://example.com", false));
+		hlsMuxer.setId3Enabled(true);
+		hlsMuxer.createID3StreamIfRequired();
+		long lastPts = RandomUtils.nextLong();
+		doReturn(lastPts).when(hlsMuxer).getLastPts();
+
+		doNothing().when(hlsMuxer).writeDataFrame(any(), any());
+		String data = "test data";
+		hlsMuxer.addID3Data(data);
+		ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
+
+		verify(hlsMuxer, times(1)).writeDataFrame(argument.capture(), any());
+
+		assertEquals(lastPts, argument.getValue().pts());
+		assertEquals(lastPts, argument.getValue().dts());
+
 	}
 
 	@Test

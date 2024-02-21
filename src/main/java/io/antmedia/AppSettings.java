@@ -218,10 +218,6 @@ public class AppSettings implements Serializable{
 	/**
 	 * @hidden
 	 */
-	private static final String SETTINGS_STREAM_FETCHER_BUFFER_TIME = "settings.streamFetcherBufferTime";
-	/**
-	 * @hidden
-	 */
 	private static final String SETTINGS_STREAM_FETCHER_RESTART_PERIOD = "settings.streamFetcherRestartPeriod";
 	/**
 	 * @hidden
@@ -1130,28 +1126,30 @@ public class AppSettings implements Serializable{
 	private int createPreviewPeriod = 5000;
 
 	/**
-	 * It's mandatory,
-	 * Restart stream fetcher period in seconds
+	 * Period of restarting stream fetchers automaticallyin seconds. 
+	 * If it's more than 0, stream fetcher (aka. stream source) are restarted every seconds that is specified in this parameter.
 	 * Restart time for fetched streams from external sources,
 	 * Default value is 0
 	 */
-	@Value( "${streamFetcherRestartPeriod:${"+SETTINGS_STREAM_FETCHER_RESTART_PERIOD+":0}}" )
+	@Value( "${restartStreamFetcherPeriod:${"+SETTINGS_STREAM_FETCHER_RESTART_PERIOD+":0}}" )
 	private int restartStreamFetcherPeriod;
 
 	/**
-	 * Stream fetchers are started automatically if it is set true
+	 * Flag to specify Stream sources whether to start automatically when server is started. 
+	 * If it is true, stream sources are started automatically when server is started
+	 * If it's false, stream sources need to be started programmatically or manually by the user
 	 */
 	@Value( "${streamFetcherAutoStart:${"+SETTINGS_STREAM_FETCHER_AUTO_START+":false}}" )
 	private boolean startStreamFetcherAutomatically;
 
 	/**
-	 * It's mandatory,
 	 * Stream fetcher buffer time in milliseconds,
-	 * Stream is buffered for this duration and after that it will be started,
-	 * Buffering time for fetched streams from external sources. 0 means no buffer,
+	 * Stream is buffered for this duration and after that it will be started. It's also good for re-ordering packets.
+	 * 
+	 * 0 means no buffer,
 	 * Default value is 0
 	 */
-	//@Value( "${"+SETTINGS_STREAM_FETCHER_BUFFER_TIME+"}" )
+	@Value( "${streamFetcherBufferTime:0}" )
 	private int streamFetcherBufferTime = 0;
 
 
@@ -2059,11 +2057,53 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${sendAudioLevelToViewers:true}")
 	private boolean sendAudioLevelToViewers = true;
-	
-	
+
 	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":true}}")
 	private boolean hwScalingEnabled = true;
 
+	/**
+	 * Firebase Service Account Key JSON to send push notification
+	 * through Firebase Cloud Messaging
+	 */
+	@Value("${firebaseAccountKeyJSON:#{null}}")
+	private String firebaseAccountKeyJSON = null;
+	
+	/**
+	 * This is JWT Secret to authenticate the user for push notifications.
+	 * 
+	 * JWT token should be generated with the following secret: subscriberId(username, email, etc.) + subscriberAuthenticationKey
+	 * 
+	 */
+	@Value("${subscriberAuthenticationKey:#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}")
+	private String subscriberAuthenticationKey = RandomStringUtils.randomAlphanumeric(32);
+
+
+
+	/**
+	 * (Apple Push Notification) Apple Push Notification Server
+	 *  Default value is development enviroment(api.sandbox.push.apple.com) and production enviroment is api.push.apple.com
+	 */
+	@Value("${apnsServer:api.sandbox.push.apple.com}")
+	private String apnsServer = "api.sandbox.push.apple.com";
+
+	/**
+	 * APN(Apple Push Notification) team id
+	 */
+	@Value("${apnTeamId:#{null}}")
+	private String apnTeamId;
+
+	/**
+	 * APN(Apple Push Notification) private key
+	 */
+	@Value("${apnPrivateKey:#{null}}")
+	private String apnPrivateKey;
+
+	/**
+	 * APN(Apple Push Notification) key Id
+	 */
+	@Value("${apnKeyId:#{null}}")
+	private String apnKeyId;
+	
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
 	}
@@ -3551,4 +3591,53 @@ public class AppSettings implements Serializable{
 	public void setHwScalingEnabled(boolean hwScalingEnabled) {
 		this.hwScalingEnabled = hwScalingEnabled;
 	}
+
+	public String getFirebaseAccountKeyJSON() {
+		return firebaseAccountKeyJSON;
+	}
+
+	public void setFirebaseAccountKeyJSON(String firebaseAccountKeyJSON) {
+		this.firebaseAccountKeyJSON = firebaseAccountKeyJSON;
+	}
+
+	public String getSubscriberAuthenticationKey() {
+		return subscriberAuthenticationKey;
+	}
+
+	public void setSubscriberAuthenticationKey(String subscriberAuthenticationKey) {
+		this.subscriberAuthenticationKey = subscriberAuthenticationKey;
+	}
+
+	public String getApnsServer() {
+		return apnsServer;
+	}
+
+	public String getApnPrivateKey() {
+		return apnPrivateKey;
+	}
+
+	public String getApnKeyId() {
+		return apnKeyId;
+	}
+
+	public String getApnTeamId() {
+		return apnTeamId;
+	}
+
+	public void setApnTeamId(String apnTeamId) {
+		this.apnTeamId = apnTeamId;
+	}
+
+	public void setApnPrivateKey(String apnPrivateKey) {
+		this.apnPrivateKey = apnPrivateKey;
+	}
+
+	public void setApnKeyId(String apnKeyId) {
+		this.apnKeyId = apnKeyId;
+	}
+	
+	public void setApnsServer(String apnsServer) {
+		this.apnsServer = apnsServer;
+	}
+
 }
