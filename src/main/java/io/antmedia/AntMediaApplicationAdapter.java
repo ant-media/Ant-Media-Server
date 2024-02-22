@@ -6,32 +6,30 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Queue;
-import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.validation.constraints.NotNull;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ConnectTimeoutException;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
@@ -101,6 +99,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String HOOK_ACTION_PUBLISH_TIMEOUT_ERROR = "publishTimeoutError";
 	public static final String HOOK_ACTION_ENCODER_NOT_OPENED_ERROR =  "encoderNotOpenedError";
 	public static final String HOOK_ACTION_ENDPOINT_FAILED = "endpointFailed";
+
+	public static final int WEBHOOK_RETRY_COUNT = 3;
+
+	public static final int RETRY_SEND_POST_DELAY_SECONDS = 5;
 
 	public static final String STREAMS = "streams";
 
@@ -868,56 +870,75 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 
 			try {
-				response = sendPOST(url, variables);
+				sendPOST(url, variables, WEBHOOK_RETRY_COUNT, result -> {});
 			} catch (Exception e) {
-				//Make Exception generi
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
-		return response;
+		return null;
 	}
 
-	public StringBuilder sendPOST(String url, Map<String, String> variables) throws IOException {
+	public void sendPOST(String url, Map<String, String> variables, int retryAttempts, Handler<AsyncResult<StringBuilder>> resultHandler) {
 
-		StringBuilder response = null;
-		try (CloseableHttpClient httpClient = getHttpClient()) 
-		{
-			HttpPost httpPost = new HttpPost(url);
-			RequestConfig requestConfig =RequestConfig.custom()
-					.setConnectTimeout(2000)
-					.setConnectionRequestTimeout(2000)
-					.setSocketTimeout(2000).build();
-			httpPost.setConfig(requestConfig);
-			List<NameValuePair> urlParameters = new ArrayList<>();
-			Set<Entry<String, String>> entrySet = variables.entrySet();
-			for (Entry<String, String> entry : entrySet) {
-				urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
+		vertx.executeBlocking(future -> {
+			if (retryAttempts < 0) {
+				logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
+				future.complete(null);
+				return;
 			}
-
-			HttpEntity postParams = new UrlEncodedFormEntity(urlParameters);
-			httpPost.setEntity(postParams);
-
-			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
-				logger.info("POST Response Status:: {}" , httpResponse.getStatusLine().getStatusCode());
-
-				HttpEntity entity = httpResponse.getEntity();
-				if (entity != null) 
-				{ 
-					//read entity if it's available
-					BufferedReader reader = new BufferedReader(new InputStreamReader(entity.getContent()));
-
-					String inputLine;
-					response = new StringBuilder();
-
-					while ((inputLine = reader.readLine()) != null) {
-						response.append(inputLine);
-					}
-					reader.close();
+			logger.info("Sending POST request to {}", url);
+			StringBuilder response;
+			try (CloseableHttpClient httpClient = getHttpClient()) {
+				HttpPost httpPost = new HttpPost(url);
+				RequestConfig requestConfig = RequestConfig.custom()
+						.setConnectTimeout(2000)
+						.setConnectionRequestTimeout(2000)
+						.setSocketTimeout(2000)
+						.build();
+				httpPost.setConfig(requestConfig);
+				List<NameValuePair> urlParameters = new ArrayList<>();
+				Set<Entry<String, String>> entrySet = variables.entrySet();
+				for (Entry<String, String> entry : entrySet) {
+					urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
 				}
-			}
 
-		}
-		return response;
+				HttpEntity postParams = new UrlEncodedFormEntity(urlParameters);
+				httpPost.setEntity(postParams);
+
+				try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
+					int statusCode = httpResponse.getStatusLine().getStatusCode();
+					logger.info("POST Response Status: {}", statusCode);
+
+					if (statusCode == HttpStatus.SC_OK) {
+						// Read entity if it's available
+						BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
+
+						String inputLine;
+						response = new StringBuilder();
+
+						while ((inputLine = reader.readLine()) != null) {
+							response.append(inputLine);
+						}
+						reader.close();
+					} else {
+						logger.info("Retry attempt for POST in {} seconds due to non-200 response: {}" , RETRY_SEND_POST_DELAY_SECONDS, statusCode);
+						retrySendPostWithDelay(url, variables, retryAttempts - 1, resultHandler);
+						return;
+					}
+				}
+			} catch (IOException e) {
+				logger.info("Retry attempt for POST in {} seconds due to IO exception: {}", RETRY_SEND_POST_DELAY_SECONDS, e.getMessage());
+				retrySendPostWithDelay(url, variables, retryAttempts - 1, resultHandler);
+				return;
+			}
+			future.complete(response);
+		}, resultHandler);
+	}
+
+	private void retrySendPostWithDelay(String url, Map<String, String> variables, int retryAttempts, Handler<AsyncResult<StringBuilder>> resultHandler) {
+		vertx.setTimer(RETRY_SEND_POST_DELAY_SECONDS * 1000, timerId -> {
+			sendPOST(url, variables, retryAttempts, resultHandler);
+		});
 	}
 
 	public CloseableHttpClient getHttpClient() {
