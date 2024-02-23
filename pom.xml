@@ -617,7 +617,12 @@
 		<dependency>
 		  <groupId>com.google.firebase</groupId>
 		  <artifactId>firebase-admin</artifactId>
-		  <version>9.2.0</version>
+		  <version>${firebase.version}</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.eatthepath</groupId>
+		    <artifactId>pushy</artifactId>
+		    <version>${pushy.version}</version>
 		</dependency>
     </dependencies>
     <profiles>
