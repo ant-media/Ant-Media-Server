@@ -34,6 +34,7 @@ import java.util.Arrays;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
@@ -51,6 +52,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -493,7 +495,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 		assertNotNull(newCam.getStreamId());
-		
+
 		getInstance().getDataStore().save(newCam);
 
 		StreamFetcher fetcher = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
@@ -533,7 +535,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
-		
+
 		getInstance().getDataStore().save(newCam2);
 
 		assertNotNull(newCam2.getStreamId());
@@ -764,9 +766,10 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(1, getInstance().getMuxAdaptors().size());
 
 			String str3=fetcher3.getCameraError().getMessage();
+			assertTrue(fetcher3.getCameraError().isSuccess());
 			logger.info("error:   "+str3);
 
-			assertNull(fetcher3.getCameraError().getMessage());
+			assertTrue(StringUtils.isBlank(fetcher3.getCameraError().getMessage()));
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
 				return fetcher3.isStreamAlive();
@@ -1275,6 +1278,152 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		doReturn(AVERROR_EOF).when(worker).readNextPacket(any());
 		assertFalse(worker.readMore(mock(AVPacket.class)));
 		verify(worker, times(2)).packetRead(any());
+	}
+
+	@Test
+	public void testWritePacketOffset() {
+		StreamFetcher fetcher = new StreamFetcher("", "", AntMediaApplicationAdapter.VOD, appScope, vertx);
+
+		MuxAdaptor muxAdaptor = mock(MuxAdaptor.class);
+		fetcher.setMuxAdaptor(muxAdaptor);
+
+		WorkerThread workerThread = fetcher.new WorkerThread();
+		AVStream stream = new AVStream();
+
+
+		fetcher.initDTSArrays(2);
+		{
+			AVPacket pkt = new AVPacket();
+			pkt.pts(10);
+			pkt.dts(10);
+			pkt.stream_index(1);
+			workerThread.writePacket(stream, pkt);
+	
+			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
+			verify(muxAdaptor, times(1)).writePacket(Mockito.any(), argument.capture());
+			
+			AVPacket value = argument.getValue();
+			assertEquals(10, value.pts());
+			assertEquals(10, value.dts());
+			assertEquals(1, value.stream_index());
+		}
+		
+		{
+			AVPacket pkt = new AVPacket();
+			pkt.pts(20);
+			pkt.dts(20);
+			pkt.stream_index(1);
+			workerThread.writePacket(stream, pkt);
+	
+			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
+			verify(muxAdaptor, times(2)).writePacket(Mockito.any(), argument.capture());
+			
+			AVPacket value = argument.getValue();
+			assertEquals(20, value.pts());
+			assertEquals(20, value.dts());
+			assertEquals(1, value.stream_index());
+		}
+		
+		{
+			AVPacket pkt = new AVPacket();
+			pkt.pts(15);
+			pkt.dts(15);
+			pkt.stream_index(1);
+			workerThread.writePacket(stream, pkt);
+	
+			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
+			verify(muxAdaptor, times(3)).writePacket(Mockito.any(), argument.capture());
+			
+			AVPacket value = argument.getValue();
+			assertEquals(21, value.pts());
+			assertEquals(21, value.dts());
+			assertEquals(1, value.stream_index());
+		}
+		
+		{
+			AVPacket pkt = new AVPacket();
+			pkt.pts(25);
+			pkt.dts(25);
+			pkt.stream_index(1);
+			workerThread.writePacket(stream, pkt);
+	
+			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
+			verify(muxAdaptor, times(4)).writePacket(Mockito.any(), argument.capture());
+			
+			AVPacket value = argument.getValue();
+			assertEquals(25, value.pts());
+			assertEquals(25, value.dts());
+			assertEquals(1, value.stream_index());
+		}
+		
+		{
+			AVPacket pkt = new AVPacket();
+			pkt.pts(30);
+			pkt.dts(30);
+			pkt.stream_index(1);
+			workerThread.writePacket(stream, pkt);
+	
+			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
+			verify(muxAdaptor, times(5)).writePacket(Mockito.any(), argument.capture());
+			
+			AVPacket value = argument.getValue();
+			assertEquals(30, value.pts());
+			assertEquals(30, value.dts());
+			assertEquals(1, value.stream_index());
+		}
+		
+		
+		{
+			AVPacket pkt = new AVPacket();
+			pkt.pts(0);
+			pkt.dts(0);
+			pkt.stream_index(1);
+			workerThread.writePacket(stream, pkt);
+	
+			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
+			verify(muxAdaptor, times(6)).writePacket(Mockito.any(), argument.capture());
+			
+			AVPacket value = argument.getValue();
+			assertEquals(31, value.pts());
+			assertEquals(31, value.dts());
+			assertEquals(1, value.stream_index());
+		}
+		
+		{
+			AVPacket pkt = new AVPacket();
+			pkt.pts(10);
+			pkt.dts(10);
+			pkt.stream_index(1);
+			workerThread.writePacket(stream, pkt);
+	
+			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
+			verify(muxAdaptor, times(7)).writePacket(Mockito.any(), argument.capture());
+			
+			AVPacket value = argument.getValue();
+			assertEquals(41, value.pts());
+			assertEquals(41, value.dts());
+			assertEquals(1, value.stream_index());
+		}
+		
+		{
+			AVPacket pkt = new AVPacket();
+			pkt.pts(20);
+			pkt.dts(20);
+			pkt.stream_index(1);
+			workerThread.writePacket(stream, pkt);
+	
+			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
+			verify(muxAdaptor, times(8)).writePacket(Mockito.any(), argument.capture());
+			
+			AVPacket value = argument.getValue();
+			assertEquals(51, value.pts());
+			assertEquals(51, value.dts());
+			assertEquals(1, value.stream_index());
+		}
+		
+		
+		
+		
 	}
 
 

@@ -16,7 +16,7 @@ import io.swagger.annotations.ApiModelProperty;
 
 @Entity("subscriber")
 @Indexes({ @Index(fields = @Field("subscriberId")), @Index(fields = @Field("streamId")) })
-@ApiModel(value="Subscriber", description="The time based token subscriber class")
+@ApiModel(value="Subscriber", description="The time based token subscriber class. This keeps which subscriber can access to which stream and which TOTP")
 public class Subscriber {
 	@JsonIgnore
 	public static final String PLAY_TYPE = "play";

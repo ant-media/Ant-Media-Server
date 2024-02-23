@@ -2052,7 +2052,49 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${sendAudioLevelToViewers:true}")
 	private boolean sendAudioLevelToViewers = true;
+	
+	/**
+	 * Firebase Service Account Key JSON to send push notification
+	 * through Firebase Cloud Messaging
+	 */
+	@Value("${firebaseAccountKeyJSON:#{null}}")
+	private String firebaseAccountKeyJSON = null;
+	
+	/**
+	 * This is JWT Secret to authenticate the user for push notifications.
+	 * 
+	 * JWT token should be generated with the following secret: subscriberId(username, email, etc.) + subscriberAuthenticationKey
+	 * 
+	 */
+	@Value("${subscriberAuthenticationKey:#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}")
+	private String subscriberAuthenticationKey = RandomStringUtils.randomAlphanumeric(32);
 
+
+	/**
+	 * (Apple Push Notification) Apple Push Notification Server
+	 *  Default value is development enviroment(api.sandbox.push.apple.com) and production enviroment is api.push.apple.com
+	 */
+	@Value("${apnsServer:api.sandbox.push.apple.com}")
+	private String apnsServer = "api.sandbox.push.apple.com";
+
+	/**
+	 * APN(Apple Push Notification) team id
+	 */
+	@Value("${apnTeamId:#{null}}")
+	private String apnTeamId;
+
+	/**
+	 * APN(Apple Push Notification) private key
+	 */
+	@Value("${apnPrivateKey:#{null}}")
+	private String apnPrivateKey;
+
+	/**
+	 * APN(Apple Push Notification) key Id
+	 */
+	@Value("${apnKeyId:#{null}}")
+	private String apnKeyId;
+	
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
 	}
@@ -3532,4 +3574,53 @@ public class AppSettings implements Serializable{
 	public void setTimeTokenSecretForPlay(String timeTokenSecretForPlay) {
 		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
 	}
+
+	public String getFirebaseAccountKeyJSON() {
+		return firebaseAccountKeyJSON;
+	}
+
+	public void setFirebaseAccountKeyJSON(String firebaseAccountKeyJSON) {
+		this.firebaseAccountKeyJSON = firebaseAccountKeyJSON;
+	}
+
+	public String getSubscriberAuthenticationKey() {
+		return subscriberAuthenticationKey;
+	}
+
+	public void setSubscriberAuthenticationKey(String subscriberAuthenticationKey) {
+		this.subscriberAuthenticationKey = subscriberAuthenticationKey;
+	}
+
+	public String getApnsServer() {
+		return apnsServer;
+	}
+
+	public String getApnPrivateKey() {
+		return apnPrivateKey;
+	}
+
+	public String getApnKeyId() {
+		return apnKeyId;
+	}
+
+	public String getApnTeamId() {
+		return apnTeamId;
+	}
+
+	public void setApnTeamId(String apnTeamId) {
+		this.apnTeamId = apnTeamId;
+	}
+
+	public void setApnPrivateKey(String apnPrivateKey) {
+		this.apnPrivateKey = apnPrivateKey;
+	}
+
+	public void setApnKeyId(String apnKeyId) {
+		this.apnKeyId = apnKeyId;
+	}
+	
+	public void setApnsServer(String apnsServer) {
+		this.apnsServer = apnsServer;
+	}
+
 }

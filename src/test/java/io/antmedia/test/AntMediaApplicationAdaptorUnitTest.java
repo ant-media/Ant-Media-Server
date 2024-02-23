@@ -17,6 +17,8 @@ import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -25,6 +27,7 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +55,16 @@ import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.context.ApplicationContext;
+
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.messaging.BatchResponse;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import com.google.firebase.messaging.Message;
+import com.google.firebase.messaging.MulticastMessage;
+import com.google.firebase.messaging.SendResponse;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
@@ -147,6 +160,65 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 	}
 
+	
+	public void testFirebase() throws IOException, FirebaseMessagingException {
+		FileInputStream serviceAccount =
+				new FileInputStream("path/to/serviceAccountKey.json");
+
+				FirebaseOptions options = new FirebaseOptions.Builder()
+				  .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+				  .build();
+
+				FirebaseApp.initializeApp(options);
+				
+				{
+				String registrationToken = "YOUR_REGISTRATION_TOKEN";
+
+				// See documentation on defining a message payload.
+				Message message = Message.builder()
+				    .putData("score", "850")
+				    .putData("time", "2:45")
+				    .setToken(registrationToken)
+				    .build();
+
+				// Send a message to the device corresponding to the provided
+				// registration token.
+				String response = FirebaseMessaging.getInstance().send(message);
+				// Response is a message ID string.
+				System.out.println("Successfully sent message: " + response);
+				}
+				
+				{
+				
+				
+				List<String> registrationTokens = Arrays.asList(
+					    "YOUR_REGISTRATION_TOKEN_1",
+					    // ...
+					    "YOUR_REGISTRATION_TOKEN_n"
+					);
+
+					MulticastMessage message = MulticastMessage.builder()
+					    .putData("score", "850")
+					    .putData("time", "2:45")
+					    .addAllTokens(registrationTokens)
+					    .build();
+					BatchResponse response = FirebaseMessaging.getInstance().sendMulticast(message);
+					
+					if (response.getFailureCount() > 0) {
+						  List<SendResponse> responses = response.getResponses();
+						  List<String> failedTokens = new ArrayList<>();
+						  for (int i = 0; i < responses.size(); i++) {
+						    if (!responses.get(i).isSuccessful()) {
+						      // The order of responses corresponds to the order of the registration tokens.
+						      failedTokens.add(registrationTokens.get(i));
+						    }
+						  }
+
+						  System.out.println("List of tokens that caused failures: " + failedTokens);
+					}
+				}
+				
+	}
 	@Test
 	public void testIsIncomingTimeValid() {
 		AppSettings newSettings = new AppSettings();

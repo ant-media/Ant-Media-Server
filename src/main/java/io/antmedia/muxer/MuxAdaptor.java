@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,7 +81,6 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
-import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 
 
 public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
@@ -1940,7 +1940,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		vertx.setPeriodic(healthCheckPeriodMS, id ->
 		{
 
-			String status = statusMap.getValueOrDefault(url, null);
+			String status = statusMap.getOrDefault(url, null);
 			logger.info("Checking the endpoint health for: {} and status: {} ", url, status);
 			//Broadcast might get deleted in the process of checking
 			if(broadcast == null || status == null || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED))
@@ -1972,7 +1972,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private void tryToRepublish(String url, Long id) 
 	{
-		int errorCount = errorCountMap.getValueOrDefault(url, 1);
+		int errorCount = errorCountMap.getOrDefault(url, 1);
 		if(errorCount < 3)
 		{
 			errorCountMap.put(url, errorCount+1);
@@ -1980,7 +1980,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		else
 		{
-			int tmpRetryCount = retryCounter.getValueOrDefault(url, 1);
+			int tmpRetryCount = retryCounter.getOrDefault(url, 1);
 			if( tmpRetryCount <= rtmpEndpointRetryLimit){
 				logger.info("Health check process failed, trying to republish to the endpoint: {}", url);
 
@@ -2014,12 +2014,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		statusMap.put(url,status);
 
-		if((status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED)) && !isHealthCheckStartedMap.getValueOrDefault(url, false)){
+		if((status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED)) && !isHealthCheckStartedMap.getOrDefault(url, false)){
 			endpointStatusHealthCheck(url);
 			isHealthCheckStartedMap.put(url, true);
 		}
 
-		if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && retryCounter.getValueOrDefault(url, null) != null){
+		if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && retryCounter.getOrDefault(url, null) != null){
 			retryCounter.remove(url);
 		}
 
@@ -2053,7 +2053,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			for (Iterator iterator = broadcast.getEndPointList().iterator(); iterator.hasNext();) 
 			{
 				Endpoint endpoint = (Endpoint) iterator.next();
-				String statusUpdate = endpointStatusUpdateMap.getValueOrDefault(endpoint.getRtmpUrl(), null);
+				String statusUpdate = endpointStatusUpdateMap.getOrDefault(endpoint.getRtmpUrl(), null);
 				if (statusUpdate != null) {
 					endpoint.setStatus(statusUpdate);
 				}
@@ -2095,7 +2095,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
 			RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
-			String status = statusMap.getValueOrDefault(rtmpUrl, null);
+			String status = statusMap.getOrDefault(rtmpUrl, null);
 			if (rtmpMuxer != null)
 			{
 				muxerList.remove(rtmpMuxer);

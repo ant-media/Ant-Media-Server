@@ -45,7 +45,15 @@ public class HttpForwardFilter extends AbstractFilter {
 					{
 						if (requestURI.endsWith(extension[i])) {
 							
-							String redirectUri = httpForwardingBaseURL + requestURI.substring(requestURI.indexOf(SLASH, 1));
+							String subURI = requestURI.substring(requestURI.indexOf(SLASH, 1));
+
+							//two back to back slashes cause problems
+							String normalizedBaseURL = httpForwardingBaseURL.endsWith(SLASH) ? httpForwardingBaseURL : httpForwardingBaseURL + SLASH;
+
+							String normalizedSubURI = subURI.startsWith(SLASH) ? subURI.substring(1) : subURI;
+
+							String redirectUri = normalizedBaseURL + normalizedSubURI;
+
 							HttpServletResponse httpResponse = (HttpServletResponse) response;
 							if (redirectUri.contains(DOUBLE_DOT)) {
 								throw new IOException("URI is not well formatted");
