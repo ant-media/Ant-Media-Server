@@ -732,6 +732,10 @@ public class AppSettings implements Serializable{
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
 
+	private static final String SETTINGS_WEBHOOK_RETRY_COUNT = "settings.webHookRetryCount";
+
+	private static final String SETTINGS_WEBHOOK_RETRY_DELAY = "settings.webHookRetryDelay";
+
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -2094,7 +2098,19 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${apnKeyId:#{null}}")
 	private String apnKeyId;
-	
+
+	/**
+	 * Retry count on webhook POST failure
+	 */
+	@Value("${webhookRetryCount:${"+SETTINGS_WEBHOOK_RETRY_COUNT+":0}}")
+	private int webhookRetryCount = 0;
+
+	/**
+	 * Delay in milliseconds between webhook attempts on POST failure.
+	 */
+	@Value("${webhookRetryAttemptDelay:${"+SETTINGS_WEBHOOK_RETRY_DELAY+":1000}}")
+	private long webhookRetryDelay = 1000;
+
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
 	}
@@ -3621,6 +3637,22 @@ public class AppSettings implements Serializable{
 	
 	public void setApnsServer(String apnsServer) {
 		this.apnsServer = apnsServer;
+	}
+
+	public int getWebhookRetryCount() {
+		return webhookRetryCount;
+	}
+
+	public void setWebhookRetryCount(int webhookRetryCount) {
+		this.webhookRetryCount = webhookRetryCount;
+	}
+
+	public long getWebhookRetryDelay() {
+		return webhookRetryDelay;
+	}
+
+	public void setWebhookRetryDelay(long webhookRetryDelay) {
+		this.webhookRetryDelay = webhookRetryDelay;
 	}
 
 }

@@ -100,10 +100,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String HOOK_ACTION_ENCODER_NOT_OPENED_ERROR =  "encoderNotOpenedError";
 	public static final String HOOK_ACTION_ENDPOINT_FAILED = "endpointFailed";
 
-	public static final int WEBHOOK_RETRY_COUNT = 3;
-
-	public static final int RETRY_SEND_POST_DELAY_SECONDS = 5;
-
 	public static final String STREAMS = "streams";
 
 	public static final String DEFAULT_LOCALHOST = "127.0.0.1";
@@ -870,7 +866,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 
 			try {
-				sendPOST(url, variables, WEBHOOK_RETRY_COUNT, result -> {});
+				sendPOST(url, variables, appSettings.getWebhookRetryCount());
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -878,16 +874,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return null;
 	}
 
-	public void sendPOST(String url, Map<String, String> variables, int retryAttempts, Handler<AsyncResult<StringBuilder>> resultHandler) {
-
-		vertx.executeBlocking(future -> {
-			if (retryAttempts < 0) {
-				logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
-				future.complete(null);
-				return;
-			}
+	public StringBuilder sendPOST(String url, Map<String, String> variables, int retryAttempts) {
 			logger.info("Sending POST request to {}", url);
-			StringBuilder response;
+			StringBuilder response = null;
 			try (CloseableHttpClient httpClient = getHttpClient()) {
 				HttpPost httpPost = new HttpPost(url);
 				RequestConfig requestConfig = RequestConfig.custom()
@@ -908,9 +897,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
 					int statusCode = httpResponse.getStatusLine().getStatusCode();
 					logger.info("POST Response Status: {}", statusCode);
-
-					if (statusCode == HttpStatus.SC_OK) {
-						// Read entity if it's available
+					HttpEntity entity = httpResponse.getEntity();
+					if(entity != null){
 						BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
 
 						String inputLine;
@@ -920,24 +908,35 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 							response.append(inputLine);
 						}
 						reader.close();
-					} else {
-						logger.info("Retry attempt for POST in {} seconds due to non-200 response: {}" , RETRY_SEND_POST_DELAY_SECONDS, statusCode);
-						retrySendPostWithDelay(url, variables, retryAttempts - 1, resultHandler);
-						return;
+
 					}
+
+					if (statusCode != HttpStatus.SC_OK) {
+						if(!(retryAttempts - 1 < 0)){
+							logger.info("Retry attempt for POST in {} milliseconds due to non-200 response: {}" , appSettings.getWebhookRetryDelay(), statusCode);
+							retrySendPostWithDelay(url, variables, retryAttempts - 1);
+						}else if(appSettings.getWebhookRetryCount() != 0){
+							logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
+						}
+					}
+					return response;
+
 				}
 			} catch (IOException e) {
-				logger.info("Retry attempt for POST in {} seconds due to IO exception: {}", RETRY_SEND_POST_DELAY_SECONDS, e.getMessage());
-				retrySendPostWithDelay(url, variables, retryAttempts - 1, resultHandler);
-				return;
+				if(!(retryAttempts - 1 < 0)) {
+					logger.info("Retry attempt for POST in {} milliseconds due to IO exception: {}", appSettings.getWebhookRetryDelay(), e.getMessage());
+					retrySendPostWithDelay(url, variables, retryAttempts - 1);
+				}else if(appSettings.getWebhookRetryCount() != 0){
+					logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
+				}
 			}
-			future.complete(response);
-		}, resultHandler);
+			return null;
 	}
 
-	private void retrySendPostWithDelay(String url, Map<String, String> variables, int retryAttempts, Handler<AsyncResult<StringBuilder>> resultHandler) {
-		vertx.setTimer(RETRY_SEND_POST_DELAY_SECONDS * 1000, timerId -> {
-			sendPOST(url, variables, retryAttempts, resultHandler);
+	public void retrySendPostWithDelay(String url, Map<String, String> variables, int retryAttempts) {
+		System.out.println("RETRY SEND POST WITH DELAY!!");
+		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
+			sendPOST(url, variables, retryAttempts);
 		});
 	}
 
