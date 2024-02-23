@@ -27,7 +27,7 @@
 #
 # -k: Kafka Address: Provide the Kafka URL address to collect data. (It must contain the port number. Example: localhost:9092)
 #
-# -j: JVM Options: Set the Java heap size (-Xms). Default value is 1g. (Example usage: ./start.sh -j 4g)
+# -j: Min JVM Heap Size(-Xms): Set the Min Java heap size (-Xms). Default value is 1g. (Example usage: ./start.sh -j 4g)
 #
 
 if [ -z "$RED5_HOME" ]; then
