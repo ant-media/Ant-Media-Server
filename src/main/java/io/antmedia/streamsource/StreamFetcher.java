@@ -210,8 +210,8 @@ public class StreamFetcher {
 		lastReceivedDTS = new long[nbStreams];
 		outOfOrderPacketsAreRepeating = new boolean[nbStreams];
 		for (int i = 0; i < lastSentDTS.length; i++) {
-			lastSentDTS[i] = 0;
-			lastReceivedDTS[i] = 0;
+			lastSentDTS[i] = -1;
+			lastReceivedDTS[i] = -1;
 			outOfOrderPacketsAreRepeating[i] = false;
 		}
 		
@@ -874,7 +874,7 @@ public class StreamFetcher {
 	}
 	
 	public boolean isStreamBlocked() {
-		return Math.abs(readNextPacketCompleteTime - readNextPacketStartTime) < PACKET_RECEIVED_INTERVAL_TIMEOUT;
+		return Math.abs(readNextPacketCompleteTime - readNextPacketStartTime) > PACKET_RECEIVED_INTERVAL_TIMEOUT;
 	}
 
 	//TODO: why we're using isInterruped here? It may not give correct value about the status of the stream

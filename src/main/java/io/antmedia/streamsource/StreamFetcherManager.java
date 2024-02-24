@@ -481,7 +481,7 @@ public class StreamFetcherManager {
 			}
 			else {
 				
-				logger.info("Stream is not alive {}, is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamBlocked());
+				logger.info("Stream:{} is alive -> {},  is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked());
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
 				

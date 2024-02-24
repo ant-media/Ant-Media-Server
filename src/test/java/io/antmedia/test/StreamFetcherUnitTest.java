@@ -158,6 +158,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		//reset values in the bean
 		getAppSettings().resetDefaults();
 		getAppSettings().setMp4MuxingEnabled(true);
+		
+		avutil.av_log_set_level(avutil.AV_LOG_INFO);
+
 	}
 
 	@After
