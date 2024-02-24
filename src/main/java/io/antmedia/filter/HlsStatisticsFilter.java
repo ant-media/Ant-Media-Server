@@ -32,13 +32,14 @@ public class HlsStatisticsFilter extends StatisticsFilter {
 		return false;
 	}
 	
-	
-	
 	public boolean isFilterMatching(String requestURI) {
 		return requestURI != null && requestURI.endsWith("m3u8");
 	}
 
 
-
+	@Override
+	public String getBeanName() {
+		return HlsViewerStats.BEAN_NAME;
+	}
 
 }

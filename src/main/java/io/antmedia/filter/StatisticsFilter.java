@@ -48,7 +48,7 @@ public abstract class StatisticsFilter extends AbstractFilter {
 			if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST && streamId != null)
 			{
 				logger.debug("req ip {} session id {} stream id {} status {}", request.getRemoteHost(), sessionId, streamId, status);
-				IStreamStats stats = getStreamStats(HlsViewerStats.BEAN_NAME);
+				IStreamStats stats = getStreamStats(getBeanName());
 				if (stats != null) {
 					stats.registerNewViewer(streamId, sessionId, subscriberId);
 
@@ -67,6 +67,27 @@ public abstract class StatisticsFilter extends AbstractFilter {
 			}
 			
 		}
+		else if (HttpMethod.HEAD.equals(method) && isFilterMatching(httpRequest.getRequestURI())) {
+			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
+			
+			chain.doFilter(request, response);
+
+			int status = ((HttpServletResponse) response).getStatus();
+			
+			if (HttpServletResponse.SC_NOT_FOUND == status && streamId != null) 
+			{
+				//start if it's not found, it may be started 
+				Broadcast broadcast = getBroadcast((HttpServletRequest) request, streamId);
+				if (broadcast != null && broadcast.isAutoStartStopEnabled()) 
+				{
+					//startStreaming method starts streaming if stream is not streaming in local or in any node in the cluster
+					getAntMediaApplicationAdapter().startStreaming(broadcast);
+				}
+				
+			}
+
+			
+		}
 		else {
 			chain.doFilter(httpRequest, response);
 			
@@ -81,4 +102,6 @@ public abstract class StatisticsFilter extends AbstractFilter {
 
 
 	public abstract boolean isFilterMatching(String requestURI);
+	
+	public abstract String getBeanName();
 }

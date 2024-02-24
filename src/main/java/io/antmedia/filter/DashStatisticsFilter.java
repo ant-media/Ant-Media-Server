@@ -14,6 +14,7 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.statistic.DashViewerStats;
+import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 import jakarta.ws.rs.HttpMethod;
 
@@ -37,5 +38,11 @@ public class DashStatisticsFilter extends StatisticsFilter {
 	public boolean isFilterMatching(String requestURI) {
 		return requestURI != null && (requestURI.endsWith("m4s") || requestURI.endsWith("mpd"));
 	}
+	
+	@Override
+	public String getBeanName() {
+		return DashViewerStats.BEAN_NAME;
+	}
+
 
 }
