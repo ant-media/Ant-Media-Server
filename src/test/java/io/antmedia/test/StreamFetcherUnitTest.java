@@ -278,6 +278,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			String streamUrl = "anyurl";
 			stream.setStreamUrl(streamUrl);
+			memoryDataStore.save(stream);
+			
+			
 			when(streamFetcher.getStreamId()).thenReturn(stream.getStreamId());
 			when(streamFetcher.getStreamUrl()).thenReturn(streamUrl);
 

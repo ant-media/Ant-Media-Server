@@ -475,7 +475,7 @@ public class StreamFetcherManager {
 				//	brodcast == null because it means stream is deleted
 				//  or
 				//  broadcast autoStartEnabled and there is nobody watching
-				logger.info("Calling stop stream {} due to restart->{}, no broadcast -> {}, auto stop because no viewer -> {}", 
+				logger.info("Calling stop stream {} due to restart->{}, is broadcast null -> {}, auto stop because no viewer -> {}", 
 						streamScheduler.getStreamId(), restart, broadcast == null, (broadcast != null && broadcast.isAutoStartStopEnabled() && broadcast.isAnyoneWatching()));
 				streamScheduler.stopStream();
 			}

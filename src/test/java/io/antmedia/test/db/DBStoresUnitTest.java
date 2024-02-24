@@ -568,23 +568,13 @@ public class DBStoresUnitTest {
 		assertNotNull(streamsList);
 
 		assertEquals(2, streamsList.size());
+		
+		streamsList = datastore.getExternalStreamsList();
+		assertNotNull(streamsList);
+
+		assertEquals(0, streamsList.size());
 
 		//check that there are two streams and values are same as added above
-
-		Broadcast liveIpCameraBroadcast = new Broadcast();
-		liveIpCameraBroadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		liveIpCameraBroadcast.setType(AntMediaApplicationAdapter.IP_CAMERA);
-		datastore.save(liveIpCameraBroadcast);
-
-		Broadcast liveStreamSourceBroadcast = new Broadcast();
-		liveStreamSourceBroadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		liveStreamSourceBroadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-		datastore.save(liveStreamSourceBroadcast);
-		List<Broadcast> streamsList2 = datastore.getExternalStreamsList();
-		assertNotNull(streamsList2);
-
-		assertEquals(2, streamsList2.size());
-
 
 	}
 

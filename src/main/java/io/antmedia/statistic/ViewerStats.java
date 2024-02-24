@@ -290,13 +290,12 @@ public class ViewerStats {
 					}
 				}
 				
-				isBroadcasting = AntMediaApplicationAdapter.isStreaming(broadcast);
-				
+				isBroadcasting = isStreaming(broadcast);
 			
 				numberOfDecrement = -1 * numberOfDecrement;
 
 				int numberOfIncrement = getIncreaseCounterMap(streamId);
-				if((numberOfIncrement != 0 || numberOfDecrement != 0) && (isBroadcasting)) {
+				if((numberOfIncrement != 0 || numberOfDecrement != 0) && isBroadcasting) {
 					
 					int diffCount = numberOfIncrement + numberOfDecrement;
 
@@ -338,6 +337,10 @@ public class ViewerStats {
 			}
 		}
 		
+	}
+	
+	public boolean isStreaming(Broadcast broadcast) {
+		return AntMediaApplicationAdapter.isStreaming(broadcast);
 	}
 	
 	public void setServerSettings(ServerSettings serverSettings) {
