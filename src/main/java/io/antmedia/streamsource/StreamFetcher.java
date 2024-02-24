@@ -90,6 +90,10 @@ public class StreamFetcher {
 
 	private DataStore dataStore;
 
+	private long readNextPacketStartTime;
+
+	private long readNextPacketCompleteTime;
+	
 	public interface IStreamFetcherListener {
 
 		void streamFinished(IStreamFetcherListener listener);
@@ -308,7 +312,9 @@ public class StreamFetcher {
 
 		public boolean readMore(AVPacket pkt) {
 			boolean readTheNextFrame = true;
+			readNextPacketStartTime = System.currentTimeMillis();
 			int readResult = readNextPacket(pkt);
+			readNextPacketCompleteTime = System.currentTimeMillis();
 			if(readResult >= 0) {
 				packetRead(pkt);
 				unReferencePacket(pkt);
@@ -570,6 +576,18 @@ public class StreamFetcher {
 
 		}
 
+		public synchronized void closeInputFormatContext() {
+			if (inputFormatContext != null) {
+				try {
+					avformat_close_input(inputFormatContext);
+				}
+				catch (Exception e) {
+					logger.info(e.getMessage());
+				}
+				inputFormatContext = null;
+			}
+
+		}
 		public void close(AVPacket pkt) {
 			try {
 				if (packetWriterJobName != -1) {
@@ -591,17 +609,8 @@ public class StreamFetcher {
 					pkt.close();
 				}
 
-				if (inputFormatContext != null) {
-					try {
-						avformat_close_input(inputFormatContext);
-					}
-					catch (Exception e) {
-						logger.info(e.getMessage());
-					}
-					inputFormatContext = null;
-				}
-
-
+				closeInputFormatContext();
+				
 				boolean closeCalled = false;
 				if(streamPublished) {
 					//If stream is not getting started, this is not called
@@ -863,6 +872,10 @@ public class StreamFetcher {
 	public boolean isStreamAlive() {
 		return ((System.currentTimeMillis() - lastPacketReceivedTime) < PACKET_RECEIVED_INTERVAL_TIMEOUT);
 	}
+	
+	public boolean isStreamBlocked() {
+		return Math.abs(readNextPacketCompleteTime - readNextPacketStartTime) < PACKET_RECEIVED_INTERVAL_TIMEOUT;
+	}
 
 	//TODO: why we're using isInterruped here? It may not give correct value about the status of the stream
 	//@mekya
@@ -872,7 +885,7 @@ public class StreamFetcher {
 
 	public void stopStream() 
 	{
-		logger.info("stop stream called for {}", streamUrl);
+		logger.info("stop stream called for {} and streamId:{}", streamUrl, streamId);
 		stopRequestReceived = true;
 	}	
 

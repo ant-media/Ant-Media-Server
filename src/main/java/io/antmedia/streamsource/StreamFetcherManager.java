@@ -452,7 +452,7 @@ public class StreamFetcherManager {
 					logger.info("This is {} times that restarting streams", lastRestartCount);
 				}
 				
-				restartStreamFetchers(restart);
+				controlStreamFetchers(restart);
 			}
 
 		});
@@ -461,14 +461,14 @@ public class StreamFetcherManager {
 	}
 
 
-	public void restartStreamFetchers(boolean restart) {
+	public void controlStreamFetchers(boolean restart) {
 		for (StreamFetcher streamScheduler : streamFetcherList.values()) {
 
 			//get the updated broadcast object
 			Broadcast broadcast = datastore.get(streamScheduler.getStreamId());
 			
 			if (streamScheduler.isStreamAlive() && 
-					(restart || broadcast == null || (broadcast.isAutoStartStopEnabled() && broadcast.isAnyoneWatching()))) 
+					(restart || broadcast == null || (broadcast.isAutoStartStopEnabled() && !broadcast.isAnyoneWatching()))) 
 			{
 				//stop it if it's restart = true 
 				//  or 
@@ -480,7 +480,11 @@ public class StreamFetcherManager {
 				streamScheduler.stopStream();
 			}
 			else {
-				logger.info("Stream is not alive {}", streamScheduler.getStreamId());
+				
+				logger.info("Stream is not alive {}, is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamBlocked());
+				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
+				//Most of the time the problem is related to the stream source side.
+				
 			}
 
 			if (restart && broadcast != null) {

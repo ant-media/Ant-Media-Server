@@ -445,6 +445,8 @@ public abstract class RestServiceBase {
 			logger.info("Broadcast with stream id: {} is null", streamId);
 			return new Result(false, "Broadcast with streamId: " + streamId + " does not exist");
 		}
+	
+		boolean isStreamingActive = AntMediaApplicationAdapter.isStreaming(broadcastInDB);
 
 		boolean resultStopStreaming = checkStopStreaming(broadcastInDB);
 		waitStopStreaming(broadcastInDB, resultStopStreaming);
@@ -463,7 +465,9 @@ public abstract class RestServiceBase {
 		}
 
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
-		if (result) {
+		
+		if (result && isStreamingActive) {
+			//start straming again if it was streaming
 			Broadcast fetchedBroadcast = getDataStore().get(streamId);
 			getApplication().startStreaming(fetchedBroadcast);
 		}
