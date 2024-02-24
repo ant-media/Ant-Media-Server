@@ -18,6 +18,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.validation.constraints.NotNull;
@@ -88,7 +89,6 @@ import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
-import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";
@@ -903,7 +903,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			httpPost.setConfig(requestConfig);
 			List<NameValuePair> urlParameters = new ArrayList<>();
 			Set<Entry<String, String>> entrySet = variables.entrySet();
-			for (Entry<String, String> entry : entrySet) {
+			
+			for (Entry<String, String> entry : entrySet) 
+			{
 				urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
 			}
 

@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import org.awaitility.Awaitility;
+import org.json.simple.JSONObject;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.context.ApplicationContext;
@@ -39,35 +40,49 @@ public class PushNotificationRestServiceTest {
 		
 		Mockito.when(appContext.getBean(IPushNotificationService.BEAN_NAME)).thenReturn(pushNotificationService);
 		
+		JSONObject jsObject = new JSONObject();
+		jsObject.put("title", "hello world");
+		jsObject.put("apn-topic", "io.antmedia.ios.webrtc.sample");
 		
-		pushNotificationRestService.sendPushNotification("topic", "jsonMessage","fcm");
-		verify(pushNotificationService).sendNotification("topic", "jsonMessage","fcm");
+		pushNotificationRestService.sendPushNotification("topic", jsObject.toJSONString(),"fcm");
+		verify(pushNotificationService).sendNotification("topic", jsObject,"fcm");
 		
-		pushNotificationRestService.sendPushNotification("topic", "jsonMessage","apns");
-		verify(pushNotificationService).sendNotification("topic", "jsonMessage","apns");
+		pushNotificationRestService.sendPushNotification("topic", jsObject.toJSONString(),"apns");
+		verify(pushNotificationService).sendNotification("topic", jsObject,"apns");
 		
-		pushNotificationRestService.sendPushNotification("topic", "jsonMessage","");
-		verify(pushNotificationService).sendNotification("topic", "jsonMessage");
+		pushNotificationRestService.sendPushNotification("topic", jsObject.toJSONString(),"");
+		verify(pushNotificationService).sendNotification("topic", jsObject);
 		
-		pushNotificationRestService.sendPushNotification("topic", "jsonMessage", null);
-		verify(pushNotificationService, times(2)).sendNotification("topic", "jsonMessage");
+		pushNotificationRestService.sendPushNotification("topic", jsObject.toJSONString(), null);
+		verify(pushNotificationService, times(2)).sendNotification("topic", jsObject);
+		
+		Result result = pushNotificationRestService.sendPushNotification("topic", "Not json string", null);
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().contains("cannot be parsed"));
 		
 		
 		PushNotificationToSubscribers pushNotificationToSubscribers = new PushNotificationToSubscribers();
-		pushNotificationToSubscribers.setJsonMessage("jsonMessage");
+		
+		pushNotificationToSubscribers.setJsonMessage(jsObject.toJSONString());
 		pushNotificationToSubscribers.setSubscribers(Arrays.asList("subscriber1", "subscriber2"));
 		pushNotificationRestService.sendPushNotification(pushNotificationToSubscribers, "fcm");
-		verify(pushNotificationService).sendNotification(Arrays.asList("subscriber1", "subscriber2"), "jsonMessage","fcm");
+		verify(pushNotificationService).sendNotification(Arrays.asList("subscriber1", "subscriber2"), jsObject,"fcm");
 		
 		
 		pushNotificationRestService.sendPushNotification(pushNotificationToSubscribers, "apns");
-		verify(pushNotificationService).sendNotification(Arrays.asList("subscriber1", "subscriber2"), "jsonMessage","apns");
+		verify(pushNotificationService).sendNotification(Arrays.asList("subscriber1", "subscriber2"), jsObject,"apns");
 		
 		pushNotificationRestService.sendPushNotification(pushNotificationToSubscribers,"");
-		verify(pushNotificationService).sendNotification(Arrays.asList("subscriber1", "subscriber2"), "jsonMessage");
+		verify(pushNotificationService).sendNotification(Arrays.asList("subscriber1", "subscriber2"), jsObject);
 		
 		pushNotificationRestService.sendPushNotification(pushNotificationToSubscribers, null);
-		verify(pushNotificationService, times(2)).sendNotification(Arrays.asList("subscriber1", "subscriber2"), "jsonMessage");
+		verify(pushNotificationService, times(2)).sendNotification(Arrays.asList("subscriber1", "subscriber2"), jsObject);
+		
+		
+		pushNotificationToSubscribers.setJsonMessage("Not json string");
+		result = pushNotificationRestService.sendPushNotification(pushNotificationToSubscribers, null);
+		assertFalse(result.isSuccess());
+		assertTrue(result.getMessage().contains("cannot be parsed"));
 		
 		
 	}
@@ -104,7 +119,8 @@ public class PushNotificationRestServiceTest {
 					"subscriber1");
 		});
 
-
 	}
+	
+
 	
 }

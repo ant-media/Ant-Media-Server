@@ -58,7 +58,9 @@ public class StreamFetcher {
 	private static final int PACKET_RECEIVED_INTERVAL_TIMEOUT = 3000;
 	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
-	private long[] lastDTS;
+	private long[] lastSentDTS;
+	private long[] lastReceivedDTS;
+	private boolean[] outOfOrderPacketsAreRepeating;
 	private MuxAdaptor muxAdaptor = null;
 
 	/**
@@ -191,15 +193,25 @@ public class StreamFetcher {
 			return result;
 		}
 
-		lastDTS = new long[inputFormatContext.nb_streams()];
-
-		for (int i = 0; i < lastDTS.length; i++) {
-			lastDTS[i] = -1;
-		}
+		initDTSArrays(inputFormatContext.nb_streams());
 
 		result.setSuccess(true);
 		return result;
 
+	}
+	
+	public void initDTSArrays(int nbStreams) 
+	{
+		lastSentDTS = new long[nbStreams];
+		lastReceivedDTS = new long[nbStreams];
+		outOfOrderPacketsAreRepeating = new boolean[nbStreams];
+		for (int i = 0; i < lastSentDTS.length; i++) {
+			lastSentDTS[i] = 0;
+			lastReceivedDTS[i] = 0;
+			outOfOrderPacketsAreRepeating[i] = false;
+		}
+		
+		
 	}
 
 	public Result prepare(AVFormatContext inputFormatContext) {
@@ -664,20 +676,50 @@ public class StreamFetcher {
 
 		public void writePacket(AVStream stream, AVPacket pkt) {
 			int packetIndex = pkt.stream_index();
-			if (lastDTS[packetIndex] >= pkt.dts()) 
+			
+			long pktDts = 0;
+			
+			//if last sent DTS is bigger than incoming dts, it may be corrupt packet (due to network, etc) or stream is restarted 
+			
+			if (lastSentDTS[packetIndex] >= pkt.dts()) 
 			{
-				logger.info("last dts: {} is bigger than incoming dts: {} for stream index:{} -"
-						+ " If you see this log frequently, TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings", 
-						lastDTS[packetIndex], pkt.dts(), packetIndex);
-				pkt.dts(lastDTS[packetIndex] + 1);
+				//it may be corrupt packet or stream is restarted
+				
+				if (outOfOrderPacketsAreRepeating[packetIndex] &&  lastReceivedDTS[packetIndex] < pkt.dts()) {
+					//outOfOrderPacketsAreRepating and 
+					//incoming dts is bigger than previous dts
+					//try to fix it by adding offset. This case may happen in really bad network cases or stream is restarted
+					pktDts = lastSentDTS[packetIndex] + pkt.dts() - lastReceivedDTS[packetIndex];
+				}
+				else 
+				{
+					
+					//just network fluctuations 
+					logger.info("last dts: {} is bigger than incoming dts: {} for stream index:{} -"
+							+ " If you see this log frequently and it's not related to playlist, you may TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings", 
+							lastSentDTS[packetIndex], pkt.dts(), packetIndex);
+					
+					pktDts = lastSentDTS[packetIndex] + 1;
+				}
+				
+				outOfOrderPacketsAreRepeating[packetIndex] = true;
+				
 			}
+			else {
+				//reset packets out of order flag
+				outOfOrderPacketsAreRepeating[packetIndex] = false;						
+				pktDts = pkt.dts();
+			}
+			
+			lastReceivedDTS[packetIndex] = pkt.dts();
+			
+			pkt.dts(pktDts);
+
+			lastSentDTS[packetIndex] = pkt.dts();
 
 
-			lastDTS[packetIndex] = pkt.dts();
-			if (pkt.dts() > pkt.pts()) {
-				logger.info("dts ({}) is bigger than pts({}) - "
-						+  "If you see this log frequently, TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings",
-						pkt.dts(), pkt.pts());
+			if (pkt.dts() > pkt.pts()) 
+			{
 				pkt.pts(pkt.dts());
 			}
 
