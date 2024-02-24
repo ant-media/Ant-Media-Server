@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -289,15 +290,13 @@ public class ViewerStats {
 					}
 				}
 				
-				if(broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
-					isBroadcasting = true;
-				}
-				boolean stopped = broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_STOPPED);
+				isBroadcasting = AntMediaApplicationAdapter.isStreaming(broadcast);
+				
 			
 				numberOfDecrement = -1 * numberOfDecrement;
 
 				int numberOfIncrement = getIncreaseCounterMap(streamId);
-				if((numberOfIncrement != 0 || numberOfDecrement != 0) && (isBroadcasting || stopped)) {
+				if((numberOfIncrement != 0 || numberOfDecrement != 0) && (isBroadcasting)) {
 					
 					int diffCount = numberOfIncrement + numberOfDecrement;
 

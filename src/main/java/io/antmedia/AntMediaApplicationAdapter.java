@@ -227,7 +227,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				for (Broadcast broadcast : streams) 
 				{
 					if (!broadcast.isAutoStartStopEnabled()) {
-						//start streaming is auto/stop is enabled
+						//start streaming is auto/stop is not enabled
 						streamFetcherManager.startStreaming(broadcast);
 					}
 				}
@@ -506,9 +506,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) {
 
-				if(!broadcast.getStatus().equals(BROADCAST_STATUS_STOPPED)){
-					getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
-				}
+				getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
+				
 
 				final String listenerHookURL = getListenerHookURL(broadcast);
 				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {

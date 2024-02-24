@@ -733,11 +733,6 @@ public class AppSettings implements Serializable{
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
 
 	/**
-	 * @hidden
-	 */
-	private static final String SETTINGS_STOP_BROADCAST_ON_NO_VIEWER = "settings.stopBroadcastOnNoViewer";
-
-	/**
 	 * Comma separated CIDR that rest services are allowed to response
 	 * Allowed IP addresses to reach REST API, It must be in CIDR format as a.b.c.d/x
 	 */

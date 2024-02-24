@@ -14,7 +14,6 @@ public interface IAntMediaStreamHandler {
 	public static final String BROADCAST_STATUS_CREATED = "created";
 	public static final String BROADCAST_STATUS_BROADCASTING = "broadcasting";
 	public static final String BROADCAST_STATUS_FINISHED = "finished";
-	public static final String BROADCAST_STATUS_STOPPED = "stopped";
 	public static final String BROADCAST_STATUS_PREPARING = "preparing";
 	public static final String BROADCAST_STATUS_ERROR = "error";
 	public static final String BROADCAST_STATUS_FAILED = "failed";
