@@ -386,14 +386,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		settings.setUpdateTime(1000);
 		newSettings.setUpdateTime(900);
 		assertFalse(spyAdapter.updateSettings(newSettings, false, true));
-
-		newSettings.setStopBroadcastsOnNoViewerEnabled(true);
-		assertTrue(spyAdapter.updateSettings(newSettings, false, false));
-		verify(spyAdapter, times(1)).startStopBroadcastOnNoViewerChecker();
-		reset(spyAdapter);
-		assertTrue(spyAdapter.isStopBroadcastsOnNoViewerCheckerStarted());
-		assertTrue(spyAdapter.updateSettings(newSettings, false, false));
-		verify(spyAdapter, times(0)).startStopBroadcastOnNoViewerChecker();
 	}
 
 	@Test
@@ -1604,13 +1596,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
 
-		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
-		verify(streamFetcherManager, times(1)).startStreams(broadcastListCaptor.capture());
+		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
+		verify(streamFetcherManager, times(1)).startStreaming(broadcastListCaptor.capture());
 
 		broadcast = dataStore.get(broadcast.getStreamId());
-		assertEquals(1,  broadcastListCaptor.getValue().size());
-		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().get(0).getStreamId());
-		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().get(0).getStatus());
+		assertNotNull(broadcastListCaptor.getValue());
+		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().getStreamId());
+		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().getStatus());
 	}
 
 	@Test
@@ -1727,8 +1719,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
 
-		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
-		verify(streamFetcherManager, never()).startStreams(broadcastListCaptor.capture());
+		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
+		verify(streamFetcherManager, never()).startStreaming(broadcastListCaptor.capture());
 	}
 	
 	
@@ -2002,7 +1994,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Result result = new Result(true);
 		AppSettings appSettings = new AppSettings();
-		appSettings.setStopBroadcastsOnNoViewerEnabled(true);
 		spyAdapter.setScope(scope);
 		spyAdapter.setAppSettings(appSettings);
 		spyAdapter.setStreamPublishSecurityList(new ArrayList<>());
@@ -2012,8 +2003,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		broadcast1.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast1.setAutoStartStopEnabled(true);
-		broadcast1.setNoViewerTime(System.currentTimeMillis());
-		broadcast1.setStopOnNoViewerTimeElapseSeconds(1);
 		broadcast1.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		Mockito.doReturn(result).when(spyAdapter).stopStreaming(broadcast1);
 		dataStore.save(broadcast1);
@@ -2031,8 +2020,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		broadcast2.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast2.setAutoStartStopEnabled(true);
-		broadcast2.setNoViewerTime(System.currentTimeMillis());
-		broadcast2.setStopOnNoViewerTimeElapseSeconds(1);
 		broadcast2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		broadcast2.setHlsViewerCount(5);
 		dataStore.save(broadcast2);
@@ -2043,8 +2030,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		broadcast3.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
 		broadcast3.setAutoStartStopEnabled(true);
-		broadcast3.setNoViewerTime(System.currentTimeMillis());
-		broadcast3.setStopOnNoViewerTimeElapseSeconds(1);
 		broadcast3.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		broadcast3.setWebRTCViewerCount(5);
 		dataStore.save(broadcast3);
@@ -2087,8 +2072,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		clusterBroadcast1.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
 		clusterBroadcast1.setAutoStartStopEnabled(true);
-		clusterBroadcast1.setNoViewerTime(System.currentTimeMillis());
-		clusterBroadcast1.setStopOnNoViewerTimeElapseSeconds(1);
 		clusterBroadcast1.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		clusterBroadcast1.setOriginAdress("1.1.1.1");
 
@@ -2113,8 +2096,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		clusterBroadcast2.setStatus(spyAdapter.BROADCAST_STATUS_BROADCASTING);
 		clusterBroadcast2.setAutoStartStopEnabled(true);
-		clusterBroadcast2.setNoViewerTime(System.currentTimeMillis());
-		clusterBroadcast2.setStopOnNoViewerTimeElapseSeconds(1);
 		clusterBroadcast2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		clusterBroadcast2.setOriginAdress("2.2.2.2");
 

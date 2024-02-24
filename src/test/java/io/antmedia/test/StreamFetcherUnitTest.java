@@ -218,7 +218,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcast.getStatus());
 
 		//start StreamFetcher
-		app.getStreamFetcherManager().startStreams(Arrays.asList(broadcast));
+		app.getStreamFetcherManager().startStreaming(broadcast);
 
 
 		assertEquals(1, app.getStreamFetcherManager().getStreamFetcherList().size());

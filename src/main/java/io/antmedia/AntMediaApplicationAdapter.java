@@ -158,10 +158,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	
 	protected ISubtrackPoller subtrackPoller;
 
-	private long stopBroadcastOnNoViewerCheckerPeriodMs = 5000;
-
-	private boolean stopBroadcastsOnNoViewerCheckerStarted = false;
-
 	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -226,9 +222,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 			getStreamFetcherManager();
 			if(appSettings.isStartStreamFetcherAutomatically()) {
-				List<Broadcast> streams = getDataStore().getExternalStreamsList(false);
+				List<Broadcast> streams = getDataStore().getExternalStreamsList();
 				logger.info("Stream source size: {}", streams.size());
-				streamFetcherManager.startStreams(streams);
+				for (Broadcast broadcast : streams) 
+				{
+					if (!broadcast.isAutoStartStopEnabled()) {
+						//start streaming is auto/stop is enabled
+						streamFetcherManager.startStreaming(broadcast);
+					}
+				}
 			}
 			synchUserVoDFolder(null, appSettings.getVodFolder());
 		});
@@ -251,52 +253,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		setStorageclientSettings(appSettings);
 
-		if(appSettings.isStopBroadcastsOnNoViewerEnabled()){
-			startStopBroadcastOnNoViewerChecker();
-		}
-
 
 		logger.info("{} started", app.getName());
 
 		return true;
 	}
 
-	public void startStopBroadcastOnNoViewerChecker() {
-		if(!stopBroadcastsOnNoViewerCheckerStarted){
-			logger.debug("Starting stop broadcast on no viewer checker.");
-			vertx.setPeriodic(stopBroadcastOnNoViewerCheckerPeriodMs, yt-> stopBroadcastOnNoViewer());
-			stopBroadcastsOnNoViewerCheckerStarted = true;
-		}
-	}
 
-	public void stopBroadcastOnNoViewer() {
-		List<Broadcast> allBroadcasts = getDataStore().getExternalStreamsList(true);
-		for (Broadcast broadcast : allBroadcasts) {
-			if (shouldStopBroadcast(broadcast)) {
-				logger.info("Auto stopping stream with id {} because no viewer.", broadcast.getStreamId());
-				broadcast.setStatus(BROADCAST_STATUS_STOPPED);
-				getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
-				stopStreaming(broadcast);
-			}
-		}
-	}
 
-	private boolean shouldStopBroadcast(Broadcast broadcast) {
-		long currentTime = System.currentTimeMillis();
-		String broadcastStatus = broadcast.getStatus();
-		boolean stopOnNoViewerEnabled = broadcast.isAutoStartStopEnabled();
-		long noViewerTimeLimit = broadcast.getNoViewerTime() + broadcast.getStopOnNoViewerTimeElapseSeconds() * 1000;
 
-		if (stopOnNoViewerEnabled && BROADCAST_STATUS_BROADCASTING.equals(broadcastStatus) &&
-				!broadcast.isAnyoneWatching() && noViewerTimeLimit <= currentTime) {
-			boolean isCluster = getContext().getApplicationContext().containsBean(IClusterNotifier.BEAN_NAME);
-			String nodeAddress = getServerSettings().getHostAddress();
-			String broadcastOriginAddress = broadcast.getOriginAdress();
-			return !isCluster || nodeAddress.equals(broadcastOriginAddress);
-		}
 
-		return false;
-	}
 
 	/**
 	 * This method is called after ungraceful shutdown
@@ -720,9 +686,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			long now = System.currentTimeMillis();
 			broadcast.setStartTime(now);
 			broadcast.setUpdateTime(now);
-			if(broadcast.isAutoStartStopEnabled()){
-				broadcast.setNoViewerTime(now);
-			}
 			broadcast.setOriginAdress(getServerSettings().getHostAddress());
 			broadcast.setWebRTCViewerCount(0);
 			broadcast.setHlsViewerCount(0);
@@ -1578,10 +1541,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logger.info("Saving settings to cluster db -> {} for app: {} and updateTime:{}", saveSettings, getScope().getName(), appSettings.getUpdateTime());
 			}
 
-			if(newSettings.isStopBroadcastsOnNoViewerEnabled() && !stopBroadcastsOnNoViewerCheckerStarted){
-				startStopBroadcastOnNoViewerChecker();
-			}
-
 			result = true;
 		}
 		else {
@@ -1823,20 +1782,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		return isRemoved;
-
-
 	}
+	
+	
 
-	public void autoStartBroadcast(Broadcast broadcast){
-		logger.info("Auto starting stream with id {} because there is a viewer requesting. Auto start will only work for IP Camera, Stream Source, VOD and playlist stream types.", broadcast.getStreamId());
-		getDataStore().updateStatus(broadcast.getStreamId(), BROADCAST_STATUS_PREPARING);
-		if(startStreaming(broadcast).isSuccess()){
-			logger.info("Auto starting stream with id {} success.", broadcast.getStreamId());
-		}else{
-			getDataStore().updateStatus(broadcast.getStreamId(), BROADCAST_STATUS_FINISHED);
-			logger.info("Auto starting stream with id {} failed. Auto start will only work for IP Camera, Stream Source, VOD and playlist stream types.", broadcast.getStreamId());
-		}
-	}
+
 
 	public void addFrameListener(String streamId, IFrameListener listener) {
 		//for enterprise
@@ -1911,10 +1861,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void setSubtrackPoller(ISubtrackPoller subtrackPoller) {
 		this.subtrackPoller = subtrackPoller;
-	}
-
-	public boolean isStopBroadcastsOnNoViewerCheckerStarted() {
-		return stopBroadcastsOnNoViewerCheckerStarted;
 	}
 
 }

@@ -15,7 +15,6 @@ import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
 import java.util.NoSuchElementException;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -27,7 +26,6 @@ import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.red5.server.api.scope.IScope;
-import org.red5.server.api.stream.IStreamPacket;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -222,7 +222,7 @@ public abstract class DataStore {
 
 	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
 	
-	public abstract List<Broadcast> getExternalStreamsList(boolean getBroadcastingStreams);
+	public abstract List<Broadcast> getExternalStreamsList();
 	
 	/**
 	 * Closes the database
@@ -999,8 +999,6 @@ public abstract class DataStore {
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
 		broadcast.setAutoStartStopEnabled(newBroadcast.isAutoStartStopEnabled());
-		broadcast.setNoViewerTime(newBroadcast.getNoViewerTime());
-		broadcast.setStopOnNoViewerTimeElapseSeconds(newBroadcast.getStopOnNoViewerTimeElapseSeconds());
 	}
 
 

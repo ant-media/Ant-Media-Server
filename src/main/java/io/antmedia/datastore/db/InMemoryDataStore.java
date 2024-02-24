@@ -248,7 +248,7 @@ public class InMemoryDataStore extends DataStore {
 
 
 	@Override
-	public List<Broadcast> getExternalStreamsList(boolean getBroadcastingStreams) {
+	public List<Broadcast> getExternalStreamsList() {
 		Collection<Broadcast> values = broadcastMap.values();
 
 		List<Broadcast> streamsList = new ArrayList<>();
@@ -256,14 +256,10 @@ public class InMemoryDataStore extends DataStore {
 			String type = broadcast.getType();
 			String status = broadcast.getStatus();
 
-			boolean externalStream = type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE);
-			if (!getBroadcastingStreams && externalStream && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
+			if ((type.equals(AntMediaApplicationAdapter.IP_CAMERA) || type.equals(AntMediaApplicationAdapter.STREAM_SOURCE)) && (!status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && !status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING)) ) {
 				streamsList.add(broadcast);
 				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 				broadcastMap.replace(broadcast.getStreamId(), broadcast);
-			}else if(getBroadcastingStreams && externalStream && (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))){
-				streamsList.add(broadcast);
-
 			}
 		}
 		return streamsList;

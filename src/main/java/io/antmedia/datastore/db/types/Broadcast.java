@@ -355,24 +355,10 @@ public class Broadcast {
 	 */
 	private long updateTime = 0;
 
-	@ApiModelProperty(value = "the identifier of whether stream should stop if there is no viewer after certain amount of seconds or not.")
+	@ApiModelProperty(value = "The identifier of whether stream should start/stop automatically. It's effective for Stream Sources/IP Cameras. "
+			+ "If there is no viewer after certain amount of seconds, it will stop. If there is an user want to watch the stream, it will start automatically")
 	private boolean autoStartStopEnabled = false;
 
-	@ApiModelProperty(value = "time required to elapse in seconds for stream to stop after no viewer.")
-	private long stopOnNoViewerTimeElapseSeconds = 0;
-
-	/**
-	 * Time when no viewer left on stream.
-	 */
-	public long getNoViewerTime() {
-		return noViewerTime;
-	}
-
-	public void setNoViewerTime(long noViewerTime) {
-		this.noViewerTime = noViewerTime;
-	}
-
-	private long noViewerTime = 0L;
 
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
@@ -849,14 +835,6 @@ public class Broadcast {
 
 	public void setAutoStartStopEnabled(boolean autoStartStopEnabled) {
 		this.autoStartStopEnabled = autoStartStopEnabled;
-	}
-
-	public long getStopOnNoViewerTimeElapseSeconds() {
-		return stopOnNoViewerTimeElapseSeconds;
-	}
-
-	public void setStopOnNoViewerTimeElapseSeconds(long stopOnNoViewerTimeElapseSeconds) {
-		this.stopOnNoViewerTimeElapseSeconds = stopOnNoViewerTimeElapseSeconds;
 	}
 
 }

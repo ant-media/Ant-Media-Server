@@ -2036,12 +2036,6 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${id3TagEnabled:false}")
 	private boolean id3TagEnabled = false;
-
-	/**
-	 * Enables the stop broadcast on no viewer checker
-	 */
-	@Value("${stopBroadcastsOnNoViewerEnabled:false}")
-	private boolean stopBroadcastsOnNoViewerEnabled = false;
 	
 	/**
 	 * Ant Media Server can get the audio level from incoming RTP Header in WebRTC streaming and send to the viewers.
@@ -3557,14 +3551,6 @@ public class AppSettings implements Serializable{
 
 	public void setTimeTokenSecretForPlay(String timeTokenSecretForPlay) {
 		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
-	}
-
-	public boolean isStopBroadcastsOnNoViewerEnabled() {
-		return stopBroadcastsOnNoViewerEnabled;
-	}
-
-	public void setStopBroadcastsOnNoViewerEnabled(boolean stopBroadcastsOnNoViewerEnabled) {
-		this.stopBroadcastsOnNoViewerEnabled = stopBroadcastsOnNoViewerEnabled;
 	}
 
 	public String getFirebaseAccountKeyJSON() {

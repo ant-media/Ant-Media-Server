@@ -917,29 +917,6 @@ public class BroadcastRestService extends RestServiceBase{
 		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight);
 	}
 
-	@ApiOperation(value = "Enable or disable auto start on viewer and auto stop on no viewer for a stream.", notes = "Start stream when there is a viewer trying to watch. Stop stream if no one is watching after n seconds.", response = Result.class)
-	@PUT
-	@Consumes(MediaType.APPLICATION_JSON)
-	@Path("/{id}/auto-start-stop/{enabled}")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Result enableAutoStartStop(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
-									  @ApiParam(value = "Enable or disable auto start on viewer and auto stop on no viewer for stream. If true enables, if false disables.", required = true) @PathParam("enabled") boolean enabled,
-									  @ApiParam(value = "The time in seconds needs to elapse to stop stream after no viewer left. Default is 0.", required = false) @QueryParam("timeElapseToStop") long timeElapseToStop) {
-
-		final Result result = new Result(false);
-		final Broadcast stream = getDataStore().get(streamId);
-		if(stream != null){
-			stream.setAutoStartStopEnabled(enabled);
-			stream.setStopOnNoViewerTimeElapseSeconds(timeElapseToStop);
-			stream.setNoViewerTime(System.currentTimeMillis());
-			boolean success = getDataStore().updateBroadcastFields(streamId, stream);
-			result.setSuccess(success);
-		}else{
-			result.setMessage("Stream not found.");
-		}
-		return result;
-	}
-
 	@ApiOperation(value = "Get IP Camera Error after connection failure. If returns true, it means there is an error. If returns false, there is no error", notes = "Notes here", response = Result.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)

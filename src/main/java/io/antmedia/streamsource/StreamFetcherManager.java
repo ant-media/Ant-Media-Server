@@ -154,9 +154,10 @@ public class StreamFetcherManager {
 	public Result startStreaming(@Nonnull Broadcast broadcast) {	
 
 		//check if broadcast is already being fetching
-
 		boolean alreadyFetching = isStreamRunning(broadcast);
-
+		//FYI: Even ff the stream is trying to prepare in any node in the cluster, alreadyFetching returns false to not have any duplication
+		
+		
 		StreamFetcher streamScheduler = null;
 
 		Result result = new Result(false);
@@ -423,15 +424,6 @@ public class StreamFetcherManager {
 	}
 
 
-	public void startStreams(List<Broadcast> streams) {
-
-		for (int i = 0; i < streams.size(); i++) {
-			startStreaming(streams.get(i));
-		}
-
-		scheduleStreamFetcherJob();
-	}
-
 	private void scheduleStreamFetcherJob() {
 		if (streamFetcherScheduleJobName != -1) {
 			vertx.cancelTimer(streamFetcherScheduleJobName);
@@ -454,13 +446,13 @@ public class StreamFetcherManager {
 				}
 
 
-				if (countToRestart > lastRestartCount) {
+				boolean restart = countToRestart > lastRestartCount;
+				if (restart) {
 					lastRestartCount = countToRestart;
 					logger.info("This is {} times that restarting streams", lastRestartCount);
-					restartStreamFetchers();
-				} else {
-					checkStreamFetchersStatus();
 				}
+				
+				restartStreamFetchers(restart);
 			}
 
 		});
@@ -468,38 +460,32 @@ public class StreamFetcherManager {
 		logger.info("StreamFetcherSchedule job name {}", streamFetcherScheduleJobName);
 	}
 
-	public void checkStreamFetchersStatus() {
-		for (StreamFetcher streamScheduler : streamFetcherList.values()) {
-			String streamId = streamScheduler.getStreamId();
 
-
-			if (!streamScheduler.isStreamAlive() && datastore != null && streamId != null) 
-			{
-				MuxAdaptor muxAdaptor = streamScheduler.getMuxAdaptor();
-				if (muxAdaptor != null) {
-					//make speed bigger than zero in order to visible in the web panel
-					muxAdaptor.updateStreamQualityParameters(streamId, null, 0.01d, 0);
-				}
-				else {
-					logger.warn("Mux adaptor is not initialized for stream fetcher with stream id: {} It's likely that stream fetching is not started yet", streamId);
-				}
-			}
-		}
-	}
-
-	public void restartStreamFetchers() {
+	public void restartStreamFetchers(boolean restart) {
 		for (StreamFetcher streamScheduler : streamFetcherList.values()) {
 
-			if (streamScheduler.isStreamAlive()) 
+			//get the updated broadcast object
+			Broadcast broadcast = datastore.get(streamScheduler.getStreamId());
+			
+			if (streamScheduler.isStreamAlive() && 
+					(restart || broadcast == null || (broadcast.isAutoStartStopEnabled() && broadcast.isAnyoneWatching()))) 
 			{
-				logger.info("Calling stop stream {}", streamScheduler.getStreamId());
+				//stop it if it's restart = true 
+				//  or 
+				//	brodcast == null because it means stream is deleted
+				//  or
+				//  broadcast autoStartEnabled and there is nobody watching
+				logger.info("Calling stop stream {} due to restart->{}, no broadcast -> {}, auto stop because no viewer -> {}", 
+						streamScheduler.getStreamId(), restart, broadcast == null, (broadcast != null && broadcast.isAutoStartStopEnabled() && broadcast.isAnyoneWatching()));
 				streamScheduler.stopStream();
 			}
 			else {
 				logger.info("Stream is not alive {}", streamScheduler.getStreamId());
 			}
 
-			streamScheduler.startStream();
+			if (restart && broadcast != null) {
+				streamScheduler.startStream();
+			}
 		}
 	}
 

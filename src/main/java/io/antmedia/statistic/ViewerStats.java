@@ -309,9 +309,6 @@ public class ViewerStats {
 					else {
 						getDataStore().updateDASHViewerCount(streamViewerEntry.getKey(), diffCount);
 					}
-					if(broadcast.isAutoStartStopEnabled() && !broadcast.isAnyoneWatching()){
-						broadcast.setNoViewerTime(System.currentTimeMillis());
-					}
 
 					increaseCounterMap.put(streamId, 0);
 				}

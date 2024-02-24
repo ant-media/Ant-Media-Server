@@ -229,7 +229,6 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getHlsPlayListType());
 		assertTrue(appSettings.getEncoderSettings().isEmpty());
 		assertTrue(appSettings.isPlayWebRTCStreamOnceForEachSession());
-		assertFalse(appSettings.isStopBroadcastsOnNoViewerEnabled());
 	}
 	
 	@Test
@@ -285,8 +284,6 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setTimeTokenSecretForPublish("secretpublish");
 		assertEquals("secretpublish", appSettings.getTimeTokenSecretForPublish());
 
-		appSettings.setStopBroadcastsOnNoViewerEnabled(true);
-		assertTrue(appSettings.isStopBroadcastsOnNoViewerEnabled());
 	}
 	
 	
@@ -500,8 +497,6 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getTimeTokenSecretForPublish());
 		assertNull(appSettings.getTimeTokenSecretForPlay());
 
-		assertFalse(appSettings.isStopBroadcastsOnNoViewerEnabled());
-
 
 		assertNotNull(appSettings.getSubscriberAuthenticationKey());
 		assertNull(appSettings.getFirebaseAccountKeyJSON());
@@ -511,7 +506,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.",
-				171, numberOfFields);
+				170, numberOfFields);
 
 		
 	}

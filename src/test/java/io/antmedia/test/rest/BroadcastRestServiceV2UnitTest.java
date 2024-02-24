@@ -3216,28 +3216,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNull(streamSourceRest.getOnvifDeviceProfiles("invalid id"));
 
 	}
-	@Test
-	public void testEnableAutoStartStop() {
-		ApplicationContext currentcontext = mock(ApplicationContext.class);
-		restServiceReal.setAppCtx(currentcontext);
-		DataStore store = new InMemoryDataStore("testdb");
-		restServiceReal.setDataStore(store);
-		Broadcast broadcast = mock(Broadcast.class);
-		try {
-			broadcast.setStreamId("stream");
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		store.save(broadcast);
 
-		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
-
-		assertTrue(restServiceSpy.enableAutoStartStop(broadcast.getStreamId(), true, 5).isSuccess());
-		verify(broadcast, times(1)).setAutoStartStopEnabled(true);
-		verify(broadcast, times(1)).setStopOnNoViewerTimeElapseSeconds(5);
-		verify(broadcast, times(2)).setNoViewerTime(anyLong());
-		assertFalse(restServiceSpy.enableAutoStartStop("", true, 5).isSuccess());
-	}
 	@Test
 	public void testBlockSubscriber(){
 		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);

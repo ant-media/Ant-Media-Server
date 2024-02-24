@@ -564,7 +564,7 @@ public class DBStoresUnitTest {
 		datastore.save(streamSource);
 
 		//get external list
-		List<Broadcast> streamsList = datastore.getExternalStreamsList(false);
+		List<Broadcast> streamsList = datastore.getExternalStreamsList();
 		assertNotNull(streamsList);
 
 		assertEquals(2, streamsList.size());
@@ -580,7 +580,7 @@ public class DBStoresUnitTest {
 		liveStreamSourceBroadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 		liveStreamSourceBroadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 		datastore.save(liveStreamSourceBroadcast);
-		List<Broadcast> streamsList2 = datastore.getExternalStreamsList(true);
+		List<Broadcast> streamsList2 = datastore.getExternalStreamsList();
 		assertNotNull(streamsList2);
 
 		assertEquals(2, streamsList2.size());
@@ -2530,14 +2530,14 @@ public class DBStoresUnitTest {
 		dataStore.save(ss5);
 		dataStore.save(ss6);
 
-		List<Broadcast> list = dataStore.getExternalStreamsList(false);
+		List<Broadcast> list = dataStore.getExternalStreamsList();
 		assertEquals(3, list.size());
 
 		assertNotEquals("ss6", list.get(0).getName());
 		assertNotEquals("ss6", list.get(1).getName());
 		assertNotEquals("ss6", list.get(2).getName());
 
-		List<Broadcast> list2 = dataStore.getExternalStreamsList(false);
+		List<Broadcast> list2 = dataStore.getExternalStreamsList();
 		assertEquals(0, list2.size());
 	}
 

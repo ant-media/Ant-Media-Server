@@ -427,38 +427,24 @@ public class MongoStore extends DataStore {
 
 
 	@Override
-	public List<Broadcast> getExternalStreamsList(boolean getBroadcastingStreams) {
+	public List<Broadcast> getExternalStreamsList() {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class);
-				if(!getBroadcastingStreams){
-					query.filter(
-							Filters.and(
-									Filters.or(Filters.eq("type", AntMediaApplicationAdapter.IP_CAMERA), Filters.eq("type", AntMediaApplicationAdapter.STREAM_SOURCE)),
-									Filters.and(Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING), Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)))
-					);
 
-					List<Broadcast> streamList = query.iterator().toList();
-					final UpdateResult results = query.update(new UpdateOptions().multi(true), set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING));
-					long updatedCount = results.getModifiedCount();
-					if(updatedCount != streamList.size()) {
-						logger.error("Only {} stream status updated out of {}", updatedCount, streamList.size());
-					}
-					return streamList;
+				query.filter(
+						Filters.and(
+								Filters.or(Filters.eq("type", AntMediaApplicationAdapter.IP_CAMERA), Filters.eq("type", AntMediaApplicationAdapter.STREAM_SOURCE)),
+						Filters.and(Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING), Filters.ne(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)))
+						);
 
-
-				}else{
-					query.filter(
-							Filters.and(
-									Filters.or(Filters.eq("type", AntMediaApplicationAdapter.IP_CAMERA), Filters.eq("type", AntMediaApplicationAdapter.STREAM_SOURCE)),
-									Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
-					);
-
-					List<Broadcast> streamList = query.iterator().toList();
-					return streamList;
-
+				List<Broadcast> streamList = query.iterator().toList();
+				final UpdateResult results = query.update(new UpdateOptions().multi(true), set(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING));
+				long updatedCount = results.getModifiedCount();
+				if(updatedCount != streamList.size()) {
+					logger.error("Only {} stream status updated out of {}", updatedCount, streamList.size());
 				}
-
+				return streamList;
 			} catch (Exception e) {
 
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -836,8 +822,6 @@ public class MongoStore extends DataStore {
 				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
 				updates.add(set("updateTime", broadcast.getUpdateTime()));
 				updates.add(set("autoStartStopEnabled",broadcast.isAutoStartStopEnabled()));
-				updates.add(set("noViewerTime", broadcast.getNoViewerTime()));
-				updates.add(set("stopOnNoViewerTimeElapseSeconds", broadcast.getStopOnNoViewerTimeElapseSeconds()));
 
 				UpdateResult updateResult = query.update(updates).execute();
 				return updateResult.getModifiedCount() == 1;
