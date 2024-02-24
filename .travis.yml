@@ -105,7 +105,6 @@ before_install:
         cp -rf "$HOME/.antmedia/cache/node_modules" .;
     fi)
   - npm install
-  - export NODE_OPTIONS=--openssl-legacy-provider
   - ng build --prod
   - cp -a ./dist/. ../src/main/server/webapps/root/
   #update the cache directory
