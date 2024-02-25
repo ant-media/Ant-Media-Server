@@ -25,6 +25,7 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
 import org.openqa.selenium.By;
+import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
@@ -196,11 +197,17 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 
 		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 
-			String readyState = driver.findElement(By.tagName("video")).getDomProperty("readyState");
-			//this.driver.findElement(By.xpath("//*[@id='video-player']")).
-			logger.info("player ready state -> {}", readyState);
-
-			return readyState != null && readyState.equals("4");
+			try {
+				String readyState = driver.findElement(By.tagName("video")).getDomProperty("readyState");
+				//this.driver.findElement(By.xpath("//*[@id='video-player']")).
+				logger.info("player ready state -> {}", readyState);
+	
+				return readyState != null && readyState.equals("4");
+			}
+			catch (StaleElementReferenceException e) {
+				logger.warn("Stale element exception");
+				return false;
+			}
 		});
 		
 		//stop the player
