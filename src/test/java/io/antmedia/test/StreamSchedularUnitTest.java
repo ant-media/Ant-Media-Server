@@ -694,7 +694,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testControlStreamFetchers() {
 		//create a test db
 		DataStore dataStore = Mockito.mock(DataStore.class); 
-		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
 		
 		streamFetcherManager.controlStreamFetchers(false);
 		
@@ -703,6 +703,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamFetcher fetcher = Mockito.mock(StreamFetcher.class);
 		String streamId = "stream123456";
 		streamFetcherList.put(streamId, fetcher);
+		Mockito.when(fetcher.getStreamId()).thenReturn(streamId);
 		
 		
 		streamFetcherManager.setStreamFetcherList(streamFetcherList);
@@ -716,21 +717,31 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//because stream is alive and broadcast is null
 		verify(fetcher, times(1)).stopStream();
 		
+		assertEquals(0, streamFetcherManager.getStreamFetcherList().size());
+		streamFetcherList.put(streamId, fetcher);
+		
+		
 		streamFetcherManager.controlStreamFetchers(true);
 		//broadcast is null so stop stream will be called
 		verify(fetcher, times(2)).stopStream();
 		//it will not called because broadcast is null
 		verify(fetcher, times(0)).startStream();
+		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
+
+		assertEquals(0, streamFetcherManager.getStreamFetcherList().size());
+		streamFetcherList.put(streamId, fetcher);
 		
 		
 		Broadcast broadcast = mock(Broadcast.class);
 		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
+		when(broadcast.getStreamId()).thenReturn(streamId);
 		
 		streamFetcherManager.controlStreamFetchers(false);
 		//it will not change above stream is alive and broadcast is not null
 		verify(fetcher, times(2)).stopStream();
 		verify(fetcher, times(0)).startStream();
-		
+		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
+
 		
 		when(broadcast.isAutoStartStopEnabled()).thenReturn(true);
 		when(broadcast.isAnyoneWatching()).thenReturn(true);
@@ -738,6 +749,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//it will not change above stream is alive and broadcast is not null and someone is watching
 		verify(fetcher, times(2)).stopStream();
 		verify(fetcher, times(0)).startStream();
+		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
+
+	
 		
 		when(broadcast.isAutoStartStopEnabled()).thenReturn(true);
 		when(broadcast.isAnyoneWatching()).thenReturn(false);
@@ -745,6 +759,10 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//it will change above stream is alive and broadcast is not null and none is watching
 		verify(fetcher, times(3)).stopStream();
 		verify(fetcher, times(0)).startStream();
+		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
+
+		assertEquals(0, streamFetcherManager.getStreamFetcherList().size());
+		streamFetcherList.put(streamId, fetcher);
 		
 		
 		when(broadcast.isAutoStartStopEnabled()).thenReturn(false);
@@ -753,7 +771,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//it will not change above stream is alive and broadcast is not null and isAutoStartStopEnabled false
 		verify(fetcher, times(3)).stopStream();
 		verify(fetcher, times(0)).startStream();
-		
+		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
+
 		
 		when(broadcast.isAutoStartStopEnabled()).thenReturn(false);
 		when(broadcast.isAnyoneWatching()).thenReturn(true);
@@ -761,11 +780,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		//it will not change above stream is alive and broadcast is not null and  isAutoStartStopEnabled false
 		verify(fetcher, times(3)).stopStream();
 		verify(fetcher, times(0)).startStream();
+		verify(streamFetcherManager, times(0)).startStreaming(Mockito.any());
+
 		
 		streamFetcherManager.controlStreamFetchers(true);
 		//it willl not change because restart is true
 		verify(fetcher, times(4)).stopStream();
-		verify(fetcher, times(1)).startStream();
+		verify(streamFetcherManager, times(1)).startStreaming(Mockito.any());
 		
 		
 		

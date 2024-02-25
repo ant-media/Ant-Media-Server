@@ -176,6 +176,7 @@ public class StreamFetcherManager {
 			}
 		}
 		else {
+			logger.info("Stream is already active for streamId:{}", broadcast.getStreamId());
 			result.setMessage("Stream is already active. It's already streaming or trying to connect");
 		}
 
@@ -477,7 +478,9 @@ public class StreamFetcherManager {
 				//  broadcast autoStartEnabled and there is nobody watching
 				logger.info("Calling stop stream {} due to restart->{}, is broadcast null -> {}, auto stop because no viewer -> {}", 
 						streamScheduler.getStreamId(), restart, broadcast == null, (broadcast != null && broadcast.isAutoStartStopEnabled() && broadcast.isAnyoneWatching()));
-				streamScheduler.stopStream();
+				
+				stopStreaming(streamScheduler.getStreamId());
+				
 			}
 			else {
 				
@@ -488,7 +491,7 @@ public class StreamFetcherManager {
 			}
 
 			if (restart && broadcast != null) {
-				streamScheduler.startStream();
+				startStreaming(broadcast);
 			}
 		}
 	}
