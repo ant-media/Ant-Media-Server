@@ -477,7 +477,7 @@ public class StreamFetcherManager {
 				//  or
 				//  broadcast autoStartEnabled and there is nobody watching
 				logger.info("Calling stop stream {} due to restart->{}, is broadcast null -> {}, auto stop because no viewer -> {}", 
-						streamScheduler.getStreamId(), restart, broadcast == null, (broadcast != null && broadcast.isAutoStartStopEnabled() && broadcast.isAnyoneWatching()));
+						streamScheduler.getStreamId(), restart, broadcast == null, (broadcast != null && broadcast.isAutoStartStopEnabled() && !broadcast.isAnyoneWatching()));
 				
 				stopStreaming(streamScheduler.getStreamId());
 				
