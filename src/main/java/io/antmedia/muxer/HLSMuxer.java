@@ -213,7 +213,8 @@ public class HLSMuxer extends Muxer  {
 
 	public synchronized void writeID3Packet(ByteBuffer data)
 	{
-		long pts = System.currentTimeMillis() - startTime;
+		//use the last send video pts as the pts of data
+		long pts = getLastPts();
 		id3DataPkt.pts(pts);
 		id3DataPkt.dts(pts);
 		id3DataPkt.stream_index(id3StreamIndex);
@@ -221,7 +222,7 @@ public class HLSMuxer extends Muxer  {
 		id3DataPkt.data(new BytePointer(data));
 		id3DataPkt.size(data.limit());
 		id3DataPkt.position(0);
-		writePacket(id3DataPkt, (AVCodecContext)null);
+		writeDataFrame(id3DataPkt, getOutputFormatContext());
 	}
 
 	@Override

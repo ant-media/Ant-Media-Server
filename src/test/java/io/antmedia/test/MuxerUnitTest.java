@@ -60,11 +60,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomUtils;
@@ -749,19 +748,19 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		ReflectionTestUtils.setField(muxAdaptor, "statusMap", statusMap);
 		Mockito.doReturn(null).when(muxAdaptor).getRtmpMuxer(rtmpUrl);
 
-		Mockito.doReturn(null).when(statusMap).getValueOrDefault(rtmpUrl, null);
+		Mockito.doReturn(null).when(statusMap).getOrDefault(rtmpUrl, null);
 		assertTrue(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
 
-		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR).when(statusMap).getValueOrDefault(rtmpUrl, null);
+		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR).when(statusMap).getOrDefault(rtmpUrl, null);
 		assertTrue(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
 
-		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED).when(statusMap).getValueOrDefault(rtmpUrl, null);
+		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED).when(statusMap).getOrDefault(rtmpUrl, null);
 		assertTrue(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
 
-		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED).when(statusMap).getValueOrDefault(rtmpUrl, null);
+		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED).when(statusMap).getOrDefault(rtmpUrl, null);
 		assertTrue(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
 
-		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING).when(statusMap).getValueOrDefault(rtmpUrl, null);
+		Mockito.doReturn(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING).when(statusMap).getOrDefault(rtmpUrl, null);
 		assertFalse(muxAdaptor.stopRtmpStreaming(rtmpUrl, resolution).isSuccess());
 	}
 
@@ -4089,6 +4088,27 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String data = "test data";
 		hlsMuxer.addID3Data(data);
 		verify(hlsMuxer, times(1)).writeDataFrame(any(), any());
+	}
+
+	@Test
+	public void testID3Timing() {
+		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class),
+				"streams", 0, "http://example.com", false));
+		hlsMuxer.setId3Enabled(true);
+		hlsMuxer.createID3StreamIfRequired();
+		long lastPts = RandomUtils.nextLong();
+		doReturn(lastPts).when(hlsMuxer).getLastPts();
+
+		doNothing().when(hlsMuxer).writeDataFrame(any(), any());
+		String data = "test data";
+		hlsMuxer.addID3Data(data);
+		ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
+
+		verify(hlsMuxer, times(1)).writeDataFrame(argument.capture(), any());
+
+		assertEquals(lastPts, argument.getValue().pts());
+		assertEquals(lastPts, argument.getValue().dts());
+
 	}
 
 	@Test
