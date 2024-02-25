@@ -11,6 +11,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -19,6 +21,8 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import io.antmedia.FFmpegUtilities;
@@ -686,6 +690,86 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
+	@Test
+	public void testControlStreamFetchers() {
+		//create a test db
+		DataStore dataStore = Mockito.mock(DataStore.class); 
+		StreamFetcherManager streamFetcherManager = new StreamFetcherManager(vertx, dataStore, appScope);
+		
+		streamFetcherManager.controlStreamFetchers(false);
+		
+		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
+		
+		StreamFetcher fetcher = Mockito.mock(StreamFetcher.class);
+		String streamId = "stream123456";
+		streamFetcherList.put(streamId, fetcher);
+		
+		
+		streamFetcherManager.setStreamFetcherList(streamFetcherList);
+		
+		streamFetcherManager.controlStreamFetchers(false);
+		//because stream is not alive
+		verify(fetcher, times(0)).stopStream();
+		
+		when(fetcher.isStreamAlive()).thenReturn(true);
+		streamFetcherManager.controlStreamFetchers(false);
+		//because stream is alive and broadcast is null
+		verify(fetcher, times(1)).stopStream();
+		
+		streamFetcherManager.controlStreamFetchers(true);
+		//broadcast is null so stop stream will be called
+		verify(fetcher, times(2)).stopStream();
+		//it will not called because broadcast is null
+		verify(fetcher, times(0)).startStream();
+		
+		
+		Broadcast broadcast = mock(Broadcast.class);
+		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
+		
+		streamFetcherManager.controlStreamFetchers(false);
+		//it will not change above stream is alive and broadcast is not null
+		verify(fetcher, times(2)).stopStream();
+		verify(fetcher, times(0)).startStream();
+		
+		
+		when(broadcast.isAutoStartStopEnabled()).thenReturn(true);
+		when(broadcast.isAnyoneWatching()).thenReturn(true);
+		streamFetcherManager.controlStreamFetchers(false);
+		//it will not change above stream is alive and broadcast is not null and someone is watching
+		verify(fetcher, times(2)).stopStream();
+		verify(fetcher, times(0)).startStream();
+		
+		when(broadcast.isAutoStartStopEnabled()).thenReturn(true);
+		when(broadcast.isAnyoneWatching()).thenReturn(false);
+		streamFetcherManager.controlStreamFetchers(false);
+		//it will change above stream is alive and broadcast is not null and none is watching
+		verify(fetcher, times(3)).stopStream();
+		verify(fetcher, times(0)).startStream();
+		
+		
+		when(broadcast.isAutoStartStopEnabled()).thenReturn(false);
+		when(broadcast.isAnyoneWatching()).thenReturn(false);
+		streamFetcherManager.controlStreamFetchers(false);
+		//it will not change above stream is alive and broadcast is not null and isAutoStartStopEnabled false
+		verify(fetcher, times(3)).stopStream();
+		verify(fetcher, times(0)).startStream();
+		
+		
+		when(broadcast.isAutoStartStopEnabled()).thenReturn(false);
+		when(broadcast.isAnyoneWatching()).thenReturn(true);
+		streamFetcherManager.controlStreamFetchers(false);
+		//it will not change above stream is alive and broadcast is not null and  isAutoStartStopEnabled false
+		verify(fetcher, times(3)).stopStream();
+		verify(fetcher, times(0)).startStream();
+		
+		streamFetcherManager.controlStreamFetchers(true);
+		//it willl not change because restart is true
+		verify(fetcher, times(4)).stopStream();
+		verify(fetcher, times(1)).startStream();
+		
+		
+		
+	}
 
 
 

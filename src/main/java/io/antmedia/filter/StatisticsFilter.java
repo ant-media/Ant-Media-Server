@@ -54,16 +54,9 @@ public abstract class StatisticsFilter extends AbstractFilter {
 
 				}
 			}
-			else if (HttpServletResponse.SC_NOT_FOUND == status) 
+			else if (HttpServletResponse.SC_NOT_FOUND == status && streamId != null) 
 			{
-				//start if it's not found, it may be started 
-				Broadcast broadcast = getBroadcast((HttpServletRequest) request, streamId);
-				if (broadcast != null && broadcast.isAutoStartStopEnabled()) 
-				{
-					//startStreaming method starts streaming if stream is not streaming in local or in any node in the cluster
-					getAntMediaApplicationAdapter().startStreaming(broadcast);
-				}
-				
+				startStreamingIfAutoStartStopEnabled((HttpServletRequest) request, streamId);
 			}
 			
 		}
@@ -76,14 +69,7 @@ public abstract class StatisticsFilter extends AbstractFilter {
 			
 			if (HttpServletResponse.SC_NOT_FOUND == status && streamId != null) 
 			{
-				//start if it's not found, it may be started 
-				Broadcast broadcast = getBroadcast((HttpServletRequest) request, streamId);
-				if (broadcast != null && broadcast.isAutoStartStopEnabled()) 
-				{
-					//startStreaming method starts streaming if stream is not streaming in local or in any node in the cluster
-					getAntMediaApplicationAdapter().startStreaming(broadcast);
-				}
-				
+				startStreamingIfAutoStartStopEnabled((HttpServletRequest) request, streamId);
 			}
 
 			
@@ -94,6 +80,17 @@ public abstract class StatisticsFilter extends AbstractFilter {
 			
 		}
 
+	}
+	
+	public void startStreamingIfAutoStartStopEnabled(HttpServletRequest request, String streamId) {
+		//start if it's not found, it may be started 
+		Broadcast broadcast = getBroadcast(request, streamId);
+		if (broadcast != null && broadcast.isAutoStartStopEnabled()) 
+		{
+			//startStreaming method starts streaming if stream is not streaming in local or in any node in the cluster
+			getAntMediaApplicationAdapter().startStreaming(broadcast);
+		}
+		
 	}
 	
 	
