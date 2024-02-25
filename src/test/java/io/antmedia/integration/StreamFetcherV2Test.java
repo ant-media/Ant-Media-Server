@@ -8,6 +8,7 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -23,6 +24,8 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.Mockito;
+import org.openqa.selenium.By;
+import org.openqa.selenium.chrome.ChromeDriver;
 import org.red5.server.scheduling.QuartzSchedulingService;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -40,6 +43,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.test.StreamFetcherUnitTest;
 import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "../test/test.xml" })
@@ -155,6 +159,64 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 	}
 
 
+	@Test
+	public void testAutoStartStop() {
+		
+		RestServiceV2Test restService = new RestServiceV2Test();
+		StreamFetcherUnitTest.startCameraEmulator();
+
+		Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv",
+				AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast.setAutoStartStopEnabled(true);
+		
+		Broadcast streamSource = restService.createBroadcast(broadcast);
+
+		assertNotNull(streamSource);
+		assertEquals(broadcast.getStreamUrl(), streamSource.getStreamUrl());
+		
+		Awaitility.await().pollDelay(10, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast localBroadcast = restService.getBroadcast(streamSource.getStreamId());
+			
+			return localBroadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
+		});
+		
+		//make a request to play the stream
+		
+		ChromeDriver driver = new ChromeDriver(FrontEndTest.getChromeOptions());
+		driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(10));
+		driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+		
+		String url = "http://localhost:5080/LiveApp/";
+
+		//get with default code & it should fallback to hls and play
+		driver.get(url+"play.html?id="+streamSource.getStreamId() + "&playOrder=hls");
+		
+		
+		//check that it's started to play
+
+		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+
+			String readyState = driver.findElement(By.tagName("video")).getDomProperty("readyState");
+			//this.driver.findElement(By.xpath("//*[@id='video-player']")).
+			logger.info("player ready state -> {}", readyState);
+
+			return readyState != null && readyState.equals("4");
+		});
+		
+		//stop the player
+		driver.quit();
+		
+		//check that it's stopped
+		Awaitility.await().atMost(20, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			Broadcast localBroadcast = restService.getBroadcast(streamSource.getStreamId());
+			
+			return localBroadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		});
+		
+		
+		StreamFetcherUnitTest.stopCameraEmulator();
+		
+	}
 
 	@Test
 	public void testUpdateStreamSource() {
