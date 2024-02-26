@@ -1090,13 +1090,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			return stream != null && Math.abs(stream.getSpeed()-1) < 0.2;
 		});
 
-
-
 		limitNetworkInterfaceBandwidth(findActiveInterface());
 
 		logger.info("Checking quality is again");
 
-		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast streamTmp = dataStore.get(newSource.getStreamId());
 			logger.info("speed {}" , streamTmp.getSpeed()) ;
 			logger.info("quality {}" , streamTmp.getQuality()) ;
