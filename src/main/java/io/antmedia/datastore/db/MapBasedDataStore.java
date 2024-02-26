@@ -1002,6 +1002,158 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
+	public boolean addIntoPublisherRequestList(String mainTrackId, String streamId) {
+		boolean result = false;
+		synchronized (this) {
+			Broadcast mainTrack = getBroadcastFromMap(mainTrackId);
+			if (mainTrack != null && streamId != null) {
+				List<String> publisherRequestList = mainTrack.getPublisherRequestList();
+				if (publisherRequestList == null) {
+					publisherRequestList = new ArrayList<>();
+				}
+				if (!publisherRequestList.contains(streamId)) {
+					publisherRequestList.add(streamId);
+					mainTrack.setPublisherRequestList(publisherRequestList);
+					setBroadcastToMap(mainTrack, mainTrackId);
+				}
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean removeFromPublisherRequestList(String mainTrackId, String streamId) {
+		boolean result = false;
+		synchronized (this) {
+			Broadcast mainTrack = getBroadcastFromMap(mainTrackId);
+			if (mainTrack != null && streamId != null) {
+				List<String> publisherRequestList = mainTrack.getPublisherRequestList();
+				if (publisherRequestList.remove(streamId)) {
+					mainTrack.setPublisherRequestList(publisherRequestList);
+					setBroadcastToMap(mainTrack, mainTrackId);
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean addIntoPublisherFromListenerList(String mainTrackId, String streamId) {
+		boolean result = false;
+		synchronized (this) {
+			Broadcast mainTrack = getBroadcastFromMap(mainTrackId);
+			if (mainTrack != null && streamId != null) {
+				List<String> publisherFromListenerList = mainTrack.getPublisherFromListenerList();
+				if (publisherFromListenerList == null) {
+					publisherFromListenerList = new ArrayList<>();
+				}
+				if (!publisherFromListenerList.contains(streamId)) {
+					publisherFromListenerList.add(streamId);
+					mainTrack.setPublisherFromListenerList(publisherFromListenerList);
+					setBroadcastToMap(mainTrack, mainTrackId);
+				}
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean removeFromPublisherFromListenerList(String mainTrackId, String streamId) {
+		boolean result = false;
+		synchronized (this) {
+			Broadcast mainTrack = getBroadcastFromMap(mainTrackId);
+			if (mainTrack != null && streamId != null) {
+				List<String> publisherFromListenerList = mainTrack.getPublisherFromListenerList();
+				if (publisherFromListenerList.remove(streamId)) {
+					mainTrack.setPublisherFromListenerList(publisherFromListenerList);
+					setBroadcastToMap(mainTrack, mainTrackId);
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean addIntoPresenterList(String mainTrackId, String streamId) {
+		boolean result = false;
+		synchronized (this) {
+			Broadcast mainTrack = getBroadcastFromMap(mainTrackId);
+			if (mainTrack != null && streamId != null) {
+				List<String> presenterList = mainTrack.getPresenterList();
+				if (presenterList == null) {
+					presenterList = new ArrayList<>();
+				}
+				if (!presenterList.contains(streamId)) {
+					presenterList.add(streamId);
+					mainTrack.setPresenterList(presenterList);
+					setBroadcastToMap(mainTrack, mainTrackId);
+				}
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean removeFromPresenterList(String mainTrackId, String streamId) {
+		boolean result = false;
+		synchronized (this) {
+			Broadcast mainTrack = getBroadcastFromMap(mainTrackId);
+			if (mainTrack != null && streamId != null) {
+				List<String> presenterList = mainTrack.getPresenterList();
+				if (presenterList.remove(streamId)) {
+					mainTrack.setPresenterList(presenterList);
+					setBroadcastToMap(mainTrack, mainTrackId);
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean addIntoAdminList(String mainTrackId, String streamId) {
+		boolean result = false;
+		synchronized (this) {
+			Broadcast mainTrack = getBroadcastFromMap(mainTrackId);
+			if (mainTrack != null && streamId != null) {
+				List<String> adminList = mainTrack.getAdminList();
+				if (adminList == null) {
+					adminList = new ArrayList<>();
+				}
+				if (!adminList.contains(streamId)) {
+					adminList.add(streamId);
+					mainTrack.setAdminList(adminList);
+					setBroadcastToMap(mainTrack, mainTrackId);
+				}
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean removeFromAdminList(String mainTrackId, String streamId) {
+		boolean result = false;
+		synchronized (this) {
+			Broadcast mainTrack = getBroadcastFromMap(mainTrackId);
+			if (mainTrack != null && streamId != null) {
+				List<String> adminList = mainTrack.getAdminList();
+				if (adminList.remove(streamId)) {
+					mainTrack.setAdminList(adminList);
+					setBroadcastToMap(mainTrack, mainTrackId);
+					result = true;
+				}
+			}
+		}
+		return result;
+	}
+
+	@Override
 	public boolean addSubTrack(String mainTrackId, String subTrackId) {
 		boolean result = false;
 		synchronized (this) {
@@ -1011,9 +1163,11 @@ public abstract class MapBasedDataStore extends DataStore {
 				if (subTracks == null) {
 					subTracks = new ArrayList<>();
 				}
-				subTracks.add(subTrackId);
-				broadcast.setSubTrackStreamIds(subTracks);
-				setBroadcastToMap(broadcast, mainTrackId);
+				if (!subTracks.contains(subTrackId)) {
+					subTracks.add(subTrackId);
+					broadcast.setSubTrackStreamIds(subTracks);
+					setBroadcastToMap(broadcast, mainTrackId);
+				}
 				result = true;
 			}
 		}

@@ -806,6 +806,22 @@ public class MongoStore extends DataStore {
 				if (broadcast.getSpeed() != 0) {
 					updates.add(set("speed", broadcast.getSpeed()));
 				}
+
+				if (broadcast.getPublisherRequestList() != null) {
+					updates.add(set("publisherRequestList", broadcast.getPublisherRequestList()));
+				}
+
+				if (broadcast.getPublisherFromListenerList() != null) {
+					updates.add(set("publisherFromListenerList", broadcast.getPublisherFromListenerList()));
+				}
+
+				if (broadcast.getPresenterList() != null) {
+					updates.add(set("presenterList", broadcast.getPresenterList()));
+				}
+
+				if (broadcast.getAdminList() != null) {
+					updates.add(set("adminList", broadcast.getAdminList()));
+				}
 				
 
 				prepareFields(broadcast, updates);
@@ -1342,13 +1358,165 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
+	public boolean addIntoPublisherRequestList(String mainTrackId, String streamId) {
+		synchronized(this) {
+			try {
+				if (streamId != null) {
+					return datastore.find(Broadcast.class)
+							.filter(Filters.eq(STREAM_ID, mainTrackId))
+							.update(UpdateOperators.addToSet("publisherRequestList", streamId))
+							.execute()
+							.getMatchedCount() == 1;
+				}
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean removeFromPublisherRequestList(String mainTrackId, String streamId) {
+		synchronized(this) {
+			try {
+				if (streamId != null) {
+					return datastore.find(Broadcast.class)
+							.filter(Filters.eq(STREAM_ID, mainTrackId))
+							.update(UpdateOperators.pullAll("publisherRequestList", Arrays.asList(streamId)))
+							.execute()
+							.getMatchedCount() == 1;
+				}
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean addIntoPublisherFromListenerList(String mainTrackId, String streamId) {
+		synchronized(this) {
+			try {
+				if (streamId != null) {
+					return datastore.find(Broadcast.class)
+							.filter(Filters.eq(STREAM_ID, mainTrackId))
+							.update(UpdateOperators.addToSet("publisherFromListenerList", streamId))
+							.execute()
+							.getMatchedCount() == 1;
+				}
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean removeFromPublisherFromListenerList(String mainTrackId, String streamId) {
+		synchronized(this) {
+			try {
+				if (streamId != null) {
+					return datastore.find(Broadcast.class)
+							.filter(Filters.eq(STREAM_ID, mainTrackId))
+							.update(UpdateOperators.pullAll("publisherFromListenerList", Arrays.asList(streamId)))
+							.execute()
+							.getMatchedCount() == 1;
+				}
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean addIntoPresenterList(String mainTrackId, String streamId) {
+		synchronized(this) {
+			try {
+				if (streamId != null) {
+					return datastore.find(Broadcast.class)
+							.filter(Filters.eq(STREAM_ID, mainTrackId))
+							.update(UpdateOperators.addToSet("presenterList", streamId))
+							.execute()
+							.getMatchedCount() == 1;
+				}
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean removeFromPresenterList(String mainTrackId, String streamId) {
+		synchronized(this) {
+			try {
+				if (streamId != null) {
+					return datastore.find(Broadcast.class)
+							.filter(Filters.eq(STREAM_ID, mainTrackId))
+							.update(UpdateOperators.pullAll("presenterList", Arrays.asList(streamId)))
+							.execute()
+							.getMatchedCount() == 1;
+				}
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean addIntoAdminList(String mainTrackId, String streamId) {
+		synchronized(this) {
+			try {
+				if (streamId != null) {
+					return datastore.find(Broadcast.class)
+							.filter(Filters.eq(STREAM_ID, mainTrackId))
+							.update(UpdateOperators.addToSet("adminList", streamId))
+							.execute()
+							.getMatchedCount() == 1;
+				}
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean removeFromAdminList(String mainTrackId, String streamId) {
+		synchronized(this) {
+			try {
+				if (streamId != null) {
+					return datastore.find(Broadcast.class)
+							.filter(Filters.eq(STREAM_ID, mainTrackId))
+							.update(UpdateOperators.pullAll("adminList", Arrays.asList(streamId)))
+							.execute()
+							.getMatchedCount() == 1;
+				}
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
+
+	@Override
 	public boolean addSubTrack(String mainTrackId, String subTrackId) {
 		synchronized(this) {
 			try {
 				if (subTrackId != null) {
 					return datastore.find(Broadcast.class)
 							.filter(Filters.eq(STREAM_ID, mainTrackId))
-							.update(UpdateOperators.push("subTrackStreamIds", subTrackId))
+							.update(UpdateOperators.addToSet("subTrackStreamIds", subTrackId))
 							.execute()
 							.getMatchedCount() == 1;
 				}

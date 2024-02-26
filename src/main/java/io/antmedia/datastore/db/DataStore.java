@@ -35,6 +35,8 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 
+import static dev.morphia.query.updates.UpdateOperators.set;
+
 public abstract class DataStore {
 
 
@@ -987,6 +989,21 @@ public abstract class DataStore {
 			broadcast.setMetaData(newBroadcast.getMetaData());
 		}
 
+		if (newBroadcast.getPublisherRequestList() != null) {
+			broadcast.setPublisherRequestList(newBroadcast.getPublisherRequestList());
+		}
+
+		if (newBroadcast.getPublisherFromListenerList() != null) {
+			broadcast.setPublisherFromListenerList(newBroadcast.getPublisherFromListenerList());
+		}
+
+		if (newBroadcast.getPresenterList() != null) {
+			broadcast.setPresenterList(newBroadcast.getPresenterList());
+		}
+
+		if (newBroadcast.getAdminList() != null) {
+			broadcast.setAdminList(newBroadcast.getAdminList());
+		}
 
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
@@ -1254,6 +1271,70 @@ public abstract class DataStore {
 	 * @return boolean - success 
 	 */
 	public abstract boolean deleteP2PConnection(String streamId);
+
+	/**
+	 * Add a stream into publisher request list
+	 * @param mainTrackId - main track id
+	 * @param streamId - stream id
+	 * @return boolean - success
+	 */
+	public abstract boolean addIntoPublisherRequestList(String mainTrackId, String streamId);
+
+	/**
+	 * Remove a stream from publisher request list
+	 * @param mainTrackId - main track id
+	 * @param streamId - stream id
+	 * @return boolean - success
+	 */
+	public abstract boolean removeFromPublisherRequestList(String mainTrackId, String streamId);
+
+	/**
+	 * Add a stream into publisher from listener list
+	 * @param mainTrackId - main track id
+	 * @param streamId - stream id
+	 * @return boolean - success
+	 */
+	public abstract boolean addIntoPublisherFromListenerList(String mainTrackId, String streamId);
+
+	/**
+	 * Remove a stream from publisher from listener list
+	 * @param mainTrackId - main track id
+	 * @param streamId - stream id
+	 * @return boolean - success
+	 */
+	public abstract boolean removeFromPublisherFromListenerList(String mainTrackId, String streamId);
+
+	/**
+	 * Add a stream into presenter list
+	 * @param mainTrackId - main track id
+	 * @param streamId - stream id
+	 * @return boolean - success
+	 */
+	public abstract boolean addIntoPresenterList(String mainTrackId, String streamId);
+
+	/**
+	 * Remove a stream from presenter list
+	 * @param mainTrackId - main track id
+	 * @param streamId - stream id
+	 * @return boolean - success
+	 */
+	public abstract boolean removeFromPresenterList(String mainTrackId, String streamId);
+
+	/**
+	 * Add a stream into admin list
+	 * @param mainTrackId - main track id
+	 * @param streamId - stream id
+	 * @return boolean - success
+	 */
+	public abstract boolean addIntoAdminList(String mainTrackId, String streamId);
+
+	/**
+	 * Remove a stream from admin list
+	 * @param mainTrackId - main track id
+	 * @param streamId - stream id
+	 * @return boolean - success
+	 */
+	public abstract boolean removeFromAdminList(String mainTrackId, String streamId);
 
 	/**
 	 * Add a subtrack id to a main track (broadcast)

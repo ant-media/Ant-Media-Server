@@ -1018,14 +1018,14 @@ public abstract class RestServiceBase {
 		Result result=new Result(false);
 
 		if(checkStreamUrl(stream.getStreamUrl())) {
-			
+
 			//small improvement for user experience
 			boolean isVoD = stream.getStreamUrl().startsWith("http") && (stream.getStreamUrl().endsWith("mp4") || stream.getStreamUrl().endsWith("webm") || stream.getStreamUrl().endsWith("flv"));
-			
+
 			if (isVoD) {
 				stream.setType(AntMediaApplicationAdapter.VOD);
 			}
-			
+
 			Date currentDate = new Date();
 			long unixTime = currentDate.getTime();
 
@@ -1444,20 +1444,20 @@ public abstract class RestServiceBase {
 		}
 
 
-		if (index < broadcast.getPlayListItemList().size()) 
-		{	
+		if (index < broadcast.getPlayListItemList().size())
+		{
 			StreamFetcher streamFetcher = getApplication().getStreamFetcherManager().getStreamFetcher(id);
-			if (streamFetcher != null) 
-			{	
+			if (streamFetcher != null)
+			{
 				IStreamFetcherListener streamFetcherListener = streamFetcher.getStreamFetcherListener();
 				//don't let the streamFetcherListener be called again because it already automatically plays the next item
-				
+
 				streamFetcher.setStreamFetcherListener(null);
-				
+
 				if (logger.isInfoEnabled()) {
 					logger.info("Switching to next item by REST method for playlist:{} and forwarding stream fetcher listener:{}", id.replaceAll("[\n\r]", "_"), streamFetcherListener.hashCode());
 				}
-				
+
 				result = getApplication().getStreamFetcherManager().playItemInList(broadcast, streamFetcherListener, index);
 			}
 			else {
@@ -1862,6 +1862,293 @@ public abstract class RestServiceBase {
 		return true;
 	}
 
+	public static void setResultSuccess(Result result, boolean success, String failMessage, String failLog, String... arguments)
+	{
+		if (success) {
+			result.setSuccess(true);
+		}
+		else {
+			result.setSuccess(false);
+			result.setMessage(failMessage);
+		}
+	}
+
+	public static void logWarning(String message, String... arguments) {
+		if (logger.isWarnEnabled()) {
+			logger.warn(message , arguments);
+		}
+	}
+
+	public static Result addIntoPublisherRequestList(String mainTrackId, String streamId, DataStore store) {
+		Result result = new Result(false);
+		Broadcast broadcast = store.get(streamId);
+		String message = "";
+		if (broadcast != null)
+		{
+			boolean success = store.addIntoPublisherRequestList(mainTrackId, streamId);
+
+			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be added to publisher request list on: " + mainTrackId,
+					"Stream:{} cannot be added to publisher request list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
+		}
+		else
+		{
+			message = "There is not stream with id:" + streamId;
+			logWarning("There is not stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+		}
+		result.setMessage(message);
+		return result;
+	}
+
+	public static Result removeFromPublisherRequestList(String mainTrackId, String streamId,DataStore store) {
+		Result result = new Result(false);
+		Broadcast broadcast = store.get(streamId);
+		if (broadcast != null)
+		{
+
+			boolean success = store.removeFromPublisherRequestList(mainTrackId, streamId);
+
+			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be removed from publisher request list on: " + mainTrackId,
+					"Stream:{} cannot be removed from publisher request list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId != null ? mainTrackId.replaceAll(REPLACE_CHARS, "_") : null);
+		}
+		else
+		{
+			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + streamId, "There is no stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+		}
+
+		return result;
+	}
+
+	public static Result addIntoPublisherFromListenerList(String mainTrackId, String streamId, DataStore store) {
+		Result result = new Result(false);
+		Broadcast broadcast = store.get(streamId);
+		String message = "";
+		if (broadcast != null)
+		{
+			boolean success = store.addIntoPublisherFromListenerList(mainTrackId, streamId);
+
+			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be added to publisher from listener list on: " + mainTrackId,
+					"Stream:{} cannot be added to publisher from listener list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
+		}
+		else
+		{
+			message = "There is not stream with id:" + streamId;
+			logWarning("There is not stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+		}
+		result.setMessage(message);
+		return result;
+	}
+
+	public static Result removeFromPublisherFromListenerList(String mainTrackId, String streamId,DataStore store) {
+		Result result = new Result(false);
+		Broadcast broadcast = store.get(streamId);
+		if (broadcast != null)
+		{
+
+			boolean success = store.removeFromPublisherFromListenerList(mainTrackId, streamId);
+
+			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be removed from publisher from listener list on: " + mainTrackId,
+					"Stream:{} cannot be removed from publisher from listener list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId != null ? mainTrackId.replaceAll(REPLACE_CHARS, "_") : null);
+		}
+		else
+		{
+			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + streamId, "There is no stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+		}
+
+		return result;
+	}
+
+	public static Result addIntoPresenterList(String mainTrackId, String streamId, DataStore store) {
+		Result result = new Result(false);
+		Broadcast broadcast = store.get(streamId);
+		String message = "";
+		if (broadcast != null)
+		{
+			boolean success = store.addIntoPresenterList(mainTrackId, streamId);
+
+			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be added to presenter list on: " + mainTrackId,
+					"Stream:{} cannot be added to presenter list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
+		}
+		else
+		{
+			message = "There is not stream with id:" + streamId;
+			logWarning("There is not stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+		}
+		result.setMessage(message);
+		return result;
+	}
+
+	public static Result removeFromPresenterList(String mainTrackId, String streamId,DataStore store) {
+		Result result = new Result(false);
+		Broadcast broadcast = store.get(streamId);
+		if (broadcast != null)
+		{
+
+			boolean success = store.removeFromPresenterList(mainTrackId, streamId);
+
+			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be removed from presenter list on: " + mainTrackId,
+					"Stream:{} cannot be removed from presenter list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId != null ? mainTrackId.replaceAll(REPLACE_CHARS, "_") : null);
+		}
+		else
+		{
+			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + streamId, "There is no stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+		}
+
+		return result;
+	}
+
+	public static Result addIntoAdminList(String mainTrackId, String streamId, DataStore store) {
+		Result result = new Result(false);
+		Broadcast broadcast = store.get(streamId);
+		String message = "";
+		if (broadcast != null)
+		{
+			boolean success = store.addIntoAdminList(mainTrackId, streamId);
+
+			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be added to admin list on: " + mainTrackId,
+					"Stream:{} cannot be added to admin list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
+		}
+		else
+		{
+			message = "There is not stream with id:" + streamId;
+			logWarning("There is not stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+		}
+		result.setMessage(message);
+		return result;
+	}
+
+	public static Result removeFromAdminList(String mainTrackId, String streamId,DataStore store) {
+		Result result = new Result(false);
+		Broadcast broadcast = store.get(streamId);
+		if (broadcast != null)
+		{
+
+			boolean success = store.removeFromAdminList(mainTrackId, streamId);
+
+			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be removed from admin list on: " + mainTrackId,
+					"Stream:{} cannot be removed from admin list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId != null ? mainTrackId.replaceAll(REPLACE_CHARS, "_") : null);
+		}
+		else
+		{
+			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + streamId, "There is no stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+		}
+
+		return result;
+	}
+
+	public static Result addSubTrack(String id, String subTrackId,DataStore store) {
+		Result result = new Result(false);
+		Broadcast subTrack = store.get(subTrackId);
+		String message = "";
+		if (subTrack != null)
+		{
+			subTrack.setMainTrackStreamId(id);
+			//Update subtrack's main Track Id
+
+			boolean success = store.updateBroadcastFields(subTrackId, subTrack);
+			if (success) {
+				success = store.addSubTrack(id, subTrackId);
+
+				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id,
+						"Subtrack:{} cannot be added to main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+
+				if (success) {
+					//if it's a room, add it to the room as well
+					//Ugly fix
+					//REFACTOR: Migrate conference room to Broadcast object by keeping the interface backward compatible
+					addStreamToConferenceRoom(id, subTrackId, store);
+				}
+
+			}
+			else
+
+			{
+				message = "Main track of the stream " + subTrackId + " cannot be updated";
+				logWarning("Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+			}
+		}
+		else
+		{
+			message = "There is not stream with id:" + subTrackId;
+			logWarning("There is not stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
+		}
+		result.setMessage(message);
+		return result;
+	}
+
+	public static Result removeSubTrack(String id, String subTrackId,DataStore store) {
+		Result result = new Result(false);
+		Broadcast subTrack = store.get(subTrackId);
+		if (subTrack != null)
+		{
+			if(id != null && id.equals(subTrack.getMainTrackStreamId())) {
+				subTrack.setMainTrackStreamId("");
+			}
+
+			boolean success = store.updateBroadcastFields(subTrackId, subTrack);
+			if (success) {
+				success = store.removeSubTrack(id, subTrackId);
+
+				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be removed from main track: " + id,
+						"Subtrack:{} cannot be removed from main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
+
+			}
+			else
+			{
+				RestServiceBase.setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be updated",
+						"Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
+			}
+		}
+		else
+		{
+			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + subTrackId, "There is no stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
+		}
+
+		return result;
+	}
+
+	public static boolean isMainTrack(String streamId, DataStore store) {
+		boolean result = false;
+		if (streamId != null)
+		{
+			Broadcast broadcast = store.get(streamId);
+			if (broadcast != null)
+			{
+				result = !broadcast.getSubTrackStreamIds().isEmpty();
+			}
+		}
+
+		return result;
+
+	}
+
+	public static Result sendDataChannelMessage(String id, String message, AntMediaApplicationAdapter application, DataStore store)
+	{
+		// check if WebRTC data channels are supported in this edition
+		if(application != null && application.isDataChannelMessagingSupported()) {
+			// check if data channel is enabled in the settings
+			if(application.isDataChannelEnabled()) {
+				// check if stream with given stream id exists
+				if(application.doesWebRTCStreamExist(id) || RestServiceBase.isMainTrack(id, store)) {
+					// send the message through the application
+					boolean status = application.sendDataChannelMessage(id,message);
+					if(status) {
+						return new Result(true);
+					} else {
+						return new Result(false, "Operation not completed");
+					}
+
+				} else {
+					return new Result(false, "Requested WebRTC stream does not exist");
+				}
+
+			} else {
+				return new Result(false, "Data channels are not enabled");
+			}
+
+		} else {
+			return new Result(false, "Operation not supported in the Community Edition. Check the Enterprise version for more features.");
+		}
+	}
 
 	public static synchronized boolean removeStreamFromRoom(String roomId, String streamId,DataStore store)
 	{

@@ -975,6 +975,143 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
+	public boolean addIntoPublisherRequestList(String mainTrackId, String streamId) {
+		boolean result = false;
+		Broadcast mainTrack = broadcastMap.get(mainTrackId);
+		if (mainTrack != null && streamId != null) {
+			List<String> publisherRequestList = mainTrack.getPublisherRequestList();
+			if (publisherRequestList == null) {
+				publisherRequestList = new ArrayList<>();
+			}
+			if (!publisherRequestList.contains(streamId)) {
+				publisherRequestList.add(streamId);
+				mainTrack.setPublisherRequestList(publisherRequestList);
+				broadcastMap.put(mainTrackId, mainTrack);
+				result = true;
+			}
+			result = true;
+		}
+		return result;
+	}
+
+	@Override
+	public boolean removeFromPublisherRequestList(String mainTrackId, String streamId) {
+		boolean result = false;
+		Broadcast mainTrack = broadcastMap.get(mainTrackId);
+		if (mainTrack != null && streamId != null) {
+			List<String> publisherRequestList = mainTrack.getPublisherRequestList();
+			if(publisherRequestList.remove(streamId)) {
+				mainTrack.setPublisherRequestList(publisherRequestList);
+				broadcastMap.put(mainTrackId, mainTrack);
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean addIntoPublisherFromListenerList(String mainTrackId, String streamId) {
+		boolean result = false;
+		Broadcast mainTrack = broadcastMap.get(mainTrackId);
+		if (mainTrack != null && streamId != null) {
+			List<String> publisherFromListenerList = mainTrack.getPublisherFromListenerList();
+			if (publisherFromListenerList == null) {
+				publisherFromListenerList = new ArrayList<>();
+			}
+			if (!publisherFromListenerList.contains(streamId)) {
+				publisherFromListenerList.add(streamId);
+				mainTrack.setPublisherFromListenerList(publisherFromListenerList);
+				broadcastMap.put(mainTrackId, mainTrack);
+			}
+			result = true;
+		}
+		return result;
+	}
+
+	@Override
+	public boolean removeFromPublisherFromListenerList(String mainTrackId, String streamId) {
+		boolean result = false;
+		Broadcast mainTrack = broadcastMap.get(mainTrackId);
+		if (mainTrack != null && streamId != null) {
+			List<String> publisherFromListenerList = mainTrack.getPublisherFromListenerList();
+			if(publisherFromListenerList.remove(streamId)) {
+				mainTrack.setPublisherFromListenerList(publisherFromListenerList);
+				broadcastMap.put(mainTrackId, mainTrack);
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean addIntoPresenterList(String mainTrackId, String streamId) {
+		boolean result = false;
+		Broadcast mainTrack = broadcastMap.get(mainTrackId);
+		if (mainTrack != null && streamId != null) {
+			List<String> presenterList = mainTrack.getPresenterList();
+			if (presenterList == null) {
+				presenterList = new ArrayList<>();
+			}
+			if (!presenterList.contains(streamId)) {
+				presenterList.add(streamId);
+				mainTrack.setPresenterList(presenterList);
+				broadcastMap.put(mainTrackId, mainTrack);
+			}
+			result = true;
+		}
+		return result;
+	}
+
+	@Override
+	public boolean removeFromPresenterList(String mainTrackId, String streamId) {
+		boolean result = false;
+		Broadcast mainTrack = broadcastMap.get(mainTrackId);
+		if (mainTrack != null && streamId != null) {
+			List<String> presenterList = mainTrack.getPresenterList();
+			if(presenterList.remove(streamId)) {
+				mainTrack.setPresenterList(presenterList);
+				broadcastMap.put(mainTrackId, mainTrack);
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	@Override
+	public boolean addIntoAdminList(String mainTrackId, String streamId) {
+		boolean result = false;
+		Broadcast mainTrack = broadcastMap.get(mainTrackId);
+		if (mainTrack != null && streamId != null) {
+			List<String> adminList = mainTrack.getAdminList();
+			if (adminList == null) {
+				adminList = new ArrayList<>();
+			}
+			if (!adminList.contains(streamId)) {
+				adminList.add(streamId);
+				mainTrack.setAdminList(adminList);
+				broadcastMap.put(mainTrackId, mainTrack);
+			}
+			result = true;
+		}
+		return result;
+	}
+
+	@Override
+	public boolean removeFromAdminList(String mainTrackId, String streamId) {
+		boolean result = false;
+		Broadcast mainTrack = broadcastMap.get(mainTrackId);
+		if (mainTrack != null && streamId != null) {
+			List<String> adminList = mainTrack.getAdminList();
+			if(adminList.remove(streamId)) {
+				mainTrack.setAdminList(adminList);
+				broadcastMap.put(mainTrackId, mainTrack);
+				result = true;
+			}
+		}
+		return result;
+	}
+
+	@Override
 	public boolean addSubTrack(String mainTrackId, String subTrackId) {
 		boolean result = false;
 		Broadcast mainTrack = broadcastMap.get(mainTrackId);
@@ -983,9 +1120,11 @@ public class InMemoryDataStore extends DataStore {
 			if (subTracks == null) {
 				subTracks = new ArrayList<>();
 			}
-			subTracks.add(subTrackId);
-			mainTrack.setSubTrackStreamIds(subTracks);
-			broadcastMap.put(mainTrackId, mainTrack);
+			if (!subTracks.contains(subTrackId)) {
+				subTracks.add(subTrackId);
+				mainTrack.setSubTrackStreamIds(subTracks);
+				broadcastMap.put(mainTrackId, mainTrack);
+			}
 			result = true;
 		}
 		return result;

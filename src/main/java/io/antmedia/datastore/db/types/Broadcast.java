@@ -200,6 +200,18 @@ public class Broadcast {
 	@ApiModelProperty(value = "WebM muxing whether enabled or not for the stream, 1 means enabled, -1 means disabled, 0 means no settings for the stream")
 	private int webMEnabled = 0;
 
+	@ApiModelProperty(value = "the list of the play only users who requested to publish the stream")
+	List<String> publisherRequestList = new ArrayList<String>();
+
+	@ApiModelProperty(value = "the list of the users who are approved to publish the stream")
+	List<String> publisherFromListenerList = new ArrayList<String>();
+
+	@ApiModelProperty(value = "the list of the presenter users")
+	List<String> presenterList = new ArrayList<String>();
+
+	@ApiModelProperty(value = "the list of the admin users")
+	List<String> adminList = new ArrayList<String>();
+
 	@Entity
 	public static class PlayListItem
 	{
@@ -821,4 +833,35 @@ public class Broadcast {
 		this.updateTime = updateTime;
 	}
 
+	public List<String> getPublisherRequestList() {
+		return publisherRequestList;
+	}
+
+	public void setPublisherRequestList(List<String> publisherRequestList) {
+		this.publisherRequestList = publisherRequestList;
+	}
+
+	public List<String> getPublisherFromListenerList() {
+		return publisherFromListenerList;
+	}
+
+	public void setPublisherFromListenerList(List<String> publisherFromListenerList) {
+		this.publisherFromListenerList = publisherFromListenerList;
+	}
+
+	public List<String> getPresenterList() {
+		return presenterList;
+	}
+
+	public void setPresenterList(List<String> presenterList) {
+		this.presenterList = presenterList;
+	}
+
+	public List<String> getAdminList() {
+		return adminList;
+	}
+
+	public void setAdminList(List<String> adminList) {
+		this.adminList = adminList;
+	}
 }
