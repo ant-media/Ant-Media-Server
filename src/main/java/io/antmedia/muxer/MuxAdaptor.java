@@ -86,7 +86,7 @@ import io.vertx.core.Vertx;
 public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
-	public static final int STAT_UPDATE_PERIOD_MS = 5000;
+	public static final int STAT_UPDATE_PERIOD_MS = 10000;
 
 
 	public static final String ADAPTIVE_SUFFIX = "_adaptive";
