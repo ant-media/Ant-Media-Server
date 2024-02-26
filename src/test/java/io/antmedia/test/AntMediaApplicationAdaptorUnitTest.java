@@ -811,42 +811,39 @@ public class AntMediaApplicationAdaptorUnitTest {
 		notifyHook = spyAdaptor.notifyHook(url, id, action, streamName, category, vodName, vodId, null);
 		assertNull(notifyHook);
 
-			ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
-			ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
-			ArgumentCaptor<Integer> retryAttempts = ArgumentCaptor.forClass(Integer.class);
-			Mockito.verify(spyAdaptor).sendPOST(captureUrl.capture(), variables.capture(), retryAttempts.capture());
-			assertEquals(url, captureUrl.getValue());
+		ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
+		ArgumentCaptor<Integer> retryAttempts = ArgumentCaptor.forClass(Integer.class);
+		Mockito.verify(spyAdaptor).sendPOST(captureUrl.capture(), variables.capture(), retryAttempts.capture());
+		assertEquals(url, captureUrl.getValue());
 
-			Map variablesMap = variables.getValue();
-			assertEquals(id, variablesMap.get("id"));
-			assertEquals(action, variablesMap.get("action"));
-			assertEquals(streamName, variablesMap.get("streamName"));
-			assertEquals(category, variablesMap.get("category"));
-			assertEquals(vodName, variablesMap.get("vodName"));
-			assertEquals(vodId, variablesMap.get("vodId"));
-
-
+		Map variablesMap = variables.getValue();
+		assertEquals(id, variablesMap.get("id"));
+		assertEquals(action, variablesMap.get("action"));
+		assertEquals(streamName, variablesMap.get("streamName"));
+		assertEquals(category, variablesMap.get("category"));
+		assertEquals(vodName, variablesMap.get("vodName"));
+		assertEquals(vodId, variablesMap.get("vodId"));
 
 
 		url = "this is second  url";
 		notifyHook = spyAdaptor.notifyHook(url, id, null, null, null, null, null, null);
 		assertNull(notifyHook);
 
-			ArgumentCaptor<String> captureUrl2 = ArgumentCaptor.forClass(String.class);
-			ArgumentCaptor<Map> variables2 = ArgumentCaptor.forClass(Map.class);
-			ArgumentCaptor<Integer> retryAttempts2 = ArgumentCaptor.forClass(Integer.class);
+		ArgumentCaptor<String> captureUrl2 = ArgumentCaptor.forClass(String.class);
+		ArgumentCaptor<Map> variables2 = ArgumentCaptor.forClass(Map.class);
+		ArgumentCaptor<Integer> retryAttempts2 = ArgumentCaptor.forClass(Integer.class);
 
-			Mockito.verify(spyAdaptor, Mockito.times(2)).sendPOST(captureUrl2.capture(), variables2.capture(), retryAttempts2.capture());
-			assertEquals(url, captureUrl2.getValue());
+		Mockito.verify(spyAdaptor, Mockito.times(2)).sendPOST(captureUrl2.capture(), variables2.capture(), retryAttempts2.capture());
+		assertEquals(url, captureUrl2.getValue());
 
-			Map variablesMap2 = variables2.getValue();
-			assertEquals(id, variablesMap2.get("id"));
-			assertNull(variablesMap2.get("action"));
-			assertNull(variablesMap2.get("streamName"));
-			assertNull(variablesMap2.get("category"));
-			assertNull(variablesMap2.get("vodName"));
-			assertNull(variablesMap2.get("vodId"));
-
+		Map variablesMap2 = variables2.getValue();
+		assertEquals(id, variablesMap2.get("id"));
+		assertNull(variablesMap2.get("action"));
+		assertNull(variablesMap2.get("streamName"));
+		assertNull(variablesMap2.get("category"));
+		assertNull(variablesMap2.get("vodName"));
+		assertNull(variablesMap2.get("vodId"));
 
 
 	}

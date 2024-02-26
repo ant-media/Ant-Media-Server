@@ -732,10 +732,6 @@ public class AppSettings implements Serializable{
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
 
-	private static final String SETTINGS_WEBHOOK_RETRY_COUNT = "settings.webHookRetryCount";
-
-	private static final String SETTINGS_WEBHOOK_RETRY_DELAY = "settings.webHookRetryDelay";
-
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -2102,13 +2098,13 @@ public class AppSettings implements Serializable{
 	/**
 	 * Retry count on webhook POST failure
 	 */
-	@Value("${webhookRetryCount:${"+SETTINGS_WEBHOOK_RETRY_COUNT+":0}}")
+	@Value("${webhookRetryCount:0}")
 	private int webhookRetryCount = 0;
 
 	/**
 	 * Delay in milliseconds between webhook attempts on POST failure.
 	 */
-	@Value("${webhookRetryAttemptDelay:${"+SETTINGS_WEBHOOK_RETRY_DELAY+":1000}}")
+	@Value("${webhookRetryAttemptDelay:1000}")
 	private long webhookRetryDelay = 1000;
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
