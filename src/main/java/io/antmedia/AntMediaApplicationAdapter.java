@@ -11,6 +11,9 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.validation.constraints.NotNull;
@@ -86,7 +89,6 @@ import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
-import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";
@@ -875,66 +877,63 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public StringBuilder sendPOST(String url, Map<String, String> variables, int retryAttempts) {
-			logger.info("Sending POST request to {}", url);
-			StringBuilder response = null;
-			try (CloseableHttpClient httpClient = getHttpClient()) {
-				HttpPost httpPost = new HttpPost(url);
-				RequestConfig requestConfig = RequestConfig.custom()
-						.setConnectTimeout(2000)
-						.setConnectionRequestTimeout(2000)
-						.setSocketTimeout(2000)
-						.build();
-				httpPost.setConfig(requestConfig);
-				List<NameValuePair> urlParameters = new ArrayList<>();
-				Set<Entry<String, String>> entrySet = variables.entrySet();
-				for (Entry<String, String> entry : entrySet) {
-					urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
-				}
-
-				HttpEntity postParams = new UrlEncodedFormEntity(urlParameters);
-				httpPost.setEntity(postParams);
-
-				try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
-					int statusCode = httpResponse.getStatusLine().getStatusCode();
-					logger.info("POST Response Status: {}", statusCode);
-					HttpEntity entity = httpResponse.getEntity();
-					if(entity != null){
-						BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
-
-						String inputLine;
-						response = new StringBuilder();
-
-						while ((inputLine = reader.readLine()) != null) {
-							response.append(inputLine);
-						}
-						reader.close();
-
-					}
-
-					if (statusCode != HttpStatus.SC_OK) {
-						if(!(retryAttempts - 1 < 0)){
-							logger.info("Retry attempt for POST in {} milliseconds due to non-200 response: {}" , appSettings.getWebhookRetryDelay(), statusCode);
-							retrySendPostWithDelay(url, variables, retryAttempts - 1);
-						}else if(appSettings.getWebhookRetryCount() != 0){
-							logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
-						}
-					}
-					return response;
-
-				}
-			} catch (IOException e) {
-				if(!(retryAttempts - 1 < 0)) {
-					logger.info("Retry attempt for POST in {} milliseconds due to IO exception: {}", appSettings.getWebhookRetryDelay(), e.getMessage());
-					retrySendPostWithDelay(url, variables, retryAttempts - 1);
-				}else if(appSettings.getWebhookRetryCount() != 0){
-					logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
-				}
+		logger.info("Sending POST request to {}", url);
+		StringBuilder response = null;
+		try (CloseableHttpClient httpClient = getHttpClient()) {
+			HttpPost httpPost = new HttpPost(url);
+			RequestConfig requestConfig = RequestConfig.custom()
+					.setConnectTimeout(2000)
+					.setConnectionRequestTimeout(2000)
+					.setSocketTimeout(2000)
+					.build();
+			httpPost.setConfig(requestConfig);
+			List<NameValuePair> urlParameters = new ArrayList<>();
+			Set<Entry<String, String>> entrySet = variables.entrySet();
+			for (Entry<String, String> entry : entrySet) {
+				urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
 			}
-			return null;
+
+			HttpEntity postParams = new UrlEncodedFormEntity(urlParameters);
+			httpPost.setEntity(postParams);
+
+			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
+				int statusCode = httpResponse.getStatusLine().getStatusCode();
+				logger.info("POST Response Status: {}", statusCode);
+				HttpEntity entity = httpResponse.getEntity();
+				if (entity != null) {
+					BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
+
+					String inputLine;
+					response = new StringBuilder();
+
+					while ((inputLine = reader.readLine()) != null) {
+						response.append(inputLine);
+					}
+					reader.close();
+				}
+
+				if (statusCode != HttpStatus.SC_OK) {
+					if (!(retryAttempts - 1 < 0)) {
+						logger.info("Retry attempt for POST in {} milliseconds due to non-200 response: {}", appSettings.getWebhookRetryDelay(), statusCode);
+						retrySendPostWithDelay(url, variables, retryAttempts - 1);
+					} else if (appSettings.getWebhookRetryCount() != 0) {
+						logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
+					}
+				}
+				return response;
+			}
+		} catch (IOException e) {
+			if (!(retryAttempts - 1 < 0)) {
+				logger.info("Retry attempt for POST in {} milliseconds due to IO exception: {}", appSettings.getWebhookRetryDelay(), e.getMessage());
+				retrySendPostWithDelay(url, variables, retryAttempts - 1);
+			} else if (appSettings.getWebhookRetryCount() != 0) {
+				logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
+			}
+		}
+		return null;
 	}
 
 	public void retrySendPostWithDelay(String url, Map<String, String> variables, int retryAttempts) {
-		System.out.println("RETRY SEND POST WITH DELAY!!");
 		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
 			sendPOST(url, variables, retryAttempts);
 		});

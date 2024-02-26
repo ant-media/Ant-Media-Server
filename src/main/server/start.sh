@@ -27,6 +27,8 @@
 #
 # -k: Kafka Address: Provide the Kafka URL address to collect data. (It must contain the port number. Example: localhost:9092)
 #
+# -j: Min JVM Heap Size(-Xms): Set the Min Java heap size (-Xms). Default value is 1g. (Example usage: ./start.sh -j 4g)
+#
 
 if [ -z "$RED5_HOME" ]; then
   BASEDIR=$(dirname "$0")
@@ -45,8 +47,10 @@ DB_USERNAME=
 DB_PASSWORD=
 LICENSE_KEY=
 
+# Set the default value for JVM_MEMORY_OPTIONS
+DEFAULT_MIN_HEAP_SIZE="1g"
 
-while getopts g:s:r:m:h:u:p:l:a:n:w:k:t option
+while getopts g:s:r:m:h:u:p:l:a:n:w:k:j:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
@@ -61,6 +65,7 @@ do
     n) TURN_USERNAME=${OPTARG};;
     w) TURN_PASSWORD=${OPTARG};;
     k) KAFKA_URL=${OPTARG};;
+    j) DEFAULT_MIN_HEAP_SIZE=${OPTARG};;
    esac
 done
 
@@ -70,6 +75,9 @@ if [ "$OS_NAME" = "Darwin" ]; then
   AMS_INSTALL_LOCATION=`pwd`
   SED_COMPATIBILITY='.bak'
 fi
+
+# Set JVM -Xms parameter
+JVM_MEMORY_OPTIONS="-Xms$DEFAULT_MIN_HEAP_SIZE"
 
 # Set use global IP
 sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $RED5_HOME/conf/red5.properties
@@ -192,7 +200,7 @@ echo "Running on " $OS
 # JAVA options
 # You can set JVM additional options here if you want
 if [ -z "$JVM_OPTS" ]; then
-    JVM_OPTS="-Xms256m -Djava.awt.headless=true -Xverify:none -XX:+HeapDumpOnOutOfMemoryError -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:MaxMetaspaceSize=128m  -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=10 -XX:ConcGCThreads=5 -Djava.system.class.loader=org.red5.server.classloading.ServerClassLoader -Xshare:off "
+    JVM_OPTS="$JVM_MEMORY_OPTIONS -Djava.awt.headless=true -Xverify:none -XX:+HeapDumpOnOutOfMemoryError -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:MaxMetaspaceSize=128m  -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=10 -XX:ConcGCThreads=5 -Djava.system.class.loader=org.red5.server.classloading.ServerClassLoader -Xshare:off "
 fi
 # Set up security options
 SECURITY_OPTS="-Djava.security.debug=failure -Djava.security.egd=file:/dev/./urandom"
@@ -258,4 +266,3 @@ elif [ "$RED5_MAINCLASS" = "org.red5.server.Shutdown" ]; then
     echo "Stopping Ant Media Server"
 fi
 exec "$JAVA" -Dred5.root="${RED5_HOME}" $JAVA_OPTS -cp "${RED5_CLASSPATH}" "$RED5_MAINCLASS" $RED5_OPTS 2>>${RED5_HOME}/log/antmedia-error.log
-
