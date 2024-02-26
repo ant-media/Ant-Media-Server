@@ -59,8 +59,6 @@ public class StreamFetcher {
 	private IScope scope;
 	private AntMediaApplicationAdapter appInstance;
 	private long[] lastSentDTS;
-	private long[] lastReceivedDTS;
-	private boolean[] outOfOrderPacketsAreRepeating;
 	private MuxAdaptor muxAdaptor = null;
 
 	/**
@@ -207,12 +205,8 @@ public class StreamFetcher {
 	public void initDTSArrays(int nbStreams) 
 	{
 		lastSentDTS = new long[nbStreams];
-		lastReceivedDTS = new long[nbStreams];
-		outOfOrderPacketsAreRepeating = new boolean[nbStreams];
 		for (int i = 0; i < lastSentDTS.length; i++) {
 			lastSentDTS[i] = -1;
-			lastReceivedDTS[i] = -1;
-			outOfOrderPacketsAreRepeating[i] = false;
 		}
 		
 		
@@ -692,37 +686,15 @@ public class StreamFetcher {
 			
 			if (lastSentDTS[packetIndex] >= pkt.dts()) 
 			{
-				//it may be corrupt packet or stream is restarted
+				//it may be corrupt packet
 				
-				if (outOfOrderPacketsAreRepeating[packetIndex] &&  lastReceivedDTS[packetIndex] < pkt.dts()) {
-					//outOfOrderPacketsAreRepating and 
-					//incoming dts is bigger than previous dts
-					//try to fix it by adding offset. This case may happen in really bad network cases or stream is restarted
-					pktDts = lastSentDTS[packetIndex] + pkt.dts() - lastReceivedDTS[packetIndex];
-				}
-				else 
-				{
-					
-					//just network fluctuations 
-					logger.info("last dts: {} is bigger than incoming dts: {} for stream index:{} -"
-							+ " If you see this log frequently and it's not related to playlist, you may TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings", 
-							lastSentDTS[packetIndex], pkt.dts(), packetIndex);
-					
-					pktDts = lastSentDTS[packetIndex] + 1;
-				}
+				logger.info("last dts: {} is bigger than incoming dts: {} for stream index:{} -"
+						+ " If you see this log frequently and it's not related to playlist, you may TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings", 
+						lastSentDTS[packetIndex], pkt.dts(), packetIndex);
 				
-				outOfOrderPacketsAreRepeating[packetIndex] = true;
-				
+				pkt.dts(lastSentDTS[packetIndex] + 1);				
 			}
-			else {
-				//reset packets out of order flag
-				outOfOrderPacketsAreRepeating[packetIndex] = false;						
-				pktDts = pkt.dts();
-			}
-			
-			lastReceivedDTS[packetIndex] = pkt.dts();
-			
-			pkt.dts(pktDts);
+						
 
 			lastSentDTS[packetIndex] = pkt.dts();
 
