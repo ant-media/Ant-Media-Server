@@ -2335,12 +2335,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(lastUpdateTime, broadcast2.getUpdateTime());
 
 
-		Awaitility.await().pollDelay(5100, TimeUnit.MILLISECONDS).atMost(6, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().pollDelay(MuxAdaptor.STAT_UPDATE_PERIOD_MS+1000, TimeUnit.MILLISECONDS)
+			.atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.MILLISECONDS).until(() -> {
 			muxAdaptor.updateStreamQualityParameters(streamId, null, 1.0123, 12120);
 			return true;
 		});
 
-		Awaitility.await().atMost(3, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS+1000, TimeUnit.MILLISECONDS).until(() -> {
 			Broadcast broadcastTmp = muxAdaptor.getDataStore().get(streamId);
 			logger.info("speed: {}", broadcastTmp.getSpeed());
 			return "1.012".equals(Double.toString(broadcastTmp.getSpeed()));
