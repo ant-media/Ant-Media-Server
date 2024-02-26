@@ -788,6 +788,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 	public void testNotifyHook() {
 
 		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWebhookRetryCount(2);
+		spyAdaptor.setAppSettings(appSettings);
 
 		StringBuilder notifyHook = spyAdaptor.notifyHook(null, null, null, null, null, null, null, null);
 		assertNull(notifyHook);

@@ -913,7 +913,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				}
 
 				if (statusCode != HttpStatus.SC_OK) {
-					if (!(retryAttempts - 1 < 0)) {
+					if (retryAttempts >= 1) {
 						logger.info("Retry attempt for POST in {} milliseconds due to non-200 response: {}", appSettings.getWebhookRetryDelay(), statusCode);
 						retrySendPostWithDelay(url, variables, retryAttempts - 1);
 					} else if (appSettings.getWebhookRetryCount() != 0) {
@@ -923,7 +923,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				return response;
 			}
 		} catch (IOException e) {
-			if (!(retryAttempts - 1 < 0)) {
+			if (retryAttempts >= 1) {
 				logger.info("Retry attempt for POST in {} milliseconds due to IO exception: {}", appSettings.getWebhookRetryDelay(), e.getMessage());
 				retrySendPostWithDelay(url, variables, retryAttempts - 1);
 			} else if (appSettings.getWebhookRetryCount() != 0) {
