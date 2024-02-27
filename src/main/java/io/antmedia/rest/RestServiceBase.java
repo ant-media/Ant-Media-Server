@@ -1881,7 +1881,7 @@ public abstract class RestServiceBase {
 
 	public static Result addIntoPublisherRequestList(String mainTrackId, String streamId, DataStore store) {
 		Result result = new Result(false);
-		Broadcast broadcast = store.get(streamId);
+		Broadcast broadcast = store.get(mainTrackId);
 		String message = "";
 		if (broadcast != null)
 		{
@@ -1901,7 +1901,7 @@ public abstract class RestServiceBase {
 
 	public static Result removeFromPublisherRequestList(String mainTrackId, String streamId,DataStore store) {
 		Result result = new Result(false);
-		Broadcast broadcast = store.get(streamId);
+		Broadcast broadcast = store.get(mainTrackId);
 		if (broadcast != null)
 		{
 
@@ -1920,7 +1920,7 @@ public abstract class RestServiceBase {
 
 	public static Result addIntoPublisherFromListenerList(String mainTrackId, String streamId, DataStore store) {
 		Result result = new Result(false);
-		Broadcast broadcast = store.get(streamId);
+		Broadcast broadcast = store.get(mainTrackId);
 		String message = "";
 		if (broadcast != null)
 		{
@@ -1940,7 +1940,7 @@ public abstract class RestServiceBase {
 
 	public static Result removeFromPublisherFromListenerList(String mainTrackId, String streamId,DataStore store) {
 		Result result = new Result(false);
-		Broadcast broadcast = store.get(streamId);
+		Broadcast broadcast = store.get(mainTrackId);
 		if (broadcast != null)
 		{
 
@@ -1959,7 +1959,7 @@ public abstract class RestServiceBase {
 
 	public static Result addIntoPresenterList(String mainTrackId, String streamId, DataStore store) {
 		Result result = new Result(false);
-		Broadcast broadcast = store.get(streamId);
+		Broadcast broadcast = store.get(mainTrackId);
 		String message = "";
 		if (broadcast != null)
 		{
@@ -1979,7 +1979,7 @@ public abstract class RestServiceBase {
 
 	public static Result removeFromPresenterList(String mainTrackId, String streamId,DataStore store) {
 		Result result = new Result(false);
-		Broadcast broadcast = store.get(streamId);
+		Broadcast broadcast = store.get(mainTrackId);
 		if (broadcast != null)
 		{
 
@@ -1998,7 +1998,7 @@ public abstract class RestServiceBase {
 
 	public static Result addIntoAdminList(String mainTrackId, String streamId, DataStore store) {
 		Result result = new Result(false);
-		Broadcast broadcast = store.get(streamId);
+		Broadcast broadcast = store.get(mainTrackId);
 		String message = "";
 		if (broadcast != null)
 		{
@@ -2018,7 +2018,7 @@ public abstract class RestServiceBase {
 
 	public static Result removeFromAdminList(String mainTrackId, String streamId,DataStore store) {
 		Result result = new Result(false);
-		Broadcast broadcast = store.get(streamId);
+		Broadcast broadcast = store.get(mainTrackId);
 		if (broadcast != null)
 		{
 
