@@ -158,7 +158,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	
 	protected ISubtrackPoller subtrackPoller;
 
-
 	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -225,7 +224,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if(appSettings.isStartStreamFetcherAutomatically()) {
 				List<Broadcast> streams = getDataStore().getExternalStreamsList();
 				logger.info("Stream source size: {}", streams.size());
-				streamFetcherManager.startStreams(streams);
+				for (Broadcast broadcast : streams) 
+				{
+					if (!broadcast.isAutoStartStopEnabled()) {
+						//start streaming is auto/stop is not enabled
+						streamFetcherManager.startStreaming(broadcast);
+					}
+				}
 			}
 			synchUserVoDFolder(null, appSettings.getVodFolder());
 		});
@@ -248,10 +253,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		setStorageclientSettings(appSettings);
 
+
 		logger.info("{} started", app.getName());
 
 		return true;
 	}
+
+
+
+
+
 
 	/**
 	 * This method is called after ungraceful shutdown
@@ -492,10 +503,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		try {
 			logger.info("Closing broadcast stream id: {}", streamId);
-			getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
 			Broadcast broadcast = getDataStore().get(streamId);
-
 			if (broadcast != null) {
+
+				getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
+				
+
 				final String listenerHookURL = getListenerHookURL(broadcast);
 				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
 					final String name = broadcast.getName();
@@ -984,8 +997,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public Result startStreaming(Broadcast broadcast) 
-	{		
+	{
 		Result result = new Result(false);
+
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)
@@ -1786,9 +1800,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		return isRemoved;
-
-
 	}
+	
+	
+
+
 
 	public void addFrameListener(String streamId, IFrameListener listener) {
 		//for enterprise
@@ -1864,7 +1880,5 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void setSubtrackPoller(ISubtrackPoller subtrackPoller) {
 		this.subtrackPoller = subtrackPoller;
 	}
-
-
 
 }

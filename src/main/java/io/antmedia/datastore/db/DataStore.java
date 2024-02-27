@@ -998,6 +998,7 @@ public abstract class DataStore {
 		broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
+		broadcast.setAutoStartStopEnabled(newBroadcast.isAutoStartStopEnabled());
 	}
 
 
@@ -1423,7 +1424,6 @@ public abstract class DataStore {
 	 * @return
 	 */
 	public abstract SubscriberMetadata getSubscriberMetaData(String subscriberId);
-	
 
 	//**************************************
 	//ATTENTION: Write function descriptions while adding new functions

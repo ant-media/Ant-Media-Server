@@ -13,7 +13,6 @@ import static org.mockito.Mockito.*;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
@@ -387,7 +386,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 		settings.setUpdateTime(1000);
 		newSettings.setUpdateTime(900);
 		assertFalse(spyAdapter.updateSettings(newSettings, false, true));
-
 	}
 
 	@Test
@@ -1626,13 +1624,13 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
 
-		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
-		verify(streamFetcherManager, times(1)).startStreams(broadcastListCaptor.capture());
+		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
+		verify(streamFetcherManager, times(1)).startStreaming(broadcastListCaptor.capture());
 
 		broadcast = dataStore.get(broadcast.getStreamId());
-		assertEquals(1,  broadcastListCaptor.getValue().size());
-		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().get(0).getStreamId());
-		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().get(0).getStatus());
+		assertNotNull(broadcastListCaptor.getValue());
+		assertEquals(broadcast.getStreamId(),  broadcastListCaptor.getValue().getStreamId());
+		assertEquals(broadcast.getStatus(),  broadcastListCaptor.getValue().getStatus());
 	}
 
 	@Test
@@ -1749,8 +1747,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		Awaitility.await().pollInterval(2,TimeUnit.SECONDS).atMost(3, TimeUnit.SECONDS).until(()-> true);
 
-		ArgumentCaptor<List<Broadcast>> broadcastListCaptor = ArgumentCaptor.forClass(List.class);
-		verify(streamFetcherManager, never()).startStreams(broadcastListCaptor.capture());
+		ArgumentCaptor<Broadcast> broadcastListCaptor = ArgumentCaptor.forClass(Broadcast.class);
+		verify(streamFetcherManager, never()).startStreaming(broadcastListCaptor.capture());
 	}
 	
 	
@@ -1997,6 +1995,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.stopApplication(true);
 		verify(dataStore, timeout(ClusterNode.NODE_UPDATE_PERIOD+1000)).close(true);
 	}
+
 
 	@Test
 	public void testGetWebRTCClientMap() {
