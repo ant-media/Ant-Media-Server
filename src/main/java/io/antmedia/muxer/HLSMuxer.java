@@ -126,12 +126,17 @@ public class HLSMuxer extends Muxer  {
 
 			if (StringUtils.isNotBlank(httpEndpoint)) 			
 			{
-				segmentFilename = httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + initialResourceNameWithoutExtension;
+				segmentFilename = httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + File.separator + initialResourceNameWithoutExtension;
 			}
 			else {
 				segmentFilename = file.getParentFile() + File.separator + initialResourceNameWithoutExtension;
 			}
+			
+			//remove double slashes with single slash because it may cause problems
+			segmentFilename = replaceDoubleSlashesWithSingleSlash(segmentFilename);
 			segmentFilename += SEGMENT_SUFFIX_TS;
+			
+			
 					
 			options.put("hls_segment_filename", segmentFilename);
 
@@ -153,7 +158,7 @@ public class HLSMuxer extends Muxer  {
 	{
 		if (StringUtils.isNotBlank(httpEndpoint))
 		{
-			return httpEndpoint + File.separator + initialResourceNameWithoutExtension  + extension;
+			return replaceDoubleSlashesWithSingleSlash(httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + File.separator + initialResourceNameWithoutExtension  + extension);
 		}
 		return super.getOutputURL();
 	}
@@ -275,7 +280,8 @@ public class HLSMuxer extends Muxer  {
 							}
 							if(uploadHLSToS3 && storageClient.isEnabled()) 
 							{
-								storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], deleteFileOnExit);
+								String path = replaceDoubleSlashesWithSingleSlash(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder : "" ) + File.separator + files[i].getName());
+								storageClient.save(path , files[i], deleteFileOnExit);
 							}
 							else if (deleteFileOnExit) 
 							{

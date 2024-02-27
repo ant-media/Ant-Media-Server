@@ -322,6 +322,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(1, mp4Muxer.getOutputFormatContext().nb_streams());
 
 	}
+	
+
 
 	@Test
 	public void testAddExtradata() {
@@ -707,6 +709,53 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
 		rtmpMuxer.init(appScope, "test", 0, null, 0);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
+
+	}
+	
+	@Test
+	public void testRecordMuxerS3Prefix() {
+		String s3Prefix = RecordMuxer.getS3Prefix("s3", null);
+		assertEquals("s3/", s3Prefix);
+		
+		s3Prefix = RecordMuxer.getS3Prefix("s3", "test");
+		assertEquals("s3/test/", s3Prefix);
+		
+		s3Prefix = RecordMuxer.getS3Prefix("s3/", "test/");
+		assertEquals("s3/test/", s3Prefix);
+	}
+	
+	@Test
+	public void testHLSMuxerGetOutputURLAndSegmentFilename() {
+		
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+
+		{
+			HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
+			String streamId = "streamId";
+			String subFolder = "subfolder";
+	
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
+	
+			
+			assertEquals("http://example.com/"+subFolder+"/"+streamId+".m3u8", hlsMuxer.getOutputURL());
+			assertEquals("http://example.com/"+subFolder+"/"+streamId+"%09d.ts", hlsMuxer.getSegmentFilename());
+		
+		}
+		
+		{
+			//add trailer slash
+			HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com/", false);
+			String streamId = "streamId";
+			String subFolder = "subfolder/";
+	
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
+	
+			
+			assertEquals("http://example.com/"+subFolder+streamId+".m3u8", hlsMuxer.getOutputURL());
+			assertEquals("http://example.com/"+subFolder+streamId+"%09d.ts", hlsMuxer.getSegmentFilename());
+			
+		}
+		
 
 	}
 
