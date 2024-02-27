@@ -683,8 +683,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			Mockito.when(httpResponse.getEntity()).thenReturn(null);
 
-			StringBuilder response = spyAdaptor.sendPOST("http://any_url", new HashMap(), appSettings.getWebhookRetryCount() );
-			assertNull(response);
+			spyAdaptor.sendPOST("http://any_url", new HashMap(), appSettings.getWebhookRetryCount() );
+
+			Mockito.verify(spyAdaptor, Mockito.times(0)).retrySendPostWithDelay(any(), any(), anyInt());
+
 
 			HttpEntity entity = Mockito.mock(HttpEntity.class);
 			InputStream is = new ByteArrayInputStream(ByteBuffer.allocate(10).array());
@@ -692,9 +694,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 			Mockito.when(httpResponse.getEntity()).thenReturn(entity);
 			HashMap map = new HashMap();
 			map.put("action", "action_any");
-			response = spyAdaptor.sendPOST("http://any_url", map, appSettings.getWebhookRetryCount());
-			assertNotNull(response);
-			assertEquals(10, response.length());
+			spyAdaptor.sendPOST("http://any_url", map, appSettings.getWebhookRetryCount());
+
+			Mockito.verify(spyAdaptor, Mockito.times(0)).retrySendPostWithDelay(any(), any(), anyInt());
 
 			appSettings.setWebhookRetryCount(1);
 

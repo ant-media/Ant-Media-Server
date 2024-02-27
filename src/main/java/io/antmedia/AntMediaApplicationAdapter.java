@@ -1,12 +1,9 @@
 package io.antmedia;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -18,8 +15,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import javax.validation.constraints.NotNull;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -31,8 +26,6 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.ConnectTimeoutException;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
@@ -889,9 +882,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return null;
 	}
 
-	public StringBuilder sendPOST(String url, Map<String, String> variables, int retryAttempts) {
+	public void sendPOST(String url, Map<String, String> variables, int retryAttempts) {
 		logger.info("Sending POST request to {}", url);
-		StringBuilder response = null;
 		try (CloseableHttpClient httpClient = getHttpClient()) {
 			HttpPost httpPost = new HttpPost(url);
 			RequestConfig requestConfig = RequestConfig.custom()
@@ -912,18 +904,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
 				int statusCode = httpResponse.getStatusLine().getStatusCode();
 				logger.info("POST Response Status: {}", statusCode);
-				HttpEntity entity = httpResponse.getEntity();
-				if (entity != null) {
-					BufferedReader reader = new BufferedReader(new InputStreamReader(httpResponse.getEntity().getContent()));
-
-					String inputLine;
-					response = new StringBuilder();
-
-					while ((inputLine = reader.readLine()) != null) {
-						response.append(inputLine);
-					}
-					reader.close();
-				}
 
 				if (statusCode != HttpStatus.SC_OK) {
 					if (retryAttempts >= 1) {
@@ -933,7 +913,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 						logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
 					}
 				}
-				return response;
 			}
 		} catch (IOException e) {
 			if (retryAttempts >= 1) {
@@ -943,7 +922,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
 			}
 		}
-		return null;
 	}
 
 	public void retrySendPostWithDelay(String url, Map<String, String> variables, int retryAttempts) {
