@@ -25,7 +25,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -275,14 +274,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	//NOSONAR because we need to keep the reference of the field
 	protected AVChannelLayout channelLayout;
 
-	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, boolean isSource, IScope scope) {
+	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, List<EncoderSettings> broadcastEncoderSettings, boolean isSource, IScope scope) {
 		MuxAdaptor muxAdaptor = null;
 		ApplicationContext applicationContext = scope.getContext().getApplicationContext();
 		boolean tryEncoderAdaptor = false;
 		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
 			AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
-			List<EncoderSettings> list = appSettings.getEncoderSettings();
-			if ((list != null && !list.isEmpty()) || appSettings.isWebRTCEnabled() || appSettings.isForceDecoding()) {
+			List<EncoderSettings> appEncoderSettings = appSettings.getEncoderSettings();
+
+			if ((broadcastEncoderSettings!= null && !broadcastEncoderSettings.isEmpty()) ||
+					(appEncoderSettings != null && !appEncoderSettings.isEmpty()) ||
+					appSettings.isWebRTCEnabled() || appSettings.isForceDecoding()) {
 				/*
 				 * enable encoder adaptor if webrtc enabled because we're supporting forwarding video to end user
 				 * without transcoding. We need encoder adaptor because we need to transcode audio
@@ -387,7 +389,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		targetLatency = appSettingsLocal.getTargetLatency();
 
 		previewOverwrite = appSettingsLocal.isPreviewOverwrite();
-		encoderSettingsList = appSettingsLocal.getEncoderSettings();
+
+		encoderSettingsList = (getBroadcast().getEncoderSettings() != null && !getBroadcast().getEncoderSettings().isEmpty()) ? getBroadcast().getEncoderSettings() : appSettingsLocal.getEncoderSettings();
+
 		previewCreatePeriod = appSettingsLocal.getCreatePreviewPeriod();
 		maxAnalyzeDurationMS = appSettingsLocal.getMaxAnalyzeDurationMS();
 		generatePreview = appSettingsLocal.isGeneratePreview();

@@ -24,7 +24,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -88,10 +87,8 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.muxer.parser.codec.AACAudio;
 import io.vertx.core.Vertx;
 
@@ -969,7 +966,8 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			}
 		}
 
-		MuxAdaptor localMuxAdaptor = MuxAdaptor.initializeMuxAdaptor(this, false, conn.getScope());
+
+		MuxAdaptor localMuxAdaptor = MuxAdaptor.initializeMuxAdaptor(this, null, false, conn.getScope());
 
 
 		

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dev.morphia.utils.IndexType;
+import io.antmedia.EncoderSettings;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -15,6 +16,10 @@ import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import org.springframework.beans.factory.annotation.Value;
+
+import static io.antmedia.AppSettings.encodersList2Str;
+import static io.antmedia.AppSettings.encodersStr2List;
 
 
 @ApiModel(value="Broadcast", description="The basic broadcast class")
@@ -199,6 +204,12 @@ public class Broadcast {
 	 */
 	@ApiModelProperty(value = "WebM muxing whether enabled or not for the stream, 1 means enabled, -1 means disabled, 0 means no settings for the stream")
 	private int webMEnabled = 0;
+
+	/**
+	 * Broadcast level ABR settings.
+	 */
+	@ApiModelProperty(value = "Encoder settings for broadcast level ABR")
+	private List<EncoderSettings> encoderSettings;
 
 	@Entity
 	public static class PlayListItem
@@ -835,6 +846,14 @@ public class Broadcast {
 
 	public void setAutoStartStopEnabled(boolean autoStartStopEnabled) {
 		this.autoStartStopEnabled = autoStartStopEnabled;
+	}
+
+	public List<EncoderSettings> getEncoderSettings() {
+		return encoderSettings;
+	}
+
+	public void setEncoderSettings(List<EncoderSettings> settings) {
+		encoderSettings = settings;
 	}
 
 }
