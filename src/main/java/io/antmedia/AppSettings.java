@@ -323,6 +323,11 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_ENCODING_VP8_DEADLINE = "settings.encoding.vp8.deadline";
+	
+	/**
+	 * @hidden
+	 */
+	private static final String SETTINGS_HW_SCALING_ENABLED= "settings.encoding.hwScalingEnabled";
 
 	/**
 	 * @hidden
@@ -731,7 +736,6 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
-
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -2052,7 +2056,10 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${sendAudioLevelToViewers:true}")
 	private boolean sendAudioLevelToViewers = true;
-	
+
+	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":true}}")
+	private boolean hwScalingEnabled = true;
+
 	/**
 	 * Firebase Service Account Key JSON to send push notification
 	 * through Firebase Cloud Messaging
@@ -2068,6 +2075,7 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${subscriberAuthenticationKey:#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}")
 	private String subscriberAuthenticationKey = RandomStringUtils.randomAlphanumeric(32);
+
 
 
 	/**
@@ -3573,6 +3581,14 @@ public class AppSettings implements Serializable{
 
 	public void setTimeTokenSecretForPlay(String timeTokenSecretForPlay) {
 		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
+	}
+
+	public boolean isHwScalingEnabled() {
+		return hwScalingEnabled;
+	}
+
+	public void setHwScalingEnabled(boolean hwScalingEnabled) {
+		this.hwScalingEnabled = hwScalingEnabled;
 	}
 
 	public String getFirebaseAccountKeyJSON() {
