@@ -170,7 +170,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
 					"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov", "streamSource");
 
-			StreamFetcher camScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, null);
+			StreamFetcher camScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, null, 0);
 
 			camScheduler.setConnectionTimeout(10000);
 
@@ -207,7 +207,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			newCam.setStreamId("new_cam" + (int)(Math.random()*10000));
 			
-			StreamFetcher streamScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
+			StreamFetcher streamScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx, 0);
 
 			assertFalse(streamScheduler.isExceptionInThread());
 			
@@ -260,7 +260,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Broadcast newCam = null;
 
-			new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, null);
+			new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, null, 0);
 
 			fail("it should throw exception above");
 		}
@@ -273,7 +273,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, AntMediaApplicationAdapter.IP_CAMERA);
 			newCam2.setStreamId("newcam2_" + (int)(Math.random()*10000));
 
-			new StreamFetcher(newCam2.getStreamUrl(), newCam2.getStreamId(), newCam2.getType(), appScope, null);
+			new StreamFetcher(newCam2.getStreamUrl(), newCam2.getStreamId(), newCam2.getType(), appScope, null, 0);
 
 			fail("it should throw exception above");
 		}
