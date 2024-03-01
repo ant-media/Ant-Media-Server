@@ -367,6 +367,11 @@ public class Broadcast {
 	 */
 	private long updateTime = 0;
 
+	@ApiModelProperty(value = "The identifier of whether stream should start/stop automatically. It's effective for Stream Sources/IP Cameras. "
+			+ "If there is no viewer after certain amount of seconds, it will stop. If there is an user want to watch the stream, it will start automatically")
+	private boolean autoStartStopEnabled = false;
+
+
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
 		this.setName(name);
@@ -407,7 +412,6 @@ public class Broadcast {
 		}
 		this.streamId = id;
 	}
-
 
 	public double getSpeed() {
 		return speed;
@@ -864,4 +868,17 @@ public class Broadcast {
 	public void setAdminList(List<String> adminList) {
 		this.adminList = adminList;
 	}
+
+  public boolean isAnyoneWatching(){
+		return getDashViewerCount() != 0 || getWebRTCViewerCount() != 0 || getRtmpViewerCount() != 0 || getHlsViewerCount() != 0;
+	}
+
+	public boolean isAutoStartStopEnabled() {
+		return autoStartStopEnabled;
+	}
+
+	public void setAutoStartStopEnabled(boolean autoStartStopEnabled) {
+		this.autoStartStopEnabled = autoStartStopEnabled;
+	}
+
 }

@@ -1,6 +1,7 @@
 #!/bin/bash
 #
-# Options
+# Options:
+#
 # -g: Use global(Public) IP in network communication. Its value can be true or false. Default value is false.
 #
 # -s: Use Public IP as server name. Its value can be true or false. Default value is false.
@@ -27,8 +28,15 @@
 #
 # -k: Kafka Address: Provide the Kafka URL address to collect data. (It must contain the port number. Example: localhost:9092)
 #
-# -j: Min JVM Heap Size(-Xms): Set the Min Java heap size (-Xms). Default value is 1g. (Example usage: ./start.sh -j 4g)
+# -j: JVM Memory Options(-Xms1g -Xmx4g): Set the Java heap size. Default value is 1g. (Example usage: ./start.sh -j "-Xms1g -XmX4g")
 #
+# -c: CPU Limit: Set the CPU limit percentage that server does not exceed. Default value is 75. 
+#       If CPU is more than this value, server reports highResourceUsage and does not allow publish or play.
+#       Example usage: ./start.sh -c 60
+#
+# -e: Memory Limit: Set the Memory Limit percentage that server does not exceed. Default value is 75
+#       If Memory usage is more than this value, server reports highResourceUsage and does not allow publish or play
+#       Example usage: ./start.sh -e 60
 
 if [ -z "$RED5_HOME" ]; then
   BASEDIR=$(dirname "$0")
@@ -46,11 +54,14 @@ DB_URL=
 DB_USERNAME=
 DB_PASSWORD=
 LICENSE_KEY=
+CPU_LIMIT=
+MEMORY_LIMIT=
 
 # Set the default value for JVM_MEMORY_OPTIONS
-DEFAULT_MIN_HEAP_SIZE="1g"
+JVM_MEMORY_OPTIONS="-Xms1g"
 
-while getopts g:s:r:m:h:u:p:l:a:n:w:k:j:t option
+
+while getopts g:s:r:m:h:u:p:l:a:n:w:k:j:c:e:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
@@ -65,7 +76,9 @@ do
     n) TURN_USERNAME=${OPTARG};;
     w) TURN_PASSWORD=${OPTARG};;
     k) KAFKA_URL=${OPTARG};;
-    j) DEFAULT_MIN_HEAP_SIZE=${OPTARG};;
+    j) JVM_MEMORY_OPTIONS=${OPTARG};;
+    c) CPU_LIMIT=${OPTARG};;
+    e) MEMORY_LIMIT=${OPTARG};;
    esac
 done
 
@@ -75,9 +88,6 @@ if [ "$OS_NAME" = "Darwin" ]; then
   AMS_INSTALL_LOCATION=`pwd`
   SED_COMPATIBILITY='.bak'
 fi
-
-# Set JVM -Xms parameter
-JVM_MEMORY_OPTIONS="-Xms$DEFAULT_MIN_HEAP_SIZE"
 
 # Set use global IP
 sed -i $SED_COMPATIBILITY 's/useGlobalIp=.*/useGlobalIp='$USE_GLOBAL_IP'/' $RED5_HOME/conf/red5.properties
@@ -164,7 +174,13 @@ if [ ! -z ${TURN_PASSWORD} ]; then
  done
 fi
 
+if [ ! -z ${CPU_LIMIT} ]; then
+  sed -i $SED_COMPATIBILITY 's/server.cpu_limit=.*/server.cpu_limit='$CPU_LIMIT'/' $RED5_HOME/conf/red5.properties
+fi
 
+if [ ! -z ${MEMORY_LIMIT} ]; then
+  sed -i $SED_COMPATIBILITY 's/server.memory_limit_percentage=.*/server.memory_limit_percentage='$MEMORY_LIMIT'/' $RED5_HOME/conf/red5.properties
+fi
 
 P=":" # The default classpath separator
 OS=`uname`

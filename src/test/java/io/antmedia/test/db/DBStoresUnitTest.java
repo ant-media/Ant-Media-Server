@@ -595,6 +595,11 @@ public class DBStoresUnitTest {
 		assertNotNull(streamsList);
 
 		assertEquals(2, streamsList.size());
+		
+		streamsList = datastore.getExternalStreamsList();
+		assertNotNull(streamsList);
+
+		assertEquals(0, streamsList.size());
 
 		//check that there are two streams and values are same as added above
 

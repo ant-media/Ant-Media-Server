@@ -917,7 +917,6 @@ public class BroadcastRestService extends RestServiceBase{
 		return enableRecordMuxing(streamId, enableRecording, recordType, resolutionHeight);
 	}
 
-
 	@ApiOperation(value = "Get IP Camera Error after connection failure. If returns true, it means there is an error. If returns false, there is no error", notes = "Notes here", response = Result.class)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)

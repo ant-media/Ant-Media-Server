@@ -283,7 +283,12 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appSettings.setTimeTokenSecretForPublish("secretpublish");
 		assertEquals("secretpublish", appSettings.getTimeTokenSecretForPublish());
+
 		
+		assertEquals(true, appSettings.isHwScalingEnabled());
+		appSettings.setHwScalingEnabled(false);
+		assertEquals(false, appSettings.isHwScalingEnabled());
+
 		String apnKeyId = "apnkeyid";
 		appSettings.setApnKeyId(apnKeyId);
 		assertEquals(apnKeyId, appSettings.getApnKeyId());
@@ -299,6 +304,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		String privateKey = "privateKey";
 		appSettings.setApnPrivateKey(privateKey);
 		assertEquals(privateKey, appSettings.getApnPrivateKey());
+
 	}
 	
 	
@@ -511,18 +517,26 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true, appSettings.isSendAudioLevelToViewers());
 		assertNull(appSettings.getTimeTokenSecretForPublish());
 		assertNull(appSettings.getTimeTokenSecretForPlay());
+
+		assertEquals(true, appSettings.isHwScalingEnabled());
+
 		assertNotNull(appSettings.getSubscriberAuthenticationKey());
 		assertNull(appSettings.getFirebaseAccountKeyJSON());
 		assertNull(appSettings.getApnKeyId());
 		assertNull(appSettings.getApnTeamId());
 		assertNull(appSettings.getApnPrivateKey());
 		assertEquals("api.sandbox.push.apple.com", appSettings.getApnsServer());
+
 		
+
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
+
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					174, numberOfFields);
+
+					175, numberOfFields);
+
 		
 	}
 	

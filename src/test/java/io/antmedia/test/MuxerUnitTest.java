@@ -322,6 +322,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(1, mp4Muxer.getOutputFormatContext().nb_streams());
 
 	}
+	
+
 
 	@Test
 	public void testAddExtradata() {
@@ -707,6 +709,131 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
 		rtmpMuxer.init(appScope, "test", 0, null, 0);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
+
+	}
+	
+	@Test
+	public void testRecordMuxerS3Prefix() {
+		String s3Prefix = RecordMuxer.getS3Prefix("s3", null);
+		assertEquals("s3/", s3Prefix);
+		
+		s3Prefix = RecordMuxer.getS3Prefix("s3", "test");
+		assertEquals("s3/test/", s3Prefix);
+		
+		s3Prefix = RecordMuxer.getS3Prefix("s3/", "test/");
+		assertEquals("s3/test/", s3Prefix);
+	}
+	
+	@Test
+	public void testHLSMuxerGetOutputURLAndSegmentFilename() {
+		
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+
+		{
+			HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
+			String streamId = "streamId";
+			String subFolder = "subfolder";
+	
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
+	
+			
+			assertEquals("http://example.com/"+subFolder+"/"+streamId+".m3u8", hlsMuxer.getOutputURL());
+			assertEquals("http://example.com/"+subFolder+"/"+streamId+"%09d.ts", hlsMuxer.getSegmentFilename());
+		
+		}
+		
+		{
+			//add trailer slash
+			HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com/", false);
+			String streamId = "streamId";
+			String subFolder = "subfolder/";
+	
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
+	
+			
+			assertEquals("http://example.com/"+subFolder+streamId+".m3u8", hlsMuxer.getOutputURL());
+			assertEquals("http://example.com/"+subFolder+streamId+"%09d.ts", hlsMuxer.getSegmentFilename());
+			
+		}
+		
+		{
+			StorageClient storageClient = Mockito.mock(StorageClient.class);
+			Mockito.when(storageClient.isEnabled()).thenReturn(true);
+			
+			
+			HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, storageClient, "streams/", 0b010, null, false));
+			String streamId = "streamId";
+			String subFolder = "subfolder/";
+			hlsMuxer.setHlsParameters("1", "1", null, null, null);
+			
+			File[] file = new File[1];
+			file[0] = Mockito.mock(File.class);
+			Mockito.when(file[0].exists()).thenReturn(true);
+			Mockito.when(file[0].getName()).thenReturn(streamId + ".m3u8");
+			
+			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
+	
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
+			
+			
+			hlsMuxer.writeTrailer();
+			
+			Mockito.verify(storageClient, Mockito.timeout(2000)).save("streams/subfolder/" + streamId + ".m3u8", file[0], true);
+			
+		}
+		
+		{
+			StorageClient storageClient = Mockito.mock(StorageClient.class);
+			Mockito.when(storageClient.isEnabled()).thenReturn(true);
+			
+			
+			HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, storageClient, "streams", 0b010, null, false));
+			String streamId = "streamId";
+			String subFolder = "subfolder";
+			hlsMuxer.setHlsParameters("1", "1", null, null, null);
+			
+			File[] file = new File[1];
+			file[0] = Mockito.mock(File.class);
+			Mockito.when(file[0].exists()).thenReturn(true);
+			Mockito.when(file[0].getName()).thenReturn(streamId + ".m3u8");
+			
+			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
+	
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
+			
+			
+			hlsMuxer.writeTrailer();
+			
+			Mockito.verify(storageClient, Mockito.timeout(2000)).save("streams/subfolder/" + streamId + ".m3u8", file[0], true);
+			
+		}
+		
+		{
+			StorageClient storageClient = Mockito.mock(StorageClient.class);
+			Mockito.when(storageClient.isEnabled()).thenReturn(true);
+			
+			
+			HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, storageClient, "streams", 0b010, null, false));
+			String streamId = "streamId";
+			hlsMuxer.setHlsParameters("1", "1", null, null, null);
+			
+			File[] file = new File[1];
+			file[0] = Mockito.mock(File.class);
+			Mockito.when(file[0].exists()).thenReturn(true);
+			Mockito.when(file[0].getName()).thenReturn(streamId + ".m3u8");
+			
+			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
+	
+			hlsMuxer.init(appScope, streamId, 0, null, 0);
+			
+			
+			hlsMuxer.writeTrailer();
+			
+			Mockito.verify(storageClient, Mockito.timeout(2000)).save("streams/" + streamId + ".m3u8", file[0], true);
+			
+		}
 
 	}
 
@@ -2335,12 +2462,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(lastUpdateTime, broadcast2.getUpdateTime());
 
 
-		Awaitility.await().pollDelay(5100, TimeUnit.MILLISECONDS).atMost(6, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().pollDelay(MuxAdaptor.STAT_UPDATE_PERIOD_MS+1000, TimeUnit.MILLISECONDS)
+			.atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.MILLISECONDS).until(() -> {
 			muxAdaptor.updateStreamQualityParameters(streamId, null, 1.0123, 12120);
 			return true;
 		});
 
-		Awaitility.await().atMost(3, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS+1000, TimeUnit.MILLISECONDS).until(() -> {
 			Broadcast broadcastTmp = muxAdaptor.getDataStore().get(streamId);
 			logger.info("speed: {}", broadcastTmp.getSpeed());
 			return "1.012".equals(Double.toString(broadcastTmp.getSpeed()));
@@ -3215,8 +3343,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertTrue(files.length > 0);
 			assertTrue(files.length < (int) Integer.valueOf(hlsMuxer.getHlsListSize()) * (Integer.valueOf(hlsMuxer.getHlsTime()) + 1));
-
-
+			
 			//wait to let hls muxer delete ts and m3u8 file
 
 			Awaitility.await().atMost(hlsListSize * hlsTime * 1000 + 3000, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS)
