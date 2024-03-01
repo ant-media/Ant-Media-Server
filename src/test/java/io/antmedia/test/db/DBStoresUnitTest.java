@@ -140,8 +140,8 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-		testAddPublisherRequest(dataStore);
-		testRemovePublisherRequest(dataStore);
+		testAddPublisherRequestList(dataStore);
+		testRemovePublisherRequestList(dataStore);
 		testAddPublisherFromListenerList(dataStore);
 		testRemovePublisherFromListenerList(dataStore);
 		testAddPresenterList(dataStore);
@@ -230,8 +230,8 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-		testAddPublisherRequest(dataStore);
-		testRemovePublisherRequest(dataStore);
+		testAddPublisherRequestList(dataStore);
+		testRemovePublisherRequestList(dataStore);
 		testAddPublisherFromListenerList(dataStore);
 		testRemovePublisherFromListenerList(dataStore);
 		testAddPresenterList(dataStore);
@@ -297,8 +297,8 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
-		testAddPublisherRequest(dataStore);
-		testRemovePublisherRequest(dataStore);
+		testAddPublisherRequestList(dataStore);
+		testRemovePublisherRequestList(dataStore);
 		testAddPublisherFromListenerList(dataStore);
 		testRemovePublisherFromListenerList(dataStore);
 		testAddPresenterList(dataStore);
@@ -362,8 +362,8 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
-		testAddPublisherRequest(dataStore);
-		testRemovePublisherRequest(dataStore);
+		testAddPublisherRequestList(dataStore);
+		testRemovePublisherRequestList(dataStore);
 		testAddPublisherFromListenerList(dataStore);
 		testRemovePublisherFromListenerList(dataStore);
 		testAddPresenterList(dataStore);
@@ -3193,7 +3193,7 @@ public class DBStoresUnitTest {
 		
 	}
 
-	public void testAddPublisherRequest(DataStore dataStore) {
+	public void testAddPublisherRequestList(DataStore dataStore) {
 
 		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
 		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
@@ -3226,7 +3226,7 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void testRemovePublisherRequest(DataStore dataStore) {
+	public void testRemovePublisherRequestList(DataStore dataStore) {
 
 		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
 		String subTrackId = RandomStringUtils.randomAlphanumeric(8);

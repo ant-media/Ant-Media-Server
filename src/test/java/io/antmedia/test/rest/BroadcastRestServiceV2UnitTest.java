@@ -3368,5 +3368,328 @@ public class BroadcastRestServiceV2UnitTest {
 		
 	}
 
+	@Test
+	public void testAddPublisherRequestList()  {
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		BroadcastRestService broadcastRestService = new BroadcastRestService();
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		datastore.save(mainTrack);
+		datastore.save(subtrack);
+		broadcastRestService.setDataStore(datastore);
+
+		assertTrue(mainTrack.getPublisherRequestList().isEmpty());
+
+		broadcastRestService.addPublisherRequestList(mainTrackId, subTrackId);
+
+		assertEquals(1, mainTrack.getPublisherRequestList().size());
+		assertEquals(subTrackId, mainTrack.getPublisherRequestList().get(0));
+
+		Result result = broadcastRestService.addPublisherRequestList("trackIdNotExist", "subtrackNotExist");
+		assertFalse(result.isSuccess());
+
+		result = broadcastRestService.addPublisherRequestList("trackIdNotExist", subTrackId);
+		assertFalse(result.isSuccess());
+
+	}
+
+	@Test
+	public void testRemovePublisherRequestList()  {
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+			mainTrack.setPublisherRequestList(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		BroadcastRestService broadcastRestService = new BroadcastRestService();
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		datastore.save(mainTrack);
+		datastore.save(subtrack);
+		broadcastRestService.setDataStore(datastore);
+
+		assertEquals(1, mainTrack.getPublisherRequestList().size());
+		assertEquals(subTrackId, mainTrack.getPublisherRequestList().get(0));
+
+		broadcastRestService.removePublisherRequestList(mainTrackId, subTrackId);
+
+		assertTrue(mainTrack.getPublisherRequestList().isEmpty());
+
+		Result result = broadcastRestService.removePublisherRequestList("trackIdNotExist", "subtrackNotExist");
+		assertFalse(result.isSuccess());
+
+		result = broadcastRestService.removePublisherRequestList("trackIdNotExist", subTrackId);
+		assertFalse(result.isSuccess());
+
+	}
+
+	@Test
+	public void testAddPublisherFromListenerList()  {
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		BroadcastRestService broadcastRestService = new BroadcastRestService();
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		datastore.save(mainTrack);
+		datastore.save(subtrack);
+		broadcastRestService.setDataStore(datastore);
+
+		assertTrue(mainTrack.getPublisherFromListenerList().isEmpty());
+
+		broadcastRestService.addPublisherFromListenerList(mainTrackId, subTrackId);
+
+		assertEquals(1, mainTrack.getPublisherFromListenerList().size());
+		assertEquals(subTrackId, mainTrack.getPublisherFromListenerList().get(0));
+
+		Result result = broadcastRestService.addPublisherFromListenerList("trackIdNotExist", "subtrackNotExist");
+		assertFalse(result.isSuccess());
+
+		result = broadcastRestService.addPublisherFromListenerList("trackIdNotExist", subTrackId);
+		assertFalse(result.isSuccess());
+
+	}
+
+	@Test
+	public void testRemovePublisherFromListenerList()  {
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+			mainTrack.setPublisherFromListenerList(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		BroadcastRestService broadcastRestService = new BroadcastRestService();
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		datastore.save(mainTrack);
+		datastore.save(subtrack);
+		broadcastRestService.setDataStore(datastore);
+
+		assertEquals(1, mainTrack.getPublisherFromListenerList().size());
+		assertEquals(subTrackId, mainTrack.getPublisherFromListenerList().get(0));
+
+		broadcastRestService.removePublisherRequestList(mainTrackId, subTrackId);
+
+		assertTrue(mainTrack.getPublisherFromListenerList().isEmpty());
+
+		Result result = broadcastRestService.removePublisherFromListenerList("trackIdNotExist", "subtrackNotExist");
+		assertFalse(result.isSuccess());
+
+		result = broadcastRestService.removePublisherFromListenerList("trackIdNotExist", subTrackId);
+		assertFalse(result.isSuccess());
+
+	}
+
+	@Test
+	public void testAddPresenterList()  {
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		BroadcastRestService broadcastRestService = new BroadcastRestService();
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		datastore.save(mainTrack);
+		datastore.save(subtrack);
+		broadcastRestService.setDataStore(datastore);
+
+		assertTrue(mainTrack.getPresenterList().isEmpty());
+
+		broadcastRestService.addPresenterList(mainTrackId, subTrackId);
+
+		assertEquals(1, mainTrack.getPresenterList().size());
+		assertEquals(subTrackId, mainTrack.getPresenterList().get(0));
+
+		Result result = broadcastRestService.addPresenterList("trackIdNotExist", "subtrackNotExist");
+		assertFalse(result.isSuccess());
+
+		result = broadcastRestService.addPresenterList("trackIdNotExist", subTrackId);
+		assertFalse(result.isSuccess());
+
+	}
+
+	@Test
+	public void testRemovePresenterList()  {
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+			mainTrack.setPresenterList(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		BroadcastRestService broadcastRestService = new BroadcastRestService();
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		datastore.save(mainTrack);
+		datastore.save(subtrack);
+		broadcastRestService.setDataStore(datastore);
+
+		assertEquals(1, mainTrack.getPresenterList().size());
+		assertEquals(subTrackId, mainTrack.getPresenterList().get(0));
+
+		broadcastRestService.removePresenterList(mainTrackId, subTrackId);
+
+		assertTrue(mainTrack.getPresenterList().isEmpty());
+
+		Result result = broadcastRestService.removePresenterList("trackIdNotExist", "subtrackNotExist");
+		assertFalse(result.isSuccess());
+
+		result = broadcastRestService.removePresenterList("trackIdNotExist", subTrackId);
+		assertFalse(result.isSuccess());
+
+	}
+
+	@Test
+	public void testAddAdminList()  {
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		BroadcastRestService broadcastRestService = new BroadcastRestService();
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		datastore.save(mainTrack);
+		datastore.save(subtrack);
+		broadcastRestService.setDataStore(datastore);
+
+		assertTrue(mainTrack.getAdminList().isEmpty());
+
+		broadcastRestService.addAdminList(mainTrackId, subTrackId);
+
+		assertEquals(1, mainTrack.getAdminList().size());
+		assertEquals(subTrackId, mainTrack.getAdminList().get(0));
+
+		Result result = broadcastRestService.addAdminList("trackIdNotExist", "subtrackNotExist");
+		assertFalse(result.isSuccess());
+
+		result = broadcastRestService.addAdminList("trackIdNotExist", subTrackId);
+		assertFalse(result.isSuccess());
+
+	}
+
+	@Test
+	public void testRemoveAdminList()  {
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+			mainTrack.setAdminList(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		BroadcastRestService broadcastRestService = new BroadcastRestService();
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		datastore.save(mainTrack);
+		datastore.save(subtrack);
+		broadcastRestService.setDataStore(datastore);
+
+		assertEquals(1, mainTrack.getAdminList().size());
+		assertEquals(subTrackId, mainTrack.getAdminList().get(0));
+
+		broadcastRestService.removeAdminList(mainTrackId, subTrackId);
+
+		assertTrue(mainTrack.getAdminList().isEmpty());
+
+		Result result = broadcastRestService.removeAdminList("trackIdNotExist", "subtrackNotExist");
+		assertFalse(result.isSuccess());
+
+		result = broadcastRestService.removeAdminList("trackIdNotExist", subTrackId);
+		assertFalse(result.isSuccess());
+
+	}
 
 }
