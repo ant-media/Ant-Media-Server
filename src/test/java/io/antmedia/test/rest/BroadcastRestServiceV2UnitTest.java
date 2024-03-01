@@ -7,9 +7,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
+
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -3281,11 +3280,8 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber3Id);
 		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber3Id);
-		
-		
 
 	}
-	
 
 	public void testAddID3Tag() {
 		DataStore store = new InMemoryDataStore("testdb");
@@ -3367,6 +3363,4 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNotEquals(totp4, totp3);
 		
 	}
-
-
 }
