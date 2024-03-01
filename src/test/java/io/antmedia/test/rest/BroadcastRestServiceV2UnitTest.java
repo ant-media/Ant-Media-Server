@@ -3518,7 +3518,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(1, mainTrack.getPublisherFromListenerList().size());
 		assertEquals(subTrackId, mainTrack.getPublisherFromListenerList().get(0));
 
-		broadcastRestService.removePublisherRequestList(mainTrackId, subTrackId);
+		broadcastRestService.removePublisherFromListenerList(mainTrackId, subTrackId);
 
 		assertTrue(mainTrack.getPublisherFromListenerList().isEmpty());
 
