@@ -93,8 +93,7 @@ public class DBStoresUnitTest {
 	public void testMapDBStore() throws Exception {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
-		
-		
+
 		testSubscriberMetaData(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testBlockSubscriber(dataStore);
@@ -141,7 +140,14 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-		
+		testAddPublisherRequest(dataStore);
+		testRemovePublisherRequest(dataStore);
+		testAddPublisherFromListenerList(dataStore);
+		testRemovePublisherFromListenerList(dataStore);
+		testAddPresenterList(dataStore);
+		testRemovePresenterList(dataStore);
+		testAddAdminList(dataStore);
+		testRemoveAdminList(dataStore);
 
 	}
 	
@@ -224,9 +230,14 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
-
-		
-
+		testAddPublisherRequest(dataStore);
+		testRemovePublisherRequest(dataStore);
+		testAddPublisherFromListenerList(dataStore);
+		testRemovePublisherFromListenerList(dataStore);
+		testAddPresenterList(dataStore);
+		testRemovePresenterList(dataStore);
+		testAddAdminList(dataStore);
+		testRemoveAdminList(dataStore);
 
 	}
 
@@ -286,6 +297,14 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testAddPublisherRequest(dataStore);
+		testRemovePublisherRequest(dataStore);
+		testAddPublisherFromListenerList(dataStore);
+		testRemovePublisherFromListenerList(dataStore);
+		testAddPresenterList(dataStore);
+		testRemovePresenterList(dataStore);
+		testAddAdminList(dataStore);
+		testRemoveAdminList(dataStore);
 		
 
 	}
@@ -343,6 +362,14 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+		testAddPublisherRequest(dataStore);
+		testRemovePublisherRequest(dataStore);
+		testAddPublisherFromListenerList(dataStore);
+		testRemovePublisherFromListenerList(dataStore);
+		testAddPresenterList(dataStore);
+		testRemovePresenterList(dataStore);
+		testAddAdminList(dataStore);
+		testRemoveAdminList(dataStore);
 		
 	}
 	
@@ -3164,5 +3191,273 @@ public class DBStoresUnitTest {
 		assertEquals("apn", subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getServiceName());
 		assertEquals(extraData, subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getExtraData());
 		
+	}
+
+	public void testAddPublisherRequest(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(mainTrack);
+		dataStore.save(subtrack);
+
+		assertTrue(mainTrack.getPublisherRequestList().isEmpty());
+
+		dataStore.addIntoPublisherRequestList(mainTrackId, subTrackId);
+
+		mainTrack = dataStore.get(mainTrackId);
+
+		assertTrue(mainTrack.getPublisherRequestList().size() == 1);
+		assertTrue(Objects.equals(mainTrack.getPublisherRequestList().get(0), subTrackId));
+
+	}
+
+	public void testRemovePublisherRequest(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+			mainTrack.setPublisherRequestList(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(mainTrack);
+		dataStore.save(subtrack);
+
+		assertTrue(mainTrack.getPublisherRequestList().size() == 1);
+		assertTrue(Objects.equals(mainTrack.getPublisherRequestList().get(0), subTrackId));
+
+		dataStore.removeFromPublisherRequestList(mainTrackId, subTrackId);
+
+		mainTrack = dataStore.get(mainTrackId);
+
+		assertTrue(mainTrack.getPublisherRequestList().isEmpty());
+
+	}
+
+	public void testAddPublisherFromListenerList(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(mainTrack);
+		dataStore.save(subtrack);
+
+		assertTrue(mainTrack.getPublisherFromListenerList().isEmpty());
+
+		dataStore.addIntoPublisherFromListenerList(mainTrackId, subTrackId);
+
+		mainTrack = dataStore.get(mainTrackId);
+
+		assertTrue(mainTrack.getPublisherFromListenerList().size() == 1);
+		assertTrue(Objects.equals(mainTrack.getPublisherFromListenerList().get(0), subTrackId));
+
+	}
+
+	public void testRemovePublisherFromListenerList(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+			mainTrack.setPublisherFromListenerList(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(mainTrack);
+		dataStore.save(subtrack);
+
+		assertTrue(mainTrack.getPublisherFromListenerList().size() == 1);
+		assertTrue(Objects.equals(mainTrack.getPublisherFromListenerList().get(0), subTrackId));
+
+		dataStore.removeFromPublisherFromListenerList(mainTrackId, subTrackId);
+
+		mainTrack = dataStore.get(mainTrackId);
+
+		assertTrue(mainTrack.getPublisherFromListenerList().isEmpty());
+
+	}
+
+	public void testAddPresenterList(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(mainTrack);
+		dataStore.save(subtrack);
+
+		assertTrue(mainTrack.getPresenterList().isEmpty());
+
+		dataStore.addIntoPresenterList(mainTrackId, subTrackId);
+
+		mainTrack = dataStore.get(mainTrackId);
+
+		assertTrue(mainTrack.getPresenterList().size() == 1);
+		assertTrue(Objects.equals(mainTrack.getPresenterList().get(0), subTrackId));
+
+	}
+
+	public void testRemovePresenterList(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+			mainTrack.setPresenterList(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(mainTrack);
+		dataStore.save(subtrack);
+
+		assertTrue(mainTrack.getPresenterList().size() == 1);
+		assertTrue(Objects.equals(mainTrack.getPresenterList().get(0), subTrackId));
+
+		dataStore.removeFromPresenterList(mainTrackId, subTrackId);
+
+		mainTrack = dataStore.get(mainTrackId);
+
+		assertTrue(mainTrack.getPresenterList().isEmpty());
+
+	}
+
+	public void testAddAdminList(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(mainTrack);
+		dataStore.save(subtrack);
+
+		assertTrue(mainTrack.getAdminList().isEmpty());
+
+		dataStore.addIntoAdminList(mainTrackId, subTrackId);
+
+		mainTrack = dataStore.get(mainTrackId);
+
+		assertTrue(mainTrack.getAdminList().size() == 1);
+		assertTrue(Objects.equals(mainTrack.getAdminList().get(0), subTrackId));
+
+	}
+
+	public void testRemoveAdminList(DataStore dataStore) {
+
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+			mainTrack.setAdminList(new ArrayList<>(Arrays.asList(subTrackId)));
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		Broadcast subtrack= new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		dataStore.save(mainTrack);
+		dataStore.save(subtrack);
+
+		assertTrue(mainTrack.getAdminList().size() == 1);
+		assertTrue(Objects.equals(mainTrack.getAdminList().get(0), subTrackId));
+
+		dataStore.removeFromAdminList(mainTrackId, subTrackId);
+
+		mainTrack = dataStore.get(mainTrackId);
+
+		assertTrue(mainTrack.getAdminList().isEmpty());
+
 	}
 }

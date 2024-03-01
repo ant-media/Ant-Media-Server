@@ -1862,7 +1862,7 @@ public abstract class RestServiceBase {
 		return true;
 	}
 
-	public static void setResultSuccess(Result result, boolean success, String failMessage, String failLog, String... arguments)
+	public static void setResultSuccessStatic(Result result, boolean success, String failMessage, String failLog, String... arguments)
 	{
 		if (success) {
 			result.setSuccess(true);
@@ -1873,7 +1873,7 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	public static void logWarning(String message, String... arguments) {
+	public static void logWarningStatic(String message, String... arguments) {
 		if (logger.isWarnEnabled()) {
 			logger.warn(message , arguments);
 		}
@@ -1887,13 +1887,13 @@ public abstract class RestServiceBase {
 		{
 			boolean success = store.addIntoPublisherRequestList(mainTrackId, streamId);
 
-			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be added to publisher request list on: " + mainTrackId,
+			RestServiceBase.setResultSuccessStatic(result, success, "Stream:" + streamId + " cannot be added to publisher request list on: " + mainTrackId,
 					"Stream:{} cannot be added to publisher request list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		else
 		{
 			message = "There is not stream with id:" + streamId;
-			logWarning("There is not stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+			logWarningStatic("There is not stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		result.setMessage(message);
 		return result;
@@ -1907,12 +1907,12 @@ public abstract class RestServiceBase {
 
 			boolean success = store.removeFromPublisherRequestList(mainTrackId, streamId);
 
-			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be removed from publisher request list on: " + mainTrackId,
+			RestServiceBase.setResultSuccessStatic(result, success, "Stream:" + streamId + " cannot be removed from publisher request list on: " + mainTrackId,
 					"Stream:{} cannot be removed from publisher request list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId != null ? mainTrackId.replaceAll(REPLACE_CHARS, "_") : null);
 		}
 		else
 		{
-			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + streamId, "There is no stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+			RestServiceBase.setResultSuccessStatic(result, false, "There is no stream with id:" + streamId, "There is no stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
 		}
 
 		return result;
@@ -1926,13 +1926,13 @@ public abstract class RestServiceBase {
 		{
 			boolean success = store.addIntoPublisherFromListenerList(mainTrackId, streamId);
 
-			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be added to publisher from listener list on: " + mainTrackId,
+			RestServiceBase.setResultSuccessStatic(result, success, "Stream:" + streamId + " cannot be added to publisher from listener list on: " + mainTrackId,
 					"Stream:{} cannot be added to publisher from listener list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		else
 		{
 			message = "There is not stream with id:" + streamId;
-			logWarning("There is not stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+			logWarningStatic("There is not stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		result.setMessage(message);
 		return result;
@@ -1946,12 +1946,12 @@ public abstract class RestServiceBase {
 
 			boolean success = store.removeFromPublisherFromListenerList(mainTrackId, streamId);
 
-			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be removed from publisher from listener list on: " + mainTrackId,
+			RestServiceBase.setResultSuccessStatic(result, success, "Stream:" + streamId + " cannot be removed from publisher from listener list on: " + mainTrackId,
 					"Stream:{} cannot be removed from publisher from listener list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId != null ? mainTrackId.replaceAll(REPLACE_CHARS, "_") : null);
 		}
 		else
 		{
-			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + streamId, "There is no stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+			RestServiceBase.setResultSuccessStatic(result, false, "There is no stream with id:" + streamId, "There is no stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
 		}
 
 		return result;
@@ -1965,13 +1965,13 @@ public abstract class RestServiceBase {
 		{
 			boolean success = store.addIntoPresenterList(mainTrackId, streamId);
 
-			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be added to presenter list on: " + mainTrackId,
+			RestServiceBase.setResultSuccessStatic(result, success, "Stream:" + streamId + " cannot be added to presenter list on: " + mainTrackId,
 					"Stream:{} cannot be added to presenter list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		else
 		{
 			message = "There is not stream with id:" + streamId;
-			logWarning("There is not stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+			logWarningStatic("There is not stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		result.setMessage(message);
 		return result;
@@ -1985,12 +1985,12 @@ public abstract class RestServiceBase {
 
 			boolean success = store.removeFromPresenterList(mainTrackId, streamId);
 
-			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be removed from presenter list on: " + mainTrackId,
+			RestServiceBase.setResultSuccessStatic(result, success, "Stream:" + streamId + " cannot be removed from presenter list on: " + mainTrackId,
 					"Stream:{} cannot be removed from presenter list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId != null ? mainTrackId.replaceAll(REPLACE_CHARS, "_") : null);
 		}
 		else
 		{
-			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + streamId, "There is no stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+			RestServiceBase.setResultSuccessStatic(result, false, "There is no stream with id:" + streamId, "There is no stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
 		}
 
 		return result;
@@ -2004,13 +2004,13 @@ public abstract class RestServiceBase {
 		{
 			boolean success = store.addIntoAdminList(mainTrackId, streamId);
 
-			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be added to admin list on: " + mainTrackId,
+			RestServiceBase.setResultSuccessStatic(result, success, "Stream:" + streamId + " cannot be added to admin list on: " + mainTrackId,
 					"Stream:{} cannot be added to admin list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		else
 		{
 			message = "There is not stream with id:" + streamId;
-			logWarning("There is not stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+			logWarningStatic("There is not stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		result.setMessage(message);
 		return result;
@@ -2024,12 +2024,12 @@ public abstract class RestServiceBase {
 
 			boolean success = store.removeFromAdminList(mainTrackId, streamId);
 
-			RestServiceBase.setResultSuccess(result, success, "Stream:" + streamId + " cannot be removed from admin list on: " + mainTrackId,
+			RestServiceBase.setResultSuccessStatic(result, success, "Stream:" + streamId + " cannot be removed from admin list on: " + mainTrackId,
 					"Stream:{} cannot be removed from admin list on:{} ", streamId.replaceAll(REPLACE_CHARS, "_"), mainTrackId != null ? mainTrackId.replaceAll(REPLACE_CHARS, "_") : null);
 		}
 		else
 		{
-			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + streamId, "There is no stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
+			RestServiceBase.setResultSuccessStatic(result, false, "There is no stream with id:" + streamId, "There is no stream with id:{}" , streamId.replaceAll(REPLACE_CHARS, "_"));
 		}
 
 		return result;
@@ -2048,7 +2048,7 @@ public abstract class RestServiceBase {
 			if (success) {
 				success = store.addSubTrack(id, subTrackId);
 
-				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id,
+				RestServiceBase.setResultSuccessStatic(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id,
 						"Subtrack:{} cannot be added to main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
 
 				if (success) {
@@ -2063,13 +2063,13 @@ public abstract class RestServiceBase {
 
 			{
 				message = "Main track of the stream " + subTrackId + " cannot be updated";
-				logWarning("Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+				logWarningStatic("Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
 			}
 		}
 		else
 		{
 			message = "There is not stream with id:" + subTrackId;
-			logWarning("There is not stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
+			logWarningStatic("There is not stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		result.setMessage(message);
 		return result;
@@ -2088,19 +2088,19 @@ public abstract class RestServiceBase {
 			if (success) {
 				success = store.removeSubTrack(id, subTrackId);
 
-				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be removed from main track: " + id,
+				RestServiceBase.setResultSuccessStatic(result, success, "Subtrack:" + subTrackId + " cannot be removed from main track: " + id,
 						"Subtrack:{} cannot be removed from main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
 
 			}
 			else
 			{
-				RestServiceBase.setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be updated",
+				RestServiceBase.setResultSuccessStatic(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be updated",
 						"Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
 			}
 		}
 		else
 		{
-			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + subTrackId, "There is no stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
+			RestServiceBase.setResultSuccessStatic(result, false, "There is no stream with id:" + subTrackId, "There is no stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
 		}
 
 		return result;
