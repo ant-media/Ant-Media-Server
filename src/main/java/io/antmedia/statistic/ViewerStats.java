@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
@@ -289,9 +290,7 @@ public class ViewerStats {
 					}
 				}
 				
-				if(broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
-					isBroadcasting = true;
-				}
+				isBroadcasting = isStreaming(broadcast);
 			
 				numberOfDecrement = -1 * numberOfDecrement;
 
@@ -308,6 +307,7 @@ public class ViewerStats {
 					else {
 						getDataStore().updateDASHViewerCount(streamViewerEntry.getKey(), diffCount);
 					}
+
 					increaseCounterMap.put(streamId, 0);
 				}
 			}
@@ -337,6 +337,10 @@ public class ViewerStats {
 			}
 		}
 		
+	}
+	
+	public boolean isStreaming(Broadcast broadcast) {
+		return AntMediaApplicationAdapter.isStreaming(broadcast);
 	}
 	
 	public void setServerSettings(ServerSettings serverSettings) {

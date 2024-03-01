@@ -86,7 +86,7 @@ import io.vertx.core.Vertx;
 public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
-	public static final int STAT_UPDATE_PERIOD_MS = 5000;
+	public static final int STAT_UPDATE_PERIOD_MS = 10000;
 
 
 	public static final String ADAPTIVE_SUFFIX = "_adaptive";
@@ -855,8 +855,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void updateStreamQualityParameters(String streamId, String quality, double speed, int inputQueueSize) {
 		long now = System.currentTimeMillis();
 
-		//increase updating time to 5 seconds because it may cause some issues in mongodb updates and no need to update every 5 seconds
-		if ((now - lastQualityUpdateTime) > STAT_UPDATE_PERIOD_MS) 
+		//increase updating time to STAT_UPDATE_PERIOD_MS seconds because it may cause some issues in mongodb updates 
+		//or 
+		//update before STAT_UPDATE_PERIOD_MS if speed something meaningful
+		if ((now - lastQualityUpdateTime) > STAT_UPDATE_PERIOD_MS || (lastQualityUpdateTime == 0 && speed > 0.8)) 
 		{
 
 			logger.info("Stream queue size:{} speed:{} for streamId:{} ", inputQueueSize, speed, streamId);
