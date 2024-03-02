@@ -1513,6 +1513,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			return result;
 		}
 
+
+		//if there is any wrong publish/play token settings, return false.
+		//A single token security setting can be activated for both publishing and playing, with a maximum limit of two settings—one for each.
+		if(!isTokenSecuritySettingsValid(newSettings)){
+			logger.info("Could not save app settings. Only one type of token control should be enabled for publish or play.");
+			return result;
+		}
+
 		//synch again because of string to list mapping- TODO: There is a better way for string to list mapping
 		//in properties files
 		newSettings.setEncoderSettings(encoderSettingsList);
@@ -1564,6 +1572,35 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		}
 		return true;
+	}
+
+	private boolean isTokenSecuritySettingsValid(AppSettings newSettings) {
+		int publishTokenSecurityEnabledCount = 0;
+		int playTokenSecurityEnabledCount = 0;
+
+		if (newSettings.isPublishTokenControlEnabled()) {
+			publishTokenSecurityEnabledCount++;
+		}
+		if (newSettings.isPublishJwtControlEnabled()) {
+			publishTokenSecurityEnabledCount++;
+		}
+		if (newSettings.isEnableTimeTokenForPublish()) {
+			publishTokenSecurityEnabledCount++;
+		}
+		if (newSettings.isEnableTimeTokenForPlay()) {
+			playTokenSecurityEnabledCount++;
+		}
+
+		if (newSettings.isPlayTokenControlEnabled()) {
+			playTokenSecurityEnabledCount++;
+		}
+		if (newSettings.isPlayJwtControlEnabled()) {
+			playTokenSecurityEnabledCount++;
+		}
+
+
+		// Only one type of token control should be enabled for publish and play
+		return publishTokenSecurityEnabledCount <= 1 && playTokenSecurityEnabledCount <= 1;
 	}
 
 	/**
