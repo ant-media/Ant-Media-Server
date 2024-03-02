@@ -1067,8 +1067,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//let stream fetching start
 		app.getStreamFetcherManager().testSetStreamCheckerInterval(5000);
-		//do not restart if it fails
-		app.getStreamFetcherManager().setRestartStreamAutomatically(false);
+		//restart becaue sometimes connection drops of the network limitation
+		app.getStreamFetcherManager().setRestartStreamAutomatically(true);
 		app.getStreamFetcherManager().startStreaming(newSource);
 		app.getStreamFetcherManager().startStreaming(newZombiSource);
 
