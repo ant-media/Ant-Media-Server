@@ -142,6 +142,8 @@ public class DBStoresUnitTest {
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
 		
+		dataStore.close(false);
+		
 
 	}
 	
@@ -225,7 +227,7 @@ public class DBStoresUnitTest {
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
 
-		
+		dataStore.close(false);
 
 
 	}
@@ -287,7 +289,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		
-
+		dataStore.close(true);
 	}
 	
 	@Test
@@ -344,6 +346,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		
+		dataStore.close(true);
 	}
 	
 	@Test
