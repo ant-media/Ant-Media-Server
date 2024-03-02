@@ -2877,7 +2877,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testSeektime() {
 		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
-		DataStore datastore = Mockito.spy(new MapDBStore("dummy", vertx));
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
 		
 		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
 
