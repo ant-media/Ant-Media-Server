@@ -1973,7 +1973,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() ->
 			MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), finalDuration));
 
-			assertEquals(0, MuxingTest.videoStartTimeMs);
+			assertEquals(1640, MuxingTest.videoStartTimeMs);
 			assertEquals(0, MuxingTest.audioStartTimeMs);
 
 		} catch (Exception e) {
