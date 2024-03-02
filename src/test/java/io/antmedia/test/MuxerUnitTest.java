@@ -3928,7 +3928,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		AVPacket pkt = new AVPacket();
 		pkt.flags(AV_PKT_FLAG_KEY);
-
+		
+		//inject time base to not encounter nullpointer
+		for (Muxer muxer : muxAdaptor.getMuxerList()) {
+			muxer.getInputTimeBaseMap().put(pkt.stream_index(), MuxAdaptor.TIME_BASE_FOR_MS);
+		}
+		
+		
+		
 		muxAdaptor.writePacket(stream, pkt);
 		verify(listener, Mockito.times(1)).onVideoPacket(streamId, pkt);
 
