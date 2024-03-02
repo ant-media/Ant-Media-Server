@@ -359,7 +359,7 @@ public class StreamFetcher {
 		public int seekFrame() {
 			AVRational streamTimeBase = inputFormatContext.streams(0).time_base();
 			long seekTimeInStreamTimebase = av_rescale_q(seekTimeInMs.get(), MuxAdaptor.TIME_BASE_FOR_MS, streamTimeBase);
-			long lastSentPacketTimeInMs = av_rescale_q(lastSentDTS[0], MuxAdaptor.TIME_BASE_FOR_MS, streamTimeBase);
+			long lastSentPacketTimeInMs = av_rescale_q(getLastSentDTS()[0], MuxAdaptor.TIME_BASE_FOR_MS, streamTimeBase);
 			
 			int flags = 0;
 			if (lastSentPacketTimeInMs > seekTimeInStreamTimebase) {
@@ -391,11 +391,11 @@ public class StreamFetcher {
 		}
 
 		public int readNextPacket(AVPacket pkt) {
-			if (seekTimeRequestReceived.get()) 
+			if (getSeekTimeRequestReceived().get()) 
 			{
 				
 				seekFrame();
-				seekTimeRequestReceived.set(false);
+				getSeekTimeRequestReceived().set(false);
 			}
 			return av_read_frame(inputFormatContext, pkt);
 		}
@@ -781,6 +781,14 @@ public class StreamFetcher {
 			muxAdaptor.writePacket(stream, pkt);
 		}
 		
+		public int getCodecType(int streamIndex) {
+			return inputFormatContext.streams(streamIndex).codecpar().codec_type();
+		}
+		
+		public AVRational getStreamTimebase(int streamIndex) {
+			return  inputFormatContext.streams(streamIndex).time_base();
+		}
+		
 		public void checkAndFixSynch() 
 		{
 			long now = System.currentTimeMillis();
@@ -788,14 +796,17 @@ public class StreamFetcher {
 				lastSycnCheckTime = now;
 			}
 			long timeDifferenceInMs =  now - lastSycnCheckTime;
+			//check synch for every 2 seconds
 			if (lastSentDTS.length >= 2 && timeDifferenceInMs > 2000 ) 
 			{
 				lastSycnCheckTime = now;
+				
+				//put audio and video lastSentDTS into an array
 				List<Long> lastSendDTSInMsList = new ArrayList<>();
 				for(int i = 0; i < lastSentDTS.length; i++) 
 				{
-					if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO || inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO) { 
-						long dtsInMs = av_rescale_q(lastSentDTS[i], inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+					if (getCodecType(i) == AVMEDIA_TYPE_VIDEO || getCodecType(i)  == AVMEDIA_TYPE_AUDIO) { 
+						long dtsInMs = av_rescale_q(lastSentDTS[i], getStreamTimebase(i), MuxAdaptor.TIME_BASE_FOR_MS);
 						lastSendDTSInMsList.add(dtsInMs);
 					}
 				}
@@ -803,6 +814,7 @@ public class StreamFetcher {
 				long minValueInMilliseconds = -1;
 				long maxValueInMilliseconds = -1;
 				
+				//get the minimum and max values 
 				for (Long value : lastSendDTSInMsList) {
 					if (minValueInMilliseconds > value || minValueInMilliseconds == -1) {
 						minValueInMilliseconds = value;
@@ -813,13 +825,15 @@ public class StreamFetcher {
 				}
 				
 				long asyncThreshold = 150;
+				//if lastSentDTS is more than 150 ms, it means that there is a accumulated problem. 
+				//The assumption is that we receive sync video/audio
 				if (Math.abs(maxValueInMilliseconds-minValueInMilliseconds) > asyncThreshold) 
 				{
 					logger.warn("Audio/Video sync is more than {}ms for stream:{} and trying to synch the packets", asyncThreshold, streamId);
 					for(int i = 0; i < lastSentDTS.length; i++) 
 					{
-						if (inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_VIDEO || inputFormatContext.streams(i).codecpar().codec_type() == AVMEDIA_TYPE_AUDIO) { 
-							long dtsInMs = av_rescale_q(maxValueInMilliseconds, MuxAdaptor.TIME_BASE_FOR_MS, inputFormatContext.streams(i).time_base());
+						if (getCodecType(i) == AVMEDIA_TYPE_VIDEO || getCodecType(i) == AVMEDIA_TYPE_AUDIO) { 
+							long dtsInMs = av_rescale_q(maxValueInMilliseconds, MuxAdaptor.TIME_BASE_FOR_MS, getStreamTimebase(i));
 							lastSentDTS[i] = dtsInMs;
 						}
 					}
@@ -1111,6 +1125,18 @@ public class StreamFetcher {
 
 	public void setStreamUrl(String streamUrl) {
 		this.streamUrl = streamUrl;
+	}
+
+	public AtomicBoolean getSeekTimeRequestReceived() {
+		return seekTimeRequestReceived;
+	}
+
+	public void setSeekTimeRequestReceived(AtomicBoolean seekTimeRequestReceived) {
+		this.seekTimeRequestReceived = seekTimeRequestReceived;
+	}
+
+	public long[] getLastSentDTS() {
+		return lastSentDTS;
 	}
 
 }

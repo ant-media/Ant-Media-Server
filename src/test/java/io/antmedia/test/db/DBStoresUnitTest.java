@@ -1546,6 +1546,7 @@ public class DBStoresUnitTest {
 			tmp.setPlaylistLoopEnabled(false);
 			double speed = 1.0;
 			tmp.setSpeed(speed);
+			tmp.setSeekTimeInMs(136);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 

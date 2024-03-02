@@ -331,7 +331,7 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 		}
 		else {
-			result.setMessage("Id field is blank");
+			result.setMessage("Id field is blank.");
 		}
 		return result;
 		

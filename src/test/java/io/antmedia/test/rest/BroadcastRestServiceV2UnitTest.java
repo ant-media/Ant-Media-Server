@@ -2875,6 +2875,48 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	@Test
+	public void testSeektime() {
+		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
+		DataStore datastore = Mockito.spy(new MapDBStore("dummy", vertx));
+		
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try 
+		{
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		datastore.save(mainTrack);
+		broadcastRestService.setDataStore(datastore);
+
+		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+
+		Mockito.doReturn(adaptor).when(broadcastRestService).getApplication();
+		StreamFetcherManager fetcherManager = Mockito.mock(StreamFetcherManager.class);
+		Mockito.when(adaptor.getStreamFetcherManager()).thenReturn(fetcherManager);
+		
+		
+		
+		
+		Result updateSeekTime = broadcastRestService.updateSeekTime("", 1000);
+		assertFalse(updateSeekTime.isSuccess());
+		
+		updateSeekTime = broadcastRestService.updateSeekTime("streamId", 1000);
+		assertFalse(updateSeekTime.isSuccess());
+		
+		StreamFetcher fetcher =  Mockito.mock(StreamFetcher.class);
+		Mockito.when(fetcherManager.getStreamFetcher("streamId")).thenReturn(fetcher);
+		
+		updateSeekTime = broadcastRestService.updateSeekTime("streamId", 1000);
+		assertTrue(updateSeekTime.isSuccess());
+		Mockito.verify(fetcher).seekTime(1000);
+		
+	}
+	
+	@Test
 	public void testGetStreamInfo() {
 		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
 		MongoStore datastore = new MongoStore("localhost", "", "", "testdb");
