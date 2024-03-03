@@ -449,15 +449,17 @@ public abstract class DataStore {
 	}
 
 	/**
-	 * Lists all subscribers of requested stream
-	 * @param streamId
-	 * @param offset
-	 * @param size
-	 * @return lists of subscribers
-	 */	
-	public abstract List<Subscriber> listAllSubscribers(String streamId, int offset, int size);
+     * Lists all subscribers of requested stream
+     *
+     * @param streamId
+     * @param offset
+     * @param size
+     * @param getAll
+     * @return lists of subscribers
+     */
+	public abstract List<Subscriber> listAllSubscribers(String streamId, int offset, int size, boolean getAll);
 
-	public List<Subscriber> listAllSubscribers(Map<String, String> subscriberMap, String streamId, int offset, int size, Gson gson) {
+	public List<Subscriber> listAllSubscribers(Map<String, String> subscriberMap, String streamId, int offset, int size, Gson gson, boolean getAll) {
 		List<Subscriber> list = new ArrayList<>();
 		List<Subscriber> listSubscriber = new ArrayList<>();
 
@@ -465,9 +467,13 @@ public abstract class DataStore {
 			Collection<String> values = subscriberMap.values();
 			int t = 0;
 			int itemCount = 0;
-			if (size > MAX_ITEM_IN_ONE_LIST) {
+
+			if (getAll) {
+				size = Integer.MAX_VALUE; // Set size to maximum to return all elements
+			} else if (size > MAX_ITEM_IN_ONE_LIST) {
 				size = MAX_ITEM_IN_ONE_LIST;
 			}
+
 			if (offset < 0) {
 				offset = 0;
 			}
@@ -489,14 +495,12 @@ public abstract class DataStore {
 					t++;
 					listIterator.next();
 				} else {
-
 					listSubscriber.add(listIterator.next());
 					itemCount++;
-
 				}
 			}
-
 		}
+
 		return listSubscriber;
 	}
 
@@ -508,7 +512,7 @@ public abstract class DataStore {
 	 * @return lists of subscriber statistics
 	 */	
 	public List<SubscriberStats> listAllSubscriberStats(String streamId, int offset, int size) {
-		List<Subscriber> subscribers= listAllSubscribers(streamId, offset, size);
+		List<Subscriber> subscribers= listAllSubscribers(streamId, offset, size, false);
 		List<SubscriberStats> subscriberStats = new ArrayList<>();
 
 		

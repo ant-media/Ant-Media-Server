@@ -2030,16 +2030,21 @@ public class DBStoresUnitTest {
 		assertTrue(store.addSubscriber(subscriberPub.getStreamId(), subscriberPub));
 		
 		//get subscribers of stream
-		List <Subscriber> subscribers = store.listAllSubscribers(streamId, 0, 10);
+		List <Subscriber> subscribers = store.listAllSubscribers(streamId, 0, 10, false);
 		assertEquals(2, subscribers.size());
 		List <SubscriberStats> subscriberStats = store.listAllSubscriberStats(streamId, 0, 10);
 		assertEquals(2, subscriberStats.size());
-		
+
+		//get all subscribers of stream
+		List <Subscriber> allSubscribers = store.listAllSubscribers(streamId, 0, 0, true);
+		assertEquals(2, allSubscribers.size());
+
+
 		//revoke subscribers
 		store.revokeSubscribers(subscriberPlay.getStreamId());
 
 		//get subscribers of stream
-		subscribers = store.listAllSubscribers(streamId, 0, 10);
+		subscribers = store.listAllSubscribers(streamId, 0, 10, false);
 		subscriberStats = store.listAllSubscriberStats(streamId, 0, 10);
 		
 		
@@ -2060,7 +2065,7 @@ public class DBStoresUnitTest {
 		//delete this subscriber
 		assertTrue(store.deleteSubscriber(streamId, written.getSubscriberId()));
 		
-		subscribers = store.listAllSubscribers(streamId, 0, 10);
+		subscribers = store.listAllSubscribers(streamId, 0, 10, false);
 		subscriberStats = store.listAllSubscriberStats(streamId, 0, 10);
 		
 		//it should be zero because subscriber is deleted

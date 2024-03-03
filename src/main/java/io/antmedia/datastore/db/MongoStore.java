@@ -1028,9 +1028,13 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size) {
+	public List<Subscriber> listAllSubscribers(String streamId, int offset, int size, boolean getAll) {
 		synchronized(this) {
-			return 	subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId)).iterator(new FindOptions().skip(offset).limit(size)).toList();
+			if(!getAll){
+				return 	subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId)).iterator(new FindOptions().skip(offset).limit(size)).toList();
+			}else{
+				return 	subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId)).iterator().toList();
+			}
 		}
 	}
 
