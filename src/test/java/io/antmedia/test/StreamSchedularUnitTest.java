@@ -1074,7 +1074,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 
-		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.MILLISECONDS).until(() -> {
 			return dataStore.get(newZombiSource.getStreamId()).getSpeed() != 0;
 		});
 
@@ -1099,7 +1099,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(fetchedBroadcast.getSpeed());
 
 
-		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast stream = dataStore.get(newSource.getStreamId());
 			logger.info("speed {} stream id: {}" , stream.getSpeed(), stream.getStreamId()) ;
 			return stream != null && Math.abs(stream.getSpeed()-1) < 0.2;
@@ -1109,7 +1109,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("Checking quality is again");
 
-		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*6, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*6, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast streamTmp = dataStore.get(newSource.getStreamId());
 			logger.info("speed {}" , streamTmp.getSpeed()) ;
 			logger.info("quality {}" , streamTmp.getQuality()) ;
@@ -1124,7 +1124,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			app.getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
 		}
 
-		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			return app.getStreamFetcherManager().getStreamFetcherList().size() == 0;
 		});
 
