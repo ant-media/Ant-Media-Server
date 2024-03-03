@@ -1293,4 +1293,8 @@ public abstract class Muxer {
 	public long getLastPts() {
 		return lastPts;
 	}
+	
+	public static String replaceDoubleSlashesWithSingleSlash(String url) {
+		return url.replaceAll("(?<!:)//", "/");
+	}
 }

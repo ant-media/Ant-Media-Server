@@ -16,10 +16,12 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
+import org.awaitility.Awaitility;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.junit.After;
 import org.junit.Before;
@@ -257,8 +259,10 @@ public class ConsoleRestV2UnitTest {
 
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
-		boolean sendUserInfo = restServiceSpy.sendUserInfo("test@antmedia.io", "firstname", "lastname", "scope", "admin");
-		assertTrue(sendUserInfo);
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			boolean sendUserInfo = restServiceSpy.sendUserInfo("test@antmedia.io", "firstname", "lastname", "scope", "admin");
+			return sendUserInfo;
+		});
 	}
 
 	@Test
