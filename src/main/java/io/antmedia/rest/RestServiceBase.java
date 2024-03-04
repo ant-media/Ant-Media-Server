@@ -433,9 +433,9 @@ public abstract class RestServiceBase {
 	 * @return
 	 */
 	protected Result updateStreamSource(String streamId, Broadcast broadcast) {
-		logger.debug("Updating camera info for stream {}", broadcast.getStreamId());
+		logger.debug("Updating stream source for stream {}", broadcast.getStreamId());
 
-		if (!checkStreamUrl(broadcast.getStreamUrl())) {
+		if (!checkStreamUrl(broadcast.getStreamUrl()) && !AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
 			return new Result(false, "Stream URL is not valid");
 		}
 
@@ -448,8 +448,10 @@ public abstract class RestServiceBase {
 	
 		boolean isStreamingActive = AntMediaApplicationAdapter.isStreaming(broadcastInDB);
 
-		boolean resultStopStreaming = checkStopStreaming(broadcastInDB);
-		waitStopStreaming(broadcastInDB, resultStopStreaming);
+		if (isStreamingActive) {
+			boolean resultStopStreaming = checkStopStreaming(broadcastInDB);
+			waitStopStreaming(broadcastInDB, resultStopStreaming);
+		}
 
 		if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType())) {
 			Result connectionRes = connectToCamera(broadcast);
