@@ -305,6 +305,14 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setApnPrivateKey(privateKey);
 		assertEquals(privateKey, appSettings.getApnPrivateKey());
 
+		int webHookRetryCount = 2;
+		appSettings.setWebhookRetryCount(webHookRetryCount);
+		assertEquals(webHookRetryCount, appSettings.getWebhookRetryCount());
+
+		long webHookRetryDelay = 2000;
+		appSettings.setWebhookRetryDelay(webHookRetryDelay);
+		assertEquals(webHookRetryDelay, appSettings.getWebhookRetryDelay());
+
 	}
 	
 	
@@ -527,15 +535,15 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getApnPrivateKey());
 		assertEquals("api.sandbox.push.apple.com", appSettings.getApnsServer());
 
-		
+		assertEquals(0, appSettings.getWebhookRetryCount());
+		assertEquals(1000, appSettings.getWebhookRetryDelay());
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-
-					175, numberOfFields);
+					177, numberOfFields);
 
 		
 	}
