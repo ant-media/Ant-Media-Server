@@ -386,6 +386,30 @@ public class AntMediaApplicationAdaptorUnitTest {
 		settings.setUpdateTime(1000);
 		newSettings.setUpdateTime(900);
 		assertFalse(spyAdapter.updateSettings(newSettings, false, true));
+
+
+		newSettings.setPlayJwtControlEnabled(true);
+		newSettings.setPlayTokenControlEnabled(true);
+		newSettings.setEnableTimeTokenForPlay(true);
+
+		assertFalse(spyAdapter.updateSettings(newSettings, false, false));
+
+		newSettings.setPlayJwtControlEnabled(false);
+		newSettings.setPlayTokenControlEnabled(false);
+
+
+		assertTrue(spyAdapter.updateSettings(newSettings, false, false));
+
+		newSettings.setEnableTimeTokenForPublish(true);
+		newSettings.setPublishTokenControlEnabled(true);
+		newSettings.setPublishJwtControlEnabled(true);
+
+		assertFalse(spyAdapter.updateSettings(newSettings, false, false));
+		newSettings.setEnableTimeTokenForPublish(false);
+		newSettings.setPublishJwtControlEnabled(false);
+
+		assertTrue(spyAdapter.updateSettings(newSettings, false, false));
+
 	}
 
 	@Test
