@@ -1535,8 +1535,7 @@ public class AppSettings implements Serializable{
 	private String rtspPullTransportType = "3";
 
 	/**
-	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
-	 * It can be tcp or udp
+	 * Specify the rtspTimeoutDurationMs in pulling IP Camera or RTSP sources
 	 */
 	@Value("${rtspTimeoutDurationMs:${" + SETTINGS_RTSP_TIMEOUT_DURATION_MS+ ":5000}}")
 	private int rtspTimeoutDurationMs = 5000;

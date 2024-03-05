@@ -576,33 +576,36 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 		boolean result = false;
 		//get a reference to the current threads classloader
 		final ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
-		log.debug("Webapp root: {}", webappFolder);
-		if (webappFolder == null) {
-			// Use default webapps directory
-			webappFolder = System.getProperty("red5.root") + "/webapps";
-		}
-		System.setProperty("red5.webapp.root", webappFolder);
-		log.info("Application root: {}", webappFolder);
-		// application directory
-		String contextName = '/' + applicationName;
-		Container ctx = null;
-		// Root applications directory
-		File appDirBase = new File(webappFolder);
-		// check if the context already exists for the host
-		if ((ctx = host.findChild(contextName)) == null) {
-			log.debug("Context did not exist in host");
-			String webappContextDir = FileUtil.formatPath(appDirBase.getAbsolutePath(), applicationName);
-			log.debug("Webapp context directory (full path): {}", webappContextDir);
-			// set the newly created context as the current container
-			ctx = addContext(contextName, webappContextDir);
-		} else {
-			log.debug("Context already exists in host");
-		}
-		final ServletContext servletContext = ((Context) ctx).getServletContext();
-		log.debug("Context initialized: {}", servletContext.getContextPath());
-		String prefix = servletContext.getRealPath("/");
-		log.debug("Path: {}", prefix);
+
 		try {
+			log.debug("Webapp root: {}", webappFolder);
+			if (webappFolder == null) {
+				// Use default webapps directory
+				webappFolder = System.getProperty("red5.root") + "/webapps";
+			}
+			System.setProperty("red5.webapp.root", webappFolder);
+			log.info("Application root: {}", webappFolder);
+			// application directory
+			String contextName = '/' + applicationName;
+			Container ctx = null;
+			// Root applications directory
+			File appDirBase = new File(webappFolder);
+			// check if the context already exists for the host
+			if ((ctx = host.findChild(contextName)) == null) {
+				log.debug("Context did not exist in host");
+				String webappContextDir = FileUtil.formatPath(appDirBase.getAbsolutePath(), applicationName);
+				log.debug("Webapp context directory (full path): {}", webappContextDir);
+				// set the newly created context as the current container
+				ctx = addContext(contextName, webappContextDir);
+			} else {
+				log.debug("Context already exists in host");
+			}
+			final ServletContext servletContext = ((Context) ctx).getServletContext();
+			log.debug("Context initialized: {}", servletContext.getContextPath());
+			String prefix = servletContext.getRealPath("/");
+
+			log.debug("Path: {}", prefix);
+
 			Loader cldr = ((Context) ctx).getLoader();
 			log.debug("Loader delegate: {} type: {}", cldr.getDelegate(), cldr.getClass().getName());
 			if (cldr instanceof WebappLoader) {
@@ -661,7 +664,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 							}
 						}
 					}
-					
+
 					// add the servlet context
 					appctx.setServletContext(servletContext);
 					// set the root webapp ctx attr on the each servlet context so spring can find it later
@@ -675,7 +678,7 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 			thread.start();
 			result = true;
 		} catch (Throwable t) {
-			log.error("Error setting up context: {} due to: {}", servletContext.getContextPath(), t.getMessage());
+			log.error("Error setting up context: {} due to: {}", applicationName, t.getMessage());
 			log.error(ExceptionUtils.getStackTrace(t));
 		} finally {
 			//reset the classloader

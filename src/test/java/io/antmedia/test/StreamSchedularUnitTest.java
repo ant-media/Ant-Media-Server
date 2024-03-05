@@ -1011,6 +1011,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		getAppSettings().setRtspTimeoutDurationMs(15000);
 
 		File f = new File("target/test.db");
 		if (f.exists()) {
@@ -1135,6 +1136,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Application.enableSourceHealthUpdate = false;
 
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		getAppSettings().setRtspTimeoutDurationMs(5000);
+
 
 		stopCameraEmulator();	
 
