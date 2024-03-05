@@ -1535,8 +1535,7 @@ public class AppSettings implements Serializable{
 	private String rtspPullTransportType = "3";
 
 	/**
-	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
-	 * It can be tcp or udp
+	 * Specify the rtspTimeoutDurationMs in pulling IP Camera or RTSP sources
 	 */
 	@Value("${rtspTimeoutDurationMs:${" + SETTINGS_RTSP_TIMEOUT_DURATION_MS+ ":5000}}")
 	private int rtspTimeoutDurationMs = 5000;
@@ -2102,7 +2101,19 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${apnKeyId:#{null}}")
 	private String apnKeyId;
-	
+
+	/**
+	 * Retry count on webhook POST failure
+	 */
+	@Value("${webhookRetryCount:0}")
+	private int webhookRetryCount = 0;
+
+	/**
+	 * Delay in milliseconds between webhook attempts on POST failure.
+	 */
+	@Value("${webhookRetryAttemptDelay:1000}")
+	private long webhookRetryDelay = 1000;
+
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
 	}
@@ -3637,6 +3648,22 @@ public class AppSettings implements Serializable{
 	
 	public void setApnsServer(String apnsServer) {
 		this.apnsServer = apnsServer;
+	}
+
+	public int getWebhookRetryCount() {
+		return webhookRetryCount;
+	}
+
+	public void setWebhookRetryCount(int webhookRetryCount) {
+		this.webhookRetryCount = webhookRetryCount;
+	}
+
+	public long getWebhookRetryDelay() {
+		return webhookRetryDelay;
+	}
+
+	public void setWebhookRetryDelay(long webhookRetryDelay) {
+		this.webhookRetryDelay = webhookRetryDelay;
 	}
 
 }

@@ -1011,6 +1011,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		getAppSettings().setRtspTimeoutDurationMs(15000);
 
 		File f = new File("target/test.db");
 		if (f.exists()) {
@@ -1044,7 +1045,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		try {
-			newSource.setStreamId("zombiSource " + RandomStringUtils.randomAlphanumeric(12));
+			newSource.setStreamId("zombiSource" + RandomStringUtils.randomAlphanumeric(12));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -1056,7 +1057,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				AntMediaApplicationAdapter.STREAM_SOURCE);
 		
 		try {
-			newZombiSource.setStreamId("zombiSource " + RandomStringUtils.randomAlphanumeric(12));
+			newZombiSource.setStreamId("newZombiSource" + RandomStringUtils.randomAlphanumeric(12));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -1135,6 +1136,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Application.enableSourceHealthUpdate = false;
 
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		getAppSettings().setRtspTimeoutDurationMs(5000);
+
 
 		stopCameraEmulator();	
 
@@ -1179,7 +1182,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Running limitNetworkInterfaceBandwidth");
 		logger.info("active interface {}", activeInterface);
 
-		String command = "sudo wondershaper "+activeInterface+" 20 20";
+		String command = "sudo wondershaper "+activeInterface+" 40 40";
 		logger.info("command : {}",command);
 		return runCommand(command);
 

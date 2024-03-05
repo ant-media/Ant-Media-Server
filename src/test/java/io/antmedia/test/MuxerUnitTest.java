@@ -134,6 +134,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.HLSMuxer;
+import io.antmedia.muxer.RecordMuxer;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Mp4Muxer;
 import io.antmedia.muxer.MuxAdaptor;
@@ -1834,7 +1835,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Application app = (Application) applicationContext.getBean("web.handler");
 		AntMediaApplicationAdapter appAdaptor = Mockito.spy(app);
 
-		doReturn(new StringBuilder("")).when(appAdaptor).notifyHook(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
+		Mockito.doNothing().when(appAdaptor).notifyHook(anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), anyString());
 		assertNotNull(appAdaptor);
 
 		//just check below value that it is not null, this is not related to this case but it should be tested
