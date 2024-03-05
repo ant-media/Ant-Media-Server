@@ -33,6 +33,7 @@ import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
+import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiModel;
@@ -292,7 +293,9 @@ public class BroadcastRestService extends RestServiceBase{
 		{
 			if (broadcast.getType() != null && 
 					(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || 
-							broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))) 
+							broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) || 
+							broadcast.getType().equals(AntMediaApplicationAdapter.VOD) || 
+							broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST))) 
 			{
 				result = super.updateStreamSource(id, broadcast);
 			}
@@ -304,7 +307,35 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return result;
 	}
+	
 
+	@ApiOperation(value = "Seeks the playing stream source, vod or playlist on the fly. It accepts seekTimeMs parameter in milliseconds"  
+			, notes = "", response = Result.class)
+	@PUT
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/seek-time/{seekTimeMs}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result updateSeekTime(@ApiParam(value="Broadcast id", required = true) @PathParam("id") String id, 
+									@ApiParam(value="Seek time in milliseconds", required = true) @PathParam("seekTimeMs") long seekTimeMs) {
+		Result result = new Result(false);
+		if (StringUtils.isNotBlank(id)) 
+		{
+			
+			StreamFetcher streamFetcher = getApplication().getStreamFetcherManager().getStreamFetcher(id);
+			if (streamFetcher != null) {
+				streamFetcher.seekTime(seekTimeMs);
+				result.setSuccess(true);
+			}
+			else {
+				result.setMessage("Not active stream source found with this id: " + id + " make sure you give the id of a running stream source");
+			}
+		}
+		else {
+			result.setMessage("Id field is blank.");
+		}
+		return result;
+		
+	}
 
 	@Deprecated
 	@POST

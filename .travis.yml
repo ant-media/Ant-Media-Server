@@ -144,11 +144,11 @@ before_install:
   - sudo cp src/test/resources/preset-red5-web.properties  /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
   - sudo cp src/test/resources/preset-red5-web.db  /usr/local/antmedia/liveapp.db
   - sudo sed -i 's^server.cpu_limit=.*^server.cpu_limit=100^' /usr/local/antmedia/conf/red5.properties
+  - sudo sed -i 's^server.memory_limit_percentage=.*^server.memory_limit_percentage=100^' /usr/local/antmedia/conf/red5.properties
   - sudo service antmedia stop
   - sudo service antmedia start
   - sleep 10
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
-
 
 install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
