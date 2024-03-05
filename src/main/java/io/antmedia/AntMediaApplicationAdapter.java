@@ -845,7 +845,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * 
 	 * @return
 	 */
-	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
+	public void notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName, String vodId, String metadata) {
 		StringBuilder response = null;
 		logger.info("Running notify hook url:{} stream id: {} action:{} vod name:{} vod id:{}", url, id, action, vodName, vodId);
@@ -879,7 +879,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
-		return null;
 	}
 
 	public void sendPOST(String url, Map<String, String> variables, int retryAttempts) {

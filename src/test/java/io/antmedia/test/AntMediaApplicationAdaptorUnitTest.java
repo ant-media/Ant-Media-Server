@@ -792,11 +792,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 		appSettings.setWebhookRetryCount(2);
 		spyAdaptor.setAppSettings(appSettings);
 
-		StringBuilder notifyHook = spyAdaptor.notifyHook(null, null, null, null, null, null, null, null);
-		assertNull(notifyHook);
+		spyAdaptor.notifyHook(null, null, null, null, null, null, null, null);
+		Mockito.verify(spyAdaptor, never()).sendPOST(Mockito.any(), Mockito.any(), Mockito.anyInt());
 
-		notifyHook = spyAdaptor.notifyHook("", null, null, null, null, null, null, null);
-		assertNull(notifyHook);
+		spyAdaptor.notifyHook("", null, null, null, null, null, null, null);
+		Mockito.verify(spyAdaptor, never()).sendPOST(Mockito.any(), Mockito.any(), Mockito.anyInt());
 
 
 		String id = String.valueOf((Math.random() * 10000));
@@ -808,8 +808,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		String vodId = String.valueOf((Math.random() * 10000));
 
 		String url = "this is url";
-		notifyHook = spyAdaptor.notifyHook(url, id, action, streamName, category, vodName, vodId, null);
-		assertNull(notifyHook);
+		spyAdaptor.notifyHook(url, id, action, streamName, category, vodName, vodId, null);
+		Mockito.verify(spyAdaptor, times(1)).sendPOST(Mockito.any(), Mockito.any(), Mockito.anyInt());
 
 		ArgumentCaptor<String> captureUrl = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
@@ -827,8 +827,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 
 		url = "this is second  url";
-		notifyHook = spyAdaptor.notifyHook(url, id, null, null, null, null, null, null);
-		assertNull(notifyHook);
+		spyAdaptor.notifyHook(url, id, null, null, null, null, null, null);
+
 
 		ArgumentCaptor<String> captureUrl2 = ArgumentCaptor.forClass(String.class);
 		ArgumentCaptor<Map> variables2 = ArgumentCaptor.forClass(Map.class);
