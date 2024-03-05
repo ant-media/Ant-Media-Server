@@ -50,7 +50,7 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 	}
 
 	@Override
-	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
+	public void notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName, String vodId, String metadata) {
 		logger.info("notify hook action: {}", action);
 		notifyHookAction.add(action);
@@ -61,7 +61,6 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 		notifyVodName.add(vodName);
 		notifyVodId.add(vodId);
 
-		return null;
 	}
 
 	@Override
