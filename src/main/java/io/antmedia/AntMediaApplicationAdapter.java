@@ -1,20 +1,12 @@
 package io.antmedia;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
@@ -28,6 +20,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -852,7 +845,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 * 
 	 * @return
 	 */
-	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
+	public void notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName, String vodId, String metadata) {
 		StringBuilder response = null;
 		logger.info("Running notify hook url:{} stream id: {} action:{} vod name:{} vod id:{}", url, id, action, vodName, vodId);
@@ -881,31 +874,27 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 
 			try {
-				response = sendPOST(url, variables);
+				sendPOST(url, variables, appSettings.getWebhookRetryCount());
 			} catch (Exception e) {
-				//Make Exception generi
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
-		return response;
 	}
 
-	public StringBuilder sendPOST(String url, Map<String, String> variables) throws IOException {
-
-		StringBuilder response = null;
-		try (CloseableHttpClient httpClient = getHttpClient()) 
-		{
+	public void sendPOST(String url, Map<String, String> variables, int retryAttempts) {
+		logger.info("Sending POST request to {}", url);
+		try (CloseableHttpClient httpClient = getHttpClient()) {
 			HttpPost httpPost = new HttpPost(url);
-			RequestConfig requestConfig =RequestConfig.custom()
+			RequestConfig requestConfig = RequestConfig.custom()
 					.setConnectTimeout(2000)
 					.setConnectionRequestTimeout(2000)
-					.setSocketTimeout(2000).build();
+					.setSocketTimeout(2000)
+					.build();
 			httpPost.setConfig(requestConfig);
 			List<NameValuePair> urlParameters = new ArrayList<>();
 			Set<Entry<String, String>> entrySet = variables.entrySet();
+			for (Entry<String, String> entry : entrySet) {
 
-			for (Entry<String, String> entry : entrySet) 
-			{
 				urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
 			}
 
@@ -913,26 +902,32 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			httpPost.setEntity(postParams);
 
 			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
-				logger.info("POST Response Status:: {}" , httpResponse.getStatusLine().getStatusCode());
+				int statusCode = httpResponse.getStatusLine().getStatusCode();
+				logger.info("POST Response Status: {}", statusCode);
 
-				HttpEntity entity = httpResponse.getEntity();
-				if (entity != null) 
-				{ 
-					//read entity if it's available
-					BufferedReader reader = new BufferedReader(new InputStreamReader(entity.getContent()));
-
-					String inputLine;
-					response = new StringBuilder();
-
-					while ((inputLine = reader.readLine()) != null) {
-						response.append(inputLine);
+				if (statusCode != HttpStatus.SC_OK) {
+					if (retryAttempts >= 1) {
+						logger.info("Retry attempt for POST in {} milliseconds due to non-200 response: {}", appSettings.getWebhookRetryDelay(), statusCode);
+						retrySendPostWithDelay(url, variables, retryAttempts - 1);
+					} else if (appSettings.getWebhookRetryCount() != 0) {
+						logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
 					}
-					reader.close();
 				}
 			}
-
+		} catch (IOException e) {
+			if (retryAttempts >= 1) {
+				logger.info("Retry attempt for POST in {} milliseconds due to IO exception: {}", appSettings.getWebhookRetryDelay(), e.getMessage());
+				retrySendPostWithDelay(url, variables, retryAttempts - 1);
+			} else if (appSettings.getWebhookRetryCount() != 0) {
+				logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
+			}
 		}
-		return response;
+	}
+
+	public void retrySendPostWithDelay(String url, Map<String, String> variables, int retryAttempts) {
+		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
+			sendPOST(url, variables, retryAttempts);
+		});
 	}
 
 	public CloseableHttpClient getHttpClient() {
