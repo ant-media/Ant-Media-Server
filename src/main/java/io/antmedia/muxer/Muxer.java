@@ -261,6 +261,8 @@ public abstract class Muxer {
 
 	protected AVDictionary optionDictionary = new AVDictionary(null);
 
+	private long firstPacketDtsMs = -1;
+
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
 		logger = LoggerFactory.getLogger(this.getClass());
@@ -996,8 +998,16 @@ public abstract class Muxer {
 	public boolean checkToDropPacket(AVPacket pkt, int codecType) {
 		if (!firstKeyFrameReceived && codecType == AVMEDIA_TYPE_VIDEO) 
 		{
-			if(firstVideoDts == -1) {
+			if(firstPacketDtsMs == -1) {
 				firstVideoDts = pkt.dts();
+				firstPacketDtsMs  = av_rescale_q(pkt.dts(), inputTimeBaseMap.get(pkt.stream_index()), MuxAdaptor.TIME_BASE_FOR_MS);
+			}
+			else 
+			if (firstVideoDts == -1) {
+				firstVideoDts = av_rescale_q(firstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimeBaseMap.get(pkt.stream_index()));
+				if ((pkt.dts() - firstVideoDts) < 0) {
+					firstVideoDts = pkt.dts();
+				}
 			}
 
 			int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
@@ -1054,9 +1064,23 @@ public abstract class Muxer {
 
 		if (codecType == AVMEDIA_TYPE_AUDIO)
 		{
-			if(firstAudioDts == -1) {
+			//removing firstAudioDTS is required when recording/muxing has started on the fly
+			if(firstPacketDtsMs == -1) {
 				firstAudioDts = pkt.dts();
+				firstPacketDtsMs  = av_rescale_q(pkt.dts(), inputTimeBaseMap.get(pkt.stream_index()), MuxAdaptor.TIME_BASE_FOR_MS);
+				logger.debug("The first incoming packet is audio and its packet dts:{}ms streamId:{} ", firstPacketDtsMs, streamId);
 			}
+			else 
+			if (firstAudioDts == -1) {
+				firstAudioDts = av_rescale_q(firstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimeBaseMap.get(pkt.stream_index()));
+				logger.debug("First packetDtsMs:{}ms is already received calculated the firstAudioDts:{} and incoming packet dts:{} streamId:{}", 
+								firstPacketDtsMs, firstAudioDts, pkt.dts(), streamId);
+				
+				if ((pkt.dts() - firstAudioDts) < 0) {
+					firstAudioDts = pkt.dts();
+				}
+			}
+			
 			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstAudioDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstAudioDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
@@ -1072,6 +1096,7 @@ public abstract class Muxer {
 		}
 		else if (codecType == AVMEDIA_TYPE_VIDEO)
 		{
+			//removing firstVideoDts is required when recording/muxing has started on the fly
 			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
@@ -1292,5 +1317,9 @@ public abstract class Muxer {
 
 	public long getLastPts() {
 		return lastPts;
+	}
+	
+	public static String replaceDoubleSlashesWithSingleSlash(String url) {
+		return url.replaceAll("(?<!:)//", "/");
 	}
 }

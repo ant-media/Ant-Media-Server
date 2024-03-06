@@ -170,7 +170,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			Broadcast newCam = new Broadcast("testSchedular", "10.2.40.63:8080", "admin", "admin",
 					"rtsp://184.72.239.149/vod/mp4:BigBuckBunny_115k.mov", "streamSource");
 
-			StreamFetcher camScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, null);
+			StreamFetcher camScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, null, 0);
 
 			camScheduler.setConnectionTimeout(10000);
 
@@ -207,7 +207,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			newCam.setStreamId("new_cam" + (int)(Math.random()*10000));
 			
-			StreamFetcher streamScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx);
+			StreamFetcher streamScheduler = new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, vertx, 0);
 
 			assertFalse(streamScheduler.isExceptionInThread());
 			
@@ -260,7 +260,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Broadcast newCam = null;
 
-			new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, null);
+			new StreamFetcher(newCam.getStreamUrl(), newCam.getStreamId(), newCam.getType(), appScope, null, 0);
 
 			fail("it should throw exception above");
 		}
@@ -273,7 +273,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			Broadcast newCam2 = new Broadcast("test", "10.2.40.63:8080", "admin", "admin", null, AntMediaApplicationAdapter.IP_CAMERA);
 			newCam2.setStreamId("newcam2_" + (int)(Math.random()*10000));
 
-			new StreamFetcher(newCam2.getStreamUrl(), newCam2.getStreamId(), newCam2.getType(), appScope, null);
+			new StreamFetcher(newCam2.getStreamUrl(), newCam2.getStreamId(), newCam2.getType(), appScope, null, 0);
 
 			fail("it should throw exception above");
 		}
@@ -1011,6 +1011,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
 		getAppSettings().setDeleteHLSFilesOnEnded(false);
+		getAppSettings().setRtspTimeoutDurationMs(15000);
 
 		File f = new File("target/test.db");
 		if (f.exists()) {
@@ -1044,7 +1045,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		try {
-			newSource.setStreamId("zombiSource " + RandomStringUtils.randomAlphanumeric(12));
+			newSource.setStreamId("zombiSource" + RandomStringUtils.randomAlphanumeric(12));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -1056,7 +1057,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				AntMediaApplicationAdapter.STREAM_SOURCE);
 		
 		try {
-			newZombiSource.setStreamId("zombiSource " + RandomStringUtils.randomAlphanumeric(12));
+			newZombiSource.setStreamId("newZombiSource" + RandomStringUtils.randomAlphanumeric(12));
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -1067,14 +1068,14 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//let stream fetching start
 		app.getStreamFetcherManager().testSetStreamCheckerInterval(5000);
-		//do not restart if it fails
-		app.getStreamFetcherManager().setRestartStreamAutomatically(false);
+		//restart becaue sometimes connection drops of the network limitation
+		app.getStreamFetcherManager().setRestartStreamAutomatically(true);
 		app.getStreamFetcherManager().startStreaming(newSource);
 		app.getStreamFetcherManager().startStreaming(newZombiSource);
 
 
 
-		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.MILLISECONDS).until(() -> {
 			return dataStore.get(newZombiSource.getStreamId()).getSpeed() != 0;
 		});
 
@@ -1099,7 +1100,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(fetchedBroadcast.getSpeed());
 
 
-		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast stream = dataStore.get(newSource.getStreamId());
 			logger.info("speed {} stream id: {}" , stream.getSpeed(), stream.getStreamId()) ;
 			return stream != null && Math.abs(stream.getSpeed()-1) < 0.2;
@@ -1109,7 +1110,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("Checking quality is again");
 
-		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*6, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*6, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast streamTmp = dataStore.get(newSource.getStreamId());
 			logger.info("speed {}" , streamTmp.getSpeed()) ;
 			logger.info("quality {}" , streamTmp.getQuality()) ;
@@ -1124,7 +1125,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			app.getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
 		}
 
-		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			return app.getStreamFetcherManager().getStreamFetcherList().size() == 0;
 		});
 
@@ -1135,6 +1136,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Application.enableSourceHealthUpdate = false;
 
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
+		getAppSettings().setRtspTimeoutDurationMs(5000);
+
 
 		stopCameraEmulator();	
 
@@ -1179,7 +1182,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Running limitNetworkInterfaceBandwidth");
 		logger.info("active interface {}", activeInterface);
 
-		String command = "sudo wondershaper "+activeInterface+" 20 20";
+		String command = "sudo wondershaper "+activeInterface+" 40 40";
 		logger.info("command : {}",command);
 		return runCommand(command);
 
