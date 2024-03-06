@@ -1917,23 +1917,23 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast broadcast = Mockito.spy(new Broadcast());
 
 		// should return false because stream id is null
-		assertFalse(restServiceReal.isMainTrack(null));
+		assertFalse(RestServiceBase.isMainTrack(null, store));
 
 		// should return false when broadcast does not exist
 		when(store.get("streamId")).thenReturn(null);
-		assertFalse(restServiceReal.isMainTrack("streamId"));
+		assertFalse(RestServiceBase.isMainTrack("streamId", store));
 
 		// should return false when broadcast is not main track
 		when(broadcast.getSubTrackStreamIds()).thenReturn(new ArrayList());
 		when(broadcast.getMainTrackStreamId()).thenReturn("mainTrackStreamId");
 		when(store.get("streamId")).thenReturn(broadcast);
-		assertFalse(restServiceReal.isMainTrack("streamId"));
+		assertFalse(RestServiceBase.isMainTrack("streamId", store));
 
 		// should return true when broadcast is main track
 		when(broadcast.getSubTrackStreamIds()).thenReturn(List.copyOf(Arrays.asList("subTrackStreamId1", "subTrackStreamId2")));
 		when(broadcast.getMainTrackStreamId()).thenReturn(null);
 		when(store.get("streamId")).thenReturn(broadcast);
-		assertTrue(restServiceReal.isMainTrack("streamId"));
+		assertTrue(RestServiceBase.isMainTrack("streamId", store));
 	}
 
 	@Test
