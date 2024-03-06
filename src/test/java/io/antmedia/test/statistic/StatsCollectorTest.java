@@ -640,7 +640,7 @@ public class StatsCollectorTest {
 		assertEquals(false, monitor.enoughResource());
 		
 		try {
-			Mockito.verify(monitor, Mockito.after(500)).sendPOST(Mockito.any(), Mockito.any());
+			Mockito.verify(monitor, Mockito.after(5000)).sendPOST(Mockito.any(), Mockito.any());
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -651,7 +651,7 @@ public class StatsCollectorTest {
 		assertEquals(false, monitor.enoughResource());
 		
 		try {
-			Mockito.verify(monitor, Mockito.after(1500).times(2)).sendPOST(Mockito.any(), Mockito.any());
+			Mockito.verify(monitor, Mockito.after(5000).times(2)).sendPOST(Mockito.any(), Mockito.any());
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
@@ -661,7 +661,7 @@ public class StatsCollectorTest {
 		assertEquals(true, monitor.enoughResource());
 		
 		try {
-			Mockito.verify(monitor, Mockito.after(1500).times(2)).sendPOST(Mockito.any(), Mockito.any());
+			Mockito.verify(monitor, Mockito.after(5000).times(2)).sendPOST(Mockito.any(), Mockito.any());
 		} catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());

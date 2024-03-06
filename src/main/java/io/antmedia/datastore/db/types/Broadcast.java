@@ -199,6 +199,13 @@ public class Broadcast {
 	 */
 	@ApiModelProperty(value = "WebM muxing whether enabled or not for the stream, 1 means enabled, -1 means disabled, 0 means no settings for the stream")
 	private int webMEnabled = 0;
+	
+	/**
+	 * Initial time to start playing. It can be used in VoD file or stream sources that has seek support 
+	 * If it's a VoD file, it can seek to that time and start playing there
+	 */
+	@ApiModelProperty(value = "Initial time to start playing. It can be used in VoD file or stream sources that has seek support")
+	private long seekTimeInMs = 0;
 
 	@ApiModelProperty(value = "the list of the play only users who requested to publish the stream")
 	List<String> publisherRequestList = new ArrayList<String>();
@@ -217,6 +224,11 @@ public class Broadcast {
 	{
 		String streamUrl;
 		String type;
+		/**
+		 * Initial time to get the playlist item is started. 
+		 * If it's a VoD file, it can seek to that time and start playing there
+		 */
+		private long seekTimeInMs = 0;
 
 		public PlayListItem() {
 			//need constructor
@@ -239,6 +251,15 @@ public class Broadcast {
 		public void setType(String type) {
 			this.type = type;
 		}
+
+		public long getSeekTimeInMs() {
+			return seekTimeInMs;
+		}
+
+		public void setSeekTimeInMs(long seekTimeInMs) {
+			this.seekTimeInMs = seekTimeInMs;
+		}
+		
 	}
 
 
@@ -879,6 +900,14 @@ public class Broadcast {
 
 	public void setAutoStartStopEnabled(boolean autoStartStopEnabled) {
 		this.autoStartStopEnabled = autoStartStopEnabled;
+	}
+
+	public long getSeekTimeInMs() {
+		return seekTimeInMs;
+	}
+
+	public void setSeekTimeInMs(long seekTimeInMs) {
+		this.seekTimeInMs = seekTimeInMs;
 	}
 
 }

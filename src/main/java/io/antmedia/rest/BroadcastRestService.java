@@ -33,6 +33,7 @@ import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
+import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiModel;
@@ -163,24 +164,24 @@ public class BroadcastRestService extends RestServiceBase{
 			try {
 				broadcast.setStreamId(broadcast.getStreamId().trim());
 
-				if (!broadcast.getStreamId().isEmpty()) 
+				if (!broadcast.getStreamId().isEmpty())
 				{
 					// make sure stream id is not set on rest service
 					Broadcast broadcastTmp = getDataStore().get(broadcast.getStreamId());
-					if (broadcastTmp != null) 
+					if (broadcastTmp != null)
 					{
 						return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. Please change stream id or keep it empty")).build();
 					}
-					else if (!StreamIdValidator.isStreamIdValid(broadcast.getStreamId())) 
+					else if (!StreamIdValidator.isStreamIdValid(broadcast.getStreamId()))
 					{
 						return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is not valid.")).build();
 					}
 				}
 			}
-			catch (Exception e) 
+			catch (Exception e)
 			{
 				logger.error(ExceptionUtils.getStackTrace(e));
-				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id set generated exception")).build(); 
+				return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id set generated exception")).build();
 			}
 
 
@@ -188,9 +189,9 @@ public class BroadcastRestService extends RestServiceBase{
 
 		Object returnObject = new Result(false, "unexpected parameters received");
 
-		if (autoStart)  
+		if (autoStart)
 		{
-			//auto is only effective for IP Camera or Stream Source 
+			//auto is only effective for IP Camera or Stream Source
 			//so if it's true, it should be IP Camera or Stream Soruce
 			//otherwise wrong parameter
 			if (broadcast != null) {
@@ -199,9 +200,9 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		else {
 			//TODO we need to refactor this method. Refactor validateStreamURL and checkStreamURL
-			if (broadcast != null && 
+			if (broadcast != null &&
 					((AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType()) && !validateStreamURL(broadcast.getIpAddr()))
-							|| 
+							||
 							(AntMediaApplicationAdapter.STREAM_SOURCE.equals(broadcast.getType()) && !checkStreamUrl(broadcast.getStreamUrl()))
 							)
 					) {
@@ -226,7 +227,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
 	public Result deleteBroadcast(@ApiParam(value = " Id of the broadcast", required = true) @PathParam("id") String id) {
-		return super.deleteBroadcast(id);		
+		return super.deleteBroadcast(id);
 	}
 
 	@ApiOperation(value = "Delete multiple broadcasts from data store and stop if they are broadcasting", response = Result.class)
@@ -236,7 +237,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/bulk")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result deleteBroadcasts(@ApiParam(value = " Id of the broadcast", required = true) String[] streamIds) 
+	public Result deleteBroadcasts(@ApiParam(value = " Id of the broadcast", required = true) String[] streamIds)
 	{
 		return super.deleteBroadcasts(streamIds);
 	}
@@ -276,8 +277,8 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 
-	@ApiOperation(value = "Updates the Broadcast objects fields if it's not null." + 
-			" The updated fields are as follows: name, description, userName, password, IP address, streamUrl of the broadcast. " + 
+	@ApiOperation(value = "Updates the Broadcast objects fields if it's not null." +
+			" The updated fields are as follows: name, description, userName, password, IP address, streamUrl of the broadcast. " +
 			"It also updates the social endpoints", notes = "", response = Result.class)
 	@ApiResponses(value = { @ApiResponse(code = 200, message = "If it's updated, success field is true. If it's not updated, success  field if false.")})
 	@PUT
@@ -285,18 +286,20 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Override
-	public Result updateBroadcast(@ApiParam(value="Broadcast id", required = true) @PathParam("id") String id, 
+	public Result updateBroadcast(@ApiParam(value="Broadcast id", required = true) @PathParam("id") String id,
 			@ApiParam(value="Broadcast object with the updates") Broadcast broadcast) {
 		Result result = new Result(false);
-		if (id != null && broadcast != null) 
+		if (id != null && broadcast != null)
 		{
-			if (broadcast.getType() != null && 
-					(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || 
-							broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE))) 
+			if (broadcast.getType() != null &&
+					(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
+							broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
+							broadcast.getType().equals(AntMediaApplicationAdapter.VOD) ||
+							broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)))
 			{
 				result = super.updateStreamSource(id, broadcast);
 			}
-			else 
+			else
 			{
 				result = super.updateBroadcast(id, broadcast);
 			}
@@ -305,6 +308,34 @@ public class BroadcastRestService extends RestServiceBase{
 		return result;
 	}
 
+
+	@ApiOperation(value = "Seeks the playing stream source, vod or playlist on the fly. It accepts seekTimeMs parameter in milliseconds"
+			, notes = "", response = Result.class)
+	@PUT
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{id}/seek-time/{seekTimeMs}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result updateSeekTime(@ApiParam(value="Broadcast id", required = true) @PathParam("id") String id,
+									@ApiParam(value="Seek time in milliseconds", required = true) @PathParam("seekTimeMs") long seekTimeMs) {
+		Result result = new Result(false);
+		if (StringUtils.isNotBlank(id))
+		{
+
+			StreamFetcher streamFetcher = getApplication().getStreamFetcherManager().getStreamFetcher(id);
+			if (streamFetcher != null) {
+				streamFetcher.seekTime(seekTimeMs);
+				result.setSuccess(true);
+			}
+			else {
+				result.setMessage("Not active stream source found with this id: " + id + " make sure you give the id of a running stream source");
+			}
+		}
+		else {
+			result.setMessage("Id field is blank.");
+		}
+		return result;
+
+	}
 
 	@Deprecated
 	@POST
@@ -315,10 +346,10 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "RTMP url of the endpoint that stream will be republished. If required, please encode the URL", required = true) @QueryParam("rtmpUrl") String rtmpUrl) {
 
 		Result result = super.addEndpoint(id, rtmpUrl);
-		if (result.isSuccess()) 
+		if (result.isSuccess())
 		{
 			String status = getDataStore().get(id).getStatus();
-			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
+			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 			{
 				result = getMuxAdaptor(id).startRtmpStreaming(rtmpUrl, 0);
 			}
@@ -350,32 +381,32 @@ public class BroadcastRestService extends RestServiceBase{
 			if (broadcast != null) {
 
 				List<Endpoint> endpoints = broadcast.getEndPointList();
-				if (endpoints == null || endpoints.stream().noneMatch(o -> o.getRtmpUrl().equals(endpoint.getRtmpUrl()))) 
+				if (endpoints == null || endpoints.stream().noneMatch(o -> o.getRtmpUrl().equals(endpoint.getRtmpUrl())))
 				{
 					rtmpUrl = endpoint.getRtmpUrl();
 
-					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
+					if (broadcast.getStatus().equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 					{
 						result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), rtmpUrl, true, resolutionHeight);
-						if (result.isSuccess()) 
+						if (result.isSuccess())
 						{
 							result = super.addEndpoint(id, endpoint);
 						}
 					}
-					else 
+					else
 					{
 						result = super.addEndpoint(id, endpoint);
 					}
 
 
-					if (!result.isSuccess()) 
+					if (!result.isSuccess())
 					{
 						result.setMessage("Rtmp endpoint is not added to stream: " + id);
 
 					}
 					logRtmpEndpointInfo(id, endpoint, result.isSuccess());
 				}
-				else 
+				else
 				{
 					result.setMessage("Rtmp endpoint is not added to datastore for stream " + id + ". It is already added ->" + endpoint.getRtmpUrl());
 				}
@@ -399,18 +430,18 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result removeEndpoint(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
+	public Result removeEndpoint(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
 			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("rtmpUrl") String rtmpUrl ) {
 		Result result = super.removeEndpoint(id, rtmpUrl);
-		if (result.isSuccess()) 
+		if (result.isSuccess())
 		{
 			String status = getDataStore().get(id).getStatus();
-			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) 
+			if (status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING))
 			{
 				result = getMuxAdaptor(id).stopRtmpStreaming(rtmpUrl, 0);
 			}
 		}
-		else {	
+		else {
 
 			if (logger.isErrorEnabled()) {
 				logger.error("Rtmp endpoint({}) was not removed from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , id.replaceAll(REPLACE_CHARS, "_"));
@@ -425,9 +456,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result removeEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id, 
-			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId, 
-			@ApiParam(value = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.", required = true) 
+	public Result removeEndpointV2(@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id,
+			@ApiParam(value = "RTMP url of the endpoint that will be stopped.", required = true) @QueryParam("endpointServiceId") String endpointServiceId,
+			@ApiParam(value = "Resolution specifier if endpoint has been added with resolution. Only applicable if user added RTMP endpoint with a resolution speficier. Otherwise won't work and won't remove the endpoint.", required = true)
 	@QueryParam("resolutionHeight") int resolutionHeight){
 
 		//Get rtmpURL with broadcast
@@ -435,17 +466,17 @@ public class BroadcastRestService extends RestServiceBase{
 		Broadcast broadcast = getDataStore().get(id);
 		Result result = new Result(false);
 
-		if (broadcast != null && endpointServiceId != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty()) 
+		if (broadcast != null && endpointServiceId != null && broadcast.getEndPointList() != null && !broadcast.getEndPointList().isEmpty())
 		{
 
 			Endpoint endpoint = getRtmpUrlFromList(endpointServiceId, broadcast);
 			if (endpoint != null && endpoint.getRtmpUrl() != null) {
 				rtmpUrl = endpoint.getRtmpUrl();
-				result = removeRTMPEndpointProcess(broadcast, endpoint, resolutionHeight, id);	
+				result = removeRTMPEndpointProcess(broadcast, endpoint, resolutionHeight, id);
 			}
-		} 
-		if (logger.isInfoEnabled()) 
-		{ 
+		}
+		if (logger.isInfoEnabled())
+		{
 			logger.info("Rtmp endpoint({}) removal operation is {} from the stream: {}", rtmpUrl != null ? rtmpUrl.replaceAll(REPLACE_CHARS, "_") : null , result.isSuccess(), id.replaceAll(REPLACE_CHARS, "_"));
 		}
 		return result;
@@ -454,15 +485,15 @@ public class BroadcastRestService extends RestServiceBase{
 	private Result removeRTMPEndpointProcess(Broadcast broadcast, Endpoint endpoint, int resolutionHeight, String id) {
 		Result result;
 
-		if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus())) 
+		if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
 		{
 			result = processRTMPEndpoint(broadcast.getStreamId(), broadcast.getOriginAdress(), endpoint.getRtmpUrl(), false, resolutionHeight);
-			if (result.isSuccess()) 
+			if (result.isSuccess())
 			{
 				result = super.removeRTMPEndpoint(id, endpoint);
 			}
 		}
-		else 
+		else
 		{
 			result = super.removeRTMPEndpoint(id, endpoint);
 		}
@@ -473,7 +504,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 	private Endpoint getRtmpUrlFromList(String endpointServiceId, Broadcast broadcast) {
 		Endpoint endpoint = null;
-		for(Endpoint selectedEndpoint: broadcast.getEndPointList()) 
+		for(Endpoint selectedEndpoint: broadcast.getEndPointList())
 		{
 			if(selectedEndpoint.getEndpointServiceId().equals(endpointServiceId)) {
 				endpoint = selectedEndpoint;
@@ -505,7 +536,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@POST
 	@Path("/import-to-stalker")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result importLiveStreams2StalkerV2() 
+	public Result importLiveStreams2StalkerV2()
 	{
 		return super.importLiveStreams2Stalker();
 	}
@@ -541,7 +572,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	@ApiOperation(value = "Generates random one-time token for specified stream")
-	@ApiResponses(value = { @ApiResponse(code = 200, message = "Returns token", response=Token.class), 
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "Returns token", response=Token.class),
 			@ApiResponse(code = 400, message = "When there is an error in creating token", response=Result.class)})
 	@GET
 	@Path("/{id}/token")
@@ -549,7 +580,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public Response getTokenV2 (@ApiParam(value = "The id of the stream", required = true) @PathParam("id")String streamId,
 			@ApiParam(value = "The expire time of the token. It's in unix timestamp seconds", required = true) @QueryParam("expireDate") long expireDate,
 			@ApiParam(value = "Type of the token. It may be play or publish ", required = true) @QueryParam("type") String type,
-			@ApiParam(value = "Room Id that token belongs to. It's not mandatory ", required = false) @QueryParam("roomId") String roomId) 
+			@ApiParam(value = "Room Id that token belongs to. It's not mandatory ", required = false) @QueryParam("roomId") String roomId)
 	{
 		Object result = super.getToken(streamId, expireDate, type, roomId);
 		if (result instanceof Token) {
@@ -562,7 +593,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	@ApiOperation(value = "Generates JWT token for specified stream. It's not required to let the server generate JWT. Generally JWT tokens should be generated on the client side.")
-	@ApiResponses(value = { @ApiResponse(code = 200, message = "Returns token", response=Token.class), 
+	@ApiResponses(value = { @ApiResponse(code = 200, message = "Returns token", response=Token.class),
 			@ApiResponse(code = 400, message = "When there is an error in creating token", response=Result.class)})
 	@GET
 	@Path("/{id}/jwt-token")
@@ -570,7 +601,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public Response getJwtTokenV2 (@ApiParam(value = "The id of the stream", required = true) @PathParam("id")String streamId,
 			@ApiParam(value = "The expire time of the token. It's in unix timestamp seconds.", required = true) @QueryParam("expireDate") long expireDate,
 			@ApiParam(value = "Type of the JWT token. It may be play or publish ", required = true) @QueryParam("type") String type,
-			@ApiParam(value = "Room Id that token belongs to. It's not mandatory ", required = false) @QueryParam("roomId") String roomId) 
+			@ApiParam(value = "Room Id that token belongs to. It's not mandatory ", required = false) @QueryParam("roomId") String roomId)
 	{
 		Object result = super.getJwtToken(streamId, expireDate, type, roomId);
 		if (result instanceof Token) {
@@ -587,7 +618,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/validate-token")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result validateTokenV2(@ApiParam(value = "Token to be validated", required = true) Token token) 
+	public Result validateTokenV2(@ApiParam(value = "Token to be validated", required = true) Token token)
 	{
 		boolean result =  false;
 		Token validateToken = super.validateToken(token);
@@ -635,7 +666,7 @@ public class BroadcastRestService extends RestServiceBase{
 			subscribers = getDataStore().listAllSubscribers(streamId, offset, size);
 		}
 		return subscribers;
-	}	
+	}
 
 	@ApiOperation(value = "Get the all subscriber statistics of the requested stream", notes = "",responseContainer = "List", response = SubscriberStats.class)
 	@GET
@@ -662,8 +693,8 @@ public class BroadcastRestService extends RestServiceBase{
 			@ApiParam(value = "Subscriber to be added to this stream", required = true) Subscriber subscriber) {
 		boolean result = false;
 		String message = "";
-		if (subscriber != null && !StringUtils.isBlank(subscriber.getSubscriberId()) 
-				&& subscriber.getSubscriberId().length() > 3 && StringUtils.isNotBlank(streamId)) 
+		if (subscriber != null && !StringUtils.isBlank(subscriber.getSubscriberId())
+				&& subscriber.getSubscriberId().length() > 3 && StringUtils.isNotBlank(streamId))
 		{
 			// add stream id inside the Subscriber
 			subscriber.setStreamId(streamId);
@@ -710,27 +741,27 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/{id}/subscribers/{sid}/totp")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result getTOTP(@ApiParam(value="The id of the stream that TOTP will be generated", required=true) @PathParam("id") String streamId, 
-			@ApiParam(value="The id of the subscriber that TOTP will be generated ", required=true) @PathParam("sid") String subscriberId, 
-			@ApiParam(value="The type of token. It's being used if subscriber is not in the database. It can be publish, play", 
-			required=false) @QueryParam("type") String type) 
+	public Result getTOTP(@ApiParam(value="The id of the stream that TOTP will be generated", required=true) @PathParam("id") String streamId,
+			@ApiParam(value="The id of the subscriber that TOTP will be generated ", required=true) @PathParam("sid") String subscriberId,
+			@ApiParam(value="The type of token. It's being used if subscriber is not in the database. It can be publish, play",
+			required=false) @QueryParam("type") String type)
 	{
 
 		boolean result = false;
 		String message = "";
 		String totp = "";
-		if (!StringUtils.isAnyBlank(streamId, subscriberId)) 
-		{	
+		if (!StringUtils.isAnyBlank(streamId, subscriberId))
+		{
 			Subscriber subscriber = getDataStore().getSubscriber(streamId, subscriberId);
-			if (subscriber != null && StringUtils.isNotBlank(subscriber.getB32Secret())) 
+			if (subscriber != null && StringUtils.isNotBlank(subscriber.getB32Secret()))
 			{
 				byte[] decodedSubscriberSecret = Base32.decode(subscriber.getB32Secret().getBytes());
 				totp = TOTPGenerator.generateTOTP(decodedSubscriberSecret, getAppSettings().getTimeTokenPeriod(),  6, ITokenService.HMAC_SHA1);
 			}
-			else 
-			{	
+			else
+			{
 				String secretFromSettings = getAppSettings().getTimeTokenSecretForPublish();
-				if (Subscriber.PLAY_TYPE.equals(type)) 
+				if (Subscriber.PLAY_TYPE.equals(type))
 				{
 					secretFromSettings = getAppSettings().getTimeTokenSecretForPlay();
 				}
@@ -771,7 +802,7 @@ public class BroadcastRestService extends RestServiceBase{
 			result = getDataStore().deleteSubscriber(streamId, subscriberId);
 		}
 
-		return new Result(result);	
+		return new Result(result);
 	}
 
 	@ApiOperation(value = "Block specific subscriber. It's secure to use this with TOTP streaming. It blocks the subscriber for seconds from the moment this method is called", response = Result.class)
@@ -780,7 +811,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{id}/subscribers/{sid}/block/{seconds}/{type}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result blockSubscriber(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String streamId,
-			@ApiParam(value = "the id of the subscriber", required = true) @PathParam("sid") String subscriberId, 
+			@ApiParam(value = "the id of the subscriber", required = true) @PathParam("sid") String subscriberId,
 			@ApiParam(value = "seconds to block the user", required = true)  @PathParam("seconds") int seconds,
 			@ApiParam(value = "block type it can be 'publish', 'play' or 'publish_play'", required = true)  @PathParam("type") String blockType) {
 		boolean result = false;
@@ -788,17 +819,17 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 
-		if (!StringUtils.isAnyBlank(streamId, subscriberId)) 
+		if (!StringUtils.isAnyBlank(streamId, subscriberId))
 		{
-			//if the user is not in this node, it's in another node in the cluster.  
+			//if the user is not in this node, it's in another node in the cluster.
 			//The proxy filter will forward the request to the related node before {@link RestProxyFilter}
 
 			result = getDataStore().blockSubscriber(streamId, subscriberId, blockType, seconds);
 
-			if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType) ) 
+			if (Subscriber.PLAY_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType) )
 			{
 				getApplication().stopPlayingBySubscriberId(subscriberId);
-			} 
+			}
 
 			if (Subscriber.PUBLISH_TYPE.equals(blockType) || Subscriber.PUBLISH_AND_PLAY_TYPE.equals(blockType)) {
 				getApplication().stopPublishingBySubscriberId(subscriberId);
@@ -826,7 +857,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 
 		return new Result(result);
-	}	
+	}
 
 	@ApiOperation(value = "Get the broadcast live statistics total RTMP watcher count, total HLS watcher count, total WebRTC watcher count", notes = "", response = BroadcastStatistics.class)
 	@GET
@@ -850,7 +881,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/webrtc-send-low-level-stats")
 	@Produces(MediaType.APPLICATION_JSON)
-	public WebRTCSendStats getWebRTCLowLevelSendStats() 
+	public WebRTCSendStats getWebRTCLowLevelSendStats()
 	{
 		return new WebRTCSendStats(getApplication().getWebRTCAudioSendStats(), getApplication().getWebRTCVideoSendStats());
 	}
@@ -859,7 +890,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/webrtc-receive-low-level-stats")
 	@Produces(MediaType.APPLICATION_JSON)
-	public WebRTCReceiveStats getWebRTCLowLevelReceiveStats() 
+	public WebRTCReceiveStats getWebRTCLowLevelReceiveStats()
 	{
 		return new WebRTCReceiveStats(getApplication().getWebRTCAudioReceiveStats(), getApplication().getWebRTCVideoReceiveStats());
 	}
@@ -868,7 +899,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/{id}/rtmp-to-webrtc-stats")
 	@Produces(MediaType.APPLICATION_JSON)
-	public RTMPToWebRTCStats getRTMPToWebRTCStats(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id) 
+	public RTMPToWebRTCStats getRTMPToWebRTCStats(@ApiParam(value = "the id of the stream", required = true) @PathParam("id") String id)
 	{
 		return getApplication().getRTMPToWebRTCStats(id);
 	}
@@ -931,7 +962,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/start")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result startStreamSourceV2(@ApiParam(value = "the id of the stream. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
+	public Result startStreamSourceV2(@ApiParam(value = "the id of the stream. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id)
 	{
 		return super.startStreamSource(id);
 	}
@@ -941,10 +972,10 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/playlists/{id}/next")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result playNextItem(@ApiParam(value = "The id of the playlist stream.", required = true) @PathParam("id") String id,			
-			@ApiParam(value = "The next item to play. If it's not specified or it's -1, it plays next item. If it's number, it skips that item in the playlist to play. The first item index is 0. ", required = false) @QueryParam("index") Integer index			
-			) 
-	{ 
+	public Result playNextItem(@ApiParam(value = "The id of the playlist stream.", required = true) @PathParam("id") String id,
+			@ApiParam(value = "The next item to play. If it's not specified or it's -1, it plays next item. If it's number, it skips that item in the playlist to play. The first item index is 0. ", required = false) @QueryParam("index") Integer index
+			)
+	{
 		return super.playNextItem(id, index);
 	}
 
@@ -953,7 +984,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/stop")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result stopStreamingV2(@ApiParam(value = "the id of the broadcast.", required = true) @PathParam("id") String id) 
+	public Result stopStreamingV2(@ApiParam(value = "the id of the broadcast.", required = true) @PathParam("id") String id)
 	{
 		return super.stopStreaming(id);
 	}
@@ -1025,7 +1056,7 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 			else  {
 				message = "Movement type is not supported. Supported types are continous, relative and absolute but was " + movement;
-			}		
+			}
 		}
 		return new Result(result, message);
 	}
@@ -1037,8 +1068,8 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result stopMove(@ApiParam(value = "the id of the IP Camera", required = true) @PathParam("id") String id) {
 		boolean result = false;
 		String message = STREAM_ID_NOT_VALID;
-		if (id != null && StreamIdValidator.isStreamIdValid(id)) 
-		{		
+		if (id != null && StreamIdValidator.isStreamIdValid(id))
+		{
 			OnvifCamera camera = getApplication().getOnvifCamera(id);
 			if (camera != null) {
 				result = camera.moveStop();
@@ -1092,7 +1123,6 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result deleteConferenceRoomV2(@ApiParam(value = "the id of the conference room", required = true) @PathParam("room_id") String roomId) {
 		return new Result(super.deleteConferenceRoom(roomId, getDataStore()));
 	}
-
 
 	public void logWarning(String message, String... arguments) {
 		if (logger.isWarnEnabled()) {
@@ -1322,57 +1352,9 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{id}/subtrack")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSubTrack(@ApiParam(value = "Broadcast id(main track)", required = true) @PathParam("id") String id,
-			@ApiParam(value = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId) 
+			@ApiParam(value = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId)
 	{
-
-		Result result = new Result(false);
-		Broadcast subTrack = getDataStore().get(subTrackId);
-		String message = "";
-		if (subTrack != null) 
-		{
-			subTrack.setMainTrackStreamId(id);
-			//Update subtrack's main Track Id
-
-			boolean success = getDataStore().updateBroadcastFields(subTrackId, subTrack);
-			if (success) {
-				success = getDataStore().addSubTrack(id, subTrackId);
-
-				setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id,
-						"Subtrack:{} cannot be added to main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
-
-				if (success) {
-					//if it's a room, add it to the room as well
-					//Ugly fix
-					//REFACTOR: Migrate conference room to Broadcast object by keeping the interface backward compatible
-					addStreamToConferenceRoom(id, subTrackId, getDataStore());
-				}
-
-			}
-			else 
-			{
-				message = "Main track of the stream " + subTrackId + " cannot be updated";
-				logWarning("Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
-			}
-		}
-		else 
-		{
-			message = "There is not stream with id:" + subTrackId;
-			logWarning("There is not stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
-		}
-		result.setMessage(message);
-		return result;
-	}
-
-	public void setResultSuccess(Result result, boolean success, String failMessage, String failLog, String... arguments) 
-	{
-		if (success) {
-			result.setSuccess(true);
-		}
-		else {
-			result.setSuccess(false);
-			result.setMessage(failMessage);
-			logWarning(failLog, arguments);
-		}
+		return RestServiceBase.addSubTrack(id, subTrackId, getDataStore());
 	}
 
 	@ApiOperation(value = "Delete a subtrack from a main track (broadcast).", notes = "", response = Result.class)
@@ -1383,35 +1365,7 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result removeSubTrack(@ApiParam(value = "Broadcast id(main track)", required = true) @PathParam("id") String id,
 			@ApiParam(value = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId)
 	{
-
-		Result result = new Result(false);
-		Broadcast subTrack = getDataStore().get(subTrackId);
-		if (subTrack != null)
-		{
-			if(id != null && id.equals(subTrack.getMainTrackStreamId())) {
-				subTrack.setMainTrackStreamId("");
-			}
-
-			boolean success = getDataStore().updateBroadcastFields(subTrackId, subTrack);
-			if (success) {
-				success = getDataStore().removeSubTrack(id, subTrackId);
-
-				setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be removed from main track: " + id,
-						"Subtrack:{} cannot be removed from main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
-
-			}
-			else 
-			{
-				setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be updated",
-						"Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
-			}
-		}
-		else 
-		{
-			setResultSuccess(result, false, "There is no stream with id:" + subTrackId, "There is no stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
-		}
-
-		return result;
+		return RestServiceBase.removeSubTrack(id, subTrackId, getDataStore());
 	}
 
 	@ApiOperation(value = "Returns the stream info(width, height, bitrates and video codec) of the stream", response= BasicStreamInfo[].class)
@@ -1419,8 +1373,8 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/stream-info")
 	@Produces(MediaType.APPLICATION_JSON)
-	public BasicStreamInfo[] getStreamInfo(@PathParam("id") String streamId) 
-	{	
+	public BasicStreamInfo[] getStreamInfo(@PathParam("id") String streamId)
+	{
 		boolean isCluster = getAppContext().containsBean(IClusterNotifier.BEAN_NAME);
 		List<? extends IStreamInfo> streamInfoList;
 		if (isCluster) {
@@ -1431,12 +1385,12 @@ public class BroadcastRestService extends RestServiceBase{
 			streamInfoList = webRTCAdaptor.getStreamInfo(streamId);
 		}
 		BasicStreamInfo[] basicStreamInfo = new BasicStreamInfo[0];
-		if (streamInfoList != null) 
+		if (streamInfoList != null)
 		{
 			basicStreamInfo = new BasicStreamInfo[streamInfoList.size()];
 			for (int i = 0; i < basicStreamInfo.length; i++) {
 				IStreamInfo iStreamInfo = streamInfoList.get(i);
-				basicStreamInfo[i] = new BasicStreamInfo(iStreamInfo.getVideoHeight(), iStreamInfo.getVideoWidth(), 
+				basicStreamInfo[i] = new BasicStreamInfo(iStreamInfo.getVideoHeight(), iStreamInfo.getVideoWidth(),
 						iStreamInfo.getVideoBitrate(), iStreamInfo.getAudioBitrate(), iStreamInfo.getVideoCodec());
 			}
 		}
@@ -1444,55 +1398,17 @@ public class BroadcastRestService extends RestServiceBase{
 		return basicStreamInfo;
 	}
 
-	public boolean isMainTrack(String streamId) {
-		boolean result = false;
-		if (streamId != null) 
-		{	
-			Broadcast broadcast = getDataStore().get(streamId);
-			if (broadcast != null) 
-			{
-				result = !broadcast.getSubTrackStreamIds().isEmpty();
-			}
-		}
-
-		return result;
-
-	}
-
 	@ApiOperation(value = "Send stream participants a message through Data Channel in a WebRTC stream", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/data")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result sendMessage(@ApiParam(value = "Message through Data Channel which will be sent to all WebRTC stream participants", required = true) String message, 
+	public Result sendMessage(@ApiParam(value = "Message through Data Channel which will be sent to all WebRTC stream participants", required = true) String message,
 			@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id) {
 
 		AntMediaApplicationAdapter application = getApplication();
-		// check if WebRTC data channels are supported in this edition
-		if(application != null && application.isDataChannelMessagingSupported()) {
-			// check if data channel is enabled in the settings
-			if(application.isDataChannelEnabled()) {
-				// check if stream with given stream id exists
-				if(application.doesWebRTCStreamExist(id) || isMainTrack(id)) {
-					// send the message through the application
-					boolean status = application.sendDataChannelMessage(id,message);
-					if(status) {
-						return new Result(true);
-					} else {
-						return new Result(false, "Operation not completed");
-					}
 
-				} else {
-					return new Result(false, "Requested WebRTC stream does not exist");
-				}
-
-			} else {
-				return new Result(false, "Data channels are not enabled");
-			}
-
-		} else {
-			return new Result(false, "Operation not supported in the Community Edition. Check the Enterprise version for more features.");
-		}
+		return RestServiceBase.sendDataChannelMessage(id, message, application, getDataStore());
 	}
 	@ApiOperation(value = "Gets the conference room list from database", notes = "",responseContainer = "List", response = ConferenceRoom.class)
 	@GET
@@ -1623,7 +1539,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/webrtc-viewers/{webrtc-viewer-id}/stop")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result stopPlaying(@ApiParam(value = "the id of the webrtc viewer.", required = true) @PathParam("webrtc-viewer-id") String viewerId) 
+	public Result stopPlaying(@ApiParam(value = "the id of the webrtc viewer.", required = true) @PathParam("webrtc-viewer-id") String viewerId)
 	{
 		boolean result = getApplication().stopPlaying(viewerId);
 		return new Result(result);
