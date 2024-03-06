@@ -7,9 +7,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
+
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -1918,23 +1917,23 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast broadcast = Mockito.spy(new Broadcast());
 
 		// should return false because stream id is null
-		assertFalse(restServiceReal.isMainTrack(null));
+		assertFalse(RestServiceBase.isMainTrack(null, store));
 
 		// should return false when broadcast does not exist
 		when(store.get("streamId")).thenReturn(null);
-		assertFalse(restServiceReal.isMainTrack("streamId"));
+		assertFalse(RestServiceBase.isMainTrack("streamId", store));
 
 		// should return false when broadcast is not main track
 		when(broadcast.getSubTrackStreamIds()).thenReturn(new ArrayList());
 		when(broadcast.getMainTrackStreamId()).thenReturn("mainTrackStreamId");
 		when(store.get("streamId")).thenReturn(broadcast);
-		assertFalse(restServiceReal.isMainTrack("streamId"));
+		assertFalse(RestServiceBase.isMainTrack("streamId", store));
 
 		// should return true when broadcast is main track
 		when(broadcast.getSubTrackStreamIds()).thenReturn(List.copyOf(Arrays.asList("subTrackStreamId1", "subTrackStreamId2")));
 		when(broadcast.getMainTrackStreamId()).thenReturn(null);
 		when(store.get("streamId")).thenReturn(broadcast);
-		assertTrue(restServiceReal.isMainTrack("streamId"));
+		assertTrue(RestServiceBase.isMainTrack("streamId", store));
 	}
 
 	@Test
@@ -2876,6 +2875,48 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	@Test
+	public void testSeektime() {
+		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try 
+		{
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		datastore.save(mainTrack);
+		broadcastRestService.setDataStore(datastore);
+
+		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+
+		Mockito.doReturn(adaptor).when(broadcastRestService).getApplication();
+		StreamFetcherManager fetcherManager = Mockito.mock(StreamFetcherManager.class);
+		Mockito.when(adaptor.getStreamFetcherManager()).thenReturn(fetcherManager);
+		
+		
+		
+		
+		Result updateSeekTime = broadcastRestService.updateSeekTime("", 1000);
+		assertFalse(updateSeekTime.isSuccess());
+		
+		updateSeekTime = broadcastRestService.updateSeekTime("streamId", 1000);
+		assertFalse(updateSeekTime.isSuccess());
+		
+		StreamFetcher fetcher =  Mockito.mock(StreamFetcher.class);
+		Mockito.when(fetcherManager.getStreamFetcher("streamId")).thenReturn(fetcher);
+		
+		updateSeekTime = broadcastRestService.updateSeekTime("streamId", 1000);
+		assertTrue(updateSeekTime.isSuccess());
+		Mockito.verify(fetcher).seekTime(1000);
+		
+	}
+	
+	@Test
 	public void testGetStreamInfo() {
 		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
 		MongoStore datastore = new MongoStore("localhost", "", "", "testdb");
@@ -3281,11 +3322,8 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber3Id);
 		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber3Id);
-		
-		
 
 	}
-	
 
 	public void testAddID3Tag() {
 		DataStore store = new InMemoryDataStore("testdb");
@@ -3367,6 +3405,4 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNotEquals(totp4, totp3);
 		
 	}
-
-
 }

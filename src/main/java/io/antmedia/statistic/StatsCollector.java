@@ -863,10 +863,6 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 					logger.error("Not enough resource. Due to memory limit. Free memory should be more than {}MB but it is {}MB", getMinFreeRamSize(), freeRam);
 				}
 			}
-				
-			
-			
-
 		}
 		else {
 			logger.error("Not enough resource. Due to high cpu load: {} cpu limit: {}", cpuLoad, cpuLimit);

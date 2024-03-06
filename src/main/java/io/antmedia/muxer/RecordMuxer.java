@@ -1,16 +1,13 @@
 package io.antmedia.muxer;
 
 
-import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.red5.server.api.IContext;
@@ -164,14 +161,18 @@ public abstract class RecordMuxer extends Muxer {
 
 	}
 
+	
+	public static String getS3Prefix(String s3FolderPath, String subFolder) {
+		return replaceDoubleSlashesWithSingleSlash(s3FolderPath + File.separator + (subFolder != null ? subFolder : "" ) + File.separator);
+	}
 
 	public File getFinalFileName(boolean isS3Enabled)
 	{
 		String absolutePath = fileTmp.getAbsolutePath();
 		String origFileName = absolutePath.replace(TEMP_EXTENSION, "");
 
-		String prefix = s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" );
-
+		String prefix = getS3Prefix(s3FolderPath, subFolder);
+		
 		String fileName = getFile().getName();
 
 		File f = new File(origFileName);

@@ -810,6 +810,7 @@ public class MongoStore extends DataStore {
 
 				prepareFields(broadcast, updates);
 
+				updates.add(set("seekTimeInMs", broadcast.getSeekTimeInMs()));
 				updates.add(set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
 				updates.add(set("receivedBytes", broadcast.getReceivedBytes()));
 				updates.add(set("bitrate", broadcast.getBitrate()));
@@ -821,8 +822,8 @@ public class MongoStore extends DataStore {
 				updates.add(set(META_DATA, broadcast.getMetaData()));
 				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
 				updates.add(set("updateTime", broadcast.getUpdateTime()));
+				updates.add(set("autoStartStopEnabled",broadcast.isAutoStartStopEnabled()));
 
-				
 				UpdateResult updateResult = query.update(updates).execute();
 				return updateResult.getModifiedCount() == 1;
 			} catch (Exception e) {

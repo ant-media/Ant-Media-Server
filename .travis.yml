@@ -2,7 +2,7 @@ dist: jammy
 language: java
 jdk:
   - openjdk17
-node_js: "16.20.2"
+
 
 git:
   depth: false
@@ -32,6 +32,8 @@ services:
 
 
 before_install:
+  - nvm install 16.20.2
+  - nvm use 16.20.2
   - openssl aes-256-cbc -K $encrypted_5fef4fa28306_key -iv $encrypted_5fef4fa28306_iv -in codesigning.asc.enc -out codesigning.asc -d
   - export GPG_TTY=$(tty) #-> https://github.com/keybase/keybase-issues/issues/2798
   - gpg2 --batch --fast-import codesigning.asc
@@ -103,7 +105,6 @@ before_install:
         cp -rf "$HOME/.antmedia/cache/node_modules" .;
     fi)
   - npm install
-  - export NODE_OPTIONS=--openssl-legacy-provider
   - ng build --prod
   - cp -a ./dist/. ../src/main/server/webapps/root/
   #update the cache directory
@@ -143,11 +144,11 @@ before_install:
   - sudo cp src/test/resources/preset-red5-web.properties  /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
   - sudo cp src/test/resources/preset-red5-web.db  /usr/local/antmedia/liveapp.db
   - sudo sed -i 's^server.cpu_limit=.*^server.cpu_limit=100^' /usr/local/antmedia/conf/red5.properties
+  - sudo sed -i 's^server.memory_limit_percentage=.*^server.memory_limit_percentage=100^' /usr/local/antmedia/conf/red5.properties
   - sudo service antmedia stop
   - sudo service antmedia start
   - sleep 10
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
-
 
 install:
   - mvn install -DskipTests=true -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet

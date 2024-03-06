@@ -323,6 +323,11 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_ENCODING_VP8_DEADLINE = "settings.encoding.vp8.deadline";
+	
+	/**
+	 * @hidden
+	 */
+	private static final String SETTINGS_HW_SCALING_ENABLED= "settings.encoding.hwScalingEnabled";
 
 	/**
 	 * @hidden
@@ -731,7 +736,6 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
-
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -1531,8 +1535,7 @@ public class AppSettings implements Serializable{
 	private String rtspPullTransportType = "3";
 
 	/**
-	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
-	 * It can be tcp or udp
+	 * Specify the rtspTimeoutDurationMs in pulling IP Camera or RTSP sources
 	 */
 	@Value("${rtspTimeoutDurationMs:${" + SETTINGS_RTSP_TIMEOUT_DURATION_MS+ ":5000}}")
 	private int rtspTimeoutDurationMs = 5000;
@@ -2052,7 +2055,10 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${sendAudioLevelToViewers:true}")
 	private boolean sendAudioLevelToViewers = true;
-	
+
+	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":true}}")
+	private boolean hwScalingEnabled = true;
+
 	/**
 	 * Firebase Service Account Key JSON to send push notification
 	 * through Firebase Cloud Messaging
@@ -2068,6 +2074,7 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${subscriberAuthenticationKey:#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}")
 	private String subscriberAuthenticationKey = RandomStringUtils.randomAlphanumeric(32);
+
 
 
 	/**
@@ -2094,7 +2101,19 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${apnKeyId:#{null}}")
 	private String apnKeyId;
-	
+
+	/**
+	 * Retry count on webhook POST failure
+	 */
+	@Value("${webhookRetryCount:0}")
+	private int webhookRetryCount = 0;
+
+	/**
+	 * Delay in milliseconds between webhook attempts on POST failure.
+	 */
+	@Value("${webhookRetryAttemptDelay:1000}")
+	private long webhookRetryDelay = 1000;
+
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
 	}
@@ -3575,6 +3594,14 @@ public class AppSettings implements Serializable{
 		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
 	}
 
+	public boolean isHwScalingEnabled() {
+		return hwScalingEnabled;
+	}
+
+	public void setHwScalingEnabled(boolean hwScalingEnabled) {
+		this.hwScalingEnabled = hwScalingEnabled;
+	}
+
 	public String getFirebaseAccountKeyJSON() {
 		return firebaseAccountKeyJSON;
 	}
@@ -3621,6 +3648,22 @@ public class AppSettings implements Serializable{
 	
 	public void setApnsServer(String apnsServer) {
 		this.apnsServer = apnsServer;
+	}
+
+	public int getWebhookRetryCount() {
+		return webhookRetryCount;
+	}
+
+	public void setWebhookRetryCount(int webhookRetryCount) {
+		this.webhookRetryCount = webhookRetryCount;
+	}
+
+	public long getWebhookRetryDelay() {
+		return webhookRetryDelay;
+	}
+
+	public void setWebhookRetryDelay(long webhookRetryDelay) {
+		this.webhookRetryDelay = webhookRetryDelay;
 	}
 
 }

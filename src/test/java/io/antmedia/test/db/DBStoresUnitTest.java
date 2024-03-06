@@ -142,6 +142,8 @@ public class DBStoresUnitTest {
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
 		
+		dataStore.close(false);
+		
 
 	}
 	
@@ -225,7 +227,7 @@ public class DBStoresUnitTest {
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
 
-		
+		dataStore.close(false);
 
 
 	}
@@ -287,7 +289,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		
-
+		dataStore.close(true);
 	}
 	
 	@Test
@@ -344,6 +346,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		
+		dataStore.close(true);
 	}
 	
 	@Test
@@ -568,6 +571,11 @@ public class DBStoresUnitTest {
 		assertNotNull(streamsList);
 
 		assertEquals(2, streamsList.size());
+		
+		streamsList = datastore.getExternalStreamsList();
+		assertNotNull(streamsList);
+
+		assertEquals(0, streamsList.size());
 
 		//check that there are two streams and values are same as added above
 
@@ -1541,6 +1549,7 @@ public class DBStoresUnitTest {
 			tmp.setPlaylistLoopEnabled(false);
 			double speed = 1.0;
 			tmp.setSpeed(speed);
+			tmp.setSeekTimeInMs(136);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 

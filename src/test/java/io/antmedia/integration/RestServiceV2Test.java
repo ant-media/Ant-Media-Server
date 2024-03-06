@@ -148,10 +148,8 @@ public class RestServiceV2Test {
 	}
 
 	public static Broadcast createBroadcast(String name, String type, String streamUrl, String subFolder) {
-		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
 
-		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
-		Gson gson = new Gson();
+		
 		Broadcast broadcast = new Broadcast();
 		if (name != null) {
 			broadcast.setName(name);
@@ -168,6 +166,14 @@ public class RestServiceV2Test {
 		if(subFolder != null)
 			broadcast.setSubFolder(subFolder);
 
+		return createBroadcast(broadcast);
+	}
+	
+	public static Broadcast createBroadcast(Broadcast broadcast) {
+		String url = ROOT_SERVICE_URL + "/v2/broadcasts/create";
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+
+		Gson gson = new Gson();
 		try {
 
 			HttpUriRequest post = RequestBuilder.post().setUri(url)
@@ -191,6 +197,7 @@ public class RestServiceV2Test {
 			fail(e.getMessage());
 		}
 		return null;
+
 	}
 
 
@@ -306,7 +313,7 @@ public class RestServiceV2Test {
 	@Test
 	public void testBroadcastCreateFunctionalWithoutName() {
 
-		createBroadcast(null);
+		createBroadcast((String)null);
 	}
 
 	@Test
@@ -1236,7 +1243,7 @@ public class RestServiceV2Test {
 
 		System.out.println("Running testUpdate");
 		// create broadcast
-		Broadcast broadcast = createBroadcast(null);
+		Broadcast broadcast = createBroadcast((String)null);
 
 		String name = "string name";
 		String description = "String descriptio";
@@ -1467,7 +1474,7 @@ public class RestServiceV2Test {
 		try{
 			List<Broadcast> broadcastList = callGetBroadcastList();
 			int size = broadcastList.size();
-			Broadcast broadcast = createBroadcast(null);
+			Broadcast broadcast = createBroadcast((String)null);
 
 			String streamId = RandomStringUtils.randomAlphabetic(6);
 
@@ -1628,7 +1635,7 @@ public class RestServiceV2Test {
 			
 			logger.info("total number of broadcasts is {}", size);
 			
-			Broadcast broadcast = createBroadcast(null);
+			Broadcast broadcast = createBroadcast((String)null);
 
 			String streamId = RandomStringUtils.randomAlphabetic(6);
 			
