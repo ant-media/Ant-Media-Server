@@ -1868,6 +1868,138 @@ public abstract class RestServiceBase {
 		return true;
 	}
 
+	public static void setResultSuccess(Result result, boolean success, String failMessage, String failLog, String... arguments)
+	{
+		if (success) {
+			result.setSuccess(true);
+		}
+		else {
+			result.setSuccess(false);
+			result.setMessage(failMessage);
+		}
+	}
+
+	public static void logWarning(String message, String... arguments) {
+		if (logger.isWarnEnabled()) {
+			logger.warn(message , arguments);
+		}
+	}
+
+	public static Result addSubTrack(String id, String subTrackId,DataStore store) {
+		Result result = new Result(false);
+		Broadcast subTrack = store.get(subTrackId);
+		String message = "";
+		if (subTrack != null)
+		{
+			subTrack.setMainTrackStreamId(id);
+			//Update subtrack's main Track Id
+
+			boolean success = store.updateBroadcastFields(subTrackId, subTrack);
+			if (success) {
+				success = store.addSubTrack(id, subTrackId);
+
+				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id,
+						"Subtrack:{} cannot be added to main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+
+				if (success) {
+					//if it's a room, add it to the room as well
+					//Ugly fix
+					//REFACTOR: Migrate conference room to Broadcast object by keeping the interface backward compatible
+					addStreamToConferenceRoom(id, subTrackId, store);
+				}
+
+			}
+			else
+
+			{
+				message = "Main track of the stream " + subTrackId + " cannot be updated";
+				logWarning("Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+			}
+		}
+		else
+		{
+			message = "There is not stream with id:" + subTrackId;
+			logWarning("There is not stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
+		}
+		result.setMessage(message);
+		return result;
+	}
+
+	public static Result removeSubTrack(String id, String subTrackId,DataStore store) {
+		Result result = new Result(false);
+		Broadcast subTrack = store.get(subTrackId);
+		if (subTrack != null)
+		{
+			if(id != null && id.equals(subTrack.getMainTrackStreamId())) {
+				subTrack.setMainTrackStreamId("");
+			}
+
+			boolean success = store.updateBroadcastFields(subTrackId, subTrack);
+			if (success) {
+				success = store.removeSubTrack(id, subTrackId);
+
+				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be removed from main track: " + id,
+						"Subtrack:{} cannot be removed from main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
+
+			}
+			else
+			{
+				RestServiceBase.setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be updated",
+						"Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
+			}
+		}
+		else
+		{
+			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + subTrackId, "There is no stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
+		}
+
+		return result;
+	}
+
+	public static boolean isMainTrack(String streamId, DataStore store) {
+		boolean result = false;
+		if (streamId != null)
+		{
+			Broadcast broadcast = store.get(streamId);
+			if (broadcast != null)
+			{
+				result = !broadcast.getSubTrackStreamIds().isEmpty();
+			}
+		}
+
+		return result;
+
+	}
+
+	public static Result sendDataChannelMessage(String id, String message, AntMediaApplicationAdapter application, DataStore store)
+	{
+		// check if WebRTC data channels are supported in this edition
+		if(application != null && application.isDataChannelMessagingSupported()) {
+			// check if data channel is enabled in the settings
+			if(application.isDataChannelEnabled()) {
+				// check if stream with given stream id exists
+				if(application.doesWebRTCStreamExist(id) || RestServiceBase.isMainTrack(id, store)) {
+					// send the message through the application
+					boolean status = application.sendDataChannelMessage(id,message);
+					if(status) {
+						return new Result(true);
+					} else {
+						return new Result(false, "Operation not completed");
+					}
+
+				} else {
+					return new Result(false, "Requested WebRTC stream does not exist");
+				}
+
+			} else {
+				return new Result(false, "Data channels are not enabled");
+			}
+
+		} else {
+			return new Result(false, "Operation not supported in the Community Edition. Check the Enterprise version for more features.");
+		}
+	}
+
 
 	public static synchronized boolean removeStreamFromRoom(String roomId, String streamId,DataStore store)
 	{
