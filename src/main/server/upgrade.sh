@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # -----------------------------------------------------------------------------
-# update.sh - Update Script
+# upgrade.sh - Update Script
 # -----------------------------------------------------------------------------
 
 # Description:
@@ -18,7 +18,10 @@
 
 # -----------------------------------------------------------------------------
 
-INSTALL_DIRECTORY="$(pwd)"
+
+INSTALL_DIRECTORY=$(dirname "$0")
+cd $INSTALL_DIRECTORY
+
 
 REMOTE_VERSION=$(curl -s https://antmedia.io/download/latest-version.json | jq -r ".versionName")
 LOCAL_VERSION=$(unzip -p $INSTALL_DIRECTORY/ant-media-server.jar | grep -a "Implementation-Version"|cut -d' ' -f2 | tr -d '\r')
@@ -42,26 +45,44 @@ check_ams() {
 	get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
 	#Check if it is Enterprise or Community
 	if [ -z "$get_license_key" ]; then
-          if [ "$GITHUB_LATEST_VERSION" == "$REMOTE_VERSION" ]; then
-              echo "Downloading the latest version of Ant Media Server Community Edition."
-    	      curl --progress-bar -o ams_community.zip -L "$(curl -s -H "Accept: application/vnd.github+json" https://api.github.com/repos/ant-media/Ant-Media-Server/releases/latest | jq -r '.assets[0].browser_download_url')"   
-    	      ANT_MEDIA_SERVER_ZIP_FILE="ams_community.zip"
-          else
-              exit 1
-          fi
-        else
-            check_license=$(curl -s https://api.antmedia.io/?license="$get_license_key" | tr -d "\"")
-    	    echo "Downloading the latest version of Ant Media Server Enterprise Edition."
-  	    curl --progress-bar -o ams_enterprise.zip "$check_license"
-  	    ANT_MEDIA_SERVER_ZIP_FILE="ams_enterprise.zip"
+	
+	   #if there is no license key, it can be still enterprise edition in the marketplace
+	   
+	   if find "$INSTALL_DIRECTORY/plugins/" -type f -name "ant-media-enterprise*" | grep -q .; then
+		  # there is enterprise file in plugins directory, check that if it's marketplace edition
+		  echo "It seems like an enterprise version. On the other hand, there is no license key. If this is a Cloud Marketplace build, upgrade your version through your Cloud Marketplace"
+	      exit 1
+       elif [ "$GITHUB_LATEST_VERSION" == "$REMOTE_VERSION" ]; then
+         echo "Downloading the latest version of Ant Media Server Community Edition..."
+  		 curl --progress-bar -o ams_community.zip -L "$(curl -s -H "Accept: application/vnd.github+json" https://api.github.com/repos/ant-media/Ant-Media-Server/releases/latest | jq -r '.assets[0].browser_download_url')"   
+    	 ANT_MEDIA_SERVER_ZIP_FILE="ams_community.zip"
+	   else
+      	 exit 1
+       fi
+  
+    else
+    	
+      check_license=$(curl -s https://api.antmedia.io/?license="$get_license_key" | tr -d "\"")
+            
+	  if [ "$check_license" == "400" ] || [ "$check_license" == "401" ]; then
+		echo "Invalid license key. Please check your license key."
+		exit 1
+      else
+		echo "Downloading the latest version of Ant Media Server Enterprise Edition..."
+		curl --progress-bar -o ams_enterprise.zip "$check_license"
+		ANT_MEDIA_SERVER_ZIP_FILE="ams_enterprise.zip"
+	  fi
+	 
   	fi
-        bash install_ant-media-server.sh -i $ANT_MEDIA_SERVER_ZIP_FILE -r true
+  
+
+    bash install_ant-media-server.sh -i $ANT_MEDIA_SERVER_ZIP_FILE -r true
 
 }
 
 # Exit the script, If the local version is greater than the remote version 
 if [ "$(printf "%s\n" "$LOCAL_VERSION" "$REMOTE_VERSION" | sort -V | tail -n 1)" = "$LOCAL_VERSION" ]; then
-    echo "No update required."
+    echo "It's already up-to-date. No need to update"
 elif [ "$REMOTE_VERSION" != "$LOCAL_VERSION" ]; then
     check_ams
 else
