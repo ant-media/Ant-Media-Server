@@ -10,7 +10,7 @@
 #   For more information: https://github.com/ant-media/Ant-Media-Server/releases
 
 # Usage:
-#   1. Run the script directly in the terminal using "./update.sh".
+#   1. Run the script directly in the terminal using "./upgrade.sh".
 #   2. Utilize the dashboard's integrated update feature for a user-friendly experience.
 
 # Note:
