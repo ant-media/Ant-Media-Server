@@ -126,12 +126,17 @@ public class HLSMuxer extends Muxer  {
 
 			if (StringUtils.isNotBlank(httpEndpoint)) 			
 			{
-				segmentFilename = httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + initialResourceNameWithoutExtension;
+				segmentFilename = httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + File.separator + initialResourceNameWithoutExtension;
 			}
 			else {
 				segmentFilename = file.getParentFile() + File.separator + initialResourceNameWithoutExtension;
 			}
+			
+			//remove double slashes with single slash because it may cause problems
+			segmentFilename = replaceDoubleSlashesWithSingleSlash(segmentFilename);
 			segmentFilename += SEGMENT_SUFFIX_TS;
+			
+			
 					
 			options.put("hls_segment_filename", segmentFilename);
 
@@ -153,7 +158,7 @@ public class HLSMuxer extends Muxer  {
 	{
 		if (StringUtils.isNotBlank(httpEndpoint))
 		{
-			return httpEndpoint + File.separator + initialResourceNameWithoutExtension  + extension;
+			return replaceDoubleSlashesWithSingleSlash(httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + File.separator + initialResourceNameWithoutExtension  + extension);
 		}
 		return super.getOutputURL();
 	}
@@ -213,7 +218,8 @@ public class HLSMuxer extends Muxer  {
 
 	public synchronized void writeID3Packet(ByteBuffer data)
 	{
-		long pts = System.currentTimeMillis() - startTime;
+		//use the last send video pts as the pts of data
+		long pts = getLastPts();
 		id3DataPkt.pts(pts);
 		id3DataPkt.dts(pts);
 		id3DataPkt.stream_index(id3StreamIndex);
@@ -221,7 +227,7 @@ public class HLSMuxer extends Muxer  {
 		id3DataPkt.data(new BytePointer(data));
 		id3DataPkt.size(data.limit());
 		id3DataPkt.position(0);
-		writePacket(id3DataPkt, (AVCodecContext)null);
+		writeDataFrame(id3DataPkt, getOutputFormatContext());
 	}
 
 	@Override
@@ -246,22 +252,18 @@ public class HLSMuxer extends Muxer  {
 	public synchronized void writeTrailer() {
 		super.writeTrailer();
 		
-		if (!StringUtils.isNotBlank(this.httpEndpoint)) 
+		if (StringUtils.isBlank(this.httpEndpoint)) 
 		{
 			logger.info("Delete File onexit:{} upload to S3:{} stream:{} hls time:{} hlslist size:{}",
 					deleteFileOnExit, uploadHLSToS3, streamId, hlsTime, hlsListSize);
-			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
+			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000l, l -> {
 				final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
 	
 				//SEGMENT_SUFFIX_TS is %09d.ts
 				//convert segmentFileName to regular expression
 				String segmentFileWithoutSuffixTS = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, segmentFilename.indexOf(SEGMENT_SUFFIX_TS));
 				String regularExpression = segmentFileWithoutSuffixTS + "[0-9]*\\.ts$";
-				File[] files = file.getParentFile().listFiles((dir, name) -> 
-				
-					//matches m3u8 file or ts segment file
-					name.equals(file.getName()) || name.matches(regularExpression)
-				);
+				File[] files = getHLSFilesInDirectory(regularExpression);
 	
 				if (files != null)
 				{
@@ -274,7 +276,8 @@ public class HLSMuxer extends Muxer  {
 							}
 							if(uploadHLSToS3 && storageClient.isEnabled()) 
 							{
-								storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], deleteFileOnExit);
+								String path = replaceDoubleSlashesWithSingleSlash(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder : "" ) + File.separator + files[i].getName());
+								storageClient.save(path , files[i], deleteFileOnExit);
 							}
 							else if (deleteFileOnExit) 
 							{
@@ -293,6 +296,14 @@ public class HLSMuxer extends Muxer  {
 		}
 
 
+	}
+
+	public File[] getHLSFilesInDirectory(String regularExpression) {
+		return file.getParentFile().listFiles((dir, name) -> 
+		
+			//matches m3u8 file or ts segment file
+			name.equals(file.getName()) || name.matches(regularExpression)
+		);
 	}
 
 

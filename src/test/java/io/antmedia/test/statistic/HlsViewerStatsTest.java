@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.mockito.Mockito.*;
 
@@ -178,7 +179,7 @@ public class HlsViewerStatsTest {
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 			
-			HlsViewerStats viewerStats = new HlsViewerStats();
+			HlsViewerStats viewerStats = Mockito.spy(new HlsViewerStats());
 			
 			viewerStats.setTimePeriodMS(1000);
 			viewerStats.setApplicationContext(context);
@@ -187,6 +188,8 @@ public class HlsViewerStatsTest {
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast.setName("name");
 			
+			doReturn(true).when(viewerStats).isStreaming(Mockito.any());			
+
 			dsf.setWriteStatsToDatastore(true);
 			dsf.setApplicationContext(context);
 			String streamId = dsf.getDataStore().save(broadcast);
@@ -273,6 +276,8 @@ public class HlsViewerStatsTest {
 			// Broadcast finished test
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 			dsf.getDataStore().save(broadcast);
+			doReturn(false).when(viewerStats).isStreaming(Mockito.any());			
+
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
@@ -339,7 +344,7 @@ public class HlsViewerStatsTest {
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 			
-			HlsViewerStats viewerStats = new HlsViewerStats();
+			HlsViewerStats viewerStats = Mockito.spy(new HlsViewerStats());
 			
 			viewerStats.setTimePeriodMS(1000);
 			viewerStats.setApplicationContext(context);
@@ -347,6 +352,9 @@ public class HlsViewerStatsTest {
 			Broadcast broadcast = new Broadcast();
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast.setName("name");
+			
+			doReturn(true).when(viewerStats).isStreaming(Mockito.any());			
+
 			
 			dsf.setWriteStatsToDatastore(true);
 			dsf.setApplicationContext(context);
@@ -387,6 +395,8 @@ public class HlsViewerStatsTest {
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 			dsf.getDataStore().save(broadcast);
 			
+			doReturn(false).when(viewerStats).isStreaming(Mockito.any());			
+
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			

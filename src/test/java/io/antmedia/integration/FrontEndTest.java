@@ -146,7 +146,7 @@ public class FrontEndTest {
 			this.driver.quit();
 	}
 
-	public ChromeOptions getChromeOptions() {
+	public static ChromeOptions getChromeOptions() {
 		ChromeOptions chrome_options = new ChromeOptions();
 		chrome_options.addArguments("--disable-extensions");
 		chrome_options.addArguments("--disable-gpu");

@@ -323,6 +323,11 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_ENCODING_VP8_DEADLINE = "settings.encoding.vp8.deadline";
+	
+	/**
+	 * @hidden
+	 */
+	private static final String SETTINGS_HW_SCALING_ENABLED= "settings.encoding.hwScalingEnabled";
 
 	/**
 	 * @hidden
@@ -731,7 +736,6 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
-
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -1531,8 +1535,7 @@ public class AppSettings implements Serializable{
 	private String rtspPullTransportType = "3";
 
 	/**
-	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
-	 * It can be tcp or udp
+	 * Specify the rtspTimeoutDurationMs in pulling IP Camera or RTSP sources
 	 */
 	@Value("${rtspTimeoutDurationMs:${" + SETTINGS_RTSP_TIMEOUT_DURATION_MS+ ":5000}}")
 	private int rtspTimeoutDurationMs = 5000;
@@ -2052,6 +2055,64 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${sendAudioLevelToViewers:true}")
 	private boolean sendAudioLevelToViewers = true;
+
+	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":true}}")
+	private boolean hwScalingEnabled = true;
+
+	/**
+	 * Firebase Service Account Key JSON to send push notification
+	 * through Firebase Cloud Messaging
+	 */
+	@Value("${firebaseAccountKeyJSON:#{null}}")
+	private String firebaseAccountKeyJSON = null;
+	
+	/**
+	 * This is JWT Secret to authenticate the user for push notifications.
+	 * 
+	 * JWT token should be generated with the following secret: subscriberId(username, email, etc.) + subscriberAuthenticationKey
+	 * 
+	 */
+	@Value("${subscriberAuthenticationKey:#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}")
+	private String subscriberAuthenticationKey = RandomStringUtils.randomAlphanumeric(32);
+
+
+
+	/**
+	 * (Apple Push Notification) Apple Push Notification Server
+	 *  Default value is development enviroment(api.sandbox.push.apple.com) and production enviroment is api.push.apple.com
+	 */
+	@Value("${apnsServer:api.sandbox.push.apple.com}")
+	private String apnsServer = "api.sandbox.push.apple.com";
+
+	/**
+	 * APN(Apple Push Notification) team id
+	 */
+	@Value("${apnTeamId:#{null}}")
+	private String apnTeamId;
+
+	/**
+	 * APN(Apple Push Notification) private key
+	 */
+	@Value("${apnPrivateKey:#{null}}")
+	private String apnPrivateKey;
+
+	/**
+	 * APN(Apple Push Notification) key Id
+	 */
+	@Value("${apnKeyId:#{null}}")
+	private String apnKeyId;
+
+	/**
+	 * Retry count on webhook POST failure
+	 */
+	@Value("${webhookRetryCount:0}")
+	private int webhookRetryCount = 0;
+
+	/**
+	 * Delay in milliseconds between webhook attempts on POST failure.
+	 */
+	@Value("${webhookRetryAttemptDelay:1000}")
+	private long webhookRetryDelay = 1000;
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -3532,4 +3593,77 @@ public class AppSettings implements Serializable{
 	public void setTimeTokenSecretForPlay(String timeTokenSecretForPlay) {
 		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
 	}
+
+	public boolean isHwScalingEnabled() {
+		return hwScalingEnabled;
+	}
+
+	public void setHwScalingEnabled(boolean hwScalingEnabled) {
+		this.hwScalingEnabled = hwScalingEnabled;
+	}
+
+	public String getFirebaseAccountKeyJSON() {
+		return firebaseAccountKeyJSON;
+	}
+
+	public void setFirebaseAccountKeyJSON(String firebaseAccountKeyJSON) {
+		this.firebaseAccountKeyJSON = firebaseAccountKeyJSON;
+	}
+
+	public String getSubscriberAuthenticationKey() {
+		return subscriberAuthenticationKey;
+	}
+
+	public void setSubscriberAuthenticationKey(String subscriberAuthenticationKey) {
+		this.subscriberAuthenticationKey = subscriberAuthenticationKey;
+	}
+
+	public String getApnsServer() {
+		return apnsServer;
+	}
+
+	public String getApnPrivateKey() {
+		return apnPrivateKey;
+	}
+
+	public String getApnKeyId() {
+		return apnKeyId;
+	}
+
+	public String getApnTeamId() {
+		return apnTeamId;
+	}
+
+	public void setApnTeamId(String apnTeamId) {
+		this.apnTeamId = apnTeamId;
+	}
+
+	public void setApnPrivateKey(String apnPrivateKey) {
+		this.apnPrivateKey = apnPrivateKey;
+	}
+
+	public void setApnKeyId(String apnKeyId) {
+		this.apnKeyId = apnKeyId;
+	}
+	
+	public void setApnsServer(String apnsServer) {
+		this.apnsServer = apnsServer;
+	}
+
+	public int getWebhookRetryCount() {
+		return webhookRetryCount;
+	}
+
+	public void setWebhookRetryCount(int webhookRetryCount) {
+		this.webhookRetryCount = webhookRetryCount;
+	}
+
+	public long getWebhookRetryDelay() {
+		return webhookRetryDelay;
+	}
+
+	public void setWebhookRetryDelay(long webhookRetryDelay) {
+		this.webhookRetryDelay = webhookRetryDelay;
+	}
+
 }

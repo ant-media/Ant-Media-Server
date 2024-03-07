@@ -43,8 +43,10 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -57,7 +59,8 @@ public class MongoStore extends DataStore {
 	public static final String VOD_ID = "vodId";
 	private static final String VIEWER_ID = "viewerId";
 	private static final String TOKEN_ID = "tokenId";
-	public  static final String STREAM_ID = "streamId";
+	public static final String STREAM_ID = "streamId";
+	public static final String SUBSCRIBER_ID = "subscriberId"; 
 	private Datastore datastore;
 	private Datastore vodDatastore;
 	private Datastore tokenDatastore;
@@ -807,6 +810,7 @@ public class MongoStore extends DataStore {
 
 				prepareFields(broadcast, updates);
 
+				updates.add(set("seekTimeInMs", broadcast.getSeekTimeInMs()));
 				updates.add(set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
 				updates.add(set("receivedBytes", broadcast.getReceivedBytes()));
 				updates.add(set("bitrate", broadcast.getBitrate()));
@@ -818,8 +822,8 @@ public class MongoStore extends DataStore {
 				updates.add(set(META_DATA, broadcast.getMetaData()));
 				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
 				updates.add(set("updateTime", broadcast.getUpdateTime()));
+				updates.add(set("autoStartStopEnabled",broadcast.isAutoStartStopEnabled()));
 
-				
 				UpdateResult updateResult = query.update(updates).execute();
 				return updateResult.getModifiedCount() == 1;
 			} catch (Exception e) {
@@ -1528,5 +1532,37 @@ public class MongoStore extends DataStore {
 	
 	public Datastore getSubscriberDatastore() {
 		return subscriberDatastore;
+	}
+	
+	@Override
+	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
+		synchronized(this) {
+			try {
+				return datastore.find(SubscriberMetadata.class).filter(Filters.eq(SUBSCRIBER_ID, subscriberId)).first();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
+	}
+	
+	@Override
+	public void putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata) {
+		
+		try {
+			//delete the subscriberId if exists to make it compatible with all datastores
+			Query<SubscriberMetadata> query = datastore.find(SubscriberMetadata.class).filter(Filters.eq(SUBSCRIBER_ID, subscriberId));
+			long deletedCount = query.delete().getDeletedCount();
+			if (deletedCount > 0) {
+				logger.info("There is a SubsriberMetadata exists in database. It's deleted(deletedCount:{}) and it'll put to make it easy and compatible.", deletedCount);
+			}
+				
+			metadata.setSubscriberId(subscriberId);
+			synchronized(this) {
+				datastore.save(metadata);
+			}
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
 	}
 }
