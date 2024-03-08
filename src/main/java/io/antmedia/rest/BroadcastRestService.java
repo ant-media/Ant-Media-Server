@@ -1184,9 +1184,8 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result sendMessage(@ApiParam(value = "Message through Data Channel which will be sent to all WebRTC stream participants", required = true) String message, 
 			@ApiParam(value = "Broadcast id", required = true) @PathParam("id") String id) {
 
-		AntMediaApplicationAdapter application = getApplication();
 
-		return RestServiceBase.sendDataChannelMessage(id, message, application, getDataStore());
+		return RestServiceBase.sendDataChannelMessage(id, message, getApplication(), getDataStore());
 	}
 	@ApiOperation(value = "Gets the conference room list from database", notes = "",responseContainer = "List", response = ConferenceRoom.class)
 	@GET
