@@ -80,7 +80,7 @@ public abstract class StatisticsFilter extends AbstractFilter {
 		if (broadcast != null && broadcast.isAutoStartStopEnabled() && !AntMediaApplicationAdapter.isStreaming(broadcast)) 
 		{
 			//startStreaming method starts streaming if stream is not streaming in local or in any node in the cluster
-			logger.info("Http play request(hls, dash) is received for stream id:{} and it's streaming, so it's trying to start the stream", streamId);
+			logger.info("http play request(hls, dash) is received for stream id:{} and it's not streaming, so it's trying to start the stream", streamId);
 			getAntMediaApplicationAdapter().startStreaming(broadcast);
 		}
 

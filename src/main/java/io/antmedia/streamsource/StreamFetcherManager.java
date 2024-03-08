@@ -468,14 +468,21 @@ public class StreamFetcherManager {
 			//get the updated broadcast object
 			Broadcast broadcast = datastore.get(streamScheduler.getStreamId());
 			
-			if (streamScheduler.isStreamAlive() && 
-					(restart || broadcast == null || (broadcast.isAutoStartStopEnabled() && !broadcast.isAnyoneWatching()))) 
+			
+			
+			if (restart || broadcast == null || 
+					(broadcast.isAutoStartStopEnabled() && 
+						 !broadcast.isAnyoneWatching() && broadcast.getStartTime() != 0 &&
+							(System.currentTimeMillis() > (broadcast.getStartTime() + streamCheckerIntervalMs)))) 
 			{
-				//stop it if it's restart = true 
-				//  or 
-				//	brodcast == null because it means stream is deleted
+				//logic of If condition is
+				
+				// stop it if it's restart = true 
+				//   or 
+				// brodcast == null because it means stream is deleted
 				//  or
-				//  broadcast autoStartEnabled and there is nobody watching
+				// broadcast autoStartEnabled and there is nobody watching and it's started more than streamCheckerIntervalMs ago
+				
 				logger.info("Calling stop stream {} due to restart->{}, is broadcast null -> {}, auto stop because no viewer -> {}", 
 						streamScheduler.getStreamId(), restart, broadcast == null, (broadcast != null && broadcast.isAutoStartStopEnabled() && !broadcast.isAnyoneWatching()));
 				
