@@ -460,7 +460,16 @@ public class StreamFetcherManager {
 
 		logger.info("StreamFetcherSchedule job name {}", streamFetcherScheduleJobName);
 	}
-
+	
+	public boolean isToBeStoppedAutomatically(Broadcast broadcast) 
+	{
+		// broadcast autoStartEnabled and there is nobody watching and it's started more than streamCheckerIntervalMs ago
+		logger.info("broadcast is autoStartStopEnabled:{} isAnyonewatching:{} startTime:{} streamCheckerIntervalMs:{}",
+				broadcast.isAutoStartStopEnabled(), broadcast.isAnyoneWatching(), broadcast.getStartTime(),  streamCheckerIntervalMs);
+		
+		return broadcast.isAutoStartStopEnabled() && !broadcast.isAnyoneWatching() && 
+				broadcast.getStartTime() != 0 && (System.currentTimeMillis() > (broadcast.getStartTime() + streamCheckerIntervalMs));
+	}
 
 	public void controlStreamFetchers(boolean restart) {
 		for (StreamFetcher streamScheduler : streamFetcherList.values()) {
@@ -469,11 +478,9 @@ public class StreamFetcherManager {
 			Broadcast broadcast = datastore.get(streamScheduler.getStreamId());
 			
 			
-			
+			boolean autoStop = false;
 			if (restart || broadcast == null || 
-					(broadcast.isAutoStartStopEnabled() && 
-						 !broadcast.isAnyoneWatching() && broadcast.getStartTime() != 0 &&
-							(System.currentTimeMillis() > (broadcast.getStartTime() + streamCheckerIntervalMs)))) 
+					(autoStop = isToBeStoppedAutomatically(broadcast))) 
 			{
 				//logic of If condition is
 				
@@ -481,10 +488,11 @@ public class StreamFetcherManager {
 				//   or 
 				// brodcast == null because it means stream is deleted
 				//  or
-				// broadcast autoStartEnabled and there is nobody watching and it's started more than streamCheckerIntervalMs ago
+				// autoStop
 				
-				logger.info("Calling stop stream {} due to restart->{}, is broadcast null -> {}, auto stop because no viewer -> {}", 
-						streamScheduler.getStreamId(), restart, broadcast == null, (broadcast != null && broadcast.isAutoStartStopEnabled() && !broadcast.isAnyoneWatching()));
+				
+				logger.info("Calling stop stream {} due to restart -> {}, broadcast is null -> {}, auto stop because no viewer -> {}", 
+						streamScheduler.getStreamId(), restart, broadcast == null, autoStop);
 				
 				stopStreaming(streamScheduler.getStreamId());
 				
