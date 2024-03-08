@@ -624,6 +624,11 @@
 		    <artifactId>pushy</artifactId>
 		    <version>${pushy.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>io.lindstrom</groupId>
+            <artifactId>m3u8-parser</artifactId>
+            <version>0.27</version>
+        </dependency>
     </dependencies>
     <profiles>
         <profile>
