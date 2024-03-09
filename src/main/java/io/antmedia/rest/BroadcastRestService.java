@@ -1124,12 +1124,6 @@ public class BroadcastRestService extends RestServiceBase{
 		return new Result(super.deleteConferenceRoom(roomId, getDataStore()));
 	}
 
-	public void logWarning(String message, String... arguments) {
-		if (logger.isWarnEnabled()) {
-			logger.warn(message , arguments);
-		}
-	}
-
 	@ApiOperation(value = "Add a play only user who requested to publish the stream into a main track (broadcast).", notes = "", response = Result.class)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
