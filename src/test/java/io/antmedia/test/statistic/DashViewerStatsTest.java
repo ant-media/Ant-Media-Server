@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -15,9 +16,13 @@ import org.awaitility.Awaitility;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
-import ch.qos.logback.classic.Logger;
+import com.esotericsoftware.minlog.Log;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
@@ -35,6 +40,8 @@ import io.vertx.core.Vertx;
 public class DashViewerStatsTest {
 	
 	static Vertx vertx;	
+	
+	private static Logger log = LoggerFactory.getLogger(DashViewerStatsTest.class);
 	
 	@BeforeClass
 	public static void beforeClass() {
@@ -176,7 +183,7 @@ public class DashViewerStatsTest {
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 			
-			DashViewerStats viewerStats = new DashViewerStats();
+			DashViewerStats viewerStats = Mockito.spy(new DashViewerStats());
 			
 			viewerStats.setTimePeriodMS(1000);
 			viewerStats.setApplicationContext(context);
@@ -184,6 +191,8 @@ public class DashViewerStatsTest {
 			Broadcast broadcast = new Broadcast();
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast.setName("name");
+			broadcast.setUpdateTime(System.currentTimeMillis());
+			doReturn(true).when(viewerStats).isStreaming(Mockito.any());			
 			
 			dsf.setWriteStatsToDatastore(true);
 			dsf.setApplicationContext(context);
@@ -249,6 +258,9 @@ public class DashViewerStatsTest {
 					return subData.isConnected() && subData.getCurrentConcurrentConnections() == 2 && eventExist; 
 			});
 			
+			broadcast.setUpdateTime(System.currentTimeMillis());
+			dsf.getDataStore().updateBroadcastFields(streamId, broadcast);
+			
 			// Check viewer is online
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().get(streamId).getDashViewerCount() == 2);
@@ -273,6 +285,8 @@ public class DashViewerStatsTest {
 			// Broadcast finished test
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 			dsf.getDataStore().save(broadcast);
+			doReturn(false).when(viewerStats).isStreaming(Mockito.any());			
+
 			
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
@@ -340,7 +354,7 @@ public class DashViewerStatsTest {
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 			
-			DashViewerStats viewerStats = new DashViewerStats();
+			DashViewerStats viewerStats = Mockito.spy(new DashViewerStats());
 			
 			viewerStats.setTimePeriodMS(1000);
 			viewerStats.setApplicationContext(context);
@@ -349,6 +363,8 @@ public class DashViewerStatsTest {
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 			broadcast.setName("name");
 			
+			doReturn(true).when(viewerStats).isStreaming(Mockito.any());			
+
 			dsf.setWriteStatsToDatastore(true);
 			dsf.setApplicationContext(context);
 			String streamId = dsf.getDataStore().save(broadcast);
@@ -387,7 +403,8 @@ public class DashViewerStatsTest {
 			// Broadcast finished test
 			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
 			dsf.getDataStore().save(broadcast);
-			
+			doReturn(false).when(viewerStats).isStreaming(Mockito.any());			
+
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).until(
 					()-> dsf.getDataStore().save(broadcast).equals(streamId));
 			

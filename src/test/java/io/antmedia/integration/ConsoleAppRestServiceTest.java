@@ -1222,21 +1222,38 @@ public class ConsoleAppRestServiceTest{
 			enterpriseResult = callIsEnterpriseEdition();
 			if (!enterpriseResult.isSuccess()) {
 				//if it is not enterprise return
-				return ;
+				return;
 			}
 
 			// get settings from the app
 			AppSettings appSettings = callGetAppSettings(appName);
 
+			//only one type of token control can be enabled for publish.
+			appSettings.setPublishJwtControlEnabled(true);
+			appSettings.setEnableTimeTokenForPublish(true);
+			Result result = callSetAppSettings(appName, appSettings);
+			assertFalse(result.isSuccess());
+			appSettings.setPublishJwtControlEnabled(false);
+			appSettings.setEnableTimeTokenForPublish(false);
+
+			appSettings.setEnableTimeTokenForPlay(true);
+			appSettings.setPlayJwtControlEnabled(true);
+			result = callSetAppSettings(appName, appSettings);
+			assertFalse(result.isSuccess());
+
+			appSettings.setEnableTimeTokenForPlay(false);
+			appSettings.setPlayJwtControlEnabled(false);
+
 			appSettings.setPublishTokenControlEnabled(true);
 			appSettings.setPlayTokenControlEnabled(true);
 			appSettings.setMp4MuxingEnabled(true);
 
-
-			Result result = callSetAppSettings(appName, appSettings);
+			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 
+
 			appSettings = callGetAppSettings(appName);
+
 			assertTrue(appSettings.isPublishTokenControlEnabled());
 			assertTrue(appSettings.isPlayTokenControlEnabled());
 
@@ -2872,7 +2889,7 @@ public class ConsoleAppRestServiceTest{
 
 			String content = EntityUtils.toString(response.getEntity());
 
-			log.info("Respose for create application is {}", content);
+			log.info("Respose for delete application is {}", content);
 			if (response.getStatusLine().getStatusCode() != 200) {
 				System.out.println(response.getStatusLine()+content);
 			}

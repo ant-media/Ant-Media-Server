@@ -1,6 +1,7 @@
 #!/bin/bash
 #
-# Options
+# Options:
+#
 # -g: Use global(Public) IP in network communication. Its value can be true or false. Default value is false.
 #
 # -s: Use Public IP as server name. Its value can be true or false. Default value is false.
@@ -27,6 +28,15 @@
 #
 # -k: Kafka Address: Provide the Kafka URL address to collect data. (It must contain the port number. Example: localhost:9092)
 #
+# -j: JVM Memory Options(-Xms1g -Xmx4g): Set the Java heap size. Default value is 1g. (Example usage: ./start.sh -j "-Xms1g -XmX4g")
+#
+# -c: CPU Limit: Set the CPU limit percentage that server does not exceed. Default value is 75. 
+#       If CPU is more than this value, server reports highResourceUsage and does not allow publish or play.
+#       Example usage: ./start.sh -c 60
+#
+# -e: Memory Limit: Set the Memory Limit percentage that server does not exceed. Default value is 75
+#       If Memory usage is more than this value, server reports highResourceUsage and does not allow publish or play
+#       Example usage: ./start.sh -e 60
 
 if [ -z "$RED5_HOME" ]; then
   BASEDIR=$(dirname "$0")
@@ -44,9 +54,14 @@ DB_URL=
 DB_USERNAME=
 DB_PASSWORD=
 LICENSE_KEY=
+CPU_LIMIT=
+MEMORY_LIMIT=
+
+# Set the default value for JVM_MEMORY_OPTIONS
+JVM_MEMORY_OPTIONS="-Xms1g"
 
 
-while getopts g:s:r:m:h:u:p:l:a:n:w:k:t option
+while getopts g:s:r:m:h:u:p:l:a:n:w:k:j:c:e:t option
 do
   case "${option}" in
     g) USE_GLOBAL_IP=${OPTARG};;
@@ -61,6 +76,9 @@ do
     n) TURN_USERNAME=${OPTARG};;
     w) TURN_PASSWORD=${OPTARG};;
     k) KAFKA_URL=${OPTARG};;
+    j) JVM_MEMORY_OPTIONS=${OPTARG};;
+    c) CPU_LIMIT=${OPTARG};;
+    e) MEMORY_LIMIT=${OPTARG};;
    esac
 done
 
@@ -156,7 +174,13 @@ if [ ! -z ${TURN_PASSWORD} ]; then
  done
 fi
 
+if [ ! -z ${CPU_LIMIT} ]; then
+  sed -i $SED_COMPATIBILITY 's/server.cpu_limit=.*/server.cpu_limit='$CPU_LIMIT'/' $RED5_HOME/conf/red5.properties
+fi
 
+if [ ! -z ${MEMORY_LIMIT} ]; then
+  sed -i $SED_COMPATIBILITY 's/server.memory_limit_percentage=.*/server.memory_limit_percentage='$MEMORY_LIMIT'/' $RED5_HOME/conf/red5.properties
+fi
 
 P=":" # The default classpath separator
 OS=`uname`
@@ -192,7 +216,7 @@ echo "Running on " $OS
 # JAVA options
 # You can set JVM additional options here if you want
 if [ -z "$JVM_OPTS" ]; then
-    JVM_OPTS="-Xms256m -Djava.awt.headless=true -Xverify:none -XX:+HeapDumpOnOutOfMemoryError -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:MaxMetaspaceSize=128m  -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=10 -XX:ConcGCThreads=5 -Djava.system.class.loader=org.red5.server.classloading.ServerClassLoader -Xshare:off "
+    JVM_OPTS="$JVM_MEMORY_OPTIONS -Djava.awt.headless=true -Xverify:none -XX:+HeapDumpOnOutOfMemoryError -XX:+TieredCompilation -XX:+UseBiasedLocking -XX:InitialCodeCacheSize=8m -XX:ReservedCodeCacheSize=32m -Dorg.terracotta.quartz.skipUpdateCheck=true -XX:MaxMetaspaceSize=128m  -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -XX:ParallelGCThreads=10 -XX:ConcGCThreads=5 -Djava.system.class.loader=org.red5.server.classloading.ServerClassLoader -Xshare:off "
 fi
 # Set up security options
 SECURITY_OPTS="-Djava.security.debug=failure -Djava.security.egd=file:/dev/./urandom"
@@ -258,4 +282,3 @@ elif [ "$RED5_MAINCLASS" = "org.red5.server.Shutdown" ]; then
     echo "Stopping Ant Media Server"
 fi
 exec "$JAVA" -Dred5.root="${RED5_HOME}" $JAVA_OPTS -cp "${RED5_CLASSPATH}" "$RED5_MAINCLASS" $RED5_OPTS 2>>${RED5_HOME}/log/antmedia-error.log
-

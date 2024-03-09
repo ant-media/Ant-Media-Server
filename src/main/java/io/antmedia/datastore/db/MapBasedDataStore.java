@@ -27,6 +27,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -44,6 +45,7 @@ public abstract class MapBasedDataStore extends DataStore {
 	protected Map<String, String> subscriberMap;
 	protected Map<String, String> conferenceRoomMap;
 	protected Map<String, String> webRTCViewerMap;
+	protected Map<String, String> subscriberMetadataMap;
 
 	public static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 
@@ -211,7 +213,11 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public long getActiveBroadcastCount() {
-		return super.getActiveBroadcastCount(map, gson);
+		return super.getActiveBroadcastCount(map, gson, null);
+	}
+	 
+	public List<Broadcast> getActiveBroadcastList(String hostAddress) {
+		return super.getActiveBroadcastList(map, gson, hostAddress);
 	}
 
 	@Override
@@ -1099,6 +1105,21 @@ public abstract class MapBasedDataStore extends DataStore {
 		String jsonString = map.get(streamId);
 		if(jsonString != null) {
 			return gson.fromJson(jsonString, Broadcast.class);
+		}
+		return null;
+	}
+	
+	@Override
+	public void putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata) {
+		metadata.setSubscriberId(subscriberId);
+		subscriberMetadataMap.put(subscriberId, gson.toJson(metadata));
+	}
+	
+	@Override
+	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
+		String jsonString = subscriberMetadataMap.get(subscriberId);
+		if(jsonString != null) {
+			return gson.fromJson(jsonString, SubscriberMetadata.class);
 		}
 		return null;
 	}

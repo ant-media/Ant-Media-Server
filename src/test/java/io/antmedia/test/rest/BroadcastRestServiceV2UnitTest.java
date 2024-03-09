@@ -7,9 +7,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
+
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -1829,6 +1828,37 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	@Test
+	public void testSubscriberNone32BitSecret() {
+		DataStore store = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
+		restServiceReal.setDataStore(store);
+		
+		restServiceReal.setAppSettings(new AppSettings());
+		
+		Subscriber subscriber = new Subscriber();
+		subscriber.setSubscriberId("timeSubscriber");
+		subscriber.setStreamId("stream1");
+		subscriber.setType(Subscriber.PLAY_TYPE);
+		subscriber.setB32Secret("1234567");
+		
+		//it should be false, because b32secret length is not multiple of 8 
+		assertFalse(restServiceReal.addSubscriber(subscriber.getStreamId(), subscriber).isSuccess());
+		
+		//1 is not b32 character
+		//b32 characters -> A–Z, followed by 2–7
+		subscriber.setB32Secret("abcdabc1");
+		//it returns false because 1 is not b32 character
+		assertFalse(restServiceReal.addSubscriber(subscriber.getStreamId(), subscriber).isSuccess());
+		
+		
+		subscriber.setB32Secret("abcdabcf");
+		assertTrue(restServiceReal.addSubscriber(subscriber.getStreamId(), subscriber).isSuccess());
+		Result result = restServiceReal.getTOTP(subscriber.getStreamId(), subscriber.getSubscriberId(), subscriber.getType());
+		assertTrue(result.isSuccess());
+		
+		
+	}
+	
+	@Test
 	public void testTimeBasedSubscriberOperations() {
 
 		DataStore store = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
@@ -1879,6 +1909,32 @@ public class BroadcastRestServiceV2UnitTest {
 		store.close(true);
 
 	}	
+
+	@Test
+	public void testIsMainTrack() {
+		DataStore store = Mockito.mock(DataStore.class);
+		restServiceReal.setDataStore(store);
+		Broadcast broadcast = Mockito.spy(new Broadcast());
+
+		// should return false because stream id is null
+		assertFalse(RestServiceBase.isMainTrack(null, store));
+
+		// should return false when broadcast does not exist
+		when(store.get("streamId")).thenReturn(null);
+		assertFalse(RestServiceBase.isMainTrack("streamId", store));
+
+		// should return false when broadcast is not main track
+		when(broadcast.getSubTrackStreamIds()).thenReturn(new ArrayList());
+		when(broadcast.getMainTrackStreamId()).thenReturn("mainTrackStreamId");
+		when(store.get("streamId")).thenReturn(broadcast);
+		assertFalse(RestServiceBase.isMainTrack("streamId", store));
+
+		// should return true when broadcast is main track
+		when(broadcast.getSubTrackStreamIds()).thenReturn(List.copyOf(Arrays.asList("subTrackStreamId1", "subTrackStreamId2")));
+		when(broadcast.getMainTrackStreamId()).thenReturn(null);
+		when(store.get("streamId")).thenReturn(broadcast);
+		assertTrue(RestServiceBase.isMainTrack("streamId", store));
+	}
 
 	@Test
 	public void testObjectDetectionOperations() {
@@ -2151,6 +2207,7 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Result cameraErrorV2 = streamSourceRest.getCameraErrorV2(newCam.getStreamId());
 		assertFalse(cameraErrorV2.isSuccess());
+		
 
 		//define CPU load below limit
 		int cpuLoad2 = 70;
@@ -2170,6 +2227,15 @@ public class BroadcastRestServiceV2UnitTest {
 		//should be true since it wouldn't return true because there is no ip camera or stream source defined in the declaration.
 		assertFalse(result.isSuccess());
 		assertEquals("Auto start query needs an IP camera or stream source.",result.getMessage() );
+		
+		
+		
+		cameraErrorV2 = streamSourceRest.getCameraErrorV2("any_stream");
+		assertFalse(cameraErrorV2.isSuccess());
+		
+		cameraErrorV2 = streamSourceRest.getCameraErrorV2(null);
+		assertFalse(cameraErrorV2.isSuccess());
+		
 
 	}
 
@@ -2427,12 +2493,25 @@ public class BroadcastRestServiceV2UnitTest {
 
 		monitorService.setCpuLoad(cpuLoad2);
 		monitorService.setCpuLimit(cpuLimit2);
-		monitorService.setMinFreeRamSize(0);
+		monitorService.setMemoryLimit(100);
 		
 		result = streamSourceRest.addStreamSource(newCam);
 
-		//should be true, because CPU load is above limit and other parameters defined correctly
+		//should be true, because CPU limit is above load and other parameters defined correctly
 		assertTrue(result.isSuccess());
+		
+		
+		//Add mp4 file
+		Broadcast mp4FileSteramSource = new Broadcast("testAddStreamSource", "10.2.40.64:8080", "admin", "admin",
+				"http://11.2.40.63:8554/live1.mp4", AntMediaApplicationAdapter.STREAM_SOURCE);
+		
+		result = streamSourceRest.addStreamSource(mp4FileSteramSource);
+		assertTrue(result.isSuccess());
+		
+		//Because InMemoryDataStore is used, change in the object is reflected here
+		assertEquals(AntMediaApplicationAdapter.VOD, mp4FileSteramSource.getType());
+
+
 	}
 	
 	@Test
@@ -2591,6 +2670,7 @@ public class BroadcastRestServiceV2UnitTest {
 		source.setDescription("");
 		source.setIs360(false);
 		source.setPublicStream(false);
+		source.setStreamUrl("http://test.example.com/test.m3u8");
 		source.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
 
 		BroadcastRestService streamSourceRest = Mockito.spy(restServiceReal);
@@ -2598,7 +2678,6 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new InMemoryDataStore("testAddStreamSourceWithEndPoint")).when(streamSourceRest).getDataStore();
-		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
 		StreamFetcher fetcher = mock (StreamFetcher.class);
 		Mockito.when(adaptor.startStreaming(Mockito.any())).thenReturn(new Result(true));
 		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
@@ -2628,7 +2707,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		monitorService.setCpuLoad(cpuLoad2);
 		monitorService.setCpuLimit(cpuLimit2);
-		monitorService.setMinFreeRamSize(0);
+		monitorService.setMemoryLimit(100);
 
 		result = streamSourceRest.addStreamSource(source);
 		assertNull(source.getEndPointList());
@@ -2796,6 +2875,48 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	@Test
+	public void testSeektime() {
+		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast mainTrack= new Broadcast();
+		try 
+		{
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		datastore.save(mainTrack);
+		broadcastRestService.setDataStore(datastore);
+
+		AntMediaApplicationAdapter adaptor = mock (AntMediaApplicationAdapter.class);
+
+		Mockito.doReturn(adaptor).when(broadcastRestService).getApplication();
+		StreamFetcherManager fetcherManager = Mockito.mock(StreamFetcherManager.class);
+		Mockito.when(adaptor.getStreamFetcherManager()).thenReturn(fetcherManager);
+		
+		
+		
+		
+		Result updateSeekTime = broadcastRestService.updateSeekTime("", 1000);
+		assertFalse(updateSeekTime.isSuccess());
+		
+		updateSeekTime = broadcastRestService.updateSeekTime("streamId", 1000);
+		assertFalse(updateSeekTime.isSuccess());
+		
+		StreamFetcher fetcher =  Mockito.mock(StreamFetcher.class);
+		Mockito.when(fetcherManager.getStreamFetcher("streamId")).thenReturn(fetcher);
+		
+		updateSeekTime = broadcastRestService.updateSeekTime("streamId", 1000);
+		assertTrue(updateSeekTime.isSuccess());
+		Mockito.verify(fetcher).seekTime(1000);
+		
+	}
+	
+	@Test
 	public void testGetStreamInfo() {
 		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
 		MongoStore datastore = new MongoStore("localhost", "", "", "testdb");
@@ -2858,6 +2979,8 @@ public class BroadcastRestServiceV2UnitTest {
 
 		ApplicationContext context = mock(ApplicationContext.class);
 
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
 		restServiceReal.setAppCtx(context);
 		restServiceReal.setApplication(appSpy);
 		restServiceReal.setScope(scope);
@@ -3199,11 +3322,8 @@ public class BroadcastRestServiceV2UnitTest {
 		
 		Mockito.verify(adaptor).stopPublishingBySubscriberId(subscriber3Id);
 		Mockito.verify(adaptor).stopPlayingBySubscriberId(subscriber3Id);
-		
-		
 
 	}
-	
 
 	public void testAddID3Tag() {
 		DataStore store = new InMemoryDataStore("testdb");
@@ -3238,7 +3358,7 @@ public class BroadcastRestServiceV2UnitTest {
 		String subscriberId = "sub1";
 		String streamId = "stream1";
 		String type = "publish";
-		String secret = "secret";
+		String secret = "secret1";
 		
 		
 		result = restServiceSpy.getTOTP(streamId, subscriberId, "play");
@@ -3285,6 +3405,4 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNotEquals(totp4, totp3);
 		
 	}
-
-
 }

@@ -1421,7 +1421,41 @@ public class CommonRestService {
 				clusterNotifier.getClusterStore().saveSettings(tempSetting);
 			}
 		}
-		return new Result(getApplication().createApplication(appName, warFile != null ? warFile.getAbsolutePath() : null));
+		
+		Result result = new Result(false);
+		
+		if (getApplication().createApplication(appName, warFile != null ? warFile.getAbsolutePath() : null)) 
+		{
+			result.setSuccess(true);
+
+			boolean applicationCreated = false;
+			for (int i = 0; i < 20; i++) 
+			{
+				try {
+					Thread.sleep(1000);
+
+					IScope scope = getApplication().getRootScope().getScope(appName);
+					if (scope != null) {
+						applicationCreated = true;
+						break;
+					}
+
+
+				} 
+				catch (InterruptedException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				    Thread.currentThread().interrupt();
+				}
+			}
+			
+			if (!applicationCreated) {
+				result.setSuccess(applicationCreated);
+				result.setMessage("Application " + appName + "is not created in the 20 seconds.");
+			}
+
+		}
+		
+		return result;
 	}
 
 

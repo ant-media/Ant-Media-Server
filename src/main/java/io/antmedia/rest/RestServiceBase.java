@@ -68,6 +68,7 @@ import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
+import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
@@ -316,7 +317,7 @@ public abstract class RestServiceBase {
 		if (id != null && (broadcast = getDataStore().get(id)) != null)
 		{
 			//no need to check if the stream is another node because RestProxyFilter makes this arrangement
-			
+
 			stopResult = stopBroadcastInternal(broadcast);
 
 			result.setSuccess(getDataStore().delete(id));
@@ -432,9 +433,9 @@ public abstract class RestServiceBase {
 	 * @return
 	 */
 	protected Result updateStreamSource(String streamId, Broadcast broadcast) {
-		logger.debug("Updating camera info for stream {}", broadcast.getStreamId());
+		logger.debug("Updating stream source for stream {}", broadcast.getStreamId());
 
-		if (!checkStreamUrl(broadcast.getStreamUrl())) {
+		if (!checkStreamUrl(broadcast.getStreamUrl()) && !AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
 			return new Result(false, "Stream URL is not valid");
 		}
 
@@ -444,9 +445,13 @@ public abstract class RestServiceBase {
 			logger.info("Broadcast with stream id: {} is null", streamId);
 			return new Result(false, "Broadcast with streamId: " + streamId + " does not exist");
 		}
+	
+		boolean isStreamingActive = AntMediaApplicationAdapter.isStreaming(broadcastInDB);
 
-		boolean resultStopStreaming = checkStopStreaming(broadcastInDB);
-		waitStopStreaming(broadcastInDB, resultStopStreaming);
+		if (isStreamingActive) {
+			boolean resultStopStreaming = checkStopStreaming(broadcastInDB);
+			waitStopStreaming(broadcastInDB, resultStopStreaming);
+		}
 
 		if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType())) {
 			Result connectionRes = connectToCamera(broadcast);
@@ -462,7 +467,9 @@ public abstract class RestServiceBase {
 		}
 
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
-		if (result) {
+		
+		if (result && isStreamingActive) {
+			//start straming again if it was streaming
 			Broadcast fetchedBroadcast = getDataStore().get(streamId);
 			getApplication().startStreaming(fetchedBroadcast);
 		}
@@ -1017,6 +1024,14 @@ public abstract class RestServiceBase {
 		Result result=new Result(false);
 
 		if(checkStreamUrl(stream.getStreamUrl())) {
+			
+			//small improvement for user experience
+			boolean isVoD = stream.getStreamUrl().startsWith("http") && (stream.getStreamUrl().endsWith("mp4") || stream.getStreamUrl().endsWith("webm") || stream.getStreamUrl().endsWith("flv"));
+			
+			if (isVoD) {
+				stream.setType(AntMediaApplicationAdapter.VOD);
+			}
+			
 			Date currentDate = new Date();
 			long unixTime = currentDate.getTime();
 
@@ -1211,7 +1226,7 @@ public abstract class RestServiceBase {
 				}
 			}
 			else {
-				//this message has a wrong meaning on the other hand it has been used in the frontend(webpanel). Both sides should be updated 
+				//this message has a wrong meaning on the other hand it has been used in the frontend(webpanel). Both sides should be updated
 				message = "notMp4File";
 			}
 
@@ -1278,8 +1293,8 @@ public abstract class RestServiceBase {
 			return muxAdaptor.startRecording(recordType, resolutionHeight);
 		}
 		else {
-			logger.info("No mux adaptor found for {} recordType:{} resolutionHeight:{}", streamId != null  ? 
-					streamId.replaceAll("[\n\r]", "_") : "null ", 
+			logger.info("No mux adaptor found for {} recordType:{} resolutionHeight:{}", streamId != null  ?
+					streamId.replaceAll("[\n\r]", "_") : "null ",
 					recordType, resolutionHeight);
 		}
 
@@ -1362,12 +1377,17 @@ public abstract class RestServiceBase {
 	protected Result getCameraErrorById(String streamId) {
 		Result result = new Result(false);
 
-		for (StreamFetcher camScheduler : getApplication().getStreamFetcherManager().getStreamFetcherList())
-		{
-			if (camScheduler.getStreamId().equals(streamId)) {
+		if (streamId != null) {
+			StreamFetcher camScheduler = getApplication().getStreamFetcherManager().getStreamFetcher(streamId);
+			if (camScheduler != null) {
 				result = camScheduler.getCameraError();
-				break;
 			}
+			else {
+				result.setMessage("Camera is not found with streamId: " + streamId);
+			}
+		}
+		else {
+			result.setMessage("StreamId parameter is " + streamId + " Please use none null values");
 		}
 
 		return result;
@@ -1408,6 +1428,55 @@ public abstract class RestServiceBase {
 		else {
 			result.setMessage("No Stream Exists with id:"+id);
 		}
+		return result;
+	}
+
+	public Result playNextItem(String id, Integer index) {
+		Result result = new Result(false);
+
+		Broadcast broadcast = getDataStore().get(id);
+
+		if(broadcast == null) {
+			result.setMessage("There is no playlist found. Please check Stream id again");
+			return result;
+		}
+		else if (!AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
+			result.setMessage("This broadcast type is not playlist. This method is only available for playlists");
+			return result;
+		}
+
+		if(index == null) {
+			index = -1;
+		}
+
+
+		if (index < broadcast.getPlayListItemList().size()) 
+		{	
+			StreamFetcher streamFetcher = getApplication().getStreamFetcherManager().getStreamFetcher(id);
+			if (streamFetcher != null) 
+			{	
+				IStreamFetcherListener streamFetcherListener = streamFetcher.getStreamFetcherListener();
+				//don't let the streamFetcherListener be called again because it already automatically plays the next item
+				
+				streamFetcher.setStreamFetcherListener(null);
+				
+				if (logger.isInfoEnabled()) {
+					logger.info("Switching to next item by REST method for playlist:{} and forwarding stream fetcher listener:{}", id.replaceAll("[\n\r]", "_"), streamFetcherListener.hashCode());
+				}
+				
+				result = getApplication().getStreamFetcherManager().playItemInList(broadcast, streamFetcherListener, index);
+			}
+			else {
+				result.setMessage("No active playlist for id:" + id + ". Start the playlist first");
+			}
+
+		}
+		else {
+			result.setMessage("Index is out of the list. Please specify the correct index");
+		}
+
+
+
 		return result;
 	}
 
@@ -1532,7 +1601,7 @@ public abstract class RestServiceBase {
 		return list;
 	}
 
-	protected ITokenService getTokenService() 
+	protected ITokenService getTokenService()
 	{
 		ApplicationContext appContext = getAppContext();
 		if(appContext != null && appContext.containsBean(ITokenService.BeanName.TOKEN_SERVICE.toString())) {
@@ -1799,6 +1868,138 @@ public abstract class RestServiceBase {
 		return true;
 	}
 
+	public static void setResultSuccess(Result result, boolean success, String failMessage, String failLog, String... arguments)
+	{
+		if (success) {
+			result.setSuccess(true);
+		}
+		else {
+			result.setSuccess(false);
+			result.setMessage(failMessage);
+		}
+	}
+
+	public static void logWarning(String message, String... arguments) {
+		if (logger.isWarnEnabled()) {
+			logger.warn(message , arguments);
+		}
+	}
+
+	public static Result addSubTrack(String id, String subTrackId,DataStore store) {
+		Result result = new Result(false);
+		Broadcast subTrack = store.get(subTrackId);
+		String message = "";
+		if (subTrack != null)
+		{
+			subTrack.setMainTrackStreamId(id);
+			//Update subtrack's main Track Id
+
+			boolean success = store.updateBroadcastFields(subTrackId, subTrack);
+			if (success) {
+				success = store.addSubTrack(id, subTrackId);
+
+				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id,
+						"Subtrack:{} cannot be added to main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+
+				if (success) {
+					//if it's a room, add it to the room as well
+					//Ugly fix
+					//REFACTOR: Migrate conference room to Broadcast object by keeping the interface backward compatible
+					addStreamToConferenceRoom(id, subTrackId, store);
+				}
+
+			}
+			else
+
+			{
+				message = "Main track of the stream " + subTrackId + " cannot be updated";
+				logWarning("Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+			}
+		}
+		else
+		{
+			message = "There is not stream with id:" + subTrackId;
+			logWarning("There is not stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
+		}
+		result.setMessage(message);
+		return result;
+	}
+
+	public static Result removeSubTrack(String id, String subTrackId,DataStore store) {
+		Result result = new Result(false);
+		Broadcast subTrack = store.get(subTrackId);
+		if (subTrack != null)
+		{
+			if(id != null && id.equals(subTrack.getMainTrackStreamId())) {
+				subTrack.setMainTrackStreamId("");
+			}
+
+			boolean success = store.updateBroadcastFields(subTrackId, subTrack);
+			if (success) {
+				success = store.removeSubTrack(id, subTrackId);
+
+				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be removed from main track: " + id,
+						"Subtrack:{} cannot be removed from main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
+
+			}
+			else
+			{
+				RestServiceBase.setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be updated",
+						"Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
+			}
+		}
+		else
+		{
+			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + subTrackId, "There is no stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
+		}
+
+		return result;
+	}
+
+	public static boolean isMainTrack(String streamId, DataStore store) {
+		boolean result = false;
+		if (streamId != null)
+		{
+			Broadcast broadcast = store.get(streamId);
+			if (broadcast != null)
+			{
+				result = !broadcast.getSubTrackStreamIds().isEmpty();
+			}
+		}
+
+		return result;
+
+	}
+
+	public static Result sendDataChannelMessage(String id, String message, AntMediaApplicationAdapter application, DataStore store)
+	{
+		// check if WebRTC data channels are supported in this edition
+		if(application != null && application.isDataChannelMessagingSupported()) {
+			// check if data channel is enabled in the settings
+			if(application.isDataChannelEnabled()) {
+				// check if stream with given stream id exists
+				if(application.doesWebRTCStreamExist(id) || RestServiceBase.isMainTrack(id, store)) {
+					// send the message through the application
+					boolean status = application.sendDataChannelMessage(id,message);
+					if(status) {
+						return new Result(true);
+					} else {
+						return new Result(false, "Operation not completed");
+					}
+
+				} else {
+					return new Result(false, "Requested WebRTC stream does not exist");
+				}
+
+			} else {
+				return new Result(false, "Data channels are not enabled");
+			}
+
+		} else {
+			return new Result(false, "Operation not supported in the Community Edition. Check the Enterprise version for more features.");
+		}
+	}
+
 
 	public static synchronized boolean removeStreamFromRoom(String roomId, String streamId,DataStore store)
 	{
@@ -1861,7 +2062,7 @@ public abstract class RestServiceBase {
 		}
 
 
-		if (streamId != null && recordType != null) 
+		if (streamId != null && recordType != null)
 		{
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null)
@@ -1884,7 +2085,7 @@ public abstract class RestServiceBase {
 						result = true;
 						RecordMuxer muxer = null;
 
-						if (isInSameNodeInCluster(broadcast.getOriginAdress())) 
+						if (isInSameNodeInCluster(broadcast.getOriginAdress()))
 						{
 							if (enableRecording)
 							{

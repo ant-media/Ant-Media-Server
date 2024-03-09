@@ -24,7 +24,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -79,13 +81,12 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
-import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 
 
 public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
-	public static final int STAT_UPDATE_PERIOD_MS = 5000;
+	public static final int STAT_UPDATE_PERIOD_MS = 10000;
 
 
 	public static final String ADAPTIVE_SUFFIX = "_adaptive";
@@ -854,8 +855,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void updateStreamQualityParameters(String streamId, String quality, double speed, int inputQueueSize) {
 		long now = System.currentTimeMillis();
 
-		//increase updating time to 5 seconds because it may cause some issues in mongodb updates and no need to update every 5 seconds
-		if ((now - lastQualityUpdateTime) > STAT_UPDATE_PERIOD_MS) 
+		//increase updating time to STAT_UPDATE_PERIOD_MS seconds because it may cause some issues in mongodb updates 
+		//or 
+		//update before STAT_UPDATE_PERIOD_MS if speed something meaningful
+		if ((now - lastQualityUpdateTime) > STAT_UPDATE_PERIOD_MS || (lastQualityUpdateTime == 0 && speed > 0.8)) 
 		{
 
 			logger.info("Stream queue size:{} speed:{} for streamId:{} ", inputQueueSize, speed, streamId);
@@ -1114,12 +1117,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void addBufferQueue(IStreamPacket packet) {
 		//it's a ordered queue according to timestamp
+
 		bufferQueue.add(packet);
 
-		IStreamPacket pktHead = bufferQueue.first();
-		IStreamPacket pktTrailer = bufferQueue.last();
+		try {
+			IStreamPacket pktHead = bufferQueue.first();
+			IStreamPacket pktTrailer = bufferQueue.last();
 
-		if (pktHead != null) {
 			int bufferedDuration = pktTrailer.getTimestamp() - pktHead.getTimestamp();
 
 			if (bufferedDuration > bufferTimeMs*5) {
@@ -1165,8 +1169,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.info("ReadPacket -> Buffering status {}, buffer duration {}ms buffer time {}ms stream: {}", buffering, bufferedDuration, bufferTimeMs, streamId);
 				bufferLogCounter = 0;
 			}
-
 		}
+		catch (NoSuchElementException e) {
+			//You may or may not ignore this exception @mekya
+			logger.warn("You may or may not ignore this exception. I mean It can happen time to time in multithread environment -> {}", e.getMessage());
+		}
+
+
 	}
 
 
@@ -1395,21 +1404,21 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		logger.info("Number of items in the queue while adaptor is being started to prepare is {}", getInputQueueSize());
 		startTimeMs = System.currentTimeMillis();
 
-		vertx.executeBlocking(b -> {
+		vertx.executeBlocking(() -> {
 			logger.info("before prepare for {}", streamId);
 			Boolean successful = false;
 			try {
 
 				packetPollerId = vertx.setPeriodic(10, t-> 
-				vertx.executeBlocking(p-> {
+				vertx.executeBlocking(()-> {
 					try {
 						execute();
 					}
 					catch (Exception e) {
 						logger.error(ExceptionUtils.getStackTrace(e));
 					}
-					p.complete();
-				}, false, null));
+					return null;
+				}, false));
 
 
 
@@ -1419,15 +1428,15 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					logger.info("Scheduling the buffered packet writer for stream: {} buffer duration:{}ms", streamId, bufferTimeMs);
 					bufferedPacketWriterId = vertx.setPeriodic(10, k -> 
 
-					vertx.executeBlocking(p-> {
+					vertx.executeBlocking(()-> {
 						try {
 							writeBufferedPacket();
 						}
 						catch (Exception e) {
 							logger.error(ExceptionUtils.getStackTrace(e));
 						}
-						p.complete();
-					}, false, null)
+						return null;
+					}, false)
 							);
 
 				}
@@ -1441,12 +1450,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
-			b.complete(successful);
+			return successful;
 
-		}, 
-				false,  // run unordered
-				r -> 
-		logger.info("muxadaptor start has finished with {} for stream: {}", r.result(), streamId)
+		}, false  // run unordered
 				);
 	}
 
@@ -1509,7 +1515,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 					}
 					bufferLogCounter++; //we use this parameter in execute method as well
-					if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) {
+					if (bufferLogCounter % COUNT_TO_LOG_BUFFER  == 0) 
+					{
 						IStreamPacket streamPacket = !bufferQueue.isEmpty() ? bufferQueue.first() : null;
 						int bufferedDuration = 0;
 						if (streamPacket != null) {
@@ -1935,7 +1942,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		vertx.setPeriodic(healthCheckPeriodMS, id ->
 		{
 
-			String status = statusMap.getValueOrDefault(url, null);
+			String status = statusMap.getOrDefault(url, null);
 			logger.info("Checking the endpoint health for: {} and status: {} ", url, status);
 			//Broadcast might get deleted in the process of checking
 			if(broadcast == null || status == null || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED))
@@ -1967,7 +1974,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private void tryToRepublish(String url, Long id) 
 	{
-		int errorCount = errorCountMap.getValueOrDefault(url, 1);
+		int errorCount = errorCountMap.getOrDefault(url, 1);
 		if(errorCount < 3)
 		{
 			errorCountMap.put(url, errorCount+1);
@@ -1975,7 +1982,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		else
 		{
-			int tmpRetryCount = retryCounter.getValueOrDefault(url, 1);
+			int tmpRetryCount = retryCounter.getOrDefault(url, 1);
 			if( tmpRetryCount <= rtmpEndpointRetryLimit){
 				logger.info("Health check process failed, trying to republish to the endpoint: {}", url);
 
@@ -2009,12 +2016,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		statusMap.put(url,status);
 
-		if((status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED)) && !isHealthCheckStartedMap.getValueOrDefault(url, false)){
+		if((status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR) || status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED)) && !isHealthCheckStartedMap.getOrDefault(url, false)){
 			endpointStatusHealthCheck(url);
 			isHealthCheckStartedMap.put(url, true);
 		}
 
-		if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && retryCounter.getValueOrDefault(url, null) != null){
+		if(status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING) && retryCounter.getOrDefault(url, null) != null){
 			retryCounter.remove(url);
 		}
 
@@ -2025,6 +2032,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				endpointStatusUpdaterTimer.set(-1l);
 				try {
 					//update broadcast object
+					logger.info("Updating endpoint status in datastore for streamId:{}", streamId);
 					broadcast = getDataStore().get(broadcast.getStreamId());
 
 					updateBroadcastRecord();
@@ -2047,7 +2055,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			for (Iterator iterator = broadcast.getEndPointList().iterator(); iterator.hasNext();) 
 			{
 				Endpoint endpoint = (Endpoint) iterator.next();
-				String statusUpdate = endpointStatusUpdateMap.getValueOrDefault(endpoint.getRtmpUrl(), null);
+				String statusUpdate = endpointStatusUpdateMap.getOrDefault(endpoint.getRtmpUrl(), null);
 				if (statusUpdate != null) {
 					endpoint.setStatus(statusUpdate);
 				}
@@ -2089,7 +2097,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (resolutionHeight == 0 || resolutionHeight == height) 
 		{
 			RtmpMuxer rtmpMuxer = getRtmpMuxer(rtmpUrl);
-			String status = statusMap.getValueOrDefault(rtmpUrl, null);
+			String status = statusMap.getOrDefault(rtmpUrl, null);
 			if (rtmpMuxer != null)
 			{
 				muxerList.remove(rtmpMuxer);

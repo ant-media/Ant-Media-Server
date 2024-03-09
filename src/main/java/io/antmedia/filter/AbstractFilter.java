@@ -4,6 +4,9 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Queue;
 
+
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.security.ITokenService;
 import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,7 +18,6 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.security.ITokenService;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.DashViewerStats;
 import io.antmedia.statistic.HlsViewerStats;
@@ -163,6 +165,17 @@ public abstract class AbstractFilter implements Filter{
 		}
 		return broadcast;
 	}
+
+	public AntMediaApplicationAdapter getAntMediaApplicationAdapter(){
+		AntMediaApplicationAdapter antMediaApplicationAdapter = null;
+		ApplicationContext context = getAppContext();
+		if (context != null)
+		{
+			antMediaApplicationAdapter= (AntMediaApplicationAdapter)context.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		}
+		return antMediaApplicationAdapter;
+	}
+
 	public DataStore getDataStore(){
 		ConfigurableWebApplicationContext appContext = getWebApplicationContext();
 		if (appContext != null && appContext.isRunning())

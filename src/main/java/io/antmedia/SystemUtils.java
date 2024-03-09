@@ -643,6 +643,10 @@ public class SystemUtils {
 		}
 	}
 
+	
+	public static double getSystemLoadAverageLastMinute() {
+		return  ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
+	}
 
 	/**
 	 * Returns the "% recent cpu usage" for the Java Virtual Machine process. 
