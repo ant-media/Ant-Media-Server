@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
@@ -20,7 +21,7 @@ import jakarta.ws.rs.HttpMethod;
 public abstract class StatisticsFilter extends AbstractFilter {
 
 	protected static Logger logger = LoggerFactory.getLogger(StatisticsFilter.class);
-	
+
 
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
@@ -54,51 +55,43 @@ public abstract class StatisticsFilter extends AbstractFilter {
 
 				}
 			}
-			else if (HttpServletResponse.SC_NOT_FOUND == status && streamId != null) 
-			{
-				startStreamingIfAutoStartStopEnabled((HttpServletRequest) request, streamId);
-			}
-			
+			startStreamingIfAutoStartStopEnabled((HttpServletRequest) request, streamId);
+
 		}
 		else if (HttpMethod.HEAD.equals(method) && isFilterMatching(httpRequest.getRequestURI())) {
 			String streamId = TokenFilterManager.getStreamId(httpRequest.getRequestURI());
-			
+
 			chain.doFilter(request, response);
 
-			int status = ((HttpServletResponse) response).getStatus();
-			
-			if (HttpServletResponse.SC_NOT_FOUND == status && streamId != null) 
-			{
-				startStreamingIfAutoStartStopEnabled((HttpServletRequest) request, streamId);
-			}
+			startStreamingIfAutoStartStopEnabled((HttpServletRequest) request, streamId);
 
-			
 		}
 		else {
 			chain.doFilter(httpRequest, response);
-			
-			
+
+
 		}
 
 	}
-	
+
 	public void startStreamingIfAutoStartStopEnabled(HttpServletRequest request, String streamId) {
 		//start if it's not found, it may be started 
 		Broadcast broadcast = getBroadcast(request, streamId);
-		if (broadcast != null && broadcast.isAutoStartStopEnabled()) 
+		if (broadcast != null && broadcast.isAutoStartStopEnabled() && !AntMediaApplicationAdapter.isStreaming(broadcast)) 
 		{
 			//startStreaming method starts streaming if stream is not streaming in local or in any node in the cluster
+			logger.info("http play request(hls, dash) is received for stream id:{} and it's not streaming, so it's trying to start the stream", streamId);
 			getAntMediaApplicationAdapter().startStreaming(broadcast);
 		}
-		
+
 	}
-	
-	
+
+
 
 	public abstract boolean isViewerCountExceeded(HttpServletRequest request, HttpServletResponse response, String streamId) throws IOException;
 
 
 	public abstract boolean isFilterMatching(String requestURI);
-	
+
 	public abstract String getBeanName();
 }
