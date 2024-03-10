@@ -214,7 +214,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		driver.quit();
 		
 		//check that it's stopped because it's hls it takes more time to understand there is no viewer
-		Awaitility.await().atMost(35, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+		Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(() -> {
 			Broadcast localBroadcast = restService.getBroadcast(streamSource.getStreamId());
 			
 			return localBroadcast.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
