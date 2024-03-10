@@ -16,7 +16,6 @@ import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
-import org.springframework.beans.factory.annotation.Value;
 
 import static io.antmedia.AppSettings.encodersList2Str;
 import static io.antmedia.AppSettings.encodersStr2List;
@@ -216,7 +215,7 @@ public class Broadcast {
 	 * Broadcast level ABR settings.
 	 */
 	@ApiModelProperty(value = "Encoder settings for broadcast level ABR")
-	private List<EncoderSettings> encoderSettings;
+	private String encoderSettingsString;
 
 	@Entity
 	public static class PlayListItem
@@ -870,11 +869,19 @@ public class Broadcast {
 	}
 
 	public List<EncoderSettings> getEncoderSettings() {
-		return encoderSettings;
+		return encodersStr2List(encoderSettingsString);
+	}
+
+	public String getEncoderSettingsString(){
+		return encoderSettingsString;
 	}
 
 	public void setEncoderSettings(List<EncoderSettings> settings) {
-		encoderSettings = settings;
+		encoderSettingsString = encodersList2Str(settings);
+	}
+
+	public void setEncoderSettingsString(String encoderSettingsString) {
+		this.encoderSettingsString = encoderSettingsString;
 	}
 
 	public long getSeekTimeInMs() {
