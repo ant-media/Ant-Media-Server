@@ -63,6 +63,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.antmedia.EncoderSettings;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -1458,7 +1459,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+		List<EncoderSettings> adaptiveResolutionList = Arrays.asList(new EncoderSettings(144, 150000, 32000,true));
+
+
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, adaptiveResolutionList, false, appScope);
 
 		//this value should be -1. It means it is uninitialized
 		assertEquals(0, muxAdaptor.getPacketTimeList().size());
@@ -1533,7 +1537,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			List<MuxAdaptor> muxAdaptorList = new ArrayList<>();
 			for (int j = 0; j < 5; j++) {
-				MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+				MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, Arrays.asList(), false, appScope);
 				muxAdaptorList.add(muxAdaptor);
 			}
 			{

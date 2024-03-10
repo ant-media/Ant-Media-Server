@@ -999,6 +999,8 @@ public abstract class DataStore {
 		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
 		broadcast.setAutoStartStopEnabled(newBroadcast.isAutoStartStopEnabled());
 		broadcast.setEncoderSettingsString(newBroadcast.getEncoderSettingsString());
+		broadcast.setEncoderSettings(newBroadcast.getEncoderSettings());
+
 	}
 
 
