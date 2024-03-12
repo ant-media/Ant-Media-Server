@@ -730,6 +730,33 @@
 								</configuration>
 							</execution>
 							<execution>
+							    <id>create-live-app</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/server/create_app.sh</executable>
+									<arguments>
+										<argument>live</argument>
+										<argument>${project.build.directory}</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+							    <id>show-enterprise-feature-message-live-app</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/assembly/show_enterprise_feature_message.sh</executable>
+									<arguments>
+										<argument>${project.build.directory}/webapps/live</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
 							    <id>create-liveapp</id>
 								<phase>package</phase>
 								<goals>
@@ -933,6 +960,20 @@
 							    <executable>mkdir</executable>
 									<arguments>
 										<argument>target/webapps</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+							    <id>create-live-app</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/server/create_app.sh</executable>
+									<arguments>
+										<argument>live</argument>
+										<argument>${project.build.directory}</argument>
 									</arguments>
 								</configuration>
 							</execution>
