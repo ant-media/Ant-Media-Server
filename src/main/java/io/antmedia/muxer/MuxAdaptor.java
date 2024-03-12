@@ -390,7 +390,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		previewOverwrite = appSettingsLocal.isPreviewOverwrite();
 
-		encoderSettingsList = (getBroadcast().getEncoderSettings() != null && !getBroadcast().getEncoderSettings().isEmpty()) ? getBroadcast().getEncoderSettings() : appSettingsLocal.getEncoderSettings();
+		encoderSettingsList = (getBroadcast() != null && getBroadcast().getEncoderSettings() != null && !getBroadcast().getEncoderSettings().isEmpty()) ? getBroadcast().getEncoderSettings() : appSettingsLocal.getEncoderSettings();
 
 		previewCreatePeriod = appSettingsLocal.getCreatePreviewPeriod();
 		maxAnalyzeDurationMS = appSettingsLocal.getMaxAnalyzeDurationMS();
