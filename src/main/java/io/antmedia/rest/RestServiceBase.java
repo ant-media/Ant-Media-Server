@@ -70,51 +70,47 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.ws.rs.core.Context;
 
 public abstract class RestServiceBase {
 
-	@ApiModel(value="BroadcastStatistics", description="The statistics class of the broadcasts")
-	public static class BroadcastStatistics {
+	public class BroadcastStatistics {
 
-		@ApiModelProperty(value = "the total RTMP viewers of the stream")
-		public final int totalRTMPWatchersCount;
+	    @Schema(description = "The total RTMP viewers of the stream")
+	    public final int totalRTMPWatchersCount;
 
-		@ApiModelProperty(value = "the total HLS viewers of the stream")
-		public final int totalHLSWatchersCount;
+	    @Schema(description = "The total HLS viewers of the stream")
+	    public final int totalHLSWatchersCount;
 
-		@ApiModelProperty(value = "the total WebRTC viewers of the stream")
-		public final int totalWebRTCWatchersCount;
+	    @Schema(description = "The total WebRTC viewers of the stream")
+	    public final int totalWebRTCWatchersCount;
 
-		@ApiModelProperty(value = "the total DASH viewers of the stream")
-		public final int totalDASHWatchersCount;
+	    @Schema(description = "The total DASH viewers of the stream")
+	    public final int totalDASHWatchersCount;
 
-
-		public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
-				int totalWebRTCWatchersCount, int totalDASHWatchersCount) {
-			this.totalRTMPWatchersCount = totalRTMPWatchersCount;
-			this.totalHLSWatchersCount = totalHLSWatchersCount;
-			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
-			this.totalDASHWatchersCount = totalDASHWatchersCount;
-		}
+	    public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
+	                               int totalWebRTCWatchersCount, int totalDASHWatchersCount) {
+	        this.totalRTMPWatchersCount = totalRTMPWatchersCount;
+	        this.totalHLSWatchersCount = totalHLSWatchersCount;
+	        this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
+	        this.totalDASHWatchersCount = totalDASHWatchersCount;
+	    }
 	}
 
-	@ApiModel(value="AppBroadcastStatistics", description="The statistics class of the app. It provides total number of viewers and active live streams")
-	public static class AppBroadcastStatistics extends BroadcastStatistics {
 
-		@ApiModelProperty(value = "the total active live stream count")
-		public final int activeLiveStreamCount;
+	public class AppBroadcastStatistics extends BroadcastStatistics {
 
-		public AppBroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
-				int totalWebRTCWatchersCount, int totalDASHWatchersCount, int activeLiveStreamCount )
-		{
-			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount, totalDASHWatchersCount);
-			this.activeLiveStreamCount = activeLiveStreamCount;
-		}
+	    @Schema(description = "The total active live stream count")
+	    public final int activeLiveStreamCount;
 
+	    public AppBroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
+	                                  int totalWebRTCWatchersCount, int totalDASHWatchersCount, int activeLiveStreamCount) {
+	        super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount, totalDASHWatchersCount);
+	        this.activeLiveStreamCount = activeLiveStreamCount;
+	    }
 	}
+
 
 	public interface ProcessBuilderFactory {
 		Process make(String...args);

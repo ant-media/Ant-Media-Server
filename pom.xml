@@ -214,38 +214,7 @@
 			        </execution>
 			    </executions>
 			</plugin>      
-            <plugin>
-                <groupId>com.github.kongchen</groupId>
-                <artifactId>swagger-maven-plugin</artifactId>
-                <version>3.1.8</version>
-                <configuration>
-                    <apiSources>
-                        <apiSource>
-                            <springmvc>false</springmvc>
-                            <locations>
-                             	<location>io.antmedia.rest</location> 
-                            	<location>io.antmedia.console.rest</location>
-                            </locations>
-                            <swaggerDirectory>target/swagger</swaggerDirectory>
-                            <swaggerFileName>swagger</swaggerFileName>
-                            <outputFormats>json</outputFormats>
-                            <info>
-                   				 <title>Ant Media Server REST API Reference</title>
-                   				 <version>${project.parent.version}</version>
-                   			</info>
-                   			<host>test.antmedia.io:5443/Sandbox/rest/</host>
-                        </apiSource>
-                    </apiSources>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+          
             <plugin>
               <groupId>org.owasp</groupId>
               <artifactId>dependency-check-maven</artifactId>
@@ -381,17 +350,11 @@
 		    <artifactId>morphia-core</artifactId>
 		    <version>${morphia.version}</version>
 		</dependency>
-		<dependency>
-            <groupId>io.swagger</groupId>
-            <artifactId>swagger-jersey2-jaxrs</artifactId>
-            <version>${swagger-jersey2-jaxrs.version}</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>jersey-container-servlet-core</artifactId>
-                    <groupId>org.glassfish.jersey.containers</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+		 <dependency>
+	      <groupId>io.swagger.core.v3</groupId>
+	      <artifactId>swagger-jaxrs2-jakarta</artifactId>
+	      <version>2.2.7</version>
+	    </dependency>
         <dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-dropwizard-metrics</artifactId>

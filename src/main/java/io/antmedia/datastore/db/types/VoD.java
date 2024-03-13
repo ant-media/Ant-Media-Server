@@ -13,13 +13,12 @@ import dev.morphia.utils.IndexType;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 
 @Entity("vod")
 @Indexes({ @Index(fields = @Field("vodId")), @Index(fields = @Field("vodName")), @Index(fields = @Field("streamId")), @Index(fields = @Field("streamName")) })
-@ApiModel(value="VoD", description="The recorded video-on-demand object class")
+@Schema(description = "The recorded video-on-demand object class")
 public class VoD implements Serializable {
 
 	private static final long serialVersionUID = 1L;
@@ -41,40 +40,40 @@ public class VoD implements Serializable {
 	public static final String UPLOADED_VOD = "uploadedVod";
 	
 	@JsonIgnore
-	@Id
-	private ObjectId dbId;
-	@ApiModelProperty(value = "the object id of the VoD")
-	private String streamName;
-	
-	@ApiModelProperty(value = "the name of the VoD")
-	private String vodName;
-	
-	@ApiModelProperty(value = "the stream id of the VoD")
-	private String streamId;
-	
-	@ApiModelProperty(value = "the creation of the VoD")
-	private long creationDate;
-	
-	@ApiModelProperty(value = "the time when the VoD is being started to get recorded in milliseconds(UTC- Unix epoch)")
-	private long startTime;
+    private ObjectId dbId;
 
-	@ApiModelProperty(value = "the duration of the VoD")
-	private long duration;
-	
-	@ApiModelProperty(value = "the size of the VoD file in bytes")
-	private long fileSize;
-	
-	@ApiModelProperty(value = "the path of the VoD")
-	private String filePath;
-	
-	@ApiModelProperty(value = "the id of the VoD")
-	private String vodId;
-	
-	@ApiModelProperty(value = "the type of the VoD, such as userVod, streamVod, uploadedVod")
-	private String type;
+    @Schema(description = "The object id of the VoD")
+    private String streamName;
 
-	@ApiModelProperty(value = "the type of the VoD, such as userVod, streamVod, uploadedVod")
-	private String previewFilePath;
+    @Schema(description = "The name of the VoD")
+    private String vodName;
+
+    @Schema(description = "The stream id of the VoD")
+    private String streamId;
+
+    @Schema(description = "The creation date of the VoD")
+    private long creationDate;
+
+    @Schema(description = "The start time of the VoD recording in milliseconds (UTC- Unix epoch)")
+    private long startTime;
+
+    @Schema(description = "The duration of the VoD")
+    private long duration;
+
+    @Schema(description = "The size of the VoD file in bytes")
+    private long fileSize;
+
+    @Schema(description = "The path of the VoD")
+    private String filePath;
+
+    @Schema(description = "The id of the VoD")
+    private String vodId;
+
+    @Schema(description = "The type of the VoD, such as userVod, streamVod, uploadedVod")
+    private String type;
+
+    @Schema(description = "The file path for the preview of the VoD")
+    private String previewFilePath;
 	
 
 	public VoD() {

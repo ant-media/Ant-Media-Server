@@ -1,62 +1,58 @@
 package io.antmedia.datastore.db.types;
 
 import org.bson.types.ObjectId;
-import dev.morphia.annotations.Embedded;
+
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
-import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @Entity("token")
 
 @Indexes({ @Index(fields = @Field("tokenId")) })
-@ApiModel(value="Token", description="The one-time token class")
+@Schema(description="The one-time token class")
 public class Token {
 	
-	
-	@JsonIgnore
-	@Id
-	@ApiModelProperty(value = "the db id of the token")
-	private ObjectId dbId;
 	
 	public static final String PUBLISH_TOKEN = "publish";
 	public static final String PLAY_TOKEN = "play";
 	
-	/**
-	 * random tokenID
-	 */
-	@ApiModelProperty(value = "the token id of the token")
-	private String tokenId;
-	
-	/**
-	 * related streamId with token
-	 */
-	@ApiModelProperty(value = "the stream id of the token")
-	private String streamId;
-	
-	/**
-	 * expiration date of the token
-	 */
-	@ApiModelProperty(value = "the expire date of the token")
-	private long expireDate;
-	
-	/**
-	 * type of the token, such as publish, play etc.
-	 */
-	@ApiModelProperty(value = "the type of the token")
-	private String type;
-	
-	/**
-	 * the id of the conference room which requested streams belongs to.
-	 */
-	@ApiModelProperty(value = "the id of the conference room which requested streams belongs to")
-	private String roomId;
+	 /**
+     * The db id of the token.
+     */
+    @Schema(description = "The db id of the token")
+    private ObjectId dbId;
+
+    /**
+     * The token id.
+     */
+    @Schema(description = "The token id")
+    private String tokenId;
+
+    /**
+     * The stream id associated with the token.
+     */
+    @Schema(description = "The stream id associated with the token")
+    private String streamId;
+
+    /**
+     * The expiration date of the token.
+     */
+    @Schema(description = "The expiration date of the token")
+    private long expireDate;
+
+    /**
+     * The type of the token, such as publish, play, etc.
+     */
+    @Schema(description = "The type of the token")
+    private String type;
+
+    /**
+     * The id of the conference room which requested streams belong to.
+     */
+    @Schema(description = "The id of the conference room which requested streams belong to")
+    private String roomId;
 	
 	
 	public String getRoomId() {
@@ -99,5 +95,4 @@ public class Token {
 		this.expireDate = expireDate;
 	}
 	
-
 }
