@@ -62,8 +62,11 @@ Deploy Ant Media Server seamlessly on your favorite cloud platforms with 1-Click
 
 
  ### Setup an Auto-Scalable Solution with CloudFormation In 5 minutes
-<a href="https://www.youtube.com/watch?v=y7bP0u0jQRQ"><img width="640" src="https://img.youtube.com/vi/y7bP0u0jQRQ/0.jpg"/></a>
+<a href="https://www.youtube.com/watch?v=y7bP0u0jQRQ"><img width="640" src="https://img.youtube.com/vi/y7bP0u0jQRQ/0.jpg"/></a><br/>
+<a href="https://antmedia.io/docs/guides/clustering-and-scaling/aws/scale-with-aws-cloudformation/">CloudFormation Deployment in 5 Minutes</a>
 
+
+### Free Trial for Enterprise Edition
 [Discover the Power of Ant Media: Start Your Free Trial Today!](https://antmedia.io/free-trial/)
 
 
