@@ -242,6 +242,7 @@ public class DBStoresUnitTest {
 		
 		dataStore = new MongoStore("localhost", "", "", "testdb");
 
+		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
@@ -288,6 +289,7 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+
 		
 		dataStore.close(true);
 	}
@@ -3174,4 +3176,44 @@ public class DBStoresUnitTest {
 		assertEquals(extraData, subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getExtraData());
 		
 	}
+
+	public void testUpdateBroadcastEncoderSettings(DataStore dataStore) {
+
+		String id = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast broadcast= new Broadcast();
+		try {
+			broadcast.setStreamId(id);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+
+		dataStore.save(broadcast);
+
+        assertNull(dataStore.get(id).getEncoderSettingsString());
+
+		assertNull(dataStore.get(id).getEncoderSettings());
+
+		String encoderSettingsStr1 = "[{\"videoBitrate\":500000,\"forceEncode\":true,\"audioBitrate\":32000,\"height\":240}]";
+
+		broadcast.setEncoderSettingsString(encoderSettingsStr1);
+
+		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
+
+		assertEquals(encoderSettingsStr1, dataStore.get(id).getEncoderSettingsString());
+        assertEquals(500000, dataStore.get(id).getEncoderSettings().get(0).getVideoBitrate());
+
+		broadcast.setEncoderSettingsString(null);
+		assertFalse(dataStore.updateBroadcastFields(id, broadcast));
+		assertEquals(encoderSettingsStr1, dataStore.get(id).getEncoderSettingsString());
+
+
+		broadcast.setEncoderSettingsString("");
+		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
+		assertTrue(dataStore.get(id).getEncoderSettings().isEmpty());
+
+
+	}
+
 }
