@@ -823,6 +823,7 @@ public class MongoStore extends DataStore {
 				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
 				updates.add(set("updateTime", broadcast.getUpdateTime()));
 				updates.add(set("autoStartStopEnabled",broadcast.isAutoStartStopEnabled()));
+				updates.add(set("encoderSettingsString",broadcast.getEncoderSettingsString());
 
 				UpdateResult updateResult = query.update(updates).execute();
 				return updateResult.getModifiedCount() == 1;
