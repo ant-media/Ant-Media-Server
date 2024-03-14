@@ -62,6 +62,7 @@ import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.statistic.IStatsCollector;
@@ -377,6 +378,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		//create a broadcast
 		PlayListItem broadcastItem1 = new PlayListItem(VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
+		broadcastItem1.setDurationInMs(Muxer.getDurationInMs(broadcastItem1.getStreamUrl(), ""));
+		assertEquals(15045, broadcastItem1.getDurationInMs());
 
 		try {
 

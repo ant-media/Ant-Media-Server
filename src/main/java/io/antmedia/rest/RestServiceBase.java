@@ -286,7 +286,9 @@ public abstract class RestServiceBase {
 		{
 			for (PlayListItem playListItem : playListItemList) 
 			{
-				playListItem.setDurationInMs(Muxer.getDurationInMs(playListItem.getStreamUrl(), broadcast.getStreamId()));
+				if (AntMediaApplicationAdapter.VOD.equals(playListItem.getType())) {
+					playListItem.setDurationInMs(Muxer.getDurationInMs(playListItem.getStreamUrl(), broadcast.getStreamId()));
+				}
 			}
 		}
 	}
