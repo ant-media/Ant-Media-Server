@@ -128,7 +128,13 @@ check_result
 sed -i $SED_COMPATIBILITY 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
 check_result
 
-if [[ $DB_HOST == \"'*'\" ]]; then
+#remove single quotes if exists
+if [[ $DB_HOST == \'*\' ]]; then
+  DB_HOST="${DB_HOST:1:-1}"
+fi
+
+#remove double quotes if exists
+if [[ $DB_HOST == \"*\" ]]; then
   DB_HOST="${DB_HOST:1:-1}"
 fi
 
