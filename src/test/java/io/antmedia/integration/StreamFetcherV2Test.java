@@ -45,6 +45,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.rest.model.Result;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.test.StreamFetcherUnitTest;
+import io.github.bonigarcia.wdm.WebDriverManager;
 import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "../test/test.xml" })
@@ -108,6 +109,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		//	avformat.av_register_all();
 		avformat.avformat_network_init();
 		avutil.av_log_set_level(avutil.AV_LOG_INFO);
+		WebDriverManager.chromedriver().setup();
 
 	}
 
