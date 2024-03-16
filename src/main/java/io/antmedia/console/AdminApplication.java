@@ -334,18 +334,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			return false;
 		}
 		
-		if(isCluster) {
-			String dbConnectionURL = getDataStoreFactory().getDbHost();
-			String mongoUser = getDataStoreFactory().getDbUser();
-			String mongoPass = getDataStoreFactory().getDbPassword();
-
-			boolean result = runCreateAppScript(appName, true, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
-			success = result;
-		}
-		else {
-			boolean result = runCreateAppScript(appName, warFileFullPath);
-			success = result;
-		}
+		String dbConnectionURL = getDataStoreFactory().getDbHost();
+		String mongoUser = getDataStoreFactory().getDbUser();
+		String mongoPass = getDataStoreFactory().getDbPassword();
+		success = runCreateAppScript(appName, isCluster, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
+		
 
 		vertx.executeBlocking(() -> {
 			try {
@@ -471,38 +464,26 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	}
 
 	public boolean runCreateAppScript(String appName, boolean isCluster, 
-			String mongoHost, String mongoUser, String mongoPass, String warFileName) {
+			String dbConnectionUrl, String dbUser, String dbPass, String warFileName) {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
-		String command;
 
+		String command = "/bin/bash create_app.sh"
+				+ " -n " + appName
+				+ " -w true"
+				+ " -p " + webappsPath
+				+ " -c " + isCluster
+				+ " -m " + dbConnectionUrl
+				+ " -u " + dbUser
+				+ " -s " + dbPass;
+		
 		if(warFileName != null && !warFileName.isEmpty())
 		{
-			command = "/bin/bash create_app.sh"
-					+ " -n " + appName
-					+ " -w true"
-					+ " -p " + webappsPath
-					+ " -c " + isCluster
-					+ " -f " + warFileName;
+			command += " -f " + warFileName;
 
 		}
-		else
-		{
-			command = "/bin/bash create_app.sh"
-					+ " -n " + appName
-					+ " -w true"
-					+ " -p " + webappsPath
-					+ " -c " + isCluster;
-		} 
-
-		if(isCluster) 
-		{
-			command += " -m " + mongoHost
-					+ " -u "  + mongoUser
-					+ " -s "  + mongoPass;
-		}
-
+		
 		log.info("Creating application with command: {}", command);
 		return runCommand(command);
 	}

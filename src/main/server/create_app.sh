@@ -7,15 +7,15 @@ usage() {
   echo "$0 -n APPLICATION_NAME [-p INSTALLATION_PATH] [-w true|false] [-c true|false]"
   echo "Options:"
   echo "-n:  Name of the application that you want to have. It's mandatory"
+  echo "-m:  Database URI including username and password.  or Redis host. If it's a cluster, it's mandatory. Otherwise optional"
+  echo "-f: war file path for custom app deployment"
   echo "-p: (Optional) Path is the install location of Ant Media Server which is /usr/local/antmedia by default."
   echo "-w: (Optional) The flag to deploy application as war file. Default value is false"
   echo "-c: (Optional) The flag to deploy application in cluster mode. Default value is false"
-  echo "-m:  Mongo DB or Redis host. If it's a cluster, it's mandatory. Otherwise optional"
-  echo "-u:  Mongo DB user or Redis user. If it's a cluster, it's mandatory. Otherwise optional"
-  echo "-s:  Mongo DB or Redis password. If it's a cluster, it's mandatory. Otherwise optional"
-  echo "-t:  DB Type. This flag determines the DB type. mongodb or redis"
+  echo "-u: (Deprecated: Add username to Database URI with -m option)Mongo DB user or Redis user. If it's a cluster, it's mandatory. Otherwise optional"
+  echo "-s: (Deprecated: Add password to Database URI with -m option)Mongo DB or Redis password. If it's a cluster, it's mandatory. Otherwise optional"
   echo "-h: print this usage"
-  echo "-f: war file path for custom app deployment"
+ 
   echo " "
   echo "Example: "
   echo "$0 -n live -w"
@@ -32,8 +32,9 @@ ERROR_MESSAGE="Error: App is not created. Please check the error in the terminal
 AMS_DIR=/usr/local/antmedia
 AS_WAR=false
 IS_CLUSTER=false
+DB_TYPE=mapdb
 
-while getopts 'n:p:w:h:c:m:u:t:s:f:' option
+while getopts 'n:p:w:h:c:m:u:s:f:' option
 do
   case "${option}" in
     n) APP_NAME=${OPTARG};;
@@ -44,7 +45,6 @@ do
     u) DB_USER=${OPTARG};;
     s) DB_PASS=${OPTARG};;
     f) WAR_FILE=${OPTARG};;
-    t) DB_TYPE=${OPTARG};;
     h) usage 
        exit 1;;
    esac
@@ -128,22 +128,26 @@ check_result
 sed -i $SED_COMPATIBILITY 's^<param-value>/StreamApp^<param-value>/'$APP_NAME'^' $WEB_XML_FILE
 check_result
 
-if [[ $DB_HOST == \'*\' ]]; then
+if [[ $DB_HOST == \"'*'\" ]]; then
   DB_HOST="${DB_HOST:1:-1}"
 fi
 
+ #Automatically find which DB it is
+if [[ $DB_HOST =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(:[0-9]{1,5})?$ || $DB_HOST =~ ^localhost(:[0-9]{1,5})?$ ||  $DB_HOST =~ ^mongo.*$ ]]; then
+  DB_TYPE=mongodb
+elif [[ $DB_HOST =~ ^redis.*$ ]]; then 
+  DB_TYPE=redisdb
+fi
+
+
+sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$DB_HOST'#' $RED5_PROPERTIES_FILE  
+sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$DB_USER'/' $RED5_PROPERTIES_FILE
+sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$DB_PASS'/' $RED5_PROPERTIES_FILE
+    
+
 if [[ "$IS_CLUSTER" == "true" ]]; then
     echo "Cluster mode"
-    #Automatically find which DB it is
-    if [[ $DB_HOST =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DB_HOST =~ ^localhost$ ||  $DB_HOST =~ ^mongo.*$ ]]; then
-      DB_TYPE=mongodb
-    elif [[ $DB_HOST =~ ^redis.*$ ]]; then 
-      DB_TYPE=redisdb
-    fi
-    sed -i $SED_COMPATIBILITY 's/db.type=.*/db.type='$DB_TYPE'/' $RED5_PROPERTIES_FILE
-    sed -i $SED_COMPATIBILITY 's#db.host=.*#db.host='$DB_HOST'#' $RED5_PROPERTIES_FILE  
-    sed -i $SED_COMPATIBILITY 's/db.user=.*/db.user='$DB_USER'/' $RED5_PROPERTIES_FILE
-    sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$DB_PASS'/' $RED5_PROPERTIES_FILE
     ln -s $WAR_FILE $AMS_DIR/webapps/root/$APP_NAME.war
 else 
     echo "Not cluster mode."    

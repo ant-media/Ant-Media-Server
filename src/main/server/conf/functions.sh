@@ -24,6 +24,7 @@ change_server_mode() {
   MODE=$1
   if [ $MODE = "cluster" ]; then
     echo "Mode: cluster"
+    #default db type
     DB_TYPE=mongodb
     DB_URL=$2
     
