@@ -180,11 +180,11 @@ after_failure:
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
   - echo "----------------------------------------------"
   - sudo cat /usr/local/antmedia/log/antmedia-error.log
-  - sudo service mongod status
-  - sudo service redis-server status
   - sudo cat /var/log/mongodb/mongod.log
   - sudo cat /usr/local/antmedia/hs_err_pid*.log  # cat hs_err_pid file if it exists
   - sudo cat hs_err_pid*.log  # cat hs_err_pid file if it exists
+  - sudo service mongod status
+  - sudo service redis-server status
  
 
 deploy:
