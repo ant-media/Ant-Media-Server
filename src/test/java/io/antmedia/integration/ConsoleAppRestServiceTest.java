@@ -475,7 +475,7 @@ public class ConsoleAppRestServiceTest{
 
 
 	@Test
-	public void testChangeModeToRedisAndCreateApp() throws IOException, InterruptedException {
+	public void testChangeDatabaseToRedisAndCreateApp() throws IOException, InterruptedException {
 		
 		//switch to use redis server
 		String installLocation = "/usr/local/antmedia";
@@ -487,7 +487,13 @@ public class ConsoleAppRestServiceTest{
 		assertEquals(0, exec.waitFor());
 		
 		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(()-> {
-			return createFirstUserAndLogin();
+			try {
+				return createFirstUserAndLogin();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+				return false;
+			}
 		});
 		
 		Applications applications = getApplications();
@@ -528,7 +534,13 @@ public class ConsoleAppRestServiceTest{
 		
 		//check that server is running
 		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(()-> {
-            return createFirstUserAndLogin();
+			try {
+				return createFirstUserAndLogin();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+				return false;
+			}
         });
 		
 
