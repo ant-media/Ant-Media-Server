@@ -302,6 +302,9 @@ public class FrontEndTest {
 		});
 		
 		
+		this.driver.quit();
+		this.driver = null;
+		
 		//check that it's stopped because it's hls it takes more time to understand there is no viewer
 		Awaitility.await().atMost(45, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(() -> {
 			Broadcast localBroadcast = restService.getBroadcast(streamSource.getStreamId());
