@@ -418,6 +418,41 @@ public class ConsoleAppRestServiceTest{
 			return tmpApplications.applications.length == appCount;
 		});
 	}
+	
+	@Test
+	public void testCreateDeleteAppAggresive() {
+		
+		Applications applications = getApplications();
+		int appCount = applications.applications.length;
+
+		String appName = RandomString.make(20);
+		log.info("app:{} will be created", appName);
+		Result result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
+			return deleteApplication(appName).isSuccess();
+		});
+		
+		result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
+			return deleteApplication(appName).isSuccess();
+		});
+		
+		result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
+			return deleteApplication(appName).isSuccess();
+		});
+		
+		result = createApplication(appName);
+		assertTrue(result.isSuccess());
+		
+	}
 
 	@Test
 	public void testCreateApp() 
@@ -431,7 +466,7 @@ public class ConsoleAppRestServiceTest{
 		Result result = createApplication(appName);
 		assertTrue(result.isSuccess());
 
-		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS)
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
 			Applications tmpApplications = getApplications();
 			return tmpApplications.applications.length == appCount + 1;
@@ -567,13 +602,11 @@ public class ConsoleAppRestServiceTest{
 
 			assertEquals("newServerName", serverSettings.getServerName());
 			assertEquals("newLicenseKey", serverSettings.getLicenceKey());
-			assertEquals(!isMarketRelease, serverSettings.isBuildForMarket());
 
 			// return back to original values
 
 			serverSettings.setServerName(serverName);
 			serverSettings.setLicenceKey(licenseKey);
-			serverSettings.setBuildForMarket(isMarketRelease);
 
 			//save original settings
 			result = callSetServerSettings(serverSettings);
@@ -1125,6 +1158,12 @@ public class ConsoleAppRestServiceTest{
 				});
 
 				AppFunctionalV2Test.destroyProcess();
+				
+				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+				.until(() -> {
+					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
+					return broadcast2 != null && broadcast2.getStatus().equals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+				});
 			}
 
 			{
@@ -1183,21 +1222,38 @@ public class ConsoleAppRestServiceTest{
 			enterpriseResult = callIsEnterpriseEdition();
 			if (!enterpriseResult.isSuccess()) {
 				//if it is not enterprise return
-				return ;
+				return;
 			}
 
 			// get settings from the app
 			AppSettings appSettings = callGetAppSettings(appName);
 
+			//only one type of token control can be enabled for publish.
+			appSettings.setPublishJwtControlEnabled(true);
+			appSettings.setEnableTimeTokenForPublish(true);
+			Result result = callSetAppSettings(appName, appSettings);
+			assertFalse(result.isSuccess());
+			appSettings.setPublishJwtControlEnabled(false);
+			appSettings.setEnableTimeTokenForPublish(false);
+
+			appSettings.setEnableTimeTokenForPlay(true);
+			appSettings.setPlayJwtControlEnabled(true);
+			result = callSetAppSettings(appName, appSettings);
+			assertFalse(result.isSuccess());
+
+			appSettings.setEnableTimeTokenForPlay(false);
+			appSettings.setPlayJwtControlEnabled(false);
+
 			appSettings.setPublishTokenControlEnabled(true);
 			appSettings.setPlayTokenControlEnabled(true);
 			appSettings.setMp4MuxingEnabled(true);
 
-
-			Result result = callSetAppSettings(appName, appSettings);
+			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 
+
 			appSettings = callGetAppSettings(appName);
+
 			assertTrue(appSettings.isPublishTokenControlEnabled());
 			assertTrue(appSettings.isPlayTokenControlEnabled());
 
@@ -1529,6 +1585,9 @@ public class ConsoleAppRestServiceTest{
 
 			// get Server Settings
 			ServerSettings serverSettings = callGetServerSettings();
+			
+			//it should not marketplace build
+			assertFalse(serverSettings.isBuildForMarket());
 
 			//set test license key
 			serverSettings.setLicenceKey("test-test");
@@ -1544,7 +1603,7 @@ public class ConsoleAppRestServiceTest{
 			//it should not be null because test license key is active
 			assertNotNull(activeLicence);
 
-			//set build for market as true
+			//set build for market as true - it should not effect
 			serverSettings.setBuildForMarket(true);
 
 			//save this setting
@@ -1552,7 +1611,12 @@ public class ConsoleAppRestServiceTest{
 
 			//check that setting is saved
 			assertTrue (flag.isSuccess());
-
+			
+			serverSettings = callGetServerSettings();
+				
+			//it should not marketplace build and it cannot be changed true rest api
+			assertFalse(serverSettings.isBuildForMarket());
+			
 
 			//check license status
 
@@ -1562,18 +1626,7 @@ public class ConsoleAppRestServiceTest{
 			assertNotNull(activeLicence);
 
 			//its status is null
-			assertNull(activeLicence.getStatus());
-
-
-
-			//set build for market setting to default
-			serverSettings.setBuildForMarket(false);
-
-			//save default setting
-			flag = callSetServerSettings(serverSettings);
-
-			//check that setting is saved
-			assertTrue (flag.isSuccess());
+			assertEquals("NO_LICENSE_FOUND", activeLicence.getStatus());
 
 
 		} catch (Exception e) {
@@ -1832,6 +1885,11 @@ public class ConsoleAppRestServiceTest{
 			});
 
 			rtmpSendingProcess.destroy();
+			
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return null == RestServiceV2Test.callGetBroadcast(streamName);
+			});
 
 
 			//restore mp4 muxing
@@ -1893,6 +1951,10 @@ public class ConsoleAppRestServiceTest{
 			}
 
 			rtmpSendingProcess.destroy();
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return null == RestServiceV2Test.callGetBroadcast(streamName);
+			});
 
 			//restore mp4 muxing
 			appSettings.setMp4MuxingEnabled(mp4MuxingEnabled);
@@ -2827,6 +2889,7 @@ public class ConsoleAppRestServiceTest{
 
 			String content = EntityUtils.toString(response.getEntity());
 
+			log.info("Respose for delete application is {}", content);
 			if (response.getStatusLine().getStatusCode() != 200) {
 				System.out.println(response.getStatusLine()+content);
 			}

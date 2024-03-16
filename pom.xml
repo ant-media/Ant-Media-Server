@@ -2,7 +2,7 @@
     <parent>
         <groupId>io.antmedia</groupId>
         <artifactId>parent</artifactId>
-        <version>2.7.0-SNAPSHOT</version>
+        <version>2.8.3-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>ant-media-server</artifactId>
@@ -69,7 +69,8 @@
         <finalName>${project.artifactId}</finalName>
         <maven.build.timestamp.format>yyyyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
-
+        <!-- keep it blank -->
+		<enterprise.profile></enterprise.profile>
     </properties>
 
     <build>
@@ -190,14 +191,14 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
-                    <argLine>@{argLine} --illegal-access=permit -Xmx750M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/src/main/server/lib/native-linux-x86_64</argLine>
+                    <argLine>@{argLine} -Xmx3000M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/src/main/server/lib/native-linux-x86_64</argLine>
                 	<skipAfterFailureCount>1</skipAfterFailureCount>
                 </configuration>
             </plugin>
              <plugin>
 			    <groupId>org.jacoco</groupId>
 			    <artifactId>jacoco-maven-plugin</artifactId>
-			    <version>0.8.5</version>
+			    <version>${jacoco-maven-plugin.version}</version>
 			    <executions>
 			        <execution>
 			            <goals>
@@ -262,12 +263,6 @@
                 </execution>
               </executions>
             </plugin>
-
-            <!-- >>>>>>> master <plugin> <groupId>com.webcohesion.enunciate</groupId>
-                <artifactId>enunciate-maven-plugin</artifactId> <version>${enunciate.version}</version>
-                <executions> <execution> <goals> <goal>docs</goal> </goals> <configuration>
-                <configFile>enunciate.xml</configFile> <docsDir>${project.build.directory}</docsDir>
-                </configuration> </execution> </executions> </plugin> -->
         </plugins>
          </pluginManagement>
     </build>
@@ -275,13 +270,13 @@
         <dependency>
             <groupId>io.antmedia.ipcamera.onvif</groupId>
             <artifactId>ONVIF</artifactId>
-            <version>1.1.0-SNAPSHOT</version>
+            <version>1.2.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
 		    <groupId>org.mitre.dsmiley.httpproxy</groupId>
 		    <artifactId>smiley-http-proxy-servlet</artifactId>
-		    <version>1.12.1</version>
+		    <version>${smiley-http-proxy-servlet.version}</version>
 		</dependency>
         <dependency>
             <groupId>org.apache.tomcat</groupId>
@@ -306,26 +301,6 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jcl-over-slf4j</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>jul-to-slf4j</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>log4j-over-slf4j</artifactId>
-            <version>${slf4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-access</artifactId>
-            <version>${logback.version}</version>
-        </dependency>
-        <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
             <version>${logback.version}</version>
@@ -347,8 +322,6 @@
             <version>${protobuf-java.version}</version>
             <scope>provided</scope>
         </dependency>
-        <!-- <dependency> <groupId>uk.org.lidalia</groupId> <artifactId>sysout-over-slf4j</artifactId>
-            <version>1.0.2</version> </dependency> -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-core</artifactId>
@@ -383,12 +356,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.seleniumhq.selenium</groupId>
-            <artifactId>selenium-http-jdk-client</artifactId>
-            <version>${selenium-java.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>io.github.bonigarcia</groupId>
             <artifactId>webdrivermanager</artifactId>
             <version>${webdrivermanager.version}</version>
@@ -405,7 +372,7 @@
 			<version>${commons-beanutils.version}</version>
 		</dependency>
 		<dependency>
-			<artifactId>bcprov-jdk15on</artifactId>
+			<artifactId>bcprov-jdk18on</artifactId>
 			<groupId>org.bouncycastle</groupId>
 			<version>${bc.version}</version>
 		</dependency>
@@ -417,7 +384,7 @@
 		<dependency>
             <groupId>io.swagger</groupId>
             <artifactId>swagger-jersey2-jaxrs</artifactId>
-            <version>1.6.11</version>
+            <version>${swagger-jersey2-jaxrs.version}</version>
             <exclusions>
                 <exclusion>
                     <artifactId>jersey-container-servlet-core</artifactId>
@@ -548,7 +515,7 @@
         <dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
-			<version>2.8.9</version>
+			<version>${gson.version}</version>
 		</dependency>
         <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
@@ -580,8 +547,8 @@
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.ext</groupId>
-            <artifactId>jersey-spring5</artifactId>
-            <version>2.35</version>
+            <artifactId>jersey-spring6</artifactId>
+            <version>${jersey.version}</version>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.media</groupId>
@@ -601,23 +568,6 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-module-junit4</artifactId>
-            <version>2.0.9</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.powermock</groupId>
-            <artifactId>powermock-api-mockito2</artifactId>
-            <version>2.0.9</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>javax.websocket</groupId>
-            <artifactId>javax.websocket-api</artifactId>
-            <version>1.1</version>
-        </dependency>
-        <dependency>
             <groupId>org.awaitility</groupId>
             <artifactId>awaitility</artifactId>
             <version>${awaitility.version}</version>
@@ -626,13 +576,11 @@
         <dependency>
             <groupId>org.glassfish.tyrus</groupId>
             <artifactId>tyrus-server</artifactId>
-            <version>2.0.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.glassfish.tyrus</groupId>
             <artifactId>tyrus-container-grizzly-server</artifactId>
-            <version>2.0.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -653,21 +601,29 @@
         <dependency>
   			<groupId>com.auth0</groupId>
   			<artifactId>jwks-rsa</artifactId>
-  			<version>0.20.2</version>
+  			<version>${jwks-rsa.version}</version>
 		</dependency>
 		<dependency>
   			<groupId>com.auth0</groupId>
   			<artifactId>java-jwt</artifactId>
-  			<version>3.18.3</version>
+  			<version>${java-jwt.version}</version>
 		</dependency>		
-
 		<dependency>
 		   <groupId>org.redisson</groupId>
 		   <artifactId>redisson</artifactId>
-		   <version>3.17.4</version>
+		   <version>${redisson.version}</version>
 		   <scope>provided</scope>
 		</dependency>  
-
+		<dependency>
+		  <groupId>com.google.firebase</groupId>
+		  <artifactId>firebase-admin</artifactId>
+		  <version>${firebase.version}</version>
+		</dependency>
+		<dependency>
+		    <groupId>com.eatthepath</groupId>
+		    <artifactId>pushy</artifactId>
+		    <version>${pushy.version}</version>
+		</dependency>
     </dependencies>
     <profiles>
         <profile>
@@ -714,7 +670,6 @@
                                 <configuration>
                                     <outputDirectory>${project.build.directory}/lib</outputDirectory>
                                     <includeScope>compile</includeScope>
-                                    <excludeScope>test</excludeScope>
                                     <excludeGroupIds>org.tensorflow,</excludeGroupIds>
                                     <excludeArtifactIds>cuda,cuda-platform</excludeArtifactIds>
                                     <excludeTransitive>false</excludeTransitive>
@@ -771,6 +726,33 @@
 							    <executable>mkdir</executable>
 									<arguments>
 										<argument>target/webapps</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+							    <id>create-live-app</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/server/create_app.sh</executable>
+									<arguments>
+										<argument>live</argument>
+										<argument>${project.build.directory}</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+							    <id>show-enterprise-feature-message-live-app</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/assembly/show_enterprise_feature_message.sh</executable>
+									<arguments>
+										<argument>${project.build.directory}/webapps/live</argument>
 									</arguments>
 								</configuration>
 							</execution>
@@ -867,7 +849,7 @@
                 </dependency>
                 <dependency>
                     <groupId>io.antmedia.enterprise</groupId>
-                    <artifactId>ant-media-enterprise</artifactId>
+                    <artifactId>ant-media-enterprise${enterprise.profile}</artifactId>
                     <version>${project.parent.version}</version>
                     <type>jar</type>
                 </dependency>
@@ -899,7 +881,6 @@
                                 <configuration>
                                     <outputDirectory>${project.build.directory}/lib</outputDirectory>
                                     <includeScope>compile</includeScope>
-                                    <excludeScope>test</excludeScope>
                                     <excludeTransitive>false</excludeTransitive>
                                 </configuration>
                             </execution>
@@ -944,7 +925,7 @@
                                     <artifactItems>
                                         <artifactItem>
                                             <groupId>io.antmedia.enterprise</groupId>
-                                            <artifactId>ant-media-enterprise</artifactId>
+                                            <artifactId>ant-media-enterprise${enterprise.profile}</artifactId>
                                             <version>${ant-media-server-enterprise.version}</version>
                                             <type>jar</type>
                                             <overWrite>true</overWrite>
@@ -979,6 +960,20 @@
 							    <executable>mkdir</executable>
 									<arguments>
 										<argument>target/webapps</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+							    <id>create-live-app</id>
+								<phase>package</phase>
+								<goals>
+									<goal>exec</goal>
+								</goals>
+								<configuration>
+							    <executable>src/main/server/create_app.sh</executable>
+									<arguments>
+										<argument>live</argument>
+										<argument>${project.build.directory}</argument>
 									</arguments>
 								</configuration>
 							</execution>

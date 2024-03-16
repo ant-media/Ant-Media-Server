@@ -46,8 +46,10 @@ import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
@@ -55,6 +57,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.pushnotification.IPushNotificationService.PushNotificationServiceTypes;
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
@@ -92,6 +95,8 @@ public class DBStoresUnitTest {
 		DataStore dataStore = new MapDBStore("testdb", vertx);
 		
 		
+		testSubscriberMetaData(dataStore);
+		testGetActiveBroadcastCount(dataStore);
 		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -110,8 +115,7 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
-		testUpdateMetadata(dataStore);
-		testGetActiveBroadcastCount(dataStore);
+		testUpdateMetadata(dataStore);	
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
@@ -137,6 +141,8 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		
+		dataStore.close(false);
 		
 
 	}
@@ -174,6 +180,8 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() throws Exception {
 		DataStore dataStore = new InMemoryDataStore("testdb");
 		
+		
+		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -219,11 +227,11 @@ public class DBStoresUnitTest {
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
 
-		
+		dataStore.close(false);
 
 
 	}
-	
+
 
 	@Test
 	public void testMongoStore() throws Exception {
@@ -234,6 +242,7 @@ public class DBStoresUnitTest {
 		
 		dataStore = new MongoStore("localhost", "", "", "testdb");
 
+		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
 		testBugFreeStreamId(dataStore);
@@ -280,7 +289,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		
-
+		dataStore.close(true);
 	}
 	
 	@Test
@@ -291,6 +300,7 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
 		
+		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -336,6 +346,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		
+		dataStore.close(true);
 	}
 	
 	@Test
@@ -449,11 +460,8 @@ public class DBStoresUnitTest {
 		assertEquals(0, dataStore.getBroadcastCount());
 
 
-		long streamCount = (int)(Math.random()  * 500);
+		long streamCount = 10 + (int)(Math.random()  * 500);
 
-		if (streamCount < 10) {
-			streamCount = 10;
-		}
 
 		System.out.println("Stream count to be added: " + streamCount);
 
@@ -467,7 +475,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, dataStore.getActiveBroadcastCount());
 
 		//change random number of streams status to broadcasting
-		long numberOfStatusChangeStreams = (int)(Math.random() * 500);
+		long numberOfStatusChangeStreams = 10 + (int)(Math.random() * 500);
 		if (streamCount < numberOfStatusChangeStreams) {
 			numberOfStatusChangeStreams = streamCount;
 		}
@@ -489,11 +497,17 @@ public class DBStoresUnitTest {
 
 		}
 
+		assertTrue(numberOfCall > 0);
 		assertEquals(numberOfCall, numberOfStatusChangeStreams);
 		//check that active broadcast exactly the same as changed above
 		
 		//////this test is sometimes failing below, I think streamId may not be unique so I logged above to confirm it - mekya
 		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
+		
+		assertEquals(numberOfStatusChangeStreams, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+		
+		List<Broadcast> localLiveBroadcasts = dataStore.getLocalLiveBroadcasts(ServerSettings.getLocalHostAddress());
+		assertEquals(numberOfStatusChangeStreams, localLiveBroadcasts.size());
 
 		//change all streams to finished
 		streamCount = dataStore.getBroadcastCount();
@@ -511,6 +525,12 @@ public class DBStoresUnitTest {
 
 		//check that no active broadcast
 		assertEquals(0, dataStore.getActiveBroadcastCount());
+		assertEquals(0, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+		localLiveBroadcasts = dataStore.getLocalLiveBroadcasts(ServerSettings.getLocalHostAddress());
+		assertEquals(0, localLiveBroadcasts.size());
+
+
+		
 	}
 	
 	
@@ -551,6 +571,11 @@ public class DBStoresUnitTest {
 		assertNotNull(streamsList);
 
 		assertEquals(2, streamsList.size());
+		
+		streamsList = datastore.getExternalStreamsList();
+		assertNotNull(streamsList);
+
+		assertEquals(0, streamsList.size());
 
 		//check that there are two streams and values are same as added above
 
@@ -1524,6 +1549,7 @@ public class DBStoresUnitTest {
 			tmp.setPlaylistLoopEnabled(false);
 			double speed = 1.0;
 			tmp.setSpeed(speed);
+			tmp.setSeekTimeInMs(136);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -3094,5 +3120,58 @@ public class DBStoresUnitTest {
 		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 50000);
 
 
+	}
+	
+	private void testSubscriberMetaData(DataStore dataStore) {
+		//save subscriberMetadata to the data store
+		
+		String subscriberId = RandomStringUtils.randomAlphanumeric(12);
+		
+		SubscriberMetadata subscriberMetaData = dataStore.getSubscriberMetaData(subscriberId);
+		assertNull(subscriberMetaData);
+		
+		SubscriberMetadata metadata = new SubscriberMetadata();
+		Map<String, PushNotificationToken> pushNotificationTokens = new HashMap<>();
+		String tokenValue = RandomStringUtils.randomAlphabetic(65);
+		
+		PushNotificationToken token = new PushNotificationToken(tokenValue, PushNotificationServiceTypes.FIREBASE_CLOUD_MESSAGING.toString());
+		pushNotificationTokens.put(tokenValue, token);
+		
+		metadata.setPushNotificationTokens(pushNotificationTokens);
+		dataStore.putSubscriberMetaData(subscriberId, metadata);
+		
+		//get the value with the id 
+		subscriberMetaData = dataStore.getSubscriberMetaData(subscriberId);
+		assertNotNull(subscriberMetaData);
+		assertEquals(subscriberId, subscriberMetaData.getSubscriberId());
+		assertEquals(1, subscriberMetaData.getPushNotificationTokens().size());
+		assertEquals(tokenValue, subscriberMetaData.getPushNotificationTokens().get(tokenValue).getToken());
+		assertEquals("fcm", subscriberMetaData.getPushNotificationTokens().get(tokenValue).getServiceName());
+		assertNull(subscriberMetaData.getPushNotificationTokens().get(tokenValue).getExtraData());
+
+		
+		String tokenValue2 = RandomStringUtils.randomAlphabetic(65);
+		
+		PushNotificationToken token2 = new PushNotificationToken(tokenValue2, PushNotificationServiceTypes.APPLE_PUSH_NOTIFICATION.toString());
+		String extraData = RandomStringUtils.randomAlphanumeric(12);
+		token2.setExtraData(extraData);
+		subscriberMetaData.getPushNotificationTokens().put(tokenValue2, token2);
+		
+		
+		dataStore.putSubscriberMetaData(subscriberId, subscriberMetaData);
+		
+		subscriberMetaData = dataStore.getSubscriberMetaData(subscriberId);
+		
+		assertNotNull(subscriberMetaData);
+		assertEquals(subscriberId, subscriberMetaData.getSubscriberId());
+		assertEquals(2, subscriberMetaData.getPushNotificationTokens().size());
+		assertEquals(tokenValue, subscriberMetaData.getPushNotificationTokens().get(tokenValue).getToken());
+		assertEquals("fcm", subscriberMetaData.getPushNotificationTokens().get(tokenValue).getServiceName());
+		assertNull(subscriberMetaData.getPushNotificationTokens().get(tokenValue).getExtraData());
+		
+		assertEquals(tokenValue2, subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getToken());
+		assertEquals("apn", subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getServiceName());
+		assertEquals(extraData, subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getExtraData());
+		
 	}
 }

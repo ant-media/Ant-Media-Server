@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 
+import org.apache.commons.lang3.StringUtils;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
@@ -21,7 +22,6 @@ import org.bytedeco.javacpp.BytePointer;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.testcontainers.shaded.org.apache.commons.lang3.StringUtils;
 
 import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
@@ -46,7 +46,7 @@ public class HLSMuxer extends Muxer  {
 	private String hlsEncryptionKeyInfoFile = null;
 
 	protected StorageClient storageClient = null;
-	private String subFolder = null;
+	private String subFolder = null; 
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
 	private String segmentFilename;
@@ -122,16 +122,21 @@ public class HLSMuxer extends Muxer  {
 				options.put("hls_key_info_file", hlsEncryptionKeyInfoFile);
 			}
 
-			logger.info("hls time: {}, hls list size: {} for stream:{}", hlsTime, hlsListSize, streamId);
+			logger.info("hls time:{}, hls list size:{} hls playlist type:{} for stream:{}", hlsTime, hlsListSize, this.hlsPlayListType, streamId);
 
 			if (StringUtils.isNotBlank(httpEndpoint)) 			
 			{
-				segmentFilename = httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + initialResourceNameWithoutExtension;
+				segmentFilename = httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + File.separator + initialResourceNameWithoutExtension;
 			}
 			else {
 				segmentFilename = file.getParentFile() + File.separator + initialResourceNameWithoutExtension;
 			}
+			
+			//remove double slashes with single slash because it may cause problems
+			segmentFilename = replaceDoubleSlashesWithSingleSlash(segmentFilename);
 			segmentFilename += SEGMENT_SUFFIX_TS;
+			
+			
 					
 			options.put("hls_segment_filename", segmentFilename);
 
@@ -153,7 +158,7 @@ public class HLSMuxer extends Muxer  {
 	{
 		if (StringUtils.isNotBlank(httpEndpoint))
 		{
-			return httpEndpoint + File.separator + initialResourceNameWithoutExtension  + extension;
+			return replaceDoubleSlashesWithSingleSlash(httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + File.separator + initialResourceNameWithoutExtension  + extension);
 		}
 		return super.getOutputURL();
 	}
@@ -204,33 +209,17 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	public synchronized void addID3Data(String data) {
-		int id3TagSize = data.length() + 3; // TXXX frame size (excluding 10 byte header)
-		int tagSize = id3TagSize + 10;
-
-		ByteBuffer byteBuffer = ByteBuffer.allocate(tagSize+10);
-
-		byteBuffer.put("ID3".getBytes());
-		byteBuffer.put(new byte[]{0x03, 0x00}); // version
-		byteBuffer.put((byte) 0x00); // flags
-		byteBuffer.putInt(tagSize); // size
-
-		// TXXX frame
-		byteBuffer.put("TXXX".getBytes());
-		byteBuffer.putInt(id3TagSize); // size
-		byteBuffer.put(new byte[]{0x00, 0x00}); // flags
-		byteBuffer.put((byte) 0x03); // encoding
-		byteBuffer.put((byte) 0x00); // description 00
+		ByteBuffer byteBuffer = ByteBuffer.allocate(data.length());
 		byteBuffer.put(data.getBytes()); // description
-		byteBuffer.put((byte) 0x00); // end of string
 
 		byteBuffer.rewind();
-
 		writeID3Packet(byteBuffer);
 	}
 
 	public synchronized void writeID3Packet(ByteBuffer data)
 	{
-		long pts = System.currentTimeMillis() - startTime;
+		//use the last send video pts as the pts of data
+		long pts = getLastPts();
 		id3DataPkt.pts(pts);
 		id3DataPkt.dts(pts);
 		id3DataPkt.stream_index(id3StreamIndex);
@@ -238,7 +227,7 @@ public class HLSMuxer extends Muxer  {
 		id3DataPkt.data(new BytePointer(data));
 		id3DataPkt.size(data.limit());
 		id3DataPkt.position(0);
-		writePacket(id3DataPkt, (AVCodecContext)null);
+		writeDataFrame(id3DataPkt, getOutputFormatContext());
 	}
 
 	@Override
@@ -263,22 +252,18 @@ public class HLSMuxer extends Muxer  {
 	public synchronized void writeTrailer() {
 		super.writeTrailer();
 		
-		if (!StringUtils.isNotBlank(this.httpEndpoint)) 
+		if (StringUtils.isBlank(this.httpEndpoint)) 
 		{
 			logger.info("Delete File onexit:{} upload to S3:{} stream:{} hls time:{} hlslist size:{}",
 					deleteFileOnExit, uploadHLSToS3, streamId, hlsTime, hlsListSize);
-			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000, l -> {
+			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000l, l -> {
 				final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
 	
 				//SEGMENT_SUFFIX_TS is %09d.ts
 				//convert segmentFileName to regular expression
 				String segmentFileWithoutSuffixTS = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, segmentFilename.indexOf(SEGMENT_SUFFIX_TS));
 				String regularExpression = segmentFileWithoutSuffixTS + "[0-9]*\\.ts$";
-				File[] files = file.getParentFile().listFiles((dir, name) -> 
-				
-					//matches m3u8 file or ts segment file
-					name.equals(file.getName()) || name.matches(regularExpression)
-				);
+				File[] files = getHLSFilesInDirectory(regularExpression);
 	
 				if (files != null)
 				{
@@ -291,7 +276,8 @@ public class HLSMuxer extends Muxer  {
 							}
 							if(uploadHLSToS3 && storageClient.isEnabled()) 
 							{
-								storageClient.save(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" ) + files[i].getName(), files[i], deleteFileOnExit);
+								String path = replaceDoubleSlashesWithSingleSlash(s3StreamsFolderPath + File.separator + (subFolder != null ? subFolder : "" ) + File.separator + files[i].getName());
+								storageClient.save(path , files[i], deleteFileOnExit);
 							}
 							else if (deleteFileOnExit) 
 							{
@@ -310,6 +296,14 @@ public class HLSMuxer extends Muxer  {
 		}
 
 
+	}
+
+	public File[] getHLSFilesInDirectory(String regularExpression) {
+		return file.getParentFile().listFiles((dir, name) -> 
+		
+			//matches m3u8 file or ts segment file
+			name.equals(file.getName()) || name.matches(regularExpression)
+		);
 	}
 
 
@@ -388,5 +382,15 @@ public class HLSMuxer extends Muxer  {
 
 	public void setId3Enabled(boolean id3Enabled) {
 		this.id3Enabled = id3Enabled;
+	}
+	
+	@Override
+	protected synchronized void clearResource() {
+		super.clearResource();
+		if (id3DataPkt != null) {
+			av_packet_free(id3DataPkt);
+			id3DataPkt = null;
+		}
+
 	}
 }

@@ -5,6 +5,12 @@ import io.antmedia.settings.ServerSettings;
 
 public interface ILicenceService {
 	
+	public static final String LICENCE_TYPE_COMMUNITY = "community";
+	public static final String LICENCE_TYPE_STANDARD = "standard";
+	public static final String LICENCE_TYPE_OFFLINE = "offline";
+	public static final String LICENCE_TYPE_MARKETPLACE = "marketplace";
+
+	
 	public enum BeanName {
 		
 		LICENCE_SERVICE("ant.media.licence.service");
@@ -57,6 +63,13 @@ public interface ILicenceService {
 	 *         false if license can be used
 	 */
 	public boolean isLicenceSuspended();
+	
+	
+	/**
+	 * 
+	 * @return LICENCE_TYPE_COMMUNITY, LICENCE_TYPE_STANDARD, LICENCE_TYPE_OFFLINE, LICENCE_TYPE_MARKETPLACE
+	 */
+	public String getLicenseType();
 	
 
 }

@@ -25,9 +25,19 @@ public class ConsoleDataStoreFactory implements ApplicationContextAware {
 	@Value( "${"+io.antmedia.datastore.db.DataStoreFactory.SETTINGS_DB_HOST+":#{null}}" )
 	private String dbHost;
 	
+	/**
+	 * @deprecated
+	 * Use dbHost with full connection url including username and password
+	 */
+	@Deprecated(since = "2.7.0", forRemoval = true)
 	@Value( "${"+io.antmedia.datastore.db.DataStoreFactory.SETTINGS_DB_USER+":#{null}}" )
 	private String dbUser;
 	
+	/**
+	 * @deprecated
+	 * Use dbHost with full connection url including username and password
+	 */
+	@Deprecated(since = "2.7.0", forRemoval = true)
 	@Value( "${"+io.antmedia.datastore.db.DataStoreFactory.SETTINGS_DB_PASS+":#{null}}" )
 	private String dbPassword;
 

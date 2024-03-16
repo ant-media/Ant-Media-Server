@@ -14,6 +14,7 @@ import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.javacpp.BytePointer;
 
+import io.antmedia.muxer.Muxer.VideoBuffer;
 import io.antmedia.plugin.api.IPacketListener;
 
 public class PacketFeeder{
@@ -76,21 +77,44 @@ public class PacketFeeder{
 		}
 	}
 
+	/**
+	 * 
+	 * @param encodedVideoFrame
+	 * @param dts
+	 * @param frameRotation
+	 * @param streamIndex
+	 * @param isKeyFrame
+	 * @param firstFrameTimeStamp
+	 * @param pts
+	 * @param frameOriginalTimeMs may be different than pts and dts because pts and dts may be normalized value according to audio to protect audio-synch issues
+	 *  in WebRTC Ingesting. 
+	 * On the other hand, we may need original value in WebRTC this is why we add this parameter
+	 */
 	public void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,
 			boolean isKeyFrame,long firstFrameTimeStamp, long pts) {
+		VideoBuffer videoBuffer = new VideoBuffer();
+		videoBuffer.setEncodedVideoFrame(encodedVideoFrame);
+		videoBuffer.setTimeStamps(dts, pts, firstFrameTimeStamp, pts);
+		videoBuffer.setFrameRotation(frameRotation);
+		videoBuffer.setStreamIndex(streamIndex);
+		videoBuffer.setKeyFrame(isKeyFrame);
+		writeVideoBuffer(videoBuffer);
+	}
+	
+	public void writeVideoBuffer(VideoBuffer videoBuffer) {
 		if(!listeners.isEmpty()) {
-			videoPkt.stream_index(streamIndex);
-			videoPkt.pts(pts);
-			videoPkt.dts(dts);
+			videoPkt.stream_index(videoBuffer.getStreamIndex());
+			videoPkt.pts(videoBuffer.getPts());
+			videoPkt.dts(videoBuffer.getDts());
 
-			encodedVideoFrame.rewind();
-			if (isKeyFrame) {
+			videoBuffer.getEncodedVideoFrame().rewind();
+			if (videoBuffer.isKeyFrame()) {
 				videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 			}
 
-			BytePointer bytePointer = new BytePointer(encodedVideoFrame);
+			BytePointer bytePointer = new BytePointer(videoBuffer.getEncodedVideoFrame());
 			videoPkt.data(bytePointer);
-			videoPkt.size(encodedVideoFrame.limit());
+			videoPkt.size(videoBuffer.getEncodedVideoFrame().limit());
 			videoPkt.position(0);
 
 

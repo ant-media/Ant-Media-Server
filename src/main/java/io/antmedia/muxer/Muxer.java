@@ -36,8 +36,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import io.antmedia.FFmpegUtilities;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
@@ -67,7 +71,6 @@ import org.springframework.core.io.Resource;
 
 import io.antmedia.AppSettings;
 import io.vertx.core.Vertx;
-import net.sf.ehcache.util.concurrent.ConcurrentHashMap;
 
 /**
  * PLEASE READ HERE BEFORE YOU IMPLEMENT A MUXER THAT INHERITS THIS CLASS
@@ -172,6 +175,83 @@ public abstract class Muxer {
 	}
 
 	/**
+	 * This class is used generally to send direct video buffer to muxer
+	 * @author mekya
+	 *
+	 */
+	public static class VideoBuffer {
+		
+		
+		private ByteBuffer encodedVideoFrame;
+		/**
+		 * DTS and PTS may be normalized values according to the audio
+		 * This is why there is {@link #originalFrameTimeMs} exists
+		 */
+		private long dts;
+		private long pts; 
+		
+		private long firstFrameTimeStamp;
+		
+		private long originalFrameTimeMs;
+		private int frameRotation;
+		private int streamIndex;
+		private boolean keyFrame;
+		
+	
+		public void setEncodedVideoFrame(ByteBuffer encodedVideoFrame) {
+			this.encodedVideoFrame = encodedVideoFrame;
+		}
+		
+		public void setTimeStamps(long dts, long pts, long firstFrameTimeStamp, long originalFrameTimeMs) {
+			this.dts = dts;
+			this.pts = pts;
+			this.firstFrameTimeStamp = firstFrameTimeStamp;
+			this.originalFrameTimeMs = originalFrameTimeMs;
+		}
+		
+		public void setFrameRotation(int frameRotation) {
+			this.frameRotation = frameRotation;
+		}
+		
+		public void setStreamIndex(int streamIndex) {
+			this.streamIndex = streamIndex;
+		}
+		
+		public void setKeyFrame(boolean isKeyFrame) {
+			this.keyFrame = isKeyFrame;
+		}
+		
+		public ByteBuffer getEncodedVideoFrame() {
+			return encodedVideoFrame;
+		}
+		
+		public long getDts() {
+			return dts;
+		}
+		public long getPts() {
+			return pts;
+		}
+		public long getFirstFrameTimeStamp() {
+			return firstFrameTimeStamp;
+		}
+		
+		public int getFrameRotation() {
+			return frameRotation;
+		}
+		public int getStreamIndex() {
+			return streamIndex;
+		}
+		
+		public boolean isKeyFrame() {
+			return keyFrame;
+		}
+		
+		public long getOriginalFrameTimeMs() {
+			return originalFrameTimeMs;
+		}
+		
+	}
+	/**
 	 * By default first video key frame are not checked, so it's true.
 	 *
 	 * If the first video key frame should be checked, make this setting to false. It's being used in RecordMuxer and HLSMuxer
@@ -179,6 +259,9 @@ public abstract class Muxer {
 	protected boolean firstKeyFrameReceived = true;
 	private long lastPts;
 
+	protected AVDictionary optionDictionary = new AVDictionary(null);
+
+	private long firstPacketDtsMs = -1;
 
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
@@ -252,16 +335,18 @@ public abstract class Muxer {
 
 
 	public boolean openIO() {
-		
-		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0) 
+	
+
+		if ((getOutputFormatContext().oformat().flags() & AVFMT_NOFILE) == 0)
 		{
-			//if it's different from zero, it means no file is need to be open. 
-			//If it's zero, Not "no file" and it means that file is need to be open .			
+			//if it's different from zero, it means no file is need to be open.
+			//If it's zero, Not "no file" and it means that file is need to be open .
+			String url =  getOutputURL();
 			AVIOContext pb = new AVIOContext(null);
 
-			int ret = avformat.avio_open(pb,  getOutputURL(), AVIO_FLAG_WRITE);
+			int ret = avformat.avio_open2(pb, url , AVIO_FLAG_WRITE, null, getOptionDictionary());
 			if (ret < 0) {
-				logger.warn("Could not open output url: {} ",  getOutputURL());
+				logger.warn("Could not open output url: {} ",  url);
 				return false;
 			}
 			getOutputFormatContext().pb(pb);
@@ -395,6 +480,7 @@ public abstract class Muxer {
 			avformat_free_context(outputFormatContext);
 			outputFormatContext = null;
 		}
+		av_dict_free(optionDictionary);
 	}
 
 	/**
@@ -771,8 +857,10 @@ public abstract class Muxer {
 			result = true;
 
 		}
-		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) {
-			if(codecParameters.codec_id() == AV_CODEC_ID_TIMED_ID3) {
+		else if (codecParameters.codec_type() == AVMEDIA_TYPE_DATA) 
+		{
+			if(codecParameters.codec_id() == AV_CODEC_ID_TIMED_ID3) 
+			{
 				AVStream outStream = avNewStream(outputContext);
 				registeredStreamIndexList.add(streamIndex);
 
@@ -817,8 +905,18 @@ public abstract class Muxer {
 		return videoBsfFilterContext;
 	}
 
-
 	public synchronized void writeVideoBuffer(ByteBuffer encodedVideoFrame, long dts, int frameRotation, int streamIndex,boolean isKeyFrame,long firstFrameTimeStamp, long pts) {
+		VideoBuffer videoBuffer = new VideoBuffer();
+		videoBuffer.setEncodedVideoFrame(encodedVideoFrame);
+		videoBuffer.setTimeStamps(dts, pts, firstFrameTimeStamp, pts);
+		videoBuffer.setFrameRotation(frameRotation);
+		videoBuffer.setStreamIndex(streamIndex);
+		videoBuffer.setKeyFrame(isKeyFrame);
+		writeVideoBuffer(videoBuffer);
+	}
+	
+
+	public synchronized void writeVideoBuffer(VideoBuffer buffer) {
 		/*
 		 * this control is necessary to prevent server from a native crash
 		 * in case of initiation and preparation takes long.
@@ -834,17 +932,17 @@ public abstract class Muxer {
 		 * Rotation field is used add metadata to the mp4.
 		 * this method is called in directly creating mp4 from coming encoded WebRTC H264 stream
 		 */
-		this.rotation = frameRotation;
-		videoPkt.stream_index(streamIndex);
-		videoPkt.pts(pts);
-		videoPkt.dts(dts);
-		if(isKeyFrame) {
+		this.rotation = buffer.getFrameRotation();
+		videoPkt.stream_index(buffer.getStreamIndex());
+		videoPkt.pts(buffer.getPts());
+		videoPkt.dts(buffer.getDts());
+		if(buffer.isKeyFrame()) {
 			videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
 		}
 
-		encodedVideoFrame.rewind();
-		videoPkt.data(new BytePointer(encodedVideoFrame));
-		videoPkt.size(encodedVideoFrame.limit());
+		buffer.getEncodedVideoFrame().rewind();
+		videoPkt.data(new BytePointer(buffer.getEncodedVideoFrame()));
+		videoPkt.size(buffer.getEncodedVideoFrame().limit());
 		videoPkt.position(0);
 		writePacket(videoPkt, (AVCodecContext)null);
 
@@ -880,6 +978,12 @@ public abstract class Muxer {
 		this.isRunning = isRunning;
 	}
 
+	public void setOption(String optionName,String value){
+		av_dict_set(optionDictionary, optionName, value, 0);
+	}
+	public AVDictionary getOptionDictionary(){
+		return optionDictionary;
+	}
 	public abstract boolean isCodecSupported(int codecId);
 
 	public abstract AVFormatContext getOutputFormatContext();
@@ -894,8 +998,16 @@ public abstract class Muxer {
 	public boolean checkToDropPacket(AVPacket pkt, int codecType) {
 		if (!firstKeyFrameReceived && codecType == AVMEDIA_TYPE_VIDEO) 
 		{
-			if(firstVideoDts == -1) {
+			if(firstPacketDtsMs == -1) {
 				firstVideoDts = pkt.dts();
+				firstPacketDtsMs  = av_rescale_q(pkt.dts(), inputTimeBaseMap.get(pkt.stream_index()), MuxAdaptor.TIME_BASE_FOR_MS);
+			}
+			else 
+			if (firstVideoDts == -1) {
+				firstVideoDts = av_rescale_q(firstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimeBaseMap.get(pkt.stream_index()));
+				if ((pkt.dts() - firstVideoDts) < 0) {
+					firstVideoDts = pkt.dts();
+				}
 			}
 
 			int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
@@ -952,9 +1064,23 @@ public abstract class Muxer {
 
 		if (codecType == AVMEDIA_TYPE_AUDIO)
 		{
-			if(firstAudioDts == -1) {
+			//removing firstAudioDTS is required when recording/muxing has started on the fly
+			if(firstPacketDtsMs == -1) {
 				firstAudioDts = pkt.dts();
+				firstPacketDtsMs  = av_rescale_q(pkt.dts(), inputTimeBaseMap.get(pkt.stream_index()), MuxAdaptor.TIME_BASE_FOR_MS);
+				logger.debug("The first incoming packet is audio and its packet dts:{}ms streamId:{} ", firstPacketDtsMs, streamId);
 			}
+			else 
+			if (firstAudioDts == -1) {
+				firstAudioDts = av_rescale_q(firstPacketDtsMs, MuxAdaptor.TIME_BASE_FOR_MS, inputTimeBaseMap.get(pkt.stream_index()));
+				logger.debug("First packetDtsMs:{}ms is already received calculated the firstAudioDts:{} and incoming packet dts:{} streamId:{}", 
+								firstPacketDtsMs, firstAudioDts, pkt.dts(), streamId);
+				
+				if ((pkt.dts() - firstAudioDts) < 0) {
+					firstAudioDts = pkt.dts();
+				}
+			}
+			
 			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstAudioDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstAudioDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
@@ -970,6 +1096,7 @@ public abstract class Muxer {
 		}
 		else if (codecType == AVMEDIA_TYPE_VIDEO)
 		{
+			//removing firstVideoDts is required when recording/muxing has started on the fly
 			pkt.pts(av_rescale_q_rnd(pkt.pts() - firstVideoDts , inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 			pkt.dts(av_rescale_q_rnd(pkt.dts() - firstVideoDts, inputTimebase, outputTimebase, AV_ROUND_NEAR_INF|AV_ROUND_PASS_MINMAX));
 
@@ -1046,6 +1173,7 @@ public abstract class Muxer {
 	protected void writeVideoFrame(AVPacket pkt, AVFormatContext context) {
 		int ret;
 		
+		
 		if (videoBsfFilterContext != null) 
 		{
 			ret = av_bsf_send_packet(videoBsfFilterContext, pkt);
@@ -1055,6 +1183,7 @@ public abstract class Muxer {
 			}
 			while (av_bsf_receive_packet(videoBsfFilterContext, pkt) == 0)
 			{
+				logger.trace("write video packet pts:{} dts:{}", pkt.pts(), pkt.dts());
 				ret = av_write_frame(context, tmpPacket);
 				if (ret < 0 && logger.isWarnEnabled()) {
 					logger.warn("cannot write video frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), getErrorDefinition(ret));
@@ -1063,6 +1192,7 @@ public abstract class Muxer {
 		}
 		else 
 		{
+			logger.trace("write video packet pts:{} dts:{}", pkt.pts(), pkt.dts());
 			ret = av_write_frame(context, pkt);
 			if (ret < 0 && logger.isWarnEnabled()) {
 				//TODO: this is written for some muxers like HLS because normalized video time is coming from WebRTC
@@ -1075,28 +1205,34 @@ public abstract class Muxer {
 	protected void writeAudioFrame(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase,
 			AVFormatContext context, long dts) {
 		int ret;
+		logger.trace("write audio packet pts:{} dts:{}", pkt.pts(), pkt.dts());
 		ret = av_write_frame(context, tmpPacket);
 		if (ret < 0 && logger.isInfoEnabled()) {
 			logger.info("cannot write audio frame to muxer({}). Error is {} ", file.getName(), getErrorDefinition(ret));
 		}
 	}
-
+	
 	public static long getDurationInMs(File f, String streamId) {
+		return getDurationInMs(f.getAbsolutePath(), streamId);
+	}
+	
+
+	public static long getDurationInMs(String url, String streamId) {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		int ret;
 		if (streamId != null) {
 			streamId = streamId.replaceAll("[\n\r\t]", "_");
 		}
-		if (avformat_open_input(inputFormatContext, f.getAbsolutePath(), null, (AVDictionary)null) < 0) 
+		if (avformat_open_input(inputFormatContext, url, null, (AVDictionary)null) < 0) 
 		{
-			loggerStatic.info("cannot open input context for duration for stream: {} for file:{}", streamId, f.getName());
+			loggerStatic.info("cannot open input context for duration for stream: {} for file:{}", streamId, url);
 			avformat_close_input(inputFormatContext);
 			return -1L;
 		}
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary)null);
 		if (ret < 0) {
-			loggerStatic.info("Could not find stream information for stream: {} for file:{}", streamId, f.getName());
+			loggerStatic.info("Could not find stream information for stream: {} for file:{}", streamId, url);
 			avformat_close_input(inputFormatContext);
 			return -1L;
 		}
@@ -1112,7 +1248,7 @@ public abstract class Muxer {
 	public static String getErrorDefinition(int errorCode) {
 		byte[] data = new byte[128];
 		av_strerror(errorCode, data, data.length);
-		return new String(data, 0, data.length);
+		return FFmpegUtilities.byteArrayToString(data);
 	}
 
 	/**
@@ -1182,5 +1318,13 @@ public abstract class Muxer {
 
 	public int getResolution() {
 		return resolution;
+	}
+
+	public long getLastPts() {
+		return lastPts;
+	}
+	
+	public static String replaceDoubleSlashesWithSingleSlash(String url) {
+		return url.replaceAll("(?<!:)//", "/");
 	}
 }

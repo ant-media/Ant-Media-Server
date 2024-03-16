@@ -16,8 +16,6 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Queue;
 
@@ -142,38 +140,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 			fail(e.getMessage());
 		}
 		
-	}
-	
-	/*
-	@Test
-	public void testXMLApplication() {
-		
-		XmlWebApplicationContext applicationContext = new XmlWebApplicationContext();
-		    applicationContext.setConfigLocations(
-		            "red5-web.xml");
-		    applicationContext.setServletContext(new MockServletContext(new ResourceLoader() {
-				
-				@Override
-				public Resource getResource(String location) {
-					return new FileSystemResource("src/test/resources/WEB-INF/xml/" + location);
-				}
-				
-				@Override
-				public ClassLoader getClassLoader() {
-					return getClassLoader();
-				}
-			}));
-		    applicationContext.refresh();
-		    
-		    
-		    assertNotNull(applicationContext);
-		    
-		   
-		
-		 
-	}
-	*/
-	
+	}	
 	
 	@Test
 	public void testEncodeSettings() {
@@ -316,6 +283,36 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appSettings.setTimeTokenSecretForPublish("secretpublish");
 		assertEquals("secretpublish", appSettings.getTimeTokenSecretForPublish());
+
+		
+		assertEquals(true, appSettings.isHwScalingEnabled());
+		appSettings.setHwScalingEnabled(false);
+		assertEquals(false, appSettings.isHwScalingEnabled());
+
+		String apnKeyId = "apnkeyid";
+		appSettings.setApnKeyId(apnKeyId);
+		assertEquals(apnKeyId, appSettings.getApnKeyId());
+		
+		String teamId = "apnTeamId";
+		appSettings.setApnTeamId(teamId);
+		assertEquals(teamId, appSettings.getApnTeamId());
+		
+		String apnServer = "apnServer";
+		appSettings.setApnsServer(apnServer);
+		assertEquals(apnServer, appSettings.getApnsServer());
+		
+		String privateKey = "privateKey";
+		appSettings.setApnPrivateKey(privateKey);
+		assertEquals(privateKey, appSettings.getApnPrivateKey());
+
+		int webHookRetryCount = 2;
+		appSettings.setWebhookRetryCount(webHookRetryCount);
+		assertEquals(webHookRetryCount, appSettings.getWebhookRetryCount());
+
+		long webHookRetryDelay = 2000;
+		appSettings.setWebhookRetryDelay(webHookRetryDelay);
+		assertEquals(webHookRetryDelay, appSettings.getWebhookRetryDelay());
+
 	}
 	
 	
@@ -328,6 +325,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testBeanAppSettings() {
 		testUnsetAppSettings((AppSettings) applicationContext.getBean("app.settings"));
 	}
+	
+	
 	
 	
 	public void testUnsetAppSettings(AppSettings appSettings) {
@@ -397,7 +396,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(1500, appSettings.getMaxAnalyzeDurationMS());
 		assertEquals(false, appSettings.isGeneratePreview());
 		assertEquals(true, appSettings.isDisableIPv6Candidates());
-		assertEquals("tcp", appSettings.getRtspPullTransportType());
+		assertEquals("3", appSettings.getRtspPullTransportType());
 		assertEquals(5000, appSettings.getRtspTimeoutDurationMs());
 		assertEquals(0, appSettings.getMaxResolutionAccept());
 		assertEquals(true, appSettings.isH264Enabled());
@@ -526,12 +525,26 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true, appSettings.isSendAudioLevelToViewers());
 		assertNull(appSettings.getTimeTokenSecretForPublish());
 		assertNull(appSettings.getTimeTokenSecretForPlay());
-		
+
+		assertEquals(true, appSettings.isHwScalingEnabled());
+
+		assertNotNull(appSettings.getSubscriberAuthenticationKey());
+		assertNull(appSettings.getFirebaseAccountKeyJSON());
+		assertNull(appSettings.getApnKeyId());
+		assertNull(appSettings.getApnTeamId());
+		assertNull(appSettings.getApnPrivateKey());
+		assertEquals("api.sandbox.push.apple.com", appSettings.getApnsServer());
+
+		assertEquals(0, appSettings.getWebhookRetryCount());
+		assertEquals(1000, appSettings.getWebhookRetryDelay());
+
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
+
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					168, numberOfFields);
+					177, numberOfFields);
+
 		
 	}
 	
