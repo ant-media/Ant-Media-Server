@@ -55,9 +55,9 @@ change_server_mode() {
     DB_URL=$2
     if [ -z "$DB_URL" ]; then #backward compatible if no DB_URL it's mapdb
       DB_TYPE=mapdb
-      DB_URL=localhost
+      DB_URL=""
       echo "DB type is mapdb"
-    elif [[ $DB_URL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ || $DB_URL =~ ^localhost$ ||  $DB_URL =~ ^mongo.*$ ]]; then
+    elif [[ $DB_HOST =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(:[0-9]{1,5})?$ || $DB_HOST =~ ^localhost(:[0-9]{1,5})?$ ||  $DB_HOST =~ ^mongo.*$ ]]; then
       # it should be ^mongo.*$ not ^mongodb.*$ becaue kubernetes deployment give -h mongo parameter
       DB_TYPE=mongodb
       echo "DB type is mongodb"
