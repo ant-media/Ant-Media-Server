@@ -779,7 +779,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Broadcast broadcast2 = new Broadcast(null, "name2");
 		Broadcast broadcast3 = new Broadcast(null, "name3");
 		Broadcast broadcast4 = new Broadcast(null, "name4");
-		DataStore store = new RedisStore("redis://localhost:6379", "testdb" + RandomStringUtils.randomNumeric(5));
+		DataStore store = new RedisStore("redis://127.0.0.1:6379", "testdb" + RandomStringUtils.randomNumeric(5));
 		restServiceReal.setDataStore(store);
 
 		Scope scope = mock(Scope.class);
@@ -2944,7 +2944,7 @@ public class BroadcastRestServiceV2UnitTest {
 	@Test
 	public void testGetStreamInfo() {
 		BroadcastRestService broadcastRestService = Mockito.spy(new BroadcastRestService());
-		DataStore datastore = new RedisStore("redis://localhost:6379", "test" + RandomStringUtils.randomNumeric(5));
+		DataStore datastore = new RedisStore("redis://127.0.0.1:6379", "test" + RandomStringUtils.randomNumeric(5));
 
 		broadcastRestService.setDataStore(datastore);
 		StreamInfo streamInfo = new StreamInfo(true, 720, 1080, 300, true, 64, 1000, 1000, VideoCodec.H264);
