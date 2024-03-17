@@ -273,8 +273,24 @@ public abstract class RestServiceBase {
 			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
 		}
 
+		updatePlayListItemDurationsIfApplicable(broadcast);
+
 		dataStore.save(broadcast);
 		return broadcast;
+	}
+
+	public static void updatePlayListItemDurationsIfApplicable(Broadcast broadcast) 
+	{
+		List<PlayListItem> playListItemList = broadcast.getPlayListItemList();
+		if (playListItemList != null) 
+		{
+			for (PlayListItem playListItem : playListItemList) 
+			{
+				if (AntMediaApplicationAdapter.VOD.equals(playListItem.getType())) {
+					playListItem.setDurationInMs(Muxer.getDurationInMs(playListItem.getStreamUrl(), broadcast.getStreamId()));
+				}
+			}
+		}
 	}
 
 
@@ -404,6 +420,8 @@ public abstract class RestServiceBase {
 
 		removeEmptyPlayListItems(broadcast);
 
+		updatePlayListItemDurationsIfApplicable(broadcast);
+
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
 
 		return new Result(result);
@@ -465,6 +483,9 @@ public abstract class RestServiceBase {
 			logger.info("New Stream Source URL: {}", rtspURLWithAuth);
 			broadcast.setStreamUrl(rtspURLWithAuth);
 		}
+
+		removeEmptyPlayListItems(broadcast);
+		updatePlayListItemDurationsIfApplicable(broadcast);
 
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
 

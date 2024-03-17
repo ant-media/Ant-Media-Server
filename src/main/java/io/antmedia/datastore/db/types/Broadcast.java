@@ -40,9 +40,9 @@ public class Broadcast {
 	@ApiModelProperty(value = "the status of the stream", allowableValues = "finished, broadcasting,created")
 	private String status;
 
-	@ApiModelProperty(value = "The status of the playlist. It's usable if type is playlist", allowableValues = "finished, broadcasting,created")
+	@ApiModelProperty(value = "the status of the playlist. It's usable if type is playlist", allowableValues = "finished, broadcasting,created")
 	private String playListStatus;
-
+	
 	/**
 	 * "liveStream", "ipCamera", "streamSource", "VoD"
 	 */
@@ -224,6 +224,12 @@ public class Broadcast {
 	{
 		String streamUrl;
 		String type;
+		
+		/**
+		 * Duration of this item in milliseconds. It's calculated by Ant Media Server
+		 */
+		private long durationInMs;
+		
 		/**
 		 * Initial time to get the playlist item is started. 
 		 * If it's a VoD file, it can seek to that time and start playing there
@@ -258,6 +264,14 @@ public class Broadcast {
 
 		public void setSeekTimeInMs(long seekTimeInMs) {
 			this.seekTimeInMs = seekTimeInMs;
+		}
+
+		public long getDurationInMs() {
+			return durationInMs;
+		}
+
+		public void setDurationInMs(long durationInMs) {
+			this.durationInMs = durationInMs;
 		}
 		
 	}

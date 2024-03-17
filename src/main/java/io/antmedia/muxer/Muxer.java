@@ -1211,23 +1211,28 @@ public abstract class Muxer {
 			logger.info("cannot write audio frame to muxer({}). Error is {} ", file.getName(), getErrorDefinition(ret));
 		}
 	}
-
+	
 	public static long getDurationInMs(File f, String streamId) {
+		return getDurationInMs(f.getAbsolutePath(), streamId);
+	}
+	
+
+	public static long getDurationInMs(String url, String streamId) {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		int ret;
 		if (streamId != null) {
 			streamId = streamId.replaceAll("[\n\r\t]", "_");
 		}
-		if (avformat_open_input(inputFormatContext, f.getAbsolutePath(), null, (AVDictionary)null) < 0) 
+		if (avformat_open_input(inputFormatContext, url, null, (AVDictionary)null) < 0) 
 		{
-			loggerStatic.info("cannot open input context for duration for stream: {} for file:{}", streamId, f.getName());
+			loggerStatic.info("cannot open input context for duration for stream: {} for file:{}", streamId, url);
 			avformat_close_input(inputFormatContext);
 			return -1L;
 		}
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary)null);
 		if (ret < 0) {
-			loggerStatic.info("Could not find stream information for stream: {} for file:{}", streamId, f.getName());
+			loggerStatic.info("Could not find stream information for stream: {} for file:{}", streamId, url);
 			avformat_close_input(inputFormatContext);
 			return -1L;
 		}

@@ -59,6 +59,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.StreamInfo;
@@ -93,6 +94,7 @@ import io.antmedia.statistic.StatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.test.StreamFetcherUnitTest;
+import io.antmedia.test.StreamSchedularUnitTest;
 import io.antmedia.webrtc.VideoCodec;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.websocket.WebSocketConstants;
@@ -201,6 +203,27 @@ public class BroadcastRestServiceV2UnitTest {
 			fail(e.getMessage());
 		}
 	}
+	
+	@Test
+	public void testUpdatePlayListItemDuration() {
+		
+		Broadcast broadcast = new Broadcast();
+		
+		List<PlayListItem> playlist = new ArrayList<PlayListItem>();
+		PlayListItem item = new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.VOD);
+		PlayListItem item2 = new PlayListItem(StreamSchedularUnitTest.VALID_MP4_URL, AntMediaApplicationAdapter.STREAM_SOURCE);
+		playlist.add(item);
+		playlist.add(item2);
+		
+		broadcast.setPlayListItemList(playlist);
+		
+		BroadcastRestService.updatePlayListItemDurationsIfApplicable(broadcast);
+		
+		assertEquals(15045, item.getDurationInMs());
+		assertEquals(0, item2.getDurationInMs());
+	}
+	
+	
 
 	/**
 	 * These tests should be run with stalker db
