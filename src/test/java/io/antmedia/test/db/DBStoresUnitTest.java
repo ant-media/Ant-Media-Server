@@ -236,11 +236,11 @@ public class DBStoresUnitTest {
 	@Test
 	public void testMongoStore() throws Exception {
 
-		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
+		DataStore dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 		//delete db
 		dataStore.close(true);
 		
-		dataStore = new MongoStore("localhost", "", "", "testdb");
+		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
