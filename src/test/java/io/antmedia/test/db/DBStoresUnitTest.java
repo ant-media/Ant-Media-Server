@@ -2235,7 +2235,7 @@ public class DBStoresUnitTest {
 		dsf.setWriteStatsToDatastore(writeStats);
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
-		dsf.setDbHost("localhost");
+		dsf.setDbHost("127.0.0.1");
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		AppSettings appSettings = new AppSettings();
@@ -2374,7 +2374,7 @@ public class DBStoresUnitTest {
 
 	@Test
 	public void testMongoDBSaveStreamInfo() {
-		MongoStore dataStore = new MongoStore("localhost", "", "", "testdb");
+		MongoStore dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 		deleteStreamInfos(dataStore);
 		assertEquals(0, dataStore.getDataStore().find(StreamInfo.class).count());
 
@@ -2957,9 +2957,9 @@ public class DBStoresUnitTest {
 	@Test
 	public void testDeleteMongoDBCollection() {
 		String dbName = "deleteMapdb";
-		MongoStore dataStore = new MongoStore("localhost", "", "", dbName);
+		MongoStore dataStore = new MongoStore("127.0.0.1", "", "", dbName);
 		
-		MongoClientURI mongoUri = new MongoClientURI(dataStore.getMongoConnectionUri("localhost", "", ""));
+		MongoClientURI mongoUri = new MongoClientURI(dataStore.getMongoConnectionUri("127.0.0.1", "", ""));
 		MongoClient client = new MongoClient(mongoUri);
 		
 		
