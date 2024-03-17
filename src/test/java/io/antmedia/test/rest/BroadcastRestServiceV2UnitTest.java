@@ -3753,4 +3753,268 @@ public class BroadcastRestServiceV2UnitTest {
 
 	}
 
+	@Test
+	public void testAddIntoPublisherRequestList() {
+		String mainTrackId = "mainTrackId";
+		String streamId = "streamId";
+		Broadcast broadcast = new Broadcast();
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("dummy"));
+
+		// stream exists
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.addIntoPublisherRequestList(mainTrackId, streamId)).thenReturn(true);
+
+		Result result = RestServiceBase.addIntoPublisherRequestList(mainTrackId, streamId, dataStore);
+
+		assertTrue(result.isSuccess());
+		verify(dataStore).addIntoPublisherRequestList(mainTrackId, streamId);
+
+		// stream does not exist
+		when(dataStore.get(mainTrackId)).thenReturn(null);
+
+		Result result2 = RestServiceBase.addIntoPublisherRequestList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result2.isSuccess());
+		assertEquals("There is not stream with id:" + streamId, result2.getMessage());
+
+		// test the case when it's not added into publisher request list
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.addIntoPublisherRequestList(mainTrackId, streamId)).thenReturn(false);
+
+		Result result3 = RestServiceBase.addIntoPublisherRequestList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result3.isSuccess());
+	}
+
+	@Test
+	public void testRemoveFromPublisherRequestList() {
+		String mainTrackId = "mainTrackId";
+		String streamId = "streamId";
+		Broadcast broadcast = new Broadcast();
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("dummy"));
+
+		// stream exists
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.removeFromPublisherRequestList(mainTrackId, streamId)).thenReturn(true);
+
+		Result result = RestServiceBase.removeFromPublisherRequestList(mainTrackId, streamId, dataStore);
+
+		assertTrue(result.isSuccess());
+		verify(dataStore).removeFromPublisherRequestList(mainTrackId, streamId);
+
+		// stream does not exist
+		when(dataStore.get(mainTrackId)).thenReturn(null);
+
+		Result result2 = RestServiceBase.removeFromPublisherRequestList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result2.isSuccess());
+		assertEquals("There is no stream with id:" + streamId, result2.getMessage());
+
+		// test the case when it's not removed from publisher request list
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.removeFromPublisherRequestList(mainTrackId, streamId)).thenReturn(false);
+
+		Result result3 = RestServiceBase.removeFromPublisherRequestList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result3.isSuccess());
+	}
+
+	@Test
+	public void testAddIntoPublisherFromListenerList() {
+		String mainTrackId = "mainTrackId";
+		String streamId = "streamId";
+		Broadcast broadcast = new Broadcast();
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("dummy"));
+
+		// stream exists
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.addIntoPublisherFromListenerList(mainTrackId, streamId)).thenReturn(true);
+
+		Result result = RestServiceBase.addIntoPublisherFromListenerList(mainTrackId, streamId, dataStore);
+
+		assertTrue(result.isSuccess());
+		verify(dataStore).addIntoPublisherFromListenerList(mainTrackId, streamId);
+
+		// stream does not exist
+		when(dataStore.get(mainTrackId)).thenReturn(null);
+
+		Result result2 = RestServiceBase.addIntoPublisherFromListenerList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result2.isSuccess());
+		assertEquals("There is not stream with id:" + streamId, result2.getMessage());
+
+		// test the case when it's not added into publisher from listener list
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.addIntoPublisherFromListenerList(mainTrackId, streamId)).thenReturn(false);
+
+		Result result3 = RestServiceBase.addIntoPublisherFromListenerList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result3.isSuccess());
+	}
+
+	@Test
+	public void testRemoveFromPublisherFromListenerList() {
+		String mainTrackId = "mainTrackId";
+		String streamId = "streamId";
+		Broadcast broadcast = new Broadcast();
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("dummy"));
+
+		// stream exists
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.removeFromPublisherFromListenerList(mainTrackId, streamId)).thenReturn(true);
+
+		Result result = RestServiceBase.removeFromPublisherFromListenerList(mainTrackId, streamId, dataStore);
+
+		assertTrue(result.isSuccess());
+		verify(dataStore).removeFromPublisherFromListenerList(mainTrackId, streamId);
+
+		// stream does not exist
+		when(dataStore.get(mainTrackId)).thenReturn(null);
+
+		Result result2 = RestServiceBase.removeFromPublisherFromListenerList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result2.isSuccess());
+		assertEquals("There is no stream with id:" + streamId, result2.getMessage());
+
+		// test the case when it's not removed from publisher from listener list
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.removeFromPublisherFromListenerList(mainTrackId, streamId)).thenReturn(false);
+
+		Result result3 = RestServiceBase.removeFromPublisherFromListenerList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result3.isSuccess());
+	}
+
+	@Test
+	public void testAddIntoPresenterList() {
+		String mainTrackId = "mainTrackId";
+		String streamId = "streamId";
+		Broadcast broadcast = new Broadcast();
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("dummy"));
+
+		// stream exists
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.addIntoPresenterList(mainTrackId, streamId)).thenReturn(true);
+
+		Result result = RestServiceBase.addIntoPresenterList(mainTrackId, streamId, dataStore);
+
+		assertTrue(result.isSuccess());
+		verify(dataStore).addIntoPresenterList(mainTrackId, streamId);
+
+		// stream does not exist
+		when(dataStore.get(mainTrackId)).thenReturn(null);
+
+		Result result2 = RestServiceBase.addIntoPresenterList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result2.isSuccess());
+		assertEquals("There is not stream with id:" + streamId, result2.getMessage());
+
+		// test the case when it's not added into presenter list
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.addIntoPresenterList(mainTrackId, streamId)).thenReturn(false);
+
+		Result result3 = RestServiceBase.addIntoPresenterList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result3.isSuccess());
+	}
+
+	@Test
+	public void testRemoveFromPresenterList() {
+		String mainTrackId = "mainTrackId";
+		String streamId = "streamId";
+		Broadcast broadcast = new Broadcast();
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("dummy"));
+
+		// stream exists
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.removeFromPresenterList(mainTrackId, streamId)).thenReturn(true);
+
+		Result result = RestServiceBase.removeFromPresenterList(mainTrackId, streamId, dataStore);
+
+		assertTrue(result.isSuccess());
+		verify(dataStore).removeFromPresenterList(mainTrackId, streamId);
+
+		// stream does not exist
+		when(dataStore.get(mainTrackId)).thenReturn(null);
+
+		Result result2 = RestServiceBase.removeFromPresenterList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result2.isSuccess());
+		assertEquals("There is no stream with id:" + streamId, result2.getMessage());
+
+		// test the case when it's not removed from presenter list
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.removeFromPresenterList(mainTrackId, streamId)).thenReturn(false);
+
+		Result result3 = RestServiceBase.removeFromPresenterList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result3.isSuccess());
+	}
+
+	@Test
+	public void testAddIntoAdminList() {
+		String mainTrackId = "mainTrackId";
+		String streamId = "streamId";
+		Broadcast broadcast = new Broadcast();
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("dummy"));
+
+		// stream exists
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.addIntoAdminList(mainTrackId, streamId)).thenReturn(true);
+
+		Result result = RestServiceBase.addIntoAdminList(mainTrackId, streamId, dataStore);
+
+		assertTrue(result.isSuccess());
+		verify(dataStore).addIntoAdminList(mainTrackId, streamId);
+
+		// stream does not exist
+		when(dataStore.get(mainTrackId)).thenReturn(null);
+
+		Result result2 = RestServiceBase.addIntoAdminList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result2.isSuccess());
+		assertEquals("There is not stream with id:" + streamId, result2.getMessage());
+
+		// test the case when it's not added into admin list
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.addIntoAdminList(mainTrackId, streamId)).thenReturn(false);
+
+		Result result3 = RestServiceBase.addIntoAdminList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result3.isSuccess());
+	}
+
+	@Test
+	public void testRemoveFromAdminList() {
+		String mainTrackId = "mainTrackId";
+		String streamId = "streamId";
+		Broadcast broadcast = new Broadcast();
+		DataStore dataStore = Mockito.spy(new InMemoryDataStore("dummy"));
+
+		// stream exists
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.removeFromAdminList(mainTrackId, streamId)).thenReturn(true);
+
+		Result result = RestServiceBase.removeFromAdminList(mainTrackId, streamId, dataStore);
+
+		assertTrue(result.isSuccess());
+		verify(dataStore).removeFromAdminList(mainTrackId, streamId);
+
+		// stream does not exist
+		when(dataStore.get(mainTrackId)).thenReturn(null);
+
+		Result result2 = RestServiceBase.removeFromAdminList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result2.isSuccess());
+		assertEquals("There is no stream with id:" + streamId, result2.getMessage());
+
+		// test the case when it's not removed from admin list
+		when(dataStore.get(mainTrackId)).thenReturn(broadcast);
+		when(dataStore.removeFromAdminList(mainTrackId, streamId)).thenReturn(false);
+
+		Result result3 = RestServiceBase.removeFromAdminList(mainTrackId, streamId, dataStore);
+
+		assertFalse(result3.isSuccess());
+	}
+
 }
