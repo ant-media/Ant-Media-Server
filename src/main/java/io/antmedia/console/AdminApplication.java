@@ -41,6 +41,7 @@ import org.springframework.context.ApplicationContext;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.vertx.core.Vertx;
 import jakarta.annotation.Nullable;
 
@@ -473,11 +474,15 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				+ " -n " + appName
 				+ " -w true"
 				+ " -p " + webappsPath
-				+ " -c " + isCluster
-				+ " -m " + dbConnectionUrl
-				+ " -u " + dbUser
-				+ " -s " + dbPass;
+				+ " -c " + isCluster;
 		
+		if 	(!DataStoreFactory.DB_TYPE_MAPDB.equals(getDataStoreFactory().getDbType())) {
+			//add db connection url, user and pass if it's not mapdb
+			command += " -m " + dbConnectionUrl
+					+ " -u " + dbUser
+					+ " -s " + dbPass;
+		}
+
 		if(warFileName != null && !warFileName.isEmpty())
 		{
 			command += " -f " + warFileName;
