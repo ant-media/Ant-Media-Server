@@ -24,6 +24,7 @@ import org.red5.server.tomcat.WarDeployer;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.console.AdminApplication;
+import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
@@ -107,6 +108,8 @@ public class AdminApplicationTest {
 		//create application
 		AdminApplication app = Mockito.spy(new AdminApplication());
 		app.setVertx(vertx);
+		
+		app.setDataStoreFactory(Mockito.mock(ConsoleDataStoreFactory.class));
 
 		WebScope rootScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(rootScope).when(app).getRootScope();
@@ -120,13 +123,13 @@ public class AdminApplicationTest {
 		app.setWarDeployer(warDeployer);
 		app.createApplication("test", null);
 
-		Mockito.verify(app, Mockito.never()).runCreateAppScript("test", null);
+		Mockito.verify(app, Mockito.never()).runCreateAppScript("test", false, null, null, null, null);
 
 
 		Mockito.when(appScope.isRunning()).thenReturn(false);
 		app.createApplication("test", null);
 
-		Mockito.verify(app).runCreateAppScript("test", null);
+		Mockito.verify(app).runCreateAppScript("test", false, null, null, null, null);
 		Mockito.verify(warDeployer, Mockito.timeout(4000)).deploy(true);
 
 
@@ -380,6 +383,8 @@ public class AdminApplicationTest {
 		//create application
 		AdminApplication app = Mockito.spy(new AdminApplication());
 		app.setVertx(vertx);
+		
+		app.setDataStoreFactory(Mockito.mock(ConsoleDataStoreFactory.class));
 
 		WebScope rootScope = Mockito.mock(WebScope.class);
 		Mockito.doReturn(rootScope).when(app).getRootScope();
@@ -398,15 +403,15 @@ public class AdminApplicationTest {
 			};
 		};
 		app.setWarDeployer(warDeployer);
-		Mockito.doReturn(true).when(app).runCreateAppScript(Mockito.any(), Mockito.any());
+		Mockito.doReturn(true).when(app).runCreateAppScript(Mockito.any(), Mockito.anyBoolean(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
 
 		app.createApplication(appName, null);
 
-		Mockito.verify(app, Mockito.never()).runCreateAppScript(appName, null);
+		Mockito.verify(app, Mockito.never()).runCreateAppScript(appName, false, null, null, null, null);
 
 		Mockito.when(appScope.isRunning()).thenReturn(false);
 		app.createApplication(appName, null);
-		Mockito.verify(app).runCreateAppScript(appName, null);
+		Mockito.verify(app).runCreateAppScript(appName, false, null, null, null, null);
 
 		assertFalse(app.createApplicationWithURL(appName, "some_url"));
 

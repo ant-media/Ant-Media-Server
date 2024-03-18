@@ -455,11 +455,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return success;
 	}
 
-
-	public boolean runCreateAppScript(String appName, String warFilePath) {
-		return runCreateAppScript(appName, false, null, null, null, warFilePath);
-	}
-
 	public boolean runCreateAppScript(String appName) {
 		return runCreateAppScript(appName, false, null, null, null, null);
 	}
