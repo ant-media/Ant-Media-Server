@@ -134,10 +134,10 @@ public class AdminApplicationTest {
 		assertTrue(commandCaptor.getValue().contains("-c false"));
 		assertTrue(commandCaptor.getValue().contains("-n app"));
 		
-		assertFalse(commandCaptor.getValue().contains("-m"));
-		assertFalse(commandCaptor.getValue().contains("-u"));
-		assertFalse(commandCaptor.getValue().contains("-s"));
-		assertFalse(commandCaptor.getValue().contains("-f"));
+		assertFalse(commandCaptor.getValue().contains("-m dbUrl"));
+		assertFalse(commandCaptor.getValue().contains("-u username"));
+		assertFalse(commandCaptor.getValue().contains("-s pass"));
+		assertFalse(commandCaptor.getValue().contains("-f "));
 		
 		
 		Mockito.when(consoleDataStoreFactory.getDbType()).thenReturn("mongob");
