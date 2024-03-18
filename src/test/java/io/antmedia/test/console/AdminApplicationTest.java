@@ -101,6 +101,70 @@ public class AdminApplicationTest {
 
 
 	}
+	
+	
+	@Test
+	public void testCreateAppParameters() {
+		AdminApplication app = Mockito.spy(new AdminApplication());
+		app.setVertx(vertx);
+		
+		Mockito.doReturn(false).when(app).runCommand(Mockito.anyString());
+		ConsoleDataStoreFactory consoleDataStoreFactory = Mockito.mock(ConsoleDataStoreFactory.class);
+		app.setDataStoreFactory(consoleDataStoreFactory);
+		
+		app.runCreateAppScript("app", false, null , null, null, null);
+		
+		ArgumentCaptor<String> commandCaptor = ArgumentCaptor.forClass(String.class);
+		//"/bin/bash create_app.sh -n app -w true -p /Users/mekya/git/Ant-Media-Server -c false -m null -u null -s null"
+		
+		Mockito.verify(app).runCommand(commandCaptor.capture());
+		
+		assertTrue(commandCaptor.getValue().contains("-c false"));
+		assertTrue(commandCaptor.getValue().contains("-n app"));
+		
+		assertFalse(commandCaptor.getValue().contains("-m"));
+		assertFalse(commandCaptor.getValue().contains("-u"));
+		assertFalse(commandCaptor.getValue().contains("-s"));
+		assertFalse(commandCaptor.getValue().contains("-f"));
+		
+		Mockito.when(consoleDataStoreFactory.getDbType()).thenReturn("mapdb");
+		app.runCreateAppScript("app", false, "dbUrl" , "username", "pass", null);
+		
+		Mockito.verify(app, Mockito.times(2)).runCommand(commandCaptor.capture());
+		assertTrue(commandCaptor.getValue().contains("-c false"));
+		assertTrue(commandCaptor.getValue().contains("-n app"));
+		
+		assertFalse(commandCaptor.getValue().contains("-m"));
+		assertFalse(commandCaptor.getValue().contains("-u"));
+		assertFalse(commandCaptor.getValue().contains("-s"));
+		assertFalse(commandCaptor.getValue().contains("-f"));
+		
+		
+		Mockito.when(consoleDataStoreFactory.getDbType()).thenReturn("mongob");
+		app.runCreateAppScript("app", false, "dbUrl" , "username", "pass", null);
+		
+		Mockito.verify(app, Mockito.times(3)).runCommand(commandCaptor.capture());
+		assertTrue(commandCaptor.getValue().contains("-c false"));
+		assertTrue(commandCaptor.getValue().contains("-n app"));
+		
+		assertTrue(commandCaptor.getValue().contains("-m dbUrl"));
+		assertTrue(commandCaptor.getValue().contains("-u username"));
+		assertTrue(commandCaptor.getValue().contains("-s pass"));
+		assertFalse(commandCaptor.getValue().contains("-f"));
+		
+		
+		app.runCreateAppScript("app", false, "dbUrl" , "username", "pass", "warfile");
+		
+		Mockito.verify(app, Mockito.times(4)).runCommand(commandCaptor.capture());
+		assertTrue(commandCaptor.getValue().contains("-c false"));
+		assertTrue(commandCaptor.getValue().contains("-n app"));
+		
+		assertTrue(commandCaptor.getValue().contains("-m dbUrl"));
+		assertTrue(commandCaptor.getValue().contains("-u username"));
+		assertTrue(commandCaptor.getValue().contains("-s pass"));
+		assertTrue(commandCaptor.getValue().contains("-f warfile"));
+
+	}
 
 	@Test
 	public void testCreateDeleteApplication() 

@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
@@ -473,12 +474,18 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		
 		if 	(!DataStoreFactory.DB_TYPE_MAPDB.equals(getDataStoreFactory().getDbType())) {
 			//add db connection url, user and pass if it's not mapdb
-			command += " -m " + dbConnectionUrl
-					+ " -u " + dbUser
-					+ " -s " + dbPass;
+			if (StringUtils.isNotBlank(dbConnectionUrl)) {
+				command +=  " -m " + dbConnectionUrl;
+			}
+			if (StringUtils.isNotBlank(dbUser)) {
+				command += " -u " + dbUser;
+			}
+			if (StringUtils.isNotBlank(dbPass)) {
+				command += " -s " + dbPass;
+			}
 		}
 
-		if(warFileName != null && !warFileName.isEmpty())
+		if(StringUtils.isNotBlank(warFileName))
 		{
 			command += " -f " + warFileName;
 
