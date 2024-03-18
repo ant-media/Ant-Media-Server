@@ -40,7 +40,7 @@ public class DataStoreFactoryUnitTest {
 		deleteMapDB();
 		dsf =  new DataStoreFactory();
 		dsf.setDbName("myDB");
-		dsf.setDbHost("localhost");
+		dsf.setDbHost("127.0.0.1");
 		dsf.setDbUser(null);
 		dsf.setDbPassword("myPass");
 		dsf.setDbType("memorydb");
