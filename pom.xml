@@ -417,6 +417,27 @@
 		    <artifactId>commons-io</artifactId>
 		    <version>${commons-io}</version>
 		</dependency>
+        <!-- we just override the version of ehcache because of the vulnerability. It's dependency of red5-io -->
+        <dependency>
+            <groupId>net.sf.ehcache</groupId>
+            <version>2.10.9.2</version>
+            <artifactId>ehcache</artifactId>
+        </dependency>
+
+        <!-- we just override the version of tika because of the vulnerability.-->
+        <dependency>
+            <groupId>org.apache.tika</groupId>
+            <artifactId>tika-core</artifactId>
+            <version>2.9.1</version>
+        </dependency>
+
+        <!-- we just override the version of netty because of the vulnerability.-->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http2</artifactId>
+            <version>4.1.101.Final</version>
+        </dependency>
+
         <dependency>
             <groupId>org.red5</groupId>
             <artifactId>red5-io</artifactId>
