@@ -1056,7 +1056,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs) {
 
-		vertx.setTimer(500, h -> {
+		vertx.runOnContext(h -> {
 
 			Broadcast broadcastLocal = getDataStore().get(id);
 			if (broadcastLocal != null) 
@@ -1070,6 +1070,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				broadcastLocal.setPendingPacketSize(pendingPacketSize);
 				broadcastLocal.setUpdateTime(updateTimeMs);
 				broadcastLocal.setQuality(quality);
+				long elapsedTime = System.currentTimeMillis() - broadcastLocal.getStartTime();
+				broadcastLocal.setDuration(elapsedTime);
 				getDataStore().updateBroadcastFields(id, broadcastLocal);
 			}
 

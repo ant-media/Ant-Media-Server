@@ -269,8 +269,24 @@ public abstract class RestServiceBase {
 			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
 		}
 
+		updatePlayListItemDurationsIfApplicable(broadcast);
+
 		dataStore.save(broadcast);
 		return broadcast;
+	}
+
+	public static void updatePlayListItemDurationsIfApplicable(Broadcast broadcast) 
+	{
+		List<PlayListItem> playListItemList = broadcast.getPlayListItemList();
+		if (playListItemList != null) 
+		{
+			for (PlayListItem playListItem : playListItemList) 
+			{
+				if (AntMediaApplicationAdapter.VOD.equals(playListItem.getType())) {
+					playListItem.setDurationInMs(Muxer.getDurationInMs(playListItem.getStreamUrl(), broadcast.getStreamId()));
+				}
+			}
+		}
 	}
 
 
@@ -400,6 +416,8 @@ public abstract class RestServiceBase {
 
 		removeEmptyPlayListItems(broadcast);
 
+		updatePlayListItemDurationsIfApplicable(broadcast);
+
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
 
 		return new Result(result);
@@ -441,7 +459,7 @@ public abstract class RestServiceBase {
 			logger.info("Broadcast with stream id: {} is null", streamId);
 			return new Result(false, "Broadcast with streamId: " + streamId + " does not exist");
 		}
-	
+
 		boolean isStreamingActive = AntMediaApplicationAdapter.isStreaming(broadcastInDB);
 
 		if (isStreamingActive) {
@@ -462,8 +480,11 @@ public abstract class RestServiceBase {
 			broadcast.setStreamUrl(rtspURLWithAuth);
 		}
 
+		removeEmptyPlayListItems(broadcast);
+		updatePlayListItemDurationsIfApplicable(broadcast);
+
 		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
-		
+
 		if (result && isStreamingActive) {
 			//start straming again if it was streaming
 			Broadcast fetchedBroadcast = getDataStore().get(streamId);
@@ -1020,14 +1041,14 @@ public abstract class RestServiceBase {
 		Result result=new Result(false);
 
 		if(checkStreamUrl(stream.getStreamUrl())) {
-			
+
 			//small improvement for user experience
 			boolean isVoD = stream.getStreamUrl().startsWith("http") && (stream.getStreamUrl().endsWith("mp4") || stream.getStreamUrl().endsWith("webm") || stream.getStreamUrl().endsWith("flv"));
-			
+
 			if (isVoD) {
 				stream.setType(AntMediaApplicationAdapter.VOD);
 			}
-			
+
 			Date currentDate = new Date();
 			long unixTime = currentDate.getTime();
 
@@ -1453,13 +1474,13 @@ public abstract class RestServiceBase {
 			{	
 				IStreamFetcherListener streamFetcherListener = streamFetcher.getStreamFetcherListener();
 				//don't let the streamFetcherListener be called again because it already automatically plays the next item
-				
+
 				streamFetcher.setStreamFetcherListener(null);
-				
+
 				if (logger.isInfoEnabled()) {
 					logger.info("Switching to next item by REST method for playlist:{} and forwarding stream fetcher listener:{}", id.replaceAll("[\n\r]", "_"), streamFetcherListener.hashCode());
 				}
-				
+
 				result = getApplication().getStreamFetcherManager().playItemInList(broadcast, streamFetcherListener, index);
 			}
 			else {

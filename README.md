@@ -49,20 +49,24 @@ At Ant Media Server, we're passionate about delivering cutting-edge streaming so
 
 Deploy Ant Media Server seamlessly on your favorite cloud platforms with 1-Click apps, cloud marketplaces, or Docker/Kubernetes/Scripts. Get started quickly and effortlessly with our streamlined deployment options.
 
+### Install On-Premises
+[Install via  Script](https://antmedia.io/docs/guides/installing-on-linux/installing-ams-on-linux/) & [SSL Setup](https://antmedia.io/docs/guides/installing-on-linux/setting-up-ssl/)
+
+### Ready to Launch in Cloud
 
 | Cloud Provider  | Community Edition | Enterprise Edition  |
 | -------------- | -------------- | ------------- |
 | AWS  | [Community Edition](https://aws.amazon.com/marketplace/pp/prodview-okmynlgwgvq6w)  | [Enterprise Edition](https://aws.amazon.com/marketplace/pp/prodview-464ritgzkzod6)  |
-| Microsoft Azure  | [Community Edition](https://azuremarketplace.microsoft.com/en-us/marketplace/apps/antmedia.ams_community_edition)  | [Enterprise Edition](https://azuremarketplace.microsoft.com/en-us/marketplace/apps/antmedia.ant_media_server_enterprise)  |
-| Alibaba  | - | [Enterprise Edition](https://marketplace.alibabacloud.com/products/56712002/sgcmjj00031246.html)  |
-| Digital Ocean  | [Community Edition](https://marketplace.digitalocean.com/apps/ant-media-server-community-edition)  | [Enterprise Edition](https://marketplace.digitalocean.com/apps/ant-media-server-enterprise-edition) or [Enterprise Edition Kubernetes](https://marketplace.digitalocean.com/apps/ant-media-server-enterprise)  |
-| Linode  | [Community Edition](https://www.linode.com/marketplace/apps/ant-media/ant-media-community-edition/)  | [Enterprise Edition](https://www.linode.com/marketplace/apps/ant-media/ant-media-enterprise-edition/)  |
-| Linux  | [Install via  Script](https://antmedia.io/docs/guides/installing-on-linux/installing-ams-on-linux/)  | [SSL Setup](https://antmedia.io/docs/guides/installing-on-linux/setting-up-ssl/)  |
-| Docker  | [Docker Compose](https://antmedia.io/docs/guides/clustering-and-scaling/docker/docker-and-docker-compose-installation/)  | [Docker Swarm](https://antmedia.io/docs/guides/clustering-and-scaling/docker/docker-swarm/)  |
-| Cluster  | [Cluster installation](https://antmedia.io/docs/guides/clustering-and-scaling/cluster-installation/)  | [Multi Level Cluster](https://antmedia.io/docs/guides/clustering-and-scaling/multi-level-cluster/)  |
-| Kubernetes  | [Deploy on Kubernetes](https://antmedia.io/docs/guides/clustering-and-scaling/kubernetes/deploy-ams-on-kubernetes/)  | [Kubernetes Autoscaling](https://antmedia.io/docs/guides/clustering-and-scaling/kubernetes/kubernetes-autoscaling/)  |
- 
+| Azure  | [Community Edition](https://azuremarketplace.microsoft.com/en-us/marketplace/apps/antmedia.ams_community_edition)  | [Enterprise Edition](https://azuremarketplace.microsoft.com/en-us/marketplace/apps/antmedia.ant_media_server_enterprise)  |
+| GCP | - | [Enterprise Edition](https://console.cloud.google.com/marketplace/product/antmedia-public/ant-media-server-enterprise-edition)| 
 
+
+ ### Setup an Auto-Scalable Solution with CloudFormation In 5 minutes
+<a href="https://www.youtube.com/watch?v=y7bP0u0jQRQ"><img width="640" src="https://img.youtube.com/vi/y7bP0u0jQRQ/0.jpg"/></a><br/>
+<a href="https://antmedia.io/docs/guides/clustering-and-scaling/aws/scale-with-aws-cloudformation/">CloudFormation Deployment in 5 Minutes</a>
+
+
+### Free Trial for Enterprise Edition
 [Discover the Power of Ant Media: Start Your Free Trial Today!](https://antmedia.io/free-trial/)
 
 
