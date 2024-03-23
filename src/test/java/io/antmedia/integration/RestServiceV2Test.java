@@ -435,7 +435,8 @@ public class RestServiceV2Test {
 
 			StringBuffer result = readResponse(response);
 
-			assertEquals(404, response.getStatusLine().getStatusCode() );
+			//it should be 405 because it is not allowed and it's DELETE method
+			assertEquals(405, response.getStatusLine().getStatusCode() );
 
 		} catch (Exception e) {
 			e.printStackTrace();
