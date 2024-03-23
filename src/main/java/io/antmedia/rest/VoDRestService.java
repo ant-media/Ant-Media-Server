@@ -141,11 +141,11 @@ public class VoDRestService extends RestServiceBase{
             @ApiResponse(responseCode = "200", description = "VoD files deleted successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
     })
     @DELETE
-    @Path("/bulk")
+    @Path("/")
     @Consumes({ MediaType.APPLICATION_JSON })
     @Produces(MediaType.APPLICATION_JSON)
     public Result deleteVoDsBulk(
-            @Parameter(description = "Comma separated IDs of the VoD files", required = true) @QueryParam("ids") String vodIds) {
+            @Parameter(description = "Comma-separated IDs of the VoD files", required = true) @QueryParam("ids") String vodIds) {
     	if (StringUtils.isNotBlank(vodIds)) {
     		return super.deleteVoDs(vodIds.split(","));
     	}

@@ -272,9 +272,9 @@ public class BroadcastRestService extends RestServiceBase{
 				)
 	@DELETE
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/bulk")
+	@Path("/")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result deleteBroadcastsBulk(@Parameter(description = "Comma separated stream Ids", required = true) @QueryParam("ids") String streamIds) 
+	public Result deleteBroadcastsBulk(@Parameter(description = "Comma-separated stream Ids to delete", required = true) @QueryParam("ids") String streamIds) 
 	{
 		if (StringUtils.isNotBlank(streamIds)) {
 			return super.deleteBroadcasts(streamIds.split(","));
