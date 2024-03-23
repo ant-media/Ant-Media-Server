@@ -75,6 +75,8 @@ import jakarta.ws.rs.core.Context;
 
 public abstract class RestServiceBase {
 
+	private static final String REPLACE_CHARS_FOR_SECURITY = "[\n\r]";
+
 	public class BroadcastStatistics {
 
 	    @Schema(description = "The total RTMP viewers of the stream")
@@ -365,6 +367,7 @@ public abstract class RestServiceBase {
 				result = deleteBroadcast(id);
 				if (!result.isSuccess())
 				{
+					id =  id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_" );
 					logger.warn("It cannot delete {} and breaking the loop", id);
 					break;
 				}
@@ -1168,6 +1171,7 @@ public abstract class RestServiceBase {
 
 				if (!result.isSuccess())
 				{
+					id =  id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_" );
 					logger.warn("VoD:{} cannot be deleted and breaking the loop", id);
 					break;
 				}
@@ -1311,7 +1315,7 @@ public abstract class RestServiceBase {
 		}
 		else {
 			logger.info("No mux adaptor found for {} recordType:{} resolutionHeight:{}", streamId != null  ?
-					streamId.replaceAll("[\n\r]", "_") : "null ",
+					streamId.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_") : "null ",
 					recordType, resolutionHeight);
 		}
 
@@ -1478,7 +1482,7 @@ public abstract class RestServiceBase {
 				streamFetcher.setStreamFetcherListener(null);
 
 				if (logger.isInfoEnabled()) {
-					logger.info("Switching to next item by REST method for playlist:{} and forwarding stream fetcher listener:{}", id.replaceAll("[\n\r]", "_"), streamFetcherListener.hashCode());
+					logger.info("Switching to next item by REST method for playlist:{} and forwarding stream fetcher listener:{}", id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_"), streamFetcherListener.hashCode());
 				}
 
 				result = getApplication().getStreamFetcherManager().playItemInList(broadcast, streamFetcherListener, index);
