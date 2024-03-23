@@ -58,6 +58,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.servers.Server;
 
 @OpenAPIDefinition(
@@ -246,6 +247,22 @@ public class BroadcastRestService extends RestServiceBase{
 		return super.deleteBroadcast(id);		
 	}
 
+	
+	/**
+	 * Use {@link #deleteBroadcastsBulk(String[])} for compliance
+	 */
+	@Hidden
+	@Deprecated
+	@DELETE
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/bulk")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Override
+	public Result deleteBroadcasts(@Parameter(description = "Id of the broadcast", required = true) String[] streamIds) 
+	{
+		return super.deleteBroadcasts(streamIds);
+	}
+	
 	@Operation(description = "Delete multiple broadcasts from data store and stop if they are broadcasting")
 	@ApiResponse(responseCode = "200", description = "If it's deleted, success is true. If it's not deleted, success if false.",
 					content = @Content(
@@ -257,10 +274,14 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/bulk")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
-	public Result deleteBroadcasts(@Parameter(description = " Id of the broadcast", required = true) String[] streamIds) 
+	public Result deleteBroadcastsBulk(@Parameter(description = "Comma separated stream Ids", required = true) @QueryParam("ids") String streamIds) 
 	{
-		return super.deleteBroadcasts(streamIds);
+		if (StringUtils.isNotBlank(streamIds)) {
+			return super.deleteBroadcasts(streamIds.split(","));
+		}
+		else {
+			return new Result(false, "ids parameter is blank");
+		}
 	}
 
 
@@ -364,6 +385,7 @@ public class BroadcastRestService extends RestServiceBase{
 
 	}
 
+	@Hidden
 	@Deprecated
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -461,6 +483,7 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 	}
 
+	@Hidden
 	@Deprecated
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
@@ -1164,6 +1187,7 @@ public class BroadcastRestService extends RestServiceBase{
 		return super.getWebRTCClientStatsList(offset, size, streamId);
 	}
 
+	@Hidden
 	@Deprecated
 	@Operation(summary = "Returns filtered broadcast list according to type",
     description = "Useful for retrieving IP Camera and Stream Sources from the entire broadcast list. For sorting mechanisms, using Mongo DB is recommended.",
@@ -1654,6 +1678,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}/add")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
 	@Deprecated(since="2.6.2", forRemoval=true)
 	public Result addStreamToTheRoomDeprecated(@Parameter(description="Room id", required=true) @PathParam("room_id") String roomId,
 			@Parameter(description="Stream id to add to the conference room",required = true) @QueryParam("streamId") String streamId){
@@ -1695,6 +1720,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}/delete")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
 	@Deprecated(since="2.6.2", forRemoval=true)
 	public Result deleteStreamFromTheRoomDeprecated(@Parameter(description ="Room id", required=true) @PathParam("room_id") String roomId,
 			@Parameter(description="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId){
@@ -1725,6 +1751,7 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param search
 	 * @return
 	 */
+	@Hidden
 	@Deprecated(since = "2.7.0", forRemoval = true)
 	@GET
 	@Path("/webrtc-viewers/list/{offset}/{size}")
@@ -1743,6 +1770,7 @@ public class BroadcastRestService extends RestServiceBase{
 	 * @param viewerId
 	 * @return
 	 */
+	@Hidden
 	@Deprecated(since = "2.7.0", forRemoval = true)
 	@Operation(description = "Stop player with a specified id")
 	@POST

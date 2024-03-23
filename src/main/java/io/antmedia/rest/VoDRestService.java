@@ -3,6 +3,7 @@ package io.antmedia.rest;
 import java.io.InputStream;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
 import org.glassfish.jersey.media.multipart.FormDataParam;
 import org.springframework.stereotype.Component;
 
@@ -10,6 +11,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.rest.BroadcastRestService.SimpleStat;
 import io.antmedia.rest.model.Result;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
+import io.swagger.v3.oas.annotations.Hidden;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -119,9 +121,11 @@ public class VoDRestService extends RestServiceBase{
 		return super.deleteVoD(id);
 	}
 
-    @Operation(summary = "Delete bulk VoD Files based on Vod Id", description = "Deletes multiple VoD files from the database by their IDs.", responses = {
-            @ApiResponse(responseCode = "200", description = "VoD files deleted successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
-    })
+	/**
+	 * Use {@link #deleteVoDsBulk(String)}
+	 */
+	@Deprecated
+    @Hidden
     @DELETE
     @Path("/bulk")
     @Consumes({ MediaType.APPLICATION_JSON })
@@ -131,6 +135,25 @@ public class VoDRestService extends RestServiceBase{
             @Parameter(description = "IDs of the VoD files", required = true) String[] vodIds) {
         return super.deleteVoDs(vodIds);
     }
+    
+	
+    @Operation(summary = "Delete bulk VoD Files based on Vod Id", description = "Deletes multiple VoD files from the database by their IDs.", responses = {
+            @ApiResponse(responseCode = "200", description = "VoD files deleted successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
+    })
+    @DELETE
+    @Path("/bulk")
+    @Consumes({ MediaType.APPLICATION_JSON })
+    @Produces(MediaType.APPLICATION_JSON)
+    public Result deleteVoDsBulk(
+            @Parameter(description = "Comma separated IDs of the VoD files", required = true) @QueryParam("ids") String vodIds) {
+    	if (StringUtils.isNotBlank(vodIds)) {
+    		return super.deleteVoDs(vodIds.split(","));
+    	}
+    	else {
+    		return new Result(false, "ids parameter is blank. Please give comma-separated vod ids to the 'ids' as query parameter");
+    	}
+    }
+
 
 
     @Operation(summary = "Upload external VoD file to Ant Media Server", description = "Uploads an external VoD file to Ant Media Server.", responses = {
@@ -176,7 +199,7 @@ public class VoDRestService extends RestServiceBase{
 
 
 
-
+	@Hidden
     @Operation(summary = "Deprecated. Use import VoDs.", description = "Synchronizes VoD Folder and adds them to VoD database if any file exist and creates symbolic links to that folder.", deprecated = true, responses = {
             @ApiResponse(responseCode = "200", description = "VoD files synchronized successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Result.class)))
     })
