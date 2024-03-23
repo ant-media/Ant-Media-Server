@@ -40,6 +40,7 @@ public class VoD implements Serializable {
 	public static final String UPLOADED_VOD = "uploadedVod";
 	
 	@JsonIgnore
+	@Id
     private ObjectId dbId;
 
     @Schema(description = "The object id of the VoD")

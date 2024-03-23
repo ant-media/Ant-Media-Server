@@ -77,6 +77,7 @@ public class User {
      * The id of the user.
      */
     @Schema(description = "The id of the user")
+    @Id
     private ObjectId id;
 	
 	public User(String email, String password, UserType userType, String scope) {

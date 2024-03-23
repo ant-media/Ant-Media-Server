@@ -4,6 +4,7 @@ import org.bson.types.ObjectId;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
+import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -22,6 +23,7 @@ public class Token {
      * The db id of the token.
      */
     @Schema(description = "The db id of the token")
+    @Id
     private ObjectId dbId;
 
     /**

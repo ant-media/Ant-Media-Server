@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
+import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -26,6 +27,7 @@ public class Subscriber {
 
     @JsonIgnore
     @Schema(hidden = true)
+    @Id
     private ObjectId dbId;
 
     /**

@@ -4,6 +4,7 @@ import org.bson.types.ObjectId;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
+import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -19,6 +20,7 @@ public class TensorFlowObject {
      * The id of the detected object.
      */
     @Schema(description = "The id of the detected object")
+    @Id
     private ObjectId dbId;
 
     /**
