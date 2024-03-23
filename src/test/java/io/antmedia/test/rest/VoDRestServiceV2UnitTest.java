@@ -261,7 +261,7 @@ public class VoDRestServiceV2UnitTest {
 
 		assertEquals(1, restServiceReal.getVodList(0, 50, null, null, null, null).size());
 
-		restServiceReal.deleteVoDs(new String[] {vodId});
+		restServiceReal.deleteVoDsBulk(vodId);
 
 		assertEquals(0, restServiceReal.getVodList(0, 50, null, null, null, null).size());
 
@@ -271,10 +271,10 @@ public class VoDRestServiceV2UnitTest {
 		Result result = restServiceReal.deleteVoDs(new String[] {});
 		assertFalse(result.isSuccess());
 		
-		result = restServiceReal.deleteVoDs(null);
+		result = restServiceReal.deleteVoDsBulk(null);
 		assertFalse(result.isSuccess());
 		
-		result = restServiceReal.deleteVoDs(new String[] {"123" + (int)(Math.random()*10000)});
+		result = restServiceReal.deleteVoDsBulk("123" + (int)(Math.random()*10000));
 		assertFalse(result.isSuccess());
 		
 
