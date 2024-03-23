@@ -70,6 +70,7 @@ public class VoDRestService extends RestServiceBase{
 	})
 	@POST
 	@Path("/import-to-stalker")
+	@Produces(MediaType.APPLICATION_JSON)
 	public Result importVoDsToStalker() {
 		return super.importVoDsToStalker();
 	}
@@ -80,6 +81,7 @@ public class VoDRestService extends RestServiceBase{
 	})
 	@GET
 	@Path("/list/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
 	public List<VoD> getVodList(
 			@Parameter(description = "Offset of the list", required = true) @PathParam("offset") int offset,
 			@Parameter(description = "Number of items that will be fetched", required = true) @PathParam("size") int size,
@@ -95,6 +97,7 @@ public class VoDRestService extends RestServiceBase{
 	})
 	@GET
 	@Path("/count")
+	@Produces(MediaType.APPLICATION_JSON)
 	public SimpleStat getTotalVodNumber() {
 		return new SimpleStat(getDataStore().getTotalVodNumber());
 	}
@@ -104,6 +107,7 @@ public class VoDRestService extends RestServiceBase{
 	})
 	@GET
 	@Path("/count/{search}")
+	@Produces(MediaType.APPLICATION_JSON)
 	public SimpleStat getTotalVodNumber(
 			@Parameter(description = "Search parameter to get the number of items including it", required = true) @PathParam("search") String search) {
 		return new SimpleStat(getDataStore().getPartialVodNumber(search));
@@ -115,6 +119,7 @@ public class VoDRestService extends RestServiceBase{
 	})
 	@DELETE
 	@Path("/{id}")
+	@Produces(MediaType.APPLICATION_JSON)
 	public Result deleteVoD(
 			@Parameter(description = "ID of the VoD file", required = true)
 			@PathParam("id") String id) {
