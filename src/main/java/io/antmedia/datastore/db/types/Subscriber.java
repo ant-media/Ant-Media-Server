@@ -2,6 +2,8 @@ package io.antmedia.datastore.db.types;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
@@ -51,7 +53,7 @@ public class Subscriber {
     /**
      * Secret code of the Subscriber
      */
-    @JsonIgnore
+	@JsonProperty(access = Access.WRITE_ONLY)
     @Schema(description = "Secret code of the subscriber")
     private String b32Secret;
 
