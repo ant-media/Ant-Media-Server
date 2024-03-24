@@ -12,9 +12,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import javax.validation.constraints.NotNull;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -82,6 +79,7 @@ import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
+import jakarta.validation.constraints.NotNull;
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";

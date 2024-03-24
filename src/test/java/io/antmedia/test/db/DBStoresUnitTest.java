@@ -1876,9 +1876,9 @@ public class DBStoresUnitTest {
 
 		List<TensorFlowObject> list = dataStore.getDetectionList("id", 0, 10);
 		assertEquals(1,list.size());
-		assertEquals(item1, list.get(0).objectName);
-		assertEquals(probability1, list.get(0).probability,0.1F);
-		assertEquals(detectionTime, list.get(0).detectionTime);	
+		assertEquals(item1, list.get(0).getObjectName());
+		assertEquals(probability1, list.get(0).getProbability(),0.1F);
+		assertEquals(detectionTime, list.get(0).getDetectionTime());	
 		
 		assertEquals(minX, list.get(0).getMinX(), 0.0001);	
 		assertEquals(minY, list.get(0).getMinY(), 0.0001);	

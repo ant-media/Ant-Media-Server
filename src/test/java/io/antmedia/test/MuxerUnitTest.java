@@ -2727,7 +2727,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		try {
 			FileInputStream fis = new FileInputStream("src/test/resources/frame0");
-			byte[] byteArray = IOUtils.toByteArray(fis);
+
+			byte[] byteArray = fis.readAllBytes();
 
 			fis.close();
 
@@ -2795,7 +2796,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		try {
 			FileInputStream fis = new FileInputStream("src/test/resources/frame0");
-			byte[] byteArray = IOUtils.toByteArray(fis);
+			byte[] byteArray = fis.readAllBytes();
 
 			fis.close();
 
@@ -2872,7 +2873,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		try {
 			FileInputStream fis = new FileInputStream("src/test/resources/frame0");
-			byte[] byteArray = IOUtils.toByteArray(fis);
+			byte[] byteArray = fis.readAllBytes();
 
 			fis.close();
 

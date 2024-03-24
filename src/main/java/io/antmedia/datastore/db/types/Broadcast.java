@@ -13,11 +13,10 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 
-@ApiModel(value="Broadcast", description="The basic broadcast class")
+@Schema(description="The basic broadcast class")
 @Entity(value = "broadcast")
 @Indexes({ @Index(fields = @Field(value = "name", type = IndexType.TEXT)), @Index(fields = @Field("streamId")) })
 public class Broadcast {
@@ -30,54 +29,54 @@ public class Broadcast {
 	/**
 	 * id of the broadcast
 	 */
-	@ApiModelProperty(value = "the id of the stream")
+	@Schema(description = "the id of the stream")
 	private String streamId;
 
 	/**
 	 * "finished", "broadcasting", "created"
 	 */
 
-	@ApiModelProperty(value = "the status of the stream", allowableValues = "finished, broadcasting,created")
+	@Schema(description = "the status of the stream", allowableValues = "finished,broadcasting,created")
 	private String status;
 
-	@ApiModelProperty(value = "the status of the playlist. It's usable if type is playlist", allowableValues = "finished, broadcasting,created")
+	@Schema(description = "The status of the playlist. It's usable if type is playlist", allowableValues = "finished,broadcasting,created")
 	private String playListStatus;
 	
 	/**
 	 * "liveStream", "ipCamera", "streamSource", "VoD"
 	 */
-	@ApiModelProperty(value = "the type of the stream", allowableValues = "liveStream, ipCamera,streamSource,VoD,playlist")
+	@Schema(description = "the type of the stream", allowableValues = "liveStream,ipCamera,streamSource,VoD,playlist")
 	private String type;
 
 	/**
 	 * "WebRTC", "RTMP", "Pull"
 	 */
-	@ApiModelProperty(value = "the publish type of the stream", allowableValues = "WebRTC, RTMP, Pull")
+	@Schema(description = "The publish type of the stream. It's read-only and its value updated on the server side", allowableValues = "WebRTC,RTMP,Pull")
 	private String publishType;
 
 	/**
 	 * name of the broadcast
 	 */
-	@ApiModelProperty(value = "the name of the stream")
+	@Schema(description = "the name of the stream")
 	private String name;
 
 	/**
 	 * description of the broadcast
 	 */
-	@ApiModelProperty(value = "the description of the stream")
+	@Schema(description ="the description of the stream")
 	private String description;
 
 	/**
 	 * It is a video filter for the service, this value is controlled by the
 	 * user, default value is true in the db
 	 */
-	@ApiModelProperty(value = "it is a video filter for the service, this value is controlled by the user, default value is true in the db")
+	@Schema(description ="it is a video filter for the service, this value is controlled by the user, default value is true in the db")
 	private boolean publish = true;
 
 	/**
 	 * date when record is created in milliseconds
 	 */
-	@ApiModelProperty(value = "the date when record is created in milliseconds")
+	@Schema(description ="the date when record is created in milliseconds")
 	private long date;
 
 	/**
@@ -87,7 +86,7 @@ public class Broadcast {
 	 * This feature is enabled in RTMP and WebRTC streams
 	 * Streams are accepting when plannedStartDate is lower than now(Unix Timestamp)
 	 */
-	@ApiModelProperty(value = "the planned start date")
+	@Schema(description ="the planned start date")
 	private long plannedStartDate;
 
 	/**
@@ -97,32 +96,32 @@ public class Broadcast {
 	 * This feature is enabled in RTMP and WebRTC streams
 	 * Streams are accepting when plannedEndDate is higher than now(Unix Timestamp)
 	 */
-	@ApiModelProperty(value = "the planned end date")
+	@Schema(description ="the planned end date")
 	private long plannedEndDate;
 
 	/**
 	 * duration of the stream in milliseconds
 	 */
-	@ApiModelProperty(value = "the duration of the stream in milliseconds")
+	@Schema(description ="the duration of the stream in milliseconds")
 	private long duration;
 
-	@ApiModelProperty(value = "the list of endpoints such as Facebook, Twitter or custom RTMP endpoints  ")
+	@Schema(description ="the list of endpoints such as Facebook, Twitter or custom RTMP endpoints  ")
 	private List<Endpoint> endPointList;
 
 
-	@ApiModelProperty(value = "the list broadcasts in the playlis. This list has values when the broadcast type is playlist")
+	@Schema(description ="the list broadcasts in the playlis. This list has values when the broadcast type is playlist")
 	private List<PlayListItem> playListItemList;
 
 	/**
 	 * is public
 	 */
-	@ApiModelProperty(value = "the identifier of whether stream is public or not")
+	@Schema(description ="the identifier of whether stream is public or not")
 	private boolean publicStream = true;
 
 	/**
 	 * If this stream is a 360 degree video
 	 */
-	@ApiModelProperty(value = "the identifier of whether stream is 360 or not")
+	@Schema(description ="the identifier of whether stream is 360 or not")
 	private boolean is360 = false;
 
 	/**
@@ -152,59 +151,59 @@ public class Broadcast {
 	 *
 	 */
 
-	@ApiModelProperty(value = "the url that will be notified when stream is published, ended and muxing finished")
+	@Schema(description ="the url that will be notified when stream is published, ended and muxing finished")
 	private String listenerHookURL;
 
-	@ApiModelProperty(value = "the category of the stream")
+	@Schema(description ="the category of the stream")
 	private String category;
 
-	@ApiModelProperty(value = "the IP Address of the IP Camera or publisher")
+	@Schema(description ="the IP Address of the IP Camera or publisher")
 	private String ipAddr;
 
-	@ApiModelProperty(value = "the user name of the IP Camera")
+	@Schema(description ="the user name of the IP Camera")
 	private String username;
 
-	@ApiModelProperty(value = "the password of the IP Camera")
+	@Schema(description ="the password of the IP Camera")
 	private String password;
 
-	@ApiModelProperty(value = "the quality of the incoming stream during publishing")
+	@Schema(description ="the quality of the incoming stream during publishing")
 	private String quality;
 
-	@ApiModelProperty(value = "the speed of the incoming stream, for better quality and performance it should be around 1.00")
+	@Schema(description ="the speed of the incoming stream, for better quality and performance it should be around 1.00")
 	private double speed;
 
 	/**
 	 * This is the stream url for fetching stream.
 	 * It has a value for IPCameras and streams in the cloud
 	 */
-	@ApiModelProperty(value = "the stream URL for fetching stream, especially should be defined for IP Cameras or Cloud streams")
+	@Schema(description ="the stream URL for fetching stream, especially should be defined for IP Cameras or Cloud streams")
 	private String streamUrl;
 
 	/**
 	 * This is the origin address server broadcasting.
 	 */
-	@ApiModelProperty(value = "the origin address server broadcasting")
+	@Schema(description ="the origin address server broadcasting")
 	private String originAdress;
 
 	/**
 	 * Mp4 muxing is enabled or not for the stream
 	 * 1 means enabled, -1 means disabled, 0 means no settings for the stream
 	 */
-	@ApiModelProperty(value = "MP4 muxing whether enabled or not for the stream, 1 means enabled, -1 means disabled, 0 means no settings for the stream")
+	@Schema(description ="MP4 muxing whether enabled or not for the stream, 1 means enabled, -1 means disabled, 0 means no settings for the stream")
 	private int mp4Enabled = 0;
 
 	/**
 	 * WebM muxing is enabled or not for the stream
 	 * 1 means enabled, -1 means disabled, 0 means no settings for the stream
 	 */
-	@ApiModelProperty(value = "WebM muxing whether enabled or not for the stream, 1 means enabled, -1 means disabled, 0 means no settings for the stream")
+	@Schema(description ="WebM muxing whether enabled or not for the stream, 1 means enabled, -1 means disabled, 0 means no settings for the stream")
 	private int webMEnabled = 0;
 	
 	/**
 	 * Initial time to start playing. It can be used in VoD file or stream sources that has seek support 
 	 * If it's a VoD file, it can seek to that time and start playing there
 	 */
-	@ApiModelProperty(value = "Initial time to start playing. It can be used in VoD file or stream sources that has seek support")
+	@Schema(description ="Initial time to start playing. It can be used in VoD file or stream sources that has seek support")
 	private long seekTimeInMs = 0;
 
 	@Entity
@@ -275,13 +274,13 @@ public class Broadcast {
 	 *
 	 * If expire duration is 0, then stream will never expire
 	 */
-	@ApiModelProperty(value = "the expire time in milliseconds For instance if this value is 10000 then broadcast should be started in 10 seconds after it is created.If expire duration is 0, then stream will never expire")
+	@Schema(description ="the expire time in milliseconds For instance if this value is 10000 then broadcast should be started in 10 seconds after it is created.If expire duration is 0, then stream will never expire")
 	private int expireDurationMS;
 
 	/**
 	 * RTMP URL where to publish live stream to
 	 */
-	@ApiModelProperty(value = "the RTMP URL where to publish live stream to")
+	@Schema(description ="the RTMP URL where to publish live stream to")
 	private String rtmpURL;
 
 	/**
@@ -289,7 +288,7 @@ public class Broadcast {
 	 * rest service or management console It is false by default
 	 *
 	 */
-	@ApiModelProperty(value = "is true, if a broadcast that is not added to data store through rest service or management console It is false by default")
+	@Schema(description ="is true, if a broadcast that is not added to data store through rest service or management console It is false by default")
 	private boolean zombi = false;
 
 	/**
@@ -298,14 +297,14 @@ public class Broadcast {
 	 * in the queue
 	 */
 
-	@ApiModelProperty(value = "the number of audio and video packets that is being pending to be encoded in the queue ")
+	@Schema(description ="the number of audio and video packets that is being pending to be encoded in the queue ")
 	private int pendingPacketSize = 0;
 
 	/**
 	 * number of hls viewers of the stream
 	 */
 
-	@ApiModelProperty(value = "the number of HLS viewers of the stream")
+	@Schema(description ="the number of HLS viewers of the stream")
 	private int hlsViewerCount = 0;
 	
 
@@ -313,67 +312,67 @@ public class Broadcast {
 	 * number of dash viewers of the stream
 	 */
 
-	@ApiModelProperty(value = "the number of DASH viewers of the stream")
+	@Schema(description ="the number of DASH viewers of the stream")
 	private int dashViewerCount = 0;
 
-	@ApiModelProperty(value = "the number of WebRTC viewers of the stream")
+	@Schema(description ="the number of WebRTC viewers of the stream")
 	private int webRTCViewerCount = 0;
 
-	@ApiModelProperty(value = "the number of RTMP viewers of the stream")
+	@Schema(description ="the number of RTMP viewers of the stream")
 	private int rtmpViewerCount = 0;
 
-	@ApiModelProperty(value = "the publishing start time of the stream")
+	@Schema(description ="the publishing start time of the stream")
 	private long startTime = 0;
 
-	@ApiModelProperty(value = "the received bytes until now")
+	@Schema(description ="the received bytes until now")
 	private long receivedBytes = 0;
 
-	@ApiModelProperty(value = "the received bytes / duration")
+	@Schema(description ="the received bytes / duration")
 	private long bitrate = 0;
 
-	@ApiModelProperty(value = "User - Agent")
+	@Schema(description ="User - Agent")
 	private String userAgent = "N/A";
 
-	@ApiModelProperty(value = "latitude of the broadcasting location")
+	@Schema(description ="latitude of the broadcasting location")
 	private String latitude;
 
-	@ApiModelProperty(value = "longitude of the broadcasting location")
+	@Schema(description ="longitude of the broadcasting location")
 	private String longitude;
 
-	@ApiModelProperty(value = "altitude of the broadcasting location")
+	@Schema(description ="altitude of the broadcasting location")
 	private String altitude;
 
-	@ApiModelProperty(value = "If this broadcast is a track of a WebRTC stream. This variable is Id of that stream.")
+	@Schema(description ="If this broadcast is a track of a WebRTC stream. This variable is Id of that stream.")
 	private String mainTrackStreamId;
 
-	@ApiModelProperty(value = "If this broadcast is main track. This variable hold sub track ids.")
+	@Schema(description ="If this broadcast is main track. This variable hold sub track ids.")
 	private List<String> subTrackStreamIds = new ArrayList<String>();
 
-	@ApiModelProperty(value = "Absolute start time in milliseconds - unix timestamp. It's used for measuring the absolute latency")
+	@Schema(description ="Absolute start time in milliseconds - unix timestamp. It's used for measuring the absolute latency")
 	private long absoluteStartTimeMs;
 
-	@ApiModelProperty(value = "Number of the allowed maximum WebRTC viewers for the broadcast")
+	@Schema(description ="Number of the allowed maximum WebRTC viewers for the broadcast")
 	private int webRTCViewerLimit = -1;
 
-	@ApiModelProperty(value = "Number of the allowed maximum HLS viewers for the broadcast")
+	@Schema(description ="Number of the allowed maximum HLS viewers for the broadcast")
 	private int hlsViewerLimit = -1;
 	
-	@ApiModelProperty(value = "Number of the allowed maximum DASH viewers for the broadcast")
+	@Schema(description ="Number of the allowed maximum DASH viewers for the broadcast")
 	private int dashViewerLimit = -1;
 
-	@ApiModelProperty(value = "Name of the subfolder that will contain stream files")
+	@Schema(description ="Name of the subfolder that will contain stream files")
 	private String subFolder;
 
 	/**
 	 * Current playing index for play lists
 	 */
-	@ApiModelProperty(value = "Current playing index for playlist types")
+	@Schema(description ="Current playing index for playlist types")
 	private int currentPlayIndex = 0;
 	
 	/**
 	 * Meta data filed for the custom usage
 	 */
-	@ApiModelProperty(value = "Meta data filed for the custom usage")
+	@Schema(description ="Meta data filed for the custom usage")
 	private String metaData = null;
 	
 	/**
@@ -381,7 +380,7 @@ public class Broadcast {
 	 * If it's true, playlist will be loop infinitely. If it's false, playlist played once and finished.
 	 * It's enable by default
 	 */
-	@ApiModelProperty(value = "the identifier of playlist loop status")
+	@Schema(description ="the identifier of playlist loop status")
 	private boolean playlistLoopEnabled = true;
 	
 	/**
@@ -390,7 +389,7 @@ public class Broadcast {
 	 */
 	private long updateTime = 0;
 
-	@ApiModelProperty(value = "The identifier of whether stream should start/stop automatically. It's effective for Stream Sources/IP Cameras. "
+	@Schema(description ="The identifier of whether stream should start/stop automatically. It's effective for Stream Sources/IP Cameras. "
 			+ "If there is no viewer after certain amount of seconds, it will stop. If there is an user want to watch the stream, it will start automatically")
 	private boolean autoStartStopEnabled = false;
 
