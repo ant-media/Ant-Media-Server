@@ -222,7 +222,6 @@ public class AppSettings implements Serializable{
 	/**
 	 * @hidden
 	 */
-	private static final String SETTINGS_STREAM_FETCHER_AUTO_START = "settings.streamFetcherAutoStart";
 	/**
 	 * @hidden
 	 */
@@ -1138,7 +1137,7 @@ public class AppSettings implements Serializable{
 	 * If it is true, stream sources are started automatically when server is started
 	 * If it's false, stream sources need to be started programmatically or manually by the user
 	 */
-	@Value( "${streamFetcherAutoStart:${"+SETTINGS_STREAM_FETCHER_AUTO_START+":false}}" )
+	@Value("${startStreamFetcherAutomatically:false}")
 	private boolean startStreamFetcherAutomatically;
 
 	/**

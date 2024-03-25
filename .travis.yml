@@ -51,6 +51,10 @@ before_install:
   #install mongodb ffmpeg wondershaper 
   - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
   - sudo mongod --dbpath /var/lib/mongodb &>/dev/null & # start mongo db - don' write log
+  #install chrome
+  - wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+  - sudo apt install ./google-chrome-stable_current_amd64.deb -y
+
   - sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
     # get parent project
   - (if [ $(git ls-remote https://github.com/ant-media/ant-media-server-parent.git $TRAVIS_BRANCH  | wc -l) == "1" ];  
@@ -174,13 +178,12 @@ cache:
     
 after_failure:
   - sudo cat /usr/local/antmedia/log/ant-media-server.log
-  - echo "----------------------------------------------"
   - sudo cat /usr/local/antmedia/log/antmedia-error.log
-  - sudo service mongod status
-  - sudo service redis-server status
   - sudo cat /var/log/mongodb/mongod.log
   - sudo cat /usr/local/antmedia/hs_err_pid*.log  # cat hs_err_pid file if it exists
   - sudo cat hs_err_pid*.log  # cat hs_err_pid file if it exists
+  - sudo service mongod status
+  - sudo service redis-server status
  
 
 deploy:
