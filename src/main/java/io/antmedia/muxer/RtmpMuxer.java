@@ -344,7 +344,7 @@ public class RtmpMuxer extends Muxer {
 			}
 			else {
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-				logPacketIssue("Write audio packet for stream:{} and url:{}. Packet pts:{} dts:{} and Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
+				logPacketIssue("Write audio packet for stream:{} and url:{}. Packet pts:{} dts:{}", streamId, getOutputURL(), pkt.pts(), pkt.dts());
 
 			}
 		}
@@ -371,7 +371,7 @@ public class RtmpMuxer extends Muxer {
 			
 		}
 		else {
-			logPacketIssue("Write video packet for stream:{} and url:{}. Packet pts:{}, dts:{} Error is {}", streamId, getOutputURL(), pkt.pts(), pkt.dts(),  getErrorDefinition(ret));
+			logPacketIssue("Write video packet for stream:{} and url:{}. Packet pts:{}, dts:{}", streamId, getOutputURL(), pkt.pts(), pkt.dts());
 
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		}
