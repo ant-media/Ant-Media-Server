@@ -983,9 +983,11 @@ public class InMemoryDataStore extends DataStore {
 			if (subTracks == null) {
 				subTracks = new ArrayList<>();
 			}
-			subTracks.add(subTrackId);
-			mainTrack.setSubTrackStreamIds(subTracks);
-			broadcastMap.put(mainTrackId, mainTrack);
+			if (!subTracks.contains(subTrackId)) {
+				subTracks.add(subTrackId);
+				mainTrack.setSubTrackStreamIds(subTracks);
+				broadcastMap.put(mainTrackId, mainTrack);
+			}
 			result = true;
 		}
 		return result;

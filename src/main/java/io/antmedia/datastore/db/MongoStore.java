@@ -806,6 +806,22 @@ public class MongoStore extends DataStore {
 				if (broadcast.getSpeed() != 0) {
 					updates.add(set("speed", broadcast.getSpeed()));
 				}
+
+				if (broadcast.getPublisherRequestList() != null) {
+					updates.add(set("publisherRequestList", broadcast.getPublisherRequestList()));
+				}
+
+				if (broadcast.getPublisherFromListenerList() != null) {
+					updates.add(set("publisherFromListenerList", broadcast.getPublisherFromListenerList()));
+				}
+
+				if (broadcast.getPresenterList() != null) {
+					updates.add(set("presenterList", broadcast.getPresenterList()));
+				}
+
+				if (broadcast.getAdminList() != null) {
+					updates.add(set("adminList", broadcast.getAdminList()));
+				}
 				
 
 				prepareFields(broadcast, updates);
@@ -1349,7 +1365,7 @@ public class MongoStore extends DataStore {
 				if (subTrackId != null) {
 					return datastore.find(Broadcast.class)
 							.filter(Filters.eq(STREAM_ID, mainTrackId))
-							.update(UpdateOperators.push("subTrackStreamIds", subTrackId))
+							.update(UpdateOperators.addToSet("subTrackStreamIds", subTrackId))
 							.execute()
 							.getMatchedCount() == 1;
 				}

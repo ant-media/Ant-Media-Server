@@ -1471,11 +1471,11 @@ public abstract class RestServiceBase {
 		}
 
 
-		if (index < broadcast.getPlayListItemList().size()) 
-		{	
+		if (index < broadcast.getPlayListItemList().size())
+		{
 			StreamFetcher streamFetcher = getApplication().getStreamFetcherManager().getStreamFetcher(id);
-			if (streamFetcher != null) 
-			{	
+			if (streamFetcher != null)
+			{
 				IStreamFetcherListener streamFetcherListener = streamFetcher.getStreamFetcherListener();
 				//don't let the streamFetcherListener be called again because it already automatically plays the next item
 
@@ -1934,12 +1934,14 @@ public abstract class RestServiceBase {
 
 			{
 				message = "Main track of the stream " + subTrackId + " cannot be updated";
+
 				logWarning("Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
 			}
 		}
 		else
 		{
 			message = "There is not stream with id:" + subTrackId;
+
 			logWarning("There is not stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
 		}
 		result.setMessage(message);
@@ -2020,7 +2022,6 @@ public abstract class RestServiceBase {
 			return new Result(false, "Operation not supported in the Community Edition. Check the Enterprise version for more features.");
 		}
 	}
-
 
 	public static synchronized boolean removeStreamFromRoom(String roomId, String streamId,DataStore store)
 	{

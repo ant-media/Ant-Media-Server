@@ -1011,9 +1011,11 @@ public abstract class MapBasedDataStore extends DataStore {
 				if (subTracks == null) {
 					subTracks = new ArrayList<>();
 				}
-				subTracks.add(subTrackId);
-				broadcast.setSubTrackStreamIds(subTracks);
-				setBroadcastToMap(broadcast, mainTrackId);
+				if (!subTracks.contains(subTrackId)) {
+					subTracks.add(subTrackId);
+					broadcast.setSubTrackStreamIds(subTracks);
+					setBroadcastToMap(broadcast, mainTrackId);
+				}
 				result = true;
 			}
 		}
