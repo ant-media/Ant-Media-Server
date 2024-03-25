@@ -24,7 +24,6 @@ import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
 import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
-import static org.bytedeco.ffmpeg.global.avutil.av_get_default_channel_layout;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -59,12 +58,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.antmedia.EncoderSettings;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.mina.core.buffer.IoBuffer;
@@ -107,8 +106,6 @@ import org.red5.io.flv.impl.Tag;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamPacket;
-import org.red5.server.net.protocol.RTMPDecodeState;
-import org.red5.server.net.rtmp.RTMPConnection;
 import org.red5.server.net.rtmp.RTMPMinaConnection;
 import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.codec.RTMPProtocolDecoder;
@@ -133,10 +130,8 @@ import io.antmedia.RecordType;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
-import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.HLSMuxer;
@@ -159,7 +154,6 @@ import io.antmedia.storage.AmazonS3StorageClient;
 import io.antmedia.storage.StorageClient;
 import io.antmedia.test.utils.VideoInfo;
 import io.antmedia.test.utils.VideoProber;
-import io.netty.handler.codec.DecoderException;
 import io.vertx.core.Vertx;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -843,7 +837,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Application / web scope: {}", appScope);
 		assertEquals(1, appScope.getDepth());
 
-		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class), false, appScope));
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(Mockito.mock(ClientBroadcastStream.class), null, false, appScope));
 		muxAdaptor.setAudioDataConf(new byte[]{0, 0});
 
 		assertNull(muxAdaptor.getAudioCodecParameters());
@@ -867,7 +861,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Application / web scope: {}", appScope);
 		assertTrue(appScope.getDepth() == 1);
 
-		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
 		String rtmpUrl = "rtmp://test.com/live/stream";
 		Integer resolution = 0;
 
@@ -897,7 +891,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Application / web scope: {}", appScope);
 		assertTrue(appScope.getDepth() == 1);
 
-		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
 
 		muxAdaptor.setIsRecording(true);
 		Mockito.doReturn(true).when(muxAdaptor).prepareMuxer(Mockito.any(), anyInt());
@@ -939,7 +933,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Application / web scope: {}", appScope);
 		assertTrue(appScope.getDepth() == 1);
 
-		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
 		Broadcast broadcast = new Broadcast();
 		try {
 			broadcast.setStreamId("test");
@@ -984,7 +978,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Application / web scope: {}", appScope);
 		assertTrue(appScope.getDepth() == 1);
 
-		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
 
 		String rtmpUrl = "rtmp://localhost/LiveApp/test12";
 		Broadcast broadcast = new Broadcast();
@@ -1111,7 +1105,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Application / web scope: {}", appScope);
 		assertTrue(appScope.getDepth() == 1);
 
-		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
 		Broadcast broadcast = new Broadcast();
 		try {
 			broadcast.setStreamId("test");
@@ -1443,7 +1437,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(appScope.getDepth() == 1);
 		}
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope);
 		int createPreviewPeriod = (int) (Math.random() * 10000);
 		assertNotEquals(0, createPreviewPeriod);
 		getAppSettings().setCreatePreviewPeriod(createPreviewPeriod);
@@ -1479,7 +1473,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		List<EncoderSettings> adaptiveResolutionList = Arrays.asList(new EncoderSettings(144, 150000, 32000,true));
+
+
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, adaptiveResolutionList, false, appScope);
 
 		//this value should be -1. It means it is uninitialized
 		assertEquals(0, muxAdaptor.getPacketTimeList().size());
@@ -1554,7 +1551,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			List<MuxAdaptor> muxAdaptorList = new ArrayList<>();
 			for (int j = 0; j < 5; j++) {
-				MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+				MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, Arrays.asList(), false, appScope);
 				muxAdaptorList.add(muxAdaptor);
 			}
 			{
@@ -1936,7 +1933,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		clientBroadcastStream.setCodecInfo(info);
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 
 		if (getDataStore().get(name) == null) {
 			Broadcast broadcast = new Broadcast();
@@ -2007,7 +2004,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope);
 		String streamId = "stream_id" + (int) (Math.random() * 10000);
 
 		Broadcast broadcast = new Broadcast();
@@ -2033,7 +2030,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(appScope.getDepth() == 1);
 		}
 
-		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
 		ConcurrentSkipListSet<IStreamPacket> bufferQueue = muxAdaptor.getBufferQueue();
 
 
@@ -2092,7 +2089,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testAddBufferQueue() 
 	{
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
 
 		muxAdaptor.setBufferTimeMs(1000);
 
@@ -2144,7 +2141,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(appScope.getDepth() == 1);
 		}
 
-		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
 
 		muxAdaptor.setBuffering(true);
 		muxAdaptor.writeBufferedPacket();
@@ -2201,7 +2198,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		clientBroadcastStream.setCodecInfo(info);
 
-		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope));
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope));
 
 		ITag tag = new Tag((byte) 0, 0, 10, IoBuffer.allocate(10), BUFFER_SIZE);
 		StreamPacket streamPacket = new StreamPacket(tag);
@@ -2234,7 +2231,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			clientBroadcastStream.setCodecInfo(info);
 
-			MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+			MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 
 			//increase max analyze duration to some higher value because it's also to close connections if packet is not received
 			getAppSettings().setMaxAnalyzeDurationMS(5000);
@@ -2351,7 +2348,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		clientBroadcastStream.setCodecInfo(info);
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 
 		if (getDataStore().get(name) == null) {
 			Broadcast broadcast = new Broadcast();
@@ -2431,7 +2428,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope);
 
 
 		String streamId = "streamId";
@@ -2520,7 +2517,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 
 		//File file = new File(getResource("test.mp4").getFile());
 		File file = null;
@@ -2623,7 +2620,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(hlsMuxerTester.isUploadingToS3());
 
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 		muxAdaptor.setStorageClient(client);
 
 		File file = null;
@@ -3085,7 +3082,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 
 		appScope.createChildScope("child");
 
@@ -3283,7 +3280,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 
 		File file = null;
 		try {
@@ -3407,7 +3404,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 
 		File file = null;
 		try {
@@ -3546,7 +3543,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 		getAppSettings().setMp4MuxingEnabled(false);
 		getAppSettings().setHlsMuxingEnabled(false);
 
@@ -3878,7 +3875,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(clientBroadcastStream.getCodecInfo().hasAudio());
 
 		getAppSettings().setMaxAnalyzeDurationMS(3000);
-		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope));
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope));
 		Broadcast broadcast = new Broadcast();
 		try {
 			broadcast.setStreamId("name");
@@ -3924,7 +3921,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 		}
 
-		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, null, false, appScope));
 		muxAdaptor.setBroadcast(broadcast);
 		muxAdaptor.init(appScope, streamId, false);
 		doNothing().when(muxAdaptor).updateQualityParameters(Mockito.anyLong(), any());
@@ -4016,7 +4013,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String mainTrackId = "mainTrack" + RandomUtils.nextInt(0, 10000);
 		params1.put("mainTrack", mainTrackId);
 		clientBroadcastStream1.setParameters(params1);
-		MuxAdaptor muxAdaptor1 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream1, false, appScope));
+		MuxAdaptor muxAdaptor1 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream1, null, false, appScope));
 
 		String sub1 = "subtrack1" + RandomUtils.nextInt(0, 10000);
 		;
@@ -4037,7 +4034,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		ClientBroadcastStream clientBroadcastStream2 = new ClientBroadcastStream();
 		clientBroadcastStream2.setCodecInfo(info);
 		clientBroadcastStream2.setParameters(params1);
-		MuxAdaptor muxAdaptor2 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream2, false, appScope));
+		MuxAdaptor muxAdaptor2 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream2, null, false, appScope));
 		muxAdaptor2.setStreamId(sub2);
 		doReturn(new Broadcast()).when(muxAdaptor2).getBroadcast();
 		doReturn(ds1).when(muxAdaptor2).getDataStore();
@@ -4053,7 +4050,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		ClientBroadcastStream clientBroadcastStream3 = new ClientBroadcastStream();
 		clientBroadcastStream3.setCodecInfo(info);
-		MuxAdaptor muxAdaptor3 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream3, false, appScope));
+		MuxAdaptor muxAdaptor3 = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream3, null, false, appScope));
 		muxAdaptor3.setStreamId("stream3");
 		DataStore ds2 = mock(DataStore.class);
 		doReturn(ds2).when(muxAdaptor3).getDataStore();
@@ -4070,7 +4067,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(appScope.getDepth() == 1);
 		}
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 
 		muxAdaptor.getBufferQueue().add(createPacket(Constants.TYPE_AUDIO_DATA, 10));
 		muxAdaptor.getBufferQueue().add(createPacket(Constants.TYPE_VIDEO_DATA, 15));
@@ -4161,7 +4158,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(appScope.getDepth() == 1);
 		}
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
-		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 		MuxAdaptor muxAdaptor = spy(muxAdaptorReal);
 		muxAdaptor.setIsRecording(true);
 		muxAdaptor.setHeight(480);
@@ -4186,7 +4183,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(appScope.getDepth() == 1);
 		}
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
-		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 		MuxAdaptor muxAdaptor = spy(muxAdaptorReal);
 		muxAdaptor.setIsRecording(true);
 		muxAdaptor.setHeight(480);
@@ -4212,7 +4209,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertTrue(appScope.getDepth() == 1);
 		}
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
-		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 		MuxAdaptor muxAdaptor = spy(muxAdaptorReal);
 
 		String data = "test data";
@@ -4266,7 +4263,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
-		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 		MuxAdaptor muxAdaptor = spy(muxAdaptorReal);
 
 		try {

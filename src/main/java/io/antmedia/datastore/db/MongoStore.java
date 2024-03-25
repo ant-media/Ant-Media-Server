@@ -806,6 +806,10 @@ public class MongoStore extends DataStore {
 				if (broadcast.getSpeed() != 0) {
 					updates.add(set("speed", broadcast.getSpeed()));
 				}
+
+				if(broadcast.getEncoderSettingsString() != null){
+					updates.add(set("encoderSettingsString",broadcast.getEncoderSettingsString()));
+				}
 				
 
 				prepareFields(broadcast, updates);

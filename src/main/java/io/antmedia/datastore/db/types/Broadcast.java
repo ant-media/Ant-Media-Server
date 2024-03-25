@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dev.morphia.utils.IndexType;
+import io.antmedia.EncoderSettings;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -14,6 +15,9 @@ import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import static io.antmedia.AppSettings.encodersList2Str;
+import static io.antmedia.AppSettings.encodersStr2List;
 
 
 @Schema(description="The basic broadcast class")
@@ -205,6 +209,12 @@ public class Broadcast {
 	 */
 	@Schema(description ="Initial time to start playing. It can be used in VoD file or stream sources that has seek support")
 	private long seekTimeInMs = 0;
+
+	/**
+	 * Broadcast level ABR settings.
+	 */
+	@ApiModelProperty(value = "Encoder settings for broadcast level ABR")
+	private String encoderSettingsString;
 
 	@Entity
 	public static class PlayListItem
@@ -869,6 +879,22 @@ public class Broadcast {
 
 	public void setAutoStartStopEnabled(boolean autoStartStopEnabled) {
 		this.autoStartStopEnabled = autoStartStopEnabled;
+	}
+
+	public List<EncoderSettings> getEncoderSettings() {
+		return encodersStr2List(encoderSettingsString);
+	}
+
+	public String getEncoderSettingsString(){
+		return encoderSettingsString;
+	}
+
+	public void setEncoderSettings(List<EncoderSettings> settings) {
+		encoderSettingsString = encodersList2Str(settings);
+	}
+
+	public void setEncoderSettingsString(String encoderSettingsString) {
+		this.encoderSettingsString = encoderSettingsString;
 	}
 
 	public long getSeekTimeInMs() {
