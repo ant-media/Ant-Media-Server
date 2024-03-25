@@ -1279,7 +1279,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertEquals(streamCount, broadcastList.size());
 
 		for (Broadcast item: broadcastList) {
-			Result result = restServiceReal.deleteBroadcasts(new String[] {item.getStreamId()});
+			Result result = restServiceReal.deleteBroadcastsBulk(item.getStreamId());
 			assertTrue(result.isSuccess());
 		}
 
@@ -1298,7 +1298,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
 
-			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
+			Result result = restServiceReal.deleteBroadcastsBulk(broadcast.getStreamId());
 			assertTrue(result.isSuccess());
 		}
 
@@ -1313,7 +1313,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("127.0.0.1");
 
-			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
+			Result result = restServiceReal.deleteBroadcastsBulk(broadcast.getStreamId());
 			assertTrue(result.isSuccess());
 		}
 
@@ -1328,15 +1328,15 @@ public class BroadcastRestServiceV2UnitTest {
 
 			when(restServiceReal.getServerSettings().getHostAddress()).thenReturn("55.55.55.55");
 
-			Result result = restServiceReal.deleteBroadcasts(new String[] {broadcast.getStreamId()});
+			Result result = restServiceReal.deleteBroadcastsBulk(broadcast.getStreamId());
 			assertTrue(result.isSuccess());
 		}
 		
 		{
-			Result result = restServiceReal.deleteBroadcasts(new String[] {});
+			Result result = restServiceReal.deleteBroadcasts(null);
 			assertFalse(result.isSuccess());
 			
-			result = restServiceReal.deleteBroadcasts(null);
+			result = restServiceReal.deleteBroadcastsBulk(null);
 			assertFalse(result.isSuccess());
 		}
 

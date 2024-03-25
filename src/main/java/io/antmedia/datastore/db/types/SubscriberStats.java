@@ -4,42 +4,42 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dev.morphia.annotations.Entity;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel(value="SubscriberStats", description="Statistics for each subsciber to the stream")
+@Schema(description="Statistics for each subsciber to the stream")
 @Entity
 public class SubscriberStats {
 	
 	/**
-	 * subscriber id to which this statistic belongs to
-	 */
-	@ApiModelProperty(value = "the subscriber id of the subscriber")
-	private String subscriberId;
-	
-	/**
-	 * related streamId with subscriber
-	 */
-	@ApiModelProperty(value = "the stream id of the token")
-	private String streamId;
-	
-	/**
-	 * connection events happened for this subscriber
-	 */
-	@ApiModelProperty(value = "list of connection events")
-	private List<ConnectionEvent> connectionEvents = new ArrayList<>();
+     * The subscriber id to which this statistic belongs to.
+     */
+    @Schema(description = "The subscriber id of the subscriber")
+    private String subscriberId;
 
-	/**
-	 * average video bitrate for a subscriber
-	 */
-	@ApiModelProperty(value = "average video bitrate for a subscriber")
-	private long avgVideoBitrate;
+    /**
+     * The related streamId with the subscriber.
+     */
+    @Schema(description = "The stream id of the token")
+    private String streamId;
 
-	/**
-	 * average audio bitrate for a subscriber
-	 */
-	@ApiModelProperty(value = "average audio bitrate for a subscriber")
-	private long avgAudioBitrate; 
+    /**
+     * The connection events happened for this subscriber.
+     */
+    @Schema(description = "List of connection events")
+    private List<ConnectionEvent> connectionEvents = new ArrayList<>();
+
+    /**
+     * The average video bitrate for a subscriber.
+     */
+    @Schema(description = "Average video bitrate for a subscriber")
+    private long avgVideoBitrate;
+
+    /**
+     * The average audio bitrate for a subscriber.
+     */
+    @Schema(description = "Average audio bitrate for a subscriber")
+    private long avgAudioBitrate;
+
 
 	public String getSubscriberId() {
 		return subscriberId;

@@ -11,30 +11,29 @@ import dev.morphia.annotations.Indexes;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @Entity("P2PConnection")
 @Indexes({ @Index(fields = @Field("streamId")) })
-@ApiModel(value="P2PConnection", description="P2P Signalling Connection Info")
+@Schema(description = "P2P Signalling Connection Info")
 public class P2PConnection implements Serializable{
 	private static final long serialVersionUID = 1L;
 
 	@JsonIgnore
 	@Id
-	@ApiModelProperty(value = "the db id of the p2p connection")
+    @Schema(description = "The db id of the p2p connection")
 	private ObjectId dbId;
 	
 	/**
 	 * streamId
 	 */
-	@ApiModelProperty(value = "the streamId for the p2p connection")
+    @Schema(description = "The streamId for the p2p connection")
 	private String streamId;
 	
 	/**
 	 * originNode
 	 */
-	@ApiModelProperty(value = "the IP of the originNode to which caller is connected")
+    @Schema(description = "The IP of the originNode to which caller is connected")
 	private String originNode;
 	
 	public P2PConnection() {
