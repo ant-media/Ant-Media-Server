@@ -1299,6 +1299,20 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	        rtmpMuxer.clearResource();
 			
 		}
+		
+		{
+			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmps://live-api-s.facebook.com:443/rtmp/y8qd-42g5-1b53-fh15-2v0",vertx)); //RTMP URl without Appname
+			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app",null,0);
+	        assertNull(optEntry);
+	        
+	     	//if it's different from zero, it means no file is need to be open.
+			//If it's zero, Not "no file" and it means that file is need to be open .
+	        assertEquals(0, rtmpMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
+	        
+	        
+	        rtmpMuxer.clearResource();
+		}
         
 	}
 	@Test
