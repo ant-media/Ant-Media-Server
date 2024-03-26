@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.antmedia.logger.LoggerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,7 +29,8 @@ public class ViewerStats {
 	
 	public static final String HLS_TYPE = "hls";
 	public static final String DASH_TYPE = "dash";
-	
+	public static final String VOD_TYPE = "vod";
+
 	//hls or dash
 	private String type;
 	
@@ -46,7 +48,9 @@ public class ViewerStats {
 	Map<String, Map<String, Long>> streamsViewerMap = new ConcurrentHashMap<>();
 	Map<String, String> sessionId2subscriberId = new ConcurrentHashMap<>();
 	Map<String, Integer> increaseCounterMap = new ConcurrentHashMap<>();
-	
+	Map<String, Integer> streamIdDataSentMap = new ConcurrentHashMap<>();
+	Map<String, Integer> sessionLastDataSentMap = new ConcurrentHashMap<>();
+
 	private Object lock = new Object();
 	
 	protected ServerSettings serverSettings;
@@ -77,7 +81,7 @@ public class ViewerStats {
 					int streamIncrementCounter = getIncreaseCounterMap(streamId);
 					streamIncrementCounter++;
 					increaseCounterMap.put(streamId, streamIncrementCounter);
-					
+					LoggerUtils.logJsonString("playStarted", "streamId", streamId,"protocol",type,"subscriberId",subscriberId);
 				}
 				viewerMap.put(sessionId, System.currentTimeMillis());
 				streamsViewerMap.put(streamId, viewerMap);
@@ -103,7 +107,7 @@ public class ViewerStats {
 					Date curDate = new Date();
 					event.setTimestamp(curDate.getTime());
 					event.setEventProtocol(getType());
-					
+
 					//TODO: There is a bug here. It adds +1 for each ts request 
 					if (getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event)) {
 						logger.info("CONNECTED_EVENT for subscriberId:{} streamId:{}", subscriberId, streamId);
@@ -272,10 +276,12 @@ public class ViewerStats {
 						// regard it as not a viewer
 						viewerIterator.remove();
 						numberOfDecrement++;
-						
+
 						String sessionId = viewer.getKey();
 						String subscriberId = sessionId2subscriberId.get(sessionId);
 						// set subscriber status to not connected
+						LoggerUtils.logJsonString("playStopped", "streamId", streamId,"protocol",type,"subscriberId",subscriberId);
+
 						if(subscriberId != null) {
 							// add a disconnected event to the subscriber
 							ConnectionEvent event = new ConnectionEvent();
@@ -288,6 +294,7 @@ public class ViewerStats {
 							}
 						}
 					}
+
 				}
 				
 				isBroadcasting = isStreaming(broadcast);
@@ -312,13 +319,29 @@ public class ViewerStats {
 				}
 			}
 
-			if (!isBroadcasting) {
-				// set all connection status information about the subscribers of the stream to false
-				viewerMapEntry = streamViewerEntry.getValue();
-				viewerIterator = viewerMapEntry.entrySet().iterator();
-				while (viewerIterator.hasNext()) {
+            viewerMapEntry = streamViewerEntry.getValue();
+            viewerIterator = viewerMapEntry.entrySet().iterator();
+            if(isBroadcasting) {
+                while (viewerIterator.hasNext()) {
 					Entry<String, Long> viewer = viewerIterator.next();
-					
+					String sessionId = viewer.getKey();
+					Integer dataSent = streamIdDataSentMap.get(streamId);
+					if (dataSent != null) {
+						Integer lastDataSent = 0;
+						if (sessionLastDataSentMap.containsKey(streamId)) {
+							lastDataSent = dataSent - sessionLastDataSentMap.get(streamId);
+						}
+						sessionLastDataSentMap.put(streamId, dataSent);
+						String subscriberId = sessionId2subscriberId.get(sessionId);
+						LoggerUtils.logJsonString("ViewerStats", "protocol", type, "streamId", streamId, "sessionId", sessionId, "subscriberId", subscriberId, "totalBytes", dataSent.toString(), "lastBytes", lastDataSent.toString());
+					}
+				}
+			}
+			else{
+				// set all connection status information about the subscribers of the stream to false
+                while (viewerIterator.hasNext()) {
+					Entry<String, Long> viewer = viewerIterator.next();
+
 					String sessionId = viewer.getKey();
 					String subscriberId = sessionId2subscriberId.get(sessionId);
 					// set subscriber status to not connected
@@ -331,13 +354,19 @@ public class ViewerStats {
 						getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event);
 					}
 				}
-				
+
 				streamIterator.remove();
 				increaseCounterMap.remove(streamId);
 			}
 		}
-		
 	}
+	public void setBitrateStats(String streamId,int bufferSize){
+		if (streamId == null || bufferSize < 0) {
+			return;
+		}
+		streamIdDataSentMap.merge(streamId, bufferSize, Integer::sum);
+	}
+
 	
 	public boolean isStreaming(Broadcast broadcast) {
 		return AntMediaApplicationAdapter.isStreaming(broadcast);

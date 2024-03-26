@@ -5,9 +5,13 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+
 
 public class LoggerUtils {
 
@@ -34,5 +38,23 @@ public class LoggerUtils {
             logger.error(ExceptionUtils.getStackTrace(e));
         }
         return null;
+    }
+    public static String logJsonString(String eventName, String... keyValuePairs) {
+        if (keyValuePairs.length % 2 != 0) {
+            throw new IllegalArgumentException("Key-value pairs must be in pairs");
+        }
+
+        JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("eventName", eventName);
+
+        for (int i = 0; i < keyValuePairs.length; i += 2) {
+            jsonObject.addProperty(keyValuePairs[i], keyValuePairs[i + 1]);
+        }
+
+        jsonObject.addProperty("time",System.currentTimeMillis());
+
+        String log = jsonObject.toString();
+        logger.info(log);
+        return log;
     }
 }

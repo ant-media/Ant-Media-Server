@@ -7,6 +7,7 @@ import java.util.Queue;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.security.ITokenService;
+import io.antmedia.statistic.VodViewerStats;
 import org.apache.catalina.util.NetMask;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,6 +141,9 @@ public abstract class AbstractFilter implements Filter{
 			{
 				if(type.equals(HlsViewerStats.BEAN_NAME)) {
 					streamStats = (IStreamStats)context.getBean(HlsViewerStats.BEAN_NAME);
+				}
+				else if(type.equals(VodViewerStats.BEAN_NAME)){
+					streamStats = (IStreamStats)context.getBean(VodViewerStats.BEAN_NAME);
 				}
 				else {
 					streamStats = (IStreamStats)context.getBean(DashViewerStats.BEAN_NAME);

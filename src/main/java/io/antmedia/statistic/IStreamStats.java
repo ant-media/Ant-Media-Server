@@ -16,7 +16,6 @@ public interface IStreamStats {
 	 * @return
 	 */
 	int getViewerCount(String streamId);
-	
 
-
+	void setBitrateStats(String streamId,int bufferSize);
 }
