@@ -871,6 +871,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				variables.put("metadata", metadata);
 			}
 
+			variables.put("timestamp", String.valueOf(System.currentTimeMillis()));
+
 			try {
 				sendPOST(url, variables, appSettings.getWebhookRetryCount());
 			} catch (Exception e) {

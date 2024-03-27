@@ -848,7 +848,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(category, variablesMap.get("category"));
 		assertEquals(vodName, variablesMap.get("vodName"));
 		assertEquals(vodId, variablesMap.get("vodId"));
-
+		assertNotNull(variablesMap.get("timestamp"));
 
 		url = "this is second  url";
 		spyAdaptor.notifyHook(url, id, null, null, null, null, null, null);
@@ -868,6 +868,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertNull(variablesMap2.get("category"));
 		assertNull(variablesMap2.get("vodName"));
 		assertNull(variablesMap2.get("vodId"));
+		assertNotNull(variablesMap2.get("timestamp"));
 
 
 	}
