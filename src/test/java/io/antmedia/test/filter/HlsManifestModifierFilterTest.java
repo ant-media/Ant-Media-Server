@@ -1,18 +1,10 @@
 package io.antmedia.test.filter;
 
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.filter.HlsManifestModifierFilter;
-import io.antmedia.filter.HlsStatisticsFilter;
-import io.antmedia.statistic.HlsViewerStats;
-import io.antmedia.statistic.IStreamStats;
+import io.antmedia.websocket.WebSocketConstants;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -23,13 +15,11 @@ import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.ConfigurableWebApplicationContext;
-import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
-import javax.lang.model.util.Types;
 import java.io.IOException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
@@ -105,7 +95,15 @@ public class HlsManifestModifierFilterTest {
 			"test000000010.ts\n" +
 			"#EXT-X-ENDLIST\n";
 
-	
+	String testAdaptiveM3u8 = "#EXTM3U\n" +
+			"#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=749592,RESOLUTION=480x360,CODECS=\"avc1.42e00a,mp4a.40.2\"\n" +
+			"teststream_360p800kbps.m3u8\n" +
+			"#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=953304,RESOLUTION=640x480,CODECS=\"avc1.42e00a,mp4a.40.2\"\n" +
+			"teststream_480p1000kbps.m3u8\n" +
+			"#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1837224,RESOLUTION=960x720,CODECS=\"avc1.42e00a,mp4a.40.2\"\n" +
+			"teststream_720p2000kbps.m3u8\n";
+
+
 	@Test
 	public void testNonFilterCases() {
 		try {
@@ -201,6 +199,58 @@ public class HlsManifestModifierFilterTest {
 		}
 	}
 
+	@Test
+	public void testFilterAdaptive() {
+
+		try {
+			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			ServletOutputStream outputStream = mock(ServletOutputStream.class);
+			when(mockResponse.getOutputStream()).thenReturn(outputStream);
+			when(mockResponse.getStatus()).thenReturn(200);
+			when(mockResponse.getWriter()).thenReturn(mock(java.io.PrintWriter.class));
+			FilterChain myChain = new FilterChain() {
+				@Override
+				public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) throws IOException, ServletException {
+						if(servletResponse instanceof  ContentCachingResponseWrapper){
+							((ContentCachingResponseWrapper) servletResponse).setStatus(200);
+							((ContentCachingResponseWrapper) servletResponse).getOutputStream().write(testAdaptiveM3u8.getBytes());
+						}
+				}
+			};
+			String subscriberId = "testSubscriber";
+			String subscriberCode = "883068";
+			String token = "testToken";
+
+			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+			when(mockRequest.getMethod()).thenReturn("GET");
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/test_adaptive.m3u8");
+			when(mockRequest.getParameter(WebSocketConstants.SUBSCRIBER_ID)).thenReturn(subscriberId);
+			when(mockRequest.getParameter(WebSocketConstants.SUBSCRIBER_CODE)).thenReturn(subscriberCode);
+			when(mockRequest.getParameter(WebSocketConstants.TOKEN)).thenReturn(token);
+
+			hlsManifestModifierFilter.doFilter(mockRequest, mockResponse, myChain);
+
+			ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
+			verify(outputStream,atLeastOnce()).write(captor.capture());
+
+			String modifiedM3u8 = new String(captor.getValue());
+
+			Pattern pattern = Pattern.compile("subscriberCode=(\\w+)&subscriberId=(\\w+)&token=(\\w+)");
+			Matcher matcher = pattern.matcher(modifiedM3u8);
+
+			while (matcher.find()) {
+				String subscriberCodeFound = matcher.group(1);
+				String subscriberIdFound = matcher.group(2);
+				String tokenFound = matcher.group(3);
+				assertEquals(subscriberCode, subscriberCodeFound);
+				assertEquals(subscriberId, subscriberIdFound);
+				assertEquals(token, tokenFound);
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
 
 
 }

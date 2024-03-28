@@ -1,22 +1,32 @@
 package io.antmedia.filter;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import com.amazonaws.util.StringUtils;
+import io.antmedia.websocket.WebSocketConstants;
 import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.HttpMethod;
 
+import org.springframework.util.StreamUtils;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 import io.lindstrom.m3u8.model.MediaPlaylist;
 import io.lindstrom.m3u8.model.MediaSegment;
 import io.lindstrom.m3u8.parser.MediaPlaylistParser;
+
+import static io.antmedia.muxer.MuxAdaptor.ADAPTIVE_SUFFIX;
 
 public class HlsManifestModifierFilter extends AbstractFilter {
 
@@ -34,7 +44,18 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 			//only accept GET methods
 			String startDate = request.getParameter(START);
 			String endDate = request.getParameter(END);
-			if(startDate == null || endDate == null || startDate.isBlank() || endDate.isBlank()) {
+			String token = request.getParameter("token");
+			String subscriberId = request.getParameter("subscriberId");
+			String subscriberCode = request.getParameter("subscriberCode");
+
+			if(httpRequest.getRequestURI().contains(ADAPTIVE_SUFFIX) &&
+					(!StringUtils.isNullOrEmpty(subscriberId) ||
+					!StringUtils.isNullOrEmpty(subscriberCode) ||
+					!StringUtils.isNullOrEmpty(token))){
+				addSecurityParametersToAdaptiveM3u8File(token, subscriberId, subscriberCode, request, response, chain);
+			}
+
+			if(StringUtils.isNullOrEmpty(startDate) || StringUtils.isNullOrEmpty(endDate)) {
 				chain.doFilter(httpRequest, response);
 			}
 			else {
@@ -91,6 +112,7 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 						// Commit the written data
 						response.getWriter().flush();
 
+
 					} catch (Exception e) {
 						response.setContentLength(responseWrapper.getContentSize());
 						response.getOutputStream().write(responseWrapper.getContentAsByteArray());
@@ -104,6 +126,57 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 			chain.doFilter(httpRequest, response);
 		}
 
+	}
+
+	public void addSecurityParametersToAdaptiveM3u8File(String token, String subscriberId, String subscriberCode, ServletRequest request, ServletResponse response, FilterChain chain) throws IOException {
+		HttpServletResponse httpResponse = (HttpServletResponse) response;
+		ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(httpResponse);
+
+		try {
+			chain.doFilter(request, responseWrapper);
+			int status = responseWrapper.getStatus();
+
+			if (status >= HttpServletResponse.SC_OK && status <= HttpServletResponse.SC_BAD_REQUEST) {
+				byte[] originalData = responseWrapper.getContentAsByteArray();
+				String original = new String(originalData);
+
+				String regex = "\\b\\S+\\.m3u8\\b";
+				Pattern pattern = Pattern.compile(regex);
+				Matcher matcher = pattern.matcher(original);
+
+				StringBuffer result = new StringBuffer();
+				while (matcher.find()) {
+					String replacementString = matcher.group() + "?";
+
+					if (!StringUtils.isNullOrEmpty(subscriberCode)) {
+						replacementString += WebSocketConstants.SUBSCRIBER_CODE + "=" + subscriberCode;
+					}
+
+					if (!StringUtils.isNullOrEmpty(subscriberId)) {
+						replacementString += "&"+ WebSocketConstants.SUBSCRIBER_ID + "=" + subscriberId;
+					}
+
+					if (!StringUtils.isNullOrEmpty(token)) {
+						replacementString += "&"+ WebSocketConstants.TOKEN + "=" + token;
+					}
+
+					matcher.appendReplacement(result, replacementString);
+				}
+				matcher.appendTail(result);
+
+				String modifiedContent = result.toString();
+				response.setContentLength(modifiedContent.length());
+				response.getOutputStream().write(modifiedContent.getBytes());
+				response.getWriter().flush();
+			}
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			// In case of an error, revert to the original response content
+			byte[] originalContent = responseWrapper.getContentAsByteArray();
+			response.setContentLength(originalContent.length);
+			response.getOutputStream().write(originalContent);
+			response.flushBuffer();
+		}
 	}
 
 
