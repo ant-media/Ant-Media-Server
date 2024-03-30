@@ -470,14 +470,15 @@ public abstract class RestServiceBase {
 	protected Result updateStreamSource(String streamId, Broadcast updatedBroadcast, Broadcast broadcastInDB) {
 		logger.debug("Updating stream source for stream {}", updatedBroadcast.getStreamId());
 
-		if (!checkStreamUrl(updatedBroadcast.getStreamUrl()) && !AntMediaApplicationAdapter.PLAY_LIST.equals(updatedBroadcast.getType())) {
+		boolean isPlayList = AntMediaApplicationAdapter.PLAY_LIST.equals(broadcastInDB.getType());
+		if (!checkStreamUrl(updatedBroadcast.getStreamUrl()) && !isPlayList) {
 			return new Result(false, "Stream URL is not valid");
 		}
 
 		boolean isStreamingActive = AntMediaApplicationAdapter.isStreaming(broadcastInDB);
 
 		//Stop if it's streaming and type is not playlist
-		if (isStreamingActive && !AntMediaApplicationAdapter.PLAY_LIST.equals(broadcastInDB.getType())) {
+		if (isStreamingActive && !isPlayList) {
 			boolean resultStopStreaming = checkStopStreaming(broadcastInDB);
 			waitStopStreaming(broadcastInDB, resultStopStreaming);
 		}
@@ -502,7 +503,7 @@ public abstract class RestServiceBase {
 		
 		if (result) {
 			
-			if (broadcastInDB.getPlannedStartDate() != updatedBroadcast.getPlannedStartDate()) {
+			if (broadcastInDB.getPlannedStartDate() != updatedBroadcast.getPlannedStartDate() && isPlayList) {
 				getApplication().cancelPlaylistSchedule(broadcastInDB.getStreamId());
 				
 				getApplication().schedulePlayList(System.currentTimeMillis(), updatedBroadcast);
