@@ -505,7 +505,7 @@ public class StreamFetcherManager {
 			}
 			else {
 				
-				logger.info("Stream:{} is alive -> {},  is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked());
+				logger.info("Stream:{} is alive -> {}, is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked());
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
 			}
@@ -517,9 +517,13 @@ public class StreamFetcherManager {
 				//So start streaming after it's finished
 				if (isStreamRunning(broadcast)) 
 				{
-					logger.info("Setting stream fetcher listener to restart it's completed for streamId:{}", broadcast.getStreamId());
+					logger.info("Setting stream fetcher listener to restart when it's finished for streamId:{}", broadcast.getStreamId());
 					streamScheduler.setStreamFetcherListener((l) -> {
-						startStreaming(broadcast);
+						//Get the updated version because we don't know when it's called and we need up to date info
+						Broadcast freshBroadcast = datastore.get(streamScheduler.getStreamId());
+						if (freshBroadcast != null) {
+							startStreaming(freshBroadcast);
+						}
 					});
 				}
 				else {
