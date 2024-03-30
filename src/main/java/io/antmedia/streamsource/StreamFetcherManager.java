@@ -112,6 +112,7 @@ public class StreamFetcherManager {
 		boolean isStreamLive = false;
 		
 		if (streamFetcherList.containsKey(broadcast.getStreamId())) {
+			logger.info("Stream is still on FetcherManagerList so it's active for streamId:{}", broadcast.getStreamId());
 			isStreamLive = true;
 		}
 
@@ -128,6 +129,7 @@ public class StreamFetcherManager {
 		Result result = new Result(false);
 		result.setDataId(streamScheduler.getStreamId());
 		if (!licenseService.isLicenceSuspended()) {
+			logger.info("Starting stream fetcher for streamId:{}", streamScheduler.getStreamId());
 			streamScheduler.startStream();
 
 			if (streamFetcherList.containsKey(streamScheduler.getStreamId())) {
@@ -164,6 +166,7 @@ public class StreamFetcherManager {
 		if (!alreadyFetching) {
 
 			try {
+				
 				streamScheduler = make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(restartStreamAutomatically);
 				streamScheduler.setDataStore(getDatastore());
@@ -514,7 +517,7 @@ public class StreamFetcherManager {
 				//So start streaming after it's finished
 				if (isStreamRunning(broadcast)) 
 				{
-					
+					logger.info("Setting stream fetcher listener to restart it's completed for streamId:{}", broadcast.getStreamId());
 					streamScheduler.setStreamFetcherListener((l) -> {
 						startStreaming(broadcast);
 					});

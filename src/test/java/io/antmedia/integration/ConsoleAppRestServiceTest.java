@@ -2306,7 +2306,7 @@ public class ConsoleAppRestServiceTest{
 	public void testRestartPeriod() {
 		try {
 			AppSettings appSettings = callGetAppSettings("LiveApp");
-			appSettings.setRestartStreamFetcherPeriod(10);
+			appSettings.setRestartStreamFetcherPeriod(20);
 			Result result = callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 
