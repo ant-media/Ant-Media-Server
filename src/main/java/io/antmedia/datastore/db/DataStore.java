@@ -986,7 +986,9 @@ public abstract class DataStore {
 		if (newBroadcast.getMetaData() != null) {
 			broadcast.setMetaData(newBroadcast.getMetaData());
 		}
+		
 
+		broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
 		broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());

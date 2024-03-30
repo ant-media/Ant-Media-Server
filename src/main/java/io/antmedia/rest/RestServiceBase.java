@@ -236,8 +236,17 @@ public abstract class RestServiceBase {
 	}
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
-		return saveBroadcast(broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(),
+		Broadcast createdBroadcast = saveBroadcast(broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(),
 				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
+		
+		if (AntMediaApplicationAdapter.PLAY_LIST.equals(createdBroadcast.getType())) 
+		{
+			long now = System.currentTimeMillis();				
+			//Schedule playlist if plannedStartDate is ok
+			getApplication().schedulePlayList(now, createdBroadcast);	
+		}
+		
+		return broadcast;
 	}
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
@@ -333,6 +342,9 @@ public abstract class RestServiceBase {
 			//no need to check if the stream is another node because RestProxyFilter makes this arrangement
 
 			stopResult = stopBroadcastInternal(broadcast);
+			
+			//if it's something about scheduled playlist
+			getApplication().cancelPlaylistSchedule(broadcast.getStreamId());
 
 			result.setSuccess(getDataStore().delete(id));
 
@@ -415,13 +427,19 @@ public abstract class RestServiceBase {
 		return room;
 	}
 
-	protected Result updateBroadcast(String streamId, Broadcast broadcast) {
+	protected Result updateBroadcast(String streamId, Broadcast updatedBroadcast, Broadcast broadcastInDB) {
 
-		removeEmptyPlayListItems(broadcast);
+		removeEmptyPlayListItems(updatedBroadcast);
 
-		updatePlayListItemDurationsIfApplicable(broadcast);
+		updatePlayListItemDurationsIfApplicable(updatedBroadcast);
 
-		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
+		boolean result = getDataStore().updateBroadcastFields(streamId, updatedBroadcast);
+		
+		if (broadcastInDB.getPlannedStartDate() != updatedBroadcast.getPlannedStartDate()) {
+			getApplication().cancelPlaylistSchedule(broadcastInDB.getStreamId());
+			
+			getApplication().schedulePlayList(System.currentTimeMillis(), updatedBroadcast);
+		}
 
 		return new Result(result);
 	}
@@ -445,53 +463,57 @@ public abstract class RestServiceBase {
 
 	/**
 	 * Update Stream Source or IP Camera info
-	 * @param broadcast
+	 * @param updatedBroadcast
 	 * @param socialNetworksToPublish
 	 * @return
 	 */
-	protected Result updateStreamSource(String streamId, Broadcast broadcast) {
-		logger.debug("Updating stream source for stream {}", broadcast.getStreamId());
+	protected Result updateStreamSource(String streamId, Broadcast updatedBroadcast, Broadcast broadcastInDB) {
+		logger.debug("Updating stream source for stream {}", updatedBroadcast.getStreamId());
 
-		if (!checkStreamUrl(broadcast.getStreamUrl()) && !AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
+		if (!checkStreamUrl(updatedBroadcast.getStreamUrl()) && !AntMediaApplicationAdapter.PLAY_LIST.equals(updatedBroadcast.getType())) {
 			return new Result(false, "Stream URL is not valid");
-		}
-
-		Broadcast broadcastInDB = getDataStore().get(streamId);
-		if (broadcastInDB == null) {
-			streamId = streamId.replaceAll("[\n|\r|\t]", "_");
-			logger.info("Broadcast with stream id: {} is null", streamId);
-			return new Result(false, "Broadcast with streamId: " + streamId + " does not exist");
 		}
 
 		boolean isStreamingActive = AntMediaApplicationAdapter.isStreaming(broadcastInDB);
 
-		if (isStreamingActive) {
+		//Stop if it's streaming and type is not playlist
+		if (isStreamingActive && !AntMediaApplicationAdapter.PLAY_LIST.equals(broadcastInDB.getType())) {
 			boolean resultStopStreaming = checkStopStreaming(broadcastInDB);
 			waitStopStreaming(broadcastInDB, resultStopStreaming);
 		}
 
-		if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType())) {
-			Result connectionRes = connectToCamera(broadcast);
+		if (AntMediaApplicationAdapter.IP_CAMERA.equals(updatedBroadcast.getType())) {
+			Result connectionRes = connectToCamera(updatedBroadcast);
 			if (!connectionRes.isSuccess()) {
 				return connectionRes;
 			}
 
 			String rtspURL = connectionRes.getMessage();
-			String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
+			String authparam = updatedBroadcast.getUsername() + ":" + updatedBroadcast.getPassword() + "@";
 			String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
 			logger.info("New Stream Source URL: {}", rtspURLWithAuth);
-			broadcast.setStreamUrl(rtspURLWithAuth);
+			updatedBroadcast.setStreamUrl(rtspURLWithAuth);
 		}
 
-		removeEmptyPlayListItems(broadcast);
-		updatePlayListItemDurationsIfApplicable(broadcast);
+		removeEmptyPlayListItems(updatedBroadcast);
+		updatePlayListItemDurationsIfApplicable(updatedBroadcast);
 
-		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
-
-		if (result && isStreamingActive) {
-			//start straming again if it was streaming
-			Broadcast fetchedBroadcast = getDataStore().get(streamId);
-			getApplication().startStreaming(fetchedBroadcast);
+		boolean result = getDataStore().updateBroadcastFields(streamId, updatedBroadcast);
+		
+		if (result) {
+			
+			if (broadcastInDB.getPlannedStartDate() != updatedBroadcast.getPlannedStartDate()) {
+				getApplication().cancelPlaylistSchedule(broadcastInDB.getStreamId());
+				
+				getApplication().schedulePlayList(System.currentTimeMillis(), updatedBroadcast);
+			}
+			
+			if (isStreamingActive && !AntMediaApplicationAdapter.PLAY_LIST.equals(broadcastInDB.getType())) {
+				//start streaming again if it was streaming and it's not Playlist
+				Broadcast fetchedBroadcast = getDataStore().get(streamId);
+				getApplication().startStreaming(fetchedBroadcast);
+				
+			}
 		}
 
 		return new Result(result);

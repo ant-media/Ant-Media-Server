@@ -284,6 +284,11 @@ public class StreamFetcher {
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
 					return;
 				}
+				else if (AntMediaApplicationAdapter.isStreaming(broadcast)) {
+					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
+
+					return;
+				}
 
 				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
@@ -679,6 +684,7 @@ public class StreamFetcher {
 					streamPublished=false;
 					closeCalled = true;
 				}
+				
 
 
 
@@ -694,6 +700,9 @@ public class StreamFetcher {
 				if(!stopRequestReceived && restartStream) {
 					logger.info("Stream fetcher will try to fetch source {} after {} ms for streamId:{}", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS, streamId);
 
+					//Update status to finished in all cases
+					getDataStore().updateStatus(streamId, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+					
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
 
 						thread = new WorkerThread();
