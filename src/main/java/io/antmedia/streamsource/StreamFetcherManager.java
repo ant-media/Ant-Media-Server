@@ -477,10 +477,9 @@ public class StreamFetcherManager {
 			//get the updated broadcast object
 			Broadcast broadcast = datastore.get(streamScheduler.getStreamId());
 			
-			
 			boolean autoStop = false;
 			if (restart || broadcast == null || 
-					(autoStop = isToBeStoppedAutomatically(broadcast))) 
+					(autoStop = isToBeStoppedAutomatically(broadcast)) && !AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) 
 			{
 				//logic of If condition is
 				
@@ -489,7 +488,6 @@ public class StreamFetcherManager {
 				// brodcast == null because it means stream is deleted
 				//  or
 				// autoStop
-				
 				
 				logger.info("Calling stop stream {} due to restart -> {}, broadcast is null -> {}, auto stop because no viewer -> {}", 
 						streamScheduler.getStreamId(), restart, broadcast == null, autoStop);
@@ -504,10 +502,24 @@ public class StreamFetcherManager {
 				//Most of the time the problem is related to the stream source side.
 				
 			}
-
-			if (restart && broadcast != null) {
-				startStreaming(broadcast);
+			
+			if (restart && broadcast != null && !AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
+				
+				//start streaming if broadcast object is in db(it means not deleted) and it's not playlist
+				if (isStreamRunning(broadcast)) 
+				{
+					//it may be still running because stop operation is async
+					//So start streaming after it's finished
+					streamScheduler.setStreamFetcherListener((l) -> {
+						startStreaming(broadcast);
+					});
+				}
+				else {
+					startStreaming(broadcast);
+				}
 			}
+
+			
 		}
 	}
 
