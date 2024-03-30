@@ -246,7 +246,7 @@ public abstract class RestServiceBase {
 			getApplication().schedulePlayList(now, createdBroadcast);	
 		}
 		
-		return broadcast;
+		return createdBroadcast;
 	}
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
