@@ -477,9 +477,14 @@ public class StreamFetcherManager {
 			//get the updated broadcast object
 			Broadcast broadcast = datastore.get(streamScheduler.getStreamId());
 			
+			if  (broadcast != null && AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
+				//if it's playlist, continue
+				continue;
+			}
+			
 			boolean autoStop = false;
 			if (restart || broadcast == null || 
-					(autoStop = isToBeStoppedAutomatically(broadcast)) && !AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) 
+					(autoStop = isToBeStoppedAutomatically(broadcast))) 
 			{
 				//logic of If condition is
 				
@@ -500,16 +505,16 @@ public class StreamFetcherManager {
 				logger.info("Stream:{} is alive -> {},  is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked());
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
-				
 			}
 			
-			if (restart && broadcast != null && !AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
-				
-				//start streaming if broadcast object is in db(it means not deleted) and it's not playlist
+			//start streaming if broadcast object is in db(it means not deleted)
+			if (restart && broadcast != null) 
+			{	
+				//it may be still running because stop operation is async
+				//So start streaming after it's finished
 				if (isStreamRunning(broadcast)) 
 				{
-					//it may be still running because stop operation is async
-					//So start streaming after it's finished
+					
 					streamScheduler.setStreamFetcherListener((l) -> {
 						startStreaming(broadcast);
 					});
