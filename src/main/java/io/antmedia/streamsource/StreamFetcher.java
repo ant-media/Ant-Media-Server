@@ -300,7 +300,12 @@ public class StreamFetcher {
 				{
 
 					boolean readTheNextFrame = true;
-					while (readTheNextFrame) {
+					//In some odd cases stopRequest is received immediately and status of the stream changed to finished 
+					//after that readMore -> packetRead method calls "getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL);" 
+					//this method runs async, it means that its status changed to broadcasting and stays there
+					//I figure out this problem by analyzing a testSkipPlayList test that is failing time to time
+					//Mar 31, 2024 - @mekya
+					while (!stopRequestReceived && readTheNextFrame) {
 						try {
 							//stay in the loop if exception occurs
 							readTheNextFrame = readMore(pkt);
