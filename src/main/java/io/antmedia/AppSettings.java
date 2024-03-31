@@ -2034,6 +2034,12 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${id3TagEnabled:false}")
 	private boolean id3TagEnabled = false;
+
+	/**
+	 * Enables the SEI data for HLS
+	 */
+	@Value("${seiEnabled:false}")
+	private boolean seiEnabled = false;
 	
 	/**
 	 * Ant Media Server can get the audio level from incoming RTP Header in WebRTC streaming and send to the viewers.
@@ -3567,6 +3573,14 @@ public class AppSettings implements Serializable{
 
 	public void setId3TagEnabled(boolean id3TagEnabled) {
 		this.id3TagEnabled = id3TagEnabled;
+	}
+
+	public boolean isSeiEnabled() {
+		return seiEnabled;
+	}
+
+	public void setSeiEnabled(boolean seiEnabled) {
+		this.seiEnabled = seiEnabled;
 	}
 
 	public boolean isSendAudioLevelToViewers() {

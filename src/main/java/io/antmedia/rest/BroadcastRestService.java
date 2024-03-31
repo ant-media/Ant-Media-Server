@@ -1801,4 +1801,23 @@ public class BroadcastRestService extends RestServiceBase{
 			return new Result(false, null, "Stream is not available");
 		}
 	}
+
+	@Operation(description = "Add SEI data to HLS stream at the moment")
+	@POST
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/{stream_id}/sei")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result addSEIData(@Parameter(description = "the id of the stream", required = true) @PathParam("stream_id") String streamId,
+							 @Parameter(description = "SEI data.", required = false) String data) {
+		if(!getAppSettings().isSeiEnabled()) {
+			return new Result(false, null, "SEI is not enabled");
+		}
+		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
+		if(muxAdaptor != null) {
+			return new Result(muxAdaptor.addSEIData(data));
+		}
+		else {
+			return new Result(false, null, "Stream is not available");
+		}
+	}
 }

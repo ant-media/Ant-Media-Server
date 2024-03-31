@@ -2,8 +2,8 @@ package io.antmedia.muxer;
 
 import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
+import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.bytedeco.ffmpeg.global.avutil.AV_OPT_SEARCH_CHILDREN;
 
 import java.io.File;
 import java.io.IOException;
@@ -11,11 +11,9 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 
 import org.apache.commons.lang3.StringUtils;
-import org.bytedeco.ffmpeg.avcodec.AVCodec;
-import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
-import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
-import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avcodec.*;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.javacpp.BytePointer;
@@ -27,6 +25,10 @@ import io.antmedia.storage.StorageClient;
 import io.vertx.core.Vertx;
 
 public class HLSMuxer extends Muxer  {
+
+	public static final String SEI_USER_DATA = "sei_user_data";
+
+	private static final String SEI_UUID = "086f3693-b7b3-4f2c-9653-21492feee5b8+";
 
 	private static final String SEGMENT_SUFFIX_TS = "%0"+SEGMENT_INDEX_LENGTH+"d.ts";
 
@@ -59,6 +61,9 @@ public class HLSMuxer extends Muxer  {
 	private AVPacket id3DataPkt;
 
 	private boolean id3Enabled = false;
+
+	private boolean seiEnabled = false;
+
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
@@ -315,19 +320,54 @@ public class HLSMuxer extends Muxer  {
 			logger.error("Cannot get codec parameters for {}", streamId);
 		}
 		
-		//call super directly because no need to add bit stream filter 
+		//call super directly because no need to add bit stream filter
 		return super.addStream(codecParameter, codecContext.time_base(), streamIndex);
+	}
+
+	@Override
+	public synchronized boolean addVideoStream(int width, int height, AVRational timebase, int codecId, int streamIndex,
+											   boolean isAVC, AVCodecParameters codecpar) {
+
+		boolean result = super.addVideoStream(width, height, timebase, codecId, streamIndex, isAVC, codecpar);
+		if (result && seiEnabled)
+		{
+			AVStream outStream = getOutputFormatContext().streams(inputOutputStreamIndexMap.get(streamIndex));
+
+			setBitstreamFilter("h264_metadata");
+
+			AVBSFContext avbsfContext = initVideoBitstreamFilter(getBitStreamFilter(), outStream.codecpar(), inputTimeBaseMap.get(streamIndex));
+
+			if (avbsfContext != null) {
+				int ret = avcodec_parameters_copy(outStream.codecpar(), avbsfContext.par_out());
+				result = ret == 0;
+			}
+
+			setSeiData("initial sei data");
+
+			logger.info("Adding video stream index:{} for stream:", streamIndex);
+		}
+
+		return result;
+	}
+
+	public void setSeiData(String data) {
+		int ret = av_opt_set(bsfFilterContextList.get(0).priv_data(), SEI_USER_DATA, SEI_UUID+data, AV_OPT_SEARCH_CHILDREN);
+		if (ret < 0) {
+			logger.error("Cannot set sei_user_data for {}", streamId);
+		}
+
+		ret = av_bsf_init(bsfFilterContextList.get(0));
+		if (ret < 0) {
+			logger.error("Cannot update sei_user_data for {}", streamId);
+		}
 	}
 	
 
 	@Override
 	public synchronized boolean addStream(AVCodecParameters codecParameters, AVRational timebase, int streamIndex) 
 	{
-		bsfVideoName = "h264_mp4toannexb";
-
-		boolean ret = super.addStream(codecParameters, timebase, streamIndex);
-
-		return ret;
+		setBitstreamFilter("h264_mp4toannexb");
+		return super.addStream(codecParameters, timebase, streamIndex);
 	}
 
 	public boolean addID3Stream() {
@@ -383,7 +423,12 @@ public class HLSMuxer extends Muxer  {
 	public void setId3Enabled(boolean id3Enabled) {
 		this.id3Enabled = id3Enabled;
 	}
-	
+
+	public void setSeiEnabled(boolean seiEnabled) {
+		this.seiEnabled = seiEnabled;
+	}
+
+
 	@Override
 	protected synchronized void clearResource() {
 		super.clearResource();

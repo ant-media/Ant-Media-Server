@@ -143,8 +143,8 @@ public class Mp4Muxer extends RecordMuxer {
 	 */
 	@Override
 	protected boolean prepareAudioOutStream(AVStream inStream, AVStream outStream) {
-		if (bsfVideoName != null) {
-			AVBitStreamFilter adtsToAscBsf = av_bsf_get_by_name(this.bsfVideoName);
+		if (getBitStreamFilter() != null) {
+			AVBitStreamFilter adtsToAscBsf = av_bsf_get_by_name(this.getBitStreamFilter());
 			bsfContext = new AVBSFContext(null);
 
 			int ret = av_bsf_alloc(adtsToAscBsf, bsfContext);
