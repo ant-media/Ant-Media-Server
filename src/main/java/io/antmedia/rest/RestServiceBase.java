@@ -428,19 +428,7 @@ public abstract class RestServiceBase {
 	}
 
 	protected Result updateBroadcast(String streamId, Broadcast updatedBroadcast, Broadcast broadcastInDB) {
-
-		removeEmptyPlayListItems(updatedBroadcast);
-
-		updatePlayListItemDurationsIfApplicable(updatedBroadcast);
-
 		boolean result = getDataStore().updateBroadcastFields(streamId, updatedBroadcast);
-		
-		if (broadcastInDB.getPlannedStartDate() != updatedBroadcast.getPlannedStartDate()) {
-			getApplication().cancelPlaylistSchedule(broadcastInDB.getStreamId());
-			
-			getApplication().schedulePlayList(System.currentTimeMillis(), updatedBroadcast);
-		}
-
 		return new Result(result);
 	}
 
@@ -460,6 +448,10 @@ public abstract class RestServiceBase {
 			}
 		}
 	}
+	
+	public boolean isStreaming(Broadcast broadcast) {
+		return AntMediaApplicationAdapter.isStreaming(broadcast);
+	}
 
 	/**
 	 * Update Stream Source or IP Camera info
@@ -475,7 +467,7 @@ public abstract class RestServiceBase {
 			return new Result(false, "Stream URL is not valid");
 		}
 
-		boolean isStreamingActive = AntMediaApplicationAdapter.isStreaming(broadcastInDB);
+		boolean isStreamingActive = isStreaming(broadcastInDB);
 
 		//Stop if it's streaming and type is not playlist
 		if (isStreamingActive && !isPlayList) {
@@ -509,7 +501,7 @@ public abstract class RestServiceBase {
 				getApplication().schedulePlayList(System.currentTimeMillis(), updatedBroadcast);
 			}
 			
-			if (isStreamingActive && !AntMediaApplicationAdapter.PLAY_LIST.equals(broadcastInDB.getType())) {
+			if (isStreamingActive && !isPlayList) {
 				//start streaming again if it was streaming and it's not Playlist
 				Broadcast fetchedBroadcast = getDataStore().get(streamId);
 				getApplication().startStreaming(fetchedBroadcast);

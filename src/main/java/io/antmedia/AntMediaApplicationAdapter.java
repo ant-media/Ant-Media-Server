@@ -288,9 +288,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				//TBH, It's not a good solution and I could not find something better for now
 				//@mekya
 				
-				startTimeDelay += (Math.random()*3000);
-				logger.info("Scheduling playlist to play after {}ms for id:{}", startTimeDelay, broadcast.getStreamId());
-
+				long randomDelay = (int)(Math.random()*5000);
+				logger.info("Scheduling playlist to play after {}ms with random delay:{} for id:{}", startTimeDelay, randomDelay, broadcast.getStreamId());
+				startTimeDelay += randomDelay;
 				long timerId = vertx.setTimer(startTimeDelay, 
 						(timer) -> 
 						{
@@ -300,6 +300,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 							{
 								streamFetcherManager.startPlaylist(freshBroadcast);
 							}
+							playListSchedulerTimer.remove(freshBroadcast.getStreamId());
+							
 						});
 				
 				playListSchedulerTimer.put(broadcast.getStreamId(), timerId);
@@ -1960,6 +1962,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void setSubtrackPoller(ISubtrackPoller subtrackPoller) {
 		this.subtrackPoller = subtrackPoller;
+	}
+
+	public Map<String, Long> getPlayListSchedulerTimer() {
+		return playListSchedulerTimer;
 	}
 
 }
