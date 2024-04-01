@@ -988,6 +988,7 @@ public abstract class DataStore {
 		if (newBroadcast.getMetaData() != null) {
 			broadcast.setMetaData(newBroadcast.getMetaData());
 		}
+		
 
 		if (newBroadcast.getPublisherRequestList() != null) {
 			broadcast.setPublisherRequestList(newBroadcast.getPublisherRequestList());
@@ -1005,6 +1006,7 @@ public abstract class DataStore {
 			broadcast.setAdminList(newBroadcast.getAdminList());
 		}
 
+		broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
 		broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
