@@ -286,7 +286,7 @@ public class RtmpMuxer extends Muxer {
 				logger.error("Cannot copy packet for {}", file.getName());
 				return;
 			}
-			if (bsfFilterContextList.get(0) != null)
+			if (!bsfFilterContextList.isEmpty() && bsfFilterContextList.get(0) != null)
 			{
 				ret = av_bsf_send_packet(bsfFilterContextList.get(0), getTmpPacket());
 				if (ret < 0) {
