@@ -559,7 +559,7 @@ public abstract class Muxer {
 	}
 	
 	public String getBitStreamFilter() {
-		if(!bsfFilterContextList.isEmpty())
+		if(!bsfVideoNames.isEmpty())
 		{
 			return bsfVideoNames.get(0);
 		}
