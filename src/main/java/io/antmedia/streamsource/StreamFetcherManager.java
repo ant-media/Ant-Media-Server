@@ -112,6 +112,7 @@ public class StreamFetcherManager {
 		boolean isStreamLive = false;
 		
 		if (streamFetcherList.containsKey(broadcast.getStreamId())) {
+			logger.info("Stream is still on FetcherManagerList so it's active for streamId:{}", broadcast.getStreamId());
 			isStreamLive = true;
 		}
 
@@ -128,6 +129,7 @@ public class StreamFetcherManager {
 		Result result = new Result(false);
 		result.setDataId(streamScheduler.getStreamId());
 		if (!licenseService.isLicenceSuspended()) {
+			logger.info("Starting stream fetcher for streamId:{}", streamScheduler.getStreamId());
 			streamScheduler.startStream();
 
 			if (streamFetcherList.containsKey(streamScheduler.getStreamId())) {
@@ -164,6 +166,7 @@ public class StreamFetcherManager {
 		if (!alreadyFetching) {
 
 			try {
+				
 				streamScheduler = make(broadcast, scope, vertx);
 				streamScheduler.setRestartStream(restartStreamAutomatically);
 				streamScheduler.setDataStore(getDatastore());
@@ -477,6 +480,10 @@ public class StreamFetcherManager {
 			//get the updated broadcast object
 			Broadcast broadcast = datastore.get(streamScheduler.getStreamId());
 			
+			if  (broadcast != null && AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
+				//if it's playlist, continue
+				continue;
+			}
 			
 			boolean autoStop = false;
 			if (restart || broadcast == null || 
@@ -490,7 +497,6 @@ public class StreamFetcherManager {
 				//  or
 				// autoStop
 				
-				
 				logger.info("Calling stop stream {} due to restart -> {}, broadcast is null -> {}, auto stop because no viewer -> {}", 
 						streamScheduler.getStreamId(), restart, broadcast == null, autoStop);
 				
@@ -499,15 +505,33 @@ public class StreamFetcherManager {
 			}
 			else {
 				
-				logger.info("Stream:{} is alive -> {},  is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked());
+				logger.info("Stream:{} is alive -> {}, is it blocked -> {}", streamScheduler.getStreamId(), streamScheduler.isStreamAlive(), streamScheduler.isStreamBlocked());
 				//stream blocked means there is a connection to stream source and it's waiting to read a new packet
 				//Most of the time the problem is related to the stream source side.
-				
+			}
+			
+			//start streaming if broadcast object is in db(it means not deleted)
+			if (restart && broadcast != null) 
+			{	
+				//it may be still running because stop operation is async
+				//So start streaming after it's finished
+				if (isStreamRunning(broadcast)) 
+				{
+					logger.info("Setting stream fetcher listener to restart when it's finished for streamId:{}", broadcast.getStreamId());
+					streamScheduler.setStreamFetcherListener((l) -> {
+						//Get the updated version because we don't know when it's called and we need up to date info
+						Broadcast freshBroadcast = datastore.get(streamScheduler.getStreamId());
+						if (freshBroadcast != null) {
+							startStreaming(freshBroadcast);
+						}
+					});
+				}
+				else {
+					startStreaming(broadcast);
+				}
 			}
 
-			if (restart && broadcast != null) {
-				startStreaming(broadcast);
-			}
+			
 		}
 	}
 

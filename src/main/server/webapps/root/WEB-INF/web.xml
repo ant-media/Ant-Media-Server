@@ -113,6 +113,21 @@
 	  <url-pattern>/rest/v2/request/*</url-pattern>
 	</servlet-mapping>
 	
+	<servlet>
+		<servlet-name>OpenApi</servlet-name>
+	    <servlet-class>io.swagger.v3.jaxrs2.integration.OpenApiServlet</servlet-class>
+	
+	    <init-param>
+	      <param-name>openApi.configuration.resourcePackages</param-name>
+	      <param-value>io.antmedia.console.rest</param-value>
+	    </init-param>
+	  </servlet>
+
+	  <servlet-mapping>
+	    <servlet-name>OpenApi</servlet-name>
+	    <url-pattern>/openapi/*</url-pattern>
+	  </servlet-mapping>
+	
 	<!-- 
 	<filter>
     		<filter-name>CorsHeaderFilter</filter-name>

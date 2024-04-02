@@ -519,7 +519,7 @@ public abstract class Muxer {
 	}
 	
 	public void logPacketIssue(String format, Object... arguments) {
-		if (time2log  % 100 == 0) {
+		if (time2log % 200 == 0) {
 			logger.warn(format, arguments);
 			time2log = 0;
 		}

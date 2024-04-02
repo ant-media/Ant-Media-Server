@@ -9,8 +9,7 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * @deprecated Use subscriber class and rest methods,  it will be deleted in coming versions
@@ -18,7 +17,7 @@ import io.swagger.annotations.ApiModelProperty;
  *
  */
 @Deprecated(since = "2.7.0", forRemoval = true)
-@ApiModel(value="WebRTCViewerInfo", description="Stores the info for a WebRTC viewer")
+@Schema(description = "Stores the information for a WebRTC viewer")
 @Entity(value = "WebRTCViewerInfo")
 @Indexes({ @Index(fields = @Field("viewerId")) })
 public class WebRTCViewerInfo {
@@ -27,26 +26,16 @@ public class WebRTCViewerInfo {
 	@Id
 	private ObjectId dbId;
 
-	/**
-	 * Id of the viewer
-	 */
-	@ApiModelProperty(value = "the id of the viewer")
+	@Schema(description = "The id of the viewer")
 	private String viewerId;
-	
-	
-	/**
-	 * Stream id that viewer views
-	 */
-	@ApiModelProperty(value = "stream id that viewer views")
+
+	@Schema(description = "The stream id that viewer views")
 	private String streamId;
-	
-	/**
-	 * IP address of the edge to which viewer is connected
-	 */
-	@ApiModelProperty(value = "IP address of the edge to which viewer is connected")
+
+	@Schema(description = "The IP address of the edge to which viewer is connected")
 	private String edgeAddress;
 
-	
+
 	public ObjectId getDbId() {
 		return dbId;
 	}
@@ -78,5 +67,5 @@ public class WebRTCViewerInfo {
 	public void setEdgeAddress(String edgeAddress) {
 		this.edgeAddress = edgeAddress;
 	}
-	
+
 }

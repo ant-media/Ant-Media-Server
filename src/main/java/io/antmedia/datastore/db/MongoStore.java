@@ -814,6 +814,7 @@ public class MongoStore extends DataStore {
 
 				prepareFields(broadcast, updates);
 
+				updates.add(set("plannedStartDate", broadcast.getPlannedStartDate()));
 				updates.add(set("seekTimeInMs", broadcast.getSeekTimeInMs()));
 				updates.add(set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
 				updates.add(set("receivedBytes", broadcast.getReceivedBytes()));

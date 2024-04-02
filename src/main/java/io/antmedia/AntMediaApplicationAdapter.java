@@ -12,9 +12,6 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-
-import javax.validation.constraints.NotNull;
-
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -82,6 +79,7 @@ import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
+import jakarta.validation.constraints.NotNull;
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";
@@ -146,6 +144,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected StorageClient storageClient;
 
 	protected Queue<IStreamListener> streamListeners = new ConcurrentLinkedQueue<>();
+	
+	protected Map<String, Long> playListSchedulerTimer = new ConcurrentHashMap<>();
 
 	IClusterStreamFetcher clusterStreamFetcher;
 
@@ -211,7 +211,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		}
 
-		vertx.setTimer(10, l -> {
+		vertx.setTimer(1000, l -> {
 
 			getStreamFetcherManager();
 			if(appSettings.isStartStreamFetcherAutomatically()) {
@@ -225,6 +225,29 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					}
 				}
 			}
+			
+			//Schedule Playlist items 
+			int offset = 0;
+			int batch = 50;
+			List<Broadcast> playlist;
+			long now = System.currentTimeMillis();
+			while ((playlist = getDataStore().getBroadcastList(offset, batch, AntMediaApplicationAdapter.PLAY_LIST, null, null, null)) != null ) {
+			
+				if (playlist.isEmpty()) {
+					break;
+				}
+				
+				
+				for (Broadcast broadcast : playlist) 
+				{
+					schedulePlayList(now, broadcast);
+				}
+		
+				offset += batch;
+			
+			} 
+			
+			
 			synchUserVoDFolder(null, appSettings.getVodFolder());
 		});
 
@@ -252,9 +275,47 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return true;
 	}
 
-
-
-
+	public void schedulePlayList(long now, Broadcast broadcast) 
+	{
+		if (broadcast.getPlannedStartDate() != 0) 
+		{	
+			long startTimeDelay = (broadcast.getPlannedStartDate()*1000) - now;
+			
+			if (startTimeDelay > 0) 
+			{
+				//Create some random value to not let any other node pull the stream at the same time.
+				//I also improve the StreamFetcher to not get started in the WorkerThread if another node is pulling.
+				//TBH, It's not a good solution and I could not find something better for now
+				//@mekya
+				
+				long randomDelay = (int)(Math.random()*5000);
+				logger.info("Scheduling playlist to play after {}ms with random delay:{} for id:{}", startTimeDelay, randomDelay, broadcast.getStreamId());
+				startTimeDelay += randomDelay;
+				long timerId = vertx.setTimer(startTimeDelay, 
+						(timer) -> 
+						{
+							Broadcast freshBroadcast = getDataStore().get(broadcast.getStreamId());
+							if (freshBroadcast != null && 
+									AntMediaApplicationAdapter.PLAY_LIST.equals(freshBroadcast.getType())) 
+							{
+								streamFetcherManager.startPlaylist(freshBroadcast);
+							}
+							playListSchedulerTimer.remove(freshBroadcast.getStreamId());
+							
+						});
+				
+				playListSchedulerTimer.put(broadcast.getStreamId(), timerId);
+			}		
+		}
+	}
+	
+	public void cancelPlaylistSchedule(String streamId) {
+		Long timerId = playListSchedulerTimer.remove(streamId);
+		if (timerId != null) {
+			vertx.cancelTimer(timerId);
+		}
+		
+	}
 
 
 	/**
@@ -872,6 +933,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if (metadata != null) {
 				variables.put("metadata", metadata);
 			}
+
+			variables.put("timestamp", String.valueOf(System.currentTimeMillis()));
 
 			try {
 				sendPOST(url, variables, appSettings.getWebhookRetryCount());
@@ -1901,6 +1964,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void setSubtrackPoller(ISubtrackPoller subtrackPoller) {
 		this.subtrackPoller = subtrackPoller;
+	}
+
+	public Map<String, Long> getPlayListSchedulerTimer() {
+		return playListSchedulerTimer;
 	}
 
 }

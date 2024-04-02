@@ -17,6 +17,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
@@ -41,6 +42,7 @@ import org.springframework.context.ApplicationContext;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.vertx.core.Vertx;
 import jakarta.annotation.Nullable;
 
@@ -334,18 +336,11 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			return false;
 		}
 		
-		if(isCluster) {
-			String dbConnectionURL = getDataStoreFactory().getDbHost();
-			String mongoUser = getDataStoreFactory().getDbUser();
-			String mongoPass = getDataStoreFactory().getDbPassword();
-
-			boolean result = runCreateAppScript(appName, true, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
-			success = result;
-		}
-		else {
-			boolean result = runCreateAppScript(appName, warFileFullPath);
-			success = result;
-		}
+		String dbConnectionURL = getDataStoreFactory().getDbHost();
+		String mongoUser = getDataStoreFactory().getDbUser();
+		String mongoPass = getDataStoreFactory().getDbPassword();
+		success = runCreateAppScript(appName, isCluster, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
+		
 
 		vertx.executeBlocking(() -> {
 			try {
@@ -461,48 +456,41 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return success;
 	}
 
-
-	public boolean runCreateAppScript(String appName, String warFilePath) {
-		return runCreateAppScript(appName, false, null, null, null, warFilePath);
-	}
-
 	public boolean runCreateAppScript(String appName) {
 		return runCreateAppScript(appName, false, null, null, null, null);
 	}
 
 	public boolean runCreateAppScript(String appName, boolean isCluster, 
-			String mongoHost, String mongoUser, String mongoPass, String warFileName) {
+			String dbConnectionUrl, String dbUser, String dbPass, String warFileName) {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
-		String command;
 
-		if(warFileName != null && !warFileName.isEmpty())
-		{
-			command = "/bin/bash create_app.sh"
-					+ " -n " + appName
-					+ " -w true"
-					+ " -p " + webappsPath
-					+ " -c " + isCluster
-					+ " -f " + warFileName;
-
-		}
-		else
-		{
-			command = "/bin/bash create_app.sh"
-					+ " -n " + appName
-					+ " -w true"
-					+ " -p " + webappsPath
-					+ " -c " + isCluster;
-		} 
-
-		if(isCluster) 
-		{
-			command += " -m " + mongoHost
-					+ " -u "  + mongoUser
-					+ " -s "  + mongoPass;
+		String command = "/bin/bash create_app.sh"
+				+ " -n " + appName
+				+ " -w true"
+				+ " -p " + webappsPath
+				+ " -c " + isCluster;
+		
+		if 	(!DataStoreFactory.DB_TYPE_MAPDB.equals(getDataStoreFactory().getDbType())) {
+			//add db connection url, user and pass if it's not mapdb
+			if (StringUtils.isNotBlank(dbConnectionUrl)) {
+				command +=  " -m " + dbConnectionUrl;
+			}
+			if (StringUtils.isNotBlank(dbUser)) {
+				command += " -u " + dbUser;
+			}
+			if (StringUtils.isNotBlank(dbPass)) {
+				command += " -s " + dbPass;
+			}
 		}
 
+		if(StringUtils.isNotBlank(warFileName))
+		{
+			command += " -f " + warFileName;
+
+		}
+		
 		log.info("Creating application with command: {}", command);
 		return runCommand(command);
 	}
