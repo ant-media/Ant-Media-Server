@@ -213,7 +213,7 @@ public class Broadcast {
 	/**
 	 * Broadcast level ABR settings.
 	 */
-	@ApiModelProperty(value = "Encoder settings for broadcast level ABR")
+	@Schema(description = "Encoder settings for broadcast level ABR")
 	private String encoderSettingsString;
 
 	@Entity
