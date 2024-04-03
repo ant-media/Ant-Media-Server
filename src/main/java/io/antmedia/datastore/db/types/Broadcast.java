@@ -206,16 +206,16 @@ public class Broadcast {
 	@Schema(description ="Initial time to start playing. It can be used in VoD file or stream sources that has seek support")
 	private long seekTimeInMs = 0;
 
-	@ApiModelProperty(value = "The list of the play only users who requested to publish the stream. It is used in conference scenario.")
+	@Schema(description = "The list of the play only users who requested to publish the stream. It is used in conference scenario.")
 	List<String> publisherRequestList = new ArrayList<String>();
 
-	@ApiModelProperty(value = "The list of the users who are approved to publish the stream. It is used in conference scenario.")
+	@Schema(description = "The list of the users who are approved to publish the stream. It is used in conference scenario.")
 	List<String> publisherFromListenerList = new ArrayList<String>();
 
-	@ApiModelProperty(value = "The list of the presenter users. It is used in conference scenario.")
+	@Schema(description = "The list of the presenter users. It is used in conference scenario.")
 	List<String> presenterList = new ArrayList<String>();
 
-	@ApiModelProperty(value = "The list of the admin users. It is used in conference scenario.")
+	@Schema(description = "The list of the admin users. It is used in conference scenario.")
 	List<String> adminList = new ArrayList<String>();
 
 	@Entity
