@@ -214,38 +214,7 @@
 			        </execution>
 			    </executions>
 			</plugin>      
-            <plugin>
-                <groupId>com.github.kongchen</groupId>
-                <artifactId>swagger-maven-plugin</artifactId>
-                <version>3.1.8</version>
-                <configuration>
-                    <apiSources>
-                        <apiSource>
-                            <springmvc>false</springmvc>
-                            <locations>
-                             	<location>io.antmedia.rest</location> 
-                            	<location>io.antmedia.console.rest</location>
-                            </locations>
-                            <swaggerDirectory>target/swagger</swaggerDirectory>
-                            <swaggerFileName>swagger</swaggerFileName>
-                            <outputFormats>json</outputFormats>
-                            <info>
-                   				 <title>Ant Media Server REST API Reference</title>
-                   				 <version>${project.parent.version}</version>
-                   			</info>
-                   			<host>test.antmedia.io:5443/Sandbox/rest/</host>
-                        </apiSource>
-                    </apiSources>
-                </configuration>
-                <executions>
-                    <execution>
-                        <phase>compile</phase>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
+          
             <plugin>
               <groupId>org.owasp</groupId>
               <artifactId>dependency-check-maven</artifactId>
@@ -382,16 +351,10 @@
 		    <version>${morphia.version}</version>
 		</dependency>
 		<dependency>
-            <groupId>io.swagger</groupId>
-            <artifactId>swagger-jersey2-jaxrs</artifactId>
-            <version>${swagger-jersey2-jaxrs.version}</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>jersey-container-servlet-core</artifactId>
-                    <groupId>org.glassfish.jersey.containers</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+      		<groupId>io.swagger.core.v3</groupId>
+	      	<artifactId>swagger-jaxrs2-jakarta</artifactId>
+	      	<version>${swagger-jaxrs2-jakarta.version}</version>
+	   	</dependency>
         <dependency>
 			<groupId>io.vertx</groupId>
 			<artifactId>vertx-dropwizard-metrics</artifactId>
@@ -417,6 +380,18 @@
 		    <artifactId>commons-io</artifactId>
 		    <version>${commons-io}</version>
 		</dependency>
+        <!-- we just override the version of ehcache because of the vulnerability. It's dependency of red5-io -->
+        <dependency>
+            <groupId>net.sf.ehcache</groupId>
+            <version>2.10.9.2</version>
+            <artifactId>ehcache</artifactId>
+        </dependency>
+	   <!-- we just override the version of tika because of the vulnerability. It's dependency of red5-io -->
+	    <dependency>
+	        <groupId>org.apache.tika</groupId>
+	        <artifactId>tika-core</artifactId>
+	        <version>2.9.1</version>
+	    </dependency>
         <dependency>
             <groupId>org.red5</groupId>
             <artifactId>red5-io</artifactId>
@@ -624,6 +599,11 @@
 		    <artifactId>pushy</artifactId>
 		    <version>${pushy.version}</version>
 		</dependency>
+        <dependency>
+            <groupId>io.lindstrom</groupId>
+            <artifactId>m3u8-parser</artifactId>
+            <version>0.27</version>
+        </dependency>
     </dependencies>
     <profiles>
         <profile>

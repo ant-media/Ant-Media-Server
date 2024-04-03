@@ -70,51 +70,49 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.ws.rs.core.Context;
 
 public abstract class RestServiceBase {
 
-	@ApiModel(value="BroadcastStatistics", description="The statistics class of the broadcasts")
-	public static class BroadcastStatistics {
+	private static final String REPLACE_CHARS_FOR_SECURITY = "[\n\r]";
 
-		@ApiModelProperty(value = "the total RTMP viewers of the stream")
-		public final int totalRTMPWatchersCount;
+	public class BroadcastStatistics {
 
-		@ApiModelProperty(value = "the total HLS viewers of the stream")
-		public final int totalHLSWatchersCount;
+	    @Schema(description = "The total RTMP viewers of the stream")
+	    public final int totalRTMPWatchersCount;
 
-		@ApiModelProperty(value = "the total WebRTC viewers of the stream")
-		public final int totalWebRTCWatchersCount;
+	    @Schema(description = "The total HLS viewers of the stream")
+	    public final int totalHLSWatchersCount;
 
-		@ApiModelProperty(value = "the total DASH viewers of the stream")
-		public final int totalDASHWatchersCount;
+	    @Schema(description = "The total WebRTC viewers of the stream")
+	    public final int totalWebRTCWatchersCount;
 
+	    @Schema(description = "The total DASH viewers of the stream")
+	    public final int totalDASHWatchersCount;
 
-		public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
-				int totalWebRTCWatchersCount, int totalDASHWatchersCount) {
-			this.totalRTMPWatchersCount = totalRTMPWatchersCount;
-			this.totalHLSWatchersCount = totalHLSWatchersCount;
-			this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
-			this.totalDASHWatchersCount = totalDASHWatchersCount;
-		}
+	    public BroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
+	                               int totalWebRTCWatchersCount, int totalDASHWatchersCount) {
+	        this.totalRTMPWatchersCount = totalRTMPWatchersCount;
+	        this.totalHLSWatchersCount = totalHLSWatchersCount;
+	        this.totalWebRTCWatchersCount = totalWebRTCWatchersCount;
+	        this.totalDASHWatchersCount = totalDASHWatchersCount;
+	    }
 	}
 
-	@ApiModel(value="AppBroadcastStatistics", description="The statistics class of the app. It provides total number of viewers and active live streams")
-	public static class AppBroadcastStatistics extends BroadcastStatistics {
 
-		@ApiModelProperty(value = "the total active live stream count")
-		public final int activeLiveStreamCount;
+	public class AppBroadcastStatistics extends BroadcastStatistics {
 
-		public AppBroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
-				int totalWebRTCWatchersCount, int totalDASHWatchersCount, int activeLiveStreamCount )
-		{
-			super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount, totalDASHWatchersCount);
-			this.activeLiveStreamCount = activeLiveStreamCount;
-		}
+	    @Schema(description = "The total active live stream count")
+	    public final int activeLiveStreamCount;
 
+	    public AppBroadcastStatistics(int totalRTMPWatchersCount, int totalHLSWatchersCount,
+	                                  int totalWebRTCWatchersCount, int totalDASHWatchersCount, int activeLiveStreamCount) {
+	        super(totalRTMPWatchersCount, totalHLSWatchersCount, totalWebRTCWatchersCount, totalDASHWatchersCount);
+	        this.activeLiveStreamCount = activeLiveStreamCount;
+	    }
 	}
+
 
 	public interface ProcessBuilderFactory {
 		Process make(String...args);
@@ -238,8 +236,17 @@ public abstract class RestServiceBase {
 	}
 
 	public Broadcast createBroadcastWithStreamID(Broadcast broadcast) {
-		return saveBroadcast(broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(),
+		Broadcast createdBroadcast = saveBroadcast(broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, getScope().getName(),
 				getDataStore(), getAppSettings().getListenerHookURL(), getServerSettings(), 0);
+		
+		if (AntMediaApplicationAdapter.PLAY_LIST.equals(createdBroadcast.getType())) 
+		{
+			long now = System.currentTimeMillis();				
+			//Schedule playlist if plannedStartDate is ok
+			getApplication().schedulePlayList(now, createdBroadcast);	
+		}
+		
+		return createdBroadcast;
 	}
 
 	public static Broadcast saveBroadcast(Broadcast broadcast, String status, String scopeName, DataStore dataStore,
@@ -335,6 +342,9 @@ public abstract class RestServiceBase {
 			//no need to check if the stream is another node because RestProxyFilter makes this arrangement
 
 			stopResult = stopBroadcastInternal(broadcast);
+			
+			//if it's something about scheduled playlist
+			getApplication().cancelPlaylistSchedule(broadcast.getStreamId());
 
 			result.setSuccess(getDataStore().delete(id));
 
@@ -369,6 +379,7 @@ public abstract class RestServiceBase {
 				result = deleteBroadcast(id);
 				if (!result.isSuccess())
 				{
+					id =  id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_" );
 					logger.warn("It cannot delete {} and breaking the loop", id);
 					break;
 				}
@@ -416,14 +427,8 @@ public abstract class RestServiceBase {
 		return room;
 	}
 
-	protected Result updateBroadcast(String streamId, Broadcast broadcast) {
-
-		removeEmptyPlayListItems(broadcast);
-
-		updatePlayListItemDurationsIfApplicable(broadcast);
-
-		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
-
+	protected Result updateBroadcast(String streamId, Broadcast updatedBroadcast, Broadcast broadcastInDB) {
+		boolean result = getDataStore().updateBroadcastFields(streamId, updatedBroadcast);
 		return new Result(result);
 	}
 
@@ -443,56 +448,65 @@ public abstract class RestServiceBase {
 			}
 		}
 	}
+	
+	public boolean isStreaming(Broadcast broadcast) {
+		return AntMediaApplicationAdapter.isStreaming(broadcast);
+	}
 
 	/**
 	 * Update Stream Source or IP Camera info
-	 * @param broadcast
+	 * @param updatedBroadcast
 	 * @param socialNetworksToPublish
 	 * @return
 	 */
-	protected Result updateStreamSource(String streamId, Broadcast broadcast) {
-		logger.debug("Updating stream source for stream {}", broadcast.getStreamId());
+	protected Result updateStreamSource(String streamId, Broadcast updatedBroadcast, Broadcast broadcastInDB) {
+		logger.debug("Updating stream source for stream {}", updatedBroadcast.getStreamId());
 
-		if (!checkStreamUrl(broadcast.getStreamUrl()) && !AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) {
+		boolean isPlayList = AntMediaApplicationAdapter.PLAY_LIST.equals(broadcastInDB.getType());
+		if (!checkStreamUrl(updatedBroadcast.getStreamUrl()) && !isPlayList) {
 			return new Result(false, "Stream URL is not valid");
 		}
 
-		Broadcast broadcastInDB = getDataStore().get(streamId);
-		if (broadcastInDB == null) {
-			streamId = streamId.replaceAll("[\n|\r|\t]", "_");
-			logger.info("Broadcast with stream id: {} is null", streamId);
-			return new Result(false, "Broadcast with streamId: " + streamId + " does not exist");
-		}
+		boolean isStreamingActive = isStreaming(broadcastInDB);
 
-		boolean isStreamingActive = AntMediaApplicationAdapter.isStreaming(broadcastInDB);
-
-		if (isStreamingActive) {
+		//Stop if it's streaming and type is not playlist
+		if (isStreamingActive && !isPlayList) {
 			boolean resultStopStreaming = checkStopStreaming(broadcastInDB);
 			waitStopStreaming(broadcastInDB, resultStopStreaming);
 		}
 
-		if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcast.getType())) {
-			Result connectionRes = connectToCamera(broadcast);
+		if (AntMediaApplicationAdapter.IP_CAMERA.equals(updatedBroadcast.getType())) {
+			Result connectionRes = connectToCamera(updatedBroadcast);
 			if (!connectionRes.isSuccess()) {
 				return connectionRes;
 			}
 
 			String rtspURL = connectionRes.getMessage();
-			String authparam = broadcast.getUsername() + ":" + broadcast.getPassword() + "@";
+			String authparam = updatedBroadcast.getUsername() + ":" + updatedBroadcast.getPassword() + "@";
 			String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
 			logger.info("New Stream Source URL: {}", rtspURLWithAuth);
-			broadcast.setStreamUrl(rtspURLWithAuth);
+			updatedBroadcast.setStreamUrl(rtspURLWithAuth);
 		}
 
-		removeEmptyPlayListItems(broadcast);
-		updatePlayListItemDurationsIfApplicable(broadcast);
+		removeEmptyPlayListItems(updatedBroadcast);
+		updatePlayListItemDurationsIfApplicable(updatedBroadcast);
 
-		boolean result = getDataStore().updateBroadcastFields(streamId, broadcast);
-
-		if (result && isStreamingActive) {
-			//start straming again if it was streaming
-			Broadcast fetchedBroadcast = getDataStore().get(streamId);
-			getApplication().startStreaming(fetchedBroadcast);
+		boolean result = getDataStore().updateBroadcastFields(streamId, updatedBroadcast);
+		
+		if (result) {
+			
+			if (broadcastInDB.getPlannedStartDate() != updatedBroadcast.getPlannedStartDate() && isPlayList) {
+				getApplication().cancelPlaylistSchedule(broadcastInDB.getStreamId());
+				
+				getApplication().schedulePlayList(System.currentTimeMillis(), updatedBroadcast);
+			}
+			
+			if (isStreamingActive && !isPlayList) {
+				//start streaming again if it was streaming and it's not Playlist
+				Broadcast fetchedBroadcast = getDataStore().get(streamId);
+				getApplication().startStreaming(fetchedBroadcast);
+				
+			}
 		}
 
 		return new Result(result);
@@ -1172,6 +1186,7 @@ public abstract class RestServiceBase {
 
 				if (!result.isSuccess())
 				{
+					id =  id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_" );
 					logger.warn("VoD:{} cannot be deleted and breaking the loop", id);
 					break;
 				}
@@ -1315,7 +1330,7 @@ public abstract class RestServiceBase {
 		}
 		else {
 			logger.info("No mux adaptor found for {} recordType:{} resolutionHeight:{}", streamId != null  ?
-					streamId.replaceAll("[\n\r]", "_") : "null ",
+					streamId.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_") : "null ",
 					recordType, resolutionHeight);
 		}
 
@@ -1482,7 +1497,7 @@ public abstract class RestServiceBase {
 				streamFetcher.setStreamFetcherListener(null);
 
 				if (logger.isInfoEnabled()) {
-					logger.info("Switching to next item by REST method for playlist:{} and forwarding stream fetcher listener:{}", id.replaceAll("[\n\r]", "_"), streamFetcherListener.hashCode());
+					logger.info("Switching to next item by REST method for playlist:{} and forwarding stream fetcher listener:{}", id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_"), streamFetcherListener.hashCode());
 				}
 
 				result = getApplication().getStreamFetcherManager().playItemInList(broadcast, streamFetcherListener, index);
