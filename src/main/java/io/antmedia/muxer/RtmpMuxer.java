@@ -360,7 +360,7 @@ public class RtmpMuxer extends Muxer {
 	}
 
 	public void avWriteFrame(AVPacket pkt, AVFormatContext context) {
-		int ret;
+		int ret = 0;
 		boolean isKeyFrame = false;
 		if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
 			isKeyFrame = true;
