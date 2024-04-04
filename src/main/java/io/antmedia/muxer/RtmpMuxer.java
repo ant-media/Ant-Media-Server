@@ -340,7 +340,8 @@ public class RtmpMuxer extends Muxer {
 		}
 		else if (codecType == AVMEDIA_TYPE_AUDIO && headerWritten)
 		{
-			ret = av_interleaved_write_frame(context, pkt);
+			av_packet_ref(getTmpPacket() , pkt);
+			ret = av_interleaved_write_frame(context, getTmpPacket());
 			if (ret < 0 && logger.isInfoEnabled())
 			{
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
@@ -351,6 +352,7 @@ public class RtmpMuxer extends Muxer {
 				logPacketIssue("Write audio packet for stream:{} and url:{}. Packet pts:{} dts:{}", streamId, getOutputURL(), pkt.pts(), pkt.dts());
 
 			}
+			av_packet_unref(getTmpPacket());
 		}
 
 		pkt.pts(pts);
