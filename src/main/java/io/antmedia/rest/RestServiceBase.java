@@ -476,7 +476,8 @@ public abstract class RestServiceBase {
 			waitStopStreaming(broadcastInDB, resultStopStreaming);
 		}
 
-		if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcastInDB.getType())) {
+		if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcastInDB.getType()) && 
+				!StringUtils.isAllBlank(updatedBroadcast.getIpAddr(), updatedBroadcast.getUsername(),updatedBroadcast.getPassword())) {
 			
 			if (StringUtils.isBlank(updatedBroadcast.getIpAddr())) {
 				updatedBroadcast.setIpAddr(broadcastInDB.getIpAddr());
