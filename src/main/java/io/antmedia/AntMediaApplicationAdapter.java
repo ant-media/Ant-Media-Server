@@ -93,6 +93,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String HOOK_ACTION_ENCODER_NOT_OPENED_ERROR =  "encoderNotOpenedError";
 	public static final String HOOK_ACTION_ENDPOINT_FAILED = "endpointFailed";
 
+	public static final String HOOK_ACTION_JOINED_THE_ROOM = "joinRoom";
+
+	public static final String HOOK_ACTION_LEFT_THE_ROOM = "leftRoom";
+
 	public static final String STREAMS = "streams";
 
 	public static final String DEFAULT_LOCALHOST = "127.0.0.1";
@@ -847,6 +851,32 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	}
 
+	private boolean isWebhooksEnabled(){
+		final String listenerHookURL = getAppSettings().getListenerHookURL();
+		if(listenerHookURL != null && !listenerHookURL.isEmpty()){
+			return true;
+		}
+		return  false;
+	}
+
+	public void notifyRoomHook(String action, String roomId, String myTrackId, boolean playOnly) {
+		final String listenerHookURL = getAppSettings().getListenerHookURL();
+		if(!isWebhooksEnabled()){
+			return;
+		}
+		JSONObject hookData = new JSONObject();
+		hookData.put("action", action);
+		hookData.put("roomId", roomId);
+		hookData.put("myTrackId", myTrackId);
+		hookData.put("playOnly", playOnly);
+		Broadcast broadcast = dataStore.get(myTrackId);
+		if(broadcast != null){
+			hookData.put("metaData",broadcast.getMetaData());
+
+		}
+		vertx.runOnContext(e -> notifyHook(listenerHookURL, roomId, action, null, null, null, null, hookData.toString()));
+
+	}
 	public void runScript(String scriptFile) {
 		vertx.executeBlocking(future -> {
 			try {
@@ -908,9 +938,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 */
 	public void notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName, String vodId, String metadata) {
-		StringBuilder response = null;
 		logger.info("Running notify hook url:{} stream id: {} action:{} vod name:{} vod id:{}", url, id, action, vodName, vodId);
-		if (url != null && url.length() > 0) {
+		if (url != null && !url.isEmpty()) {
 			Map<String, String> variables = new HashMap<>();
 
 			variables.put("id", id);
