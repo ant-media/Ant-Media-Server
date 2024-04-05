@@ -334,23 +334,29 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
-	@Override
 	public Result updateBroadcast(@Parameter(description="Broadcast id", required = true) @PathParam("id") String id, 
 			@Parameter(description="Broadcast object with the updates") Broadcast broadcast) {
 		Result result = new Result(false);
 		if (id != null && broadcast != null) 
 		{
-			if (broadcast.getType() != null && 
-					(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || 
-							broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) || 
-							broadcast.getType().equals(AntMediaApplicationAdapter.VOD) || 
-							broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST))) 
+			Broadcast broadcastInDB = getDataStore().get(id);
+			if (broadcastInDB == null) {
+				String streamId = id.replaceAll("[\n|\r|\t]", "_");
+				logger.info("Broadcast with stream id: {} is null", streamId);
+				return new Result(false, "Broadcast with streamId: " + streamId + " does not exist");
+			}
+			
+			if (broadcastInDB.getType() != null && 
+					(broadcastInDB.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || 
+							broadcastInDB.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) || 
+							broadcastInDB.getType().equals(AntMediaApplicationAdapter.VOD) || 
+							broadcastInDB.getType().equals(AntMediaApplicationAdapter.PLAY_LIST))) 
 			{
-				result = super.updateStreamSource(id, broadcast);
+				result = super.updateStreamSource(id, broadcast, broadcastInDB);
 			}
 			else 
 			{
-				result = super.updateBroadcast(id, broadcast);
+				result = super.updateBroadcast(id, broadcast, broadcastInDB);
 			}
 
 		}

@@ -135,7 +135,7 @@ public class ConsoleAppRestServiceTest{
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
 	}
-	
+
 	public boolean createFirstUserAndLogin() throws Exception  
 	{
 		Result firstLogin = callisFirstLogin();
@@ -148,7 +148,7 @@ public class ConsoleAppRestServiceTest{
 				return false;
 			}
 		}
-		
+
 		User user = new User();
 		user.setEmail(TEST_USER_EMAIL);
 		user.setPassword(TEST_USER_PASS);
@@ -172,7 +172,7 @@ public class ConsoleAppRestServiceTest{
 
 			}
 
-			
+
 			User user = new User();
 			user.setEmail(TEST_USER_EMAIL);
 			user.setPassword(TEST_USER_PASS);
@@ -476,16 +476,16 @@ public class ConsoleAppRestServiceTest{
 
 	@Test
 	public void testChangeDatabaseToRedisAndCreateApp() throws IOException, InterruptedException {
-		
+
 		//switch to use redis server
 		String installLocation = "/usr/local/antmedia";
-		
+
 		//run command to switch to redis database
 		String command = "sudo " + installLocation + "/change_server_mode.sh standalone redis://127.0.0.1:6379";
 		Process exec = Runtime.getRuntime().exec(command);
-		
+
 		assertEquals(0, exec.waitFor());
-		
+
 		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(()-> {
 			try {
 				return createFirstUserAndLogin();
@@ -495,29 +495,29 @@ public class ConsoleAppRestServiceTest{
 				return false;
 			}
 		});
-		
+
 		Applications applications = getApplications();
 		int appCount = applications.applications.length;
-		
+
 		String appName = RandomString.make(20);
 		Result result = createApplication(appName);
 		assertTrue(result.isSuccess());
-		
+
 		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() ->  {
 			Applications tmpApplications = getApplications();
 			return tmpApplications.applications.length == appCount + 1;
 		});
-		
+
 		//check that if the app is configured to use redis
-		
+
 		File propertiesFile = new File( installLocation + "/webapps/" + appName + "/WEB-INF/red5-web.properties");
-		
+
 		String content = Files.readString(propertiesFile.toPath());
 		assertTrue(content.contains("db.type=redisdb"));
 		assertTrue(content.contains("db.host=redis://127.0.0.1:6379"));
-		
-		
+
+
 		result = deleteApplication(appName);
 		assertTrue(result.isSuccess());
 
@@ -526,12 +526,12 @@ public class ConsoleAppRestServiceTest{
 			Applications tmpApplications = getApplications();
 			return tmpApplications.applications.length == appCount;
 		});
-		
+
 		//switch back to use mapdb
 		command = "sudo " + installLocation + "/change_server_mode.sh standalone";
 		exec = Runtime.getRuntime().exec(command);
 		assertEquals(0, exec.waitFor());
-		
+
 		//check that server is running
 		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(()-> {
 			try {
@@ -541,8 +541,8 @@ public class ConsoleAppRestServiceTest{
 				e.printStackTrace();
 				return false;
 			}
-        });
-		
+		});
+
 
 	}
 
@@ -2296,6 +2296,56 @@ public class ConsoleAppRestServiceTest{
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+
+	/**
+	 * This is a bug fix test
+	 * https://github.com/ant-media/Ant-Media-Server/issues/6212
+	 */
+	@Test
+	public void testRestartPeriod() {
+		try {
+			AppSettings appSettings = callGetAppSettings("LiveApp");
+			appSettings.setRestartStreamFetcherPeriod(20);
+			Result result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
+			StreamFetcherUnitTest.startCameraEmulator();
+
+			Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv",
+					AntMediaApplicationAdapter.STREAM_SOURCE);
+			
+			String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
+			Result addStreamSourceResult = gson.fromJson(returnResponse, Result.class);
+
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
+
+			});
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollDelay(12, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).
+			until(()-> {
+				Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
+			});
+			
+			result = RestServiceV2Test.callDeleteBroadcast(addStreamSourceResult.getDataId());
+			assertTrue(result.isSuccess());
+			
+			appSettings.setRestartStreamFetcherPeriod(0);
+			result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+			
+			StreamFetcherUnitTest.stopCameraEmulator();
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
 	}
 
 	//public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
