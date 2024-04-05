@@ -11,9 +11,14 @@ import static org.bytedeco.ffmpeg.global.avcodec.av_bsf_send_packet;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_ref;
 import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
-import static org.bytedeco.ffmpeg.global.avformat.av_write_frame;
+import static org.bytedeco.ffmpeg.global.avformat.av_interleaved_write_frame;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
-import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
+import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
+import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_PASS_MINMAX;
+import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
+import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
 
 import java.nio.ByteBuffer;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -335,7 +340,8 @@ public class RtmpMuxer extends Muxer {
 		}
 		else if (codecType == AVMEDIA_TYPE_AUDIO && headerWritten)
 		{
-			ret = av_write_frame(context, pkt);
+			av_packet_ref(getTmpPacket() , pkt);
+			ret = av_interleaved_write_frame(context, getTmpPacket());
 			if (ret < 0 && logger.isInfoEnabled())
 			{
 				setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
@@ -346,6 +352,7 @@ public class RtmpMuxer extends Muxer {
 				logPacketIssue("Write audio packet for stream:{} and url:{}. Packet pts:{} dts:{}", streamId, getOutputURL(), pkt.pts(), pkt.dts());
 
 			}
+			av_packet_unref(getTmpPacket());
 		}
 
 		pkt.pts(pts);
@@ -355,14 +362,14 @@ public class RtmpMuxer extends Muxer {
 	}
 
 	public void avWriteFrame(AVPacket pkt, AVFormatContext context) {
-		int ret;
+		int ret = 0;
 		boolean isKeyFrame = false;
 		if ((pkt.flags() & AV_PKT_FLAG_KEY) == 1) {
 			isKeyFrame = true;
 		}
 		addExtradataIfRequired(pkt, isKeyFrame);
 		
-		ret = av_write_frame(context, getTmpPacket());
+		ret = av_interleaved_write_frame(context, getTmpPacket());
 		if (ret < 0 && logger.isInfoEnabled()) 
 		{
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
