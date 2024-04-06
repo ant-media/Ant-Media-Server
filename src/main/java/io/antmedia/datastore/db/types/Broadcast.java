@@ -16,6 +16,9 @@ import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import static io.antmedia.AppSettings.encodersList2Str;
+import static io.antmedia.AppSettings.encodersStr2List;
+
 
 @Schema(description="The basic broadcast class")
 @Entity(value = "broadcast")

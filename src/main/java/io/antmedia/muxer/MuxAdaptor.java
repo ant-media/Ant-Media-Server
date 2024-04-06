@@ -292,7 +292,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
 			List<EncoderSettings> appEncoderSettings = appSettings.getEncoderSettings();
 
-			if ((broadcastEncoderSettings!= null && !broadcastEncoderSettings.isEmpty()) ||
+			if ((broadcastEncoderSettings != null && !broadcastEncoderSettings.isEmpty()) ||
 					(appEncoderSettings != null && !appEncoderSettings.isEmpty()) ||
 					appSettings.isWebRTCEnabled() || appSettings.isForceDecoding()) {
 				/*
@@ -400,7 +400,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		previewOverwrite = appSettingsLocal.isPreviewOverwrite();
 
-		encoderSettingsList = (getBroadcast().getEncoderSettings() != null && !getBroadcast().getEncoderSettings().isEmpty()) ? getBroadcast().getEncoderSettings() : appSettingsLocal.getEncoderSettings();
+		encoderSettingsList = (getBroadcast() != null && getBroadcast().getEncoderSettings() != null && !getBroadcast().getEncoderSettings().isEmpty()) ? getBroadcast().getEncoderSettings() : appSettingsLocal.getEncoderSettings();
 
 		previewCreatePeriod = appSettingsLocal.getCreatePreviewPeriod();
 		maxAnalyzeDurationMS = appSettingsLocal.getMaxAnalyzeDurationMS();
