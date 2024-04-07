@@ -97,6 +97,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public static final String HOOK_ACTION_LEFT_THE_ROOM = "leftRoom";
 
+	public static final String HOOK_ACTION_ROOM_CREATED = "roomCreated";
+	public static final String HOOK_ACTION_ROOM_ENDED = "roomEnded";
+
 	public static final String STREAMS = "streams";
 
 	public static final String DEFAULT_LOCALHOST = "127.0.0.1";
@@ -616,6 +619,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
 		if(mainBroadcast.getSubTrackStreamIds().isEmpty() && mainBroadcast.isZombi()) {
 			getDataStore().delete(mainBroadcast.getStreamId());
+			notifyRoomEndedHook(mainBroadcast);
 		}
 		else {
 			getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
@@ -874,8 +878,29 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			hookData.put("metaData",broadcast.getMetaData());
 
 		}
-		vertx.runOnContext(e -> notifyHook(listenerHookURL, roomId, action, null, null, null, null, hookData.toString()));
+		vertx.runOnContext(e -> notifyHook(listenerHookURL, roomId, action, null, null, null, null, hookData.toJSONString()));
 
+	}
+
+
+	public void notifyRoomStartedHook(Broadcast mainTrack) {
+		final String listenerHookURL = getListenerHookURL(mainTrack);
+
+		if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
+			final String name = mainTrack.getName();
+			final String category = mainTrack.getCategory();
+			vertx.runOnContext(e -> notifyHook(listenerHookURL, mainTrack.getStreamId(), HOOK_ACTION_ROOM_CREATED, name, category, null, null, null));
+		}
+	}
+
+	private void notifyRoomEndedHook(Broadcast mainTrack) {
+		final String listenerHookURL = getListenerHookURL(mainTrack);
+
+		if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
+			final String name = mainTrack.getName();
+			final String category = mainTrack.getCategory();
+			vertx.runOnContext(e -> notifyHook(listenerHookURL, mainTrack.getStreamId(), HOOK_ACTION_ROOM_ENDED, name, category, null, null, null));
+		}
 	}
 	public void runScript(String scriptFile) {
 		vertx.executeBlocking(future -> {
