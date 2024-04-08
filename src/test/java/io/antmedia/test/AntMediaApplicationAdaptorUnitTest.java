@@ -848,7 +848,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertEquals(category, variablesMap.get("category"));
 		assertEquals(vodName, variablesMap.get("vodName"));
 		assertEquals(vodId, variablesMap.get("vodId"));
-
+		assertNotNull(variablesMap.get("timestamp"));
 
 		url = "this is second  url";
 		spyAdaptor.notifyHook(url, id, null, null, null, null, null, null);
@@ -868,6 +868,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertNull(variablesMap2.get("category"));
 		assertNull(variablesMap2.get("vodName"));
 		assertNull(variablesMap2.get("vodId"));
+		assertNotNull(variablesMap2.get("timestamp"));
 
 
 	}
@@ -2046,6 +2047,53 @@ public class AntMediaApplicationAdaptorUnitTest {
 		// Get the subtrackPoller using the getter and verify it's the same as the mock
 		ISubtrackPoller retrievedSubtrackPoller = adapter.getSubtrackPoller();
 		assertEquals("The retrieved subtrackPoller should match the mock instance.", mockSubtrackPoller, retrievedSubtrackPoller);
+	}
+	
+	@Test
+	public void testSchedulePlayList() throws Exception {
+		
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId("streamId");
+		broadcast.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		adapter.schedulePlayList(System.currentTimeMillis(), broadcast);
+		
+		
+		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
+		
+		
+		broadcast.setPlannedStartDate(100);
+		adapter.schedulePlayList(System.currentTimeMillis(), broadcast);
+		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
+
+		
+		long now = System.currentTimeMillis();
+		broadcast.setPlannedStartDate((now + 3000) / 1000);
+		adapter.setDataStore(new InMemoryDataStore("testdb"));
+		adapter.getDataStore().save(broadcast);
+		StreamFetcherManager fetcherManager = Mockito.mock(StreamFetcherManager.class);
+		adapter.setStreamFetcherManager(fetcherManager);
+
+		adapter.schedulePlayList(now, broadcast);
+		assertFalse(adapter.getPlayListSchedulerTimer().isEmpty());
+		
+		Mockito.verify(fetcherManager, Mockito.timeout(7000).times(1)).startPlaylist(broadcast);
+
+		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
+		
+		
+		
+		
+		adapter.schedulePlayList(now, broadcast);
+		assertFalse(adapter.getPlayListSchedulerTimer().isEmpty());
+		adapter.cancelPlaylistSchedule(broadcast.getStreamId());
+		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
+
+		//it should be still 1 because we cancel the timer 
+		Mockito.verify(fetcherManager, Mockito.timeout(7000).times(1)).startPlaylist(broadcast);
+
+
+		
+		adapter.cancelPlaylistSchedule("anyId");
 	}
 
 }

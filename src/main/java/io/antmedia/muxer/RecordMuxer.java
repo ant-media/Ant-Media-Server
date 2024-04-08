@@ -129,11 +129,9 @@ public abstract class RecordMuxer extends Muxer {
 		vertx.executeBlocking(()->{
 			try {
 
-				IContext context = RecordMuxer.this.scope.getContext();
-				ApplicationContext appCtx = context.getApplicationContext();
-				AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+				AntMediaApplicationAdapter adaptor = getAppAdaptor();
 
-				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
+				AppSettings appSettings = getAppSettings();
 
 				File f = getFinalFileName(appSettings.isS3RecordingEnabled());
 
@@ -159,6 +157,13 @@ public abstract class RecordMuxer extends Muxer {
 			return null;
 		});
 
+	}
+
+	public AntMediaApplicationAdapter getAppAdaptor() {
+		IContext context = RecordMuxer.this.scope.getContext();
+		ApplicationContext appCtx = context.getApplicationContext();
+		AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		return adaptor;
 	}
 
 	
