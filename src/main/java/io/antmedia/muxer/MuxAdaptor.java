@@ -859,8 +859,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			if(broadcast!=null) {
 				String totalViewers = Integer.toString(broadcast.getDashViewerCount() + broadcast.getWebRTCViewerCount() + broadcast.getHlsViewerCount());
-				LoggerUtils.logJsonString("publishStats", "streamId", streamId, "totalBytes", String.valueOf(broadcast.getReceivedBytes()), "duration", Long.toString(broadcast.getDuration()), "bitrate", Long.toString(broadcast.getBitrate()), "ip", broadcast.getIpAddr());
-				LoggerUtils.logJsonString("viewerCount", "streamId", streamId, "Dash", Integer.toString(broadcast.getDashViewerCount()), "WebRTC", Long.toString(broadcast.getWebRTCViewerCount()), "HLS", Long.toString(broadcast.getHlsViewerCount()), "totalViewers", totalViewers);
+				LoggerUtils.logAnalyticsFromServer(scope.getName(), 
+						LoggerUtils.EVENT_PUBLISH_STATS, 
+						LoggerUtils.STREAM_ID_FIELD, streamId, 
+						//TODO: check TOTAL_BYTES_FIELD
+						LoggerUtils.TOTAL_BYTES_FIELD, String.valueOf(broadcast.getReceivedBytes()), 
+						//TODO: check DURATION_MS_FIELD
+						LoggerUtils.DURATION_MS_FIELD, Long.toString(broadcast.getDuration()), 
+						//TODO: check bitrate
+						LoggerUtils.BITRATE_FIELD, Long.toString(broadcast.getBitrate()), 
+						//TODO: check client ip field
+						LoggerUtils.CLIENT_IP_FIELD, broadcast.getIpAddr());
+				
+				LoggerUtils.logAnalyticsFromServer(scope.getName(), "viewerCount", LoggerUtils.STREAM_ID_FIELD, streamId, "Dash", Integer.toString(broadcast.getDashViewerCount()), "WebRTC", Long.toString(broadcast.getWebRTCViewerCount()), "HLS", Long.toString(broadcast.getHlsViewerCount()), "totalViewers", totalViewers);
 			}
 			lastQualityUpdateTime = now;
 
@@ -1292,7 +1303,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			lastKeyFramePts = pts;
 			keyFramePerMin += 1;
 			if(lastPacket.systemTimeMs - lastOneMin > 60000){
-				LoggerUtils.logJsonString("KeyFrameStats", "streamId", streamId , "keyFrameDiffMs", String.valueOf(timeDiff),"keyFramePerMin",Long.toString(keyFramePerMin));
+				LoggerUtils.logAnalyticsFromServer(scope.getName(), 
+						LoggerUtils.EVENT_KEY_FRAME_STATS, 
+						LoggerUtils.STREAM_ID_FIELD, streamId , 
+						//TODO: check key frame difference
+						LoggerUtils.KEY_FRAME_DIFFERENCE, String.valueOf(timeDiff),
+						LoggerUtils.KEY_FRAME_IN_LAST_MINUTE, Long.toString(keyFramePerMin));
+				
 				keyFramePerMin = 0;
 				lastOneMin = lastPacket.systemTimeMs;
 			}

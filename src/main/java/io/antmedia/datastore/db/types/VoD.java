@@ -76,11 +76,6 @@ public class VoD implements Serializable {
     @Schema(description = "The file path for the preview of the VoD")
     private String previewFilePath;
 
-	@Schema(description = "total number of time the file has been accessed since creation ")
-	private String totalViews;
-
-	@Schema(description = "total duration of time for which the VOD was Viewed ")
-	private String totalDuration;
 	public VoD() {
 		//default constructor is used to return not found vod in rest service 
 	}

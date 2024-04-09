@@ -28,6 +28,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
@@ -588,7 +589,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null, metaData));
 				}
 
-				LoggerUtils.logJsonString("publishStopped", "streamId", streamId  , "streamName",broadcast.getName());
+				LoggerUtils.logAnalyticsFromServer(scope.getName(), LoggerUtils.EVENT_PUBLISH_ENDED, LoggerUtils.STREAM_ID_FIELD, streamId, LoggerUtils.STREAM_NAME_FIELD, broadcast.getName());
 
 				if (broadcast.isZombi()) {
 					if(broadcast.getMainTrackStreamId() != null && !broadcast.getMainTrackStreamId().isEmpty()) {
@@ -704,10 +705,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 						videoHeight = Integer.toString(videoCodecPar.height());
 						videoCodecName = avcodec_get_name(videoCodecPar.codec_id()).getString();
 					}
-					if(adaptor.isEnableAudio())
-					audioCodecName = avcodec_get_name(adaptor.getAudioCodecParameters().codec_id()).getString();
+					if(adaptor.isEnableAudio()) {
+						audioCodecName = avcodec_get_name(adaptor.getAudioCodecParameters().codec_id()).getString();
+					}
 				}
-				LoggerUtils.logJsonString("publishStarted", "streamId", streamId , "protocol", publishType, "streamName",broadcast.getName(),"bitrate",Long.toString(broadcast.getBitrate()),"height",videoHeight,"width",videoWidth,"videoCodec",videoCodecName,"audioCodec",audioCodecName);
+				LoggerUtils.logAnalyticsFromServer(scope.getName(), LoggerUtils.EVENT_PUBLISH_STARTED, LoggerUtils.STREAM_ID_FIELD, streamId , LoggerUtils.PROTOCOL_FIELD, publishType, LoggerUtils.STREAM_NAME_FIELD, broadcast.getName(),
+						LoggerUtils.BITRATE_FIELD,Long.toString(broadcast.getBitrate()),
+						LoggerUtils.HEIGHT_FIELD, videoHeight,
+						LoggerUtils.WIDTH_FIELD,videoWidth,
+						LoggerUtils.VIDEO_CODEC_FIELD, videoCodecName,
+						LoggerUtils.AUDIO_CODEC_FIELD,audioCodecName);
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -937,7 +944,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 *
 	 * @return
 	 */
-	public StringBuilder notifyHook(String url, String id, String action, String streamName, String category,
+	public void notifyHook(String url, String id, String action, String streamName, String category,
 			String vodName, String vodId, String metadata) {
 		StringBuilder response = null;
 		logger.info("Running notify hook url:{} stream id: {} action:{} vod name:{} vod id:{}", url, id, action, vodName, vodId);
@@ -968,31 +975,27 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			variables.put("timestamp", String.valueOf(System.currentTimeMillis()));
 
 			try {
-				response = sendPOST(url, variables);
+				sendPOST(url, variables, appSettings.getWebhookRetryCount());
 			} catch (Exception e) {
-				//Make Exception generi
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
-		return response;
 	}
 
-	public StringBuilder sendPOST(String url, Map<String, String> variables) throws IOException {
-
-		StringBuilder response = null;
-		try (CloseableHttpClient httpClient = getHttpClient())
-		{
+	public void sendPOST(String url, Map<String, String> variables, int retryAttempts) {
+		logger.info("Sending POST request to {}", url);
+		try (CloseableHttpClient httpClient = getHttpClient()) {
 			HttpPost httpPost = new HttpPost(url);
-			RequestConfig requestConfig =RequestConfig.custom()
+			RequestConfig requestConfig = RequestConfig.custom()
 					.setConnectTimeout(2000)
 					.setConnectionRequestTimeout(2000)
-					.setSocketTimeout(2000).build();
+					.setSocketTimeout(2000)
+					.build();
 			httpPost.setConfig(requestConfig);
 			List<NameValuePair> urlParameters = new ArrayList<>();
 			Set<Entry<String, String>> entrySet = variables.entrySet();
+			for (Entry<String, String> entry : entrySet) {
 
-			for (Entry<String, String> entry : entrySet)
-			{
 				urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
 			}
 
@@ -1000,26 +1003,32 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			httpPost.setEntity(postParams);
 
 			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
-				logger.info("POST Response Status:: {}" , httpResponse.getStatusLine().getStatusCode());
+				int statusCode = httpResponse.getStatusLine().getStatusCode();
+				logger.info("POST Response Status: {}", statusCode);
 
-				HttpEntity entity = httpResponse.getEntity();
-				if (entity != null)
-				{
-					//read entity if it's available
-					BufferedReader reader = new BufferedReader(new InputStreamReader(entity.getContent()));
-
-					String inputLine;
-					response = new StringBuilder();
-
-					while ((inputLine = reader.readLine()) != null) {
-						response.append(inputLine);
+				if (statusCode != HttpStatus.SC_OK) {
+					if (retryAttempts >= 1) {
+						logger.info("Retry attempt for POST in {} milliseconds due to non-200 response: {}", appSettings.getWebhookRetryDelay(), statusCode);
+						retrySendPostWithDelay(url, variables, retryAttempts - 1);
+					} else if (appSettings.getWebhookRetryCount() != 0) {
+						logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
 					}
-					reader.close();
 				}
 			}
-
+		} catch (IOException e) {
+			if (retryAttempts >= 1) {
+				logger.info("Retry attempt for POST in {} milliseconds due to IO exception: {}", appSettings.getWebhookRetryDelay(), e.getMessage());
+				retrySendPostWithDelay(url, variables, retryAttempts - 1);
+			} else if (appSettings.getWebhookRetryCount() != 0) {
+				logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
+			}
 		}
-		return response;
+	}
+
+	public void retrySendPostWithDelay(String url, Map<String, String> variables, int retryAttempts) {
+		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
+			sendPOST(url, variables, retryAttempts);
+		});
 	}
 
 	public CloseableHttpClient getHttpClient() {
@@ -1079,6 +1088,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
 			result = getStreamFetcherManager().startPlaylist(broadcast);
 
+		}
+		else {
+			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}", broadcast.getType(), broadcast.getStreamId());
 		}
 		return result;
 	}
@@ -1221,8 +1233,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			Map<String, StreamFetcher> fetchers = streamFetcherManager.getStreamFetcherList();
 			for (StreamFetcher streamFetcher : fetchers.values()) {
 				streamFetcher.stopStream();
+				//it may be also play list so stop it if it's 
+				getStreamFetcherManager().stopPlayList(streamFetcher.getStreamId());
 			}
-
 			fetchers.clear();
 
 		}
@@ -1601,6 +1614,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			return result;
 		}
 
+
+		//if there is any wrong publish/play token settings, return false.
+		//A single token security setting can be activated for both publishing and playing, with a maximum limit of two settings—one for each.
+		if(!isTokenSecuritySettingsValid(newSettings)){
+			logger.info("Could not save app settings. Only one type of token control should be enabled for publish or play.");
+			return result;
+		}
+
 		//synch again because of string to list mapping- TODO: There is a better way for string to list mapping
 		//in properties files
 		newSettings.setEncoderSettings(encoderSettingsList);
@@ -1652,6 +1673,35 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		}
 		return true;
+	}
+
+	private boolean isTokenSecuritySettingsValid(AppSettings newSettings) {
+		int publishTokenSecurityEnabledCount = 0;
+		int playTokenSecurityEnabledCount = 0;
+
+		if (newSettings.isPublishTokenControlEnabled()) {
+			publishTokenSecurityEnabledCount++;
+		}
+		if (newSettings.isPublishJwtControlEnabled()) {
+			publishTokenSecurityEnabledCount++;
+		}
+		if (newSettings.isEnableTimeTokenForPublish()) {
+			publishTokenSecurityEnabledCount++;
+		}
+		if (newSettings.isEnableTimeTokenForPlay()) {
+			playTokenSecurityEnabledCount++;
+		}
+
+		if (newSettings.isPlayTokenControlEnabled()) {
+			playTokenSecurityEnabledCount++;
+		}
+		if (newSettings.isPlayJwtControlEnabled()) {
+			playTokenSecurityEnabledCount++;
+		}
+
+
+		// Only one type of token control should be enabled for publish and play
+		return publishTokenSecurityEnabledCount <= 1 && playTokenSecurityEnabledCount <= 1;
 	}
 
 	/**
