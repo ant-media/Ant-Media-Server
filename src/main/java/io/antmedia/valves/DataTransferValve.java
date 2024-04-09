@@ -16,6 +16,11 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.ws.rs.HttpMethod;
 
+/**
+ * This class just logs the data transfered for http requests to 
+ * @author mekya
+ *
+ */
 public class DataTransferValve extends ValveBase {
 
 	@Override
@@ -31,9 +36,6 @@ public class DataTransferValve extends ValveBase {
 			String tokenId = ((HttpServletRequest) request).getParameter("token");
 			String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 
-			if (tokenId != null) {
-				tokenId = tokenId.replaceAll(TokenFilterManager.REPLACE_CHARS_REGEX, "_");
-			}
 			if (subscriberId != null) {
 				subscriberId = subscriberId.replaceAll(TokenFilterManager.REPLACE_CHARS_REGEX, "_");
 			}
@@ -50,12 +52,11 @@ public class DataTransferValve extends ValveBase {
 			AppSettings appSettings = (AppSettings) context.getBean(AppSettings.BEAN_NAME);
 			LoggerUtils.logAnalyticsFromServer(appSettings.getAppName(), "dataTransfer", 
 											LoggerUtils.STREAM_ID_FIELD, streamId,
-											"uri", request.getRequestURI(),
-											"token", tokenId,
-											"subscriberId", subscriberId,
-											"clientIP", clientIP,
-											"sessionId", sessionId,
-											"bytesWritten", Long.toString(bytesWritten));
+											LoggerUtils.URI_FIELD, request.getRequestURI(),
+											LoggerUtils.SUBSCRIBER_ID_FIELD, subscriberId,
+											LoggerUtils.CLIENT_IP_FIELD, clientIP,
+											LoggerUtils.SESSION_ID_FIELD, sessionId,
+											LoggerUtils.BYTE_TRANSFERRED, Long.toString(bytesWritten));
 
 			
 		}

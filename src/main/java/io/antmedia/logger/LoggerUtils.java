@@ -87,8 +87,17 @@ public class LoggerUtils {
 
 	public static final String KEY_FRAME_IN_LAST_MINUTE = "keyFrameInLastMinute";
 
+
+	public static final String BYTE_TRANSFERRED = "bytesTransferred";
+
+
+	public static final String SESSION_ID_FIELD = "sessionId";
+
    
     static Gson gson = new Gson();
+
+
+	public static String URI_FIELD = "uri";
     
     public static void logAnalyticsFromServer(String appName, String eventName, String... keyValuePairs) {
         if (keyValuePairs.length % 2 != 0) {

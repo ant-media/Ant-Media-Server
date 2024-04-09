@@ -117,6 +117,7 @@
 					<property name="rotatable" value="true" />
 					<property name="requestAttributesEnabled" value="true" />
 				</bean>
+				<bean class="io.antmedia.valves.DataTransferValve" />
 				
 				<!-- cluster start
 				<bean id="valve.cluster" class="io.antmedia.enterprise.cluster.HttpLiveStreamValve">
