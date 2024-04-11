@@ -53,6 +53,10 @@ import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.antmedia.analytic.model.AnalyticEvent;
+import io.antmedia.analytic.model.PublishEndedEvent;
+import io.antmedia.analytic.model.PublishStartedEvent;
+import io.antmedia.analytic.model.ViewerCountEvent;
 import io.antmedia.cluster.ClusterNode;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
@@ -589,7 +593,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null, metaData));
 				}
 
-				LoggerUtils.logAnalyticsFromServer(scope.getName(), LoggerUtils.EVENT_PUBLISH_ENDED, LoggerUtils.STREAM_ID_FIELD, streamId, LoggerUtils.STREAM_NAME_FIELD, broadcast.getName());
+				PublishEndedEvent publishEndedEvent = new PublishEndedEvent();
+				publishEndedEvent.setStreamId(streamId);
+				publishEndedEvent.setDurationMs(System.currentTimeMillis() - broadcast.getStartTime());
+				publishEndedEvent.setApp(scope.getName());
+				
+				LoggerUtils.logAnalyticsFromServer(publishEndedEvent);
 
 				if (broadcast.isZombi()) {
 					if(broadcast.getMainTrackStreamId() != null && !broadcast.getMainTrackStreamId().isEmpty()) {
@@ -696,25 +705,33 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					listener.streamStarted(broadcast.getStreamId());
 				}
 
-				String videoHeight=null ,videoWidth=null , videoCodecName=null,audioCodecName=null;
+				long videoHeight = 0;
+				long videoWidth = 0;
+				String videoCodecName=null;
+				String audioCodecName=null;
 				MuxAdaptor adaptor = getMuxAdaptor(streamId);
 				if(adaptor!=null) {
 					if(adaptor.isEnableVideo()) {
 						AVCodecParameters videoCodecPar = adaptor.getVideoCodecParameters();
-						videoWidth = Integer.toString(videoCodecPar.width());
-						videoHeight = Integer.toString(videoCodecPar.height());
+						videoWidth = videoCodecPar.width();
+						videoHeight = videoCodecPar.height();
 						videoCodecName = avcodec_get_name(videoCodecPar.codec_id()).getString();
 					}
 					if(adaptor.isEnableAudio()) {
 						audioCodecName = avcodec_get_name(adaptor.getAudioCodecParameters().codec_id()).getString();
 					}
 				}
-				LoggerUtils.logAnalyticsFromServer(scope.getName(), LoggerUtils.EVENT_PUBLISH_STARTED, LoggerUtils.STREAM_ID_FIELD, streamId , LoggerUtils.PROTOCOL_FIELD, publishType, LoggerUtils.STREAM_NAME_FIELD, broadcast.getName(),
-						LoggerUtils.BITRATE_FIELD,Long.toString(broadcast.getBitrate()),
-						LoggerUtils.HEIGHT_FIELD, videoHeight,
-						LoggerUtils.WIDTH_FIELD,videoWidth,
-						LoggerUtils.VIDEO_CODEC_FIELD, videoCodecName,
-						LoggerUtils.AUDIO_CODEC_FIELD,audioCodecName);
+				
+				PublishStartedEvent event = new PublishStartedEvent();
+				event.setStreamId(streamId);
+				event.setProtocol(publishType);
+				event.setHeight((int) videoHeight);
+				event.setWidth((int) videoWidth);
+				event.setVideoCodec(videoCodecName);
+				event.setAudioCodec(audioCodecName);
+				event.setApp(scope.getName());
+				
+				LoggerUtils.logAnalyticsFromServer(event);
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1154,6 +1171,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void setStreamFetcherManager(StreamFetcherManager streamFetcherManager) {
 		this.streamFetcherManager = streamFetcherManager;
 	}
+	
+
 
 	@Override
 	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs) {
@@ -1175,6 +1194,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				long elapsedTime = System.currentTimeMillis() - broadcastLocal.getStartTime();
 				broadcastLocal.setDuration(elapsedTime);
 				getDataStore().updateBroadcastFields(id, broadcastLocal);
+								
+				ViewerCountEvent viewerCountEvent = new ViewerCountEvent();
+				viewerCountEvent.setApp(getScope().getName());
+				viewerCountEvent.setStreamId(id);
+				viewerCountEvent.setDashViewerCount(broadcastLocal.getDashViewerCount());
+				viewerCountEvent.setHlsViewerCount(broadcastLocal.getHlsViewerCount());
+				viewerCountEvent.setWebRTCViewerCount(broadcastLocal.getWebRTCViewerCount());
+				
+				LoggerUtils.logAnalyticsFromServer(viewerCountEvent);
+
 			}
 
 		});
@@ -1976,7 +2005,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public void stopPublish(String streamId) {
-		vertx.executeBlocking(handler-> closeBroadcast(streamId) , null);
+		
+		vertx.executeBlocking(() -> {
+			closeBroadcast(streamId);
+			return null;
+		});
 	}
 
 	public void joinedTheRoom(String roomId, String streamId) {

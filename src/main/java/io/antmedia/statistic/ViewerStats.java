@@ -12,12 +12,12 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.analytic.model.PlayEvent;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Subscriber;
-import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
@@ -82,7 +82,14 @@ public class ViewerStats {
 					int streamIncrementCounter = getIncreaseCounterMap(streamId);
 					streamIncrementCounter++;
 					increaseCounterMap.put(streamId, streamIncrementCounter);
-					LoggerUtils.logAnalyticsFromServer(appName, LoggerUtils.EVENT_PLAY_STARTED, LoggerUtils.STREAM_ID_FIELD, streamId, LoggerUtils.PROTOCOL_FIELD, type, LoggerUtils.SUBSCRIBER_ID_FIELD, subscriberId);
+					PlayEvent playStartedEvent = new PlayEvent();
+					playStartedEvent.setStreamId(streamId);
+					playStartedEvent.setProtocol(type);
+					playStartedEvent.setApp(appName);
+					playStartedEvent.setEvent(PlayEvent.EVENT_PLAY_ENDED);
+					playStartedEvent.setSubscriberId(subscriberId);
+					
+					LoggerUtils.logAnalyticsFromServer(playStartedEvent);
 				}
 				viewerMap.put(sessionId, System.currentTimeMillis());
 				streamsViewerMap.put(streamId, viewerMap);
@@ -281,11 +288,15 @@ public class ViewerStats {
 						String sessionId = viewer.getKey();
 						String subscriberId = sessionId2subscriberId.get(sessionId);
 						// set subscriber status to not connected
-						LoggerUtils.logAnalyticsFromServer(appName, 
-								LoggerUtils.EVENT_PLAY_ENDED, 
-								LoggerUtils.STREAM_ID_FIELD, streamId,
-								LoggerUtils.PROTOCOL_FIELD,type,
-								LoggerUtils.SUBSCRIBER_ID_FIELD, subscriberId);
+						
+						PlayEvent playEndedEvent = new PlayEvent();
+						playEndedEvent.setEvent(PlayEvent.EVENT_PLAY_ENDED);
+						playEndedEvent.setStreamId(streamId);
+						playEndedEvent.setProtocol(type);
+						playEndedEvent.setApp(appName);
+						playEndedEvent.setSubscriberId(subscriberId);
+						
+						LoggerUtils.logAnalyticsFromServer(playEndedEvent);
 
 						if(subscriberId != null) {
 							// add a disconnected event to the subscriber

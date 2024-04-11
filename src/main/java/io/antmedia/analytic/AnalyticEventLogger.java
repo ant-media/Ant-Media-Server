@@ -6,6 +6,9 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.context.WebApplicationContext;
 
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.analytic.model.AnalyticEvent;
+import io.antmedia.analytic.model.PlayEvent;
+import io.antmedia.analytic.model.WatchTimeEvent;
 import io.antmedia.logger.LoggerUtils;
 import io.antmedia.rest.model.Result;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
@@ -64,10 +67,32 @@ public class AnalyticEventLogger {
 
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/events")
+	@Path("/events/play")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response postEvent(@Context HttpServletRequest request, Object object) {
-		LoggerUtils.logAnalyticsFromClient(getApplication().getScope().getName(), object, getClientIpAddress(request));
+	public Response postEvent(@Context HttpServletRequest request, PlayEvent event) {
+		event.setApp(getApplication().getScope().getName());
+		if (event.getTimeMs() == 0) {
+			event.setTimeMs(System.currentTimeMillis());
+		}
+		event.setClientIP(getClientIpAddress(request));
+		
+		LoggerUtils.logAnalyticsFromClient( event);
+
+		return Response.ok(new Result(true)).build();
+	}
+	
+	@POST
+	@Consumes({ MediaType.APPLICATION_JSON })
+	@Path("/events/watch-time")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response postEvent(@Context HttpServletRequest request, WatchTimeEvent event) {
+		event.setApp(getApplication().getScope().getName());
+		if (event.getTimeMs() == 0) {
+			event.setTimeMs(System.currentTimeMillis());
+		}
+		event.setClientIP(getClientIpAddress(request));
+		
+		LoggerUtils.logAnalyticsFromClient( event);
 
 		return Response.ok(new Result(true)).build();
 	}
@@ -80,15 +105,5 @@ public class AnalyticEventLogger {
 		return ipAddress;
 	}
 	
-	@GET
-	@Consumes({ MediaType.APPLICATION_JSON })
-	@Path("/ip")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response getClient(@Context HttpServletRequest request) {
-
-		return Response.ok(new Result(true, getClientIpAddress(request))).build();
-	}
-
-
 
 }

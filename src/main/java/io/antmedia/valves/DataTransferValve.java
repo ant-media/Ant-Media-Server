@@ -9,7 +9,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.analytic.model.PlayerStatsEvent;
 import io.antmedia.filter.TokenFilterManager;
 import io.antmedia.logger.LoggerUtils;
 import jakarta.servlet.ServletException;
@@ -33,30 +35,27 @@ public class DataTransferValve extends ValveBase {
 
 		if (StringUtils.isNotBlank(streamId) && (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method))) 
 		{
-			String tokenId = ((HttpServletRequest) request).getParameter("token");
 			String subscriberId = ((HttpServletRequest) request).getParameter("subscriberId");
 
 			if (subscriberId != null) {
 				subscriberId = subscriberId.replaceAll(TokenFilterManager.REPLACE_CHARS_REGEX, "_");
 			}
 			
-
-			String sessionId = request.getSession().getId();
-
 			String clientIP = request.getRemoteAddr().replaceAll(TokenFilterManager.REPLACE_CHARS_REGEX, "_");
 
 			long bytesWritten = response.getBytesWritten(false);
 			
 			ConfigurableWebApplicationContext context = (ConfigurableWebApplicationContext) request.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 
-			AppSettings appSettings = (AppSettings) context.getBean(AppSettings.BEAN_NAME);
-			LoggerUtils.logAnalyticsFromServer(appSettings.getAppName(), "dataTransfer", 
-											LoggerUtils.STREAM_ID_FIELD, streamId,
-											LoggerUtils.URI_FIELD, request.getRequestURI(),
-											LoggerUtils.SUBSCRIBER_ID_FIELD, subscriberId,
-											LoggerUtils.CLIENT_IP_FIELD, clientIP,
-											LoggerUtils.SESSION_ID_FIELD, sessionId,
-											LoggerUtils.BYTE_TRANSFERRED, Long.toString(bytesWritten));
+			PlayerStatsEvent playerStatsEvent = new PlayerStatsEvent();
+			playerStatsEvent.setStreamId(streamId);
+			playerStatsEvent.setUri(request.getRequestURI());
+			playerStatsEvent.setSubscriberId(subscriberId);
+			playerStatsEvent.setApp(((AntMediaApplicationAdapter)context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).getScope().getName());
+			playerStatsEvent.setByteTransferred(bytesWritten);
+			playerStatsEvent.setClientIP(clientIP);
+			
+			LoggerUtils.logAnalyticsFromServer(playerStatsEvent);
 
 			
 		}

@@ -53,6 +53,8 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.RecordType;
+import io.antmedia.analytic.model.KeyFrameStatsEvent;
+import io.antmedia.analytic.model.PublishStatsEvent;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -145,7 +147,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * then below should be flag in advance
 	 */
 	private boolean firstKeyFrameReceivedChecked = false;
-	private long lastKeyFramePts =0;
+	private long lastKeyFramePTS =0;
 	protected String streamId;
 	protected long startTime;
 
@@ -237,14 +239,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private long startTimeMs;
 	protected long totalIngestTime;
 	private int fps = 0;
-	public int width;
-	public int height;
-	public long bitrate = 0;
-	public long keyFramePerMin = 0;
-	public long lastOneMin = -1;
-	private long startPts = 0;
+	private int width;
+	protected int height;
+	protected int keyFramePerMin = 0;
+	protected long lastKeyFrameStatsTimeMs = -1;
 
-	public long totalByteReceived = 0;
+	private long totalByteReceived = 0;
 
 	protected AVFormatContext streamSourceInputFormatContext;
 	private AVCodecParameters videoCodecParameters;
@@ -269,6 +269,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	//NOSONAR because we need to keep the reference of the field
 	protected AVChannelLayout channelLayout;
+
+
+	private long lastTotalByteReceived = 0;
 
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, boolean isSource, IScope scope) {
 		MuxAdaptor muxAdaptor = null;
@@ -856,25 +859,21 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if ((now - lastQualityUpdateTime) > STAT_UPDATE_PERIOD_MS || (lastQualityUpdateTime == 0 && speed > 0.8)) 
 		{
 			logger.info("Stream queue size:{} speed:{} for streamId:{} ", inputQueueSize, speed, streamId);
-
-			if(broadcast!=null) {
-				String totalViewers = Integer.toString(broadcast.getDashViewerCount() + broadcast.getWebRTCViewerCount() + broadcast.getHlsViewerCount());
-				LoggerUtils.logAnalyticsFromServer(scope.getName(), 
-						LoggerUtils.EVENT_PUBLISH_STATS, 
-						LoggerUtils.STREAM_ID_FIELD, streamId, 
-						//TODO: check TOTAL_BYTES_FIELD
-						LoggerUtils.TOTAL_BYTES_FIELD, String.valueOf(broadcast.getReceivedBytes()), 
-						//TODO: check DURATION_MS_FIELD
-						LoggerUtils.DURATION_MS_FIELD, Long.toString(broadcast.getDuration()), 
-						//TODO: check bitrate
-						LoggerUtils.BITRATE_FIELD, Long.toString(broadcast.getBitrate()), 
-						//TODO: check client ip field
-						LoggerUtils.CLIENT_IP_FIELD, broadcast.getIpAddr());
-				
-				LoggerUtils.logAnalyticsFromServer(scope.getName(), "viewerCount", LoggerUtils.STREAM_ID_FIELD, streamId, "Dash", Integer.toString(broadcast.getDashViewerCount()), "WebRTC", Long.toString(broadcast.getWebRTCViewerCount()), "HLS", Long.toString(broadcast.getHlsViewerCount()), "totalViewers", totalViewers);
-			}
 			lastQualityUpdateTime = now;
+			long byteTransferred = totalByteReceived - lastTotalByteReceived;
+			lastTotalByteReceived = totalByteReceived;
+			
+			
+			PublishStatsEvent publishStatsEvent = new PublishStatsEvent();
+			publishStatsEvent.setApp(scope.getName());
+			publishStatsEvent.setStreamId(streamId);
+			publishStatsEvent.setTotalByteReceived(totalByteReceived);
+			publishStatsEvent.setByteTransferred(byteTransferred);
+			publishStatsEvent.setDurationMs(System.currentTimeMillis() - broadcast.getStartTime());
+			publishStatsEvent.setWidth(getVideoCodecParameters().width());
+			publishStatsEvent.setHeight(getVideoCodecParameters().height());
 
+			
 			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize, System.currentTimeMillis());
 			oldQuality = quality;
 			oldspeed = speed;
@@ -1096,7 +1095,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					//TODO: if server does not accept packets, it does not update the quality
 					long dts = packet.getTimestamp() & 0xffffffffL;
 
-					updateQualityParameters(dts, TIME_BASE_FOR_MS,0,isKeyFrame);
+					updateQualityParameters(dts, TIME_BASE_FOR_MS, 0, isKeyFrame);
 
 
 					if (bufferTimeMs == 0) 
@@ -1264,7 +1263,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return 0;
 	}
 
-	public void updateQualityParameters(long pts, AVRational timebase, long packetSize,boolean isKeyFrame) {
+	public void updateQualityParameters(long pts, AVRational timebase, long packetSize, boolean isKeyFrame) {
 
 		long packetTime = av_rescale_q(pts, timebase, TIME_BASE_FOR_MS);
 		packetTimeList.add(new PacketTime(packetTime, System.currentTimeMillis()));
@@ -1281,8 +1280,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		long elapsedTime = lastPacket.systemTimeMs - firstPacket.systemTimeMs;
 		long packetTimeDiff = lastPacket.packetTimeMs - firstPacket.packetTimeMs;
 
-		if(lastOneMin == -1){
-			lastOneMin = firstPacket.systemTimeMs;
+		if(lastKeyFrameStatsTimeMs == -1){
+			lastKeyFrameStatsTimeMs = firstPacket.systemTimeMs;
 		}
 		double speed = 0L;
 		if (elapsedTime > 0)
@@ -1296,44 +1295,35 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		// duration from one key frame to another
 		if(isKeyFrame) {
 			long timeDiff=0;
-			if(lastKeyFramePts != 0) {
-				double keyFrameDiff = pts - lastKeyFramePts;
-				timeDiff = (long) ( (keyFrameDiff * ( (double)timebase.num() / (double) timebase.den()) ) * 1000);
+			if(lastKeyFramePTS != 0) {
+				long keyFrameDiff = pts - lastKeyFramePTS;
+				timeDiff = av_rescale_q(keyFrameDiff, getVideoTimeBase(), TIME_BASE_FOR_MS);
+				logger.info("KeyFrame time difference ms:{}", timeDiff);
 			}
-			lastKeyFramePts = pts;
-			keyFramePerMin += 1;
-			if(lastPacket.systemTimeMs - lastOneMin > 60000){
-				LoggerUtils.logAnalyticsFromServer(scope.getName(), 
-						LoggerUtils.EVENT_KEY_FRAME_STATS, 
-						LoggerUtils.STREAM_ID_FIELD, streamId , 
-						//TODO: check key frame difference
-						LoggerUtils.KEY_FRAME_DIFFERENCE, String.valueOf(timeDiff),
-						LoggerUtils.KEY_FRAME_IN_LAST_MINUTE, Long.toString(keyFramePerMin));
+			
+			lastKeyFramePTS = pts;
+			if (timeDiff > 30) {
+				keyFramePerMin += 1;
+			}
+			if(lastPacket.systemTimeMs - lastKeyFrameStatsTimeMs > 60000)
+			{
+				KeyFrameStatsEvent keyFrameStatsEvent = new KeyFrameStatsEvent();
+				keyFrameStatsEvent.setStreamId(streamId);
+				keyFrameStatsEvent.setApp(scope.getName());
+				keyFrameStatsEvent.setKeyFramesInLastMinute(keyFramePerMin);
+				keyFrameStatsEvent.setKeyFrameIntervalMs((int)timeDiff);
+				
+				LoggerUtils.logAnalyticsFromServer(keyFrameStatsEvent);
 				
 				keyFramePerMin = 0;
-				lastOneMin = lastPacket.systemTimeMs;
+				lastKeyFrameStatsTimeMs = lastPacket.systemTimeMs;
 			}
 		}
 
-		// total bitrate and total bitrate/sec
+		// total bitrate
 		totalByteReceived = broadcastStream !=null ? broadcastStream.getBytesReceived() :  totalByteReceived + packetSize;
-		bitrate += packetSize;
 
-		double timeDiff = pts  - startPts;
-		double bitrateFlushDuration = (long)  (timeDiff * ( (double)timebase.num() / (double) timebase.den())* 1000 );
-
- 		if(bitrateFlushDuration > 10000){
-			if (broadcastStream != null) {
-				broadcast.setBitrate((totalByteReceived - broadcast.getReceivedBytes())/128); // Bytes/s to kbps
-				broadcast.setReceivedBytes(totalByteReceived);
-			} else {
-				broadcast.setBitrate(bitrate/128); // Bytes/s to kbps
-				broadcast.setReceivedBytes(totalByteReceived);
-			}
-			broadcast.setDuration(lastPacket.systemTimeMs - firstPacket.systemTimeMs);
-			startPts = pts;
-			bitrate=0;
-		}
+		
 		updateStreamQualityParameters(this.streamId, null, speed, getInputQueueSize());
 
 	}
@@ -1391,6 +1381,18 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		for (Muxer muxer : muxerList) {
 			muxer.writeTrailer();
 		}
+		
+		long byteTransferred = totalByteReceived - lastTotalByteReceived;
+		lastTotalByteReceived = totalByteReceived;
+		
+		PublishStatsEvent publishStatsEvent = new PublishStatsEvent();
+		publishStatsEvent.setApp(scope.getName());
+		publishStatsEvent.setStreamId(streamId);
+		publishStatsEvent.setTotalByteReceived(totalByteReceived);
+		publishStatsEvent.setByteTransferred(byteTransferred);
+		publishStatsEvent.setDurationMs(System.currentTimeMillis() - broadcast.getStartTime());
+		
+		LoggerUtils.logAnalyticsFromServer(publishStatsEvent);
 	}
 
 	public synchronized void closeResources() {
@@ -2325,7 +2327,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void setHeight(int height) {
 		this.height = height;
 	}
-
+	
+	public int getHeight() {
+		return height;
+	}
 
 	public void setIsRecording(boolean isRecording) {
 		this.isRecording.set(isRecording);
@@ -2348,6 +2353,21 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public AtomicBoolean getIsPipeReaderJobRunning() {
 		return isPipeReaderJobRunning;
+	}
+
+
+	public long getTotalByteReceived() {
+		return totalByteReceived;
+	}
+
+
+	public int getWidth() {
+		return width;
+	}
+
+
+	public void setWidth(int width) {
+		this.width = width;
 	}
 
 }
