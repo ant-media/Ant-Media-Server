@@ -870,9 +870,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			publishStatsEvent.setTotalByteReceived(totalByteReceived);
 			publishStatsEvent.setByteTransferred(byteTransferred);
 			publishStatsEvent.setDurationMs(System.currentTimeMillis() - broadcast.getStartTime());
-			publishStatsEvent.setWidth(getVideoCodecParameters().width());
-			publishStatsEvent.setHeight(getVideoCodecParameters().height());
-
+			publishStatsEvent.setWidth(width);
+			publishStatsEvent.setHeight(height);
 			
 			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize, System.currentTimeMillis());
 			oldQuality = quality;

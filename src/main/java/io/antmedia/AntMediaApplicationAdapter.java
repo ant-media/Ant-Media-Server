@@ -1,9 +1,9 @@
 package io.antmedia;
 
-import java.io.BufferedReader;
+import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
+
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
@@ -21,8 +21,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-
-import io.antmedia.logger.LoggerUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -37,8 +35,6 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
-import org.bytedeco.cuda.cudart.__nv_bfloat16_raw;
-import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.json.simple.JSONObject;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
@@ -53,7 +49,6 @@ import org.red5.server.stream.ClientBroadcastStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.antmedia.analytic.model.AnalyticEvent;
 import io.antmedia.analytic.model.PublishEndedEvent;
 import io.antmedia.analytic.model.PublishStartedEvent;
 import io.antmedia.analytic.model.ViewerCountEvent;
@@ -66,6 +61,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.filter.StreamAcceptFilter;
 import io.antmedia.ipcamera.OnvifCamera;
+import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
@@ -97,9 +93,6 @@ import io.antmedia.websocket.WebSocketConstants;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
-
-import static org.bytedeco.ffmpeg.global.avcodec.*;
-
 import jakarta.validation.constraints.NotNull;
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
