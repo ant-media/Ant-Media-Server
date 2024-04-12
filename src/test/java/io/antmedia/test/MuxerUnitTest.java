@@ -3931,7 +3931,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
 		muxAdaptor.setBroadcast(broadcast);
 		muxAdaptor.init(appScope, streamId, false);
-		doNothing().when(muxAdaptor).updateQualityParameters(Mockito.anyLong(), any(),10,true);
+		doNothing().when(muxAdaptor).updateQualityParameters(Mockito.anyLong(), any(), Mockito.eq(10), Mockito.eq(true));
 
 
 		IPacketListener listener = mock(IPacketListener.class);
