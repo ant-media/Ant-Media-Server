@@ -876,8 +876,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		Broadcast broadcast = dataStore.get(myTrackId);
 		if(broadcast != null){
 			hookData.put("metaData",broadcast.getMetaData());
-
 		}
+
 		vertx.runOnContext(e -> notifyHook(listenerHookURL, roomId, action, null, null, null, null, hookData.toJSONString()));
 
 	}
@@ -893,7 +893,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
-	private void notifyRoomEndedHook(Broadcast mainTrack) {
+	public void notifyRoomEndedHook(Broadcast mainTrack) {
 		final String listenerHookURL = getListenerHookURL(mainTrack);
 
 		if (listenerHookURL != null && !listenerHookURL.isEmpty()) {

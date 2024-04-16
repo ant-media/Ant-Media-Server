@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.*;
+import io.vertx.core.Vertx;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
@@ -71,7 +72,6 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
@@ -2096,4 +2096,52 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.cancelPlaylistSchedule("anyId");
 	}
 
+	@Test
+	public void testNotifyRoomEndedHook() {
+		try{
+			String mainTrackId = "stream_"+RandomUtils.nextInt(0, 1000);
+			String subTrackId = "stream_"+RandomUtils.nextInt(0, 1000);
+			DataStore db = new InMemoryDataStore("db");
+
+			Broadcast roomBroadcast = new Broadcast();
+			Broadcast subTrackBroadcast = new Broadcast();
+
+			roomBroadcast.setStreamId(mainTrackId);
+			roomBroadcast.setZombi(true);
+			roomBroadcast.setListenerHookURL("url1");
+
+			subTrackBroadcast.setZombi(true);
+			subTrackBroadcast.setListenerHookURL("url2");
+			subTrackBroadcast.setStreamId(subTrackId);
+			subTrackBroadcast.setMainTrackStreamId(mainTrackId);
+			db.save(subTrackBroadcast);
+			db.save(roomBroadcast);
+
+			AntMediaApplicationAdapter spyAdapter = spy(adapter);
+			Vertx vertxSpy = spy(vertx);
+
+			spyAdapter.setDataStore(db);
+
+			IScope scope = mock(IScope.class);
+			when(scope.getName()).thenReturn("junit");
+			IContext context = Mockito.mock(IContext.class);
+			when(context.getApplicationContext()).thenReturn(Mockito.mock(org.springframework.context.ApplicationContext.class));
+			when(scope.getContext()).thenReturn(context);
+
+			spyAdapter.setScope(scope);
+			spyAdapter.setVertx(vertxSpy);
+
+			spyAdapter.closeBroadcast(subTrackBroadcast.getStreamId());
+
+			verify(spyAdapter).notifyRoomEndedHook(roomBroadcast);
+
+			verify(spyAdapter).notifyHook(subTrackBroadcast.getListenerHookURL(), subTrackId, AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM, null, null, null, null, null);
+			verify(spyAdapter).notifyHook(roomBroadcast.getListenerHookURL(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_ROOM_ENDED, null, null, null, null, null);
+
+		}catch (Exception e){
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
+	}
 }
