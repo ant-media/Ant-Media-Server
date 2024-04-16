@@ -2113,6 +2113,18 @@ public class AppSettings implements Serializable{
 	@Value("${webhookRetryAttemptDelay:1000}")
 	private long webhookRetryDelay = 1000;
 
+	/**
+	 * Enable webhook authentication for webrtc. play
+	 */
+	@Value("${webhookPlayAuthEnabled:false}")
+	private boolean webhookPlayAuthEnabled = false;
+
+	/**
+	 * Enable webhook authentication for publish.
+	 */
+	@Value("${webhookPublishAuthEnabled:false}")
+	private boolean webhookPublishAuthEnabled = false;
+
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
 	}
@@ -3663,6 +3675,22 @@ public class AppSettings implements Serializable{
 
 	public void setWebhookRetryDelay(long webhookRetryDelay) {
 		this.webhookRetryDelay = webhookRetryDelay;
+	}
+
+	public boolean isWebhookPlayAuthEnabled() {
+		return webhookPlayAuthEnabled;
+	}
+
+	public void setWebhookPlayAuthEnabled(boolean webhookPlayAuthEnabled) {
+		this.webhookPlayAuthEnabled = webhookPlayAuthEnabled;
+	}
+
+	public boolean isWebhookPublishAuthEnabled() {
+		return webhookPublishAuthEnabled;
+	}
+
+	public void setWebhookPublishAuthEnabled(boolean webhookPublishAuthEnabled) {
+		this.webhookPublishAuthEnabled = webhookPublishAuthEnabled;
 	}
 
 }

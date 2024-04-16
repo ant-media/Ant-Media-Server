@@ -44,6 +44,7 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		AppSettings appSettings = new AppSettings();
 
 		appSettings.setWebhookAuthenticateURL("sampleurl");
+		appSettings.setWebhookPublishAuthEnabled(true);
 		filter.setAppSettings(appSettings);
 		boolean publishAllowed = filter.isPublishAllowed(scope, "streamId", "mode", null, null);
 		assertFalse(publishAllowed);
@@ -56,6 +57,7 @@ public class AcceptOnlyStreamsWithWebhookTest {
 		IScope scope = Mockito.mock(IScope.class);
 		AppSettings appSettings = new AppSettings();
 		appSettings.setWebhookAuthenticateURL("asd");
+		appSettings.setWebhookPublishAuthEnabled(true);
 
 		InMemoryDataStore dataStore = new InMemoryDataStore("db");
 		DataStoreFactory factory = Mockito.mock(DataStoreFactory.class);
