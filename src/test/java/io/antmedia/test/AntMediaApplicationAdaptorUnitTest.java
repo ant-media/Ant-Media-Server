@@ -1469,7 +1469,32 @@ public class AntMediaApplicationAdaptorUnitTest {
 		broadcast = db.get(broadcast.getStreamId());
 		assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED, broadcast.getStatus());
 	}
+	@Test
+	public void testBadStreamHealthHook() throws Exception {
 
+		AntMediaApplicationAdapter appAdaptorSpy = Mockito.spy(adapter);
+
+		DataStore dataStore = new InMemoryDataStore("db");
+		Broadcast broadcast = new Broadcast();
+
+		broadcast.setStreamId("stream1");
+		broadcast.setName("stream1");
+		String listenerHookURL = "http://www.example.com/listenerhookurl";
+		broadcast.setListenerHookURL(listenerHookURL);
+		dataStore.save(broadcast);
+
+		assertNotNull(appAdaptorSpy.getVertx());
+		appAdaptorSpy.setDataStore(dataStore);
+
+		appAdaptorSpy.setQualityParameters("stream1","speed", 2,1,1);
+
+		Awaitility.await().pollDelay(2, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
+			verify(appAdaptorSpy).badStreamHealthHook("stream1","speed", 2);
+			verify(appAdaptorSpy).notifyHook(listenerHookURL, "stream1", Application.HOOK_ACTION_BAD_STREAM_HEALTH , broadcast.getName(), broadcast.getCategory(), null, null, "{speed=2.0}");
+			return true;
+		});
+
+	}
 	@Test
 	public void testInitializationFile() {
 
