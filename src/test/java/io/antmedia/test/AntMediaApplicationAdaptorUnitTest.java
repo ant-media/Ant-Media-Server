@@ -30,6 +30,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.*;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
@@ -1928,6 +1929,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 
 		Broadcast mainTrack = new Broadcast();
+		mainTrack.setListenerHookURL("url");
 		try {
 			mainTrack.setStreamId("maintrack");
 		} catch (Exception e) {
@@ -2131,12 +2133,18 @@ public class AntMediaApplicationAdaptorUnitTest {
 			spyAdapter.setScope(scope);
 			spyAdapter.setVertx(vertxSpy);
 
+			AppSettings appSettings = new AppSettings();
+			spyAdapter.setAppSettings(appSettings);
+
+			doNothing().when(spyAdapter).sendPOST(anyString(), any(), anyInt());
+
 			spyAdapter.closeBroadcast(subTrackBroadcast.getStreamId());
 
 			verify(spyAdapter).notifyRoomEndedHook(roomBroadcast);
 
-			verify(spyAdapter).notifyHook(subTrackBroadcast.getListenerHookURL(), subTrackId, AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM, null, null, null, null, null);
-			verify(spyAdapter).notifyHook(roomBroadcast.getListenerHookURL(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_ROOM_ENDED, null, null, null, null, null);
+
+			verify(spyAdapter, timeout(5000)).notifyHook(subTrackBroadcast.getListenerHookURL(), subTrackId, AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM, null, null, null, null, null);
+			verify(spyAdapter, timeout(5000)).notifyHook(roomBroadcast.getListenerHookURL(), mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_ROOM_ENDED, null, null, null, null, null);
 
 		}catch (Exception e){
 			e.printStackTrace();
@@ -2144,4 +2152,111 @@ public class AntMediaApplicationAdaptorUnitTest {
 		}
 
 	}
+
+	@Test
+	public void testNotifyRoomHook(){
+		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		DataStore db = new InMemoryDataStore("db");
+		String mainTrackId = "mainTrack_"+RandomUtils.nextInt(0, 1000);
+		String streamId = "stream_"+RandomUtils.nextInt(0, 1000);
+		Vertx vertxSpy = spy(vertx);
+		Broadcast broadcast = new Broadcast();
+		try{
+			broadcast.setStreamId(streamId);
+		}catch (Exception e){
+			e.printStackTrace();
+			fail();
+		}
+
+		broadcast.setMetaData("metaData");
+		db.save(broadcast);
+		spyAdapter.setDataStore(db);
+
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		IContext context = Mockito.mock(IContext.class);
+		when(context.getApplicationContext()).thenReturn(Mockito.mock(org.springframework.context.ApplicationContext.class));
+		when(scope.getContext()).thenReturn(context);
+
+		spyAdapter.setScope(scope);
+		spyAdapter.setVertx(vertxSpy);
+
+		String webhookUrl = "url";
+
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWebhookRetryCount(1);
+
+		appSettings.setListenerHookURL(webhookUrl);
+		spyAdapter.setAppSettings(appSettings);
+
+		doNothing().when(spyAdapter).sendPOST(anyString(), any(), anyInt());
+
+		spyAdapter.notifyRoomHook(AntMediaApplicationAdapter.HOOK_ACTION_JOINED_THE_ROOM, mainTrackId, streamId, true);
+
+		JSONObject hookData = new JSONObject();
+		hookData.put("action", AntMediaApplicationAdapter.HOOK_ACTION_JOINED_THE_ROOM);
+		hookData.put("roomId", mainTrackId);
+		hookData.put("myTrackId", streamId);
+		hookData.put("playOnly", true);
+		hookData.put("metaData", broadcast.getMetaData());
+
+		verify(spyAdapter,timeout(5000)).notifyHook(webhookUrl,mainTrackId,AntMediaApplicationAdapter.HOOK_ACTION_JOINED_THE_ROOM, null,null,null,null,hookData.toJSONString());
+
+		appSettings.setListenerHookURL(null);
+		spyAdapter.notifyRoomHook(AntMediaApplicationAdapter.HOOK_ACTION_JOINED_THE_ROOM, mainTrackId, streamId, true);
+
+		verify(spyAdapter,times(1)).notifyHook(webhookUrl,mainTrackId,AntMediaApplicationAdapter.HOOK_ACTION_JOINED_THE_ROOM, null,null,null,null,hookData.toJSONString());
+		broadcast.setMetaData(null);
+		db.save(broadcast);
+		hookData.put("metaData", null);
+		appSettings.setListenerHookURL(webhookUrl);
+		spyAdapter.notifyRoomHook(AntMediaApplicationAdapter.HOOK_ACTION_JOINED_THE_ROOM, mainTrackId, streamId, true);
+
+		verify(spyAdapter,timeout(5000)).notifyHook(webhookUrl,mainTrackId,AntMediaApplicationAdapter.HOOK_ACTION_JOINED_THE_ROOM, null,null,null,null,hookData.toJSONString());
+
+	}
+
+	@Test
+	public void testNotifyRoomStartedHook(){
+		AntMediaApplicationAdapter spyAdapter = spy(adapter);
+		DataStore db = new InMemoryDataStore("db");
+		String mainTrackStreamId = "mainTrack_"+RandomUtils.nextInt(0, 1000);
+		String mainTrackName ="mainTrackName";
+		String mainTrackCategory = "category";
+		String mainTrackUrl = "url";
+
+		Vertx vertxSpy = spy(vertx);
+		Broadcast mainTrackBroadcast = new Broadcast();
+		try{
+			mainTrackBroadcast.setStreamId(mainTrackStreamId);
+		}catch (Exception e){
+			e.printStackTrace();
+			fail();
+		}
+		mainTrackBroadcast.setListenerHookURL(mainTrackUrl);
+		mainTrackBroadcast.setName(mainTrackName);
+		mainTrackBroadcast.setCategory(mainTrackCategory);
+
+		db.save(mainTrackBroadcast);
+		spyAdapter.setDataStore(db);
+
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+		IContext context = Mockito.mock(IContext.class);
+		when(context.getApplicationContext()).thenReturn(Mockito.mock(org.springframework.context.ApplicationContext.class));
+		when(scope.getContext()).thenReturn(context);
+
+		spyAdapter.setScope(scope);
+		spyAdapter.setVertx(vertxSpy);
+
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWebhookRetryCount(1);
+
+		spyAdapter.setAppSettings(appSettings);
+		doNothing().when(spyAdapter).sendPOST(anyString(), any(), anyInt());
+		spyAdapter.notifyRoomStartedHook(mainTrackBroadcast);
+		verify(spyAdapter,timeout(5000)).notifyHook(mainTrackUrl, mainTrackStreamId, AntMediaApplicationAdapter.HOOK_ACTION_ROOM_CREATED, mainTrackName, mainTrackCategory, null, null, null);
+
+	}
+
 }

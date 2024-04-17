@@ -855,19 +855,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	}
 
-	private boolean isWebhooksEnabled(){
-		final String listenerHookURL = getAppSettings().getListenerHookURL();
-		if(listenerHookURL != null && !listenerHookURL.isEmpty()){
-			return true;
-		}
-		return  false;
-	}
-
 	public void notifyRoomHook(String action, String roomId, String myTrackId, boolean playOnly) {
 		final String listenerHookURL = getAppSettings().getListenerHookURL();
-		if(!isWebhooksEnabled()){
+		if(listenerHookURL == null || listenerHookURL.isEmpty()){
 			return;
 		}
+
 		JSONObject hookData = new JSONObject();
 		hookData.put("action", action);
 		hookData.put("roomId", roomId);
@@ -885,12 +878,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void notifyRoomStartedHook(Broadcast mainTrack) {
 		final String listenerHookURL = getListenerHookURL(mainTrack);
-
-		if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
-			final String name = mainTrack.getName();
-			final String category = mainTrack.getCategory();
-			vertx.runOnContext(e -> notifyHook(listenerHookURL, mainTrack.getStreamId(), HOOK_ACTION_ROOM_CREATED, name, category, null, null, null));
+		if(listenerHookURL == null || listenerHookURL.isEmpty()){
+			return;
 		}
+		final String name = mainTrack.getName();
+		final String category = mainTrack.getCategory();
+		vertx.runOnContext(e -> notifyHook(listenerHookURL, mainTrack.getStreamId(), HOOK_ACTION_ROOM_CREATED, name, category, null, null, null));
+
 	}
 
 	public void notifyRoomEndedHook(Broadcast mainTrack) {
