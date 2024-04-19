@@ -213,6 +213,18 @@ public class HLSMuxer extends Muxer  {
 		super.writePacket(pkt, inputTimebase, outputTimebase, codecType);
 	}
 
+	public static byte[] convertIntToID3v2TagSize(int size) {
+		byte[] tagSizeBytes = new byte[4];
+
+		// Perform bitwise operations to extract 28 bits
+		tagSizeBytes[0] = (byte) ((size >> 21) & 0x7F);
+		tagSizeBytes[1] = (byte) ((size >> 14) & 0x7F);
+		tagSizeBytes[2] = (byte) ((size >> 7) & 0x7F);
+		tagSizeBytes[3] = (byte) (size & 0x7F);
+
+		return tagSizeBytes;
+	}
+
 	public synchronized void addID3Data(String data) {
 		int id3TagSize = data.length() + 3; // TXXX frame size (excluding 10 byte header)
 		int tagSize = id3TagSize + 10;
@@ -222,7 +234,7 @@ public class HLSMuxer extends Muxer  {
 		byteBuffer.put("ID3".getBytes());
 		byteBuffer.put(new byte[]{0x03, 0x00}); // version
 		byteBuffer.put((byte) 0x00); // flags
-		byteBuffer.putInt(tagSize); // size
+		byteBuffer.put(convertIntToID3v2TagSize(tagSize)); // size
 
 		// TXXX frame
 		byteBuffer.put("TXXX".getBytes());
