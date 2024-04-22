@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
+import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -165,6 +166,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	protected ISubtrackPoller subtrackPoller;
 
+	private Random random = new Random();
+
 	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -302,17 +305,28 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				//TBH, It's not a good solution and I could not find something better for now
 				//@mekya
 				
-				long randomDelay = (int)(Math.random()*5000);
-				logger.info("Scheduling playlist to play after {}ms with random delay:{} for id:{}", startTimeDelay, randomDelay, broadcast.getStreamId());
+				long randomDelay = random.nextInt(5000);
+				logger.info("Scheduling playlist to play after {}ms with random delay:{}ms, total delay:{}ms for id:{}", startTimeDelay, randomDelay, (startTimeDelay + randomDelay), broadcast.getStreamId());
 				startTimeDelay += randomDelay;
 				long timerId = vertx.setTimer(startTimeDelay, 
 						(timer) -> 
 						{
+							
 							Broadcast freshBroadcast = getDataStore().get(broadcast.getStreamId());
 							if (freshBroadcast != null && 
 									AntMediaApplicationAdapter.PLAY_LIST.equals(freshBroadcast.getType())) 
 							{
+								logger.info("Starting scheduled playlist for id:{} ", freshBroadcast.getStreamId());
 								streamFetcherManager.startPlaylist(freshBroadcast);
+							}
+							else 
+							{
+								if (freshBroadcast == null) {
+									logger.warn("Not starting playlist because it's null for stream id:{}. It must have been deleted", broadcast.getStreamId());
+								}
+								else {
+									logger.error("Not starting playlist because wrong configuration for streamId:{}. It should be a bug in somewhere", broadcast.getStreamId());
+								}
 							}
 							playListSchedulerTimer.remove(freshBroadcast.getStreamId());
 							
