@@ -1297,7 +1297,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			if(lastKeyFramePTS != 0) {
 				long keyFrameDiff = pts - lastKeyFramePTS;
 				timeDiff = av_rescale_q(keyFrameDiff, getVideoTimeBase(), TIME_BASE_FOR_MS);
-				logger.info("KeyFrame time difference ms:{}", timeDiff);
+				logger.debug("KeyFrame time difference ms:{} for streamId:{}", timeDiff, streamId);
 			}
 			
 			lastKeyFramePTS = pts;
