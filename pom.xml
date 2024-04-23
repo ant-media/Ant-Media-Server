@@ -146,6 +146,9 @@
             </plugin>
             <plugin>
                 <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+						<verbose>false</verbose>
+				</configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.felix</groupId>
