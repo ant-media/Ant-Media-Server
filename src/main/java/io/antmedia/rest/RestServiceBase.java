@@ -463,7 +463,8 @@ public abstract class RestServiceBase {
 		logger.debug("Updating stream source for stream {}", updatedBroadcast.getStreamId());
 
 		boolean isPlayList = AntMediaApplicationAdapter.PLAY_LIST.equals(broadcastInDB.getType());
-		if (!checkStreamUrl(updatedBroadcast.getStreamUrl()) && !isPlayList) {
+		
+		if (StringUtils.isNotBlank(updatedBroadcast.getStreamUrl()) && !checkStreamUrl(updatedBroadcast.getStreamUrl()) && !isPlayList) {
 			return new Result(false, "Stream URL is not valid");
 		}
 
@@ -475,7 +476,22 @@ public abstract class RestServiceBase {
 			waitStopStreaming(broadcastInDB, resultStopStreaming);
 		}
 
-		if (AntMediaApplicationAdapter.IP_CAMERA.equals(updatedBroadcast.getType())) {
+		if (AntMediaApplicationAdapter.IP_CAMERA.equals(broadcastInDB.getType()) && 
+				!StringUtils.isAllBlank(updatedBroadcast.getIpAddr(), updatedBroadcast.getUsername(),updatedBroadcast.getPassword())) {
+			
+			if (StringUtils.isBlank(updatedBroadcast.getIpAddr())) {
+				updatedBroadcast.setIpAddr(broadcastInDB.getIpAddr());
+			}
+			
+			if (StringUtils.isBlank(updatedBroadcast.getUsername())) {
+				updatedBroadcast.setUsername(broadcastInDB.getUsername());
+			}
+			
+			if (StringUtils.isBlank(updatedBroadcast.getPassword())) {
+				updatedBroadcast.setPassword(broadcastInDB.getPassword());
+			}
+			
+			
 			Result connectionRes = connectToCamera(updatedBroadcast);
 			if (!connectionRes.isSuccess()) {
 				return connectionRes;
