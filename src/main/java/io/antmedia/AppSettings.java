@@ -2106,6 +2106,13 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${webhookRetryCount:0}")
 	private int webhookRetryCount = 0;
+	
+	/**
+	 * If it's false, jwt token should be send in analytic events to the AnalyticsEventLogger.
+	 * It uses {@link AppSettings#jwtSecretKey} for the secret key
+	 */
+	@Value("${secureAnalyticEndpoint:false}")
+	private boolean secureAnalyticEndpoint = false;
 
 	/**
 	 * Delay in milliseconds between webhook attempts on POST failure.
@@ -3663,6 +3670,14 @@ public class AppSettings implements Serializable{
 
 	public void setWebhookRetryDelay(long webhookRetryDelay) {
 		this.webhookRetryDelay = webhookRetryDelay;
+	}
+
+	public boolean isSecureAnalyticEndpoint() {
+		return secureAnalyticEndpoint;
+	}
+
+	public void setSecureAnalyticEndpoint(boolean secureAnalyticEndpoint) {
+		this.secureAnalyticEndpoint = secureAnalyticEndpoint;
 	}
 
 }
