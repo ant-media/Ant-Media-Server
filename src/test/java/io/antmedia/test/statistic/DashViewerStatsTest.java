@@ -17,6 +17,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -182,6 +183,12 @@ public class DashViewerStatsTest {
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
+			
+			AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
+			when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adapter);
+			
+			when(adapter.getScope()).thenReturn(Mockito.mock(IScope.class));
+
 			
 			DashViewerStats viewerStats = Mockito.spy(new DashViewerStats());
 			
@@ -353,6 +360,11 @@ public class DashViewerStatsTest {
 			settings.setDashFragmentDuration("0.5");
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
+			
+			AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
+			when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adapter);
+			
+			when(adapter.getScope()).thenReturn(Mockito.mock(IScope.class));
 			
 			DashViewerStats viewerStats = Mockito.spy(new DashViewerStats());
 			
