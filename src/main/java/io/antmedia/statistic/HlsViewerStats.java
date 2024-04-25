@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
-
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
@@ -33,6 +33,9 @@ public class HlsViewerStats extends ViewerStats implements IStreamStats, Applica
 		
 		AppSettings settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
 		timeoutMS = getTimeoutMSFromSettings(settings, timeoutMS, HLS_TYPE);
+		
+		AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter)applicationContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		appName = adapter.getScope().getName();
 		
 		vertx.setPeriodic(DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT, yt-> 
 		{
