@@ -54,6 +54,7 @@ public class GCPStorageClient extends StorageClient {
 
 	
 	public void save(String key, File file, boolean deleteLocalFile) {
+		logger.info("save key:{} file:{}:", key, file.getName());
 		BlobInfo blobInfo = BlobInfo.newBuilder(getStorageName(), key).build();
         try {
 			getGCPStorage().create(blobInfo, Files.readAllBytes(file.toPath()));
