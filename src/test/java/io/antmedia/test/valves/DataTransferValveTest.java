@@ -100,10 +100,13 @@ public class DataTransferValveTest {
         when(request.getMethod()).thenReturn("POST");
 
         // Execute the valve's invoke method
-        dataTransferValve.invoke(request, response);
+        DataTransferValve dataTransferValveSpy = Mockito.spy(dataTransferValve);
+        dataTransferValveSpy.invoke(request, response);
+        
+        
+        Mockito.verify(dataTransferValveSpy, Mockito.never()).log(eventCaptor.capture());
 
-        // Verify that analytics logging is not triggered
-        verifyNoInteractions(LoggerUtils.class);
+
     }
 }
 
