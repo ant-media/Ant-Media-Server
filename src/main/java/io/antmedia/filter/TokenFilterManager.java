@@ -21,7 +21,7 @@ import jakarta.ws.rs.HttpMethod;
 
 public class TokenFilterManager extends AbstractFilter   {
 
-	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
+	public static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 	public static final String NOT_INITIALIZED= "Not initialized";
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterManager.class);
 	public static final String TOKEN_HEADER_FOR_NODE_COMMUNICATION = "ClusterAuthorization";

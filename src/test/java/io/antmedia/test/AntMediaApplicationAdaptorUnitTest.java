@@ -2078,7 +2078,8 @@ public class AntMediaApplicationAdaptorUnitTest {
 		adapter.schedulePlayList(now, broadcast);
 		assertFalse(adapter.getPlayListSchedulerTimer().isEmpty());
 		
-		Mockito.verify(fetcherManager, Mockito.timeout(7000).times(1)).startPlaylist(broadcast);
+		//it can take up 8 secs to start because of randomness about 5 seconds and 3 seconds 
+		Mockito.verify(fetcherManager, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
 
 		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
 		
@@ -2091,7 +2092,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertTrue(adapter.getPlayListSchedulerTimer().isEmpty());
 
 		//it should be still 1 because we cancel the timer 
-		Mockito.verify(fetcherManager, Mockito.timeout(7000).times(1)).startPlaylist(broadcast);
+		Mockito.verify(fetcherManager, Mockito.timeout(9000).times(1)).startPlaylist(broadcast);
 
 
 		

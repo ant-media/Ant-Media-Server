@@ -52,8 +52,12 @@ public interface IAntMediaStreamHandler {
 	 * 
 	 * @param pendingPacketSize
 	 * Number of packets pending to be processed
+	 * 
+	 * @param totalByteReceived
+	 * @param byteTransferred 
+	 * @param currentTimeMillis
 	 */
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs);
+	public void setQualityParameters(String streamId, String quality, double speed, int inputQueueSize, long currentTimeMillis);
 
     /***
      * Adds a MuxAdaptor when a muxAdaptor is created
@@ -185,4 +189,5 @@ public interface IAntMediaStreamHandler {
 	 * @return
 	 */
 	public MuxAdaptor getMuxAdaptor(String streamId);
+
 }
