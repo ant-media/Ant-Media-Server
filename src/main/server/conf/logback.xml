@@ -29,12 +29,33 @@
             <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
         </encoder>
     </appender>
+    
+    <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="ANALYTICS">
+        <File>/var/log/antmedia/ant-media-server-analytics.log</File>
+        <Append>false</Append>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+          <fileNamePattern>/var/log/antmedia/ant-media-server-analytics.%i.log.gz</fileNamePattern>
+          <minIndex>1</minIndex>
+          <maxIndex>3</maxIndex>
+        </rollingPolicy>
+        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+          <maxFileSize>50MB</maxFileSize>
+        </triggeringPolicy>
+        <encoder>
+            <pattern>%d{ISO8601} [%thread] %-5level %logger{35} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    
 
     <root level="${logLevel}">
         <appender-ref ref="CONSOLE" />
         <appender-ref ref="FILE" />
         <appender-ref ref="AntmediaLogger"/>
     </root>
+    <logger name="analytics" level="${logLevel}" additivity="false">
+        <appender-ref ref="ANALYTICS"/>
+    </logger>
     <logger name="org.red5" level="${logLevel}" />
     <logger name="org.springframework" level="${logLevel}" />
     <logger name="org.springframework.scheduling" level="${logLevel}" />

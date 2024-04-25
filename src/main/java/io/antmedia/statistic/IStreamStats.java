@@ -16,7 +16,5 @@ public interface IStreamStats {
 	 * @return
 	 */
 	int getViewerCount(String streamId);
-	
-
 
 }
