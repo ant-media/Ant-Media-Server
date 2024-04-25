@@ -55,10 +55,14 @@ public class DataTransferValve extends ValveBase {
 			playerStatsEvent.setByteTransferred(bytesWritten);
 			playerStatsEvent.setClientIP(clientIP);
 			
-			LoggerUtils.logAnalyticsFromServer(playerStatsEvent);
-
+			
+			log(playerStatsEvent);
 			
 		}
+	}
+	
+	public void log(PlayerStatsEvent playerStatsEvent) {
+		LoggerUtils.logAnalyticsFromServer(playerStatsEvent);
 	}
 
 }
