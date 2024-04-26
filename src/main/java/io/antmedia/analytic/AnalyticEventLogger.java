@@ -9,6 +9,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.analytic.model.AnalyticEvent;
 import io.antmedia.analytic.model.PlayEvent;
 import io.antmedia.analytic.model.WatchTimeEvent;
+import io.antmedia.filter.JWTFilter;
 import io.antmedia.logger.LoggerUtils;
 import io.antmedia.rest.model.Result;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
@@ -27,6 +28,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 
 
 @OpenAPIDefinition(
@@ -64,12 +66,18 @@ public class AnalyticEventLogger {
 		}
 		return appInstance;
 	}
+	
 
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/events/play")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response postEvent(@Context HttpServletRequest request, PlayEvent event) {
+		
+		if (!isAuthorized(event)) {
+			return Response.status(Status.UNAUTHORIZED).build();
+		}
+		
 		event.setApp(getApplication().getScope().getName());
 		if (event.getTimeMs() == 0) {
 			event.setTimeMs(System.currentTimeMillis());
@@ -85,16 +93,26 @@ public class AnalyticEventLogger {
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/events/watch-time")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response postEvent(@Context HttpServletRequest request, WatchTimeEvent event) {
+	public Response postEvent(@Context HttpServletRequest request, WatchTimeEvent event) 
+	{
+		if (!isAuthorized(event)) {
+			return Response.status(Status.UNAUTHORIZED).build();
+		}
+		
 		event.setApp(getApplication().getScope().getName());
 		if (event.getTimeMs() == 0) {
 			event.setTimeMs(System.currentTimeMillis());
 		}
 		event.setClientIP(getClientIpAddress(request));
 		
-		LoggerUtils.logAnalyticsFromClient( event);
+		LoggerUtils.logAnalyticsFromClient(event);
 
 		return Response.ok(new Result(true)).build();
+	}
+
+	private boolean isAuthorized(PlayEvent event) {
+		return (!getApplication().getAppSettings().isSecureAnalyticEndpoint() ||  
+				(JWTFilter.isJWTTokenValid(getApplication().getAppSettings().getJwtSecretKey(), event.getToken())));
 	}
 
 	private String getClientIpAddress(HttpServletRequest request) {
