@@ -629,9 +629,7 @@ public abstract class Muxer {
 			this.resolution = resolution;
 
 			//Refactor: Getting AppSettings smells here
-			IContext context = this.scope.getContext();
-			ApplicationContext appCtx = context.getApplicationContext();
-			AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
+			AppSettings appSettings = getAppSettings();
 
 			initialResourceNameWithoutExtension = getExtendedName(name, resolution, bitrate, appSettings.getFileNameFormat());
 
@@ -671,6 +669,13 @@ public abstract class Muxer {
 
 		}
 	}
+
+	public AppSettings getAppSettings() {
+		IContext context = this.scope.getContext();
+		ApplicationContext appCtx = context.getApplicationContext();
+		return (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
+	}
+	
 	public String getExtendedName(String name, int resolution, int bitrate, String fileNameFormat){
 		// set default name
 		String resourceName = name;
