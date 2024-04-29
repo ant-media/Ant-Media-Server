@@ -11,7 +11,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -33,11 +32,13 @@ import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
@@ -603,8 +604,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					final String metaData = broadcast.getMetaData();
+					final String mainTrackId = broadcast.getMainTrackStreamId();
 					logger.info("Setting timer to call live stream ended hook for stream:{}",streamId );
-					vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null, metaData));
+					vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null, metaData));
 				}
 
 				PublishEndedEvent publishEndedEvent = new PublishEndedEvent();
@@ -702,8 +704,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					final String name = broadcast.getName();
 					final String category = broadcast.getCategory();
 					final String metaData = broadcast.getMetaData();
+					final String mainTrackId = broadcast.getMainTrackStreamId();
+
 					logger.info("Setting timer to call live stream started hook for stream:{}",streamId );
-					vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_START_LIVE_STREAM, name, category,
+					vertx.setTimer(10, e -> notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_START_LIVE_STREAM, name, category,
 							null, null, metaData));
 				}
 
@@ -906,7 +910,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			final String metaData = (broadcast != null) ? broadcast.getMetaData() : null;
 			String finalListenerHookURL = listenerHookURL;
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			vertx.runOnContext(e ->	notifyHook(finalListenerHookURL, streamId, HOOK_ACTION_VOD_READY, null, null, baseName, vodIdFinal, metaData));
+			vertx.runOnContext(e ->	notifyHook(finalListenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodIdFinal, metaData));
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
@@ -917,19 +921,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	}
 
-	private boolean isWebhooksEnabled(){
-		final String listenerHookURL = getAppSettings().getListenerHookURL();
-		if(listenerHookURL != null && !listenerHookURL.isEmpty()){
-			return true;
-		}
-		return  false;
-	}
-
 	public void notifyRoomHook(String action, String roomId, String myTrackId, boolean playOnly) {
 		final String listenerHookURL = getAppSettings().getListenerHookURL();
-		if(!isWebhooksEnabled()){
+		if(listenerHookURL == null || listenerHookURL.isEmpty()){
 			return;
 		}
+
 		JSONObject hookData = new JSONObject();
 		hookData.put("action", action);
 		hookData.put("roomId", roomId);
@@ -938,30 +935,31 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		Broadcast broadcast = dataStore.get(myTrackId);
 		if(broadcast != null){
 			hookData.put("metaData",broadcast.getMetaData());
-
 		}
-		vertx.runOnContext(e -> notifyHook(listenerHookURL, roomId, action, null, null, null, null, hookData.toJSONString()));
+
+		vertx.runOnContext(e -> notifyHook(listenerHookURL, roomId, null, action, null, null, null, null, hookData.toJSONString()));
 
 	}
 
 
 	public void notifyRoomStartedHook(Broadcast mainTrack) {
 		final String listenerHookURL = getListenerHookURL(mainTrack);
-
-		if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
-			final String name = mainTrack.getName();
-			final String category = mainTrack.getCategory();
-			vertx.runOnContext(e -> notifyHook(listenerHookURL, mainTrack.getStreamId(), HOOK_ACTION_ROOM_CREATED, name, category, null, null, null));
+		if(listenerHookURL == null || listenerHookURL.isEmpty()){
+			return;
 		}
+		final String name = mainTrack.getName();
+		final String category = mainTrack.getCategory();
+		vertx.runOnContext(e -> notifyHook(listenerHookURL, mainTrack.getStreamId(), null, HOOK_ACTION_ROOM_CREATED, name, category, null, null, null));
+
 	}
 
-	private void notifyRoomEndedHook(Broadcast mainTrack) {
+	public void notifyRoomEndedHook(Broadcast mainTrack) {
 		final String listenerHookURL = getListenerHookURL(mainTrack);
 
 		if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
 			final String name = mainTrack.getName();
 			final String category = mainTrack.getCategory();
-			vertx.runOnContext(e -> notifyHook(listenerHookURL, mainTrack.getStreamId(), HOOK_ACTION_ROOM_ENDED, name, category, null, null, null));
+			vertx.runOnContext(e -> notifyHook(listenerHookURL, mainTrack.getStreamId(), null, HOOK_ACTION_ROOM_ENDED, name, category, null, null, null));
 		}
 	}
 	public void runScript(String scriptFile) {
@@ -999,68 +997,68 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	/**
 	 * Notify hook with parameters below
 	 *
-	 * @param url
-	 *            is the url of the service to be called
-	 *
-	 * @param id
-	 *            is the stream id that is unique for each stream
-	 *
-	 * @param action
-	 *            is the name of the action to be notified, it has values such
-	 *            as {@link #HOOK_ACTION_END_LIVE_STREAM}
-	 *            {@link #HOOK_ACTION_START_LIVE_STREAM}
-	 *
-	 * @param streamName,
-	 *            name of the stream. It is not the name of the file. It is just
-	 *            a user friendly name
-	 *
-	 * @param category,
-	 *            category of the stream
-	 *
-	 * @param vodName name of the vod
-	 *
-	 * @param vodId id of the vod in the datastore
-	 *
+	 * @param streamName, name of the stream. It is not the name of the file. It is just
+	 *                    a user friendly name
+	 * @param category,   category of the stream
+	 * @param url         is the url of the service to be called
+	 * @param id          is the stream id that is unique for each stream
+	 * @param mainTrackId mainTrackId(roomId) of the stream
+	 * @param action      is the name of the action to be notified, it has values such
+	 *                    as {@link #HOOK_ACTION_END_LIVE_STREAM}
+	 *                    {@link #HOOK_ACTION_START_LIVE_STREAM}
+	 * @param vodName     name of the vod
+	 * @param vodId       id of the vod in the datastore
 	 * @return
 	 */
-	public void notifyHook(String url, String id, String action, String streamName, String category,
-			String vodName, String vodId, String metadata) {
-		logger.info("Running notify hook url:{} stream id: {} action:{} vod name:{} vod id:{}", url, id, action, vodName, vodId);
+	public void notifyHook(String url, String id, String mainTrackId, String action, String streamName, String category,
+						   String vodName, String vodId, String metadata) {
+		logger.info("Running notify hook url:{} stream id: {} mainTrackId:{} action:{} vod name:{} vod id:{}", url, id, mainTrackId, action, vodName, vodId);
 		if (url != null && !url.isEmpty()) {
-			Map<String, String> variables = new HashMap<>();
+			JSONObject hookPayload = new JSONObject();
 
-			variables.put("id", id);
-			variables.put("action", action);
+			hookPayload.put("id", id);
+			hookPayload.put("action", action);
 			if (streamName != null) {
-				variables.put("streamName", streamName);
+				hookPayload.put("streamName", streamName);
 			}
 			if (category != null) {
-				variables.put("category", category);
+				hookPayload.put("category", category);
 			}
 
 			if (vodName != null) {
-				variables.put("vodName", vodName);
+				hookPayload.put("vodName", vodName);
 			}
 
 			if (vodId != null) {
-				variables.put("vodId", vodId);
+				hookPayload.put("vodId", vodId);
+			}
+
+			if(mainTrackId != null){
+				hookPayload.put("roomId", mainTrackId);
 			}
 
 			if (metadata != null) {
-				variables.put("metadata", metadata);
+				try{
+					JSONParser parser = new JSONParser();
+					JSONObject jsonMetaData = (JSONObject) parser.parse(metadata);
+					hookPayload.put("metadata", jsonMetaData);
+				}catch (Exception e){
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+
 			}
 
-			variables.put("timestamp", String.valueOf(System.currentTimeMillis()));
+			hookPayload.put("timestamp", String.valueOf(System.currentTimeMillis()));
 
 			try {
-				sendPOST(url, variables, appSettings.getWebhookRetryCount());
+				sendPOST(url, hookPayload, appSettings.getWebhookRetryCount());
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 	}
 
-	public void sendPOST(String url, Map<String, String> variables, int retryAttempts) {
+	public void sendPOST(String url, JSONObject hookPayload, int retryAttempts) {
 		logger.info("Sending POST request to {}", url);
 		try (CloseableHttpClient httpClient = getHttpClient()) {
 			HttpPost httpPost = new HttpPost(url);
@@ -1070,15 +1068,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					.setSocketTimeout(2000)
 					.build();
 			httpPost.setConfig(requestConfig);
-			List<NameValuePair> urlParameters = new ArrayList<>();
-			Set<Entry<String, String>> entrySet = variables.entrySet();
-			for (Entry<String, String> entry : entrySet) {
 
-				urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
-			}
-
-			HttpEntity postParams = new UrlEncodedFormEntity(urlParameters);
-			httpPost.setEntity(postParams);
+			httpPost.setEntity(new StringEntity(hookPayload.toJSONString()));
 
 			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
 				int statusCode = httpResponse.getStatusLine().getStatusCode();
@@ -1087,7 +1078,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				if (statusCode != HttpStatus.SC_OK) {
 					if (retryAttempts >= 1) {
 						logger.info("Retry attempt for POST in {} milliseconds due to non-200 response: {}", appSettings.getWebhookRetryDelay(), statusCode);
-						retrySendPostWithDelay(url, variables, retryAttempts - 1);
+						retrySendPostWithDelay(url, hookPayload, retryAttempts - 1);
 					} else if (appSettings.getWebhookRetryCount() != 0) {
 						logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
 					}
@@ -1096,16 +1087,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		} catch (IOException e) {
 			if (retryAttempts >= 1) {
 				logger.info("Retry attempt for POST in {} milliseconds due to IO exception: {}", appSettings.getWebhookRetryDelay(), e.getMessage());
-				retrySendPostWithDelay(url, variables, retryAttempts - 1);
+				retrySendPostWithDelay(url, hookPayload, retryAttempts - 1);
 			} else if (appSettings.getWebhookRetryCount() != 0) {
 				logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
 			}
 		}
 	}
 
-	public void retrySendPostWithDelay(String url, Map<String, String> variables, int retryAttempts) {
+	public void retrySendPostWithDelay(String url, JSONObject hookPayload, int retryAttempts) {
 		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
-			sendPOST(url, variables, retryAttempts);
+			sendPOST(url, hookPayload, retryAttempts);
 		});
 	}
 
@@ -1618,8 +1609,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				final String name = broadcast.getName();
 				final String category = broadcast.getCategory();
 				final String metaData = broadcast.getMetaData();
+				String mainTrackId = broadcast.getMainTrackStreamId();
 				logger.info("Setting timer to call encoder not opened error for stream:{}", streamId);
-				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_ENCODER_NOT_OPENED_ERROR, name, category, null, null, metaData));
+				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_ENCODER_NOT_OPENED_ERROR, name, category, null, null, metaData));
 			}
 		}
 	}
@@ -1643,12 +1635,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			if (listenerHookURL != null && listenerHookURL.length() > 0) {
 				final String name = broadcast.getName();
 				final String category = broadcast.getCategory();
+				String mainTrackId = broadcast.getMainTrackStreamId();
 				logger.info("Setting timer to call hook that means live stream is not started to the publish timeout for stream:{}", streamId);
 
 				JSONObject jsonResponse = new JSONObject();
 				jsonResponse.put(WebSocketConstants.SUBSCRIBER_ID, subscriberId);
 
-				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_PUBLISH_TIMEOUT_ERROR, name, category, null, null, jsonResponse.toJSONString()));
+
+
+				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_PUBLISH_TIMEOUT_ERROR, name, category, null, null, jsonResponse.toJSONString()));
 			}
 		}
 	}
@@ -1974,10 +1969,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			{
 				final String name = broadcast.getName();
 				final String category = broadcast.getCategory();
+				String mainTrackId = broadcast.getMainTrackStreamId();
 				logger.info("Setting timer to call rtmp endpoint failed hook for stream:{}", streamId);
 				JSONObject jsonObject = new JSONObject();
 				jsonObject.put("rtmp-url", url);
-				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, HOOK_ACTION_ENDPOINT_FAILED, name, category, null, null, jsonObject.toJSONString()));
+				vertx.runOnContext(e -> notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_ENDPOINT_FAILED, name, category, null, null, jsonObject.toJSONString()));
 			}
 		}
 	}
