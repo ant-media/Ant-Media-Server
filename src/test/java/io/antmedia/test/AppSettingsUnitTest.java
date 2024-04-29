@@ -541,6 +541,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(0, appSettings.getWebhookRetryCount());
 		assertEquals(1000, appSettings.getWebhookRetryDelay());
+		assertFalse(appSettings.isSecureAnalyticEndpoint());
 
 		assertFalse(appSettings.isWebhookPlayAuthEnabled());
 		assertNull(appSettings.getWebhookPlayAuthUrl());

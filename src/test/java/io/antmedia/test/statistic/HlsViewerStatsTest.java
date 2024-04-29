@@ -8,6 +8,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.red5.server.api.scope.IScope;
 
 import static org.mockito.Mockito.*;
 
@@ -178,6 +179,10 @@ public class HlsViewerStatsTest {
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
+			AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
+			when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adapter);
+			
+			when(adapter.getScope()).thenReturn(Mockito.mock(IScope.class));
 			
 			HlsViewerStats viewerStats = Mockito.spy(new HlsViewerStats());
 			
@@ -343,6 +348,10 @@ public class HlsViewerStatsTest {
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
+			AntMediaApplicationAdapter adapter = Mockito.mock(AntMediaApplicationAdapter.class);
+			when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(adapter);
+			
+			when(adapter.getScope()).thenReturn(Mockito.mock(IScope.class));
 			
 			HlsViewerStats viewerStats = Mockito.spy(new HlsViewerStats());
 			

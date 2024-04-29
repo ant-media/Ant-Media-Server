@@ -75,7 +75,6 @@ public class VoD implements Serializable {
 
     @Schema(description = "The file path for the preview of the VoD")
     private String previewFilePath;
-	
 
 	public VoD() {
 		//default constructor is used to return not found vod in rest service 
