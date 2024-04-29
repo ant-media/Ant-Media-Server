@@ -2114,16 +2114,11 @@ public class AppSettings implements Serializable{
 	private long webhookRetryDelay = 1000;
 
 	/**
-	 * Enable webhook authentication for webrtc. play
+	 * Webhook webrtc play authentication url.
 	 */
-	@Value("${webhookPlayAuthEnabled:false}")
-	private boolean webhookPlayAuthEnabled = false;
+	@Value("${webhookPlayAuthUrl:#{null}}")
+	private String webhookPlayAuthUrl;
 
-	/**
-	 * Enable webhook authentication for publish.
-	 */
-	@Value("${webhookPublishAuthEnabled:false}")
-	private boolean webhookPublishAuthEnabled = false;
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -3678,19 +3673,15 @@ public class AppSettings implements Serializable{
 	}
 
 	public boolean isWebhookPlayAuthEnabled() {
-		return webhookPlayAuthEnabled;
+		return getWebhookPlayAuthUrl() != null && !getWebhookPlayAuthUrl().isEmpty();
 	}
 
-	public void setWebhookPlayAuthEnabled(boolean webhookPlayAuthEnabled) {
-		this.webhookPlayAuthEnabled = webhookPlayAuthEnabled;
+	public String getWebhookPlayAuthUrl() {
+		return webhookPlayAuthUrl;
 	}
 
-	public boolean isWebhookPublishAuthEnabled() {
-		return webhookPublishAuthEnabled;
-	}
-
-	public void setWebhookPublishAuthEnabled(boolean webhookPublishAuthEnabled) {
-		this.webhookPublishAuthEnabled = webhookPublishAuthEnabled;
+	public void setWebhookPlayAuthUrl(String webhookPlayAuthUrl) {
+		this.webhookPlayAuthUrl = webhookPlayAuthUrl;
 	}
 
 }

@@ -313,6 +313,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setWebhookRetryDelay(webHookRetryDelay);
 		assertEquals(webHookRetryDelay, appSettings.getWebhookRetryDelay());
 
+		String webhookPlayAuthUrl = "playAuthUrl";
+		appSettings.setWebhookPlayAuthUrl(webhookPlayAuthUrl);
+		assertEquals(webhookPlayAuthUrl, appSettings.getWebhookPlayAuthUrl());
+
 	}
 	
 	
@@ -538,15 +542,15 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(0, appSettings.getWebhookRetryCount());
 		assertEquals(1000, appSettings.getWebhookRetryDelay());
 
-		assertFalse(appSettings.isWebhookPublishAuthEnabled());
 		assertFalse(appSettings.isWebhookPlayAuthEnabled());
+		assertNull(appSettings.getWebhookPlayAuthUrl());
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					179, numberOfFields);
+					178, numberOfFields);
 
 		
 	}

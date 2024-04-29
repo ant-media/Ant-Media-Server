@@ -41,9 +41,8 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 		if (appSettings == null){
 			appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
 		}
-		final String webhookAuthURL = appSettings.getWebhookAuthenticateURL();
-		boolean publishWebhookAuthEnabled = appSettings.isWebhookPublishAuthEnabled();
-		if (publishWebhookAuthEnabled && webhookAuthURL != null && !webhookAuthURL.isEmpty())
+		final String publishWebhookAuthURL = appSettings.getWebhookAuthenticateURL();
+		if (publishWebhookAuthURL != null && !publishWebhookAuthURL.isEmpty())
 		{
 			try (CloseableHttpClient client = getHttpClient())
 			{
@@ -62,7 +61,7 @@ public class AcceptOnlyStreamsWithWebhook implements IStreamPublishSecurity  {
 
 				RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 
-				HttpRequestBase post = (HttpRequestBase) RequestBuilder.post().setUri(webhookAuthURL)
+				HttpRequestBase post = (HttpRequestBase) RequestBuilder.post().setUri(publishWebhookAuthURL)
 						.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
 						.setEntity(new StringEntity(instance.toString())).build();
 				post.setConfig(requestConfig);
