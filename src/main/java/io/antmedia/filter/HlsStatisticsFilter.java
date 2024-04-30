@@ -33,7 +33,7 @@ public class HlsStatisticsFilter extends StatisticsFilter {
 	}
 	
 	public boolean isFilterMatching(String requestURI) {
-		return requestURI != null && requestURI.endsWith("m3u8");
+		return requestURI != null && ( requestURI.endsWith("m3u8") || requestURI.endsWith("ts"));
 	}
 
 

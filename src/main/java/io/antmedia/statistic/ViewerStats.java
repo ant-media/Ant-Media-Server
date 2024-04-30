@@ -6,17 +6,18 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
+import io.antmedia.logger.LoggerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.analytic.model.PlayEvent;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Subscriber;
-import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
@@ -28,7 +29,8 @@ public class ViewerStats {
 	
 	public static final String HLS_TYPE = "hls";
 	public static final String DASH_TYPE = "dash";
-	
+	public static final String VOD_TYPE = "vod";
+
 	//hls or dash
 	private String type;
 	
@@ -38,6 +40,9 @@ public class ViewerStats {
 	
 	public static final int DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT = 10000;
 	
+	protected String appName;
+
+	
 	/**
 	 * Time period in milliseconds to check if viewer is dropped
 	 */
@@ -46,7 +51,7 @@ public class ViewerStats {
 	Map<String, Map<String, Long>> streamsViewerMap = new ConcurrentHashMap<>();
 	Map<String, String> sessionId2subscriberId = new ConcurrentHashMap<>();
 	Map<String, Integer> increaseCounterMap = new ConcurrentHashMap<>();
-	
+
 	private Object lock = new Object();
 	
 	protected ServerSettings serverSettings;
@@ -77,7 +82,14 @@ public class ViewerStats {
 					int streamIncrementCounter = getIncreaseCounterMap(streamId);
 					streamIncrementCounter++;
 					increaseCounterMap.put(streamId, streamIncrementCounter);
+					PlayEvent playStartedEvent = new PlayEvent();
+					playStartedEvent.setStreamId(streamId);
+					playStartedEvent.setProtocol(type);
+					playStartedEvent.setApp(appName);
+					playStartedEvent.setEvent(PlayEvent.EVENT_PLAY_ENDED);
+					playStartedEvent.setSubscriberId(subscriberId);
 					
+					LoggerUtils.logAnalyticsFromServer(playStartedEvent);
 				}
 				viewerMap.put(sessionId, System.currentTimeMillis());
 				streamsViewerMap.put(streamId, viewerMap);
@@ -103,7 +115,7 @@ public class ViewerStats {
 					Date curDate = new Date();
 					event.setTimestamp(curDate.getTime());
 					event.setEventProtocol(getType());
-					
+
 					//TODO: There is a bug here. It adds +1 for each ts request 
 					if (getDataStore().addSubscriberConnectionEvent(streamId, subscriberId, event)) {
 						logger.info("CONNECTED_EVENT for subscriberId:{} streamId:{}", subscriberId, streamId);
@@ -272,10 +284,20 @@ public class ViewerStats {
 						// regard it as not a viewer
 						viewerIterator.remove();
 						numberOfDecrement++;
-						
+
 						String sessionId = viewer.getKey();
 						String subscriberId = sessionId2subscriberId.get(sessionId);
 						// set subscriber status to not connected
+						
+						PlayEvent playEndedEvent = new PlayEvent();
+						playEndedEvent.setEvent(PlayEvent.EVENT_PLAY_ENDED);
+						playEndedEvent.setStreamId(streamId);
+						playEndedEvent.setProtocol(type);
+						playEndedEvent.setApp(appName);
+						playEndedEvent.setSubscriberId(subscriberId);
+						
+						LoggerUtils.logAnalyticsFromServer(playEndedEvent);
+
 						if(subscriberId != null) {
 							// add a disconnected event to the subscriber
 							ConnectionEvent event = new ConnectionEvent();
@@ -288,6 +310,7 @@ public class ViewerStats {
 							}
 						}
 					}
+
 				}
 				
 				isBroadcasting = isStreaming(broadcast);
@@ -354,5 +377,5 @@ public class ViewerStats {
 	public void setType(String type) {
 		this.type = type;
 	}
-
+	
 }
