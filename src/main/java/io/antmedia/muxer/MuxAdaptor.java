@@ -1,21 +1,8 @@
 package io.antmedia.muxer;
 
 import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_PNG;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
-import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
-import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
-import static org.bytedeco.ffmpeg.global.avutil.av_free;
-import static org.bytedeco.ffmpeg.global.avutil.av_malloc;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
+import static org.bytedeco.ffmpeg.global.avcodec.*;
+import static org.bytedeco.ffmpeg.global.avutil.*;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -32,6 +19,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import io.antmedia.logger.LoggerUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
@@ -65,6 +53,8 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.RecordType;
+import io.antmedia.analytic.model.KeyFrameStatsEvent;
+import io.antmedia.analytic.model.PublishStatsEvent;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -157,6 +147,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * then below should be flag in advance
 	 */
 	private boolean firstKeyFrameReceivedChecked = false;
+	private long lastKeyFramePTS =0;
 	protected String streamId;
 	protected long startTime;
 
@@ -248,8 +239,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private long startTimeMs;
 	protected long totalIngestTime;
 	private int fps = 0;
-	protected int width;
+	private int width;
 	protected int height;
+	protected int keyFramePerMin = 0;
+	protected long lastKeyFrameStatsTimeMs = -1;
+
+	private long totalByteReceived = 0;
+
 	protected AVFormatContext streamSourceInputFormatContext;
 	private AVCodecParameters videoCodecParameters;
 	protected AVCodecParameters audioCodecParameters;
@@ -273,8 +269,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	//NOSONAR because we need to keep the reference of the field
 	protected AVChannelLayout channelLayout;
+	private long lastTotalByteReceived = 0;
+
 
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, List<EncoderSettings> broadcastEncoderSettings, boolean isSource, IScope scope) {
+
+
 		MuxAdaptor muxAdaptor = null;
 		ApplicationContext applicationContext = scope.getContext().getApplicationContext();
 		boolean tryEncoderAdaptor = false;
@@ -864,10 +864,21 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		//update before STAT_UPDATE_PERIOD_MS if speed something meaningful
 		if ((now - lastQualityUpdateTime) > STAT_UPDATE_PERIOD_MS || (lastQualityUpdateTime == 0 && speed > 0.8)) 
 		{
-
 			logger.info("Stream queue size:{} speed:{} for streamId:{} ", inputQueueSize, speed, streamId);
 			lastQualityUpdateTime = now;
-
+			long byteTransferred = totalByteReceived - lastTotalByteReceived;
+			lastTotalByteReceived = totalByteReceived;
+			
+			
+			PublishStatsEvent publishStatsEvent = new PublishStatsEvent();
+			publishStatsEvent.setApp(scope.getName());
+			publishStatsEvent.setStreamId(streamId);
+			publishStatsEvent.setTotalByteReceived(totalByteReceived);
+			publishStatsEvent.setByteTransferred(byteTransferred);
+			publishStatsEvent.setDurationMs(System.currentTimeMillis() - broadcast.getStartTime());
+			publishStatsEvent.setWidth(width);
+			publishStatsEvent.setHeight(height);
+			
 			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize, System.currentTimeMillis());
 			oldQuality = quality;
 			oldspeed = speed;
@@ -1031,7 +1042,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 						return;
 
 					}
-
 					IStreamCodecInfo codecInfo = broadcastStream.getCodecInfo();
 					enableVideo = codecInfo.hasVideo();
 					enableAudio = codecInfo.hasAudio();
@@ -1062,33 +1072,35 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 				IStreamPacket packet;
+				Boolean isKeyFrame = false;
 				while ((packet = streamPacketQueue.poll()) != null) {
-
 					queueSize.decrementAndGet();
 
-					if (!firstKeyFrameReceivedChecked && packet.getDataType() == Constants.TYPE_VIDEO_DATA) 
+					if (packet.getDataType() == Constants.TYPE_VIDEO_DATA)
 					{
 						byte frameType = packet.getData().position(0).get();
-
-						if ((frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY) 
-						{
-							firstKeyFrameReceivedChecked = true;
-							if(!appAdapter.isValidStreamParameters(width, height, fps, 0, streamId)) {
-								logger.info("Stream({}) has not passed specified validity checks so it's stopping", streamId);
-								closeRtmpConnection();
-								break;
+						isKeyFrame = (frameType & 0xF0) == IVideoStreamCodec.FLV_FRAME_KEY;
+						if(!firstKeyFrameReceivedChecked) {
+							if (isKeyFrame) {
+								firstKeyFrameReceivedChecked = true;
+								if (!appAdapter.isValidStreamParameters(width, height, fps, 0, streamId)) {
+									logger.info("Stream({}) has not passed specified validity checks so it's stopping", streamId);
+									closeRtmpConnection();
+									break;
+								}
+							} else {
+								logger.warn("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
+								// return if firstKeyFrameReceived is not received
+								// below return is important otherwise it does not work with like some encoders(vidiu)
+								return;
 							}
-						} else {
-							logger.warn("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
-							// return if firstKeyFrameReceived is not received
-							// below return is important otherwise it does not work with like some encoders(vidiu)
-							return;
 						}
 					}
 
 					//TODO: if server does not accept packets, it does not update the quality
 					long dts = packet.getTimestamp() & 0xffffffffL;
-					updateQualityParameters(dts, TIME_BASE_FOR_MS);
+
+					updateQualityParameters(dts, TIME_BASE_FOR_MS, 0, isKeyFrame);
 
 
 					if (bufferTimeMs == 0) 
@@ -1256,8 +1268,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return 0;
 	}
 
-	public void updateQualityParameters(long pts, AVRational timebase) {
-
+	public void updateQualityParameters(long pts, AVRational timebase, long packetSize, boolean isKeyFrame) {
 
 		long packetTime = av_rescale_q(pts, timebase, TIME_BASE_FOR_MS);
 		packetTimeList.add(new PacketTime(packetTime, System.currentTimeMillis()));
@@ -1274,7 +1285,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		long elapsedTime = lastPacket.systemTimeMs - firstPacket.systemTimeMs;
 		long packetTimeDiff = lastPacket.packetTimeMs - firstPacket.packetTimeMs;
 
-
+		if(lastKeyFrameStatsTimeMs == -1){
+			lastKeyFrameStatsTimeMs = firstPacket.systemTimeMs;
+		}
 		double speed = 0L;
 		if (elapsedTime > 0)
 		{
@@ -1283,8 +1296,40 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.warn("speed is NaN, packetTime: {}, first item packetTime: {}, elapsedTime:{}", packetTime, firstPacket.packetTimeMs, elapsedTime);
 			}
 		}
-		updateStreamQualityParameters(this.streamId, null, speed, getInputQueueSize());
 
+		// duration from one key frame to another
+		if(isKeyFrame) {
+			long timeDiff=0;
+			if(lastKeyFramePTS != 0) {
+				long keyFrameDiff = pts - lastKeyFramePTS;
+				timeDiff = av_rescale_q(keyFrameDiff, getVideoTimeBase(), TIME_BASE_FOR_MS);
+				logger.debug("KeyFrame time difference ms:{} for streamId:{}", timeDiff, streamId);
+			}
+			
+			lastKeyFramePTS = pts;
+			if (timeDiff > 30) {
+				keyFramePerMin += 1;
+			}
+			if(lastPacket.systemTimeMs - lastKeyFrameStatsTimeMs > 60000)
+			{
+				KeyFrameStatsEvent keyFrameStatsEvent = new KeyFrameStatsEvent();
+				keyFrameStatsEvent.setStreamId(streamId);
+				keyFrameStatsEvent.setApp(scope.getName());
+				keyFrameStatsEvent.setKeyFramesInLastMinute(keyFramePerMin);
+				keyFrameStatsEvent.setKeyFrameIntervalMs((int)timeDiff);
+				
+				LoggerUtils.logAnalyticsFromServer(keyFrameStatsEvent);
+				
+				keyFramePerMin = 0;
+				lastKeyFrameStatsTimeMs = lastPacket.systemTimeMs;
+			}
+		}
+
+		// total bitrate
+		totalByteReceived = broadcastStream !=null ? broadcastStream.getBytesReceived() :  totalByteReceived + packetSize;
+
+		
+		updateStreamQualityParameters(this.streamId, null, speed, getInputQueueSize());
 
 	}
 
@@ -1301,37 +1346,34 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public void writePacket(AVStream stream, AVPacket pkt) {
-
-
-		updateQualityParameters(pkt.pts(), stream.time_base());
-
-		if (!firstKeyFrameReceivedChecked && stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) 
+		int keyFrame=0;
+		if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO)
 		{
-			int keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
-			if (keyFrame == 1) 
-			{
-				firstKeyFrameReceivedChecked = true;
-				if(!appAdapter.isValidStreamParameters(width, height, fps, 0, streamId)) 
-				{
-					logger.info("Stream({}) has not passed specified validity checks so it's stopping", streamId);
-					closeRtmpConnection();
+			keyFrame = pkt.flags() & AV_PKT_FLAG_KEY;
+			if(!firstKeyFrameReceivedChecked) {
+				if (keyFrame == 1) {
+					firstKeyFrameReceivedChecked = true;
+					if (!appAdapter.isValidStreamParameters(width, height, fps, 0, streamId)) {
+						logger.info("Stream({}) has not passed specified validity checks so it's stopping", streamId);
+						closeRtmpConnection();
+						return;
+					}
+				} else {
+					logger.warn("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
+					// return if firstKeyFrameReceived is not received
+					// below return is important otherwise it does not work with like some encoders(vidiu)
 					return;
 				}
-			} 
-			else {
-				logger.warn("First video packet is not key frame. It will drop for direct muxing. Stream {}", streamId);
-				// return if firstKeyFrameReceived is not received
-				// below return is important otherwise it does not work with like some encoders(vidiu)
-				return;
 			}
 		}
+		updateQualityParameters(pkt.pts(), stream.time_base(),pkt.size(),keyFrame==1);
 
 		synchronized (muxerList)
 		{
 			packetFeeder.writePacket(pkt, stream.codecpar().codec_type());
-			for (Muxer muxer : muxerList) 
+			for (Muxer muxer : muxerList)
 			{
-				if (!(muxer instanceof WebMMuxer)) 
+				if (!(muxer instanceof WebMMuxer))
 				{
 					muxer.writePacket(pkt, stream);
 				}
@@ -1344,8 +1386,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		for (Muxer muxer : muxerList) {
 			muxer.writeTrailer();
 		}
+		
+		long byteTransferred = totalByteReceived - lastTotalByteReceived;
+		lastTotalByteReceived = totalByteReceived;
+		
+		PublishStatsEvent publishStatsEvent = new PublishStatsEvent();
+		publishStatsEvent.setApp(scope.getName());
+		publishStatsEvent.setStreamId(streamId);
+		publishStatsEvent.setTotalByteReceived(totalByteReceived);
+		publishStatsEvent.setByteTransferred(byteTransferred);
+		publishStatsEvent.setDurationMs(System.currentTimeMillis() - broadcast.getStartTime());
+		
+		LoggerUtils.logAnalyticsFromServer(publishStatsEvent);
 	}
-
 
 	public synchronized void closeResources() {
 		logger.info("close resources for streamId -> {}", streamId);
@@ -2230,7 +2283,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		audioInfo.setCodecParameters(getAudioCodecParameters());
 		audioInfo.setTimeBase(getAudioTimeBase());
 		audioInfo.setEnabled(enableAudio);
-
 		listener.setVideoStreamInfo(streamId, videoInfo);
 		listener.setAudioStreamInfo(streamId, audioInfo);
 		packetFeeder.addListener(listener);
@@ -2280,7 +2332,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void setHeight(int height) {
 		this.height = height;
 	}
-
+	
+	public int getHeight() {
+		return height;
+	}
 
 	public void setIsRecording(boolean isRecording) {
 		this.isRecording.set(isRecording);
@@ -2303,6 +2358,21 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public AtomicBoolean getIsPipeReaderJobRunning() {
 		return isPipeReaderJobRunning;
+	}
+
+
+	public long getTotalByteReceived() {
+		return totalByteReceived;
+	}
+
+
+	public int getWidth() {
+		return width;
+	}
+
+
+	public void setWidth(int width) {
+		this.width = width;
 	}
 
 }
