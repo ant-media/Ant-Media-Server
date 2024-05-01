@@ -212,7 +212,7 @@ public class HLSMuxer extends Muxer  {
 		int id3TagSize = data.length() + 3; // TXXX frame size (excluding 10 byte header)
 		int tagSize = id3TagSize + 10;
 
-		ByteBuffer byteBuffer = ByteBuffer.allocate(tagSize+10);
+		ByteBuffer byteBuffer = ByteBuffer.allocate(tagSize + 10);
 
 		byteBuffer.put("ID3".getBytes());
 		byteBuffer.put(new byte[]{0x03, 0x00}); // version
