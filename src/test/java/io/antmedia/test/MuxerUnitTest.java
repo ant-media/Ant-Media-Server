@@ -10,7 +10,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.av_stream_get_side_data;
-import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
+import static org.bytedeco.ffmpeg.global.avformat.*;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
@@ -1038,11 +1038,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer(null, vertx));
 
-		AVFormatContext context = new AVFormatContext(null);
+		AVFormatContext context = new AVFormatContext();
 		int ret = avformat_alloc_output_context2(context, null, "flv", "test.flv");
 
-
+		//rtmpMuxer.set
 		AVPacket pkt = av_packet_alloc();
+		
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+
+		rtmpMuxer.init(appScope, "", 0, "", 0);
 
 		rtmpMuxer.avWriteFrame(pkt, context);
 
@@ -1290,6 +1294,20 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	        
 	        rtmpMuxer.clearResource();
 			
+		}
+		
+		{
+			RtmpMuxer rtmpMuxer = Mockito.spy(new RtmpMuxer("rtmps://live-api-s.facebook.com:443/rtmp/y8qd-42g5-1b53-fh15-2v0",vertx)); //RTMP URl without Appname
+			AVDictionary opt = rtmpMuxer.getOptionDictionary();
+			AVDictionaryEntry optEntry = av_dict_get(opt, "rtmp_app",null,0);
+	        assertNull(optEntry);
+	        
+	     	//if it's different from zero, it means no file is need to be open.
+			//If it's zero, Not "no file" and it means that file is need to be open .
+	        assertEquals(0, rtmpMuxer.getOutputFormatContext().oformat().flags() & AVFMT_NOFILE);
+	        
+	        
+	        rtmpMuxer.clearResource();
 		}
         
 	}
@@ -3905,7 +3923,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(null, false, appScope));
 		muxAdaptor.setBroadcast(broadcast);
 		muxAdaptor.init(appScope, streamId, false);
-		doNothing().when(muxAdaptor).updateQualityParameters(Mockito.anyLong(), any());
+		doNothing().when(muxAdaptor).updateQualityParameters(Mockito.anyLong(), any(), Mockito.eq(10), Mockito.eq(true));
 
 
 		IPacketListener listener = mock(IPacketListener.class);

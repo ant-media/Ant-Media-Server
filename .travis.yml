@@ -188,7 +188,10 @@ after_failure:
 
 deploy:
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
+    script: |
+      echo "Deploy to snapshots"
+      mvn deploy -P assemble -DskipTests --settings mvn-settings.xml
+      echo "Deploy to snapshots exited with $?"
     skip_cleanup: true
     on:
       tags: false
@@ -197,7 +200,10 @@ deploy:
       condition:  $(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)  = *"SNAPSHOT"* 
   
   - provider: script
-    script: "mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet"
+    script: | 
+      echo "Deploy to release"
+      mvn deploy -P assemble -DskipTests --settings mvn-settings.xml --quiet
+      echo "Deploy to release exited with $?"
     skip_cleanup: true
     on:
       #deploy to maven if it is a release tagged

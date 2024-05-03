@@ -41,6 +41,7 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -68,6 +69,7 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.statistic.IStatsCollector;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
+import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.vertx.core.Vertx;
 
 @ContextConfiguration(locations = { "test.xml" })
@@ -692,6 +694,48 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
+	@Test
+	public void testControlStreamFetchersPlayListAndRestart() {
+		DataStore dataStore = Mockito.mock(DataStore.class); 
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
+		Map<String, StreamFetcher> streamFetcherList = new ConcurrentHashMap<>();
+		
+		StreamFetcher fetcher = Mockito.mock(StreamFetcher.class);
+		String streamId = "stream123456";
+		String streamUrl = "streamurl";
+		streamFetcherList.put(streamId, fetcher);
+		Mockito.when(fetcher.getStreamId()).thenReturn(streamId);
+		Mockito.when(fetcher.getStreamUrl()).thenReturn(streamUrl);
+		
+		Broadcast broadcast = mock(Broadcast.class);
+		when(dataStore.get(Mockito.any())).thenReturn(broadcast);
+		when(broadcast.getStreamId()).thenReturn(streamId);
+		when(broadcast.getStreamUrl()).thenReturn("streamurl");
+		when(broadcast.getType()).thenReturn(AntMediaApplicationAdapter.PLAY_LIST);
+		
+		streamFetcherManager.setStreamFetcherList(streamFetcherList);
+		
+		streamFetcherManager.controlStreamFetchers(false);
+		//it should not call anything because type is playlist
+		Mockito.verify(streamFetcherManager, Mockito.never()).isToBeStoppedAutomatically(Mockito.any());
+		
+		
+		
+		assertFalse(streamFetcherManager.getStreamFetcherList().isEmpty());
+		when(broadcast.getType()).thenReturn(AntMediaApplicationAdapter.STREAM_SOURCE);
+		streamFetcherManager.setStreamFetcherList(streamFetcherList);
+		Mockito.doReturn(true).when(streamFetcherManager).isStreamRunning(Mockito.any());
+		streamFetcherManager.controlStreamFetchers(true);
+		
+		
+		ArgumentCaptor<IStreamFetcherListener> listenerCaptor = ArgumentCaptor.forClass(IStreamFetcherListener.class);
+		Mockito.verify(fetcher).setStreamFetcherListener(listenerCaptor.capture());
+		listenerCaptor.getValue().streamFinished(null);;
+		Mockito.verify(streamFetcherManager).startStreaming(broadcast);
+		
+		
+		
+	}
 	@Test
 	public void testControlStreamFetchers() {
 		//create a test db

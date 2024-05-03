@@ -507,7 +507,7 @@ public abstract class Muxer {
 	}
 	
 	public void logPacketIssue(String format, Object... arguments) {
-		if (time2log  % 100 == 0) {
+		if (time2log % 200 == 0) {
 			logger.warn(format, arguments);
 			time2log = 0;
 		}
@@ -621,9 +621,7 @@ public abstract class Muxer {
 			this.resolution = resolution;
 
 			//Refactor: Getting AppSettings smells here
-			IContext context = this.scope.getContext();
-			ApplicationContext appCtx = context.getApplicationContext();
-			AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
+			AppSettings appSettings = getAppSettings();
 
 			initialResourceNameWithoutExtension = getExtendedName(name, resolution, bitrate, appSettings.getFileNameFormat());
 
@@ -663,6 +661,13 @@ public abstract class Muxer {
 
 		}
 	}
+
+	public AppSettings getAppSettings() {
+		IContext context = this.scope.getContext();
+		ApplicationContext appCtx = context.getApplicationContext();
+		return (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
+	}
+	
 	public String getExtendedName(String name, int resolution, int bitrate, String fileNameFormat){
 		// set default name
 		String resourceName = name;

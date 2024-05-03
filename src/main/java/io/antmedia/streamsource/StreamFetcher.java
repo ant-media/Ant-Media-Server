@@ -284,6 +284,11 @@ public class StreamFetcher {
 					logger.info("Broadcast with streamId:{} should be deleted before its thread is started", streamId);
 					return;
 				}
+				else if (AntMediaApplicationAdapter.isStreaming(broadcast)) {
+					logger.info("Broadcast with streamId:{} is streaming mode so it will not pull it here again", streamId);
+
+					return;
+				}
 
 				getInstance().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL, broadcast, IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING);
 
@@ -295,7 +300,12 @@ public class StreamFetcher {
 				{
 
 					boolean readTheNextFrame = true;
-					while (readTheNextFrame) {
+					//In some odd cases stopRequest is received immediately and status of the stream changed to finished 
+					//after that readMore -> packetRead method calls "getInstance().startPublish(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_PULL);" 
+					//this method runs async, it means that its status changed to broadcasting and stays there
+					//I figure out this problem by analyzing a testSkipPlayList test that is failing time to time
+					//Mar 31, 2024 - @mekya
+					while (!stopRequestReceived && readTheNextFrame) {
 						try {
 							//stay in the loop if exception occurs
 							readTheNextFrame = readMore(pkt);
@@ -658,9 +668,11 @@ public class StreamFetcher {
 				writeAllBufferedPackets();
 
 
+				long totalByteReceived = 0;
 				if (muxAdaptor != null) {
 					logger.info("Writing trailer in Muxadaptor {}", streamId);
 					muxAdaptor.writeTrailer();
+					totalByteReceived = muxAdaptor.getTotalByteReceived();
 					getInstance().muxAdaptorRemoved(muxAdaptor);
 					muxAdaptor = null;
 				}
@@ -679,6 +691,7 @@ public class StreamFetcher {
 					streamPublished=false;
 					closeCalled = true;
 				}
+				
 
 
 
@@ -694,6 +707,9 @@ public class StreamFetcher {
 				if(!stopRequestReceived && restartStream) {
 					logger.info("Stream fetcher will try to fetch source {} after {} ms for streamId:{}", streamUrl, STREAM_FETCH_RE_TRY_PERIOD_MS, streamId);
 
+					//Update status to finished in all cases
+					getDataStore().updateStatus(streamId, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+					
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
 
 						thread = new WorkerThread();
