@@ -4293,4 +4293,28 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 	}
+
+	@Test
+	public void testAddH264MetadataBSF() {
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
+		hlsMuxer.setHlsParameters(null, null, null, null, null);
+		hlsMuxer.init(appScope, "test", 0, null, 0);
+
+		hlsMuxer.setSeiEnabled(true);
+		int width = 640;
+		int height = 480;
+
+		boolean addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
+
+		assertTrue(addStreamResult);
+
+		assertEquals("h264_metadata", hlsMuxer.getBitStreamFilter());
+
+	}
 }
