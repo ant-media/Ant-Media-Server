@@ -214,10 +214,27 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	public synchronized void addID3Data(String data) {
-		ByteBuffer byteBuffer = ByteBuffer.allocate(data.length());
+		int id3TagSize = data.length() + 3; // TXXX frame size (excluding 10 byte header)
+		int tagSize = id3TagSize + 10;
+
+		ByteBuffer byteBuffer = ByteBuffer.allocate(tagSize + 10);
+
+		byteBuffer.put("ID3".getBytes());
+		byteBuffer.put(new byte[]{0x03, 0x00}); // version
+		byteBuffer.put((byte) 0x00); // flags
+		byteBuffer.putInt(tagSize); // size
+
+		// TXXX frame
+		byteBuffer.put("TXXX".getBytes());
+		byteBuffer.putInt(id3TagSize); // size
+		byteBuffer.put(new byte[]{0x00, 0x00}); // flags
+		byteBuffer.put((byte) 0x03); // encoding
+		byteBuffer.put((byte) 0x00); // description 00
 		byteBuffer.put(data.getBytes()); // description
+		byteBuffer.put((byte) 0x00); // end of string
 
 		byteBuffer.rewind();
+
 		writeID3Packet(byteBuffer);
 	}
 
@@ -232,6 +249,7 @@ public class HLSMuxer extends Muxer  {
 		id3DataPkt.data(new BytePointer(data));
 		id3DataPkt.size(data.limit());
 		id3DataPkt.position(0);
+
 		writeDataFrame(id3DataPkt, getOutputFormatContext());
 	}
 
