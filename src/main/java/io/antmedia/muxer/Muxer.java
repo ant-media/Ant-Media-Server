@@ -42,6 +42,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.antmedia.FFmpegUtilities;
+import io.antmedia.rest.RestServiceBase;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
@@ -1236,8 +1238,13 @@ public abstract class Muxer {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		int ret;
 		if (streamId != null) {
-			streamId = streamId.replaceAll("[\n\r\t]", "_");
+			streamId = RestServiceBase.replaceCharsForSecurity(streamId);
 		}
+		
+		if (url != null) {
+			url = RestServiceBase.replaceCharsForSecurity(url);
+		}
+		
 		if (avformat_open_input(inputFormatContext, url, null, (AVDictionary)null) < 0) 
 		{
 			loggerStatic.info("cannot open input context for duration for stream: {} for file:{}", streamId, url);
