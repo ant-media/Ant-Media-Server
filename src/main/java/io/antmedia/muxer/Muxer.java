@@ -42,6 +42,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.antmedia.FFmpegUtilities;
+import io.antmedia.rest.RestServiceBase;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
@@ -1222,24 +1224,39 @@ public abstract class Muxer {
 	}
 	
 
+	/**
+	 * 
+	 * @param url
+	 * @param streamId
+	 * @return 
+	 * -1 if duration is not available in the stream
+	 * -2 if input is not opened
+	 * -3 if stream info is not found
+	 *  
+	 */
 	public static long getDurationInMs(String url, String streamId) {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		int ret;
 		if (streamId != null) {
-			streamId = streamId.replaceAll("[\n\r\t]", "_");
+			streamId = RestServiceBase.replaceCharsForSecurity(streamId);
 		}
+		
+		if (url != null) {
+			url = RestServiceBase.replaceCharsForSecurity(url);
+		}
+		
 		if (avformat_open_input(inputFormatContext, url, null, (AVDictionary)null) < 0) 
 		{
 			loggerStatic.info("cannot open input context for duration for stream: {} for file:{}", streamId, url);
 			avformat_close_input(inputFormatContext);
-			return -1L;
+			return -2L;
 		}
 
 		ret = avformat_find_stream_info(inputFormatContext, (AVDictionary)null);
 		if (ret < 0) {
 			loggerStatic.info("Could not find stream information for stream: {} for file:{}", streamId, url);
 			avformat_close_input(inputFormatContext);
-			return -1L;
+			return -3L;
 		}
 		long durationInMS = -1;
 		if (inputFormatContext.duration() != AV_NOPTS_VALUE)
