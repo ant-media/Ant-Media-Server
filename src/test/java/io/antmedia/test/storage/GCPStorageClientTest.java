@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -136,7 +137,28 @@ public class GCPStorageClientTest {
         verify(storage, times(1)).create(any(BlobInfo.class), any(byte[].class));
         verify(gcpStorageClient, times(1)).deleteFile(any());
 
-        gcpStorageClient.save("test-key", mock(InputStream.class), true);
-        //nothing will be happened
+
+    }
+
+    @Test
+    public void testSaveWithStream() throws IOException {
+        GCPStorageClient gcpStorageClient = spy(new GCPStorageClient());
+        Storage storage = mock(Storage.class);
+        doReturn(storage).when(gcpStorageClient).getGCPStorage();
+
+        Path tempFilePath = Files.createTempFile("test", ".tmp");
+        File tempFile = tempFilePath.toFile();
+
+        Blob blob = mock(Blob.class);
+        when(storage.createFrom(any(), any(InputStream.class))).thenReturn(blob);
+
+        InputStream is = new FileInputStream(tempFile);
+
+        gcpStorageClient.setEnabled(true);
+        gcpStorageClient.setStorageName("dummy");
+
+        gcpStorageClient.save("test-key", is, true);
+
+        verify(storage, times(1)).createFrom(any(BlobInfo.class), eq(is));
     }
 }
