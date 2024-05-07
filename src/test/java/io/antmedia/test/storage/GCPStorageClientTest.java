@@ -72,6 +72,10 @@ public class GCPStorageClientTest {
 
         // Ensure the file does not exist after deletion
         assertFalse("Temporary file should not exist after deletion", tempFile.exists());
+
+        gcpStorageClient.deleteFile(new File("non existing"));
+        //no need for check
+
     }
 
     @Test
@@ -90,6 +94,11 @@ public class GCPStorageClientTest {
         boolean exists = gcpStorageClient.fileExist("test-key");
 
         assertTrue(exists);
+
+        gcpStorageClient.setEnabled(false);
+        boolean exists2 = gcpStorageClient.fileExist("test-key");
+
+        assertFalse(exists2);
     }
 
     @Test
@@ -126,5 +135,8 @@ public class GCPStorageClientTest {
 
         verify(storage, times(1)).create(any(BlobInfo.class), any(byte[].class));
         verify(gcpStorageClient, times(1)).deleteFile(any());
+
+        gcpStorageClient.save("test-key", mock(InputStream.class), true);
+        //nothing will be happened
     }
 }
