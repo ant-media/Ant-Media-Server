@@ -130,6 +130,7 @@ public class PlaylistRestServiceV2UnitTest {
 		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
 		playlist.setPlayListItemList(broadcastList);
 		
+		
 
 		StatsCollector monitor = mock(StatsCollector.class);
 
@@ -308,6 +309,8 @@ public class PlaylistRestServiceV2UnitTest {
 
 		//create a broadcast
 		PlayListItem broadcastItem1 = new PlayListItem();
+		broadcastItem1.setName("name");
+		assertEquals("name", broadcastItem1.getName());
 
 		//create a broadcast
 		PlayListItem broadcastItem2 = new PlayListItem();
