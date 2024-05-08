@@ -226,6 +226,23 @@ public class BroadcastRestServiceV2UnitTest {
 	}
 	
 	
+	@Test
+	public void testGetDuration() {
+		
+		Result result = restServiceReal.getDuration(StreamSchedularUnitTest.VALID_MP4_URL);
+		assertEquals(15045, Integer.valueOf(result.getDataId()).intValue());
+		assertTrue(result.isSuccess());
+		
+		
+		result = restServiceReal.getDuration(StreamSchedularUnitTest.INVALID_MP4_URL);		
+		assertEquals(-2, Integer.valueOf(result.getErrorId()).intValue());
+		assertFalse(result.isSuccess());
+
+		result = restServiceReal.getDuration(null);		
+		assertFalse(result.isSuccess());
+		
+	}
+	
 
 	/**
 	 * These tests should be run with stalker db

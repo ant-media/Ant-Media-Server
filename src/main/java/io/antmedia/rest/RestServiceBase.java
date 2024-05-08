@@ -75,7 +75,7 @@ import jakarta.ws.rs.core.Context;
 
 public abstract class RestServiceBase {
 
-	private static final String REPLACE_CHARS_FOR_SECURITY = "[\n\r]";
+	public static final String REPLACE_CHARS_FOR_SECURITY = "[\n\r]";
 
 	public class BroadcastStatistics {
 
@@ -2374,6 +2374,10 @@ public abstract class RestServiceBase {
 
 	public Result unlinksVoD(String directory) {
 		return getApplication().unlinksVoD(directory);
+	}
+	
+	public static String replaceCharsForSecurity(String value) {
+		return value.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_");
 	}
 
 }

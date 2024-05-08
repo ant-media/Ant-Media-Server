@@ -4259,8 +4259,17 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		verify(hlsMuxer, times(1)).writeDataFrame(argument.capture(), any());
 
-		assertEquals(lastPts, argument.getValue().pts());
-		assertEquals(lastPts, argument.getValue().dts());
+		AVPacket pkt = argument.getValue();
+
+		BytePointer ptrData = pkt.data();
+		byte [] id3Data = new byte[pkt.size()];
+		ptrData.get(id3Data);
+
+		assertEquals("ID3", new String(id3Data, 0, 3));
+		assertEquals("TXXX", new String(id3Data, 10, 4));
+
+		assertEquals(lastPts, pkt.pts());
+		assertEquals(lastPts, pkt.dts());
 
 	}
 
