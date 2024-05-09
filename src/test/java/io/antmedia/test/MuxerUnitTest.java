@@ -4319,7 +4319,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testSetSEIData() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
-		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, false, appScope);
+		MuxAdaptor muxAdaptorReal = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 		HLSMuxer hlsMuxer = mock(HLSMuxer.class);
 		muxAdaptorReal.getMuxerList().add(hlsMuxer);
 		String data = "some data to put frame";
