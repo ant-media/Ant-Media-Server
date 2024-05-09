@@ -221,6 +221,7 @@ public class Broadcast {
 	{
 		String streamUrl;
 		String type;
+		String name;
 		
 		/**
 		 * Duration of this item in milliseconds. It's calculated by Ant Media Server
@@ -269,6 +270,14 @@ public class Broadcast {
 
 		public void setDurationInMs(long durationInMs) {
 			this.durationInMs = durationInMs;
+		}
+		
+		public String getName() {
+			return name;
+		}
+		
+		public void setName(String name) {
+			this.name = name;
 		}
 		
 	}

@@ -14,6 +14,7 @@ import io.antmedia.StreamIdValidator;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.Subscriber;
@@ -24,6 +25,7 @@ import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.ipcamera.OnvifCamera;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.model.BasicStreamInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.ITokenService;
@@ -360,6 +362,37 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 
 		}
+		return result;
+	}
+	
+	@Operation(description = "Gets the durations of the stream url in milliseconds",
+			 responses = {
+				        @ApiResponse(responseCode = "200", description = "If operation is successful, duration will be in dataId field and success field is true. "
+				        		+ "If it's failed, errorId has the error code(-1: duration is not available, -2: url is not opened, -3: cannot get stream info) and success field is false",
+				                     content = @Content(
+				                         mediaType = "application/json",
+				                         schema = @Schema(implementation = Result.class)
+				                     ))
+				        }
+	)
+	
+	@GET
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Path("/duration")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Result getDuration(@Parameter(description="Url of the stream that its duration will be returned", required=true) @QueryParam("url")  String url) {
+		Result result = new Result(false);
+		if (StringUtils.isNotBlank(url)) {
+			long durationInMs = Muxer.getDurationInMs(url,null);
+			if (durationInMs >= 0) {
+				result.setSuccess(true);
+				result.setDataId(Long.toString(durationInMs));
+			}
+			else {
+				result.setErrorId((int)durationInMs);
+			}
+		}
+		
 		return result;
 	}
 
