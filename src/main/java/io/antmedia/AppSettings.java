@@ -1066,6 +1066,14 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${hlsPlayListType:${"+SETTINGS_HLS_PLAY_LIST_TYPE+":}}" )
 	private String hlsPlayListType = "";
+	
+	/**
+	 * HLS Muxer segment type. It can be "mpegts" or "fmp4"
+	 * 
+	 * fmp4 is compatible to play the HEVC HLS Streams
+	 */
+	@Value( "${hlsSegmentType:mpegts}" )
+	private String hlsSegmentType = "mpegts";
 
 	/**
 	 * The path for manually saved used VoDs
@@ -3678,6 +3686,14 @@ public class AppSettings implements Serializable{
 
 	public void setSecureAnalyticEndpoint(boolean secureAnalyticEndpoint) {
 		this.secureAnalyticEndpoint = secureAnalyticEndpoint;
+	}
+
+	public String getHlsSegmentType() {
+		return hlsSegmentType;
+	}
+
+	public void setHlsSegmentType(String hlsSegmentType) {
+		this.hlsSegmentType = hlsSegmentType;
 	}
 
 }
