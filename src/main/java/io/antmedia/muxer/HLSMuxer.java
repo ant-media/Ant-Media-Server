@@ -50,6 +50,14 @@ public class HLSMuxer extends Muxer  {
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
 	private String segmentFilename;
+	
+	/**
+	 * HLS Segment Type. It can be "mpegts" or "fmp4"
+	 * 
+	 * Note: The generated M3U8 for HEVC can be playable when it's fmp4 
+	 * It's not playable when it's mpegts
+	 */
+	private String hlsSegmentType = "mpegts";
 
 	private String httpEndpoint;
 	public static final int S3_CONSTANT = 0b010;
@@ -80,7 +88,11 @@ public class HLSMuxer extends Muxer  {
 		setAddDateTimeToSourceName(addDateTimeToResourceName);
 	}
 
-	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile){
+	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile) {
+		this.setHlsParameters(hlsListSize, hlsTime, hlsPlayListType, hlsFlags, hlsEncryptionKeyInfoFile, null);
+	}
+	
+	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile, String hlsSegmentType){
 		if (hlsListSize != null && !hlsListSize.isEmpty()) {
 			this.hlsListSize = hlsListSize;
 		}
@@ -101,6 +113,10 @@ public class HLSMuxer extends Muxer  {
 		}
 		if (hlsEncryptionKeyInfoFile != null && !hlsEncryptionKeyInfoFile.isEmpty()) {
 			this.hlsEncryptionKeyInfoFile = hlsEncryptionKeyInfoFile;
+		}
+		
+		if (StringUtils.isNotBlank(hlsSegmentType)) {
+			this.hlsSegmentType = hlsSegmentType;
 		}
 	}
 
@@ -147,6 +163,8 @@ public class HLSMuxer extends Muxer  {
 			if (this.hlsFlags != null && !this.hlsFlags.isEmpty()) {
 				options.put("hls_flags", this.hlsFlags);
 			}
+			
+			options.put("hls_segment_type", hlsSegmentType);
 
 			isInitialized = true;
 		}
