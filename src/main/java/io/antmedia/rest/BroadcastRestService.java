@@ -1,5 +1,7 @@
 package io.antmedia.rest;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -13,6 +15,7 @@ import io.antmedia.RecordType;
 import io.antmedia.StreamIdValidator;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IStreamInfo;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -76,8 +79,8 @@ import io.swagger.v3.oas.annotations.servers.Server;
 						description = "test server",
 						url = "https://test.antmedia.io:5443/Sandbox/rest/"
 
-					)}
-						
+						)}
+
 		)
 @Component
 @Path("/v2/broadcasts")
@@ -155,17 +158,17 @@ public class BroadcastRestService extends RestServiceBase{
 			+ "other information. The different between Broadcast and IP Camera or Stream Source is that Broadcast is ingested by Ant Media Server"
 			+ "IP Camera or Stream Source is pulled by Ant Media Server")
 	@ApiResponse(responseCode = "400", description = "If stream id is already used in the data store, it returns error", 
-					content = @Content(
-							mediaType = "application/json",
-							schema = @Schema(implementation = Result.class)
-							)
-				)
+	content = @Content(
+			mediaType = "application/json",
+			schema = @Schema(implementation = Result.class)
+			)
+			)
 	@ApiResponse(responseCode = "200", description = "Returns the created stream", 
-					content = @Content(
-						mediaType = "application/json",
-						schema = @Schema(implementation = Broadcast.class)
-						)
-				)
+	content = @Content(
+			mediaType = "application/json",
+			schema = @Schema(implementation = Broadcast.class)
+			)
+			)
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/create")
@@ -235,11 +238,11 @@ public class BroadcastRestService extends RestServiceBase{
 
 	@Operation(summary = "Delete broadcast from data store and stop if it's broadcasting")
 	@ApiResponse(responseCode = "200", description = "If it's deleted, success is true. If it's not deleted, success if false.",
-					content = @Content(
-							mediaType = "application/json",
-							schema = @Schema(implementation = Broadcast.class)
-							)
-				)
+	content = @Content(
+			mediaType = "application/json",
+			schema = @Schema(implementation = Broadcast.class)
+			)
+			)
 	@DELETE
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/{id}")
@@ -249,7 +252,7 @@ public class BroadcastRestService extends RestServiceBase{
 		return super.deleteBroadcast(id);		
 	}
 
-	
+
 	/**
 	 * Use {@link #deleteBroadcastsBulk(String[])} for compliance
 	 */
@@ -264,14 +267,14 @@ public class BroadcastRestService extends RestServiceBase{
 	{
 		return super.deleteBroadcasts(streamIds);
 	}
-	
+
 	@Operation(description = "Delete multiple broadcasts from data store and stop if they are broadcasting")
 	@ApiResponse(responseCode = "200", description = "If it's deleted, success is true. If it's not deleted, success if false.",
-					content = @Content(
-							mediaType = "application/json",
-							schema = @Schema(implementation = Broadcast.class)
-							)
-				)
+	content = @Content(
+			mediaType = "application/json",
+			schema = @Schema(implementation = Broadcast.class)
+			)
+			)
 	@DELETE
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/")
@@ -289,11 +292,11 @@ public class BroadcastRestService extends RestServiceBase{
 
 	@Operation(description = "Get broadcast object")
 	@ApiResponse(responseCode = "200", description = "Return the broadcast object",
-					content = @Content(
-							mediaType = "application/json",
-							schema = @Schema(implementation = Broadcast.class)
-							)
-				)
+	content = @Content(
+			mediaType = "application/json",
+			schema = @Schema(implementation = Broadcast.class)
+			)
+			)
 	@ApiResponse(responseCode = "404", description = "Broadcast object not found")
 	@GET
 	@Path("/{id}")
@@ -330,8 +333,8 @@ public class BroadcastRestService extends RestServiceBase{
 			" The updated fields are as follows: name, description, userName, password, IP address, streamUrl of the broadcast. " + 
 			"It also updates the social endpoints")
 	@ApiResponses(value = {
-		    @ApiResponse(responseCode = "200", description = "If it's updated, success field is true. If it's not updated, success field is false.")
-		})
+			@ApiResponse(responseCode = "200", description = "If it's updated, success field is true. If it's not updated, success field is false.")
+	})
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}")
@@ -347,7 +350,7 @@ public class BroadcastRestService extends RestServiceBase{
 				logger.info("Broadcast with stream id: {} is null", streamId);
 				return new Result(false, "Broadcast with streamId: " + streamId + " does not exist");
 			}
-			
+
 			if (broadcastInDB.getType() != null && 
 					(broadcastInDB.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) || 
 							broadcastInDB.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) || 
@@ -364,18 +367,18 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return result;
 	}
-	
+
 	@Operation(description = "Gets the durations of the stream url in milliseconds",
-			 responses = {
-				        @ApiResponse(responseCode = "200", description = "If operation is successful, duration will be in dataId field and success field is true. "
-				        		+ "If it's failed, errorId has the error code(-1: duration is not available, -2: url is not opened, -3: cannot get stream info) and success field is false",
-				                     content = @Content(
-				                         mediaType = "application/json",
-				                         schema = @Schema(implementation = Result.class)
-				                     ))
-				        }
-	)
-	
+			responses = {
+					@ApiResponse(responseCode = "200", description = "If operation is successful, duration will be in dataId field and success field is true. "
+							+ "If it's failed, errorId has the error code(-1: duration is not available, -2: url is not opened, -3: cannot get stream info) and success field is false",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
+
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/duration")
@@ -392,7 +395,7 @@ public class BroadcastRestService extends RestServiceBase{
 				result.setErrorId((int)durationInMs);
 			}
 		}
-		
+
 		return result;
 	}
 
@@ -452,15 +455,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Adds a third party RTMP end point to the stream",
-		    description = "It supports adding after broadcast is started. Resolution can be specified to send a specific adaptive resolution. If an URL is already added to a stream, trying to add the same RTMP URL will return false.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Add RTMP endpoint response",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "It supports adding after broadcast is started. Resolution can be specified to send a specific adaptive resolution. If an URL is already added to a stream, trying to add the same RTMP URL will return false.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Add RTMP endpoint response",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
@@ -550,15 +553,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Remove third-party RTMP end point from the stream",
-		    description = "For the stream that is broadcasting, it will stop immediately.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Remove RTMP endpoint response",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "For the stream that is broadcasting, it will stop immediately.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Remove RTMP endpoint response",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/rtmp-endpoint")
@@ -622,15 +625,15 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	@Operation(summary = "Retrieve detected objects from the stream",
-		    description = "Fetches detected objects from the stream, using specified offset and size parameters.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "List of detected TensorFlow objects",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = TensorFlowObject.class, type = "array")
-		                     ))
-		    }
-		)
+			description = "Fetches detected objects from the stream, using specified offset and size parameters.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "List of detected TensorFlow objects",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = TensorFlowObject.class, type = "array")
+									))
+	}
+			)
 	@GET
 	@Path("/{id}/detections/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -641,15 +644,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Get total number of detected objects",
-		    description = "Retrieves the total count of objects detected.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Total number of detected objects",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Long.class)
-		                     ))
-		    }
-		)
+			description = "Retrieves the total count of objects detected.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Total number of detected objects",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Long.class)
+									))
+	}
+			)
 	@GET
 	@Path("/{id}/detections/count")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -658,15 +661,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Import Live Streams to Stalker Portal",
-		    description = "Imports live streams into the Stalker Portal.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Import operation result",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Imports live streams into the Stalker Portal.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Import operation result",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@POST
 	@Path("/import-to-stalker")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -677,15 +680,15 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	@Operation(summary = "Get the total number of broadcasts",
-		    description = "Retrieves the total number of broadcasts.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Total number of broadcasts",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = SimpleStat.class)
-		                     ))
-		    }
-		)
+			description = "Retrieves the total number of broadcasts.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Total number of broadcasts",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = SimpleStat.class)
+									))
+	}
+			)
 	@GET
 	@Path("/count")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -694,15 +697,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Get the number of broadcasts based on search criteria",
-		    description = "Retrieves the number of broadcasts matching the specified search criteria.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Number of broadcasts for searched items",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = SimpleStat.class)
-		                     ))
-		    }
-		)
+			description = "Retrieves the number of broadcasts matching the specified search criteria.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Number of broadcasts for searched items",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = SimpleStat.class)
+									))
+	}
+			)
 	@GET
 	@Path("/count/{search}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -713,15 +716,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Return the active live streams",
-		    description = "Retrieves the currently active live streams.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Active live streams",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = SimpleStat.class)
-		                     ))
-		    }
-		)
+			description = "Retrieves the currently active live streams.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Active live streams",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = SimpleStat.class)
+									))
+	}
+			)
 	@GET
 	@Path("/active-live-stream-count")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -734,13 +737,13 @@ public class BroadcastRestService extends RestServiceBase{
 
 	@Operation(description = "Generates random one-time token for specified stream")
 	@ApiResponses(value = {
-		    @ApiResponse(responseCode = "200", description = "Returns token",
-		                 content = @Content(mediaType = "application/json", 
-		                                    schema = @Schema(implementation = Token.class))),
-		    @ApiResponse(responseCode = "400", description = "When there is an error in creating token",
-		                 content = @Content(mediaType = "application/json", 
-		                                    schema = @Schema(implementation = Result.class)))
-		})
+			@ApiResponse(responseCode = "200", description = "Returns token",
+					content = @Content(mediaType = "application/json", 
+					schema = @Schema(implementation = Token.class))),
+			@ApiResponse(responseCode = "400", description = "When there is an error in creating token",
+			content = @Content(mediaType = "application/json", 
+			schema = @Schema(implementation = Result.class)))
+	})
 	@GET
 	@Path("/{id}/token")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -761,17 +764,17 @@ public class BroadcastRestService extends RestServiceBase{
 
 	@Operation(description = "Generates JWT token for specified stream. It's not required to let the server generate JWT. Generally JWT tokens should be generated on the client side.")
 	@ApiResponses(value = {
-		    @ApiResponse(responseCode = "200", description = "Returns token",
-		                 content = @Content(
-		                     mediaType = "application/json", 
-		                     schema = @Schema(implementation = Token.class)
-		                 )),
-		    @ApiResponse(responseCode = "400", description = "When there is an error in creating token",
-		                 content = @Content(
-		                     mediaType = "application/json", 
-		                     schema = @Schema(implementation = Result.class)
-		                 ))
-		})
+			@ApiResponse(responseCode = "200", description = "Returns token",
+					content = @Content(
+							mediaType = "application/json", 
+							schema = @Schema(implementation = Token.class)
+							)),
+			@ApiResponse(responseCode = "400", description = "When there is an error in creating token",
+			content = @Content(
+					mediaType = "application/json", 
+					schema = @Schema(implementation = Result.class)
+					))
+	})
 	@GET
 	@Path("/{id}/jwt-token")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -790,15 +793,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Perform validation of token for requested stream",
-		    description = "If validated, success field is true, not validated success field is false",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Token validation response",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "If validated, success field is true, not validated success field is false",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Token validation response",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/validate-token")
@@ -816,15 +819,15 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	@Operation(summary = "Removes all tokens related with requested stream",
-		    description = "",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Removal of tokens response",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Removal of tokens response",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/tokens")
@@ -835,15 +838,15 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	@Operation(summary = "Get all tokens of requested stream",
-		    description = "",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "List of tokens",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Token.class, type = "array")
-		                     ))
-		    }
-		)
+			description = "",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "List of tokens",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Token.class, type = "array")
+									))
+	}
+			)
 	@GET
 	@Path("/{id}/tokens/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -858,15 +861,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Get all subscribers of the requested stream",
-		    description = "It does not return subscriber-stats. Please use subscriber-stats method",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "List of subscribers",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Subscriber.class, type = "array")
-		                     ))
-		    }
-		)
+			description = "It does not return subscriber-stats. Please use subscriber-stats method",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "List of subscribers",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Subscriber.class, type = "array")
+									))
+	}
+			)
 	@GET
 	@Path("/{id}/subscribers/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -881,15 +884,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}	
 
 	@Operation(summary = "Retrieve all subscriber statistics of the requested stream",
-		    description = "Fetches comprehensive statistics for all subscribers of the specified stream.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "List of subscriber statistics",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = SubscriberStats.class, type = "array")
-		                     ))
-		    }
-		)
+			description = "Fetches comprehensive statistics for all subscribers of the specified stream.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "List of subscriber statistics",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = SubscriberStats.class, type = "array")
+									))
+	}
+			)
 	@GET
 	@Path("/{id}/subscriber-stats/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -904,15 +907,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Add Subscriber to the requested stream",
-		    description = "Adds a subscriber to the requested stream. If the subscriber's type is 'publish', they can also play the stream, which is critical in conferencing. If the subscriber's type is 'play', they can only play the stream. If 'b32Secret' is not set, it will default to the AppSettings. The length of 'b32Secret' should be a multiple of 8 and use base32 characters A–Z, 2–7.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of adding a subscriber",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Adds a subscriber to the requested stream. If the subscriber's type is 'publish', they can also play the stream, which is critical in conferencing. If the subscriber's type is 'play', they can only play the stream. If 'b32Secret' is not set, it will default to the AppSettings. The length of 'b32Secret' should be a multiple of 8 and use base32 characters A–Z, 2–7.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of adding a subscriber",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/subscribers")
@@ -1019,15 +1022,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Delete specific subscriber from data store",
-		    description = "Deletes a specific subscriber from the data store for the selected stream.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of deleting the subscriber",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Deletes a specific subscriber from the data store for the selected stream.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of deleting the subscriber",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@DELETE
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/{id}/subscribers/{sid}")
@@ -1044,15 +1047,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Block specific subscriber",
-		    description = "Blocks a specific subscriber, enhancing security especially when used with TOTP streaming. The subscriber is blocked for a specified number of seconds from the moment this method is called.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of blocking the subscriber",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Blocks a specific subscriber, enhancing security especially when used with TOTP streaming. The subscriber is blocked for a specified number of seconds from the moment this method is called.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of blocking the subscriber",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@PUT
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/{id}/subscribers/{sid}/block/{seconds}/{type}")
@@ -1092,15 +1095,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Removes all subscribers related to the requested stream",
-		    description = "Deletes all subscriber data associated with the specified stream.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of removing all subscribers",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Deletes all subscriber data associated with the specified stream.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of removing all subscribers",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/subscribers")
@@ -1116,15 +1119,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}	
 
 	@Operation(summary = "Get the broadcast live statistics",
-		    description = "Retrieves live statistics of the broadcast, including total RTMP watcher count, total HLS watcher count, and total WebRTC watcher count.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Broadcast live statistics",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = BroadcastStatistics.class)
-		                     ))
-		    }
-		)
+			description = "Retrieves live statistics of the broadcast, including total RTMP watcher count, total HLS watcher count, and total WebRTC watcher count.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Broadcast live statistics",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = BroadcastStatistics.class)
+									))
+	}
+			)
 	@GET
 	@Path("/{id}/broadcast-statistics")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1134,15 +1137,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Get total broadcast live statistics",
-		    description = "Retrieves total live statistics of the broadcast, including total HLS watcher count and total WebRTC watcher count.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Total broadcast live statistics",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = BroadcastStatistics.class)
-		                     ))
-		    }
-		)
+			description = "Retrieves total live statistics of the broadcast, including total HLS watcher count and total WebRTC watcher count.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Total broadcast live statistics",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = BroadcastStatistics.class)
+									))
+	}
+			)
 	@GET
 	@Path("/total-broadcast-statistics")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1152,15 +1155,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Get WebRTC Low Level Send Stats",
-		    description = "Retrieves general statistics for WebRTC low level send operations.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "WebRTC low level send statistics",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = WebRTCSendStats.class)
-		                     ))
-		    }
-		)
+			description = "Retrieves general statistics for WebRTC low level send operations.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "WebRTC low level send statistics",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = WebRTCSendStats.class)
+									))
+	}
+			)
 	@GET
 	@Path("/webrtc-send-low-level-stats")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1170,15 +1173,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Get WebRTC Low Level Receive Stats",
-		    description = "Retrieves general statistics for WebRTC low level receive operations.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "WebRTC low level receive statistics",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = WebRTCReceiveStats.class)
-		                     ))
-		    }
-		)
+			description = "Retrieves general statistics for WebRTC low level receive operations.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "WebRTC low level receive statistics",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = WebRTCReceiveStats.class)
+									))
+	}
+			)
 	@GET
 	@Path("/webrtc-receive-low-level-stats")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1188,15 +1191,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Get RTMP to WebRTC Path Stats",
-		    description = "Retrieves general statistics for the RTMP to WebRTC path.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "RTMP to WebRTC path statistics",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = RTMPToWebRTCStats.class)
-		                     ))
-		    }
-		)
+			description = "Retrieves general statistics for the RTMP to WebRTC path.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "RTMP to WebRTC path statistics",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = RTMPToWebRTCStats.class)
+									))
+	}
+			)
 	@GET
 	@Path("/{id}/rtmp-to-webrtc-stats")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1207,15 +1210,15 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	@Operation(summary = "Get WebRTC Client Statistics",
-		    description = "Retrieves WebRTC client statistics, including audio bitrate, video bitrate, target bitrate, video sent period, etc.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "WebRTC client statistics",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = WebRTCClientStats.class, type = "array")
-		                     ))
-		    }
-		)
+			description = "Retrieves WebRTC client statistics, including audio bitrate, video bitrate, target bitrate, video sent period, etc.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "WebRTC client statistics",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = WebRTCClientStats.class, type = "array")
+									))
+	}
+			)
 	@GET
 	@Path("/{stream_id}/webrtc-client-stats/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1229,15 +1232,15 @@ public class BroadcastRestService extends RestServiceBase{
 	@Hidden
 	@Deprecated
 	@Operation(summary = "Returns filtered broadcast list according to type",
-    description = "Useful for retrieving IP Camera and Stream Sources from the entire broadcast list. For sorting mechanisms, using Mongo DB is recommended.",
-    responses = {
-        @ApiResponse(responseCode = "200", description = "Filtered broadcast list",
-                     content = @Content(
-                         mediaType = "application/json",
-                         schema = @Schema(implementation = Broadcast.class, type = "array")
-                     ))
-	    }
-	)
+	description = "Useful for retrieving IP Camera and Stream Sources from the entire broadcast list. For sorting mechanisms, using Mongo DB is recommended.",
+	responses = {
+			@ApiResponse(responseCode = "200", description = "Filtered broadcast list",
+					content = @Content(
+							mediaType = "application/json",
+							schema = @Schema(implementation = Broadcast.class, type = "array")
+							))
+	}
+			)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/filter-list/{offset}/{size}/{type}")
@@ -1253,15 +1256,15 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	@Operation(summary = "Set stream specific recording setting",
-		    description = "This setting overrides the general Mp4 and WebM Muxing Setting for a specific stream.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of setting stream specific recording",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "This setting overrides the general Mp4 and WebM Muxing Setting for a specific stream.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of setting stream specific recording",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@PUT
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/recording/{recording-status}")
@@ -1279,15 +1282,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Get IP Camera Error after connection failure",
-		    description = "Checks for an error after a connection failure with an IP camera. Returning true indicates an error; false indicates no error.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "IP Camera error status",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Checks for an error after a connection failure with an IP camera. Returning true indicates an error; false indicates no error.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "IP Camera error status",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{streamId}/ip-camera-error")
@@ -1297,15 +1300,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Start streaming sources",
-		    description = "Initiates streaming for sources such as IP Cameras, Stream Sources, and PlayLists.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of starting streaming sources",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Initiates streaming for sources such as IP Cameras, Stream Sources, and PlayLists.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of starting streaming sources",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/start")
@@ -1316,15 +1319,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Specify the next playlist item to play by index",
-		    description = "Sets the next playlist item to be played, based on its index. This method is applicable only to playlists.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of specifying the next playlist item",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Sets the next playlist item to be played, based on its index. This method is applicable only to playlists.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of specifying the next playlist item",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/playlists/{id}/next")
@@ -1337,15 +1340,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Stop streaming for the active stream",
-		    description = "Terminates streaming for the active stream, including both ingested (RTMP, WebRTC) and pulled stream sources (IP Cameras and Stream Sources).",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of stopping the active stream",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Terminates streaming for the active stream, including both ingested (RTMP, WebRTC) and pulled stream sources (IP Cameras and Stream Sources).",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of stopping the active stream",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/stop")
@@ -1357,15 +1360,15 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	@Operation(summary = "Get Discovered ONVIF IP Cameras",
-		    description = "Performs a discovery within the internal network to automatically retrieve information about ONVIF-enabled cameras.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of discovering ONVIF IP cameras",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Performs a discovery within the internal network to automatically retrieve information about ONVIF-enabled cameras.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of discovering ONVIF IP cameras",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@GET
 	@Path("/onvif-devices")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1374,15 +1377,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Get the Profile List for an ONVIF IP Camera",
-		    description = "Retrieves the profile list for an ONVIF IP camera.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Profile list for the ONVIF IP camera",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = String[].class)
-		                     ))
-		    }
-		)
+			description = "Retrieves the profile list for an ONVIF IP camera.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Profile list for the ONVIF IP camera",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = String[].class)
+									))
+	}
+			)
 	@GET
 	@Path("/{id}/ip-camera/device-profiles")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1395,18 +1398,18 @@ public class BroadcastRestService extends RestServiceBase{
 
 
 	@Operation(summary = "Move IP Camera",
-		    description = "Supports continuous, relative, and absolute movement. By default, it's a relative move. Movement parameters should be provided according to the movement type. Generally, the following values are used: "
-		                  + "For Absolute move, value X and value Y are between -1.0f and 1.0f. Zoom value is between 0.0f and 1.0f. "
-		                  + "For Relative move, value X, value Y, and Zoom Value are between -1.0f and 1.0f. "
-		                  + "For Continuous move, value X, value Y, and Zoom Value are between -1.0f and 1.0f.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of moving the IP camera",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Supports continuous, relative, and absolute movement. By default, it's a relative move. Movement parameters should be provided according to the movement type. Generally, the following values are used: "
+					+ "For Absolute move, value X and value Y are between -1.0f and 1.0f. Zoom value is between 0.0f and 1.0f. "
+					+ "For Relative move, value X, value Y, and Zoom Value are between -1.0f and 1.0f. "
+					+ "For Continuous move, value X, value Y, and Zoom Value are between -1.0f and 1.0f.",
+					responses = {
+							@ApiResponse(responseCode = "200", description = "Result of moving the IP camera",
+									content = @Content(
+											mediaType = "application/json",
+											schema = @Schema(implementation = Result.class)
+											))
+	}
+			)
 	@POST
 	@Path("/{id}/ip-camera/move")
 	@Produces(MediaType.APPLICATION_JSON)
@@ -1476,105 +1479,157 @@ public class BroadcastRestService extends RestServiceBase{
 
 	@Operation(description = "Creates a conference room with the parameters. The room name is key so if this is called with the same room name then new room is overwritten to old one")
 	@ApiResponses(value = {
-		    @ApiResponse(responseCode = "400", description = "If the operation is not completed for any reason",
-		                 content = @Content(
-		                     mediaType = "application/json",
-		                     schema = @Schema(implementation = Result.class)
-		                 )),
-		    @ApiResponse(responseCode = "200", description = "Returns the created conference room",
-		                 content = @Content(
-		                     mediaType = "application/json",
-		                     schema = @Schema(implementation = ConferenceRoom.class)
-		                 ))
-		})
+			@ApiResponse(responseCode = "400", description = "If the operation is not completed for any reason",
+					content = @Content(
+							mediaType = "application/json",
+							schema = @Schema(implementation = Result.class)
+							)),
+			@ApiResponse(responseCode = "200", description = "Returns the created conference room",
+			content = @Content(
+					mediaType = "application/json",
+					schema = @Schema(implementation = ConferenceRoom.class)
+					))
+	})
 
 	@POST
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
+	@Deprecated(since="2.9.1", forRemoval=true)
 	public Response createConferenceRoomV2(@Parameter(description = "Conference Room object with start and end date", required = true) ConferenceRoom room) {
 
-		ConferenceRoom confRoom = super.createConferenceRoom(room);
-		if (confRoom != null) {
-			return Response.status(Status.OK).entity(room).build();
+
+		try {
+			if(room.getStartDate() == 0) {
+				room.setStartDate(Instant.now().getEpochSecond());
+			}
+
+			if(room.getEndDate() == 0) {
+				room.setEndDate(Instant.now().getEpochSecond() + 3600 );
+			}
+			
+			if (StringUtils.isNoneBlank(room.getRoomId())) 
+			{
+				Broadcast broadcast = getDataStore().get(room.getRoomId());
+				if (broadcast != null) {
+					return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Stream id is already being used. Please change stream id or keep it empty")).build();
+				}	
+			}
+
+			Broadcast broadcast = DataStore.conferenceToBroadcast(room);
+			if (getDataStore().save(broadcast) != null) 
+			{
+				ConferenceRoom confRoom = DataStore.broadcastToConference(getDataStore().get(broadcast.getStreamId()));
+				return Response.status(Status.OK).entity(confRoom).build();
+
+			}
+
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
+
 		return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Operation not completed")).build();
 
 	}
 
+
+
+
+
+
 	@Operation(description = "Edits previously saved conference room")
 	@ApiResponses(value = {
-		    @ApiResponse(responseCode = "400", description = "If the operation is not completed for any reason",
-		                 content = @Content(
-		                     mediaType = "application/json",
-		                     schema = @Schema(implementation = Result.class)
-		                 )),
-		    @ApiResponse(responseCode = "200", description = "Returns the updated Conference room",
-		                 content = @Content(
-		                     mediaType = "application/json",
-		                     schema = @Schema(implementation = ConferenceRoom.class)
-		                 ))
-		})
+			@ApiResponse(responseCode = "400", description = "If the operation is not completed for any reason",
+					content = @Content(
+							mediaType = "application/json",
+							schema = @Schema(implementation = Result.class)
+							)),
+			@ApiResponse(responseCode = "200", description = "Returns the updated Conference room",
+			content = @Content(
+					mediaType = "application/json",
+					schema = @Schema(implementation = ConferenceRoom.class)
+					))
+	})
 	@PUT
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
+	@Deprecated(since="2.9.1", forRemoval=true)
 	public Response editConferenceRoom(@Parameter(description="Room id") @PathParam("room_id") String roomId,  @Parameter(description = "Conference Room object with start and end date", required = true) ConferenceRoom room) {
 
-		if(room != null && getDataStore().editConferenceRoom(roomId, room)) {
-			return Response.status(Status.OK).entity(room).build();
+		if(room != null) 
+		{
+			Broadcast conferenceToBroadcast;
+			try {
+				conferenceToBroadcast = DataStore.conferenceToBroadcast(room);
+				if (getDataStore().updateBroadcastFields(roomId, conferenceToBroadcast)) {
+					return Response.status(Status.OK).entity(room).build();
+				}
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+
 		}
 		return Response.status(Status.BAD_REQUEST).entity(new Result(false, "Operation not completed")).build();
 	}
 
 	@Operation(summary = "Delete a conference room",
-		    description = "Deletes a conference room. The room ID is the key, so if this is called with the same room ID, then the new room overwrites the old one.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of deleting the conference room",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Deletes a conference room. The room ID is the key, so if this is called with the same room ID, then the new room overwrites the old one.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of deleting the conference room",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@DELETE
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
+	@Deprecated(since="2.9.1", forRemoval=true)
 	public Result deleteConferenceRoomV2(@Parameter(description = "the id of the conference room", required = true) @PathParam("room_id") String roomId) {
 		return new Result(super.deleteConferenceRoom(roomId, getDataStore()));
 	}
 
 	@Operation(summary = "Add a subtrack to a main track (broadcast)",
-		    description = "Adds a subtrack to a main track (broadcast).",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of adding a subtrack",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Adds a subtrack to a main track (broadcast).",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of adding a subtrack",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/subtrack")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSubTrack(@Parameter(description = "Broadcast id(main track)", required = true) @PathParam("id") String id,
 			@Parameter(description = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId) 
-	{
-		return RestServiceBase.addSubTrack(id, subTrackId, getDataStore());
+	{		
+		Result result = RestServiceBase.addSubTrack(id, subTrackId, getDataStore());
+		if(result.isSuccess()) {
+			getApplication().joinedTheRoom(id, subTrackId);
+		}
+		return result;
+
 	}
 
 	@Operation(summary = "Delete a subtrack from a main track (broadcast)",
-		    description = "Deletes a subtrack from a main track (broadcast).",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of deleting a subtrack",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Deletes a subtrack from a main track (broadcast).",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of deleting a subtrack",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@DELETE
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/subtrack")
@@ -1582,19 +1637,23 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result removeSubTrack(@Parameter(description = "Broadcast id(main track)", required = true) @PathParam("id") String id,
 			@Parameter(description = "Subtrack Stream Id", required = true) @QueryParam("id") String subTrackId)
 	{
-		return RestServiceBase.removeSubTrack(id, subTrackId, getDataStore());
+		Result result = RestServiceBase.removeSubTrack(id, subTrackId, getDataStore());
+		if(result.isSuccess()) {
+			getApplication().leftTheRoom(id, subTrackId);
+		}
+		return result;
 	}
 
 	@Operation(summary = "Get stream information",
-		    description = "Returns the stream information including width, height, bitrates, and video codec.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Stream information",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = BasicStreamInfo[].class)
-		                     ))
-		    }
-		)
+			description = "Returns the stream information including width, height, bitrates, and video codec.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Stream information",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = BasicStreamInfo[].class)
+									))
+	}
+			)
 	@GET
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/stream-info")
@@ -1625,15 +1684,15 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Send message to stream participants via Data Channel",
-		    description = "Sends a message to stream participants through the Data Channel in a WebRTC stream.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of sending the message",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Sends a message to stream participants through the Data Channel in a WebRTC stream.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of sending the message",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@POST
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/data")
@@ -1648,32 +1707,54 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/conference-rooms/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
+	@Deprecated(since="2.9.1", forRemoval=true)
+	/**
+	 * Use getBroadcastList instead of this method
+	 * @param offset
+	 * @param size
+	 * @param sortBy
+	 * @param orderBy
+	 * @param search
+	 * @return
+	 */
 	public List<ConferenceRoom> getConferenceRoomList(@Parameter(description = "This is the offset of the list, it is useful for pagination. If you want to use sort mechanism, we recommend using Mongo DB.", required = true) @PathParam("offset") int offset,
 			@Parameter(description = "Number of items that will be fetched. If there is not enough item in the datastore, returned list size may less then this value", required = true) @PathParam("size") int size,
 			@Parameter(description = "field to sort", required = false) @QueryParam("sort_by") String sortBy,
 			@Parameter(description = "asc for Ascending, desc Descending order", required = false) @QueryParam("order_by") String orderBy,
 			@Parameter(description = "Search parameter, returns specific items that contains search string", required = false) @QueryParam("search") String search
 			) {
-		return getDataStore().getConferenceRoomList(offset, size ,sortBy, orderBy, search);
+		List<Broadcast> broadcastList = getDataStore().getBroadcastList(offset, size, null, sortBy, orderBy, search);
+
+		List<ConferenceRoom> conferenceRoomList = new ArrayList<>();
+		for (Broadcast broadcast : broadcastList) {
+			conferenceRoomList.add(DataStore.broadcastToConference(broadcast));
+		}
+
+		return conferenceRoomList;
 	}
 
 	@Operation(description = "Get conference room object")
 	@ApiResponses(value = {
-		    @ApiResponse(responseCode = "200", description = "Return the ConferenceRoom object",
-		                 content = @Content(
-		                     mediaType = "application/json",
-		                     schema = @Schema(implementation = ConferenceRoom.class)
-		                 )),
-		    @ApiResponse(responseCode = "404", description = "ConferenceRoom object not found")
-		})
+			@ApiResponse(responseCode = "200", description = "Return the ConferenceRoom object",
+					content = @Content(
+							mediaType = "application/json",
+							schema = @Schema(implementation = ConferenceRoom.class)
+							)),
+			@ApiResponse(responseCode = "404", description = "ConferenceRoom object not found")
+	})
 
 	@GET
 	@Path("/conference-rooms/{roomId}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
 	public Response getConferenceRoom(@Parameter(description = "id of the room", required = true) @PathParam("roomId") String id) {
 		ConferenceRoom room = null;
 		if (id != null) {
-			room = lookupConference(id);
+			Broadcast broadcast = getDataStore().get(id);
+			if (broadcast != null) {
+				room = DataStore.broadcastToConference(broadcast);
+			}
 		}
 		if (room != null) {
 			return Response.status(Status.OK).entity(room).build();
@@ -1683,36 +1764,52 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 	}
 
+
 	@Operation(summary = "Get stream IDs in the room",
-		    description = "Returns the stream IDs in the room.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "List of stream IDs",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = String.class, type = "array")
-		                     ))
-		    }
-		)
+			description = "Returns the stream IDs in the room.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "List of stream IDs",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = String.class, type = "array")
+									))
+	}
+			)
 	@GET
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}/room-info")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
 	public RootRestService.RoomInfo getRoomInfo(@Parameter(description = "Room id", required=true) @PathParam("room_id") String roomId,
-			@Parameter(description="If Stream Id is entered, that stream id will be isolated from the result",required = false) @QueryParam("streamId") String streamId){
-		ConferenceRoom room = getDataStore().getConferenceRoom(roomId);
-		return new RootRestService.RoomInfo(roomId,RestServiceBase.getRoomInfoFromConference(roomId,streamId,getDataStore()), room);
+			@Parameter(description="If Stream Id is entered, that stream id will be isolated from the result",required = false) @QueryParam("streamId") String streamId)
+	{
+		Broadcast broadcastRoom = getDataStore().get(roomId);
+
+		RootRestService.RoomInfo roomInfo;
+		if (broadcastRoom == null) {
+			logger.warn("Room not found with id: {}", roomId);
+			roomInfo = new RootRestService.RoomInfo(roomId, null);
+		}
+		else {
+			roomInfo = new RootRestService.RoomInfo(roomId, RestServiceBase.getRoomInfoFromConference(broadcastRoom, streamId, getDataStore()));
+
+			roomInfo.setStartDate(broadcastRoom.getPlannedStartDate());
+			roomInfo.setEndDate(broadcastRoom.getPlannedEndDate());
+		}
+
+		return roomInfo;
 	}
 
 	@Operation(summary = "Add stream to the room",
-		    description = "Adds the specified stream with stream ID to the room. Use PUT conference-rooms/{room_id}/{streamId}.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of adding the stream",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Adds the specified stream with stream ID to the room. Use PUT conference-rooms/{room_id}/{streamId}.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of adding the stream",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@PUT
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}/add")
@@ -1722,39 +1819,46 @@ public class BroadcastRestService extends RestServiceBase{
 	public Result addStreamToTheRoomDeprecated(@Parameter(description="Room id", required=true) @PathParam("room_id") String roomId,
 			@Parameter(description="Stream id to add to the conference room",required = true) @QueryParam("streamId") String streamId){
 
-		return addStreamToTheRoom(roomId, streamId);
+		return addSubTrack(roomId, streamId);
 	}
 
 	@Operation(summary = "Add stream to the room",
-		    description = "Adds the specified stream with stream ID to the room.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of adding the stream",
-		                     content = @Content(
-		                         mediaType = "application/json",
-		                         schema = @Schema(implementation = Result.class)
-		                     ))
-		    }
-		)
+			description = "Adds the specified stream with stream ID to the room.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of adding the stream",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = Result.class)
+									))
+	}
+			)
 	@PUT
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
+	@Deprecated(since="2.9.1", forRemoval=true)
+	/**
+	 * Use addSubtrack instead of this method
+	 * @param roomId
+	 * @param streamId
+	 * @return
+	 */
 	public Result addStreamToTheRoom(@Parameter(description="Room id", required=true) @PathParam("room_id") String roomId,
 			@Parameter(description="Stream id to add to the conference room",required = true) @PathParam("streamId") String streamId){
 
-		boolean result = BroadcastRestService.addStreamToConferenceRoom(roomId,streamId,getDataStore());
-		if(result) {
-			getApplication().joinedTheRoom(roomId, streamId);
+		if (StringUtils.isNoneBlank(roomId, streamId)) {
+			return addSubTrack(roomId, streamId);
 		}
-		return new Result(result);
+		return new Result(false, "Room id or stream id is empty");
 	}
 
 	@Operation(summary = "Delete stream from the room",
-		    description = "Deletes the specified stream correlated with stream ID in the room. Use DELETE /conference-rooms/{room_id}/{streamId}.",
-		    responses = {
-		        @ApiResponse(responseCode = "200", description = "Result of deleting the stream")
-		    }
-		)
+			description = "Deletes the specified stream correlated with stream ID in the room. Use DELETE /conference-rooms/{room_id}/{streamId}.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "Result of deleting the stream")
+	}
+			)
 	@PUT
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}/delete")
@@ -1762,23 +1866,22 @@ public class BroadcastRestService extends RestServiceBase{
 	@Hidden
 	@Deprecated(since="2.6.2", forRemoval=true)
 	public Result deleteStreamFromTheRoomDeprecated(@Parameter(description ="Room id", required=true) @PathParam("room_id") String roomId,
-			@Parameter(description="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId){
-
-		return deleteStreamFromTheRoom(roomId, streamId);
+			@Parameter(description="Stream id to delete from the conference room",required = true) @QueryParam("streamId") String streamId)
+	{
+		return removeSubTrack(roomId, streamId);
 	}
 
-	@Operation(description ="Deletes the specified stream correlated with streamId in the room.")
+	@Operation(description ="Deletes the specified stream correlated with streamId in the room. Use removeSubTrack directly")
 	@DELETE
 	@Consumes({ MediaType.APPLICATION_JSON })
 	@Path("/conference-rooms/{room_id}/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Hidden
+	@Deprecated(since="2.9.1", forRemoval=true)
 	public Result deleteStreamFromTheRoom(@Parameter(description="Room id", required=true) @PathParam("room_id") String roomId,
-			@Parameter(description="Stream id to delete from the conference room",required = true) @PathParam("streamId") String streamId){
-		boolean result = RestServiceBase.removeStreamFromRoom(roomId,streamId,getDataStore());
-		if(result) {
-			getApplication().leftTheRoom(roomId, streamId);
-		}
-		return new Result(result);
+			@Parameter(description="Stream id to delete from the conference room",required = true) @PathParam("streamId") String streamId)
+	{
+		return removeSubTrack(roomId, streamId);
 	}
 
 	/**

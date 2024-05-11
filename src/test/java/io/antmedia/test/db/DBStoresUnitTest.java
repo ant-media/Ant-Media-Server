@@ -42,7 +42,6 @@ import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.RedisStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
-import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
@@ -121,7 +120,6 @@ public class DBStoresUnitTest {
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
-		testConferenceRoom(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
@@ -135,8 +133,6 @@ public class DBStoresUnitTest {
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
-		testConferenceRoomSorting(dataStore);
-		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
@@ -206,7 +202,6 @@ public class DBStoresUnitTest {
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
-		testConferenceRoom(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
@@ -220,8 +215,6 @@ public class DBStoresUnitTest {
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
-		testConferenceRoomSorting(dataStore);
-		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
@@ -269,7 +262,6 @@ public class DBStoresUnitTest {
 		testTokenOperations(dataStore);
 		testClearAtStart(dataStore);
 		testClearAtStartCluster(dataStore);
-		testConferenceRoom(dataStore);
 		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
@@ -283,8 +275,6 @@ public class DBStoresUnitTest {
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
-		testConferenceRoomSorting(dataStore);
-		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
@@ -327,7 +317,6 @@ public class DBStoresUnitTest {
 		testTimeBasedSubscriberOperations(dataStore);
 		testClearAtStart(dataStore);
 		testClearAtStartCluster(dataStore);
-		testConferenceRoom(dataStore);
 		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
@@ -340,8 +329,6 @@ public class DBStoresUnitTest {
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
-		testConferenceRoomSorting(dataStore);
-		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
@@ -358,7 +345,7 @@ public class DBStoresUnitTest {
 		dataStore.fetchUserVodList(new File(""));
 		
 		dataStore.getVodList(0, 10, "name", "asc", null, null);
-		dataStore.getConferenceRoomList(0, 10, "asc", null, null);
+		dataStore.getBroadcastList(0, 10, "asc", null, null, null);
 	}
 
 	public void clear(DataStore dataStore) 
@@ -1081,149 +1068,6 @@ public class DBStoresUnitTest {
 
 		broadcastList = dataStore.getBroadcastList(0, 50, null, null, null, "antme");
 		assertEquals(0, broadcastList.size());
-
-	}
-
-	public void testConferenceRoomSearch(DataStore dataStore) {
-		List<ConferenceRoom> roomList2 = dataStore.getConferenceRoomList(0, 50, null, null, null);
-		for (Iterator iterator = roomList2.iterator(); iterator.hasNext();) {
-			ConferenceRoom room = (ConferenceRoom) iterator.next();
-			dataStore.deleteConferenceRoom(room.getRoomId());
-		}
-
-		long now = Instant.now().getEpochSecond();
-		//Create rooms to check sorting
-		ConferenceRoom room = new ConferenceRoom();
-
-		String roomId = "aaaroom";
-		room.setRoomId(roomId);
-		room.setStartDate(now);
-		room.setEndDate(now + 3600);
-
-		ConferenceRoom room2 = new ConferenceRoom();
-		roomId = "bbbtahir";
-		room2.setRoomId(roomId);
-		room2.setStartDate(now + 150);
-		room2.setEndDate(now + 360);
-
-		ConferenceRoom room3 = new ConferenceRoom();
-		roomId = "cctast";
-		room3.setRoomId(roomId);
-		room3.setStartDate(now + 10);
-		room3.setEndDate(now + 36000);
-
-		dataStore.createConferenceRoom(room);
-		dataStore.createConferenceRoom(room2);
-		dataStore.createConferenceRoom(room3);
-
-		List<ConferenceRoom> roomList = dataStore.getConferenceRoomList(0,50,null,null,null);
-		assertEquals(3, roomList.size());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"","","");
-		assertEquals(3, roomList.size());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"","","ta");
-		assertEquals(2, roomList.size());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"","","tahir");
-		assertEquals(1, roomList.size());
-		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"","","ccta");
-		assertEquals(1, roomList.size());
-		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"roomId","asc","ta");
-		assertEquals(2, roomList.size());
-		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"roomId","desc","ta");
-		assertEquals(2, roomList.size());
-		assertEquals(roomList.get(1).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
-
-	}
-
-	public void testConferenceRoomSorting(DataStore dataStore){
-		List<ConferenceRoom> roomList2 = dataStore.getConferenceRoomList(0, 50, null, null, null);
-		for (Iterator iterator = roomList2.iterator(); iterator.hasNext();) {
-			ConferenceRoom room = (ConferenceRoom) iterator.next();
-			dataStore.deleteConferenceRoom(room.getRoomId());
-		}
-
-		long now = Instant.now().getEpochSecond();
-		//Create rooms to check sorting
-		ConferenceRoom room = new ConferenceRoom();
-
-		String roomId = "aaaroom";
-		room.setRoomId(roomId);
-		room.setStartDate(now);
-		room.setEndDate(now + 3600);
-
-		ConferenceRoom room2 = new ConferenceRoom();
-		roomId = "bbbroom";
-		room2.setRoomId(roomId);
-		room2.setStartDate(now + 150);
-		room2.setEndDate(now + 360);
-
-		ConferenceRoom room3 = new ConferenceRoom();
-		roomId = "cccroom";
-		room3.setRoomId(roomId);
-		room3.setStartDate(now + 10);
-		room3.setEndDate(now + 36000);
-
-		dataStore.createConferenceRoom(room);
-		dataStore.createConferenceRoom(room2);
-		dataStore.createConferenceRoom(room3);
-
-		List<ConferenceRoom> roomList = dataStore.getConferenceRoomList(0,50,null,null,null);
-		assertEquals(3, roomList.size());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"","","");
-		assertEquals(3, roomList.size());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"roomId","asc", null);
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(0).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(1).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(2).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"roomId","desc", null);
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(2).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(1).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"startDate","asc", null);
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(0).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(2).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"startDate","desc", null);
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(2).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"startDate","desc", "room");
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(2).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"endDate","asc", null);
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(1).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(2).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"endDate","desc", null);
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(1).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(2).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
 
 	}
 
@@ -2423,53 +2267,6 @@ public class DBStoresUnitTest {
 		dataStore.saveStreamInfo(si);
 	}
 
-
-	public void testConferenceRoom(DataStore datastore) {
-
-		ConferenceRoom room = new ConferenceRoom();
-
-		long now = Instant.now().getEpochSecond();
-
-		String roomId = "roomId" + RandomStringUtils.random(10);
-		room.setRoomId(roomId);
-		room.setStartDate(now);
-		//1 hour later
-		room.setEndDate(now + 3600);
-
-		//create room
-		assertTrue(datastore.createConferenceRoom(room));
-
-		//get room		
-		ConferenceRoom dbRoom = datastore.getConferenceRoom(room.getRoomId());
-
-		//test null
-		ConferenceRoom nullRoom = datastore.getConferenceRoom(null);
-		assertNull(nullRoom);
-
-		assertNotNull(dbRoom);
-		assertEquals(roomId, dbRoom.getRoomId());
-
-		dbRoom.setEndDate(now + 7200);
-
-		//edit room
-		assertTrue(datastore.editConferenceRoom(dbRoom.getRoomId(), dbRoom));
-		
-		ConferenceRoom conferenceRoom = datastore.getConferenceRoom("room_not_exist");
-		assertNull(conferenceRoom);
-		
-		assertFalse(datastore.editConferenceRoom("room_not_exist", dbRoom));
-
-
-		ConferenceRoom editedRoom = datastore.getConferenceRoom(dbRoom.getRoomId());
-
-		assertNotNull(editedRoom);
-		assertEquals(now + 7200, editedRoom.getEndDate());
-
-		//delete room
-		assertTrue(datastore.deleteConferenceRoom(editedRoom.getRoomId()));
-
-		assertNull(datastore.getConferenceRoom(editedRoom.getRoomId()));
-	}
 
 	private void testStreamSourceList(DataStore dataStore) {
 		if (dataStore instanceof MongoStore) {

@@ -651,6 +651,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		else {
 			getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
 		}
+		leftTheRoom(broadcast.getMainTrackStreamId(), broadcast.getStreamId());
+
 	}
 
 	public void resetHLSStats(String streamId) {

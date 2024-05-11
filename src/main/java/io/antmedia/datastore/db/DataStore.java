@@ -187,38 +187,6 @@ public abstract class DataStore {
 	 */
 	public abstract List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search);
 
-	/**
-	 * Returns the Conference Room List in order
-	 *
-	 * @param offset the number of items to skip
-	 * @param size batch size
-	 * @param sortBy can get "name" or "startDate" or "endDate" values
-	 * @param orderBy can get "desc" or "asc"
-	 * @param search is used for searching in RoomId
-	 * @return
-	 */
-	public abstract List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search);
-	
-	public List<ConferenceRoom> getConferenceRoomList(Map<String, String> conferenceMap, int offset, int size, String sortBy, String orderBy,
-			String search, Gson gson) {
-		ArrayList<ConferenceRoom> list = new ArrayList<>();
-		synchronized (this) {
-			Collection<String> conferenceRooms = null;
-			conferenceRooms = conferenceMap.values();
-
-			for (String roomString : conferenceRooms) {
-				ConferenceRoom room = gson.fromJson(roomString, ConferenceRoom.class);
-				list.add(room);
-			}
-		}
-		if (search != null && !search.isEmpty()) {
-			search = search.replaceAll(REPLACE_CHARS_REGEX, "_");
-			logger.info("server side search called for Conference Room = {}", search);
-			list = searchOnServerConferenceRoom(list, search);
-		}
-		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
-	}
-
 
 	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
 	
@@ -847,49 +815,6 @@ public abstract class DataStore {
 	}
 
 	/**
-	 * Creates a conference room with the parameters.
-	 * The room name is key so if this is called with the same room name
-	 * then new room is overwritten to old one.
-	 * @param room - conference room
-	 * @return true if successfully created, false if not
-	 */
-	public abstract boolean createConferenceRoom(ConferenceRoom room);
-
-	/**
-	 * Edits previously saved conference room
-	 * @param room - conference room
-	 * @return true if successfully edited, false if not
-	 */
-	public abstract boolean editConferenceRoom(String roomId, ConferenceRoom room);
-
-	/**
-	 * Deletes previously saved conference room
-	 * @param roomName- name of the conference room
-	 * @return true if successfully deleted, false if not
-	 */
-	public abstract boolean deleteConferenceRoom(String roomId);
-
-	/**
-	 * Retrieves previously saved conference room
-	 * @param roomName- name of the conference room
-	 * @return room - conference room
-	 */
-	public abstract ConferenceRoom getConferenceRoom(String roomId);
-
-	public ConferenceRoom getConferenceRoom(Map<String, String> conferenceRoomMap, String roomId, Gson gson) {
-		synchronized (this) {
-			if (roomId != null) {
-
-				String jsonString = conferenceRoomMap.get(roomId);
-				if (jsonString != null) {
-					return gson.fromJson(jsonString, ConferenceRoom.class);
-				}
-			}
-		}
-		return null;
-	}
-
-	/**
 	 * Updates the stream fields if it's not null
 	 * @param broadcast
 	 * @param name
@@ -1001,6 +926,7 @@ public abstract class DataStore {
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
 		broadcast.setAutoStartStopEnabled(newBroadcast.isAutoStartStopEnabled());
+		
 	}
 
 
@@ -1168,72 +1094,6 @@ public abstract class DataStore {
 		}
 		else {
 			return broadcastList.subList(offset,toIndex);
-		}
-	}
-
-	protected ArrayList<ConferenceRoom> searchOnServerConferenceRoom(ArrayList<ConferenceRoom> roomList, String search){
-		if(search != null && !search.isEmpty()) {
-			for (Iterator<ConferenceRoom> i = roomList.iterator(); i.hasNext(); ) {
-				ConferenceRoom item = i.next();
-				if(item.getRoomId() != null) {
-					if (item.getRoomId().toLowerCase().contains(search.toLowerCase()))
-						continue;
-					else i.remove();
-				}
-			}
-		}
-		return roomList;
-	}
-
-	protected List<ConferenceRoom> sortAndCropConferenceRoomList(List<ConferenceRoom> roomList, int offset, int size, String sortBy, String orderBy) {
-		if("roomId".equals(sortBy) || "startDate".equals(sortBy) || "endDate".equals(sortBy)) 
-		{
-			Collections.sort(roomList, (room1, room2) -> {
-				Comparable c1 = null;
-				Comparable c2 = null;
-
-				if (sortBy.equals("roomId")) 
-				{
-					c1 = room1.getRoomId().toLowerCase();
-					c2 = room2.getRoomId().toLowerCase();
-				} 
-				else if (sortBy.equals("startDate")) {
-					c1 = Long.valueOf(room1.getStartDate());
-					c2 = Long.valueOf(room2.getStartDate());
-				} 
-				else if (sortBy.equals("endDate")) {
-					c1 = Long.valueOf(room1.getEndDate());
-					c2 = Long.valueOf(room2.getEndDate());
-				} 
-
-				int result = 0;
-				if (c1 != null && c2 != null) 
-				{
-					if ("desc".equals(orderBy)) {
-						result = c2.compareTo(c1);
-					}
-					else {
-						result = c1.compareTo(c2);
-					}
-				}
-				return result;
-			});
-		}
-
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0 ) {
-			offset = 0;
-		}
-
-		int toIndex =  Math.min(offset+size, roomList.size());
-		if (offset >= toIndex)
-		{
-			return new ArrayList<>();
-		}
-		else {
-			return roomList.subList(offset,toIndex);
 		}
 	}
 
@@ -1426,6 +1286,52 @@ public abstract class DataStore {
 	 * @return
 	 */
 	public abstract SubscriberMetadata getSubscriberMetaData(String subscriberId);
+	
+	/**
+	 * This is a helper method to remove the ConferenceRoom in later versions
+	 * 
+	 * May 11, 2024 - mekya
+	 * 
+	 * @param broadcast
+	 * @return
+	 */
+	public static ConferenceRoom broadcastToConference(Broadcast broadcast) {
+
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+
+		conferenceRoom.setRoomId(broadcast.getStreamId());
+		conferenceRoom.setStartDate(broadcast.getPlannedStartDate());
+		conferenceRoom.setEndDate(broadcast.getPlannedEndDate());
+		conferenceRoom.setMode(ConferenceRoom.MULTI_TRACK_MODE);
+		conferenceRoom.setZombi(broadcast.isZombi());
+		conferenceRoom.setOriginAdress(broadcast.getOriginAdress());
+		conferenceRoom.setRoomStreamList(broadcast.getSubTrackStreamIds());
+
+
+		return conferenceRoom;
+	}
+
+	/**
+	 * This is a helper method to remove the ConferenceRoom in later versions
+	 * 
+	 * May 11, 2024 - mekya
+	 * 
+	 * @param broadcast
+	 * @return
+	 */
+	public static Broadcast conferenceToBroadcast(ConferenceRoom conferenceRoom) throws Exception {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId(conferenceRoom.getRoomId());
+		broadcast.setPlannedStartDate(conferenceRoom.getStartDate());
+		broadcast.setPlannedEndDate(conferenceRoom.getEndDate());
+		broadcast.setZombi(conferenceRoom.isZombi());
+		broadcast.setOriginAdress(conferenceRoom.getOriginAdress());
+		broadcast.setSubTrackStreamIds(conferenceRoom.getRoomStreamList());
+
+
+		return broadcast;
+
+	}
 
 	//**************************************
 	//ATTENTION: Write function descriptions while adding new functions
