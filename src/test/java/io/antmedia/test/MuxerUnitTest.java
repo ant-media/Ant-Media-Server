@@ -699,7 +699,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
-		hlsMuxer.setHlsParameters(null, null, null, null, null);
+		hlsMuxer.setHlsParameters(null, null, null, null, null, null);
 		hlsMuxer.init(appScope, "test", 0, null, 0);
 		hlsMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
@@ -766,7 +766,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, storageClient, "streams/", 0b010, null, false));
 			String streamId = "streamId";
 			String subFolder = "subfolder/";
-			hlsMuxer.setHlsParameters("1", "1", null, null, null);
+			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
 			
 			File[] file = new File[1];
 			file[0] = Mockito.mock(File.class);
@@ -792,7 +792,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, storageClient, "streams", 0b010, null, false));
 			String streamId = "streamId";
 			String subFolder = "subfolder";
-			hlsMuxer.setHlsParameters("1", "1", null, null, null);
+			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
 			
 			File[] file = new File[1];
 			file[0] = Mockito.mock(File.class);
@@ -817,7 +817,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			
 			HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, storageClient, "streams", 0b010, null, false));
 			String streamId = "streamId";
-			hlsMuxer.setHlsParameters("1", "1", null, null, null);
+			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
 			
 			File[] file = new File[1];
 			file[0] = Mockito.mock(File.class);
@@ -2623,7 +2623,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		StorageClient client = Mockito.mock(AmazonS3StorageClient.class);
 		HLSMuxer hlsMuxerTester = new HLSMuxer(vertx, client, "streams", 1, null, false);
-		hlsMuxerTester.setHlsParameters(null, null, null, null, null);
+		hlsMuxerTester.setHlsParameters(null, null, null, null, null, null);
 		assertFalse(hlsMuxerTester.isUploadingToS3());
 
 
