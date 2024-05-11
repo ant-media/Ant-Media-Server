@@ -1302,7 +1302,7 @@ public abstract class DataStore {
 		conferenceRoom.setRoomId(broadcast.getStreamId());
 		conferenceRoom.setStartDate(broadcast.getPlannedStartDate());
 		conferenceRoom.setEndDate(broadcast.getPlannedEndDate());
-		conferenceRoom.setMode(ConferenceRoom.MULTI_TRACK_MODE);
+		conferenceRoom.setMode(broadcast.getConferenceMode());
 		conferenceRoom.setZombi(broadcast.isZombi());
 		conferenceRoom.setOriginAdress(broadcast.getOriginAdress());
 		conferenceRoom.setRoomStreamList(broadcast.getSubTrackStreamIds());
@@ -1326,6 +1326,7 @@ public abstract class DataStore {
 		broadcast.setPlannedEndDate(conferenceRoom.getEndDate());
 		broadcast.setZombi(conferenceRoom.isZombi());
 		broadcast.setOriginAdress(conferenceRoom.getOriginAdress());
+		broadcast.setConferenceMode(conferenceRoom.getMode());
 		broadcast.setSubTrackStreamIds(conferenceRoom.getRoomStreamList());
 
 
