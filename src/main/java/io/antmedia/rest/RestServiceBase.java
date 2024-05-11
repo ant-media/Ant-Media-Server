@@ -1737,17 +1737,6 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	public static boolean deleteConferenceRoom(String roomId, DataStore store) {
-
-		if(roomId != null) {
-			if (logger.isInfoEnabled()) {
-				logger.info("Deleting conference room:{} from database ", roomId.replaceAll(REPLACE_CHARS, "_"));
-			}
-			return store.delete(roomId);
-		}
-		return false;
-	}
-
 	protected VoD getVoD(String id) {
 		VoD vod = null;
 		if (id != null) {
@@ -1842,7 +1831,7 @@ public abstract class RestServiceBase {
 	}
 
 
-	public static void setResultSuccess(Result result, boolean success, String failMessage, String failLog, String... arguments)
+	public static void setResultSuccess(Result result, boolean success, String failMessage)
 	{
 		if (success) {
 			result.setSuccess(true);
@@ -1872,8 +1861,7 @@ public abstract class RestServiceBase {
 			if (success) {
 				success = store.addSubTrack(id, subTrackId);
 
-				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id,
-						"Subtrack:{} cannot be added to main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id);
 
 			}
 			else
@@ -1894,32 +1882,38 @@ public abstract class RestServiceBase {
 
 	public static Result removeSubTrack(String id, String subTrackId, DataStore store) {
 		Result result = new Result(false);
-		Broadcast subTrack = store.get(subTrackId);
-		if (subTrack != null)
+		
+		if (StringUtils.isNoneBlank(id, subTrackId)) 
 		{
-			if(id != null && id.equals(subTrack.getMainTrackStreamId())) {
-				subTrack.setMainTrackStreamId("");
-			}
-
-			boolean success = store.updateBroadcastFields(subTrackId, subTrack);
-			if (success) {
-				success = store.removeSubTrack(id, subTrackId);
-
-				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be removed from main track: " + id,
-						"Subtrack:{} cannot be removed from main track:{} ", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
-
+			boolean success = store.removeSubTrack(id, subTrackId);
+			
+			if (success )
+			{
+				Broadcast subTrack = store.get(subTrackId);
+				
+				if(subTrack != null && id.equals(subTrack.getMainTrackStreamId())) {
+					subTrack.setMainTrackStreamId("");
+					success = store.updateBroadcastFields(subTrackId, subTrack);
+					if (success) 
+					{
+						RestServiceBase.setResultSuccess(result, success, "");
+					}
+					else
+					{
+						RestServiceBase.setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be removed");
+					}
+				}
+				else {
+					RestServiceBase.setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be updated");
+				}
+				
 			}
 			else
 			{
-				RestServiceBase.setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be updated",
-						"Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id != null ? id.replaceAll(REPLACE_CHARS, "_") : null);
+				RestServiceBase.setResultSuccess(result, false, "Subtrack(" + subTrackId.replaceAll(REPLACE_CHARS, "_") + ") is not removed from mainTrack:" + id.replaceAll(REPLACE_CHARS, "_"));
 			}
-		}
-		else
-		{
-			RestServiceBase.setResultSuccess(result, false, "There is no stream with id:" + subTrackId, "There is no stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
-		}
 
+		}
 		return result;
 	}
 

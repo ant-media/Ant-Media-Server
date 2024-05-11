@@ -1592,7 +1592,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Hidden
 	@Deprecated(since="2.9.1", forRemoval=true)
 	public Result deleteConferenceRoomV2(@Parameter(description = "the id of the conference room", required = true) @PathParam("room_id") String roomId) {
-		return new Result(super.deleteConferenceRoom(roomId, getDataStore()));
+		return deleteBroadcast(roomId);
 	}
 
 	@Operation(summary = "Add a subtrack to a main track (broadcast)",
