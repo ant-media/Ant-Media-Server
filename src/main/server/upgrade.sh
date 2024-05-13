@@ -22,6 +22,10 @@
 INSTALL_DIRECTORY=$(dirname "$0")
 cd $INSTALL_DIRECTORY
 
+# If not installed jq package, install it
+if [ ! command -v jq &> /dev/null ]; then
+    sudo apt-get install -y jq
+fi
 
 REMOTE_VERSION=$(curl -s https://antmedia.io/download/latest-version.json | jq -r ".versionName")
 LOCAL_VERSION=$(unzip -p $INSTALL_DIRECTORY/ant-media-server.jar | grep -a "Implementation-Version"|cut -d' ' -f2 | tr -d '\r')
@@ -34,11 +38,6 @@ do
   esac
 done
 
-
-# If not installed jq package, install it
-if [ ! command -v jq &> /dev/null ]; then
-    sudo apt-get install -y jq
-fi
 
 # Check if a variable DIR is provided (this is for the automation)
 if [ -n "$DIR" ]; then
