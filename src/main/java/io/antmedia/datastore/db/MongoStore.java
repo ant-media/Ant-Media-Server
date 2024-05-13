@@ -125,18 +125,19 @@ public class MongoStore extends DataStore {
 		// May 11, 2024
 		// we may remove this code after some time and ConferenceRoom class
 		// mekya
+		migrateConferenceRoomsToBroadcasts();
+		
+		
+	}	
+	
+	@Override
+	public void migrateConferenceRoomsToBroadcasts() {
 		while (true) {
 			Query<ConferenceRoom> query = conferenceRoomDatastore.find(ConferenceRoom.class);
 			ConferenceRoom conferenceRoom = query.first();
 			if (conferenceRoom != null) {
-				Broadcast broadcast = new Broadcast();
 				try {
-					broadcast.setStreamId(conferenceRoom.getRoomId());
-					broadcast.setName(conferenceRoom.getRoomId());
-					broadcast.setPlannedStartDate(conferenceRoom.getStartDate());
-					broadcast.setPlannedEndDate(conferenceRoom.getEndDate());
-					broadcast.setSubTrackStreamIds(conferenceRoom.getRoomStreamList());
-					broadcast.setOriginAdress(conferenceRoom.getOriginAdress());
+					Broadcast broadcast = conferenceToBroadcast(conferenceRoom);
 					save(broadcast);
 					conferenceRoomDatastore.delete(conferenceRoom);
 				} catch (Exception e) {
@@ -148,27 +149,6 @@ public class MongoStore extends DataStore {
 		}
 		
 	}
-	
-	
-	private List<ConferenceRoom> getConferenceRoomList(int offset, int size) {
-		synchronized(this) {
-			try {
-				Query<ConferenceRoom> query = conferenceRoomDatastore.find(ConferenceRoom.class);
-
-				
-				FindOptions findingOptions = new FindOptions().skip(offset).limit(size);
-				
-				
-				return query.iterator(findingOptions).toList();
-
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return null;
-	}
-	
-	
 
 	public static String getMongoConnectionUri(String host, String username, String password) {
 		//If it is DNS seed name, no need to check for username and password since it needs to be integrated to the given uri.
@@ -822,6 +802,10 @@ public class MongoStore extends DataStore {
 				}
 				if (broadcast.getSpeed() != 0) {
 					updates.add(set("speed", broadcast.getSpeed()));
+				}
+				
+				if (broadcast.getConferenceMode() != null) {
+					updates.add(set("conferenceMode", broadcast.getConferenceMode()));
 				}
 				
 
@@ -1514,5 +1498,9 @@ public class MongoStore extends DataStore {
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
+	}
+	
+	public Datastore getConferenceRoomDatastore() {
+		return conferenceRoomDatastore;
 	}
 }

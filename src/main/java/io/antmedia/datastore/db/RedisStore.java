@@ -75,7 +75,7 @@ public class RedisStore extends MapBasedDataStore {
     	// May 11, 2024
 		// we may remove this code after some time and ConferenceRoom class
     	// mekya
-    	migrateConferenceRoomToBroadcast();
+    	migrateConferenceRoomsToBroadcasts();
     	
 	}
 

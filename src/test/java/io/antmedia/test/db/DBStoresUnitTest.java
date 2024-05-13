@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import com.google.gson.Gson;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
@@ -42,6 +43,7 @@ import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.RedisStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
@@ -87,6 +89,50 @@ public class DBStoresUnitTest {
 			}
 		}
 	}
+	
+	@Test
+	public void testConferenceRoomWrapper() throws Exception {
+		
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+		conferenceRoom.setRoomId("roomId");
+		long startDate = Instant.now().getEpochSecond();
+		long endDate = startDate + 1000;
+		conferenceRoom.setStartDate(startDate);
+		conferenceRoom.setEndDate(endDate);
+		conferenceRoom.setMode(ConferenceRoom.LEGACY_MODE);
+		conferenceRoom.setRoomStreamList(Arrays.asList("stream1", "stream2"));
+		conferenceRoom.setOriginAdress("originAdress");
+
+		assertEquals("roomId", conferenceRoom.getRoomId());
+		assertEquals(ConferenceRoom.LEGACY_MODE, conferenceRoom.getMode());
+		assertEquals("originAdress", conferenceRoom.getOriginAdress());
+		assertEquals(2, conferenceRoom.getRoomStreamList().size());
+		
+		Broadcast broadcast = DataStore.conferenceToBroadcast(conferenceRoom);
+		assertEquals("roomId", broadcast.getStreamId());
+		assertEquals("originAdress", broadcast.getOriginAdress());
+		assertEquals(ConferenceRoom.LEGACY_MODE, broadcast.getConferenceMode());
+		assertEquals(2, broadcast.getSubTrackStreamIds().size());
+		assertEquals("stream1", broadcast.getSubTrackStreamIds().get(0));
+		assertEquals("stream2", broadcast.getSubTrackStreamIds().get(1));
+		assertEquals(startDate, broadcast.getPlannedStartDate());
+		assertEquals(endDate, broadcast.getPlannedEndDate());
+		
+		
+		ConferenceRoom conferenceRoom2 = DataStore.broadcastToConference(broadcast);
+		assertEquals("roomId", conferenceRoom2.getRoomId());
+		assertEquals(ConferenceRoom.LEGACY_MODE, conferenceRoom2.getMode());
+		assertEquals("originAdress", conferenceRoom2.getOriginAdress());
+		assertEquals(2, conferenceRoom2.getRoomStreamList().size());
+		assertEquals("stream1", conferenceRoom2.getRoomStreamList().get(0));
+		assertEquals("stream2", conferenceRoom2.getRoomStreamList().get(1));
+		assertEquals(startDate, conferenceRoom2.getStartDate());
+		assertEquals(endDate, conferenceRoom2.getEndDate());
+	}
+	
+	
+	
+
 	
 	@Test
 	public void testMapDBStore() throws Exception {
@@ -336,6 +382,9 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 	}
 	
+	
+	
+	
 	@Test
 	public void testBug() {
 		
@@ -346,6 +395,113 @@ public class DBStoresUnitTest {
 		
 		dataStore.getVodList(0, 10, "name", "asc", null, null);
 		dataStore.getBroadcastList(0, 10, "asc", null, null, null);
+	}
+	
+	@Test
+	public void testConferenceRoomMigrationMapBased() {
+		
+		MapDBStore dataStore = new MapDBStore("testdb" + RandomStringUtils.randomAlphanumeric(12) , vertx);
+		
+		Map<String, String> conferenceRoomMap = dataStore.getConferenceRoomMap();
+		
+		Gson gson = new Gson();
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+		conferenceRoom.setRoomId("roomId");
+		long startDate = Instant.now().getEpochSecond();
+		long endDate = startDate + 1000;
+		conferenceRoom.setStartDate(startDate);
+		conferenceRoom.setEndDate(endDate);
+		conferenceRoom.setMode(ConferenceRoom.LEGACY_MODE);
+		conferenceRoom.setRoomStreamList(Arrays.asList("stream1", "stream2"));
+		conferenceRoom.setOriginAdress("originAdress");
+		
+		conferenceRoomMap.put("roomId", gson.toJson(conferenceRoom));
+		
+		
+		ConferenceRoom conferenceRoom2 = new ConferenceRoom();
+		conferenceRoom2.setRoomId("roomId2");
+		long startDate2 = Instant.now().getEpochSecond();
+		long endDate2 = startDate + 1000;
+		conferenceRoom2.setStartDate(startDate2);
+		conferenceRoom2.setEndDate(endDate2);
+		conferenceRoom2.setMode(ConferenceRoom.MULTI_TRACK_MODE);
+		conferenceRoom2.setRoomStreamList(Arrays.asList("stream3", "stream4"));
+		conferenceRoom2.setOriginAdress("originAdress2");
+		
+		conferenceRoomMap.put("roomId2", gson.toJson(conferenceRoom2));
+		
+		
+		dataStore.migrateConferenceRoomsToBroadcasts();
+		
+		assertEquals(2, dataStore.getTotalBroadcastNumber());
+		Broadcast broadcast = dataStore.get("roomId");
+		assertNotNull(broadcast);
+		assertEquals("roomId", broadcast.getStreamId());
+		assertEquals("originAdress", broadcast.getOriginAdress());
+		assertEquals(ConferenceRoom.LEGACY_MODE, broadcast.getConferenceMode());
+		assertEquals(2, broadcast.getSubTrackStreamIds().size());
+		assertEquals("stream1", broadcast.getSubTrackStreamIds().get(0));
+		assertEquals("stream2", broadcast.getSubTrackStreamIds().get(1));
+		
+		
+		assertEquals(0, conferenceRoomMap.size());
+		
+	}
+	
+	@Test
+	public void testConferenceRoomMigrationMongo() {
+		
+		MongoStore dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
+		
+		//delete db
+		dataStore.close(true);
+		
+		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
+		
+		Datastore conferenceRoomMap = dataStore.getConferenceRoomDatastore();
+		
+		Gson gson = new Gson();
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+		conferenceRoom.setRoomId("roomId");
+		long startDate = Instant.now().getEpochSecond();
+		long endDate = startDate + 1000;
+		conferenceRoom.setStartDate(startDate);
+		conferenceRoom.setEndDate(endDate);
+		conferenceRoom.setMode(ConferenceRoom.LEGACY_MODE);
+		conferenceRoom.setRoomStreamList(Arrays.asList("stream1", "stream2"));
+		conferenceRoom.setOriginAdress("originAdress");
+		
+		conferenceRoomMap.save(conferenceRoom);
+		
+		
+		ConferenceRoom conferenceRoom2 = new ConferenceRoom();
+		conferenceRoom2.setRoomId("roomId2");
+		long startDate2 = Instant.now().getEpochSecond();
+		long endDate2 = startDate + 1000;
+		conferenceRoom2.setStartDate(startDate2);
+		conferenceRoom2.setEndDate(endDate2);
+		conferenceRoom2.setMode(ConferenceRoom.MULTI_TRACK_MODE);
+		conferenceRoom2.setRoomStreamList(Arrays.asList("stream3", "stream4"));
+		conferenceRoom2.setOriginAdress("originAdress2");
+		
+		conferenceRoomMap.save(conferenceRoom2);
+		
+		
+		dataStore.migrateConferenceRoomsToBroadcasts();
+		
+		assertEquals(2, dataStore.getTotalBroadcastNumber());
+		Broadcast broadcast = dataStore.get("roomId");
+		assertNotNull(broadcast);
+		assertEquals("roomId", broadcast.getStreamId());
+		assertEquals("originAdress", broadcast.getOriginAdress());
+		assertEquals(ConferenceRoom.LEGACY_MODE, broadcast.getConferenceMode());
+		assertEquals(2, broadcast.getSubTrackStreamIds().size());
+		assertEquals("stream1", broadcast.getSubTrackStreamIds().get(0));
+		assertEquals("stream2", broadcast.getSubTrackStreamIds().get(1));
+		
+		
+		assertEquals(0, conferenceRoomMap.find(ConferenceRoom.class).count());
+		
 	}
 
 	public void clear(DataStore dataStore) 

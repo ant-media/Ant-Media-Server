@@ -1074,7 +1074,7 @@ public abstract class MapBasedDataStore extends DataStore {
 		return null;
 	}
 	
-	protected void migrateConferenceRoomToBroadcast() 
+	public void migrateConferenceRoomsToBroadcasts() 
 	{
 		if (conferenceRoomMap.values() != null) {
 			List <String> roomIdList = new ArrayList<>(); 
@@ -1099,6 +1099,10 @@ public abstract class MapBasedDataStore extends DataStore {
 				conferenceRoomMap.remove(roomId);
 			}
 		}
+	}
+
+	public Map<String, String> getConferenceRoomMap() {
+		return conferenceRoomMap;
 	}
 	
 

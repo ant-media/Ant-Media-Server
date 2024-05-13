@@ -1038,4 +1038,9 @@ public class InMemoryDataStore extends DataStore {
 		subscriberMetadata.setSubscriberId(subscriberId);
 		subscriberMetadataMap.put(subscriberId, subscriberMetadata);
 	}
+
+	@Override
+	public void migrateConferenceRoomsToBroadcasts() {
+		//no need to implement
+	}
 }

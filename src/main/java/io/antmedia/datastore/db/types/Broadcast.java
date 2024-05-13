@@ -208,6 +208,7 @@ public class Broadcast {
 	
 	/**
 	 * Conference mode of the stream. 
+	 * @deprecated It's created for backward compatibility. It will be deleted.
 	 */
 	@Schema(description ="Conference mode. It's used if this broadcast has some specific modes. It's created for backward compatibility. It will be deleted.")
 	@Deprecated(forRemoval = true, since = "2.9.1")

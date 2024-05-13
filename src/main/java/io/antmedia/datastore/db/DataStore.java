@@ -912,6 +912,10 @@ public abstract class DataStore {
 			broadcast.setMetaData(newBroadcast.getMetaData());
 		}
 		
+		if (newBroadcast.getConferenceMode() != null) {
+			broadcast.setConferenceMode(newBroadcast.getConferenceMode());
+		}
+		
 
 		broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
 		broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
@@ -1333,6 +1337,11 @@ public abstract class DataStore {
 		return broadcast;
 
 	}
+	
+	/**
+	 * Move ConferenceRoom to Broadcast
+	 */
+	public abstract void migrateConferenceRoomsToBroadcasts();
 
 	//**************************************
 	//ATTENTION: Write function descriptions while adding new functions

@@ -62,6 +62,7 @@ import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.RedisStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
@@ -3130,6 +3131,106 @@ public class BroadcastRestServiceV2UnitTest {
 		testroom=restServiceSpy.getRoomInfo(null,"stream1");
 		assertNull(null,testroom.getRoomId());
 	}
+	
+	
+	@Test
+	public void testConferenceRoomMethods() {
+		ApplicationContext currentContext = mock(ApplicationContext.class);
+		restServiceReal.setAppCtx(currentContext);
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		
+		
+		//it should be empty list
+		List<ConferenceRoom> conferenceRoomList = restServiceSpy.getConferenceRoomList(0, 10, null, null, null);
+		assertEquals(0, conferenceRoomList.size());
+		
+		
+		
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+		conferenceRoom.setRoomId("testroom");
+		conferenceRoom.setEndDate(2000);
+		conferenceRoom.setStartDate(1000);
+		conferenceRoom.setMode(ConferenceRoom.LEGACY_MODE);
+		conferenceRoom.setOriginAdress("originAdress");
+		conferenceRoom.setRoomStreamList(Arrays.asList("stream1", "stream2"));
+		
+		//save the conferencere
+		Response response = restServiceSpy.createConferenceRoomV2(conferenceRoom);
+		assertEquals(Status.OK.getStatusCode(), response.getStatus());
+		
+		
+		//check that it return in the same way
+		Response conferenceRoomResponse = restServiceSpy.getConferenceRoom("testroom");
+		assertEquals(Status.OK.getStatusCode(), conferenceRoomResponse.getStatus());
+		ConferenceRoom conferenceRoom2 = (ConferenceRoom) conferenceRoomResponse.getEntity();
+		assertEquals("testroom", conferenceRoom2.getRoomId());
+		assertEquals(1000, conferenceRoom2.getStartDate());
+		assertEquals(2000, conferenceRoom2.getEndDate());
+		assertEquals(ConferenceRoom.LEGACY_MODE, conferenceRoom2.getMode());
+		assertEquals("originAdress", conferenceRoom2.getOriginAdress());
+		assertEquals(2, conferenceRoom2.getRoomStreamList().size());
+		assertEquals("stream1", conferenceRoom2.getRoomStreamList().get(0));
+		assertEquals("stream2", conferenceRoom2.getRoomStreamList().get(1));
+		
+		//check taht broacdast object is there
+		
+		Broadcast broadcast = store.get("testroom");
+		assertEquals("testroom", broadcast.getStreamId());
+		assertEquals(1000, broadcast.getPlannedStartDate());
+		assertEquals(2000, broadcast.getPlannedEndDate());
+		assertEquals(ConferenceRoom.LEGACY_MODE, broadcast.getConferenceMode());
+		assertEquals("originAdress", broadcast.getOriginAdress());
+		assertEquals(2, broadcast.getSubTrackStreamIds().size());
+		assertEquals("stream1", broadcast.getSubTrackStreamIds().get(0));
+		assertEquals("stream2", broadcast.getSubTrackStreamIds().get(1));
+		
+		
+		//check the list again
+		conferenceRoomList = restServiceSpy.getConferenceRoomList(0, 10, null, null, null);
+		assertEquals(1, conferenceRoomList.size());
+		assertEquals("testroom", conferenceRoomList.get(0).getRoomId());
+		
+		
+		//check odd cases
+		response = restServiceSpy.editConferenceRoom(null, null);
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+		
+		
+		conferenceRoom2.setMode(ConferenceRoom.MULTI_TRACK_MODE);
+		response = restServiceSpy.editConferenceRoom(null, conferenceRoom2);
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+		
+		
+		response = restServiceSpy.editConferenceRoom(conferenceRoom2.getRoomId(), conferenceRoom2);
+		assertEquals(Status.OK.getStatusCode(), response.getStatus());
+		
+		conferenceRoomResponse = restServiceSpy.getConferenceRoom("testroom");
+		assertEquals(Status.OK.getStatusCode(), conferenceRoomResponse.getStatus());
+		assertEquals(ConferenceRoom.MULTI_TRACK_MODE, ((ConferenceRoom)conferenceRoomResponse.getEntity()).getMode());
+
+		
+		
+		
+		conferenceRoom = new ConferenceRoom();
+		conferenceRoom.setRoomId("testroom");
+		response = restServiceSpy.createConferenceRoomV2(conferenceRoom);
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+		
+		response = restServiceSpy.getConferenceRoom(null);
+		assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+		
+		response = restServiceSpy.getConferenceRoom("unknownroom");
+		assertEquals(Status.NOT_FOUND.getStatusCode(), response.getStatus());
+		
+		
+		response = restServiceSpy.createConferenceRoomV2(conferenceRoom);
+		assertEquals(Status.BAD_REQUEST.getStatusCode(), response.getStatus());
+		
+	}
+	
+	
 
 	@Test
 	public void testAddStreamToTheRoom() throws Exception {
