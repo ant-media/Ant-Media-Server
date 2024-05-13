@@ -1765,6 +1765,13 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 
+	/**
+	 * @deprecated
+	 * 
+	 * @param roomId
+	 * @param streamId
+	 * @return
+	 */
 	@Operation(summary = "Get stream IDs in the room",
 			description = "Returns the stream IDs in the room.",
 			responses = {
@@ -1780,21 +1787,24 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/conference-rooms/{room_id}/room-info")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Hidden
+	@Deprecated(since="2.9.1", forRemoval=true)
 	public RootRestService.RoomInfo getRoomInfo(@Parameter(description = "Room id", required=true) @PathParam("room_id") String roomId,
 			@Parameter(description="If Stream Id is entered, that stream id will be isolated from the result",required = false) @QueryParam("streamId") String streamId)
 	{
-		Broadcast broadcastRoom = getDataStore().get(roomId);
+		RootRestService.RoomInfo roomInfo = new RootRestService.RoomInfo(roomId, null);
+		if (StringUtils.isNotBlank(roomId)) {
+			Broadcast broadcastRoom = getDataStore().get(roomId);
 
-		RootRestService.RoomInfo roomInfo;
-		if (broadcastRoom == null) {
-			logger.warn("Room not found with id: {}", roomId);
-			roomInfo = new RootRestService.RoomInfo(roomId, null);
-		}
-		else {
-			roomInfo = new RootRestService.RoomInfo(roomId, RestServiceBase.getRoomInfoFromConference(broadcastRoom, streamId, getDataStore()));
-
-			roomInfo.setStartDate(broadcastRoom.getPlannedStartDate());
-			roomInfo.setEndDate(broadcastRoom.getPlannedEndDate());
+			if (broadcastRoom == null) {
+				roomId = roomId.replaceAll(REPLACE_CHARS, "_");
+				logger.warn("Room not found with id: {}", roomId);
+			}
+			else {
+				roomInfo = new RootRestService.RoomInfo(roomId, RestServiceBase.getRoomInfoFromConference(broadcastRoom, streamId, getDataStore()));
+	
+				roomInfo.setStartDate(broadcastRoom.getPlannedStartDate());
+				roomInfo.setEndDate(broadcastRoom.getPlannedEndDate());
+			}
 		}
 
 		return roomInfo;
