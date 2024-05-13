@@ -3239,9 +3239,22 @@ public class BroadcastRestServiceV2UnitTest {
 		streamIdList.add("stream2");
 		room.setSubTrackStreamIds(streamIdList);
 		store.save(room);
+		
+		
+		broadcast1.setMainTrackStreamId(room.getStreamId());
+		store.updateBroadcastFields(broadcast1.getStreamId(), broadcast1);
+		
+		broadcast2.setMainTrackStreamId(room.getStreamId());
+		store.updateBroadcastFields(broadcast2.getStreamId(), broadcast2);
+		
 		assertEquals(2,store.get("testroom").getSubTrackStreamIds().size());
+		
+		restServiceSpy.setApplication(app);
+		
 		restServiceSpy.deleteStreamFromTheRoom("testroom","stream2");
 		verify(app, times(1)).leftTheRoom("testroom", "stream2");
+		
+		
 		assertEquals(1,store.get("testroom").getSubTrackStreamIds().size());
 		restServiceSpy.deleteStreamFromTheRoomDeprecated(null,"stream2");
 		assertEquals(1,store.get("testroom").getSubTrackStreamIds().size());

@@ -1882,15 +1882,17 @@ public abstract class RestServiceBase {
 
 	public static Result removeSubTrack(String id, String subTrackId, DataStore store) {
 		Result result = new Result(false);
-		
+
 		if (StringUtils.isNoneBlank(id, subTrackId)) 
 		{
+			subTrackId = subTrackId.replaceAll(REPLACE_CHARS, "_");
+			id = id.replaceAll(REPLACE_CHARS, "_");
 			boolean success = store.removeSubTrack(id, subTrackId);
-			
+
 			if (success )
 			{
 				Broadcast subTrack = store.get(subTrackId);
-				
+
 				if(subTrack != null && id.equals(subTrack.getMainTrackStreamId())) {
 					subTrack.setMainTrackStreamId("");
 					success = store.updateBroadcastFields(subTrackId, subTrack);
@@ -1901,16 +1903,27 @@ public abstract class RestServiceBase {
 					else
 					{
 						RestServiceBase.setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be removed");
+						if (logger.isInfoEnabled()) {
+							logger.info( "Main track of the stream {} which is {} cannot be removed", subTrackId, id);
+						}
 					}
 				}
 				else {
 					RestServiceBase.setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be updated");
+					if (logger.isInfoEnabled()) 
+					{
+						logger.info( "Main track of the stream {} which is {} not updated because either subtrack is null or its maintrack does not match with mainTrackId:{}", subTrackId, id, id);
+					}
 				}
-				
+
 			}
 			else
 			{
-				RestServiceBase.setResultSuccess(result, false, "Subtrack(" + subTrackId.replaceAll(REPLACE_CHARS, "_") + ") is not removed from mainTrack:" + id.replaceAll(REPLACE_CHARS, "_"));
+				RestServiceBase.setResultSuccess(result, false, "Subtrack(" + subTrackId + ") is not removed from mainTrack:" + id);
+				if (logger.isInfoEnabled()) 
+				{
+					logger.info("Subtrack({}) is not removed from mainTrack:{}", subTrackId, id);
+				}
 			}
 
 		}
