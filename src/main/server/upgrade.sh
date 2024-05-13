@@ -23,9 +23,10 @@ INSTALL_DIRECTORY=$(dirname "$0")
 cd $INSTALL_DIRECTORY
 
 # If not installed jq package, install it
-if [ ! command -v jq &> /dev/null ]; then
+if ! command -v jq &> /dev/null; then
     sudo apt-get install -y jq
 fi
+
 
 REMOTE_VERSION=$(curl -s https://antmedia.io/download/latest-version.json | jq -r ".versionName")
 LOCAL_VERSION=$(unzip -p $INSTALL_DIRECTORY/ant-media-server.jar | grep -a "Implementation-Version"|cut -d' ' -f2 | tr -d '\r')
