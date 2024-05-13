@@ -27,6 +27,14 @@ REMOTE_VERSION=$(curl -s https://antmedia.io/download/latest-version.json | jq -
 LOCAL_VERSION=$(unzip -p $INSTALL_DIRECTORY/ant-media-server.jar | grep -a "Implementation-Version"|cut -d' ' -f2 | tr -d '\r')
 GITHUB_LATEST_VERSION=$(curl -s -H "Accept: application/vnd.github+json" https://api.github.com/repos/ant-media/Ant-Media-Server/releases/latest | jq -r '.tag_name' | cut -d 'v' -f 2)
 
+while getopts t: option
+do
+  case "${option}" in
+    t) TOKEN=${OPTARG};;
+  esac
+done
+
+
 # If not installed jq package, install it
 if [ ! command -v jq &> /dev/null ]; then
     sudo apt-get install -y jq
@@ -43,6 +51,19 @@ check_ams() {
 	#Download the latest version of the installation script
 	wget -O install_ant-media-server.sh https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh && sudo chmod 755 install_ant-media-server.sh
 	get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
+	check_token=$(curl -s https://api.antmedia.io/?token="$get_token" | tr -d "\"")
+
+	if [ ! -z "${TOKEN}" ]; then
+	  	if [ "$check_token" == "400" ] || [ "$check_token" == "401" ]; then
+			echo "Invalid token."
+			exit 1
+		else 
+			echo "Downloading the latest version of Ant Media Server Enterprise Edition..."
+			curl --progress-bar -o ams_enterprise.zip "$check_token"
+			ANT_MEDIA_SERVER_ZIP_FILE="ams_enterprise.zip"
+		fi
+	fi
+
 	#Check if it is Enterprise or Community
 	if [ -z "$get_license_key" ]; then
 	
@@ -50,7 +71,8 @@ check_ams() {
 	   
 	   if find "$INSTALL_DIRECTORY/plugins/" -type f -name "ant-media-enterprise*" | grep -q .; then
 		  # there is enterprise file in plugins directory, check that if it's marketplace edition
-		  echo "It seems like an enterprise version. On the other hand, there is no license key. If this is a Cloud Marketplace build, upgrade your version through your Cloud Marketplace"
+		  echo -e "It seems like an enterprise version. On the other hand, there is no license key. If this is a Cloud Marketplace build, upgrade your version through your Cloud Marketplace or you can send an e-mail to support@antmedia.io and request a token for the upgrade.\n"
+		  echo -e "Example Usage: ./upgrade -t 'XXXX-XXXX-XXXX'\n"
 	      exit 1
        elif [ "$GITHUB_LATEST_VERSION" == "$REMOTE_VERSION" ]; then
          echo "Downloading the latest version of Ant Media Server Community Edition..."
@@ -63,7 +85,7 @@ check_ams() {
     else
     	
       check_license=$(curl -s https://api.antmedia.io/?license="$get_license_key" | tr -d "\"")
-            
+
 	  if [ "$check_license" == "400" ] || [ "$check_license" == "401" ]; then
 		echo "Invalid license key. Please check your license key."
 		exit 1
