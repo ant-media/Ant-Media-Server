@@ -96,6 +96,12 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true, appSettings.isRtmpPlaybackEnabled());
 		appSettings.setRtmpPlaybackEnabled(false);
 		
+		
+		assertEquals("mpegts", appSettings.getHlsSegmentType());
+		appSettings.setHlsSegmentType("fmp4");
+		assertEquals("fmp4", appSettings.getHlsSegmentType());
+
+		
 	}
 
 	@Test
@@ -542,6 +548,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(0, appSettings.getWebhookRetryCount());
 		assertEquals(1000, appSettings.getWebhookRetryDelay());
 		assertFalse(appSettings.isSecureAnalyticEndpoint());
+		assertEquals("mpegts", appSettings.getHlsSegmentType());
 
 		assertFalse(appSettings.isWebhookPlayAuthEnabled());
 		assertNull(appSettings.getWebhookPlayAuthUrl());
