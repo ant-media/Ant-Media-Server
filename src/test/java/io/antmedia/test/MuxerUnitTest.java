@@ -2785,7 +2785,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String streamName = "stream_name_" + (int) (Math.random() * 10000);
 		//init
 		hlsMuxer.init(appScope, streamName, 0, null, 0);
-
+		
+		hlsMuxer.setId3Enabled(true);
+		
 		//add stream
 		int width = 640;
 		int height = 480;
@@ -4259,6 +4261,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(lastPts, pkt.pts());
 		assertEquals(lastPts, pkt.dts());
+		
+		
+		HLSMuxer.logError(-1, "test error message", "stream1");
+		HLSMuxer.logError(0, "test error message", "stream1");
+		HLSMuxer.logError(1, "test error message", "stream1");
 
 	}
 

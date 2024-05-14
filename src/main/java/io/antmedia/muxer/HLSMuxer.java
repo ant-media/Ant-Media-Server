@@ -388,13 +388,17 @@ public class HLSMuxer extends Muxer  {
 
 	public void setSeiData(String data) {
 		int ret = av_opt_set(bsfFilterContextList.get(0).priv_data(), SEI_USER_DATA, SEI_UUID+data, AV_OPT_SEARCH_CHILDREN);
-		if (ret < 0) {
-			logger.error("Cannot set sei_user_data for {}", streamId);
-		}
-
+		logError(ret, "Cannot set sei_user_data for {} and error is {}", streamId);
+		
+		
 		ret = av_bsf_init(bsfFilterContextList.get(0));
-		if (ret < 0) {
-			logger.error("Cannot update sei_user_data for {}", streamId);
+		logError(ret, "Cannot update sei_user_data for {} and error is {}", streamId);
+		
+	}
+	
+	public static void logError(int ret, String message, String streamId) {
+		if (ret < 0 && logger.isErrorEnabled()) {
+			logger.error(message, streamId, Muxer.getErrorDefinition(ret));
 		}
 	}
 	
