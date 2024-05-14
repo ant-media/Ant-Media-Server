@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.SubscriberMetadata;
@@ -110,6 +111,14 @@ public class MapDBStore extends MapBasedDataStore {
 			false));
 
 		available = true;
+		
+		
+		//migrate from conferenceRoomMap to Broadcast
+		// May 11, 2024
+		// we may remove this code after some time and ConferenceRoom class
+		// mekya
+		migrateConferenceRoomsToBroadcasts();
+		
 	}
 
 	@Override

@@ -67,13 +67,9 @@ public class RootRestService extends RestServiceBase {
 		private long endDate = 0;
 		private long startDate = 0;
 
-		public RoomInfo(String roomId, Map<String, String> streamDetailsMap, ConferenceRoom room) {
+		public RoomInfo(String roomId, Map<String, String> streamDetailsMap) {
 			this.roomId = roomId;
 			this.streamDetailsMap = streamDetailsMap;
-			if(room != null) {
-				this.endDate = room.getEndDate();
-				this.startDate = room.getStartDate();
-			}
 		}
 
 		public String getRoomId() {
@@ -81,6 +77,10 @@ public class RootRestService extends RestServiceBase {
 			return roomId;
 		}
 
+		public void setEndDate(long endDate) { this.endDate = endDate; }
+		
+		public void setStartDate(long startDate) { this.startDate = startDate; }
+		
 		public long getEndDate() { return endDate; }
 
 		public long getStartDate() { return startDate;}
