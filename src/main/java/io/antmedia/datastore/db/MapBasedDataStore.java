@@ -228,12 +228,6 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 		return result;
 	}
-	
-	
-	@Override
-	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search){
-		return super.getConferenceRoomList(conferenceRoomMap, offset, size, sortBy, orderBy, search, gson);
-	}
 
 	//GetBroadcastList method may be called without offset and size to get the full list without offset or size
 	//sortAndCrop method returns maximum 50 (hardcoded) of the broadcasts for an offset.
@@ -925,50 +919,6 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean createConferenceRoom(ConferenceRoom room) {
-		synchronized (this) {
-			boolean result = false;
-
-			if (room != null && room.getRoomId() != null) {
-				conferenceRoomMap.put(room.getRoomId(), gson.toJson(room));
-				result = true;
-			}
-
-			return result;
-		}
-	}
-
-	@Override
-	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
-		synchronized (this) {
-			boolean result = false;
-
-			if (roomId != null && room != null && room.getRoomId() != null) {
-				result = conferenceRoomMap.replace(roomId, gson.toJson(room)) != null;
-			}
-			return result;
-		}
-	}
-
-	@Override
-	public boolean deleteConferenceRoom(String roomId) {
-		synchronized (this) {
-			boolean result = false;
-
-			if (roomId != null && !roomId.isEmpty()) {
-
-				result = conferenceRoomMap.remove(roomId) != null;
-			}
-			return result;
-		}
-	}
-
-	@Override
-	public ConferenceRoom getConferenceRoom(String roomId) {
-		return super.getConferenceRoom(conferenceRoomMap, roomId, gson);
-	}
-
-	@Override
 	public boolean deleteToken(String tokenId) {
 		boolean result = false;
 
@@ -1123,5 +1073,38 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 		return null;
 	}
+	
+	public void migrateConferenceRoomsToBroadcasts() 
+	{
+		if (conferenceRoomMap.values() != null) {
+			List <String> roomIdList = new ArrayList<>(); 
+			for (String conferenceString : conferenceRoomMap.values()) 
+			{
+				ConferenceRoom room = gson.fromJson(conferenceString, ConferenceRoom.class);
+	
+				try {
+					Broadcast broadcast = conferenceToBroadcast(room);
+					if (get(broadcast.getStreamId()) == null) 
+					{ 
+						//save it to broadcast map if it does not exist
+						save(broadcast);
+						roomIdList.add(room.getRoomId());
+					}
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+			
+			for (String roomId : roomIdList) {
+				conferenceRoomMap.remove(roomId);
+			}
+		}
+	}
+
+	public Map<String, String> getConferenceRoomMap() {
+		return conferenceRoomMap;
+	}
+	
+
 
 }

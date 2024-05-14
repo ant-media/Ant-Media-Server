@@ -440,7 +440,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (hlsMuxingEnabled) {
 
 			HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(), getAppSettings().getHlsHttpEndpoint(), getAppSettings().isAddDateTimeToHlsFileName());
-			hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile());
+			hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile(), getAppSettings().getHlsSegmentType());
 			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
 			hlsMuxer.setId3Enabled(appSettings.isId3TagEnabled());
 			hlsMuxer.setSeiEnabled(appSettings.isSeiEnabled());
