@@ -209,6 +209,14 @@ public class Broadcast {
 	 */
 	@Schema(description ="Initial time to start playing. It can be used in VoD file or stream sources that has seek support")
 	private long seekTimeInMs = 0;
+	
+	/**
+	 * Conference mode of the stream. 
+	 * @deprecated It's created for backward compatibility. It will be deleted.
+	 */
+	@Schema(description ="Conference mode. It's used if this broadcast has some specific modes. It's created for backward compatibility. It will be deleted.")
+	@Deprecated(forRemoval = true, since = "2.9.1")
+	private String conferenceMode;
 
 	/**
 	 * Broadcast level ABR settings.
@@ -912,6 +920,14 @@ public class Broadcast {
 
 	public void setSeekTimeInMs(long seekTimeInMs) {
 		this.seekTimeInMs = seekTimeInMs;
+	}
+
+	public String getConferenceMode() {
+		return conferenceMode;
+	}
+
+	public void setConferenceMode(String conferenceMode) {
+		this.conferenceMode = conferenceMode;
 	}
 
 }
