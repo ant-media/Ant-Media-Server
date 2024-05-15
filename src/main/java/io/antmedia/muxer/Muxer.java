@@ -12,18 +12,8 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_new_stream;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
 import static org.bytedeco.ffmpeg.global.avformat.avio_closep;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
-import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
-import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_NEAR_INF;
-import static org.bytedeco.ffmpeg.global.avutil.AV_ROUND_PASS_MINMAX;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
-import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q_rnd;
-import static org.bytedeco.ffmpeg.global.avutil.av_strerror;
+import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.bytedeco.ffmpeg.global.avutil.AV_OPT_SEARCH_CHILDREN;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,8 +28,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import io.antmedia.FFmpegUtilities;
 import io.antmedia.rest.RestServiceBase;
@@ -133,14 +121,14 @@ public abstract class Muxer {
 	/**
 	 * Bitstream filter name that will be applied to packets
 	 */
-	protected String bsfVideoName = null;
+	protected List<String> bsfVideoNames = new ArrayList<>();
 
 	protected String streamId = null;
 
 	protected Map<Integer, AVRational> inputTimeBaseMap = new ConcurrentHashMap<>();
 
 
-	protected AVBSFContext videoBsfFilterContext = null;
+	protected List<AVBSFContext> bsfFilterContextList = new ArrayList<>();
 
 	protected int videoWidth;
 	protected int videoHeight;
@@ -464,10 +452,10 @@ public abstract class Muxer {
 			audioPkt = null;
 		}
 
-		if (videoBsfFilterContext != null) {
+		for (AVBSFContext videoBsfFilterContext: bsfFilterContextList) {
 			av_bsf_free(videoBsfFilterContext);
-			videoBsfFilterContext = null;
 		}
+		bsfFilterContextList.clear();
 
 		/* close output */
 		if (outputFormatContext != null &&
@@ -532,7 +520,7 @@ public abstract class Muxer {
 	/**
 	 * Write packets to the output. This function is used in transcoding.
 	 * Previously, It's the replacement of {link {@link #writePacket(AVPacket)}
-	 * @param avpacket
+	 * @param pkt
 	 * @param codecContext
 	 */
 	public synchronized void writePacket(AVPacket pkt, AVCodecContext codecContext) {
@@ -569,11 +557,15 @@ public abstract class Muxer {
 
 
 	public void setBitstreamFilter(String bsfName) {
-		this.bsfVideoName = bsfName;
+		bsfVideoNames.add(bsfName);
 	}
 	
 	public String getBitStreamFilter() {
-		return bsfVideoName;
+		if(!bsfVideoNames.isEmpty())
+		{
+			return bsfVideoNames.get(0);
+		}
+		return null;
 	}
 
 	public File getFile() {
@@ -836,16 +828,18 @@ public abstract class Muxer {
 			//if it's not running add to the list
 			registeredStreamIndexList.add(streamIndex);
 
-			if (bsfVideoName != null && codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
+			if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO)
 			{
-				AVBSFContext videoBitstreamFilter = initVideoBitstreamFilter(codecParameters, timebase);
-				if (videoBitstreamFilter != null) 
-				{
-					codecParameters = videoBitstreamFilter.par_out();
-					timebase = videoBitstreamFilter.time_base_out();
+				for (String bsfVideoName: bsfVideoNames) {
+					AVBSFContext videoBitstreamFilter = initVideoBitstreamFilter(bsfVideoName, codecParameters, timebase);
+					if (videoBitstreamFilter != null)
+					{
+						codecParameters = videoBitstreamFilter.par_out();
+						timebase = videoBitstreamFilter.time_base_out();
+					}
 				}
-
 			}
+
 			String codecType = "audio";
 			if (codecParameters.codec_type() == AVMEDIA_TYPE_VIDEO) 
 			{
@@ -886,9 +880,9 @@ public abstract class Muxer {
 		return result;
 	}
 
-	public AVBSFContext initVideoBitstreamFilter(AVCodecParameters codecParameters, AVRational timebase) {
+	public AVBSFContext initVideoBitstreamFilter(String bsfVideoName, AVCodecParameters codecParameters, AVRational timebase) {
 		AVBitStreamFilter bsfilter = av_bsf_get_by_name(bsfVideoName);
-		videoBsfFilterContext = new AVBSFContext(null);
+		AVBSFContext videoBsfFilterContext = new AVBSFContext(null);
 		int ret = av_bsf_alloc(bsfilter, videoBsfFilterContext);
 
 		if (ret < 0) {
@@ -908,6 +902,8 @@ public abstract class Muxer {
 			logger.info("cannot init bit stream filter context for {}", getOutputURL());
 			return null;
 		}
+
+		bsfFilterContextList.add(videoBsfFilterContext);
 
 		return videoBsfFilterContext;
 	}
@@ -1180,32 +1176,22 @@ public abstract class Muxer {
 	protected void writeVideoFrame(AVPacket pkt, AVFormatContext context) {
 		int ret;
 		
-		
-		if (videoBsfFilterContext != null) 
+		for(AVBSFContext videoBsfFilterContext : bsfFilterContextList)
 		{
 			ret = av_bsf_send_packet(videoBsfFilterContext, pkt);
 			if (ret < 0) {
 				logger.warn("Cannot send packet to bit stream filter for stream:{}", streamId);
 				return;
 			}
-			while (av_bsf_receive_packet(videoBsfFilterContext, pkt) == 0)
-			{
-				logger.trace("write video packet pts:{} dts:{}", pkt.pts(), pkt.dts());
-				ret = av_write_frame(context, tmpPacket);
-				if (ret < 0 && logger.isWarnEnabled()) {
-					logger.warn("cannot write video frame to muxer({}) av_bsf_receive_packet. Error is {} ", file.getName(), getErrorDefinition(ret));
-				}
-			}
+			ret = av_bsf_receive_packet(videoBsfFilterContext, pkt);
 		}
-		else 
-		{
-			logger.trace("write video packet pts:{} dts:{}", pkt.pts(), pkt.dts());
-			ret = av_write_frame(context, pkt);
-			if (ret < 0 && logger.isWarnEnabled()) {
-				//TODO: this is written for some muxers like HLS because normalized video time is coming from WebRTC
-				//WebRTCVideoForwarder#getVideoTime. Fix this problem when upgrading the webrtc stack
-				logger.warn("cannot write video frame to muxer({}). Pts: {} dts:{}  Error is {} ", file.getName(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
-			}
+
+		logger.trace("write video packet pts:{} dts:{}", pkt.pts(), pkt.dts());
+		ret = av_write_frame(context, pkt);
+		if (ret < 0 && logger.isWarnEnabled()) {
+			//TODO: this is written for some muxers like HLS because normalized video time is coming from WebRTC
+			//WebRTCVideoForwarder#getVideoTime. Fix this problem when upgrading the webrtc stack
+			logger.warn("cannot write video frame to muxer({}). Pts: {} dts:{}  Error is {} ", file.getName(), pkt.pts(), pkt.dts(), getErrorDefinition(ret));
 		}
 	}
 
