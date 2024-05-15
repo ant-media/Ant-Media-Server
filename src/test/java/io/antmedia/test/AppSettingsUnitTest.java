@@ -547,6 +547,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(0, appSettings.getWebhookRetryCount());
 		assertEquals(1000, appSettings.getWebhookRetryDelay());
+		assertEquals(false, appSettings.isSeiEnabled());
+		
+
 		assertFalse(appSettings.isSecureAnalyticEndpoint());
 		assertEquals("mpegts", appSettings.getHlsSegmentType());
 

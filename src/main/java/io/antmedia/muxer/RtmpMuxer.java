@@ -150,7 +150,7 @@ public class RtmpMuxer extends Muxer {
 	
 				if (openIO())
 				{
-					if (videoBsfFilterContext == null)
+					if (bsfFilterContextList.isEmpty())
 					{
 						writeHeader();
 						return;
@@ -188,7 +188,7 @@ public class RtmpMuxer extends Muxer {
 			long startTime = System.currentTimeMillis();
 			super.writeHeader();
 			long diff = System.currentTimeMillis() - startTime;
-			logger.info("write header takes {} for rtmp:{} the bitstream filter name is {}", diff, getOutputURL(), bsfVideoName);
+			logger.info("write header takes {} for rtmp:{} the bitstream filter name is {}", diff, getOutputURL(), getBitStreamFilter());
 			
 			headerWritten = true;
 			setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
@@ -245,7 +245,7 @@ public class RtmpMuxer extends Muxer {
 			
 			setBitstreamFilter("extract_extradata");
 			
-			AVBSFContext avbsfContext = initVideoBitstreamFilter(outStream.codecpar(), inputTimeBaseMap.get(streamIndex));
+			AVBSFContext avbsfContext = initVideoBitstreamFilter(getBitStreamFilter(), outStream.codecpar(), inputTimeBaseMap.get(streamIndex));
 			
 			if (avbsfContext != null) {
 				int ret = avcodec_parameters_copy(outStream.codecpar(), avbsfContext.par_out());
@@ -292,16 +292,16 @@ public class RtmpMuxer extends Muxer {
 				logger.error("Cannot copy packet for {}", file.getName());
 				return;
 			}
-			if (videoBsfFilterContext != null)
+			if (!bsfFilterContextList.isEmpty() && bsfFilterContextList.get(0) != null)
 			{
-				ret = av_bsf_send_packet(videoBsfFilterContext, getTmpPacket());
+				ret = av_bsf_send_packet(bsfFilterContextList.get(0), getTmpPacket());
 				if (ret < 0) {
 					setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_ERROR);
 					logger.warn("cannot send packet to the filter");
 					return;
 				}
 
-				while (av_bsf_receive_packet(videoBsfFilterContext, getTmpPacket()) == 0)
+				while (av_bsf_receive_packet(bsfFilterContextList.get(0), getTmpPacket()) == 0)
 				{
 					if (!headerWritten)
 					{
