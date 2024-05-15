@@ -193,6 +193,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return false;
 	}
 
+	public boolean addSEIData(String data) {
+		for (Muxer muxer : muxerList) {
+			if(muxer instanceof HLSMuxer) {
+				((HLSMuxer)muxer).setSeiData(data);
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public static class PacketTime {
 		public final long packetTimeMs;
 		public final long systemTimeMs;
@@ -439,6 +449,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile(), getAppSettings().getHlsSegmentType());
 			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
 			hlsMuxer.setId3Enabled(appSettings.isId3TagEnabled());
+			hlsMuxer.setSeiEnabled(appSettings.isSeiEnabled());
 			addMuxer(hlsMuxer);
 			logger.info("adding HLS Muxer for {}", streamId);
 		}

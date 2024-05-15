@@ -3507,6 +3507,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 	}
 
+	@Test
 	public void testAddID3Tag() {
 		DataStore store = new InMemoryDataStore("testdb");
 		restServiceReal.setDataStore(store);
@@ -3524,6 +3525,29 @@ public class BroadcastRestServiceV2UnitTest {
 		assertTrue(restServiceSpy.addID3Data("existingStreamId", id3Data).isSuccess());
 
 		assertFalse(restServiceSpy.addID3Data("nonExistingStreamId", id3Data).isSuccess());
+	}
+
+	@Test
+	public void testAddSEIData() {
+		DataStore store = new InMemoryDataStore("testdb");
+		restServiceReal.setDataStore(store);
+		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
+		restServiceSpy.setAppSettings(new AppSettings());
+		restServiceSpy.getAppSettings().setSeiEnabled(false);
+
+		String seiData = "some data";
+		doReturn(null).when(restServiceSpy).getMuxAdaptor("nonExistingStreamId");
+
+		MuxAdaptor muxadaptor = mock(MuxAdaptor.class);
+		doReturn(muxadaptor).when(restServiceSpy).getMuxAdaptor("existingStreamId");
+
+		when(muxadaptor.addSEIData(seiData)).thenReturn(true);
+
+		assertFalse(restServiceSpy.addSEIData("existingStreamId", seiData).isSuccess());
+		restServiceSpy.getAppSettings().setSeiEnabled(true);
+		assertTrue(restServiceSpy.addSEIData("existingStreamId", seiData).isSuccess());
+
+		assertFalse(restServiceSpy.addSEIData("nonExistingStreamId", seiData).isSuccess());
 	}
 	
 	@Test
