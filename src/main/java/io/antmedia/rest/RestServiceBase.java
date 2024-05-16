@@ -76,6 +76,8 @@ import jakarta.ws.rs.core.Context;
 
 public abstract class RestServiceBase {
 
+	private static final String MAIN_TRACK_OF_THE_STREAM = "Main track of the stream ";
+
 	public static final String REPLACE_CHARS_FOR_SECURITY = "[\n\r]";
 
 	public class BroadcastStatistics {
@@ -1884,8 +1886,8 @@ public abstract class RestServiceBase {
 			else
 
 			{
-				message = "Main track of the stream " + subTrackId + " cannot be updated";
-				logWarning("Main track of the stream:{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
+				message = MAIN_TRACK_OF_THE_STREAM + subTrackId + " cannot be updated";
+				logWarning(MAIN_TRACK_OF_THE_STREAM +":{} cannot be updated to {}", subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
 			}
 		}
 		else
@@ -1919,28 +1921,22 @@ public abstract class RestServiceBase {
 					}
 					else
 					{
-						RestServiceBase.setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be removed");
-						if (logger.isInfoEnabled()) {
-							logger.info( "Main track of the stream {} which is {} cannot be removed", subTrackId, id);
-						}
+						
+						RestServiceBase.setResultSuccess(result, false, MAIN_TRACK_OF_THE_STREAM + subTrackId + " which is " + id +" cannot be removed");
+						logger.info(MAIN_TRACK_OF_THE_STREAM +" {} which is {} cannot be removed", subTrackId, id);
 					}
 				}
 				else {
-					RestServiceBase.setResultSuccess(result, false, "Main track of the stream " + subTrackId + " which is " + id +" cannot be updated");
-					if (logger.isInfoEnabled()) 
-					{
-						logger.info( "Main track of the stream {} which is {} not updated because either subtrack is null or its maintrack does not match with mainTrackId:{}", subTrackId, id, id);
-					}
+					RestServiceBase.setResultSuccess(result, false, MAIN_TRACK_OF_THE_STREAM + subTrackId + " which is " + id +" cannot be updated");
+					logger.info( MAIN_TRACK_OF_THE_STREAM +"{} which is {} not updated because either subtrack is null or its maintrack does not match with mainTrackId:{}", subTrackId, id, id);
+					
 				}
 
 			}
 			else
 			{
 				RestServiceBase.setResultSuccess(result, false, "Subtrack(" + subTrackId + ") is not removed from mainTrack:" + id);
-				if (logger.isInfoEnabled()) 
-				{
-					logger.info("Subtrack({}) is not removed from mainTrack:{}", subTrackId, id);
-				}
+				logger.info("Subtrack({}) is not removed from mainTrack:{}", subTrackId, id);
 			}
 
 		}
