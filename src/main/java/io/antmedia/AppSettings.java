@@ -218,15 +218,10 @@ public class AppSettings implements Serializable{
 	/**
 	 * @hidden
 	 */
-	private static final String SETTINGS_STREAM_FETCHER_BUFFER_TIME = "settings.streamFetcherBufferTime";
-	/**
-	 * @hidden
-	 */
 	private static final String SETTINGS_STREAM_FETCHER_RESTART_PERIOD = "settings.streamFetcherRestartPeriod";
 	/**
 	 * @hidden
 	 */
-	private static final String SETTINGS_STREAM_FETCHER_AUTO_START = "settings.streamFetcherAutoStart";
 	/**
 	 * @hidden
 	 */
@@ -327,6 +322,11 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_ENCODING_VP8_DEADLINE = "settings.encoding.vp8.deadline";
+	
+	/**
+	 * @hidden
+	 */
+	private static final String SETTINGS_HW_SCALING_ENABLED= "settings.encoding.hwScalingEnabled";
 
 	/**
 	 * @hidden
@@ -736,7 +736,6 @@ public class AppSettings implements Serializable{
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
 
-
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
 	 * Allowed IP addresses to reach REST API, It must be in CIDR format as a.b.c.d/x
@@ -1067,6 +1066,14 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${hlsPlayListType:${"+SETTINGS_HLS_PLAY_LIST_TYPE+":}}" )
 	private String hlsPlayListType = "";
+	
+	/**
+	 * HLS Muxer segment type. It can be "mpegts" or "fmp4"
+	 * 
+	 * fmp4 is compatible to play the HEVC HLS Streams
+	 */
+	@Value( "${hlsSegmentType:mpegts}" )
+	private String hlsSegmentType = "mpegts";
 
 	/**
 	 * The path for manually saved used VoDs
@@ -1125,28 +1132,30 @@ public class AppSettings implements Serializable{
 	private int createPreviewPeriod = 5000;
 
 	/**
-	 * It's mandatory,
-	 * Restart stream fetcher period in seconds
+	 * Period of restarting stream fetchers automaticallyin seconds. 
+	 * If it's more than 0, stream fetcher (aka. stream source) are restarted every seconds that is specified in this parameter.
 	 * Restart time for fetched streams from external sources,
 	 * Default value is 0
 	 */
-	@Value( "${streamFetcherRestartPeriod:${"+SETTINGS_STREAM_FETCHER_RESTART_PERIOD+":0}}" )
+	@Value( "${restartStreamFetcherPeriod:${"+SETTINGS_STREAM_FETCHER_RESTART_PERIOD+":0}}" )
 	private int restartStreamFetcherPeriod;
 
 	/**
-	 * Stream fetchers are started automatically if it is set true
+	 * Flag to specify Stream sources whether to start automatically when server is started. 
+	 * If it is true, stream sources are started automatically when server is started
+	 * If it's false, stream sources need to be started programmatically or manually by the user
 	 */
-	@Value( "${streamFetcherAutoStart:${"+SETTINGS_STREAM_FETCHER_AUTO_START+":false}}" )
+	@Value("${startStreamFetcherAutomatically:false}")
 	private boolean startStreamFetcherAutomatically;
 
 	/**
-	 * It's mandatory,
 	 * Stream fetcher buffer time in milliseconds,
-	 * Stream is buffered for this duration and after that it will be started,
-	 * Buffering time for fetched streams from external sources. 0 means no buffer,
+	 * Stream is buffered for this duration and after that it will be started. It's also good for re-ordering packets.
+	 * 
+	 * 0 means no buffer,
 	 * Default value is 0
 	 */
-	//@Value( "${"+SETTINGS_STREAM_FETCHER_BUFFER_TIME+"}" )
+	@Value( "${streamFetcherBufferTime:0}" )
 	private int streamFetcherBufferTime = 0;
 
 
@@ -1517,14 +1526,23 @@ public class AppSettings implements Serializable{
 
 	/**
 	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
-	 * It can be tcp or udp
+	 * It can have string or integer values. 
+	 * One value can be given at a for as string. It can be udp, tcp udp_multicast, http, https
+	 * Multiple values can be given at a time by OR operation 
+	 * udp -> 1 << 0 = 1
+	 * tcp -> 1 << 1 = 2
+	 * udp_multicast -> 1 << 2 = 4
+	 * http -> 1 << 8 = 256
+	 * https -> 1 << 9 = 512
+	 * 
+	 * Default value is 3 which is udp(1) OR tcp(2)
+	 * 0x01 | 0x10 = 0x11 = 3
 	 */
-	@Value("${rtspPullTransportType:${" + SETTINGS_RTSP_PULL_TRANSPORT_TYPE+ ":tcp}}")
-	private String rtspPullTransportType = "tcp";
+	@Value("${rtspPullTransportType:${" + SETTINGS_RTSP_PULL_TRANSPORT_TYPE+ ":3}}")
+	private String rtspPullTransportType = "3";
 
 	/**
-	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
-	 * It can be tcp or udp
+	 * Specify the rtspTimeoutDurationMs in pulling IP Camera or RTSP sources
 	 */
 	@Value("${rtspTimeoutDurationMs:${" + SETTINGS_RTSP_TIMEOUT_DURATION_MS+ ":5000}}")
 	private int rtspTimeoutDurationMs = 5000;
@@ -2024,6 +2042,12 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${id3TagEnabled:false}")
 	private boolean id3TagEnabled = false;
+
+	/**
+	 * Enables the SEI data for HLS
+	 */
+	@Value("${seiEnabled:false}")
+	private boolean seiEnabled = false;
 	
 	/**
 	 * Ant Media Server can get the audio level from incoming RTP Header in WebRTC streaming and send to the viewers.
@@ -2044,6 +2068,71 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${sendAudioLevelToViewers:true}")
 	private boolean sendAudioLevelToViewers = true;
+
+	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":true}}")
+	private boolean hwScalingEnabled = true;
+
+	/**
+	 * Firebase Service Account Key JSON to send push notification
+	 * through Firebase Cloud Messaging
+	 */
+	@Value("${firebaseAccountKeyJSON:#{null}}")
+	private String firebaseAccountKeyJSON = null;
+	
+	/**
+	 * This is JWT Secret to authenticate the user for push notifications.
+	 * 
+	 * JWT token should be generated with the following secret: subscriberId(username, email, etc.) + subscriberAuthenticationKey
+	 * 
+	 */
+	@Value("${subscriberAuthenticationKey:#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}")
+	private String subscriberAuthenticationKey = RandomStringUtils.randomAlphanumeric(32);
+
+
+
+	/**
+	 * (Apple Push Notification) Apple Push Notification Server
+	 *  Default value is development enviroment(api.sandbox.push.apple.com) and production enviroment is api.push.apple.com
+	 */
+	@Value("${apnsServer:api.sandbox.push.apple.com}")
+	private String apnsServer = "api.sandbox.push.apple.com";
+
+	/**
+	 * APN(Apple Push Notification) team id
+	 */
+	@Value("${apnTeamId:#{null}}")
+	private String apnTeamId;
+
+	/**
+	 * APN(Apple Push Notification) private key
+	 */
+	@Value("${apnPrivateKey:#{null}}")
+	private String apnPrivateKey;
+
+	/**
+	 * APN(Apple Push Notification) key Id
+	 */
+	@Value("${apnKeyId:#{null}}")
+	private String apnKeyId;
+
+	/**
+	 * Retry count on webhook POST failure
+	 */
+	@Value("${webhookRetryCount:0}")
+	private int webhookRetryCount = 0;
+	
+	/**
+	 * If it's false, jwt token should be send in analytic events to the AnalyticsEventLogger.
+	 * It uses {@link AppSettings#jwtSecretKey} for the secret key
+	 */
+	@Value("${secureAnalyticEndpoint:false}")
+	private boolean secureAnalyticEndpoint = false;
+
+	/**
+	 * Delay in milliseconds between webhook attempts on POST failure.
+	 */
+	@Value("${webhookRetryAttemptDelay:1000}")
+	private long webhookRetryDelay = 1000;
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -3501,6 +3590,14 @@ public class AppSettings implements Serializable{
 		this.id3TagEnabled = id3TagEnabled;
 	}
 
+	public boolean isSeiEnabled() {
+		return seiEnabled;
+	}
+
+	public void setSeiEnabled(boolean seiEnabled) {
+		this.seiEnabled = seiEnabled;
+	}
+
 	public boolean isSendAudioLevelToViewers() {
 		return sendAudioLevelToViewers;
 	}
@@ -3524,4 +3621,93 @@ public class AppSettings implements Serializable{
 	public void setTimeTokenSecretForPlay(String timeTokenSecretForPlay) {
 		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
 	}
+
+	public boolean isHwScalingEnabled() {
+		return hwScalingEnabled;
+	}
+
+	public void setHwScalingEnabled(boolean hwScalingEnabled) {
+		this.hwScalingEnabled = hwScalingEnabled;
+	}
+
+	public String getFirebaseAccountKeyJSON() {
+		return firebaseAccountKeyJSON;
+	}
+
+	public void setFirebaseAccountKeyJSON(String firebaseAccountKeyJSON) {
+		this.firebaseAccountKeyJSON = firebaseAccountKeyJSON;
+	}
+
+	public String getSubscriberAuthenticationKey() {
+		return subscriberAuthenticationKey;
+	}
+
+	public void setSubscriberAuthenticationKey(String subscriberAuthenticationKey) {
+		this.subscriberAuthenticationKey = subscriberAuthenticationKey;
+	}
+
+	public String getApnsServer() {
+		return apnsServer;
+	}
+
+	public String getApnPrivateKey() {
+		return apnPrivateKey;
+	}
+
+	public String getApnKeyId() {
+		return apnKeyId;
+	}
+
+	public String getApnTeamId() {
+		return apnTeamId;
+	}
+
+	public void setApnTeamId(String apnTeamId) {
+		this.apnTeamId = apnTeamId;
+	}
+
+	public void setApnPrivateKey(String apnPrivateKey) {
+		this.apnPrivateKey = apnPrivateKey;
+	}
+
+	public void setApnKeyId(String apnKeyId) {
+		this.apnKeyId = apnKeyId;
+	}
+	
+	public void setApnsServer(String apnsServer) {
+		this.apnsServer = apnsServer;
+	}
+
+	public int getWebhookRetryCount() {
+		return webhookRetryCount;
+	}
+
+	public void setWebhookRetryCount(int webhookRetryCount) {
+		this.webhookRetryCount = webhookRetryCount;
+	}
+
+	public long getWebhookRetryDelay() {
+		return webhookRetryDelay;
+	}
+
+	public void setWebhookRetryDelay(long webhookRetryDelay) {
+		this.webhookRetryDelay = webhookRetryDelay;
+	}
+
+	public boolean isSecureAnalyticEndpoint() {
+		return secureAnalyticEndpoint;
+	}
+
+	public void setSecureAnalyticEndpoint(boolean secureAnalyticEndpoint) {
+		this.secureAnalyticEndpoint = secureAnalyticEndpoint;
+	}
+
+	public String getHlsSegmentType() {
+		return hlsSegmentType;
+	}
+
+	public void setHlsSegmentType(String hlsSegmentType) {
+		this.hlsSegmentType = hlsSegmentType;
+	}
+
 }

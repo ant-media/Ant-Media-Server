@@ -6,7 +6,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,16 +16,13 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
-import javax.annotation.Nullable;
-
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.RequestBuilder;
-import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
@@ -46,7 +42,9 @@ import org.springframework.context.ApplicationContext;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
+import io.antmedia.datastore.db.DataStoreFactory;
 import io.vertx.core.Vertx;
+import jakarta.annotation.Nullable;
 
 
 /**
@@ -338,26 +336,20 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			return false;
 		}
 		
-		if(isCluster) {
-			String dbConnectionURL = getDataStoreFactory().getDbHost();
-			String mongoUser = getDataStoreFactory().getDbUser();
-			String mongoPass = getDataStoreFactory().getDbPassword();
+		String dbConnectionURL = getDataStoreFactory().getDbHost();
+		String mongoUser = getDataStoreFactory().getDbUser();
+		String mongoPass = getDataStoreFactory().getDbPassword();
+		success = runCreateAppScript(appName, isCluster, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
+		
 
-			boolean result = runCreateAppScript(appName, true, dbConnectionURL, mongoUser, mongoPass, warFileFullPath);
-			success = result;
-		}
-		else {
-			boolean result = runCreateAppScript(appName, warFileFullPath);
-			success = result;
-		}
-
-		vertx.executeBlocking(i -> {
+		vertx.executeBlocking(() -> {
 			try {
 				warDeployer.deploy(true);
 			}
 			finally {
 				currentApplicationCreationProcesses.remove(appName);
 			}
+			return null;
 		});
 
 		return success;
@@ -464,48 +456,41 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return success;
 	}
 
-
-	public boolean runCreateAppScript(String appName, String warFilePath) {
-		return runCreateAppScript(appName, false, null, null, null, warFilePath);
-	}
-
 	public boolean runCreateAppScript(String appName) {
 		return runCreateAppScript(appName, false, null, null, null, null);
 	}
 
 	public boolean runCreateAppScript(String appName, boolean isCluster, 
-			String mongoHost, String mongoUser, String mongoPass, String warFileName) {
+			String dbConnectionUrl, String dbUser, String dbPass, String warFileName) {
 		Path currentRelativePath = Paths.get("");
 		String webappsPath = currentRelativePath.toAbsolutePath().toString();
 
-		String command;
 
-		if(warFileName != null && !warFileName.isEmpty())
-		{
-			command = "/bin/bash create_app.sh"
-					+ " -n " + appName
-					+ " -w true"
-					+ " -p " + webappsPath
-					+ " -c " + isCluster
-					+ " -f " + warFileName;
-
-		}
-		else
-		{
-			command = "/bin/bash create_app.sh"
-					+ " -n " + appName
-					+ " -w true"
-					+ " -p " + webappsPath
-					+ " -c " + isCluster;
-		} 
-
-		if(isCluster) 
-		{
-			command += " -m " + mongoHost
-					+ " -u "  + mongoUser
-					+ " -s "  + mongoPass;
+		String command = "/bin/bash create_app.sh"
+				+ " -n " + appName
+				+ " -w true"
+				+ " -p " + webappsPath
+				+ " -c " + isCluster;
+		
+		if 	(!DataStoreFactory.DB_TYPE_MAPDB.equals(getDataStoreFactory().getDbType())) {
+			//add db connection url, user and pass if it's not mapdb
+			if (StringUtils.isNotBlank(dbConnectionUrl)) {
+				command +=  " -m " + dbConnectionUrl;
+			}
+			if (StringUtils.isNotBlank(dbUser)) {
+				command += " -u " + dbUser;
+			}
+			if (StringUtils.isNotBlank(dbPass)) {
+				command += " -s " + dbPass;
+			}
 		}
 
+		if(StringUtils.isNotBlank(warFileName))
+		{
+			command += " -f " + warFileName;
+
+		}
+		
 		log.info("Creating application with command: {}", command);
 		return runCommand(command);
 	}
@@ -532,6 +517,28 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			Process process = getProcess(command);
 			if (process != null) 
 			{
+				new Thread() 
+				{
+					@Override
+					public void run() 
+					{
+						InputStream inputStream = process.getInputStream();
+						byte[] data = new byte[1024];
+						int length;
+						try 
+						{
+							while ((length = inputStream.read(data,0, data.length)) > 0) 
+							{
+								log.info(new String(data, 0, length));
+							}
+						} 
+						catch (IOException e) 
+						{	
+							log.error(ExceptionUtils.getStackTrace(e));
+						}
+					}
+				}.start();
+				
 				result = process.waitFor() == 0;
 			}
 		}
@@ -567,8 +574,6 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		
 		ProcessBuilder pb = getProcessBuilder(parametersToRun);
 
-		pb.inheritIO().redirectOutput(ProcessBuilder.Redirect.INHERIT);
-		pb.inheritIO().redirectError(ProcessBuilder.Redirect.INHERIT);
 		return pb.start();
 	}
 

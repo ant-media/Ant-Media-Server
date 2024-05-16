@@ -2,12 +2,12 @@ package io.antmedia.filter;
 
 import java.io.IOException;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,7 +45,15 @@ public class HttpForwardFilter extends AbstractFilter {
 					{
 						if (requestURI.endsWith(extension[i])) {
 							
-							String redirectUri = httpForwardingBaseURL + requestURI.substring(requestURI.indexOf(SLASH, 1));
+							String subURI = requestURI.substring(requestURI.indexOf(SLASH, 1));
+
+							//two back to back slashes cause problems
+							String normalizedBaseURL = httpForwardingBaseURL.endsWith(SLASH) ? httpForwardingBaseURL : httpForwardingBaseURL + SLASH;
+
+							String normalizedSubURI = subURI.startsWith(SLASH) ? subURI.substring(1) : subURI;
+
+							String redirectUri = normalizedBaseURL + normalizedSubURI;
+
 							HttpServletResponse httpResponse = (HttpServletResponse) response;
 							if (redirectUri.contains(DOUBLE_DOT)) {
 								throw new IOException("URI is not well formatted");

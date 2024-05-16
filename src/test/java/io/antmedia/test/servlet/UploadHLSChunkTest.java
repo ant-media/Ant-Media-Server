@@ -1,5 +1,6 @@
 package io.antmedia.test.servlet;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
@@ -10,14 +11,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.io.InputStream;
-
-import javax.servlet.AsyncContext;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.junit.After;
 import org.junit.Before;
@@ -31,6 +24,11 @@ import org.springframework.web.context.WebApplicationContext;
 import io.antmedia.AppSettings;
 import io.antmedia.servlet.UploadHLSChunk;
 import io.antmedia.storage.StorageClient;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletInputStream;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public class UploadHLSChunkTest {
 
@@ -111,7 +109,6 @@ public class UploadHLSChunkTest {
 		}
 	}
 
-
 	@Test
 	public void testDoDelete() {
 		when(mockRequest.getServletContext()).thenReturn(mockServletContext);
@@ -164,6 +161,29 @@ public class UploadHLSChunkTest {
 		when(mockStorageClient.isEnabled()).thenReturn(true);
 		assertNotNull(uploadHLSChunk.getStorageClient(mockRequest));
 
+
+	}
+	
+	@Test
+	public void testGetS3Key() {
+		
+		String pathInfo = "test.m3u8";
+
+		when(mockRequest.getPathInfo()).thenReturn(pathInfo);
+		AppSettings appSettings = new AppSettings();
+
+		String s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
+		assertEquals("streams/test.m3u8", s3Key);
+		
+		pathInfo = "/test.m3u8";
+		s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
+		assertEquals("streams/test.m3u8", s3Key);
+		
+		
+		pathInfo = "/test.m3u8";
+		appSettings.setS3StreamsFolderPath("streams/");
+		s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
+		assertEquals("streams/test.m3u8", s3Key);
 
 	}
 

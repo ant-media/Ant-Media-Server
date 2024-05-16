@@ -1,11 +1,9 @@
 package io.antmedia.websocket;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-
-import javax.websocket.Session;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -24,6 +22,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
+import jakarta.websocket.Session;
 
 public class WebSocketCommunityHandler {
 
@@ -285,7 +284,7 @@ public class WebSocketCommunityHandler {
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_ID_SPECIFIED);
-		sendMessage(jsonResponse.toJSONString(), session);	
+		sendMessage(jsonResponse.toJSONString(), session);
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -302,9 +301,17 @@ public class WebSocketCommunityHandler {
 			if (session.isOpen()) {
 				try {
 					session.getBasicRemote().sendText(message);
-				} catch (Exception e) { 
+				} 
+				catch (Exception e) { 
 					//capture all exceptions because some unexpected events may happen it causes some internal errors
-					logger.error(ExceptionUtils.getStackTrace(e));
+					String exceptioMessage = e.getMessage();
+					
+					//ignore following messages
+					if (exceptioMessage == null || !exceptioMessage.contains("WebSocket session has been closed")) 
+					{
+						logger.error(ExceptionUtils.getStackTrace(e));
+					}
+					
 				}
 			}
 		}

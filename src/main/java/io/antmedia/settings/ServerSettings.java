@@ -2,6 +2,7 @@ package io.antmedia.settings;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Serializable;
 import java.net.InetAddress;
 import java.net.URL;
 import java.net.UnknownHostException;
@@ -33,7 +34,9 @@ import io.antmedia.licence.ILicenceService;
 
 @PropertySource("/conf/red5.properties")
 @JsonIgnoreProperties(ignoreUnknown=true)
-public class ServerSettings implements ApplicationContextAware {
+public class ServerSettings implements ApplicationContextAware, Serializable {
+
+	private static final long serialVersionUID = 1L;
 
 	public static final String BEAN_NAME = "ant.media.server.settings";
 
@@ -44,7 +47,6 @@ public class ServerSettings implements ApplicationContextAware {
 	private static final String SETTINGS_PROXY_ADDRESS = "proxy.address";
 
 	private static final String SETTINGS_NODE_GROUP = "nodeGroup";
-
 
 	public static final String LOG_LEVEL_ALL = "ALL";
 	public static final String LOG_LEVEL_TRACE = "TRACE";
@@ -97,7 +99,7 @@ public class ServerSettings implements ApplicationContextAware {
 	private String allowedDashboardCIDR;
 
 	@JsonIgnore
-	private Queue<NetMask> allowedCIDRList = new ConcurrentLinkedQueue<>();
+	private transient Queue<NetMask> allowedCIDRList = new ConcurrentLinkedQueue<>();
 
 
 	private static Logger logger = LoggerFactory.getLogger(ServerSettings.class);
@@ -148,7 +150,7 @@ public class ServerSettings implements ApplicationContextAware {
 	 * Native Log Level is used for ffmpeg and WebRTC logs
 	 */
 	@Value( "${"+SETTINGS_NATIVE_LOG_LEVEL+":'ERROR'}" )
-	private String nativeLogLevel = LOG_LEVEL_WARN;
+	private String nativeLogLevel = LOG_LEVEL_ERROR;
 
 	/**
 	 * Enable heart beat for Ant Media Server
@@ -236,6 +238,11 @@ public class ServerSettings implements ApplicationContextAware {
 	@Value("${"+SETTINGS_SRT_PORT + ":4200}")
 	private int srtPort = 4200;
 
+	/**
+	 * Nme of the application which will ingestthe SRT Streams that don't have streamid.
+	 */
+	@Value( "${appIngestsSrtStreamsWithoutStreamId:LiveApp}" )
+	private String appIngestsSrtStreamsWithoutStreamId="LiveApp";
 
 	private boolean sslEnabled = false;
 	/**
@@ -394,7 +401,7 @@ public class ServerSettings implements ApplicationContextAware {
 				offlineLicense = true;
 			}
 		}
-
+		setNativeLogLevel(nativeLogLevel);
 
 	}
 
@@ -434,6 +441,7 @@ public class ServerSettings implements ApplicationContextAware {
 		return allowedDashboardCIDR;
 	}
 
+	@JsonIgnore
 	public Queue<NetMask> getAllowedCIDRList() {
 		if (allowedCIDRList.isEmpty()) {
 			fillFromInput(allowedDashboardCIDR, allowedCIDRList);
@@ -565,6 +573,7 @@ public class ServerSettings implements ApplicationContextAware {
 	public int getRtmpPort() {
 		return rtmpPort;
 	}
+
 	public String getMarketplace() {
 		return marketplace;
 	}
@@ -613,6 +622,16 @@ public class ServerSettings implements ApplicationContextAware {
 	public void setOfflineLicense(boolean offlineLicense) {
 		this.offlineLicense = offlineLicense;
 	}
+
+	public String getAppIngestsSrtStreamsWithoutStreamId() {
+		return appIngestsSrtStreamsWithoutStreamId;
+	}
+
+	public void setAppIngestsSrtStreamsWithoutStreamId(String appIngestsSrtStreamsWithoutStreamId) {
+		this.appIngestsSrtStreamsWithoutStreamId = appIngestsSrtStreamsWithoutStreamId;
+	}
+
+
 
 
 }

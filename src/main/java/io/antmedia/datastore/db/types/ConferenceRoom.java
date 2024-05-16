@@ -13,50 +13,44 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @Entity("ConferenceRoom")
 @Indexes({ @Index(fields = @Field("roomId")) })
-@ApiModel(value="ConferenceRoom", description="The Conference Room class")
+@Schema(description = "The Conference Room class")
 public class ConferenceRoom {
 	public static final String MULTI_TRACK_MODE = "multitrack";
-
-	public static final int UNLIMITED_PARTICIPANT_CAPACITY = -1;
 
 	public static final String LEGACY_MODE = "legacy";
 
 	@JsonIgnore
-	@Id
-	@ApiModelProperty(value = "The db id of the Conference Room")
-	private ObjectId dbId;
-	
-	@ApiModelProperty(value = "The id of the Conference Room")
-	private String roomId; 
-	
-	@ApiModelProperty(value = "The start date of the Conference Room. It's unix timestamp in seconds.")
-	private long startDate;
-	
-	@ApiModelProperty(value = "The end date of the Conference Room. It's unix timestamp in seconds")
-	private long endDate;
-	
-	@ApiModelProperty(value = "The list of streams in the Conference Room")
-	private List<String> roomStreamList = new ArrayList<>();
-	
-	@ApiModelProperty(value = "Conference Room Mode: legacy | mcu | multi-track")
-	private String mode = "legacy";
+    @Id
+    @Schema(description = "The db id of the Conference Room")
+    private ObjectId dbId;
 
-	@ApiModelProperty(value = "Maximum number of participants/streams that can participate in conference room. Default is unlimited.")
-	private int maxParticipantCapacity = UNLIMITED_PARTICIPANT_CAPACITY;
+    @Schema(description = "The id of the Conference Room")
+    private String roomId;
 
-	@JsonIgnore
-	private boolean zombi;
-	
-	/**
-	 * This is the origin address of the node hosting the room.
-	 */
-	@ApiModelProperty(value = "the origin address of the node hosting the room")
-	private String originAdress;
+    @Schema(description = "The start date of the Conference Room. It's unix timestamp in seconds.")
+    private long startDate;
+
+    @Schema(description = "The end date of the Conference Room. It's unix timestamp in seconds")
+    private long endDate;
+
+    @Schema(description = "The list of streams in the Conference Room")
+    private List<String> roomStreamList = new ArrayList<>();
+
+    @Schema(description = "Conference Room Mode: legacy | mcu | multi-track")
+    private String mode = "legacy";
+
+    @JsonIgnore
+    private boolean zombi;
+
+    /**
+     * This is the origin address of the node hosting the room.
+     */
+    @Schema(description = "the origin address of the node hosting the room")
+    private String originAdress;
 
 	public String getRoomId() {
 		return roomId;
@@ -112,21 +106,6 @@ public class ConferenceRoom {
 
 	public void setOriginAdress(String originAdress) {
 		this.originAdress = originAdress;
-	}
-
-	public boolean isCapacityFull(){
-		if(getMaxParticipantCapacity() == UNLIMITED_PARTICIPANT_CAPACITY){
-			return false;
-		}
-		return roomStreamList.size() >= maxParticipantCapacity;
-	}
-
-	public int getMaxParticipantCapacity() {
-		return maxParticipantCapacity;
-	}
-
-	public void setMaxParticipantCapacity(int maxParticipantCapacity) {
-		this.maxParticipantCapacity = maxParticipantCapacity;
 	}
 
 }

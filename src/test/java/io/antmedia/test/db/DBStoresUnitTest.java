@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import com.google.gson.Gson;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 
@@ -46,8 +47,10 @@ import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
+import io.antmedia.datastore.db.types.PushNotificationToken;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
@@ -55,6 +58,7 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.pushnotification.IPushNotificationService.PushNotificationServiceTypes;
 import io.antmedia.settings.ServerSettings;
 import io.vertx.core.Vertx;
 
@@ -87,11 +91,57 @@ public class DBStoresUnitTest {
 	}
 	
 	@Test
+	public void testConferenceRoomWrapper() throws Exception {
+		
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+		conferenceRoom.setRoomId("roomId");
+		long startDate = Instant.now().getEpochSecond();
+		long endDate = startDate + 1000;
+		conferenceRoom.setStartDate(startDate);
+		conferenceRoom.setEndDate(endDate);
+		conferenceRoom.setMode(ConferenceRoom.LEGACY_MODE);
+		conferenceRoom.setRoomStreamList(Arrays.asList("stream1", "stream2"));
+		conferenceRoom.setOriginAdress("originAdress");
+
+		assertEquals("roomId", conferenceRoom.getRoomId());
+		assertEquals(ConferenceRoom.LEGACY_MODE, conferenceRoom.getMode());
+		assertEquals("originAdress", conferenceRoom.getOriginAdress());
+		assertEquals(2, conferenceRoom.getRoomStreamList().size());
+		
+		Broadcast broadcast = DataStore.conferenceToBroadcast(conferenceRoom);
+		assertEquals("roomId", broadcast.getStreamId());
+		assertEquals("originAdress", broadcast.getOriginAdress());
+		assertEquals(ConferenceRoom.LEGACY_MODE, broadcast.getConferenceMode());
+		assertEquals(2, broadcast.getSubTrackStreamIds().size());
+		assertEquals("stream1", broadcast.getSubTrackStreamIds().get(0));
+		assertEquals("stream2", broadcast.getSubTrackStreamIds().get(1));
+		assertEquals(startDate, broadcast.getPlannedStartDate());
+		assertEquals(endDate, broadcast.getPlannedEndDate());
+		
+		
+		ConferenceRoom conferenceRoom2 = DataStore.broadcastToConference(broadcast);
+		assertEquals("roomId", conferenceRoom2.getRoomId());
+		assertEquals(ConferenceRoom.LEGACY_MODE, conferenceRoom2.getMode());
+		assertEquals("originAdress", conferenceRoom2.getOriginAdress());
+		assertEquals(2, conferenceRoom2.getRoomStreamList().size());
+		assertEquals("stream1", conferenceRoom2.getRoomStreamList().get(0));
+		assertEquals("stream2", conferenceRoom2.getRoomStreamList().get(1));
+		assertEquals(startDate, conferenceRoom2.getStartDate());
+		assertEquals(endDate, conferenceRoom2.getEndDate());
+	}
+	
+	
+	
+
+	
+	@Test
 	public void testMapDBStore() throws Exception {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
 		
 		
+		testSubscriberMetaData(dataStore);
+		testGetActiveBroadcastCount(dataStore);
 		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -110,14 +160,12 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
-		testUpdateMetadata(dataStore);
-		testGetActiveBroadcastCount(dataStore);
+		testUpdateMetadata(dataStore);	
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
-		testConferenceRoom(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
@@ -131,12 +179,12 @@ public class DBStoresUnitTest {
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
-		testConferenceRoomSorting(dataStore);
-		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		
+		dataStore.close(false);
 		
 
 	}
@@ -174,6 +222,8 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() throws Exception {
 		DataStore dataStore = new InMemoryDataStore("testdb");
 		
+		
+		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -198,7 +248,6 @@ public class DBStoresUnitTest {
 		testRTMPViewerCount(dataStore);
 		testTokenOperations(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
-		testConferenceRoom(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
 		testUpdateLocationParams(dataStore);
@@ -212,28 +261,27 @@ public class DBStoresUnitTest {
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
-		testConferenceRoomSorting(dataStore);
-		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
 
-		
+		dataStore.close(false);
 
 
 	}
-	
+
 
 	@Test
 	public void testMongoStore() throws Exception {
 
-		DataStore dataStore = new MongoStore("localhost", "", "", "testdb");
+		DataStore dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 		//delete db
 		dataStore.close(true);
 		
-		dataStore = new MongoStore("localhost", "", "", "testdb");
+		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 
+		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
 		testBugFreeStreamId(dataStore);
@@ -260,7 +308,6 @@ public class DBStoresUnitTest {
 		testTokenOperations(dataStore);
 		testClearAtStart(dataStore);
 		testClearAtStartCluster(dataStore);
-		testConferenceRoom(dataStore);
 		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
@@ -274,13 +321,11 @@ public class DBStoresUnitTest {
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
-		testConferenceRoomSorting(dataStore);
-		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		
-
+		dataStore.close(true);
 	}
 	
 	@Test
@@ -291,6 +336,7 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
 		
+		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
 		testUnexpectedBroadcastOffset(dataStore);
@@ -317,7 +363,6 @@ public class DBStoresUnitTest {
 		testTimeBasedSubscriberOperations(dataStore);
 		testClearAtStart(dataStore);
 		testClearAtStartCluster(dataStore);
-		testConferenceRoom(dataStore);
 		testStreamSourceList(dataStore);
 		testUpdateStatus(dataStore);
 		testP2PConnection(dataStore);
@@ -330,13 +375,15 @@ public class DBStoresUnitTest {
 		testTotalWebRTCViewerCount(dataStore);
 		testBroadcastListSearch(dataStore);
 		testVodSearch(dataStore);
-		testConferenceRoomSorting(dataStore);
-		testConferenceRoomSearch(dataStore);
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		
+		dataStore.close(true);
 	}
+	
+	
+	
 	
 	@Test
 	public void testBug() {
@@ -347,7 +394,114 @@ public class DBStoresUnitTest {
 		dataStore.fetchUserVodList(new File(""));
 		
 		dataStore.getVodList(0, 10, "name", "asc", null, null);
-		dataStore.getConferenceRoomList(0, 10, "asc", null, null);
+		dataStore.getBroadcastList(0, 10, "asc", null, null, null);
+	}
+	
+	@Test
+	public void testConferenceRoomMigrationMapBased() {
+		
+		MapDBStore dataStore = new MapDBStore("testdb" + RandomStringUtils.randomAlphanumeric(12) , vertx);
+		
+		Map<String, String> conferenceRoomMap = dataStore.getConferenceRoomMap();
+		
+		Gson gson = new Gson();
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+		conferenceRoom.setRoomId("roomId");
+		long startDate = Instant.now().getEpochSecond();
+		long endDate = startDate + 1000;
+		conferenceRoom.setStartDate(startDate);
+		conferenceRoom.setEndDate(endDate);
+		conferenceRoom.setMode(ConferenceRoom.LEGACY_MODE);
+		conferenceRoom.setRoomStreamList(Arrays.asList("stream1", "stream2"));
+		conferenceRoom.setOriginAdress("originAdress");
+		
+		conferenceRoomMap.put("roomId", gson.toJson(conferenceRoom));
+		
+		
+		ConferenceRoom conferenceRoom2 = new ConferenceRoom();
+		conferenceRoom2.setRoomId("roomId2");
+		long startDate2 = Instant.now().getEpochSecond();
+		long endDate2 = startDate + 1000;
+		conferenceRoom2.setStartDate(startDate2);
+		conferenceRoom2.setEndDate(endDate2);
+		conferenceRoom2.setMode(ConferenceRoom.MULTI_TRACK_MODE);
+		conferenceRoom2.setRoomStreamList(Arrays.asList("stream3", "stream4"));
+		conferenceRoom2.setOriginAdress("originAdress2");
+		
+		conferenceRoomMap.put("roomId2", gson.toJson(conferenceRoom2));
+		
+		
+		dataStore.migrateConferenceRoomsToBroadcasts();
+		
+		assertEquals(2, dataStore.getTotalBroadcastNumber());
+		Broadcast broadcast = dataStore.get("roomId");
+		assertNotNull(broadcast);
+		assertEquals("roomId", broadcast.getStreamId());
+		assertEquals("originAdress", broadcast.getOriginAdress());
+		assertEquals(ConferenceRoom.LEGACY_MODE, broadcast.getConferenceMode());
+		assertEquals(2, broadcast.getSubTrackStreamIds().size());
+		assertEquals("stream1", broadcast.getSubTrackStreamIds().get(0));
+		assertEquals("stream2", broadcast.getSubTrackStreamIds().get(1));
+		
+		
+		assertEquals(0, conferenceRoomMap.size());
+		
+	}
+	
+	@Test
+	public void testConferenceRoomMigrationMongo() {
+		
+		MongoStore dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
+		
+		//delete db
+		dataStore.close(true);
+		
+		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
+		
+		Datastore conferenceRoomMap = dataStore.getConferenceRoomDatastore();
+		
+		Gson gson = new Gson();
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+		conferenceRoom.setRoomId("roomId");
+		long startDate = Instant.now().getEpochSecond();
+		long endDate = startDate + 1000;
+		conferenceRoom.setStartDate(startDate);
+		conferenceRoom.setEndDate(endDate);
+		conferenceRoom.setMode(ConferenceRoom.LEGACY_MODE);
+		conferenceRoom.setRoomStreamList(Arrays.asList("stream1", "stream2"));
+		conferenceRoom.setOriginAdress("originAdress");
+		
+		conferenceRoomMap.save(conferenceRoom);
+		
+		
+		ConferenceRoom conferenceRoom2 = new ConferenceRoom();
+		conferenceRoom2.setRoomId("roomId2");
+		long startDate2 = Instant.now().getEpochSecond();
+		long endDate2 = startDate + 1000;
+		conferenceRoom2.setStartDate(startDate2);
+		conferenceRoom2.setEndDate(endDate2);
+		conferenceRoom2.setMode(ConferenceRoom.MULTI_TRACK_MODE);
+		conferenceRoom2.setRoomStreamList(Arrays.asList("stream3", "stream4"));
+		conferenceRoom2.setOriginAdress("originAdress2");
+		
+		conferenceRoomMap.save(conferenceRoom2);
+		
+		
+		dataStore.migrateConferenceRoomsToBroadcasts();
+		
+		assertEquals(2, dataStore.getTotalBroadcastNumber());
+		Broadcast broadcast = dataStore.get("roomId");
+		assertNotNull(broadcast);
+		assertEquals("roomId", broadcast.getStreamId());
+		assertEquals("originAdress", broadcast.getOriginAdress());
+		assertEquals(ConferenceRoom.LEGACY_MODE, broadcast.getConferenceMode());
+		assertEquals(2, broadcast.getSubTrackStreamIds().size());
+		assertEquals("stream1", broadcast.getSubTrackStreamIds().get(0));
+		assertEquals("stream2", broadcast.getSubTrackStreamIds().get(1));
+		
+		
+		assertEquals(0, conferenceRoomMap.find(ConferenceRoom.class).count());
+		
 	}
 
 	public void clear(DataStore dataStore) 
@@ -449,11 +603,8 @@ public class DBStoresUnitTest {
 		assertEquals(0, dataStore.getBroadcastCount());
 
 
-		long streamCount = (int)(Math.random()  * 500);
+		long streamCount = 10 + (int)(Math.random()  * 500);
 
-		if (streamCount < 10) {
-			streamCount = 10;
-		}
 
 		System.out.println("Stream count to be added: " + streamCount);
 
@@ -467,7 +618,7 @@ public class DBStoresUnitTest {
 		assertEquals(0, dataStore.getActiveBroadcastCount());
 
 		//change random number of streams status to broadcasting
-		long numberOfStatusChangeStreams = (int)(Math.random() * 500);
+		long numberOfStatusChangeStreams = 10 + (int)(Math.random() * 500);
 		if (streamCount < numberOfStatusChangeStreams) {
 			numberOfStatusChangeStreams = streamCount;
 		}
@@ -489,11 +640,17 @@ public class DBStoresUnitTest {
 
 		}
 
+		assertTrue(numberOfCall > 0);
 		assertEquals(numberOfCall, numberOfStatusChangeStreams);
 		//check that active broadcast exactly the same as changed above
 		
 		//////this test is sometimes failing below, I think streamId may not be unique so I logged above to confirm it - mekya
 		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
+		
+		assertEquals(numberOfStatusChangeStreams, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+		
+		List<Broadcast> localLiveBroadcasts = dataStore.getLocalLiveBroadcasts(ServerSettings.getLocalHostAddress());
+		assertEquals(numberOfStatusChangeStreams, localLiveBroadcasts.size());
 
 		//change all streams to finished
 		streamCount = dataStore.getBroadcastCount();
@@ -511,6 +668,12 @@ public class DBStoresUnitTest {
 
 		//check that no active broadcast
 		assertEquals(0, dataStore.getActiveBroadcastCount());
+		assertEquals(0, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+		localLiveBroadcasts = dataStore.getLocalLiveBroadcasts(ServerSettings.getLocalHostAddress());
+		assertEquals(0, localLiveBroadcasts.size());
+
+
+		
 	}
 	
 	
@@ -551,6 +714,11 @@ public class DBStoresUnitTest {
 		assertNotNull(streamsList);
 
 		assertEquals(2, streamsList.size());
+		
+		streamsList = datastore.getExternalStreamsList();
+		assertNotNull(streamsList);
+
+		assertEquals(0, streamsList.size());
 
 		//check that there are two streams and values are same as added above
 
@@ -1059,149 +1227,6 @@ public class DBStoresUnitTest {
 
 	}
 
-	public void testConferenceRoomSearch(DataStore dataStore) {
-		List<ConferenceRoom> roomList2 = dataStore.getConferenceRoomList(0, 50, null, null, null);
-		for (Iterator iterator = roomList2.iterator(); iterator.hasNext();) {
-			ConferenceRoom room = (ConferenceRoom) iterator.next();
-			dataStore.deleteConferenceRoom(room.getRoomId());
-		}
-
-		long now = Instant.now().getEpochSecond();
-		//Create rooms to check sorting
-		ConferenceRoom room = new ConferenceRoom();
-
-		String roomId = "aaaroom";
-		room.setRoomId(roomId);
-		room.setStartDate(now);
-		room.setEndDate(now + 3600);
-
-		ConferenceRoom room2 = new ConferenceRoom();
-		roomId = "bbbtahir";
-		room2.setRoomId(roomId);
-		room2.setStartDate(now + 150);
-		room2.setEndDate(now + 360);
-
-		ConferenceRoom room3 = new ConferenceRoom();
-		roomId = "cctast";
-		room3.setRoomId(roomId);
-		room3.setStartDate(now + 10);
-		room3.setEndDate(now + 36000);
-
-		dataStore.createConferenceRoom(room);
-		dataStore.createConferenceRoom(room2);
-		dataStore.createConferenceRoom(room3);
-
-		List<ConferenceRoom> roomList = dataStore.getConferenceRoomList(0,50,null,null,null);
-		assertEquals(3, roomList.size());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"","","");
-		assertEquals(3, roomList.size());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"","","ta");
-		assertEquals(2, roomList.size());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"","","tahir");
-		assertEquals(1, roomList.size());
-		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"","","ccta");
-		assertEquals(1, roomList.size());
-		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"roomId","asc","ta");
-		assertEquals(2, roomList.size());
-		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"roomId","desc","ta");
-		assertEquals(2, roomList.size());
-		assertEquals(roomList.get(1).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
-
-	}
-
-	public void testConferenceRoomSorting(DataStore dataStore){
-		List<ConferenceRoom> roomList2 = dataStore.getConferenceRoomList(0, 50, null, null, null);
-		for (Iterator iterator = roomList2.iterator(); iterator.hasNext();) {
-			ConferenceRoom room = (ConferenceRoom) iterator.next();
-			dataStore.deleteConferenceRoom(room.getRoomId());
-		}
-
-		long now = Instant.now().getEpochSecond();
-		//Create rooms to check sorting
-		ConferenceRoom room = new ConferenceRoom();
-
-		String roomId = "aaaroom";
-		room.setRoomId(roomId);
-		room.setStartDate(now);
-		room.setEndDate(now + 3600);
-
-		ConferenceRoom room2 = new ConferenceRoom();
-		roomId = "bbbroom";
-		room2.setRoomId(roomId);
-		room2.setStartDate(now + 150);
-		room2.setEndDate(now + 360);
-
-		ConferenceRoom room3 = new ConferenceRoom();
-		roomId = "cccroom";
-		room3.setRoomId(roomId);
-		room3.setStartDate(now + 10);
-		room3.setEndDate(now + 36000);
-
-		dataStore.createConferenceRoom(room);
-		dataStore.createConferenceRoom(room2);
-		dataStore.createConferenceRoom(room3);
-
-		List<ConferenceRoom> roomList = dataStore.getConferenceRoomList(0,50,null,null,null);
-		assertEquals(3, roomList.size());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"","","");
-		assertEquals(3, roomList.size());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"roomId","asc", null);
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(0).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(1).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(2).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"roomId","desc", null);
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(2).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(1).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"startDate","asc", null);
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(0).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(2).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"startDate","desc", null);
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(2).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"startDate","desc", "room");
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(2).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(1).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"endDate","asc", null);
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(1).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(0).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(2).getRoomId(), room3.getRoomId());
-
-		roomList = dataStore.getConferenceRoomList(0,50,"endDate","desc", null);
-		assertEquals(3, roomList.size());
-		assertEquals(roomList.get(1).getRoomId(), room.getRoomId());
-		assertEquals(roomList.get(2).getRoomId(), room2.getRoomId());
-		assertEquals(roomList.get(0).getRoomId(), room3.getRoomId());
-
-	}
-
 	public void testFullTextSearch(DataStore dataStore) {
 		String searchQueryMatched = "\"ConnectorComponentId\":\"[6b8d7491-a86a-4c64-a982-0f8a2d3d393b.9c9df16c-eac1-4593-8010-d28e92f8a694]\"";
 		String searchQueryNotMatched = "\"ConnectorComponentId\":\"[6b8d7491.9c9df16c]\"";
@@ -1524,6 +1549,7 @@ public class DBStoresUnitTest {
 			tmp.setPlaylistLoopEnabled(false);
 			double speed = 1.0;
 			tmp.setSpeed(speed);
+			tmp.setSeekTimeInMs(136);
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -1850,9 +1876,9 @@ public class DBStoresUnitTest {
 
 		List<TensorFlowObject> list = dataStore.getDetectionList("id", 0, 10);
 		assertEquals(1,list.size());
-		assertEquals(item1, list.get(0).objectName);
-		assertEquals(probability1, list.get(0).probability,0.1F);
-		assertEquals(detectionTime, list.get(0).detectionTime);	
+		assertEquals(item1, list.get(0).getObjectName());
+		assertEquals(probability1, list.get(0).getProbability(),0.1F);
+		assertEquals(detectionTime, list.get(0).getDetectionTime());	
 		
 		assertEquals(minX, list.get(0).getMinX(), 0.0001);	
 		assertEquals(minY, list.get(0).getMinY(), 0.0001);	
@@ -2209,7 +2235,7 @@ public class DBStoresUnitTest {
 		dsf.setWriteStatsToDatastore(writeStats);
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
-		dsf.setDbHost("localhost");
+		dsf.setDbHost("127.0.0.1");
 		ApplicationContext context = Mockito.mock(ApplicationContext.class);
 		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		AppSettings appSettings = new AppSettings();
@@ -2348,7 +2374,7 @@ public class DBStoresUnitTest {
 
 	@Test
 	public void testMongoDBSaveStreamInfo() {
-		MongoStore dataStore = new MongoStore("localhost", "", "", "testdb");
+		MongoStore dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 		deleteStreamInfos(dataStore);
 		assertEquals(0, dataStore.getDataStore().find(StreamInfo.class).count());
 
@@ -2397,53 +2423,6 @@ public class DBStoresUnitTest {
 		dataStore.saveStreamInfo(si);
 	}
 
-
-	public void testConferenceRoom(DataStore datastore) {
-
-		ConferenceRoom room = new ConferenceRoom();
-
-		long now = Instant.now().getEpochSecond();
-
-		String roomId = "roomId" + RandomStringUtils.random(10);
-		room.setRoomId(roomId);
-		room.setStartDate(now);
-		//1 hour later
-		room.setEndDate(now + 3600);
-
-		//create room
-		assertTrue(datastore.createConferenceRoom(room));
-
-		//get room		
-		ConferenceRoom dbRoom = datastore.getConferenceRoom(room.getRoomId());
-
-		//test null
-		ConferenceRoom nullRoom = datastore.getConferenceRoom(null);
-		assertNull(nullRoom);
-
-		assertNotNull(dbRoom);
-		assertEquals(roomId, dbRoom.getRoomId());
-
-		dbRoom.setEndDate(now + 7200);
-
-		//edit room
-		assertTrue(datastore.editConferenceRoom(dbRoom.getRoomId(), dbRoom));
-		
-		ConferenceRoom conferenceRoom = datastore.getConferenceRoom("room_not_exist");
-		assertNull(conferenceRoom);
-		
-		assertFalse(datastore.editConferenceRoom("room_not_exist", dbRoom));
-
-
-		ConferenceRoom editedRoom = datastore.getConferenceRoom(dbRoom.getRoomId());
-
-		assertNotNull(editedRoom);
-		assertEquals(now + 7200, editedRoom.getEndDate());
-
-		//delete room
-		assertTrue(datastore.deleteConferenceRoom(editedRoom.getRoomId()));
-
-		assertNull(datastore.getConferenceRoom(editedRoom.getRoomId()));
-	}
 
 	private void testStreamSourceList(DataStore dataStore) {
 		if (dataStore instanceof MongoStore) {
@@ -2931,9 +2910,9 @@ public class DBStoresUnitTest {
 	@Test
 	public void testDeleteMongoDBCollection() {
 		String dbName = "deleteMapdb";
-		MongoStore dataStore = new MongoStore("localhost", "", "", dbName);
+		MongoStore dataStore = new MongoStore("127.0.0.1", "", "", dbName);
 		
-		MongoClientURI mongoUri = new MongoClientURI(dataStore.getMongoConnectionUri("localhost", "", ""));
+		MongoClientURI mongoUri = new MongoClientURI(dataStore.getMongoConnectionUri("127.0.0.1", "", ""));
 		MongoClient client = new MongoClient(mongoUri);
 		
 		
@@ -3094,5 +3073,58 @@ public class DBStoresUnitTest {
 		assertTrue(subscriberFromDB.getBlockedUntilUnitTimeStampMs() - System.currentTimeMillis() <= 50000);
 
 
+	}
+	
+	private void testSubscriberMetaData(DataStore dataStore) {
+		//save subscriberMetadata to the data store
+		
+		String subscriberId = RandomStringUtils.randomAlphanumeric(12);
+		
+		SubscriberMetadata subscriberMetaData = dataStore.getSubscriberMetaData(subscriberId);
+		assertNull(subscriberMetaData);
+		
+		SubscriberMetadata metadata = new SubscriberMetadata();
+		Map<String, PushNotificationToken> pushNotificationTokens = new HashMap<>();
+		String tokenValue = RandomStringUtils.randomAlphabetic(65);
+		
+		PushNotificationToken token = new PushNotificationToken(tokenValue, PushNotificationServiceTypes.FIREBASE_CLOUD_MESSAGING.toString());
+		pushNotificationTokens.put(tokenValue, token);
+		
+		metadata.setPushNotificationTokens(pushNotificationTokens);
+		dataStore.putSubscriberMetaData(subscriberId, metadata);
+		
+		//get the value with the id 
+		subscriberMetaData = dataStore.getSubscriberMetaData(subscriberId);
+		assertNotNull(subscriberMetaData);
+		assertEquals(subscriberId, subscriberMetaData.getSubscriberId());
+		assertEquals(1, subscriberMetaData.getPushNotificationTokens().size());
+		assertEquals(tokenValue, subscriberMetaData.getPushNotificationTokens().get(tokenValue).getToken());
+		assertEquals("fcm", subscriberMetaData.getPushNotificationTokens().get(tokenValue).getServiceName());
+		assertNull(subscriberMetaData.getPushNotificationTokens().get(tokenValue).getExtraData());
+
+		
+		String tokenValue2 = RandomStringUtils.randomAlphabetic(65);
+		
+		PushNotificationToken token2 = new PushNotificationToken(tokenValue2, PushNotificationServiceTypes.APPLE_PUSH_NOTIFICATION.toString());
+		String extraData = RandomStringUtils.randomAlphanumeric(12);
+		token2.setExtraData(extraData);
+		subscriberMetaData.getPushNotificationTokens().put(tokenValue2, token2);
+		
+		
+		dataStore.putSubscriberMetaData(subscriberId, subscriberMetaData);
+		
+		subscriberMetaData = dataStore.getSubscriberMetaData(subscriberId);
+		
+		assertNotNull(subscriberMetaData);
+		assertEquals(subscriberId, subscriberMetaData.getSubscriberId());
+		assertEquals(2, subscriberMetaData.getPushNotificationTokens().size());
+		assertEquals(tokenValue, subscriberMetaData.getPushNotificationTokens().get(tokenValue).getToken());
+		assertEquals("fcm", subscriberMetaData.getPushNotificationTokens().get(tokenValue).getServiceName());
+		assertNull(subscriberMetaData.getPushNotificationTokens().get(tokenValue).getExtraData());
+		
+		assertEquals(tokenValue2, subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getToken());
+		assertEquals("apn", subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getServiceName());
+		assertEquals(extraData, subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getExtraData());
+		
 	}
 }

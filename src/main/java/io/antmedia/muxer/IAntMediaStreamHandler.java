@@ -3,6 +3,9 @@ package io.antmedia.muxer;
 import java.io.File;
 
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.plugin.api.IFrameListener;
+import io.antmedia.plugin.api.IPacketListener;
+import io.antmedia.plugin.api.IStreamListener;
 
 public interface IAntMediaStreamHandler {
 	
@@ -49,8 +52,12 @@ public interface IAntMediaStreamHandler {
 	 * 
 	 * @param pendingPacketSize
 	 * Number of packets pending to be processed
+	 * 
+	 * @param totalByteReceived
+	 * @param byteTransferred 
+	 * @param currentTimeMillis
 	 */
-	public void setQualityParameters(String id, String quality, double speed, int pendingPacketSize, long updateTimeMs);
+	public void setQualityParameters(String streamId, String quality, double speed, int inputQueueSize, long currentTimeMillis);
 
     /***
      * Adds a MuxAdaptor when a muxAdaptor is created
@@ -105,4 +112,82 @@ public interface IAntMediaStreamHandler {
 	 */
 	public Broadcast updateBroadcastStatus(String streamId, long absoluteStartTimeMs, String publishType, Broadcast broadcast);
 	
+	/**
+	 * Add a stream listener to get notified when a new stream is started or finished. 
+	 * {@link IStreamListener} interface has callbacks for conference attendees.
+	 * It's very useful to use in plugins. 
+	 * 
+	 * @param listener
+	 */
+	public void addStreamListener(IStreamListener listener);
+	
+	/**
+	 * Remove a stream listener from the Stream Handler to stop getting notified
+	 * 
+	 * @param listener
+	 */
+	public void removeStreamListener(IStreamListener listener) ;
+	
+	/**
+	 * Add listener to get raw audio or video frames from the internal of Ant Media Server. 
+	 * The methods are called if the audio/video frames are decoded due to settings such adaptive bitrate etc.. 
+	 * This method does not force the Ant Media Server to decode the streams.
+	 * 'Frame' is the decoded data of audio/video 'Packet'
+	 * 
+	 * @param streamId
+	 * @param listener
+	 */
+	public void addFrameListener(String streamId, IFrameListener listener);
+	
+	/**
+	 * Remove frame listener from the Stream Handler  to stop getting notified
+	 * 
+	 * @param streamId
+	 * @param listener
+	 */
+	public void removeFrameListener(String streamId, IFrameListener listener);
+	
+	/**
+	 * Add listener to get audio and video packets from the internal of Ant Media Server. 
+	 * 'Packet' is the encoded data of audio/video 'Frame'. 
+	 * 
+	 * @param streamId
+	 * @param listener
+	 * @return
+	 */
+	public boolean addPacketListener(String streamId, IPacketListener listener);
+	
+	/**
+	 * Remove listener from the Stream Handler to stop getting notified
+	 * 
+	 * @param streamId
+	 * @param listener
+	 * @return
+	 */
+	public boolean removePacketListener(String streamId, IPacketListener listener);
+	
+	/**
+	 * Create another broadcast. It's useful to create another manipulated version of the original broadcast
+	 * in the plugins. The returning frame listener should be feed with raw audio and video frames
+	 * 
+	 * @param streamId
+	 * @return
+	 */
+	public IFrameListener createCustomBroadcast(String streamId);
+	
+	/**
+	 * Stop the custom broadcast that is being created. Stop encoders and make database operations.
+	 * 
+	 * @param streamId
+	 */
+	public void stopCustomBroadcast(String streamId);
+	
+	/**
+	 * Get the MuxAdaptor of the stream. MuxAdaptor is the base class that is responsible for ingesting and distributing the stream
+	 * 
+	 * @param streamId
+	 * @return
+	 */
+	public MuxAdaptor getMuxAdaptor(String streamId);
+
 }
