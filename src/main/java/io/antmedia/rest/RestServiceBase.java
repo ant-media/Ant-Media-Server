@@ -1848,21 +1848,38 @@ public abstract class RestServiceBase {
 		}
 	}
 
-	public static Result addSubTrack(String id, String subTrackId, DataStore store) {
+	public static Result addSubTrack(String id, String subTrackId, DataStore store) 
+	{
 		Result result = new Result(false);
 		Broadcast subTrack = store.get(subTrackId);
+		Broadcast mainTrack = store.get(id);
 		String message = "";
-		if (subTrack != null)
+		if (subTrack != null && mainTrack != null)
 		{
+			
+			int subtrackLimit = mainTrack.getSubtracksLimit();
+			List<String> subTrackStreamIds = mainTrack.getSubTrackStreamIds();
+			if (subtrackLimit != -1 && subTrackStreamIds != null && subTrackStreamIds.size() >= subtrackLimit) 
+			{
+				message = "Subtrack limit is reached for the main track:" + id;
+				logWarning("Subtrack limit is reached for the main track:{}", id.replaceAll(REPLACE_CHARS, "_"));
+				result.setMessage(message);
+				return result;
+			}
+			
+			if (subTrackStreamIds == null) {
+				subTrackStreamIds = new ArrayList<>();
+			}
+			
 			subTrack.setMainTrackStreamId(id);
 			//Update subtrack's main Track Id
 
 			boolean success = store.updateBroadcastFields(subTrackId, subTrack);
-			if (success) {
-				success = store.addSubTrack(id, subTrackId);
-
+			if (success) 
+			{	
+				subTrackStreamIds.add(subTrackId);
+				success = store.updateBroadcastFields(id, mainTrack);
 				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id);
-
 			}
 			else
 
@@ -1873,8 +1890,8 @@ public abstract class RestServiceBase {
 		}
 		else
 		{
-			message = "There is not stream with id:" + subTrackId;
-			logWarning("There is not stream with id:{}" , subTrackId.replaceAll(REPLACE_CHARS, "_"));
+			message = "There is no stream with id:" + subTrackId + " as subtrack or " + id + " as mainTrack";
+			logWarning("There is no stream with id:{} as subtrack or {} as mainTrack" , subTrackId.replaceAll(REPLACE_CHARS, "_"), id.replaceAll(REPLACE_CHARS, "_"));
 		}
 		result.setMessage(message);
 		return result;
