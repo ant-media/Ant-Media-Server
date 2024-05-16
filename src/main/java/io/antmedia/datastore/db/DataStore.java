@@ -915,7 +915,7 @@ public abstract class DataStore {
 		if (newBroadcast.getConferenceMode() != null) {
 			broadcast.setConferenceMode(newBroadcast.getConferenceMode());
 		}
-
+		
 
 		broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
 		broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
@@ -1293,12 +1293,12 @@ public abstract class DataStore {
 	 * @return
 	 */
 	public abstract SubscriberMetadata getSubscriberMetaData(String subscriberId);
-
+	
 	/**
 	 * This is a helper method to remove the ConferenceRoom in later versions
-	 *
+	 * 
 	 * May 11, 2024 - mekya
-	 *
+	 * 
 	 * @param broadcast
 	 * @return
 	 */
@@ -1320,9 +1320,9 @@ public abstract class DataStore {
 
 	/**
 	 * This is a helper method to remove the ConferenceRoom in later versions
-	 *
+	 * 
 	 * May 11, 2024 - mekya
-	 *
+	 * 
 	 * @param broadcast
 	 * @return
 	 */
@@ -1340,7 +1340,7 @@ public abstract class DataStore {
 		return broadcast;
 
 	}
-
+	
 	/**
 	 * Move ConferenceRoom to Broadcast
 	 */
