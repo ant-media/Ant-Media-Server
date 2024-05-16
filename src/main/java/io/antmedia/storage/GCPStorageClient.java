@@ -1,5 +1,10 @@
 package io.antmedia.storage;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
+import com.amazonaws.services.s3.transfer.TransferManager;
+import com.amazonaws.services.s3.transfer.Upload;
 import com.google.cloud.storage.Blob;
 import com.google.cloud.storage.BlobInfo;
 import com.google.cloud.storage.Storage;
@@ -33,7 +38,7 @@ public class GCPStorageClient extends StorageClient {
 		}
 		else 
 		{
-			logger.debug("S3 is not enabled to delete the file: {}", key);
+			logger.debug("Storage is not enabled to delete the file: {}", key);
 		}
 
 	}
@@ -44,21 +49,34 @@ public class GCPStorageClient extends StorageClient {
 			return blob != null;
 		}
 		else {
-			logger.debug("S3 is not enabled to check the file existence: {}", key);
+			logger.debug("Storage is not enabled to check the file existence: {}", key);
 		}
 		return false;
 	}
 
 	public void save(String key, InputStream inputStream, boolean waitForCompletion) {
+		if (isEnabled())
+		{
+			BlobInfo blobInfo = BlobInfo.newBuilder(getStorageName(), key).build();
+			try {
+				getGCPStorage().createFrom(blobInfo, inputStream);
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		else {
+			logger.debug("Storage is not enabled to save the file: {}", key);
+		}
 	}
 
 	
 	public void save(String key, File file, boolean deleteLocalFile) {
+		logger.info("save key:{} file:{}:", key, file.getName());
 		BlobInfo blobInfo = BlobInfo.newBuilder(getStorageName(), key).build();
         try {
 			getGCPStorage().create(blobInfo, Files.readAllBytes(file.toPath()));
         } catch (IOException e) {
-            throw new RuntimeException(e);
+			logger.error(ExceptionUtils.getStackTrace(e));
         }
 
         if (deleteLocalFile)
