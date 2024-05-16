@@ -213,6 +213,15 @@ public class Broadcast {
 	@Schema(description ="Conference mode. It's used if this broadcast has some specific modes. It's created for backward compatibility. It will be deleted.")
 	@Deprecated(forRemoval = true, since = "2.9.1")
 	private String conferenceMode;
+	
+	
+	/**
+	 * The number of subtracks that is allowed to be created for the broadcast.
+	 * It's useful for limiting number of conference attendees. Default value is -1
+	 * and -1 means no limit
+	 */
+	@Schema(description ="Number of subtracks that is allowed to be created for the broadcast. It's usefult for limiting number of conference attendees. Default value is -1  and it means no limit")
+	private int subtracksLimit = -1;
 
 	@Entity
 	public static class PlayListItem
@@ -902,6 +911,14 @@ public class Broadcast {
 
 	public void setConferenceMode(String conferenceMode) {
 		this.conferenceMode = conferenceMode;
+	}
+
+	public int getSubtracksLimit() {
+		return subtracksLimit;
+	}
+
+	public void setSubtracksLimit(int subtracksLimit) {
+		this.subtracksLimit = subtracksLimit;
 	}
 
 }
