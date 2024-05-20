@@ -2134,6 +2134,13 @@ public class AppSettings implements Serializable{
 	@Value("${webhookRetryAttemptDelay:1000}")
 	private long webhookRetryDelay = 1000;
 
+	/**
+	 * Webhook webrtc play authentication url.
+	 */
+	@Value("${webhookPlayAuthUrl:#{null}}")
+	private String webhookPlayAuthUrl;
+
+
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
 	}
@@ -3692,6 +3699,18 @@ public class AppSettings implements Serializable{
 
 	public void setWebhookRetryDelay(long webhookRetryDelay) {
 		this.webhookRetryDelay = webhookRetryDelay;
+	}
+
+	public boolean isWebhookPlayAuthEnabled() {
+		return getWebhookPlayAuthUrl() != null && !getWebhookPlayAuthUrl().isEmpty();
+	}
+
+	public String getWebhookPlayAuthUrl() {
+		return webhookPlayAuthUrl;
+	}
+
+	public void setWebhookPlayAuthUrl(String webhookPlayAuthUrl) {
+		this.webhookPlayAuthUrl = webhookPlayAuthUrl;
 	}
 
 	public boolean isSecureAnalyticEndpoint() {
