@@ -5,10 +5,10 @@
 
 INSTALL_DIRECTORY="$1"
 
-check_marketplace() {
+generate_jwt() {
   REST_URL='http://localhost:5080/rest/v2/server-settings'
   SECRET_KEY=$(grep -oP '^server\.jwtServerSecretKey=\K.*' $INSTALL_DIRECTORY/conf/red5.properties)
-  jwt_generate() {
+  create_jwt_token() {
     # Header
     header='{"typ":"JWT","alg":"HS256"}'
     base64_header=$(echo -n "$header" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
@@ -24,6 +24,6 @@ check_marketplace() {
   }
 
   # Get JWT key
-  JWT_KEY=$(jwt_generate)
+  JWT_KEY=$(create_jwt_token)
 
 }

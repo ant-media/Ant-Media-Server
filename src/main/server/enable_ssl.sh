@@ -176,7 +176,7 @@ if [ "$chainFileExist" != "$privateKeyFileExist" ]; then
 fi
 
 source $INSTALL_DIRECTORY/conf/jwt_marketplace_check.sh "$INSTALL_DIRECTORY"
-check_marketplace
+generate_jwt
 
 get_freedomain(){
   hostname="ams-$RANDOM"
