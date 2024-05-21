@@ -175,7 +175,7 @@ if [ "$chainFileExist" != "$privateKeyFileExist" ]; then
    exit 1
 fi
 
-source $INSTALL_DIRECTORY/conf/jwt_marketplace_check.sh "$INSTALL_DIRECTORY"
+source $INSTALL_DIRECTORY/conf/jwt_generator.sh "$INSTALL_DIRECTORY"
 generate_jwt
 
 get_freedomain(){
