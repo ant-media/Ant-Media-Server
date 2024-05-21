@@ -2577,6 +2577,7 @@ public class AppSettings implements Serializable{
 		aacEncodingEnabled=true;
 		ipFilterEnabled=true;
 		ingestingStreamLimit = -1;
+		recordingSubfolder = null;
 	}
 
 	public int getWebRTCPortRangeMax() {
