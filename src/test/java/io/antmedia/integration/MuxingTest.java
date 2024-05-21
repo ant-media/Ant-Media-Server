@@ -52,6 +52,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.MuxAdaptor;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.rest.model.Result;
 
@@ -73,6 +74,8 @@ public class MuxingTest {
 	public static boolean videoExists;
 	
 	protected static Logger logger = LoggerFactory.getLogger(MuxingTest.class);
+	public static long videoDuration;
+	public static long audioDuration;
 
 
 	static {
@@ -498,6 +501,9 @@ public class MuxingTest {
 				assertTrue(codecpar.height() != 0);
 				assertTrue(codecpar.format() != AV_PIX_FMT_NONE);
 				videoStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+				
+				videoDuration = av_rescale_q(inputFormatContext.streams(i).duration(),  inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+
 
 				videoExists = true;
 				streamExists = true;
@@ -505,6 +511,8 @@ public class MuxingTest {
 			{
 				assertTrue(codecpar.sample_rate() != 0);
 				audioStartTimeMs = av_rescale_q(inputFormatContext.streams(i).start_time(), inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+				
+				audioDuration = av_rescale_q(inputFormatContext.streams(i).duration(),  inputFormatContext.streams(i).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 				audioExists = true;
 				streamExists = true;
 			}
