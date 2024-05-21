@@ -26,10 +26,4 @@ check_marketplace() {
   # Get JWT key
   JWT_KEY=$(jwt_generate)
 
-  # Make REST API call and check response
-  if response=$(curl -s -L "$REST_URL" --header "ProxyAuthorization: $JWT_KEY" | jq -e '.buildForMarket' 2>/dev/null); then
-    echo "true"
-  else
-    echo "false"
-  fi
 }

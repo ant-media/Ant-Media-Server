@@ -176,6 +176,7 @@ if [ "$chainFileExist" != "$privateKeyFileExist" ]; then
 fi
 
 source $INSTALL_DIRECTORY/conf/jwt_marketplace_check.sh "$INSTALL_DIRECTORY"
+check_marketplace
 
 get_freedomain(){
   hostname="ams-$RANDOM"
@@ -202,7 +203,7 @@ get_freedomain(){
     else
       domain=`cat $INSTALL_DIRECTORY/conf/red5.properties |egrep "ams-[0-9]*.antmedia.cloud" -o | uniq`
     fi
-  elif [ "$result_marketplace" == "true" ]; then
+  elif [ $(curl -s -L "$REST_URL" --header "ProxyAuthorization: $JWT_KEY" | jq -e '.buildForMarket' 2>/dev/null) == "true" ]; then
     check_api=`curl -s -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=marketplace"`
     wait_for_dns_validation "$hostname"
     domain="$hostname"".antmedia.cloud"
