@@ -42,6 +42,7 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVInputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
 import org.junit.After;
@@ -1414,7 +1415,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		fetcher.initDTSArrays(2);
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(10);
 			pkt.dts(10);
 			pkt.stream_index(1);
@@ -1427,10 +1428,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(10, value.pts());
 			assertEquals(10, value.dts());
 			assertEquals(1, value.stream_index());
+			avcodec.av_packet_free(pkt);
+
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(20);
 			pkt.dts(20);
 			pkt.stream_index(1);
@@ -1443,10 +1446,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(20, value.pts());
 			assertEquals(20, value.dts());
 			assertEquals(1, value.stream_index());
+			avcodec.av_packet_free(pkt);
+
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(15);
 			pkt.dts(15);
 			pkt.stream_index(1);
@@ -1459,10 +1464,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(21, value.pts());
 			assertEquals(21, value.dts());
 			assertEquals(1, value.stream_index());
+			avcodec.av_packet_free(pkt);
+
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(25);
 			pkt.dts(25);
 			pkt.stream_index(1);
@@ -1475,10 +1482,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(25, value.pts());
 			assertEquals(25, value.dts());
 			assertEquals(1, value.stream_index());
+			avcodec.av_packet_free(pkt);
+
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(30);
 			pkt.dts(30);
 			pkt.stream_index(1);
@@ -1491,11 +1500,14 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(30, value.pts());
 			assertEquals(30, value.dts());
 			assertEquals(1, value.stream_index());
+			
+			avcodec.av_packet_free(pkt);
+
 		}
 
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(0);
 			pkt.dts(0);
 			pkt.stream_index(1);
@@ -1508,10 +1520,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(31, value.pts());
 			assertEquals(31, value.dts());
 			assertEquals(1, value.stream_index());
+			
+			avcodec.av_packet_free(pkt);
+
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(10);
 			pkt.dts(10);
 			pkt.stream_index(1);
@@ -1524,10 +1539,13 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(41, value.pts());
 			assertEquals(41, value.dts());
 			assertEquals(1, value.stream_index());
+			
+			avcodec.av_packet_free(pkt);
+
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(20);
 			pkt.dts(20);
 			pkt.stream_index(1);
@@ -1540,6 +1558,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(51, value.pts());
 			assertEquals(51, value.dts());
 			assertEquals(1, value.stream_index());
+			
+			avcodec.av_packet_free(pkt);
 		}
 
 	}
