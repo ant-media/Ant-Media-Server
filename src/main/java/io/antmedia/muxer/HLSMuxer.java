@@ -361,10 +361,6 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	private void handleFinalization(File file) {
-		if (!file.exists()) {
-			logger.error("File does not exist {}", file.getAbsolutePath());
-			return;
-		}
 		
 		try {
 			if (uploadHLSToS3 && storageClient.isEnabled()) 
@@ -373,7 +369,7 @@ public class HLSMuxer extends Muxer  {
 						+ (subFolder != null ? subFolder : "") + File.separator + file.getName());
 				storageClient.save(path, file, deleteFileOnExit);
 			} else if (deleteFileOnExit) {
-				Files.delete(file.toPath());
+				Files.deleteIfExists(file.toPath());
 			}
 		} catch (IOException e) {
 			logger.error(e.getMessage());

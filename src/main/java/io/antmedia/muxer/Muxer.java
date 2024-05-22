@@ -929,6 +929,10 @@ public abstract class Muxer {
 	private AVBSFContext initBitstreamFilter(String bsfVideoName, AVCodecParameters codecParameters,
 			AVRational timebase) {
 		AVBitStreamFilter bsfilter = av_bsf_get_by_name(bsfVideoName);
+		if (bsfilter == null) {
+			logger.error("cannot find bit stream filter for {}", bsfVideoName);
+			return null;
+		}
 		AVBSFContext videoBsfFilterContext = new AVBSFContext(null);
 		int ret = av_bsf_alloc(bsfilter, videoBsfFilterContext);
 
