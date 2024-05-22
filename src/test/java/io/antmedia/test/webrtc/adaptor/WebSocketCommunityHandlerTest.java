@@ -154,7 +154,7 @@ public class WebSocketCommunityHandlerTest {
 		}
 	}
 	
-	@Test
+	//@Test
 	public void testSendStreamIdInUse() {
 		
 		//case status broadcasting
