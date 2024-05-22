@@ -1415,7 +1415,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		fetcher.initDTSArrays(2);
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(10);
 			pkt.dts(10);
 			pkt.stream_index(1);
@@ -1424,12 +1424,12 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			
 			assertEquals(10, workerThread.getLastSentDTS()[1]);
 
-		
+			avcodec.av_packet_free(pkt);
 
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(20);
 			pkt.dts(20);
 			pkt.stream_index(1);
@@ -1437,24 +1437,26 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			
 			assertEquals(20, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
 
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(15);
 			pkt.dts(15);
 			pkt.stream_index(1);
 			workerThread.writePacket(stream, pkt);
 			
 			assertEquals(21, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
 
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(25);
 			pkt.dts(25);
 			pkt.stream_index(1);
@@ -1462,17 +1464,19 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			
 			assertEquals(25, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(30);
 			pkt.dts(30);
 			pkt.stream_index(1);
 			workerThread.writePacket(stream, pkt);
 			
 			assertEquals(30, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
 			
 
@@ -1480,39 +1484,42 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(0);
 			pkt.dts(0);
 			pkt.stream_index(1);
 			workerThread.writePacket(stream, pkt);
 			
 			assertEquals(31, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
 			
 
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(10);
 			pkt.dts(10);
 			pkt.stream_index(1);
 			workerThread.writePacket(stream, pkt);
 			
 			assertEquals(41, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
 			
 
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(20);
 			pkt.dts(20);
 			pkt.stream_index(1);
 			workerThread.writePacket(stream, pkt);
 
 			assertEquals(51, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
 			
 		}
