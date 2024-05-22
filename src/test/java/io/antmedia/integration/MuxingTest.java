@@ -395,6 +395,21 @@ public class MuxingTest {
 			Process rtmpSendingProcess = execute(
 					ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
 							+ SERVER_ADDR + "/LiveApp/" + streamName);
+			
+			try {
+				Process finalProcess = rtmpSendingProcess;
+				Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
+					return finalProcess.isAlive();
+				});
+			}
+			catch (Exception e) {
+				//try one more time because it may give high resource usage
+				 rtmpSendingProcess = execute(
+							ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
+									+ SERVER_ADDR + "/LiveApp/" + streamName);
+            }
+			
+			
 
 			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
