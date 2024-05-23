@@ -377,7 +377,7 @@ public class Broadcast {
 	private String mainTrackStreamId;
 
 	@Schema(description ="If this broadcast is main track. This variable hold sub track ids.")
-	private List<String> subTrackStreamIds = new ArrayList<String>();
+	private List<String> subTrackStreamIds = new ArrayList<>();
 
 	@Schema(description ="Absolute start time in milliseconds - unix timestamp. It's used for measuring the absolute latency")
 	private long absoluteStartTimeMs;

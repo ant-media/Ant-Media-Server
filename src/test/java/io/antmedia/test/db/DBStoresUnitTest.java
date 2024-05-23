@@ -3158,8 +3158,12 @@ public class DBStoresUnitTest {
 		assertEquals(32000, dataStore.get(id).getEncoderSettingsList().get(0).getAudioBitrate());
         assertEquals(50000, dataStore.get(id).getEncoderSettingsList().get(0).getVideoBitrate());
 
-		broadcast.setEncoderSettingsList(null);
+		if (! (dataStore instanceof InMemoryDataStore) ) {
+			//because inmemorydata store just keeps the reference, it will be updated
+			broadcast.setEncoderSettingsList(null);
+		} 
 		dataStore.updateBroadcastFields(id, broadcast);
+
 		//it will not be updated because encoder settings is null
 		assertEquals(32000, dataStore.get(id).getEncoderSettingsList().get(0).getAudioBitrate());
         assertEquals(50000, dataStore.get(id).getEncoderSettingsList().get(0).getVideoBitrate());
