@@ -915,6 +915,10 @@ public abstract class DataStore {
 			broadcast.setConferenceMode(newBroadcast.getConferenceMode());
 		}
 		
+		if (newBroadcast.getEncoderSettingsList() != null) {
+			broadcast.setEncoderSettingsList(newBroadcast.getEncoderSettingsList());
+		}
+		
 
 		broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
 		broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
@@ -929,9 +933,6 @@ public abstract class DataStore {
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
 		broadcast.setAutoStartStopEnabled(newBroadcast.isAutoStartStopEnabled());
-		broadcast.setEncoderSettingsString(newBroadcast.getEncoderSettingsString());
-		broadcast.setEncoderSettings(newBroadcast.getEncoderSettings());
-
 	}
 
 

@@ -282,7 +282,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private long lastTotalByteReceived = 0;
 
 
-	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, List<EncoderSettings> broadcastEncoderSettings, boolean isSource, IScope scope) {
+	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, Broadcast broadcast, boolean isSource, IScope scope) {
 
 
 		MuxAdaptor muxAdaptor = null;
@@ -292,7 +292,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
 			List<EncoderSettings> appEncoderSettings = appSettings.getEncoderSettings();
 
-			if ((broadcastEncoderSettings != null && !broadcastEncoderSettings.isEmpty()) ||
+			if ((broadcast != null && broadcast.getEncoderSettingsList() != null && !broadcast.getEncoderSettingsList().isEmpty()) ||
 					(appEncoderSettings != null && !appEncoderSettings.isEmpty()) ||
 					appSettings.isWebRTCEnabled() || appSettings.isForceDecoding()) {
 				/*
@@ -320,6 +320,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			muxAdaptor = new MuxAdaptor(clientBroadcastStream);
 		}
 		muxAdaptor.setStreamSource(isSource);
+		muxAdaptor.setBroadcast(broadcast);
 
 		return muxAdaptor;
 	}
@@ -400,7 +401,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		previewOverwrite = appSettingsLocal.isPreviewOverwrite();
 
-		encoderSettingsList = (getBroadcast() != null && getBroadcast().getEncoderSettings() != null && !getBroadcast().getEncoderSettings().isEmpty()) ? getBroadcast().getEncoderSettings() : appSettingsLocal.getEncoderSettings();
+		encoderSettingsList = (getBroadcast() != null && getBroadcast().getEncoderSettingsList() != null && !getBroadcast().getEncoderSettingsList().isEmpty()) 
+										? getBroadcast().getEncoderSettingsList() 
+											: appSettingsLocal.getEncoderSettings();
 
 		previewCreatePeriod = appSettingsLocal.getCreatePreviewPeriod();
 		maxAnalyzeDurationMS = appSettingsLocal.getMaxAnalyzeDurationMS();

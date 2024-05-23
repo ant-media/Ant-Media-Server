@@ -227,11 +227,6 @@ public class Broadcast {
 	@Schema(description ="Number of subtracks that is allowed to be created for the broadcast. It's usefult for limiting number of conference attendees. Default value is -1  and it means no limit")
 	private int subtracksLimit = -1;
 
-	/**
-	 * Broadcast level ABR settings.
-	 */
-	@Schema(description = "Encoder settings for broadcast level ABR")
-	private String encoderSettingsString;
 
 	@Entity
 	public static class PlayListItem
@@ -428,6 +423,9 @@ public class Broadcast {
 	@Schema(description ="The identifier of whether stream should start/stop automatically. It's effective for Stream Sources/IP Cameras. "
 			+ "If there is no viewer after certain amount of seconds, it will stop. If there is an user want to watch the stream, it will start automatically")
 	private boolean autoStartStopEnabled = false;
+
+	@Schema(description ="The list of encoder settings")
+	private List<EncoderSettings> encoderSettingsList;
 
 
 	public Broadcast(String status, String name) {
@@ -907,22 +905,6 @@ public class Broadcast {
 		this.autoStartStopEnabled = autoStartStopEnabled;
 	}
 
-	public List<EncoderSettings> getEncoderSettings() {
-		return encodersStr2List(encoderSettingsString);
-	}
-
-	public String getEncoderSettingsString(){
-		return encoderSettingsString;
-	}
-
-	public void setEncoderSettings(List<EncoderSettings> settings) {
-		encoderSettingsString = encodersList2Str(settings);
-	}
-
-	public void setEncoderSettingsString(String encoderSettingsString) {
-		this.encoderSettingsString = encoderSettingsString;
-	}
-
 	public long getSeekTimeInMs() {
 		return seekTimeInMs;
 	}
@@ -945,6 +927,14 @@ public class Broadcast {
 
 	public void setSubtracksLimit(int subtracksLimit) {
 		this.subtracksLimit = subtracksLimit;
+	}
+
+	public List<EncoderSettings> getEncoderSettingsList() {
+		return encoderSettingsList;
+	}
+
+	public void setEncoderSettingsList(List<EncoderSettings> encoderSettingsList) {
+		this.encoderSettingsList = encoderSettingsList;
 	}
 
 }

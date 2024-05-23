@@ -1478,10 +1478,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
 
+		Broadcast broadcast = new Broadcast();
 		List<EncoderSettings> adaptiveResolutionList = Arrays.asList(new EncoderSettings(144, 150000, 32000,true));
+		broadcast.setEncoderSettingsList(adaptiveResolutionList);
 
 
-		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, adaptiveResolutionList, false, appScope);
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, broadcast, false, appScope);
 
 		//this value should be -1. It means it is uninitialized
 		assertEquals(0, muxAdaptor.getPacketTimeList().size());
@@ -1494,7 +1496,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("f path:" + file.getAbsolutePath());
 			assertTrue(file.exists());
 			String streamId = "test" + (int) (Math.random() * 991000);
-			Broadcast broadcast = new Broadcast();
+			broadcast = new Broadcast();
 			broadcast.setStreamId(streamId);
 			getDataStore().save(broadcast);
 			boolean result = muxAdaptor.init(appScope, streamId, false);
@@ -1556,7 +1558,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			List<MuxAdaptor> muxAdaptorList = new ArrayList<>();
 			for (int j = 0; j < 5; j++) {
-				MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, Arrays.asList(), false, appScope);
+				MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, new Broadcast(), false, appScope);
 				muxAdaptorList.add(muxAdaptor);
 			}
 			{

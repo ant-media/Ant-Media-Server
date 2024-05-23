@@ -35,6 +35,7 @@ import dev.morphia.DeleteOptions;
 import dev.morphia.query.filters.Filters;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
+import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
@@ -139,7 +140,7 @@ public class DBStoresUnitTest {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
 		
-		
+		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testBlockSubscriber(dataStore);
@@ -222,7 +223,7 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() throws Exception {
 		DataStore dataStore = new InMemoryDataStore("testdb");
 		
-		
+		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
@@ -338,6 +339,7 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
 		
+		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
@@ -3132,7 +3134,7 @@ public class DBStoresUnitTest {
 
 	public void testUpdateBroadcastEncoderSettings(DataStore dataStore) {
 
-		String id = RandomStringUtils.randomAlphanumeric(8);
+		String id = RandomStringUtils.randomAlphanumeric(16);
 
 		Broadcast broadcast= new Broadcast();
 		try {
@@ -3142,29 +3144,30 @@ public class DBStoresUnitTest {
 		}
 
 
-		dataStore.save(broadcast);
+		assertNotNull(dataStore.save(broadcast));
 
-        assertNull(dataStore.get(id).getEncoderSettingsString());
+        assertNull(dataStore.get(id).getEncoderSettingsList());
 
-		assertNull(dataStore.get(id).getEncoderSettings());
+        List<EncoderSettings> settingsList = new ArrayList<>();
+        settingsList.add(new EncoderSettings(720, 50000, 32000, true));
 
-		String encoderSettingsStr1 = "[{\"videoBitrate\":500000,\"forceEncode\":true,\"audioBitrate\":32000,\"height\":240}]";
-
-		broadcast.setEncoderSettingsString(encoderSettingsStr1);
+		broadcast.setEncoderSettingsList(settingsList);
 
 		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
 
-		assertEquals(encoderSettingsStr1, dataStore.get(id).getEncoderSettingsString());
-        assertEquals(500000, dataStore.get(id).getEncoderSettings().get(0).getVideoBitrate());
+		assertEquals(32000, dataStore.get(id).getEncoderSettingsList().get(0).getAudioBitrate());
+        assertEquals(50000, dataStore.get(id).getEncoderSettingsList().get(0).getVideoBitrate());
 
-		broadcast.setEncoderSettingsString(null);
-		assertFalse(dataStore.updateBroadcastFields(id, broadcast));
-		assertEquals(encoderSettingsStr1, dataStore.get(id).getEncoderSettingsString());
+		broadcast.setEncoderSettingsList(null);
+		dataStore.updateBroadcastFields(id, broadcast);
+		//it will not be updated because encoder settings is null
+		assertEquals(32000, dataStore.get(id).getEncoderSettingsList().get(0).getAudioBitrate());
+        assertEquals(50000, dataStore.get(id).getEncoderSettingsList().get(0).getVideoBitrate());
 
 
-		broadcast.setEncoderSettingsString("");
+		broadcast.setEncoderSettingsList(new ArrayList<>());
 		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
-		assertTrue(dataStore.get(id).getEncoderSettings().isEmpty());
+		assertTrue(dataStore.get(id).getEncoderSettingsList().isEmpty());
 
 
 	}
