@@ -64,14 +64,20 @@ check_ams() {
     	
       check_license=$(curl -s https://api.antmedia.io/?license="$get_license_key" | tr -d "\"")
             
-	  if [ "$check_license" == "400" ] || [ "$check_license" == "401" ]; then
-		echo "Invalid license key. Please check your license key."
-		exit 1
-      else
-		echo "Downloading the latest version of Ant Media Server Enterprise Edition..."
-		curl --progress-bar -o ams_enterprise.zip "$check_license"
-		ANT_MEDIA_SERVER_ZIP_FILE="ams_enterprise.zip"
-	  fi
+       if [[ ! $check_license =~ ^http ]]; then
+       	
+		   if [ "$check_license" == "400" ] || [ "$check_license" == "401" ]; then
+				echo "Invalid license key. Please check your license key."
+			else 
+				echo "Unexpected response from service: $check_license. Please try again later";
+			fi
+		  	exit 1
+		  	
+	   else
+		  echo "Downloading the latest version of Ant Media Server Enterprise Edition..."
+		  curl --progress-bar -o ams_enterprise.zip "$check_license"
+		  ANT_MEDIA_SERVER_ZIP_FILE="ams_enterprise.zip"
+		fi
 	 
   	fi
   

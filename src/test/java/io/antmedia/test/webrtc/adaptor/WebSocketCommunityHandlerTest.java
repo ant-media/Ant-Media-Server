@@ -2,6 +2,7 @@ package io.antmedia.test.webrtc.adaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -26,6 +27,8 @@ import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
@@ -53,6 +56,8 @@ public class WebSocketCommunityHandlerTest {
 	private HashMap userProperties;
 	private ApplicationContext appContext;
 	private DataStore dataStore;
+	
+	public static final Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandlerTest.class);
 	
 	public class WebSocketEndpoint extends WebSocketCommunityHandler {
 		public WebSocketEndpoint(ApplicationContext appContext) {
@@ -295,30 +300,39 @@ public class WebSocketCommunityHandlerTest {
 	}
 
 	@Test
-	public void testPublishAndDisconnect() {
+	public void testPublishAndDisconnect() 
+	{
+		logger.info("testPublishAndDisconnect is running 0");
 		String sessionId = String.valueOf((int)(Math.random()*10000));
 		when(session.getId()).thenReturn(sessionId);
 
 		String streamId = "streamId" + (int)(Math.random()*1000);
 
-		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
+		logger.info("testPublishAndDisconnect is running 1");
+		RTMPAdaptor rtmpAdaptor = Mockito.spy(wsHandler.getNewRTMPAdaptor("url", 360));
+		doNothing().when(rtmpAdaptor).start();
+		doNothing().when(rtmpAdaptor).stop();
 		
-
 		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
 
+		logger.info("testPublishAndDisconnect is running 2");
 		JSONObject publishObject = new JSONObject();
 		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
 		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
+		logger.info("testPublishAndDisconnect is running 3");
 		verify(rtmpAdaptor).setSession(session);
 		verify(rtmpAdaptor).setStreamId(streamId);
 		verify(rtmpAdaptor).start();
 
+		logger.info("testPublishAndDisconnect is running 4");
 		wsHandler.onClose(session);
 
+		logger.info("testPublishAndDisconnect is running 5");
 		verify(rtmpAdaptor).stop();
+		logger.info("testPublishAndDisconnect is running 6");
 
 	}
 
