@@ -2137,8 +2137,8 @@ public class AppSettings implements Serializable{
 	/**
 	 * Webhook webrtc play authentication url.
 	 */
-	@Value("${webhookPlayAuthUrl:#{null}}")
-	private String webhookPlayAuthUrl;
+	@Value("${webhookPlayAuthUrl:}")
+	private String webhookPlayAuthUrl = "";
 
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
@@ -3701,6 +3701,7 @@ public class AppSettings implements Serializable{
 		this.webhookRetryDelay = webhookRetryDelay;
 	}
 
+	@JsonIgnore
 	public boolean isWebhookPlayAuthEnabled() {
 		return getWebhookPlayAuthUrl() != null && !getWebhookPlayAuthUrl().isEmpty();
 	}

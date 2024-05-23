@@ -797,6 +797,10 @@ public class StreamFetcher {
 			muxAdaptor.writePacket(stream, pkt);
 		}
 		
+		public long[] getLastSentDTS() {
+            return lastSentDTS;
+        }
+		
 		public int getCodecType(int streamIndex) {
 			return inputFormatContext.streams(streamIndex).codecpar().codec_type();
 		}

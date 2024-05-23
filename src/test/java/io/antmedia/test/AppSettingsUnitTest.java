@@ -554,7 +554,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("mpegts", appSettings.getHlsSegmentType());
 
 		assertFalse(appSettings.isWebhookPlayAuthEnabled());
-		assertNull(appSettings.getWebhookPlayAuthUrl());
+		assertEquals("", appSettings.getWebhookPlayAuthUrl());
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
