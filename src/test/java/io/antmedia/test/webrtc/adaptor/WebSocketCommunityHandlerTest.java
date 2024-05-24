@@ -54,12 +54,12 @@ public class WebSocketCommunityHandlerTest {
 	private Session session;
 	private Basic basicRemote;
 	private HashMap userProperties;
-	private ApplicationContext appContext;
+	private static ApplicationContext appContext;
 	private DataStore dataStore;
 	
 	public static final Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandlerTest.class);
 	
-	public class WebSocketEndpoint extends WebSocketCommunityHandler {
+	public static class WebSocketEndpoint extends WebSocketCommunityHandler {
 		public WebSocketEndpoint(ApplicationContext appContext) {
 			super(appContext, null);
 			// TODO Auto-generated constructor stub
@@ -374,6 +374,7 @@ public class WebSocketCommunityHandlerTest {
 
 			ArgumentCaptor<SessionDescription> argument = ArgumentCaptor.forClass(SessionDescription.class);
 			verify(rtmpAdaptor).setRemoteDescription(argument.capture());
+			
 			SessionDescription sessionDescription = argument.getValue();
 			assertEquals(Type.OFFER, sessionDescription.type);
 			assertEquals(sdp, sessionDescription.description);
