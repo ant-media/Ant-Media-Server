@@ -290,17 +290,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		boolean tryEncoderAdaptor = false;
 		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
 			AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
-			List<EncoderSettings> appEncoderSettings = appSettings.getEncoderSettings();
 
-			if ((broadcast != null && broadcast.getEncoderSettingsList() != null && !broadcast.getEncoderSettingsList().isEmpty()) ||
-					(appEncoderSettings != null && !appEncoderSettings.isEmpty()) ||
-					appSettings.isWebRTCEnabled() || appSettings.isForceDecoding()) {
-				/*
-				 * enable encoder adaptor if webrtc enabled because we're supporting forwarding video to end user
-				 * without transcoding. We need encoder adaptor because we need to transcode audio
-				 */
-				tryEncoderAdaptor = true;
-			}
+			tryEncoderAdaptor = isEncoderAdaptorShouldBeTried(broadcast, appSettings);
 		}
 
 		if (tryEncoderAdaptor) {
@@ -323,6 +314,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		muxAdaptor.setBroadcast(broadcast);
 
 		return muxAdaptor;
+	}
+
+	public static boolean isEncoderAdaptorShouldBeTried(Broadcast broadcast,
+			AppSettings appSettings) 
+	{
+		return (broadcast != null && broadcast.getEncoderSettingsList() != null && !broadcast.getEncoderSettingsList().isEmpty()) 
+				||
+					(appSettings.getEncoderSettings() != null && !appSettings.getEncoderSettings().isEmpty()) 
+				||
+					appSettings.isWebRTCEnabled() 
+				||  appSettings.isForceDecoding();
 	}
 
 

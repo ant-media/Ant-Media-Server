@@ -1126,5 +1126,9 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 	public void setMuxAdaptor(WeakReference<MuxAdaptor> muxAdaptor) {
 		this.muxAdaptor = muxAdaptor;
 	}
+	
+	public WeakReference<MuxAdaptor> getMuxAdaptor() {
+		return muxAdaptor;
+	}
 
 }

@@ -102,6 +102,7 @@ import org.red5.codec.StreamCodecInfo;
 import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
 import org.red5.io.flv.impl.Tag;
+import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamPacket;
@@ -118,6 +119,7 @@ import org.red5.server.stream.ClientBroadcastStream;
 import org.red5.server.stream.VideoCodecFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -1598,6 +1600,38 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(createPreviewPeriod, muxAdaptor.getPreviewCreatePeriod());
 	}
+	
+
+	@Test
+	public void testClientBroadcastStreamStartPublish() {
+		ClientBroadcastStream clientBroadcastStreamReal = new ClientBroadcastStream();
+
+		ClientBroadcastStream clientBroadcastStream = Mockito.spy(clientBroadcastStreamReal);
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream.setCodecInfo(info);
+		
+		IStreamCapableConnection conn = Mockito.mock(IStreamCapableConnection.class);
+		Mockito.doReturn(conn).when(clientBroadcastStream).getConnection();
+		
+	//	IContext context = conn.getScope().getContext(); 
+	//	ApplicationContext appCtx = context.getApplicationContext(); 
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		
+		Mockito.when(conn.getScope()).thenReturn(appScope);
+				
+		assertNull(clientBroadcastStream.getMuxAdaptor());
+
+		
+		clientBroadcastStream.startPublishing();
+		
+		//because no streamId
+		assertNull(clientBroadcastStream.getMuxAdaptor());
+		
+		
+		clientBroadcastStream.setPublishedName("streamId");
+		clientBroadcastStream.startPublishing();
+		assertNotNull(clientBroadcastStream.getMuxAdaptor());
+	}
 
 	@Test
 	public void testMuxingSimultaneously() {
@@ -1670,6 +1704,51 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail("excsereption:" + e);
 		}
+
+	}
+	
+	@Test
+	public void testIsEncoderAdaptorShouldBeTried() {
+		
+		AppSettings appSettingsLocal = new AppSettings();
+		appSettingsLocal.setWebRTCEnabled(false);
+		appSettingsLocal.setForceDecoding(false);
+		
+		assertFalse(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
+		
+		appSettingsLocal.setWebRTCEnabled(true);
+		assertTrue(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
+		
+		appSettingsLocal.setWebRTCEnabled(false);
+		appSettingsLocal.setForceDecoding(true);
+		assertTrue(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
+		
+		appSettingsLocal.setWebRTCEnabled(true);
+		appSettingsLocal.setForceDecoding(true);
+		assertTrue(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
+
+		appSettingsLocal.setWebRTCEnabled(false);
+		appSettingsLocal.setForceDecoding(false);
+		appSettingsLocal.setEncoderSettings(null);
+		assertFalse(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
+
+		
+		appSettingsLocal.setEncoderSettings(Arrays.asList());
+		assertFalse(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
+		
+		appSettingsLocal.setEncoderSettings(Arrays.asList(new EncoderSettings(144, 150000, 32000, true)));
+		assertTrue(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
+
+		appSettingsLocal.setEncoderSettings(null);
+		Broadcast broadcast = new Broadcast();
+		assertFalse(MuxAdaptor.isEncoderAdaptorShouldBeTried(broadcast, appSettingsLocal));
+
+		broadcast.setEncoderSettingsList(Arrays.asList());
+		assertFalse(MuxAdaptor.isEncoderAdaptorShouldBeTried(broadcast, appSettingsLocal));
+		
+		
+		broadcast.setEncoderSettingsList(Arrays.asList(new EncoderSettings(144, 150000, 32000, true)));
+		assertTrue(MuxAdaptor.isEncoderAdaptorShouldBeTried(broadcast, appSettingsLocal));
 
 	}
 
