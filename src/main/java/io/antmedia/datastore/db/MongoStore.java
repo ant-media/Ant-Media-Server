@@ -803,6 +803,10 @@ public class MongoStore extends DataStore {
 				if (broadcast.getSpeed() != 0) {
 					updates.add(set("speed", broadcast.getSpeed()));
 				}
+
+				if(broadcast.getEncoderSettingsList() != null){
+					updates.add(set("encoderSettingsList",broadcast.getEncoderSettingsList()));
+				}
 				
 				if (broadcast.getConferenceMode() != null) {
 					updates.add(set("conferenceMode", broadcast.getConferenceMode()));
