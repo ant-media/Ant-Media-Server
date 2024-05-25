@@ -559,7 +559,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("mpegts", appSettings.getHlsSegmentType());
 
 		assertFalse(appSettings.isWebhookPlayAuthEnabled());
-		assertNull(appSettings.getWebhookPlayAuthUrl());
+		assertEquals("", appSettings.getWebhookPlayAuthUrl());
 
 		assertNull(appSettings.getRecordingSubfolder());
 

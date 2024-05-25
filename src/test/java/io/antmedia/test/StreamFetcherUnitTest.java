@@ -42,8 +42,10 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVInputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
+import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.javacpp.BytePointer;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -1414,132 +1416,129 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		fetcher.initDTSArrays(2);
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(10);
 			pkt.dts(10);
 			pkt.stream_index(1);
+			pkt.data(new BytePointer(15)).size(15);
+
 			workerThread.writePacket(stream, pkt);
+			
+			
+			assertEquals(10, workerThread.getLastSentDTS()[1]);
 
-			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
-			verify(muxAdaptor, times(1)).writePacket(Mockito.any(), argument.capture());
+			avcodec.av_packet_free(pkt);
 
-			AVPacket value = argument.getValue();
-			assertEquals(10, value.pts());
-			assertEquals(10, value.dts());
-			assertEquals(1, value.stream_index());
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(20);
 			pkt.dts(20);
 			pkt.stream_index(1);
+			pkt.data(new BytePointer(15)).size(15);
+
 			workerThread.writePacket(stream, pkt);
 
-			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
-			verify(muxAdaptor, times(2)).writePacket(Mockito.any(), argument.capture());
+			
+			assertEquals(20, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
-			AVPacket value = argument.getValue();
-			assertEquals(20, value.pts());
-			assertEquals(20, value.dts());
-			assertEquals(1, value.stream_index());
+
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(15);
 			pkt.dts(15);
 			pkt.stream_index(1);
+			pkt.data(new BytePointer(15)).size(15);
+
 			workerThread.writePacket(stream, pkt);
+			
+			assertEquals(21, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
-			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
-			verify(muxAdaptor, times(3)).writePacket(Mockito.any(), argument.capture());
 
-			AVPacket value = argument.getValue();
-			assertEquals(21, value.pts());
-			assertEquals(21, value.dts());
-			assertEquals(1, value.stream_index());
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(25);
 			pkt.dts(25);
 			pkt.stream_index(1);
+			pkt.data(new BytePointer(15)).size(15);
+
 			workerThread.writePacket(stream, pkt);
 
-			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
-			verify(muxAdaptor, times(4)).writePacket(Mockito.any(), argument.capture());
+			
+			assertEquals(25, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
-			AVPacket value = argument.getValue();
-			assertEquals(25, value.pts());
-			assertEquals(25, value.dts());
-			assertEquals(1, value.stream_index());
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(30);
 			pkt.dts(30);
 			pkt.stream_index(1);
+			pkt.data(new BytePointer(15)).size(15);
+
 			workerThread.writePacket(stream, pkt);
+			
+			assertEquals(30, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
-			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
-			verify(muxAdaptor, times(5)).writePacket(Mockito.any(), argument.capture());
+			
 
-			AVPacket value = argument.getValue();
-			assertEquals(30, value.pts());
-			assertEquals(30, value.dts());
-			assertEquals(1, value.stream_index());
 		}
 
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(0);
 			pkt.dts(0);
 			pkt.stream_index(1);
+			pkt.data(new BytePointer(15)).size(15);
+
 			workerThread.writePacket(stream, pkt);
+			
+			assertEquals(31, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
-			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
-			verify(muxAdaptor, times(6)).writePacket(Mockito.any(), argument.capture());
+			
 
-			AVPacket value = argument.getValue();
-			assertEquals(31, value.pts());
-			assertEquals(31, value.dts());
-			assertEquals(1, value.stream_index());
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(10);
 			pkt.dts(10);
 			pkt.stream_index(1);
+			pkt.data(new BytePointer(15)).size(15);
+
 			workerThread.writePacket(stream, pkt);
+			
+			assertEquals(41, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
-			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
-			verify(muxAdaptor, times(7)).writePacket(Mockito.any(), argument.capture());
+			
 
-			AVPacket value = argument.getValue();
-			assertEquals(41, value.pts());
-			assertEquals(41, value.dts());
-			assertEquals(1, value.stream_index());
 		}
 
 		{
-			AVPacket pkt = new AVPacket();
+			AVPacket pkt = avcodec.av_packet_alloc();
 			pkt.pts(20);
 			pkt.dts(20);
 			pkt.stream_index(1);
+			pkt.data(new BytePointer(15)).size(15);
+
 			workerThread.writePacket(stream, pkt);
 
-			ArgumentCaptor<AVPacket> argument = ArgumentCaptor.forClass(AVPacket.class);
-			verify(muxAdaptor, times(8)).writePacket(Mockito.any(), argument.capture());
+			assertEquals(51, workerThread.getLastSentDTS()[1]);
+			avcodec.av_packet_free(pkt);
 
-			AVPacket value = argument.getValue();
-			assertEquals(51, value.pts());
-			assertEquals(51, value.dts());
-			assertEquals(1, value.stream_index());
+			
 		}
 
 	}

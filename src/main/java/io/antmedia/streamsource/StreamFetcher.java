@@ -439,7 +439,7 @@ public class StreamFetcher {
 				}
 
 
-				muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null,true, scope);
+				muxAdaptor = MuxAdaptor.initializeMuxAdaptor(null, broadcast, true, scope);
 				// if there is only audio, firstKeyFrameReceivedChecked should be true in advance
 				// because there is no video frame
 				muxAdaptor.setFirstKeyFrameReceivedChecked(!videoExist); 
@@ -796,6 +796,10 @@ public class StreamFetcher {
 
 			muxAdaptor.writePacket(stream, pkt);
 		}
+		
+		public long[] getLastSentDTS() {
+            return lastSentDTS;
+        }
 		
 		public int getCodecType(int streamIndex) {
 			return inputFormatContext.streams(streamIndex).codecpar().codec_type();

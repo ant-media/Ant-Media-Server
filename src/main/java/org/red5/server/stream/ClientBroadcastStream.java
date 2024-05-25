@@ -24,7 +24,6 @@ import java.lang.management.ManagementFactory;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
@@ -88,10 +87,8 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
-import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.muxer.parser.codec.AACAudio;
 import io.vertx.core.Vertx;
 
@@ -969,10 +966,13 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			}
 		}
 
-		MuxAdaptor localMuxAdaptor = MuxAdaptor.initializeMuxAdaptor(this, false, conn.getScope());
-
-
+		DataStore datastore = getDatastore(appCtx);
+		Broadcast broadcast = null;
+		if (datastore != null) {
+			broadcast = datastore.get(publishedName);
+		}
 		
+		MuxAdaptor localMuxAdaptor = MuxAdaptor.initializeMuxAdaptor(this, broadcast, false, conn.getScope());
 
 		try {
 			if (conn == null) {
@@ -980,7 +980,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 
 			}
 
-			setUpEndPoints(appCtx, publishedName, localMuxAdaptor);
+			setUpEndPoints(appCtx, broadcast, localMuxAdaptor);
 			localMuxAdaptor.init(conn, publishedName, false);
 			
 			addStreamListener(localMuxAdaptor);
@@ -1001,12 +1001,17 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 			log.error(ExceptionUtils.getStackTrace(e));
 		}
 	}
+	
+	public DataStore getDatastore(ApplicationContext appCtx) {
+		if (appCtx.containsBean(IDataStoreFactory.BEAN_NAME)) {
+			return ((IDataStoreFactory) appCtx.getBean(IDataStoreFactory.BEAN_NAME)).getDataStore();
+		}
+		return null;
+	}
 
-	private void setUpEndPoints(ApplicationContext appCtx, String publishedName, MuxAdaptor muxAdaptor) {
-		if (appCtx.containsBean(IDataStoreFactory.BEAN_NAME)) 
+	private void setUpEndPoints(ApplicationContext appCtx, Broadcast broadcast, MuxAdaptor muxAdaptor) {
+		if (broadcast != null)
 		{
-			DataStore dataStore = ((IDataStoreFactory)appCtx.getBean(IDataStoreFactory.BEAN_NAME)).getDataStore();
-			Broadcast broadcast = dataStore.get(publishedName);
 			Vertx vertx = (Vertx) appCtx.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
 
 			MuxAdaptor.setUpEndPoints(muxAdaptor, broadcast, vertx);
@@ -1120,6 +1125,10 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 	
 	public void setMuxAdaptor(WeakReference<MuxAdaptor> muxAdaptor) {
 		this.muxAdaptor = muxAdaptor;
+	}
+	
+	public WeakReference<MuxAdaptor> getMuxAdaptor() {
+		return muxAdaptor;
 	}
 
 }

@@ -2137,8 +2137,8 @@ public class AppSettings implements Serializable{
 	/**
 	 * Webhook webrtc play authentication url.
 	 */
-	@Value("${webhookPlayAuthUrl:#{null}}")
-	private String webhookPlayAuthUrl;
+	@Value("${webhookPlayAuthUrl:}")
+	private String webhookPlayAuthUrl = "";
 
 	/**
 	 * Subfolder for the recording files (mp4 and webm)
@@ -3708,6 +3708,7 @@ public class AppSettings implements Serializable{
 		this.webhookRetryDelay = webhookRetryDelay;
 	}
 
+	@JsonIgnore
 	public boolean isWebhookPlayAuthEnabled() {
 		return getWebhookPlayAuthUrl() != null && !getWebhookPlayAuthUrl().isEmpty();
 	}
