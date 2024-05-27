@@ -120,6 +120,34 @@ public class MongoStore extends DataStore {
 		conferenceRoomDatastore.ensureIndexes();
 
 		available = true;
+		
+		//migrate from conference room to broadcast
+		// May 11, 2024
+		// we may remove this code after some time and ConferenceRoom class
+		// mekya
+		migrateConferenceRoomsToBroadcasts();
+		
+		
+	}	
+	
+	@Override
+	public void migrateConferenceRoomsToBroadcasts() {
+		while (true) {
+			Query<ConferenceRoom> query = conferenceRoomDatastore.find(ConferenceRoom.class);
+			ConferenceRoom conferenceRoom = query.first();
+			if (conferenceRoom != null) {
+				try {
+					Broadcast broadcast = conferenceToBroadcast(conferenceRoom);
+					save(broadcast);
+					conferenceRoomDatastore.delete(conferenceRoom);
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			} else {
+				break;
+			}
+		}
+		
 	}
 
 	public static String getMongoConnectionUri(String host, String username, String password) {
@@ -329,37 +357,6 @@ public class MongoStore extends DataStore {
 			}
 		}
 		return false;
-	}
-	@Override
-	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search) {
-		synchronized(this) {
-			try {
-				Query<ConferenceRoom> query = conferenceRoomDatastore.find(ConferenceRoom.class);
-
-				if (size > MAX_ITEM_IN_ONE_LIST) {
-					size = MAX_ITEM_IN_ONE_LIST;
-				}
-
-				FindOptions findingOptions = new FindOptions().skip(offset).limit(size);
-				if (sortBy != null && orderBy != null && !sortBy.isEmpty() && !orderBy.isEmpty()) 
-				{
-					findingOptions.sort(orderBy.equals("desc") ? Sort.descending(sortBy) : Sort.ascending(sortBy));
-				}
-				if (search != null && !search.isEmpty()) 
-				{
-					logger.info("Server side search is called for Conference Rooom = {}", search);
-					query.filter(
-							Filters.regex("roomId").caseInsensitive().pattern(".*" + search + ".*")
-							
-				    );
-				}
-				return query.iterator(findingOptions).toList();
-
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return null;
 	}
 
 	private boolean checkIfRegexValid(String regex) {
@@ -806,10 +803,20 @@ public class MongoStore extends DataStore {
 				if (broadcast.getSpeed() != 0) {
 					updates.add(set("speed", broadcast.getSpeed()));
 				}
+
+				if(broadcast.getEncoderSettingsList() != null){
+					updates.add(set("encoderSettingsList",broadcast.getEncoderSettingsList()));
+				}
+				
+				if (broadcast.getConferenceMode() != null) {
+					updates.add(set("conferenceMode", broadcast.getConferenceMode()));
+				}
 				
 
 				prepareFields(broadcast, updates);
 
+				updates.add(set("plannedStartDate", broadcast.getPlannedStartDate()));
+				updates.add(set("seekTimeInMs", broadcast.getSeekTimeInMs()));
 				updates.add(set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
 				updates.add(set("receivedBytes", broadcast.getReceivedBytes()));
 				updates.add(set("bitrate", broadcast.getBitrate()));
@@ -821,8 +828,8 @@ public class MongoStore extends DataStore {
 				updates.add(set(META_DATA, broadcast.getMetaData()));
 				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
 				updates.add(set("updateTime", broadcast.getUpdateTime()));
+				updates.add(set("autoStartStopEnabled",broadcast.isAutoStartStopEnabled()));
 
-				
 				UpdateResult updateResult = query.update(updates).execute();
 				return updateResult.getModifiedCount() == 1;
 			} catch (Exception e) {
@@ -1174,74 +1181,6 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public boolean createConferenceRoom(ConferenceRoom room) {
-		boolean result = false;
-		synchronized(this) {
-			if(room != null && room.getRoomId() != null) {
-
-				try {
-					conferenceRoomDatastore.save(room);
-					result = true;
-
-				} catch (Exception e) {
-					logger.error(ExceptionUtils.getStackTrace(e));
-				}
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
-		boolean result = false;
-		synchronized(this) {
-			try {
-				UpdateResult updateResult = conferenceRoomDatastore.find(ConferenceRoom.class)
-						.filter(Filters.eq("roomId", roomId))
-						.update(set("roomId", room.getRoomId()),
-								set("startDate", room.getStartDate()),
-								set("endDate", room.getEndDate()),
-								set("roomStreamList", room.getRoomStreamList())
-								).execute();
-
-
-
-				return updateResult.getMatchedCount() == 1;
-			} catch (Exception e) {
-				logger.error(e.getMessage());
-			}
-		}
-		return result;
-	}
-
-	@Override
-	public boolean deleteConferenceRoom(String roomId) {
-		synchronized(this) {
-			try {
-				DeleteResult deleteResult = conferenceRoomDatastore.find(ConferenceRoom.class)
-						.filter(Filters.eq("roomId",roomId))
-						.delete();
-				return deleteResult.getDeletedCount() == 1;
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return false;
-	}
-
-	@Override
-	public ConferenceRoom getConferenceRoom(String roomId) {
-		synchronized(this) {
-			try {
-				return conferenceRoomDatastore.find(ConferenceRoom.class).filter(Filters.eq("roomId", roomId)).first();
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return null;
-	}
-
-	@Override
 	public boolean deleteToken(String tokenId) {
 		boolean result = false;
 		synchronized(this) {
@@ -1563,5 +1502,9 @@ public class MongoStore extends DataStore {
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
+	}
+	
+	public Datastore getConferenceRoomDatastore() {
+		return conferenceRoomDatastore;
 	}
 }

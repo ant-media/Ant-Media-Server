@@ -222,7 +222,6 @@ public class AppSettings implements Serializable{
 	/**
 	 * @hidden
 	 */
-	private static final String SETTINGS_STREAM_FETCHER_AUTO_START = "settings.streamFetcherAutoStart";
 	/**
 	 * @hidden
 	 */
@@ -323,6 +322,11 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_ENCODING_VP8_DEADLINE = "settings.encoding.vp8.deadline";
+	
+	/**
+	 * @hidden
+	 */
+	private static final String SETTINGS_HW_SCALING_ENABLED= "settings.encoding.hwScalingEnabled";
 
 	/**
 	 * @hidden
@@ -732,7 +736,6 @@ public class AppSettings implements Serializable{
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
 
-
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
 	 * Allowed IP addresses to reach REST API, It must be in CIDR format as a.b.c.d/x
@@ -1063,6 +1066,14 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${hlsPlayListType:${"+SETTINGS_HLS_PLAY_LIST_TYPE+":}}" )
 	private String hlsPlayListType = "";
+	
+	/**
+	 * HLS Muxer segment type. It can be "mpegts" or "fmp4"
+	 * 
+	 * fmp4 is compatible to play the HEVC HLS Streams
+	 */
+	@Value( "${hlsSegmentType:mpegts}" )
+	private String hlsSegmentType = "mpegts";
 
 	/**
 	 * The path for manually saved used VoDs
@@ -1134,7 +1145,7 @@ public class AppSettings implements Serializable{
 	 * If it is true, stream sources are started automatically when server is started
 	 * If it's false, stream sources need to be started programmatically or manually by the user
 	 */
-	@Value( "${streamFetcherAutoStart:${"+SETTINGS_STREAM_FETCHER_AUTO_START+":false}}" )
+	@Value("${startStreamFetcherAutomatically:false}")
 	private boolean startStreamFetcherAutomatically;
 
 	/**
@@ -1531,8 +1542,7 @@ public class AppSettings implements Serializable{
 	private String rtspPullTransportType = "3";
 
 	/**
-	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
-	 * It can be tcp or udp
+	 * Specify the rtspTimeoutDurationMs in pulling IP Camera or RTSP sources
 	 */
 	@Value("${rtspTimeoutDurationMs:${" + SETTINGS_RTSP_TIMEOUT_DURATION_MS+ ":5000}}")
 	private int rtspTimeoutDurationMs = 5000;
@@ -2032,6 +2042,12 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${id3TagEnabled:false}")
 	private boolean id3TagEnabled = false;
+
+	/**
+	 * Enables the SEI data for HLS
+	 */
+	@Value("${seiEnabled:false}")
+	private boolean seiEnabled = false;
 	
 	/**
 	 * Ant Media Server can get the audio level from incoming RTP Header in WebRTC streaming and send to the viewers.
@@ -2052,7 +2068,10 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${sendAudioLevelToViewers:true}")
 	private boolean sendAudioLevelToViewers = true;
-	
+
+	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":true}}")
+	private boolean hwScalingEnabled = true;
+
 	/**
 	 * Firebase Service Account Key JSON to send push notification
 	 * through Firebase Cloud Messaging
@@ -2068,6 +2087,7 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${subscriberAuthenticationKey:#{ T(org.apache.commons.lang3.RandomStringUtils).randomAlphanumeric(32)}}")
 	private String subscriberAuthenticationKey = RandomStringUtils.randomAlphanumeric(32);
+
 
 
 	/**
@@ -2094,7 +2114,33 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${apnKeyId:#{null}}")
 	private String apnKeyId;
+
+	/**
+	 * Retry count on webhook POST failure
+	 */
+	@Value("${webhookRetryCount:0}")
+	private int webhookRetryCount = 0;
 	
+	/**
+	 * If it's false, jwt token should be send in analytic events to the AnalyticsEventLogger.
+	 * It uses {@link AppSettings#jwtSecretKey} for the secret key
+	 */
+	@Value("${secureAnalyticEndpoint:false}")
+	private boolean secureAnalyticEndpoint = false;
+
+	/**
+	 * Delay in milliseconds between webhook attempts on POST failure.
+	 */
+	@Value("${webhookRetryAttemptDelay:1000}")
+	private long webhookRetryDelay = 1000;
+
+	/**
+	 * Webhook webrtc play authentication url.
+	 */
+	@Value("${webhookPlayAuthUrl:}")
+	private String webhookPlayAuthUrl = "";
+
+
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
 	}
@@ -3551,6 +3597,14 @@ public class AppSettings implements Serializable{
 		this.id3TagEnabled = id3TagEnabled;
 	}
 
+	public boolean isSeiEnabled() {
+		return seiEnabled;
+	}
+
+	public void setSeiEnabled(boolean seiEnabled) {
+		this.seiEnabled = seiEnabled;
+	}
+
 	public boolean isSendAudioLevelToViewers() {
 		return sendAudioLevelToViewers;
 	}
@@ -3573,6 +3627,14 @@ public class AppSettings implements Serializable{
 
 	public void setTimeTokenSecretForPlay(String timeTokenSecretForPlay) {
 		this.timeTokenSecretForPlay = timeTokenSecretForPlay;
+	}
+
+	public boolean isHwScalingEnabled() {
+		return hwScalingEnabled;
+	}
+
+	public void setHwScalingEnabled(boolean hwScalingEnabled) {
+		this.hwScalingEnabled = hwScalingEnabled;
 	}
 
 	public String getFirebaseAccountKeyJSON() {
@@ -3621,6 +3683,51 @@ public class AppSettings implements Serializable{
 	
 	public void setApnsServer(String apnsServer) {
 		this.apnsServer = apnsServer;
+	}
+
+	public int getWebhookRetryCount() {
+		return webhookRetryCount;
+	}
+
+	public void setWebhookRetryCount(int webhookRetryCount) {
+		this.webhookRetryCount = webhookRetryCount;
+	}
+
+	public long getWebhookRetryDelay() {
+		return webhookRetryDelay;
+	}
+
+	public void setWebhookRetryDelay(long webhookRetryDelay) {
+		this.webhookRetryDelay = webhookRetryDelay;
+	}
+
+	@JsonIgnore
+	public boolean isWebhookPlayAuthEnabled() {
+		return getWebhookPlayAuthUrl() != null && !getWebhookPlayAuthUrl().isEmpty();
+	}
+
+	public String getWebhookPlayAuthUrl() {
+		return webhookPlayAuthUrl;
+	}
+
+	public void setWebhookPlayAuthUrl(String webhookPlayAuthUrl) {
+		this.webhookPlayAuthUrl = webhookPlayAuthUrl;
+	}
+
+	public boolean isSecureAnalyticEndpoint() {
+		return secureAnalyticEndpoint;
+	}
+
+	public void setSecureAnalyticEndpoint(boolean secureAnalyticEndpoint) {
+		this.secureAnalyticEndpoint = secureAnalyticEndpoint;
+	}
+
+	public String getHlsSegmentType() {
+		return hlsSegmentType;
+	}
+
+	public void setHlsSegmentType(String hlsSegmentType) {
+		this.hlsSegmentType = hlsSegmentType;
 	}
 
 }

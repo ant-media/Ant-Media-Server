@@ -96,6 +96,12 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true, appSettings.isRtmpPlaybackEnabled());
 		appSettings.setRtmpPlaybackEnabled(false);
 		
+		
+		assertEquals("mpegts", appSettings.getHlsSegmentType());
+		appSettings.setHlsSegmentType("fmp4");
+		assertEquals("fmp4", appSettings.getHlsSegmentType());
+
+		
 	}
 
 	@Test
@@ -283,7 +289,12 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appSettings.setTimeTokenSecretForPublish("secretpublish");
 		assertEquals("secretpublish", appSettings.getTimeTokenSecretForPublish());
+
 		
+		assertEquals(true, appSettings.isHwScalingEnabled());
+		appSettings.setHwScalingEnabled(false);
+		assertEquals(false, appSettings.isHwScalingEnabled());
+
 		String apnKeyId = "apnkeyid";
 		appSettings.setApnKeyId(apnKeyId);
 		assertEquals(apnKeyId, appSettings.getApnKeyId());
@@ -299,6 +310,19 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		String privateKey = "privateKey";
 		appSettings.setApnPrivateKey(privateKey);
 		assertEquals(privateKey, appSettings.getApnPrivateKey());
+
+		int webHookRetryCount = 2;
+		appSettings.setWebhookRetryCount(webHookRetryCount);
+		assertEquals(webHookRetryCount, appSettings.getWebhookRetryCount());
+
+		long webHookRetryDelay = 2000;
+		appSettings.setWebhookRetryDelay(webHookRetryDelay);
+		assertEquals(webHookRetryDelay, appSettings.getWebhookRetryDelay());
+
+		String webhookPlayAuthUrl = "playAuthUrl";
+		appSettings.setWebhookPlayAuthUrl(webhookPlayAuthUrl);
+		assertEquals(webhookPlayAuthUrl, appSettings.getWebhookPlayAuthUrl());
+
 	}
 	
 	
@@ -511,18 +535,34 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(true, appSettings.isSendAudioLevelToViewers());
 		assertNull(appSettings.getTimeTokenSecretForPublish());
 		assertNull(appSettings.getTimeTokenSecretForPlay());
+
+        assertTrue(appSettings.isHwScalingEnabled());
+
 		assertNotNull(appSettings.getSubscriberAuthenticationKey());
 		assertNull(appSettings.getFirebaseAccountKeyJSON());
 		assertNull(appSettings.getApnKeyId());
 		assertNull(appSettings.getApnTeamId());
 		assertNull(appSettings.getApnPrivateKey());
 		assertEquals("api.sandbox.push.apple.com", appSettings.getApnsServer());
+
+		assertEquals(0, appSettings.getWebhookRetryCount());
+		assertEquals(1000, appSettings.getWebhookRetryDelay());
+		assertEquals(false, appSettings.isSeiEnabled());
 		
+
+		assertFalse(appSettings.isSecureAnalyticEndpoint());
+		assertEquals("mpegts", appSettings.getHlsSegmentType());
+
+		assertFalse(appSettings.isWebhookPlayAuthEnabled());
+		assertEquals("", appSettings.getWebhookPlayAuthUrl());
+
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
+
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					174, numberOfFields);
+					181, numberOfFields);
+
 		
 	}
 	

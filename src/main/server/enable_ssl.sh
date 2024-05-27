@@ -111,9 +111,9 @@ output() {
   OUT=$?
       if [ $OUT -ne 0 ]; then
           echo -e $ERROR_MESSAGE
-	  if [ -d $TEMP_DIR ]; then
-	     rm -rf $TEMP_DIR
-	  fi
+    if [ -d $TEMP_DIR ]; then
+       rm -rf $TEMP_DIR
+    fi
           exit $OUT
     fi
 }
@@ -125,6 +125,25 @@ delete_alias() {
   fi
 }
 
+wait_for_dns_validation() {
+  local hostname=$1
+
+  while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
+    now=$(date +"%H:%M:%S")
+    echo "$now > Waiting for DNS validation."
+    sleep 10
+  done
+}
+
+# Install jq
+install_jq() {
+    if ! [ command -v jq &> /dev/null ]; then
+        sudo apt update -qq
+        sudo apt install -y jq
+    fi
+}
+
+install_jq
 
 fullChainFileExist=false
 if [ ! -z "$FULL_CHAIN_FILE" ] && [ -f "$FULL_CHAIN_FILE" ]; then
@@ -149,19 +168,22 @@ if [ "$fullChainFileExist" != "$privateKeyFileExist" ]; then
    exit 1
 fi
 
-# private key file should exist if it's custome ssl
+# private key file should exist if it's customer ssl
 if [ "$chainFileExist" != "$privateKeyFileExist" ]; then
    usage
    echo -e "Missing chain file. Please check this link: https://github.com/ant-media/Ant-Media-Server/wiki/Frequently-Asked-Questions#how-to-install-custom-ssl-by-building-full-chain-certificate-\n"
    exit 1
 fi
 
+source $INSTALL_DIRECTORY/conf/jwt_marketplace_check.sh "$INSTALL_DIRECTORY"
+
 get_freedomain(){
   hostname="ams-$RANDOM"
+  result_marketplace=$(check_marketplace)
   get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
+  ip=`curl -s http://checkip.amazonaws.com`
   if [ ! -z $get_license_key ]; then
-    if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then
-      ip=`curl -s http://checkip.amazonaws.com`
+    if [ `cat $INSTALL_DIRECTORY/conf/red5.properties | egrep "rtmps.keystorepass=ams-[0-9]*.antmedia.cloud"|wc -l` == "0" ]; then   
       check_api=`curl -s -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=$get_license_key"`
       if [ $? != 0 ]; then
         echo "There is a problem with the script. Please re-run the enable_ssl.sh script."
@@ -173,17 +195,18 @@ get_freedomain(){
         echo "The license key is invalid."
         exit 401
       fi
-      while [ -z $(dig +short $hostname.antmedia.cloud @8.8.8.8) ]; do
-        now=$(date +"%H:%M:%S")
-        echo "$now > Waiting for DNS validation."
-        sleep 10
-      done
+      wait_for_dns_validation "$hostname"
       domain="$hostname"".antmedia.cloud"
       echo "DNS success, installing the SSL certificate."
       freedomain="true"
     else
       domain=`cat $INSTALL_DIRECTORY/conf/red5.properties |egrep "ams-[0-9]*.antmedia.cloud" -o | uniq`
     fi
+  elif [ "$result_marketplace" == "true" ]; then
+    check_api=`curl -s -X POST -H "Content-Type: application/json" "https://route.antmedia.io/create?domain=$hostname&ip=$ip&license=marketplace"`
+    wait_for_dns_validation "$hostname"
+    domain="$hostname"".antmedia.cloud"
+    freedomain="true" 
   else
     echo "Please make sure you enter your license key and use the Enterprise edition."
     exit 1

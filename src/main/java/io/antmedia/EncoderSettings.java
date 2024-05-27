@@ -2,6 +2,9 @@ package io.antmedia;
 
 import java.io.Serializable;
 
+import dev.morphia.annotations.Entity;
+
+@Entity
 public class EncoderSettings implements Serializable{
 	
 	private  int height;

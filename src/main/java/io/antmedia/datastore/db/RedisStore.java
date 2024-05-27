@@ -70,6 +70,13 @@ public class RedisStore extends MapBasedDataStore {
     	 catch (IOException e) {
  			logger.error(ExceptionUtils.getStackTrace(e));
  		} 
+    	
+    	//migrate from conferenceRoomMap to Broadcast
+    	// May 11, 2024
+		// we may remove this code after some time and ConferenceRoom class
+    	// mekya
+    	migrateConferenceRoomsToBroadcasts();
+    	
 	}
 
 

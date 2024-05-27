@@ -1,6 +1,5 @@
 package io.antmedia.datastore.db.types;
 
-import java.util.List;
 import java.util.Map;
 
 import org.bson.types.ObjectId;
@@ -12,8 +11,7 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
-import dev.morphia.utils.IndexType;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 @Entity
 @Indexes({ @Index(fields = @Field("subscriberId")) })
@@ -21,18 +19,18 @@ public class SubscriberMetadata {
 	
 
 	@JsonIgnore
+    @Schema(hidden = true)
 	@Id
-	@ApiModelProperty(value = "the db id of the SubscriberMetadata")
-	private ObjectId dbId;
-	
-	/**
-	 * Subscriber id. It can be username, email or any random number
-	 */
-	@ApiModelProperty(value = "the subscriber id")
-	private String subscriberId;
-	
-	@ApiModelProperty(value = "Push notification tokens provided by FCM and APN")
-	private Map<String, PushNotificationToken> pushNotificationTokens;
+    private ObjectId dbId;
+
+    /**
+     * The subscriber id. It can be username, email or any random number
+     */
+    @Schema(description = "The subscriber id")
+    private String subscriberId;
+
+    @Schema(description = "Push notification tokens provided by FCM and APN")
+    private Map<String, PushNotificationToken> pushNotificationTokens;
 
 	public ObjectId getDbId() {
 		return dbId;
