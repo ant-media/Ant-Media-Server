@@ -279,24 +279,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	//NOSONAR because we need to keep the reference of the field
 	protected AVChannelLayout channelLayout;
-
-
 	private long lastTotalByteReceived = 0;
 
-	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, boolean isSource, IScope scope) {
+
+	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, Broadcast broadcast, boolean isSource, IScope scope) {
+
+
 		MuxAdaptor muxAdaptor = null;
 		ApplicationContext applicationContext = scope.getContext().getApplicationContext();
 		boolean tryEncoderAdaptor = false;
 		if (applicationContext.containsBean(AppSettings.BEAN_NAME)) {
 			AppSettings appSettings = (AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME);
-			List<EncoderSettings> list = appSettings.getEncoderSettings();
-			if ((list != null && !list.isEmpty()) || appSettings.isWebRTCEnabled() || appSettings.isForceDecoding()) {
-				/*
-				 * enable encoder adaptor if webrtc enabled because we're supporting forwarding video to end user
-				 * without transcoding. We need encoder adaptor because we need to transcode audio
-				 */
-				tryEncoderAdaptor = true;
-			}
+
+			tryEncoderAdaptor = isEncoderAdaptorShouldBeTried(broadcast, appSettings);
 		}
 
 		if (tryEncoderAdaptor) {
@@ -316,8 +311,20 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			muxAdaptor = new MuxAdaptor(clientBroadcastStream);
 		}
 		muxAdaptor.setStreamSource(isSource);
+		muxAdaptor.setBroadcast(broadcast);
 
 		return muxAdaptor;
+	}
+
+	public static boolean isEncoderAdaptorShouldBeTried(Broadcast broadcast,
+			AppSettings appSettings) 
+	{
+		return (broadcast != null && broadcast.getEncoderSettingsList() != null && !broadcast.getEncoderSettingsList().isEmpty()) 
+				||
+					(appSettings.getEncoderSettings() != null && !appSettings.getEncoderSettings().isEmpty()) 
+				||
+					appSettings.isWebRTCEnabled() 
+				||  appSettings.isForceDecoding();
 	}
 
 
@@ -395,7 +402,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		targetLatency = appSettingsLocal.getTargetLatency();
 
 		previewOverwrite = appSettingsLocal.isPreviewOverwrite();
-		encoderSettingsList = appSettingsLocal.getEncoderSettings();
+
+		encoderSettingsList = (getBroadcast() != null && getBroadcast().getEncoderSettingsList() != null && !getBroadcast().getEncoderSettingsList().isEmpty()) 
+										? getBroadcast().getEncoderSettingsList() 
+											: appSettingsLocal.getEncoderSettings();
+
 		previewCreatePeriod = appSettingsLocal.getCreatePreviewPeriod();
 		maxAnalyzeDurationMS = appSettingsLocal.getMaxAnalyzeDurationMS();
 		generatePreview = appSettingsLocal.isGeneratePreview();
