@@ -51,7 +51,7 @@ check_ams() {
 	#Download the latest version of the installation script
 	wget -O install_ant-media-server.sh https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh && sudo chmod 755 install_ant-media-server.sh
 	get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
-	check_token=$(curl -s https://api.antmedia.io/?token="$get_token" | tr -d "\"")
+	check_token=$(curl -s https://api.antmedia.io/?token="$TOKEN" | tr -d "\"")
 
 	if [ ! -z "${TOKEN}" ]; then
 	  	if [ "$check_token" == "400" ] || [ "$check_token" == "401" ]; then
@@ -62,10 +62,9 @@ check_ams() {
 			curl --progress-bar -o ams_enterprise.zip "$check_token"
 			ANT_MEDIA_SERVER_ZIP_FILE="ams_enterprise.zip"
 		fi
-	fi
 
 	#Check if it is Enterprise or Community
-	if [ -z "$get_license_key" ]; then
+	elif [ -z "$get_license_key" ]; then
 	
 	   #if there is no license key, it can be still enterprise edition in the marketplace
 	   
