@@ -2140,6 +2140,12 @@ public class AppSettings implements Serializable{
 	@Value("${webhookPlayAuthUrl:}")
 	private String webhookPlayAuthUrl = "";
 
+	/**
+	 * Subfolder for the recording files (mp4 and webm)
+	 */
+	@Value("${recordingSubfolder:#{null}}")
+	private String recordingSubfolder;
+
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -2571,6 +2577,7 @@ public class AppSettings implements Serializable{
 		aacEncodingEnabled=true;
 		ipFilterEnabled=true;
 		ingestingStreamLimit = -1;
+		recordingSubfolder = null;
 	}
 
 	public int getWebRTCPortRangeMax() {
@@ -3730,4 +3737,11 @@ public class AppSettings implements Serializable{
 		this.hlsSegmentType = hlsSegmentType;
 	}
 
+	public String getRecordingSubfolder() {
+		return recordingSubfolder;
+	}
+
+	public void setRecordingSubfolder(String recordingSubfolder) {
+		this.recordingSubfolder = recordingSubfolder;
+	}
 }

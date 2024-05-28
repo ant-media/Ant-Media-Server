@@ -4555,4 +4555,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptorReal.addSEIData(data);
 		verify(hlsMuxer, times(1)).setSeiData(data);
 	}
+
+	@Test
+	public void testRecordingWithRecordingSubfolder() {
+		appSettings.setRecordingSubfolder("records");
+		testMp4Muxing("record" + RandomUtils.nextInt(0, 10000));
+	}
+
 }
