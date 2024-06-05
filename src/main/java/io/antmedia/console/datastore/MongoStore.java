@@ -2,8 +2,10 @@ package io.antmedia.console.datastore;
 
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
+import io.antmedia.rest.model.UserScope;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -82,12 +84,16 @@ public class MongoStore extends AbstractConsoleDataStore {
 				String password = user.getPassword();
 				UserType userType = user.getUserType();
 				String scope = user.getScope();
+				UserScope newScope = user.getNewScope();
+
 				return datastore.find(User.class)
 									.filter(Filters.eq("email", username))
 									.update(
 											UpdateOperators.set("password", password),
 											UpdateOperators.set("userType", userType),
-											UpdateOperators.set("scope",scope))
+											UpdateOperators.set("scope",scope),
+											UpdateOperators.set("newScope", newScope))
+
 									.execute()
 									.getMatchedCount() == 1;
 			} catch (Exception e) {

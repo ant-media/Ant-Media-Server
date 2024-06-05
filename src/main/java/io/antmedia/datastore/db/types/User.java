@@ -1,5 +1,6 @@
 package io.antmedia.datastore.db.types;
 
+import io.antmedia.rest.model.UserScope;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -14,6 +15,8 @@ import dev.morphia.annotations.Indexes;
 import dev.morphia.utils.IndexType;
 import io.antmedia.rest.model.UserType;
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.util.HashMap;
 
 @Schema(description = "The user information")
 @Entity(value = "user")
@@ -43,6 +46,8 @@ public class User {
      */
     @Schema(description = "The scope of the user. If it's 'system', it can access system-level stuff. If it's an application name, it can access application-level stuff.")
     private String scope;
+
+	private UserScope newScope;
 
     /**
      * The new password of the user. This field is only set for certain user types.
@@ -167,5 +172,13 @@ public class User {
 
 	public void setLastName(String lastName) {
 		this.lastName = lastName;
-	}	
+	}
+
+	public UserScope getNewScope() {
+		return newScope;
+	}
+
+	public void setNewScope(UserScope userScope){
+		this.newScope = userScope;
+	}
 }

@@ -2,6 +2,12 @@ package io.antmedia.console.rest;
 
 import java.io.IOException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import io.antmedia.rest.model.UserScope;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
@@ -37,6 +43,9 @@ public class AuthenticationFilter extends AbstractFilter {
 	public static final String DISPATCH_PATH_URL = "_path";
 	public static final String PROXY_AUTHORIZATION_HEADER_JWT_TOKEN = "ProxyAuthorization";
 	public static final String FORBIDDEN_ERROR = "Not allowed to access this resource. Contact system admin";
+
+	Pattern extractAppNamePattern = Pattern.compile("(?<=://[^/]+/)[^/]+(?=/rest)");
+
 
 	public AbstractConsoleDataStore getAbstractConsoleDataStore()
 	{
@@ -98,6 +107,8 @@ public class AuthenticationFilter extends AbstractFilter {
 		String path = ((HttpServletRequest) request).getRequestURI();
 
 		ServerSettings serverSettings = getServerSettings();
+
+
 		
 		/*
 		 * JWT Filter checking below parameters:
@@ -151,8 +162,18 @@ public class AuthenticationFilter extends AbstractFilter {
 				if (currentUser != null) 
 				{
 					String userScope = currentUser.getScope();
+					UserScope newScope = currentUser.getNewScope();
+
 					String dispatchURL = httpRequest.getParameter(DISPATCH_PATH_URL);
-					boolean scopeAccess =  scopeAccessGranted(userScope, dispatchURL);
+
+					Matcher matcher = extractAppNamePattern.matcher(httpRequest.getRequestURI());
+					String appName = "";
+					if (matcher.find()) {
+						 appName = matcher.group();
+					}
+
+
+					boolean scopeAccess =  scopeAccessGranted2(newScope, dispatchURL);
 					
 					if (HttpMethod.GET.equals(method))  
 					{
@@ -180,13 +201,12 @@ public class AuthenticationFilter extends AbstractFilter {
 						else if (scopeAccess) 
 						{
 							//if it's an admin, provide access - backward compatible
-							if (UserType.ADMIN.equals(currentUser.getUserType()) || currentUser.getUserType() == null) 
+							if (UserType.ADMIN.equals(currentUser.getNewScope().appNameUserTypeMap.get(appName)) || currentUser.getUserType() == null)
 							{
 								chain.doFilter(request, response);
 							}
 							//user scope already checked on scopeAccessGranted. No need to check it again
-							else if (UserType.USER.equals(currentUser.getUserType()) && 
-									(dispatchURL != null && (dispatchURL.contains("/rest/v2/broadcasts") || dispatchURL.contains("/rest/v2/vods") )))
+							else if (UserType.USER.equals(currentUser.getNewScope().appNameUserTypeMap.get(appName)) && (dispatchURL.contains("/rest/v2/broadcasts") || dispatchURL.contains("/rest/v2/vods")))
 							{
 								//if user scope is system and granted, it cannot change anythings in the system scope server-settings, add/delete apps and users
 								//if user scope is application and granted, it can do anything in this scope
@@ -197,7 +217,7 @@ public class AuthenticationFilter extends AbstractFilter {
 							}
 						}
 						else {
-							if (UserType.ADMIN.equals(currentUser.getUserType()) && 
+							if (UserType.ADMIN.equals(currentUser.getNewScope().appNameUserTypeMap.get(appName)) &&
 									(path.startsWith("/rest/v2/applications/settings/" + userScope) || (path.startsWith(userScope) || path.startsWith(userScope, 1)))) 
 							{
 								//only admin user can access to change the application settings out of its scope
@@ -244,7 +264,32 @@ public class AuthenticationFilter extends AbstractFilter {
 		}
 		return granted;
 	}
-	
+
+	private boolean scopeAccessGranted2(UserScope userScope, String dispatchUrl) {
+
+		boolean granted = false;
+		if(userScope == null || userScope.isSystemRights()){
+			granted = true;
+
+		}else{
+			HashMap<String, UserType> appNameUserTypeMap = userScope.getAppNameUserTypeMap();
+
+			if(dispatchUrl != null){
+				for (Map.Entry<String, UserType> entry : appNameUserTypeMap.entrySet()) {
+					String appName = entry.getKey();
+					if ((dispatchUrl.startsWith(appName) || dispatchUrl.startsWith(appName, 1)))
+					{
+						//second dispatch url is if the url starts with "/"
+						granted = true;
+						break;
+					}
+				}
+			}
+
+		}
+
+		return granted;
+	}
 
 	private boolean checkJWT( String jwtString) {
 		boolean result = true;

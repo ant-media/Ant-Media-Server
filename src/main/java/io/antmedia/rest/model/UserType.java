@@ -1,5 +1,7 @@
 package io.antmedia.rest.model;
 
+import java.io.Serializable;
+
 public enum UserType {
 	
 	/**
