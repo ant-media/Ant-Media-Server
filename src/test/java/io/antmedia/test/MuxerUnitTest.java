@@ -2,11 +2,6 @@ package io.antmedia.test;
 
 
 import static org.bytedeco.ffmpeg.global.avcodec.*;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.av_stream_get_side_data;
@@ -2637,6 +2632,21 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 		logger.info("leaving testMp4Muxing");
 		return null;
+	}
+	
+	@Test
+	public void testHLSMuxerCodecSupported() 
+	{
+		HLSMuxer hlsMuxerTester = new HLSMuxer(vertx, null, "streams", 1, null, false);
+		
+		assertFalse(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_VP8));
+		assertTrue(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_AC3));
+		assertTrue(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_AAC));
+		assertTrue(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_H264));
+		assertTrue(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_H265));
+		assertTrue(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_MP3));
+		assertFalse(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_NONE));
+
 	}
 
 	@Test
