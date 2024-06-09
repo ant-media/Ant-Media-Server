@@ -2,18 +2,8 @@ package io.antmedia.filter;
 
 import java.io.IOException;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.ws.rs.HttpMethod;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
-import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Subscriber;
@@ -21,10 +11,17 @@ import io.antmedia.datastore.db.types.Token;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.security.ITokenService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.ws.rs.HttpMethod;
 
 public class TokenFilterManager extends AbstractFilter   {
 
-	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
+	public static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 	public static final String NOT_INITIALIZED= "Not initialized";
 	protected static Logger logger = LoggerFactory.getLogger(TokenFilterManager.class);
 	public static final String TOKEN_HEADER_FOR_NODE_COMMUNICATION = "ClusterAuthorization";

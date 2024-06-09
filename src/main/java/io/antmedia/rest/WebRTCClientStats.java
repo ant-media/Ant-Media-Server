@@ -2,44 +2,43 @@ package io.antmedia.rest;
 
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoSendStats;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
-@ApiModel(value="WebRTCClientStats", description="The WebRTC Client Statistics class")
+@Schema(description = "WebRTC Client statistics.")
 public class WebRTCClientStats {
 
-	@ApiModelProperty(value = "the measured bitrate of the WebRTC Client")
-	private int measuredBitrate;
-	
-	@ApiModelProperty(value = "the sent bitrate of the WebRTC Client")
-	private int sendBitrate;
-	
-	@ApiModelProperty(value = "the video frame sent period of the WebRTC Client")
-	private double videoFrameSendPeriod;
-	
-	@ApiModelProperty(value = "the audio frame send period of the WebRTC Client")
-	private double audioFrameSendPeriod;
+	@Schema(description = "The measured bitrate of the WebRTC Client")
+    private int measuredBitrate;
+    
+    @Schema(description = "The sent bitrate of the WebRTC Client")
+    private int sendBitrate;
+    
+    @Schema(description = "The video frame sent period of the WebRTC Client")
+    private double videoFrameSendPeriod;
+    
+    @Schema(description = "The audio frame send period of the WebRTC Client")
+    private double audioFrameSendPeriod;
 
-	@ApiModelProperty(value = "WebRTC Client Id which is basically hash of the object")
-	private int clientId;
+    @Schema(description = "WebRTC Client Id which is basically hash of the object")
+    private int clientId;
 
-	@ApiModelProperty(value = "Number of video packets sent")
-	private long videoPacketCount;
+    @Schema(description = "Number of video packets sent")
+    private long videoPacketCount;
 
-	@ApiModelProperty(value = "Number of audio packets sent")
-	private long audioPacketCount;
-	
-	@ApiModelProperty(value = "Video sent low level stats")
-	private WebRTCVideoSendStats videoSentStats;
-	
-	@ApiModelProperty(value = "Audio sent low level stats")
-	private WebRTCAudioSendStats audioSentStats;
-	
-	@ApiModelProperty(value = "Free text information for the client")
-	private String clientInfo;
+    @Schema(description = "Number of audio packets sent")
+    private long audioPacketCount;
+    
+    @Schema(description = "Video sent low level stats")
+    private WebRTCVideoSendStats videoSentStats;
+    
+    @Schema(description = "Audio sent low level stats")
+    private WebRTCAudioSendStats audioSentStats;
+    
+    @Schema(description = "Free text information for the client")
+    private String clientInfo;
 
-	@ApiModelProperty(value = "WebRTC Client's ip address")
-	private String clientIp;
+    @Schema(description = "WebRTC Client's ip address")
+    private String clientIp;
 
 	public WebRTCClientStats(int measuredBitrate, int sendBitrate, double videoFrameSendPeriod, double audioFrameSendPeriod, 
 			long videoPacketCount, long audioPacketCount, int clientId, String clientInfo, String clientIp) {

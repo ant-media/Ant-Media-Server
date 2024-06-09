@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
@@ -21,6 +22,7 @@ public class DashViewerStats extends ViewerStats implements IStreamStats, Applic
 	
 	private Object lock = new Object();
 
+
 	//TODO: Code duplication(HLSViewerStats) move this method to ViewerStats
 	@Override
 	public void setApplicationContext(ApplicationContext applicationContext)  {
@@ -34,6 +36,9 @@ public class DashViewerStats extends ViewerStats implements IStreamStats, Applic
 
 		AppSettings settings = (AppSettings)applicationContext.getBean(AppSettings.BEAN_NAME);
 		timeoutMS = getTimeoutMSFromSettings(settings, timeoutMS, DASH_TYPE);
+		
+		AntMediaApplicationAdapter adapter = (AntMediaApplicationAdapter)applicationContext.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		appName = adapter.getScope().getName();
 		
 		vertx.setPeriodic(DEFAULT_TIME_PERIOD_FOR_VIEWER_COUNT, yt-> 
 		{

@@ -1,13 +1,14 @@
 package io.antmedia.servlet;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 
-import javax.servlet.ServletException;
-import javax.servlet.annotation.MultipartConfig;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -19,6 +20,7 @@ import org.springframework.web.context.WebApplicationContext;
 import com.amazonaws.event.ProgressEventType;
 
 import io.antmedia.AppSettings;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.storage.StorageClient;
 
 @MultipartConfig
@@ -26,9 +28,6 @@ public class UploadHLSChunk extends HttpServlet {
 
 
 	private static final long serialVersionUID = 1L;
-
-	public static final String STREAMS = "/streams";
-	public static final String WEBAPPS = "webapps";
 
 	protected static Logger logger = LoggerFactory.getLogger(UploadHLSChunk.class);
 
@@ -129,12 +128,12 @@ public class UploadHLSChunk extends HttpServlet {
 
 		storageClient.save(s3FileKey, inputStream, true);
 
-
 	}
 
-	private String getS3Key(HttpServletRequest req, AppSettings appSettings) {
+	public static String getS3Key(HttpServletRequest req, AppSettings appSettings) {
 		//No need have File.separator between the below strings because req.getPathInfo() starts with "/"
-		return appSettings.getS3StreamsFolderPath() + req.getPathInfo();
+		//req.getPathInfo(); includes only the part after /hls-upload/. In other words, just {SUB_FOLDER} + (M3U8 or TS files)
+		return Muxer.replaceDoubleSlashesWithSingleSlash(appSettings.getS3StreamsFolderPath() + File.separator + req.getPathInfo());
 	}
 
 }

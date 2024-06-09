@@ -1,7 +1,9 @@
 package io.antmedia.test.filter;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -10,13 +12,13 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -27,12 +29,14 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
+import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -113,6 +117,155 @@ public class DashStatisticsFilterTest {
 			logger.error(ExceptionUtils.getStackTrace(e));
 			fail(ExceptionUtils.getStackTrace(e));
 		}
+	}
+	
+	@Test
+	public void testGetApplicationAdaptor() {
+		FilterConfig filterconfig = mock(FilterConfig.class);
+		ServletContext servletContext = mock(ServletContext.class);
+		ConfigurableWebApplicationContext context = mock(ConfigurableWebApplicationContext.class);
+		
+		when(context.isRunning()).thenReturn(true);
+		IStreamStats streamStats = mock(IStreamStats.class);
+		
+		when(context.getBean(DashViewerStats.BEAN_NAME)).thenReturn(streamStats);
+		
+		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
+				.thenReturn(context);
+		
+		when(filterconfig.getServletContext()).thenReturn(servletContext);
+		
+		try {
+			DashStatisticsFilter dashStatisticsFilterSpy = Mockito.spy(dashStatisticsFilter);
+			dashStatisticsFilterSpy.init(filterconfig);
+			
+			assertNull(dashStatisticsFilterSpy.getAntMediaApplicationAdapter());
+			
+			when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(Mockito.mock(AntMediaApplicationAdapter.class));
+			assertNotNull(dashStatisticsFilterSpy.getAntMediaApplicationAdapter());
+
+			
+		}
+		catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			fail(ExceptionUtils.getStackTrace(e));
+		}
+	}
+	
+	@Test
+	public void testDoFilterForNotFound() {
+		FilterConfig filterconfig = mock(FilterConfig.class);
+		ServletContext servletContext = mock(ServletContext.class);
+		ConfigurableWebApplicationContext context = mock(ConfigurableWebApplicationContext.class);
+		
+		when(context.isRunning()).thenReturn(true);
+		IStreamStats streamStats = mock(IStreamStats.class);
+		
+		when(context.getBean(DashViewerStats.BEAN_NAME)).thenReturn(streamStats);
+		
+		when(servletContext.getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE))
+				.thenReturn(context);
+		
+		when(filterconfig.getServletContext()).thenReturn(servletContext);
+		
+		try {
+			DashStatisticsFilter dashStatisticsFilterSpy = Mockito.spy(dashStatisticsFilter);
+			dashStatisticsFilterSpy.init(filterconfig);
+			
+			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			FilterChain mockChain = mock(FilterChain.class);
+			
+			HttpSession session = mock(HttpSession.class);
+			String sessionId = RandomStringUtils.randomAlphanumeric(16);
+			when(session.getId()).thenReturn(sessionId);
+			when(mockRequest.getSession()).thenReturn(session);
+			when(mockRequest.getMethod()).thenReturn("GET");
+			
+			String streamId = RandomStringUtils.randomAlphanumeric(8);
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+"/"+streamId+"m4s");
+			
+			when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_NOT_FOUND);
+			
+			DataStoreFactory dsf = mock(DataStoreFactory.class);		
+			when(context.getBean(DataStoreFactory.BEAN_NAME)).thenReturn(dsf);
+			
+			DataStore dataStore = mock(DataStore.class);
+			when(dataStore.isAvailable()).thenReturn(true);
+			when(dsf.getDataStore()).thenReturn(dataStore);
+			
+			AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+			doReturn(appAdaptor).when(dashStatisticsFilterSpy).getAntMediaApplicationAdapter();
+			
+
+			logger.info("session id {}, stream id {}", sessionId, streamId);
+			dashStatisticsFilterSpy.doFilter(mockRequest, mockResponse, mockChain);
+			Mockito.verify(dashStatisticsFilterSpy, times(1)).startStreamingIfAutoStartStopEnabled(mockRequest, streamId);
+			Mockito.verify(appAdaptor, Mockito.never()).startStreaming(Mockito.any());
+
+			
+			when(mockRequest.getMethod()).thenReturn("HEAD");
+			dashStatisticsFilterSpy.doFilter(mockRequest, mockResponse, mockChain);
+			Mockito.verify(dashStatisticsFilterSpy, times(2)).startStreamingIfAutoStartStopEnabled(mockRequest, streamId);
+			Mockito.verify(appAdaptor, Mockito.never()).startStreaming(Mockito.any());
+
+
+			Broadcast broadcast = mock(Broadcast.class);
+			Mockito.doReturn(broadcast).when(dashStatisticsFilterSpy).getBroadcast(Mockito.any(), Mockito.any());
+			dashStatisticsFilterSpy.doFilter(mockRequest, mockResponse, mockChain);
+			Mockito.verify(dashStatisticsFilterSpy, times(3)).startStreamingIfAutoStartStopEnabled(mockRequest, streamId);
+			Mockito.verify(appAdaptor, Mockito.times(0)).startStreaming(Mockito.any());
+
+			Mockito.when(broadcast.isAutoStartStopEnabled()).thenReturn(true);
+			dashStatisticsFilterSpy.doFilter(mockRequest, mockResponse, mockChain);
+
+			Mockito.verify(dashStatisticsFilterSpy, times(4)).startStreamingIfAutoStartStopEnabled(mockRequest, streamId);
+			Mockito.verify(appAdaptor, Mockito.times(1)).startStreaming(Mockito.any());
+			
+			{
+				when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams");
+				dashStatisticsFilterSpy.doFilter(mockRequest, mockResponse, mockChain);
+				//it will not change the times because there is no stream id
+				Mockito.verify(dashStatisticsFilterSpy, times(4)).startStreamingIfAutoStartStopEnabled(mockRequest, streamId);
+				Mockito.verify(appAdaptor, Mockito.times(1)).startStreaming(Mockito.any());
+				
+				when(mockRequest.getMethod()).thenReturn("GET");
+				dashStatisticsFilterSpy.doFilter(mockRequest, mockResponse, mockChain);
+				//it will not change the times because there is no stream id
+				Mockito.verify(dashStatisticsFilterSpy, times(4)).startStreamingIfAutoStartStopEnabled(mockRequest, streamId);
+				Mockito.verify(appAdaptor, Mockito.times(1)).startStreaming(Mockito.any());
+				
+
+			}
+			
+			{
+				when(mockResponse.getStatus()).thenReturn(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+				dashStatisticsFilterSpy.doFilter(mockRequest, mockResponse, mockChain);
+				//it will not change the times because internal server error
+				Mockito.verify(dashStatisticsFilterSpy, times(4)).startStreamingIfAutoStartStopEnabled(mockRequest, streamId);
+				Mockito.verify(appAdaptor, Mockito.times(1)).startStreaming(Mockito.any());
+				
+				when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/"+streamId+"/"+streamId+"m4s");
+				dashStatisticsFilterSpy.doFilter(mockRequest, mockResponse, mockChain);
+				//it will not change the times becauser internal server error
+				Mockito.verify(dashStatisticsFilterSpy, times(4)).startStreamingIfAutoStartStopEnabled(mockRequest, streamId);
+				Mockito.verify(appAdaptor, Mockito.times(1)).startStreaming(Mockito.any());
+
+			}
+			{
+				when(mockRequest.getMethod()).thenReturn("POST");
+				dashStatisticsFilterSpy.doFilter(mockRequest, mockResponse, mockChain);
+				//it will not change the times because post request
+				Mockito.verify(dashStatisticsFilterSpy, times(4)).startStreamingIfAutoStartStopEnabled(mockRequest, streamId);
+				Mockito.verify(appAdaptor, Mockito.times(1)).startStreaming(Mockito.any());
+			}
+		
+			
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+			fail(ExceptionUtils.getStackTrace(e));
+		}
+		
 	}
 	
 	@Test

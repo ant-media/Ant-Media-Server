@@ -18,7 +18,7 @@
 
 package org.red5.server.tomcat;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 import org.apache.catalina.Context;
 import org.apache.catalina.LifecycleState;

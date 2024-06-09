@@ -2,5 +2,5 @@ package io.antmedia;
 
 public interface IAppSettingsUpdateListener 
 {
-	void settingsUpdated(AppSettings settings);
+	boolean settingsUpdated(AppSettings settings);
 }

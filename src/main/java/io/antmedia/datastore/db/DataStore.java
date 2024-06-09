@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +26,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.SubscriberStats;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
@@ -53,7 +55,7 @@ public abstract class DataStore {
 		String streamId = null;
 		try {
 		if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-			streamId = RandomStringUtils.randomAlphanumeric(16) + System.currentTimeMillis();
+			streamId = RandomStringUtils.randomAlphanumeric(12) + System.nanoTime();
 			broadcast.setStreamId(streamId);
 		}
 		streamId = broadcast.getStreamId();
@@ -183,38 +185,6 @@ public abstract class DataStore {
 	 * @return
 	 */
 	public abstract List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search);
-
-	/**
-	 * Returns the Conference Room List in order
-	 *
-	 * @param offset the number of items to skip
-	 * @param size batch size
-	 * @param sortBy can get "name" or "startDate" or "endDate" values
-	 * @param orderBy can get "desc" or "asc"
-	 * @param search is used for searching in RoomId
-	 * @return
-	 */
-	public abstract List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search);
-	
-	public List<ConferenceRoom> getConferenceRoomList(Map<String, String> conferenceMap, int offset, int size, String sortBy, String orderBy,
-			String search, Gson gson) {
-		ArrayList<ConferenceRoom> list = new ArrayList<>();
-		synchronized (this) {
-			Collection<String> conferenceRooms = null;
-			conferenceRooms = conferenceMap.values();
-
-			for (String roomString : conferenceRooms) {
-				ConferenceRoom room = gson.fromJson(roomString, ConferenceRoom.class);
-				list.add(room);
-			}
-		}
-		if (search != null && !search.isEmpty()) {
-			search = search.replaceAll(REPLACE_CHARS_REGEX, "_");
-			logger.info("server side search called for Conference Room = {}", search);
-			list = searchOnServerConferenceRoom(list, search);
-		}
-		return sortAndCropConferenceRoomList(list, offset, size, sortBy, orderBy);
-	}
 
 
 	public abstract boolean removeEndpoint(String id, Endpoint endpoint, boolean checkRTMPUrl);
@@ -683,20 +653,42 @@ public abstract class DataStore {
 	 */
 	public abstract long getActiveBroadcastCount();
 
-	public long getActiveBroadcastCount(Map<String, String> broadcastMap, Gson gson) {
+	public long getActiveBroadcastCount(Map<String, String> broadcastMap, Gson gson, String hostAddress) {
 		int activeBroadcastCount = 0;
 		synchronized (this) {
 			
 			Collection<String> values = broadcastMap.values();
-			for (String broadcastString : values) {
+			for (String broadcastString : values) 
+			{
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
-				if (status != null && status.equals(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)) {
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
+						(StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress()))) 
+				{
 					activeBroadcastCount++;
 				}
 			}
 		}
 		return activeBroadcastCount;
+	}
+	
+	public List<Broadcast> getActiveBroadcastList(Map<String, String> broadcastMap, Gson gson, String hostAddress) {
+		List<Broadcast> broadcastList = new ArrayList<>();
+		synchronized (this) {
+			
+			Collection<String> values = broadcastMap.values();
+			for (String broadcastString : values) 
+			{
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				String status = broadcast.getStatus();
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
+					  (StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress())))
+				{
+					broadcastList.add(broadcast);
+				}
+			}
+		}
+		return broadcastList;
 	}
 
 	/**
@@ -822,49 +814,6 @@ public abstract class DataStore {
 	}
 
 	/**
-	 * Creates a conference room with the parameters.
-	 * The room name is key so if this is called with the same room name
-	 * then new room is overwritten to old one.
-	 * @param room - conference room
-	 * @return true if successfully created, false if not
-	 */
-	public abstract boolean createConferenceRoom(ConferenceRoom room);
-
-	/**
-	 * Edits previously saved conference room
-	 * @param room - conference room
-	 * @return true if successfully edited, false if not
-	 */
-	public abstract boolean editConferenceRoom(String roomId, ConferenceRoom room);
-
-	/**
-	 * Deletes previously saved conference room
-	 * @param roomName- name of the conference room
-	 * @return true if successfully deleted, false if not
-	 */
-	public abstract boolean deleteConferenceRoom(String roomId);
-
-	/**
-	 * Retrieves previously saved conference room
-	 * @param roomName- name of the conference room
-	 * @return room - conference room
-	 */
-	public abstract ConferenceRoom getConferenceRoom(String roomId);
-
-	public ConferenceRoom getConferenceRoom(Map<String, String> conferenceRoomMap, String roomId, Gson gson) {
-		synchronized (this) {
-			if (roomId != null) {
-
-				String jsonString = conferenceRoomMap.get(roomId);
-				if (jsonString != null) {
-					return gson.fromJson(jsonString, ConferenceRoom.class);
-				}
-			}
-		}
-		return null;
-	}
-
-	/**
 	 * Updates the stream fields if it's not null
 	 * @param broadcast
 	 * @param name
@@ -961,8 +910,18 @@ public abstract class DataStore {
 		if (newBroadcast.getMetaData() != null) {
 			broadcast.setMetaData(newBroadcast.getMetaData());
 		}
+		
+		if (newBroadcast.getConferenceMode() != null) {
+			broadcast.setConferenceMode(newBroadcast.getConferenceMode());
+		}
+		
+		if (newBroadcast.getEncoderSettingsList() != null) {
+			broadcast.setEncoderSettingsList(newBroadcast.getEncoderSettingsList());
+		}
+		
 
-
+		broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
+		broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
 		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
 		broadcast.setDuration(newBroadcast.getDuration());
@@ -970,19 +929,16 @@ public abstract class DataStore {
 		broadcast.setUserAgent(newBroadcast.getUserAgent());
 		broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
 		broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
+		broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
+		broadcast.setAutoStartStopEnabled(newBroadcast.isAutoStartStopEnabled());
 	}
 
-	/**
-	 * This method returns the local active broadcast count.ro
-	 * Mongodb implementation is different because of cluster.
-	 * Other implementations just return active broadcasts in db
-	 * @return
-	 */
-	public long getLocalLiveBroadcastCount(String hostAddress) {
-		return getActiveBroadcastCount();
-	}
+
+	public abstract long getLocalLiveBroadcastCount(String hostAddress);
+	
+	public abstract List<Broadcast> getLocalLiveBroadcasts(String hostAddress);
 
 	/**
 	 * Below search methods and sortandcrop methods are used for getting the searched items and sorting and pagination.
@@ -1144,72 +1100,6 @@ public abstract class DataStore {
 		}
 		else {
 			return broadcastList.subList(offset,toIndex);
-		}
-	}
-
-	protected ArrayList<ConferenceRoom> searchOnServerConferenceRoom(ArrayList<ConferenceRoom> roomList, String search){
-		if(search != null && !search.isEmpty()) {
-			for (Iterator<ConferenceRoom> i = roomList.iterator(); i.hasNext(); ) {
-				ConferenceRoom item = i.next();
-				if(item.getRoomId() != null) {
-					if (item.getRoomId().toLowerCase().contains(search.toLowerCase()))
-						continue;
-					else i.remove();
-				}
-			}
-		}
-		return roomList;
-	}
-
-	protected List<ConferenceRoom> sortAndCropConferenceRoomList(List<ConferenceRoom> roomList, int offset, int size, String sortBy, String orderBy) {
-		if("roomId".equals(sortBy) || "startDate".equals(sortBy) || "endDate".equals(sortBy)) 
-		{
-			Collections.sort(roomList, (room1, room2) -> {
-				Comparable c1 = null;
-				Comparable c2 = null;
-
-				if (sortBy.equals("roomId")) 
-				{
-					c1 = room1.getRoomId().toLowerCase();
-					c2 = room2.getRoomId().toLowerCase();
-				} 
-				else if (sortBy.equals("startDate")) {
-					c1 = Long.valueOf(room1.getStartDate());
-					c2 = Long.valueOf(room2.getStartDate());
-				} 
-				else if (sortBy.equals("endDate")) {
-					c1 = Long.valueOf(room1.getEndDate());
-					c2 = Long.valueOf(room2.getEndDate());
-				} 
-
-				int result = 0;
-				if (c1 != null && c2 != null) 
-				{
-					if ("desc".equals(orderBy)) {
-						result = c2.compareTo(c1);
-					}
-					else {
-						result = c1.compareTo(c2);
-					}
-				}
-				return result;
-			});
-		}
-
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0 ) {
-			offset = 0;
-		}
-
-		int toIndex =  Math.min(offset+size, roomList.size());
-		if (offset >= toIndex)
-		{
-			return new ArrayList<>();
-		}
-		else {
-			return roomList.subList(offset,toIndex);
 		}
 	}
 
@@ -1385,7 +1275,75 @@ public abstract class DataStore {
 	 * @param metaData new meta data
 	 */
 	public abstract boolean updateStreamMetaData(String streamId, String metaData);
+
+	/**
+	 * Put subscriber metadata. It overwrites the metadata, if you need to update something, 
+	 * first get the {@link #getSubscriberMetaData(String)} , update it and put it
+	 * 
+	 * @param subscriberId
+	 * @param SubscriberMetadata
+	 * @return 
+	 */
+	public abstract void putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata);
+
+	/**
+	 * Get subscriber metadata
+	 * @param subscriberId
+	 * @return
+	 */
+	public abstract SubscriberMetadata getSubscriberMetaData(String subscriberId);
 	
+	/**
+	 * This is a helper method to remove the ConferenceRoom in later versions
+	 * 
+	 * May 11, 2024 - mekya
+	 * 
+	 * @param broadcast
+	 * @return
+	 */
+	public static ConferenceRoom broadcastToConference(Broadcast broadcast) {
+
+		ConferenceRoom conferenceRoom = new ConferenceRoom();
+
+		conferenceRoom.setRoomId(broadcast.getStreamId());
+		conferenceRoom.setStartDate(broadcast.getPlannedStartDate());
+		conferenceRoom.setEndDate(broadcast.getPlannedEndDate());
+		conferenceRoom.setMode(broadcast.getConferenceMode());
+		conferenceRoom.setZombi(broadcast.isZombi());
+		conferenceRoom.setOriginAdress(broadcast.getOriginAdress());
+		conferenceRoom.setRoomStreamList(broadcast.getSubTrackStreamIds());
+
+
+		return conferenceRoom;
+	}
+
+	/**
+	 * This is a helper method to remove the ConferenceRoom in later versions
+	 * 
+	 * May 11, 2024 - mekya
+	 * 
+	 * @param broadcast
+	 * @return
+	 */
+	public static Broadcast conferenceToBroadcast(ConferenceRoom conferenceRoom) throws Exception {
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId(conferenceRoom.getRoomId());
+		broadcast.setPlannedStartDate(conferenceRoom.getStartDate());
+		broadcast.setPlannedEndDate(conferenceRoom.getEndDate());
+		broadcast.setZombi(conferenceRoom.isZombi());
+		broadcast.setOriginAdress(conferenceRoom.getOriginAdress());
+		broadcast.setConferenceMode(conferenceRoom.getMode());
+		broadcast.setSubTrackStreamIds(conferenceRoom.getRoomStreamList());
+
+
+		return broadcast;
+
+	}
+	
+	/**
+	 * Move ConferenceRoom to Broadcast
+	 */
+	public abstract void migrateConferenceRoomsToBroadcasts();
 
 	//**************************************
 	//ATTENTION: Write function descriptions while adding new functions

@@ -27,6 +27,7 @@ import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
+import io.antmedia.datastore.db.types.SubscriberMetadata;
 import io.antmedia.datastore.db.types.TensorFlowObject;
 import io.antmedia.datastore.db.types.Token;
 import io.antmedia.datastore.db.types.VoD;
@@ -37,6 +38,7 @@ import io.antmedia.muxer.MuxAdaptor;
 
 public abstract class MapBasedDataStore extends DataStore {
 
+	public static final String INCONSISTENCY_MESSAGE = "Inconsistency in DB. It's likely db file({}) is damaged";
 	protected Map<String, String> map;
 	protected Map<String, String> vodMap;
 	protected Map<String, String> detectionMap;
@@ -44,6 +46,7 @@ public abstract class MapBasedDataStore extends DataStore {
 	protected Map<String, String> subscriberMap;
 	protected Map<String, String> conferenceRoomMap;
 	protected Map<String, String> webRTCViewerMap;
+	protected Map<String, String> subscriberMetadataMap;
 
 	public static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 
@@ -211,7 +214,11 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public long getActiveBroadcastCount() {
-		return super.getActiveBroadcastCount(map, gson);
+		return super.getActiveBroadcastCount(map, gson, null);
+	}
+	 
+	public List<Broadcast> getActiveBroadcastList(String hostAddress) {
+		return super.getActiveBroadcastList(map, gson, hostAddress);
 	}
 
 	@Override
@@ -222,12 +229,6 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 		return result;
 	}
-	
-	
-	@Override
-	public List<ConferenceRoom> getConferenceRoomList(int offset, int size, String sortBy, String orderBy, String search){
-		return super.getConferenceRoomList(conferenceRoomMap, offset, size, sortBy, orderBy, search, gson);
-	}
 
 	//GetBroadcastList method may be called without offset and size to get the full list without offset or size
 	//sortAndCrop method returns maximum 50 (hardcoded) of the broadcasts for an offset.
@@ -235,18 +236,32 @@ public abstract class MapBasedDataStore extends DataStore {
 		ArrayList<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
 
+			int count = 0;
+			int size = map.size();
 			if (type != null && !type.isEmpty()) {
 				for (String broadcastString : map.values()) {
+					count++;
 					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 
 					if (broadcast.getType().equals(type)) {
 						list.add(broadcast);
 					}
+
+					if(count > size) {
+						logger.warn(INCONSISTENCY_MESSAGE, dbName);
+						break;
+					}
 				}
 			} else {
 				for (String broadcastString : map.values()) {
+					count++;
 					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 					list.add(broadcast);
+
+					if(count > size) {
+						logger.warn(INCONSISTENCY_MESSAGE, dbName);
+						break;
+					}
 				}
 			}
 		}
@@ -371,7 +386,7 @@ public abstract class MapBasedDataStore extends DataStore {
 				i++;
 				vodList.add(gson.fromJson(vodString, VoD.class));
 				if (i > size) {
-					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
+					logger.error(INCONSISTENCY_MESSAGE, dbName);
 					break;
 				}
 			}
@@ -919,50 +934,6 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean createConferenceRoom(ConferenceRoom room) {
-		synchronized (this) {
-			boolean result = false;
-
-			if (room != null && room.getRoomId() != null) {
-				conferenceRoomMap.put(room.getRoomId(), gson.toJson(room));
-				result = true;
-			}
-
-			return result;
-		}
-	}
-
-	@Override
-	public boolean editConferenceRoom(String roomId, ConferenceRoom room) {
-		synchronized (this) {
-			boolean result = false;
-
-			if (roomId != null && room != null && room.getRoomId() != null) {
-				result = conferenceRoomMap.replace(roomId, gson.toJson(room)) != null;
-			}
-			return result;
-		}
-	}
-
-	@Override
-	public boolean deleteConferenceRoom(String roomId) {
-		synchronized (this) {
-			boolean result = false;
-
-			if (roomId != null && !roomId.isEmpty()) {
-
-				result = conferenceRoomMap.remove(roomId) != null;
-			}
-			return result;
-		}
-	}
-
-	@Override
-	public ConferenceRoom getConferenceRoom(String roomId) {
-		return super.getConferenceRoom(conferenceRoomMap, roomId, gson);
-	}
-
-	@Override
 	public boolean deleteToken(String tokenId) {
 		boolean result = false;
 
@@ -1102,5 +1073,53 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 		return null;
 	}
+	
+	@Override
+	public void putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata) {
+		metadata.setSubscriberId(subscriberId);
+		subscriberMetadataMap.put(subscriberId, gson.toJson(metadata));
+	}
+	
+	@Override
+	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
+		String jsonString = subscriberMetadataMap.get(subscriberId);
+		if(jsonString != null) {
+			return gson.fromJson(jsonString, SubscriberMetadata.class);
+		}
+		return null;
+	}
+	
+	public void migrateConferenceRoomsToBroadcasts() 
+	{
+		if (conferenceRoomMap.values() != null) {
+			List <String> roomIdList = new ArrayList<>(); 
+			for (String conferenceString : conferenceRoomMap.values()) 
+			{
+				ConferenceRoom room = gson.fromJson(conferenceString, ConferenceRoom.class);
+	
+				try {
+					Broadcast broadcast = conferenceToBroadcast(room);
+					if (get(broadcast.getStreamId()) == null) 
+					{ 
+						//save it to broadcast map if it does not exist
+						save(broadcast);
+						roomIdList.add(room.getRoomId());
+					}
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+			
+			for (String roomId : roomIdList) {
+				conferenceRoomMap.remove(roomId);
+			}
+		}
+	}
+
+	public Map<String, String> getConferenceRoomMap() {
+		return conferenceRoomMap;
+	}
+	
+
 
 }

@@ -2,6 +2,7 @@ package io.antmedia.test.webrtc.adaptor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -11,12 +12,6 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Random;
-
-import javax.websocket.RemoteEndpoint;
-import javax.websocket.RemoteEndpoint.Basic;
-import javax.websocket.Session;
 
 import org.apache.commons.lang3.RandomUtils;
 import org.json.simple.JSONArray;
@@ -32,6 +27,8 @@ import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.red5.server.api.scope.IScope;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 import org.webrtc.IceCandidate;
 import org.webrtc.SessionDescription;
@@ -46,6 +43,9 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.webrtc.adaptor.RTMPAdaptor;
 import io.antmedia.websocket.WebSocketCommunityHandler;
 import io.antmedia.websocket.WebSocketConstants;
+import jakarta.websocket.RemoteEndpoint;
+import jakarta.websocket.RemoteEndpoint.Basic;
+import jakarta.websocket.Session;
 
 public class WebSocketCommunityHandlerTest {
 
@@ -54,10 +54,12 @@ public class WebSocketCommunityHandlerTest {
 	private Session session;
 	private Basic basicRemote;
 	private HashMap userProperties;
-	private ApplicationContext appContext;
+	private static ApplicationContext appContext;
 	private DataStore dataStore;
 	
-	public class WebSocketEndpoint extends WebSocketCommunityHandler {
+	public static final Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandlerTest.class);
+	
+	public static class WebSocketEndpoint extends WebSocketCommunityHandler {
 		public WebSocketEndpoint(ApplicationContext appContext) {
 			super(appContext, null);
 			// TODO Auto-generated constructor stub
@@ -200,6 +202,13 @@ public class WebSocketCommunityHandlerTest {
 		
 		
 		// case no status
+		
+		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
+		
+
+		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
+
+		
 		streamId = "streamId" + (int)(Math.random()*10000);
 		broadcast = new Broadcast();
 		try {
@@ -212,7 +221,9 @@ public class WebSocketCommunityHandlerTest {
 		dataStore.save(broadcast);
 		
 		wsHandler.onMessage(session, publishObject.toJSONString());
-
+		
+		
+		verify(rtmpAdaptor).start();
 		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(Mockito.anyString(), Mockito.any());
 		
 		
@@ -224,6 +235,7 @@ public class WebSocketCommunityHandlerTest {
 		
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
+		verify(rtmpAdaptor, Mockito.times(2)).start();
 		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(Mockito.anyString(), Mockito.any());
 				
 		
@@ -288,30 +300,39 @@ public class WebSocketCommunityHandlerTest {
 	}
 
 	@Test
-	public void testPublishAndDisconnect() {
+	public void testPublishAndDisconnect() 
+	{
+		logger.info("testPublishAndDisconnect is running 0");
 		String sessionId = String.valueOf((int)(Math.random()*10000));
 		when(session.getId()).thenReturn(sessionId);
 
 		String streamId = "streamId" + (int)(Math.random()*1000);
 
-		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
+		logger.info("testPublishAndDisconnect is running 1");
+		RTMPAdaptor rtmpAdaptor = Mockito.spy(wsHandler.getNewRTMPAdaptor("url", 360));
+		doNothing().when(rtmpAdaptor).start();
+		doNothing().when(rtmpAdaptor).stop();
 		
-
 		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
 
+		logger.info("testPublishAndDisconnect is running 2");
 		JSONObject publishObject = new JSONObject();
 		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
 		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
+		logger.info("testPublishAndDisconnect is running 3");
 		verify(rtmpAdaptor).setSession(session);
 		verify(rtmpAdaptor).setStreamId(streamId);
 		verify(rtmpAdaptor).start();
 
+		logger.info("testPublishAndDisconnect is running 4");
 		wsHandler.onClose(session);
 
+		logger.info("testPublishAndDisconnect is running 5");
 		verify(rtmpAdaptor).stop();
+		logger.info("testPublishAndDisconnect is running 6");
 
 	}
 
@@ -353,6 +374,7 @@ public class WebSocketCommunityHandlerTest {
 
 			ArgumentCaptor<SessionDescription> argument = ArgumentCaptor.forClass(SessionDescription.class);
 			verify(rtmpAdaptor).setRemoteDescription(argument.capture());
+			
 			SessionDescription sessionDescription = argument.getValue();
 			assertEquals(Type.OFFER, sessionDescription.type);
 			assertEquals(sdp, sessionDescription.description);
@@ -457,6 +479,27 @@ public class WebSocketCommunityHandlerTest {
 		assertEquals("already_playing", WebSocketConstants.ALREADY_PLAYING);
 		assertEquals("targetBitrate", WebSocketConstants.TARGET_BITRATE);
 		assertEquals("bitrateMeasurement", WebSocketConstants.BITRATE_MEASUREMENT);
+	}
+	
+	@Test
+	public void testThrowExceptionInSendMessage() {
+		wsHandler.setSession(session);
+		
+		try {
+			Mockito.doThrow(new IOException("exception")).when(basicRemote).sendText(Mockito.anyString());
+			wsHandler.sendMessage("test", session);
+			
+			
+			Mockito.doThrow(new IOException()).when(basicRemote).sendText(Mockito.anyString());
+			wsHandler.sendMessage("test", session);
+			
+			Mockito.doThrow(new IOException("WebSocket session has been closed")).when(basicRemote).sendText(Mockito.anyString());
+			wsHandler.sendMessage("test", session);		
+		} 
+		catch (IOException e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
 	}
 	
 	@Test

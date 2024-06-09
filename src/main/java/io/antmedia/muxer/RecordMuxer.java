@@ -1,16 +1,14 @@
 package io.antmedia.muxer;
 
 
-import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_parameters_copy;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
-import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.apache.tika.utils.StringUtils;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.red5.server.api.IContext;
@@ -31,8 +29,6 @@ public abstract class RecordMuxer extends Muxer {
 	protected boolean uploadMP4ToS3 = true;
 
 	protected String previewPath;
-
-	private String subFolder = null;
 
 	private static final int S3_CONSTANT = 0b001;
 
@@ -78,7 +74,8 @@ public abstract class RecordMuxer extends Muxer {
 
 		this.streamId = name;
 		this.resolution = resolutionHeight;
-		this.subFolder = subFolder;
+
+
 
 		this.startTime = System.currentTimeMillis();
 
@@ -129,14 +126,12 @@ public abstract class RecordMuxer extends Muxer {
 		super.writeTrailer();
 
 
-		vertx.executeBlocking(l->{
+		vertx.executeBlocking(()->{
 			try {
 
-				IContext context = RecordMuxer.this.scope.getContext();
-				ApplicationContext appCtx = context.getApplicationContext();
-				AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+				AntMediaApplicationAdapter adaptor = getAppAdaptor();
 
-				AppSettings appSettings = (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
+				AppSettings appSettings = getAppSettings();
 
 				File f = getFinalFileName(appSettings.isS3RecordingEnabled());
 
@@ -159,19 +154,30 @@ public abstract class RecordMuxer extends Muxer {
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
-			l.complete();
-		}, null);
+			return null;
+		});
 
 	}
 
+	public AntMediaApplicationAdapter getAppAdaptor() {
+		IContext context = RecordMuxer.this.scope.getContext();
+		ApplicationContext appCtx = context.getApplicationContext();
+		AntMediaApplicationAdapter adaptor = (AntMediaApplicationAdapter) appCtx.getBean(AntMediaApplicationAdapter.BEAN_NAME);
+		return adaptor;
+	}
+
+	
+	public static String getS3Prefix(String s3FolderPath, String subFolder) {
+		return replaceDoubleSlashesWithSingleSlash(s3FolderPath + File.separator + (subFolder != null ? subFolder : "" ) + File.separator);
+	}
 
 	public File getFinalFileName(boolean isS3Enabled)
 	{
 		String absolutePath = fileTmp.getAbsolutePath();
 		String origFileName = absolutePath.replace(TEMP_EXTENSION, "");
 
-		String prefix = s3FolderPath + File.separator + (subFolder != null ? subFolder + File.separator : "" );
-
+		String prefix = getS3Prefix(s3FolderPath, subFolder);
+		
 		String fileName = getFile().getName();
 
 		File f = new File(origFileName);
@@ -220,6 +226,20 @@ public abstract class RecordMuxer extends Muxer {
 
 	public void setVodId(String vodId) {
 		this.vodId = vodId;
+	}
+
+	public void setSubfolder(String subFolder) {
+		this.subFolder = subFolder;
+
+		String recordingSubfolder = getAppSettings().getRecordingSubfolder();
+		if(!StringUtils.isBlank(recordingSubfolder)) {
+			if(!StringUtils.isBlank(this.subFolder)) {
+				this.subFolder = subFolder + File.separator + recordingSubfolder;
+			}
+			else {
+				this.subFolder = recordingSubfolder;
+			}
+		}
 	}
 
 

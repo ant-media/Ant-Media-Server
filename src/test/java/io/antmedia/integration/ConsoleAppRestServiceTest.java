@@ -134,6 +134,29 @@ public class ConsoleAppRestServiceTest{
 		if (AppFunctionalV2Test.getOS() == AppFunctionalV2Test.MAC_OS_X) {
 			ffmpegPath = "/usr/local/bin/ffmpeg";
 		}
+	}
+
+	public boolean createFirstUserAndLogin() throws Exception  
+	{
+		Result firstLogin = callisFirstLogin();
+		if (firstLogin.isSuccess()) {
+			User user = new User();
+			user.setEmail(TEST_USER_EMAIL);
+			user.setPassword(TEST_USER_PASS);
+			Result createInitialUser = callCreateInitialUser(user);
+			if (!createInitialUser.isSuccess()) {
+				return false;
+			}
+		}
+
+		User user = new User();
+		user.setEmail(TEST_USER_EMAIL);
+		user.setPassword(TEST_USER_PASS);
+		return callAuthenticateUser(user).isSuccess();
+	}
+
+	@Before
+	public void before() {
 		try {
 			restService = new CommonRestService();
 			httpCookieStore = new BasicCookieStore();
@@ -149,7 +172,7 @@ public class ConsoleAppRestServiceTest{
 
 			}
 
-			//if it's not first login check that TEST_USER_EMAIL and TEST_USER_PASS is authenticated
+
 			User user = new User();
 			user.setEmail(TEST_USER_EMAIL);
 			user.setPassword(TEST_USER_PASS);
@@ -161,10 +184,6 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 
-	}
-
-	@Before
-	public void before() {
 
 	}
 
@@ -369,7 +388,7 @@ public class ConsoleAppRestServiceTest{
 	{
 		File file = new File(installLocation);
 		assertTrue(file.isDirectory());
-		
+
 		File[] listFiles = file.listFiles();
 		for (int i = 0; i < listFiles.length; i++) 
 		{
@@ -378,9 +397,9 @@ public class ConsoleAppRestServiceTest{
 			{
 				return tmpFile.getAbsolutePath();
 			}
-			
+
 		}
-		
+
 		return null;
 	}
 
@@ -418,10 +437,10 @@ public class ConsoleAppRestServiceTest{
 			return tmpApplications.applications.length == appCount;
 		});
 	}
-	
+
 	@Test
 	public void testCreateDeleteAppAggresive() {
-		
+
 		Applications applications = getApplications();
 		int appCount = applications.applications.length;
 
@@ -429,29 +448,102 @@ public class ConsoleAppRestServiceTest{
 		log.info("app:{} will be created", appName);
 		Result result = createApplication(appName);
 		assertTrue(result.isSuccess());
-		
+
 		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
 			return deleteApplication(appName).isSuccess();
 		});
-		
+
 		result = createApplication(appName);
 		assertTrue(result.isSuccess());
-		
-		
+
+
 		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
 			return deleteApplication(appName).isSuccess();
 		});
-		
+
 		result = createApplication(appName);
 		assertTrue(result.isSuccess());
-		
+
 		Awaitility.await().pollInterval(1, TimeUnit.SECONDS).atMost(20, TimeUnit.SECONDS).until(() -> {
 			return deleteApplication(appName).isSuccess();
 		});
-		
+
 		result = createApplication(appName);
 		assertTrue(result.isSuccess());
-		
+
+	}
+
+
+	@Test
+	public void testChangeDatabaseToRedisAndCreateApp() throws IOException, InterruptedException {
+
+		//switch to use redis server
+		String installLocation = "/usr/local/antmedia";
+
+		//run command to switch to redis database
+		String command = "sudo " + installLocation + "/change_server_mode.sh standalone redis://127.0.0.1:6379";
+		Process exec = Runtime.getRuntime().exec(command);
+
+		assertEquals(0, exec.waitFor());
+
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(()-> {
+			try {
+				return createFirstUserAndLogin();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+				return false;
+			}
+		});
+
+		Applications applications = getApplications();
+		int appCount = applications.applications.length;
+
+		String appName = RandomString.make(20);
+		Result result = createApplication(appName);
+		assertTrue(result.isSuccess());
+
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		.until(() ->  {
+			Applications tmpApplications = getApplications();
+			return tmpApplications.applications.length == appCount + 1;
+		});
+
+		//check that if the app is configured to use redis
+
+		File propertiesFile = new File( installLocation + "/webapps/" + appName + "/WEB-INF/red5-web.properties");
+
+		String content = Files.readString(propertiesFile.toPath());
+		assertTrue(content.contains("db.type=redisdb"));
+		assertTrue(content.contains("db.host=redis://127.0.0.1:6379"));
+
+
+		result = deleteApplication(appName);
+		assertTrue(result.isSuccess());
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
+		.until(() ->  {
+			Applications tmpApplications = getApplications();
+			return tmpApplications.applications.length == appCount;
+		});
+
+		//switch back to use mapdb
+		command = "sudo " + installLocation + "/change_server_mode.sh standalone";
+		exec = Runtime.getRuntime().exec(command);
+		assertEquals(0, exec.waitFor());
+
+		//check that server is running
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(3, TimeUnit.SECONDS).until(()-> {
+			try {
+				return createFirstUserAndLogin();
+			}
+			catch (Exception e) {
+				e.printStackTrace();
+				return false;
+			}
+		});
+
+
 	}
 
 	@Test
@@ -1158,7 +1250,7 @@ public class ConsoleAppRestServiceTest{
 				});
 
 				AppFunctionalV2Test.destroyProcess();
-				
+
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
 				.until(() -> {
 					Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(broadcastCreated.getStreamId());
@@ -1222,21 +1314,38 @@ public class ConsoleAppRestServiceTest{
 			enterpriseResult = callIsEnterpriseEdition();
 			if (!enterpriseResult.isSuccess()) {
 				//if it is not enterprise return
-				return ;
+				return;
 			}
 
 			// get settings from the app
 			AppSettings appSettings = callGetAppSettings(appName);
 
+			//only one type of token control can be enabled for publish.
+			appSettings.setPublishJwtControlEnabled(true);
+			appSettings.setEnableTimeTokenForPublish(true);
+			Result result = callSetAppSettings(appName, appSettings);
+			assertFalse(result.isSuccess());
+			appSettings.setPublishJwtControlEnabled(false);
+			appSettings.setEnableTimeTokenForPublish(false);
+
+			appSettings.setEnableTimeTokenForPlay(true);
+			appSettings.setPlayJwtControlEnabled(true);
+			result = callSetAppSettings(appName, appSettings);
+			assertFalse(result.isSuccess());
+
+			appSettings.setEnableTimeTokenForPlay(false);
+			appSettings.setPlayJwtControlEnabled(false);
+
 			appSettings.setPublishTokenControlEnabled(true);
 			appSettings.setPlayTokenControlEnabled(true);
 			appSettings.setMp4MuxingEnabled(true);
 
-
-			Result result = callSetAppSettings(appName, appSettings);
+			result = callSetAppSettings(appName, appSettings);
 			assertTrue(result.isSuccess());
 
+
 			appSettings = callGetAppSettings(appName);
+
 			assertTrue(appSettings.isPublishTokenControlEnabled());
 			assertTrue(appSettings.isPlayTokenControlEnabled());
 
@@ -1568,7 +1677,7 @@ public class ConsoleAppRestServiceTest{
 
 			// get Server Settings
 			ServerSettings serverSettings = callGetServerSettings();
-			
+
 			//it should not marketplace build
 			assertFalse(serverSettings.isBuildForMarket());
 
@@ -1594,12 +1703,12 @@ public class ConsoleAppRestServiceTest{
 
 			//check that setting is saved
 			assertTrue (flag.isSuccess());
-			
+
 			serverSettings = callGetServerSettings();
-				
+
 			//it should not marketplace build and it cannot be changed true rest api
 			assertFalse(serverSettings.isBuildForMarket());
-			
+
 
 			//check license status
 
@@ -1870,6 +1979,11 @@ public class ConsoleAppRestServiceTest{
 			rtmpSendingProcess.destroy();
 
 
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return null == RestServiceV2Test.callGetBroadcast(streamName);
+			});
+
+
 			//restore mp4 muxing
 			appSettings.setMp4MuxingEnabled(mp4MuxingEnabled);
 			result = callSetAppSettings("LiveApp", appSettings);
@@ -1929,6 +2043,10 @@ public class ConsoleAppRestServiceTest{
 			}
 
 			rtmpSendingProcess.destroy();
+
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return null == RestServiceV2Test.callGetBroadcast(streamName);
+			});
 
 			//restore mp4 muxing
 			appSettings.setMp4MuxingEnabled(mp4MuxingEnabled);
@@ -2178,6 +2296,56 @@ public class ConsoleAppRestServiceTest{
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+
+	/**
+	 * This is a bug fix test
+	 * https://github.com/ant-media/Ant-Media-Server/issues/6212
+	 */
+	@Test
+	public void testRestartPeriod() {
+		try {
+			AppSettings appSettings = callGetAppSettings("LiveApp");
+			appSettings.setRestartStreamFetcherPeriod(20);
+			Result result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
+			StreamFetcherUnitTest.startCameraEmulator();
+
+			Broadcast broadcast = new Broadcast("rtsp_source", null, null, null, "rtsp://127.0.0.1:6554/test.flv",
+					AntMediaApplicationAdapter.STREAM_SOURCE);
+			
+			String returnResponse = RestServiceV2Test.callAddStreamSource(broadcast, true);
+			Result addStreamSourceResult = gson.fromJson(returnResponse, Result.class);
+
+			
+			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
+
+			});
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollDelay(12, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).
+			until(()-> {
+				Broadcast broadcastTmp = RestServiceV2Test.callGetBroadcast(addStreamSourceResult.getDataId());
+				return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcastTmp.getStatus());
+			});
+			
+			result = RestServiceV2Test.callDeleteBroadcast(addStreamSourceResult.getDataId());
+			assertTrue(result.isSuccess());
+			
+			appSettings.setRestartStreamFetcherPeriod(0);
+			result = callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+			
+			StreamFetcherUnitTest.stopCameraEmulator();
+
+		}
+		catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+
 	}
 
 	//public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
@@ -2668,7 +2836,7 @@ public class ConsoleAppRestServiceTest{
 					tmpExec = Runtime.getRuntime().exec(command);
 					//Reminder: reading error stream through input stream provides stability in test
 					//Otherwise it can fill the buffer and it shows inconsistent and hard to find issue
-					
+
 					InputStream errorStream = tmpExec.getErrorStream();
 					while ((length = errorStream.read(data, 0, data.length)) > 0) {
 						log.info(new String(data, 0, length));
@@ -2863,7 +3031,7 @@ public class ConsoleAppRestServiceTest{
 
 			String content = EntityUtils.toString(response.getEntity());
 
-			log.info("Respose for create application is {}", content);
+			log.info("Respose for delete application is {}", content);
 			if (response.getStatusLine().getStatusCode() != 200) {
 				System.out.println(response.getStatusLine()+content);
 			}
