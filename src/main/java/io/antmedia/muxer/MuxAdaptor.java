@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import io.antmedia.logger.LoggerUtils;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
@@ -400,13 +402,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		Broadcast.HLSParameters broadcastHLSParameters = getBroadcast().getHlsParameters();
 		if(broadcastHLSParameters != null) {
-			if(broadcastHLSParameters.getHlsListSize() != null) {
+			if(StringUtils.isNotBlank(broadcastHLSParameters.getHlsListSize())) {
 				hlsListSize = broadcastHLSParameters.getHlsListSize();
 			}
-			if(broadcastHLSParameters.getHlsTime() != null) {
+			if(StringUtils.isNotBlank(broadcastHLSParameters.getHlsTime())) {
 				hlsTime = broadcastHLSParameters.getHlsTime();
 			}
-			if(broadcastHLSParameters.getHlsPlayListType() != null) {
+			if(StringUtils.isNotBlank(broadcastHLSParameters.getHlsPlayListType())) {
 				hlsPlayListType = broadcastHLSParameters.getHlsPlayListType();
 			}
 		}
