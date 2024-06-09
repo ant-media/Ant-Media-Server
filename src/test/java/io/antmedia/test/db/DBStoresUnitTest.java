@@ -7,6 +7,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,6 +17,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.datastore.db.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
@@ -35,12 +38,7 @@ import dev.morphia.DeleteOptions;
 import dev.morphia.query.filters.Filters;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.MapDBStore;
-import io.antmedia.datastore.db.MongoStore;
-import io.antmedia.datastore.db.RedisStore;
+import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -139,7 +137,7 @@ public class DBStoresUnitTest {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
 		
-		
+		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testBlockSubscriber(dataStore);
@@ -222,7 +220,7 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() throws Exception {
 		DataStore dataStore = new InMemoryDataStore("testdb");
 		
-		
+		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
@@ -281,6 +279,7 @@ public class DBStoresUnitTest {
 		
 		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 
+		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
 		testTimeBasedSubscriberOperations(dataStore);
@@ -324,6 +323,7 @@ public class DBStoresUnitTest {
 		testUpdateEndpointStatus(dataStore);
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
+
 		
 		dataStore.close(true);
 	}
@@ -336,6 +336,7 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
 		
+		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
 		testBugFreeStreamId(dataStore);
@@ -2236,12 +2237,12 @@ public class DBStoresUnitTest {
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
 		dsf.setDbHost("127.0.0.1");
-		ApplicationContext context = Mockito.mock(ApplicationContext.class);
-		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		AppSettings appSettings = new AppSettings();
 		appSettings.setWriteStatsToDatastore(writeStats);
-		Mockito.when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);	
-		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());	
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+		when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 		
 		
 		dsf.setApplicationContext(context);
@@ -3127,4 +3128,81 @@ public class DBStoresUnitTest {
 		assertEquals(extraData, subscriberMetaData.getPushNotificationTokens().get(tokenValue2).getExtraData());
 		
 	}
+
+	public void testUpdateBroadcastEncoderSettings(DataStore dataStore) {
+
+		String id = RandomStringUtils.randomAlphanumeric(16);
+
+		Broadcast broadcast= new Broadcast();
+		try {
+			broadcast.setStreamId(id);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+
+		assertNotNull(dataStore.save(broadcast));
+
+        assertNull(dataStore.get(id).getEncoderSettingsList());
+
+        List<EncoderSettings> settingsList = new ArrayList<>();
+        settingsList.add(new EncoderSettings(720, 50000, 32000, true));
+
+		broadcast.setEncoderSettingsList(settingsList);
+
+		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
+
+		assertEquals(32000, dataStore.get(id).getEncoderSettingsList().get(0).getAudioBitrate());
+        assertEquals(50000, dataStore.get(id).getEncoderSettingsList().get(0).getVideoBitrate());
+
+		if (! (dataStore instanceof InMemoryDataStore) ) {
+			//because inmemorydata store just keeps the reference, it will be updated
+			broadcast.setEncoderSettingsList(null);
+		} 
+		dataStore.updateBroadcastFields(id, broadcast);
+
+		//it will not be updated because encoder settings is null
+		assertEquals(32000, dataStore.get(id).getEncoderSettingsList().get(0).getAudioBitrate());
+        assertEquals(50000, dataStore.get(id).getEncoderSettingsList().get(0).getVideoBitrate());
+
+
+		broadcast.setEncoderSettingsList(new ArrayList<>());
+		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
+		assertTrue(dataStore.get(id).getEncoderSettingsList().isEmpty());
+
+
+	}
+
+	@Test
+	public void testInfinityLoopBug() {
+
+		Map mockMap = mock(Map.class);
+		Set mockValues = mock(Set.class);
+		when(mockMap.values()).thenReturn(mockValues);
+		when(mockMap.size()).thenReturn(RandomUtils.nextInt(10, 100));
+		Iterator<String> mockIterator = mock(Iterator.class);
+
+		//create an infinite loop, because some corrupted files cause this
+		when(mockValues.iterator()).thenReturn(mockIterator);
+		when(mockIterator.hasNext()).thenReturn(true);
+		when(mockIterator.next()).thenReturn("{\"streamId\":\"aaa\",\"name\":\"bbb\",\"type\":\"playlist\"}\n");
+
+		class MyDB extends MapBasedDataStore {
+			public MyDB(String dbName) {
+				super(dbName);
+				map = mockMap;
+			}
+
+			public void close(boolean deleteDB) {}
+			public long getLocalLiveBroadcastCount(String hostAddress) {return 0;}
+			public List<Broadcast> getLocalLiveBroadcasts(String hostAddress) {return null;}
+		};
+
+
+		MyDB db = new MyDB("test");
+		List<Broadcast> list = db.getBroadcastListV2("playlist", null);
+
+		assertEquals(mockMap.size()+1, list.size());
+	}
+
 }

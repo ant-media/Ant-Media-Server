@@ -152,6 +152,13 @@ public class WebSocketConstants {
 	 */
 	public static final String NOT_ALLOWED_UNREGISTERED_STREAM = "not_allowed_unregistered_streams";
 	
+	
+	/**
+	 * This is sent back to the user if mainTrack 
+	 */
+	public static final String MAX_SUBTRACK_COUNT_REACHED = "main_track_has_max_subtrack_count__not_allowed_to_add_more_subtracks";
+
+	
 	/**
 	 * This is sent back to the user when there is no room specified in 
 	 * joining the video conference
@@ -168,8 +175,8 @@ public class WebSocketConstants {
 	 * joining the video conference
 	 */
 	public static final String ROOM_TIME_INVALID = "room_not_active_or_expired";
-	
-	
+
+
 	/**
 	 * This is sent back to the user when stream plannedStartDate and plannedEndDate 
 	 * values are in interval or not.

@@ -2134,6 +2134,19 @@ public class AppSettings implements Serializable{
 	@Value("${webhookRetryAttemptDelay:1000}")
 	private long webhookRetryDelay = 1000;
 
+	/**
+	 * Webhook webrtc play authentication url.
+	 */
+	@Value("${webhookPlayAuthUrl:}")
+	private String webhookPlayAuthUrl = "";
+
+	/**
+	 * Subfolder for the recording files (mp4 and webm)
+	 */
+	@Value("${recordingSubfolder:#{null}}")
+	private String recordingSubfolder;
+
+
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
 	}
@@ -2564,6 +2577,7 @@ public class AppSettings implements Serializable{
 		aacEncodingEnabled=true;
 		ipFilterEnabled=true;
 		ingestingStreamLimit = -1;
+		recordingSubfolder = null;
 	}
 
 	public int getWebRTCPortRangeMax() {
@@ -3694,6 +3708,19 @@ public class AppSettings implements Serializable{
 		this.webhookRetryDelay = webhookRetryDelay;
 	}
 
+	@JsonIgnore
+	public boolean isWebhookPlayAuthEnabled() {
+		return getWebhookPlayAuthUrl() != null && !getWebhookPlayAuthUrl().isEmpty();
+	}
+
+	public String getWebhookPlayAuthUrl() {
+		return webhookPlayAuthUrl;
+	}
+
+	public void setWebhookPlayAuthUrl(String webhookPlayAuthUrl) {
+		this.webhookPlayAuthUrl = webhookPlayAuthUrl;
+	}
+
 	public boolean isSecureAnalyticEndpoint() {
 		return secureAnalyticEndpoint;
 	}
@@ -3710,4 +3737,11 @@ public class AppSettings implements Serializable{
 		this.hlsSegmentType = hlsSegmentType;
 	}
 
+	public String getRecordingSubfolder() {
+		return recordingSubfolder;
+	}
+
+	public void setRecordingSubfolder(String recordingSubfolder) {
+		this.recordingSubfolder = recordingSubfolder;
+	}
 }

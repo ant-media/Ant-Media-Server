@@ -2882,6 +2882,78 @@ public class BroadcastRestServiceV2UnitTest {
 		conferenceRoom = datastore.get(mainTrackId);
 		assertEquals(1,conferenceRoom.getSubTrackStreamIds().size());
 
+	}
+	
+	@Test
+	public void testAddSubtrackWhenThereIsALimit() 
+	{
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String subTrackId = RandomStringUtils.randomAlphanumeric(8);
+		
+		BroadcastRestService broadcastRestService = new BroadcastRestService();
+		broadcastRestService.setApplication(Mockito.mock(AntMediaApplicationAdapter.class));
+		DataStore datastore = Mockito.spy(new InMemoryDataStore("dummy"));
+		
+		broadcastRestService.setDataStore(datastore);
+		
+		Result result = broadcastRestService.addSubTrack(mainTrackId, subTrackId);
+		assertFalse(result.isSuccess());
+		
+		Broadcast mainTrack= new Broadcast();
+		try {
+			mainTrack.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+		datastore.save(mainTrack);
+		
+		//it should be false because there is no subtrack
+		result = broadcastRestService.addSubTrack(mainTrackId, subTrackId);
+		assertFalse(result.isSuccess());
+		
+		Broadcast subtrack = new Broadcast();
+		try {
+			subtrack.setStreamId(subTrackId);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		datastore.save(subtrack);
+		
+		
+		//it should return because mainTrackId and subtrackId exists
+		result = broadcastRestService.addSubTrack(mainTrackId, subTrackId);
+		assertTrue(result.isSuccess());
+		
+		
+		assertEquals(-1, mainTrack.getSubtracksLimit());
+		
+		
+		//set a subtrack limit
+		mainTrack.setSubtracksLimit(1);
+		
+		String subTrackId2 = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast subtrack2 = new Broadcast();
+		try {
+			subtrack2.setStreamId(subTrackId2);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		datastore.save(subtrack2);
+		
+		
+		result = broadcastRestService.addSubTrack(mainTrackId, subTrackId2);
+		assertFalse(result.isSuccess());
+		
+		mainTrack.setSubtracksLimit(2);
+		
+		result = broadcastRestService.addSubTrack(mainTrackId, subTrackId2);
+		assertTrue(result.isSuccess());
+		
+		assertTrue(mainTrack.getSubTrackStreamIds().contains(subTrackId2));
+		assertTrue(mainTrack.getSubTrackStreamIds().contains(subTrackId));
+
 		
 	}
 

@@ -319,6 +319,15 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setWebhookRetryDelay(webHookRetryDelay);
 		assertEquals(webHookRetryDelay, appSettings.getWebhookRetryDelay());
 
+		String webhookPlayAuthUrl = "playAuthUrl";
+		appSettings.setWebhookPlayAuthUrl(webhookPlayAuthUrl);
+		assertEquals(webhookPlayAuthUrl, appSettings.getWebhookPlayAuthUrl());
+
+		String recordinfSubFolder = "subfolder";
+		appSettings.setRecordingSubfolder(recordinfSubFolder);
+		assertEquals(recordinfSubFolder, appSettings.getRecordingSubfolder());
+
+
 	}
 	
 	
@@ -532,7 +541,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getTimeTokenSecretForPublish());
 		assertNull(appSettings.getTimeTokenSecretForPlay());
 
-		assertEquals(true, appSettings.isHwScalingEnabled());
+        assertTrue(appSettings.isHwScalingEnabled());
 
 		assertNotNull(appSettings.getSubscriberAuthenticationKey());
 		assertNull(appSettings.getFirebaseAccountKeyJSON());
@@ -549,12 +558,18 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(appSettings.isSecureAnalyticEndpoint());
 		assertEquals("mpegts", appSettings.getHlsSegmentType());
 
+		assertFalse(appSettings.isWebhookPlayAuthEnabled());
+		assertEquals("", appSettings.getWebhookPlayAuthUrl());
+
+		assertNull(appSettings.getRecordingSubfolder());
+
+
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					180, numberOfFields);
+					182, numberOfFields);
 
 		
 	}

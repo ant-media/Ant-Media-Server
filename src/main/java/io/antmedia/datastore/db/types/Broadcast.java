@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import dev.morphia.utils.IndexType;
+import io.antmedia.EncoderSettings;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -14,6 +15,9 @@ import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import io.swagger.v3.oas.annotations.media.Schema;
+
+import static io.antmedia.AppSettings.encodersList2Str;
+import static io.antmedia.AppSettings.encodersStr2List;
 
 
 @Schema(description="The basic broadcast class")
@@ -213,6 +217,16 @@ public class Broadcast {
 	@Schema(description ="Conference mode. It's used if this broadcast has some specific modes. It's created for backward compatibility. It will be deleted.")
 	@Deprecated(forRemoval = true, since = "2.9.1")
 	private String conferenceMode;
+	
+	
+	/**
+	 * The number of subtracks that is allowed to be created for the broadcast.
+	 * It's useful for limiting number of conference attendees. Default value is -1
+	 * and -1 means no limit
+	 */
+	@Schema(description ="Number of subtracks that is allowed to be created for the broadcast. It's usefult for limiting number of conference attendees. Default value is -1  and it means no limit")
+	private int subtracksLimit = -1;
+
 
 	@Entity
 	public static class PlayListItem
@@ -363,7 +377,7 @@ public class Broadcast {
 	private String mainTrackStreamId;
 
 	@Schema(description ="If this broadcast is main track. This variable hold sub track ids.")
-	private List<String> subTrackStreamIds = new ArrayList<String>();
+	private List<String> subTrackStreamIds = new ArrayList<>();
 
 	@Schema(description ="Absolute start time in milliseconds - unix timestamp. It's used for measuring the absolute latency")
 	private long absoluteStartTimeMs;
@@ -409,6 +423,9 @@ public class Broadcast {
 	@Schema(description ="The identifier of whether stream should start/stop automatically. It's effective for Stream Sources/IP Cameras. "
 			+ "If there is no viewer after certain amount of seconds, it will stop. If there is an user want to watch the stream, it will start automatically")
 	private boolean autoStartStopEnabled = false;
+
+	@Schema(description ="The list of encoder settings")
+	private List<EncoderSettings> encoderSettingsList;
 
 
 	public Broadcast(String status, String name) {
@@ -902,6 +919,22 @@ public class Broadcast {
 
 	public void setConferenceMode(String conferenceMode) {
 		this.conferenceMode = conferenceMode;
+	}
+
+	public int getSubtracksLimit() {
+		return subtracksLimit;
+	}
+
+	public void setSubtracksLimit(int subtracksLimit) {
+		this.subtracksLimit = subtracksLimit;
+	}
+
+	public List<EncoderSettings> getEncoderSettingsList() {
+		return encoderSettingsList;
+	}
+
+	public void setEncoderSettingsList(List<EncoderSettings> encoderSettingsList) {
+		this.encoderSettingsList = encoderSettingsList;
 	}
 
 }

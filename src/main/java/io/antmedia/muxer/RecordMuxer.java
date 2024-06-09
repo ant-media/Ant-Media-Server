@@ -8,6 +8,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 
+import org.apache.tika.utils.StringUtils;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.red5.server.api.IContext;
@@ -28,8 +29,6 @@ public abstract class RecordMuxer extends Muxer {
 	protected boolean uploadMP4ToS3 = true;
 
 	protected String previewPath;
-
-	private String subFolder = null;
 
 	private static final int S3_CONSTANT = 0b001;
 
@@ -75,7 +74,8 @@ public abstract class RecordMuxer extends Muxer {
 
 		this.streamId = name;
 		this.resolution = resolutionHeight;
-		this.subFolder = subFolder;
+
+
 
 		this.startTime = System.currentTimeMillis();
 
@@ -226,6 +226,20 @@ public abstract class RecordMuxer extends Muxer {
 
 	public void setVodId(String vodId) {
 		this.vodId = vodId;
+	}
+
+	public void setSubfolder(String subFolder) {
+		this.subFolder = subFolder;
+
+		String recordingSubfolder = getAppSettings().getRecordingSubfolder();
+		if(!StringUtils.isBlank(recordingSubfolder)) {
+			if(!StringUtils.isBlank(this.subFolder)) {
+				this.subFolder = subFolder + File.separator + recordingSubfolder;
+			}
+			else {
+				this.subFolder = recordingSubfolder;
+			}
+		}
 	}
 
 
