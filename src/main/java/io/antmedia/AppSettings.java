@@ -1062,7 +1062,7 @@ public class AppSettings implements Serializable{
 	private int timeTokenPeriod = 60;	
 
 	/**
-	 * It can be event: or vod, Check HLS documentation for EXT-X-PLAYLIST-TYPE.
+	 * It can be event or vod, Check HLS documentation for EXT-X-PLAYLIST-TYPE.
 	 *
 	 */
 	@Value( "${hlsPlayListType:${"+SETTINGS_HLS_PLAY_LIST_TYPE+":}}" )

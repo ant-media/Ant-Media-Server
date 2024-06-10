@@ -4554,6 +4554,71 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
+
+	@Test
+	public void testBroadcastHLSParameters() {
+		AppSettings appSettings = new AppSettings();
+		appSettings.setHlsListSize("5");
+		appSettings.setHlsTime("2");
+		appSettings.setHlsPlayListType("event");
+
+		//If hls parameters for a broadcast is null, it should use app settings
+		{
+			Broadcast broadcast = new Broadcast();
+			try {
+				broadcast.setStreamId("stream1");
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+			assertNull(broadcast.getHlsParameters());
+
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+			MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, broadcast, false, appScope);
+			muxAdaptor.setAppSettings(appSettings);
+			muxAdaptor.setBroadcast(broadcast);
+
+			muxAdaptor.enableSettings();
+			HLSMuxer hlsMuxer = muxAdaptor.addHLSMuxer();
+			assertEquals(appSettings.getHlsListSize(), hlsMuxer.getHlsListSize());
+			assertEquals(appSettings.getHlsTime(), hlsMuxer.getHlsTime());
+			assertEquals(appSettings.getHlsPlayListType(), hlsMuxer.getHlsPlayListType());
+		}
+
+
+		//If hls parameters for a broadcast is not null, it should use broadcast hls settings
+		{
+			Broadcast broadcast = new Broadcast();
+			try {
+				broadcast.setStreamId("stream2");
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+
+			Broadcast.HLSParameters hlsParameters = new Broadcast.HLSParameters();
+			hlsParameters.setHlsListSize("10");
+			hlsParameters.setHlsTime("4");
+			hlsParameters.setHlsPlayListType("vod");
+			broadcast.setHlsParameters(hlsParameters);
+			assertEquals(hlsParameters, broadcast.getHlsParameters());
+
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+			MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, broadcast, false, appScope);
+			muxAdaptor.setAppSettings(appSettings);
+			muxAdaptor.setBroadcast(broadcast);
+
+			muxAdaptor.enableSettings();
+			HLSMuxer hlsMuxer = muxAdaptor.addHLSMuxer();
+			assertEquals(hlsParameters.getHlsListSize(), hlsMuxer.getHlsListSize());
+			assertEquals(hlsParameters.getHlsTime(), hlsMuxer.getHlsTime());
+			assertEquals(hlsParameters.getHlsPlayListType(), hlsMuxer.getHlsPlayListType());
+		}
+
+
+
+	}
+
 	@Test
 	public void testSetSEIData() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");

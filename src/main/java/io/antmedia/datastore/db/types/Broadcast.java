@@ -3,8 +3,6 @@ package io.antmedia.datastore.db.types;
 import java.util.ArrayList;
 import java.util.List;
 
-import dev.morphia.utils.IndexType;
-import io.antmedia.EncoderSettings;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -14,10 +12,9 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
+import dev.morphia.utils.IndexType;
+import io.antmedia.EncoderSettings;
 import io.swagger.v3.oas.annotations.media.Schema;
-
-import static io.antmedia.AppSettings.encodersList2Str;
-import static io.antmedia.AppSettings.encodersStr2List;
 
 
 @Schema(description="The basic broadcast class")
@@ -419,6 +416,49 @@ public class Broadcast {
 	 * This parameter updates consistently according to broadcast status
 	 */
 	private long updateTime = 0;
+
+	@Entity
+	public static class HLSParameters
+	{
+
+		@Schema(description ="Duration of segments in m3u8 files in seconds")
+		private String hlsTime;
+
+		@Schema(description ="Set the maximum number of playlist entries, If 0 the list file will contain all the segments")
+		private String hlsListSize;
+
+	
+		@Schema(description ="Playlist type of m3u8 files, Can be 'event' or 'vod' or empty")
+		private String hlsPlayListType;
+
+
+		public String getHlsTime() {
+			return hlsTime;
+		}
+
+		public void setHlsTime(String hlsTime) {
+			this.hlsTime = hlsTime;
+		}
+
+		public String getHlsListSize() {
+			return hlsListSize;
+		}
+
+		public void setHlsListSize(String hlsListSize) {
+			this.hlsListSize = hlsListSize;
+		}
+
+		public String getHlsPlayListType() {
+			return hlsPlayListType;
+		}
+
+		public void setHlsPlayListType(String hlsPlayListType) {
+			this.hlsPlayListType = hlsPlayListType;
+		}
+	}
+
+	@Schema(description = "the HLS parameters of the broadcast")
+	private HLSParameters hlsParameters = null;
 
 	@Schema(description ="The identifier of whether stream should start/stop automatically. It's effective for Stream Sources/IP Cameras. "
 			+ "If there is no viewer after certain amount of seconds, it will stop. If there is an user want to watch the stream, it will start automatically")
@@ -893,6 +933,13 @@ public class Broadcast {
 		this.updateTime = updateTime;
 	}
 
+	public HLSParameters getHlsParameters() {
+		return hlsParameters;
+	}
+	public void setHlsParameters(HLSParameters hlsParameters) {
+		this.hlsParameters = hlsParameters;
+	}
+	
 	public boolean isAnyoneWatching(){
 		return getDashViewerCount() != 0 || getWebRTCViewerCount() != 0 || getRtmpViewerCount() != 0 || getHlsViewerCount() != 0;
 	}
