@@ -945,15 +945,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		int index;
 
 		//HOOK_ACTION_VOD_READY is called only the listenerHookURL is defined either for stream or in AppSettings
-		if (listenerHookURL != null && !listenerHookURL.isEmpty() &&
+		if (StringUtils.isNotBlank(listenerHookURL) &&
 				((index = vodName.lastIndexOf(".mp4")) != -1)
 				|| ((index = vodName.lastIndexOf(".webm")) != -1) )
 		{
 			final String baseName = vodName.substring(0, index);
 			final String metaData = (broadcast != null) ? broadcast.getMetaData() : null;
-			String finalListenerHookURL = listenerHookURL;
 			logger.info("Setting timer for calling vod ready hook for stream:{}", streamId);
-			notifyHook(finalListenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodIdFinal, metaData, null);
+			notifyHook(listenerHookURL, streamId, null, HOOK_ACTION_VOD_READY, null, null, baseName, vodIdFinal, metaData, null);
 		}
 
 		String muxerFinishScript = appSettings.getMuxerFinishScript();
