@@ -51,7 +51,7 @@ public class Application extends AntMediaApplicationAdapter implements IAntMedia
 
 	@Override
 	public void notifyHook(String url, String id, String mainTrackId, String action, String streamName, String category,
-                           String vodName, String vodId, String metadata) {
+                           String vodName, String vodId, String metadata, String subscriberId) {
 		logger.info("notify hook action: {}", action);
 		notifyHookAction.add(action);
 		notitfyURL.add(url);
