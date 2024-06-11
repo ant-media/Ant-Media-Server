@@ -2147,10 +2147,10 @@ public class AppSettings implements Serializable{
 	private String recordingSubfolder;
 
 	/**
-	 * Audio/Video track selection map for WebRTC Clients
+	 * Participant Visibility Matrix for WebRTC Clients
 	 */
-	@Value("${avTrackSelectionMap:{\"admin\":[\"player\",\"publisher\",\"speaker\"],\"publisher\":[\"publisher\",\"speaker\",\"admin\"],\"speaker\":[\"admin\",\"publisher\",\"speaker\"],\"player\":[\"speaker\"]}}")
-	private String avTrackSelectionMap = "";
+	@Value("${participantVisibilityMatrix:{\"host\":[\"attendee\",\"panelist\",\"speaker\"],\"panelist\":[\"panelist\",\"speaker\",\"host\"],\"speaker\":[\"host\",\"panelist\",\"speaker\"],\"attendee\":[\"speaker\"]}}")
+	private String participantVisibilityMatrix = "";
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -3750,11 +3750,11 @@ public class AppSettings implements Serializable{
 		this.recordingSubfolder = recordingSubfolder;
 	}
 
-	public String getAvTrackSelectionMap() {
-		return avTrackSelectionMap;
+	public String getParticipantVisibilityMatrix() {
+		return participantVisibilityMatrix;
 	}
 
-	public void setAvTrackSelectionMap(String avTrackSelectionMap) {
-		this.avTrackSelectionMap = avTrackSelectionMap;
+	public void setParticipantVisibilityMatrix(String participantVisibilityMatrix) {
+		this.participantVisibilityMatrix = participantVisibilityMatrix;
 	}
 }
