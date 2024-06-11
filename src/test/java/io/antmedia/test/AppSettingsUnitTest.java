@@ -564,6 +564,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("", appSettings.getWebhookPlayAuthUrl());
 
 		assertNull(appSettings.getRecordingSubfolder());
+		assertEquals("application/json", appSettings.getWebhookContentType());
 
 
 		//if we add a new field, we just need to check its default value in this test
