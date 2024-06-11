@@ -2,11 +2,6 @@ package io.antmedia.test;
 
 
 import static org.bytedeco.ffmpeg.global.avcodec.*;
-import static org.bytedeco.ffmpeg.global.avcodec.av_packet_unref;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
-import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avformat.AVFMT_NOFILE;
 import static org.bytedeco.ffmpeg.global.avformat.av_read_frame;
 import static org.bytedeco.ffmpeg.global.avformat.av_stream_get_side_data;
@@ -2638,6 +2633,21 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testMp4Muxing");
 		return null;
 	}
+	
+	@Test
+	public void testHLSMuxerCodecSupported() 
+	{
+		HLSMuxer hlsMuxerTester = new HLSMuxer(vertx, null, "streams", 1, null, false);
+		
+		assertFalse(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_VP8));
+		assertTrue(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_AC3));
+		assertTrue(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_AAC));
+		assertTrue(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_H264));
+		assertTrue(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_H265));
+		assertTrue(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_MP3));
+		assertFalse(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_NONE));
+
+	}
 
 	@Test
 	public void updateStreamQualityParameters() {
@@ -4541,6 +4551,71 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(addStreamResult);
 
 		assertEquals("h264_metadata", hlsMuxer.getBitStreamFilter());
+
+	}
+
+
+	@Test
+	public void testBroadcastHLSParameters() {
+		AppSettings appSettings = new AppSettings();
+		appSettings.setHlsListSize("5");
+		appSettings.setHlsTime("2");
+		appSettings.setHlsPlayListType("event");
+
+		//If hls parameters for a broadcast is null, it should use app settings
+		{
+			Broadcast broadcast = new Broadcast();
+			try {
+				broadcast.setStreamId("stream1");
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+			assertNull(broadcast.getHlsParameters());
+
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+			MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, broadcast, false, appScope);
+			muxAdaptor.setAppSettings(appSettings);
+			muxAdaptor.setBroadcast(broadcast);
+
+			muxAdaptor.enableSettings();
+			HLSMuxer hlsMuxer = muxAdaptor.addHLSMuxer();
+			assertEquals(appSettings.getHlsListSize(), hlsMuxer.getHlsListSize());
+			assertEquals(appSettings.getHlsTime(), hlsMuxer.getHlsTime());
+			assertEquals(appSettings.getHlsPlayListType(), hlsMuxer.getHlsPlayListType());
+		}
+
+
+		//If hls parameters for a broadcast is not null, it should use broadcast hls settings
+		{
+			Broadcast broadcast = new Broadcast();
+			try {
+				broadcast.setStreamId("stream2");
+			} catch (Exception e) {
+				throw new RuntimeException(e);
+			}
+
+			Broadcast.HLSParameters hlsParameters = new Broadcast.HLSParameters();
+			hlsParameters.setHlsListSize("10");
+			hlsParameters.setHlsTime("4");
+			hlsParameters.setHlsPlayListType("vod");
+			broadcast.setHlsParameters(hlsParameters);
+			assertEquals(hlsParameters, broadcast.getHlsParameters());
+
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+			MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, broadcast, false, appScope);
+			muxAdaptor.setAppSettings(appSettings);
+			muxAdaptor.setBroadcast(broadcast);
+
+			muxAdaptor.enableSettings();
+			HLSMuxer hlsMuxer = muxAdaptor.addHLSMuxer();
+			assertEquals(hlsParameters.getHlsListSize(), hlsMuxer.getHlsListSize());
+			assertEquals(hlsParameters.getHlsTime(), hlsMuxer.getHlsTime());
+			assertEquals(hlsParameters.getHlsPlayListType(), hlsMuxer.getHlsPlayListType());
+		}
+
+
 
 	}
 

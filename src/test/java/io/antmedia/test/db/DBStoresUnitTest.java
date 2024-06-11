@@ -7,6 +7,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,6 +17,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.datastore.db.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
@@ -36,12 +39,6 @@ import dev.morphia.query.filters.Filters;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
-import io.antmedia.datastore.db.DataStore;
-import io.antmedia.datastore.db.DataStoreFactory;
-import io.antmedia.datastore.db.InMemoryDataStore;
-import io.antmedia.datastore.db.MapDBStore;
-import io.antmedia.datastore.db.MongoStore;
-import io.antmedia.datastore.db.RedisStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -2240,12 +2237,12 @@ public class DBStoresUnitTest {
 		dsf.setDbType(type);
 		dsf.setDbName("testdb");
 		dsf.setDbHost("127.0.0.1");
-		ApplicationContext context = Mockito.mock(ApplicationContext.class);
-		Mockito.when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
 		AppSettings appSettings = new AppSettings();
 		appSettings.setWriteStatsToDatastore(writeStats);
-		Mockito.when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);	
-		Mockito.when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());	
+		when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+		when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
 		
 		
 		dsf.setApplicationContext(context);
@@ -3174,6 +3171,38 @@ public class DBStoresUnitTest {
 		assertTrue(dataStore.get(id).getEncoderSettingsList().isEmpty());
 
 
+	}
+
+	@Test
+	public void testInfinityLoopBug() {
+
+		Map mockMap = mock(Map.class);
+		Set mockValues = mock(Set.class);
+		when(mockMap.values()).thenReturn(mockValues);
+		when(mockMap.size()).thenReturn(RandomUtils.nextInt(10, 100));
+		Iterator<String> mockIterator = mock(Iterator.class);
+
+		//create an infinite loop, because some corrupted files cause this
+		when(mockValues.iterator()).thenReturn(mockIterator);
+		when(mockIterator.hasNext()).thenReturn(true);
+		when(mockIterator.next()).thenReturn("{\"streamId\":\"aaa\",\"name\":\"bbb\",\"type\":\"playlist\"}\n");
+
+		class MyDB extends MapBasedDataStore {
+			public MyDB(String dbName) {
+				super(dbName);
+				map = mockMap;
+			}
+
+			public void close(boolean deleteDB) {}
+			public long getLocalLiveBroadcastCount(String hostAddress) {return 0;}
+			public List<Broadcast> getLocalLiveBroadcasts(String hostAddress) {return null;}
+		};
+
+
+		MyDB db = new MyDB("test");
+		List<Broadcast> list = db.getBroadcastListV2("playlist", null);
+
+		assertEquals(mockMap.size()+1, list.size());
 	}
 
 }

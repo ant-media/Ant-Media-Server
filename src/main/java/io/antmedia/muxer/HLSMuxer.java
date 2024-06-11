@@ -219,7 +219,11 @@ public class HLSMuxer extends Muxer  {
 
 	@Override
 	public boolean isCodecSupported(int codecId) {
-		return (codecId == AV_CODEC_ID_H264 || codecId == AV_CODEC_ID_AAC || codecId == AV_CODEC_ID_MP3 || codecId == AV_CODEC_ID_H265);
+		return (codecId == AV_CODEC_ID_H264 
+				|| codecId == AV_CODEC_ID_AAC  
+				|| codecId == AV_CODEC_ID_MP3  
+				|| codecId == AV_CODEC_ID_H265 
+				|| codecId == AV_CODEC_ID_AC3);
 	}
 
 	public long getAverageBitrate() {
