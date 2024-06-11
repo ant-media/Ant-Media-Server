@@ -785,7 +785,7 @@ public class AppSettings implements Serializable{
 
 
 	/**
-	 * Encoder settings in comma separated format
+	 * Encoder settings in JSON format
 	 * This must be set for adaptive streaming,
 	 * If it is empty SFU mode will be active in WebRTCAppEE,
 	 * video height, video bitrate, and audio bitrate are set as an example,
@@ -2146,6 +2146,11 @@ public class AppSettings implements Serializable{
 	@Value("${recordingSubfolder:#{null}}")
 	private String recordingSubfolder;
 
+	/**
+	 * Audio/Video track selection map for WebRTC Clients
+	 */
+	@Value("${avTrackSelectionMap:{\"admin\":[\"player\",\"publisher\",\"speaker\"],\"publisher\":[\"publisher\",\"speaker\",\"admin\"],\"speaker\":[\"admin\",\"publisher\",\"speaker\"],\"player\":[\"speaker\"]}}")
+	private String avTrackSelectionMap = "";
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -3743,5 +3748,13 @@ public class AppSettings implements Serializable{
 
 	public void setRecordingSubfolder(String recordingSubfolder) {
 		this.recordingSubfolder = recordingSubfolder;
+	}
+
+	public String getAvTrackSelectionMap() {
+		return avTrackSelectionMap;
+	}
+
+	public void setAvTrackSelectionMap(String avTrackSelectionMap) {
+		this.avTrackSelectionMap = avTrackSelectionMap;
 	}
 }
