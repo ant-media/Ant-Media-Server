@@ -101,7 +101,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setHlsSegmentType("fmp4");
 		assertEquals("fmp4", appSettings.getHlsSegmentType());
 
-		assertEquals("{\"host\":[\"attendee\",\"panelist\",\"speaker\"],\"panelist\":[\"panelist\",\"speaker\",\"host\"],\"speaker\":[\"host\",\"panelist\",\"speaker\"],\"attendee\":[\"speaker\"],\"default\":[\"default\"]}", appSettings.getParticipantVisibilityMatrix());
+		assertEquals("{\"default\": [\"default\"],\"host\":[\"attendee\",\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"host_presents\": [\"attendee\",\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"panelist\": [\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"panelist_present\": [\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"attendee_temp\": [\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"attendee_temp_present\": [\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"]}", appSettings.getParticipantVisibilityMatrix());
 		appSettings.setParticipantVisibilityMatrix("{\"default\":[\"default\"]}");
 		assertEquals("{\"default\":[\"default\"]}", appSettings.getParticipantVisibilityMatrix());
 	}
