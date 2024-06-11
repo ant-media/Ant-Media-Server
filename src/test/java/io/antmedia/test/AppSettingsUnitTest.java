@@ -101,7 +101,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setHlsSegmentType("fmp4");
 		assertEquals("fmp4", appSettings.getHlsSegmentType());
 
-		
+		assertEquals("{\"host\":[\"attendee\",\"panelist\",\"speaker\"],\"panelist\":[\"panelist\",\"speaker\",\"host\"],\"speaker\":[\"host\",\"panelist\",\"speaker\"],\"attendee\":[\"speaker\"],\"default\":[\"default\"]}", appSettings.getParticipantVisibilityMatrix());
+		appSettings.setParticipantVisibilityMatrix("{\"default\":[\"default\"]}");
+		assertEquals("{\"default\":[\"default\"]}", appSettings.getParticipantVisibilityMatrix());
 	}
 
 	@Test
@@ -569,7 +571,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					182, numberOfFields);
+					183, numberOfFields);
 
 		
 	}
