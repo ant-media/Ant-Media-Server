@@ -2149,7 +2149,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * Participant Visibility Matrix for WebRTC Clients
 	 */
-	@Value("${participantVisibilityMatrix:{\"host\":[\"attendee\",\"panelist\",\"speaker\"],\"panelist\":[\"panelist\",\"speaker\",\"host\"],\"speaker\":[\"host\",\"panelist\",\"speaker\"],\"attendee\":[\"speaker\"]}}")
+	@Value("${participantVisibilityMatrix:{\"host\":[\"attendee\",\"panelist\",\"speaker\"],\"panelist\":[\"panelist\",\"speaker\",\"host\"],\"speaker\":[\"host\",\"panelist\",\"speaker\"],\"attendee\":[\"speaker\"],\"default\":[\"default\"]}}")
 	private String participantVisibilityMatrix = "";
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
