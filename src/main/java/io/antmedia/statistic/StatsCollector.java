@@ -1192,8 +1192,12 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 		for (Iterator<User> iterator2 = userList.iterator(); iterator2.hasNext();) 
 		{
 			User user = iterator2.next();
+			Map appNameUserType = user.getAppNameUserType();
 
-			if (user.getUserType() == UserType.ADMIN && CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) 
+			if ((user.getUserType() == UserType.ADMIN && CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) ||
+				(appNameUserType.containsKey(CommonRestService.SCOPE_SYSTEM) && appNameUserType.get(CommonRestService.SCOPE_SYSTEM).equals(UserType.ADMIN))
+
+			)
 			{
 				email = user.getEmail();
 				break;

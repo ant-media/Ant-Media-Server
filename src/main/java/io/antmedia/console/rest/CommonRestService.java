@@ -13,11 +13,7 @@ import java.nio.file.StandardCopyOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Queue;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -197,7 +193,7 @@ public class CommonRestService {
 		String message = "";
 		if (user != null) 
 		{
-			if (!getDataStore().doesUsernameExist(user.getEmail()) && user.getPassword() != null && user.getEmail() != null && user.getUserType() != null)
+			if (!getDataStore().doesUsernameExist(user.getEmail()) && user.getPassword() != null && user.getEmail() != null && !user.getAppNameUserType().isEmpty())
 			{
 				user.setPassword(getMD5Hash(user.getPassword()));
 				result = getDataStore().addUser(user);
@@ -205,7 +201,7 @@ public class CommonRestService {
 
 				new Thread() {
 					public void run() {
-						sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), user.getScope(), user.getUserType().toString());
+						sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), "", "");
 					};
 				}.start();
 			}
@@ -227,12 +223,17 @@ public class CommonRestService {
 
 
 
+
 	public Result addInitialUser(User user) {
 		boolean result = false;
 		int errorId = -1;
 		user.setPassword(getMD5Hash(user.getPassword()));
 		user.setUserType(UserType.ADMIN);
 		user.setScope(SCOPE_SYSTEM);
+		Map<String, UserType> appNameUserType = new HashMap<>();
+		appNameUserType.put(SCOPE_SYSTEM, UserType.ADMIN);
+		user.setAppNameUserType(appNameUserType);
+
 		if (getDataStore().getNumberOfUserRecords() == 0) {
 			result = getDataStore().addUser(user);
 		}

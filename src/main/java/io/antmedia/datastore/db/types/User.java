@@ -1,22 +1,16 @@
 package io.antmedia.datastore.db.types;
 
-import io.antmedia.rest.model.UserScope;
 import org.bson.types.ObjectId;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.annotation.JsonProperty.Access;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
-import dev.morphia.utils.IndexType;
 import io.antmedia.rest.model.UserType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
-import java.util.HashMap;
+import java.util.Map;
 
 @Schema(description = "The user information")
 @Entity(value = "user")
@@ -38,18 +32,23 @@ public class User {
     /**
      * The type of the user.
      */
-    @Schema(description = "The type of the user", allowableValues = {"ADMIN", "READ-ONLY", "USER"})
+	@Deprecated
+	@Schema(description = "The type of the user", allowableValues = {"ADMIN", "READ-ONLY", "USER"})
     private UserType userType;
+
 
     /**
      * The scope of the user. It can be 'system' or the name of the application.
      */
+	@Deprecated
     @Schema(description = "The scope of the user. If it's 'system', it can access system-level stuff. If it's an application name, it can access application-level stuff.")
     private String scope;
 
-	private UserScope newScope;
 
-    /**
+	@Schema(description = "Holds app -> scope of access data. After 2.9.1 users can have multiple app access with different access types.")
+	private Map<String, UserType> appNameUserType;
+
+	/**
      * The new password of the user. This field is only set for certain user types.
      */
     @Schema(description = "The new password of the user")
@@ -84,12 +83,13 @@ public class User {
     @Schema(description = "The id of the user")
     @Id
     private ObjectId id;
-	
-	public User(String email, String password, UserType userType, String scope) {
+
+	public User(String email, String password, UserType userType, String scope, Map<String, UserType> appNameUserTypeMap) {
 		this.email = email;
 		this.password = password;
 		this.userType = userType;
 		this.scope = scope;
+		this.appNameUserType = appNameUserTypeMap;
 	}
 
 	public User() {
@@ -174,11 +174,11 @@ public class User {
 		this.lastName = lastName;
 	}
 
-	public UserScope getNewScope() {
-		return newScope;
+	public Map<String, UserType> getAppNameUserType() {
+		return appNameUserType;
 	}
 
-	public void setNewScope(UserScope userScope){
-		this.newScope = userScope;
+	public void setAppNameUserType(Map<String, UserType> appNameUserType) {
+		this.appNameUserType = appNameUserType;
 	}
 }

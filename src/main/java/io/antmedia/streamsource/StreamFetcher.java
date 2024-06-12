@@ -113,6 +113,8 @@ public class StreamFetcher {
 
 	private AtomicLong seekTimeInMs = new AtomicLong(0);
 
+	long zeroDtsPtsCounter = 0;
+
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
 	}
@@ -184,6 +186,8 @@ public class StreamFetcher {
 		private long firstPacketDtsInMs;
 
 		private long lastSycnCheckTime = 0;;
+
+		private long firstPacketReceivedMs;
 		
 		public Result prepare(AVFormatContext inputFormatContext) {
 			Result result = prepareInput(inputFormatContext);
@@ -481,7 +485,18 @@ public class StreamFetcher {
 
 					//we need to init here because inputFormatContext should be created before initializing the bufferQueue
 					bufferQueue = new ConcurrentSkipListSet<>((a, b) ->
-					{ 
+					{
+						/*avg_framerate --> 30
+								33 ms 1/30
+
+							33ms convert something
+							av_rescale_q
+							//av_rescale_q(33, inputFormatContext.streams(a.stream_index()).time_base(),  )
+						av_rescale_q(a.dts(), inputFormatContext.streams(a.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+						av_rescale_q_rnd()*/
+
+
+
 						long packet1TimeStamp = av_rescale_q(a.dts(), inputFormatContext.streams(a.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 						long packet2TimeStamp = av_rescale_q(b.dts(), inputFormatContext.streams(b.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 
@@ -503,6 +518,7 @@ public class StreamFetcher {
 			streamPublished = true;
 			lastPacketReceivedTime = System.currentTimeMillis();
 
+			logger.info("dts {} pts {}", pkt.dts(), pkt.pts());
 
 
 
@@ -760,15 +776,45 @@ public class StreamFetcher {
 
 		}
 
+		public boolean checkZeroDtsPts(AVPacket pkt){
+
+			if(pkt.dts() == 0 && pkt.pts() == 0){
+				zeroDtsPtsCounter++;
+				return true;
+			}
+			return false;
+
+		}
+
+		public void fixZeroDtsPts(AVPacket pkt){
+				long potentialDts =  av_rescale_q(System.currentTimeMillis() - muxAdaptor.getStartTime(), MuxAdaptor.TIME_BASE_FOR_MS, inputFormatContext.streams(pkt.stream_index()).time_base());
+				logger.info("POTENTIAL DTS:{} ", potentialDts );
+				pkt.dts(potentialDts);
+				pkt.pts(pkt.dts());
+
+		}
+
 		public void writePacket(AVStream stream, AVPacket pkt) {
 			int packetIndex = pkt.stream_index();
 
 			long pktDts = pkt.dts();
+			checkZeroDtsPts(pkt);
+			if(zeroDtsPtsCounter >0 && checkZeroDtsPts(pkt)){
+				//logger.info("MORE THAN 100 ZERO DTS PTS SENT. WE CHANGE MODE TO FIX IT MANUALLY BY TIMESTAMP.");
 
+				fixZeroDtsPts(pkt);
+				logger.info("dts:{} pts:{}", pkt.dts(), pkt.pts());
+
+				muxAdaptor.writePacket(stream, pkt);
+				return;
+			}
 			//if last sent DTS is bigger than incoming dts, it may be corrupt packet (due to network, etc) or stream is restarted 
-
-			if (lastSentDTS[packetIndex] >= pkt.dts()) 
+			if (lastSentDTS[packetIndex] >= pkt.dts())
 			{
+
+
+
+
 				//it may be corrupt packet
 				if (pkt.dts() > lastReceivedDTS[packetIndex]) {
 					//it may be seeked or restarted
@@ -778,21 +824,26 @@ public class StreamFetcher {
 				}
 				else {
 					logger.info("Last dts:{} is bigger than incoming dts: {} for stream index:{} and streamId:{}-"
-							+ " If you see this log frequently and it's not related to playlist, you may TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings", 
+							+ " If you see this log frequently and it's not related to playlist, you may TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings",
 							lastSentDTS[packetIndex], pkt.dts(), packetIndex, streamId);
 					pktDts = lastSentDTS[packetIndex] + 1;
 				}
 			}
-			
+
 			lastReceivedDTS[packetIndex] = pkt.dts();
-			pkt.dts(pktDts);			
+			pkt.dts(pktDts);
 			lastSentDTS[packetIndex] = pkt.dts();
 
 
-			if (pkt.dts() > pkt.pts()) 
+			if (pkt.dts() > pkt.pts())
 			{
 				pkt.pts(pkt.dts());
 			}
+
+
+
+
+			logger.info("dts:{} pts:{}", pkt.dts(), pkt.pts());
 
 			muxAdaptor.writePacket(stream, pkt);
 		}
