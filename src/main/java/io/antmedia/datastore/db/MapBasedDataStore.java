@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1119,7 +1120,18 @@ public abstract class MapBasedDataStore extends DataStore {
 	public Map<String, String> getConferenceRoomMap() {
 		return conferenceRoomMap;
 	}
-	
 
-
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
+		List<Broadcast> subtracks = new ArrayList<>();
+		synchronized (this) {
+			for (String broadcastString : map.values()) {
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				if (broadcast.getMainTrackStreamId() != null && broadcast.getMainTrackStreamId().equals(mainTrackId)
+						&& (StringUtils.isBlank(role) || broadcast.getRole().equals(role))) {
+					subtracks.add(broadcast);
+				}
+			}
+		}
+		return subtracks.subList(offset, Math.min(offset + size, subtracks.size()));
+	}
 }

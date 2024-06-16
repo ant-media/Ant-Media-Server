@@ -417,6 +417,12 @@ public class Broadcast {
 	 */
 	private long updateTime = 0;
 
+	/**
+	 * Broadcast role for selective playback
+	 */
+	@Schema(description ="Broadcast role for selective playback")
+	private String role = null;
+
 	@Entity
 	public static class HLSParameters
 	{
@@ -982,6 +988,14 @@ public class Broadcast {
 
 	public void setEncoderSettingsList(List<EncoderSettings> encoderSettingsList) {
 		this.encoderSettingsList = encoderSettingsList;
+	}
+
+	public String getRole() {
+		return role;
+	}
+
+	public void setRole(String role) {
+		this.role = role;
 	}
 
 }
