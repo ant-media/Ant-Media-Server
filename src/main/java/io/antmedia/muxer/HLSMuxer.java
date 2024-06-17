@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.util.UUID;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bytedeco.ffmpeg.avcodec.*;
@@ -16,6 +17,8 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -27,8 +30,6 @@ import io.vertx.core.Vertx;
 public class HLSMuxer extends Muxer  {
 
 	public static final String SEI_USER_DATA = "sei_user_data";
-
-	private static final String SEI_UUID = "086f3693-b7b3-4f2c-9653-21492feee5b8+";
 
 	private static final String SEGMENT_SUFFIX_TS = "%0"+SEGMENT_INDEX_LENGTH+"d.ts";
 	private static final String SEGMENT_SUFFIX_FMP4 = "%0"+SEGMENT_INDEX_LENGTH+"d.m4s";
@@ -77,8 +78,9 @@ public class HLSMuxer extends Muxer  {
 
 	private boolean id3Enabled = false;
 
-	private boolean seiEnabled = false;
+	private ByteBuffer pendingSEIData;
 
+	private AVPacket tmpData;
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
@@ -248,15 +250,56 @@ public class HLSMuxer extends Muxer  {
 		if (startTime == 0) {
 			startTime = currentTime;
 		}
+		
+		
+		if (codecType == AVMEDIA_TYPE_VIDEO && pendingSEIData != null) {
+			
+			
+			
+			logger.info("side data limit:{} for streamId:{}", pendingSEIData.limit(), streamId);
+				
+			//inject SEI NAL Unit
+			pendingSEIData.rewind();
+			int newPacketSize = pkt.size() + pendingSEIData.limit();
+			
+			tmpData = new AVPacket();
+			
+			av_packet_ref(tmpData, pkt);
+			tmpData.position(0);
+			
+			ByteBuffer packetbuffer = ByteBuffer.allocateDirect(newPacketSize);
+			
+			packetbuffer.put(pendingSEIData);
+			packetbuffer.put(pkt.data().position(0).limit(pkt.size()).asByteBuffer());
+			
+			packetbuffer.position(0);
+			
+			tmpData.data(new BytePointer(packetbuffer));
+			tmpData.data().position(0).limit(newPacketSize);
+			tmpData.size(packetbuffer.limit());			
+	
+			pendingSEIData = null;
+			
+			super.writePacket(tmpData, inputTimebase, outputTimebase, codecType);
+			
+			av_packet_unref(tmpData);
+			
+		} 
+		else {
+			super.writePacket(pkt, inputTimebase, outputTimebase, codecType);
+		}
 
-		super.writePacket(pkt, inputTimebase, outputTimebase, codecType);
 	}
 
 	public synchronized void addID3Data(String data) {
+		
 		int id3TagSize = data.length() + 3; // TXXX frame size (excluding 10 byte header)
 		int tagSize = id3TagSize + 10;
 
 		ByteBuffer byteBuffer = ByteBuffer.allocate(tagSize + 10);
+		
+		logger.info("Adding ID3 data: {} lenght:{} byte length:{} buffer capacacity:{}", data, data.length(), data.getBytes().length, byteBuffer.capacity());
+
 
 		byteBuffer.put("ID3".getBytes());
 		byteBuffer.put(new byte[]{0x03, 0x00}); // version
@@ -300,6 +343,7 @@ public class HLSMuxer extends Muxer  {
 
 	public void createID3StreamIfRequired() {
 		if(id3Enabled) {
+			logger.info("ID3 tag is enabled for stream:{}", streamId);
 			id3DataPkt = avcodec.av_packet_alloc();
 			av_init_packet(id3DataPkt);
 
@@ -400,39 +444,89 @@ public class HLSMuxer extends Muxer  {
 		return super.addStream(codecParameter, codecContext.time_base(), streamIndex);
 	}
 
-	@Override
-	public synchronized boolean addVideoStream(int width, int height, AVRational timebase, int codecId, int streamIndex,
-											   boolean isAVC, AVCodecParameters codecpar) {
+	
 
-		boolean result = super.addVideoStream(width, height, timebase, codecId, streamIndex, isAVC, codecpar);
-		if (result && seiEnabled)
-		{
-			AVStream outStream = getOutputFormatContext().streams(inputOutputStreamIndexMap.get(streamIndex));
-
-			setBitstreamFilter("h264_metadata");
-
-			AVBSFContext avbsfContext = initVideoBitstreamFilter(getBitStreamFilter(), outStream.codecpar(), inputTimeBaseMap.get(streamIndex));
-
-			if (avbsfContext != null) {
-				int ret = avcodec_parameters_copy(outStream.codecpar(), avbsfContext.par_out());
-				result = ret == 0;
+	public synchronized void setSeiData(String data) {
+		
+		
+		int nb_streams = getOutputFormatContext().nb_streams();
+		
+		boolean hevcCodec = false;
+		boolean h264Codec = false;
+		for (int i = 0; i < nb_streams; i++) {
+			AVStream stream = getOutputFormatContext().streams(i);
+			if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
+				if (stream.codecpar().codec_id() == AV_CODEC_ID_H264) {
+					h264Codec = true;
+				}
+				else if (stream.codecpar().codec_id() == AV_CODEC_ID_H265) {
+                    hevcCodec = true;
+                }
 			}
-
-			setSeiData("initial sei data");
-
-			logger.info("Adding video stream index:{} for stream:", streamIndex);
 		}
+		
+		if (!h264Codec && !hevcCodec) {
+            logger.warn("There is no video stream in the muxer, so cannot add SEI data to the muxer. Stream id: {}", streamId);
+            return;
+		}
+		
+		//according to the documentation SEI data is  UUID(128bit(16 byte)) + data
+		
+		// nal unit becomes 00 00 01 + NAL type + SEI type + payload size + payload + align bits
+		int length = data.getBytes().length;
+		int payloadSize = 16 + length;
+		
+		int lengthByteCount = payloadSize / 0xff;
 
-		return result;
-	}
+		int remaining = payloadSize % 0xff;
+		if (remaining != 0) {
+			lengthByteCount++;
+		}
+				
+		int totalLength = 4 + 1 + 1 + lengthByteCount + payloadSize + 1;
+		
 
-	public void setSeiData(String data) {
-		int ret = av_opt_set(bsfFilterContextList.get(0).priv_data(), SEI_USER_DATA, SEI_UUID+data, AV_OPT_SEARCH_CHILDREN);
-		logError(ret, "Cannot set sei_user_data for {} and error is {}", streamId);
+		if (hevcCodec) {
+			totalLength += 1; //because of nal unit header is 2 bytes
+		}
+		pendingSEIData = ByteBuffer.allocateDirect(totalLength);
+		pendingSEIData.rewind();
+
+		
+		if (StringUtils.equals(getBitStreamFilter(), "h264_mp4toannexb") || StringUtils.equals(getBitStreamFilter(), "hevc_mp4toannexb")
+				|| HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
+			pendingSEIData.putInt(totalLength-4); 
+
+		}
+		else {
+			pendingSEIData.put((byte)0x00); //start code
+			pendingSEIData.put((byte)0x00); //start code
+			pendingSEIData.put((byte)0x00); //start code
+			pendingSEIData.put((byte)0x01); //start code
+		}
+		if (h264Codec) {
+			pendingSEIData.put((byte) 0x06); // NAL type
+		} 
+		else { //HEVC
+			pendingSEIData.put((byte) 0x4E); // NAL type
+			pendingSEIData.put((byte) 0x01); // NAL type
+		}
+		pendingSEIData.put((byte)0x05); //SEI type
 		
 		
-		ret = av_bsf_init(bsfFilterContextList.get(0));
-		logError(ret, "Cannot update sei_user_data for {} and error is {}", streamId);
+		for (int i = 0; i < lengthByteCount-1; i++) {
+			pendingSEIData.put((byte) 0xff);
+		}
+		
+		pendingSEIData.put((byte)remaining);  //if payload size is bigger than 0xff, it should be 2 bytes
+		
+		UUID uuid = UUID.randomUUID();
+		
+	    pendingSEIData.putLong(uuid.getMostSignificantBits());
+	    pendingSEIData.putLong(uuid.getLeastSignificantBits());
+        pendingSEIData.put(data.getBytes());		
+		pendingSEIData.put((byte)0x80); //RBSP to align the bits
+		
 		
 	}
 	
@@ -514,11 +608,6 @@ public class HLSMuxer extends Muxer  {
 	public void setId3Enabled(boolean id3Enabled) {
 		this.id3Enabled = id3Enabled;
 	}
-
-	public void setSeiEnabled(boolean seiEnabled) {
-		this.seiEnabled = seiEnabled;
-	}
-
 
 	@Override
 	protected synchronized void clearResource() {

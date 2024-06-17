@@ -31,6 +31,7 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
@@ -1577,7 +1578,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		
 		lastSentDTS[0] = 0;
-		lastSentDTS[0] = 200;
+		lastSentDTS[1] = 200;
 		
 		Awaitility.await().pollDelay(3, TimeUnit.SECONDS).atMost(5, TimeUnit.SECONDS).until(()-> {
 			workerThread.checkAndFixSynch();

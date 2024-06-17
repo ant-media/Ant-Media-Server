@@ -4542,7 +4542,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		hlsMuxer.setHlsParameters(null, null, null, null, null);
 		hlsMuxer.init(appScope, "test", 0, null, 0);
 
-		hlsMuxer.setSeiEnabled(true);
 		int width = 640;
 		int height = 480;
 
@@ -4615,8 +4614,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(hlsParameters.getHlsPlayListType(), hlsMuxer.getHlsPlayListType());
 		}
 
-
-
 	}
 
 	@Test
@@ -4629,6 +4626,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String data = "some data to put frame";
 		muxAdaptorReal.addSEIData(data);
 		verify(hlsMuxer, times(1)).setSeiData(data);
+		
+		
+		hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
+
+		hlsMuxer.setSeiData("test data");
+
 	}
 
 	@Test

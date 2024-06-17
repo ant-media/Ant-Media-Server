@@ -1961,9 +1961,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addSEIData(@Parameter(description = "the id of the stream", required = true) @PathParam("stream_id") String streamId,
 							 @Parameter(description = "SEI data.", required = false) String data) {
-		if(!getAppSettings().isSeiEnabled()) {
-			return new Result(false, null, "SEI is not enabled");
-		}
+		
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if(muxAdaptor != null) {
 			return new Result(muxAdaptor.addSEIData(data));

@@ -3605,7 +3605,6 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setDataStore(store);
 		BroadcastRestService restServiceSpy = Mockito.spy(restServiceReal);
 		restServiceSpy.setAppSettings(new AppSettings());
-		restServiceSpy.getAppSettings().setSeiEnabled(false);
 
 		String seiData = "some data";
 		doReturn(null).when(restServiceSpy).getMuxAdaptor("nonExistingStreamId");
@@ -3616,7 +3615,6 @@ public class BroadcastRestServiceV2UnitTest {
 		when(muxadaptor.addSEIData(seiData)).thenReturn(true);
 
 		assertFalse(restServiceSpy.addSEIData("existingStreamId", seiData).isSuccess());
-		restServiceSpy.getAppSettings().setSeiEnabled(true);
 		assertTrue(restServiceSpy.addSEIData("existingStreamId", seiData).isSuccess());
 
 		assertFalse(restServiceSpy.addSEIData("nonExistingStreamId", seiData).isSuccess());
