@@ -29,6 +29,10 @@ import io.vertx.core.Vertx;
 
 public class HLSMuxer extends Muxer  {
 
+	private static final String HEVC_MP4TOANNEXB = "hevc_mp4toannexb";
+
+	private static final String H264_MP4TOANNEXB = "h264_mp4toannexb";
+
 	public static final String SEI_USER_DATA = "sei_user_data";
 
 	private static final String SEGMENT_SUFFIX_TS = "%0"+SEGMENT_INDEX_LENGTH+"d.ts";
@@ -449,11 +453,11 @@ public class HLSMuxer extends Muxer  {
 	public synchronized void setSeiData(String data) {
 		
 		
-		int nb_streams = getOutputFormatContext().nb_streams();
+		int nbStreams = getOutputFormatContext().nb_streams();
 		
 		boolean hevcCodec = false;
 		boolean h264Codec = false;
-		for (int i = 0; i < nb_streams; i++) {
+		for (int i = 0; i < nbStreams; i++) {
 			AVStream stream = getOutputFormatContext().streams(i);
 			if (stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
 				if (stream.codecpar().codec_id() == AV_CODEC_ID_H264) {
@@ -490,11 +494,11 @@ public class HLSMuxer extends Muxer  {
 			totalLength += 1; //because of nal unit header is 2 bytes
 		}
 		pendingSEIData = ByteBuffer.allocateDirect(totalLength);
-		pendingSEIData.rewind();
 
 		
-		if (StringUtils.equals(getBitStreamFilter(), "h264_mp4toannexb") || StringUtils.equals(getBitStreamFilter(), "hevc_mp4toannexb")
-				|| HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
+		if (StringUtils.equals(getBitStreamFilter(), H264_MP4TOANNEXB) || StringUtils.equals(getBitStreamFilter(), HEVC_MP4TOANNEXB)
+				|| HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) 
+		{
 			pendingSEIData.putInt(totalLength-4); 
 
 		}
@@ -507,7 +511,8 @@ public class HLSMuxer extends Muxer  {
 		if (h264Codec) {
 			pendingSEIData.put((byte) 0x06); // NAL type
 		} 
-		else { //HEVC
+		else 
+		{ //HEVC
 			pendingSEIData.put((byte) 0x4E); // NAL type
 			pendingSEIData.put((byte) 0x01); // NAL type
 		}
@@ -526,6 +531,7 @@ public class HLSMuxer extends Muxer  {
 	    pendingSEIData.putLong(uuid.getLeastSignificantBits());
         pendingSEIData.put(data.getBytes());		
 		pendingSEIData.put((byte)0x80); //RBSP to align the bits
+		pendingSEIData.rewind();
 		
 		
 	}
@@ -542,10 +548,10 @@ public class HLSMuxer extends Muxer  {
 	{
 		
 		if (codecParameters.codec_id() == AV_CODEC_ID_H264) {
-            setBitstreamFilter("h264_mp4toannexb");
+            setBitstreamFilter(H264_MP4TOANNEXB);
         }
         else if (codecParameters.codec_id() == AV_CODEC_ID_H265){
-        	setBitstreamFilter("hevc_mp4toannexb");
+        	setBitstreamFilter(HEVC_MP4TOANNEXB);
         }
         else if (codecParameters.codec_id() == AV_CODEC_ID_AAC && HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
         	//we need this conversion for fmp4
@@ -617,5 +623,9 @@ public class HLSMuxer extends Muxer  {
 			id3DataPkt = null;
 		}
 
+	}
+	
+	public ByteBuffer getPendingSEIData() {
+		return pendingSEIData;
 	}
 }
