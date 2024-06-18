@@ -163,7 +163,7 @@ public class RestProxyFilter extends AbstractFilter {
 		endpointProxy.service(request, response);
 	}
 
-	private ServletConfig getServletConfig(String targetUri) {
+	public static ServletConfig getServletConfig(String targetUri) {
 		return new ServletConfig() {
 			@Override
 			public String getServletName() {
