@@ -6,15 +6,14 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.util.Date;
+import java.util.Enumeration;
 
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
+import jakarta.servlet.*;
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
@@ -159,8 +158,35 @@ public class RestProxyFilter extends AbstractFilter {
 		String restRouteOfSubscriberNode = "http://" + registeredNodeIp + ":" + serverSettings.getDefaultHttpPort()  + File.separator + appSettings.getAppName() + File.separator+ "rest";
 		log.info("Redirecting the request({}) to node {}", ((HttpServletRequest)request).getRequestURI(), registeredNodeIp);
 		EndpointProxy endpointProxy = new EndpointProxy(jwtToken);
-		endpointProxy.initTarget(restRouteOfSubscriberNode);
+		ServletConfig config = getServletConfig(restRouteOfSubscriberNode);
+		endpointProxy.init(config);
 		endpointProxy.service(request, response);
+	}
+
+	private ServletConfig getServletConfig(String targetUri) {
+		return new ServletConfig() {
+			@Override
+			public String getServletName() {
+				return "ams-proxy-servlet";
+			}
+
+			@Override
+			public ServletContext getServletContext() {
+				return null;
+			}
+
+			@Override
+			public String getInitParameter(String s) {
+				if(s.equals("targetUri"))
+					return targetUri;
+				return null;
+			}
+
+			@Override
+			public Enumeration<String> getInitParameterNames() {
+				return null;
+			}
+		};
 	}
 
 	public String getStreamId(String reqURI){
