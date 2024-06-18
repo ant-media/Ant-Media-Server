@@ -101,7 +101,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setHlsSegmentType("fmp4");
 		assertEquals("fmp4", appSettings.getHlsSegmentType());
 
-		
+		assertEquals("{\"default\": [\"default\"],\"host\":[\"attendee\",\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"host_presents\": [\"attendee\",\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"panelist\": [\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"panelist_present\": [\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"attendee_temp\": [\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"attendee_temp_present\": [\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"]}", appSettings.getParticipantVisibilityMatrix());
+		appSettings.setParticipantVisibilityMatrix("{\"default\":[\"default\"]}");
+		assertEquals("{\"default\":[\"default\"]}", appSettings.getParticipantVisibilityMatrix());
 	}
 
 	@Test
@@ -570,7 +572,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					183, numberOfFields);
+					184, numberOfFields);
 
 		
 	}

@@ -786,7 +786,7 @@ public class AppSettings implements Serializable{
 
 
 	/**
-	 * Encoder settings in comma separated format
+	 * Encoder settings in JSON format
 	 * This must be set for adaptive streaming,
 	 * If it is empty SFU mode will be active in WebRTCAppEE,
 	 * video height, video bitrate, and audio bitrate are set as an example,
@@ -2158,6 +2158,11 @@ public class AppSettings implements Serializable{
 	@Value("${webhookContentType:#{ T(org.apache.http.entity.ContentType).APPLICATION_JSON.getMimeType() }}")
 	private String webhookContentType = ContentType.APPLICATION_JSON.getMimeType();
 
+	/**
+	 * Participant Visibility Matrix for WebRTC Clients
+	 */
+	@Value("${participantVisibilityMatrix:{\"default\": [\"default\"],\"host\":[\"attendee\",\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"host_presents\": [\"attendee\",\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"panelist\": [\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"panelist_present\": [\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"attendee_temp\": [\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"],\"attendee_temp_present\": [\"attendee_temp\",\"attendee_temp_present\",\"host\",\"host_present\",\"panelist\",\"panelist_present\"]}}")
+	private String participantVisibilityMatrix = "";
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -3763,5 +3768,13 @@ public class AppSettings implements Serializable{
 
 	public void setWebhookContentType(String webhookContentType) {
 		this.webhookContentType = webhookContentType;
+	}
+
+	public String getParticipantVisibilityMatrix() {
+		return participantVisibilityMatrix;
+	}
+
+	public void setParticipantVisibilityMatrix(String participantVisibilityMatrix) {
+		this.participantVisibilityMatrix = participantVisibilityMatrix;
 	}
 }
