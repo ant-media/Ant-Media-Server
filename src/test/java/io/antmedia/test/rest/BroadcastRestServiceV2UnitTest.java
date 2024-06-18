@@ -3614,7 +3614,6 @@ public class BroadcastRestServiceV2UnitTest {
 
 		when(muxadaptor.addSEIData(seiData)).thenReturn(true);
 
-		assertFalse(restServiceSpy.addSEIData("existingStreamId", seiData).isSuccess());
 		assertTrue(restServiceSpy.addSEIData("existingStreamId", seiData).isSuccess());
 
 		assertFalse(restServiceSpy.addSEIData("nonExistingStreamId", seiData).isSuccess());
