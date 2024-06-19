@@ -1,6 +1,8 @@
 package io.antmedia.rest.servlet;
 
 import io.antmedia.filter.TokenFilterManager;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletContext;
 import org.apache.http.HttpRequest;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -19,6 +21,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
+import java.util.Enumeration;
 
 public class EndpointProxy extends ProxyServlet {
 
@@ -91,18 +94,6 @@ public class EndpointProxy extends ProxyServlet {
                 EntityUtils.consumeQuietly(proxyResponse.getEntity());
             }
         }
-    }
-
-    public void initTarget(String target) throws ServletException{
-        this.targetUri = target;
-        try {
-            this.targetUriObj = new URI(this.targetUri);
-        } catch (Exception var2) {
-            throw new ServletException("Trying to process targetUri init parameter: " + var2, var2);
-        }
-
-        this.targetHost = URIUtils.extractHost(this.targetUriObj);
-        
     }
 
     public void setXForwardedFor(HttpServletRequest servletRequest, HttpRequest proxyRequest) {
