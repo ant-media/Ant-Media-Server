@@ -105,10 +105,6 @@ public class HLSMuxer extends Muxer  {
 		this.httpEndpoint = httpEndpoint;
 		setAddDateTimeToSourceName(addDateTimeToResourceName);
 	}
-
-	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile) {
-		this.setHlsParameters(hlsListSize, hlsTime, hlsPlayListType, hlsFlags, hlsEncryptionKeyInfoFile, null);
-	}
 	
 	public void setHlsParameters(String hlsListSize, String hlsTime, String hlsPlayListType, String hlsFlags, String hlsEncryptionKeyInfoFile, String hlsSegmentType){
 		if (hlsListSize != null && !hlsListSize.isEmpty()) {
@@ -160,10 +156,19 @@ public class HLSMuxer extends Muxer  {
 
 			if (StringUtils.isNotBlank(httpEndpoint)) 			
 			{
-				segmentFilename = httpEndpoint + File.separator + (this.subFolder != null ? subFolder : "") + File.separator + initialResourceNameWithoutExtension;
+				
+				segmentFilename = httpEndpoint;
+				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
+				segmentFilename += (this.subFolder != null ? subFolder : "");
+				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
+				segmentFilename += initialResourceNameWithoutExtension;
+				
 			}
 			else {
-				segmentFilename = file.getParentFile() + File.separator + initialResourceNameWithoutExtension;
+				segmentFilename = file.getParentFile().toString();
+				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
+				segmentFilename += initialResourceNameWithoutExtension;
+				
 			}
 			
 			//remove double slashes with single slash because it may cause problems

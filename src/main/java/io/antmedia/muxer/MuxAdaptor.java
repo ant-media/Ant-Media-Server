@@ -248,7 +248,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private byte[] videoDataConf;
 	private byte[] audioDataConf;
 	private AtomicInteger queueSize = new AtomicInteger(0);
-	private long startTimeMs;
+	//private long startTimeMs;
 	protected long totalIngestTime;
 	private int fps = 0;
 	private int width;
@@ -450,7 +450,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		getDataStore();
 
 		//TODO: Refactor -> saving broadcast is called two times in RTMP ingesting. It should be one time
-		getStreamHandler().updateBroadcastStatus(streamId, startTimeMs, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, getDataStore().get(streamId));
+		getStreamHandler().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, getDataStore().get(streamId));
 
 		enableSettings();
 		initServerSettings();
@@ -482,7 +482,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public HLSMuxer addHLSMuxer() {
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(), getAppSettings().getHlsHttpEndpoint(), getAppSettings().isAddDateTimeToHlsFileName());
-		hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile());
+		hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile(), getAppSettings().getHlsSegmentType());
 		hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
 		hlsMuxer.setId3Enabled(appSettings.isId3TagEnabled());
 		addMuxer(hlsMuxer);
@@ -1495,7 +1495,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	@Override
 	public void start() {
 		logger.info("Number of items in the queue while adaptor is being started to prepare is {}", getInputQueueSize());
-		startTimeMs = System.currentTimeMillis();
 
 		vertx.executeBlocking(() -> {
 			logger.info("before prepare for {}", streamId);
