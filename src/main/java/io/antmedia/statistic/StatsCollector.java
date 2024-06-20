@@ -1195,7 +1195,7 @@ public class StatsCollector implements IStatsCollector, ApplicationContextAware,
 			Map appNameUserType = user.getAppNameUserType();
 
 			if ((user.getUserType() == UserType.ADMIN && CommonRestService.SCOPE_SYSTEM.equals(user.getScope())) ||
-				(appNameUserType.containsKey(CommonRestService.SCOPE_SYSTEM) && appNameUserType.get(CommonRestService.SCOPE_SYSTEM).equals(UserType.ADMIN))
+				(appNameUserType != null && appNameUserType.containsKey(CommonRestService.SCOPE_SYSTEM) && appNameUserType.get(CommonRestService.SCOPE_SYSTEM).equals(UserType.ADMIN))
 
 			)
 			{

@@ -204,12 +204,12 @@ public class AuthenticationFilter extends AbstractFilter {
 						else if (scopeAccess) 
 						{
 							//if it's an admin, provide access - backward compatible
-							if (UserType.ADMIN.equals(currentUser.getUserType()) || UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName)) || currentUser.getUserType() == null)
+							if (UserType.ADMIN.equals(currentUser.getUserType()) || (currentUser.getAppNameUserType() != null && UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName))) || currentUser.getUserType() == null)
 							{
 								chain.doFilter(request, response);
 							}
 							//user scope already checked on scopeAccessGranted. No need to check it again
-							else if (UserType.ADMIN.equals(currentUser.getUserType()) || UserType.USER.equals(currentUser.getAppNameUserType().get(appName)) && (dispatchURL.contains("/rest/v2/broadcasts") || dispatchURL.contains("/rest/v2/vods")))
+							else if (UserType.ADMIN.equals(currentUser.getUserType()) || (currentUser.getAppNameUserType() != null && UserType.USER.equals(currentUser.getAppNameUserType().get(appName))) || UserType.USER.equals(currentUser.getUserType()) && (dispatchURL.contains("/rest/v2/broadcasts") || dispatchURL.contains("/rest/v2/vods")))
 							{
 								//if user scope is system and granted, it cannot change anythings in the system scope server-settings, add/delete apps and users
 								//if user scope is application and granted, it can do anything in this scope
@@ -220,7 +220,7 @@ public class AuthenticationFilter extends AbstractFilter {
 							}
 						}
 						else {
-							if (UserType.ADMIN.equals(currentUser.getUserType()) || UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName)) &&
+							if (UserType.ADMIN.equals(currentUser.getUserType()) || (currentUser.getAppNameUserType() != null && UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName))) &&
 									(path.startsWith("/rest/v2/applications/settings/" + userScope) || (path.startsWith(userScope) || path.startsWith(userScope, 1)))) 
 							{
 								//only admin user can access to change the application settings out of its scope

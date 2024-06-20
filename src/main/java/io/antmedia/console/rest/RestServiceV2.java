@@ -6,6 +6,7 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 
+import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
@@ -339,6 +340,17 @@ public class RestServiceV2 extends CommonRestService {
 	@Path("/applications")
 	@Produces(MediaType.APPLICATION_JSON)
 	public String getApplications() {
+
+	/*	String userEmail = (String)httpRequest.getSession().getAttribute(CommonRestService.USER_EMAIL);
+		AbstractConsoleDataStore store = getAbstractConsoleDataStore();
+		if (store != null)
+		{
+			User currentUser = store.getUser(userEmail);*/
+
+
+
+
+
 	    return super.getApplications();
 	}
 

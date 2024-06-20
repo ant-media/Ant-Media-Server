@@ -389,7 +389,22 @@ public class CommonRestService {
 				session.setAttribute(USER_EMAIL, user.getEmail());
 				session.setAttribute(USER_PASSWORD, getMD5Hash(user.getPassword()));
 				user = getDataStore().getUser(user.getEmail());
-				message = user.getScope() + "/" + user.getUserType();
+				if(user.getScope() != null && user.getUserType() != null){
+					message = user.getScope() + "/" + user.getUserType();
+
+				}else if(user.getAppNameUserType() != null){
+					JsonObject appNameUserTypeJson = new JsonObject();
+
+					// Iterate through the map and construct the JSON object
+					for (Map.Entry<String, UserType> entry : user.getAppNameUserType().entrySet()) {
+						String appName = entry.getKey();
+						UserType userType = entry.getValue();
+
+						appNameUserTypeJson.addProperty(appName, userType.toString());
+					}
+
+					message = appNameUserTypeJson.toString();
+				}
 				getDataStore().resetInvalidLoginCount(user.getEmail());
 			} 
 			else 
