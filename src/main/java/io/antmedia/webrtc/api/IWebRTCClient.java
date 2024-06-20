@@ -196,7 +196,7 @@ public interface IWebRTCClient {
 	 * Client stream resolution change notification
 	 * @param streamHeight
 	 */
-	public void notifyWebRTCClient(int streamHeight);
+	public void notifyWebRTCClientAboutChangeInResolution(int streamHeight);
 	
 	/**
 	 * Getter for stream Id

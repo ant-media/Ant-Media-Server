@@ -507,7 +507,7 @@ public abstract class Muxer {
 
 		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index())) 
 		{
-			logPacketIssue("Not writing packet1 for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
+			logPacketIssue("Not writing packet1 for {} - Is running:{} or stream index({}) is registered: {} to {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()), getOutputURL());
 			return;
 		}
 
@@ -1270,7 +1270,7 @@ public abstract class Muxer {
 		if (ret < 0) {
 			audioNotWrittenCount++;
 			if (logger.isWarnEnabled()) {
-				logger.warn("cannot write audio frame to muxer({}). Error is {} ", file.getName(),
+				logger.warn("cannot write audio frame to muxer({}).Pts: {} dts:{}. Error is {} ", file.getName(), pkt.pts(), pkt.dts(),
 						getErrorDefinition(ret));
 			}
 		}
