@@ -933,6 +933,7 @@ public abstract class DataStore {
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
 		broadcast.setAutoStartStopEnabled(newBroadcast.isAutoStartStopEnabled());
+		broadcast.setRole(newBroadcast.getRole());
 	}
 
 
