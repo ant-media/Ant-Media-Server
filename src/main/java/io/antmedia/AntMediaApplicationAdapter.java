@@ -92,6 +92,7 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.track.ISubtrackPoller;
+import io.antmedia.webrtc.PublishParameters;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketConstants;
@@ -2106,8 +2107,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return false;
 	}
 
-	public void startHttpSignaling(JSONObject publishData, String sdp, String sessionId, CompletableFuture<String> completableFuture){
-
+	public void startHttpSignaling(PublishParameters publishParameters, String sdp, String sessionId, CompletableFuture<String> completableFuture){
+		//for enterprise
 	}
 
 	public boolean stopWhipBroadcast(String streamId, String eTag){
