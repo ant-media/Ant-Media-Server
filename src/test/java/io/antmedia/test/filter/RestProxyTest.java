@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 
+import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -234,7 +235,10 @@ public class RestProxyTest {
 		MockFilterChain filterChain = new MockFilterChain();
 
 		try {
-			endpointProxy.initTarget("http://127.0.0.1");
+			ServletConfig servletConfig = RestProxyFilter.getServletConfig("http://127.0.0.1");
+			assertEquals("ams-proxy-servlet", servletConfig.getServletName());
+			assertEquals("http://127.0.0.1", servletConfig.getInitParameter("targetUri"));
+			endpointProxy.init(servletConfig);
 			HttpResponse response = mock(HttpResponse.class);
 			StatusLine statusLine = mock(StatusLine.class);
 			Mockito.when(statusLine.getStatusCode()).thenReturn(304);

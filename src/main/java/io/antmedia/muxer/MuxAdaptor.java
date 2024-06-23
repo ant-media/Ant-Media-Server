@@ -20,6 +20,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 import io.antmedia.logger.LoggerUtils;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
@@ -246,7 +248,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private byte[] videoDataConf;
 	private byte[] audioDataConf;
 	private AtomicInteger queueSize = new AtomicInteger(0);
-	private long startTimeMs;
+	//private long startTimeMs;
 	protected long totalIngestTime;
 	private int fps = 0;
 	private int width;
@@ -382,7 +384,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return init(conn.getScope(), name, isAppend);
 	}
 
-	protected void enableSettings() {
+	public void enableSettings() {
 		AppSettings appSettingsLocal = getAppSettings();
 		hlsMuxingEnabled = appSettingsLocal.isHlsMuxingEnabled();
 		dashMuxingEnabled = appSettingsLocal.isDashMuxingEnabled();
@@ -397,6 +399,20 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		hlsListSize = appSettingsLocal.getHlsListSize();
 		hlsTime = appSettingsLocal.getHlsTime();
 		hlsPlayListType = appSettingsLocal.getHlsPlayListType();
+
+		Broadcast.HLSParameters broadcastHLSParameters = getBroadcast().getHlsParameters();
+		if(broadcastHLSParameters != null) {
+			if(StringUtils.isNotBlank(broadcastHLSParameters.getHlsListSize())) {
+				hlsListSize = broadcastHLSParameters.getHlsListSize();
+			}
+			if(StringUtils.isNotBlank(broadcastHLSParameters.getHlsTime())) {
+				hlsTime = broadcastHLSParameters.getHlsTime();
+			}
+			if(StringUtils.isNotBlank(broadcastHLSParameters.getHlsPlayListType())) {
+				hlsPlayListType = broadcastHLSParameters.getHlsPlayListType();
+			}
+		}
+
 		dashSegDuration = appSettingsLocal.getDashSegDuration();
 		dashFragmentDuration = appSettingsLocal.getDashFragmentDuration();
 		targetLatency = appSettingsLocal.getTargetLatency();
@@ -434,7 +450,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		getDataStore();
 
 		//TODO: Refactor -> saving broadcast is called two times in RTMP ingesting. It should be one time
-		getStreamHandler().updateBroadcastStatus(streamId, startTimeMs, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, getDataStore().get(streamId));
+		getStreamHandler().updateBroadcastStatus(streamId, 0, IAntMediaStreamHandler.PUBLISH_TYPE_RTMP, getDataStore().get(streamId));
 
 		enableSettings();
 		initServerSettings();
@@ -449,14 +465,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		if (hlsMuxingEnabled) {
-
-			HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(), getAppSettings().getHlsHttpEndpoint(), getAppSettings().isAddDateTimeToHlsFileName());
-			hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile(), getAppSettings().getHlsSegmentType());
-			hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
-			hlsMuxer.setId3Enabled(appSettings.isId3TagEnabled());
-			hlsMuxer.setSeiEnabled(appSettings.isSeiEnabled());
-			addMuxer(hlsMuxer);
-			logger.info("adding HLS Muxer for {}", streamId);
+			addHLSMuxer();
 		}
 
 		getDashMuxer();
@@ -469,6 +478,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 		getStreamHandler().muxAdaptorAdded(this);
 		return true;
+	}
+
+	public HLSMuxer addHLSMuxer() {
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, storageClient, getAppSettings().getS3StreamsFolderPath(), getAppSettings().getUploadExtensionsToS3(), getAppSettings().getHlsHttpEndpoint(), getAppSettings().isAddDateTimeToHlsFileName());
+		hlsMuxer.setHlsParameters( hlsListSize, hlsTime, hlsPlayListType, getAppSettings().getHlsflags(), getAppSettings().getHlsEncryptionKeyInfoFile(), getAppSettings().getHlsSegmentType());
+		hlsMuxer.setDeleteFileOnExit(deleteHLSFilesOnExit);
+		hlsMuxer.setId3Enabled(appSettings.isId3TagEnabled());
+		addMuxer(hlsMuxer);
+		logger.info("adding HLS Muxer for {}", streamId);
+
+		return hlsMuxer;
 	}
 
 	public Muxer getDashMuxer()
@@ -1475,7 +1495,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	@Override
 	public void start() {
 		logger.info("Number of items in the queue while adaptor is being started to prepare is {}", getInputQueueSize());
-		startTimeMs = System.currentTimeMillis();
 
 		vertx.executeBlocking(() -> {
 			logger.info("before prepare for {}", streamId);

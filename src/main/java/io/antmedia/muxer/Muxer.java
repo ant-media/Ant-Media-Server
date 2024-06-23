@@ -171,6 +171,8 @@ public abstract class Muxer {
 		avRationalTimeBase.den(1);
 	}
 
+	protected String subFolder = null;
+
 	/**
 	 * This class is used generally to send direct video buffer to muxer
 	 * @author mekya
@@ -505,7 +507,7 @@ public abstract class Muxer {
 
 		if (!isRunning.get() || !registeredStreamIndexList.contains(pkt.stream_index())) 
 		{
-			logPacketIssue("Not writing packet1 for {} - Is running:{} or stream index({}) is registered: {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()));
+			logPacketIssue("Not writing packet1 for {} - Is running:{} or stream index({}) is registered: {} to {}", streamId, isRunning.get(), pkt.stream_index(), registeredStreamIndexList.contains(pkt.stream_index()), getOutputURL());
 			return;
 		}
 
@@ -646,8 +648,8 @@ public abstract class Muxer {
 
 			initialResourceNameWithoutExtension = getExtendedName(name, resolution, bitrate, appSettings.getFileNameFormat());
 
-
-			file = getResourceFile(scope, initialResourceNameWithoutExtension, extension, subFolder);
+			setSubfolder(subFolder);
+			file = getResourceFile(scope, initialResourceNameWithoutExtension, extension, this.subFolder);
 
 			File parentFile = file.getParentFile();
 
@@ -657,14 +659,14 @@ public abstract class Muxer {
 			} else {
 				// if parent file exists,
 				// check overrideIfExist and file.exists
-				File tempFile = getResourceFile(scope, initialResourceNameWithoutExtension, extension+TEMP_EXTENSION, subFolder);
+				File tempFile = getResourceFile(scope, initialResourceNameWithoutExtension, extension+TEMP_EXTENSION, this.subFolder);
 
 				if (!overrideIfExist && (file.exists() || tempFile.exists())) {
 					String tmpName = initialResourceNameWithoutExtension;
 					int i = 1;
 					do {
-						tempFile = getResourceFile(scope, tmpName, extension+TEMP_EXTENSION, subFolder);
-						file = getResourceFile(scope, tmpName, extension, subFolder);
+						tempFile = getResourceFile(scope, tmpName, extension+TEMP_EXTENSION, this.subFolder);
+						file = getResourceFile(scope, tmpName, extension, this.subFolder);
 						tmpName = initialResourceNameWithoutExtension + "_" + i;
 						i++;
 					} while (file.exists() || tempFile.exists());
@@ -681,6 +683,10 @@ public abstract class Muxer {
 			av_init_packet(tmpPacket);
 
 		}
+	}
+
+	public void setSubfolder(String subFolder) {
+		this.subFolder = subFolder;
 	}
 
 	public AppSettings getAppSettings() {
@@ -1264,7 +1270,7 @@ public abstract class Muxer {
 		if (ret < 0) {
 			audioNotWrittenCount++;
 			if (logger.isWarnEnabled()) {
-				logger.warn("cannot write audio frame to muxer({}). Error is {} ", file.getName(),
+				logger.warn("cannot write audio frame to muxer({}).Pts: {} dts:{}. Error is {} ", file.getName(), pkt.pts(), pkt.dts(),
 						getErrorDefinition(ret));
 			}
 		}

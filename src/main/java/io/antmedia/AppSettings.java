@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.catalina.util.NetMask;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.http.entity.ContentType;
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -1061,7 +1062,7 @@ public class AppSettings implements Serializable{
 	private int timeTokenPeriod = 60;	
 
 	/**
-	 * It can be event: or vod, Check HLS documentation for EXT-X-PLAYLIST-TYPE.
+	 * It can be event or vod, Check HLS documentation for EXT-X-PLAYLIST-TYPE.
 	 *
 	 */
 	@Value( "${hlsPlayListType:${"+SETTINGS_HLS_PLAY_LIST_TYPE+":}}" )
@@ -1527,7 +1528,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
 	 * It can have string or integer values. 
-	 * One value can be given at a for as string. It can be udp, tcp udp_multicast, http, https
+	 * One value can be given at a time as string. It can be udp, tcp udp_multicast, http, https
 	 * Multiple values can be given at a time by OR operation 
 	 * udp -> 1 << 0 = 1
 	 * tcp -> 1 << 1 = 2
@@ -2042,12 +2043,6 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${id3TagEnabled:false}")
 	private boolean id3TagEnabled = false;
-
-	/**
-	 * Enables the SEI data for HLS
-	 */
-	@Value("${seiEnabled:false}")
-	private boolean seiEnabled = false;
 	
 	/**
 	 * Ant Media Server can get the audio level from incoming RTP Header in WebRTC streaming and send to the viewers.
@@ -2139,6 +2134,23 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${webhookPlayAuthUrl:}")
 	private String webhookPlayAuthUrl = "";
+
+	/**
+	 * Subfolder for the recording files (mp4 and webm)
+	 */
+	@Value("${recordingSubfolder:#{null}}")
+	private String recordingSubfolder;
+	
+	
+	/**
+	 * The content type that is used in the webhook POST request
+	 * It's added for backward compatibility. Default value is application/json.
+	 * 
+	 * Older version is using application/x-www-form-urlencoded as content type. 
+	 * If you don't want to change the content type, you can set this value to application/x-www-form-urlencoded     
+	 */
+	@Value("${webhookContentType:#{ T(org.apache.http.entity.ContentType).APPLICATION_JSON.getMimeType() }}")
+	private String webhookContentType = ContentType.APPLICATION_JSON.getMimeType();
 
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
@@ -2571,6 +2583,7 @@ public class AppSettings implements Serializable{
 		aacEncodingEnabled=true;
 		ipFilterEnabled=true;
 		ingestingStreamLimit = -1;
+		recordingSubfolder = null;
 	}
 
 	public int getWebRTCPortRangeMax() {
@@ -3597,14 +3610,6 @@ public class AppSettings implements Serializable{
 		this.id3TagEnabled = id3TagEnabled;
 	}
 
-	public boolean isSeiEnabled() {
-		return seiEnabled;
-	}
-
-	public void setSeiEnabled(boolean seiEnabled) {
-		this.seiEnabled = seiEnabled;
-	}
-
 	public boolean isSendAudioLevelToViewers() {
 		return sendAudioLevelToViewers;
 	}
@@ -3730,4 +3735,19 @@ public class AppSettings implements Serializable{
 		this.hlsSegmentType = hlsSegmentType;
 	}
 
+	public String getRecordingSubfolder() {
+		return recordingSubfolder;
+	}
+
+	public void setRecordingSubfolder(String recordingSubfolder) {
+		this.recordingSubfolder = recordingSubfolder;
+	}
+
+	public String getWebhookContentType() {
+		return webhookContentType;
+	}
+
+	public void setWebhookContentType(String webhookContentType) {
+		this.webhookContentType = webhookContentType;
+	}
 }

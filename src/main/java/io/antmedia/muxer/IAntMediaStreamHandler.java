@@ -104,7 +104,7 @@ public interface IAntMediaStreamHandler {
 	 * Update broadcast status to BROADCASTING
 	 * 
 	 * @param streamId is the id of the stream.
-	 * @param absoluteStartTimeMs: It's the absolute start time if available
+	 * @param absoluteStartTimeMs: @deprecated It's not used anymore. It's the absolute start time if available 
 	 * @param publishType: It's RTMP, WebRTC, StreamSource
 	 * @param broadcast: It's the broadcast object. If it's null, a new record will be created
 	 * 

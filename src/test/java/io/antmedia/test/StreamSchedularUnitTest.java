@@ -616,6 +616,13 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			Awaitility.await().atMost(20, TimeUnit.SECONDS)
 			.until(() ->dataStore.get(streamId).getCurrentPlayIndex() == 0);
 
+			Awaitility.await().atMost(20, TimeUnit.SECONDS)
+					.until(() -> {
+						File f = new File("webapps/junit/streams/testPlaylistStreamId.m3u8");
+						return f.exists();
+					});
+
+
 			{
 				// It means that it will skip next playlist item
 				Result result = service.playNextItem(streamId, null);

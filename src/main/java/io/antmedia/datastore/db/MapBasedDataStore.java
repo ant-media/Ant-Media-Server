@@ -38,6 +38,7 @@ import io.antmedia.muxer.MuxAdaptor;
 
 public abstract class MapBasedDataStore extends DataStore {
 
+	public static final String INCONSISTENCY_MESSAGE = "Inconsistency in DB. It's likely db file({}) is damaged";
 	protected Map<String, String> map;
 	protected Map<String, String> vodMap;
 	protected Map<String, String> detectionMap;
@@ -235,18 +236,32 @@ public abstract class MapBasedDataStore extends DataStore {
 		ArrayList<Broadcast> list = new ArrayList<>();
 		synchronized (this) {
 
+			int count = 0;
+			int size = map.size();
 			if (type != null && !type.isEmpty()) {
 				for (String broadcastString : map.values()) {
+					count++;
 					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 
 					if (broadcast.getType().equals(type)) {
 						list.add(broadcast);
 					}
+
+					if(count > size) {
+						logger.warn(INCONSISTENCY_MESSAGE, dbName);
+						break;
+					}
 				}
 			} else {
 				for (String broadcastString : map.values()) {
+					count++;
 					Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 					list.add(broadcast);
+
+					if(count > size) {
+						logger.warn(INCONSISTENCY_MESSAGE, dbName);
+						break;
+					}
 				}
 			}
 		}
@@ -371,7 +386,7 @@ public abstract class MapBasedDataStore extends DataStore {
 				i++;
 				vodList.add(gson.fromJson(vodString, VoD.class));
 				if (i > size) {
-					logger.error("Inconsistency in DB. It's likely db file({}) is damaged", dbName);
+					logger.error(INCONSISTENCY_MESSAGE, dbName);
 					break;
 				}
 			}
