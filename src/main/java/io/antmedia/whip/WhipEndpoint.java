@@ -82,7 +82,7 @@ public class WhipEndpoint extends RestServiceBase {
 		CompletableFuture<String> completionSignal = new CompletableFuture<>();
 
 		PublishParameters publishParameters = new PublishParameters(streamId);
-		publishParameters.setTokenId(tokenId);
+		publishParameters.setToken(tokenId);
 		publishParameters.setEnableVideo(enableVideo);
 		publishParameters.setEnableAudio(enableAudio);
 		publishParameters.setSubscriberId(subscriberId);

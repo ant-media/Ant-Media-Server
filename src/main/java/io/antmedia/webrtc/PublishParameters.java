@@ -3,9 +3,11 @@ package io.antmedia.webrtc;
 public class PublishParameters {
 
     private final String streamId;
-    private  String tokenId;
-    private boolean enableVideo;
-    private boolean enableAudio;
+    private  String token;
+    //default values are true for viode and audio
+    private boolean enableVideo = true;
+    private boolean enableAudio = true;
+    
     private String subscriberId;
     private String subscriberCode;
     private String streamName;
@@ -49,8 +51,8 @@ public class PublishParameters {
 		this.linkedSessionForSignaling = linkedSessionForSignaling;
 	}
 
-    public String getTokenId() {
-        return tokenId;
+    public String getToken() {
+        return token;
     }
 
     public boolean isEnableVideo() {
@@ -88,7 +90,7 @@ public class PublishParameters {
         return streamId;
     }
 
-	public void setTokenId(String tokenId) {
-		this.tokenId = tokenId;
+	public void setToken(String tokenId) {
+		this.token = tokenId;
 	}
 }
