@@ -2107,12 +2107,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return false;
 	}
 
-	public void startHttpSignaling(PublishParameters publishParameters, String sdp, String sessionId, CompletableFuture<String> completableFuture){
+	public CompletableFuture<Result> startHttpSignaling(PublishParameters publishParameters, String sdp, String sessionId){
 		//for enterprise
+		return null;
 	}
 
-	public boolean stopWhipBroadcast(String streamId, String eTag){
-		return false;
+	public Result stopWhipBroadcast(String streamId, String eTag){
+		return new Result(false);
 	}
 
 	public boolean stopPlayingBySubscriberId(String subscriberId){

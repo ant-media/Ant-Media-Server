@@ -2,15 +2,21 @@ package io.antmedia.whip;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.kafka.common.Uuid;
 import org.json.simple.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.rest.RestServiceBase;
+import io.antmedia.rest.model.Result;
 import io.antmedia.webrtc.PublishParameters;
 import io.antmedia.websocket.WebSocketConstants;
 import io.swagger.v3.oas.annotations.ExternalDocumentation;
@@ -50,36 +56,27 @@ import jakarta.ws.rs.core.Response.Status;
 //we bind it to /whip path in web.xml
 @Path("/")
 public class WhipEndpoint extends RestServiceBase {
-	
-	
-	
-	@GET
-	@Path("/hello")
-	@Produces(MediaType.APPLICATION_JSON)
-	public Response getBroadcast(@Parameter(description = "id of the broadcast", required = true) @QueryParam("id") String id) {
-	
-			return Response.status(Status.OK).entity(id).build();
-		
-	}
-	
-	
+
+	private static final Logger logger = LoggerFactory.getLogger(WhipEndpoint.class);
+
+
+
 	@Operation(summary = "Publish a webrtc stream through WebRTC-HTTP ingestion protocol(WHIP). HTTP for signaling.")
 	@POST
 	@Consumes({ "application/sdp" })
 	@Path("/{streamId}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public CompletableFuture<Response> startWhipPublish(@Context UriInfo uriInfo, @PathParam(WebSocketConstants.STREAM_ID) String streamId,
-														@QueryParam(WebSocketConstants.TOKEN) String tokenId,
-														@QueryParam(WebSocketConstants.VIDEO) boolean enableVideo,
-														@QueryParam(WebSocketConstants.AUDIO) boolean enableAudio,
-														@QueryParam(WebSocketConstants.SUBSCRIBER_ID) String subscriberId,
-														@QueryParam(WebSocketConstants.SUBSCRIBER_CODE) String subscriberCode,
-														@QueryParam(WebSocketConstants.STREAM_NAME) String streamName,
-														@QueryParam(WebSocketConstants.MAIN_TRACK) String mainTrack,
-														@QueryParam(WebSocketConstants.META_DATA) String metaData,
-														@QueryParam(WebSocketConstants.LINK_SESSION) String linkedSession,
-														@Parameter String sdp) {
-		CompletableFuture<String> completionSignal = new CompletableFuture<>();
+			@QueryParam(WebSocketConstants.TOKEN) String tokenId,
+			@QueryParam(WebSocketConstants.VIDEO) boolean enableVideo,
+			@QueryParam(WebSocketConstants.AUDIO) boolean enableAudio,
+			@QueryParam(WebSocketConstants.SUBSCRIBER_ID) String subscriberId,
+			@QueryParam(WebSocketConstants.SUBSCRIBER_CODE) String subscriberCode,
+			@QueryParam(WebSocketConstants.STREAM_NAME) String streamName,
+			@QueryParam(WebSocketConstants.MAIN_TRACK) String mainTrack,
+			@QueryParam(WebSocketConstants.META_DATA) String metaData,
+			@QueryParam(WebSocketConstants.LINK_SESSION) String linkedSession,
+			@Parameter String sdp) {
 
 		PublishParameters publishParameters = new PublishParameters(streamId);
 		publishParameters.setToken(tokenId);
@@ -90,52 +87,63 @@ public class WhipEndpoint extends RestServiceBase {
 		publishParameters.setStreamName(streamName);
 		publishParameters.setMainTrack(mainTrack);
 		publishParameters.setMetaData(metaData);
-		
 
-		String sessionId = RandomStringUtils.randomAlphanumeric(6);
 
-		getApplication().startHttpSignaling(publishParameters, sdp, sessionId, completionSignal);
+		String sessionId = UUID.randomUUID().toString();
 
-		 return completionSignal.exceptionally(e -> {
+		CompletableFuture<Result> startHttpSignaling = getApplication().startHttpSignaling(publishParameters, sdp, sessionId);
+
+		return startHttpSignaling.exceptionally(e -> {
 			logger.error("Could not complete webrtc http signaling.");
 			e.printStackTrace();
 			return null;
-		}).thenApply(serverSdp -> {
-			if(StringUtils.isBlank(serverSdp)){
-				//if serversdp is null, it means that it's not allowed. 
-				//TODO: refactor the logic
-                return Response.status(Status.FORBIDDEN)
+		}).thenApply(result -> { return prepareResponse(result, sessionId, uriInfo); });
+
+	}
+
+	public Response prepareResponse(Result result, String sessionId, UriInfo uriInfo) {
+
+		try {
+			if(!result.isSuccess())
+			{
+				return Response.status(Status.FORBIDDEN)
+						.entity(result.getMessage())
 						.build();
 			}
 
-			 String turnAddr = getApplication().getAppSettings().getStunServerURI();
-			 String turnServerUsername = getApplication().getAppSettings().getTurnServerUsername();
-			 String turnServerPassword = getApplication().getAppSettings().getTurnServerCredential();
-			 String turnServerInfo = "";
 
-			 if(StringUtils.isNotBlank(turnServerUsername) && StringUtils.isNotBlank(turnServerPassword)){
-				 turnServerInfo = turnAddr + "?transport=udp; rel=\"ice-server\" username="+turnServerUsername+";"+" credential="+turnServerPassword;
-			 }
+			String turnAddr = getApplication().getAppSettings().getStunServerURI();
+			String turnServerUsername = getApplication().getAppSettings().getTurnServerUsername();
+			String turnServerPassword = getApplication().getAppSettings().getTurnServerCredential();
+			String turnServerInfo = "";
 
-			 String defaultStunStr = "stun:stun1.l.google.com:19302; rel=ice-server";
+			if(StringUtils.isNotBlank(turnServerUsername) && StringUtils.isNotBlank(turnServerPassword)){
+				turnServerInfo = turnAddr + "?transport=udp; rel=\"ice-server\" username="+turnServerUsername+";"+" credential="+turnServerPassword;
+			}
 
-			 String eTag = sessionId; // Replace with parsed ETag
-			 String resource = uriInfo.getRequestUri().toString()+"/"+eTag;
-			 ArrayList<String> extensions = new ArrayList<>();
-			 extensions.add(defaultStunStr);
-			 if(StringUtils.isNotBlank(turnServerInfo)){
-				 extensions.add(turnServerInfo);
-			 }
+			//TODO: make it parametric
+			String defaultStunStr = "stun:stun1.l.google.com:19302; rel=ice-server";
 
-			 Response response = Response.created(URI.create(resource))
-					 .entity(serverSdp)
-					 .header("ETag", eTag)
-					 .header("Link", String.join(",", extensions))
-					 .type("application/sdp")
-					 .build();
-			return response;
+			String eTag = sessionId; // Replace with parsed ETag
+			String resource = uriInfo.getRequestUri().toString()+"/"+eTag;
+			ArrayList<String> extensions = new ArrayList<>();
+			extensions.add(defaultStunStr);
+			if(StringUtils.isNotBlank(turnServerInfo)){
+				extensions.add(turnServerInfo);
+			}
 
-		});
+			return Response.created(URI.create(resource))
+					.entity(result.getMessage())
+					.header("ETag", eTag)
+					.header("Link", String.join(",", extensions))
+					.type("application/sdp")
+					.build();
+		}
+		catch (Exception e) {
+			//Complete future with error hides the exception so we need to explicitly log it and return it
+			logger.error("Exception in prepareResponse {}", ExceptionUtils.getStackTrace(e));
+			return Response.serverError().build();
+		}
 
 	}
 
@@ -144,13 +152,13 @@ public class WhipEndpoint extends RestServiceBase {
 	@Consumes({ "application/sdp" })
 	@Path("/{streamId}/{eTag}")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Response stopWhipPublish(@PathParam("streamId") String streamId,@PathParam("eTag") String eTag){
+	public Response stopWhipPublish(@PathParam("streamId") String streamId, @PathParam("eTag") String eTag){
 
-		boolean stopWhipBroadcastRes = getApplication().stopWhipBroadcast(streamId, eTag);
-		if(stopWhipBroadcastRes){
-			return Response.ok().build();
+		Result result = getApplication().stopWhipBroadcast(streamId, eTag);
+		if(result.isSuccess()){
+			return Response.ok().entity(result).build();
 		}
-		return Response.status(Status.NOT_FOUND).build();
+		return Response.status(Status.NOT_FOUND).entity(result).build();
 	}
 
 
