@@ -94,8 +94,8 @@ public class WhipEndpoint extends RestServiceBase {
 		CompletableFuture<Result> startHttpSignaling = getApplication().startHttpSignaling(publishParameters, sdp, sessionId);
 
 		return startHttpSignaling.exceptionally(e -> {
-			logger.error("Could not complete webrtc http signaling.");
-			e.printStackTrace();
+			logger.error("Could not complete webrtc http signaling: {}", ExceptionUtils.getStackTrace(e));
+			
 			return null;
 		}).thenApply(result -> { return prepareResponse(result, sessionId, uriInfo); });
 
