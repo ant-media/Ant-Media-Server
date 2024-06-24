@@ -1060,6 +1060,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			putToMap("vodName", vodName, variables);
 			putToMap("vodId", vodId, variables);
 			putToMap("mainTrackId", mainTrackId, variables);
+			putToMap("roomId", mainTrackId, variables);
 			putToMap("subscriberId", subscriberId, variables);
 			putToMap("metadata", metadata, variables);
 			putToMap("timestamp", String.valueOf(System.currentTimeMillis()), variables);
