@@ -168,7 +168,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		assertEquals(streamUrl, streamSource.getStreamUrl());
 
 		name = "test2";
-		String streamUrl2 = "rtmp://localhost/LiveApp/test1234";
+		String streamUrl2 = "rtmp://127.0.0.1/LiveApp/test1234";
 		Result result = restService.callUpdateBroadcast(streamSource.getStreamId(), name, null, "", streamUrl2, "streamSource", null);
 		assertTrue(result.isSuccess());
 
@@ -215,7 +215,7 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 		//add rtmp endpoint 
 		Endpoint endpoint = new Endpoint();
 		String endpointStreamId = "endpoint_" + (int)(Math.random()*10000);
-		endpoint.setRtmpUrl("rtmp://localhost/LiveApp/" + endpointStreamId); 
+		endpoint.setRtmpUrl("rtmp://127.0.0.1/LiveApp/" + endpointStreamId); 
 		try 
 		{
 			result = RestServiceV2Test.addEndpointV2(streamSource.getStreamId(), endpoint);

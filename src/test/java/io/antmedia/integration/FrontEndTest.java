@@ -438,7 +438,7 @@ public class FrontEndTest {
 			assertNotNull(broadcast);
 
 			Process rtmpSendingProcess = execute(ffmpegPath
-					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://localhost/LiveApp/"
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ broadcast.getStreamId());
 
 			LoggingPreferences logPrefs = new LoggingPreferences();
