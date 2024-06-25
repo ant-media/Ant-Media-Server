@@ -41,6 +41,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
@@ -210,6 +211,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected ISubtrackPoller subtrackPoller;
 
 	private Random random = new Random();
+
+	private JSONParser jsonParser = new JSONParser();
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -1083,7 +1086,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	/**
-	 * 
+	 *
 	 * @param url
 	 * @param variables
 	 * @param retryAttempts
@@ -1100,11 +1103,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					.build();
 			httpPost.setConfig(requestConfig);
 
-			if (ContentType.APPLICATION_FORM_URLENCODED.getMimeType().equals(contentType)) 
+			if (ContentType.APPLICATION_FORM_URLENCODED.getMimeType().equals(contentType))
 			{
 				List<NameValuePair> urlParameters = new ArrayList<>();
 				Set<Entry<String, String>> entrySet = variables.entrySet();
-				for (Entry<String, String> entry : entrySet) 
+				for (Entry<String, String> entry : entrySet)
 				{
 					urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
 				}
@@ -1112,35 +1115,48 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				HttpEntity postParams = new UrlEncodedFormEntity(urlParameters);
 				httpPost.setEntity(postParams);
 			}
-			else 
+			else
 			{
-				JSONObject hookPayload = new JSONObject(variables);	
-				httpPost.setEntity(new StringEntity(hookPayload.toJSONString(), ContentType.APPLICATION_JSON));
-			}			
+				JSONObject hookPayload = new JSONObject();
+				for (Map.Entry<String, String> entry : variables.entrySet()) {
+					if ("metadata".equals(entry.getKey())) {
+						try {
+							JSONObject metaDataJsonObj = (JSONObject) jsonParser.parse(entry.getValue());
+							hookPayload.put("metadata", metaDataJsonObj);
+						} catch (ParseException e) {
+							hookPayload.put("metadata", entry.getValue());
+						}
+					} else {
+						hookPayload.put(entry.getKey(), entry.getValue());
+					}
+				}
+
+				httpPost.setEntity(new StringEntity(hookPayload.toString(), ContentType.APPLICATION_JSON));
+			}
 
 			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
 				int statusCode = httpResponse.getStatusLine().getStatusCode();
 				logger.info("POST Response Status: {}", statusCode);
 
-				if (statusCode != HttpStatus.SC_OK) 
+				if (statusCode != HttpStatus.SC_OK)
 				{
-					if (retryAttempts >= 1) 
+					if (retryAttempts >= 1)
 					{
 						logger.info("Retry attempt for POST in {} milliseconds due to non-200 response: {}", appSettings.getWebhookRetryDelay(), statusCode);
 						retrySendPostWithDelay(url, variables, retryAttempts - 1, contentType);
-					} else if (appSettings.getWebhookRetryCount() != 0) 
+					} else if (appSettings.getWebhookRetryCount() != 0)
 					{
 						logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
 					}
 				}
 			}
 		} catch (IOException e) {
-			if (retryAttempts >= 1) 
+			if (retryAttempts >= 1)
 			{
 				logger.info("Retry attempt for POST in {} milliseconds due to IO exception: {}", appSettings.getWebhookRetryDelay(), e.getMessage());
 				retrySendPostWithDelay(url, variables, retryAttempts - 1, contentType);
-			} 
-			else if (appSettings.getWebhookRetryCount() != 0) 
+			}
+			else if (appSettings.getWebhookRetryCount() != 0)
 			{
 				logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
 			}
