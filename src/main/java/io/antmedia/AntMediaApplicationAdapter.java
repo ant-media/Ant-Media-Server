@@ -211,9 +211,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected ISubtrackPoller subtrackPoller;
 
 	private Random random = new Random();
-
-	private JSONParser jsonParser = new JSONParser();
-
+	
 	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -1117,19 +1115,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 			else
 			{
-				JSONObject hookPayload = new JSONObject();
-				for (Map.Entry<String, String> entry : variables.entrySet()) {
-					if ("metadata".equals(entry.getKey())) {
-						try {
-							JSONObject metaDataJsonObj = (JSONObject) jsonParser.parse(entry.getValue());
-							hookPayload.put("metadata", metaDataJsonObj);
-						} catch (ParseException e) {
-							hookPayload.put("metadata", entry.getValue());
-						}
-					} else {
-						hookPayload.put(entry.getKey(), entry.getValue());
-					}
-				}
+				JSONObject hookPayload = getJsonHookPayload(variables);
 
 				httpPost.setEntity(new StringEntity(hookPayload.toString(), ContentType.APPLICATION_JSON));
 			}
@@ -1167,6 +1153,24 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
 			sendPOST(url, variables, retryAttempts, contentType);
 		});
+	}
+
+	private JSONObject getJsonHookPayload(Map<String, String> variables) {
+		JSONObject hookPayload = new JSONObject();
+		for (Entry<String, String> entry : variables.entrySet()) {
+			if ("metadata".equals(entry.getKey())) {
+				try {
+					JSONParser jsonParser = new JSONParser();
+					JSONObject metaDataJsonObj = (JSONObject) jsonParser.parse(entry.getValue());
+					hookPayload.put("metadata", metaDataJsonObj);
+				} catch (ParseException e) {
+					hookPayload.put("metadata", entry.getValue());
+				}
+			} else {
+				hookPayload.put(entry.getKey(), entry.getValue());
+			}
+		}
+		return hookPayload;
 	}
 
 	public CloseableHttpClient getHttpClient() {
