@@ -50,27 +50,6 @@ before_install:
   - sudo apt-get update -qq
   #install mongodb ffmpeg wondershaper 
   - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
-  - sudo wondershaper lo 40 40
-  - cat /usr/sbin/wondershaper
-  - sudo wondershaper clear lo
-  - sudo lsmod
-  - sudo modprobe sch_netem
-  - sudo modprobe sch_htb
-  - sudo modprobe sch_htb
-  - sudo modprobe sch_sfq
-  - sudo lsmod
-  - sudo wondershaper lo 40 40
-  - sudo tc qdisc show dev lo
-  - "sudo tc qdisc add dev lo root handle 1: fq_codel"
-  - sudo tc qdisc del dev lo root
-
-
-  - sudo tc qdisc del dev lo root
-  - sudo tc qdisc add dev lo root cake bandwidth 40kbit
-  - sudo dmesg | grep tc
-
-  - exit 1
-  
   - sudo mongod --dbpath /var/lib/mongodb &>/dev/null & # start mongo db - don' write log
   #install chrome
   - wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
