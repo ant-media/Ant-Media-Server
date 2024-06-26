@@ -61,7 +61,7 @@ before_install:
   - sudo lsmod
   - sudo wondershaper lo 40 40
   - sudo tc qdisc show dev lo
-  - sudo tc qdisc add dev lo root handle 1: fq_codel
+  - "sudo tc qdisc add dev lo root handle 1: fq_codel"
   - sudo tc qdisc del dev lo root
 
 
