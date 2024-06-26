@@ -60,6 +60,11 @@ before_install:
   - sudo modprobe sch_sfq
   - sudo lsmod
   - sudo wondershaper lo 40 40
+  - sudo tc qdisc show dev lo
+  - sudo tc qdisc add dev lo root handle 1: fq_codel
+  - sudo tc qdisc del dev lo root
+
+
   - sudo tc qdisc del dev lo root
   - sudo tc qdisc add dev lo root cake bandwidth 40kbit
   - sudo dmesg | grep tc
