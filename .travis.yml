@@ -50,6 +50,15 @@ before_install:
   - sudo apt-get update -qq
   #install mongodb ffmpeg wondershaper 
   - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
+  
+  - sudo wondershaper lo 40 40
+
+  - sudo lsmod -l
+  - sudo modprobe sch_netem
+  - sudo lsmod -l
+  - sudo wondershaper lo 40 40
+  - exit 1
+  
   - sudo mongod --dbpath /var/lib/mongodb &>/dev/null & # start mongo db - don' write log
   #install chrome
   - wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
