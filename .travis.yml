@@ -49,10 +49,11 @@ before_install:
   - sudo service redis-server start
   - sudo apt-get update -qq
   #install mongodb ffmpeg wondershaper 
-  - sudo apt-get install mongodb-org ffmpeg wondershaper iproute2 -y -qq
+  - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
   
   - sudo wondershaper lo 40 40
-
+  - cat /usr/sbin/wondershaper
+  - sudo tc qdisc del dev lo root
   - sudo lsmod
   - sudo modprobe sch_netem
   - sudo modprobe sch_htb
