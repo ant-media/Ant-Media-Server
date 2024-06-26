@@ -60,6 +60,7 @@ before_install:
   - sudo modprobe sch_sfq
   - sudo lsmod
   - sudo wondershaper lo 40 40
+  - sudo tc qdisc add dev lo root cake bandwidth 100mbit besteffort
   - sudo dmesg | grep tc
 
   - exit 1
