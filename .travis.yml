@@ -50,10 +50,9 @@ before_install:
   - sudo apt-get update -qq
   #install mongodb ffmpeg wondershaper 
   - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
-  
   - sudo wondershaper lo 40 40
   - cat /usr/sbin/wondershaper
-  - sudo tc qdisc del dev lo root
+  - sudo wondershaper clear lo
   - sudo lsmod
   - sudo modprobe sch_netem
   - sudo modprobe sch_htb
