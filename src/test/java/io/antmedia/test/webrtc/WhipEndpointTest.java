@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.concurrent.CompletableFuture;
 
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
 import org.slf4j.Logger;
@@ -91,12 +92,17 @@ public class WhipEndpointTest {
 			Mockito.when(app.startHttpSignaling(Mockito.any(), Mockito.any(), Mockito.any())).thenReturn(resultFuture);
 					
 			// Test startWhipPublish
-			whipEndpoint.startWhipPublish(null, "stream123", null, true, true, null, null, null, null, null, null, null);
+			whipEndpoint.startWhipPublish(null, "stream123", null, null, null, null, null, null, null, null, null, null);
 			
 			resultFuture.complete(new Result(true));
 			
-			Mockito.verify(app).startHttpSignaling(Mockito.any(), Mockito.any(), Mockito.anyString());
+			ArgumentCaptor<PublishParameters> publishParamsCaptor = ArgumentCaptor.forClass(PublishParameters.class);
+			Mockito.verify(app).startHttpSignaling(publishParamsCaptor.capture(), Mockito.any(), Mockito.anyString());
 			Mockito.verify(whipEndpoint, Mockito.timeout(1000)).prepareResponse(Mockito.any(), Mockito.anyString(), Mockito.any());
+			
+			assertEquals("stream123", publishParamsCaptor.getValue().getStreamId());
+			assertTrue(publishParamsCaptor.getValue().isEnableVideo());
+			assertTrue(publishParamsCaptor.getValue().isEnableAudio());
 		
 		}	
 	}
