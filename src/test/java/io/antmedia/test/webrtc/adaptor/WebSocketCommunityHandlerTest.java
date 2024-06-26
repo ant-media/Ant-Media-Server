@@ -56,15 +56,15 @@ public class WebSocketCommunityHandlerTest {
 	private HashMap userProperties;
 	private static ApplicationContext appContext;
 	private DataStore dataStore;
-	
+
 	public static final Logger logger = LoggerFactory.getLogger(WebSocketCommunityHandlerTest.class);
-	
+
 	public static class WebSocketEndpoint extends WebSocketCommunityHandler {
 		public WebSocketEndpoint(ApplicationContext appContext) {
 			super(appContext, null);
 			// TODO Auto-generated constructor stub
 		}
-		
+
 		public void setSession(Session session) {
 			this.session = session;
 		}
@@ -75,7 +75,7 @@ public class WebSocketCommunityHandlerTest {
 			return appContext;
 		}
 	}
-	
+
 	@Rule
 	public TestRule watcher = new TestWatcher() {
 		protected void starting(Description description) {
@@ -100,30 +100,30 @@ public class WebSocketCommunityHandlerTest {
 		when(scope.getName()).thenReturn("junit");
 
 		when(adaptor.getScope()).thenReturn(scope);
-		
+
 		when(adaptor.getServerSettings()).thenReturn(new ServerSettings());
-	
+
 		when(appContext.getBean("web.handler")).thenReturn(adaptor);
-		
+
 		wsHandlerReal = new WebSocketEndpoint(appContext);
 		wsHandlerReal.setAppAdaptor(adaptor);
-		
+
 		dataStore = new InMemoryDataStore("junit");
 		when(adaptor.getDataStore()).thenReturn(dataStore);
-		
+
 		wsHandler = Mockito.spy(wsHandlerReal);
 
-		
+
 		session = mock(Session.class);
 		basicRemote = mock(RemoteEndpoint.Basic.class);
 		when(session.getBasicRemote()).thenReturn(basicRemote);
-		
+
 
 		userProperties = new HashMap<>();
 		when(session.getUserProperties()).thenReturn(userProperties);
 
 		when(session.isOpen()).thenReturn(true);
-		
+
 	}
 
 
@@ -131,14 +131,14 @@ public class WebSocketCommunityHandlerTest {
 	public void testPingPong() {
 		JSONObject publishObject = new JSONObject();
 		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PING_COMMAND);
-		
+
 		wsHandler.onMessage(session, publishObject.toJSONString());
-		
+
 		verify(wsHandler).sendPongMessage(session);
-		
+
 		verify(wsHandler, Mockito.never()).sendNoStreamIdSpecifiedError(session);
 	}
-	
+
 
 	@Test
 	public void testSendNoStreamId() {
@@ -158,16 +158,16 @@ public class WebSocketCommunityHandlerTest {
 			fail(e.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testSendStreamIdInUse() {
-		
+
 		//case status broadcasting
 		String streamId = "streamId" + (int)(Math.random()*10000);
 		JSONObject publishObject = new JSONObject();
 		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
 		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
-		
+
 		Broadcast broadcast = new Broadcast();
 		try {
 			broadcast.setStreamId(streamId);
@@ -176,13 +176,13 @@ public class WebSocketCommunityHandlerTest {
 			fail(e.getMessage());
 		}
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		
+
 		dataStore.save(broadcast);
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
 		verify(wsHandler).sendStreamIdInUse(Mockito.anyString(), Mockito.any());
 
-		
+
 		//case status preparing
 		streamId = "streamId" + (int)(Math.random()*10000);
 		broadcast = new Broadcast();
@@ -195,20 +195,20 @@ public class WebSocketCommunityHandlerTest {
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_PREPARING);
 		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
 		dataStore.save(broadcast);
-		
+
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
 		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(Mockito.anyString(), Mockito.any());
-		
-		
+
+
 		// case no status
-		
+
 		RTMPAdaptor rtmpAdaptor = mock(RTMPAdaptor.class);
-		
+
 
 		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
-		
+
 		streamId = "streamId" + (int)(Math.random()*10000);
 		broadcast = new Broadcast();
 		try {
@@ -219,44 +219,44 @@ public class WebSocketCommunityHandlerTest {
 		}
 		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
 		dataStore.save(broadcast);
-		
+
 		wsHandler.onMessage(session, publishObject.toJSONString());
-		
-		
+
+
 		verify(rtmpAdaptor).start();
 		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(Mockito.anyString(), Mockito.any());
-		
-		
-		
+
+
+
 		// case no status
 		streamId = "streamId" + (int)(Math.random()*10000);
 
 		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
-		
+
 		wsHandler.onMessage(session, publishObject.toJSONString());
 
 		verify(rtmpAdaptor, Mockito.times(2)).start();
 		verify(wsHandler, Mockito.times(2)).sendStreamIdInUse(Mockito.anyString(), Mockito.any());
-				
-		
+
+
 	}
-	
+
 	@Test
 	public void testGetStreamInfo() {
 		JSONObject publishObject = new JSONObject();
 		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.GET_STREAM_INFO_COMMAND);
-		
+
 		String streamId = "streamId" + (int)(Math.random()*1000);
 		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
-		
+
 		wsHandler.onMessage(session, publishObject.toJSONString());
-		
+
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonResponse.put(WebSocketConstants.ERROR_CODE, "404");
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_EXIST);
 		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
-		
+
 		try {
 			verify(basicRemote).sendText(jsonResponse.toJSONString());
 		} catch (IOException e) {
@@ -264,23 +264,23 @@ public class WebSocketCommunityHandlerTest {
 			fail(e.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testPlayStream() {
 		JSONObject publishObject = new JSONObject();
 		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PLAY_COMMAND);
-		
+
 		String streamId = "streamId" + (int)(Math.random()*1000);
 		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
-		
+
 		wsHandler.onMessage(session, publishObject.toJSONString());
-		
+
 		JSONObject jsonResponse = new JSONObject();
 		jsonResponse.put(WebSocketConstants.COMMAND, WebSocketConstants.ERROR_COMMAND);
 		jsonResponse.put(WebSocketConstants.ERROR_CODE, "404");
 		jsonResponse.put(WebSocketConstants.DEFINITION, WebSocketConstants.NO_STREAM_EXIST);
 		jsonResponse.put(WebSocketConstants.STREAM_ID, streamId);
-		
+
 		try {
 			verify(basicRemote).sendText(jsonResponse.toJSONString());
 		} catch (IOException e) {
@@ -288,13 +288,13 @@ public class WebSocketCommunityHandlerTest {
 			fail(e.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testGetNewRTMPAdaptor() {
 		String rtmpUrl = "rtmp://localhost/LiveApp/232323";
 		int height = 260;
 		RTMPAdaptor rtmpAdaptor = wsHandler.getNewRTMPAdaptor(rtmpUrl, height);
-		
+
 		assertEquals(height, rtmpAdaptor.getHeight());
 		assertEquals(rtmpUrl, rtmpAdaptor.getOutputURL());
 	}
@@ -312,7 +312,7 @@ public class WebSocketCommunityHandlerTest {
 		RTMPAdaptor rtmpAdaptor = Mockito.spy(wsHandler.getNewRTMPAdaptor("url", 360));
 		doNothing().when(rtmpAdaptor).start();
 		doNothing().when(rtmpAdaptor).stop();
-		
+
 		doReturn(rtmpAdaptor).when(wsHandler).getNewRTMPAdaptor(Mockito.anyString(), Mockito.anyInt());
 
 
@@ -374,7 +374,7 @@ public class WebSocketCommunityHandlerTest {
 
 			ArgumentCaptor<SessionDescription> argument = ArgumentCaptor.forClass(SessionDescription.class);
 			verify(rtmpAdaptor).setRemoteDescription(argument.capture());
-			
+
 			SessionDescription sessionDescription = argument.getValue();
 			assertEquals(Type.OFFER, sessionDescription.type);
 			assertEquals(sdp, sessionDescription.description);
@@ -403,10 +403,10 @@ public class WebSocketCommunityHandlerTest {
 		}
 
 		{
-			
+
 			JSONObject takeCandidate = new JSONObject();
 			takeCandidate.put(WebSocketConstants.COMMAND, WebSocketConstants.TAKE_CANDIDATE_COMMAND);
-			
+
 			//don't send canidate id
 			//String type = ""  +(int)(Math.random() * 91000);
 			//takeCandidate.put(WebSocketConstants.CANDIDATE_ID, type );
@@ -424,7 +424,7 @@ public class WebSocketCommunityHandlerTest {
 			assertEquals(sdp, icecandidate.sdp);
 			assertEquals("0",icecandidate.sdpMid);
 			assertEquals(label,icecandidate.sdpMLineIndex);
-			
+
 		}
 
 		JSONObject stopObject = new JSONObject();
@@ -434,7 +434,7 @@ public class WebSocketCommunityHandlerTest {
 
 		verify(rtmpAdaptor).stop();
 	}
-	
+
 	@Test
 	public void testInvalidName() {
 
@@ -454,59 +454,61 @@ public class WebSocketCommunityHandlerTest {
 		publishObject.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
 		publishObject.put(WebSocketConstants.STREAM_ID, streamId);
 		wsHandler.onMessage(session, publishObject.toJSONString());
-		
+
 		verify(wsHandler, Mockito.never()).sendInvalidStreamNameError(Mockito.anyString(), Mockito.any());
-		
+
 		String streamId2 = "streamId_" + (int)(Math.random()*1000);
 		JSONObject publishObject2 = new JSONObject();
 		publishObject2.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
 		publishObject2.put(WebSocketConstants.STREAM_ID, streamId2);
 		wsHandler.onMessage(session, publishObject2.toJSONString());
-		
+
 		verify(wsHandler, Mockito.never()).sendInvalidStreamNameError(Mockito.anyString(), Mockito.any());
-		
+
 		streamId2 = "streamId_:?" + (int)(Math.random()*1000);
 		publishObject2 = new JSONObject();
 		publishObject2.put(WebSocketConstants.COMMAND, WebSocketConstants.PUBLISH_COMMAND);
 		publishObject2.put(WebSocketConstants.STREAM_ID, streamId2);
 		wsHandler.onMessage(session, publishObject2.toJSONString());
-		
+
 		verify(wsHandler, Mockito.timeout(1)).sendInvalidStreamNameError(Mockito.anyString(), Mockito.any());
 	}
-	
+
 	@Test
 	public void testWebSocketConstants() {
 		assertEquals("already_playing", WebSocketConstants.ALREADY_PLAYING);
 		assertEquals("targetBitrate", WebSocketConstants.TARGET_BITRATE);
 		assertEquals("bitrateMeasurement", WebSocketConstants.BITRATE_MEASUREMENT);
 	}
-	
+
 	@Test
 	public void testThrowExceptionInSendMessage() {
 		wsHandler.setSession(session);
-		
+
 		try {
 			Mockito.doThrow(new IOException("exception")).when(basicRemote).sendText(Mockito.anyString());
-			wsHandler.sendMessage("test", session);
-			
-			
+			JSONObject json = new JSONObject();
+			json.put(WebSocketConstants.COMMAND, WebSocketConstants.PING_COMMAND);
+			wsHandler.sendMessage(json, session);
+
+
 			Mockito.doThrow(new IOException()).when(basicRemote).sendText(Mockito.anyString());
-			wsHandler.sendMessage("test", session);
-			
+			wsHandler.sendMessage(json, session);
+
 			Mockito.doThrow(new IOException("WebSocket session has been closed")).when(basicRemote).sendText(Mockito.anyString());
-			wsHandler.sendMessage("test", session);		
+			wsHandler.sendMessage(json, session);		
 		} 
 		catch (IOException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
 	}
-	
+
 	@Test
 	public void testSendRoomInformation() 
 	{
 		String roomId = "roomId12345";
-		
+
 		HashMap<String,String> streamDetailsMap = new HashMap<>();
 		streamDetailsMap.put("streamId1",null);
 		streamDetailsMap.put("streamId2","streamName2");
@@ -514,143 +516,128 @@ public class WebSocketCommunityHandlerTest {
 		streamDetailsMap.put("streamId4","streamName4");
 		wsHandler.setSession(session);
 		wsHandler.sendRoomInformation(streamDetailsMap, roomId);
-		
-		
-		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
+
+
+		ArgumentCaptor<JSONObject> argument = ArgumentCaptor.forClass(JSONObject.class);
 		verify(wsHandler).sendMessage(argument.capture(), Mockito.eq(session));
-		
+
 		JSONArray jsonStreamIdArray = new JSONArray();
 		JSONArray jsonStreamNameArray = new JSONArray();
-		
-        for (HashMap.Entry<String, String> e : streamDetailsMap.entrySet()) {
-        	jsonStreamIdArray.add(e.getKey());
-        	JSONObject jsStreamObject = new JSONObject();
-        	jsStreamObject.put(WebSocketConstants.STREAM_ID, e.getKey());
-        	jsStreamObject.put(WebSocketConstants.STREAM_NAME, e.getValue());
-        	jsStreamObject.put(WebSocketConstants.META_DATA, null);
-        	jsonStreamNameArray.add(jsStreamObject);
-        }
-		
-		JSONObject json;
-		try {
-			json = (JSONObject) new JSONParser().parse(argument.getValue());
-			assertEquals(WebSocketConstants.ROOM_INFORMATION_NOTIFICATION, json.get(WebSocketConstants.COMMAND));	
-			assertEquals(roomId, json.get(WebSocketConstants.ROOM));
-			assertEquals(jsonStreamIdArray, json.get(WebSocketConstants.STREAMS_IN_ROOM));
-			assertEquals(jsonStreamNameArray, json.get(WebSocketConstants.STREAM_LIST_IN_ROOM));
-			
-		} catch (ParseException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
+
+		for (HashMap.Entry<String, String> e : streamDetailsMap.entrySet()) {
+			jsonStreamIdArray.add(e.getKey());
+			JSONObject jsStreamObject = new JSONObject();
+			jsStreamObject.put(WebSocketConstants.STREAM_ID, e.getKey());
+			jsStreamObject.put(WebSocketConstants.STREAM_NAME, e.getValue());
+			jsStreamObject.put(WebSocketConstants.META_DATA, null);
+			jsonStreamNameArray.add(jsStreamObject);
 		}
+
+		JSONObject json = argument.getValue();
+		assertEquals(WebSocketConstants.ROOM_INFORMATION_NOTIFICATION, json.get(WebSocketConstants.COMMAND));	
+		assertEquals(roomId, json.get(WebSocketConstants.ROOM));
+		assertEquals(jsonStreamIdArray, json.get(WebSocketConstants.STREAMS_IN_ROOM));
+		assertEquals(jsonStreamNameArray, json.get(WebSocketConstants.STREAM_LIST_IN_ROOM));
+
+
 	}
-	
+
 	@Test
 	public void testSendJoinedRoomInformation() {
 		String roomId = "roomId12345";
 		String streamId = "stream34567";
-		
+
 		HashMap<String,String> streamDetailsMap = new HashMap<>();
 		streamDetailsMap.put("streamId1",null);
 		streamDetailsMap.put("streamId2","streamName2");
 		streamDetailsMap.put("streamId3",null);
 		streamDetailsMap.put("streamId4","streamName4");
-		
+
 		wsHandler.setSession(session);
-		
+
 		wsHandler.sendJoinedRoomMessage(roomId, streamId, streamDetailsMap, new HashMap<>());
-		
-		
-		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
+
+
+		ArgumentCaptor<JSONObject> argument = ArgumentCaptor.forClass(JSONObject.class);
 		verify(wsHandler).sendMessage(argument.capture(), Mockito.eq(session));
-		
+
 		JSONArray jsonStreamIdArray = new JSONArray();
 		JSONArray jsonStreamNameArray = new JSONArray();
-		
-        for (HashMap.Entry<String, String> e : streamDetailsMap.entrySet()) {
-        	jsonStreamIdArray.add(e.getKey());
-        	JSONObject jsStreamObject = new JSONObject();
-        	jsStreamObject.put(WebSocketConstants.STREAM_ID, e.getKey());
-        	jsStreamObject.put(WebSocketConstants.STREAM_NAME, e.getValue());
-        	jsStreamObject.put(WebSocketConstants.META_DATA, null);
-        	jsonStreamNameArray.add(jsStreamObject);
-        }
-		
-		JSONObject json;
-		try {
-			json = (JSONObject) new JSONParser().parse(argument.getValue());
-			assertEquals(WebSocketConstants.NOTIFICATION_COMMAND, json.get(WebSocketConstants.COMMAND));	
-			assertEquals(roomId, json.get(WebSocketConstants.ROOM));
-			assertEquals(jsonStreamIdArray, json.get(WebSocketConstants.STREAMS_IN_ROOM));
-			assertEquals(jsonStreamNameArray, json.get(WebSocketConstants.STREAM_LIST_IN_ROOM));
-			assertEquals(WebSocketConstants.JOINED_THE_ROOM, json.get(WebSocketConstants.DEFINITION));
-			assertEquals(streamId, json.get(WebSocketConstants.STREAM_ID));
-			
-		} catch (ParseException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
+
+		for (HashMap.Entry<String, String> e : streamDetailsMap.entrySet()) {
+			jsonStreamIdArray.add(e.getKey());
+			JSONObject jsStreamObject = new JSONObject();
+			jsStreamObject.put(WebSocketConstants.STREAM_ID, e.getKey());
+			jsStreamObject.put(WebSocketConstants.STREAM_NAME, e.getValue());
+			jsStreamObject.put(WebSocketConstants.META_DATA, null);
+			jsonStreamNameArray.add(jsStreamObject);
 		}
+
+		JSONObject json = argument.getValue();
+		assertEquals(WebSocketConstants.NOTIFICATION_COMMAND, json.get(WebSocketConstants.COMMAND));	
+		assertEquals(roomId, json.get(WebSocketConstants.ROOM));
+		assertEquals(jsonStreamIdArray, json.get(WebSocketConstants.STREAMS_IN_ROOM));
+		assertEquals(jsonStreamNameArray, json.get(WebSocketConstants.STREAM_LIST_IN_ROOM));
+		assertEquals(WebSocketConstants.JOINED_THE_ROOM, json.get(WebSocketConstants.DEFINITION));
+		assertEquals(streamId, json.get(WebSocketConstants.STREAM_ID));
+
+
 	}
-	
+
 	@Test
 	public void testSendPublishStarted() {
 		String roomId = "roomId12345";
 		String streamId = "stream34567";
 		JSONArray jsonStreamArray = new JSONArray();
-		
+
 		wsHandler.setSession(session);
-		
+
 		wsHandler.sendPublishStartedMessage(streamId,  session, roomId, ""); 
-		
-		ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
+
+		ArgumentCaptor<JSONObject> argument = ArgumentCaptor.forClass(JSONObject.class);
 		verify(wsHandler).sendMessage(argument.capture(), Mockito.eq(session));
-		
-		JSONObject json;
-		try {
-			json = (JSONObject) new JSONParser().parse(argument.getValue());
-			assertEquals(WebSocketConstants.NOTIFICATION_COMMAND, json.get(WebSocketConstants.COMMAND));	
-			assertEquals(roomId, json.get(WebSocketConstants.ROOM));
-			assertEquals(WebSocketConstants.PUBLISH_STARTED, json.get(WebSocketConstants.DEFINITION));
-			assertEquals(streamId, json.get(WebSocketConstants.STREAM_ID));
-			
-		} catch (ParseException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+
+		JSONObject json = argument.getValue();
+		assertEquals(WebSocketConstants.NOTIFICATION_COMMAND, json.get(WebSocketConstants.COMMAND));	
+		assertEquals(roomId, json.get(WebSocketConstants.ROOM));
+		assertEquals(WebSocketConstants.PUBLISH_STARTED, json.get(WebSocketConstants.DEFINITION));
+		assertEquals(streamId, json.get(WebSocketConstants.STREAM_ID));
+
+
 	}
-	
+
 	@Test
 	public void testUserAgent() {
 		assertEquals("N/A", wsHandler.getUserAgent());
-		
+
 		String userAgent = "dummy agent";
 		wsHandler.setUserAgent(userAgent);
 		assertEquals(userAgent, wsHandler.getUserAgent());
 	}
-	
+
 	@Test
 	public void testGetSDP() {
 		String description = "dummyDescripton";
 		String type = "dummyType";
 		String streamId = "dummyStreamId";
-		
+
 		int trackSize = RandomUtils.nextInt(0,5)+1;
 		Map<String, String> midSidMap = new HashMap<>();
 		for (int i = 0; i < trackSize; i++) {
 			midSidMap.put("mid"+i, "sid"+i);
 		}
 		JSONObject json = WebSocketCommunityHandler.getSDPConfigurationJSON(description, type, streamId, midSidMap, null, "");
-		
+
 		assertEquals(WebSocketConstants.TAKE_CONFIGURATION_COMMAND, json.get(WebSocketConstants.COMMAND));
 		assertEquals(description, json.get(WebSocketConstants.SDP));
 		assertEquals(type, json.get(WebSocketConstants.TYPE));
 		assertEquals(streamId, json.get(WebSocketConstants.STREAM_ID));
-		
+
 		JSONObject jsonMap = (JSONObject) json.get(WebSocketConstants.ID_MAPPING);
 		for (int i = 0; i < trackSize; i++) {
 			assertEquals("sid"+i, jsonMap.get("mid"+i));
 		}
 	}
-	
-	
+
+
 }

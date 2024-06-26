@@ -2064,6 +2064,7 @@ public class AppSettings implements Serializable{
 	@Value("${sendAudioLevelToViewers:true}")
 	private boolean sendAudioLevelToViewers = true;
 
+	
 	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":true}}")
 	private boolean hwScalingEnabled = true;
 
@@ -2151,6 +2152,13 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${webhookContentType:#{ T(org.apache.http.entity.ContentType).APPLICATION_JSON.getMimeType() }}")
 	private String webhookContentType = ContentType.APPLICATION_JSON.getMimeType();
+	
+	/*
+	 * The timeout in milliseconds for the ICE gathering process in WebRTC
+     * It's used especially in whip ingestion to return candidates in a short time
+	 */
+	@Value("${iceGatheringTimeoutMs:2000}")
+	private long iceGatheringTimeoutMs = 2000;
 
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
@@ -3749,5 +3757,13 @@ public class AppSettings implements Serializable{
 
 	public void setWebhookContentType(String webhookContentType) {
 		this.webhookContentType = webhookContentType;
+	}
+
+	public long getIceGatheringTimeoutMs() {
+		return iceGatheringTimeoutMs;
+	}
+
+	public void setIceGatheringTimeoutMs(long iceGatheringTimeoutMs) {
+		this.iceGatheringTimeoutMs = iceGatheringTimeoutMs;
 	}
 }

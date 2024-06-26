@@ -30,6 +30,7 @@ import io.swagger.v3.oas.annotations.servers.Server;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.HeaderParam;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
@@ -65,30 +66,31 @@ public class WhipEndpoint extends RestServiceBase {
 	@POST
 	@Consumes({ "application/sdp" })
 	@Path("/{streamId}")
-	@Produces(MediaType.APPLICATION_JSON)
+	@Produces("application/sdp")
 	public CompletableFuture<Response> startWhipPublish(@Context UriInfo uriInfo, @PathParam(WebSocketConstants.STREAM_ID) String streamId,
-			@QueryParam(WebSocketConstants.TOKEN) String tokenId,
-			@QueryParam(WebSocketConstants.VIDEO) boolean enableVideo,
-			@QueryParam(WebSocketConstants.AUDIO) boolean enableAudio,
+			@QueryParam(WebSocketConstants.VIDEO) Boolean enableVideo,
+			@QueryParam(WebSocketConstants.AUDIO) Boolean enableAudio,
 			@QueryParam(WebSocketConstants.SUBSCRIBER_ID) String subscriberId,
 			@QueryParam(WebSocketConstants.SUBSCRIBER_CODE) String subscriberCode,
 			@QueryParam(WebSocketConstants.STREAM_NAME) String streamName,
 			@QueryParam(WebSocketConstants.MAIN_TRACK) String mainTrack,
 			@QueryParam(WebSocketConstants.META_DATA) String metaData,
 			@QueryParam(WebSocketConstants.LINK_SESSION) String linkedSession,
+			@HeaderParam("Authorization") String token, 
 			@Parameter String sdp) {
 
 		PublishParameters publishParameters = new PublishParameters(streamId);
-		publishParameters.setToken(tokenId);
-		publishParameters.setEnableVideo(enableVideo);
-		publishParameters.setEnableAudio(enableAudio);
+		publishParameters.setToken(token);
+		
+		publishParameters.setEnableVideo(enableVideo == null || enableVideo);
+		publishParameters.setEnableAudio(enableAudio == null || enableAudio);
 		publishParameters.setSubscriberId(subscriberId);
 		publishParameters.setSubscriberCode(subscriberCode);
 		publishParameters.setStreamName(streamName);
 		publishParameters.setMainTrack(mainTrack);
 		publishParameters.setMetaData(metaData);
 
-
+		
 		String sessionId = UUID.randomUUID().toString();
 
 		CompletableFuture<Result> startHttpSignaling = getApplication().startHttpSignaling(publishParameters, sdp, sessionId);
@@ -112,27 +114,31 @@ public class WhipEndpoint extends RestServiceBase {
 			}
 
 
+			//TODO: make it parametric
+			String defaultStunStr = "stun:stun1.l.google.com:19302; rel=ice-server";
+			ArrayList<String> extensions = new ArrayList<>();
+			extensions.add(defaultStunStr);
+			
+			
 			String turnAddr = getApplication().getAppSettings().getStunServerURI();
 			String turnServerUsername = getApplication().getAppSettings().getTurnServerUsername();
 			String turnServerPassword = getApplication().getAppSettings().getTurnServerCredential();
 			String turnServerInfo = "";
 
 			if(StringUtils.isNotBlank(turnServerUsername) && StringUtils.isNotBlank(turnServerPassword)){
+				//TODO: Increase security here
 				turnServerInfo = turnAddr + "?transport=udp; rel=\"ice-server\" username="+turnServerUsername+";"+" credential="+turnServerPassword;
-			}
-
-			//TODO: make it parametric
-			String defaultStunStr = "stun:stun1.l.google.com:19302; rel=ice-server";
-
-			String eTag = sessionId; // Replace with parsed ETag
-			String resource = uriInfo.getRequestUri().toString()+"/"+eTag;
-			ArrayList<String> extensions = new ArrayList<>();
-			extensions.add(defaultStunStr);
-			if(StringUtils.isNotBlank(turnServerInfo)){
 				extensions.add(turnServerInfo);
 			}
 
-			return Response.created(URI.create(resource))
+			
+
+			String eTag = sessionId; // Replace with parsed ETag
+			String resource = uriInfo.getRequestUri().toString()+"/"+eTag;
+			URI uri = URI.create(resource);
+
+			return Response.created(uri)
+					.status(Status.CREATED)
 					.entity(result.getMessage())
 					.header("ETag", eTag)
 					.header("Link", String.join(",", extensions))

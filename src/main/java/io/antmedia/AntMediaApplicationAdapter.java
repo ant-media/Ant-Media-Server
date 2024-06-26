@@ -2112,7 +2112,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return null;
 	}
 
-	public Result stopWhipBroadcast(String streamId, String eTag){
+	public Result stopWhipBroadcast(String streamId, String sessionId){
 		return new Result(false);
 	}
 
