@@ -49,14 +49,16 @@ before_install:
   - sudo service redis-server start
   - sudo apt-get update -qq
   #install mongodb ffmpeg wondershaper 
-  - sudo apt-get install mongodb-org ffmpeg wondershaper -y -qq
+  - sudo apt-get install mongodb-org ffmpeg wondershaper iproute2 -y -qq
   
   - sudo wondershaper lo 40 40
 
-  - sudo lsmod -l
+  - sudo lsmod
   - sudo modprobe sch_netem
-  - sudo lsmod -l
+  - sudo lsmod
   - sudo wondershaper lo 40 40
+  - dmesg | grep tc
+
   - exit 1
   
   - sudo mongod --dbpath /var/lib/mongodb &>/dev/null & # start mongo db - don' write log
