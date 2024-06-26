@@ -55,9 +55,12 @@ before_install:
 
   - sudo lsmod
   - sudo modprobe sch_netem
+  - sudo modprobe sch_htb
+  - sudo modprobe sch_htb
+  - sudo modprobe sch_sfq
   - sudo lsmod
   - sudo wondershaper lo 40 40
-  - dmesg | grep tc
+  - sudo dmesg | grep tc
 
   - exit 1
   
