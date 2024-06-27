@@ -1242,9 +1242,18 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("Running limitNetworkInterfaceBandwidth");
 		logger.info("active interface {}", activeInterface);
+		
+		
+		
+		//Delete root qdisc - dont check the result
+		String command = "sudo tc qdisc del dev " + activeInterface + " root";
+		runCommand(command);
+		//delete ingress qdisc - don't check the result
+		command = "/sbin/tc qdisc del dev " + activeInterface + " ingress";
+		runCommand(command);
 
 		//Add root qdisc
-		String command = "sudo tc qdisc add dev " + activeInterface +" root handle '1:' htb default 30";
+		command = "sudo tc qdisc add dev " + activeInterface +" root handle '1:' htb default 30";
 		int result = runCommand(command);
 		if (result != 0) {
             return result;
@@ -1257,8 +1266,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
             return result;
         }
 		
+		
 		//Downlink
-		command = "sudo tc filter add dev " + activeInterface + " parent ffff: protocol ip prio 50 u32 match ip src 0.0.0.0/0 flowid ffff:1 action police rate 40kbps burst 10k drop";
+		command = "sudo tc filter add dev " + activeInterface + " parent ffff: protocol ip prio 50 u32 match ip src 0.0.0.0/0 police rate 40kbit burst 10k drop flowid :1";
 
 		return runCommand(command);
 	
