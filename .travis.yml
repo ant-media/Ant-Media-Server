@@ -30,48 +30,8 @@ addons:
 services:
   - redis-server
 
+
 before_install:
-
-  - sudo apt-get update -qq
-  - sudo apt-get install wondershaper -y
-  - sudo modprobe sch_htb
-  - sudo modprobe sch_sfq
-  # Add root qdisc
-  - bash -c "sudo tc qdisc add dev lo root handle '1:' htb default 30"
-
-# Add class for bandwidth limits
-  - bash -c "sudo tc class add dev lo parent '1:' classid '1:1' htb rate 40kbps ceil 40kbps"
-
-# Add a default leaf class
-  - bash -c "sudo tc class add dev lo parent '1:1'' classid '1:30' htb rate 40kbps ceil 40kbps"
-
-# Add SFQ qdisc to the leaf class
-  - bash -c "sudo tc qdisc add dev lo parent '1:30' handle '30:' sfq perturb 10"
-  
-
-  - sudo ip addr
-  - sudo ifconfig
-  - sudo wondershaper lo 40 40
-  - sudo tc qdisc show dev lo
-  - sudo tc qdisc del dev lo ingress
-  - sudo wondershaper clear lo
-  - sudo tc qdisc show dev lo
-  - sudo wondershaper lo 40 40
-  - sudo ip addr
-  - sudo lsmod
-  - sudo modprobe sch_htb
-  - sudo modprobe sch_sfq
-  - sudo modprobe sch_cbq
-  - sudo ip link show lo
-  - sudo wondershaper lo 40 40
-  - sudo cat /etc/hosts
-  - sudo ifconfig
-  - exit 1
-
-
-
-
-
   - nvm install 16.20.2
   - nvm use 16.20.2
   - openssl aes-256-cbc -K $encrypted_5fef4fa28306_key -iv $encrypted_5fef4fa28306_iv -in codesigning.asc.enc -out codesigning.asc -d

@@ -1067,8 +1067,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	 * 
 	 */
 	
-	//TODO: ENABLE THIS TEST AGAIN. IT'S DISABLED BECAUSED WONDERSHAPER STOPPED TO WORK ON TRAVIS. IT GIVES QDISC ERRORS
-	//@Test
+	@Test
 	public void testBandwidth() {
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
@@ -1236,26 +1235,61 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("Running resetNetworkInterface");
 
 		return runCommand("sudo wondershaper clear "+activeInterface);
-
 	}
-
+	
+	
 	private int limitNetworkInterfaceBandwidth(String activeInterface) {
 
 		logger.info("Running limitNetworkInterfaceBandwidth");
 		logger.info("active interface {}", activeInterface);
-
-		String command = "sudo wondershaper "+activeInterface+" 40 40";
-		logger.info("command : {}",command);
+	
+	
+		//make sure kernel modules loaded
+		String command = "sudo modprobe sch_htb";
+		int result = runCommand(command);
+		if (result != 0) {
+            return result;
+        }
+		//make sure kernel modules loaded
+		command = "sudo modprobe sch_sfq";
+		result = runCommand(command);
+		if (result != 0) {
+            return result;
+        }
+		
+		//Add root qdisc
+		command = "sudo tc qdisc add dev lo root handle '1:' htb default 30";
+		result = runCommand(command);
+		if (result != 0) {
+            return result;
+        }
+		
+		//Add class for bandwidth limits
+		command = "sudo tc class add dev lo parent '1:' classid '1:1' htb rate 40kbps ceil 40kbps";
+		result = runCommand(command);
+		if (result != 0) {
+            return result;
+        }
+		
+		//Add a default leaf class
+		command = "sudo tc class add dev lo parent '1:1' classid '1:30' htb rate 40kbps ceil 40kbps";
+		result = runCommand(command);
+		if (result != 0) {
+            return result;
+        }
+		
+		//Add SFQ qdisc to the leaf class
+		command = "sudo tc qdisc add dev lo parent '1:30' handle '30:' sfq perturb 10";
 		return runCommand(command);
-
-
 	}
+	
+	
 
 	public int runCommand(String command) {
 		String[] argsStop = new String[] { "/bin/bash", "-c", command };
 
 		try {
-			logger.info("Running runCommand");
+			logger.info("Running runCommand: {}", command);
 
 			Process procStop = new ProcessBuilder(argsStop).start();
 
