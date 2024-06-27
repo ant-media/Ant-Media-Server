@@ -41,6 +41,7 @@ import org.apache.http.message.BasicNameValuePair;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.red5.server.adapter.MultiThreadedApplicationAdapter;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
@@ -210,7 +211,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected ISubtrackPoller subtrackPoller;
 
 	private Random random = new Random();
-
+	
 	@Override
 	public boolean appStart(IScope app) {
 		setScope(app);
@@ -1049,7 +1050,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		vertx.runOnContext(e-> {
 			logger.info("Running notify hook url:{} stream id: {} mainTrackId:{} action:{} vod name:{} vod id:{}", url, id, mainTrackId, action, vodName, vodId);
 
-			Map<String, String> variables = new HashMap<>();
+			Map<String, Object> variables = new HashMap<>();
 			
 			variables.put("id", id);
 			variables.put("action", action);
@@ -1060,8 +1061,19 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			putToMap("vodName", vodName, variables);
 			putToMap("vodId", vodId, variables);
 			putToMap("mainTrackId", mainTrackId, variables);
+			putToMap("roomId", mainTrackId, variables);
 			putToMap("subscriberId", subscriberId, variables);
-			putToMap("metadata", metadata, variables);
+			if (StringUtils.isNotBlank(metadata)) {
+				Object metaDataJsonObj = null;
+				try {
+					JSONParser jsonParser = new JSONParser();
+					metaDataJsonObj = (JSONObject) jsonParser.parse(metadata);
+				} catch (ParseException parseException) {
+					metaDataJsonObj = metadata;
+				}
+				putToMap("metadata", metaDataJsonObj, variables);
+				
+			}
 			putToMap("timestamp", String.valueOf(System.currentTimeMillis()), variables);
 
 		
@@ -1074,21 +1086,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		});
 	}
 
-
-	private void putToMap(String keyName, String keyValue, Map map) {
-		if (StringUtils.isNotBlank(keyValue)) {
+	private void putToMap(String keyName, Object keyValue, Map<String, Object> map) {
+		if (keyValue != null && StringUtils.isNotBlank(keyValue.toString())) {
 			map.put(keyName, keyValue);
 		}
 	}
 
 	/**
-	 * 
+	 *
 	 * @param url
 	 * @param variables
 	 * @param retryAttempts
 	 * @param sendType the type of the entity to be sent. It can be either "application/x-www-form-urlencoded" or "application/json"
 	 */
-	public void sendPOST(String url, Map<String, String> variables, int retryAttempts, String contentType) {
+	public void sendPOST(String url, Map<String, Object> variables, int retryAttempts, String contentType) {
 		logger.info("Sending POST request to {}", url);
 		try (CloseableHttpClient httpClient = getHttpClient()) {
 			HttpPost httpPost = new HttpPost(url);
@@ -1099,54 +1110,54 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					.build();
 			httpPost.setConfig(requestConfig);
 
-			if (ContentType.APPLICATION_FORM_URLENCODED.getMimeType().equals(contentType)) 
+			if (ContentType.APPLICATION_FORM_URLENCODED.getMimeType().equals(contentType))
 			{
 				List<NameValuePair> urlParameters = new ArrayList<>();
-				Set<Entry<String, String>> entrySet = variables.entrySet();
-				for (Entry<String, String> entry : entrySet) 
+				Set<Entry<String, Object>> entrySet = variables.entrySet();
+				for (Entry<String, Object> entry : entrySet)
 				{
-					urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue()));
+					urlParameters.add(new BasicNameValuePair(entry.getKey(), entry.getValue().toString()));
 				}
 
 				HttpEntity postParams = new UrlEncodedFormEntity(urlParameters);
 				httpPost.setEntity(postParams);
 			}
-			else 
+			else
 			{
-				JSONObject hookPayload = new JSONObject(variables);	
-				httpPost.setEntity(new StringEntity(hookPayload.toJSONString(), ContentType.APPLICATION_JSON));
-			}			
+				JSONObject hookPayload = new JSONObject(variables);
+				httpPost.setEntity(new StringEntity(hookPayload.toString(), ContentType.APPLICATION_JSON));
+			}
 
 			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
 				int statusCode = httpResponse.getStatusLine().getStatusCode();
 				logger.info("POST Response Status: {}", statusCode);
 
-				if (statusCode != HttpStatus.SC_OK) 
+				if (statusCode != HttpStatus.SC_OK)
 				{
-					if (retryAttempts >= 1) 
+					if (retryAttempts >= 1)
 					{
 						logger.info("Retry attempt for POST in {} milliseconds due to non-200 response: {}", appSettings.getWebhookRetryDelay(), statusCode);
 						retrySendPostWithDelay(url, variables, retryAttempts - 1, contentType);
-					} else if (appSettings.getWebhookRetryCount() != 0) 
+					} else if (appSettings.getWebhookRetryCount() != 0)
 					{
 						logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
 					}
 				}
 			}
 		} catch (IOException e) {
-			if (retryAttempts >= 1) 
+			if (retryAttempts >= 1)
 			{
 				logger.info("Retry attempt for POST in {} milliseconds due to IO exception: {}", appSettings.getWebhookRetryDelay(), e.getMessage());
 				retrySendPostWithDelay(url, variables, retryAttempts - 1, contentType);
-			} 
-			else if (appSettings.getWebhookRetryCount() != 0) 
+			}
+			else if (appSettings.getWebhookRetryCount() != 0)
 			{
 				logger.info("Stopping sending POST because no more retry attempts left. Giving up.");
 			}
 		}
 	}
 
-	public void retrySendPostWithDelay(String url, Map<String, String> variables, int retryAttempts, String contentType) {
+	public void retrySendPostWithDelay(String url, Map<String, Object> variables, int retryAttempts, String contentType) {
 		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
 			sendPOST(url, variables, retryAttempts, contentType);
 		});
