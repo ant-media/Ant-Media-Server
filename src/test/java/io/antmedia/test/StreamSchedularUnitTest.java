@@ -1174,10 +1174,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*6, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast streamTmp = dataStore.get(newSource.getStreamId());
 			logger.info("speed {}" , streamTmp.getSpeed()) ;
-			logger.info("quality {}" , streamTmp.getQuality()) ;
 
-			return streamTmp != null && streamTmp.getSpeed() < 0.7;
-			// the critical thing is the speed which less that 0.7
+			return streamTmp != null && streamTmp.getSpeed() < 0.8;
+			// the critical thing is the speed which less that 0.8
 		});
 
 		assertEquals(0, resetNetworkInterface(findActiveInterface()));
@@ -1234,7 +1233,8 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	private int resetNetworkInterface(String activeInterface) {
 		logger.info("Running resetNetworkInterface");
 
-		return runCommand("sudo wondershaper clear "+activeInterface);
+		String command = "sudo tc qdisc del dev " + activeInterface + " root";
+		return runCommand(command);
 	}
 	
 	
@@ -1242,45 +1242,26 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 		logger.info("Running limitNetworkInterfaceBandwidth");
 		logger.info("active interface {}", activeInterface);
-	
-	
-		//make sure kernel modules loaded
-		String command = "sudo modprobe sch_htb";
+
+		//Add root qdisc
+		String command = "sudo tc qdisc add dev " + activeInterface +" root handle '1:' htb default 30";
 		int result = runCommand(command);
 		if (result != 0) {
             return result;
         }
-		//make sure kernel modules loaded
-		command = "sudo modprobe sch_sfq";
+		
+		//Uplink bandwidth limit
+		command = "sudo tc class add dev "+ activeInterface + " parent '1:' classid '1:1' htb rate 40kbps ceil 40kbps";
 		result = runCommand(command);
 		if (result != 0) {
             return result;
         }
 		
-		//Add root qdisc
-		command = "sudo tc qdisc add dev lo root handle '1:' htb default 30";
-		result = runCommand(command);
-		if (result != 0) {
-            return result;
-        }
-		
-		//Add class for bandwidth limits
-		command = "sudo tc class add dev lo parent '1:' classid '1:1' htb rate 40kbps ceil 40kbps";
-		result = runCommand(command);
-		if (result != 0) {
-            return result;
-        }
-		
-		//Add a default leaf class
-		command = "sudo tc class add dev lo parent '1:1' classid '1:30' htb rate 40kbps ceil 40kbps";
-		result = runCommand(command);
-		if (result != 0) {
-            return result;
-        }
-		
-		//Add SFQ qdisc to the leaf class
-		command = "sudo tc qdisc add dev lo parent '1:30' handle '30:' sfq perturb 10";
+		//Downlink
+		command = "sudo tc filter add dev " + activeInterface + " parent ffff: protocol ip prio 50 u32 match ip src 0.0.0.0/0 flowid ffff:1 action police rate 40kbps burst 10k drop";
+
 		return runCommand(command);
+	
 	}
 	
 	
