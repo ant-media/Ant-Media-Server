@@ -34,12 +34,16 @@ services:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install wondershaper -y
+  - sudo ip addr
+  - sudo if config
   - sudo wondershaper lo 40 40
   - sudo tc qdisc show dev lo
   - sudo tc qdisc del dev lo ingress
   - sudo wondershaper clear lo
   - sudo tc qdisc show dev lo
   - sudo wondershaper lo 40 40
+  - sudo ip addr
+  - sudo if config
   - exit 1
 
 
