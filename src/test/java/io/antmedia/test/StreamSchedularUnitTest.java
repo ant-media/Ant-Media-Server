@@ -1066,7 +1066,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	 * automatically.
 	 * 
 	 */
-	@Test
+	
+	//TODO: ENABLE THIS TEST AGAIN. IT'S DISABLED BECAUSED WONDERSHAPER STOPPED TO WORK ON TRAVIS. IT GIVES QDISC ERRORS
+	//@Test
 	public void testBandwidth() {
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();

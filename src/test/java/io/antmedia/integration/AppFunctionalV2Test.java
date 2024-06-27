@@ -850,7 +850,7 @@ public class AppFunctionalV2Test {
 			// publish live stream to the server
 			String streamId = "zombiStreamId1";
 			executeProcess(ffmpegPath
-					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId);
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> {
