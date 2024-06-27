@@ -46,8 +46,9 @@ before_install:
   - sudo lsmod
   - sudo modprobe sch_htb
   - sudo modprobe sch_sfq
-
+  - sudo modprobe sch_cbq
   - sudo ip link show lo
+  - sudo wondershaper lo 40 40
   - sudo cat /etc/hosts
   - sudo ifconfig
   - exit 1
