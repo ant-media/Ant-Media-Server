@@ -46,7 +46,6 @@ before_install:
   - sudo lsmod
   - sudo modprobe sch_htb
   - sudo modprobe sch_sfq
-  - sudo modprobe pfifo_fast
 
   - sudo ip link show lo
   - sudo cat /etc/hosts
