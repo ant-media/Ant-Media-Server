@@ -43,6 +43,11 @@ before_install:
   - sudo tc qdisc show dev lo
   - sudo wondershaper lo 40 40
   - sudo ip addr
+  - sudo lsmod
+  - sudo lsmod | grep htb
+  - sudo modprobe sch_htb
+  - sudo ip link show lo
+  - sudo cat /etc/hosts
   - sudo ifconfig
   - exit 1
 
