@@ -30,7 +30,6 @@ addons:
 services:
   - redis-server
 
-
 before_install:
 
   - sudo apt-get update -qq
@@ -38,16 +37,16 @@ before_install:
   - sudo modprobe sch_htb
   - sudo modprobe sch_sfq
   # Add root qdisc
-  - bash -c 'sudo tc qdisc add dev lo root handle 1: htb default 30'
+  - bash -c "sudo tc qdisc add dev lo root handle '1:' htb default 30"
 
 # Add class for bandwidth limits
-  - bash -c 'sudo tc class add dev lo parent 1: classid 1:1 htb rate 40kbps ceil 40kbps'
+  - bash -c "sudo tc class add dev lo parent '1:' classid '1:1' htb rate 40kbps ceil 40kbps"
 
 # Add a default leaf class
-  - bash -c 'sudo tc class add dev lo parent 1:1 classid 1:30 htb rate 40kbps ceil 40kbps'
+  - bash -c "sudo tc class add dev lo parent '1:1'' classid '1:30' htb rate 40kbps ceil 40kbps"
 
 # Add SFQ qdisc to the leaf class
-  - bash -c 'sudo tc qdisc add dev lo parent 1:30 handle 30: sfq perturb 10'
+  - bash -c "sudo tc qdisc add dev lo parent '1:30' handle '30:' sfq perturb 10"
   
 
   - sudo ip addr
