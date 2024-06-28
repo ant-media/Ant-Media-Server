@@ -2155,7 +2155,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * Participant Visibility Matrix for WebRTC Clients
 	 */
-	@Value("${participantVisibilityMatrix:{\"default\": [\"default\"],\"host\":[\"host\",\"active_host\",\"speaker\",\"active_speaker\",\"listener\",\"temp_listener\",\"active_temp_listener\"],\"active_host\":[\"host\",\"active_host\",\"speaker\",\"active_speaker\",\"listener\",\"temp_listener\",\"active_temp_listener\"],\"speaker\":[\"host\",\"active_host\",\"speaker\",\"active_speaker\",\"temp_listener\",\"active_temp_listener\"],\"active_speaker\":[\"host\",\"active_host\",\"speaker\",\"active_speaker\",\"temp_listener\",\"active_temp_listener\"],\"listener\":[\"active_host\",\"active_speaker\",\"active_temp_listener\"],\"temp_listener\":[\"host\",\"active_host\",\"speaker\",\"active_speaker\",\"temp_listener\",\"active_temp_listener\"],\"active_temp_listener\":[\"host\",\"active_host\",\"speaker\",\"active_speaker\",\"temp_listener\",\"active_temp_listener\"]}}")
+	@Value("${participantVisibilityMatrix:{\"default\": [\"default\"],\"host\":[\"host\",\"attendee\",\"speaker\"],\"attendee\":[\"speaker\",\"attendee\"],\"speaker\":[\"host\",\"speaker\",\"attendee\"]}}")
 	private String participantVisibilityMatrix = "";
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
