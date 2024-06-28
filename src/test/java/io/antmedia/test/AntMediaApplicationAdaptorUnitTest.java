@@ -832,6 +832,44 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.verify(spyAdaptor, Mockito.timeout(2000).times(5)).getListenerHookURL(broadcast);
 
 	}
+	
+	
+	@Test
+	public void testNotifyHookJSON() {
+		AntMediaApplicationAdapter spyAdaptor = Mockito.spy(adapter);
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWebhookRetryCount(2);
+		spyAdaptor.setAppSettings(appSettings);
+		
+		String webhookUrl = "https://webhook.site/f7056013-4d98-450c-8141-9d792138ead1";
+		
+		String streamId = "stream123";
+		
+		{
+			JSONObject metadata = new JSONObject();
+			metadata.put("key1", "value1");
+			
+			spyAdaptor.notifyHook(webhookUrl, streamId, null, "action", null, null, null, null, metadata.toString(), null);
+			
+			ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
+			
+			Mockito.verify(spyAdaptor, timeout(5000).times(1)).sendPOST(Mockito.any(), variables.capture(), Mockito.anyInt(), Mockito.anyString());
+	
+			assertTrue(variables.getValue().get("metadata") instanceof JSONObject);
+		}
+		
+		{
+			String metadata = "metadata";
+			spyAdaptor.notifyHook(webhookUrl, streamId, null, "action", null, null, null, null, metadata, null);
+			ArgumentCaptor<Map> variables = ArgumentCaptor.forClass(Map.class);
+			
+			Mockito.verify(spyAdaptor, timeout(5000).times(2)).sendPOST(Mockito.any(), variables.capture(), Mockito.anyInt(), Mockito.anyString());
+
+			assertTrue(variables.getValue().get("metadata") instanceof String);
+		}
+		
+	}
+	
 
 	@Test
 	public void testNotifyHook() {

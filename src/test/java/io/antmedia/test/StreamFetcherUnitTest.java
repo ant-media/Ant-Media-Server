@@ -31,6 +31,7 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
@@ -970,6 +971,18 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		testFetchStreamSources("src/test/resources/test.m3u8", false, false);
 		logger.info("leaving testHLSSource");
 	}
+	
+	@Test
+	public void testHLSSourceFmp4() {
+		logger.info("running testHLSSource");
+
+		//test HLS Source
+		String streamId = testFetchStreamSources("src/test/resources/test.m3u8", false, false, true, "fmp4");
+		
+		File f = new File("webapps/junit/streams/"+streamId +"_init.mp4");
+		assertTrue(f.exists());
+		logger.info("leaving testHLSSource");
+	}
 
 	@Test
 	public void testH264VideoPCMAudio() {
@@ -1013,19 +1026,29 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testAudioOnlySource");
 	}
 
-
-
+	
 
 	public void testFetchStreamSources(String source, boolean restartStream, boolean checkContext) {
 		testFetchStreamSources(source, restartStream, checkContext, true);
 	}
+	
+	public void testFetchStreamSources(String source, boolean restartStream, boolean checkContext, boolean audioExists)  {
+		testFetchStreamSources(source, restartStream, checkContext, audioExists, null);
+	}
 
-	public void testFetchStreamSources(String source, boolean restartStream, boolean checkContext, boolean audioExists) {
+	public String testFetchStreamSources(String source, boolean restartStream, boolean checkContext, boolean audioExists, String hlsFragmentType) {
 
 		Application.enableSourceHealthUpdate = true;
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
+		String streamId = null;
 		try {
 			getAppSettings().setDeleteHLSFilesOnEnded(false);
+			
+			if (StringUtils.isBlank(hlsFragmentType)) {
+				hlsFragmentType = "mpegts";
+			}
+			
+			getAppSettings().setHlsSegmentType(hlsFragmentType);
 
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin", source,
 					AntMediaApplicationAdapter.STREAM_SOURCE);
@@ -1033,7 +1056,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			assertNotNull(newCam.getStreamUrl());
 			DataStore dataStore = new InMemoryDataStore("db"); //.getDataStore();
 
-			String id = dataStore.save(newCam);
+			streamId = dataStore.save(newCam);
 
 
 			assertNotNull(newCam.getStreamId());
@@ -1110,7 +1133,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 			logger.info("after test mp4 file");
 
-			getInstance().getDataStore().delete(id);
+			getInstance().getDataStore().delete(streamId);
 
 		}
 		catch (Exception e) {
@@ -1121,6 +1144,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
 
 		Application.enableSourceHealthUpdate = false;
+		
+		return streamId;
 
 
 	}
@@ -1577,7 +1602,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		
 		lastSentDTS[0] = 0;
-		lastSentDTS[0] = 200;
+		lastSentDTS[1] = 200;
 		
 		Awaitility.await().pollDelay(3, TimeUnit.SECONDS).atMost(5, TimeUnit.SECONDS).until(()-> {
 			workerThread.checkAndFixSynch();

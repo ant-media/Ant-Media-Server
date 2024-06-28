@@ -4531,31 +4531,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testAddH264MetadataBSF() {
-		if (appScope == null) {
-			appScope = (WebScope) applicationContext.getBean("web.scope");
-			logger.debug("Application / web scope: {}", appScope);
-			assertTrue(appScope.getDepth() == 1);
-		}
-
-		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
-		hlsMuxer.setHlsParameters(null, null, null, null, null);
-		hlsMuxer.init(appScope, "test", 0, null, 0);
-
-		hlsMuxer.setSeiEnabled(true);
-		int width = 640;
-		int height = 480;
-
-		boolean addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
-
-		assertTrue(addStreamResult);
-
-		assertEquals("h264_metadata", hlsMuxer.getBitStreamFilter());
-
-	}
-
-
-	@Test
 	public void testBroadcastHLSParameters() {
 		AppSettings appSettings = new AppSettings();
 		appSettings.setHlsListSize("5");
@@ -4615,8 +4590,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(hlsParameters.getHlsPlayListType(), hlsMuxer.getHlsPlayListType());
 		}
 
-
-
 	}
 
 	@Test
@@ -4629,6 +4602,196 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String data = "some data to put frame";
 		muxAdaptorReal.addSEIData(data);
 		verify(hlsMuxer, times(1)).setSeiData(data);
+		
+		
+		{
+			hlsMuxer = new HLSMuxer(Mockito.mock(Vertx.class), Mockito.mock(StorageClient.class), "streams", 7, null, false);
+			
+			
+			String streamId = "stream_name_" + (int) (Math.random() * 10000);
+			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
+	
+			//init
+			hlsMuxer.init(appScope, streamId, 0, null, 0);
+			
+			int width = 640;
+			int height = 480;
+			boolean addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
+			assertTrue(addStreamResult);
+	
+			//prepare io
+			boolean prepareIOresult = hlsMuxer.prepareIO();
+			assertTrue(prepareIOresult);
+			
+			String seiData = "test_data";
+			hlsMuxer.setSeiData(seiData);
+			
+			//it's annexb format, it means there is not mp4toannexb format
+			//it should be 4 bytes for start code, 1 byte for nal type, 1 byte for sei type, 1 byte for payload size, 16 byste for UUID, data length, 1 byte for alignment 
+			assertEquals(4 + 1 + 1 + 1 + 16 + seiData.length() + 1, hlsMuxer.getPendingSEIData().limit());
+			
+			assertEquals(0, hlsMuxer.getPendingSEIData().get(0));
+			assertEquals(0, hlsMuxer.getPendingSEIData().get(1));
+			assertEquals(0, hlsMuxer.getPendingSEIData().get(2));
+			assertEquals(1, hlsMuxer.getPendingSEIData().get(3));
+			
+			
+			try {
+				FileInputStream fis = new FileInputStream("src/test/resources/frame0");
+				byte[] byteArray = fis.readAllBytes();
+
+				fis.close();
+
+				long now = System.currentTimeMillis();
+				ByteBuffer encodedVideoFrame = ByteBuffer.wrap(byteArray);
+
+				AVPacket videoPkt = avcodec.av_packet_alloc();
+				av_init_packet(videoPkt);
+				
+				
+				videoPkt.stream_index(0);
+				videoPkt.pts(now);
+				videoPkt.dts(now);
+
+				encodedVideoFrame.rewind();
+
+				videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
+				videoPkt.data(new BytePointer(encodedVideoFrame));
+				videoPkt.size(encodedVideoFrame.limit());
+				videoPkt.position(0);
+				videoPkt.duration(5);
+				hlsMuxer.writePacket(videoPkt, new AVCodecContext());
+				
+				assertNull(hlsMuxer.getPendingSEIData());
+
+				av_packet_unref(videoPkt);
+
+				
+
+			} catch (IOException e) {
+				e.printStackTrace();
+				fail(e.getMessage());
+			}
+
+			//write trailer
+			hlsMuxer.writeTrailer();
+			
+			
+
+		}
+		
+		{
+			hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
+			
+			String streamId = "stream_name_" + (int) (Math.random() * 10000);
+			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
+	
+			//init
+			hlsMuxer.init(appScope, streamId, 0, null, 0);
+			
+			int width = 640;
+			int height = 480;
+			boolean addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
+			assertTrue(addStreamResult);
+	
+			//prepare io
+			boolean prepareIOresult = hlsMuxer.prepareIO();
+			assertTrue(prepareIOresult);
+			
+			String seiData = "";
+			
+			for (int i = 0; i < 300; i++) {
+				seiData += "i";
+			}
+			
+			//size is more than 255, it means data length is 2 bytes
+			hlsMuxer.setSeiData(seiData);
+			
+			//it's annexb format, it means there is not mp4toannexb format
+			//it should be 4 bytes for start code, 1 byte for nal type, 1 byte for sei type, 2 byte for payload size, 16 byste for UUID, data length, 1 byte for alignment 
+			int totalLength = 4 + 1 + 1 + 2 + 16 + seiData.length() + 1;
+			assertEquals(totalLength, hlsMuxer.getPendingSEIData().limit());
+			
+			//it should totalLength-4 because 4 bytes are length code
+			assertEquals(totalLength-4, hlsMuxer.getPendingSEIData().getInt());
+			
+		}
+		
+		{
+			hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
+			
+			String streamId = "stream_name_" + (int) (Math.random() * 10000);
+			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
+	
+			//init
+			hlsMuxer.init(appScope, streamId, 0, null, 0);
+			
+			int width = 640;
+			int height = 480;
+			boolean addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_H265, 0, false, null);
+			assertTrue(addStreamResult);
+	
+			//prepare io
+			boolean prepareIOresult = hlsMuxer.prepareIO();
+			assertTrue(prepareIOresult);
+			
+			String seiData = "";
+			
+			for (int i = 0; i < 300; i++) {
+				seiData += "i";
+			}
+			
+			//size is more than 255, it means data length is 2 bytes
+			hlsMuxer.setSeiData(seiData);
+			
+			//it's annexb format, it means there is not mp4toannexb format
+			//it should be 4 bytes for start code, 2 byte for nal type(Because HEVC), 1 byte for sei type, 2 byte for payload size, 16 byste for UUID, data length, 1 byte for alignment 
+			assertEquals(4 + 2 + 1 + 2 + 16 + seiData.length() + 1, hlsMuxer.getPendingSEIData().limit());
+			
+			assertEquals(0, hlsMuxer.getPendingSEIData().get(0));
+			assertEquals(0, hlsMuxer.getPendingSEIData().get(1));
+			assertEquals(0, hlsMuxer.getPendingSEIData().get(2));
+			assertEquals(1, hlsMuxer.getPendingSEIData().get(3));
+			
+			
+		}
+		
+		{
+			hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
+			
+			String streamId = "stream_name_" + (int) (Math.random() * 10000);
+			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
+	
+			//init
+			hlsMuxer.init(appScope, streamId, 0, null, 0);
+			
+
+			AVChannelLayout channelLayout = new AVChannelLayout();
+			av_channel_layout_default(channelLayout, 2);
+			boolean addStreamResult = hlsMuxer.addAudioStream(44100, channelLayout, AV_CODEC_ID_AAC, 0);
+			assertTrue(addStreamResult);
+	
+			//prepare io
+			boolean prepareIOresult = hlsMuxer.prepareIO();
+			assertTrue(prepareIOresult);
+			
+			String seiData = "";
+			
+			for (int i = 0; i < 300; i++) {
+				seiData += "i";
+			}
+			
+			//size is more than 255, it means data length is 2 bytes
+			hlsMuxer.setSeiData(seiData);
+			
+			//it's annexb format, it means there is not mp4toannexb format
+			//it should be 4 bytes for start code, 2 byte for nal type(Because HEVC), 1 byte for sei type, 2 byte for payload size, 16 byste for UUID, data length, 1 byte for alignment 
+			assertNull(hlsMuxer.getPendingSEIData());
+			
+		}
+		
+		
+
 	}
 
 	@Test
