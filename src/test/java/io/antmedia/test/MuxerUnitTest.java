@@ -155,7 +155,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @ContextConfiguration(locations = {"test.xml"})
 //@ContextConfiguration(classes = {AppConfig.class})
-@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
@@ -2432,8 +2432,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	//TODO: Disable test to check if it causes the crash
-	//@Test
+	@Test
 	public void testRtmpIngestBufferTime() {
 
 		try {
