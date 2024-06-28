@@ -2432,7 +2432,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	//TODO: Disable test to check if it causes the crash
+	//@Test
 	public void testRtmpIngestBufferTime() {
 
 		try {
