@@ -12,8 +12,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
+import dev.morphia.query.filters.Filter;
+import dev.morphia.query.filters.LogicalFilter;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.bson.Document;
 import org.slf4j.Logger;
@@ -60,7 +63,9 @@ public class MongoStore extends DataStore {
 	private static final String VIEWER_ID = "viewerId";
 	private static final String TOKEN_ID = "tokenId";
 	public static final String STREAM_ID = "streamId";
-	public static final String SUBSCRIBER_ID = "subscriberId"; 
+	public static final String SUBSCRIBER_ID = "subscriberId";
+	private static final String MAIN_TRACK_STREAM_ID = "mainTrackStreamId";
+	private static final String ROLE = "role";
 	private Datastore datastore;
 	private Datastore vodDatastore;
 	private Datastore tokenDatastore;
@@ -1506,5 +1511,20 @@ public class MongoStore extends DataStore {
 	
 	public Datastore getConferenceRoomDatastore() {
 		return conferenceRoomDatastore;
+	}
+
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
+		synchronized(this) {
+			Filter roleFilter;
+			if(StringUtils.isBlank(role)) {
+				roleFilter = Filters.eq(MAIN_TRACK_STREAM_ID, mainTrackId);
+			}
+			else {
+				roleFilter = Filters.and(Filters.eq(MAIN_TRACK_STREAM_ID, mainTrackId), Filters.eq(ROLE, role));
+			}
+			return 	datastore.find(Broadcast.class)
+					.filter(roleFilter)
+					.iterator(new FindOptions().skip(offset).limit(size)).toList();
+		}
 	}
 }
