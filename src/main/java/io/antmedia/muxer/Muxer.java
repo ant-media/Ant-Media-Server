@@ -1270,7 +1270,7 @@ public abstract class Muxer {
 		if (ret < 0) {
 			audioNotWrittenCount++;
 			if (logger.isWarnEnabled()) {
-				logger.warn("cannot write audio frame to muxer({}). Error is {} ", file.getName(),
+				logger.warn("cannot write audio frame to muxer({}).Pts: {} dts:{}. Error is {} ", file.getName(), pkt.pts(), pkt.dts(),
 						getErrorDefinition(ret));
 			}
 		}

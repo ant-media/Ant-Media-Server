@@ -742,7 +742,7 @@ public class ConsoleAppRestServiceTest{
 			assertEquals(AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED, broadcastCreated.getStatus());
 
 			AppFunctionalV2Test.executeProcess(ffmpegPath
-					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ broadcastCreated.getStreamId());
 
 			// check stream status is broadcasting
@@ -1045,7 +1045,7 @@ public class ConsoleAppRestServiceTest{
 			//send a short stream
 			final String streamId = "test_stream_" + (int)(Math.random() * 1000);
 			AppFunctionalV2Test.executeProcess(ffmpegPath
-					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId);
 
 			//check that preview is created
@@ -1066,7 +1066,7 @@ public class ConsoleAppRestServiceTest{
 
 			//send a short stream with same name again
 			AppFunctionalV2Test.executeProcess(ffmpegPath
-					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId);
 
 			//wait until stream is broadcasted
@@ -1098,7 +1098,7 @@ public class ConsoleAppRestServiceTest{
 
 			String streamId2 = "test_stream_" + (int)(Math.random() * 1000);
 			AppFunctionalV2Test.executeProcess(ffmpegPath
-					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId2);
 
 			Awaitility.await()
@@ -1116,7 +1116,7 @@ public class ConsoleAppRestServiceTest{
 
 			//send a short stream with same name again
 			AppFunctionalV2Test.executeProcess(ffmpegPath
-					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId2);
 
 			//let the muxing finish
@@ -1169,7 +1169,7 @@ public class ConsoleAppRestServiceTest{
 			// send anonymous stream
 			String streamId = "zombiStreamId" + (int)(Math.random()*10000);
 			Process rtmpSendingProcess = AppFunctionalV2Test.execute(ffmpegPath
-					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+					+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ streamId);
 
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(()-> { 
@@ -1189,7 +1189,7 @@ public class ConsoleAppRestServiceTest{
 				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
 				AppFunctionalV2Test.executeProcess(ffmpegPath
-						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://127.0.0.1/LiveApp/"
 						+ broadcastCreated.getStreamId());
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS) 
@@ -1216,7 +1216,7 @@ public class ConsoleAppRestServiceTest{
 			{
 				String streamId2 = "zombiStreamId";
 				AppFunctionalV2Test.executeProcess(ffmpegPath
-						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://127.0.0.1/LiveApp/"
 						+ streamId2);
 
 				// check that it is accepted
@@ -1237,7 +1237,7 @@ public class ConsoleAppRestServiceTest{
 				assertEquals(broadcastCreated.getStatus(), AntMediaApplicationAdapter.BROADCAST_STATUS_CREATED);
 
 				AppFunctionalV2Test.executeProcess(ffmpegPath
-						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://127.0.0.1/LiveApp/"
 						+ broadcastCreated.getStreamId());
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS)
@@ -1273,7 +1273,7 @@ public class ConsoleAppRestServiceTest{
 			{
 				streamId = "zombiStreamId" + (int)(Math.random()*100000);
 				AppFunctionalV2Test.executeProcess(ffmpegPath
-						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://localhost/LiveApp/"
+						+ " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://127.0.0.1/LiveApp/"
 						+ streamId);
 
 				Awaitility.await().atMost(10, TimeUnit.SECONDS)

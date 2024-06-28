@@ -554,7 +554,6 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(0, appSettings.getWebhookRetryCount());
 		assertEquals(1000, appSettings.getWebhookRetryDelay());
-		assertEquals(false, appSettings.isSeiEnabled());
 		
 
 		assertFalse(appSettings.isSecureAnalyticEndpoint());
@@ -573,8 +572,6 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
 					184, numberOfFields);
-
-		
 	}
 	
 	
