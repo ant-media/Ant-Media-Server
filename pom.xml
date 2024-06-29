@@ -69,6 +69,8 @@
         <finalName>${project.artifactId}</finalName>
         <maven.build.timestamp.format>yyyyMMdd_HHmm</maven.build.timestamp.format>
         <buildNumber>${maven.build.timestamp}</buildNumber>
+        <sonar.projectKey>io.antmedia:ant-media-server</sonar.projectKey>
+		<sonar.organization>ant-media</sonar.organization>
         <!-- keep it blank -->
 		<enterprise.profile></enterprise.profile>
     </properties>

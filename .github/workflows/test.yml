@@ -15,6 +15,7 @@ jobs:
     env:
       GPG_TTY: ${{ secrets.GPG_TTY }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: https://sonarcloud.io
     
     steps:
       - name: Checkout code
@@ -149,7 +150,7 @@ jobs:
         run: |
           export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
           echo $RELEASE_VERSION
-          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest="MuxerUnitTest" org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
+          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest="MuxerUnitTest" org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=900  -Dmaven.javadoc.skip=true --quiet
           mvn org.owasp:dependency-check-maven:check -DfailOnError=false --quiet
 
       - name: Cache Ant Media Server logs on failure
