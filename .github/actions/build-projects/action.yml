@@ -50,7 +50,7 @@ runs:
       with:
            key: ${{ runner.os }}-node_modules-cache
            path: |
-             ~/ManagementConsole_AngularApp-node_modules-cache     
+             $HOME/ManagementConsole_AngularApp-node_modules-cache     
         
     - name: Clone  Management Console Web Panel Angular project
       shell: bash
@@ -61,9 +61,9 @@ runs:
       run: | 
            ls -la
            pwd
-           if [ -d "ManagementConsole_AngularApp-node_modules-cache" ]; then
+           if [ -d "$HOME/ManagementConsole_AngularApp-node_modules-cache" ]; then
               echo "Copy node_modules from cache directory to ManagementConsole_AngularApp directory"
-              cp -a ~/ManagementConsole_AngularApp-node_modules-cache/. ManagementConsole_AngularApp/node_modules/
+              cp -a $HOME/ManagementConsole_AngularApp-node_modules-cache/. ManagementConsole_AngularApp/node_modules/
            else
                echo "No cache directory found"
            fi   
@@ -83,8 +83,6 @@ runs:
           npm install
           ng build --prod
           cp -a ./dist/. ../src/main/server/webapps/root/
-          mkdir -p $HOME/.antmedia/cache
-          rm -rf $HOME/.antmedia/cache/node_modules
           cd ..
           
     - name: Copy node_modules to cache directory
