@@ -81,11 +81,20 @@ jobs:
           mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
           cd ..
 
-      - name: Clone Web Panel Angular project
+      - name: Install NVM (Node Version Manager)
+        run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+          echo 'export NVM_DIR="$HOME/.nvm"' >> $GITHUB_ENV
+          echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> $GITHUB_ENV
+          echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> $GITHUB_ENV
+        shell: bash
+
+      - name: Clone and build Management Console Web Panel Angular project
         run: |
           npm install -g @angular/cli@10.0.5
           git clone --depth=1 -b ${{ github.ref_name }} https://github.com/ant-media/ManagementConsole_AngularApp.git || git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git
           cd ManagementConsole_AngularApp
+          . $NVM_DIR/nvm.sh
           nvm install 16.20.2 # install node.js version for angular 
           nvm use 16.20.2 # use node.js version for angular
           npm install
