@@ -74,8 +74,6 @@ jobs:
       - name: Show Ant Media Server logs on failure
         if: failure()
         run: |
-          cat /usr/local/antmedia/log/ant-media-server.log
-          cat /usr/local/antmedia/log/antmedia-error.log
           if [[ -f /var/log/mongodb/mongod.log ]]; then
             cat /var/log/mongodb/mongod.log
           fi
