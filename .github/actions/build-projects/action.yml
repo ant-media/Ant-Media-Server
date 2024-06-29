@@ -43,18 +43,23 @@ runs:
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
       shell: bash
         
+    - name: Cache node_modules directtory for Web Panel Angular project
+      uses: actions/cache@v4
+      with:
+           key: ${{ runner.os }}-node_modules-cache
+           path: |
+             ~/ManagementConsole_AngularApp-node_modules-cache     
         
     - name: Clone  Management Console Web Panel Angular project
       shell: bash
       run: git clone --depth=1 -b ${{ inputs.branch_name }} https://github.com/ant-media/ManagementConsole_AngularApp.git || git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git
         
-        
-    - name: Cache node_modules directtory for Web Panel Angular project
-      uses: actions/cache@v4
-      with:
-           key: ${{ runner.os }}-node_modules-${{ hashFiles('ManagementConsole_AngularApp/package-lock.json') }}
-           path: |
-             ~/ManagementConsole_AngularApp/node_modules
+    - name: Copy node_modules from cache directory if exists
+      shell: bash
+      run: | 
+           if [ -d "~/ManagementConsole_AngularApp-node_modules-cache" ]; then
+              cp -a ~/ManagementConsole_AngularApp-node_modules/. ManagementConsole_AngularApp/node_modules/
+           fi   
 
     - name: Clone and build Management Console Web Panel Angular project
       shell: bash
@@ -75,6 +80,11 @@ runs:
           rm -rf $HOME/.antmedia/cache/node_modules
           cd ..
           
+    - name: Copy node_modules to cache directory
+      shell: bash
+      run: cp -a  ManagementConsole_AngularApp/node_modules/. ~/ManagementConsole_AngularApp-node_modules-cache/
+                  
+ 
     - name: Replace ffmpeg builds
       shell: bash
       run: |
