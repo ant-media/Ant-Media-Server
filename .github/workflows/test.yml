@@ -14,7 +14,7 @@ env:
       
 jobs:  
   run-unit-tests:
-    runs-on: "${{ env.RUNNER }}"
+    runs-on: ubuntu-22.04
     env:
       GPG_TTY: ${{ secrets.GPG_TTY }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -117,7 +117,7 @@ jobs:
    
    
   deploy:   
-    runs-on: "${{ env.RUNNER }}"
+    runs-on: ubuntu-22.04
     needs: run-unit-tests                
     steps:
       - name: Deploy snapshots
