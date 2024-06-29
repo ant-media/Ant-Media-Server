@@ -14,7 +14,7 @@ env:
       
 jobs:  
   run-unit-tests:
-    runs-on: ${{ DISTRO }}
+    runs-on: "${{ DISTRO }}"
     env:
       GPG_TTY: ${{ secrets.GPG_TTY }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -117,7 +117,7 @@ jobs:
    
    
   deploy:   
-    runs-on: ${{ DISTRO }}
+    runs-on: "${{ DISTRO }}"
     needs: run-unit-tests                
     steps:
       - name: Deploy snapshots
