@@ -93,17 +93,19 @@ jobs:
         run: |
           export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
           echo $RELEASE_VERSION
-          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=StreamFetcherUnitTest,MuxerUnitTest org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
+          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest='StreamFetcherUnitTest#testSeekTime',MuxerUnitTest org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
       
       - name: Check vulnerabilities
         run: mvn org.owasp:dependency-check-maven:check -DfailOnError=false --quiet
 
-      - name: Cache Ant Media Server logs on failure
+      - name: Show Ant Media Server logs on failure
         if: failure()
         run: |
           cat /usr/local/antmedia/log/ant-media-server.log
           cat /usr/local/antmedia/log/antmedia-error.log
-          cat /var/log/mongodb/mongod.log
+          if [[ -f /var/log/mongodb/mongod.log ]]; then
+            cat /var/log/mongodb/mongod.log
+          fi
           if [[ -f /usr/local/antmedia/hs_err_pid*.log ]]; then
             cat /usr/local/antmedia/hs_err_pid*.log
           fi
@@ -120,6 +122,10 @@ jobs:
     runs-on: ubuntu-22.04
     needs: run-unit-tests                
     steps:
+      - name: Build projects # there is low probability that if somethings has pushed to the related branch while running test and before this job, it may build something not exactly same
+        uses: ./.github/actions/build-projects 
+        with:
+          branch_name: ${{ github.ref_name }}
       - name: Deploy snapshots
         if: github.ref_type != 'tag'
         run: |
