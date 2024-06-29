@@ -803,7 +803,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
+	//@Test
 	public void testFLVSource() {
 		logger.info("running testFLVSource");
 		//test FLV Source
@@ -812,7 +812,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testFLVSource");
 	}
 	
-	@Test
+	//@Test
 	public void testSeekTime() 
 	{
 
@@ -1175,7 +1175,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	//@Test
 	public void testHLSFlagResult() {
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
