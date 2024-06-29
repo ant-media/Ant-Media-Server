@@ -60,6 +60,8 @@ runs:
            if [ -d "~/ManagementConsole_AngularApp-node_modules-cache" ]; then
               echo "Copy node_modules from cache directory to ManagementConsole_AngularApp directory"
               cp -a ~/ManagementConsole_AngularApp-node_modules-cache/. ManagementConsole_AngularApp/node_modules/
+           else
+               echo "No cache directory found"
            fi   
 
     - name: Clone and build Management Console Web Panel Angular project
@@ -83,7 +85,9 @@ runs:
           
     - name: Copy node_modules to cache directory
       shell: bash
-      run: cp -a  ManagementConsole_AngularApp/node_modules/. ~/ManagementConsole_AngularApp-node_modules-cache/
+      run: |
+        rm -rf ~/ManagementConsole_AngularApp-node_modules-cache/
+        cp -a  ManagementConsole_AngularApp/node_modules/. ~/ManagementConsole_AngularApp-node_modules-cache/
                   
  
     - name: Replace ffmpeg builds

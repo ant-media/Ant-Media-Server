@@ -30,10 +30,83 @@ jobs:
           distribution: 'adopt' #openjdk
           java-version: '17'
           cache: 'maven'
-          
-      - name: Import GPG key
-        run: ls
         
+      - name: Add MongoDB 6.0 GPG key and repository
+        run: |
+          if [ ! -f /usr/share/keyrings/mongodb-server-6.0.gpg ]; then
+            curl -fsSL https://pgp.mongodb.com/server-6.0.asc | sudo gpg -o /usr/share/keyrings/mongodb-server-6.0.gpg --dearmor
+          fi
+          echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
+      
+      - name: Add Redis repository
+        run: |
+            sudo rm -rf /usr/share/keyrings/redis-archive-keyring.gpg
+            curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+            echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+          
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y redis redis-tools mongodb-org ffmpeg wondershaper
+
+      - name: Start Redis
+        run: sudo systemctl start redis-server
+
+      - name: Start MongoDB
+        run: sudo systemctl start mongod
+
+      - name: Install Onvif Simulator
+        run: sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
+
+      - name: Build projects
+        uses: ./.github/actions/build-projects 
+        with:
+          branch_name: ${{ github.ref_name }}
+           
+          
+      - name: Run tests and SonarCloud analysis
+        run: |
+          export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
+          echo $RELEASE_VERSION
+          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=StreamFetcherUnitTest,MuxerUnitTest org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
+      
+      - name: Check vulnerabilities
+        run: mvn org.owasp:dependency-check-maven:check -DfailOnError=false --quiet
+
+      - name: Show Ant Media Server logs on failure
+        if: failure()
+        run: |
+          cat /usr/local/antmedia/log/ant-media-server.log
+          cat /usr/local/antmedia/log/antmedia-error.log
+          if [[ -f /var/log/mongodb/mongod.log ]]; then
+            cat /var/log/mongodb/mongod.log
+          fi
+          if [[ -f /usr/local/antmedia/hs_err_pid*.log ]]; then
+            cat /usr/local/antmedia/hs_err_pid*.log
+          fi
+          if [[ -f hs_err_pid*.log ]]; then
+            cat hs_err_pid*.log
+          fi
+          sudo service mongod status
+          sudo service redis-server status
+          
+  run-integration-tests:
+    runs-on: ubuntu-22.04
+    env:
+      GPG_TTY: ${{ secrets.GPG_TTY }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      SONAR_HOST_URL: https://sonarcloud.io
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+          
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt' #openjdk
+          java-version: '17'
+          cache: 'maven'
+          
+    
       - name: Add MongoDB 6.0 GPG key and repository
         run: |
           if [ ! -f /usr/share/keyrings/mongodb-server-6.0.gpg ]; then
@@ -93,10 +166,8 @@ jobs:
         run: |
           export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
           echo $RELEASE_VERSION
-          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=StreamFetcherUnitTest,MuxerUnitTest org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
+          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=*/integration/* -Dmaven.javadoc.skip=true --quiet
       
-      - name: Check vulnerabilities
-        run: mvn org.owasp:dependency-check-maven:check -DfailOnError=false --quiet
 
       - name: Show Ant Media Server logs on failure
         if: failure()
@@ -113,14 +184,12 @@ jobs:
             cat hs_err_pid*.log
           fi
           sudo service mongod status
-          sudo service redis-server status
-          
-   
+          sudo service redis-server status  
    
    
   deploy:   
     runs-on: ubuntu-22.04
-    needs: run-unit-tests                
+    needs: [run-unit-tests, run-integration-tests]                
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
