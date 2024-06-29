@@ -1067,8 +1067,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	 * 
 	 */
 	
-	//TODO: This test code is disabled temporarily because TRAVIS has changed in the image and networ limiter is not working as expected
-	//@Test
+	@Test
 	public void testBandwidth() {
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();

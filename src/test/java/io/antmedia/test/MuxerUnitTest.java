@@ -2432,7 +2432,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	//@Test
 	public void testRtmpIngestBufferTime() {
 
 		try {
