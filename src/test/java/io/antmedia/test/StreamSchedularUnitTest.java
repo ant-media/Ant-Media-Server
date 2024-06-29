@@ -1233,7 +1233,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	private int resetNetworkInterface(String activeInterface) {
 		logger.info("Running resetNetworkInterface");
 
-		String command = "sudo tc qdisc del dev " + activeInterface + " root";
+		String command = "sudo wondershaper " + activeInterface + " clear";
 		return runCommand(command);
 	}
 	
@@ -1245,17 +1245,10 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		
 		//Delete root qdisc - ignore the result
-		String command = "sudo tc qdisc del dev " + activeInterface + " root";
+		String command = "sudo wondershaper " + activeInterface + " 40 40";
 		// ignore the result
-		runCommand(command);
-		//delete ingress qdisc - don't check the result
-		command = "/sbin/tc qdisc del dev " + activeInterface + " ingress";
-		// ignore the result
-		runCommand(command);
-
-		//Add root qdisc
-		command = "sudo tc qdisc add dev " + activeInterface + " root tbf rate 40kbit burst 16kbit latency 50ms";
 		return runCommand(command);
+		
 	}
 	
 	
