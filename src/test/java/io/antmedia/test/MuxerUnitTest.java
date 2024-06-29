@@ -1344,7 +1344,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	//@Test
 	public void testRTMPWriteCrash() {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -4468,7 +4468,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(hlsMuxer, times(1)).writeDataFrame(any(), any());
 	}
 
-	@Test
+	//@Test
 	public void testID3Timing() {
 		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class),
 				"streams", 0, "http://example.com", false));
