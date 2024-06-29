@@ -85,6 +85,13 @@ jobs:
         run: |
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
         shell: bash
+        
+      - name: Cache node_modules directtory for Web Panel Angular project
+        uses: actions/cache@v3
+        with:
+           key: ${{ runner.os }}-node_modules-${{ hashFiles('ManagementConsole_AngularApp/package-lock.json') }}
+           path: |
+             ~/ManagementConsole_AngularApp/node_modules
 
       - name: Clone and build Management Console Web Panel Angular project
         run: |
@@ -118,17 +125,18 @@ jobs:
           wget https://raw.githubusercontent.com/ant-media/Scripts/${{ github.ref_name }}/install_ant-media-server.sh -O target/install_ant-media-server.sh || wget https://raw.githubusercontent.com/ant-media/Scripts/master/install_ant-media-server.sh -O target/install_ant-media-server.sh
           chmod 755 target/install_ant-media-server.sh
           cd target
-          ./install_ant-media-server.sh -i ant-media-server-community*.zip
+          sudo ./install_ant-media-server.sh -i ant-media-server-community*.zip
           cd ..
           sleep 20
           if [[ -f /usr/local/antmedia/log/antmedia-error.log ]]; then
             cat /usr/local/antmedia/log/antmedia-error.log
           fi
           cat /usr/local/antmedia/log/ant-media-server.log
-          cp src/test/resources/preset-red5-web.properties /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
-          cp src/test/resources/preset-red5-web.db /usr/local/antmedia/liveapp.db
-          sed -i 's^server.cpu_limit=.*^server.cpu_limit=100^' /usr/local/antmedia/conf/red5.properties
-          sed -i 's^server.memory_limit_percentage=.*^server.memory_limit_percentage=100^' /usr/local/antmedia/conf/red5.properties
+          sudo cp src/test/resources/preset-red5-web.properties /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
+          sudo cp src/test/resources/preset-red5-web.db /usr/local/antmedia/liveapp.db
+          sudo sed -i 's^server.cpu_limit=.*^server.cpu_limit=100^' /usr/local/antmedia/conf/red5.properties
+          sudo sed -i 's^server.memory_limit_percentage=.*^server.memory_limit_percentage=100^' /usr/local/antmedia/conf/red5.properties
+          sudo chown -R antmedia:antmedia /usr/local/antmedia/
           sudo service antmedia stop
           sudo service antmedia start
           sleep 10
