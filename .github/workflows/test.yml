@@ -19,8 +19,6 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
           
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -39,17 +37,25 @@ jobs:
           fi
           echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-6.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/6.0 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-6.0.list
       
+      - name: Add Redis repository
+        run: |
+            sudo rm -rf /usr/share/keyrings/redis-archive-keyring.gpg
+            curl -fsSL https://packages.redis.io/gpg | sudo gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+            echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/redis.list
+          
       - name: Install dependencies
-        run: sudo apt-get update && sudo apt-get install -y redis-tools mongodb-org ffmpeg wondershaper
+        run: sudo apt-get update && sudo apt-get install -y redis redis-tools mongodb-org ffmpeg wondershaper
 
       - name: Start Redis
         run: sudo systemctl start redis-server
 
       - name: Start MongoDB
-        run: sudo mongod --dbpath /var/lib/mongodb &
+        run: sudo systemctl start mongod
 
       - name: Install Chrome
-        run: sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
+        run: |
+         wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+         sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
         
       - name: Clone and build Ant Media Server Parent project
         run: |
