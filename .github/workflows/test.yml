@@ -10,11 +10,11 @@ on:
       - '**'
       
 env:
-  DISTRO: ubuntu-22.04      
+  RUNNER: ubuntu-22.04      
       
 jobs:  
   run-unit-tests:
-    runs-on: "${{ DISTRO }}"
+    runs-on: "${{ env.RUNNER }}"
     env:
       GPG_TTY: ${{ secrets.GPG_TTY }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -117,7 +117,7 @@ jobs:
    
    
   deploy:   
-    runs-on: "${{ DISTRO }}"
+    runs-on: "${{ env.RUNNER }}"
     needs: run-unit-tests                
     steps:
       - name: Deploy snapshots
