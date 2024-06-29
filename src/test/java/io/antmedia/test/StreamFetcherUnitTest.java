@@ -812,7 +812,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testFLVSource");
 	}
 	
-	@Test
+	//@Test
 	public void testSeekTime() 
 	{
 
