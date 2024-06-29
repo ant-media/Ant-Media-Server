@@ -57,7 +57,7 @@ runs:
     - name: Copy node_modules from cache directory if exists
       shell: bash
       run: | 
-           if [ -d "~/ManagementConsole_AngularApp-node_modules-cache" ]; then
+           if [ -d "ManagementConsole_AngularApp-node_modules-cache" ]; then
               echo "Copy node_modules from cache directory to ManagementConsole_AngularApp directory"
               cp -a ~/ManagementConsole_AngularApp-node_modules-cache/. ManagementConsole_AngularApp/node_modules/
            else
