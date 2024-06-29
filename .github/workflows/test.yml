@@ -10,7 +10,7 @@ on:
       - '**'
       
 jobs:  
-  build:
+  build-and-test:
     runs-on: ubuntu-22.04
     env:
       GPG_TTY: ${{ secrets.GPG_TTY }}
@@ -28,12 +28,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'maven'
-      
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '16.20.2'
-          cache: 'npm'
           
       - name: Import GPG key
         run: ls
@@ -74,11 +68,20 @@ jobs:
           mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
           cd ..
 
-      - name: Clone and build Web Panel Angular project
+      - name: Clone Web Panel Angular project
         run: |
           npm install -g @angular/cli@10.0.5
           git clone --depth=1 -b ${{ github.ref_name }} https://github.com/ant-media/ManagementConsole_AngularApp.git || git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git
           cd ManagementConsole_AngularApp
+          
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16.20.2'
+          cache: 'npm'     
+       
+      - name: Build Web Panel Angular project
+        run: |
           npm install
           ng build --prod
           cp -a ./dist/. ../src/main/server/webapps/root/
