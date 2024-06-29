@@ -56,6 +56,10 @@ jobs:
         run: |
          wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
+         
+      - name: Install Onvif Simulator
+        run: sudo git clone --depth=1 https://github.com/ant-media/utilities.git /usr/local/onvif
+
         
       - name: Clone and build Ant Media Server Parent project
         run: |
@@ -86,6 +90,11 @@ jobs:
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
         shell: bash
         
+        
+      - name: Clone  Management Console Web Panel Angular project
+        run: git clone --depth=1 -b ${{ github.ref_name }} https://github.com/ant-media/ManagementConsole_AngularApp.git || git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git
+        
+        
       - name: Cache node_modules directtory for Web Panel Angular project
         uses: actions/cache@v3
         with:
@@ -101,7 +110,6 @@ jobs:
           nvm use 16.20.2 # use node.js version for angular
           
           npm install -g @angular/cli@10.0.5
-          git clone --depth=1 -b ${{ github.ref_name }} https://github.com/ant-media/ManagementConsole_AngularApp.git || git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git
           cd ManagementConsole_AngularApp
           . $NVM_DIR/nvm.sh
           
@@ -128,10 +136,6 @@ jobs:
           sudo ./install_ant-media-server.sh -i ant-media-server-community*.zip
           cd ..
           sleep 20
-          if [[ -f /usr/local/antmedia/log/antmedia-error.log ]]; then
-            cat /usr/local/antmedia/log/antmedia-error.log
-          fi
-          cat /usr/local/antmedia/log/ant-media-server.log
           sudo cp src/test/resources/preset-red5-web.properties /usr/local/antmedia/webapps/LiveApp/WEB-INF/red5-web.properties
           sudo cp src/test/resources/preset-red5-web.db /usr/local/antmedia/liveapp.db
           sudo sed -i 's^server.cpu_limit=.*^server.cpu_limit=100^' /usr/local/antmedia/conf/red5.properties
@@ -140,7 +144,6 @@ jobs:
           sudo service antmedia stop
           sudo service antmedia start
           sleep 10
-          cat /usr/local/antmedia/log/ant-media-server.log
           
       - name: Run tests and SonarCloud analysis
         run: |
