@@ -122,6 +122,16 @@ jobs:
     runs-on: ubuntu-22.04
     needs: run-unit-tests                
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+          
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt' #openjdk
+          java-version: '17'
+          cache: 'maven'
+          
       - name: Build projects # there is low probability that if somethings has pushed to the related branch while running test and before this job, it may build something not exactly same
         uses: ./.github/actions/build-projects 
         with:

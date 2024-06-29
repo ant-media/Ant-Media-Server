@@ -58,7 +58,8 @@ runs:
       shell: bash
       run: | 
            if [ -d "~/ManagementConsole_AngularApp-node_modules-cache" ]; then
-              cp -a ~/ManagementConsole_AngularApp-node_modules/. ManagementConsole_AngularApp/node_modules/
+              echo "Copy node_modules from cache directory to ManagementConsole_AngularApp directory"
+              cp -a ~/ManagementConsole_AngularApp-node_modules-cache/. ManagementConsole_AngularApp/node_modules/
            fi   
 
     - name: Clone and build Management Console Web Panel Angular project
