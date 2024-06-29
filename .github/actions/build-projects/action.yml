@@ -41,6 +41,8 @@ runs:
     - name: Install NVM (Node Version Manager)
       run: |
           curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+          ls -la
+          pwd
       shell: bash
         
     - name: Cache node_modules directtory for Web Panel Angular project
@@ -57,6 +59,8 @@ runs:
     - name: Copy node_modules from cache directory if exists
       shell: bash
       run: | 
+           ls -la
+           pwd
            if [ -d "ManagementConsole_AngularApp-node_modules-cache" ]; then
               echo "Copy node_modules from cache directory to ManagementConsole_AngularApp directory"
               cp -a ~/ManagementConsole_AngularApp-node_modules-cache/. ManagementConsole_AngularApp/node_modules/
