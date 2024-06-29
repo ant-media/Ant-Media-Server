@@ -9,9 +9,12 @@ on:
     branches:
       - '**'
       
+env:
+  DISTRO: ubuntu-22.04      
+      
 jobs:  
-  build:
-    runs-on: ubuntu-22.04
+  run-unit-tests:
+    runs-on: ${{ DISTRO }}
     env:
       GPG_TTY: ${{ secrets.GPG_TTY }}
       SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -63,6 +66,8 @@ jobs:
 
       - name: Build projects
         uses: ./.github/actions/build-projects 
+        with:
+          branch_name: ${{ github.ref_name }}
      
       - name: Package Ant Media Server
         run: mvn clean package -U -P assemble -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -DskipTests=true --quiet
@@ -88,8 +93,10 @@ jobs:
         run: |
           export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
           echo $RELEASE_VERSION
-          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=StreamFetcherUnitTest,MuxerUnitTest org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=900  -Dmaven.javadoc.skip=true --quiet
-          mvn org.owasp:dependency-check-maven:check -DfailOnError=false --quiet
+          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=StreamFetcherUnitTest,MuxerUnitTest org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
+      
+      - name: Check vulnerabilities
+        run: mvn org.owasp:dependency-check-maven:check -DfailOnError=false --quiet
 
       - name: Cache Ant Media Server logs on failure
         if: failure()
@@ -106,7 +113,13 @@ jobs:
           sudo service mongod status
           sudo service redis-server status
           
-                    
+   
+   
+   
+  deploy:   
+    runs-on: ${{ DISTRO }}
+    needs: run-unit-tests                
+    steps:
       - name: Deploy snapshots
         if: github.ref_type != 'tag'
         run: |

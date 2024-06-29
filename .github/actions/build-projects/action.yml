@@ -1,5 +1,5 @@
 name: 'Build Projects'
-description: 'Build dependent projects to package Ant Media Server'
+description: 'Clone and Build directly dependent projects to package Ant Media Server'
 inputs:
   branch_name:  
     description: 'build branch name'
