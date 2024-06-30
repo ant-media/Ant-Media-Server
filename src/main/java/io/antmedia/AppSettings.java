@@ -3770,6 +3770,7 @@ public class AppSettings implements Serializable{
 
 	public void setParticipantVisibilityMatrix(String participantVisibilityMatrix) {
 		this.participantVisibilityMatrix = participantVisibilityMatrix;
+	}
 
 	public long getIceGatheringTimeoutMs() {
 		return iceGatheringTimeoutMs;
