@@ -565,6 +565,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getRecordingSubfolder());
 		assertEquals("application/json", appSettings.getWebhookContentType());
 
+        assertEquals(2000, appSettings.getIceGatheringTimeoutMs());
+
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass

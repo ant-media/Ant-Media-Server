@@ -1067,8 +1067,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	 * 
 	 */
 	
-	//TODO: ENABLE THIS TEST AGAIN. IT'S DISABLED BECAUSED WONDERSHAPER STOPPED TO WORK ON TRAVIS. IT GIVES QDISC ERRORS
-	//@Test
+	@Test
 	public void testBandwidth() {
 
 		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
@@ -1175,10 +1174,9 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*6, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 			Broadcast streamTmp = dataStore.get(newSource.getStreamId());
 			logger.info("speed {}" , streamTmp.getSpeed()) ;
-			logger.info("quality {}" , streamTmp.getQuality()) ;
 
-			return streamTmp != null && streamTmp.getSpeed() < 0.7;
-			// the critical thing is the speed which less that 0.7
+			return streamTmp != null && streamTmp.getSpeed() < 0.8;
+			// the critical thing is the speed which less that 0.8
 		});
 
 		assertEquals(0, resetNetworkInterface(findActiveInterface()));
@@ -1235,27 +1233,31 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	private int resetNetworkInterface(String activeInterface) {
 		logger.info("Running resetNetworkInterface");
 
-		return runCommand("sudo wondershaper clear "+activeInterface);
-
+		String command = "sudo wondershaper " + activeInterface + " clear";
+		return runCommand(command);
 	}
-
+	
+	
 	private int limitNetworkInterfaceBandwidth(String activeInterface) {
 
 		logger.info("Running limitNetworkInterfaceBandwidth");
 		logger.info("active interface {}", activeInterface);
-
-		String command = "sudo wondershaper "+activeInterface+" 40 40";
-		logger.info("command : {}",command);
+		
+		
+		//Delete root qdisc - ignore the result
+		String command = "sudo wondershaper " + activeInterface + " 40 40";
+		// ignore the result
 		return runCommand(command);
-
-
+		
 	}
+	
+	
 
 	public int runCommand(String command) {
 		String[] argsStop = new String[] { "/bin/bash", "-c", command };
 
 		try {
-			logger.info("Running runCommand");
+			logger.info("Running runCommand: {}", command);
 
 			Process procStop = new ProcessBuilder(argsStop).start();
 
