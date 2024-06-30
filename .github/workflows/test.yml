@@ -75,7 +75,7 @@ jobs:
         if: failure()
         run: |
           if [[ -f /var/log/mongodb/mongod.log ]]; then
-            cat /var/log/mongodb/mongod.log
+            sudo cat /var/log/mongodb/mongod.log
           fi
           if [[ -f /usr/local/antmedia/hs_err_pid*.log ]]; then
             cat /usr/local/antmedia/hs_err_pid*.log
@@ -173,7 +173,7 @@ jobs:
           cat /usr/local/antmedia/log/ant-media-server.log
           cat /usr/local/antmedia/log/antmedia-error.log
           if [[ -f /var/log/mongodb/mongod.log ]]; then
-            cat /var/log/mongodb/mongod.log
+            sudo cat /var/log/mongodb/mongod.log
           fi
           if [[ -f /usr/local/antmedia/hs_err_pid*.log ]]; then
             cat /usr/local/antmedia/hs_err_pid*.log
