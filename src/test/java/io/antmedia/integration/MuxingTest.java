@@ -547,6 +547,8 @@ public class MuxingTest {
 			}
 			i++;
 			avcodec.av_packet_unref(pkt);
+			pkt.close();
+			pkt = null;
 		}
 
 		if (inputFormatContext.duration() != AV_NOPTS_VALUE) {
