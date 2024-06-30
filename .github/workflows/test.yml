@@ -82,7 +82,7 @@ jobs:
           sudo service mongod status
           sudo service redis-server status
 
-  check-dependency-vulnerabilities:
+  check-vulnerabilities:
     runs-on: ubuntu-22.04
     
     steps:
@@ -224,7 +224,7 @@ jobs:
    
   deploy:   
     runs-on: ubuntu-22.04
-    needs: [run-unit-tests, run-integration-tests]                
+    needs: [run-unit-tests, check-vulnerabilities, run-integration-tests]                
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
