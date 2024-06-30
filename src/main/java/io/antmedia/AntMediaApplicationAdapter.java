@@ -19,6 +19,7 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -92,6 +93,7 @@ import io.antmedia.storage.StorageClient;
 import io.antmedia.streamsource.StreamFetcher;
 import io.antmedia.streamsource.StreamFetcherManager;
 import io.antmedia.track.ISubtrackPoller;
+import io.antmedia.webrtc.PublishParameters;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketConstants;
@@ -2114,6 +2116,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public boolean stopPlaying(String viewerId) {
 		return false;
+	}
+
+	public CompletableFuture<Result> startHttpSignaling(PublishParameters publishParameters, String sdp, String sessionId){
+		//for enterprise
+		return null;
+	}
+
+	public Result stopWhipBroadcast(String streamId, String sessionId){
+		return new Result(false);
 	}
 
 	public boolean stopPlayingBySubscriberId(String subscriberId){
