@@ -933,6 +933,7 @@ public abstract class DataStore {
 		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
 		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
 		broadcast.setAutoStartStopEnabled(newBroadcast.isAutoStartStopEnabled());
+		broadcast.setRole(newBroadcast.getRole());
 	}
 
 
@@ -1345,7 +1346,9 @@ public abstract class DataStore {
 	 */
 	public abstract void migrateConferenceRoomsToBroadcasts();
 
-	//**************************************
+    public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role);
+
+    //**************************************
 	//ATTENTION: Write function descriptions while adding new functions
 	//**************************************	
 }

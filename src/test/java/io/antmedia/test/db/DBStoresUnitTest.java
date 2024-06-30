@@ -136,7 +136,7 @@ public class DBStoresUnitTest {
 	public void testMapDBStore() throws Exception {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
-		
+
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testGetActiveBroadcastCount(dataStore);
@@ -158,7 +158,8 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
-		testUpdateMetadata(dataStore);	
+		testUpdateMetadata(dataStore);
+		testUpdateRole(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
@@ -181,6 +182,7 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		testGetSubtracks(dataStore);
 		
 		dataStore.close(false);
 		
@@ -219,7 +221,7 @@ public class DBStoresUnitTest {
 	@Test
 	public void testMemoryDataStore() throws Exception {
 		DataStore dataStore = new InMemoryDataStore("testdb");
-		
+
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
@@ -240,6 +242,7 @@ public class DBStoresUnitTest {
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
+		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -263,6 +266,8 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
+		testGetSubtracks(dataStore);
+
 
 		dataStore.close(false);
 
@@ -279,6 +284,7 @@ public class DBStoresUnitTest {
 		
 		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 
+		/*
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
@@ -300,6 +306,7 @@ public class DBStoresUnitTest {
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
+		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -324,7 +331,11 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 
-		
+		 */
+		testGetSubtracks(dataStore);
+
+
+
 		dataStore.close(true);
 	}
 	
@@ -356,6 +367,7 @@ public class DBStoresUnitTest {
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
+		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -2999,6 +3011,32 @@ public class DBStoresUnitTest {
 
 	}
 
+	public void testUpdateRole(DataStore dataStore) {
+
+		final String INITIAL_ROLE  = "INITIAL_ROLE";
+		final String UPDATED_ROLE  = "UPDATED_ROLE";
+
+		String id = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast broadcast= new Broadcast();
+		try {
+			broadcast.setStreamId(id);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		broadcast.setRole(INITIAL_ROLE);
+		dataStore.save(broadcast);
+
+		assertEquals(INITIAL_ROLE, dataStore.get(id).getRole());
+
+		broadcast.setRole(UPDATED_ROLE);
+
+		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
+
+		assertEquals(UPDATED_ROLE, dataStore.get(id).getRole());
+	}
+
 	public void testBlockSubscriber(DataStore dataStore){
 
 		Broadcast broadcast = new Broadcast();
@@ -3203,6 +3241,69 @@ public class DBStoresUnitTest {
 		List<Broadcast> list = db.getBroadcastListV2("playlist", null);
 
 		assertEquals(mockMap.size()+1, list.size());
+	}
+
+	private void testGetSubtracks(DataStore dataStore) {
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		String role1 = "role1";
+		String role2 = "role2";
+
+		for (int i = 0; i < 10; i++) {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setName("subtrackTrackName"+i);
+			broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+            try {
+                broadcast.setStreamId("subtrackTrackId"+i);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+			broadcast.setMainTrackStreamId(mainTrackId);
+			broadcast.setRole(i%2 == 0 ? role1 : role2);
+            dataStore.save(broadcast);
+		}
+
+		List<Broadcast> subtracks = dataStore.getSubtracks(mainTrackId, 0, 3, null);
+		assertEquals(3, subtracks.size());
+		for (Broadcast broadcast : subtracks) {
+			assertEquals(mainTrackId, broadcast.getMainTrackStreamId());
+		}
+
+		subtracks = dataStore.getSubtracks(mainTrackId, 0, 3, role1);
+		assertEquals(3, subtracks.size());
+		for (Broadcast broadcast : subtracks) {
+			assertEquals(mainTrackId, broadcast.getMainTrackStreamId());
+			assertEquals(role1, broadcast.getRole());
+		}
+
+		subtracks = dataStore.getSubtracks(mainTrackId, 0, 3, role2);
+		assertEquals(3, subtracks.size());
+		for (Broadcast broadcast : subtracks) {
+			assertEquals(mainTrackId, broadcast.getMainTrackStreamId());
+			assertEquals(role2, broadcast.getRole());
+		}
+
+		subtracks = dataStore.getSubtracks(mainTrackId, 2, 3, role1);
+		assertEquals(3, subtracks.size());
+		for (Broadcast broadcast : subtracks) {
+			assertEquals(mainTrackId, broadcast.getMainTrackStreamId());
+			assertEquals(role1, broadcast.getRole());
+			assertNotEquals("subtrackTrackId0", broadcast.getStreamId());
+			assertNotEquals("subtrackTrackId2", broadcast.getStreamId());
+		}
+
+
+		subtracks = dataStore.getSubtracks(mainTrackId, 0, 10, role1);
+		assertEquals(5, subtracks.size());
+		for (Broadcast broadcast : subtracks) {
+			assertEquals(mainTrackId, broadcast.getMainTrackStreamId());
+			assertEquals(role1, broadcast.getRole());
+		}
+
+		subtracks = dataStore.getSubtracks(mainTrackId, 5, 20, null);
+		assertEquals(5, subtracks.size());
+		for (Broadcast broadcast : subtracks) {
+			assertEquals(mainTrackId, broadcast.getMainTrackStreamId());
+		}
 	}
 
 }

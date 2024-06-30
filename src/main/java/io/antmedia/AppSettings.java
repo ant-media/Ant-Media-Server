@@ -786,7 +786,7 @@ public class AppSettings implements Serializable{
 
 
 	/**
-	 * Encoder settings in comma separated format
+	 * Encoder settings in JSON format
 	 * This must be set for adaptive streaming,
 	 * If it is empty SFU mode will be active in WebRTCAppEE,
 	 * video height, video bitrate, and audio bitrate are set as an example,
@@ -2160,6 +2160,11 @@ public class AppSettings implements Serializable{
 	@Value("${iceGatheringTimeoutMs:2000}")
 	private long iceGatheringTimeoutMs = 2000;
 
+	/**
+	 * Participant Visibility Matrix for WebRTC Clients
+	 */
+	@Value("${participantVisibilityMatrix:{\"default\": [\"default\"],\"host\":[\"host\",\"attendee\",\"speaker\"],\"attendee\":[\"speaker\",\"attendee\"],\"speaker\":[\"host\",\"speaker\",\"attendee\"]}}")
+	private String participantVisibilityMatrix = "";
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -3757,6 +3762,14 @@ public class AppSettings implements Serializable{
 
 	public void setWebhookContentType(String webhookContentType) {
 		this.webhookContentType = webhookContentType;
+	}
+
+	public String getParticipantVisibilityMatrix() {
+		return participantVisibilityMatrix;
+	}
+
+	public void setParticipantVisibilityMatrix(String participantVisibilityMatrix) {
+		this.participantVisibilityMatrix = participantVisibilityMatrix;
 	}
 
 	public long getIceGatheringTimeoutMs() {
