@@ -265,7 +265,7 @@ public class HLSMuxer extends Muxer  {
 			
 			
 			
-			logger.info("side data limit:{} for streamId:{}", pendingSEIData.limit(), streamId);
+			logger.info("sei data size:{} for streamId:{}", pendingSEIData.limit(), streamId);
 				
 			//inject SEI NAL Unit
 			pendingSEIData.rewind();
