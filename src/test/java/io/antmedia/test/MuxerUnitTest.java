@@ -3064,6 +3064,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 				if (i == 0) {
 					videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
+					String seiData = "test_data";
+					hlsMuxer.setSeiData(seiData);
 				}
 				videoPkt.data(new BytePointer(encodedVideoFrame));
 				videoPkt.size(encodedVideoFrame.limit());
