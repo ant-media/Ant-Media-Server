@@ -102,11 +102,10 @@ get_password() {
   done
 }
 
-
+# Check if there is a Container and install necessary packages
 is_docker_container() {
-    # /.dockerenv dosyasını kontrol et
     if [ -f /.dockerenv ]; then
-  apt-get install iptables dnsutils -y
+        apt-get install iptables dnsutils -y
         return 0
     fi
 
