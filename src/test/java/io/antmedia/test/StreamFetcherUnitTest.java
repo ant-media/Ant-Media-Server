@@ -931,13 +931,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testBugUnexpectedStream() throws InterruptedException
 	{
 
-		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
-
-		AVStream stream = avformat.avformat_new_stream(inputFormatContext, null);
 		AVCodecParameters pars = new AVCodecParameters(); 
-		stream.codecpar(pars);
 		pars.codec_type(AVMEDIA_TYPE_DATA);
-		stream.codecpar(pars);
 
 		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(null, null, "streams"));
 
@@ -950,11 +945,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Mockito.verify(mp4Muxer, Mockito.never()).avNewStream(Mockito.any());
 		
-		//Close the codec parameters to not let collect it by garbage collector that may cause double free error because it's released in av_format_free_context as well
 		pars.close();
 		pars = null;
 
-		avformat.avformat_free_context(inputFormatContext);
 		
 	}
 
