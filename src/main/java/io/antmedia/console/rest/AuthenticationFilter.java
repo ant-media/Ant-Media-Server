@@ -2,8 +2,9 @@ package io.antmedia.console.rest;
 
 import java.io.IOException;
 import java.security.interfaces.RSAPublicKey;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import jakarta.servlet.FilterChain;
@@ -161,27 +162,32 @@ public class AuthenticationFilter extends AbstractFilter {
 					String userScope = currentUser.getScope(); // should be null above 2.9.1
 					Map appNameUserType = currentUser.getAppNameUserType();
 
-
 					String dispatchURL = httpRequest.getParameter(DISPATCH_PATH_URL);
-
-					Matcher matcher = extractAppNamePattern.matcher(path);
 					String appName = "";
-					if (matcher.find()) {
-						 appName = matcher.group();
+					if(dispatchURL != null){
+						appName = Arrays.asList(dispatchURL.split("/")).get(0);
+					}else{
+						//app name is at last. app settings case.
+						List<String> mList = Arrays.asList(path.split("/"));
+						appName = mList.get(mList.size() - 1);
 					}
+
 					boolean scopeAccess;
 					if(userScope != null){ // backwards comp
 						scopeAccess = scopeAccessGranted(userScope, dispatchURL);
 
 					}else{
-						scopeAccess =  checkScopeAccessForAppName(appNameUserType, path);
+						scopeAccess =  checkScopeAccessForAppName(appNameUserType, dispatchURL) || isRequestingOneOfAppSettingsOfUsersApps(appNameUserType, null, path);
 					}
 
+					if(appNameUserType != null && appNameUserType.containsKey("system")){ // system means access to everything.  it can be everything -> read_only or user or admin
+						appName = "system"; // set appName to system because the appNameUserType map will hold system key.
+					}
 
 					if (HttpMethod.GET.equals(method))  
 					{
 						//This is the READ part. No need to check the user type because scope is critical
-						if (scopeAccess || path.equals("/rest/v2/applications/settings/" + userScope)
+						if (scopeAccess || isRequestingOneOfAppSettingsOfUsersApps(appNameUserType, userScope, path)
 								|| path.equals("/rest/v2/version") || path.equals("/rest/v2/enterprise-edition")
 								|| path.equals("/rest/v2/admin-status")) 
 						{
@@ -204,12 +210,27 @@ public class AuthenticationFilter extends AbstractFilter {
 						else if (scopeAccess) 
 						{
 							//if it's an admin, provide access - backward compatible
-							if (UserType.ADMIN.equals(currentUser.getUserType()) || (currentUser.getAppNameUserType() != null && UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName))) || currentUser.getUserType() == null)
+							if (UserType.ADMIN.equals(currentUser.getUserType())
+									||
+									(currentUser.getAppNameUserType() != null && UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName)))
+							)
 							{
 								chain.doFilter(request, response);
 							}
 							//user scope already checked on scopeAccessGranted. No need to check it again
-							else if (UserType.ADMIN.equals(currentUser.getUserType()) || (currentUser.getAppNameUserType() != null && UserType.USER.equals(currentUser.getAppNameUserType().get(appName))) || UserType.USER.equals(currentUser.getUserType()) && (dispatchURL.contains("/rest/v2/broadcasts") || dispatchURL.contains("/rest/v2/vods")))
+							else if (
+									UserType.ADMIN.equals(currentUser.getUserType())
+									||
+									(currentUser.getAppNameUserType() != null && UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName)))
+									||
+									(currentUser.getAppNameUserType() != null && UserType.USER.equals(currentUser.getAppNameUserType().get(appName)) && (dispatchURL != null && dispatchURL.contains("/rest/v2/broadcasts")))
+									||
+									(currentUser.getAppNameUserType() != null && UserType.USER.equals(currentUser.getAppNameUserType().get(appName)) && (dispatchURL != null && dispatchURL.contains("/rest/v2/vods")))
+									||
+									(UserType.USER.equals(currentUser.getUserType()) && (dispatchURL != null && dispatchURL.contains("/rest/v2/broadcasts")))
+									||
+									(UserType.USER.equals(currentUser.getUserType()) && (dispatchURL != null && dispatchURL.contains("/rest/v2/vods")))
+									)
 							{
 								//if user scope is system and granted, it cannot change anythings in the system scope server-settings, add/delete apps and users
 								//if user scope is application and granted, it can do anything in this scope
@@ -247,6 +268,21 @@ public class AuthenticationFilter extends AbstractFilter {
 
 	}
 
+	private boolean isRequestingOneOfAppSettingsOfUsersApps(Map appNameUserType, String userScope, String path){
+		if(userScope != null){ // backwards comp
+			return path.equals("/rest/v2/applications/settings/" + userScope);
+		}
+
+		for (Object obj : appNameUserType.entrySet()) {
+			Map.Entry<String, String> entry = (Map.Entry<String, String>) obj;
+			String appName = entry.getKey();
+			if(path.equals("/rest/v2/applications/settings/" + appName)){
+				return true;
+			}
+		}
+		return false;
+	}
+
 	private boolean scopeAccessGranted(String userScope, String dispatchUrl){
 
 		boolean granted = false;
@@ -280,7 +316,7 @@ public class AuthenticationFilter extends AbstractFilter {
 					Map.Entry<String, String> entry = (Map.Entry<String, String>) obj;
 					String appName = entry.getKey();
 
-					if (dispatchUrl.contains(appName) || dispatchUrl.startsWith(appName) || dispatchUrl.startsWith("/" + appName)) {
+					if (dispatchUrl.startsWith(appName) || dispatchUrl.startsWith("/" + appName)) {
 						// second dispatch url is if the url starts with "/"
 						granted = true;
 						break;
