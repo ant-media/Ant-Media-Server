@@ -224,7 +224,13 @@ jobs:
    
   deploy:   
     runs-on: ubuntu-22.04
-    needs: [run-unit-tests, check-vulnerabilities, run-integration-tests]                
+    needs: [run-unit-tests, check-vulnerabilities, run-integration-tests]    
+    env:
+      CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
+      CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
+      GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+                  
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -235,6 +241,7 @@ jobs:
           distribution: 'adopt' #openjdk
           java-version: '17'
           cache: 'maven'
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           
       - name: Build projects # there is low probability that if somethings has pushed to the related branch while running test and before this job, it may build something not exactly same
         uses: ./.github/actions/build-projects 
