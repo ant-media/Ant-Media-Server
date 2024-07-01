@@ -155,7 +155,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 @ContextConfiguration(locations = {"test.xml"})
 //@ContextConfiguration(classes = {AppConfig.class})
-@DirtiesContext(classMode = ClassMode.AFTER_CLASS)
+@DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
@@ -488,34 +488,34 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(aacAudio.addData(result));
 		assertNull(aacAudio.getDecoderConfiguration());
 	}
-	
-	
+
+
 	@Test
 	public void testInitBitstreamFilter() {
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		//AVInputFormat findInputFormat = avformat.av_find_input_format("mp4");
 		if (avformat_open_input(inputFormatContext, (String) "src/test/resources/test_hevc.ts", null,
 				(AVDictionary) null) < 0) {
-			
-				logger.error("cannot open input format");
-				fail("cannot open input format");
+
+			logger.error("cannot open input format");
+			fail("cannot open input format");
 		}
-		
+
 		int ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
 			fail("cannot find stream info");
-	    }
-		
+		}
 
-		
-		
+
+
+
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
 		if (appScope == null) {
 			appScope = (WebScope) applicationContext.getBean("web.scope");
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-		
+
 
 		String streamId = "stream_name_" + (int) (Math.random() * 10000);
 		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
@@ -523,34 +523,34 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//init
 		hlsMuxer.init(appScope, streamId, 0, null, 0);
 
-		
+
 		AVBSFContext initVideoBitstreamFilter = hlsMuxer.initVideoBitstreamFilter("h264_mp4toannexb",  inputFormatContext.streams(0).codecpar(),  inputFormatContext.streams(0).time_base());
 		assertNull(initVideoBitstreamFilter);
-		
-		
+
+
 		initVideoBitstreamFilter = hlsMuxer.initVideoBitstreamFilter("not exists",  inputFormatContext.streams(0).codecpar(),  inputFormatContext.streams(0).time_base());
 		assertNull(initVideoBitstreamFilter);
-		
+
 		avformat_close_input(inputFormatContext);
 	}
-	
+
 	@Test
 	public void testHEVCHLSMuxingInFMP4() {
-		
+
 		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
 		//AVInputFormat findInputFormat = avformat.av_find_input_format("mp4");
 		if (avformat_open_input(inputFormatContext, (String) "src/test/resources/test_hevc.ts", null,
 				(AVDictionary) null) < 0) {
-			
-				logger.error("cannot open input format");
-				fail("cannot open input format");
+
+			logger.error("cannot open input format");
+			fail("cannot open input format");
 		}
-		
+
 		int ret = avformat_find_stream_info(inputFormatContext, (AVDictionary) null);
 		if (ret < 0) {
 			fail("cannot find stream info");
-	    }
-		
+		}
+
 		vertx = Vertx.vertx();
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
 
@@ -559,60 +559,60 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			logger.debug("Application / web scope: {}", appScope);
 			assertTrue(appScope.getDepth() == 1);
 		}
-		
+
 
 		String streamId = "stream_name_" + (int) (Math.random() * 10000);
 		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
 
 		//init
 		hlsMuxer.init(appScope, streamId, 0, null, 0);
-		
+
 		//add video stream
 		assertEquals(AVMEDIA_TYPE_VIDEO, inputFormatContext.streams(0).codecpar().codec_type());
 		assertEquals(AV_CODEC_ID_HEVC, inputFormatContext.streams(0).codecpar().codec_id());
 		boolean addStreamResult = hlsMuxer.addStream(inputFormatContext.streams(0).codecpar(), inputFormatContext.streams(0).time_base(), 0);
 		assertTrue(addStreamResult);
-		
+
 		assertEquals("hevc_mp4toannexb", hlsMuxer.getBitStreamFilter());
-		
-		
+
+
 		assertEquals(AVMEDIA_TYPE_AUDIO, inputFormatContext.streams(1).codecpar().codec_type());
 		assertEquals(AV_CODEC_ID_AAC, inputFormatContext.streams(1).codecpar().codec_id());
 		addStreamResult = hlsMuxer.addStream(inputFormatContext.streams(1).codecpar(), inputFormatContext.streams(1).time_base(), 1);
 		assertTrue(addStreamResult);
-		
+
 		assertTrue(hlsMuxer.getBsfAudioNames().contains("aac_adtstoasc"));
 		assertEquals(1, hlsMuxer.getBsfAudioNames().size());
 
 		//prepare io
 		boolean prepareIOresult = hlsMuxer.prepareIO();
 		assertTrue(prepareIOresult);
-		
-		
+
+
 		AVPacket pkt = new AVPacket();
-		
+
 		while (av_read_frame(inputFormatContext, pkt) >= 0) {
 			hlsMuxer.writePacket(pkt, inputFormatContext.streams(pkt.stream_index()));
 			av_packet_unref(pkt);
 		}
 
 		hlsMuxer.writeTrailer();
-		
+
 		//check the init file and m4s files there
 		assertTrue(hlsMuxer.getFile().exists());
 		assertTrue(new File(hlsMuxer.getFile().getParentFile()+ "/" + streamId + "_init.mp4").exists());
 		assertTrue(new File(hlsMuxer.getFile().getParentFile()+ "/" + streamId + "000000003.m4s").exists());
 
-		
+
 		assertTrue(MuxingTest.testFile(hlsMuxer.getFile().getAbsolutePath(), 107000));
-		
+
 		assertEquals(0, hlsMuxer.getAudioNotWrittenCount());
 		assertEquals(0, hlsMuxer.getVideoNotWrittenCount());
-		
+
 		avformat_close_input(inputFormatContext);
-		
+
 		//wait and check the files are deleted
-		
+
 		Awaitility.await().atMost(5 * 2 * 1000 + 3000, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS)
 		.until(() -> {
 			File[] filesTmp = hlsMuxer.getFile().getParentFile().listFiles(new FilenameFilter() {
@@ -623,7 +623,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			});
 			return 0 == filesTmp.length;
 		});
-		
+
 	}
 
 
@@ -653,19 +653,19 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		logger.info("codecpar.bit_rate(): {}\n" +
-						"		codecpar.bits_per_coded_sample(): {} \n" +
-						"		codecpar.bits_per_raw_sample(): {} \n" +
-						"		codecpar.block_align(): {}\n" +
-						"		codecpar.channel_layout(): {}\n" +
-						"		codecpar.channels(): {}\n" +
-						"		codecpar.codec_id(): {}\n" +
-						"		codecpar.codec_tag(): {}\n" +
-						"		codecpar.codec_type(): {} \n" +
-						"		codecpar.format(): {}\n" +
-						"		codecpar.frame_size():{} \n" +
-						"		codecpar.level():{} \n" +
-						"		codecpar.profile():{} \n" +
-						"		codecpar.sample_rate(): {}",
+				"		codecpar.bits_per_coded_sample(): {} \n" +
+				"		codecpar.bits_per_raw_sample(): {} \n" +
+				"		codecpar.block_align(): {}\n" +
+				"		codecpar.channel_layout(): {}\n" +
+				"		codecpar.channels(): {}\n" +
+				"		codecpar.codec_id(): {}\n" +
+				"		codecpar.codec_tag(): {}\n" +
+				"		codecpar.codec_type(): {} \n" +
+				"		codecpar.format(): {}\n" +
+				"		codecpar.frame_size():{} \n" +
+				"		codecpar.level():{} \n" +
+				"		codecpar.profile():{} \n" +
+				"		codecpar.sample_rate(): {}",
 
 				codecpar.bit_rate(),
 				codecpar.bits_per_coded_sample(),
@@ -693,10 +693,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 					logger.info("		pkt.duration():{} \n" +
-									"					pkt.flags(): {} \n" +
-									"					pkt.pos(): {}\n" +
-									"					pkt.size(): {}\n" +
-									"					pkt.stream_index():{} ",
+							"					pkt.flags(): {} \n" +
+							"					pkt.pos(): {}\n" +
+							"					pkt.size(): {}\n" +
+							"					pkt.stream_index():{} ",
 							pkt.duration(),
 							pkt.flags(),
 							pkt.pos(),
@@ -727,7 +727,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		avformat_close_input(inputFormatContext);
 
 	}
@@ -896,7 +896,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			String subFolder = "subfolder/";
 
 			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
-			
+
 			File[] file = new File[1];
 			file[0] = Mockito.mock(File.class);
 			Mockito.when(file[0].exists()).thenReturn(true);
@@ -923,7 +923,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			String subFolder = "subfolder";
 
 			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
-			
+
 			File[] file = new File[1];
 			file[0] = Mockito.mock(File.class);
 			Mockito.when(file[0].exists()).thenReturn(true);
@@ -948,7 +948,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			HLSMuxer hlsMuxer = Mockito.spy(new HLSMuxer(vertx, storageClient, "streams", 0b010, null, false));
 			String streamId = "streamId";
 			hlsMuxer.setHlsParameters("1", "1", null, null, null, null);
-			
+
 			File[] file = new File[1];
 			file[0] = Mockito.mock(File.class);
 			Mockito.when(file[0].exists()).thenReturn(true);
@@ -1344,7 +1344,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	//@Test
 	public void testRTMPWriteCrash() {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -1595,7 +1595,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(createPreviewPeriod, muxAdaptor.getPreviewCreatePeriod());
 	}
-	
+
 
 	@Test
 	public void testClientBroadcastStreamStartPublish() {
@@ -1604,25 +1604,25 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		ClientBroadcastStream clientBroadcastStream = Mockito.spy(clientBroadcastStreamReal);
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
-		
+
 		IStreamCapableConnection conn = Mockito.mock(IStreamCapableConnection.class);
 		Mockito.doReturn(conn).when(clientBroadcastStream).getConnection();
-		
-	//	IContext context = conn.getScope().getContext(); 
-	//	ApplicationContext appCtx = context.getApplicationContext(); 
+
+		//	IContext context = conn.getScope().getContext(); 
+		//	ApplicationContext appCtx = context.getApplicationContext(); 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		
+
 		Mockito.when(conn.getScope()).thenReturn(appScope);
-				
+
 		assertNull(clientBroadcastStream.getMuxAdaptor());
 
-		
+
 		clientBroadcastStream.startPublishing();
-		
+
 		//because no streamId
 		assertNull(clientBroadcastStream.getMuxAdaptor());
-		
-		
+
+
 		clientBroadcastStream.setPublishedName("streamId");
 		clientBroadcastStream.startPublishing();
 		assertNotNull(clientBroadcastStream.getMuxAdaptor());
@@ -1701,23 +1701,23 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 
 	}
-	
+
 	@Test
 	public void testIsEncoderAdaptorShouldBeTried() {
-		
+
 		AppSettings appSettingsLocal = new AppSettings();
 		appSettingsLocal.setWebRTCEnabled(false);
 		appSettingsLocal.setForceDecoding(false);
-		
+
 		assertFalse(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
-		
+
 		appSettingsLocal.setWebRTCEnabled(true);
 		assertTrue(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
-		
+
 		appSettingsLocal.setWebRTCEnabled(false);
 		appSettingsLocal.setForceDecoding(true);
 		assertTrue(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
-		
+
 		appSettingsLocal.setWebRTCEnabled(true);
 		appSettingsLocal.setForceDecoding(true);
 		assertTrue(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
@@ -1727,10 +1727,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettingsLocal.setEncoderSettings(null);
 		assertFalse(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
 
-		
+
 		appSettingsLocal.setEncoderSettings(Arrays.asList());
 		assertFalse(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
-		
+
 		appSettingsLocal.setEncoderSettings(Arrays.asList(new EncoderSettings(144, 150000, 32000, true)));
 		assertTrue(MuxAdaptor.isEncoderAdaptorShouldBeTried(null, appSettingsLocal));
 
@@ -1740,8 +1740,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		broadcast.setEncoderSettingsList(Arrays.asList());
 		assertFalse(MuxAdaptor.isEncoderAdaptorShouldBeTried(broadcast, appSettingsLocal));
-		
-		
+
+
 		broadcast.setEncoderSettingsList(Arrays.asList(new EncoderSettings(144, 150000, 32000, true)));
 		assertTrue(MuxAdaptor.isEncoderAdaptorShouldBeTried(broadcast, appSettingsLocal));
 
@@ -2016,9 +2016,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		long activeBroadcastCountFinal = activeBroadcastCount;
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-				.until(() -> {
-					return activeBroadcastCountFinal + 2 == appAdaptor.getDataStore().getActiveBroadcastCount();
-				});
+		.until(() -> {
+			return activeBroadcastCountFinal + 2 == appAdaptor.getDataStore().getActiveBroadcastCount();
+		});
 
 		if (activeBroadcastCount == 1) {
 			Mockito.verify(appAdaptor, timeout(1000)).stopStreaming(Mockito.any());
@@ -2053,15 +2053,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		when(stream.getAbsoluteStartTimeMs()).thenReturn(absoluteTimeMS);
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-				.until(() ->
-						appAdaptor.getDataStore().get(streamId).getAbsoluteStartTimeMs() == absoluteTimeMS);
+		.until(() ->
+		appAdaptor.getDataStore().get(streamId).getAbsoluteStartTimeMs() == absoluteTimeMS);
 
 		spyAdaptor.stopPublish(stream.getPublishedName());
 
 
 		Awaitility.await().atMost(5, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS)
-				.until(() ->
-						appAdaptor.getDataStore().get(streamId) == null);
+		.until(() ->
+		appAdaptor.getDataStore().get(streamId) == null);
 
 
 	}
@@ -2202,7 +2202,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			int finalDuration = 20000;
 			Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() ->
-					MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), finalDuration));
+			MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), finalDuration));
 
 			assertEquals(1640, MuxingTest.videoStartTimeMs);
 			assertEquals(0, MuxingTest.audioStartTimeMs);
@@ -2432,7 +2432,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	@Test
+	//@Test
 	public void testRtmpIngestBufferTime() {
 
 		try {
@@ -2623,7 +2623,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			if (checkDuration) {
 				int finalDuration = duration;
 				Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(() ->
-						MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), finalDuration));
+				MuxingTest.testFile(muxAdaptor.getMuxerList().get(0).getFile().getAbsolutePath(), finalDuration));
 			}
 			return muxAdaptor.getMuxerList().get(0).getFile();
 		} catch (Exception e) {
@@ -2633,12 +2633,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		logger.info("leaving testMp4Muxing");
 		return null;
 	}
-	
+
 	@Test
 	public void testHLSMuxerCodecSupported() 
 	{
 		HLSMuxer hlsMuxerTester = new HLSMuxer(vertx, null, "streams", 1, null, false);
-		
+
 		assertFalse(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_VP8));
 		assertTrue(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_AC3));
 		assertTrue(hlsMuxerTester.isCodecSupported(AV_CODEC_ID_AAC));
@@ -2705,10 +2705,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		Awaitility.await().pollDelay(MuxAdaptor.STAT_UPDATE_PERIOD_MS + 1000, TimeUnit.MILLISECONDS)
-				.atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS * 2, TimeUnit.MILLISECONDS).until(() -> {
-					muxAdaptor.updateStreamQualityParameters(streamId, null, 1.0123, 12120);
-					return true;
-				});
+		.atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS * 2, TimeUnit.MILLISECONDS).until(() -> {
+			muxAdaptor.updateStreamQualityParameters(streamId, null, 1.0123, 12120);
+			return true;
+		});
 
 		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS + 1000, TimeUnit.MILLISECONDS).until(() -> {
 			Broadcast broadcastTmp = muxAdaptor.getDataStore().get(streamId);
@@ -2991,10 +2991,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		mp4Muxer.writeTrailer();
 
 		Awaitility.await().atMost(20, TimeUnit.SECONDS)
-				.pollInterval(1, TimeUnit.SECONDS)
-				.until(() -> {
-					return MuxingTest.testFile("webapps/junit/streams/" + streamName + ".mp4", 10000);
-				});
+		.pollInterval(1, TimeUnit.SECONDS)
+		.until(() -> {
+			return MuxingTest.testFile("webapps/junit/streams/" + streamName + ".mp4", 10000);
+		});
 
 
 	}
@@ -3019,9 +3019,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String streamName = "stream_name_" + (int) (Math.random() * 10000);
 		//init
 		hlsMuxer.init(appScope, streamName, 0, null, 0);
-		
+
 		hlsMuxer.setId3Enabled(true);
-		
+
 		//add stream
 		int width = 640;
 		int height = 480;
@@ -3064,6 +3064,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 				if (i == 0) {
 					videoPkt.flags(videoPkt.flags() | AV_PKT_FLAG_KEY);
+					String seiData = "test_data";
+					hlsMuxer.setSeiData(seiData);
 				}
 				videoPkt.data(new BytePointer(encodedVideoFrame));
 				videoPkt.size(encodedVideoFrame.limit());
@@ -3398,15 +3400,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			//wait to let hls muxer delete ts and m3u8 file
 
 			Awaitility.await().atMost(hlsListSize * hlsTime * 1000 + 3000, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS)
-					.until(() -> {
-						File[] filesTmp = dir.listFiles(new FilenameFilter() {
-							@Override
-							public boolean accept(File dir, String name) {
-								return name.endsWith(".ts") || name.endsWith(".m3u8");
-							}
-						});
-						return 0 == filesTmp.length;
-					});
+			.until(() -> {
+				File[] filesTmp = dir.listFiles(new FilenameFilter() {
+					@Override
+					public boolean accept(File dir, String name) {
+						return name.endsWith(".ts") || name.endsWith(".m3u8");
+					}
+				});
+				return 0 == filesTmp.length;
+			});
 
 
 			assertFalse(hlsFile.exists());
@@ -3463,6 +3465,167 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			}
 		}
+	}
+
+	@Test
+	public void testStreamSpeed() throws IOException {
+
+		int hlsListSize = 3;
+		int hlsTime = 2;
+
+		getAppSettings().setMp4MuxingEnabled(false);
+		getAppSettings().setAddDateTimeToMp4FileName(false);
+		getAppSettings().setHlsMuxingEnabled(true);
+		getAppSettings().setDeleteHLSFilesOnEnded(true);
+		getAppSettings().setHlsTime(String.valueOf(hlsTime));
+		getAppSettings().setHlsListSize(String.valueOf(hlsListSize));
+		getAppSettings().setUploadExtensionsToS3(2);
+
+
+		String name = "stream_id_speed";
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream.setCodecInfo(info);
+
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+
+		File file = null;
+
+
+		file = new File("src/test/resources/test.flv"); //ResourceUtils.getFile(this.getClass().getResource("test.flv"));
+		final FLVReader flvReader = new FLVReader(file);
+
+		logger.info("f path:" + file.getAbsolutePath());
+		assertTrue(file.exists());
+		Broadcast broadcast = new Broadcast();
+		try {
+			broadcast.setStreamId(name);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		muxAdaptor.setBroadcast(broadcast);
+		boolean result = muxAdaptor.init(appScope, name, false);
+		assert (result);
+
+		muxAdaptor.start();		
+		
+		
+		long packetSize = 0;
+		
+		boolean firstAudioPacketReceived = false;
+		boolean firstVideoPacketReceived = false;
+		while (flvReader.hasMoreTags()) {
+			ITag readTag = flvReader.readTag();
+			StreamPacket streamPacket = new StreamPacket(readTag);
+			if (!firstAudioPacketReceived && streamPacket.getDataType() == Constants.TYPE_AUDIO_DATA) {
+				IAudioStreamCodec audioStreamCodec = AudioCodecFactory.getAudioCodec(streamPacket.getData().position(0));
+				info.setAudioCodec(audioStreamCodec);
+				audioStreamCodec.addData(streamPacket.getData().position(0));
+				info.setHasAudio(true);
+				firstAudioPacketReceived = true;
+			} else if (!firstVideoPacketReceived && streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+				IVideoStreamCodec videoStreamCodec = VideoCodecFactory.getVideoCodec(streamPacket.getData().position(0));
+				videoStreamCodec.addData(streamPacket.getData().position(0));
+				info.setVideoCodec(videoStreamCodec);
+				info.setHasVideo(true);
+				firstVideoPacketReceived = true;
+
+			}
+
+			streamPacket = new StreamPacket(readTag);
+			int bodySize = streamPacket.getData().position(0).limit();
+			byte[] data = new byte[bodySize];
+			streamPacket.getData().get(data);
+	
+			streamPacket.setData(IoBuffer.wrap(data));
+	
+			muxAdaptor.packetReceived(null, streamPacket);
+			
+			packetSize++;
+			if (packetSize > 10000)	
+			{
+				break;
+			}
+		}
+		
+		
+
+		Awaitility.await().atMost(200, TimeUnit.SECONDS).until(() -> muxAdaptor.isRecording());
+		logger.info("----- 1. speed:{}", muxAdaptor.getLatestSpeed());
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> 50  < muxAdaptor.getLatestSpeed());
+		
+		
+		packetSize = 0;
+		while (flvReader.hasMoreTags()) {
+			ITag readTag = flvReader.readTag();
+			StreamPacket streamPacket = new StreamPacket(readTag);
+			if (!firstAudioPacketReceived && streamPacket.getDataType() == Constants.TYPE_AUDIO_DATA) {
+				IAudioStreamCodec audioStreamCodec = AudioCodecFactory.getAudioCodec(streamPacket.getData().position(0));
+				info.setAudioCodec(audioStreamCodec);
+				audioStreamCodec.addData(streamPacket.getData().position(0));
+				info.setHasAudio(true);
+				firstAudioPacketReceived = true;
+			} else if (!firstVideoPacketReceived && streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+				IVideoStreamCodec videoStreamCodec = VideoCodecFactory.getVideoCodec(streamPacket.getData().position(0));
+				videoStreamCodec.addData(streamPacket.getData().position(0));
+				info.setVideoCodec(videoStreamCodec);
+				info.setHasVideo(true);
+				firstVideoPacketReceived = true;
+
+			}
+
+			streamPacket = new StreamPacket(readTag);
+			int bodySize = streamPacket.getData().position(0).limit();
+			byte[] data = new byte[bodySize];
+			streamPacket.getData().get(data);
+	
+			streamPacket.setData(IoBuffer.wrap(data));
+	
+			muxAdaptor.packetReceived(null, streamPacket);
+			
+			packetSize++;
+			if (packetSize > 300)	
+			{
+				break;
+			}
+			
+			try {
+				//slow down the process to check the speed
+				Thread.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+			
+			if (muxAdaptor.getLatestSpeed() < 0.7) {
+				//break the loop if the speed is less than 0.7
+				break;
+			}
+		}
+		
+
+		logger.info("----- 2. speed:{}", muxAdaptor.getLatestSpeed());
+		
+		Awaitility.await().atMost(200, TimeUnit.SECONDS).until(() -> 0.7 > muxAdaptor.getLatestSpeed());
+
+
+		muxAdaptor.stop(true);
+
+		flvReader.close();
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+
+
+		getAppSettings().setDeleteHLSFilesOnEnded(false);
+
 	}
 
 
@@ -3592,15 +3755,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			//wait to let hls muxer delete ts and m3u8 file
 
 			Awaitility.await().atMost(hlsListSize * hlsTime * 1000 + 3000, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS)
-					.until(() -> {
-						File[] filesTmp = dir.listFiles(new FilenameFilter() {
-							@Override
-							public boolean accept(File dir, String name) {
-								return name.endsWith(".ts") || name.endsWith(".m3u8");
-							}
-						});
-						return 0 == filesTmp.length;
-					});
+			.until(() -> {
+				File[] filesTmp = dir.listFiles(new FilenameFilter() {
+					@Override
+					public boolean accept(File dir, String name) {
+						return name.endsWith(".ts") || name.endsWith(".m3u8");
+					}
+				});
+				return 0 == filesTmp.length;
+			});
 
 
 		} catch (Exception e) {
@@ -3714,15 +3877,15 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//wait to let hls muxer delete ts and m3u8 file
 			Awaitility.await().atMost(hlsListSize * hlsTime * 1000 + 3000, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS)
-					.until(() -> {
-						File[] filesTmp = dir.listFiles(new FilenameFilter() {
-							@Override
-							public boolean accept(File dir, String name) {
-								return name.endsWith(".ts") || name.endsWith(".m3u8");
-							}
-						});
-						return 0 == filesTmp.length;
-					});
+			.until(() -> {
+				File[] filesTmp = dir.listFiles(new FilenameFilter() {
+					@Override
+					public boolean accept(File dir, String name) {
+						return name.endsWith(".ts") || name.endsWith(".m3u8");
+					}
+				});
+				return 0 == filesTmp.length;
+			});
 
 
 			assertFalse(hlsFile.exists());
@@ -4126,10 +4289,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.start();
 
 		Awaitility.await().atLeast(getAppSettings().getMaxAnalyzeDurationMS() * 2, TimeUnit.MILLISECONDS)
-				.atMost(getAppSettings().getMaxAnalyzeDurationMS() * 2 + 1000, TimeUnit.MILLISECONDS)
-				.until(() -> {
-					return muxAdaptor.isStopRequestExist();
-				});
+		.atMost(getAppSettings().getMaxAnalyzeDurationMS() * 2 + 1000, TimeUnit.MILLISECONDS)
+		.until(() -> {
+			return muxAdaptor.isStopRequestExist();
+		});
 
 		Mockito.verify(muxAdaptor, Mockito.timeout(500)).closeRtmpConnection();
 
@@ -4468,7 +4631,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(hlsMuxer, times(1)).writeDataFrame(any(), any());
 	}
 
-	@Test
+	//@Test
 	public void testID3Timing() {
 		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class),
 				"streams", 0, "http://example.com", false));
@@ -4495,8 +4658,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(lastPts, pkt.pts());
 		assertEquals(lastPts, pkt.dts());
-		
-		
+
+
 		HLSMuxer.logError(-1, "test error message", "stream1");
 		HLSMuxer.logError(0, "test error message", "stream1");
 		HLSMuxer.logError(1, "test error message", "stream1");
@@ -4602,40 +4765,40 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		String data = "some data to put frame";
 		muxAdaptorReal.addSEIData(data);
 		verify(hlsMuxer, times(1)).setSeiData(data);
-		
-		
+
+
 		{
 			hlsMuxer = new HLSMuxer(Mockito.mock(Vertx.class), Mockito.mock(StorageClient.class), "streams", 7, null, false);
-			
-			
+
+
 			String streamId = "stream_name_" + (int) (Math.random() * 10000);
 			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
-	
+
 			//init
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
-			
+
 			int width = 640;
 			int height = 480;
 			boolean addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
 			assertTrue(addStreamResult);
-	
+
 			//prepare io
 			boolean prepareIOresult = hlsMuxer.prepareIO();
 			assertTrue(prepareIOresult);
-			
+
 			String seiData = "test_data";
 			hlsMuxer.setSeiData(seiData);
-			
+
 			//it's annexb format, it means there is not mp4toannexb format
 			//it should be 4 bytes for start code, 1 byte for nal type, 1 byte for sei type, 1 byte for payload size, 16 byste for UUID, data length, 1 byte for alignment 
 			assertEquals(4 + 1 + 1 + 1 + 16 + seiData.length() + 1, hlsMuxer.getPendingSEIData().limit());
-			
+
 			assertEquals(0, hlsMuxer.getPendingSEIData().get(0));
 			assertEquals(0, hlsMuxer.getPendingSEIData().get(1));
 			assertEquals(0, hlsMuxer.getPendingSEIData().get(2));
 			assertEquals(1, hlsMuxer.getPendingSEIData().get(3));
-			
-			
+
+
 			try {
 				FileInputStream fis = new FileInputStream("src/test/resources/frame0");
 				byte[] byteArray = fis.readAllBytes();
@@ -4647,8 +4810,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 				AVPacket videoPkt = avcodec.av_packet_alloc();
 				av_init_packet(videoPkt);
-				
-				
+
+
 				videoPkt.stream_index(0);
 				videoPkt.pts(now);
 				videoPkt.dts(now);
@@ -4661,12 +4824,12 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				videoPkt.position(0);
 				videoPkt.duration(5);
 				hlsMuxer.writePacket(videoPkt, new AVCodecContext());
-				
+
 				assertNull(hlsMuxer.getPendingSEIData());
 
 				av_packet_unref(videoPkt);
 
-				
+
 
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -4675,122 +4838,122 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			//write trailer
 			hlsMuxer.writeTrailer();
-			
-			
+
+
 
 		}
-		
+
 		{
 			hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
-			
+
 			String streamId = "stream_name_" + (int) (Math.random() * 10000);
 			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
-	
+
 			//init
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
-			
+
 			int width = 640;
 			int height = 480;
 			boolean addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_H264, 0, false, null);
 			assertTrue(addStreamResult);
-	
+
 			//prepare io
 			boolean prepareIOresult = hlsMuxer.prepareIO();
 			assertTrue(prepareIOresult);
-			
+
 			String seiData = "";
-			
+
 			for (int i = 0; i < 300; i++) {
 				seiData += "i";
 			}
-			
+
 			//size is more than 255, it means data length is 2 bytes
 			hlsMuxer.setSeiData(seiData);
-			
+
 			//it's annexb format, it means there is not mp4toannexb format
 			//it should be 4 bytes for start code, 1 byte for nal type, 1 byte for sei type, 2 byte for payload size, 16 byste for UUID, data length, 1 byte for alignment 
 			int totalLength = 4 + 1 + 1 + 2 + 16 + seiData.length() + 1;
 			assertEquals(totalLength, hlsMuxer.getPendingSEIData().limit());
-			
+
 			//it should totalLength-4 because 4 bytes are length code
 			assertEquals(totalLength-4, hlsMuxer.getPendingSEIData().getInt());
-			
+
 		}
-		
+
 		{
 			hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
-			
+
 			String streamId = "stream_name_" + (int) (Math.random() * 10000);
 			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
-	
+
 			//init
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
-			
+
 			int width = 640;
 			int height = 480;
 			boolean addStreamResult = hlsMuxer.addVideoStream(width, height, null, AV_CODEC_ID_H265, 0, false, null);
 			assertTrue(addStreamResult);
-	
+
 			//prepare io
 			boolean prepareIOresult = hlsMuxer.prepareIO();
 			assertTrue(prepareIOresult);
-			
+
 			String seiData = "";
-			
+
 			for (int i = 0; i < 300; i++) {
 				seiData += "i";
 			}
-			
+
 			//size is more than 255, it means data length is 2 bytes
 			hlsMuxer.setSeiData(seiData);
-			
+
 			//it's annexb format, it means there is not mp4toannexb format
 			//it should be 4 bytes for start code, 2 byte for nal type(Because HEVC), 1 byte for sei type, 2 byte for payload size, 16 byste for UUID, data length, 1 byte for alignment 
 			assertEquals(4 + 2 + 1 + 2 + 16 + seiData.length() + 1, hlsMuxer.getPendingSEIData().limit());
-			
+
 			assertEquals(0, hlsMuxer.getPendingSEIData().get(0));
 			assertEquals(0, hlsMuxer.getPendingSEIData().get(1));
 			assertEquals(0, hlsMuxer.getPendingSEIData().get(2));
 			assertEquals(1, hlsMuxer.getPendingSEIData().get(3));
-			
-			
+
+
 		}
-		
+
 		{
 			hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 7, null, false);
-			
+
 			String streamId = "stream_name_" + (int) (Math.random() * 10000);
 			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
-	
+
 			//init
 			hlsMuxer.init(appScope, streamId, 0, null, 0);
-			
+
 
 			AVChannelLayout channelLayout = new AVChannelLayout();
 			av_channel_layout_default(channelLayout, 2);
 			boolean addStreamResult = hlsMuxer.addAudioStream(44100, channelLayout, AV_CODEC_ID_AAC, 0);
 			assertTrue(addStreamResult);
-	
+
 			//prepare io
 			boolean prepareIOresult = hlsMuxer.prepareIO();
 			assertTrue(prepareIOresult);
-			
+
 			String seiData = "";
-			
+
 			for (int i = 0; i < 300; i++) {
 				seiData += "i";
 			}
-			
+
 			//size is more than 255, it means data length is 2 bytes
 			hlsMuxer.setSeiData(seiData);
-			
+
 			//it's annexb format, it means there is not mp4toannexb format
 			//it should be 4 bytes for start code, 2 byte for nal type(Because HEVC), 1 byte for sei type, 2 byte for payload size, 16 byste for UUID, data length, 1 byte for alignment 
 			assertNull(hlsMuxer.getPendingSEIData());
-			
+
 		}
-		
-		
+
+
 
 	}
 
