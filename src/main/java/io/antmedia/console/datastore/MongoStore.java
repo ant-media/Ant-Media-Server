@@ -3,6 +3,7 @@ package io.antmedia.console.datastore;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
@@ -82,12 +83,16 @@ public class MongoStore extends AbstractConsoleDataStore {
 				String password = user.getPassword();
 				UserType userType = user.getUserType();
 				String scope = user.getScope();
+				Map appNameUserType = user.getAppNameUserType();
+
 				return datastore.find(User.class)
 									.filter(Filters.eq("email", username))
 									.update(
 											UpdateOperators.set("password", password),
 											UpdateOperators.set("userType", userType),
-											UpdateOperators.set("scope",scope))
+											UpdateOperators.set("scope",scope),
+											UpdateOperators.set("appNameUserType", appNameUserType))
+
 									.execute()
 									.getMatchedCount() == 1;
 			} catch (Exception e) {

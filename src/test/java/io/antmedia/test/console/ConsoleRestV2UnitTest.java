@@ -134,7 +134,7 @@ public class ConsoleRestV2UnitTest {
 	public void getUserList(){
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 1000000000);
-		User user = new User(userName, password, UserType.ADMIN, "all");
+		User user = new User(userName, password, UserType.ADMIN, "all", null);
 		RestServiceV2 restServiceSpy = Mockito.spy(restService);
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
@@ -147,7 +147,7 @@ public class ConsoleRestV2UnitTest {
 		assertNotNull(restServiceSpy.getUserList());
 
 		userName = "username" + (int) (Math.random() * 1000000000);
-		user = new User(userName, "second pass", UserType.ADMIN, "all");
+		user = new User(userName, "second pass", UserType.ADMIN, "all", null);
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
@@ -161,7 +161,7 @@ public class ConsoleRestV2UnitTest {
 
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 1000000000);
-		User user = new User(userName, password, UserType.ADMIN, "system");
+		User user = new User(userName, password, UserType.ADMIN, "system", null);
 		RestServiceV2 restServiceSpy = Mockito.spy(restService);
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
@@ -173,7 +173,7 @@ public class ConsoleRestV2UnitTest {
 
 		String userName2 = "username" + (int) (Math.random() * 1000000000);
 
-		user = new User(userName2, "second pass", UserType.ADMIN, "system");
+		user = new User(userName2, "second pass", UserType.ADMIN, "system", null);
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
@@ -181,7 +181,7 @@ public class ConsoleRestV2UnitTest {
 
 		assertTrue(result.isSuccess());
 
-		user = new User(userName, "second pass", UserType.ADMIN, "system");
+		user = new User(userName, "second pass", UserType.ADMIN, "system", null);
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
@@ -189,7 +189,7 @@ public class ConsoleRestV2UnitTest {
 
 		assertFalse(result.isSuccess());
 
-		user = new User(userName, "second pass", UserType.ADMIN, "system");
+		user = new User(userName, "second pass", UserType.ADMIN, "system", null);
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
@@ -525,7 +525,7 @@ public class ConsoleRestV2UnitTest {
 
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 100000);
-		User user = new User(userName, password, UserType.ADMIN, "all");
+		User user = new User(userName, password, UserType.ADMIN, "all", null);
 
 		HttpSession session = Mockito.mock(HttpSession.class);
 		Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
@@ -569,7 +569,7 @@ public class ConsoleRestV2UnitTest {
 		assertFalse(result2.isSuccess());
 
 		//No new password
-		user = new User(userName, "12345", UserType.ADMIN, "all");
+		user = new User(userName, "12345", UserType.ADMIN, "all", null);
 		result2 = restService.changeUserPasswordInternal(userName, user);
 		System.out.println(result2.getMessage());
 		assertFalse(result2.isSuccess());
@@ -580,7 +580,7 @@ public class ConsoleRestV2UnitTest {
 
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 100000);
-		User user = new User(userName, password, UserType.ADMIN, "system");
+		User user = new User(userName, password, UserType.ADMIN, "system", null);
 
 		HttpSession session = Mockito.mock(HttpSession.class);
 		Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
@@ -601,7 +601,7 @@ public class ConsoleRestV2UnitTest {
 		//Add second user
 		String password2 = "password2";
 		String userName2 = "username" + (int) (Math.random() * 100000);
-		User user2 = new User(userName2, password2, UserType.READ_ONLY, "system");
+		User user2 = new User(userName2, password2, UserType.READ_ONLY, "system", null);
 
 		result = restService.addUser(user2);
 		assertTrue(result.isSuccess());
@@ -628,7 +628,7 @@ public class ConsoleRestV2UnitTest {
 	public void testDeleteUser() {
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 100000);
-		User user = new User(userName, password, UserType.ADMIN, "all");
+		User user = new User(userName, password, UserType.ADMIN, "all", null);
 
 		HttpSession session = Mockito.mock(HttpSession.class);
 		Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
@@ -646,7 +646,7 @@ public class ConsoleRestV2UnitTest {
 		assertNotNull(dbStore.getUser(userName));
 
 		String userName2 = "username" + (int) (Math.random() * 100000);
-		User user2 = new User(userName2, password, UserType.READ_ONLY, "all");
+		User user2 = new User(userName2, password, UserType.READ_ONLY, "all", null);
 
 		//Trying to delete a non existant user
 		result = restService.deleteUser(userName2);

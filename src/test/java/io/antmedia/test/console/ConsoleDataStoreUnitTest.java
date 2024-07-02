@@ -45,7 +45,7 @@ public class ConsoleDataStoreUnitTest {
 		
 		String username = "test";
 		String password = "pass" + (Math.random()*10000);
-		User user = new User(username, password, UserType.ADMIN , "system");
+		User user = new User(username, password, UserType.ADMIN , "system", null);
 		assertTrue(dtStore.addUser(user));
 		assertFalse(dtStore.addUser(user));
 		assertEquals(1, dtStore.getNumberOfUserRecords());
