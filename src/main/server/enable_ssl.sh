@@ -102,10 +102,26 @@ get_password() {
   done
 }
 
+# Check if there is a Container and install necessary packages
+is_docker_container() {
+    if [ -f /.dockerenv ]; then
+        apt-get install iptables dnsutils -y
+        return 0
+    fi
+
+    return 1
+}
+
+
 SUDO="sudo"
 if ! [ -x "$(command -v sudo)" ]; then
   SUDO=""
 fi
+
+if is_docker_container; then
+    SUDO=""
+fi
+
 
 output() {
   OUT=$?
@@ -138,8 +154,8 @@ wait_for_dns_validation() {
 # Install jq
 install_jq() {
     if ! [ command -v jq &> /dev/null ]; then
-        sudo apt update -qq
-        sudo apt install -y jq
+        $SUDO apt update -qq
+        $SUDO apt install -y jq
     fi
 }
 
@@ -469,7 +485,11 @@ ipt_restore
 
 echo ""
 
-$SUDO service antmedia restart
+if is_docker_container; then
+    kill -HUP 1
+else
+    $SUDO service antmedia restart
+fi
 
 output
 
