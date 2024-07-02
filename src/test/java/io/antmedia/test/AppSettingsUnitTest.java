@@ -291,7 +291,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("secretpublish", appSettings.getTimeTokenSecretForPublish());
 
 		
-		assertEquals(true, appSettings.isHwScalingEnabled());
+		assertEquals(false, appSettings.isHwScalingEnabled());
 		appSettings.setHwScalingEnabled(false);
 		assertEquals(false, appSettings.isHwScalingEnabled());
 
@@ -541,7 +541,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getTimeTokenSecretForPublish());
 		assertNull(appSettings.getTimeTokenSecretForPlay());
 
-        assertTrue(appSettings.isHwScalingEnabled());
+        assertFalse(appSettings.isHwScalingEnabled());
 
 		assertNotNull(appSettings.getSubscriberAuthenticationKey());
 		assertNull(appSettings.getFirebaseAccountKeyJSON());

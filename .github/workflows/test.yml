@@ -66,7 +66,7 @@ jobs:
         run: |
           export RELEASE_VERSION="$(mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec)"
           echo $RELEASE_VERSION
-          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=!*/integration/*,!MuxerUnitTest -Dorg.bytedeco.javacpp.logger.debug=true org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
+          mvn clean org.jacoco:jacoco-maven-plugin:prepare-agent package -Dtest=!*/integration/* -Dorg.bytedeco.javacpp.logger.debug=true org.jacoco:jacoco-maven-plugin:report sonar:sonar -Dmaven.javadoc.skip=true --quiet
       
       - name: Show MongoDB Log, Crash Log and Servis Status on failure
         if: failure()
@@ -224,7 +224,13 @@ jobs:
    
   deploy:   
     runs-on: ubuntu-22.04
-    needs: [run-unit-tests, check-vulnerabilities, run-integration-tests]                
+    needs: [run-unit-tests, check-vulnerabilities, run-integration-tests]    
+    env:
+      CI_DEPLOY_USERNAME: ${{ secrets.CI_DEPLOY_USERNAME }}
+      CI_DEPLOY_PASSWORD: ${{ secrets.CI_DEPLOY_PASSWORD }}
+      GPG_KEY_NAME: ${{ secrets.GPG_KEY_NAME }}
+      GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+                  
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -235,6 +241,7 @@ jobs:
           distribution: 'adopt' #openjdk
           java-version: '17'
           cache: 'maven'
+          gpg-private-key: ${{ secrets.GPG_PRIVATE_KEY }}
           
       - name: Build projects # there is low probability that if somethings has pushed to the related branch while running test and before this job, it may build something not exactly same
         uses: ./.github/actions/build-projects 
