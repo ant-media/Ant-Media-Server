@@ -225,7 +225,7 @@
               <artifactId>dependency-check-maven</artifactId>
               <version>${owasp.version}</version>
 			  <configuration>
-				 <failBuildOnCVSS>8</failBuildOnCVSS>
+				 <failBuildOnCVSS>7</failBuildOnCVSS>
 				 <suppressionFile>owasp-suppressions.xml</suppressionFile>
 			   </configuration>
               <executions>
