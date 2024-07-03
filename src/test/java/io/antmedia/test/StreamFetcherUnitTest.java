@@ -35,6 +35,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
@@ -672,6 +673,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin",
 					"src/test/resources/test_video_360p.flv",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
+			
+			newCam.setStreamId("stream_id_" + RandomStringUtils.randomAlphanumeric(12));
 
 			assertNotNull(newCam.getStreamUrl());
 
@@ -928,13 +931,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testBugUnexpectedStream() throws InterruptedException
 	{
 
-		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
-
-		AVStream stream = avformat.avformat_new_stream(inputFormatContext, null);
 		AVCodecParameters pars = new AVCodecParameters(); 
-		stream.codecpar(pars);
 		pars.codec_type(AVMEDIA_TYPE_DATA);
-		stream.codecpar(pars);
 
 		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(null, null, "streams"));
 
@@ -947,11 +945,9 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Mockito.verify(mp4Muxer, Mockito.never()).avNewStream(Mockito.any());
 		
-		//Close the codec parameters to not let collect it by garbage collector that may cause double free error because it's released in av_format_free_context as well
 		pars.close();
 		pars = null;
 
-		avformat.avformat_free_context(inputFormatContext);
 		
 	}
 
