@@ -105,7 +105,7 @@ get_password() {
 # Check if there is a Container and install necessary packages
 is_docker_container() {
     if [ -f /.dockerenv ]; then
-        apt-get install iptables dnsutils -y
+        apt-get install iptables dnsutils certbot -y
         return 0
     fi
 
