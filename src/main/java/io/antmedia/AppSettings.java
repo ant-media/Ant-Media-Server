@@ -2063,10 +2063,12 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${sendAudioLevelToViewers:true}")
 	private boolean sendAudioLevelToViewers = true;
-
-	
-	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":true}}")
-	private boolean hwScalingEnabled = true;
+  
+  /**
+   * Enable/disable video frame scaling in GPU when there is an adaptive bitrate 
+   */
+	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":false}}")
+	private boolean hwScalingEnabled = false;
 
 	/**
 	 * Firebase Service Account Key JSON to send push notification
