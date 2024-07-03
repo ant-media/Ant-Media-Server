@@ -158,7 +158,8 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
-		testUpdateMetadata(dataStore);	
+		testUpdateMetadata(dataStore);
+		testUpdateRole(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
@@ -241,6 +242,7 @@ public class DBStoresUnitTest {
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
+		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -304,6 +306,7 @@ public class DBStoresUnitTest {
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
+		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -364,6 +367,7 @@ public class DBStoresUnitTest {
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
+		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -3005,6 +3009,32 @@ public class DBStoresUnitTest {
 		
 		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.randomAlphanumeric(8), UPDATED_DATA));
 
+	}
+
+	public void testUpdateRole(DataStore dataStore) {
+
+		final String INITIAL_ROLE  = "INITIAL_ROLE";
+		final String UPDATED_ROLE  = "UPDATED_ROLE";
+
+		String id = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast broadcast= new Broadcast();
+		try {
+			broadcast.setStreamId(id);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		broadcast.setRole(INITIAL_ROLE);
+		dataStore.save(broadcast);
+
+		assertEquals(INITIAL_ROLE, dataStore.get(id).getRole());
+
+		broadcast.setRole(UPDATED_ROLE);
+
+		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
+
+		assertEquals(UPDATED_ROLE, dataStore.get(id).getRole());
 	}
 
 	public void testBlockSubscriber(DataStore dataStore){
