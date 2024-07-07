@@ -373,6 +373,12 @@ public class Broadcast {
 	@Schema(description ="If this broadcast is a track of a WebRTC stream. This variable is Id of that stream.")
 	private String mainTrackStreamId;
 
+	/*
+	 * Refactor: remove this field and store everything as streams in the database.
+	 * On the other hand, we can keep the number of subtracks here
+	 * 
+	 * Lastly, there is also an dependency in the webpanel, it just plays the multitrack by looking at this field.
+	 */
 	@Schema(description ="If this broadcast is main track. This variable hold sub track ids.")
 	private List<String> subTrackStreamIds = new ArrayList<>();
 
