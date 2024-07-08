@@ -1,0 +1,100 @@
+name: 'Build Projects'
+description: 'Clone and Build directly dependent projects to package Ant Media Server'
+inputs:
+  branch_name:  
+    description: 'build branch name'
+    required: true
+    default: 'master'
+
+
+runs:
+  using: "composite"
+  steps:
+      
+    - name: Clone and build Ant Media Server Parent project
+      shell: bash
+      run: |
+          git clone --depth=1 -b ${{ inputs.branch_name }} https://github.com/ant-media/ant-media-server-parent.git || git clone --depth=1 https://github.com/ant-media/ant-media-server-parent.git
+          cd ant-media-server-parent
+          mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
+          cd ..
+     
+    - name: Build Ant Media Server project
+      shell: bash
+      run: mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true --quiet
+    
+    - name: Clone and build StreamApp project
+      shell: bash
+      run: |
+          git clone --depth=1 -b ${{ inputs.branch_name }} https://github.com/ant-media/StreamApp.git || git clone --depth=1 https://github.com/ant-media/StreamApp.git
+          cd StreamApp
+          npm install
+          npm run compile
+          cd embedded-player
+          npm install
+          npm run compile
+          npm run deploy
+          cd ..
+          mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true -B -V --quiet
+          cd ..
+
+    - name: Install NVM (Node Version Manager)
+      run: |
+          curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.3/install.sh | bash
+          ls -la
+          pwd
+      shell: bash
+        
+    - name: Cache node_modules directtory for Web Panel Angular project
+      uses: actions/cache@v4
+      with:
+           key: ${{ runner.os }}-node_modules-cache
+           path: |
+             ~/ManagementConsole_AngularApp-node_modules-cache     
+        
+    - name: Clone  Management Console Web Panel Angular project
+      shell: bash
+      run: git clone --depth=1 -b ${{ inputs.branch_name }} https://github.com/ant-media/ManagementConsole_AngularApp.git || git clone --depth=1 https://github.com/ant-media/ManagementConsole_AngularApp.git
+        
+    - name: Copy node_modules from cache directory if exists
+      shell: bash
+      run: | 
+           ls -la
+           ls ..
+           pwd
+           if [ -d "$HOME/ManagementConsole_AngularApp-node_modules-cache" ]; then
+              echo "Copy node_modules from cache directory to ManagementConsole_AngularApp directory"
+              cp -a $HOME/ManagementConsole_AngularApp-node_modules-cache/. ManagementConsole_AngularApp/node_modules/
+           else
+               echo "No cache directory found at $HOME"
+           fi   
+
+    - name: Clone and build Management Console Web Panel Angular project
+      shell: bash
+      run: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm install 16.20.2 # install node.js version for angular 
+          nvm use 16.20.2 # use node.js version for angular
+          
+          npm install -g @angular/cli@10.0.5
+          cd ManagementConsole_AngularApp
+          . $NVM_DIR/nvm.sh
+          
+          npm install
+          ng build --prod
+          cp -a ./dist/. ../src/main/server/webapps/root/
+          cd ..
+          
+    - name: Copy node_modules to cache directory
+      shell: bash
+      run: |
+        rm -rf ~/ManagementConsole_AngularApp-node_modules-cache/
+        cp -a  ManagementConsole_AngularApp/node_modules/. ~/ManagementConsole_AngularApp-node_modules-cache/
+                  
+ 
+    - name: Replace ffmpeg builds
+      shell: bash
+      run: |
+          wget -O ~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-5.1.2-1.5.8-linux-x86_64.jar
+          wget -O ~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-arm64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-5.1.2-1.5.8-linux-arm64.jar

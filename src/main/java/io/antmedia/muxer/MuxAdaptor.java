@@ -1,25 +1,38 @@
 package io.antmedia.muxer;
 
 import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING;
-import static org.bytedeco.ffmpeg.global.avcodec.*;
-import static org.bytedeco.ffmpeg.global.avutil.*;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_PNG;
+import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
+import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
+import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
+import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
+import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
+import static org.bytedeco.ffmpeg.global.avutil.av_free;
+import static org.bytedeco.ffmpeg.global.avutil.av_malloc;
+import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Deque;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
-
-import io.antmedia.logger.LoggerUtils;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -61,6 +74,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
 import io.antmedia.muxer.parser.SpsParser;
@@ -163,7 +177,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	protected static boolean isStreamSource = false;
 
 	private int previewCreatePeriod;
-	private double oldspeed;
+	private double latestSpeed;
 	private long lastQualityUpdateTime = 0;
 	private Broadcast broadcast;
 	protected AppSettings appSettings;
@@ -183,7 +197,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 * Value is the system time at that moment
 	 *
 	 */
-	private LinkedList<PacketTime> packetTimeList = new LinkedList<PacketTime>();
+	private Deque<PacketTime> packetTimeList = new ConcurrentLinkedDeque<>();
 
 	public boolean addID3Data(String data) {
 		for (Muxer muxer : muxerList) {
@@ -895,6 +909,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public void updateStreamQualityParameters(String streamId, String quality, double speed, int inputQueueSize) {
 		long now = System.currentTimeMillis();
 
+		latestSpeed = speed;
 		//increase updating time to STAT_UPDATE_PERIOD_MS seconds because it may cause some issues in mongodb updates 
 		//or 
 		//update before STAT_UPDATE_PERIOD_MS if speed something meaningful
@@ -917,8 +932,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			
 			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize, System.currentTimeMillis());
 			oldQuality = quality;
-			oldspeed = speed;
 		}
+		
+
+	}
+	
+	public double getLatestSpeed() {
+		return latestSpeed;
 	}
 
 	public IAntMediaStreamHandler getStreamHandler() {
@@ -1312,7 +1332,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (packetTimeList.size() > 300) {
 			//limit the size.
-			packetTimeList.remove(0);
+			packetTimeList.removeFirst();
 		}
 
 		PacketTime firstPacket = packetTimeList.getFirst();
@@ -2286,7 +2306,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		this.bufferingFinishTimeMs = bufferingFinishTimeMs;
 	}
 
-	public LinkedList<PacketTime> getPacketTimeList() {
+	public Queue<PacketTime> getPacketTimeList() {
 		return packetTimeList;
 	}
 

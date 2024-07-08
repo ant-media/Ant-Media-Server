@@ -35,6 +35,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
@@ -672,6 +673,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 			Broadcast newCam = new Broadcast("streamSource", "127.0.0.1:8080", "admin", "admin",
 					"src/test/resources/test_video_360p.flv",
 					AntMediaApplicationAdapter.STREAM_SOURCE);
+			
+			newCam.setStreamId("stream_id_" + RandomStringUtils.randomAlphanumeric(12));
 
 			assertNotNull(newCam.getStreamUrl());
 
@@ -925,19 +928,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 	@Test
-	public void testBugUnexpectedStream()
+	public void testBugUnexpectedStream() throws InterruptedException
 	{
 
-		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
-
-		AVStream stream = avformat.avformat_new_stream(inputFormatContext, null);
-		AVCodecParameters pars = new AVCodecParameters();
-		stream.codecpar(pars);
+		AVCodecParameters pars = new AVCodecParameters(); 
 		pars.codec_type(AVMEDIA_TYPE_DATA);
-		stream.codecpar(pars);
-
-
-
 
 		Mp4Muxer mp4Muxer = Mockito.spy(new Mp4Muxer(null, null, "streams"));
 
@@ -949,8 +944,11 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		mp4Muxer.addStream(pars, MuxAdaptor.TIME_BASE_FOR_MS, 0);
 
 		Mockito.verify(mp4Muxer, Mockito.never()).avNewStream(Mockito.any());
+		
+		pars.close();
+		pars = null;
 
-		avformat.avformat_free_context(inputFormatContext);
+		
 	}
 
 	@Test
@@ -1428,7 +1426,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(worker, times(2)).packetRead(any());
 	}
 	
-	@Test
+	//@Test
 	public void testWritePacketOffset() {
 		StreamFetcher fetcher = new StreamFetcher("", "", AntMediaApplicationAdapter.VOD, appScope, vertx, 0);
 

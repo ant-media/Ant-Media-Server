@@ -291,7 +291,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("secretpublish", appSettings.getTimeTokenSecretForPublish());
 
 		
-		assertEquals(true, appSettings.isHwScalingEnabled());
+		assertEquals(false, appSettings.isHwScalingEnabled());
 		appSettings.setHwScalingEnabled(false);
 		assertEquals(false, appSettings.isHwScalingEnabled());
 
@@ -537,11 +537,11 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(150, appSettings.getAbrUpScaleRTTMs(), 0.0001);
 		assertNotNull(appSettings.getClusterCommunicationKey());
 		assertEquals(false, appSettings.isId3TagEnabled());
-		assertEquals(true, appSettings.isSendAudioLevelToViewers());
+		assertEquals(false, appSettings.isSendAudioLevelToViewers());
 		assertNull(appSettings.getTimeTokenSecretForPublish());
 		assertNull(appSettings.getTimeTokenSecretForPlay());
 
-        assertTrue(appSettings.isHwScalingEnabled());
+        assertFalse(appSettings.isHwScalingEnabled());
 
 		assertNotNull(appSettings.getSubscriberAuthenticationKey());
 		assertNull(appSettings.getFirebaseAccountKeyJSON());
@@ -563,13 +563,15 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNull(appSettings.getRecordingSubfolder());
 		assertEquals("application/json", appSettings.getWebhookContentType());
 
+        assertEquals(2000, appSettings.getIceGatheringTimeoutMs());
+
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					182, numberOfFields);
+					183, numberOfFields);
 
 		
 	}

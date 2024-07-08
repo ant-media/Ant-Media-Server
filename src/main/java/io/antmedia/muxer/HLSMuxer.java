@@ -84,7 +84,7 @@ public class HLSMuxer extends Muxer  {
 
 	private ByteBuffer pendingSEIData;
 
-	private AVPacket tmpData;
+	private AVPacket tmpPacketForSEI;
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
@@ -198,7 +198,7 @@ public class HLSMuxer extends Muxer  {
 			}
 			
 			
-
+			tmpPacketForSEI = avcodec.av_packet_alloc();
 			isInitialized = true;
 		}
 
@@ -265,16 +265,14 @@ public class HLSMuxer extends Muxer  {
 			
 			
 			
-			logger.info("side data limit:{} for streamId:{}", pendingSEIData.limit(), streamId);
+			logger.info("sei data size:{} for streamId:{}", pendingSEIData.limit(), streamId);
 				
 			//inject SEI NAL Unit
 			pendingSEIData.rewind();
 			int newPacketSize = pkt.size() + pendingSEIData.limit();
-			
-			tmpData = new AVPacket();
-			
-			av_packet_ref(tmpData, pkt);
-			tmpData.position(0);
+						
+			av_packet_ref(tmpPacketForSEI, pkt);
+			tmpPacketForSEI.position(0);
 			
 			ByteBuffer packetbuffer = ByteBuffer.allocateDirect(newPacketSize);
 			
@@ -283,15 +281,15 @@ public class HLSMuxer extends Muxer  {
 			
 			packetbuffer.position(0);
 			
-			tmpData.data(new BytePointer(packetbuffer));
-			tmpData.data().position(0).limit(newPacketSize);
-			tmpData.size(packetbuffer.limit());			
+			tmpPacketForSEI.data(new BytePointer(packetbuffer));
+			tmpPacketForSEI.data().position(0).limit(newPacketSize);
+			tmpPacketForSEI.size(packetbuffer.limit());			
 	
 			pendingSEIData = null;
 			
-			super.writePacket(tmpData, inputTimebase, outputTimebase, codecType);
+			super.writePacket(tmpPacketForSEI, inputTimebase, outputTimebase, codecType);
 			
-			av_packet_unref(tmpData);
+			av_packet_unref(tmpPacketForSEI);
 			
 		} 
 		else {
@@ -626,6 +624,11 @@ public class HLSMuxer extends Muxer  {
 		if (id3DataPkt != null) {
 			av_packet_free(id3DataPkt);
 			id3DataPkt = null;
+		}
+		
+		if (tmpPacketForSEI != null) {
+			av_packet_free(tmpPacketForSEI);
+			tmpPacketForSEI = null;
 		}
 
 	}

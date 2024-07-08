@@ -1067,141 +1067,11 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	 * 
 	 */
 	
-	//TODO: ENABLE THIS TEST AGAIN. IT'S DISABLED BECAUSED WONDERSHAPER STOPPED TO WORK ON TRAVIS. IT GIVES QDISC ERRORS
 	//@Test
 	public void testBandwidth() {
-
-		boolean deleteHLSFilesOnExit = getAppSettings().isDeleteHLSFilesOnEnded();
-		getAppSettings().setDeleteHLSFilesOnEnded(false);
-		getAppSettings().setRtspTimeoutDurationMs(15000);
-
-		File f = new File("target/test.db");
-		if (f.exists()) {
-			try {
-				Files.delete(f.toPath());
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		DataStore dataStore = app.getDataStore(); //new MapDBStore("target/test.db"); //applicationContext.getBean(IDataStore.BEAN_NAME);
-
-		//assertNotNull(dataStore);
-
-		//DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
-		//Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
-		//app.setDataStoreFactory(dsf);
-
-		//set mapdb datastore to stream fetcher because in memory datastore just have references and updating broadcst
-		// object updates the reference in inmemorydatastore
-		app.getStreamFetcherManager().setDatastore(dataStore);
-
-
-		logger.info("running testBandwidth");
-		Application.enableSourceHealthUpdate = true;
-		assertNotNull(dataStore);
-
-		startCameraEmulator();
-
-		Broadcast newSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", 
-				"rtsp://127.0.0.1:6554/test.flv",
-				AntMediaApplicationAdapter.STREAM_SOURCE);
-
-		try {
-			newSource.setStreamId("zombiSource" + RandomStringUtils.randomAlphanumeric(12));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		//add stream to data store
-		dataStore.save(newSource);
-
-		Broadcast newZombiSource = new Broadcast("testBandwidth", "10.2.40.63:8080", "admin", "admin", 
-				"rtsp://127.0.0.1:6554/test.flv",
-				AntMediaApplicationAdapter.STREAM_SOURCE);
 		
-		try {
-			newZombiSource.setStreamId("newZombiSource" + RandomStringUtils.randomAlphanumeric(12));
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
-		newZombiSource.setZombi(true);
-		//add second stream to datastore
-		dataStore.save(newZombiSource);
-
-		//let stream fetching start
-		app.getStreamFetcherManager().testSetStreamCheckerInterval(5000);
-		//restart becaue sometimes connection drops of the network limitation
-		app.getStreamFetcherManager().setRestartStreamAutomatically(true);
-		app.getStreamFetcherManager().startStreaming(newSource);
-		app.getStreamFetcherManager().startStreaming(newZombiSource);
-
-
-
-		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.MILLISECONDS).until(() -> {
-			return dataStore.get(newZombiSource.getStreamId()).getSpeed() != 0;
-		});
-
-		logger.info("before first control");
-
-		List<Broadcast> broadcastList =  dataStore.getBroadcastList(0,  20, null, null, null, null);
-
-		Broadcast fetchedBroadcast = null;
-
-		for (Broadcast broadcast : broadcastList) {
-
-			logger.info("broadcast name: " + broadcast.getName() + " broadcast status :" + broadcast.getStatus() + " broadcast is zombi: " + broadcast.isZombi());
-			if(broadcast.isZombi()) {
-
-				fetchedBroadcast=broadcast;	
-				break;
-			}
-		}
-
-		assertNotNull(fetchedBroadcast);
-		assertEquals(fetchedBroadcast.getStreamId(), newZombiSource.getStreamId());
-		assertNotNull(fetchedBroadcast.getSpeed());
-
-
-		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			Broadcast stream = dataStore.get(newSource.getStreamId());
-			logger.info("speed {} stream id: {}" , stream.getSpeed(), stream.getStreamId()) ;
-			return stream != null && Math.abs(stream.getSpeed()-1) < 0.2;
-		});
-
-		assertEquals(0, limitNetworkInterfaceBandwidth(findActiveInterface()));
-
-		logger.info("Checking quality is again");
-
-		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*6, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			Broadcast streamTmp = dataStore.get(newSource.getStreamId());
-			logger.info("speed {}" , streamTmp.getSpeed()) ;
-			logger.info("quality {}" , streamTmp.getQuality()) ;
-
-			return streamTmp != null && streamTmp.getSpeed() < 0.7;
-			// the critical thing is the speed which less that 0.7
-		});
-
-		assertEquals(0, resetNetworkInterface(findActiveInterface()));
-
-		for (Broadcast broadcast: broadcastList) {
-			app.getStreamFetcherManager().stopStreaming(broadcast.getStreamId());
-		}
-
-		Awaitility.await().atMost(MuxAdaptor.STAT_UPDATE_PERIOD_MS*2, TimeUnit.MILLISECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			return app.getStreamFetcherManager().getStreamFetcherList().size() == 0;
-		});
-
-		//list size should be zero
-		//assertEquals(0, app.getStreamFetcherManager().getStreamFetcherList().size());
-		logger.info("leaving testBandwidth");
-
-		Application.enableSourceHealthUpdate = false;
-
-		getAppSettings().setDeleteHLSFilesOnEnded(deleteHLSFilesOnExit);
-		getAppSettings().setRtspTimeoutDurationMs(5000);
-
-
-		stopCameraEmulator();	
+		//This test is moved to {@link @MuxerUnitTest#testStreamSpeed} because it uses wondershaper and there is some kind of incompatibility with wondershaper and
+		//new versions
 
 	}
 
@@ -1235,27 +1105,31 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	private int resetNetworkInterface(String activeInterface) {
 		logger.info("Running resetNetworkInterface");
 
-		return runCommand("sudo wondershaper clear "+activeInterface);
-
+		String command = "sudo wondershaper " + activeInterface + " clear";
+		return runCommand(command);
 	}
-
+	
+	
 	private int limitNetworkInterfaceBandwidth(String activeInterface) {
 
 		logger.info("Running limitNetworkInterfaceBandwidth");
 		logger.info("active interface {}", activeInterface);
-
-		String command = "sudo wondershaper "+activeInterface+" 40 40";
-		logger.info("command : {}",command);
+		
+		
+		//Delete root qdisc - ignore the result
+		String command = "sudo wondershaper " + activeInterface + " 40 40";
+		// ignore the result
 		return runCommand(command);
-
-
+		
 	}
+	
+	
 
 	public int runCommand(String command) {
 		String[] argsStop = new String[] { "/bin/bash", "-c", command };
 
 		try {
-			logger.info("Running runCommand");
+			logger.info("Running runCommand: {}", command);
 
 			Process procStop = new ProcessBuilder(argsStop).start();
 
