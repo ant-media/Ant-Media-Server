@@ -2061,12 +2061,14 @@ public class AppSettings implements Serializable{
 	 * 
 	 * Ant Media Server sends audio level 5 times in a second
 	 */
-	@Value("${sendAudioLevelToViewers:true}")
-	private boolean sendAudioLevelToViewers = true;
-
-	
-	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":true}}")
-	private boolean hwScalingEnabled = true;
+	@Value("${sendAudioLevelToViewers:false}")
+	private boolean sendAudioLevelToViewers = false;
+  
+  /**
+   * Enable/disable video frame scaling in GPU when there is an adaptive bitrate 
+   */
+	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":false}}")
+	private boolean hwScalingEnabled = false;
 
 	/**
 	 * Firebase Service Account Key JSON to send push notification
