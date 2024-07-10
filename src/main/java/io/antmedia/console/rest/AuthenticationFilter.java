@@ -164,12 +164,17 @@ public class AuthenticationFilter extends AbstractFilter {
 
 					String dispatchURL = httpRequest.getParameter(DISPATCH_PATH_URL);
 					String appName = "";
-					if(dispatchURL != null){
-						appName = Arrays.asList(dispatchURL.split("/")).get(0);
-					}else{
-						//app name is at last. app settings case.
-						List<String> mList = Arrays.asList(path.split("/"));
-						appName = mList.get(mList.size() - 1);
+
+					if (StringUtils.isNotBlank(dispatchURL)) {
+						List<String> parts = Arrays.asList(dispatchURL.split("/"));
+						if (!parts.isEmpty()) {
+							appName = parts.get(0);
+						}
+					} else if (StringUtils.isNotEmpty(path)) {
+						List<String> parts = Arrays.asList(path.split("/"));
+						if (!parts.isEmpty()) {
+							appName = parts.get(parts.size() - 1);
+						}
 					}
 
 					boolean scopeAccess;
@@ -227,9 +232,9 @@ public class AuthenticationFilter extends AbstractFilter {
 									||
 									(currentUser.getAppNameUserType() != null && UserType.USER.equals(currentUser.getAppNameUserType().get(appName)) && (dispatchURL != null && dispatchURL.contains("/rest/v2/vods")))
 									||
-									(UserType.USER.equals(currentUser.getUserType()) && (dispatchURL != null && dispatchURL.contains("/rest/v2/broadcasts")))
+									(UserType.USER.equals(currentUser.getUserType()) && (dispatchURL != null && dispatchURL.contains("/rest/v2/broadcasts"))) // backwards comp
 									||
-									(UserType.USER.equals(currentUser.getUserType()) && (dispatchURL != null && dispatchURL.contains("/rest/v2/vods")))
+									(UserType.USER.equals(currentUser.getUserType()) && (dispatchURL != null && dispatchURL.contains("/rest/v2/vods"))) // backwards comp
 									)
 							{
 								//if user scope is system and granted, it cannot change anythings in the system scope server-settings, add/delete apps and users
