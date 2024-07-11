@@ -120,7 +120,7 @@
 	   file name: tomcat-coyote-10.1.19.jar
 	   This vulnerability is about Tomcat fails to handle some cases of excessive HTTP headers correctly. We don't have problem with our headers in our end
 	   ]]></notes>
-	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/(ffmpeg|cuda).*@.*$</packageUrl>
+	   <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat/tomcat-coyote@10\.1\.19$</packageUrl>
 	   <cve>CVE-2024-34750</cve>
 	</suppress>
 	
