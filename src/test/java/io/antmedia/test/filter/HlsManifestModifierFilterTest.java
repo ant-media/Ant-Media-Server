@@ -367,5 +367,129 @@ public class HlsManifestModifierFilterTest {
 		}
 	}
 
+	@Test
+	public void testAddTokenToTSSegmentURL() {
+		testAddTokenToSegmentURL(testM3u8);
+	}
+
+	@Test
+	public void testAddTokenToM4SSegmentURL() {
+		String mp4TypeM3U8 = testM3u8.replace(".ts", ".m4s");
+		testAddTokenToSegmentURL(mp4TypeM3U8);
+	}
+
+	public void testAddTokenToSegmentURL(String testFileContent) {
+		try {
+			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			ServletOutputStream outputStream = mock(ServletOutputStream.class);
+			when(mockResponse.getOutputStream()).thenReturn(outputStream);
+			when(mockResponse.getStatus()).thenReturn(200);
+			when(mockResponse.getWriter()).thenReturn(mock(java.io.PrintWriter.class));
+			FilterChain myChain = new FilterChain() {
+				@Override
+				public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) throws IOException, ServletException {
+					((ContentCachingResponseWrapper)servletResponse).setStatus(200);
+					((ContentCachingResponseWrapper)servletResponse).getOutputStream().write(testFileContent.getBytes());
+				}
+			};
+
+			String subscriberId = "testSubscriber";
+			String subscriberCode = "883068";
+			String token = "testToken";
+
+			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+			when(mockRequest.getMethod()).thenReturn("GET");
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/test.m3u8");
+			when(mockRequest.getParameter(WebSocketConstants.SUBSCRIBER_ID)).thenReturn(subscriberId);
+			when(mockRequest.getParameter(WebSocketConstants.SUBSCRIBER_CODE)).thenReturn(subscriberCode);
+			when(mockRequest.getParameter(WebSocketConstants.TOKEN)).thenReturn(token);
+
+
+			hlsManifestModifierFilter.doFilter(mockRequest, mockResponse, myChain);
+
+			//verify that the response is written with captor
+			ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
+			verify(outputStream).write(captor.capture());
+
+			String modifiedM3u8 = new String(captor.getValue());
+
+			Pattern pattern = Pattern.compile("subscriberCode=(\\w+)&subscriberId=(\\w+)");
+			Matcher matcher = pattern.matcher(modifiedM3u8);
+
+			boolean found = false;
+			while (matcher.find()) {
+				String subscriberCodeFound = matcher.group(1);
+				String subscriberIdFound = matcher.group(2);
+
+				assertEquals(subscriberCode, subscriberCodeFound);
+				assertEquals(subscriberId, subscriberIdFound);
+				found = true;
+				break;
+			}
+
+			assertTrue(found);
+
+
+
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} catch (ServletException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+
+	@Test
+	public void testAddToSegmentWithTimeInterval() {
+		try {
+			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			ServletOutputStream outputStream = mock(ServletOutputStream.class);
+			when(mockResponse.getOutputStream()).thenReturn(outputStream);
+			when(mockResponse.getStatus()).thenReturn(200);
+			when(mockResponse.getWriter()).thenReturn(mock(java.io.PrintWriter.class));
+			FilterChain myChain = new FilterChain() {
+				@Override
+				public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) throws IOException, ServletException {
+					((ContentCachingResponseWrapper)servletResponse).setStatus(200);
+					((ContentCachingResponseWrapper)servletResponse).getOutputStream().write(testM3u8.getBytes());
+				}
+			};
+
+
+			String subscriberId = "testSubscriber";
+			String subscriberCode = "883068";
+			String token = "testToken";
+
+			//blank start end params
+			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
+			when(mockRequest.getMethod()).thenReturn("GET");
+			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/test.m3u8");
+			when(mockRequest.getParameter(HlsManifestModifierFilter.START)).thenReturn("1709926082");
+			when(mockRequest.getParameter(HlsManifestModifierFilter.END)).thenReturn("1709926087");
+			when(mockRequest.getParameter(WebSocketConstants.SUBSCRIBER_ID)).thenReturn(subscriberId);
+			when(mockRequest.getParameter(WebSocketConstants.SUBSCRIBER_CODE)).thenReturn(subscriberCode);
+			when(mockRequest.getParameter(WebSocketConstants.TOKEN)).thenReturn(token);
+
+			hlsManifestModifierFilter.doFilter(mockRequest, mockResponse, myChain);
+
+			//verify that the response is written with captor
+			ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
+			verify(outputStream).write(captor.capture());
+
+			String modifiedM3u8 = new String(captor.getValue());
+			//System.out.println(modifiedM3u8);
+
+			assertFalse(modifiedM3u8.contains("test000000001.ts"));
+			assertTrue(modifiedM3u8.contains("test000000002.ts?subscriberCode=883068&subscriberId=testSubscriber&token=testToken"));
+			assertTrue(modifiedM3u8.contains("test000000003.ts?subscriberCode=883068&subscriberId=testSubscriber&token=testToken"));
+			assertTrue(modifiedM3u8.contains("test000000004.ts?subscriberCode=883068&subscriberId=testSubscriber&token=testToken"));
+			assertFalse(modifiedM3u8.contains("test000000005.ts"));
+
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} catch (ServletException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
 }
