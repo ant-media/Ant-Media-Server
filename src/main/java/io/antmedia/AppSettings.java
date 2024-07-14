@@ -736,6 +736,10 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
+	/**
+	 * @hidden
+	 */
+	private static final String SETTINGS_PARTICIPANT_VISIBILITY_MATRIX = "settings.participantVisibilityMatrix";
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -2165,7 +2169,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * Participant Visibility Matrix for WebRTC Clients
 	 */
-	@Value("${participantVisibilityMatrix:{\"default\": [\"default\"],\"host\":[\"host\",\"attendee\",\"speaker\"],\"attendee\":[\"speaker\",\"attendee\"],\"speaker\":[\"host\",\"speaker\",\"attendee\"]}}")
+	@Value("${participantVisibilityMatrix:${"+SETTINGS_PARTICIPANT_VISIBILITY_MATRIX+":{\"default\": [\"default\"],\"host\":[\"host\",\"attendee\",\"speaker\"],\"attendee\":[\"speaker\",\"attendee\"],\"speaker\":[\"host\",\"speaker\",\"attendee\"]}}}")
 	private String participantVisibilityMatrix = "";
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
