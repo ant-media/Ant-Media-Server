@@ -217,6 +217,8 @@ public class AuthenticationFilter extends AbstractFilter {
 							//if it's an admin, provide access - backward compatible
 							if (UserType.ADMIN.equals(currentUser.getUserType())
 									||
+									currentUser.getAppNameUserType().isEmpty() && currentUser.getUserType() == null
+									||
 									(currentUser.getAppNameUserType() != null && UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName)))
 							)
 							{
@@ -246,8 +248,8 @@ public class AuthenticationFilter extends AbstractFilter {
 							}
 						}
 						else {
-							if (UserType.ADMIN.equals(currentUser.getUserType()) || (currentUser.getAppNameUserType() != null && UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName))) &&
-									(path.startsWith("/rest/v2/applications/settings/" + userScope) || (path.startsWith(userScope) || path.startsWith(userScope, 1)))) 
+							if ((currentUser.getAppNameUserType() != null && UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName))) ||
+									UserType.ADMIN.equals(currentUser.getUserType()) && (path.startsWith("/rest/v2/applications/settings/" + userScope) || (path.startsWith(userScope) || path.startsWith(userScope, 1))))
 							{
 								//only admin user can access to change the application settings out of its scope
 								chain.doFilter(request, response);
@@ -312,7 +314,7 @@ public class AuthenticationFilter extends AbstractFilter {
 	private boolean checkScopeAccessForAppName(Map appNameUserType, String dispatchUrl) {
 
 		boolean granted = false;
-		if(appNameUserType == null || appNameUserType.containsKey("system")){
+		if(appNameUserType == null || appNameUserType.isEmpty() || appNameUserType.containsKey("system")){
 			granted = true;
 
 		}else{
