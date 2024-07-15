@@ -166,9 +166,9 @@ public class AuthenticationFilter extends AbstractFilter {
 					String appName = "";
 
 					if (StringUtils.isNotBlank(dispatchURL)) {
-						List<String> parts = Arrays.asList(dispatchURL.split("/"));
-						if (!parts.isEmpty()) {
-							appName = parts.get(0);
+						String[] parts = dispatchURL.split("/+");
+						if (parts.length > 0) {
+							appName = parts[0].isEmpty() && parts.length > 1 ? parts[1] : parts[0];
 						}
 					} else if (StringUtils.isNotEmpty(path)) {
 						List<String> parts = Arrays.asList(path.split("/"));
