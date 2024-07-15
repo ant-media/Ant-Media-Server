@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -161,7 +162,7 @@ public class ConsoleRestV2UnitTest {
 
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 1000000000);
-		User user = new User(userName, password, UserType.ADMIN, "system", null);
+		User user = new User(userName, password, UserType.ADMIN, "system", new HashMap<String, UserType>());
 		RestServiceV2 restServiceSpy = Mockito.spy(restService);
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
@@ -173,7 +174,7 @@ public class ConsoleRestV2UnitTest {
 
 		String userName2 = "username" + (int) (Math.random() * 1000000000);
 
-		user = new User(userName2, "second pass", UserType.ADMIN, "system", null);
+		user = new User(userName2, "second pass", UserType.ADMIN, "system", new HashMap<String, UserType>());
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
@@ -181,7 +182,7 @@ public class ConsoleRestV2UnitTest {
 
 		assertTrue(result.isSuccess());
 
-		user = new User(userName, "second pass", UserType.ADMIN, "system", null);
+		user = new User(userName, "second pass", UserType.ADMIN, "system", new HashMap<String, UserType>());
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
@@ -189,7 +190,7 @@ public class ConsoleRestV2UnitTest {
 
 		assertFalse(result.isSuccess());
 
-		user = new User(userName, "second pass", UserType.ADMIN, "system", null);
+		user = new User(userName, "second pass", UserType.ADMIN, "system", new HashMap<String, UserType>());
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
@@ -260,7 +261,9 @@ public class ConsoleRestV2UnitTest {
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			boolean sendUserInfo = restServiceSpy.sendUserInfo("test@antmedia.io", "firstname", "lastname", "scope", "admin");
+			HashMap<String,UserType> appNameUserTypeMap = new HashMap<>();
+			appNameUserTypeMap.put("system", UserType.ADMIN);
+			boolean sendUserInfo = restServiceSpy.sendUserInfo("test@antmedia.io", "firstname", "lastname","system","admin", appNameUserTypeMap);
 			return sendUserInfo;
 		});
 	}
@@ -601,7 +604,7 @@ public class ConsoleRestV2UnitTest {
 		//Add second user
 		String password2 = "password2";
 		String userName2 = "username" + (int) (Math.random() * 100000);
-		User user2 = new User(userName2, password2, UserType.READ_ONLY, "system", null);
+		User user2 = new User(userName2, password2, UserType.READ_ONLY, "system", new HashMap<String, UserType>());
 
 		result = restService.addUser(user2);
 		assertTrue(result.isSuccess());

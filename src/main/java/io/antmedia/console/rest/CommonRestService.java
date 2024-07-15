@@ -193,7 +193,7 @@ public class CommonRestService {
 		String message = "";
 		if (user != null) 
 		{
-			if (!getDataStore().doesUsernameExist(user.getEmail()) && user.getPassword() != null && user.getEmail() != null && !user.getAppNameUserType().isEmpty())
+			if (!getDataStore().doesUsernameExist(user.getEmail()) && user.getPassword() != null && user.getEmail() != null)
 			{
 				user.setPassword(getMD5Hash(user.getPassword()));
 				result = getDataStore().addUser(user);
@@ -201,7 +201,7 @@ public class CommonRestService {
 
 				new Thread() {
 					public void run() {
-						sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), "", "");
+						sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), user.getScope(), user.getUserType().toString(), user.getAppNameUserType());
 					};
 				}.start();
 			}
@@ -246,7 +246,7 @@ public class CommonRestService {
 			@Override
 			public void run() 
 			{
-				sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), user.getScope(), user.getUserType().toString());
+				sendUserInfo(user.getEmail(), user.getFirstName(), user.getLastName(), user.getScope(), user.getUserType().toString(), user.getAppNameUserType());
 			}
 		}.start();
 
@@ -258,7 +258,7 @@ public class CommonRestService {
 		return  HttpClients.createDefault();
 	}
 
-	public boolean sendUserInfo(String email, String firstname, String lastname, String scope, String userType) 
+	public boolean sendUserInfo(String email, String firstname, String lastname, String scope, String userType, Map<String,UserType> appNameUserTypeMap)
 	{
 		boolean success = false;
 
@@ -297,6 +297,10 @@ public class CommonRestService {
 			builder.addTextBody("instanceId", instanceId);
 			builder.addTextBody("userScope", scope);
 			builder.addTextBody("userType", userType);
+			String jsonAppNameUserType = gson.toJson(appNameUserTypeMap);
+			builder.addTextBody("appNameUserType", jsonAppNameUserType);
+
+
 
 
 			HttpEntity httpEntity = builder.build();
