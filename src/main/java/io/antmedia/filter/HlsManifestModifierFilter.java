@@ -165,7 +165,7 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 				String modifiedContent = modifyManifestFileContent(original, token, subscriberId, subscriberCode, regex);
 				response.setContentLength(modifiedContent.length());
 				response.getOutputStream().write(modifiedContent.getBytes());
-				response.getWriter().flush();
+				response.getOutputStream().flush();
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
