@@ -2983,7 +2983,12 @@ public class ConsoleAppRestServiceTest{
 	@Test
 	public void testMultiAppUserPermission() throws Exception {
 
-		String appName1 = "WebRTCAppEE";
+		Result result = callIsEnterpriseEdition();
+		String appName1 = "WebRTCApp";
+		if (result.isSuccess()) {
+			appName1 = "WebRTCAppEE";
+		}
+
 		String appName2 = "LiveApp";
 		String appName3 = "live";
 
@@ -3588,6 +3593,30 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(e.getMessage().contains("403"));
 		}
 
+		resetCookieStore();
+		authenticateDefaultUser();
+
+		Result deleteUserRes = callDeleteUser(user1.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
+		deleteUserRes = callDeleteUser(user2.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
+		deleteUserRes = callDeleteUser(user3.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
+		deleteUserRes = callDeleteUser(user4.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
+		deleteUserRes = callDeleteUser(user5.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
+		deleteUserRes = callDeleteUser(user6.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
+		deleteUserRes = callDeleteUser(user7.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
 
 	}
 
@@ -3684,13 +3713,11 @@ public class ConsoleAppRestServiceTest{
 
 	public static Result callDeleteUser(String userName) {
 		try {
-			// delete broadcast
 			String url = ROOT_SERVICE_URL + "/users/"+userName;
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).setDefaultCookieStore(httpCookieStore).build();
 
-			HttpUriRequest delete = RequestBuilder.delete().setUri(url)
-					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+			HttpUriRequest delete = RequestBuilder.delete().setUri(url).build();
 
 			CloseableHttpResponse response = client.execute(delete);
 
