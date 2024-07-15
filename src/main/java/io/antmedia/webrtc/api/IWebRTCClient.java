@@ -165,13 +165,17 @@ public interface IWebRTCClient {
 	 * @return stream resolution forced value
 	 * If it's automatic, it returns 0
 	 */
-	public int getForceStreamHeight();
+	public int getForceStreamHeight(String streamId);
 	
 	/**
 	 * 
-	 * @return stream resolution current value
+	 * @param streamHeight the resolution height to be forced to send 
+	 * 
+     * @param subtrackId the subtrack id to be forced to send. If it's null or empty, it just replaces main streamId
+	 * 
+	 * @return true if it's successful, false if it's not changed
 	 */
-	public void forceStreamQuality(int streamHeight);
+	public boolean forceStreamQuality(int streamHeight, String subtrackId);
 
 	/**
 	 * 
@@ -195,8 +199,9 @@ public interface IWebRTCClient {
 	/**
 	 * Client stream resolution change notification
 	 * @param streamHeight
+	 * @param streamId is may be the main streamId or subtrackId
 	 */
-	public void notifyWebRTCClientAboutChangeInResolution(int streamHeight);
+	public void notifyWebRTCClientAboutChangeInResolution(int streamHeight, String streamId);
 	
 	/**
 	 * Getter for stream Id
