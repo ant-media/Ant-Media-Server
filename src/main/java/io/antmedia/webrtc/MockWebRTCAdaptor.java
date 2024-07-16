@@ -109,7 +109,7 @@ public class MockWebRTCAdaptor implements IWebRTCAdaptor{
 	}
 
 	@Override
-	public void forceStreamingQuality(String streamId, IWebRTCClient webRTCClient, int streamHeight) {
-		//No implementation since this is mock
+	public boolean forceStreamingQuality(String streamId, IWebRTCClient webRTCClient, int streamHeight) {
+		return false;
 	}
 }
