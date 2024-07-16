@@ -188,6 +188,15 @@ public class RestServiceV2 extends CommonRestService {
 	public Result authenticateUser(@Parameter(description = "User object to authenticate", required = true) User user) {
 	    return super.authenticateUser(user);
 	}
+	
+	@DELETE
+	@Path("/users/logout")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Override
+	public Result deleteSession() {
+	    return super.deleteSession();
+	}
 
 
 	@Operation(summary = "Changes the given user's password",

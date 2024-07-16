@@ -407,6 +407,16 @@ public class CommonRestService {
 		return new Result(result, message);
 
 	}
+	
+	
+	public Result deleteSession() {
+		HttpSession session = servletRequest.getSession();
+		session.invalidate();
+		
+		return new Result(true);
+	}
+	
+	
 	public void setRequestForTest(HttpServletRequest testRequest){
 		servletRequest = testRequest;
 	}
