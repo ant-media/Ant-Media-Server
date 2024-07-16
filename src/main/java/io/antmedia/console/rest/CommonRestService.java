@@ -63,7 +63,7 @@ import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.SslConfigurationType;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.SslConfigurator;
 import io.antmedia.settings.ServerSettings;
@@ -230,8 +230,8 @@ public class CommonRestService {
 		user.setPassword(getMD5Hash(user.getPassword()));
 		user.setUserType(UserType.ADMIN);
 		user.setScope(SCOPE_SYSTEM);
-		Map<String, UserType> appNameUserType = new HashMap<>();
-		appNameUserType.put(SCOPE_SYSTEM, UserType.ADMIN);
+		Map<String, String> appNameUserType = new HashMap<>();
+		appNameUserType.put(SCOPE_SYSTEM, UserType.ADMIN.toString());
 		user.setAppNameUserType(appNameUserType);
 
 		if (getDataStore().getNumberOfUserRecords() == 0) {
@@ -258,7 +258,7 @@ public class CommonRestService {
 		return  HttpClients.createDefault();
 	}
 
-	public boolean sendUserInfo(String email, String firstname, String lastname, String scope, String userType, Map<String,UserType> appNameUserTypeMap)
+	public boolean sendUserInfo(String email, String firstname, String lastname, String scope, String userType, Map<String,String> appNameUserTypeMap)
 	{
 		boolean success = false;
 
@@ -400,11 +400,11 @@ public class CommonRestService {
 					JsonObject appNameUserTypeJson = new JsonObject();
 
 					// Iterate through the map and construct the JSON object
-					for (Map.Entry<String, UserType> entry : user.getAppNameUserType().entrySet()) {
+					for (Map.Entry<String, String> entry : user.getAppNameUserType().entrySet()) {
 						String appName = entry.getKey();
-						UserType userType = entry.getValue();
+						String userType = entry.getValue();
 
-						appNameUserTypeJson.addProperty(appName, userType.toString());
+						appNameUserTypeJson.addProperty(appName, userType);
 					}
 
 					message = appNameUserTypeJson.toString();

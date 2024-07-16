@@ -30,7 +30,7 @@ import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import io.antmedia.console.rest.AuthenticationFilter;
 import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.datastore.db.types.User;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 
 public class AuthenticationFilterTest {
@@ -570,8 +570,8 @@ public class AuthenticationFilterTest {
 
 
 			User user = Mockito.mock(User.class);
-			Map<String,UserType> appNameUserTypeMap = new HashMap<>();
-			appNameUserTypeMap.put("LiveApp", UserType.ADMIN);
+			Map<String,String> appNameUserTypeMap = new HashMap<>();
+			appNameUserTypeMap.put("LiveApp", UserType.ADMIN.toString());
 
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
 
@@ -607,7 +607,7 @@ public class AuthenticationFilterTest {
 			Mockito.verify(response, Mockito.times(3)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 
 			// It should access
-			appNameUserTypeMap.put("WebRTCAppEE", UserType.ADMIN);
+			appNameUserTypeMap.put("WebRTCAppEE", UserType.ADMIN.toString());
 			Mockito.when(request.getRequestURI()).thenReturn("/rest/v2/applications/settings/WebRTCAppEE");
 			filter.doFilter(request, response, chain);
 			Mockito.verify(chain, Mockito.times(4)).doFilter(request, response);
@@ -645,8 +645,8 @@ public class AuthenticationFilterTest {
 		AbstractConsoleDataStore store = Mockito.mock(AbstractConsoleDataStore.class);
 		Mockito.doReturn(store).when(filter).getAbstractConsoleDataStore();
 		User user = Mockito.mock(User.class);
-		Map<String,UserType> appNameUserTypeMap = new HashMap<>();
-		appNameUserTypeMap.put("LiveApp", UserType.ADMIN);
+		Map<String,String> appNameUserTypeMap = new HashMap<>();
+		appNameUserTypeMap.put("LiveApp", UserType.ADMIN.toString());
 
 		Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
 
@@ -662,7 +662,7 @@ public class AuthenticationFilterTest {
 			Mockito.verify(chain, Mockito.times(2)).doFilter(request, response);
 
 			appNameUserTypeMap = new HashMap<>();
-			appNameUserTypeMap.put("system", UserType.ADMIN);
+			appNameUserTypeMap.put("system", UserType.ADMIN.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
 
 			Mockito.when(request.getRequestURI()).thenReturn("/rest/v2/server-settings");
@@ -672,7 +672,7 @@ public class AuthenticationFilterTest {
 			// Type: Admin, Scope: LiveApp and requested: change server-settings
 			// It shouldn't access
 			 appNameUserTypeMap = new HashMap<>();
-			appNameUserTypeMap.put("WebRTCAppEE", UserType.ADMIN);
+			appNameUserTypeMap.put("WebRTCAppEE", UserType.ADMIN.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
 
 			Mockito.when(request.getRequestURI()).thenReturn("/rest/v2/server-settings");
@@ -682,7 +682,7 @@ public class AuthenticationFilterTest {
 			// Type: User, Scope: LiveApp and requested: change server-settings
 			// It shouldn't access
 			appNameUserTypeMap = new HashMap<>();
-			appNameUserTypeMap.put("LiveApp", UserType.USER);
+			appNameUserTypeMap.put("LiveApp", UserType.USER.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
 			Mockito.when(request.getRequestURI()).thenReturn("/rest/v2/server-settings");
 			filter.doFilter(request, response, chain);
@@ -691,7 +691,7 @@ public class AuthenticationFilterTest {
 			// Type: User, Scope: system and requested: change server-settings
 			// It shouldn't access
 			appNameUserTypeMap = new HashMap<>();
-			appNameUserTypeMap.put("system", UserType.USER);
+			appNameUserTypeMap.put("system", UserType.USER.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
 			Mockito.when(request.getParameter(AuthenticationFilter.DISPATCH_PATH_URL)).thenReturn("");
 			Mockito.when(request.getRequestURI()).thenReturn("/rest/v2/server-settings");
@@ -705,7 +705,7 @@ public class AuthenticationFilterTest {
 			// It should access
 
 			appNameUserTypeMap = new HashMap<>();
-			appNameUserTypeMap.put("system", UserType.ADMIN);
+			appNameUserTypeMap.put("system", UserType.ADMIN.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
 
 			Mockito.when(request.getParameter(AuthenticationFilter.DISPATCH_PATH_URL)).thenReturn("WebRTCAppEE/rest/v2/");
@@ -715,7 +715,7 @@ public class AuthenticationFilterTest {
 
 
 			appNameUserTypeMap = new HashMap<>();
-			appNameUserTypeMap.put("WebRTCAppEE", UserType.ADMIN);
+			appNameUserTypeMap.put("WebRTCAppEE", UserType.ADMIN.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
 			Mockito.when(request.getParameter(AuthenticationFilter.DISPATCH_PATH_URL)).thenReturn("/LiveApp/rest/v2");
 			filter.doFilter(request, response, chain);
@@ -729,7 +729,7 @@ public class AuthenticationFilterTest {
 
 
 			appNameUserTypeMap = new HashMap<>();
-			appNameUserTypeMap.put("WebRTCAppEE", UserType.USER);
+			appNameUserTypeMap.put("WebRTCAppEE", UserType.USER.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
 			Mockito.when(request.getParameter(AuthenticationFilter.DISPATCH_PATH_URL)).thenReturn("WebRTCAppEE/rest/v2/broadcasts");
 			Mockito.when(request.getRequestURI()).thenReturn("rest/v2/request");
@@ -752,7 +752,7 @@ public class AuthenticationFilterTest {
 			// Type: Read-Only, Scope: system and requested application: WebRTCAppEE
 			// It shouldn't access
 			appNameUserTypeMap = new HashMap<>();
-			appNameUserTypeMap.put("system", UserType.READ_ONLY);
+			appNameUserTypeMap.put("system", UserType.READ_ONLY.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
 			Mockito.when(request.getParameter(AuthenticationFilter.DISPATCH_PATH_URL)).thenReturn("WebRTCAppEE/rest/v2/broadcasts");
 			Mockito.when(request.getRequestURI()).thenReturn("rest/v2/request");
@@ -760,7 +760,7 @@ public class AuthenticationFilterTest {
 			Mockito.verify(response, Mockito.times(6)).sendError(HttpServletResponse.SC_FORBIDDEN, "Not allowed to access this resource. Contact system admin");
 
 			appNameUserTypeMap = new HashMap<>();
-			appNameUserTypeMap.put("WebRTCAppEE", UserType.READ_ONLY);
+			appNameUserTypeMap.put("WebRTCAppEE", UserType.READ_ONLY.toString());
 			Mockito.when(user.getAppNameUserType()).thenReturn(appNameUserTypeMap);
 			Mockito.when(request.getParameter(AuthenticationFilter.DISPATCH_PATH_URL)).thenReturn("/LiveApp/rest/v2/broadcasts");
 			filter.doFilter(request, response, chain);

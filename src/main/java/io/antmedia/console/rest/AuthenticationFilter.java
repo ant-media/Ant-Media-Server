@@ -5,7 +5,6 @@ import java.security.interfaces.RSAPublicKey;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -32,7 +31,7 @@ import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.filter.AbstractFilter;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 import jakarta.ws.rs.HttpMethod;
 
@@ -41,9 +40,6 @@ public class AuthenticationFilter extends AbstractFilter {
 	public static final String DISPATCH_PATH_URL = "_path";
 	public static final String PROXY_AUTHORIZATION_HEADER_JWT_TOKEN = "ProxyAuthorization";
 	public static final String FORBIDDEN_ERROR = "Not allowed to access this resource. Contact system admin";
-
-	Pattern extractAppNamePattern = Pattern.compile("(?<=://[^/]/)[^/]+(?=/rest)");
-
 
 	public AbstractConsoleDataStore getAbstractConsoleDataStore()
 	{
@@ -219,7 +215,7 @@ public class AuthenticationFilter extends AbstractFilter {
 									||
 									currentUser.getAppNameUserType().isEmpty() && currentUser.getUserType() == null
 									||
-									(currentUser.getAppNameUserType() != null && UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName)))
+									(currentUser.getAppNameUserType() != null && UserType.ADMIN.toString().equals(currentUser.getAppNameUserType().get(appName)))
 							)
 							{
 								chain.doFilter(request, response);
@@ -228,11 +224,11 @@ public class AuthenticationFilter extends AbstractFilter {
 							else if (
 									UserType.ADMIN.equals(currentUser.getUserType())
 									||
-									(currentUser.getAppNameUserType() != null && UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName)))
+									(currentUser.getAppNameUserType() != null && UserType.ADMIN.toString().equals(currentUser.getAppNameUserType().get(appName)))
 									||
-									(currentUser.getAppNameUserType() != null && UserType.USER.equals(currentUser.getAppNameUserType().get(appName)) && (dispatchURL != null && dispatchURL.contains("/rest/v2/broadcasts")))
+									(currentUser.getAppNameUserType() != null && UserType.USER.toString().equals(currentUser.getAppNameUserType().get(appName)) && (dispatchURL != null && dispatchURL.contains("/rest/v2/broadcasts")))
 									||
-									(currentUser.getAppNameUserType() != null && UserType.USER.equals(currentUser.getAppNameUserType().get(appName)) && (dispatchURL != null && dispatchURL.contains("/rest/v2/vods")))
+									(currentUser.getAppNameUserType() != null && UserType.USER.toString().equals(currentUser.getAppNameUserType().get(appName)) && (dispatchURL != null && dispatchURL.contains("/rest/v2/vods")))
 									||
 									(UserType.USER.equals(currentUser.getUserType()) && (dispatchURL != null && dispatchURL.contains("/rest/v2/broadcasts"))) // backwards comp
 									||
@@ -248,7 +244,7 @@ public class AuthenticationFilter extends AbstractFilter {
 							}
 						}
 						else {
-							if ((currentUser.getAppNameUserType() != null && UserType.ADMIN.equals(currentUser.getAppNameUserType().get(appName))) ||
+							if ((currentUser.getAppNameUserType() != null && UserType.ADMIN.toString().equals(currentUser.getAppNameUserType().get(appName))) ||
 									UserType.ADMIN.equals(currentUser.getUserType()) && (path.startsWith("/rest/v2/applications/settings/" + userScope) || (path.startsWith(userScope) || path.startsWith(userScope, 1))))
 							{
 								//only admin user can access to change the application settings out of its scope

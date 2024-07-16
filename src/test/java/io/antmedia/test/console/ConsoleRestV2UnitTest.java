@@ -48,7 +48,7 @@ import io.antmedia.console.rest.RestServiceV2;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.model.Result;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
 import io.vertx.core.Vertx;
@@ -162,7 +162,7 @@ public class ConsoleRestV2UnitTest {
 
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 1000000000);
-		User user = new User(userName, password, UserType.ADMIN, "system", new HashMap<String, UserType>());
+		User user = new User(userName, password, UserType.ADMIN, "system", new HashMap<String, String>());
 		RestServiceV2 restServiceSpy = Mockito.spy(restService);
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
@@ -174,7 +174,7 @@ public class ConsoleRestV2UnitTest {
 
 		String userName2 = "username" + (int) (Math.random() * 1000000000);
 
-		user = new User(userName2, "second pass", UserType.ADMIN, "system", new HashMap<String, UserType>());
+		user = new User(userName2, "second pass", UserType.ADMIN, "system", new HashMap<String, String>());
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
@@ -182,7 +182,7 @@ public class ConsoleRestV2UnitTest {
 
 		assertTrue(result.isSuccess());
 
-		user = new User(userName, "second pass", UserType.ADMIN, "system", new HashMap<String, UserType>());
+		user = new User(userName, "second pass", UserType.ADMIN, "system", new HashMap<String, String>());
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
@@ -190,7 +190,7 @@ public class ConsoleRestV2UnitTest {
 
 		assertFalse(result.isSuccess());
 
-		user = new User(userName, "second pass", UserType.ADMIN, "system", new HashMap<String, UserType>());
+		user = new User(userName, "second pass", UserType.ADMIN, "system", new HashMap<String, String>());
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
@@ -261,8 +261,8 @@ public class ConsoleRestV2UnitTest {
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			HashMap<String,UserType> appNameUserTypeMap = new HashMap<>();
-			appNameUserTypeMap.put("system", UserType.ADMIN);
+			HashMap<String,String> appNameUserTypeMap = new HashMap<>();
+			appNameUserTypeMap.put("system", UserType.ADMIN.toString());
 			boolean sendUserInfo = restServiceSpy.sendUserInfo("test@antmedia.io", "firstname", "lastname","system","admin", appNameUserTypeMap);
 			return sendUserInfo;
 		});
@@ -604,7 +604,7 @@ public class ConsoleRestV2UnitTest {
 		//Add second user
 		String password2 = "password2";
 		String userName2 = "username" + (int) (Math.random() * 100000);
-		User user2 = new User(userName2, password2, UserType.READ_ONLY, "system", new HashMap<String, UserType>());
+		User user2 = new User(userName2, password2, UserType.READ_ONLY, "system", new HashMap<String, String>());
 
 		result = restService.addUser(user2);
 		assertTrue(result.isSuccess());

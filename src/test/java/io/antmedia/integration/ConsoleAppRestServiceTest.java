@@ -15,8 +15,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
-import java.net.InetAddress;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Instant;
@@ -27,9 +25,7 @@ import java.util.regex.Pattern;
 
 import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.datastore.db.types.*;
-import io.antmedia.rest.model.UserType;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
+import io.antmedia.datastore.db.types.UserType;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -3021,6 +3017,8 @@ public class ConsoleAppRestServiceTest{
 		//if its admin of the application he can do broadcast and vod calls and change app settings
 		//if its user of the application he can do broadcast and vod calls but cannot change app settings
 		//if its read_only of the application he can only read, cant create/delete broadcast, cant change app settings.
+		//if application does not exist in the map user cant do anything to the application.
+		//"system" as key means all existing apps.
 
 		User user1 = new User();
 		user1.setEmail("userTest1@antmedia.io");
@@ -3616,8 +3614,6 @@ public class ConsoleAppRestServiceTest{
 
 		deleteUserRes = callDeleteUser(user7.getEmail());
 		assertTrue(deleteUserRes.isSuccess());
-
-
 	}
 
 	public static List<VoD> callGetVoDList(int offset, int size, String appName) {

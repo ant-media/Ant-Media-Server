@@ -1,13 +1,8 @@
 package io.antmedia.datastore.db.types;
 
+import dev.morphia.annotations.*;
 import org.bson.types.ObjectId;
 
-import dev.morphia.annotations.Entity;
-import dev.morphia.annotations.Field;
-import dev.morphia.annotations.Id;
-import dev.morphia.annotations.Index;
-import dev.morphia.annotations.Indexes;
-import io.antmedia.rest.model.UserType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.Map;
@@ -44,9 +39,8 @@ public class User {
     @Schema(description = "The scope of the user. If it's 'system', it can access system-level stuff. If it's an application name, it can access application-level stuff.")
     private String scope;
 
-
 	@Schema(description = "Holds app -> scope of access data. After 2.9.1 users can have multiple app access with different access types.")
-	private Map<String, UserType> appNameUserType;
+	private Map<String, String> appNameUserType;
 
 	/**
      * The new password of the user. This field is only set for certain user types.
@@ -84,7 +78,7 @@ public class User {
     @Id
     private ObjectId id;
 
-	public User(String email, String password, UserType userType, String scope, Map<String, UserType> appNameUserTypeMap) {
+	public User(String email, String password, UserType userType, String scope, Map<String, String> appNameUserTypeMap) {
 		this.email = email;
 		this.password = password;
 		this.userType = userType;
@@ -174,11 +168,11 @@ public class User {
 		this.lastName = lastName;
 	}
 
-	public Map<String, UserType> getAppNameUserType() {
+	public Map<String, String> getAppNameUserType() {
 		return appNameUserType;
 	}
 
-	public void setAppNameUserType(Map<String, UserType> appNameUserType) {
+	public void setAppNameUserType(Map<String, String> appNameUserType) {
 		this.appNameUserType = appNameUserType;
 	}
 }

@@ -48,7 +48,7 @@ import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;

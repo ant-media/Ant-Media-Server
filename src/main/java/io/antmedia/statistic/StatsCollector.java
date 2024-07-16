@@ -1,17 +1,13 @@
 package io.antmedia.statistic;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -22,7 +18,6 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -69,7 +64,7 @@ import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.WebRTCClientStats;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
