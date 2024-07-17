@@ -460,6 +460,11 @@ public class WebSocketConstants {
 	 * It's sent for the restored webrtc publish sessions
 	 */
 	public static final String SESSION_RESTORED_DESCRIPTION = "session_restored";
+
+	/**
+	 * It's sent for the interrupted webrtc publish sessions
+	 */
+	public static final String CONNECTION_INTERRUPTED_DESCRIPTION = "connection_interrupted";
 	
 	/**
 	 * It's the field that maps sdp mid to stream id
