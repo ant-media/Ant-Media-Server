@@ -248,13 +248,15 @@ jobs:
         with:
           branch_name: ${{ github.ref_name }}
       - name: Deploy snapshots
-        if: github.ref_type != 'tag'
+      #if it is a master branch
+        if: github.ref == 'refs/heads/master' #if it is a master branch
         run: |
           echo "Deploy to snapshots"
           mvn deploy -P assemble -DskipTests --settings mvn-settings.xml
           echo "Deploy to snapshots exited with $?"
 
       - name: Deploy release
+       #if it is a tagged 
         if: startsWith(github.ref, 'refs/tags/ams-v')
         run: |
           echo "Deploy to release"
