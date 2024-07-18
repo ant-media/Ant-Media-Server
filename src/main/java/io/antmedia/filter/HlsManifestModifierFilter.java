@@ -15,6 +15,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +33,8 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 	public static final String START = "start";
 	public static final String END = "end";
+	public static final String SEGMENT_FILE_REGEX = "\\b\\S+\\.(ts|m4s)\\b";
+	public static final String MANIFEST_FILE_REGEX = "\\b\\S+\\.m3u8\\b";
 	protected static Logger logger = LoggerFactory.getLogger(HlsManifestModifierFilter.class);
 
 	@Override
@@ -48,15 +51,19 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 			String subscriberId = request.getParameter("subscriberId");
 			String subscriberCode = request.getParameter("subscriberCode");
 
-			if(httpRequest.getRequestURI().contains(ADAPTIVE_SUFFIX) &&
-					(!StringUtils.isNullOrEmpty(subscriberId) ||
-					!StringUtils.isNullOrEmpty(subscriberCode) ||
-					!StringUtils.isNullOrEmpty(token))){
+			boolean parameterExists = !StringUtils.isNullOrEmpty(token) || !StringUtils.isNullOrEmpty(subscriberId) || !StringUtils.isNullOrEmpty(subscriberCode);
+
+			if(httpRequest.getRequestURI().contains(ADAPTIVE_SUFFIX) && parameterExists){
 				addSecurityParametersToAdaptiveM3u8File(token, subscriberId, subscriberCode, request, response, chain);
 			}
 
 			if(StringUtils.isNullOrEmpty(startDate) || StringUtils.isNullOrEmpty(endDate)) {
-				chain.doFilter(httpRequest, response);
+				if (!httpRequest.getRequestURI().contains(ADAPTIVE_SUFFIX) && parameterExists) {
+					addSecurityParametersToSegmentUrls(token, subscriberId, subscriberCode, request, response, chain);
+				}
+				else {
+					chain.doFilter(httpRequest, response);
+				}
 			}
 			else {
 				long start = Long.parseLong(startDate);
@@ -103,7 +110,11 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 						// Modify the original data
 						MediaPlaylistParser parser2 = new MediaPlaylistParser();
 
-						final String newData = parser2.writePlaylistAsString(newPlayList);
+						String newData = parser2.writePlaylistAsString(newPlayList);
+
+						if(parameterExists) {
+							newData = modifyManifestFileContent(newData, token, subscriberId, subscriberCode, SEGMENT_FILE_REGEX);
+						}
 
 						// Write the data into the output stream
 						response.setContentLength(newData.length());
@@ -128,7 +139,18 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 	}
 
+	private void addSecurityParametersToSegmentUrls(String token, String subscriberId, String subscriberCode, ServletRequest request, ServletResponse response, FilterChain chain) throws IOException {
+
+		addSecurityParametersToURLs(token, subscriberId, subscriberCode, request, response, chain, SEGMENT_FILE_REGEX);
+	}
+
 	public void addSecurityParametersToAdaptiveM3u8File(String token, String subscriberId, String subscriberCode, ServletRequest request, ServletResponse response, FilterChain chain) throws IOException {
+		addSecurityParametersToURLs(token, subscriberId, subscriberCode, request, response, chain, MANIFEST_FILE_REGEX);
+	}
+
+	public void addSecurityParametersToURLs(String token, String subscriberId, String subscriberCode,
+											ServletRequest request, ServletResponse response, FilterChain chain,
+											String regex) throws IOException {
 		HttpServletResponse httpResponse = (HttpServletResponse) response;
 		ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(httpResponse);
 
@@ -140,34 +162,10 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 				byte[] originalData = responseWrapper.getContentAsByteArray();
 				String original = new String(originalData);
 
-				String regex = "\\b\\S+\\.m3u8\\b";
-				Pattern pattern = Pattern.compile(regex);
-				Matcher matcher = pattern.matcher(original);
-
-				StringBuffer result = new StringBuffer();
-				while (matcher.find()) {
-					String replacementString = matcher.group() + "?";
-
-					if (!StringUtils.isNullOrEmpty(subscriberCode)) {
-						replacementString += WebSocketConstants.SUBSCRIBER_CODE + "=" + subscriberCode;
-					}
-
-					if (!StringUtils.isNullOrEmpty(subscriberId)) {
-						replacementString += "&"+ WebSocketConstants.SUBSCRIBER_ID + "=" + subscriberId;
-					}
-
-					if (!StringUtils.isNullOrEmpty(token)) {
-						replacementString += "&"+ WebSocketConstants.TOKEN + "=" + token;
-					}
-
-					matcher.appendReplacement(result, replacementString);
-				}
-				matcher.appendTail(result);
-
-				String modifiedContent = result.toString();
+				String modifiedContent = modifyManifestFileContent(original, token, subscriberId, subscriberCode, regex);
 				response.setContentLength(modifiedContent.length());
 				response.getOutputStream().write(modifiedContent.getBytes());
-				response.getWriter().flush();
+				response.getOutputStream().flush();
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
@@ -179,5 +177,31 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 		}
 	}
 
+	private String modifyManifestFileContent(String original, String token, String subscriberId, String subscriberCode, String regex) {
+		Pattern pattern = Pattern.compile(regex);
+		Matcher matcher = pattern.matcher(original);
 
+		StringBuffer result = new StringBuffer();
+		while (matcher.find()) {
+			String replacementString = matcher.group() + "?";
+
+			if (!StringUtils.isNullOrEmpty(subscriberCode)) {
+				replacementString += WebSocketConstants.SUBSCRIBER_CODE + "=" + subscriberCode;
+			}
+
+			if (!StringUtils.isNullOrEmpty(subscriberId)) {
+				replacementString += "&" + WebSocketConstants.SUBSCRIBER_ID + "=" + subscriberId;
+			}
+
+			if (!StringUtils.isNullOrEmpty(token)) {
+				replacementString += "&" + WebSocketConstants.TOKEN + "=" + token;
+			}
+
+			matcher.appendReplacement(result, replacementString);
+		}
+		matcher.appendTail(result);
+
+		String modifiedContent = result.toString();
+		return modifiedContent;
+	}
 }
