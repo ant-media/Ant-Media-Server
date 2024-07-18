@@ -623,6 +623,22 @@ public class ConsoleRestV2UnitTest {
 		result = restService.editUser(null);
 		assertFalse(result.isSuccess());
 	}
+	
+	@Test
+	public void testInvalidateSession() {
+		HttpSession session = Mockito.mock(HttpSession.class);
+		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
+		Mockito.when(mockRequest.getSession()).thenReturn(session);
+		restService.setRequestForTest(mockRequest);
+
+		
+		restService.deleteSession();
+		
+		Mockito.verify(session).invalidate();
+		
+		
+	}
 
 	@Test
 	public void testDeleteUser() {
