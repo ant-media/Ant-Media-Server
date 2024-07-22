@@ -464,8 +464,8 @@ public class WebSocketConstants {
 	/**
 	 * It's sent for the interrupted webrtc publish sessions
 	 */
-	public static final String CONNECTION_INTERRUPTED_DESCRIPTION = "connection_interrupted";
-	
+	public static final String CONNECTION_DISCONNECT_UNINTENTIONALLY = "connectionDisconnectUnintentionally";
+
 	/**
 	 * It's the field that maps sdp mid to stream id
 	 */
