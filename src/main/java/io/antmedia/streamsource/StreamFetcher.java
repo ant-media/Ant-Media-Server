@@ -664,7 +664,7 @@ public class StreamFetcher {
 				i f(streamPublished) {
 					//If stream is not getting started, this is not called
 					getInstance().closeBroadcast(streamId);
-					streamPublishe d =false;
+					streamPublished =false;
 					closeCalled = true;
 				}
 
@@ -799,7 +799,7 @@ public class StreamFetcher {
 
 				//put audio and video lastSentDTS into an array
 				List<Long> lastSendDTSInMsList = new ArrayList<>();
-				fo r(int i = 0; i < lastSentDTS.length; i++)
+				for(int i = 0; i < lastSentDTS.length; i++)
 				{
 					if (getCodecType(i) == AVMEDIA_TYPE_VIDEO || getCodecType(i)  == AVMEDIA_TYPE_AUDIO) {
 						long dtsInMs = av_rescale_q(lastSentDTS[i], getStreamTimebase(i), MuxAdaptor.TIME_BASE_FOR_MS);
@@ -823,7 +823,7 @@ public class StreamFetcher {
 				long asyncThreshold = 150;
 				//if lastSentDTS is more than 150 ms, it means that there is a accumulated problem.
 				//The assumption is that we receive sync video/audio
-				if (Math.abs(maxValueInMillisecond s -minValueInMilliseconds) > asyncThreshold)
+				if (Math.abs(maxValueInMilliseconds -minValueInMilliseconds) > asyncThreshold)
 				{
 					logger.warn("Audio/Video sync is more than {}ms for stream:{} and trying to synch the packets", asyncThreshold, streamId);
 					fo r(int i = 0; i < lastSentDTS.length; i++)
