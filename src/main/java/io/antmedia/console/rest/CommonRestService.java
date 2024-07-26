@@ -398,8 +398,6 @@ public class CommonRestService {
 
 				}else if(user.getAppNameUserType() != null){
 					JsonObject appNameUserTypeJson = new JsonObject();
-
-					// Iterate through the map and construct the JSON object
 					for (Map.Entry<String, String> entry : user.getAppNameUserType().entrySet()) {
 						String appName = entry.getKey();
 						String userType = entry.getValue();

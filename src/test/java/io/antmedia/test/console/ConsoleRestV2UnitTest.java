@@ -17,8 +17,10 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.google.gson.JsonObject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
@@ -932,4 +934,39 @@ public class ConsoleRestV2UnitTest {
 
 	}
 
+	@Test
+	public void testAuthenticateMultiAppUser(){
+		String password = "password";
+		String userName = "username" + (int) (Math.random() * 100000);
+
+		Map<String,String> appNameUserTypeMap = new HashMap<>();
+		appNameUserTypeMap.put("LiveApp", UserType.USER.toString());
+		appNameUserTypeMap.put("live", UserType.READ_ONLY.toString());
+
+		User user = new User(userName, password, null, null, appNameUserTypeMap);
+		dbStore.addUser(user);
+
+		HttpSession session = Mockito.mock(HttpSession.class);
+
+		Mockito.when(session.getAttribute(USER_EMAIL)).thenReturn(userName);
+		Mockito.when(session.getAttribute(USER_PASSWORD)).thenReturn(password);
+
+		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
+		Mockito.when(mockRequest.getSession()).thenReturn(session);
+
+		restService.setRequestForTest(mockRequest);
+
+		JsonObject appNameUserTypeJson = new JsonObject();
+		for (Map.Entry<String, String> entry : user.getAppNameUserType().entrySet()) {
+			String appName = entry.getKey();
+			String userType = entry.getValue();
+
+			appNameUserTypeJson.addProperty(appName, userType);
+		}
+
+		Result result = restService.authenticateUser(user);
+		assertTrue(result.isSuccess());
+        assertEquals(result.getMessage(), appNameUserTypeJson.toString());
+	}
 }
