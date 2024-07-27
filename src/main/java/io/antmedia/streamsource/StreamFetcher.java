@@ -668,11 +668,9 @@ public class StreamFetcher {
 				writeAllBufferedPackets();
 
 
-				long totalByteReceived = 0;
 				if (muxAdaptor != null) {
 					logger.info("Writing trailer in Muxadaptor {}", streamId);
 					muxAdaptor.writeTrailer();
-					totalByteReceived = muxAdaptor.getTotalByteReceived();
 					getInstance().muxAdaptorRemoved(muxAdaptor);
 					muxAdaptor = null;
 				}

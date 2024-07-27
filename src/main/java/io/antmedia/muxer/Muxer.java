@@ -13,7 +13,6 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_write_header;
 import static org.bytedeco.ffmpeg.global.avformat.avio_closep;
 import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.bytedeco.ffmpeg.global.avutil.AV_OPT_SEARCH_CHILDREN;
 
 import java.io.File;
 import java.io.IOException;
@@ -162,6 +161,9 @@ public abstract class Muxer {
 
 	protected Map<Integer, Integer> inputOutputStreamIndexMap = new ConcurrentHashMap<>();
 
+	/**
+	 * height of the resolution
+	 */
 	private int resolution;
 
 	public  static final AVRational avRationalTimeBase;
@@ -265,6 +267,10 @@ public abstract class Muxer {
 	private long audioNotWrittenCount;
 
 	private long videoNotWrittenCount;
+	
+	private long totalSizeInBytes;
+	private long startTimeInSeconds;
+	private long currentTimeInSeconds;
 
 
 	protected Muxer(Vertx vertx) {
@@ -1094,6 +1100,18 @@ public abstract class Muxer {
 	public int getVideoHeight() {
 		return videoHeight;
 	}
+	
+	
+	public long getAverageBitrate() {
+
+		long duration = (currentTimeInSeconds - startTimeInSeconds) ;
+
+		if (duration > 0)
+		{
+			return (totalSizeInBytes / duration) * 8;
+		}
+		return 0;
+	}
 
 	/**
 	 * All other writePacket functions call this function to make the job
@@ -1118,6 +1136,13 @@ public abstract class Muxer {
 
 		pkt.duration(av_rescale_q(pkt.duration(), inputTimebase, outputTimebase));
 		pkt.pos(-1);
+		
+		totalSizeInBytes += pkt.size();
+		
+		currentTimeInSeconds = av_rescale_q(pkt.dts(), inputTimebase, avRationalTimeBase);
+		if (startTimeInSeconds == 0) {
+			startTimeInSeconds = currentTimeInSeconds;
+		}
 
 		if (codecType == AVMEDIA_TYPE_AUDIO)
 		{

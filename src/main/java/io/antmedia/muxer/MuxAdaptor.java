@@ -298,6 +298,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private long lastTotalByteReceived = 0;
 
 
+	private long durationMs;
+
+
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, Broadcast broadcast, boolean isSource, IScope scope) {
 
 
@@ -926,7 +929,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			publishStatsEvent.setStreamId(streamId);
 			publishStatsEvent.setTotalByteReceived(totalByteReceived);
 			publishStatsEvent.setByteTransferred(byteTransferred);
-			publishStatsEvent.setDurationMs(System.currentTimeMillis() - broadcast.getStartTime());
+			durationMs = System.currentTimeMillis() - broadcast.getStartTime();
+			publishStatsEvent.setDurationMs(durationMs);
 			publishStatsEvent.setWidth(width);
 			publishStatsEvent.setHeight(height);
 			
@@ -1363,7 +1367,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 			
 			lastKeyFramePTS = pts;
-			if (timeDiff > 30) {
+			if (timeDiff > 30) 
+			{ 
+				//timediff is in milliseconds, this is a some kind of hack here because as I remember,
+				//RTMP does not report key frame interval correctly in all cases or something that I don't know @mekya
 				keyFramePerMin += 1;
 			}
 			if(lastPacket.systemTimeMs - lastKeyFrameStatsTimeMs > 60000)
@@ -2428,6 +2435,18 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void setWidth(int width) {
 		this.width = width;
+	}
+
+	public void setTotalByteReceived(long totalByteReceived) {
+		this.totalByteReceived = totalByteReceived;
+	}
+
+	public long getDurationMs() {
+		return durationMs;
+	}
+
+	public void setDurationMs(long durationMs) {
+		this.durationMs = durationMs;
 	}
 
 }

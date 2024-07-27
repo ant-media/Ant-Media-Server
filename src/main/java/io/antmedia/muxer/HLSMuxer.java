@@ -48,10 +48,6 @@ public class HLSMuxer extends Muxer  {
 	private String hlsTime = "5";
 	private String hlsPlayListType = null;
 
-	private long totalSize;
-	private long startTime;
-	private long currentTime;
-
 
 	private boolean deleteFileOnExit = true;
 	private String hlsFlags;
@@ -236,34 +232,12 @@ public class HLSMuxer extends Muxer  {
 				|| codecId == AV_CODEC_ID_H265 
 				|| codecId == AV_CODEC_ID_AC3);
 	}
-
-	public long getAverageBitrate() {
-
-		long duration = (currentTime - startTime) ;
-
-		if (duration > 0)
-		{
-			return (totalSize / duration) * 8;
-		}
-		return 0;
-	}
 	
-
 	@Override
 	public synchronized void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
-		
-		totalSize += pkt.size();
-		
-		currentTime = av_rescale_q(pkt.dts(), inputTimebase, avRationalTimeBase);
-		if (startTime == 0) {
-			startTime = currentTime;
-		}
-		
-		
+			
 		if (codecType == AVMEDIA_TYPE_VIDEO && pendingSEIData != null) {
-			
-			
 			
 			logger.info("sei data size:{} for streamId:{}", pendingSEIData.limit(), streamId);
 				
