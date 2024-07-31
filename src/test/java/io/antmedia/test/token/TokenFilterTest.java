@@ -614,6 +614,22 @@ public class TokenFilterTest {
 		
 		requestURI = "/LiveApp/streams/subfolder/"+ streamId + ".m3u8"; 
 		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		
+		requestURI = "/LiveApp/streams/subfolder/"+ streamId + ".m3u8"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		requestURI = "/LiveApp/streams/subfolder/ll-hls/"+ streamId + ".m3u8"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		requestURI = "/LiveApp/streams/subfolder/ll-hls/"+ streamId + "__lowlatency.m3u8"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		requestURI = "/LiveApp/streams/subfolder/ll-hls/"+streamId + "/"+ streamId + "__lowlatency.m3u8"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		requestURI = "/LiveApp/streams/subfolder/ll-hls/"+streamId + "/"+ streamId + "__anything.m3u8"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
 				
 	}
 	

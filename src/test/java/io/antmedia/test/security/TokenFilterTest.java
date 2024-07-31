@@ -375,6 +375,7 @@ public class TokenFilterTest {
 			logger.info("session id {}, stream id {}", sessionId, streamId);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			verify(mockResponse).sendError(HttpServletResponse.SC_FORBIDDEN, TokenFilterManager.NOT_INITIALIZED);
+			verify(settings, times(0)).isPlayTokenControlEnabled();
 
 			
 			when(context.getBean("token.service")).thenReturn(tokenService);
@@ -382,7 +383,7 @@ public class TokenFilterTest {
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 
 			//isPlayTokenControlEnabled should be called because there is no header TOKEN_HEADER_FOR_NODE_COMMUNICATION for internal communication
-			verify(settings, times(1)).isPlayTokenControlEnabled();
+			verify(settings, times(2)).isPlayTokenControlEnabled();
 			verify(mockResponse).sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Token for streamId:" + streamId);
 			verify(mockChain, never()).doFilter(mockRequest, mockResponse);
 
@@ -392,7 +393,7 @@ public class TokenFilterTest {
 
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			//play token should not be called again because there is header(TOKEN_HEADER_FOR_NODE_COMMUNICATION) and token service returns true so it just bypass
-			verify(settings, times(1)).isPlayTokenControlEnabled();
+			verify(settings, times(2)).isPlayTokenControlEnabled();
 			verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
 
 
@@ -400,7 +401,7 @@ public class TokenFilterTest {
 			when(tokenService.isJwtTokenValid(anyString(), anyString(), anyString(), anyString())).thenReturn(false);
 			tokenFilter.doFilter(mockRequest, mockResponse, mockChain);
 			//it should not be called again because there is TOKEN_HEADER_FOR_NODE_COMMUNICATION header and it is not valid
-			verify(settings, times(1)).isPlayTokenControlEnabled();
+			verify(settings, times(2)).isPlayTokenControlEnabled();
 			//it should not be called again because there is TOKEN_HEADER_FOR_NODE_COMMUNICATION header and it is not valid
 			verify(mockChain, times(1)).doFilter(mockRequest, mockResponse);
 			verify(mockResponse).sendError(HttpServletResponse.SC_FORBIDDEN, "Cluster communication token is not valid for streamId:" + streamId);

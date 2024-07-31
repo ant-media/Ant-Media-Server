@@ -202,15 +202,14 @@ public class TokenFilterManager extends AbstractFilter   {
 		//2. If it contains __ then it's {streamId}__{ANYTHING}.m3u8
 
 		
-		//if request is adaptive file (ending with _master.m3u8) - I think it's better than use _adaptive and we use this structure in ll-hls
-		String tsRegex = "(.*)__(.*)"; 
+		String tsRegex = "(.*)/(.*)__(.*)$"; 
 		Pattern pattern = Pattern.compile(tsRegex);
 		
 		// Create a matcher for the input string
         java.util.regex.Matcher matcher = pattern.matcher(requestURI);
 		if (matcher.matches()) 
 		{	
-			return matcher.group(1);
+			return matcher.group(2);
 		}
 
 		//if specific bitrate is requested
