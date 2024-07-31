@@ -116,8 +116,8 @@ public class Serializer {
         } else {
             if (writeBasic(out, value)) {
                 log.trace("Wrote as basic");
-            } else if (!writeComplex(out, value)) {
-                log.trace("Unable to serialize: {}", value);
+            } else { 
+            	writeComplex(out, value);
             }
         }
     }
@@ -170,10 +170,9 @@ public class Serializer {
             return true;
         } else if (writeCustomType(out, complex)) {
             return true;
-        } else if (writeObjectType(out, complex)) {
-            return true;
         } else {
-            return false;
+        	writeObjectType(out, complex);
+            return true;
         }
     }
 

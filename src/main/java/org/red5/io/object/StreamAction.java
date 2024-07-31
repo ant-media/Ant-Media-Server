@@ -52,11 +52,11 @@ public enum StreamAction {
         return CUSTOM;
     }
 
-    public boolean equals(StreamAction action) {
+    public boolean equalsAction(StreamAction action) {
         return action.getActionString().equals(actionString);
     }
 
-    public boolean equals(String actionString) {
+    public boolean equalsAction(String actionString) {
         return getActionString().equals(actionString);
     }
 

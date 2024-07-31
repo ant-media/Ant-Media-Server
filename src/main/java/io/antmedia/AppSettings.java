@@ -1,20 +1,15 @@
 package io.antmedia;
 
-import java.beans.PropertyEditor;
-import java.beans.PropertyEditorSupport;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.catalina.util.NetMask;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.entity.ContentType;
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
@@ -24,8 +19,6 @@ import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.beans.factory.config.CustomEditorConfigurer;
-import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -37,8 +30,6 @@ import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import io.antmedia.rest.VoDRestService;
-import jakarta.annotation.PostConstruct;
-import netscape.javascript.JSObject;
 
 /**
  * Application Settings for each application running in Ant Media Server.

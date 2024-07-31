@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.cache.ICacheStore;
@@ -32,7 +33,7 @@ public class CacheImpl implements ICacheStore, ApplicationContextAware {
 
     protected static Logger log = LoggerFactory.getLogger(CacheImpl.class);
 
-    private static volatile CacheImpl instance;
+    private static CacheImpl instance;
 
     private static final Map<String, SoftReference<? extends ICacheable>> CACHE;
 
@@ -41,9 +42,9 @@ public class CacheImpl implements ICacheStore, ApplicationContextAware {
 
     private static int capacity = 5;
 
-    private static volatile long cacheHit;
+    private static AtomicLong cacheHit = new AtomicLong();
 
-    private static volatile long cacheMiss;
+    private static AtomicLong cacheMiss = new AtomicLong();
 
     static {
         // create an instance
@@ -185,12 +186,12 @@ public class CacheImpl implements ICacheStore, ApplicationContextAware {
             int requestCount = registry.get(name);
             registry.put(name, (requestCount += 1));
             // increment cache hits
-            cacheHit += 1;
+            cacheHit.incrementAndGet();
         } else {
             // add a request count to the registry
             registry.put(name, 1);
             // increment cache misses
-            cacheMiss += 1;
+            cacheMiss.incrementAndGet();
         }
         log.debug("Registry on get: {}", registry.toString());
         return ic;
@@ -215,7 +216,7 @@ public class CacheImpl implements ICacheStore, ApplicationContextAware {
      * @return Value for property 'cacheHit'.
      */
     public static long getCacheHit() {
-        return cacheHit;
+        return cacheHit.get();
     }
 
     /**
@@ -224,7 +225,7 @@ public class CacheImpl implements ICacheStore, ApplicationContextAware {
      * @return Value for property 'cacheMiss'.
      */
     public static long getCacheMiss() {
-        return cacheMiss;
+        return cacheMiss.get();
     }
 
     /** {@inheritDoc} */

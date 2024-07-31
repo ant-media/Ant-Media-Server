@@ -101,7 +101,10 @@ public class TokenFilterManager extends AbstractFilter   {
 				//if jwtInternalCommunicationToken is not null, 
 				//it means that this is the origin instance and receiving request from the edge node directly
 				
-				boolean checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
+				boolean checkJwtToken = false;
+				if (streamId != null) {
+					checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
+				}
 				if (!checkJwtToken) 
 				{
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Cluster communication token is not valid for streamId:" + streamId);

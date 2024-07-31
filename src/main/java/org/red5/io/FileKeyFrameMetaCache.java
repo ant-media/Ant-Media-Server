@@ -10,10 +10,10 @@ package org.red5.io;
 import java.io.File;
 import java.io.IOException;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.stream.XMLInputFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
@@ -190,7 +190,9 @@ public class FileKeyFrameMetaCache implements IKeyFrameMetaCache {
 
         try {
         	TransformerFactory factory = TransformerFactory.newInstance();
-        	factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        	factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        	factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+        	
             Transformer t = factory.newTransformer();
             t.setOutputProperty(OutputKeys.INDENT, "yes");
             t.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");

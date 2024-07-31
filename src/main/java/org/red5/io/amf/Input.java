@@ -53,12 +53,14 @@ public class Input extends BaseInput implements org.red5.io.object.Input {
 
     protected Logger log = LoggerFactory.getLogger(this.getClass());
 
-    protected static Map<String, String> classAliases = new HashMap<String, String>(3) {
-        {
-            put("DSA", "org.red5.compatibility.flex.messaging.messages.AsyncMessageExt");
-            put("DSC", "org.red5.compatibility.flex.messaging.messages.CommandMessageExt");
-            put("DSK", "org.red5.compatibility.flex.messaging.messages.AcknowledgeMessageExt");
-        }
+    protected static Map<String, String> classAliases = new HashMap<String, String>(3);
+    
+    
+    static{
+        
+    	classAliases.put("DSA", "org.red5.compatibility.flex.messaging.messages.AsyncMessageExt");
+    	classAliases.put("DSC", "org.red5.compatibility.flex.messaging.messages.CommandMessageExt");
+    	classAliases.put("DSK", "org.red5.compatibility.flex.messaging.messages.AcknowledgeMessageExt");
     };
 
     protected IoBuffer buf;

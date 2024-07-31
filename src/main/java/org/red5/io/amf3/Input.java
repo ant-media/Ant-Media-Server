@@ -628,19 +628,18 @@ public class Input extends org.red5.io.amf.Input implements org.red5.io.object.I
             } else if (className.startsWith("flex")) {
                 //set the attributes for messaging classes
                 if (className.endsWith("CommandMessage")) {
-                    attributes = new LinkedList<String>() {
-                        {
-                            add("timestamp");
-                            add("headers");
-                            add("operation");
-                            add("body");
-                            add("correlationId");
-                            add("messageId");
-                            add("timeToLive");
-                            add("clientId");
-                            add("destination");
-                        }
-                    };
+                    attributes = new LinkedList<String>();
+                    attributes.add("timestamp");
+                    attributes.add("headers");
+                    attributes.add("operation");
+                    attributes.add("body");
+                    attributes.add("correlationId");
+                    attributes.add("messageId");
+                    attributes.add("timeToLive");
+                    attributes.add("clientId");
+                    attributes.add("destination");
+                    
+            
                 } else {
                     log.debug("Attributes for {} were not set", className);
                 }

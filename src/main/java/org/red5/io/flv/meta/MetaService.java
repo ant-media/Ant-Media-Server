@@ -105,7 +105,7 @@ public class MetaService implements IMetaService {
         while (reader.hasMoreTags()) {
             tag = reader.readTag();
             // if there are cuePoints in the array
-            if (counter < metaArr.length) {
+            if (metaArr != null && counter < metaArr.length) {
                 // If the tag has a greater timestamp than the
                 // cuePointTimeStamp, then inject the tag
                 while (tag.getTimestamp() > cuePointTimeStamp) {

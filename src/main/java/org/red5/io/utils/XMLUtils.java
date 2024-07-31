@@ -12,6 +12,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.io.StringWriter;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
@@ -104,7 +105,8 @@ public class XMLUtils {
     public static String docToString2(Document domDoc) throws IOException {
         try {
             TransformerFactory transFact = TransformerFactory.newInstance();
-            transFact.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            transFact.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+            transFact.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
 
             Transformer trans = transFact.newTransformer();
             trans.setOutputProperty(OutputKeys.INDENT, "no");

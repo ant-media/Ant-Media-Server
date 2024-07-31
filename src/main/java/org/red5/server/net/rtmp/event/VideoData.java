@@ -276,7 +276,7 @@ public class VideoData extends BaseEvent implements IoConstants, IStreamData<Vid
 					VideoFourCC videoFourCc = findFourCcByValue(VideoFourCC.makeFourCc(new String(fourcc)));
 					
 					if (videoFourCc == null) {
-						//TODO: throw an exception here and secondly check if it is a hvc1 because we'll not suppport others
+						throw new IllegalArgumentException("Video fourcc cannot be found");
 					}
 					log.debug("Incoming video fourcc:{} videoPacketType:{} frameType:{}", videoFourCc.name(),  exVideoPacketType.name(), frameType.name());
 					
