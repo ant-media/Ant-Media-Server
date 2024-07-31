@@ -1048,7 +1048,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public void notifyHook(@NotNull String url, String id, String mainTrackId, String action, String streamName, String category,
 			String vodName, String vodId, String metadata, String subscriberId) {
 
-		vertx.runOnContext(e-> {
+		//Previously, we're using runOnContext and switched to executeBlocking without ordered because this operation may take some time
+		//and we don't want to block the event loop, the disadvantage of this approach is that the order of the operations may not be guaranteed 
+		//then it's meaningful to check the timestamp of the event in the webhook - mekya
+		
+		
+		vertx.executeBlocking(() -> {
 			logger.info("Running notify hook url:{} stream id: {} mainTrackId:{} action:{} vod name:{} vod id:{}", url, id, mainTrackId, action, vodName, vodId);
 
 			Map<String, Object> variables = new HashMap<>();
@@ -1064,6 +1069,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			putToMap("mainTrackId", mainTrackId, variables);
 			putToMap("roomId", mainTrackId, variables);
 			putToMap("subscriberId", subscriberId, variables);
+			
 			if (StringUtils.isNotBlank(metadata)) {
 				Object metaDataJsonObj = null;
 				try {
@@ -1083,8 +1089,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			} catch (Exception exception) {
 				logger.error(ExceptionUtils.getStackTrace(exception));
 			}
+			
+			return null;
 
-		});
+		}, false);
 	}
 
 	private void putToMap(String keyName, Object keyValue, Map<String, Object> map) {
@@ -1148,7 +1156,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		} catch (IOException e) {
 			if (retryAttempts >= 1)
 			{
-				logger.info("Retry attempt for POST in {} milliseconds due to IO exception: {}", appSettings.getWebhookRetryDelay(), e.getMessage());
+				logger.info("Retry attempt for POST in {} milliseconds due to IO exception: {}", appSettings.getWebhookRetryDelay(), ExceptionUtils.getStackTrace(e));
 				retrySendPostWithDelay(url, variables, retryAttempts - 1, contentType);
 			}
 			else if (appSettings.getWebhookRetryCount() != 0)
