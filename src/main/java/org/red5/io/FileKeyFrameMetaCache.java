@@ -155,51 +155,7 @@ public class FileKeyFrameMetaCache implements IKeyFrameMetaCache {
     /** {@inheritDoc} */
     @Override
     public void saveKeyFrameMeta(File file, KeyFrameMeta meta) {
-        if (meta.positions.length == 0) {
-            // Don't store empty meta informations
-            return;
-        }
-
-        Document dom;
-        DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
-        try {
-            //get an instance of builder
-            DocumentBuilder db = dbf.newDocumentBuilder();
-            //create an instance of DOM
-            dom = db.newDocument();
-        } catch (ParserConfigurationException pce) {
-            log.error("Error while creating document.", pce);
-            return;
-        }
-
-        // Create file and add keyframe informations
-        Element root = dom.createElement("FrameMetadata");
-        root.setAttribute("modified", String.valueOf(file.lastModified()));
-        root.setAttribute("duration", String.valueOf(meta.duration));
-        root.setAttribute("audioOnly", meta.audioOnly ? "true" : "false");
-        dom.appendChild(root);
-
-        for (int i = 0; i < meta.positions.length; i++) {
-            Element node = dom.createElement("KeyFrame");
-            node.setAttribute("position", String.valueOf(meta.positions[i]));
-            node.setAttribute("timestamp", String.valueOf(meta.timestamps[i]));
-            root.appendChild(node);
-        }
-
-        String filename = file.getAbsolutePath() + ".meta";
-
-        try {
-        	TransformerFactory factory = TransformerFactory.newInstance();
-        	factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-        	factory.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
-        	
-            Transformer t = factory.newTransformer();
-            t.setOutputProperty(OutputKeys.INDENT, "yes");
-            t.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
-            t.transform(new DOMSource(dom), new StreamResult(new File(filename)));
-        } catch (Exception err) {
-            log.error("could not save keyframe data", err);
-        }
+        log.error("Save keyframe meta not implemented");
     }
 
 }

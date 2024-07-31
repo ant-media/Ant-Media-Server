@@ -93,30 +93,6 @@ public class XMLUtils {
         return sw.toString();
     }
 
-    /**
-     * Convert a DOM tree into a String using transform
-     * 
-     * @param domDoc
-     *            DOM object
-     * @throws java.io.IOException
-     *             I/O exception
-     * @return XML as String
-     */
-    public static String docToString2(Document domDoc) throws IOException {
-        try {
-            TransformerFactory transFact = TransformerFactory.newInstance();
-            transFact.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
-            transFact.setAttribute(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
 
-            Transformer trans = transFact.newTransformer();
-            trans.setOutputProperty(OutputKeys.INDENT, "no");
-            StringWriter sw = new StringWriter();
-            Result result = new StreamResult(sw);
-            trans.transform(new DOMSource(domDoc), result);
-            return sw.toString();
-        } catch (Exception ex) {
-            throw new IOException(String.format("Error converting from doc to string %s", ex.getMessage()));
-        }
-    }
 
 }
