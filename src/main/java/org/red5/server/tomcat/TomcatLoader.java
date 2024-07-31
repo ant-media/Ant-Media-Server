@@ -637,7 +637,10 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 					// create a spring web application context
 					XmlWebApplicationContext appctx = new XmlWebApplicationContext();
 					appctx.setClassLoader(webClassLoader);
-					appctx.setConfigLocations(new String[] { contextConfigLocation });
+					
+					URL internalAppConfig = this.getClass().getClassLoader().getResource(AppConfig.INTERNAL_APP_CONFIG_LOCATION);
+					
+					appctx.setConfigLocations(new String[] { contextConfigLocation, internalAppConfig.toString() });
 					// check for red5 context bean
 					ApplicationContext parentAppCtx = null;
 					if (applicationContext.containsBean(defaultParentContextKey)) {
