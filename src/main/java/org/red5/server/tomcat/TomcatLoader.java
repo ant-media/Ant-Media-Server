@@ -22,6 +22,7 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.lang.management.ManagementFactory;
 import java.net.BindException;
+import java.net.URL;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.List;
@@ -78,6 +79,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+
+import io.antmedia.component.AppConfig;
 
 /**
  * Red5 loader for Tomcat.
@@ -516,7 +519,10 @@ public class TomcatLoader extends LoaderBase implements InitializingBean, Dispos
 									appctx = (ConfigurableWebApplicationContext) clazz.newInstance();
 									// set the root webapp ctx attr on the each servlet context so spring can find it later
 									servletContext.setAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE, appctx);
-									appctx.setConfigLocations(new String[] { contextConfigLocation });
+									
+									URL internalAppConfig = this.getClass().getClassLoader().getResource(AppConfig.INTERNAL_APP_CONFIG_LOCATION);
+																		
+									appctx.setConfigLocations(new String[] { contextConfigLocation, internalAppConfig.toString() });
 									appctx.setServletContext(servletContext);
 									// set parent context or use current app context
 									if (parentContext != null) {

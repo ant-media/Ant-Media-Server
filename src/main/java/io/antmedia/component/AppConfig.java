@@ -23,6 +23,7 @@ import org.springframework.context.annotation.*;
 public class AppConfig {
 	
 	
+	public static final String INTERNAL_APP_CONFIG_LOCATION = "WEB-INF/application.xml";
 	
 	public static class JSONObjectEditor extends PropertyEditorSupport {
 		
