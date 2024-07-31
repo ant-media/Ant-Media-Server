@@ -2514,8 +2514,28 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 				if (lastTimeStamp < 6000) {
+					
+					if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+						VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
+						videoData.setTimestamp(streamPacket.getTimestamp());
+						videoData.setReceivedTime(System.currentTimeMillis());
 
-					muxAdaptor.packetReceived(null, streamPacket);
+						muxAdaptor.packetReceived(null, videoData);
+						
+					}
+					
+					else {
+						CachedEvent event = new CachedEvent();
+						event.setData(streamPacket.getData().duplicate());
+						event.setDataType(streamPacket.getDataType());
+						event.setReceivedTime(System.currentTimeMillis());
+						event.setTimestamp(streamPacket.getTimestamp());
+						
+						muxAdaptor.packetReceived(null, event);
+
+					}
+					
+
 				} else {
 					break;
 				}
@@ -3595,15 +3615,28 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				firstVideoPacketReceived = true;
 
 			}
+			
+			if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+				VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
+				videoData.setTimestamp(streamPacket.getTimestamp());
+				videoData.setReceivedTime(System.currentTimeMillis());
 
-			streamPacket = new StreamPacket(readTag);
-			int bodySize = streamPacket.getData().position(0).limit();
-			byte[] data = new byte[bodySize];
-			streamPacket.getData().get(data);
-	
-			streamPacket.setData(IoBuffer.wrap(data));
-	
-			muxAdaptor.packetReceived(null, streamPacket);
+				muxAdaptor.packetReceived(null, videoData);
+				
+			}
+			
+			else {
+				CachedEvent event = new CachedEvent();
+				event.setData(streamPacket.getData().duplicate());
+				event.setDataType(streamPacket.getDataType());
+				event.setReceivedTime(System.currentTimeMillis());
+				event.setTimestamp(streamPacket.getTimestamp());
+				
+				muxAdaptor.packetReceived(null, event);
+
+			}
+			
+		
 			
 			packetSize++;
 			if (packetSize > 10000)	
@@ -3638,15 +3671,27 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				firstVideoPacketReceived = true;
 
 			}
+			
+			if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+				VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
+				videoData.setTimestamp(streamPacket.getTimestamp());
+				videoData.setReceivedTime(System.currentTimeMillis());
 
-			streamPacket = new StreamPacket(readTag);
-			int bodySize = streamPacket.getData().position(0).limit();
-			byte[] data = new byte[bodySize];
-			streamPacket.getData().get(data);
-	
-			streamPacket.setData(IoBuffer.wrap(data));
-	
-			muxAdaptor.packetReceived(null, streamPacket);
+				muxAdaptor.packetReceived(null, videoData);
+				
+			}
+			
+			else {
+				CachedEvent event = new CachedEvent();
+				event.setData(streamPacket.getData().duplicate());
+				event.setDataType(streamPacket.getDataType());
+				event.setReceivedTime(System.currentTimeMillis());
+				event.setTimestamp(streamPacket.getTimestamp());
+				
+				muxAdaptor.packetReceived(null, event);
+
+			}
+
 			
 			packetSize++;
 			if (packetSize > 300)	
@@ -4066,9 +4111,26 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					firstVideoPacketReceived = true;
 
 				}
+				
+				if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+					VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
+					videoData.setTimestamp(streamPacket.getTimestamp());
+					videoData.setReceivedTime(System.currentTimeMillis());
 
+					muxAdaptor.packetReceived(null, videoData);
+					
+				}
+				
+				else {
+					CachedEvent event = new CachedEvent();
+					event.setData(streamPacket.getData().duplicate());
+					event.setDataType(streamPacket.getDataType());
+					event.setReceivedTime(System.currentTimeMillis());
+					event.setTimestamp(streamPacket.getTimestamp());
+					
+					muxAdaptor.packetReceived(null, event);
 
-				muxAdaptor.packetReceived(null, streamPacket);
+				}
 
 
 				if (packetNumber == 40000) {
