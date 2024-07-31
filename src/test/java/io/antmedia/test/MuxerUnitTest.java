@@ -108,7 +108,6 @@ import org.red5.server.net.rtmp.event.CachedEvent;
 import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.net.rtmp.message.Header;
 import org.red5.server.scope.WebScope;
-import org.red5.server.service.mp4.impl.MP4Service;
 import org.red5.server.stream.AudioCodecFactory;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.red5.server.stream.VideoCodecFactory;
@@ -140,7 +139,8 @@ import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
-import io.antmedia.muxer.parser.SpsParser;
+import io.antmedia.muxer.parser.HEVCDecoderConfigurationParser.HEVCSPSParser;
+import io.antmedia.muxer.parser.SPSParser;
 import io.antmedia.muxer.parser.codec.AACAudio;
 import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
@@ -291,11 +291,24 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(extradata_annexb[i], extradata_original[i]);
 		}
 
-		SpsParser spsParser = new SpsParser(extradata_annexb, 5);
+		SPSParser spsParser = new SPSParser(extradata_annexb, 5);
 
 		assertEquals(480, spsParser.getWidth());
 		assertEquals(360, spsParser.getHeight());
 
+	}
+	
+	@Test
+	public void testHEVCSPSParser() {
+		byte[] sps = new byte[] {66, 1, 1, 1, 96, 0, 0, 3, 0, -112, 0, 0, 3, 0, 0, 3, 0, 123, -96, 3, -64, -128, 16,
+				-27, -106, 74, -110, 76, -82, 106, 2, 2, 3, -62, 0, 0, 3, 0, 2, 0, 0, 3, 0, 120, 16};
+	
+		//2 bytes because first 2 bytes are NAL HEADER
+		HEVCSPSParser parser = new HEVCSPSParser(sps, 2);
+		
+		assertEquals(1920, parser.getWidth());
+		assertEquals(1080, parser.getHeight());
+	
 	}
 
 	@Test
@@ -804,7 +817,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		mp4Muxer.init(appScope, "test", 0, null, 0);
 
-		SpsParser spsParser = new SpsParser(extradata_original, 5);
+		SPSParser spsParser = new SPSParser(extradata_original, 5);
 
 		AVCodecParameters codecParameters = new AVCodecParameters();
 		codecParameters.width(spsParser.getWidth());
@@ -1349,7 +1362,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
-		SpsParser spsParser = new SpsParser(extradata_original, 5);
+		SPSParser spsParser = new SPSParser(extradata_original, 5);
 
 		AVCodecParameters codecParameters = new AVCodecParameters();
 		codecParameters.width(spsParser.getWidth());
@@ -1461,7 +1474,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		mp4Muxer.init(appScope, "test", 0, null, 0);
 
 
-		SpsParser spsParser = new SpsParser(extradata_original, 5);
+		SPSParser spsParser = new SPSParser(extradata_original, 5);
 
 		AVCodecParameters codecParameters = new AVCodecParameters();
 		codecParameters.width(spsParser.getWidth());
@@ -1949,6 +1962,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testBaseStreamFileServiceBug() {
+		//I've removed this test because we don't maintain the RTMP and removing some redundant dependencies
+		/*
 		MP4Service mp4Service = new MP4Service();
 
 		String fileName = mp4Service.prepareFilename("mp4:1");
@@ -1974,8 +1989,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		fileName = mp4Service.prepareFilename("mp4:123456789.mp4");
 		assertEquals("123456789.mp4", fileName);
+		*/
 
 	}
+	
 
 	@Test
 	public void testApplicationStreamLimit() {
@@ -2548,6 +2565,27 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(431 - fileInfo.audioPacketsCount < 5);
 	}
 
+	@Test
+	public void testPlusplus() 
+	{
+		long t = Byte.toUnsignedLong((byte)0xff);
+		assertEquals(255, t);
+		long i  = (t << 48);
+		
+		assertEquals(0xFF000000000000l, i);
+		
+	
+		//long data = Byte.toUnsignedLong((byte)0xFF);
+		long data = ((long)0xff << 32);
+		assertEquals(0Xff00000000l, data);
+		
+		//int unsigned = Byte.toUnsignedInt(t);
+		
+		//assertEquals(0xFF00, unsigned << 8);
+		
+
+		
+	}
 
 	public File testMp4Muxing(String name, boolean shortVersion, boolean checkDuration) {
 

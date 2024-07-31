@@ -83,6 +83,11 @@ import io.vertx.core.impl.ConcurrentHashSet;
  *
  */
 public abstract class Muxer {
+	
+	public static final String BITSTREAM_FILTER_HEVC_MP4TOANNEXB = "hevc_mp4toannexb";
+
+	public static final String BITSTREAM_FILTER_H264_MP4TOANNEXB = "h264_mp4toannexb";
+
 
 	private long currentVoDTimeStamp = 0;
 

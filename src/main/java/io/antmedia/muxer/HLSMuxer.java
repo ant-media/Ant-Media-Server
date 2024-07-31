@@ -29,10 +29,7 @@ import io.vertx.core.Vertx;
 
 public class HLSMuxer extends Muxer  {
 
-	private static final String HEVC_MP4TOANNEXB = "hevc_mp4toannexb";
-
-	private static final String H264_MP4TOANNEXB = "h264_mp4toannexb";
-
+	
 	public static final String SEI_USER_DATA = "sei_user_data";
 
 	private static final String SEGMENT_SUFFIX_TS = "%0"+SEGMENT_INDEX_LENGTH+"d.ts";
@@ -473,7 +470,7 @@ public class HLSMuxer extends Muxer  {
 		pendingSEIData = ByteBuffer.allocateDirect(totalLength);
 
 		
-		if (StringUtils.equals(getBitStreamFilter(), H264_MP4TOANNEXB) || StringUtils.equals(getBitStreamFilter(), HEVC_MP4TOANNEXB)
+		if (StringUtils.equals(getBitStreamFilter(), BITSTREAM_FILTER_H264_MP4TOANNEXB) || StringUtils.equals(getBitStreamFilter(), BITSTREAM_FILTER_HEVC_MP4TOANNEXB)
 				|| HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) 
 		{
 			pendingSEIData.putInt(totalLength-4); 
@@ -525,10 +522,10 @@ public class HLSMuxer extends Muxer  {
 	{
 		
 		if (codecParameters.codec_id() == AV_CODEC_ID_H264) {
-            setBitstreamFilter(H264_MP4TOANNEXB);
+            setBitstreamFilter(BITSTREAM_FILTER_H264_MP4TOANNEXB);
         }
         else if (codecParameters.codec_id() == AV_CODEC_ID_H265){
-        	setBitstreamFilter(HEVC_MP4TOANNEXB);
+        	setBitstreamFilter(BITSTREAM_FILTER_HEVC_MP4TOANNEXB);
         }
         else if (codecParameters.codec_id() == AV_CODEC_ID_AAC && HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
         	//we need this conversion for fmp4
@@ -544,7 +541,7 @@ public class HLSMuxer extends Muxer  {
 		codecParameter.codec_type(AVMEDIA_TYPE_DATA);
 		codecParameter.codec_id(AV_CODEC_ID_TIMED_ID3);
 
-		return super.addStream(codecParameter, MuxAdaptor.TIME_BASE_FOR_MS, id3StreamIndex);
+		return super.addStream(codecParameter, MuxAdaptor.getTimeBaseForMs(), id3StreamIndex);
 	}
 	
 	public String getHlsListSize() {

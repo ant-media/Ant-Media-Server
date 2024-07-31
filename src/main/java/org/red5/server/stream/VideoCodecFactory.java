@@ -23,6 +23,7 @@ import java.util.List;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.codec.IVideoStreamCodec;
+import org.red5.server.net.rtmp.event.VideoData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
