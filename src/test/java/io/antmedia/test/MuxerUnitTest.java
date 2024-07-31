@@ -105,6 +105,7 @@ import org.red5.server.net.rtmp.RTMPMinaConnection;
 import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.codec.RTMPProtocolDecoder;
 import org.red5.server.net.rtmp.event.CachedEvent;
+import org.red5.server.net.rtmp.event.VideoData;
 import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.net.rtmp.message.Header;
 import org.red5.server.scope.WebScope;
@@ -3472,16 +3473,21 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void feedMuxAdaptor(FLVReader flvReader, List<MuxAdaptor> muxAdaptorList, StreamCodecInfo info) {
 		boolean firstAudioPacketReceived = false;
 		boolean firstVideoPacketReceived = false;
-		while (flvReader.hasMoreTags()) {
+		while (flvReader.hasMoreTags()) 
+		{
 			ITag readTag = flvReader.readTag();
 			StreamPacket streamPacket = new StreamPacket(readTag);
-			if (!firstAudioPacketReceived && streamPacket.getDataType() == Constants.TYPE_AUDIO_DATA) {
+			
+			if (!firstAudioPacketReceived && streamPacket.getDataType() == Constants.TYPE_AUDIO_DATA) 
+			{
 				IAudioStreamCodec audioStreamCodec = AudioCodecFactory.getAudioCodec(streamPacket.getData().position(0));
 				info.setAudioCodec(audioStreamCodec);
 				audioStreamCodec.addData(streamPacket.getData().position(0));
 				info.setHasAudio(true);
 				firstAudioPacketReceived = true;
-			} else if (!firstVideoPacketReceived && streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+			} 
+			else if (!firstVideoPacketReceived && streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) 
+			{
 				IVideoStreamCodec videoStreamCodec = VideoCodecFactory.getVideoCodec(streamPacket.getData().position(0));
 				videoStreamCodec.addData(streamPacket.getData().position(0));
 				info.setVideoCodec(videoStreamCodec);
@@ -3491,16 +3497,25 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 			for (MuxAdaptor muxAdaptor : muxAdaptorList) {
 
-				streamPacket = new StreamPacket(readTag);
-				int bodySize = streamPacket.getData().position(0).limit();
-				byte[] data = new byte[bodySize];
-				streamPacket.getData().get(data);
+				
+				
+				
+				if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+					VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
+					
+					muxAdaptor.packetReceived(null, videoData);
+				}
+				
+				else {
+					CachedEvent event = new CachedEvent();
+					event.setData(streamPacket.getData().duplicate());
+					event.setDataType(streamPacket.getDataType());
+					event.setReceivedTime(System.currentTimeMillis());
+					event.setTimestamp(streamPacket.getTimestamp());
+					
+					muxAdaptor.packetReceived(null, event);
 
-				streamPacket.setData(IoBuffer.wrap(data));
-
-				muxAdaptor.packetReceived(null, streamPacket);
-
-
+				}
 			}
 		}
 	}
