@@ -3502,8 +3502,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				
 				if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
 					VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
-					
+					videoData.setTimestamp(streamPacket.getTimestamp());
+					videoData.setReceivedTime(System.currentTimeMillis());
+
 					muxAdaptor.packetReceived(null, videoData);
+					
 				}
 				
 				else {
