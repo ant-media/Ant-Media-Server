@@ -286,52 +286,53 @@ public class FLVWriter implements ITagWriter {
     private Map<String, ?> getMetaData(Path path, int maxTags) throws IOException {
         Map<String, ?> meta = null;
         // attempt to read the metadata
-        SeekableByteChannel channel = Files.newByteChannel(path, StandardOpenOption.READ);
-        long size = channel.size();
-        log.debug("Channel open: {} size: {} position: {}", channel.isOpen(), size, channel.position());
-        if (size > 0L) {
-            // skip flv signature 4b, flags 1b, data offset 4b (9b), prev tag size (4b)
-            channel.position(appendOffset);
-            // flv tag header size 11b
-            ByteBuffer dst = ByteBuffer.allocate(11);
-            do {
-                int read = channel.read(dst);
-                if (read > 0) {
-                    dst.flip();
-                    byte tagType = (byte) (dst.get() & 31); // 1
-                    int bodySize = IOUtils.readUnsignedMediumInt(dst); // 3
-                    int timestamp = IOUtils.readExtendedMediumInt(dst); // 4
-                    int streamId = IOUtils.readUnsignedMediumInt(dst); // 3
-                    log.debug("Data type: {} timestamp: {} stream id: {} body size: {}", new Object[] { tagType, timestamp, streamId, bodySize });
-                    if (tagType == ITag.TYPE_METADATA) {
-                        ByteBuffer buf = ByteBuffer.allocate(bodySize);
-                        read = channel.read(buf);
-                        if (read > 0) {
-                            buf.flip();
-                            // construct the meta
-                            IoBuffer ioBuf = IoBuffer.wrap(buf);
-                            Input input = new Input(ioBuf);
-                            String metaType = Deserializer.deserialize(input, String.class);
-                            log.debug("Metadata type: {}", metaType);
-                            meta = Deserializer.deserialize(input, Map.class);
-                            input = null;
-                            ioBuf.clear();
-                            ioBuf.free();
-                            if (meta.containsKey("duration")) {
-                                appendOffset = channel.position() + 4L;
-                                break;
-                            }
-                        }
-                        buf.compact();
-                    }
-                    // advance beyond prev tag size
-                    channel.position(channel.position() + 4L);
-                    //int prevTagSize = dst.getInt(); // 4
-                    //log.debug("Previous tag size: {} {}", prevTagSize, (bodySize - 11));
-                    dst.compact();
-                }
-            } while (--maxTags > 0); // read up-to "max" tags looking for duration
-            channel.close();
+        try (SeekableByteChannel channel = Files.newByteChannel(path, StandardOpenOption.READ)) {
+	        long size = channel.size();
+	        log.debug("Channel open: {} size: {} position: {}", channel.isOpen(), size, channel.position());
+	        if (size > 0L) {
+	            // skip flv signature 4b, flags 1b, data offset 4b (9b), prev tag size (4b)
+	            channel.position(appendOffset);
+	            // flv tag header size 11b
+	            ByteBuffer dst = ByteBuffer.allocate(11);
+	            do {
+	                int read = channel.read(dst);
+	                if (read > 0) {
+	                    dst.flip();
+	                    byte tagType = (byte) (dst.get() & 31); // 1
+	                    int bodySize = IOUtils.readUnsignedMediumInt(dst); // 3
+	                    int timestamp = IOUtils.readExtendedMediumInt(dst); // 4
+	                    int streamId = IOUtils.readUnsignedMediumInt(dst); // 3
+	                    log.debug("Data type: {} timestamp: {} stream id: {} body size: {}", new Object[] { tagType, timestamp, streamId, bodySize });
+	                    if (tagType == ITag.TYPE_METADATA) {
+	                        ByteBuffer buf = ByteBuffer.allocate(bodySize);
+	                        read = channel.read(buf);
+	                        if (read > 0) {
+	                            buf.flip();
+	                            // construct the meta
+	                            IoBuffer ioBuf = IoBuffer.wrap(buf);
+	                            Input input = new Input(ioBuf);
+	                            String metaType = Deserializer.deserialize(input, String.class);
+	                            log.debug("Metadata type: {}", metaType);
+	                            meta = Deserializer.deserialize(input, Map.class);
+	                            input = null;
+	                            ioBuf.clear();
+	                            ioBuf.free();
+	                            if (meta.containsKey("duration")) {
+	                                appendOffset = channel.position() + 4L;
+	                                break;
+	                            }
+	                        }
+	                        buf.compact();
+	                    }
+	                    // advance beyond prev tag size
+	                    channel.position(channel.position() + 4L);
+	                    //int prevTagSize = dst.getInt(); // 4
+	                    //log.debug("Previous tag size: {} {}", prevTagSize, (bodySize - 11));
+	                    dst.compact();
+	                }
+	            } while (--maxTags > 0); // read up-to "max" tags looking for duration
+	           
+	        }
         }
         return meta;
     }
@@ -547,6 +548,8 @@ public class FLVWriter implements ITagWriter {
             }
         } catch (InterruptedException e) {
             log.warn("Exception acquiring lock", e);
+            Thread.currentThread().interrupt();
+
         } finally {
             // update the file information
             updateInfoFile();
@@ -640,6 +643,8 @@ public class FLVWriter implements ITagWriter {
             }
         } catch (InterruptedException e) {
             log.warn("Exception acquiring lock", e);
+            Thread.currentThread().interrupt();
+
         } finally {
             // update the file information
             updateInfoFile();
@@ -1037,6 +1042,7 @@ public class FLVWriter implements ITagWriter {
             }
         } catch (InterruptedException e) {
             log.warn("Exception acquiring lock", e);
+            Thread.currentThread().interrupt();
         } finally {
             if (locked) {
                 lock.release();

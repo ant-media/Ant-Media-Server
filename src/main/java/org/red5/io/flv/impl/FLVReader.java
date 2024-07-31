@@ -175,6 +175,7 @@ public class FLVReader implements IoConstants, ITagReader, IKeyFrameDataAnalyzer
         if (null == channel) {
             log.warn("Reader was passed a null channel");
             log.debug("{}", org.apache.commons.lang3.builder.ToStringBuilder.reflectionToString(this));
+            return;
         }
         if (!channel.isOpen()) {
             log.warn("Reader was passed a closed channel");
@@ -546,6 +547,7 @@ public class FLVReader implements IoConstants, ITagReader, IKeyFrameDataAnalyzer
             return getRemainingBytes() > 4;
         } catch (InterruptedException e) {
             log.warn("Exception acquiring lock", e);
+            Thread.currentThread().interrupt();
             return false;
         } finally {
             if (lock.isLocked()) {
@@ -682,6 +684,8 @@ public class FLVReader implements IoConstants, ITagReader, IKeyFrameDataAnalyzer
             close();
         } catch (InterruptedException e) {
             log.warn("Exception acquiring lock", e);
+            Thread.currentThread().interrupt();
+
         } finally {
             if (lock.isLocked()) {
                 lock.unlock();
@@ -848,6 +852,8 @@ public class FLVReader implements IoConstants, ITagReader, IKeyFrameDataAnalyzer
             }
         } catch (InterruptedException e) {
             log.warn("Exception acquiring lock", e);
+            Thread.currentThread().interrupt();
+
         } finally {
             if (lock.isLocked()) {
                 lock.unlock();

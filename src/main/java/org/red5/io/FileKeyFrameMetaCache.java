@@ -13,6 +13,7 @@ import java.io.IOException;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.stream.XMLInputFactory;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerFactory;
@@ -59,7 +60,12 @@ public class FileKeyFrameMetaCache implements IKeyFrameMetaCache {
 
         Document dom;
         DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+      
+
+
         try {
+        	
+        	dbf.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
             // Using factory get an instance of document builder
             DocumentBuilder db = dbf.newDocumentBuilder();
 
@@ -183,7 +189,9 @@ public class FileKeyFrameMetaCache implements IKeyFrameMetaCache {
         String filename = file.getAbsolutePath() + ".meta";
 
         try {
-            Transformer t = TransformerFactory.newInstance().newTransformer();
+        	TransformerFactory factory = TransformerFactory.newInstance();
+        	factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            Transformer t = factory.newTransformer();
             t.setOutputProperty(OutputKeys.INDENT, "yes");
             t.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
             t.transform(new DOMSource(dom), new StreamResult(new File(filename)));

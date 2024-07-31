@@ -12,9 +12,12 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.io.amf.AMF;
 import org.red5.io.object.Serializer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of the IDataOutput interface. Can be used to store an IExternalizable object.
@@ -25,6 +28,9 @@ import org.red5.io.object.Serializer;
  */
 public class DataOutput implements IDataOutput {
 
+	
+	private static Logger logger = LoggerFactory.getLogger(DataOutput.class);
+	
     /** The output stream */
     private Output output;
 
@@ -137,7 +143,7 @@ public class DataOutput implements IDataOutput {
             buffer.putShort((short) strBuf.length);
             buffer.put(strBuf);
         } catch (UnsupportedEncodingException e) {
-            e.printStackTrace();
+            logger.error(ExceptionUtils.getStackTrace(e));
         }
     }
 

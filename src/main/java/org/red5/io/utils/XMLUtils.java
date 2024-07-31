@@ -52,7 +52,10 @@ public class XMLUtils {
     public static Document stringToDoc(String str) throws IOException {
         if (StringUtils.isNotEmpty(str)) {
             try (Reader reader = new StringReader(str)) {
-                DocumentBuilder db = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+                factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+                
+				DocumentBuilder db = factory.newDocumentBuilder();
                 Document doc = db.parse(new InputSource(reader));
 
                 return doc;
@@ -101,6 +104,8 @@ public class XMLUtils {
     public static String docToString2(Document domDoc) throws IOException {
         try {
             TransformerFactory transFact = TransformerFactory.newInstance();
+            transFact.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+
             Transformer trans = transFact.newTransformer();
             trans.setOutputProperty(OutputKeys.INDENT, "no");
             StringWriter sw = new StringWriter();

@@ -300,6 +300,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	public static final AVRational TIME_BASE_FOR_MS = new AVRational().num(1).den(1000);
 
+	@SuppressWarnings("java:S2095")
 	public static AVRational getTimeBaseForMs() {
 		//create new instance because it can be used in references
 		return new AVRational().num(1).den(1000);
@@ -725,6 +726,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 				parser = new HEVCDecoderConfigurationParser(videoDataConf, 0);
 
+			}
+			else {
+				throw new IllegalArgumentException("Unsupported codec id for video:" + videoCodecId);
 			}
 
 

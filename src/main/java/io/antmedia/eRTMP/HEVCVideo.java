@@ -1,10 +1,7 @@
 package io.antmedia.eRTMP;
 
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
-
 import org.apache.mina.core.buffer.IoBuffer;
-import org.red5.codec.AbstractVideo;
+import org.red5.codec.AVCVideo;
 import org.red5.codec.VideoCodec;
 import org.red5.server.net.rtmp.event.VideoData;
 import org.red5.server.net.rtmp.event.VideoData.ExVideoPacketType;
@@ -12,21 +9,11 @@ import org.red5.server.net.rtmp.event.VideoData.VideoFourCC;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HEVCVideo extends AbstractVideo {
+public class HEVCVideo extends AVCVideo {
 
 	static final String CODEC_NAME = "HEVC";
-
-    private FrameData decoderConfiguration;
     
     private static Logger log = LoggerFactory.getLogger(HEVCVideo.class);
-    
-    
-    private final CopyOnWriteArrayList<FrameData> interframes = new CopyOnWriteArrayList<>();
-
-    private final AtomicInteger numInterframes = new AtomicInteger(0);
-    
-    private boolean bufferInterframes = false;
-
 
 	public HEVCVideo() {
 		this.reset();
@@ -41,19 +28,6 @@ public class HEVCVideo extends AbstractVideo {
 	public boolean canDropFrames() {
 		return true;
 	}
-
-	@Override
-	public void reset() {
-		decoderConfiguration = new FrameData();
-		softReset();
-	}
-	
-	 // reset all except decoder configuration
-    private void softReset() {
-        keyframes.clear();
-        interframes.clear();
-        numInterframes.set(0);
-    }
     
     public boolean canHandleData(IoBuffer data) {
         boolean result = false;
@@ -169,33 +143,6 @@ public class HEVCVideo extends AbstractVideo {
         return true;
     }
 
-    /** {@inheritDoc} */
-    @Override
-    public IoBuffer getDecoderConfiguration() {
-        return decoderConfiguration.getFrame();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public int getNumInterframes() {
-        return numInterframes.get();
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public FrameData getInterframe(int index) {
-        if (index < numInterframes.get()) {
-            return interframes.get(index);
-        }
-        return null;
-    }
-
-    public boolean isBufferInterframes() {
-        return bufferInterframes;
-    }
-
-    public void setBufferInterframes(boolean bufferInterframes) {
-        this.bufferInterframes = bufferInterframes;
-    }
+   
 
 }

@@ -30,22 +30,22 @@ public class AVCVideo extends AbstractVideo {
     static final String CODEC_NAME = "AVC";
 
     /** Video decoder configuration data */
-    private FrameData decoderConfiguration;
+    protected FrameData decoderConfiguration;
 
     /**
      * Storage for frames buffered since last key frame
      */
-    private final CopyOnWriteArrayList<FrameData> interframes = new CopyOnWriteArrayList<>();
+    protected final CopyOnWriteArrayList<FrameData> interframes = new CopyOnWriteArrayList<>();
 
     /**
      * Number of frames buffered since last key frame
      */
-    private final AtomicInteger numInterframes = new AtomicInteger(0);
+    protected final AtomicInteger numInterframes = new AtomicInteger(0);
 
     /**
      * Whether or not to buffer interframes
      */
-    private boolean bufferInterframes = false;
+    protected boolean bufferInterframes = false;
 
     /** Constructs a new AVCVideo. */
     public AVCVideo() {
@@ -72,7 +72,7 @@ public class AVCVideo extends AbstractVideo {
     }
 
     // reset all except decoder configuration
-    private void softReset() {
+    protected void softReset() {
         keyframes.clear();
         interframes.clear();
         numInterframes.set(0);
