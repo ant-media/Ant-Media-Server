@@ -404,32 +404,16 @@ public class VideoData extends BaseEvent implements IoConstants, IStreamData<Vid
 		return receivedTime;
 	}
 
-	public void setReceivedTime(long receivedTime) {
-		this.receivedTime = receivedTime;
-	}
-
-	public void setExVideoHeader(boolean exVideoHeader) {
-		this.exVideoHeader = exVideoHeader;
-	}
-
 	public ExVideoPacketType getExVideoPacketType() {
 		return exVideoPacketType;
 	}
 
-	public void setExVideoPacketType(ExVideoPacketType exVideoPacketType) {
-		this.exVideoPacketType = exVideoPacketType;
-	}
-
-	public void setFrameType(FrameType frameType) {
-		this.frameType = frameType;
-	}
-
-	public void setCodecId(int codecId) {
-		this.codecId = codecId;
-	}
-
 	public void setConfig(boolean config) {
 		this.config = config;
+	}
+
+	public void setReceivedTime(long timeMillis) {
+		this.receivedTime = timeMillis;
 	}
 
 }

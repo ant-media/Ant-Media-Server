@@ -119,10 +119,10 @@ public class TokenFilterManager extends AbstractFilter   {
 				// 2. server in standalone mode
 				
 				//return forbidden if any security is enabled and streamId is null
-				if ((appSettings.isTimeTokenSubscriberOnly() || appSettings.isPlayJwtControlEnabled() || appSettings.isEnableTimeTokenForPlay() || appSettings.isPlayTokenControlEnabled() ||appSettings.isHashControlPlayEnabled()) 
+				if (isAnySecurityEnabled(appSettings)
 						&& StringUtils.isBlank(streamId)) 
 				{
-					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Stream id is null");
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Cannot specified the stream id from the url");
 					logger.warn("Stream id is null");
 					return;
 				}
@@ -160,6 +160,11 @@ public class TokenFilterManager extends AbstractFilter   {
 			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
 			logger.warn("Invalid method type({}) for stream: {} and request uri: {}", method, streamId, httpRequest.getRequestURI());
 		}
+	}
+
+
+	public static boolean isAnySecurityEnabled(AppSettings appSettings) {
+		return appSettings.isTimeTokenSubscriberOnly() || appSettings.isPlayJwtControlEnabled() || appSettings.isEnableTimeTokenForPlay() || appSettings.isPlayTokenControlEnabled() ||appSettings.isHashControlPlayEnabled();
 	}
 
 
@@ -255,24 +260,6 @@ public class TokenFilterManager extends AbstractFilter   {
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex-4);
 		}
 		
-		
-		tsRegex = "(.*)_[0-9]{1,}.ts$"; //matches ll-hls ts files streamId_{NUMBER].ts
-		pattern = Pattern.compile(tsRegex);
-        
-        // Create a matcher for the input string
-        matcher = pattern.matcher(requestURI);
-		if (matcher.matches()) 
-		{	
-			return matcher.group(1);
-		}
-		
-		tsRegex = "(.*)_[0-9]{1,}\\.[0-9]{1,}\\.ts$"; //matches ll-hls ts files streamId_{NUMBER].{FILE_PART}.ts
-		pattern = Pattern.compile(tsRegex);
-		matcher = pattern.matcher(requestURI);
-		if (matcher.matches()) 
-		{	
-			return matcher.group(1);
-		}
 
 		//streamId_underline_test-2021-05-18_11-26-26.842.mp4 and streamId_underline_test-2021-05-18_11-26-26.842_360p500kbps.mp4 
 		String vodDatetimeRegex = "(.*)+(-20)[0-9][0-9]+(-)+([0-9][0-9])+(.*)";

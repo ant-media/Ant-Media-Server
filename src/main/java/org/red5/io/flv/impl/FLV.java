@@ -280,8 +280,9 @@ public class FLV implements IFLV {
                     log.debug("Item will not be cached: {}", fileName);
                 }
             } else {
-                log.info("Creating new file: {}", file);
-                file.createNewFile();
+                boolean result = file.createNewFile();
+                log.info("Creating new file: {} and result is {}", file, result);
+
             }
         } else {
             fileData = IoBuffer.wrap(ic.getBytes());

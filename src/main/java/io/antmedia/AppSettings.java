@@ -2171,12 +2171,16 @@ public class AppSettings implements Serializable{
 	
 	
 
-	@Value("${customFields:{}}")	
-	private JSONObject customFields = new JSONObject();
+	@Value("${customSettings:{}}")	
+	private JSONObject customSettings = new JSONObject();
 		
 		
-	public Object getCustomField(String key) {
-		return	customFields.get(key);
+	public Object getCustomSetting(String key) {
+		return	customSettings.get(key);
+	}
+	
+	public void setCustomSetting(String key, Object value) {
+		customSettings.put(key, value);
 	}
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
@@ -3787,11 +3791,13 @@ public class AppSettings implements Serializable{
 		this.iceGatheringTimeoutMs = iceGatheringTimeoutMs;
 	}
 
-	public JSONObject getCustomFields() {
-		return customFields;
+	public JSONObject getCustomSettings() {
+		return customSettings;
 	}
 
-	public void setCustomFields(JSONObject customFields) {
-		this.customFields = customFields;
+	public void setCustomSettings(JSONObject customSettings) {
+		this.customSettings = customSettings;
 	}
+
+
 }

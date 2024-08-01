@@ -21,6 +21,7 @@ import java.util.Queue;
 
 import org.apache.catalina.util.NetMask;
 import org.apache.commons.lang3.RandomUtils;
+import org.json.simple.JSONObject;
 import org.junit.Test;
 import org.red5.server.scope.WebScope;
 import org.springframework.test.annotation.DirtiesContext;
@@ -326,6 +327,19 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		String recordinfSubFolder = "subfolder";
 		appSettings.setRecordingSubfolder(recordinfSubFolder);
 		assertEquals(recordinfSubFolder, appSettings.getRecordingSubfolder());
+		
+		
+		assertNull(appSettings.getCustomSetting("test"));
+		appSettings.setCustomSetting("test", "hello");
+		assertEquals("hello", appSettings.getCustomSetting("test"));
+		
+		
+		JSONObject customFields = new JSONObject();
+		customFields.put("test2", "hello2");
+		appSettings.setCustomSettings(customFields);
+		assertEquals("hello2", appSettings.getCustomSetting("test2"));
+		assertNull(appSettings.getCustomSetting("test"));
+
 
 
 	}
@@ -565,7 +579,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
         assertEquals(2000, appSettings.getIceGatheringTimeoutMs());
         
-        assertEquals("{}",appSettings.getCustomFields().toJSONString());
+        assertEquals("{}",appSettings.getCustomSettings().toJSONString());
+        
+        
 
 
 		//if we add a new field, we just need to check its default value in this test

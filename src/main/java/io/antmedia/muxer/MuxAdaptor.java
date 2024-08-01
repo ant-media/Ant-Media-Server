@@ -78,11 +78,11 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.eRTMP.HEVCDecoderConfigurationParser;
 import io.antmedia.eRTMP.HEVCVideo;
 import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
-import io.antmedia.muxer.parser.HEVCDecoderConfigurationParser;
 import io.antmedia.muxer.parser.Parser;
 import io.antmedia.muxer.parser.SPSParser;
 import io.antmedia.muxer.parser.codec.AACAudio;
@@ -1382,19 +1382,21 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			IVideoStreamCodec videoCodec = codecInfo.getVideoCodec();
 			if (videoCodec instanceof AVCVideo || videoCodec instanceof HEVCVideo)
 			{
-				if (videoCodec instanceof AVCVideo)
-				{
-					videoCodecId = AV_CODEC_ID_H264;
-					//There is a 5 byte offset below
-					//1 byte is (frametype(4bit)+codecId(4bit)), 1 byte AVPacketType,  3 byte compositionTime
-
-				}
-				else {
+				//pay attention that HEVCVideo is subclass of AVCVideo
+				if (videoCodec instanceof HEVCVideo)
+				 {
 					videoCodecId  = AV_CODEC_ID_H265;
 					//There is a 5 byte offset below
 					//1 byte is (exVideoHeader(1 bit) + frametype(3bit) + videoPacketType(4bit)), 4 bytes fourcc = 5 bytes
 
 				}
+				else {
+					videoCodecId = AV_CODEC_ID_H264;
+					//There is a 5 byte offset below
+					//1 byte is (frametype(4bit)+codecId(4bit)), 1 byte AVPacketType,  3 byte compositionTime
+
+				}
+				
 
 				IoBuffer videoBuffer = videoCodec.getDecoderConfiguration();
 
