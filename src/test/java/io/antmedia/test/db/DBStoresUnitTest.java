@@ -732,7 +732,7 @@ public class DBStoresUnitTest {
 
 		long totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(0, totalVodCount);
-		assertEquals(7, datastore.fetchUserVodList(f));
+		assertEquals(8, datastore.fetchUserVodList(f));
 
 		//we know there are files there
 		//test_short.flv
@@ -742,12 +742,13 @@ public class DBStoresUnitTest {
 		//sample_MP4_480.mp4
 		//high_profile_delayed_video.flv
 		//test_video_360p_pcm_audio.mkv
+		//test_hevc.flv
 
 		totalVodCount = datastore.getTotalVodNumber();
-		assertEquals(7, totalVodCount);
+		assertEquals(8, totalVodCount);
 
 		List<VoD> vodList = datastore.getVodList(0, 50, null, null, null, null);
-		assertEquals(7, vodList.size());
+		assertEquals(8, vodList.size());
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/"+voD.getVodName(), voD.getFilePath());
 		}
