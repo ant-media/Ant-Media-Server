@@ -1376,7 +1376,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
-	private void getVideoDataConf(IStreamCodecInfo codecInfo) {
+	public void getVideoDataConf(IStreamCodecInfo codecInfo) {
 		if (enableVideo) 
 		{
 			IVideoStreamCodec videoCodec = codecInfo.getVideoCodec();
@@ -2597,6 +2597,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		this.durationMs = durationMs;
 	}
 
+	public int getVideoCodecId() {
+		return videoCodecId;
+	}
 
 
 }

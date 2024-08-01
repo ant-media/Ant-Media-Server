@@ -91,6 +91,7 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.red5.codec.AbstractVideo;
 import org.red5.codec.IAudioStreamCodec;
 import org.red5.codec.IVideoStreamCodec;
 import org.red5.codec.StreamCodecInfo;
@@ -106,6 +107,7 @@ import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.codec.RTMPProtocolDecoder;
 import org.red5.server.net.rtmp.event.CachedEvent;
 import org.red5.server.net.rtmp.event.VideoData;
+import org.red5.server.net.rtmp.event.VideoData.VideoFourCC;
 import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.net.rtmp.message.Header;
 import org.red5.server.scope.WebScope;
@@ -129,6 +131,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.eRTMP.HEVCDecoderConfigurationParser.HEVCSPSParser;
+import io.antmedia.eRTMP.HEVCVideo;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.HLSMuxer;
@@ -149,6 +152,7 @@ import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.storage.AmazonS3StorageClient;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.test.eRTMP.HEVCDecoderConfigurationParserTest;
 import io.antmedia.test.utils.VideoInfo;
 import io.antmedia.test.utils.VideoProber;
 import io.vertx.core.Vertx;
@@ -3543,6 +3547,76 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
+	@Test
+	public void testMuxAdaptorGetVideConf() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream.setCodecInfo(info);
+
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+		
+		
+		IVideoStreamCodec codec = new HEVCVideo();
+		
+		
+		byte[] header = new byte[5];
+		header[0] = ((byte) 0x80); 
+		header[1] = ((byte) (byte)(VideoFourCC.HEVC_FOURCC.value)); 
+		header[2] = ((byte) (VideoFourCC.HEVC_FOURCC.value >> 8)); 
+		header[3] = ((byte) (VideoFourCC.HEVC_FOURCC.value >> 16)); 
+		header[4] = ((byte) (VideoFourCC.HEVC_FOURCC.value >> 24)); 
+		
+
+		IoBuffer buffer = IoBuffer.wrap(header);
+		buffer.setAutoExpand(true);
+		buffer.position(5);
+		buffer.put(HEVCDecoderConfigurationParserTest.HEVC_DECODER_CONFIGURATION);
+		buffer.rewind();
+		
+		codec.addData(buffer);
+		
+		info.setVideoCodec(codec);
+		
+		muxAdaptor.setEnableVideo(true);
+		muxAdaptor.getVideoDataConf(info);
+		assertEquals(AV_CODEC_ID_H265, muxAdaptor.getVideoCodecId());
+		
+		AVCodecParameters videoCodecParameters = muxAdaptor.getVideoCodecParameters();
+		assertEquals(1920, videoCodecParameters.width());
+		assertEquals(1080, videoCodecParameters.height());
+		
+		
+		
+		//test with null codec
+		muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+		muxAdaptor.setEnableVideo(true);
+
+		info.setVideoCodec(Mockito.mock(AbstractVideo.class));
+		muxAdaptor.getVideoDataConf(info);
+		
+		assertEquals(-1, muxAdaptor.getVideoCodecId());
+	}
+	
+	@Test
+	public void testSimpleGetterSetters() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream.setCodecInfo(info);
+		
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+
+		assertEquals(0, muxAdaptor.getDurationMs());
+		assertEquals(0, muxAdaptor.getTotalByteReceived());
+		
+		muxAdaptor.setDurationMs(1000);
+		muxAdaptor.setTotalByteReceived(1000);
+		assertEquals(1000, muxAdaptor.getDurationMs());
+		assertEquals(1000, muxAdaptor.getTotalByteReceived());
+
+	}
+	
 	@Test
 	public void testStreamSpeed() throws IOException {
 
