@@ -96,6 +96,7 @@ import org.red5.codec.IAudioStreamCodec;
 import org.red5.codec.IVideoStreamCodec;
 import org.red5.codec.StreamCodecInfo;
 import org.red5.io.ITag;
+import org.red5.io.IoConstants;
 import org.red5.io.flv.impl.FLVReader;
 import org.red5.io.flv.impl.Tag;
 import org.red5.server.api.IContext;
@@ -107,6 +108,7 @@ import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.codec.RTMPProtocolDecoder;
 import org.red5.server.net.rtmp.event.CachedEvent;
 import org.red5.server.net.rtmp.event.VideoData;
+import org.red5.server.net.rtmp.event.VideoData.ExVideoPacketType;
 import org.red5.server.net.rtmp.event.VideoData.VideoFourCC;
 import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.net.rtmp.message.Header;
@@ -3546,6 +3548,82 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 		}
 	}
+	
+	@Test
+	public void testWriteStreamPacketHEVC() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream.setCodecInfo(info);
+
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+		
+		Muxer muxer = Mockito.spy(new HLSMuxer(vertx, null, null, 0, null, false));
+		muxAdaptor.setEnableVideo(true);
+
+		muxAdaptor.addMuxer(muxer, 0);
+		
+		muxAdaptor.setPacketFeeder(new PacketFeeder("streamId"));
+		
+		CachedEvent event = new CachedEvent();
+		event.setDataType(IoConstants.TYPE_VIDEO);
+		event.setExVideoHeader(true);
+		event.setReceivedTime(System.currentTimeMillis());
+		int timestamp = (int)System.currentTimeMillis();
+		event.setTimestamp(timestamp);
+		event.setData(IoBuffer.allocate(1000));
+		event.setExVideoPacketType(ExVideoPacketType.CODED_FRAMES);
+		
+		//assume that this decoder configuration file
+		muxAdaptor.writeStreamPacket(event);
+		
+		
+		muxAdaptor.writeStreamPacket(event);
+		
+	
+		//5 + 3 bytes for extended timestamp
+		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(1000-8);
+		byteBuffer.position(992);
+		
+		Mockito.verify(muxer, Mockito.times(1)).writeVideoBuffer(byteBuffer, timestamp, 0, 
+										0, false, 0, timestamp);
+		
+		
+		
+		event = new CachedEvent();
+		event.setDataType(IoConstants.TYPE_VIDEO);
+		event.setExVideoHeader(true);
+		event.setReceivedTime(System.currentTimeMillis());
+		event.setData(IoBuffer.allocate(500));
+		timestamp = (int)System.currentTimeMillis();
+		event.setTimestamp(timestamp);
+		event.setExVideoPacketType(ExVideoPacketType.CODED_FRAMESX);
+		
+		muxAdaptor.writeStreamPacket(event);
+
+		//no extended timestamp
+		byteBuffer = ByteBuffer.allocateDirect(1000-5);
+		byteBuffer.position(995);
+		
+		Mockito.verify(muxer, Mockito.times(1)).writeVideoBuffer(byteBuffer, timestamp, 0, 
+				0, false, 0, timestamp);
+		
+		
+		//regular file
+		event = new CachedEvent();
+		event.setDataType(IoConstants.TYPE_VIDEO);
+		event.setExVideoHeader(false);
+		event.setReceivedTime(System.currentTimeMillis());
+		event.setData(IoBuffer.allocate(1000));
+		timestamp = (int)System.currentTimeMillis();
+		event.setTimestamp(timestamp);
+		
+		muxAdaptor.writeStreamPacket(event);
+		
+		Mockito.verify(muxer, Mockito.times(1)).writeVideoBuffer(byteBuffer, timestamp, 0, 
+				0, false, 0, timestamp);
+
+	}
 
 	@Test
 	public void testMuxAdaptorGetVideConf() {
@@ -3587,7 +3665,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(1080, videoCodecParameters.height());
 		
 		
-		
 		//test with null codec
 		muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 		muxAdaptor.setEnableVideo(true);
@@ -3596,6 +3673,17 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.getVideoDataConf(info);
 		
 		assertEquals(-1, muxAdaptor.getVideoCodecId());
+		
+		
+		muxAdaptor.setVideoDataConf(HEVCDecoderConfigurationParserTest.HEVC_DECODER_CONFIGURATION);
+		
+		try {
+			videoCodecParameters = muxAdaptor.getVideoCodecParameters();
+			fail("It should throw exception");
+		}
+		catch (Exception e) {
+			
+		}
 	}
 	
 	@Test

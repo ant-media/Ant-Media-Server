@@ -1062,6 +1062,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			
 			measureIngestTime(dts, videoData.getReceivedTime());
 			
+			//we skip first video packet because it's a decoder configuration
 			if (!firstVideoPacketSkipped) {
 				firstVideoPacketSkipped = true;
 				return;
@@ -2599,6 +2600,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public int getVideoCodecId() {
 		return videoCodecId;
+	}
+
+	public void setVideoDataConf(byte[] videoDataConf) {
+		this.videoDataConf = videoDataConf;
+	}
+
+	public void setPacketFeeder(PacketFeeder packetFeeder) {
+		this.packetFeeder = packetFeeder;
 	}
 
 
