@@ -1,23 +1,27 @@
-package io.antmedia.rest.model;
+package io.antmedia.datastore.db.types;
 
-public enum UserType {
+import dev.morphia.annotations.Entity;
+
+import java.io.Serializable;
+
+public enum UserType implements Serializable {
 	
 	/**
 	 * ADMIN user, It can do anything in its scope
 	 */
-	ADMIN("admin"),
+	ADMIN("ADMIN"),
 
 	/**
 	 * READ_ONLY user can just read the value in its scope
 	 */
-	READ_ONLY("read_only"),
+	READ_ONLY("READ_ONLY"),
 	
 	/**
 	 * USER, it can CRUD content but it cannot change settings
 	 */
-	USER("user");
+	USER("USER");
 	
-	private String typeName;
+	public String typeName;
 	
 	UserType(String typeName) {
 		this.typeName = typeName;

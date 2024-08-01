@@ -15,21 +15,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.antmedia.console.rest.CommonRestService;
-import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
+import io.antmedia.datastore.db.types.*;
+import io.antmedia.datastore.db.types.UserType;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
@@ -46,11 +42,9 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.client.LaxRedirectStrategy;
-import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
 import org.awaitility.Awaitility;
 import org.codehaus.plexus.util.ExceptionUtils;
-import org.glassfish.jersey.media.multipart.FormDataMultiPart;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -75,11 +69,6 @@ import com.google.gson.reflect.TypeToken;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
-import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.datastore.db.types.Licence;
-import io.antmedia.datastore.db.types.Subscriber;
-import io.antmedia.datastore.db.types.Token;
-import io.antmedia.datastore.db.types.User;
 import io.antmedia.rest.model.Result;
 import io.antmedia.rest.model.Version;
 import io.antmedia.security.TOTPGenerator;
@@ -1001,6 +990,36 @@ public class ConsoleAppRestServiceTest{
 			if (response.getStatusLine().getStatusCode() != 200) {
 				lastStatusCode = response.getStatusLine().getStatusCode();
 				throw new Exception(result.toString());
+			}
+			System.out.println("result string: " + result.toString());
+			Type listType = new TypeToken<List<Broadcast>>() {
+			}.getType();
+
+			return gson.fromJson(result.toString(), listType);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public static List<Broadcast> callGetBroadcastListWithPath(String appName) {
+		try {
+
+			String url = ROOT_SERVICE_URL + "/request?_path="+ appName + "/rest/v2/broadcasts/list/0/50";
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).setDefaultCookieStore(httpCookieStore).build();
+
+			HttpUriRequest get = RequestBuilder.get().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.build();
+
+			CloseableHttpResponse response = client.execute(get);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				return null;
 			}
 			System.out.println("result string: " + result.toString());
 			Type listType = new TypeToken<List<Broadcast>>() {
@@ -2489,6 +2508,25 @@ public class ConsoleAppRestServiceTest{
 		return tmp;
 	}
 
+	public static Result callCreateUser(User user) throws Exception {
+		String url = ROOT_SERVICE_URL + "/users";
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).setDefaultCookieStore(httpCookieStore).build();
+		Gson gson = new Gson();
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(user))).build();
+
+		HttpResponse response = client.execute(post);
+
+		StringBuffer result = RestServiceV2Test.readResponse(response);
+
+		if (response.getStatusLine().getStatusCode() != 200) {
+			return new Result(false);
+		}
+		Result tmp = gson.fromJson(result.toString(), Result.class);
+		assertNotNull(tmp);
+		return tmp;
+	}
+
 	private static Result callAuthenticateUser(User user) throws Exception {
 		String url = ROOT_SERVICE_URL + "/users/authenticate";
 		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
@@ -2502,7 +2540,7 @@ public class ConsoleAppRestServiceTest{
 		StringBuffer result = RestServiceV2Test.readResponse(response);
 
 		if (response.getStatusLine().getStatusCode() != 200) {
-			throw new Exception(result.toString());
+			return new Result(false);
 		}
 		log.info("result string: " + result.toString());
 		Result tmp = gson.fromJson(result.toString(), Result.class);
@@ -2590,7 +2628,6 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	public static Result callSetAppSettings(String appName, AppSettings appSettingsModel) throws Exception {
-
 		String url = ROOT_SERVICE_URL + "/applications/settings/" + appName;
 		try (CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy())
 				.setDefaultCookieStore(httpCookieStore).build())
@@ -2605,13 +2642,16 @@ public class ConsoleAppRestServiceTest{
 				StringBuffer result = RestServiceV2Test.readResponse(response);
 
 				if (response.getStatusLine().getStatusCode() != 200) {
-					throw new Exception(result.toString());
+					return new Result(false);
 				}
 				log.info("result string: " + result.toString());
 				Result tmp = gson.fromJson(result.toString(), Result.class);
 				assertNotNull(tmp);
 				return tmp;
+			}catch (Exception e){
+				e.printStackTrace();
 			}
+			return new Result(false);
 		}
 
 	}
@@ -2935,6 +2975,763 @@ public class ConsoleAppRestServiceTest{
 			fail(e.getMessage());
 		}
 	}
+
+	@Test
+	public void testMultiAppUserPermission() throws Exception {
+
+		Result result = callIsEnterpriseEdition();
+		String appName1 = "WebRTCApp";
+		if (result.isSuccess()) {
+			appName1 = "WebRTCAppEE";
+		}
+
+		String appName2 = "LiveApp";
+		String appName3 = "live";
+
+		String applications = callGetApplications();
+
+		JSONObject appsJSON = (JSONObject) new JSONParser().parse(applications);
+		JSONArray jsonArray = (JSONArray) appsJSON.get("applications");
+
+		//Check if we have 3 applications.
+		boolean containsWebRTCAppEE = false;
+		boolean containsLiveApp = false;
+		boolean containsLive = false;
+
+		for (int i = 0; i < jsonArray.size(); i++) {
+			String value = (String) jsonArray.get(i);
+			if (value.equals(appName1)) {
+				containsWebRTCAppEE = true;
+			} else if (value.equals(appName2)) {
+				containsLiveApp = true;
+			} else if (value.equals(appName3)) {
+				containsLive = true;
+			}
+		}
+
+		assertTrue(containsWebRTCAppEE);
+		assertTrue(containsLiveApp);
+		assertTrue(containsLive);
+
+
+		//if its admin of the application he can do broadcast and vod calls and change app settings
+		//if its user of the application he can do broadcast and vod calls but cannot change app settings
+		//if its read_only of the application he can only read, cant create/delete broadcast, cant change app settings.
+		//if application does not exist in the map user cant do anything to the application.
+		//"system" as key means all existing apps.
+
+		User user1 = new User();
+		user1.setEmail("userTest1@antmedia.io");
+		user1.setPassword(TEST_USER_PASS);
+		Map user1AppNameUserTypeMap = new HashMap();
+		user1AppNameUserTypeMap.put(appName1, UserType.ADMIN);
+		user1AppNameUserTypeMap.put(appName2, UserType.USER);
+		user1AppNameUserTypeMap.put(appName3, UserType.READ_ONLY);
+
+
+		user1.setAppNameUserType(user1AppNameUserTypeMap);
+
+		Result createUserRes = callCreateUser(user1);
+		assertTrue(createUserRes.isSuccess());
+
+		resetCookieStore();
+
+		Result authenticateUser1Result = callAuthenticateUser(user1);
+
+		assertTrue(authenticateUser1Result.isSuccess());
+
+		String streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+		//user1 app 1
+		Broadcast testBroadcast = callCreateBroadcast(streamId, appName1);
+		assertNotNull(testBroadcast);
+
+		List<Broadcast> broadcastList = callGetBroadcastListWithPath(appName1);
+		assertNotNull(broadcastList);
+
+		Result removeBroadcastResult = callDeleteBroadcast(streamId, appName1);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		List<VoD> vodList = callGetVoDList(0,10, appName1);
+		assertNotNull(vodList);
+
+		AppSettings appSettings = callGetAppSettings(appName1);
+		appSettings.setH264Enabled(true);
+		Result setAppSettingsResult = callSetAppSettings(appName1, appSettings);
+		assertTrue(setAppSettingsResult.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+		//user1 app 2
+		testBroadcast = callCreateBroadcast(streamId, appName2);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName2);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName2);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName2);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName2);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName2, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+		//user1 app 3 since its read_only cannot create new broadcast.
+		testBroadcast = callCreateBroadcast(streamId, appName3);
+		assertNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName3);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName3);
+		//user1 app3 read_only cannot delete broadcast.
+		assertFalse(removeBroadcastResult.isSuccess());
+
+		//user1 app3 read_only can get Vods.
+		vodList = callGetVoDList(0,10, appName3);
+		assertNotNull(vodList);
+
+
+		//user1 app3 read_only cant change app settings.
+		appSettings = callGetAppSettings(appName3);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName3, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+		//user1 is not system level admin cannot create new user.
+
+		User userNotToBeCreated = new User();
+		userNotToBeCreated.setEmail("shouldntBeAbleToCreate@antmedia.io");
+		userNotToBeCreated.setPassword(TEST_USER_PASS);
+		Map userNotToBeCreatedAppNameUserTypeMap = new HashMap();
+		//scope system means all apps.
+		userNotToBeCreatedAppNameUserTypeMap.put(CommonRestService.SCOPE_SYSTEM, UserType.ADMIN);
+
+		createUserRes = callCreateUser(userNotToBeCreated);
+		assertFalse(createUserRes.isSuccess());
+
+		//USER2 ADMIN AT ALL APPS.
+		User user2 = new User();
+		user2.setEmail("userTest2@antmedia.io");
+		user2.setPassword(TEST_USER_PASS);
+		Map user2AppNameUserTypeMap = new HashMap();
+		//scope system means all apps.
+		user2AppNameUserTypeMap.put(CommonRestService.SCOPE_SYSTEM, UserType.ADMIN);
+		user2.setAppNameUserType(user2AppNameUserTypeMap);
+		resetCookieStore();
+		authenticateDefaultUser();
+		createUserRes = callCreateUser(user2);
+		assertTrue(createUserRes.isSuccess());
+
+		Result authenticateUserRes = callAuthenticateUser(user2);
+		assertTrue(authenticateUserRes.isSuccess());
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+		//user2 app1
+		testBroadcast = callCreateBroadcast(streamId, appName1);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName1);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName1);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName1);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName1);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName1, appSettings);
+		assertTrue(setAppSettingsResult.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+		//user2 app2
+		testBroadcast = callCreateBroadcast(streamId, appName2);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName2);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName2);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName2);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName2);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName2, appSettings);
+		assertTrue(setAppSettingsResult.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+
+		//user2 app3 can do everything
+		testBroadcast = callCreateBroadcast(streamId, appName3);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName3);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName3);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName3);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName3);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName3, appSettings);
+		assertTrue(setAppSettingsResult.isSuccess());
+
+		//USER3 USER AT ALL APPS.
+		User user3 = new User();
+		user3.setEmail("userTest3@antmedia.io");
+		user3.setPassword(TEST_USER_PASS);
+		Map user3AppNameUserTypeMap = new HashMap();
+		//scope system means all apps.
+		user3AppNameUserTypeMap.put(CommonRestService.SCOPE_SYSTEM, UserType.USER);
+		user3.setAppNameUserType(user3AppNameUserTypeMap);
+		resetCookieStore();
+		authenticateDefaultUser();
+		createUserRes = callCreateUser(user3);
+		assertTrue(createUserRes.isSuccess());
+
+		authenticateUserRes = callAuthenticateUser(user3);
+		assertTrue(authenticateUserRes.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+
+		//user3 app1
+		testBroadcast = callCreateBroadcast(streamId, appName1);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName1);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName1);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName1);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName1);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName1, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+
+		//user3 app2
+		testBroadcast = callCreateBroadcast(streamId, appName2);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName2);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName2);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName2);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName2);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName2, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+
+		//user3 app3
+		testBroadcast = callCreateBroadcast(streamId, appName3);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName3);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName3);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName3);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName3);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName3, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+
+		//USER4 READ_ONLY AT ALL APPS.
+		User user4 = new User();
+		user4.setEmail("userTest4@antmedia.io");
+		user4.setPassword(TEST_USER_PASS);
+		Map user4AppNameUserTypeMap = new HashMap();
+		//scope system means all apps.
+		user4AppNameUserTypeMap.put(CommonRestService.SCOPE_SYSTEM, UserType.READ_ONLY);
+		user4.setAppNameUserType(user4AppNameUserTypeMap);
+		resetCookieStore();
+		authenticateDefaultUser();
+		createUserRes = callCreateUser(user4);
+		assertTrue(createUserRes.isSuccess());
+
+		authenticateUserRes = callAuthenticateUser(user4);
+		assertTrue(authenticateUserRes.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+
+		//user4 app1
+		testBroadcast = callCreateBroadcast(streamId, appName1);
+		assertNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName1);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName1);
+		assertFalse(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName1);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName1);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName1, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+
+		//user4 app2
+		testBroadcast = callCreateBroadcast(streamId, appName2);
+		assertNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName2);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName2);
+		assertFalse(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName2);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName2);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName2, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+		//user4 app3
+		testBroadcast = callCreateBroadcast(streamId, appName3);
+		assertNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName3);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName3);
+		assertFalse(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName3);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName3);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName3, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+
+
+		//USER5
+		User user5 = new User();
+		user5.setEmail("userTest5@antmedia.io");
+		user5.setPassword(TEST_USER_PASS);
+		Map user5AppNameUserTypeMap = new HashMap();
+		user5AppNameUserTypeMap.put(appName1, UserType.READ_ONLY);
+		user5AppNameUserTypeMap.put(appName2, UserType.READ_ONLY);
+		user5AppNameUserTypeMap.put(appName3, UserType.USER);
+
+		user5.setAppNameUserType(user5AppNameUserTypeMap);
+		resetCookieStore();
+		authenticateDefaultUser();
+		createUserRes = callCreateUser(user5);
+		assertTrue(createUserRes.isSuccess());
+
+		authenticateUserRes = callAuthenticateUser(user5);
+		assertTrue(authenticateUserRes.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+
+		//user5 app1
+		testBroadcast = callCreateBroadcast(streamId, appName1);
+		assertNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName1);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName1);
+		assertFalse(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName1);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName1);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName1, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+		//user5 app2
+		testBroadcast = callCreateBroadcast(streamId, appName2);
+		assertNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName2);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName2);
+		assertFalse(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName2);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName2);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName2, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+		//user5 app3
+		testBroadcast = callCreateBroadcast(streamId, appName3);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName3);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName3);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName3);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName3);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName3, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+
+		//USER6
+		User user6 = new User();
+		user6.setEmail("userTest6@antmedia.io");
+		user6.setPassword(TEST_USER_PASS);
+		Map user6AppNameUserTypeMap = new HashMap();
+		user6AppNameUserTypeMap.put(appName1, UserType.USER);
+		user6AppNameUserTypeMap.put(appName2, UserType.USER);
+		user6AppNameUserTypeMap.put(appName3, UserType.ADMIN);
+
+		user6.setAppNameUserType(user6AppNameUserTypeMap);
+		resetCookieStore();
+		authenticateDefaultUser();
+		createUserRes = callCreateUser(user6);
+		assertTrue(createUserRes.isSuccess());
+
+		authenticateUserRes = callAuthenticateUser(user6);
+		assertTrue(authenticateUserRes.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+		//user6 app1
+		testBroadcast = callCreateBroadcast(streamId, appName1);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName1);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName1);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName1);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName1);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName1, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+
+		//user6 app2
+		testBroadcast = callCreateBroadcast(streamId, appName2);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName2);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName2);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName2);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName2);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName2, appSettings);
+		assertFalse(setAppSettingsResult.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+
+		//user6 app3
+		testBroadcast = callCreateBroadcast(streamId, appName3);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName3);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName3);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName3);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName3);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName3, appSettings);
+		assertTrue(setAppSettingsResult.isSuccess());
+
+
+		//USER7
+		User user7 = new User();
+		user7.setEmail("userTest7@antmedia.io");
+		user7.setPassword(TEST_USER_PASS);
+		Map user7AppNameUserTypeMap = new HashMap();
+		user7AppNameUserTypeMap.put(appName1, UserType.ADMIN);
+		user7AppNameUserTypeMap.put(appName2, UserType.ADMIN);
+
+		user7.setAppNameUserType(user7AppNameUserTypeMap);
+		resetCookieStore();
+		authenticateDefaultUser();
+		createUserRes = callCreateUser(user7);
+		assertTrue(createUserRes.isSuccess());
+
+		authenticateUserRes = callAuthenticateUser(user7);
+		assertTrue(authenticateUserRes.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+		//user7 app1
+		testBroadcast = callCreateBroadcast(streamId, appName1);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName1);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName1);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName1);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName1);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName1, appSettings);
+		assertTrue(setAppSettingsResult.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+		//user7 app2
+		testBroadcast = callCreateBroadcast(streamId, appName2);
+		assertNotNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName2);
+		assertNotNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName2);
+		assertTrue(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName2);
+		assertNotNull(vodList);
+
+		appSettings = callGetAppSettings(appName2);
+		appSettings.setH264Enabled(true);
+		setAppSettingsResult = callSetAppSettings(appName2, appSettings);
+		assertTrue(setAppSettingsResult.isSuccess());
+
+		streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+		
+		//user7 has no app3 in its map. nothing is allowed for app3.
+		testBroadcast = callCreateBroadcast(streamId, appName3);
+		assertNull(testBroadcast);
+
+		broadcastList = callGetBroadcastListWithPath(appName3);
+		assertNull(broadcastList);
+
+		removeBroadcastResult = callDeleteBroadcast(streamId, appName3);
+		assertFalse(removeBroadcastResult.isSuccess());
+
+		vodList = callGetVoDList(0,10, appName3);
+		assertNull(vodList);
+
+		try{
+			callGetAppSettings(appName3);
+		}catch (Exception e){
+			assertTrue(e.getMessage().contains("403"));
+		}
+
+		resetCookieStore();
+		authenticateDefaultUser();
+
+		Result deleteUserRes = callDeleteUser(user1.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
+		deleteUserRes = callDeleteUser(user2.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
+		deleteUserRes = callDeleteUser(user3.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
+		deleteUserRes = callDeleteUser(user4.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
+		deleteUserRes = callDeleteUser(user5.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
+		deleteUserRes = callDeleteUser(user6.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+
+		deleteUserRes = callDeleteUser(user7.getEmail());
+		assertTrue(deleteUserRes.isSuccess());
+	}
+
+	public static List<VoD> callGetVoDList(int offset, int size, String appName) {
+		try {
+
+			String url = ROOT_SERVICE_URL + "/request?_path="+ appName + "/rest/v2/vods/list/"+offset+"/" + size;
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).setDefaultCookieStore(httpCookieStore).build();
+
+			HttpUriRequest get = RequestBuilder.get().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					// .setEntity(new StringEntity(gson.toJson(broadcast)))
+					.build();
+
+			CloseableHttpResponse response = client.execute(get);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				return null;
+			}
+			System.out.println("Get vod list string: " + result.toString());
+			Type listType = new TypeToken<List<VoD>>() {
+			}.getType();
+
+			return gson.fromJson(result.toString(), listType);
+
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public static Broadcast callCreateBroadcast(String id, String appName) {
+		try {
+			//"http://" + InetAddress.getLocalHost().getHostAddress() + ":5080/rest/v2";
+			String url =  ROOT_SERVICE_URL +"/request?_path="+ appName  + "/rest/v2/broadcasts/create";
+
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).setDefaultCookieStore(httpCookieStore).build();
+
+			Gson gson = new Gson();
+			Broadcast broadcast = new Broadcast();
+			broadcast.setName(id);
+			broadcast.setStreamId(id);
+
+			HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+					.setEntity(new StringEntity(gson.toJson(broadcast))).build();
+
+			CloseableHttpResponse response = client.execute(post);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				return null;
+			}
+			Broadcast tmp = gson.fromJson(result.toString(), Broadcast.class);
+
+			return tmp;
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		return null;
+	}
+
+	public static Result callDeleteBroadcast(String id, String appName) {
+		try {
+			// delete broadcast
+			String url =  ROOT_SERVICE_URL + "/request?_path=" + appName + "/rest/v2/broadcasts/" + id;
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).setDefaultCookieStore(httpCookieStore).build();
+
+			HttpUriRequest post = RequestBuilder.delete().setUri(url)
+					.setHeader(HttpHeaders.CONTENT_TYPE, "application/json").build();
+
+			CloseableHttpResponse response = client.execute(post);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				return new Result(false);
+			}
+			System.out.println("result string: " + result.toString());
+			Result result2 = gson.fromJson(result.toString(), Result.class);
+			return result2;
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		return null;
+	}
+
+	public static Result callDeleteUser(String userName) {
+		try {
+			String url = ROOT_SERVICE_URL + "/users/"+userName;
+
+			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).setDefaultCookieStore(httpCookieStore).build();
+
+			HttpUriRequest delete = RequestBuilder.delete().setUri(url).build();
+
+			CloseableHttpResponse response = client.execute(delete);
+
+			StringBuffer result = readResponse(response);
+
+			if (response.getStatusLine().getStatusCode() != 200) {
+				return new Result(false);
+			}
+			System.out.println("result string: " + result.toString());
+			Result result2 = gson.fromJson(result.toString(), Result.class);
+			return result2;
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+		return null;
+	}
+
 
 
 	public static BasicCookieStore getHttpCookieStore() {
