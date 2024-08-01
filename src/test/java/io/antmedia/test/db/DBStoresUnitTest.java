@@ -18,6 +18,9 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import io.antmedia.datastore.db.*;
+
+import org.apache.commons.compress.utils.FileNameUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
@@ -729,10 +732,23 @@ public class DBStoresUnitTest {
 
 
 		File f = new File("src/test/resources");
+		File[] files = f.listFiles();
+		int numberOfFiles = 0;
+		for (File file : files) 
+		{
+			String fileExtension = FilenameUtils.getExtension(file.getName());
+			if (file.isFile() && ("mp4".equals(fileExtension) || "flv".equals(fileExtension)
+					|| "mkv".equals(fileExtension))) 
+			{
+				numberOfFiles++;	
+			}
+		}
+
+		assertTrue(numberOfFiles > 7);
 
 		long totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(0, totalVodCount);
-		assertEquals(8, datastore.fetchUserVodList(f));
+		assertEquals(numberOfFiles, datastore.fetchUserVodList(f));
 
 		//we know there are files there
 		//test_short.flv
@@ -745,10 +761,10 @@ public class DBStoresUnitTest {
 		//test_hevc.flv
 
 		totalVodCount = datastore.getTotalVodNumber();
-		assertEquals(8, totalVodCount);
+		assertEquals(numberOfFiles, totalVodCount);
 
 		List<VoD> vodList = datastore.getVodList(0, 50, null, null, null, null);
-		assertEquals(8, vodList.size());
+		assertEquals(numberOfFiles, vodList.size());
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/"+voD.getVodName(), voD.getFilePath());
 		}
