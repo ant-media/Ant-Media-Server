@@ -561,11 +561,12 @@ public class StreamFetcher {
 				 * Generally we don't use this feature most of the time
 				 */
 				AVPacket packet = getAVPacket();
+
 				av_packet_ref(packet, pkt);
 				bufferQueue.add(packet);
 
 				try {
-					//NoSuchElementException may be thrown 
+					//NoSuchElementException may be thrown because 
 					AVPacket pktHead = bufferQueue.first();
 					//NoSuchElementException may be thrown here as well - it's multithread @mekya
 					AVPacket pktTrailer = bufferQueue.last();
@@ -574,24 +575,34 @@ public class StreamFetcher {
 					 * It's a very rare case to happen so that check if it's null
 					 */
 
-					lastPacketTimeMsInQueue = av_rescale_q(pktTrailer.dts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+					if (pktHead.dts() != AV_NOPTS_VALUE && pktTrailer.dts() != AV_NOPTS_VALUE) { 
+						
+						/**
+						 * Check if the values are not AV_NOPTS_VALUE because 
+						 * In multithread environment, it may be unreferenced in writer thread #writeBufferedPacket -> unReferencePacket
+						 */
+						lastPacketTimeMsInQueue = av_rescale_q(pktTrailer.dts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 
-					firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+						firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 
-					bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
+						bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
 
-					if ( bufferDuration > bufferTime) {
+						//logger.info("lastPacketTimeMsInQueue:{} firstPacketTime:{} bufferDuration:{}", lastPacketTimeMsInQueue, firstPacketTime, bufferDuration);
 
-						if (buffering.get()) {
-							//have the buffering finish time ms
-							bufferingFinishTimeMs = System.currentTimeMillis();
-							//have the first packet sent time
-							firstPacketReadyToSentTimeMs  = firstPacketTime;
+
+						if ( bufferDuration > bufferTime) {
+
+							if (buffering.get()) {
+								//have the buffering finish time ms
+								bufferingFinishTimeMs = System.currentTimeMillis();
+								//have the first packet sent time
+								firstPacketReadyToSentTimeMs  = firstPacketTime;
+							}
+							buffering.set(false);
 						}
-						buffering.set(false);
-					}
 
-					logBufferStatus();
+						logBufferStatus();
+					}
 
 				}
 				catch (NoSuchElementException e) {
@@ -624,7 +635,7 @@ public class StreamFetcher {
 					long durationInMs = latestTime - firstPacketTime;
 
 					long dtsInMS = pktTimeMs - firstPacketDtsInMs;
-					
+
 					while(dtsInMS > durationInMs) {
 						durationInMs = System.currentTimeMillis() - firstPacketTime;
 						try {
@@ -689,7 +700,7 @@ public class StreamFetcher {
 					streamPublished=false;
 					closeCalled = true;
 				}
-				
+
 
 
 
@@ -707,7 +718,7 @@ public class StreamFetcher {
 
 					//Update status to finished in all cases
 					getDataStore().updateStatus(streamId, IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-					
+
 					vertx.setTimer(STREAM_FETCH_RE_TRY_PERIOD_MS, l -> {
 
 						thread = new WorkerThread();
@@ -781,7 +792,7 @@ public class StreamFetcher {
 					pktDts = lastSentDTS[packetIndex] + 1;
 				}
 			}
-			
+
 			lastReceivedDTS[packetIndex] = pkt.dts();
 			pkt.dts(pktDts);			
 			lastSentDTS[packetIndex] = pkt.dts();
@@ -794,19 +805,19 @@ public class StreamFetcher {
 
 			muxAdaptor.writePacket(stream, pkt);
 		}
-		
+
 		public long[] getLastSentDTS() {
-            return lastSentDTS;
-        }
-		
+			return lastSentDTS;
+		}
+
 		public int getCodecType(int streamIndex) {
 			return inputFormatContext.streams(streamIndex).codecpar().codec_type();
 		}
-		
+
 		public AVRational getStreamTimebase(int streamIndex) {
 			return  inputFormatContext.streams(streamIndex).time_base();
 		}
-		
+
 		public void checkAndFixSynch() 
 		{
 			long now = System.currentTimeMillis();
@@ -818,7 +829,7 @@ public class StreamFetcher {
 			if (lastSentDTS.length >= 2 && timeDifferenceInMs > 2000 ) 
 			{
 				lastSycnCheckTime = now;
-				
+
 				//put audio and video lastSentDTS into an array
 				List<Long> lastSendDTSInMsList = new ArrayList<>();
 				for(int i = 0; i < lastSentDTS.length; i++) 
@@ -828,10 +839,10 @@ public class StreamFetcher {
 						lastSendDTSInMsList.add(dtsInMs);
 					}
 				}
-				
+
 				long minValueInMilliseconds = -1;
 				long maxValueInMilliseconds = -1;
-				
+
 				//get the minimum and max values 
 				for (Long value : lastSendDTSInMsList) {
 					if (minValueInMilliseconds > value || minValueInMilliseconds == -1) {
@@ -841,7 +852,7 @@ public class StreamFetcher {
 						maxValueInMilliseconds = value;
 					}
 				}
-				
+
 				long asyncThreshold = 150;
 				//if lastSentDTS is more than 150 ms, it means that there is a accumulated problem. 
 				//The assumption is that we receive sync video/audio
