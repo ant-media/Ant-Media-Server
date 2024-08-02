@@ -16,8 +16,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.*;
 
 /**
- * This class is used to configure the applications. It's populated by the scan which is defined in application's red5-web.xml
- * We CustomEditorConfigurer to convert strings to JSONObjects in AppSettings
+ * This class is used to configure the applications. It's populated by the scan which is added by src/main/resources/WEB-INF/application.xml - subconfig file to provide better backward comppatibility
+ * We use CustomEditorConfigurer to convert strings to JSONObjects in AppSettings
  */
 @Configuration
 public class AppConfig {
