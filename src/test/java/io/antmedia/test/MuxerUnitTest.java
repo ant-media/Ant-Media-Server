@@ -3595,7 +3595,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		event.setExVideoHeader(true);
 		event.setReceivedTime(System.currentTimeMillis());
 		event.setData(IoBuffer.allocate(500));
-		timestamp = (int)System.currentTimeMillis();
+		timestamp += 50;
 		event.setTimestamp(timestamp);
 		event.setExVideoPacketType(ExVideoPacketType.CODED_FRAMESX);
 		
@@ -3615,7 +3615,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		event.setExVideoHeader(false);
 		event.setReceivedTime(System.currentTimeMillis());
 		event.setData(IoBuffer.allocate(1000));
-		timestamp = (int)System.currentTimeMillis();
+		timestamp += 50;
 		event.setTimestamp(timestamp);
 		
 		muxAdaptor.writeStreamPacket(event);
