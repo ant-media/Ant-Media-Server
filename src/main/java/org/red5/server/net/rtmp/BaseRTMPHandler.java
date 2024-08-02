@@ -114,7 +114,7 @@ public abstract class BaseRTMPHandler implements IRTMPHandler, Constants, Status
                     case TYPE_FLEX_MESSAGE:
                         onCommand(conn, channel, header, (Invoke) message);
                         IPendingServiceCall call = ((Invoke) message).getCall();
-                        if (message.getHeader().getStreamId().intValue() != 0 && call.getServiceName() == null && StreamAction.PUBLISH.equals(call.getServiceMethodName())) {
+                        if (message.getHeader().getStreamId().intValue() != 0 && call.getServiceName() == null && StreamAction.PUBLISH.equalsAction(call.getServiceMethodName())) {
                             if (stream != null) {
                                 // Only dispatch if stream really was created
                                 ((IEventDispatcher) stream).dispatchEvent(message);

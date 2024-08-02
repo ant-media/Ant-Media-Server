@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.tika.utils.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -91,10 +91,12 @@ import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.red5.codec.AbstractVideo;
 import org.red5.codec.IAudioStreamCodec;
 import org.red5.codec.IVideoStreamCodec;
 import org.red5.codec.StreamCodecInfo;
 import org.red5.io.ITag;
+import org.red5.io.IoConstants;
 import org.red5.io.flv.impl.FLVReader;
 import org.red5.io.flv.impl.Tag;
 import org.red5.server.api.IContext;
@@ -105,10 +107,12 @@ import org.red5.server.net.rtmp.RTMPMinaConnection;
 import org.red5.server.net.rtmp.codec.RTMP;
 import org.red5.server.net.rtmp.codec.RTMPProtocolDecoder;
 import org.red5.server.net.rtmp.event.CachedEvent;
+import org.red5.server.net.rtmp.event.VideoData;
+import org.red5.server.net.rtmp.event.VideoData.ExVideoPacketType;
+import org.red5.server.net.rtmp.event.VideoData.VideoFourCC;
 import org.red5.server.net.rtmp.message.Constants;
 import org.red5.server.net.rtmp.message.Header;
 import org.red5.server.scope.WebScope;
-import org.red5.server.service.mp4.impl.MP4Service;
 import org.red5.server.stream.AudioCodecFactory;
 import org.red5.server.stream.ClientBroadcastStream;
 import org.red5.server.stream.VideoCodecFactory;
@@ -128,6 +132,8 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
+import io.antmedia.eRTMP.HEVCDecoderConfigurationParser.HEVCSPSParser;
+import io.antmedia.eRTMP.HEVCVideo;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.HLSMuxer;
@@ -140,7 +146,7 @@ import io.antmedia.muxer.RtmpMuxer;
 import io.antmedia.muxer.WebMMuxer;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
-import io.antmedia.muxer.parser.SpsParser;
+import io.antmedia.muxer.parser.SPSParser;
 import io.antmedia.muxer.parser.codec.AACAudio;
 import io.antmedia.plugin.PacketFeeder;
 import io.antmedia.plugin.api.IPacketListener;
@@ -148,6 +154,7 @@ import io.antmedia.plugin.api.StreamParametersInfo;
 import io.antmedia.rest.model.Result;
 import io.antmedia.storage.AmazonS3StorageClient;
 import io.antmedia.storage.StorageClient;
+import io.antmedia.test.eRTMP.HEVCDecoderConfigurationParserTest;
 import io.antmedia.test.utils.VideoInfo;
 import io.antmedia.test.utils.VideoProber;
 import io.vertx.core.Vertx;
@@ -291,11 +298,24 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			assertEquals(extradata_annexb[i], extradata_original[i]);
 		}
 
-		SpsParser spsParser = new SpsParser(extradata_annexb, 5);
+		SPSParser spsParser = new SPSParser(extradata_annexb, 5);
 
 		assertEquals(480, spsParser.getWidth());
 		assertEquals(360, spsParser.getHeight());
 
+	}
+	
+	@Test
+	public void testHEVCSPSParser() {
+		byte[] sps = new byte[] {66, 1, 1, 1, 96, 0, 0, 3, 0, -112, 0, 0, 3, 0, 0, 3, 0, 123, -96, 3, -64, -128, 16,
+				-27, -106, 74, -110, 76, -82, 106, 2, 2, 3, -62, 0, 0, 3, 0, 2, 0, 0, 3, 0, 120, 16};
+	
+		//2 bytes because first 2 bytes are NAL HEADER
+		HEVCSPSParser parser = new HEVCSPSParser(sps, 2);
+		
+		assertEquals(1920, parser.getWidth());
+		assertEquals(1080, parser.getHeight());
+	
 	}
 
 	@Test
@@ -804,7 +824,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 		mp4Muxer.init(appScope, "test", 0, null, 0);
 
-		SpsParser spsParser = new SpsParser(extradata_original, 5);
+		SPSParser spsParser = new SPSParser(extradata_original, 5);
 
 		AVCodecParameters codecParameters = new AVCodecParameters();
 		codecParameters.width(spsParser.getWidth());
@@ -1349,7 +1369,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
-		SpsParser spsParser = new SpsParser(extradata_original, 5);
+		SPSParser spsParser = new SPSParser(extradata_original, 5);
 
 		AVCodecParameters codecParameters = new AVCodecParameters();
 		codecParameters.width(spsParser.getWidth());
@@ -1461,7 +1481,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		mp4Muxer.init(appScope, "test", 0, null, 0);
 
 
-		SpsParser spsParser = new SpsParser(extradata_original, 5);
+		SPSParser spsParser = new SPSParser(extradata_original, 5);
 
 		AVCodecParameters codecParameters = new AVCodecParameters();
 		codecParameters.width(spsParser.getWidth());
@@ -1949,6 +1969,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testBaseStreamFileServiceBug() {
+		//I've removed this test because we don't maintain the RTMP and removing some redundant dependencies
+		/*
 		MP4Service mp4Service = new MP4Service();
 
 		String fileName = mp4Service.prepareFilename("mp4:1");
@@ -1974,8 +1996,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		fileName = mp4Service.prepareFilename("mp4:123456789.mp4");
 		assertEquals("123456789.mp4", fileName);
+		*/
 
 	}
+	
 
 	@Test
 	public void testApplicationStreamLimit() {
@@ -2496,8 +2520,28 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 				if (lastTimeStamp < 6000) {
+					
+					if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+						VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
+						videoData.setTimestamp(streamPacket.getTimestamp());
+						videoData.setReceivedTime(System.currentTimeMillis());
 
-					muxAdaptor.packetReceived(null, streamPacket);
+						muxAdaptor.packetReceived(null, videoData);
+						
+					}
+					
+					else {
+						CachedEvent event = new CachedEvent();
+						event.setData(streamPacket.getData().duplicate());
+						event.setDataType(streamPacket.getDataType());
+						event.setReceivedTime(System.currentTimeMillis());
+						event.setTimestamp(streamPacket.getTimestamp());
+						
+						muxAdaptor.packetReceived(null, event);
+
+					}
+					
+
 				} else {
 					break;
 				}
@@ -2548,6 +2592,27 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertTrue(431 - fileInfo.audioPacketsCount < 5);
 	}
 
+	@Test
+	public void testPlusplus() 
+	{
+		long t = Byte.toUnsignedLong((byte)0xff);
+		assertEquals(255, t);
+		long i  = (t << 48);
+		
+		assertEquals(0xFF000000000000l, i);
+		
+	
+		//long data = Byte.toUnsignedLong((byte)0xFF);
+		long data = ((long)0xff << 32);
+		assertEquals(0Xff00000000l, data);
+		
+		//int unsigned = Byte.toUnsignedInt(t);
+		
+		//assertEquals(0xFF00, unsigned << 8);
+		
+
+		
+	}
 
 	public File testMp4Muxing(String name, boolean shortVersion, boolean checkDuration) {
 
@@ -3434,16 +3499,21 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void feedMuxAdaptor(FLVReader flvReader, List<MuxAdaptor> muxAdaptorList, StreamCodecInfo info) {
 		boolean firstAudioPacketReceived = false;
 		boolean firstVideoPacketReceived = false;
-		while (flvReader.hasMoreTags()) {
+		while (flvReader.hasMoreTags()) 
+		{
 			ITag readTag = flvReader.readTag();
 			StreamPacket streamPacket = new StreamPacket(readTag);
-			if (!firstAudioPacketReceived && streamPacket.getDataType() == Constants.TYPE_AUDIO_DATA) {
+			
+			if (!firstAudioPacketReceived && streamPacket.getDataType() == Constants.TYPE_AUDIO_DATA) 
+			{
 				IAudioStreamCodec audioStreamCodec = AudioCodecFactory.getAudioCodec(streamPacket.getData().position(0));
 				info.setAudioCodec(audioStreamCodec);
 				audioStreamCodec.addData(streamPacket.getData().position(0));
 				info.setHasAudio(true);
 				firstAudioPacketReceived = true;
-			} else if (!firstVideoPacketReceived && streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+			} 
+			else if (!firstVideoPacketReceived && streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) 
+			{
 				IVideoStreamCodec videoStreamCodec = VideoCodecFactory.getVideoCodec(streamPacket.getData().position(0));
 				videoStreamCodec.addData(streamPacket.getData().position(0));
 				info.setVideoCodec(videoStreamCodec);
@@ -3453,20 +3523,188 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 			for (MuxAdaptor muxAdaptor : muxAdaptorList) {
 
-				streamPacket = new StreamPacket(readTag);
-				int bodySize = streamPacket.getData().position(0).limit();
-				byte[] data = new byte[bodySize];
-				streamPacket.getData().get(data);
+				
+				
+				
+				if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+					VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
+					videoData.setTimestamp(streamPacket.getTimestamp());
+					videoData.setReceivedTime(System.currentTimeMillis());
 
-				streamPacket.setData(IoBuffer.wrap(data));
+					muxAdaptor.packetReceived(null, videoData);
+					
+				}
+				
+				else {
+					CachedEvent event = new CachedEvent();
+					event.setData(streamPacket.getData().duplicate());
+					event.setDataType(streamPacket.getDataType());
+					event.setReceivedTime(System.currentTimeMillis());
+					event.setTimestamp(streamPacket.getTimestamp());
+					
+					muxAdaptor.packetReceived(null, event);
 
-				muxAdaptor.packetReceived(null, streamPacket);
-
-
+				}
 			}
 		}
 	}
+	
+	@Test
+	public void testWriteStreamPacketHEVC() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream.setCodecInfo(info);
 
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+		
+		Muxer muxer = Mockito.spy(new HLSMuxer(vertx, null, null, 0, null, false));
+		muxAdaptor.setEnableVideo(true);
+
+		muxAdaptor.addMuxer(muxer, 0);
+		
+		muxAdaptor.setPacketFeeder(new PacketFeeder("streamId"));
+		
+		CachedEvent event = new CachedEvent();
+		event.setDataType(IoConstants.TYPE_VIDEO);
+		event.setExVideoHeader(true);
+		event.setReceivedTime(System.currentTimeMillis());
+		int timestamp = (int)System.currentTimeMillis();
+		event.setTimestamp(timestamp);
+		event.setData(IoBuffer.allocate(1000));
+		event.setExVideoPacketType(ExVideoPacketType.CODED_FRAMES);
+		
+		//assume that this decoder configuration file
+		muxAdaptor.writeStreamPacket(event);
+		
+		
+		muxAdaptor.writeStreamPacket(event);
+		
+	
+		//5 + 3 bytes for extended timestamp
+		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(1000-8);
+		byteBuffer.position(992);
+		
+		Mockito.verify(muxer, Mockito.times(1)).writeVideoBuffer(byteBuffer, timestamp, 0, 
+										0, false, 0, timestamp);
+		
+		
+		
+		event = new CachedEvent();
+		event.setDataType(IoConstants.TYPE_VIDEO);
+		event.setExVideoHeader(true);
+		event.setReceivedTime(System.currentTimeMillis());
+		event.setData(IoBuffer.allocate(500));
+		timestamp += 50;
+		event.setTimestamp(timestamp);
+		event.setExVideoPacketType(ExVideoPacketType.CODED_FRAMESX);
+		
+		muxAdaptor.writeStreamPacket(event);
+
+		//no extended timestamp
+		byteBuffer = ByteBuffer.allocateDirect(1000-5);
+		byteBuffer.position(995);
+		
+		Mockito.verify(muxer, Mockito.times(1)).writeVideoBuffer(byteBuffer, timestamp, 0, 
+				0, false, 0, timestamp);
+		
+		
+		//regular file
+		event = new CachedEvent();
+		event.setDataType(IoConstants.TYPE_VIDEO);
+		event.setExVideoHeader(false);
+		event.setReceivedTime(System.currentTimeMillis());
+		event.setData(IoBuffer.allocate(1000));
+		timestamp += 50;
+		event.setTimestamp(timestamp);
+		
+		muxAdaptor.writeStreamPacket(event);
+		
+		Mockito.verify(muxer, Mockito.times(1)).writeVideoBuffer(byteBuffer, timestamp, 0, 
+				0, false, 0, timestamp);
+
+	}
+
+	@Test
+	public void testMuxAdaptorGetVideConf() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream.setCodecInfo(info);
+
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+		
+		
+		IVideoStreamCodec codec = new HEVCVideo();
+		
+		
+		byte[] header = new byte[5];
+		header[0] = ((byte) 0x80); 
+		header[1] = ((byte) (byte)(VideoFourCC.HEVC_FOURCC.value)); 
+		header[2] = ((byte) (VideoFourCC.HEVC_FOURCC.value >> 8)); 
+		header[3] = ((byte) (VideoFourCC.HEVC_FOURCC.value >> 16)); 
+		header[4] = ((byte) (VideoFourCC.HEVC_FOURCC.value >> 24)); 
+		
+
+		IoBuffer buffer = IoBuffer.wrap(header);
+		buffer.setAutoExpand(true);
+		buffer.position(5);
+		buffer.put(HEVCDecoderConfigurationParserTest.HEVC_DECODER_CONFIGURATION);
+		buffer.rewind();
+		
+		codec.addData(buffer);
+		
+		info.setVideoCodec(codec);
+		
+		muxAdaptor.setEnableVideo(true);
+		muxAdaptor.getVideoDataConf(info);
+		assertEquals(AV_CODEC_ID_H265, muxAdaptor.getVideoCodecId());
+		
+		AVCodecParameters videoCodecParameters = muxAdaptor.getVideoCodecParameters();
+		assertEquals(1920, videoCodecParameters.width());
+		assertEquals(1080, videoCodecParameters.height());
+		
+		
+		//test with null codec
+		muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+		muxAdaptor.setEnableVideo(true);
+
+		info.setVideoCodec(Mockito.mock(AbstractVideo.class));
+		muxAdaptor.getVideoDataConf(info);
+		
+		assertEquals(-1, muxAdaptor.getVideoCodecId());
+		
+		
+		muxAdaptor.setVideoDataConf(HEVCDecoderConfigurationParserTest.HEVC_DECODER_CONFIGURATION);
+		
+		try {
+			videoCodecParameters = muxAdaptor.getVideoCodecParameters();
+			fail("It should throw exception");
+		}
+		catch (Exception e) {
+			
+		}
+	}
+	
+	@Test
+	public void testSimpleGetterSetters() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream.setCodecInfo(info);
+		
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+
+		assertEquals(0, muxAdaptor.getDurationMs());
+		assertEquals(0, muxAdaptor.getTotalByteReceived());
+		
+		muxAdaptor.setDurationMs(1000);
+		muxAdaptor.setTotalByteReceived(1000);
+		assertEquals(1000, muxAdaptor.getDurationMs());
+		assertEquals(1000, muxAdaptor.getTotalByteReceived());
+
+	}
+	
 	@Test
 	public void testStreamSpeed() throws IOException {
 
@@ -3539,15 +3777,28 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				firstVideoPacketReceived = true;
 
 			}
+			
+			if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+				VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
+				videoData.setTimestamp(streamPacket.getTimestamp());
+				videoData.setReceivedTime(System.currentTimeMillis());
 
-			streamPacket = new StreamPacket(readTag);
-			int bodySize = streamPacket.getData().position(0).limit();
-			byte[] data = new byte[bodySize];
-			streamPacket.getData().get(data);
-	
-			streamPacket.setData(IoBuffer.wrap(data));
-	
-			muxAdaptor.packetReceived(null, streamPacket);
+				muxAdaptor.packetReceived(null, videoData);
+				
+			}
+			
+			else {
+				CachedEvent event = new CachedEvent();
+				event.setData(streamPacket.getData().duplicate());
+				event.setDataType(streamPacket.getDataType());
+				event.setReceivedTime(System.currentTimeMillis());
+				event.setTimestamp(streamPacket.getTimestamp());
+				
+				muxAdaptor.packetReceived(null, event);
+
+			}
+			
+		
 			
 			packetSize++;
 			if (packetSize > 10000)	
@@ -3582,15 +3833,27 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				firstVideoPacketReceived = true;
 
 			}
+			
+			if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+				VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
+				videoData.setTimestamp(streamPacket.getTimestamp());
+				videoData.setReceivedTime(System.currentTimeMillis());
 
-			streamPacket = new StreamPacket(readTag);
-			int bodySize = streamPacket.getData().position(0).limit();
-			byte[] data = new byte[bodySize];
-			streamPacket.getData().get(data);
-	
-			streamPacket.setData(IoBuffer.wrap(data));
-	
-			muxAdaptor.packetReceived(null, streamPacket);
+				muxAdaptor.packetReceived(null, videoData);
+				
+			}
+			
+			else {
+				CachedEvent event = new CachedEvent();
+				event.setData(streamPacket.getData().duplicate());
+				event.setDataType(streamPacket.getDataType());
+				event.setReceivedTime(System.currentTimeMillis());
+				event.setTimestamp(streamPacket.getTimestamp());
+				
+				muxAdaptor.packetReceived(null, event);
+
+			}
+
 			
 			packetSize++;
 			if (packetSize > 300)	
@@ -4010,9 +4273,26 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					firstVideoPacketReceived = true;
 
 				}
+				
+				if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+					VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
+					videoData.setTimestamp(streamPacket.getTimestamp());
+					videoData.setReceivedTime(System.currentTimeMillis());
 
+					muxAdaptor.packetReceived(null, videoData);
+					
+				}
+				
+				else {
+					CachedEvent event = new CachedEvent();
+					event.setData(streamPacket.getData().duplicate());
+					event.setDataType(streamPacket.getDataType());
+					event.setReceivedTime(System.currentTimeMillis());
+					event.setTimestamp(streamPacket.getTimestamp());
+					
+					muxAdaptor.packetReceived(null, event);
 
-				muxAdaptor.packetReceived(null, streamPacket);
+				}
 
 
 				if (packetNumber == 40000) {

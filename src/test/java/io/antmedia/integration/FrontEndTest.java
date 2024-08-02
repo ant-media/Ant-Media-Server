@@ -13,7 +13,7 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.test.StreamFetcherUnitTest;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.tika.utils.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.awaitility.Awaitility;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;

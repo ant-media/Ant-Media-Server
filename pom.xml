@@ -385,54 +385,7 @@
 		    <artifactId>commons-io</artifactId>
 		    <version>${commons-io}</version>
 		</dependency>
-        <!-- we just override the version of ehcache because of the vulnerability. It's a dependency of red5-io -->
-        <dependency>
-            <groupId>net.sf.ehcache</groupId>
-            <version>2.10.9.2</version>
-            <artifactId>ehcache</artifactId>
-        </dependency>
-	   <!-- we just override the version of tika because of the vulnerability. It's a dependency of red5-io -->
-	    <dependency>
-	        <groupId>org.apache.tika</groupId>
-	        <artifactId>tika-core</artifactId>
-	        <version>2.9.1</version>
-	    </dependency>
-        <dependency>
-            <groupId>org.red5</groupId>
-            <artifactId>red5-io</artifactId>
-            <version>${red5-io.version}</version>
-            <type>jar</type>
-            <exclusions>
-                <exclusion>
-                    <artifactId>bcprov-jdk15on</artifactId>
-                    <groupId>org.bouncycastle</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>mina-core</artifactId>
-                    <groupId>org.apache.mina</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>mina-integration-jmx</artifactId>
-                    <groupId>org.apache.mina</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>mina-integration-beans</artifactId>
-                    <groupId>org.apache.mina</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>commons-beanutils</artifactId>
-                    <groupId>commons-beanutils</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>commons-codec</artifactId>
-                    <groupId>commons-codec</groupId>
-                </exclusion>
-                <exclusion>
-                    <artifactId>commons-lang3</artifactId>
-                    <groupId>org.apache.commons</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
+
         <dependency>
             <artifactId>mina-integration-beans</artifactId>
             <groupId>org.apache.mina</groupId>

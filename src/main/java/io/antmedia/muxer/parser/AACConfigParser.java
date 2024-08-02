@@ -127,7 +127,7 @@ public class AACConfigParser extends Parser {
 
 	public AACConfigParser(byte[] data, int offset) 
 	{
-		super(data, offset);
+		super(data, offset, false);
 	}
 
 	protected void parse() {

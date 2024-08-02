@@ -2,6 +2,11 @@ package io.antmedia.muxer;
 
 import java.io.File;
 
+import org.onvif.ver10.device.wsdl.GetScopes;
+import org.red5.server.api.scope.IScope;
+
+import io.antmedia.AppSettings;
+import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.plugin.api.IFrameListener;
 import io.antmedia.plugin.api.IPacketListener;
@@ -23,6 +28,9 @@ public interface IAntMediaStreamHandler {
 	public static final String PUBLISH_TYPE_WEBRTC = "WebRTC";
 	public static final String PUBLISH_TYPE_SRT = "SRT";
 	
+	
+	public static final String WEBAPPS_PATH = "webapps/";
+
 	
 	/**
 	 * Called by some muxer like MP4Muxer
@@ -189,5 +197,24 @@ public interface IAntMediaStreamHandler {
 	 * @return
 	 */
 	public MuxAdaptor getMuxAdaptor(String streamId);
+	
+	/**	
+	 * Get the AppSettings of the application
+	 * @return AppSettings
+	 */
+	public AppSettings getAppSettings();
 
+
+	/**
+	 * Get the DataStore of the application
+	 * 
+	 * @return DataStore
+	 */
+	public DataStore getDataStore();
+
+	/**
+	 * Get the scope
+	 * @return
+	 */
+	public IScope getScope();
 }

@@ -1,13 +1,23 @@
 package io.antmedia.muxer.parser;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public abstract class Parser {
 	
 	protected int currentBit;
 	protected byte[] data;
 	
 	protected boolean errorOccured = false;
+	protected int width;
+	protected int height;
+	private boolean nalUnitParsing;
 	
-	public Parser(byte[] data, int offset) {
+	private static Logger logger = LoggerFactory.getLogger(Parser.class);
+	
+	
+	public Parser(byte[] data, int offset, boolean nalUnitParsing) {
+		this.nalUnitParsing = nalUnitParsing;
 		this.data = data;
 		currentBit = offset * 8;
 		parse();
@@ -15,13 +25,34 @@ public abstract class Parser {
 	
 	protected abstract void parse();
 	
+	
+
+	
 	protected int readBit()
-	{
+	{		
 	    int nIndex = currentBit / 8;
 	    int nOffset = currentBit % 8 + 1;
 
-	    currentBit ++;
-	    return (data[nIndex] >> (8-nOffset)) & 0x01;
+	    currentBit++;
+	    
+	    int result = (data[nIndex] >> (8-nOffset)) & 0x01;
+	    
+	    if (nalUnitParsing) 
+	    {
+		    if (currentBit % 8 == 0) 
+		    {
+		    	nIndex = currentBit / 8;
+		    	if (nIndex >= 2) 
+		    	{
+					if (data[nIndex - 2] == 0 && data[nIndex - 1] == 0 && data[nIndex] == 3) 
+					{
+						currentBit += 8;
+					}
+		    	}		
+		    }
+	    }
+	    
+	    return result;
 	}
 
 	
@@ -67,8 +98,25 @@ public abstract class Parser {
 	    return r;
 	}
 	
+	protected byte[] readByte(int numBytes) {
+        byte[] result = new byte[numBytes];
+        for (int i = 0; i < numBytes; i++) {
+            result[i] = (byte) readBits(8);
+        }
+        return result;
+    }
+	
 	public boolean isErrorOccured() {
 		return errorOccured;
+	}
+	
+	
+	public int getWidth() {
+		return width;
+	}
+	
+	public int getHeight() {
+		return height;
 	}
 
 }

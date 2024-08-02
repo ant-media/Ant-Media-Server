@@ -20,6 +20,7 @@ package org.red5.server.tomcat;
 
 import java.io.File;
 import java.lang.management.ManagementFactory;
+import java.net.URL;
 import java.util.Map;
 
 import javax.management.JMX;
@@ -48,6 +49,8 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.XmlWebApplicationContext;
+
+import io.antmedia.component.AppConfig;
 
 /**
  * Red5 loader for Tomcat virtual hosts.
@@ -169,7 +172,11 @@ public class TomcatVHostLoader extends TomcatLoader implements TomcatVHostLoader
                         //create a spring web application context
                         XmlWebApplicationContext appctx = new XmlWebApplicationContext();
                         appctx.setClassLoader(webClassLoader);
-                        appctx.setConfigLocations(new String[] { "/WEB-INF/red5-*.xml" });
+                        
+						URL internalAppConfig = this.getClass().getClassLoader().getResource(AppConfig.INTERNAL_APP_CONFIG_LOCATION);
+
+                        
+                        appctx.setConfigLocations(new String[] { "/WEB-INF/red5-*.xml" , internalAppConfig.toString()});
                         //check for red5 context bean
                         if (applicationContext.containsBean(defaultApplicationContextId)) {
                             appctx.setParent((ApplicationContext) applicationContext.getBean(defaultApplicationContextId));
