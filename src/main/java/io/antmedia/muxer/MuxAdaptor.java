@@ -974,7 +974,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return dataStore;
 	}
 
+
 	public long correctPacketDtsOverflow(long packetDts, byte streamType) {
+		/*
+		 * Continuous RTMP streaming for approximately 24 days can cause the DTS values to overflow
+		 * and reset to 0 once they reach the maximum value for a signed integer.
+		 * This method handles the overflow by continuing to increment the DTS values as if they hadn't reset,
+		 * ensuring that the timestamps remain consistent and do not start over from 0.
+		 * If this correction is not applied, errors occur when writing to the HLS muxer, leading to a halt in .ts generation.
+		 */
+
 		int index = 0;
 
 		if(streamType == Constants.TYPE_AUDIO_DATA) {
@@ -983,11 +992,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		if (lastDTS[index] > packetDts) {
 
-			if (lastDTS[index] > packetDts + overflowCount[index] * Integer.MAX_VALUE) {
+			if (lastDTS[index] > packetDts + (long) overflowCount[index] * Integer.MAX_VALUE) {
 				overflowCount[index]++;
 			}
 
-			packetDts = packetDts + overflowCount[index] * Integer.MAX_VALUE;
+			packetDts = packetDts + (long) overflowCount[index] * Integer.MAX_VALUE;
 		}
 
 		lastDTS[index] = packetDts;
