@@ -199,6 +199,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	private Deque<PacketTime> packetTimeList = new ConcurrentLinkedDeque<>();
 
+	private long[] lastDTS = new long[2];
+	private int[] overflowCount = {0, 0};
+
 	public boolean addID3Data(String data) {
 		for (Muxer muxer : muxerList) {
 			if(muxer instanceof HLSMuxer) {
@@ -278,7 +281,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private BytePointer audioExtraDataPointer;
 	private BytePointer videoExtraDataPointer;
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
-	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();	
+	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();
 
 	protected PacketFeeder packetFeeder;
 
@@ -971,9 +974,41 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return dataStore;
 	}
 
+
+	public long correctPacketDtsOverflow(long packetDts, byte streamType) {
+		/*
+		 * Continuous RTMP streaming for approximately 24 days can cause the DTS values to overflow
+		 * and reset to 0 once they reach the maximum value for a signed integer.
+		 * This method handles the overflow by continuing to increment the DTS values as if they hadn't reset,
+		 * ensuring that the timestamps remain consistent and do not start over from 0.
+		 * If this correction is not applied, errors occur when writing to the HLS muxer, leading to a halt in .ts generation.
+		 */
+
+		int index = 0;
+
+		if(streamType == Constants.TYPE_AUDIO_DATA) {
+			index = 1;
+		}
+
+		if (lastDTS[index] > packetDts) {
+
+			if (lastDTS[index] > packetDts + (long) overflowCount[index] * Integer.MAX_VALUE) {
+				overflowCount[index]++;
+			}
+
+			packetDts = packetDts + (long) overflowCount[index] * Integer.MAX_VALUE;
+		}
+
+		lastDTS[index] = packetDts;
+
+		return packetDts;
+
+	}
+
 	public void writeStreamPacket(IStreamPacket packet) 
 	{
 		long dts = packet.getTimestamp() & 0xffffffffL;
+		dts = correctPacketDtsOverflow(dts, packet.getDataType());
 		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA)
 		{
 
@@ -2428,6 +2463,22 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void setWidth(int width) {
 		this.width = width;
+	}
+
+	public long[] getLastDTS() {
+		return lastDTS;
+	}
+
+	public int[] getOverflowCount() {
+		return overflowCount;
+	}
+
+	public PacketFeeder getPacketFeeder() {
+		return packetFeeder;
+	}
+
+	public void setPacketFeeder(PacketFeeder packetFeeder) {
+		this.packetFeeder = packetFeeder;
 	}
 
 }

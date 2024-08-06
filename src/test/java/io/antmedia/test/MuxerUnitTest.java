@@ -9,7 +9,6 @@ import static org.bytedeco.ffmpeg.global.avformat.*;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
-import static org.bytedeco.ffmpeg.global.avformat.*;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
@@ -47,12 +46,7 @@ import java.io.FilenameFilter;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.TimeUnit;
@@ -97,7 +91,6 @@ import org.red5.codec.StreamCodecInfo;
 import org.red5.io.ITag;
 import org.red5.io.flv.impl.FLVReader;
 import org.red5.io.flv.impl.Tag;
-import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamPacket;
@@ -114,7 +107,6 @@ import org.red5.server.stream.ClientBroadcastStream;
 import org.red5.server.stream.VideoCodecFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.ApplicationContext;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
 import org.springframework.test.context.ContextConfiguration;
@@ -4961,6 +4953,179 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testRecordingWithRecordingSubfolder() {
 		appSettings.setRecordingSubfolder("records");
 		testMp4Muxing("record" + RandomUtils.nextInt(0, 10000));
+	}
+
+	@Test
+	public void testRtmpDtsOverflow() {
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		ClientBroadcastStream clientBroadcastStream = mock(ClientBroadcastStream.class);
+		MuxAdaptor muxAdaptor = Mockito.spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope));
+		PacketFeeder packetFeeder = new PacketFeeder("test");
+		muxAdaptor.setPacketFeeder(packetFeeder);
+
+		muxAdaptor.setVideoStreamIndex(0);
+		muxAdaptor.setAudioStreamIndex(1);
+
+		HLSMuxer hlsMuxer = mock(HLSMuxer.class);
+		muxAdaptor.addMuxer(hlsMuxer);
+
+		muxAdaptor.setEnableAudio(true);
+		muxAdaptor.setEnableVideo(true);
+
+		ByteBuffer byteBuffer = mock(ByteBuffer.class);
+		IoBuffer ioBuffer = mock(IoBuffer.class);
+		when(ioBuffer.limit()).thenReturn(1024);
+		when(ioBuffer.buf()).thenReturn(byteBuffer);
+		when(byteBuffer.position(2)).thenReturn(ByteBuffer.allocateDirect(3));
+		when(byteBuffer.position(5)).thenReturn(ByteBuffer.allocateDirect(3));
+
+
+		when(ioBuffer.position(0)).thenReturn(ioBuffer);
+		when(ioBuffer.position(2)).thenReturn(ioBuffer);
+		when(ioBuffer.position(3)).thenReturn(ioBuffer);
+
+		ByteBuffer directByteBuffer = ByteBuffer.allocateDirect(1024-2);
+		directByteBuffer.put(ioBuffer.buf().position(2));
+		directByteBuffer.position(0);
+
+		ByteBuffer directByteBufferVideo = ByteBuffer.allocateDirect(1024-5);
+		directByteBufferVideo.put(ioBuffer.buf().position(2));
+		directByteBufferVideo.position(3);
+
+		//audio packets
+		IStreamPacket audioPacket1 = mock(IStreamPacket.class);
+		when(audioPacket1.getDataType()).thenReturn(Constants.TYPE_AUDIO_DATA);
+		when(audioPacket1.getTimestamp()).thenReturn(2147483584);
+		when(audioPacket1.getData()).thenReturn(ioBuffer);
+
+		IStreamPacket audioPacket2 =  mock(IStreamPacket.class);
+		when(audioPacket2.getDataType()).thenReturn(Constants.TYPE_AUDIO_DATA);
+		when(audioPacket2.getTimestamp()).thenReturn(2147483604);
+		when(audioPacket2.getData()).thenReturn(ioBuffer);
+
+		IStreamPacket audioPacket3 =  mock(IStreamPacket.class);
+		when(audioPacket3.getDataType()).thenReturn(Constants.TYPE_AUDIO_DATA);
+		when(audioPacket3.getTimestamp()).thenReturn(2147483627);
+		when(audioPacket3.getData()).thenReturn(ioBuffer);
+
+		IStreamPacket audioPacket4 = mock(IStreamPacket.class);
+		when(audioPacket4.getDataType()).thenReturn(Constants.TYPE_AUDIO_DATA);
+		when(audioPacket4.getTimestamp()).thenReturn(2147483628);
+		when(audioPacket4.getData()).thenReturn(ioBuffer);
+
+		IStreamPacket audioPacketOverflowed =  mock(IStreamPacket.class);
+		when(audioPacketOverflowed.getDataType()).thenReturn(Constants.TYPE_AUDIO_DATA);
+		when(audioPacketOverflowed.getTimestamp()).thenReturn(24);
+		when(audioPacketOverflowed.getData()).thenReturn(ioBuffer);
+
+		//video packets
+		IStreamPacket videoPacket1 = mock(CachedEvent.class);
+		when(videoPacket1.getDataType()).thenReturn(Constants.TYPE_VIDEO_DATA);
+		when(videoPacket1.getTimestamp()).thenReturn(2147483579);
+		when(videoPacket1.getData()).thenReturn(ioBuffer);
+
+		IStreamPacket videoPacket2 = mock(CachedEvent.class);
+		when(videoPacket2.getDataType()).thenReturn(Constants.TYPE_VIDEO_DATA);
+		when(videoPacket2.getTimestamp()).thenReturn(2147483613);
+		when(videoPacket2.getData()).thenReturn(ioBuffer);
+
+		IStreamPacket videoPacket3 = mock(CachedEvent.class);
+		when(videoPacket3.getDataType()).thenReturn(Constants.TYPE_VIDEO_DATA);
+		when(videoPacket3.getTimestamp()).thenReturn(2147483646);
+		when(videoPacket3.getData()).thenReturn(ioBuffer);
+
+		IStreamPacket videoPacket4 =  mock(CachedEvent.class);
+		when(videoPacket4.getDataType()).thenReturn(Constants.TYPE_VIDEO_DATA);
+		when(videoPacket4.getTimestamp()).thenReturn(2147483647);
+		when(videoPacket4.getData()).thenReturn(ioBuffer);
+
+		IStreamPacket videoPacketOverflowed = mock(CachedEvent.class);
+
+		when(videoPacketOverflowed.getDataType()).thenReturn(Constants.TYPE_VIDEO_DATA);
+		when(videoPacketOverflowed.getTimestamp()).thenReturn(65);
+		when(videoPacketOverflowed.getData()).thenReturn(ioBuffer);
+
+
+		muxAdaptor.writeStreamPacket(audioPacket1);
+		int audioOverFlowCount = muxAdaptor.getOverflowCount()[1];
+		assertEquals(0, audioOverFlowCount);
+		long lastAudioDts = muxAdaptor.getLastDTS()[1];
+		assertEquals(lastAudioDts, audioPacket1.getTimestamp());
+
+		muxAdaptor.writeStreamPacket(videoPacket1);
+		int videoOverFlowCount = muxAdaptor.getOverflowCount()[0];
+		assertEquals(0, audioOverFlowCount);
+		long lastVideoDts = muxAdaptor.getLastDTS()[0];
+		assertEquals(lastVideoDts, videoPacket1.getTimestamp());
+
+		muxAdaptor.writeStreamPacket(audioPacket2);
+		audioOverFlowCount = muxAdaptor.getOverflowCount()[1];
+		assertEquals(0, audioOverFlowCount);
+		lastAudioDts = muxAdaptor.getLastDTS()[1];
+		assertEquals(lastAudioDts, audioPacket2.getTimestamp());
+
+		muxAdaptor.writeStreamPacket(videoPacket2);
+		videoOverFlowCount = muxAdaptor.getOverflowCount()[0];
+		assertEquals(0, videoOverFlowCount);
+		lastVideoDts = muxAdaptor.getLastDTS()[0];
+		assertEquals(lastVideoDts, videoPacket2.getTimestamp());
+
+
+		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket2.getTimestamp());
+		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket2.getTimestamp(), 0, 0, false, 0, videoPacket2.getTimestamp());
+
+		muxAdaptor.writeStreamPacket(audioPacket3);
+		audioOverFlowCount = muxAdaptor.getOverflowCount()[1];
+		assertEquals(0, audioOverFlowCount);
+		lastAudioDts = muxAdaptor.getLastDTS()[1];
+		assertEquals(lastAudioDts, audioPacket3.getTimestamp());
+
+		muxAdaptor.writeStreamPacket(videoPacket3);
+		videoOverFlowCount = muxAdaptor.getOverflowCount()[0];
+		assertEquals(0, videoOverFlowCount);
+		lastVideoDts = muxAdaptor.getLastDTS()[0];
+		assertEquals(lastVideoDts, videoPacket3.getTimestamp());
+
+		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket3.getTimestamp());
+
+		directByteBufferVideo.position(0);
+		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket3.getTimestamp(), 0, 0, false, 0, videoPacket3.getTimestamp());
+
+		muxAdaptor.writeStreamPacket(audioPacket4);
+		audioOverFlowCount = muxAdaptor.getOverflowCount()[1];
+		assertEquals(0, audioOverFlowCount);
+		lastAudioDts = muxAdaptor.getLastDTS()[1];
+		assertEquals(lastAudioDts, audioPacket4.getTimestamp());
+
+		muxAdaptor.writeStreamPacket(videoPacket4);
+		videoOverFlowCount = muxAdaptor.getOverflowCount()[0];
+		assertEquals(0, videoOverFlowCount);
+		lastVideoDts = muxAdaptor.getLastDTS()[0];
+		assertEquals(lastVideoDts, videoPacket4.getTimestamp());
+
+		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket4.getTimestamp());
+		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket4.getTimestamp(), 0, 0, false, 0, videoPacket4.getTimestamp());
+
+		muxAdaptor.writeStreamPacket(audioPacketOverflowed);
+		audioOverFlowCount = muxAdaptor.getOverflowCount()[1];
+		assertEquals(1, audioOverFlowCount);
+		lastAudioDts = muxAdaptor.getLastDTS()[1];
+		assertEquals(lastAudioDts, audioPacketOverflowed.getTimestamp() + (long) audioOverFlowCount * Integer.MAX_VALUE);
+
+		muxAdaptor.writeStreamPacket(videoPacketOverflowed);
+		videoOverFlowCount = muxAdaptor.getOverflowCount()[0];
+		assertEquals(1, videoOverFlowCount);
+		lastVideoDts = muxAdaptor.getLastDTS()[0];
+		assertEquals(lastVideoDts, videoPacketOverflowed.getTimestamp() + (long) videoOverFlowCount * Integer.MAX_VALUE);
+
+		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, lastAudioDts);
+		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, lastVideoDts, 0, 0, false, 0, lastVideoDts);
 	}
 
 }
