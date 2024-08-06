@@ -37,14 +37,14 @@ import io.antmedia.rest.RestServiceBase;
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
 public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
-	
+
 	protected WebScope appScope;
 	static {
 		System.setProperty("red5.deployment.type", "junit");
 		System.setProperty("red5.root", ".");
-		
+
 	}
-	
+
 	@Test
 	public void testDefaultSettings() 
 	{
@@ -101,7 +101,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setHlsSegmentType("fmp4");
 		assertEquals("fmp4", appSettings.getHlsSegmentType());
 
-		
+		assertEquals("{\"default\": [\"default\"],\"host\":[\"host\",\"attendee\",\"speaker\"],\"attendee\":[\"speaker\",\"attendee\"],\"speaker\":[\"host\",\"speaker\",\"attendee\"]}", appSettings.getParticipantVisibilityMatrix());
+		appSettings.setParticipantVisibilityMatrix("{\"default\":[\"default\"]}");
+		assertEquals("{\"default\":[\"default\"]}", appSettings.getParticipantVisibilityMatrix());
 	}
 
 	@Test
@@ -571,9 +573,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					183, numberOfFields);
-
-		
+					184, numberOfFields);
 	}
 	
 	
