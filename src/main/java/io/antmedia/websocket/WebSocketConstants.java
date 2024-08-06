@@ -1,7 +1,7 @@
 package io.antmedia.websocket;
 
 public class WebSocketConstants {
-	
+
 
 	private WebSocketConstants() {
 	}
@@ -588,5 +588,25 @@ public class WebSocketConstants {
 	 */
 	public static final String PUSH_NOTIFICATION_CONTENT = "pushNotificationContent";
 
-	
+	/**
+	 * Participant role in the room
+	 */
+	public static final String ROLE = "role";
+
+	/**
+	 * Command to get subtrack infos for a main track
+	 */
+	public static final String GET_SUBTRACKS_COMMAND = "getSubtracks";
+
+	/**
+	 * subtrack (broadcast) object list notification
+	 */
+	public static final String SUBTRACK_LIST_NOTIFICATION = "subtrackList";
+
+	/**
+	 * subtrack (broadcast) object list
+	 */
+	public static final String SUBTRACK_LIST = "subtrackList";
+
+
 }
