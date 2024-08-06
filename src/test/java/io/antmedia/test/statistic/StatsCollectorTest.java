@@ -48,7 +48,7 @@ import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.rest.WebRTCClientStats;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.GPUUtils;
 import io.antmedia.statistic.GPUUtils.MemoryStatus;
@@ -153,7 +153,7 @@ public class StatsCollectorTest {
 		
 		List<User> userList = new ArrayList<>();
 		String userEmail = "test@antmedia.io";
-		User user = new User(userEmail, null, UserType.ADMIN, CommonRestService.SCOPE_SYSTEM);
+		User user = new User(userEmail, null, UserType.ADMIN, CommonRestService.SCOPE_SYSTEM, null);
 		userList.add(user);
 		Mockito.when(dataStore.getUserList()).thenReturn(userList);
 		
@@ -181,7 +181,7 @@ public class StatsCollectorTest {
 		assertNull(statsCollector.getUserEmail());
 		
 		scopes.remove();
-		user = new User(userEmail, null, UserType.ADMIN, CommonRestService.SCOPE_SYSTEM);
+		user = new User(userEmail, null, UserType.ADMIN, CommonRestService.SCOPE_SYSTEM, null);
 		userList.add(user);
 		assertNull(statsCollector.getUserEmail());
 		
