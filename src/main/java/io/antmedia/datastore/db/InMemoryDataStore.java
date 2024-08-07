@@ -1047,13 +1047,68 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
+		return getSubtracks(mainTrackId, offset, size, role, null);
+	}
+	
+	@Override
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status) {
 		List<Broadcast> subtracks = new ArrayList<>();
-		for (Broadcast broadcast : broadcastMap.values()) {
-			if (broadcast.getMainTrackStreamId() != null && broadcast.getMainTrackStreamId().equals(mainTrackId)
-					&& (StringUtils.isBlank(role) || broadcast.getRole().equals(role))) {
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (StringUtils.isBlank(status) || status.equals(broadcast.getStatus()))) {
 				subtracks.add(broadcast);
 			}
 		}
 		return subtracks.subList(offset, Math.min(offset + size, subtracks.size()));
+	}
+	
+	@Override
+	public long getSubtrackCount(String mainTrackId, String role, String status) {
+		int count = 0;
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (StringUtils.isBlank(status) || status.equals(broadcast.getStatus()))) 
+			{
+				count++;
+			}
+		}
+		return count;
+	}
+	
+	@Override
+	public long getActiveSubtracksCount(String mainTrackId, String role) {
+		int count = 0;
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
+					&& (AntMediaApplicationAdapter.isStreaming(broadcast))) 
+			{
+				count++;
+			}
+		}
+		return count;
+	}
+	
+	@Override
+	public List<Broadcast> getActiveSubtracks(String mainTrackId, String role) 
+	{
+		List<Broadcast> subtracks = new ArrayList<>();
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
+					&& (AntMediaApplicationAdapter.isStreaming(broadcast))) 
+			{
+				subtracks.add(broadcast);
+			}
+		}
+		return subtracks;
 	}
 }

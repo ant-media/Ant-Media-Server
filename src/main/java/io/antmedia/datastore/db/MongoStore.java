@@ -1513,18 +1513,69 @@ public class MongoStore extends DataStore {
 		return conferenceRoomDatastore;
 	}
 
+	@Override
 	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
+		return getSubtracks(mainTrackId, offset, size, role, null);
+	}
+	
+	@Override
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status) {
 		synchronized(this) {
-			Filter roleFilter;
-			if(StringUtils.isBlank(role)) {
-				roleFilter = Filters.eq(MAIN_TRACK_STREAM_ID, mainTrackId);
-			}
-			else {
-				roleFilter = Filters.and(Filters.eq(MAIN_TRACK_STREAM_ID, mainTrackId), Filters.eq(ROLE, role));
-			}
+			Filter roleFilter = getFilterForSubtracks(mainTrackId, role, status);
 			return 	datastore.find(Broadcast.class)
 					.filter(roleFilter)
 					.iterator(new FindOptions().skip(offset).limit(size)).toList();
 		}
 	}
+
+	private LogicalFilter getFilterForSubtracks(String mainTrackId, String role, String status) {
+		
+		LogicalFilter filter = Filters.and(Filters.eq(MAIN_TRACK_STREAM_ID, mainTrackId));
+		
+		if(StringUtils.isNotBlank(role)) {
+			filter.add(Filters.eq(ROLE, role));
+		}
+		
+		if (StringUtils.isNotBlank(status)) {
+			filter.add(Filters.eq(STATUS, status));
+		}
+		
+		return filter;
+	}
+	
+	@Override
+	public long getSubtrackCount(String mainTrackId, String role, String status) {
+		synchronized(this) {
+			return datastore.find(Broadcast.class).filter(getFilterForSubtracks(mainTrackId, role, status)).count();
+		}
+	}
+
+	
+	@Override
+	public List<Broadcast> getActiveSubtracks(String mainTrackId, String role) {
+		LogicalFilter filterForSubtracks = getFilterForSubtracks(mainTrackId, role, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		long activeIntervalValue = System.currentTimeMillis() - (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS);
+		filterForSubtracks.add(Filters.gte("updateTime", activeIntervalValue));
+		
+		
+		 synchronized(this) {
+			return 	datastore.find(Broadcast.class)
+					.filter(filterForSubtracks)
+					.iterator().toList();
+		}
+	}
+	
+	@Override
+	public long getActiveSubtracksCount(String mainTrackId, String role) {
+		Filter filterForSubtracks = getFilterForSubtracks(mainTrackId, role, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+
+		synchronized(this) {
+			return 	datastore.find(Broadcast.class)
+					.filter(filterForSubtracks).count();
+		}
+	}
+	
+
+	
+	
 }

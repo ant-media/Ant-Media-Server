@@ -1860,8 +1860,11 @@ public abstract class RestServiceBase {
 		{
 			
 			int subtrackLimit = mainTrack.getSubtracksLimit();
+			
+			
 			List<String> subTrackStreamIds = mainTrack.getSubTrackStreamIds();
-			if (subtrackLimit != -1 && subTrackStreamIds != null && subTrackStreamIds.size() >= subtrackLimit) 
+			
+			if (subtrackLimit != -1 &&  store.getActiveSubtracksCount(id, null) >= subtrackLimit) 
 			{
 				message = "Subtrack limit is reached for the main track:" + id;
 				logWarning("Subtrack limit is reached for the main track:{}", id.replaceAll(REPLACE_CHARS, "_"));
@@ -1947,11 +1950,7 @@ public abstract class RestServiceBase {
 		boolean result = false;
 		if (streamId != null)
 		{
-			Broadcast broadcast = store.get(streamId);
-			if (broadcast != null)
-			{
-				result = !broadcast.getSubTrackStreamIds().isEmpty();
-			}
+			return store.getSubtrackCount(streamId, null, null) > 0;
 		}
 
 		return result;

@@ -378,7 +378,10 @@ public class Broadcast {
 	 * On the other hand, we can keep the number of subtracks here
 	 * 
 	 * Lastly, there is also an dependency in the webpanel, it just plays the multitrack by looking at this field.
+	 * 
+	 * @depreated: Get the subtracks from the database
 	 */
+	@Deprecated(forRemoval = true, since="2.10.1")
 	@Schema(description ="If this broadcast is main track. This variable hold sub track ids.")
 	private List<String> subTrackStreamIds = new ArrayList<>();
 
@@ -829,10 +832,20 @@ public class Broadcast {
 		this.mainTrackStreamId = mainTrackStreamId;
 	}
 
+	/**
+	 * @deprecated get the subtracks directly from database 
+	 * @return
+	 */
+	@Deprecated(forRemoval = true, since="2.10.1")
 	public List<String> getSubTrackStreamIds() {
 		return subTrackStreamIds;
 	}
 
+	/**
+	 * @deprecated get the subtracks directly from database 
+	 * @param subTrackStreamIds
+	 */
+	@Deprecated(forRemoval = true, since="2.10.1")
 	public void setSubTrackStreamIds(List<String> subTrackStreamIds) {
 		this.subTrackStreamIds = subTrackStreamIds;
 	}

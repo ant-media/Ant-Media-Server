@@ -1125,19 +1125,27 @@ public abstract class DataStore {
 	public abstract boolean deleteP2PConnection(String streamId);
 
 	/**
+	 * @deprecated no need to use this method, logic has changed and we use directly getSubtracks, getActiveSubtracks.
+	 * It's kept for backward compatibility
+	 * 
 	 * Add a subtrack id to a main track (broadcast)
 	 * @param mainTrackId - main track id
 	 * @param subTrackId - main track id
 	 * @return boolean - success 
 	 */
+	@Deprecated(since = "2.9.1", forRemoval = true)
 	public abstract boolean addSubTrack(String mainTrackId, String subTrackId);
 
 	/**
+	 * @deprecated no need to use this method, logic has changed and we use directly getSubtracks, getActiveSubtracks.
+	 * It's kept for backward compatibility
+	 * 
 	 * Remove a subtrack id from a main track (broadcast)
 	 * @param mainTrackId - main track id
 	 * @param subTrackId - main track id
 	 * @return boolean - success
 	 */
+	@Deprecated(since = "2.9.1", forRemoval = true)
 	public abstract boolean removeSubTrack(String mainTrackId, String subTrackId);
 
 	/**
@@ -1345,9 +1353,63 @@ public abstract class DataStore {
 	 */
 	public abstract void migrateConferenceRoomsToBroadcasts();
 
+	/**
+	 * Get the subtracks of the main track
+	 * @param mainTrackId the main track to get the subtracks
+	 * @param offset the offset to get the subtracks
+	 * @param size 	number of items to get
+	 * @param role the role of the subtracks for role based streaming especially in conferences. It can be null
+	 * @param status the status of the stream broadcasting, finished etc. It can be null
+	 * @return
+	 */
+    public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status);
+    
+    /**
+	 * Get the subtracks of the main track
+	 * @param mainTrackId the main track to get the subtracks
+	 * @param offset the offset to get the subtracks
+	 * @param size 	number of items to get
+	 * @param role the role of the subtracks for role based streaming especially in conferences. It can be null
+	 * @return
+	 */
     public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role);
+    
+    /**
+     * Get the count of subtracks
+     * @param mainTrackId the main track to get the subtracks
+     * @param role the role of the subtracks for role based streaming especially in conferences 
+     * @return number of subtracks
+     */
+    public abstract long getSubtrackCount(String mainTrackId, String role, String status);
+    
+    /**
+     * Get the count of active subtracks. If subtrack is stucked in broadcasting or preparing, it will not count it. 
+     * @param mainTrackId
+     * @param role
+     * @return
+     */
+    public abstract long getActiveSubtracksCount(String mainTrackId, String role);
+    
+    /**
+     * Get of active subtracks. If subtrack is stucked in broadcasting or preparing, it will not return it. 
+     * This method is generally not recommended to use because it can be very costly.
+     * It's implemented for the poll mechanism in Subtracks and poll mechanismi will be replaced with event mechanism
+     * @param mainTrackId
+     * @param role
+     * @return
+     */
+    public abstract List<Broadcast> getActiveSubtracks(String mainTrackId, String role);
+    
 
     //**************************************
 	//ATTENTION: Write function descriptions while adding new functions
 	//**************************************	
+    
+    //**************************************
+    //ATTENTION 2: What is the reason you don't add descriptions to the functions? 
+    // Ignore this message if you have added descriptions to the new functions.
+    // I'm writing to the one who is ignoring this first message - mekya
+    //**************************************
+    
+    
 }

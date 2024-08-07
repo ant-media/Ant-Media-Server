@@ -694,17 +694,33 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public synchronized void removeSubtrackFromMainTrackInDB(Broadcast broadcast) 
 	{
 		Broadcast mainBroadcast = getDataStore().get(broadcast.getMainTrackStreamId());
-		mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
-		if(mainBroadcast.getSubTrackStreamIds().isEmpty()) {
-			if (mainBroadcast.isZombi()) 
-			{
-				getDataStore().delete(mainBroadcast.getStreamId());
+		if (mainBroadcast != null) {
+			
+			mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
+			
+			long activeSubtracksCount = getDataStore().getActiveSubtracksCount(broadcast.getMainTrackStreamId(), null);
+			
+			if (activeSubtracksCount == 0) {
+				
+				if (mainBroadcast.isZombi()) {
+					getDataStore().delete(mainBroadcast.getStreamId());
+				}
+				else {
+					mainBroadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+					getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
+				}
+				notifyNoActiveSubtracksLeftInMainTrack(mainBroadcast);
 			}
-			notifyNoActiveSubtracksLeftInMainTrack(mainBroadcast);
+			else {
+				getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
+			}
 		}
 		else {
-			getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
+			logger.warn("Maintrack is null while removing subtrack from maintrack for streamId:{} maintrackId:{}", broadcast.getStreamId(), broadcast.getMainTrackStreamId());
 		}
+		
+		
+		
 		leftTheRoom(broadcast.getMainTrackStreamId(), broadcast.getStreamId());
 
 	}
