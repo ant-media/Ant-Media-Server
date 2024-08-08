@@ -1567,7 +1567,9 @@ public class MongoStore extends DataStore {
 	
 	@Override
 	public long getActiveSubtracksCount(String mainTrackId, String role) {
-		Filter filterForSubtracks = getFilterForSubtracks(mainTrackId, role, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		LogicalFilter filterForSubtracks = getFilterForSubtracks(mainTrackId, role, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		long activeIntervalValue = System.currentTimeMillis() - (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS);
+		filterForSubtracks.add(Filters.gte("updateTime", activeIntervalValue));
 
 		synchronized(this) {
 			return 	datastore.find(Broadcast.class)

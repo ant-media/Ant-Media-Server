@@ -12,6 +12,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nonnull;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -1071,7 +1073,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 	
 	@Override
-	public long getSubtrackCount(String mainTrackId, String role, String status) {
+	public long getSubtrackCount(@Nonnull String mainTrackId, String role, String status) {
 		int count = 0;
 		for (Broadcast broadcast : broadcastMap.values()) 
 		{
