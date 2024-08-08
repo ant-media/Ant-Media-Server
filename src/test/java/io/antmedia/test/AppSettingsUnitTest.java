@@ -101,6 +101,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setHlsSegmentType("fmp4");
 		assertEquals("fmp4", appSettings.getHlsSegmentType());
 
+		assertFalse(appSettings.isStopStreamOnNoVideoPacket());
+		assertEquals(10000, appSettings.getStopStreamOnNoVideoPacketTimeout());
+
 		
 	}
 
@@ -564,6 +567,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("application/json", appSettings.getWebhookContentType());
 
         assertEquals(2000, appSettings.getIceGatheringTimeoutMs());
+		assertFalse(appSettings.isStopStreamOnNoVideoPacket());
+		assertEquals(10000, appSettings.getStopStreamOnNoVideoPacketTimeout());
 
 
 		//if we add a new field, we just need to check its default value in this test
@@ -571,7 +576,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					183, numberOfFields);
+					185, numberOfFields);
 
 		
 	}
