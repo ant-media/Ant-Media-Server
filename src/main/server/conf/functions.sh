@@ -57,7 +57,7 @@ change_server_mode() {
       DB_TYPE=mapdb
       DB_URL=""
       echo "DB type is mapdb"
-    elif [[ $DB_HOST =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(:[0-9]{1,5})?$ || $DB_HOST =~ ^localhost(:[0-9]{1,5})?$ ||  $DB_HOST =~ ^mongo.*$ ]]; then
+    elif [[ $DB_URL =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+(:[0-9]{1,5})?$ || $DB_URL =~ ^localhost(:[0-9]{1,5})?$ ||  $DB_URL =~ ^mongo.*$ ]]; then
       # it should be ^mongo.*$ not ^mongodb.*$ becaue kubernetes deployment give -h mongo parameter
       DB_TYPE=mongodb
       echo "DB type is mongodb"
