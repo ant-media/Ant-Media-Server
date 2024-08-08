@@ -655,7 +655,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				LoggerUtils.logAnalyticsFromServer(publishEndedEvent);
 
 				if(StringUtils.isNotBlank(broadcast.getMainTrackStreamId())) {
-					removeSubtrackFromMainTrackInDB(broadcast);
+					updateMainTrackWithRecentlyFinishedBroadcast(broadcast);
 				}
 				
 				if (broadcast.isZombi()) {
@@ -689,16 +689,16 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 *
 	 * mekya
 	 *
-	 * @param broadcast
+	 * @param finishedBroadcast
 	 */
-	public synchronized void removeSubtrackFromMainTrackInDB(Broadcast broadcast) 
+	public synchronized void updateMainTrackWithRecentlyFinishedBroadcast(Broadcast finishedBroadcast) 
 	{
-		Broadcast mainBroadcast = getDataStore().get(broadcast.getMainTrackStreamId());
+		Broadcast mainBroadcast = getDataStore().get(finishedBroadcast.getMainTrackStreamId());
 		if (mainBroadcast != null) {
 			
-			mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
+			mainBroadcast.getSubTrackStreamIds().remove(finishedBroadcast.getStreamId());
 			
-			long activeSubtracksCount = getDataStore().getActiveSubtracksCount(broadcast.getMainTrackStreamId(), null);
+			long activeSubtracksCount = getDataStore().getActiveSubtracksCount(finishedBroadcast.getMainTrackStreamId(), null);
 			
 			if (activeSubtracksCount == 0) {
 				
@@ -716,12 +716,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		}
 		else {
-			logger.warn("Maintrack is null while removing subtrack from maintrack for streamId:{} maintrackId:{}", broadcast.getStreamId(), broadcast.getMainTrackStreamId());
+			logger.warn("Maintrack is null while removing subtrack from maintrack for streamId:{} maintrackId:{}", finishedBroadcast.getStreamId(), finishedBroadcast.getMainTrackStreamId());
 		}
 		
 		
 		
-		leftTheRoom(broadcast.getMainTrackStreamId(), broadcast.getStreamId());
+		leftTheRoom(finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
 
 	}
 
@@ -780,6 +780,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				{
 					logger.info("Active broadcast count({}) is more than ingesting stream limit:{} so stopping broadcast:{}", activeBroadcastNumber, ingestingStreamLimit, broadcast.getStreamId());
 					stopStreaming(broadcast);
+					return null;
 				}
 
 				for (IStreamListener listener : streamListeners) {
