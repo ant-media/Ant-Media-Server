@@ -1400,6 +1400,14 @@ public abstract class DataStore {
      */
     public abstract List<Broadcast> getActiveSubtracks(String mainTrackId, String role);
     
+    
+    /**
+     * 
+     * @param streamId
+     * @return If the stream has subtracks, it return true. If not, it returns false
+     */
+    public abstract boolean hasSubtracks(String streamId);
+    
 
     //**************************************
 	//ATTENTION: Write function descriptions while adding new functions

@@ -1204,4 +1204,21 @@ public abstract class MapBasedDataStore extends DataStore {
 		
 		return subtracks;
 	}
+	
+	@Override
+	public boolean hasSubtracks(String streamId) {
+		
+		synchronized (this) {
+			for (String broadcastString : map.values()) 
+			{
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				if ( streamId.equals(broadcast.getMainTrackStreamId()))
+				{
+					return true;
+				}
+			}
+		}
+		
+		return false;
+	}
 }

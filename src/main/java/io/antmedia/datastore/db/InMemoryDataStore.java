@@ -1119,4 +1119,17 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return subtracks;
 	}
+	
+	@Override
+	public boolean hasSubtracks(String streamId) {
+		
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (streamId.equals(broadcast.getMainTrackStreamId()) ) 
+			{
+				return true;
+			}
+		}
+		return false;
+	}
 }

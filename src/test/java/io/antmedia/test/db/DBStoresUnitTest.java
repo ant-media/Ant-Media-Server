@@ -3348,6 +3348,10 @@ public class DBStoresUnitTest {
 		activeSubtracks = dataStore.getActiveSubtracks("nonExistentMainTrack", null);
 		assertEquals(0, activeSubtracks.size());
 		
+		assertTrue(dataStore.hasSubtracks(mainTrackId));
+		assertFalse(dataStore.hasSubtracks("nonExistentMainTrack"));
+
+		
 		
 	}
 	

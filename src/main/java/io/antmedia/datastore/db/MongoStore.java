@@ -1577,6 +1577,15 @@ public class MongoStore extends DataStore {
 		}
 	}
 	
+	public boolean hasSubtracks(String streamId) {
+		
+		LogicalFilter filterForSubtracks = getFilterForSubtracks(streamId, null, null);
+		synchronized(this) {
+			return 	datastore.find(Broadcast.class)
+					.filter(filterForSubtracks).first() != null;
+		}
+	}
+	
 
 	
 	

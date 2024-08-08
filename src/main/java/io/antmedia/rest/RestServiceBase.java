@@ -1950,7 +1950,7 @@ public abstract class RestServiceBase {
 		boolean result = false;
 		if (streamId != null)
 		{
-			return store.getSubtrackCount(streamId, null, null) > 0;
+			return store.hasSubtracks(streamId);
 		}
 
 		return result;
