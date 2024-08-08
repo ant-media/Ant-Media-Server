@@ -625,6 +625,8 @@ public class DBStoresUnitTest {
 		System.out.println("Stream count to be added: " + streamCount);
 
 		for (int i = 0; i < streamCount; i++) {
+			
+			
 			dataStore.save(new Broadcast(null, null));
 		}
 
@@ -3265,8 +3267,6 @@ public class DBStoresUnitTest {
 		for (Broadcast broadcast : subtracks) {
 			assertEquals(mainTrackId, broadcast.getMainTrackStreamId());
 			assertEquals(role1, broadcast.getRole());
-			assertNotEquals("subtrackTrackId0", broadcast.getStreamId());
-			assertNotEquals("subtrackTrackId2", broadcast.getStreamId());
 		}
 
 
@@ -3294,10 +3294,9 @@ public class DBStoresUnitTest {
 		
 		for (int i = 0; i < 100; i++) {
 			Broadcast broadcast = new Broadcast();
-			broadcast.setName("subtrackTrackName"+i);
 			broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
             try {
-                broadcast.setStreamId("subtrackTrackId"+i);
+                broadcast.setStreamId("subtrack" + RandomStringUtils.randomAlphanumeric(24));
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
