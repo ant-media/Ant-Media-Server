@@ -780,7 +780,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				{
 					logger.info("Active broadcast count({}) is more than ingesting stream limit:{} so stopping broadcast:{}", activeBroadcastNumber, ingestingStreamLimit, broadcast.getStreamId());
 					stopStreaming(broadcast);
-					return null;
 				}
 
 				for (IStreamListener listener : streamListeners) {
