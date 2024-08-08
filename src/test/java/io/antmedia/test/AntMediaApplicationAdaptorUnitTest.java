@@ -1991,6 +1991,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
 
 		Broadcast subTrack2 = new Broadcast();
 		try {
@@ -2009,20 +2010,27 @@ public class AntMediaApplicationAdaptorUnitTest {
 		mainTrack.setZombi(true);
 
 		subTrack1.setMainTrackStreamId(mainTrack.getStreamId());
+		subTrack1.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		subTrack1.setUpdateTime(System.currentTimeMillis());
+		
 		subTrack2.setMainTrackStreamId(mainTrack.getStreamId());
+		subTrack2.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		subTrack2.setUpdateTime(System.currentTimeMillis());
 
 		mainTrack.getSubTrackStreamIds().add(subTrack1.getStreamId());
 		mainTrack.getSubTrackStreamIds().add(subTrack2.getStreamId());
 
 
 		dataStore.save(subTrack1);
-		dataStore.save(subTrack1);
+		dataStore.save(subTrack2);
 		dataStore.save(mainTrack);
 
-		spyAdapter.removeSubtrackFromMainTrackInDB(subTrack1);
+		subTrack1.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		spyAdapter.updateMainTrackWithRecentlyFinishedBroadcast(subTrack1);
 		assertNotNull(dataStore.get(mainTrack.getStreamId()));
-
-		spyAdapter.removeSubtrackFromMainTrackInDB(subTrack2);
+		
+		subTrack2.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		spyAdapter.updateMainTrackWithRecentlyFinishedBroadcast(subTrack2);
 		assertNull(dataStore.get(mainTrack.getStreamId()));
 
 	}
@@ -2212,7 +2220,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			spyAdapter.closeBroadcast(subTrackBroadcast.getStreamId());
 
-			verify(spyAdapter, timeout(5000)).removeSubtrackFromMainTrackInDB(subTrackBroadcast);
+			verify(spyAdapter, timeout(5000)).updateMainTrackWithRecentlyFinishedBroadcast(subTrackBroadcast);
 
 
 			verify(spyAdapter, timeout(5000)).notifyHook(subTrackBroadcast.getListenerHookURL(), subTrackId, mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM, null, null, null, null, null, null);

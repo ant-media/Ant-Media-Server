@@ -33,8 +33,10 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 	public static final String START = "start";
 	public static final String END = "end";
-	public static final String SEGMENT_FILE_REGEX = "\\b\\S+\\.(ts|m4s)\\b";
-	public static final String MANIFEST_FILE_REGEX = "\\b\\S+\\.m3u8\\b";
+	//matches any words ending with .ts or .m4s and any query parameters
+	public static final String SEGMENT_FILE_REGEX = "\\b\\S+\\.(ts|m4s)(\\?.*)?\\b";
+	//matches any words ending with .m3u8 and any query parameters
+	public static final String MANIFEST_FILE_REGEX = "\\b\\S+\\.m3u8(\\?.*)?\\b";
 	protected static Logger logger = LoggerFactory.getLogger(HlsManifestModifierFilter.class);
 
 	@Override
@@ -183,7 +185,14 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 		StringBuffer result = new StringBuffer();
 		while (matcher.find()) {
-			String replacementString = matcher.group() + "?";
+			String replacementString = matcher.group();
+			
+			if (replacementString.contains("?")) {
+				replacementString += "&";
+			}
+			else {
+				replacementString += "?"; 
+			}
 
 			if (!StringUtils.isNullOrEmpty(subscriberCode)) {
 				replacementString += WebSocketConstants.SUBSCRIBER_CODE + "=" + subscriberCode;

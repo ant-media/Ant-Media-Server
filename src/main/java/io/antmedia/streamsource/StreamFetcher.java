@@ -574,24 +574,34 @@ public class StreamFetcher {
 					 * It's a very rare case to happen so that check if it's null
 					 */
 
-					lastPacketTimeMsInQueue = av_rescale_q(pktTrailer.dts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+					if (pktHead.dts() != AV_NOPTS_VALUE && pktTrailer.dts() != AV_NOPTS_VALUE) { 
+						
+						/**
+						 * Check if the values are not AV_NOPTS_VALUE because 
+						 * In multithread environment, it may be unreferenced in writer thread #writeBufferedPacket -> unReferencePacket
+						 */
+						lastPacketTimeMsInQueue = av_rescale_q(pktTrailer.dts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 
-					firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+						firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
 
-					bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
+						bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
 
-					if ( bufferDuration > bufferTime) {
+						//logger.info("lastPacketTimeMsInQueue:{} firstPacketTime:{} bufferDuration:{}", lastPacketTimeMsInQueue, firstPacketTime, bufferDuration);
 
-						if (buffering.get()) {
-							//have the buffering finish time ms
-							bufferingFinishTimeMs = System.currentTimeMillis();
-							//have the first packet sent time
-							firstPacketReadyToSentTimeMs  = firstPacketTime;
+
+						if ( bufferDuration > bufferTime) {
+
+							if (buffering.get()) {
+								//have the buffering finish time ms
+								bufferingFinishTimeMs = System.currentTimeMillis();
+								//have the first packet sent time
+								firstPacketReadyToSentTimeMs  = firstPacketTime;
+							}
+							buffering.set(false);
 						}
-						buffering.set(false);
-					}
 
-					logBufferStatus();
+						logBufferStatus();
+					}
 
 				}
 				catch (NoSuchElementException e) {

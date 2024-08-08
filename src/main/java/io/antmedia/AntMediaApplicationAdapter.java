@@ -655,7 +655,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				LoggerUtils.logAnalyticsFromServer(publishEndedEvent);
 
 				if(StringUtils.isNotBlank(broadcast.getMainTrackStreamId())) {
-					removeSubtrackFromMainTrackInDB(broadcast);
+					updateMainTrackWithRecentlyFinishedBroadcast(broadcast);
 				}
 				
 				if (broadcast.isZombi()) {
@@ -689,23 +689,41 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 *
 	 * mekya
 	 *
-	 * @param broadcast
+	 * @param finishedBroadcast
 	 */
-	public synchronized void removeSubtrackFromMainTrackInDB(Broadcast broadcast) 
+	public synchronized void updateMainTrackWithRecentlyFinishedBroadcast(Broadcast finishedBroadcast) 
 	{
-		Broadcast mainBroadcast = getDataStore().get(broadcast.getMainTrackStreamId());
-		mainBroadcast.getSubTrackStreamIds().remove(broadcast.getStreamId());
-		if(mainBroadcast.getSubTrackStreamIds().isEmpty()) {
-			if (mainBroadcast.isZombi()) 
-			{
-				getDataStore().delete(mainBroadcast.getStreamId());
+		Broadcast mainBroadcast = getDataStore().get(finishedBroadcast.getMainTrackStreamId());
+		if (mainBroadcast != null) {
+			
+			mainBroadcast.getSubTrackStreamIds().remove(finishedBroadcast.getStreamId());
+			
+			long activeSubtracksCount = getDataStore().getActiveSubtracksCount(mainBroadcast.getStreamId(), null);
+			
+			if (activeSubtracksCount == 0) {
+				
+				if (mainBroadcast.isZombi()) {
+					logger.info("Deleting main track streamId:{} because it's a zombi stream and there is no activeSubtrack", mainBroadcast.getStreamId());
+					getDataStore().delete(mainBroadcast.getStreamId());
+				}
+				else {
+					mainBroadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+
+					getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
+				}
+				notifyNoActiveSubtracksLeftInMainTrack(mainBroadcast);
 			}
-			notifyNoActiveSubtracksLeftInMainTrack(mainBroadcast);
+			else {
+				getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
+			}
 		}
 		else {
-			getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
+			logger.warn("Maintrack is null while removing subtrack from maintrack for streamId:{} maintrackId:{}", finishedBroadcast.getStreamId(), finishedBroadcast.getMainTrackStreamId());
 		}
-		leftTheRoom(broadcast.getMainTrackStreamId(), broadcast.getStreamId());
+		
+		
+		
+		leftTheRoom(finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
 
 	}
 
@@ -851,7 +869,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		{
 
 			logger.info("Saving zombi broadast to data store with streamId:{}", streamId);
-			broadcast = saveUndefinedBroadcast(streamId, null, this, status, absoluteStartTimeMs, publishType, "", "");
+			broadcast = saveUndefinedBroadcast(streamId, null, this, status, absoluteStartTimeMs, publishType, "", "", "");
 		}
 		else {
 
@@ -881,7 +899,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId,  String metaData) {
+	public static Broadcast saveUndefinedBroadcast(String streamId, String streamName, AntMediaApplicationAdapter appAdapter, String streamStatus, long absoluteStartTimeMs, String publishType, String mainTrackStreamId, String metaData, String role) {
 		Broadcast newBroadcast = new Broadcast();
 		long now = System.currentTimeMillis();
 		newBroadcast.setDate(now);
@@ -891,6 +909,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		newBroadcast.setName(streamName);
 		newBroadcast.setMainTrackStreamId(mainTrackStreamId);
 		newBroadcast.setMetaData(metaData);
+		newBroadcast.setRole(role);
 		try {
 			newBroadcast.setStreamId(streamId);
 			newBroadcast.setPublishType(publishType);
