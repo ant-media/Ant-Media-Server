@@ -919,13 +919,19 @@ public class InMemoryDataStore extends DataStore {
 		Broadcast mainTrack = broadcastMap.get(mainTrackId);
 		if (mainTrack != null && subTrackId != null) {
 			List<String> subTracks = mainTrack.getSubTrackStreamIds();
+			
 			if (subTracks == null) {
 				subTracks = new ArrayList<>();
 			}
-			subTracks.add(subTrackId);
-			mainTrack.setSubTrackStreamIds(subTracks);
-			broadcastMap.put(mainTrackId, mainTrack);
+			
+			if (!subTracks.contains(subTrackId)) 
+			{
+				subTracks.add(subTrackId);
+				mainTrack.setSubTrackStreamIds(subTracks);
+				broadcastMap.put(mainTrackId, mainTrack);
+			}
 			result = true;
+			
 		}
 		return result;
 	}
