@@ -877,6 +877,10 @@ public class MongoStore extends DataStore {
 					updates.add(set("autoStartStopEnabled", broadcast.getAutoStartStopEnabled()));
 				}
 				
+				if (broadcast.getPendingPacketSize() != null) {
+					updates.add(set("pendingPacketSize", broadcast.getPendingPacketSize()));
+				}
+				
 				
 				prepareFields(broadcast, updates);
 

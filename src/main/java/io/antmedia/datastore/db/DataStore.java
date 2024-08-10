@@ -974,6 +974,14 @@ public abstract class DataStore {
 		if (newBroadcast.getCurrentPlayIndex() != null) {
 			broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
 		}
+		
+		if (newBroadcast.getSubtracksLimit() != null) {
+			broadcast.setSubtracksLimit(newBroadcast.getSubtracksLimit());
+		}
+		
+		if (newBroadcast.getPendingPacketSize() != null) {
+			broadcast.setPendingPacketSize(newBroadcast.getPendingPacketSize());
+		}
 	}
 
 
