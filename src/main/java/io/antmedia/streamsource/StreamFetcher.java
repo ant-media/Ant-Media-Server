@@ -111,7 +111,7 @@ public class StreamFetcher {
 
 	private AtomicBoolean seekTimeRequestReceived = new AtomicBoolean(false);
 
-	private AtomicLong seekTimeInMs = new AtomicLong(-1);
+	private AtomicLong seekTimeInMs = new AtomicLong(0);
 
 	public IStreamFetcherListener getStreamFetcherListener() {
 		return streamFetcherListener;
@@ -261,7 +261,7 @@ public class StreamFetcher {
 
 			initDTSArrays(inputFormatContext.nb_streams());
 
-			if (seekTimeInMs.get() != -1) {
+			if (seekTimeInMs.get() != 0) {
 				seekFrame();
 			}
 
