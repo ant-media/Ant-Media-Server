@@ -1974,7 +1974,7 @@ public class BroadcastRestServiceV2UnitTest {
 		assertFalse(RestServiceBase.isMainTrack("streamId", store));
 
 		// should return true when broadcast is main track
-		when(store.getSubtrackCount("streamId", null, null)).thenReturn(1L);
+		when(store.hasSubtracks("streamId")).thenReturn(true);
 		assertTrue(RestServiceBase.isMainTrack("streamId", store));
 	}
 
