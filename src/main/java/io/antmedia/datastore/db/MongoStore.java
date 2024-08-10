@@ -881,6 +881,10 @@ public class MongoStore extends DataStore {
 					updates.add(set("pendingPacketSize", broadcast.getPendingPacketSize()));
 				}
 				
+				if (broadcast.getPlannedEndDate() != null) {
+					updates.add(set("plannedEndDate", broadcast.getPlannedEndDate()));
+				}
+				
 				
 				prepareFields(broadcast, updates);
 

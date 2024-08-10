@@ -927,6 +927,10 @@ public abstract class DataStore {
 			broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
 		}
 		
+		if (newBroadcast.getPlannedEndDate() != null) {
+			broadcast.setPlannedEndDate(newBroadcast.getPlannedEndDate());
+		}
+		
 		if (newBroadcast.getSeekTimeInMs() != null) {
 			broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
 		}
