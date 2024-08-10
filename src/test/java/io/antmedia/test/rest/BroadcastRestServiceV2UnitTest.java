@@ -2551,6 +2551,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any());
 		
 		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setUsername("new_user");
 		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), broadcastUpdate);
 
 		assertEquals(true, result.isSuccess());
