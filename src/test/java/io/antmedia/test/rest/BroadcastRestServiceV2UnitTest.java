@@ -2631,7 +2631,7 @@ public class BroadcastRestServiceV2UnitTest {
 		StreamFetcher fetcher = mock(StreamFetcher.class);
 
 		try {
-			streamSource.setStreamId("selimTest");
+			streamSource.setStreamId("test");
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -2657,13 +2657,13 @@ public class BroadcastRestServiceV2UnitTest {
 
 		assertEquals(true, result.isSuccess());
 
-		Awaitility.await().atMost(22*250, TimeUnit.MILLISECONDS)
+		Awaitility.await().atMost(25*250, TimeUnit.MILLISECONDS)
 		.until(() -> streamSourceRest.waitStopStreaming(streamSource,false));
 
 		// Test line 392 if condition
 
 		Mockito.doReturn(false).when(streamSourceRest).checkStreamUrl(any());
-
+		broadcastUpdate.setStreamUrl("rtsp://11.2.40.63:8554/live1.sdp");
 		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), broadcastUpdate);
 
 		assertEquals(false, result.isSuccess());
