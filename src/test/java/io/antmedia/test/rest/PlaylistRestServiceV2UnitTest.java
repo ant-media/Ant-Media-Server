@@ -353,15 +353,15 @@ public class PlaylistRestServiceV2UnitTest {
 
 		// getPlaylistId = null & playlistId = null
 		
-	
-		
-		assertTrue(restServiceReal.isStreaming(playlist));
 		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 		broadcastUpdate.setPlannedStartDate(100L);
 		broadcastUpdate.setUpdateTime(System.currentTimeMillis());
 		broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
 		result = restServiceReal.updateBroadcast(playlist.getStreamId(), broadcastUpdate);
+		
+		assertTrue(restServiceReal.isStreaming(dataStore.get(playlist.getStreamId())));
+		
 		Mockito.verify(app).cancelPlaylistSchedule(playlist.getStreamId());
 		Mockito.verify(app).schedulePlayList(Mockito.anyLong(), Mockito.any());
 		//because we don't restart for playlist
