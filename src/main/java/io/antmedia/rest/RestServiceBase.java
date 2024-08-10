@@ -508,7 +508,9 @@ public abstract class RestServiceBase {
 
 		if (result) {
 
-			if (broadcastInDB.getPlannedStartDate() != updatedBroadcast.getPlannedStartDate() && isPlayList) {
+			if (updatedBroadcast.getPlannedStartDate() != null 
+					&& broadcastInDB.getPlannedStartDate() != updatedBroadcast.getPlannedStartDate() 
+					&& isPlayList) {
 				getApplication().cancelPlaylistSchedule(broadcastInDB.getStreamId());
 
 				getApplication().schedulePlayList(System.currentTimeMillis(), getDataStore().get(streamId));
