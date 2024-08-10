@@ -62,6 +62,7 @@ import io.antmedia.datastore.db.MongoStore;
 import io.antmedia.datastore.db.RedisStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.StreamInfo;
@@ -219,7 +220,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		broadcast.setPlayListItemList(playlist);
 
-		BroadcastRestService.updatePlayListItemDurationsIfApplicable(broadcast);
+		BroadcastRestService.updatePlayListItemDurationsIfApplicable(broadcast.getPlayListItemList(), broadcast.getStreamId());
 
 		assertEquals(15045, item.getDurationInMs());
 		assertEquals(0, item2.getDurationInMs());
@@ -2124,7 +2125,7 @@ public class BroadcastRestServiceV2UnitTest {
 		DataStore dataStore = new InMemoryDataStore("db");
 		adaptor.setDataStore(dataStore);
 
-		Mockito.doReturn(connResult).when(streamSourceRest).connectToCamera(newCam);
+		Mockito.doReturn(connResult).when(streamSourceRest).connectToCamera(newCam.getIpAddr(), newCam.getUsername(), newCam.getPassword());
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(new InMemoryDataStore("testAddIPCamera")).when(streamSourceRest).getDataStore();
@@ -2340,7 +2341,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(new InMemoryDataStore("testConnectToCamera")).when(streamSourceRest).getDataStore();
 
 		//try to connect to camera
-		Result result =	streamSourceRest.connectToCamera(newCam);
+		Result result =	streamSourceRest.connectToCamera(newCam.getIpAddr(), newCam.getUsername(), newCam.getPassword());
 
 		//message should be RTSP address because it is reachable
 		assertEquals("rtsp://127.0.0.1:6554/test.flv", result.getMessage());
@@ -2349,7 +2350,7 @@ public class BroadcastRestServiceV2UnitTest {
 		newCam.setIpAddr("127.0.0.11:8080");
 
 		//try to connect to camera
-		result = streamSourceRest.connectToCamera(newCam);
+		result = streamSourceRest.connectToCamera(newCam.getIpAddr(), newCam.getUsername(), newCam.getPassword());
 
 		//message should be connection error code (-1) because IP is set
 		assertEquals(-1, result.getErrorId());
@@ -2539,7 +2540,7 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(streamSource);
 		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
-		Mockito.doReturn(new Result(true, "rtsp://test")).when(streamSourceRest).connectToCamera(Mockito.any());
+		Mockito.doReturn(new Result(true, "rtsp://test")).when(streamSourceRest).connectToCamera(Mockito.any(), Mockito.any(), Mockito.any());
 
 		store.save(streamSource);
 
@@ -2548,46 +2549,53 @@ public class BroadcastRestServiceV2UnitTest {
 		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
 
 		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any());
-
-		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource);
-
-		assertEquals(true, result.isSuccess());
-		Mockito.verify(streamSourceRest).connectToCamera(Mockito.any());
-
-
-		Broadcast updateBroadcast = new Broadcast("testIPcamera", "", "", "",
-				"rtsp://test2", "");
-		try {
-			updateBroadcast.setStreamId("test");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		result = streamSourceRest.updateBroadcast(updateBroadcast.getStreamId(), updateBroadcast);
+		
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), broadcastUpdate);
 
 		assertEquals(true, result.isSuccess());
-		Mockito.verify(streamSourceRest, Mockito.times(1)).connectToCamera(Mockito.any());
+		Mockito.verify(streamSourceRest).connectToCamera(Mockito.any(), Mockito.any(), Mockito.any());
+
+
+
+		
+		
+		broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setStreamId("test");
+		broadcastUpdate.setStreamUrl("rtsp://test2");
+		broadcastUpdate.setName("testIPcamera");
+		broadcastUpdate.setUsername("");
+		broadcastUpdate.setPassword("");
+		broadcastUpdate.setIpAddr("");
+		
+		result = streamSourceRest.updateBroadcast(broadcastUpdate.getStreamId(), broadcastUpdate);
+
+		assertEquals(true, result.isSuccess());
+		Mockito.verify(streamSourceRest, Mockito.times(1)).connectToCamera(Mockito.any(), Mockito.any(), Mockito.any());
 
 		Broadcast broadcastInDB = store.get("test");
 		assertEquals("rtsp://test2", broadcastInDB.getStreamUrl());
 
 
+		broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setStreamId("test");
 
-		updateBroadcast.setIpAddr("new ip");
-		updateBroadcast.setUsername("new user");
-		updateBroadcast.setPassword("");
-		result = streamSourceRest.updateBroadcast(updateBroadcast.getStreamId(), updateBroadcast);
+		broadcastUpdate.setIpAddr("new ip");
+		broadcastUpdate.setUsername("new user");
+		broadcastUpdate.setPassword("");
+		result = streamSourceRest.updateBroadcast(broadcastUpdate.getStreamId(), broadcastUpdate);
 
 		assertEquals(true, result.isSuccess());
-		Mockito.verify(streamSourceRest, Mockito.times(2)).connectToCamera(Mockito.any());
+		Mockito.verify(streamSourceRest, Mockito.times(2)).connectToCamera(Mockito.any(), Mockito.any(), Mockito.any());
 
-
-		updateBroadcast.setIpAddr("");
-		updateBroadcast.setUsername("");
-		updateBroadcast.setPassword("pass");
-		result = streamSourceRest.updateBroadcast(updateBroadcast.getStreamId(), updateBroadcast);
+		broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setStreamId("test");
+		broadcastUpdate.setIpAddr("");
+		broadcastUpdate.setUsername("");
+		broadcastUpdate.setPassword("pass");
+		result = streamSourceRest.updateBroadcast(broadcastUpdate.getStreamId(), broadcastUpdate);
 		assertEquals(true, result.isSuccess());
-		Mockito.verify(streamSourceRest, Mockito.times(3)).connectToCamera(Mockito.any());
+		Mockito.verify(streamSourceRest, Mockito.times(3)).connectToCamera(Mockito.any(), Mockito.any(), Mockito.any());
 
 
 	}
@@ -2642,7 +2650,9 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.doReturn(true).when(streamSourceRest).checkStopStreaming(any());
 
-		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource);
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), broadcastUpdate);
 
 		assertEquals(true, result.isSuccess());
 
@@ -2653,21 +2663,23 @@ public class BroadcastRestServiceV2UnitTest {
 
 		Mockito.doReturn(false).when(streamSourceRest).checkStreamUrl(any());
 
-		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource);
+		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), broadcastUpdate);
 
 		assertEquals(false, result.isSuccess());
 
 		// Test line 392 if condition
 
 		streamSource.setStatus(null);
+		broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setStatus(null);
 
 		Mockito.doReturn(true).when(streamSourceRest).checkStreamUrl(any());
 
-		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), streamSource);
+		result = streamSourceRest.updateBroadcast(streamSource.getStreamId(), broadcastUpdate);
 
 		assertEquals(true, result.isSuccess());
 
-		result = streamSourceRest.updateBroadcast("not_exists" + (int)(Math.random()*10000), streamSource);
+		result = streamSourceRest.updateBroadcast("not_exists" + (int)(Math.random()*10000), broadcastUpdate);
 
 		assertEquals(false, result.isSuccess());
 
@@ -2699,18 +2711,20 @@ public class BroadcastRestServiceV2UnitTest {
 		Result connResult = new Result(true);
 		connResult.setMessage("rtsp://11.2.40.63:8554/live1.sdp");
 
-		Mockito.doReturn(connResult).when(streamSourceRest).connectToCamera(newCam);
+		Mockito.doReturn(connResult).when(streamSourceRest).connectToCamera(newCam.getIpAddr(), newCam.getUsername(), newCam.getPassword());
 		Mockito.doReturn(adaptor).when(streamSourceRest).getApplication();
 		Mockito.doReturn(new Result(true)).when(adaptor).startStreaming(newCam);
 		Mockito.doReturn(store).when(streamSourceRest).getDataStore();
 		StreamFetcherManager sfm = mock (StreamFetcherManager.class);
 		Mockito.doReturn(sfm).when(adaptor).getStreamFetcherManager();
 		Mockito.doReturn(false).when(sfm).isStreamRunning(any());
-		newCam.setSubFolder("testFolder");
 
 		store.save(newCam);
+		
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setSubFolder("testFolder");
 
-		result = streamSourceRest.updateBroadcast(newCam.getStreamId(), newCam);
+		result = streamSourceRest.updateBroadcast(newCam.getStreamId(), broadcastUpdate);
 
 
 		Broadcast broadcast = store.get(newCam.getStreamId());
@@ -2803,8 +2817,11 @@ public class BroadcastRestServiceV2UnitTest {
 
 		source.setEndPointList(Arrays.asList(endpoint));
 		assertEquals(1, source.getEndPointList().size());
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setEndPointList(source.getEndPointList());
+		
 		//update first source now. At the moment we have endpoint_1
-		result = streamSourceRest.updateBroadcast(source.getStreamId(), source);
+		result = streamSourceRest.updateBroadcast(source.getStreamId(), broadcastUpdate);
 		assertEquals(1, source.getEndPointList().size());
 	}
 
@@ -3407,10 +3424,14 @@ public class BroadcastRestServiceV2UnitTest {
 
 
 		broadcast1.setMainTrackStreamId(room.getStreamId());
-		store.updateBroadcastFields(broadcast1.getStreamId(), broadcast1);
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setMainTrackStreamId(room.getStreamId());
+		store.updateBroadcastFields(broadcast1.getStreamId(), broadcastUpdate);
 
 		broadcast2.setMainTrackStreamId(room.getStreamId());
-		store.updateBroadcastFields(broadcast2.getStreamId(), broadcast2);
+		broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setMainTrackStreamId(room.getStreamId());
+		store.updateBroadcastFields(broadcast2.getStreamId(), broadcastUpdate);
 
 		assertEquals(2,store.get("testroom").getSubTrackStreamIds().size());
 

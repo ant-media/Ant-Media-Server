@@ -84,6 +84,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
@@ -1112,13 +1113,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		 */
 
 		//define hook URL for stream specific
+		
 		broadcast.setListenerHookURL("listenerHookURL");
-
+		BroadcastUpdate update = new BroadcastUpdate();
+		update.setListenerHookURL(broadcast.getListenerHookURL());
 		//(Changed due to a bug) In this scenario broadcast name should be irrelevant for the hook to work so setting it to null tests if it is dependent or not.
 		broadcast.setName(null);
+		update.setName(null);
 
 		//update broadcast
-		dataStore.updateBroadcastFields(streamId, broadcast);
+		dataStore.updateBroadcastFields(streamId, update);
 
 		//call muxingFinished function
 		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);

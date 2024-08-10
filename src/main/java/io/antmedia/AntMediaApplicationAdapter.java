@@ -63,6 +63,7 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.preference.PreferenceStore;
 import io.antmedia.filter.StreamAcceptFilter;
@@ -644,7 +645,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					final String metaData = broadcast.getMetaData();
 					final String mainTrackId = broadcast.getMainTrackStreamId();
 					logger.info("call live stream ended hook for stream:{}",streamId );
-					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, null, null, metaData, null);
+					notifyHook(listenerHookURL, streamId, mainTrackId, HOOK_ACTION_END_LIVE_STREAM, name, category, 
+								null, null, metaData, null);
 				}
 
 				PublishEndedEvent publishEndedEvent = new PublishEndedEvent();
@@ -694,6 +696,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public synchronized void updateMainTrackWithRecentlyFinishedBroadcast(Broadcast finishedBroadcast) 
 	{
 		Broadcast mainBroadcast = getDataStore().get(finishedBroadcast.getMainTrackStreamId());
+		logger.info("updating main track:{} status with recently finished broadcast:{}", finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
+
 		if (mainBroadcast != null) {
 			
 			mainBroadcast.getSubTrackStreamIds().remove(finishedBroadcast.getStreamId());
@@ -707,14 +711,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					getDataStore().delete(mainBroadcast.getStreamId());
 				}
 				else {
-					mainBroadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+					logger.info("Update main track:{} status to finished ", finishedBroadcast.getMainTrackStreamId());
+					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+					broadcastUpdate.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 
-					getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
+					getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), broadcastUpdate);
 				}
 				notifyNoActiveSubtracksLeftInMainTrack(mainBroadcast);
 			}
 			else {
-				getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), mainBroadcast);
+				logger.info("There are {} active subtracks in the main track:{} status to finished. Just removing the subtrack:{}", activeSubtracksCount, finishedBroadcast.getMainTrackStreamId(), finishedBroadcast.getStreamId());
+				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+                broadcastUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
+				
+				getDataStore().updateBroadcastFields(mainBroadcast.getStreamId(), broadcastUpdate);
 			}
 		}
 		else {
@@ -873,17 +883,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 		else {
 
-			broadcast.setStatus(status);
+			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+			broadcastUpdate.setStatus(status);
 			long now = System.currentTimeMillis();
-			broadcast.setStartTime(now);
-			broadcast.setUpdateTime(now);
-			broadcast.setOriginAdress(getServerSettings().getHostAddress());
-			broadcast.setWebRTCViewerCount(0);
-			broadcast.setHlsViewerCount(0);
-			broadcast.setDashViewerCount(0);
-			broadcast.setPublishType(publishType);
+			broadcastUpdate.setStartTime(now);
+			broadcastUpdate.setUpdateTime(now);
+			broadcastUpdate.setOriginAdress(getServerSettings().getHostAddress());
+			broadcastUpdate.setWebRTCViewerCount(0);
+			broadcastUpdate.setHlsViewerCount(0);
+			broadcastUpdate.setDashViewerCount(0);
+			broadcastUpdate.setPublishType(publishType);
 			//updateBroadcastFields just updates broadcast with the updated fields. No need to give real object
-			boolean result = getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
+			boolean result = getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate);
 
 			logger.info(" Status of stream {} is set to {} with result: {}", broadcast.getStreamId(), status, result);
 		}
@@ -1322,14 +1333,17 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				double roundedSpeed = Math.round(speed * 1000.0) / 1000.0;
 
 				logger.debug("update source quality for stream: {} quality:{} speed:{}", id, quality, speed);
-
-				broadcastLocal.setSpeed(roundedSpeed);
-				broadcastLocal.setPendingPacketSize(pendingPacketSize);
-				broadcastLocal.setUpdateTime(updateTimeMs);
-				broadcastLocal.setQuality(quality);
+				
+				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+				broadcastUpdate.setSpeed(roundedSpeed);	
+				broadcastUpdate.setPendingPacketSize(pendingPacketSize);
+				broadcastUpdate.setUpdateTime(updateTimeMs);
+				broadcastUpdate.setQuality(quality);
 				long elapsedTime = System.currentTimeMillis() - broadcastLocal.getStartTime();
-				broadcastLocal.setDuration(elapsedTime);
-				getDataStore().updateBroadcastFields(id, broadcastLocal);
+				broadcastUpdate.setDuration(elapsedTime);
+				
+				
+				getDataStore().updateBroadcastFields(id, broadcastUpdate);
 
 				ViewerCountEvent viewerCountEvent = new ViewerCountEvent();
 				viewerCountEvent.setApp(getScope().getName());
@@ -1436,13 +1450,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			List<String> streamIdList = new ArrayList<>();
 			for (Broadcast broadcast : localLiveBroadcasts) {
 				//if it's not closed properly, let's set the state to failed
-				broadcast.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-				broadcast.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-				broadcast.setWebRTCViewerCount(0);
-				broadcast.setHlsViewerCount(0);
-				broadcast.setDashViewerCount(0);
+				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+				
+				broadcastUpdate.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+				broadcastUpdate.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+				broadcastUpdate.setWebRTCViewerCount(0);
+				broadcastUpdate.setHlsViewerCount(0);
+				broadcastUpdate.setDashViewerCount(0);
 
-				getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
+				getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate);
 				streamIdList.add(broadcast.getStreamId());
 			}
 
@@ -1900,7 +1916,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		 * If we know the case above, we will write better codes.
 		 *
 		 */
-
+		
+		 
 		PreferenceStore store = new PreferenceStore(WEBAPPS_PATH + appName + "/WEB-INF/red5-web.properties");
 
 		Field[] declaredFields = newAppsettings.getClass().getDeclaredFields();
@@ -1919,13 +1936,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 						else {
 							store.put(field.getName(), value != null ? String.valueOf(value) : "");
 						}
-					} catch (IllegalArgumentException | IllegalAccessException e) {
+					} 
+					catch (IllegalArgumentException | IllegalAccessException e) {
 						logger.error(ExceptionUtils.getStackTrace(e));
 					}
 					field.setAccessible(false);
 				}
 			}
-
 		}
 
 		return store.save();

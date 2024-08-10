@@ -23,6 +23,7 @@ import com.google.gson.GsonBuilder;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
@@ -508,7 +509,7 @@ public abstract class MapBasedDataStore extends DataStore {
 	 * @return
 	 */
 	@Override
-	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {
+	public boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast) {
 		boolean result = false;
 		synchronized (this) {
 			try {

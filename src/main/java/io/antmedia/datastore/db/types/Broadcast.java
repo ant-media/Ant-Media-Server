@@ -224,78 +224,6 @@ public class Broadcast {
 	@Schema(description ="Number of subtracks that is allowed to be created for the broadcast. It's usefult for limiting number of conference attendees. Default value is -1  and it means no limit")
 	private int subtracksLimit = -1;
 
-
-	@Entity
-	public static class PlayListItem
-	{
-		String streamUrl;
-		String type;
-		String name;
-		
-		/**
-		 * Duration of this item in milliseconds. It's calculated by Ant Media Server
-		 */
-		private long durationInMs;
-		
-		/**
-		 * Initial time to get the playlist item is started. 
-		 * If it's a VoD file, it can seek to that time and start playing there
-		 */
-		private long seekTimeInMs = 0;
-
-		public PlayListItem() {
-			//need constructor
-		}
-
-		public PlayListItem(String streamUrl, String type) {
-			this.streamUrl = streamUrl;
-			this.type = type;
-		}
-
-		public String getStreamUrl() {
-			return streamUrl;
-		}
-		public void setStreamUrl(String streamUrl) {
-			this.streamUrl = streamUrl;
-		}
-		public String getType() {
-			return type;
-		}
-		public void setType(String type) {
-			this.type = type;
-		}
-
-		public long getSeekTimeInMs() {
-			return seekTimeInMs;
-		}
-
-		public void setSeekTimeInMs(long seekTimeInMs) {
-			this.seekTimeInMs = seekTimeInMs;
-		}
-
-		public long getDurationInMs() {
-			return durationInMs;
-		}
-
-		public void setDurationInMs(long durationInMs) {
-			this.durationInMs = durationInMs;
-		}
-		
-		public String getName() {
-			return name;
-		}
-		
-		public void setName(String name) {
-			this.name = name;
-		}
-		
-	}
-
-
-	public Broadcast() {
-		this.type = "liveStream";
-	}
-
 	/**
 	 * This is the expire time in milliseconds For instance if this value is
 	 * 10000 then broadcast should be started in 10 seconds after it is created.
@@ -339,7 +267,6 @@ public class Broadcast {
 	/**
 	 * number of dash viewers of the stream
 	 */
-
 	@Schema(description ="the number of DASH viewers of the stream")
 	private int dashViewerCount = 0;
 
@@ -432,6 +359,17 @@ public class Broadcast {
 	@Schema(description ="Broadcast role for selective playback")
 	private String role = null;
 
+	@Schema(description = "the HLS parameters of the broadcast")
+	private HLSParameters hlsParameters = null;
+
+	@Schema(description ="The identifier of whether stream should start/stop automatically. It's effective for Stream Sources/IP Cameras. "
+			+ "If there is no viewer after certain amount of seconds, it will stop. If there is an user want to watch the stream, it will start automatically")
+	private boolean autoStartStopEnabled = false;
+
+	@Schema(description ="The list of encoder settings")
+	private List<EncoderSettings> encoderSettingsList;
+	
+
 	@Entity
 	public static class HLSParameters
 	{
@@ -471,18 +409,78 @@ public class Broadcast {
 			this.hlsPlayListType = hlsPlayListType;
 		}
 	}
+	
+	@Entity
+	public static class PlayListItem
+	{
+		String streamUrl;
+		String type;
+		String name;
+		
+		/**
+		 * Duration of this item in milliseconds. It's calculated by Ant Media Server
+		 */
+		private long durationInMs;
+		
+		/**
+		 * Initial time to get the playlist item is started. 
+		 * If it's a VoD file, it can seek to that time and start playing there
+		 */
+		private long seekTimeInMs = 0;
 
-	@Schema(description = "the HLS parameters of the broadcast")
-	private HLSParameters hlsParameters = null;
+		public PlayListItem() {
+			//need constructor
+		}
 
-	@Schema(description ="The identifier of whether stream should start/stop automatically. It's effective for Stream Sources/IP Cameras. "
-			+ "If there is no viewer after certain amount of seconds, it will stop. If there is an user want to watch the stream, it will start automatically")
-	private boolean autoStartStopEnabled = false;
+		public PlayListItem(String streamUrl, String type) {
+			this.streamUrl = streamUrl;
+			this.type = type;
+		}
 
-	@Schema(description ="The list of encoder settings")
-	private List<EncoderSettings> encoderSettingsList;
+		public String getStreamUrl() {
+			return streamUrl;
+		}
+		public void setStreamUrl(String streamUrl) {
+			this.streamUrl = streamUrl;
+		}
+		public String getType() {
+			return type;
+		}
+		public void setType(String type) {
+			this.type = type;
+		}
+
+		public long getSeekTimeInMs() {
+			return seekTimeInMs;
+		}
+
+		public void setSeekTimeInMs(long seekTimeInMs) {
+			this.seekTimeInMs = seekTimeInMs;
+		}
+
+		public long getDurationInMs() {
+			return durationInMs;
+		}
+
+		public void setDurationInMs(long durationInMs) {
+			this.durationInMs = durationInMs;
+		}
+		
+		public String getName() {
+			return name;
+		}
+		
+		public void setName(String name) {
+			this.name = name;
+		}
+		
+	}
 
 
+	public Broadcast() {
+		this.type = "liveStream";
+	}
+	
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
 		this.setName(name);
@@ -926,13 +924,7 @@ public class Broadcast {
 		this.metaData = metaData;
 	}
 	
-	public boolean isPlaylistLoopEnabled() {
-		return playlistLoopEnabled;
-	}
 
-	public void setPlaylistLoopEnabled(boolean playlistLoopEnabled) {
-		this.playlistLoopEnabled = playlistLoopEnabled;
-	}
 	
 	public int getDashViewerLimit() {
 		return dashViewerLimit;
@@ -1017,4 +1009,11 @@ public class Broadcast {
 		this.role = role;
 	}
 
+	public boolean isPlaylistLoopEnabled() {
+		return playlistLoopEnabled;
+	}
+	
+	public void setPlaylistLoopEnabled(boolean playlistLoopEnabled) {
+		this.playlistLoopEnabled = playlistLoopEnabled;
+	}
 }

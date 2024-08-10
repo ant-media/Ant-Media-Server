@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
@@ -507,7 +508,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {		
+	public boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast) {		
 		boolean result = false;
 		try {
 			Broadcast oldBroadcast = get(streamId);

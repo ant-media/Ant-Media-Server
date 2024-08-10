@@ -20,6 +20,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -51,7 +52,7 @@ public abstract class DataStore {
 	
 	public abstract String save(Broadcast broadcast);
 
-	public Broadcast saveBroadcast (Broadcast broadcast) {
+	public Broadcast saveBroadcast(Broadcast broadcast) {
 		String streamId = null;
 		try {
 		if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
@@ -680,6 +681,7 @@ public abstract class DataStore {
 			for (String broadcastString : values) 
 			{
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				
 				String status = broadcast.getStatus();
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
 					  (StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress())))
@@ -688,6 +690,7 @@ public abstract class DataStore {
 				}
 			}
 		}
+		
 		return broadcastList;
 	}
 
@@ -698,7 +701,7 @@ public abstract class DataStore {
 	 * @param broadcast
 	 * @return
 	 */
-	public abstract boolean updateBroadcastFields(String streamId, Broadcast broadcast);
+	public abstract boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast);
 
 	/**
 	 * Add or subtract the HLS viewer count from current value
@@ -823,7 +826,7 @@ public abstract class DataStore {
 	 * @param ipAddr
 	 * @param streamUrl
 	 */
-	protected void updateStreamInfo(Broadcast broadcast, Broadcast newBroadcast)
+	protected void updateStreamInfo(Broadcast broadcast, BroadcastUpdate newBroadcast)
 	{
 		if (newBroadcast.getName() != null) {
 			broadcast.setName(newBroadcast.getName());
@@ -861,11 +864,12 @@ public abstract class DataStore {
 			broadcast.setAltitude(newBroadcast.getAltitude());
 		}
 
+		//mainTrackStreamId can be empty
 		if (newBroadcast.getMainTrackStreamId() != null) {
 			broadcast.setMainTrackStreamId(newBroadcast.getMainTrackStreamId());
 		}
 
-		if (newBroadcast.getStartTime() != 0) {
+		if (newBroadcast.getStartTime() != null) {
 			broadcast.setStartTime(newBroadcast.getStartTime());
 		}
 
@@ -877,11 +881,11 @@ public abstract class DataStore {
 			broadcast.setStatus(newBroadcast.getStatus());
 		}
 
-		if (newBroadcast.getAbsoluteStartTimeMs() != 0) {
+		if (newBroadcast.getAbsoluteStartTimeMs() != null) {
 			broadcast.setAbsoluteStartTimeMs(newBroadcast.getAbsoluteStartTimeMs());
 		}		
 		
-		if (newBroadcast.getUpdateTime() != 0) {
+		if (newBroadcast.getUpdateTime() != null) {
 			broadcast.setUpdateTime(newBroadcast.getUpdateTime());
 		}
 		
@@ -903,7 +907,7 @@ public abstract class DataStore {
 			broadcast.setListenerHookURL(newBroadcast.getListenerHookURL());
 		}
 		
-		if (newBroadcast.getSpeed() != 0) {
+		if (newBroadcast.getSpeed() != null) {
 			broadcast.setSpeed(newBroadcast.getSpeed());
 		}
 
@@ -919,20 +923,57 @@ public abstract class DataStore {
 			broadcast.setEncoderSettingsList(newBroadcast.getEncoderSettingsList());
 		}
 		
-
-		broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
-		broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
-		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
-		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
-		broadcast.setDuration(newBroadcast.getDuration());
-		broadcast.setBitrate(newBroadcast.getBitrate());
-		broadcast.setUserAgent(newBroadcast.getUserAgent());
-		broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
-		broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
-		broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
-		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
-		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
-		broadcast.setAutoStartStopEnabled(newBroadcast.isAutoStartStopEnabled());
+		if (newBroadcast.getPlannedStartDate() != null) {
+			broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
+		}
+		
+		if (newBroadcast.getSeekTimeInMs() != null) {
+			broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
+		}
+		
+		if (newBroadcast.getReceivedBytes() != null) {
+			broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
+		}
+		
+		if (newBroadcast.getDuration() != null) {
+            broadcast.setDuration(newBroadcast.getDuration());
+        }
+		
+		if (newBroadcast.getBitrate() != null) {
+			broadcast.setBitrate(newBroadcast.getBitrate());
+		}
+		
+		if (newBroadcast.getUserAgent() != null) {
+			broadcast.setUserAgent(newBroadcast.getUserAgent());
+		}
+		
+		if (newBroadcast.getWebRTCViewerLimit() != null) {
+			broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
+		}
+		
+		if (newBroadcast.getHlsViewerLimit() != null) {
+			broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
+		}
+		
+		if (newBroadcast.getDashViewerCount() != null) {
+			broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
+		}
+		
+		if (newBroadcast.getSubTrackStreamIds() != null) {
+			broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
+		}
+		
+		if (newBroadcast.getPlaylistLoopEnabled() != null) {
+			broadcast.setPlaylistLoopEnabled(newBroadcast.getPlaylistLoopEnabled());
+		}
+		
+		if (newBroadcast.getAutoStartStopEnabled() != null) {
+			broadcast.setAutoStartStopEnabled(newBroadcast.getAutoStartStopEnabled());
+        }		
+		
+		if (newBroadcast.getCurrentPlayIndex() != null) {
+			broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
+		}
 	}
 
 
@@ -1333,6 +1374,20 @@ public abstract class DataStore {
 	 * @param broadcast
 	 * @return
 	 */
+	public static BroadcastUpdate conferenceUpdateToBroadcastUpdate(ConferenceRoom conferenceRoom) throws Exception {
+		BroadcastUpdate broadcast = new BroadcastUpdate();
+		broadcast.setStreamId(conferenceRoom.getRoomId());
+		broadcast.setPlannedStartDate(conferenceRoom.getStartDate());
+		broadcast.setPlannedEndDate(conferenceRoom.getEndDate());
+		broadcast.setZombi(conferenceRoom.isZombi());
+		broadcast.setOriginAdress(conferenceRoom.getOriginAdress());
+		broadcast.setConferenceMode(conferenceRoom.getMode());
+		broadcast.setSubTrackStreamIds(conferenceRoom.getRoomStreamList());
+
+		return broadcast;
+
+	}
+	
 	public static Broadcast conferenceToBroadcast(ConferenceRoom conferenceRoom) throws Exception {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStreamId(conferenceRoom.getRoomId());
@@ -1343,11 +1398,10 @@ public abstract class DataStore {
 		broadcast.setConferenceMode(conferenceRoom.getMode());
 		broadcast.setSubTrackStreamIds(conferenceRoom.getRoomStreamList());
 
-
 		return broadcast;
 
 	}
-	
+
 	/**
 	 * Move ConferenceRoom to Broadcast
 	 */

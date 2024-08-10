@@ -41,6 +41,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -919,10 +920,16 @@ public class DBStoresUnitTest {
 		//change cam info
 		camera.setName("new_name");
 		camera.setIpAddr("1.1.1.1");
+		
+		BroadcastUpdate cameraUpdate = new BroadcastUpdate();
+		cameraUpdate.setName("new_name");
+		cameraUpdate.setIpAddr("1.1.1.1");
+		
 
-		datastore.updateBroadcastFields(camera.getStreamId(), camera);
+		datastore.updateBroadcastFields(camera.getStreamId(), cameraUpdate);
 
 		//check whether is changed or not
+		camera = datastore.get(camera.getStreamId());
 		assertEquals("1.1.1.1", camera.getIpAddr());
 		assertEquals("new_name", camera.getName());
 		datastore.delete(camera.getStreamId());
@@ -947,7 +954,9 @@ public class DBStoresUnitTest {
 		//update metadata
 		broadcast.setMetaData(newMetadata);
 
-		datastore.updateBroadcastFields(broadcast.getStreamId(), broadcast);
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setMetaData(newMetadata);
+		datastore.updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate);
 
 		Broadcast broadcast2 = datastore.get(streamId);
 
@@ -1552,7 +1561,7 @@ public class DBStoresUnitTest {
 			String name = "name 1";
 			String description = "description 2";
 			long now = System.currentTimeMillis();
-			Broadcast tmp = new Broadcast();
+			BroadcastUpdate tmp = new BroadcastUpdate();
 			tmp.setName(name);
 			tmp.setDescription(description);
 			tmp.setUpdateTime(now);
@@ -1563,11 +1572,13 @@ public class DBStoresUnitTest {
 			tmp.setSubFolder(subFolder);
 			String listenerHookURL = "test_listener_hook_url";
 			tmp.setListenerHookURL(listenerHookURL);
-			assertTrue(tmp.isPlaylistLoopEnabled());
+			assertNull(tmp.getPlaylistLoopEnabled());
 			tmp.setPlaylistLoopEnabled(false);
 			double speed = 1.0;
 			tmp.setSpeed(speed);
 			tmp.setSeekTimeInMs(136);
+			
+			
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -2539,14 +2550,20 @@ public class DBStoresUnitTest {
 
 		Broadcast tmpBroadcast = dataStore.get(broadcast.getStreamId());
 		List<Endpoint> endPointList = tmpBroadcast.getEndPointList();
+		
+		BroadcastUpdate updateData = new BroadcastUpdate();
 		for (Endpoint tmpEndpoint : endPointList) {
 			if (tmpEndpoint.getRtmpUrl().equals(rtmpUrl)) {
 				tmpEndpoint.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+				
 				break;
 			}
 		}
+		
+		updateData.setEndPointList(endPointList);
+		
 		//update rtmpurl
-		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmpBroadcast); 
+		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), updateData); 
 		assertTrue(result);
 		
 		
@@ -2559,7 +2576,10 @@ public class DBStoresUnitTest {
 				break;
 			}
 		}
-		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmpBroadcast); 
+		updateData = new BroadcastUpdate();
+		updateData.setEndPointList(endPointList);
+
+		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), updateData); 
 		assertTrue(result);
 		
 		
@@ -2680,7 +2700,13 @@ public class DBStoresUnitTest {
 		broadcastFromStore.setLongitude(longitude);
 		broadcastFromStore.setAltitude(altitude);
 		broadcastFromStore.setStatus(null);
-		assertTrue(dataStore.updateBroadcastFields(streamId, broadcastFromStore));
+		
+		BroadcastUpdate updateData = new BroadcastUpdate();
+		updateData.setLatitude(latitude);
+		updateData.setLongitude(longitude);
+		updateData.setAltitude(altitude);
+		updateData.setStatus(null);
+		assertTrue(dataStore.updateBroadcastFields(streamId, updateData));
 		
 		Broadcast broadcastFromStore2 = dataStore.get(streamId);
 		assertEquals(latitude, broadcastFromStore2.getLatitude());
@@ -2721,7 +2747,12 @@ public class DBStoresUnitTest {
 		broadcastList.clear();
 		broadcast.setPlayListItemList(broadcastList);
 		broadcast.setCurrentPlayIndex(10);
-		assertTrue(dataStore.updateBroadcastFields(streamId, broadcast));
+		
+		BroadcastUpdate updateData = new BroadcastUpdate();
+		updateData.setPlayListStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		updateData.setPlayListItemList(broadcastList);
+		updateData.setCurrentPlayIndex(10);
+		assertTrue(dataStore.updateBroadcastFields(streamId, updateData));
 		
 		broadcast2 = dataStore.get(streamId);
 		assertTrue(broadcast2.getPlayListItemList() == null || broadcast2.getPlayListItemList().isEmpty());
@@ -2768,7 +2799,9 @@ public class DBStoresUnitTest {
 		assertNull(subtrack.getMainTrackStreamId());
 
 		subtrack.setMainTrackStreamId(mainTrackId);
-		assertTrue(dataStore.updateBroadcastFields(subTrackId, subtrack));
+		BroadcastUpdate updateData = new BroadcastUpdate();
+		updateData.setMainTrackStreamId(mainTrackId);
+		assertTrue(dataStore.updateBroadcastFields(subTrackId, updateData));
 
 		boolean result = dataStore.addSubTrack(mainTrackId, subTrackId);
 		assertTrue(result);
@@ -3166,8 +3199,11 @@ public class DBStoresUnitTest {
         settingsList.add(new EncoderSettings(720, 50000, 32000, true));
 
 		broadcast.setEncoderSettingsList(settingsList);
+		
+		BroadcastUpdate updateData = new BroadcastUpdate();
+		updateData.setEncoderSettingsList(settingsList);
 
-		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
 
 		assertEquals(32000, dataStore.get(id).getEncoderSettingsList().get(0).getAudioBitrate());
         assertEquals(50000, dataStore.get(id).getEncoderSettingsList().get(0).getVideoBitrate());
@@ -3176,15 +3212,14 @@ public class DBStoresUnitTest {
 			//because inmemorydata store just keeps the reference, it will be updated
 			broadcast.setEncoderSettingsList(null);
 		} 
-		dataStore.updateBroadcastFields(id, broadcast);
 
 		//it will not be updated because encoder settings is null
 		assertEquals(32000, dataStore.get(id).getEncoderSettingsList().get(0).getAudioBitrate());
         assertEquals(50000, dataStore.get(id).getEncoderSettingsList().get(0).getVideoBitrate());
 
 
-		broadcast.setEncoderSettingsList(new ArrayList<>());
-		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
+		updateData.setEncoderSettingsList(new ArrayList<>());
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
 		assertTrue(dataStore.get(id).getEncoderSettingsList().isEmpty());
 
 

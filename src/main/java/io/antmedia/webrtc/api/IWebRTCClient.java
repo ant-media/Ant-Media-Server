@@ -209,6 +209,5 @@ public interface IWebRTCClient {
 	 */
 	public String getStreamId();
 	
-
-
+	
 }
