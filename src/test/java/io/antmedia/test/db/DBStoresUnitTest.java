@@ -625,10 +625,10 @@ public class DBStoresUnitTest {
 
 		System.out.println("Stream count to be added: " + streamCount);
 
+		String streamId = null;
 		for (int i = 0; i < streamCount; i++) {
-			
-			
-			dataStore.save(new Broadcast(null, null));
+			streamId = dataStore.save(new Broadcast(null, null));
+			logger.info("Saved streamId:{}", streamId);
 		}
 
 		assertEquals(streamCount, dataStore.getBroadcastCount());
@@ -664,6 +664,7 @@ public class DBStoresUnitTest {
 		//check that active broadcast exactly the same as changed above
 		
 		//////this test is sometimes failing below, I think streamId may not be unique so I logged above to confirm it - mekya
+		//yes the streamId is not unique, we need to improve  - mekya Aug 11, 2024
 		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
 		
 		assertEquals(numberOfStatusChangeStreams, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
