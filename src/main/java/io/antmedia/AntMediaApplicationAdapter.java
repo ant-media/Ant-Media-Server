@@ -1774,6 +1774,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	/*
 	 * This method can be called by multiple threads especially in cluster mode
 	 * and this cause some issues for settings synchronization. So that it's synchronized
+	 * 
 	 * @param newSettings
 	 * @param notifyCluster
 	 * @param checkUpdateTime, if it is false it checks the update time of the currents settings and incoming settings.
@@ -1785,10 +1786,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 		boolean result = false;
 
-		if (checkUpdateTime && !isIncomingTimeValid(newSettings)) {
+		if (checkUpdateTime && !isIncomingSettingsDifferent(newSettings)) {
 			//if current app settings update time is bigger than the newSettings, don't update the bean
 			//it may happen in cluster mode, app settings may be updated locally then a new update just may come instantly from cluster settings.
-			logger.info("Not saving the settings because current appsettings update time({}) is later than incoming settings update time({}) ", appSettings.getUpdateTime(), newSettings.getUpdateTime() );
+			logger.info("Not saving the settings because current appsettings update time({}) incoming settings update time({}) are same", appSettings.getUpdateTime(), newSettings.getUpdateTime() );
 			return result;
 		}
 
@@ -1823,20 +1824,19 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		 * ATTENTION: When a new settings added both
 		 *   {@link #updateAppSettingsFile} && {@link #updateAppSettingsBean} should be updated
 		 */
+		updateAppSettingsBean(appSettings, newSettings, notifyCluster);
+		AcceptOnlyStreamsInDataStore securityHandler = (AcceptOnlyStreamsInDataStore)  getScope().getContext().getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME);
+		securityHandler.setEnabled(newSettings.isAcceptOnlyStreamsInDataStore());
+		
+		if (notifyCluster && clusterNotifier != null) {
+			//we should set to be deleted because app deletion fully depends on the cluster synch
+			appSettings.setToBeDeleted(newSettings.isToBeDeleted());
+			boolean saveSettings = clusterNotifier.getClusterStore().saveSettings(appSettings);
+			logger.info("Saving settings to cluster db -> {} for app: {} and updateTime:{}", saveSettings, getScope().getName(), appSettings.getUpdateTime());
+		}
+		
 		if (updateAppSettingsFile(getScope().getName(), newSettings))
 		{
-			AcceptOnlyStreamsInDataStore securityHandler = (AcceptOnlyStreamsInDataStore)  getScope().getContext().getBean(AcceptOnlyStreamsInDataStore.BEAN_NAME);
-			securityHandler.setEnabled(newSettings.isAcceptOnlyStreamsInDataStore());
-
-			updateAppSettingsBean(appSettings, newSettings);
-
-			if (notifyCluster && clusterNotifier != null) {
-				//we should set to be deleted because app deletion fully depends on the cluster synch
-				appSettings.setToBeDeleted(newSettings.isToBeDeleted());
-				boolean saveSettings = clusterNotifier.getClusterStore().saveSettings(appSettings);
-				logger.info("Saving settings to cluster db -> {} for app: {} and updateTime:{}", saveSettings, getScope().getName(), appSettings.getUpdateTime());
-			}
-
 			result = true;
 		}
 		else {
@@ -1893,12 +1893,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	 *
 	 * @param newSettings
 	 * @param checkUpdateTime
-	 * @return true if timing is valid, false if it is invalid
+	 * @return true if time are not equal, it means new settings is different than the current settings
 	 */
-	public boolean isIncomingTimeValid(AppSettings newSettings)
+	public boolean isIncomingSettingsDifferent(AppSettings newSettings)
 	{
-		return appSettings.getUpdateTime() != 0 && newSettings.getUpdateTime() != 0
-				&& appSettings.getUpdateTime() < newSettings.getUpdateTime();
+		return appSettings.getUpdateTime() != newSettings.getUpdateTime();
 	}
 
 	public void setClusterNotifier(IClusterNotifier clusterNotifier) {
@@ -1949,7 +1948,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 
-	public void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings)
+	public void updateAppSettingsBean(AppSettings appSettings, AppSettings newSettings, boolean updateTime)
 	{
 		Field[] declaredFields = appSettings.getClass().getDeclaredFields();
 
@@ -1958,8 +1957,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			setAppSettingsFieldValue(appSettings, newSettings, field);
 		}
 
-		appSettings.setUpdateTime(System.currentTimeMillis());
-
+		if (updateTime) {
+			//updateTime is true when the app settings is updated from the REST API or it's first updated when the app starts first in the cluster
+			appSettings.setUpdateTime(System.currentTimeMillis());
+		}
 		String oldVodFolder = appSettings.getVodFolder();
 		synchUserVoDFolder(oldVodFolder, newSettings.getVodFolder());
 
