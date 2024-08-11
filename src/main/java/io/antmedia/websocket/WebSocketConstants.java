@@ -608,5 +608,11 @@ public class WebSocketConstants {
 	 */
 	public static final String SUBTRACK_LIST = "subtrackList";
 
+	/**
+	 * This is the error definition that is sent when the stream does not get video or audio packet for the timeout duration.
+	 * Currently it's implemented for WebRTC ingest
+	 */
+	public static final String NO_PACKET_RECEIVED_FOR_TIMEOUT_DURATION = "noPacketReceivedForTimeoutDuration";
+
 
 }
