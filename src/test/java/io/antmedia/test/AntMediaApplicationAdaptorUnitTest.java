@@ -398,9 +398,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
 
-		settings.setUpdateTime(1000);
+		settings.setUpdateTime(900);
 		newSettings.setUpdateTime(900);
 		assertFalse(spyAdapter.updateSettings(newSettings, false, true));
+
+		newSettings.setUpdateTime(1000);
+		assertTrue(spyAdapter.updateSettings(newSettings, false, true));
 
 
 		newSettings.setPlayJwtControlEnabled(true);
