@@ -10,9 +10,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 /**
  * This is like a clone of Broadcast object. Just some differences, all default values are null in this object
- * and it is used to update the broadcast object in the datastore
+ * and it is used to update the broadcast object in the datastore by only changing fields. 
  * 
- * If it's not null, it means that it will be updated in the datastore
+ * If it a field is not null, it means that it should be updated in the datastore
+ * 
+ * It's not a good solution. It's a workaround so far that keeps the backward compatibility
  */
 @Schema(description="This is the BroadcastUpdate and it's almost same with BroadcastUpdate with all default values are null. We update the fields in update method if it's not null."
 		+ "It makes this data up to date in race conditions.")
@@ -287,25 +289,25 @@ public class BroadcastUpdate {
 	public String getIpAddr() {
 		return ipAddr;
 	}
-
+	
+	public void setUsername(String username) {
+		this.username = username;
+	}
+	
+	public String getUsername() {
+		return username;
+	}
+	
 	public void setIpAddr(String ipAddr) {
 		this.ipAddr = ipAddr;
 	}
 
-	public String getUsername() {
-		return username;
-	}
-
-	public void setUsername(String username) {
-		this.username = username;
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
 	public void setPassword(String password) {
 		this.password = password;
+	}
+	
+	public String getPassword() {
+		return password;
 	}
 
 	public String getQuality() {
@@ -468,40 +470,40 @@ public class BroadcastUpdate {
 		this.bitrate = bitrate;
 	}
 
+	public void setUserAgent(String userAgent) {
+		this.userAgent = userAgent;
+	}
+	
 	public String getUserAgent() {
 		return userAgent;
 	}
-
-	public void setUserAgent(String userAgent) {
-		this.userAgent = userAgent;
+	
+	public String getAltitude() {
+		return altitude;
 	}
 
 	public String getLatitude() {
 		return latitude;
 	}
 
-	public void setLatitude(String latitude) {
-		this.latitude = latitude;
-	}
-
 	public String getLongitude() {
 		return longitude;
+	}
+	
+	public String getMainTrackStreamId() {
+		return mainTrackStreamId;
 	}
 
 	public void setLongitude(String longitude) {
 		this.longitude = longitude;
 	}
 
-	public String getAltitude() {
-		return altitude;
+	public void setLatitude(String latitude) {
+		this.latitude = latitude;
 	}
-
+	
 	public void setAltitude(String altitude) {
 		this.altitude = altitude;
-	}
-
-	public String getMainTrackStreamId() {
-		return mainTrackStreamId;
 	}
 
 	public void setMainTrackStreamId(String mainTrackStreamId) {
