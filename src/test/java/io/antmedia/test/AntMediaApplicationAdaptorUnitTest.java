@@ -246,22 +246,23 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		newSettings = new AppSettings();
 
-		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
+		assertFalse(spyAdapter.isIncomingSettingsDifferent(newSettings));
 
 		newSettings.setUpdateTime(1000);
-
-		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
+		assertTrue(spyAdapter.isIncomingSettingsDifferent(newSettings));
 
 		appSettings.setUpdateTime(900);
-
-		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
+		assertTrue(spyAdapter.isIncomingSettingsDifferent(newSettings));
 
 		appSettings.setUpdateTime(2000);
-
-		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
+		assertTrue(spyAdapter.isIncomingSettingsDifferent(newSettings));
 
 		newSettings.setUpdateTime(3000);
-		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
+		assertTrue(spyAdapter.isIncomingSettingsDifferent(newSettings));
+		
+		appSettings.setUpdateTime(3000);
+		assertFalse(spyAdapter.isIncomingSettingsDifferent(newSettings));
+
 
 
 
