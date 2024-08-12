@@ -123,7 +123,4 @@
 	   <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat/tomcat-coyote@10\.1\.19$</packageUrl>
 	   <cve>CVE-2024-34750</cve>
 	</suppress>
-	
-
-	
 </suppressions>

@@ -38,7 +38,7 @@ public interface IWebRTCAdaptor extends IScopeService {
 	 * @param webRTCClient
 	 * @param streamHeight
 	 */
-	void forceStreamingQuality(String streamId, IWebRTCClient webRTCClient, int streamHeight);
+	boolean forceStreamingQuality(String streamId, IWebRTCClient webRTCClient, int streamHeight);
 
 	/**
 	 * Register to specific resolution

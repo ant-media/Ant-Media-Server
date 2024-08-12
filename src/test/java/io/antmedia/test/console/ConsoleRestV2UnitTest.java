@@ -15,9 +15,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.google.gson.JsonObject;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
@@ -47,7 +50,7 @@ import io.antmedia.console.rest.RestServiceV2;
 import io.antmedia.datastore.db.types.User;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.rest.model.Result;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.datastore.db.types.UserType;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.statistic.IStatsCollector;
 import io.vertx.core.Vertx;
@@ -134,7 +137,7 @@ public class ConsoleRestV2UnitTest {
 	public void getUserList(){
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 1000000000);
-		User user = new User(userName, password, UserType.ADMIN, "all");
+		User user = new User(userName, password, UserType.ADMIN, "all", null);
 		RestServiceV2 restServiceSpy = Mockito.spy(restService);
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
@@ -147,7 +150,7 @@ public class ConsoleRestV2UnitTest {
 		assertNotNull(restServiceSpy.getUserList());
 
 		userName = "username" + (int) (Math.random() * 1000000000);
-		user = new User(userName, "second pass", UserType.ADMIN, "all");
+		user = new User(userName, "second pass", UserType.ADMIN, "all", null);
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
@@ -161,7 +164,7 @@ public class ConsoleRestV2UnitTest {
 
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 1000000000);
-		User user = new User(userName, password, UserType.ADMIN, "system");
+		User user = new User(userName, password, UserType.ADMIN, "system", new HashMap<String, String>());
 		RestServiceV2 restServiceSpy = Mockito.spy(restService);
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
@@ -173,7 +176,7 @@ public class ConsoleRestV2UnitTest {
 
 		String userName2 = "username" + (int) (Math.random() * 1000000000);
 
-		user = new User(userName2, "second pass", UserType.ADMIN, "system");
+		user = new User(userName2, "second pass", UserType.ADMIN, "system", new HashMap<String, String>());
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
@@ -181,7 +184,7 @@ public class ConsoleRestV2UnitTest {
 
 		assertTrue(result.isSuccess());
 
-		user = new User(userName, "second pass", UserType.ADMIN, "system");
+		user = new User(userName, "second pass", UserType.ADMIN, "system", new HashMap<String, String>());
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.ADMIN);
@@ -189,7 +192,7 @@ public class ConsoleRestV2UnitTest {
 
 		assertFalse(result.isSuccess());
 
-		user = new User(userName, "second pass", UserType.ADMIN, "system");
+		user = new User(userName, "second pass", UserType.ADMIN, "system", new HashMap<String, String>());
 
 		user.setPassword("second pass");
 		user.setUserType(UserType.READ_ONLY);
@@ -260,7 +263,9 @@ public class ConsoleRestV2UnitTest {
 		Mockito.doReturn(new ServerSettings()).when(restServiceSpy).getServerSettings();
 
 		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
-			boolean sendUserInfo = restServiceSpy.sendUserInfo("test@antmedia.io", "firstname", "lastname", "scope", "admin");
+			HashMap<String,String> appNameUserTypeMap = new HashMap<>();
+			appNameUserTypeMap.put("system", UserType.ADMIN.toString());
+			boolean sendUserInfo = restServiceSpy.sendUserInfo("test@antmedia.io", "firstname", "lastname","system","admin", appNameUserTypeMap);
 			return sendUserInfo;
 		});
 	}
@@ -525,7 +530,7 @@ public class ConsoleRestV2UnitTest {
 
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 100000);
-		User user = new User(userName, password, UserType.ADMIN, "all");
+		User user = new User(userName, password, UserType.ADMIN, "all", null);
 
 		HttpSession session = Mockito.mock(HttpSession.class);
 		Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
@@ -569,7 +574,7 @@ public class ConsoleRestV2UnitTest {
 		assertFalse(result2.isSuccess());
 
 		//No new password
-		user = new User(userName, "12345", UserType.ADMIN, "all");
+		user = new User(userName, "12345", UserType.ADMIN, "all", null);
 		result2 = restService.changeUserPasswordInternal(userName, user);
 		System.out.println(result2.getMessage());
 		assertFalse(result2.isSuccess());
@@ -580,7 +585,7 @@ public class ConsoleRestV2UnitTest {
 
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 100000);
-		User user = new User(userName, password, UserType.ADMIN, "system");
+		User user = new User(userName, password, UserType.ADMIN, "system", null);
 
 		HttpSession session = Mockito.mock(HttpSession.class);
 		Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
@@ -601,7 +606,7 @@ public class ConsoleRestV2UnitTest {
 		//Add second user
 		String password2 = "password2";
 		String userName2 = "username" + (int) (Math.random() * 100000);
-		User user2 = new User(userName2, password2, UserType.READ_ONLY, "system");
+		User user2 = new User(userName2, password2, UserType.READ_ONLY, "system", new HashMap<String, String>());
 
 		result = restService.addUser(user2);
 		assertTrue(result.isSuccess());
@@ -623,12 +628,28 @@ public class ConsoleRestV2UnitTest {
 		result = restService.editUser(null);
 		assertFalse(result.isSuccess());
 	}
+	
+	@Test
+	public void testInvalidateSession() {
+		HttpSession session = Mockito.mock(HttpSession.class);
+		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
+		Mockito.when(mockRequest.getSession()).thenReturn(session);
+		restService.setRequestForTest(mockRequest);
+
+		
+		restService.deleteSession();
+		
+		Mockito.verify(session).invalidate();
+		
+		
+	}
 
 	@Test
 	public void testDeleteUser() {
 		String password = "password";
 		String userName = "username" + (int) (Math.random() * 100000);
-		User user = new User(userName, password, UserType.ADMIN, "all");
+		User user = new User(userName, password, UserType.ADMIN, "all", null);
 
 		HttpSession session = Mockito.mock(HttpSession.class);
 		Mockito.when(session.getAttribute(IS_AUTHENTICATED)).thenReturn(true);
@@ -646,7 +667,7 @@ public class ConsoleRestV2UnitTest {
 		assertNotNull(dbStore.getUser(userName));
 
 		String userName2 = "username" + (int) (Math.random() * 100000);
-		User user2 = new User(userName2, password, UserType.READ_ONLY, "all");
+		User user2 = new User(userName2, password, UserType.READ_ONLY, "all", null);
 
 		//Trying to delete a non existant user
 		result = restService.deleteUser(userName2);
@@ -913,4 +934,39 @@ public class ConsoleRestV2UnitTest {
 
 	}
 
+	@Test
+	public void testAuthenticateMultiAppUser(){
+		String password = "password";
+		String userName = "username" + (int) (Math.random() * 100000);
+
+		Map<String,String> appNameUserTypeMap = new HashMap<>();
+		appNameUserTypeMap.put("LiveApp", UserType.USER.toString());
+		appNameUserTypeMap.put("live", UserType.READ_ONLY.toString());
+
+		User user = new User(userName, password, null, null, appNameUserTypeMap);
+		dbStore.addUser(user);
+
+		HttpSession session = Mockito.mock(HttpSession.class);
+
+		Mockito.when(session.getAttribute(USER_EMAIL)).thenReturn(userName);
+		Mockito.when(session.getAttribute(USER_PASSWORD)).thenReturn(password);
+
+		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
+
+		Mockito.when(mockRequest.getSession()).thenReturn(session);
+
+		restService.setRequestForTest(mockRequest);
+
+		JsonObject appNameUserTypeJson = new JsonObject();
+		for (Map.Entry<String, String> entry : user.getAppNameUserType().entrySet()) {
+			String appName = entry.getKey();
+			String userType = entry.getValue();
+
+			appNameUserTypeJson.addProperty(appName, userType);
+		}
+
+		Result result = restService.authenticateUser(user);
+		assertTrue(result.isSuccess());
+        assertEquals(result.getMessage(), appNameUserTypeJson.toString());
+	}
 }
