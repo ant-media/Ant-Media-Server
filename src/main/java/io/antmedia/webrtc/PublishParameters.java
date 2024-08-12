@@ -15,6 +15,8 @@ public class PublishParameters {
     private String metaData;
     private String linkedSessionForSignaling;
     
+    private String role;
+    
     public PublishParameters(String streamId) {
     	this.streamId = streamId;
     } 
@@ -92,5 +94,19 @@ public class PublishParameters {
 
 	public void setToken(String tokenId) {
 		this.token = tokenId;
+	}
+
+	/**
+	 * @return the role
+	 */
+	public String getRole() {
+		return role;
+	}
+
+	/**
+	 * @param role the role to set
+	 */
+	public void setRole(String role) {
+		this.role = role;
 	}
 }

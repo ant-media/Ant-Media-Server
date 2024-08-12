@@ -23,6 +23,7 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -346,7 +347,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{id}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result updateBroadcast(@Parameter(description="Broadcast id", required = true) @PathParam("id") String id, 
-			@Parameter(description="Broadcast object with the updates") Broadcast broadcast) {
+			@Parameter(description="Broadcast object with the updates") BroadcastUpdate broadcast) {
 		Result result = new Result(false);
 		if (id != null && broadcast != null) 
 		{
@@ -367,7 +368,7 @@ public class BroadcastRestService extends RestServiceBase{
 			}
 			else 
 			{
-				result = super.updateBroadcast(id, broadcast, broadcastInDB);
+				result = super.updateBroadcast(id, broadcast);
 			}
 
 		}
@@ -1540,10 +1541,6 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 
-
-
-
-
 	@Operation(description = "Edits previously saved conference room")
 	@ApiResponses(value = {
 			@ApiResponse(responseCode = "400", description = "If the operation is not completed for any reason",
@@ -1567,9 +1564,9 @@ public class BroadcastRestService extends RestServiceBase{
 
 		if(room != null) 
 		{
-			Broadcast conferenceToBroadcast;
+			BroadcastUpdate conferenceToBroadcast;
 			try {
-				conferenceToBroadcast = DataStore.conferenceToBroadcast(room);
+				conferenceToBroadcast = DataStore.conferenceUpdateToBroadcastUpdate(room);
 				if (getDataStore().updateBroadcastFields(roomId, conferenceToBroadcast)) {
 					return Response.status(Status.OK).entity(room).build();
 				}

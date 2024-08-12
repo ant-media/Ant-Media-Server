@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,6 +23,7 @@ import com.google.gson.GsonBuilder;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
@@ -507,7 +509,7 @@ public abstract class MapBasedDataStore extends DataStore {
 	 * @return
 	 */
 	@Override
-	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {
+	public boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast) {
 		boolean result = false;
 		synchronized (this) {
 			try {
@@ -976,9 +978,11 @@ public abstract class MapBasedDataStore extends DataStore {
 				if (subTracks == null) {
 					subTracks = new ArrayList<>();
 				}
-				subTracks.add(subTrackId);
-				broadcast.setSubTrackStreamIds(subTracks);
-				setBroadcastToMap(broadcast, mainTrackId);
+				if (!subTracks.contains(subTrackId)) {
+					subTracks.add(subTrackId);
+					broadcast.setSubTrackStreamIds(subTracks);
+					setBroadcastToMap(broadcast, mainTrackId);
+				}
 				result = true;
 			}
 		}
@@ -1120,6 +1124,102 @@ public abstract class MapBasedDataStore extends DataStore {
 		return conferenceRoomMap;
 	}
 	
+	@Override
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
+		return getSubtracks(mainTrackId, offset, size, role, null);
+	}
 
-
+	@Override
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status) {
+		List<Broadcast> subtracks = new ArrayList<>();
+		synchronized (this) {
+			for (String broadcastString : map.values()) {
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				if ( mainTrackId.equals(broadcast.getMainTrackStreamId())
+						&& (StringUtils.isBlank(role) || broadcast.getRole().equals(role)) 
+						&& (StringUtils.isBlank(status) || broadcast.getStatus().equals(status))) 
+				{
+					subtracks.add(broadcast);
+				}
+			}
+		}
+		return subtracks.subList(offset, Math.min(offset + size, subtracks.size()));
+	}
+	
+	@Override
+	public long getSubtrackCount(String mainTrackId, String role, String status) {
+		
+		int count = 0;
+		synchronized (this) {
+			for (String broadcastString : map.values()) {
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				if (mainTrackId.equals(broadcast.getMainTrackStreamId())
+						&& (StringUtils.isBlank(role) || broadcast.getRole().equals(role))
+						&& (StringUtils.isBlank(status) || broadcast.getStatus().equals(status))) {
+					count++;
+				}
+			}
+		}
+		return count;
+		
+	}
+	
+	@Override
+	public long getActiveSubtracksCount(String mainTrackId, String role) {
+		List<Broadcast> subtracks = new ArrayList<>();
+		int count = 0;
+		synchronized (this) {
+			for (String broadcastString : map.values()) {
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				if ( mainTrackId.equals(broadcast.getMainTrackStreamId())
+						&& (StringUtils.isBlank(role) || broadcast.getRole().equals(role)) 
+						&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
+						&& (AntMediaApplicationAdapter.isStreaming(broadcast))
+						) 
+				{
+					count++;
+				}
+			}
+		}
+		
+		return count;
+	}
+	
+	@Override
+	public List<Broadcast> getActiveSubtracks(String mainTrackId, String role) {
+		List<Broadcast> subtracks = new ArrayList<>();
+		synchronized (this) {
+			for (String broadcastString : map.values()) 
+			{
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				if ( mainTrackId.equals(broadcast.getMainTrackStreamId())
+						&& (StringUtils.isBlank(role) || broadcast.getRole().equals(role)) 
+						&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
+						&& (AntMediaApplicationAdapter.isStreaming(broadcast))
+						) 
+				{
+					subtracks.add(broadcast);
+				}
+			}
+		}
+		
+		return subtracks;
+	}
+	
+	@Override
+	public boolean hasSubtracks(String streamId) {
+		
+		synchronized (this) {
+			for (String broadcastString : map.values()) 
+			{
+				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				if ( streamId.equals(broadcast.getMainTrackStreamId()))
+				{
+					return true;
+				}
+			}
+		}
+		
+		return false;
+	}
 }
