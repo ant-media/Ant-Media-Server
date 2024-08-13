@@ -77,6 +77,7 @@ import io.antmedia.analytic.model.PublishStatsEvent;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.eRTMP.HEVCDecoderConfigurationParser;
 import io.antmedia.eRTMP.HEVCVideo;
@@ -791,12 +792,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if(broadcastStream.getParameters() != null) {
 			String mainTrack = broadcastStream.getParameters().get("mainTrack");
 			if(mainTrack != null) {
-				Broadcast broadcastLocal = getBroadcast();
-				broadcastLocal.setMainTrackStreamId(mainTrack);
-				getDataStore().updateBroadcastFields(streamId, broadcastLocal);
+				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+				broadcastUpdate.setMainTrackStreamId(mainTrack);
+				
+				getDataStore().updateBroadcastFields(streamId, broadcastUpdate);
 
 				Broadcast mainBroadcast = getDataStore().get(mainTrack);
-				if(mainBroadcast == null) {
+				if(mainBroadcast == null) 
+				{
 					mainBroadcast = new Broadcast();
 					try {
 						mainBroadcast.setStreamId(mainTrack);
@@ -808,9 +811,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					mainBroadcast.getSubTrackStreamIds().add(streamId);
 					getDataStore().save(mainBroadcast);
 				}
-				else {
+				else 
+				{
 					mainBroadcast.getSubTrackStreamIds().add(streamId);
-					getDataStore().updateBroadcastFields(mainTrack, mainBroadcast);
+					BroadcastUpdate broadcastMainUpdate = new BroadcastUpdate();
+					broadcastMainUpdate.setSubTrackStreamIds(mainBroadcast.getSubTrackStreamIds());
+					
+					getDataStore().updateBroadcastFields(mainTrack, broadcastMainUpdate);
 				}
 			}
 		}
@@ -2331,7 +2338,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					logger.warn("Endpoint is not found to update its status to {} for rtmp url:{}", statusUpdate, endpoint.getRtmpUrl());
 				}
 			}
-			getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcast);
+			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+			broadcastUpdate.setEndPointList(broadcast.getEndPointList());
+			getDataStore().updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate);
 
 		}
 		else {

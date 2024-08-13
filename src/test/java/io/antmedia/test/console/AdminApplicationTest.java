@@ -27,6 +27,7 @@ import io.antmedia.console.AdminApplication;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.VoD;
 import io.vertx.core.Vertx;
 
@@ -368,8 +369,9 @@ public class AdminApplicationTest {
 		dataStore.save(new Broadcast());
 		assertEquals(1, adminApplication.getAppLiveStreamCount(Mockito.mock(IScope.class)));
 
-		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
-		dataStore.updateBroadcastFields(id, broadcast);
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		dataStore.updateBroadcastFields(id, broadcastUpdate);
 
 		assertEquals(0, adminApplication.getAppLiveStreamCount(Mockito.mock(IScope.class)));
 

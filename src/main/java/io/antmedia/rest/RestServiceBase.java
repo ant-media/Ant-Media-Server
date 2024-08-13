@@ -46,6 +46,7 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -277,27 +278,26 @@ public abstract class RestServiceBase {
 		broadcast.setOriginAdress(serverSettings.getHostAddress());
 		broadcast.setAbsoluteStartTimeMs(absoluteStartTimeMs);
 
-		removeEmptyPlayListItems(broadcast);
+		removeEmptyPlayListItems(broadcast.getPlayListItemList());
 
 		if (fqdn != null && fqdn.length() >= 0) {
 			broadcast.setRtmpURL("rtmp://" + fqdn + "/" + scopeName + "/");
 		}
 
-		updatePlayListItemDurationsIfApplicable(broadcast);
+		updatePlayListItemDurationsIfApplicable(broadcast.getPlayListItemList(), broadcast.getStreamId());
 
 		dataStore.save(broadcast);
 		return broadcast;
 	}
 
-	public static void updatePlayListItemDurationsIfApplicable(Broadcast broadcast) 
+	public static void updatePlayListItemDurationsIfApplicable(List<PlayListItem> playListItemList, String streamId) 
 	{
-		List<PlayListItem> playListItemList = broadcast.getPlayListItemList();
 		if (playListItemList != null) 
 		{
 			for (PlayListItem playListItem : playListItemList) 
 			{
 				if (AntMediaApplicationAdapter.VOD.equals(playListItem.getType())) {
-					playListItem.setDurationInMs(Muxer.getDurationInMs(playListItem.getStreamUrl(), broadcast.getStreamId()));
+					playListItem.setDurationInMs(Muxer.getDurationInMs(playListItem.getStreamUrl(), streamId));
 				}
 			}
 		}
@@ -421,14 +421,13 @@ public abstract class RestServiceBase {
 	}
 
 
-	protected Result updateBroadcast(String streamId, Broadcast updatedBroadcast, Broadcast broadcastInDB) {
+	protected Result updateBroadcast(String streamId, BroadcastUpdate updatedBroadcast) {
 		boolean result = getDataStore().updateBroadcastFields(streamId, updatedBroadcast);
 		return new Result(result);
 	}
 
-	private static void removeEmptyPlayListItems(Broadcast broadcast)
+	private static void removeEmptyPlayListItems(List<PlayListItem> playListItemList)
 	{
-		List<PlayListItem> playListItemList = broadcast.getPlayListItemList();
 		if (playListItemList != null)
 		{
 			Iterator<PlayListItem> iterator = playListItemList.iterator();
@@ -453,7 +452,7 @@ public abstract class RestServiceBase {
 	 * @param socialNetworksToPublish
 	 * @return
 	 */
-	protected Result updateStreamSource(String streamId, Broadcast updatedBroadcast, Broadcast broadcastInDB) {
+	protected Result updateStreamSource(String streamId, BroadcastUpdate updatedBroadcast, Broadcast broadcastInDB) {
 		logger.debug("Updating stream source for stream {}", updatedBroadcast.getStreamId());
 
 		boolean isPlayList = AntMediaApplicationAdapter.PLAY_LIST.equals(broadcastInDB.getType());
@@ -486,7 +485,7 @@ public abstract class RestServiceBase {
 			}
 
 
-			Result connectionRes = connectToCamera(updatedBroadcast);
+			Result connectionRes = connectToCamera(updatedBroadcast.getIpAddr(), updatedBroadcast.getUsername(), updatedBroadcast.getPassword());
 			if (!connectionRes.isSuccess()) {
 				return connectionRes;
 			}
@@ -496,19 +495,25 @@ public abstract class RestServiceBase {
 			String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
 			logger.info("New Stream Source URL: {}", rtspURLWithAuth);
 			updatedBroadcast.setStreamUrl(rtspURLWithAuth);
+			
 		}
+	
 
-		removeEmptyPlayListItems(updatedBroadcast);
-		updatePlayListItemDurationsIfApplicable(updatedBroadcast);
+		removeEmptyPlayListItems(updatedBroadcast.getPlayListItemList());
+		
+		updatePlayListItemDurationsIfApplicable(updatedBroadcast.getPlayListItemList(), updatedBroadcast.getStreamId());
+
 
 		boolean result = getDataStore().updateBroadcastFields(streamId, updatedBroadcast);
 
 		if (result) {
 
-			if (broadcastInDB.getPlannedStartDate() != updatedBroadcast.getPlannedStartDate() && isPlayList) {
+			if (updatedBroadcast.getPlannedStartDate() != null 
+					&& broadcastInDB.getPlannedStartDate() != updatedBroadcast.getPlannedStartDate() 
+					&& isPlayList) {
 				getApplication().cancelPlaylistSchedule(broadcastInDB.getStreamId());
 
-				getApplication().schedulePlayList(System.currentTimeMillis(), updatedBroadcast);
+				getApplication().schedulePlayList(System.currentTimeMillis(), getDataStore().get(streamId));
 			}
 
 			if (isStreamingActive && !isPlayList) {
@@ -882,7 +887,7 @@ public abstract class RestServiceBase {
 		if(validateStreamURL(stream.getIpAddr())) {
 			logger.info("type {}", stream.getType());
 
-			connResult = connectToCamera(stream);
+			connResult = connectToCamera(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
 
 			if (connResult.isSuccess()) {
 
@@ -941,12 +946,12 @@ public abstract class RestServiceBase {
 		return result;
 	}
 
-	public Result connectToCamera(Broadcast stream) {
+	public Result connectToCamera(String ipAddr, String username, String password) {
 
 		Result result = new Result(false);
 
 		OnvifCamera onvif = new OnvifCamera();
-		int connResult = onvif.connect(stream.getIpAddr(), stream.getUsername(), stream.getPassword());
+		int connResult = onvif.connect(ipAddr, username, password);
 		if (connResult == 0) {
 			result.setSuccess(true);
 			//set RTSP URL. This message is directly used in saving stream url to the datastore
@@ -954,9 +959,9 @@ public abstract class RestServiceBase {
 		}else {
 			//there is an error
 			//set error code and send it
-			result.setMessage("Could not connect to " + stream.getIpAddr() + " result:" + connResult);
+			result.setMessage("Could not connect to " + ipAddr + " result:" + connResult);
 			result.setErrorId(connResult);
-			logger.info("Cannot connect to ip camera:{}", stream.getIpAddr());
+			logger.info("Cannot connect to ip camera:{}", ipAddr);
 		}
 
 		return result;
@@ -1455,7 +1460,7 @@ public abstract class RestServiceBase {
 			else if (Objects.equals(broadcast.getType(), AntMediaApplicationAdapter.IP_CAMERA))
 			{
 				//if streamURL is not defined before for IP Camera, connect to it again and define streamURL
-				result = connectToCamera(broadcast);
+				result = connectToCamera(broadcast.getIpAddr(), broadcast.getUsername(), broadcast.getPassword());
 
 				if (result.isSuccess())
 				{
@@ -1860,8 +1865,11 @@ public abstract class RestServiceBase {
 		{
 			
 			int subtrackLimit = mainTrack.getSubtracksLimit();
+			
+			
 			List<String> subTrackStreamIds = mainTrack.getSubTrackStreamIds();
-			if (subtrackLimit != -1 && subTrackStreamIds != null && subTrackStreamIds.size() >= subtrackLimit) 
+			
+			if (subtrackLimit != -1 &&  store.getActiveSubtracksCount(id, null) >= subtrackLimit) 
 			{
 				message = "Subtrack limit is reached for the main track:" + id;
 				logWarning("Subtrack limit is reached for the main track:{}", id.replaceAll(REPLACE_CHARS, "_"));
@@ -1874,13 +1882,20 @@ public abstract class RestServiceBase {
 			}
 			
 			subTrack.setMainTrackStreamId(id);
+			
+			
 			//Update subtrack's main Track Id
-
-			boolean success = store.updateBroadcastFields(subTrackId, subTrack);
+			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+			broadcastUpdate.setMainTrackStreamId(id);
+			
+			boolean success = store.updateBroadcastFields(subTrackId, broadcastUpdate);
 			if (success) 
 			{	
 				subTrackStreamIds.add(subTrackId);
-				success = store.updateBroadcastFields(id, mainTrack);
+				broadcastUpdate = new BroadcastUpdate();
+				broadcastUpdate.setSubTrackStreamIds(subTrackStreamIds);
+				
+				success = store.updateBroadcastFields(id, broadcastUpdate);
 				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id);
 			}
 			else
@@ -1913,8 +1928,9 @@ public abstract class RestServiceBase {
 				Broadcast subTrack = store.get(subTrackId);
 
 				if(subTrack != null && id.equals(subTrack.getMainTrackStreamId())) {
-					subTrack.setMainTrackStreamId("");
-					success = store.updateBroadcastFields(subTrackId, subTrack);
+					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+					broadcastUpdate.setMainTrackStreamId("");
+					success = store.updateBroadcastFields(subTrackId, broadcastUpdate);
 					if (success) 
 					{
 						RestServiceBase.setResultSuccess(result, success, "");
@@ -1947,11 +1963,7 @@ public abstract class RestServiceBase {
 		boolean result = false;
 		if (streamId != null)
 		{
-			Broadcast broadcast = store.get(streamId);
-			if (broadcast != null)
-			{
-				result = !broadcast.getSubTrackStreamIds().isEmpty();
-			}
+			return store.hasSubtracks(streamId);
 		}
 
 		return result;
