@@ -37,10 +37,10 @@ public class Broadcast {
 	 * "finished", "broadcasting", "created"
 	 */
 
-	@Schema(description = "the status of the stream", allowableValues = "finished,broadcasting,created")
+	@Schema(description = "the status of the stream", allowableValues = "finished,broadcasting,created,preparing,error,failed")
 	private String status;
 
-	@Schema(description = "The status of the playlist. It's usable if type is playlist", allowableValues = "finished,broadcasting,created")
+	@Schema(description = "The status of the playlist. It's usable if type is playlist", allowableValues = "finished,broadcasting,created,preparing,error,failed")
 	private String playListStatus;
 	
 	/**
