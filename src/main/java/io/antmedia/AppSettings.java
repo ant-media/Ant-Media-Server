@@ -1179,8 +1179,8 @@ public class AppSettings implements Serializable{
 	 * Check for details: https://ffmpeg.org/ffmpeg-formats.html#Options-6
 	 * 
 	 */
-	@Value( "${hlsflags:${" + SETTINGS_HLS_FLAGS + ":delete_segments}}")
-	private String hlsflags="delete_segments";
+	@Value( "${hlsflags:${" + SETTINGS_HLS_FLAGS + ":delete_segments+program_date_time}}")
+	private String hlsflags="delete_segments+program_date_time";
 
 	private String mySqlClientPath = "/usr/local/antmedia/mysql";
 

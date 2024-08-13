@@ -85,6 +85,7 @@ import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.licence.ILicenceService;
@@ -246,22 +247,23 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		newSettings = new AppSettings();
 
-		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
+		assertFalse(spyAdapter.isIncomingSettingsDifferent(newSettings));
 
 		newSettings.setUpdateTime(1000);
-
-		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
+		assertTrue(spyAdapter.isIncomingSettingsDifferent(newSettings));
 
 		appSettings.setUpdateTime(900);
-
-		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
+		assertTrue(spyAdapter.isIncomingSettingsDifferent(newSettings));
 
 		appSettings.setUpdateTime(2000);
-
-		assertFalse(spyAdapter.isIncomingTimeValid(newSettings));
+		assertTrue(spyAdapter.isIncomingSettingsDifferent(newSettings));
 
 		newSettings.setUpdateTime(3000);
-		assertTrue(spyAdapter.isIncomingTimeValid(newSettings));
+		assertTrue(spyAdapter.isIncomingSettingsDifferent(newSettings));
+		
+		appSettings.setUpdateTime(3000);
+		assertFalse(spyAdapter.isIncomingSettingsDifferent(newSettings));
+
 
 
 
@@ -397,9 +399,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(clusterNotifier, times(1)).getClusterStore();
 		verify(clusterStore, times(1)).saveSettings(settings);
 
-		settings.setUpdateTime(1000);
+		settings.setUpdateTime(900);
 		newSettings.setUpdateTime(900);
 		assertFalse(spyAdapter.updateSettings(newSettings, false, true));
+
+		newSettings.setUpdateTime(1000);
+		assertTrue(spyAdapter.updateSettings(newSettings, false, true));
 
 
 		newSettings.setPlayJwtControlEnabled(true);
@@ -1123,13 +1128,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		 */
 
 		//define hook URL for stream specific
+		
 		broadcast.setListenerHookURL("listenerHookURL");
-
+		BroadcastUpdate update = new BroadcastUpdate();
+		update.setListenerHookURL(broadcast.getListenerHookURL());
 		//(Changed due to a bug) In this scenario broadcast name should be irrelevant for the hook to work so setting it to null tests if it is dependent or not.
 		broadcast.setName(null);
+		update.setName(null);
 
 		//update broadcast
-		dataStore.updateBroadcastFields(streamId, broadcast);
+		dataStore.updateBroadcastFields(streamId, update);
 
 		//call muxingFinished function
 		spyAdaptor.muxingFinished(streamId, anyFile, 0, 100, 480, null, null);
@@ -2002,6 +2010,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
 
 		Broadcast subTrack2 = new Broadcast();
 		try {
@@ -2020,20 +2029,27 @@ public class AntMediaApplicationAdaptorUnitTest {
 		mainTrack.setZombi(true);
 
 		subTrack1.setMainTrackStreamId(mainTrack.getStreamId());
+		subTrack1.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		subTrack1.setUpdateTime(System.currentTimeMillis());
+		
 		subTrack2.setMainTrackStreamId(mainTrack.getStreamId());
+		subTrack2.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		subTrack2.setUpdateTime(System.currentTimeMillis());
 
 		mainTrack.getSubTrackStreamIds().add(subTrack1.getStreamId());
 		mainTrack.getSubTrackStreamIds().add(subTrack2.getStreamId());
 
 
 		dataStore.save(subTrack1);
-		dataStore.save(subTrack1);
+		dataStore.save(subTrack2);
 		dataStore.save(mainTrack);
 
-		spyAdapter.removeSubtrackFromMainTrackInDB(subTrack1);
+		subTrack1.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		spyAdapter.updateMainTrackWithRecentlyFinishedBroadcast(subTrack1);
 		assertNotNull(dataStore.get(mainTrack.getStreamId()));
-
-		spyAdapter.removeSubtrackFromMainTrackInDB(subTrack2);
+		
+		subTrack2.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+		spyAdapter.updateMainTrackWithRecentlyFinishedBroadcast(subTrack2);
 		assertNull(dataStore.get(mainTrack.getStreamId()));
 
 	}
@@ -2223,7 +2239,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 			spyAdapter.closeBroadcast(subTrackBroadcast.getStreamId());
 
-			verify(spyAdapter, timeout(5000)).removeSubtrackFromMainTrackInDB(subTrackBroadcast);
+			verify(spyAdapter, timeout(5000)).updateMainTrackWithRecentlyFinishedBroadcast(subTrackBroadcast);
 
 
 			verify(spyAdapter, timeout(5000)).notifyHook(subTrackBroadcast.getListenerHookURL(), subTrackId, mainTrackId, AntMediaApplicationAdapter.HOOK_ACTION_END_LIVE_STREAM, null, null, null, null, null, null);
