@@ -37,6 +37,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
@@ -574,6 +575,15 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		File realPath = new File("src/test/resources");
 		assertTrue(realPath.exists());
+		
+		File[] listFiles = realPath.listFiles();
+		int numberOfFiles = 0;
+		for (File file : listFiles) {
+			String extension = FilenameUtils.getExtension(file.getName());
+			if (file.isFile() && ("mp4".equals(extension) || "flv".equals(extension) || "mkv".equals(extension))) {
+				numberOfFiles++;
+			}
+		}
 
 		String linkFilePath = streamsFolder.getAbsolutePath() + "/resources";
 		File linkFile = new File(linkFilePath);
@@ -584,6 +594,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
 
 		boolean result = spyAdapter.synchUserVoDFolder(null, realPath.getAbsolutePath());
 		assertTrue(result);
@@ -597,7 +608,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		//high_profile_delayed_video.flv
 		//test_video_360p_pcm_audio.mkv
 		List<VoD> vodList = dataStore.getVodList(0, 50, null, null, null, null);
-		assertEquals(7, vodList.size());
+		assertEquals(numberOfFiles, vodList.size());
 
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/" + voD.getVodName(), voD.getFilePath());

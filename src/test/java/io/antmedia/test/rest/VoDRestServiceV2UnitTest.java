@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
 
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.Before;
@@ -554,7 +555,38 @@ public class VoDRestServiceV2UnitTest {
 		assertTrue(result.isSuccess());
 		vodList = dataStore.getVodList(0, 50, null, null, null, null);
 		//there are 9 files under src/test directory
-		assertEquals(9, vodList.size());
+		
+		//find the number of files under src/test
+
+		File sourceDir = new File("src/test/resources");
+		File[] listFiles = sourceDir.listFiles();
+		int numberOfFiles = 0;
+		for (File file : listFiles) 
+		{
+			String fileExtension = FilenameUtils.getExtension(file.getName());
+
+			if (file.isFile() && ("mp4".equals(fileExtension) || "flv".equals(fileExtension)
+					|| "mkv".equals(fileExtension) || "m3u8".equals(fileExtension))) 
+			{
+				numberOfFiles++;
+			}
+		}
+		
+		sourceDir = new File("src/test/resources/fixtures");
+		listFiles = sourceDir.listFiles();
+		for (File file : listFiles) 
+		{
+			String fileExtension = FilenameUtils.getExtension(file.getName());
+
+			if (file.isFile() && ("mp4".equals(fileExtension) || "flv".equals(fileExtension)
+					|| "mkv".equals(fileExtension) || "m3u8".equals(fileExtension))) 
+			{
+				numberOfFiles++;
+			}
+		}
+		
+		
+		assertEquals(numberOfFiles, vodList.size());
 		//file path should include the relative path
 		for (VoD voD : vodList) {
 			//file path include the file name
@@ -580,20 +612,20 @@ public class VoDRestServiceV2UnitTest {
 		result = restService.importVoDs("src/test");
 		assertFalse(result.isSuccess());
 		vodList = dataStore.getVodList(0, 50, null, null, null, null);
-		//there are 9 files under src/test directory it should not increae
-		assertEquals(9, vodList.size());
+		//there are numberOfFiles files under src/test directory it should not increae
+		assertEquals(numberOfFiles, vodList.size());
 		
 		result = restService.importVoDs(null);
 		assertFalse(result.isSuccess());
 		vodList = dataStore.getVodList(0, 50, null, null, null, null);
-		//there are 9 files under src/test directory it should not increae
-		assertEquals(9, vodList.size());
+		//there are numberOfFiles files under src/test directory it should not increae
+		assertEquals(numberOfFiles, vodList.size());
 		
 		result = restService.importVoDs("");
 		assertFalse(result.isSuccess());
 		vodList = dataStore.getVodList(0, 50, null, null, null, null);
-		//there are 9 files under src/test directory it should not increae
-		assertEquals(9, vodList.size());
+		//there are numberOfFiles files under src/test directory it should not increae
+		assertEquals(numberOfFiles, vodList.size());
 		
 		
 		result = restService.unlinksVoD(null);

@@ -16,6 +16,8 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 
@@ -59,6 +61,11 @@ import io.antmedia.rest.VoDRestService;
 public class AppSettings implements Serializable{
 
 	private static final long serialVersionUID = 1L;
+	
+	/**
+	 * @hidden
+	 */
+	private static final Logger logger = LoggerFactory.getLogger(AppSettings.class);
 
 	@JsonIgnore
 	@Id
@@ -2161,7 +2168,20 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${iceGatheringTimeoutMs:2000}")
 	private long iceGatheringTimeoutMs = 2000;
+	
+	
 
+	@Value("${customSettings:{}}")	
+	private JSONObject customSettings = new JSONObject();
+		
+		
+	public Object getCustomSetting(String key) {
+		return	customSettings.get(key);
+	}
+	
+	public void setCustomSetting(String key, Object value) {
+		customSettings.put(key, value);
+	}
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -2280,6 +2300,8 @@ public class AppSettings implements Serializable{
 	public void setWebRTCEnabled(boolean webRTCEnabled) {
 		this.webRTCEnabled = webRTCEnabled;
 	}
+	
+	
 
 	public static String encodersList2Str(List<EncoderSettings> encoderSettingsList) 
 	{
@@ -3768,4 +3790,14 @@ public class AppSettings implements Serializable{
 	public void setIceGatheringTimeoutMs(long iceGatheringTimeoutMs) {
 		this.iceGatheringTimeoutMs = iceGatheringTimeoutMs;
 	}
+
+	public JSONObject getCustomSettings() {
+		return customSettings;
+	}
+
+	public void setCustomSettings(JSONObject customSettings) {
+		this.customSettings = customSettings;
+	}
+
+
 }

@@ -561,10 +561,12 @@ public class StreamFetcher {
 				 * Generally we don't use this feature most of the time
 				 */
 				AVPacket packet = getAVPacket();
+
 				av_packet_ref(packet, pkt);
 				bufferQueue.add(packet);
 
 				try {
+
 					//NoSuchElementException may be thrown
 					AVPacket pktHead = bufferQueue.first();
 					//NoSuchElementException may be thrown here as well - it's multithread @mekya
@@ -678,11 +680,9 @@ public class StreamFetcher {
 				writeAllBufferedPackets();
 
 
-				long totalByteReceived = 0;
 				if (muxAdaptor != null) {
 					logger.info("Writing trailer in Muxadaptor {}", streamId);
 					muxAdaptor.writeTrailer();
-					totalByteReceived = muxAdaptor.getTotalByteReceived();
 					getInstance().muxAdaptorRemoved(muxAdaptor);
 					muxAdaptor = null;
 				}
@@ -701,9 +701,6 @@ public class StreamFetcher {
 					streamPublished=false;
 					closeCalled = true;
 				}
-
-
-
 
 
 				if(streamFetcherListener != null)
@@ -819,6 +816,7 @@ public class StreamFetcher {
 			return  inputFormatContext.streams(streamIndex).time_base();
 		}
 
+
 		public void checkAndFixSynch()
 		{
 			long now = System.currentTimeMillis();
@@ -844,7 +842,8 @@ public class StreamFetcher {
 				long minValueInMilliseconds = -1;
 				long maxValueInMilliseconds = -1;
 
-				//get the minimum and max values
+				//get the minimum and max values 
+
 				for (Long value : lastSendDTSInMsList) {
 					if (minValueInMilliseconds > value || minValueInMilliseconds == -1) {
 						minValueInMilliseconds = value;

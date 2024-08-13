@@ -1,7 +1,9 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +83,6 @@ public class TokenFilterManager extends AbstractFilter   {
 		{
 			if (streamId == null) {
 				logger.warn("No streamId found in the request: {}", httpRequest.getRequestURI());
-				return ;
 			}
 			
 			ITokenService tokenServiceTmp = getTokenService();
@@ -100,7 +101,10 @@ public class TokenFilterManager extends AbstractFilter   {
 				//if jwtInternalCommunicationToken is not null, 
 				//it means that this is the origin instance and receiving request from the edge node directly
 				
-				boolean checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
+				boolean checkJwtToken = false;
+				if (streamId != null) {
+					checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
+				}
 				if (!checkJwtToken) 
 				{
 					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Cluster communication token is not valid for streamId:" + streamId);
@@ -113,6 +117,17 @@ public class TokenFilterManager extends AbstractFilter   {
 				// if it enters this block, it means 
 				// 1. server may be is in cluster mode and this is edge node
 				// 2. server in standalone mode
+				
+				//return forbidden if any security is enabled and streamId is null
+				if (isAnySecurityEnabled(appSettings)
+						&& StringUtils.isBlank(streamId)) 
+				{
+					httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Cannot specified the stream id from the url");
+					logger.warn("Stream id is null");
+					return;
+				}
+				
+				//if there is no stream id found and there is no security defined, just pass the request
 
 				if ((appSettings.isTimeTokenSubscriberOnly() || appSettings.isEnableTimeTokenForPlay()) && 
 						!tokenServiceTmp.checkTimeBasedSubscriber(subscriberId, streamId, sessionId, subscriberCodeText, Subscriber.PLAY_TYPE)) {
@@ -145,6 +160,11 @@ public class TokenFilterManager extends AbstractFilter   {
 			httpResponse.sendError(HttpServletResponse.SC_FORBIDDEN, "Invalid Request Type");
 			logger.warn("Invalid method type({}) for stream: {} and request uri: {}", method, streamId, httpRequest.getRequestURI());
 		}
+	}
+
+
+	public static boolean isAnySecurityEnabled(AppSettings appSettings) {
+		return appSettings.isTimeTokenSubscriberOnly() || appSettings.isPlayJwtControlEnabled() || appSettings.isEnableTimeTokenForPlay() || appSettings.isPlayTokenControlEnabled() ||appSettings.isHashControlPlayEnabled();
 	}
 
 
@@ -181,6 +201,24 @@ public class TokenFilterManager extends AbstractFilter   {
 		if (endIndex != -1) {
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
 		}
+		
+		
+		//let's have the rule for streamId. 
+		//StreamId cannot have double __ in it
+		//We can get the stream id in two ways
+		//1. If it directly ends with extension (m3u8), then it's {streamId}.m3u8,
+		//2. If it contains __ then it's {streamId}__{ANYTHING}.m3u8
+
+		
+		String tsRegex = "(.*)/(.*)__(.*)$"; 
+		Pattern pattern = Pattern.compile(tsRegex);
+		
+		// Create a matcher for the input string
+        java.util.regex.Matcher matcher = pattern.matcher(requestURI);
+		if (matcher.matches()) 
+		{	
+			return matcher.group(2);
+		}
 
 		//if specific bitrate is requested
 		String hlsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps).m3u8$"; // matches ending with _[resolution]p[bitrate]kbps.m3u8 or _[resolution]p.m3u8 or _[bitrate]kbps.m3u8
@@ -196,7 +234,7 @@ public class TokenFilterManager extends AbstractFilter   {
 		}
 
 		//if specific ts file requested
-		String tsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)+[0-9]{" + Muxer.SEGMENT_INDEX_LENGTH + "}.ts$";  // matches ending with _[_240p300kbps0000].ts or _[_300kbps0000].ts or _[_240p0000].ts default ts file extension _[0000].ts
+		tsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)+[0-9]{" + Muxer.SEGMENT_INDEX_LENGTH + "}.ts$";  // matches ending with _[_240p300kbps0000].ts or _[_300kbps0000].ts or _[_240p0000].ts default ts file extension _[0000].ts
 		if (requestURI.matches(tsRegex)) {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
@@ -221,6 +259,7 @@ public class TokenFilterManager extends AbstractFilter   {
 			endIndex = requestURI.lastIndexOf('.'); //because file format is [NAME][0000].ts
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex-4);
 		}
+		
 
 		//streamId_underline_test-2021-05-18_11-26-26.842.mp4 and streamId_underline_test-2021-05-18_11-26-26.842_360p500kbps.mp4 
 		String vodDatetimeRegex = "(.*)+(-20)[0-9][0-9]+(-)+([0-9][0-9])+(.*)";

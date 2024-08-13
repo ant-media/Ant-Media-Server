@@ -135,6 +135,55 @@ public abstract class AbstractStream implements IStream {
         String actionOnFI = input.readString();
         byte readDataType = input.readDataType();
        
+        /*  Metadata for a video file is as follows including Enhanced RTMP
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦Property            ¦Type                           ¦Comment                                                                        ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦audiocodecid        ¦number                         ¦Audio codec ID used in the file: See AudioTagHeader of the legacy [FLV]        ¦
+        ¦                    ¦                               ¦specification for available CodecID values.                                    ¦
+        ¦                    ¦                               ¦                                                                               ¦
+        ¦                    ¦                               ¦                                                                               ¦
+        ¦                    ¦                               ¦When [FourCC] is used to signal the codec, this property is set to a FOURCC    ¦
+        ¦                    ¦                               ¦value. Note: A FOURCC value is big endian relative to the underlying ASCII     ¦
+        ¦                    ¦                               ¦character sequence (e.g., "Opus" == 0x4F707573 == 1332770163.0).               ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦audiodatarate       ¦number                         ¦Audio bitrate, in kilobits per second                                          ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦audiodelay          ¦number                         ¦Delay introduced by the audio codec, in seconds                                ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦audiosamplerate     ¦number                         ¦Frequency at which the audio stream is replayed                                ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦audiosamplesize     ¦number                         ¦Resolution of a single audio sample                                            ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦canSeekToEnd        ¦boolean                        ¦Indicating the last video frame is a key frame                                 ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦creationdate        ¦string                         ¦Creation date and time                                                         ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦duration            ¦number                         ¦Total duration of the file, in seconds                                         ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦filesize            ¦number                         ¦Total size of the file, in bytes                                               ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦framerate           ¦number                         ¦Number of frames per second                                                    ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦height              ¦number                         ¦Height of the video, in pixels                                                 ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦stereo              ¦boolean                        ¦Indicates stereo audio                                                         ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦videocodecid        ¦number                         ¦Video codec ID used in the file: See VideoTagHeader of the legacy [FLV]        ¦
+        ¦                    ¦                               ¦specification for available CodecID values.                                    ¦
+        ¦                    ¦                               ¦                                                                               ¦
+        ¦                    ¦                               ¦When [FourCC] is used to signal the codec, this property is set to a FOURCC    ¦
+        ¦                    ¦                               ¦value. Note: A FOURCC value is big endian relative to the underlying ASCII     ¦
+        ¦                    ¦                               ¦character sequence (e.g., "av01" == 0x61763031 == 1635135537.0).               ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦videodatarate       ¦number                         ¦Video bitrate, in kilobits per second                                          ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        ¦width               ¦number                         ¦Width of the video, in pixels                                                  ¦
+        +--------------------+-------------------------------+-------------------------------------------------------------------------------+
+        */
+        
+        
+        //ECMA array
         if (readDataType == DataTypes.CORE_MAP) {
         	log.info("metadata read data type -->>>> core map");
 	        Map<Object, Object> readMap =  (Map<Object, Object>) input.readMap();
