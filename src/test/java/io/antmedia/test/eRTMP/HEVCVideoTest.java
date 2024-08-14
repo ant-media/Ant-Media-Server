@@ -19,21 +19,21 @@ import org.red5.server.net.rtmp.event.VideoData;
 import org.red5.server.net.rtmp.event.VideoData.ExVideoPacketType;
 import org.red5.server.net.rtmp.event.VideoData.VideoFourCC;
 
-import io.antmedia.eRTMP.HEVCVideo;
+import io.antmedia.eRTMP.HEVCVideoEnhancedRTMP;
 
 public class HEVCVideoTest extends AVCVideo {
 
-	private HEVCVideo hevcVideo;
+	private HEVCVideoEnhancedRTMP hevcVideo;
 
 	@Before
 	public void setUp() {
-		hevcVideo = new HEVCVideo();
+		hevcVideo = new HEVCVideoEnhancedRTMP();
 		// Any additional setup needed
 	}
 
 	@Test
 	public void testCanHandleData() {
-		HEVCVideo hevcVideo = new HEVCVideo();
+		HEVCVideoEnhancedRTMP hevcVideo = new HEVCVideoEnhancedRTMP();
 		IoBuffer data = IoBuffer.allocate(10);
 		data.put((byte) 0x00); // first byte
 		data.put((byte) 0x01); // second byte
@@ -42,7 +42,7 @@ public class HEVCVideoTest extends AVCVideo {
 		boolean result = hevcVideo.canHandleData(data);
 		assertFalse(result);
 
-		hevcVideo = new HEVCVideo();
+		hevcVideo = new HEVCVideoEnhancedRTMP();
 		data = IoBuffer.allocate(10);
 		data.put((byte) 0x00); // first byte
 		data.put((byte) 0x02); // second byte
@@ -52,7 +52,7 @@ public class HEVCVideoTest extends AVCVideo {
 		assertFalse(result);
 
 
-		hevcVideo = new HEVCVideo();
+		hevcVideo = new HEVCVideoEnhancedRTMP();
 		data = IoBuffer.allocate(10);
 		data.put((byte) 0x80); // first byte
 		data.put((byte) 0x02); // second byte
@@ -61,7 +61,7 @@ public class HEVCVideoTest extends AVCVideo {
 
 		assertFalse(result);
 
-		hevcVideo = new HEVCVideo();
+		hevcVideo = new HEVCVideoEnhancedRTMP();
 
 		data = IoBuffer.allocate(10);
 		data.put((byte) 0x80); // first byte
@@ -112,13 +112,13 @@ public class HEVCVideoTest extends AVCVideo {
 
 	@Test
 	public void testGetName() {
-		hevcVideo = new HEVCVideo();
+		hevcVideo = new HEVCVideoEnhancedRTMP();
 		assertEquals("HEVC", hevcVideo.getName());
 	}
 
 	@Test
 	public void testCanDropFrames() {
-		hevcVideo = new HEVCVideo();
+		hevcVideo = new HEVCVideoEnhancedRTMP();
 		assertTrue(hevcVideo.canDropFrames());
 	}
 

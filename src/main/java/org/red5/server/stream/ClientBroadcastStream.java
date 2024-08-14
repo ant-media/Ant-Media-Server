@@ -37,6 +37,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.codec.AVCVideo;
+import org.red5.codec.HEVCVideo;
 import org.red5.codec.IAudioStreamCodec;
 import org.red5.codec.IStreamCodecInfo;
 import org.red5.codec.IVideoStreamCodec;
@@ -88,7 +89,7 @@ import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.eRTMP.HEVCVideo;
+import io.antmedia.eRTMP.HEVCVideoEnhancedRTMP;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import io.antmedia.muxer.parser.codec.AACAudio;
@@ -376,7 +377,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 							
 							if (videoData.getCodecId() == VideoFourCC.HEVC_FOURCC.value) {
 								log.info("HEVC codec is detected for streamId:{} ", getPublishedName());
-								videoStreamCodec = new HEVCVideo();
+								videoStreamCodec = new HEVCVideoEnhancedRTMP();
 							}
 							else {
 								//TODO: throw exception and drop the connection because we'll not support other codecs
@@ -398,7 +399,7 @@ public class ClientBroadcastStream extends AbstractClientStream implements IClie
 					}
 					
 					
-					if (videoStreamCodec instanceof AVCVideo || videoStreamCodec instanceof HEVCVideo) {
+					if (videoStreamCodec instanceof AVCVideo || videoStreamCodec instanceof HEVCVideoEnhancedRTMP || videoStreamCodec instanceof HEVCVideo) {
 						videoStreamCodec.addData(buf);
 					}
 					else {
