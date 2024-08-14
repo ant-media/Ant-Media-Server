@@ -79,6 +79,7 @@ public class VideoCodecFactory {
                 	throw new IllegalArgumentException("Codec not supported id: " + codecId);
                 case 7: //avc/h.264 video
                     result = new AVCVideo();
+                    break;
                 case 12: //hevc/h.265 video
                 	result = new HEVCVideo();
                     break;
