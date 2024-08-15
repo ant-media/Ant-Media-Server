@@ -1326,6 +1326,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		bufferQueue.add(packet);
 
+	}
+
+	private void calculateBufferStatus() {
 		try {
 			IStreamPacket pktHead = bufferQueue.first();
 			IStreamPacket pktTrailer = bufferQueue.last();
@@ -1380,8 +1383,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			//You may or may not ignore this exception @mekya
 			logger.warn("You may or may not ignore this exception. I mean It can happen time to time in multithread environment -> {}", e.getMessage());
 		}
-
-
 	}
 
 
@@ -1757,6 +1758,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			if (isBufferedWriterRunning.compareAndSet(false, true)) {
 				try {
+					
+					calculateBufferStatus();
+
 					if (!buffering.get())
 					{
 						while(!bufferQueue.isEmpty())
