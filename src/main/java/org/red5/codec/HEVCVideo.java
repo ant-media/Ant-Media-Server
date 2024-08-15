@@ -77,10 +77,7 @@ public class HEVCVideo extends AVCVideo {
                     data.rewind();
                     switch (hevcType) {
                         case 1: // keyframe
-                            //log.trace("Keyframe - keyframeTimestamp: {} {}", keyframeTimestamp, timestamp);
-                            // get the time stamp and compare with the current value
                             if (timestamp != keyframeTimestamp) {
-                                //log.trace("New keyframe");
                                 // new keyframe
                                 keyframeTimestamp = timestamp;
                                 // if its a new keyframe, clear keyframe and interframe collections
@@ -90,15 +87,12 @@ public class HEVCVideo extends AVCVideo {
                             keyframes.add(new FrameData(data));
                             break;
                         case 0: // configuration
-                            //log.trace("Decoder configuration");
                             // Store AVCDecoderConfigurationRecord data
                             decoderConfiguration.setData(data);
                             softReset();
                             break;
                     }
-                    //log.trace("Keyframes: {}", keyframes.size());
                 } else if (bufferInterframes) {
-                    //log.trace("Interframe");
                     if (log.isDebugEnabled()) {
                         log.debug("Interframe - HEVC type: {}", hevcType);
                     }
@@ -106,7 +100,6 @@ public class HEVCVideo extends AVCVideo {
                     data.rewind();
                     try {
                         int lastInterframe = numInterframes.getAndIncrement();
-                        //log.trace("Buffering interframe #{}", lastInterframe);
                         if (lastInterframe < interframes.size()) {
                             interframes.get(lastInterframe).setData(data);
                         } else {
@@ -115,7 +108,6 @@ public class HEVCVideo extends AVCVideo {
                     } catch (Throwable e) {
                         log.error("Failed to buffer interframe", e);
                     }
-                    //log.trace("Interframes: {}", interframes.size());
                 }
             } else {
                 // not AVC data
