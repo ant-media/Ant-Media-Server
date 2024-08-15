@@ -66,51 +66,29 @@ public class HEVCVideo extends AVCVideo {
             // get frame type
             byte frameType = data.get();
             byte hevcType = data.get();
-            if ((frameType & 0x0f) == VideoCodec.HEVC.getId()) {
+            if ((frameType & 0x0f) == VideoCodec.HEVC.getId()) 
+            {
                 // check for keyframe
                 if ((frameType & 0xf0) == FLV_FRAME_KEY) {
-                    //log.trace("Key frame");
                     if (log.isDebugEnabled()) {
                         log.debug("Keyframe - HEVC type: {}", hevcType);
                     }
                     // rewind
                     data.rewind();
-                    switch (hevcType) {
-                        case 1: // keyframe
-                            if (timestamp != keyframeTimestamp) {
-                                // new keyframe
-                                keyframeTimestamp = timestamp;
-                                // if its a new keyframe, clear keyframe and interframe collections
-                                softReset();
-                            }
-                            // store keyframe
-                            keyframes.add(new FrameData(data));
-                            break;
-                        case 0: // configuration
-                            // Store AVCDecoderConfigurationRecord data
-                            decoderConfiguration.setData(data);
-                            softReset();
-                            break;
-                    }
+                    
+                    setFrames(data, timestamp, hevcType);
+                  
                 } else if (bufferInterframes) {
                     if (log.isDebugEnabled()) {
                         log.debug("Interframe - HEVC type: {}", hevcType);
                     }
                     // rewind
                     data.rewind();
-                    try {
-                        int lastInterframe = numInterframes.getAndIncrement();
-                        if (lastInterframe < interframes.size()) {
-                            interframes.get(lastInterframe).setData(data);
-                        } else {
-                            interframes.add(new FrameData(data));
-                        }
-                    } catch (Throwable e) {
-                        log.error("Failed to buffer interframe", e);
-                    }
+                    setInterFrame(data);
                 }
-            } else {
-                // not AVC data
+            } 
+            else {
+                // not HEVC data
                 log.debug("Non-hevc data, rejecting");
                 // go back to where we started
                 data.position(start);
