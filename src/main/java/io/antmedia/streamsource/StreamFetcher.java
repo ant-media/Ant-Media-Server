@@ -884,7 +884,7 @@ public class StreamFetcher {
 			}
 		}
 
-		private void calculateBufferStatus() {
+		public void calculateBufferStatus() {
 			//NoSuchElementException may be thrown
 			AVPacket pktHead = bufferQueue.first();
 			//NoSuchElementException may be thrown here as well - it's multithread @mekya
