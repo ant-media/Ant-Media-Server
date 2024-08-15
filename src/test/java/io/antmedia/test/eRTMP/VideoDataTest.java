@@ -24,7 +24,7 @@ public class VideoDataTest {
 		//Next 4 bytes are fourcc
 
 
-		IoBuffer buffer = HEVCVideoTest.createIoBufferWithData((byte) (VideoData.MASK_EX_VIDEO_TAG_HEADER | (VideoData.FLAG_FRAMETYPE_KEYFRAME << 4) | ExVideoPacketType.SEQUENCE_START.value), 
+		IoBuffer buffer = HEVCVideoEnhancedRTMPTest.createIoBufferWithData((byte) (VideoData.MASK_EX_VIDEO_TAG_HEADER | (VideoData.FLAG_FRAMETYPE_KEYFRAME << 4) | ExVideoPacketType.SEQUENCE_START.value), 
 				(byte) (VideoFourCC.HEVC_FOURCC.value), (byte)(VideoFourCC.HEVC_FOURCC.value >> 8), (byte)(VideoFourCC.HEVC_FOURCC.value >> 16), 
 				(byte) (VideoFourCC.HEVC_FOURCC.value >> 24));
 		VideoData videoData = new VideoData(buffer);
@@ -37,7 +37,7 @@ public class VideoDataTest {
 
 
 		try {
-			buffer = HEVCVideoTest.createIoBufferWithData((byte) (VideoData.MASK_EX_VIDEO_TAG_HEADER | (VideoData.FLAG_FRAMETYPE_INTERFRAME << 4) | ExVideoPacketType.SEQUENCE_START.value), 
+			buffer = HEVCVideoEnhancedRTMPTest.createIoBufferWithData((byte) (VideoData.MASK_EX_VIDEO_TAG_HEADER | (VideoData.FLAG_FRAMETYPE_INTERFRAME << 4) | ExVideoPacketType.SEQUENCE_START.value), 
 					(byte) (0), (byte)(0), (byte)(0) ,
 					(byte) (VideoFourCC.HEVC_FOURCC.value >> 24));
 			videoData = new VideoData(buffer);
@@ -56,7 +56,7 @@ public class VideoDataTest {
 		//Next 1 byte AVCPacketType
 		//Next 3 bytes are composition time
 		
-		IoBuffer buffer = HEVCVideoTest.createIoBufferWithData((byte) ((VideoData.FLAG_FRAMETYPE_DISPOSABLE << 4) | 7 ), (byte)0, (byte)0, (byte)0); //7 is AVC codec id for FLV
+		IoBuffer buffer = HEVCVideoEnhancedRTMPTest.createIoBufferWithData((byte) ((VideoData.FLAG_FRAMETYPE_DISPOSABLE << 4) | 7 ), (byte)0, (byte)0, (byte)0); //7 is AVC codec id for FLV
 		
 		VideoData videoData = new VideoData(buffer);
 		
