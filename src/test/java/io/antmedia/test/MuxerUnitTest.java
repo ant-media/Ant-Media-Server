@@ -2346,6 +2346,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			when(tag.getTimestamp()).thenReturn(i * 100);
 			IStreamPacket pkt = new StreamPacket(tag);
 			muxAdaptor.addBufferQueue(pkt);
+			muxAdaptor.calculateBufferStatus();
 			if (i < 11) {
 				assertTrue(muxAdaptor.isBuffering());
 			} else if (i == 11) {
@@ -2359,6 +2360,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			when(tag.getTimestamp()).thenReturn(i * 100);
 			IStreamPacket pkt = new StreamPacket(tag);
 			muxAdaptor.addBufferQueue(pkt);
+			muxAdaptor.calculateBufferStatus();
 			long bufferedDuration = muxAdaptor.getBufferQueue().last().getTimestamp() - muxAdaptor.getBufferQueue().first().getTimestamp();
 			if (i < 51) {
 				assertEquals(i * 100, bufferedDuration);

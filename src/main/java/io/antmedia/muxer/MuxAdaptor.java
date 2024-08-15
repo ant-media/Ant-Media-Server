@@ -1328,7 +1328,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	}
 
-	private void calculateBufferStatus() {
+	public void calculateBufferStatus() {
 		try {
 			IStreamPacket pktHead = bufferQueue.first();
 			IStreamPacket pktTrailer = bufferQueue.last();
