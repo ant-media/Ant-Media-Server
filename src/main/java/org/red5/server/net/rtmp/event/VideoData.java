@@ -40,6 +40,13 @@ public class VideoData extends BaseEvent implements IoConstants, IStreamData<Vid
 
 	private static final long serialVersionUID = 5538859593815804830L;
 
+	public static final String CODEC_HEVC = "hvc1";
+	public static final String CODEC_AVC = "avc1";
+	public static final String CODEC_AV1 = "av01";
+	public static final String CODEC_VP9 = "vp09";
+	public static final String CODEC_VP8 = "vp08";
+
+
 	/**
 	 * Videoframe type
 	 */
@@ -83,11 +90,11 @@ public class VideoData extends BaseEvent implements IoConstants, IStreamData<Vid
 		// for a FourCC codec MUST be signaled via the enhanced
 		// "connect" command.
 		//
-		VP8_FOURCC("vp08"),
-		VP9_FOURCC("vp09"),
-		AV1_FOURCC("av01"),
-		AVC_FOURCC("avc1"),
-		HEVC_FOURCC("hvc1");
+		VP8_FOURCC(CODEC_VP8),
+		VP9_FOURCC(CODEC_VP9),
+		AV1_FOURCC(CODEC_AV1),
+		AVC_FOURCC(CODEC_AVC),
+		HEVC_FOURCC(CODEC_HEVC);
 		
 		public final int value;
 

@@ -9,13 +9,17 @@ import org.red5.server.net.rtmp.event.VideoData.VideoFourCC;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class HEVCVideo extends AVCVideo {
+/**
+ * HEVC Video codec complaint with Enhanced RTMP
+ * There is another HEVCVideo that uses codec id as 12. This one use fourcc for codec id
+ */
+public class HEVCVideoEnhancedRTMP extends AVCVideo {
 
 	static final String CODEC_NAME = "HEVC";
 
-	private static Logger log = LoggerFactory.getLogger(HEVCVideo.class);
+	private static Logger log = LoggerFactory.getLogger(HEVCVideoEnhancedRTMP.class);
 
-	public HEVCVideo() {
+	public HEVCVideoEnhancedRTMP() {
 		this.reset();
 	}
 

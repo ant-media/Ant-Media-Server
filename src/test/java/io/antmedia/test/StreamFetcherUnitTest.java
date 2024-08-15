@@ -622,6 +622,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		pkt.pts(0);
 		pkt.dts(0);
 		worker.packetRead(pkt);
+		worker.calculateBufferStatus();
 
 		assertEquals(100, worker.getBufferedDurationMs());
 
@@ -630,13 +631,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		pkt.pts(50);
 		pkt.dts(50);
 		worker.packetRead(pkt);
-
+		worker.calculateBufferStatus();
+		
 		assertEquals(100, worker.getBufferedDurationMs());
 
 		pkt = new AVPacket();
 		pkt.pts(500);
 		pkt.dts(500);
 		worker.packetRead(pkt);
+		worker.calculateBufferStatus();
 
 		assertEquals(500, worker.getBufferedDurationMs());
 

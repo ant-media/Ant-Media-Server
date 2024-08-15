@@ -15,7 +15,10 @@ package org.red5.codec;
  */
 public enum VideoCodec {
 
-    JPEG((byte) 0x01), H263((byte) 0x02), SCREEN_VIDEO((byte) 0x03), VP6((byte) 0x04), VP6a((byte) 0x05), SCREEN_VIDEO2((byte) 0x06), AVC((byte) 0x07);
+	//Reminder: There are two implementations for HEVC support in RTMP. One of them is the Enhanced RTMP and second one is by using Video Codec Id 12 as HEVC
+	//we support both of them. 
+	//Enhanced RTMP implementation HEVCVideoEnhancedRTMP and the other one HEVCVideo
+    JPEG((byte) 0x01), H263((byte) 0x02), SCREEN_VIDEO((byte) 0x03), VP6((byte) 0x04), VP6a((byte) 0x05), SCREEN_VIDEO2((byte) 0x06), AVC((byte) 0x07), HEVC((byte) 0x0C);
 
     private byte id;
 

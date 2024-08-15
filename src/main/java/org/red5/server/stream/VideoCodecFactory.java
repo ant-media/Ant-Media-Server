@@ -23,8 +23,8 @@ import java.util.List;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.codec.AVCVideo;
+import org.red5.codec.HEVCVideo;
 import org.red5.codec.IVideoStreamCodec;
-import org.red5.server.net.rtmp.event.VideoData;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -79,6 +79,9 @@ public class VideoCodecFactory {
                 	throw new IllegalArgumentException("Codec not supported id: " + codecId);
                 case 7: //avc/h.264 video
                     result = new AVCVideo();
+                    break;
+                case 12: //hevc/h.265 video
+                	result = new HEVCVideo();
                     break;
             }
         } catch (Exception ex) {

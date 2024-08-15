@@ -47,6 +47,7 @@ import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.javacpp.BytePointer;
 import org.red5.codec.AVCVideo;
+import org.red5.codec.HEVCVideo;
 import org.red5.codec.IAudioStreamCodec;
 import org.red5.codec.IStreamCodecInfo;
 import org.red5.codec.IVideoStreamCodec;
@@ -80,7 +81,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.eRTMP.HEVCDecoderConfigurationParser;
-import io.antmedia.eRTMP.HEVCVideo;
+import io.antmedia.eRTMP.HEVCVideoEnhancedRTMP;
 import io.antmedia.logger.LoggerUtils;
 import io.antmedia.muxer.parser.AACConfigParser;
 import io.antmedia.muxer.parser.AACConfigParser.AudioObjectTypes;
@@ -1325,6 +1326,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 		bufferQueue.add(packet);
 
+	}
+
+	public void calculateBufferStatus() {
 		try {
 			IStreamPacket pktHead = bufferQueue.first();
 			IStreamPacket pktTrailer = bufferQueue.last();
@@ -1379,8 +1383,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			//You may or may not ignore this exception @mekya
 			logger.warn("You may or may not ignore this exception. I mean It can happen time to time in multithread environment -> {}", e.getMessage());
 		}
-
-
 	}
 
 
@@ -1388,13 +1390,18 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (enableVideo) 
 		{
 			IVideoStreamCodec videoCodec = codecInfo.getVideoCodec();
-			if (videoCodec instanceof AVCVideo || videoCodec instanceof HEVCVideo)
+			//if it's AVC or HEVC, get the decoder configuration
+			//HEVC is supported in two way. 
+			//One of them Enhanced RTMP
+			//Second one is using video codec id 12. 
+			//Larix broadcaster supports video codec id 12 mode
+			if (videoCodec instanceof AVCVideo || videoCodec instanceof HEVCVideoEnhancedRTMP || videoCodec instanceof HEVCVideo)
 			{
 				//pay attention that HEVCVideo is subclass of AVCVideo
-				if (videoCodec instanceof HEVCVideo)
+				if (videoCodec instanceof HEVCVideoEnhancedRTMP || videoCodec instanceof HEVCVideo)
 				 {
 					videoCodecId  = AV_CODEC_ID_H265;
-					//There is a 5 byte offset below
+					//There is a 5 byte offset below for enhanced rtmp
 					//1 byte is (exVideoHeader(1 bit) + frametype(3bit) + videoPacketType(4bit)), 4 bytes fourcc = 5 bytes
 
 				}
@@ -1751,6 +1758,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			if (isBufferedWriterRunning.compareAndSet(false, true)) {
 				try {
+					
+					calculateBufferStatus();
+
 					if (!buffering.get())
 					{
 						while(!bufferQueue.isEmpty())

@@ -133,7 +133,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.eRTMP.HEVCDecoderConfigurationParser.HEVCSPSParser;
-import io.antmedia.eRTMP.HEVCVideo;
+import io.antmedia.eRTMP.HEVCVideoEnhancedRTMP;
 import io.antmedia.integration.AppFunctionalV2Test;
 import io.antmedia.integration.MuxingTest;
 import io.antmedia.muxer.HLSMuxer;
@@ -2346,6 +2346,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			when(tag.getTimestamp()).thenReturn(i * 100);
 			IStreamPacket pkt = new StreamPacket(tag);
 			muxAdaptor.addBufferQueue(pkt);
+			muxAdaptor.calculateBufferStatus();
 			if (i < 11) {
 				assertTrue(muxAdaptor.isBuffering());
 			} else if (i == 11) {
@@ -2359,6 +2360,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			when(tag.getTimestamp()).thenReturn(i * 100);
 			IStreamPacket pkt = new StreamPacket(tag);
 			muxAdaptor.addBufferQueue(pkt);
+			muxAdaptor.calculateBufferStatus();
 			long bufferedDuration = muxAdaptor.getBufferQueue().last().getTimestamp() - muxAdaptor.getBufferQueue().first().getTimestamp();
 			if (i < 51) {
 				assertEquals(i * 100, bufferedDuration);
@@ -3635,7 +3637,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
 		
 		
-		IVideoStreamCodec codec = new HEVCVideo();
+		IVideoStreamCodec codec = new HEVCVideoEnhancedRTMP();
 		
 		
 		byte[] header = new byte[5];
