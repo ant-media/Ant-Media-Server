@@ -125,7 +125,7 @@
 
 	  <servlet-mapping>
 	    <servlet-name>OpenApi</servlet-name>
-	    <url-pattern>/openapi/*</url-pattern>
+	    <url-pattern>/openapi-management/*</url-pattern>
 	  </servlet-mapping>
 	
 	<!-- 
