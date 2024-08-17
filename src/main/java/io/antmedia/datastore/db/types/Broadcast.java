@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -13,15 +15,18 @@ import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
 import dev.morphia.utils.IndexType;
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.EncoderSettings;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 
 @Schema(description="The basic broadcast class")
 @Entity(value = "broadcast")
-@Indexes({ @Index(fields = @Field(value = "name", type = IndexType.TEXT)), @Index(fields = @Field("streamId")) })
+@Indexes({ @Index(fields = @Field(value = "name", type = IndexType.TEXT)), @Index(fields = @Field("streamId")), @Index(fields = @Field("status")) })
 public class Broadcast {
 
+	private static final Logger logger = LoggerFactory.getLogger(Broadcast.class);
 
 	@JsonIgnore
 	@Id
@@ -539,7 +544,16 @@ public class Broadcast {
 	}
 
 	public String getStatus() {
-		return status;
+		
+		if ((IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) || IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status)) && AntMediaApplicationAdapter.isStreaming(this)) 
+		{
+			logger.info("Stream:{} update time is not up to date. It's state:{} but it's updateTime is not up to date ", streamId, status);
+			return IAntMediaStreamHandler.BROADCAST_STATUS_ERROR;
+		} 
+		else {
+			return status;
+		}
+		
 	}
 
 	public void setStatus(String status) {
