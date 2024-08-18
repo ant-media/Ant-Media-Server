@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -664,7 +665,7 @@ public abstract class DataStore {
 			{
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
-				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && AntMediaApplicationAdapter.isStreaming(broadcast) &&
 						(StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress()))) 
 				{
 					activeBroadcastCount++;
@@ -684,7 +685,7 @@ public abstract class DataStore {
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				
 				String status = broadcast.getStatus();
-				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && AntMediaApplicationAdapter.isStreaming(broadcast) &&
 					  (StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress())))
 				{
 					broadcastList.add(broadcast);
