@@ -428,6 +428,26 @@ public class AdminApplicationTest {
 			fail();
 		}
 	}
+	
+	@Test
+	public void testGetWarFileInTmpDirectory() throws IOException {
+		
+		File warFileInTmpDirectory = AdminApplication.getWarFileInTmpDirectory("anywardoesnotexist");
+		assertNull(warFileInTmpDirectory);
+		
+		//create a file in tmp directory
+		String appName = "test";
+		String filename = "test.war";
+		
+		File f = new File(AdminApplication.getJavaTmpDirectory(), filename);
+		f.deleteOnExit();
+		f.createNewFile();
+		
+		warFileInTmpDirectory = AdminApplication.getWarFileInTmpDirectory(AdminApplication.getWarName(appName));
+		assertNotNull(warFileInTmpDirectory);
+
+		
+	}
 
 	@Test
 	public void testVodCount() {
