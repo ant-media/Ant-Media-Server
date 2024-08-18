@@ -687,8 +687,6 @@ public class MongoStore extends DataStore {
 	{
 		synchronized(this) {			
 				LogicalFilter andFilter = Filters.and(Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING));
-				long activeIntervalValue = System.currentTimeMillis() - (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS);
-				andFilter.add(Filters.gte(UPDATE_TIME_FIELD, activeIntervalValue));	
 				return datastore.find(Broadcast.class).filter(andFilter).count();
 		}
 	}
