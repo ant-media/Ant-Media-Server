@@ -74,12 +74,7 @@ public class MongoStore extends DataStore {
 	private Datastore detectionMap;
 	private Datastore conferenceRoomDatastore;
 	private MongoClient mongoClient;
-	private long lastBroadcastCountCalculateTime;
-	private long lastBroadcastCount;
-	private long lastVodCountCalculateTime;
-	private long lastVodCount;
-	private long lastActiveBroadcastCountCalculateTime;
-	private long lastActiveBroadcastCount;
+
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
@@ -348,14 +343,7 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public long getBroadcastCount() {
-		synchronized(this) {
-			long now = System.currentTimeMillis();
-			if (now - lastBroadcastCountCalculateTime > 5000) {
-				lastBroadcastCount = datastore.find(Broadcast.class).count();
-				lastBroadcastCountCalculateTime = now;
-			}
-			return lastBroadcastCount;
-		}
+		return this.getTotalBroadcastNumber();
 	}
 
 
@@ -564,12 +552,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getTotalVodNumber() {
 		synchronized(this) {
-			long now = System.currentTimeMillis();
-			if (now - lastVodCountCalculateTime > 5000) {
-				lastVodCount = vodDatastore.find(VoD.class).count();
-				lastVodCountCalculateTime = now;
-			}
-			return lastVodCount;
+			return vodDatastore.find(VoD.class).count();
 		}
 	}
 
@@ -650,7 +633,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getTotalBroadcastNumber() {
 		synchronized(this) {
-			return datastore.getCollection(Broadcast.class).countDocuments();
+			return datastore.find(Broadcast.class).count();
 		}
 	}
 
@@ -700,21 +683,13 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public long getActiveBroadcastCount() {
-		synchronized(this) {
-			long now = System.currentTimeMillis();
-			
-			if (now - lastActiveBroadcastCountCalculateTime > 5000) 
-			{
+	public long getActiveBroadcastCount() 
+	{
+		synchronized(this) {			
 				LogicalFilter andFilter = Filters.and(Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING));
 				long activeIntervalValue = System.currentTimeMillis() - (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS);
 				andFilter.add(Filters.gte(UPDATE_TIME_FIELD, activeIntervalValue));	
-				lastActiveBroadcastCount = datastore.find(Broadcast.class).filter(andFilter).count();
-				lastActiveBroadcastCountCalculateTime = now;
-			}
-			
-			
-			return lastActiveBroadcastCount;
+				return datastore.find(Broadcast.class).filter(andFilter).count();
 		}
 	}
 

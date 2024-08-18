@@ -527,13 +527,19 @@ public class DBStoresUnitTest {
 	public void clear(DataStore dataStore) 
 	{
 		long numberOfStreams = dataStore.getBroadcastCount();
-		int pageSize = 10;
-		long pageCount = numberOfStreams / pageSize + ((numberOfStreams % pageSize) > 0 ? 1 : 0);
 		int numberOfCall = 0;
+		int pageSize = 50;
+
 		List<Broadcast> totalBroadcastList = new ArrayList<>();
-		for (int i = 0; i < pageCount; i++) {
-			totalBroadcastList.addAll(dataStore.getBroadcastList(i * pageSize, pageSize, null, null, null, null));
+		for (int i = 0; i < Integer.MAX_VALUE; i++) {
+			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize, null, null, null, null);
+			if (broadcastList == null || broadcastList.size() == 0) {
+				break;
+			}
+			totalBroadcastList.addAll(broadcastList);
 		}
+		
+		
 
 		for (Broadcast broadcast : totalBroadcastList) {
 			numberOfCall++;
@@ -542,13 +548,14 @@ public class DBStoresUnitTest {
 
 		assertEquals(numberOfCall, numberOfStreams);
 		
-		long numberOfVods = dataStore.getTotalVodNumber();
-		pageSize = 50;
-		pageCount = numberOfVods / pageSize + ((numberOfVods % pageSize) > 0 ? 1 : 0);
 		numberOfCall = 0;
 		List<VoD> totalVoDList = new ArrayList<>();
-		for (int i = 0; i < pageCount; i++) {
-			totalVoDList.addAll(dataStore.getVodList(i * pageSize, pageSize, null, null, null, null));
+		for (int i = 0; i < Integer.MAX_VALUE; i++) {
+			List<VoD> vodList = dataStore.getVodList(i * pageSize, pageSize, null, null, null, null);
+			if (vodList == null || vodList.size() == 0) {
+				break;
+			}
+			totalVoDList.addAll(vodList);
 		}
 		
 		for (VoD vod : totalVoDList) {
