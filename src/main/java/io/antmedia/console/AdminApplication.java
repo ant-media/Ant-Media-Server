@@ -19,6 +19,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.config.RequestConfig;
@@ -453,7 +454,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			get.setConfig(requestConfig);
 
 			HttpResponse response = client.execute(get);
-			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK || Integer.parseInt(response.getFirstHeader(HttpHeaders.CONTENT_LENGTH).getValue()) == 0) {
+			Header contentLengthHeader = response.getFirstHeader(HttpHeaders.CONTENT_LENGTH);
+			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK || (contentLengthHeader != null && contentLengthHeader.getValue().equals("0"))) {
 				logger.error("Cannot download war file from URL: {} Response code: {} length:{}", warFileUrl,
 						response.getStatusLine().getStatusCode(), response.getFirstHeader(HttpHeaders.CONTENT_LENGTH).getValue());
 				return null;
