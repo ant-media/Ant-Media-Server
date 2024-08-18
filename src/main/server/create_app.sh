@@ -157,7 +157,6 @@ sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$DB_PASS'/' $RED5_PROPE
 
 if [[ "$IS_CLUSTER" == "true" ]]; then
     echo "Cluster mode"
-    ln -s $WAR_FILE $AMS_DIR/webapps/root/$APP_NAME.war
 else 
     echo "Not cluster mode."    
 fi

@@ -20,6 +20,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.client.methods.RequestBuilder;
@@ -39,10 +40,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationContext;
 
+import com.google.common.net.HttpHeaders;
+
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.cluster.IClusterNotifier;
 import io.antmedia.console.datastore.ConsoleDataStoreFactory;
 import io.antmedia.datastore.db.DataStoreFactory;
+import io.antmedia.filter.JWTFilter;
+import io.antmedia.filter.TokenFilterManager;
 import io.vertx.core.Vertx;
 import jakarta.annotation.Nullable;
 
@@ -53,6 +58,9 @@ import jakarta.annotation.Nullable;
  * @author The Red5 Project (red5@osflash.org)
  */
 public class AdminApplication extends MultiThreadedApplicationAdapter {
+	private static final int JWT_TOKEN_TIMEOUT_MS = 60000;
+
+
 	private static final Logger log = LoggerFactory.getLogger(AdminApplication.class);
 
 
@@ -95,8 +103,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		if(isCluster) {
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
-			clusterNotifier.registerCreateAppListener( (appName, warFileURI) -> 
-			createApplicationWithURL(appName, warFileURI)
+			clusterNotifier.registerCreateAppListener( (appName, warFileURI, secretKey) -> 
+					createApplicationWithURL(appName, warFileURI, secretKey)
 					);
 			clusterNotifier.registerDeleteAppListener(appName -> {
 				log.info("Deleting application with name {}", appName);
@@ -108,7 +116,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return super.appStart(app);
 	}
 
-	public boolean createApplicationWithURL(String appName, String warFileURI) 
+	public boolean createApplicationWithURL(String appName, String warFileURI, String secretKey) 
 	{
 		//If installation takes long, prevent redownloading war and starting installation again
 		if(currentApplicationCreationProcesses.contains(appName)) {
@@ -116,15 +124,28 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 			return false;
 		}
 
-		log.info("Creating application with name {}", appName);
+		log.info("Creating application with name {} and uri:{}", appName, warFileURI);
 		boolean result = false;
 		try {
 			String warFileFullPath = null;
-			if (warFileURI != null && !warFileURI.isEmpty()) 
+			if (StringUtils.isNotBlank(warFileURI)) 
 			{
-				warFileFullPath = downloadWarFile(appName, warFileURI).getAbsolutePath();
+				if (warFileURI.startsWith("http"))  //covers both http and https
+                {
+					File file = downloadWarFile(appName, warFileURI, secretKey);
+					if (warFileFullPath == null) {
+						logger.error("War file cannot be downloaded from {}. It cannot be null. App:{} will not be created", warFileURI, appName);
+						return false;
+					}
+					warFileFullPath = file.getAbsolutePath();
+                }
+				else 
+				{
+					warFileFullPath = warFileURI;
+				}
+				logger.info("war full path: {}", warFileFullPath);
+				
 			}
-
 			result = createApplication(appName, warFileFullPath);
 
 		} 
@@ -359,6 +380,25 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 	public Queue<String> getCurrentApplicationCreationProcesses() {
 		return currentApplicationCreationProcesses;
 	}
+	
+	public static String getJavaTmpDirectory() {
+        return System.getProperty("java.io.tmpdir");
+    }
+	
+	public static File getWarFileInTmpDirectory(String warFileName) 
+	{
+		String tmpsDirectory = getJavaTmpDirectory();
+		File file = new File(tmpsDirectory + File.separator + warFileName);
+		if (file.exists()) {
+			return file;
+		}
+		return null;
+		
+	}
+	
+	public static String getWarName(String appName) {
+		return appName + ".war";
+	}
 
 	@Nullable
 	public static File saveWARFile(String appName, InputStream inputStream) 
@@ -368,7 +408,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 
 		try {
 
-			String tmpsDirectory = System.getProperty("java.io.tmpdir");
+			String tmpsDirectory =  getJavaTmpDirectory();
 
 			File savedFile = new File(tmpsDirectory + File.separator + appName + "." + fileExtension);
 
@@ -400,17 +440,24 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		return HttpClients.createDefault();
 	}
 
-	public File downloadWarFile(String appName, String warFileUrl) throws IOException
+	public File downloadWarFile(String appName, String warFileUrl, String jwtSecretKey) throws IOException
 	{
 
 		try (CloseableHttpClient client = getHttpClient()) 
 		{
 			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
+			
+			String jwtToken = JWTFilter.generateJwtToken(jwtSecretKey, System.currentTimeMillis() + JWT_TOKEN_TIMEOUT_MS);
 
-			HttpRequestBase get = (HttpRequestBase) RequestBuilder.get().setUri(warFileUrl).build();
+			HttpRequestBase get = (HttpRequestBase) RequestBuilder.get().setUri(warFileUrl).addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken).build();
 			get.setConfig(requestConfig);
 
 			HttpResponse response = client.execute(get);
+			if (response.getStatusLine().getStatusCode() != HttpStatus.SC_OK || Integer.parseInt(response.getFirstHeader(HttpHeaders.CONTENT_LENGTH).getValue()) == 0) {
+				logger.error("Cannot download war file from URL: {} Response code: {} length:{}", warFileUrl,
+						response.getStatusLine().getStatusCode(), response.getFirstHeader(HttpHeaders.CONTENT_LENGTH).getValue());
+				return null;
+			}
 
 			try (BufferedInputStream in = new BufferedInputStream(response.getEntity().getContent())) 
 			{

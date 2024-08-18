@@ -87,6 +87,16 @@
   	</filter-mapping>
   	
   	<servlet>
+	  <servlet-name>WarDownloadServlet</servlet-name>
+	  <servlet-class>io.antmedia.console.servlet.WarDownloadServlet</servlet-class>
+	</servlet>
+	
+	<servlet-mapping>
+	  <servlet-name>WarDownloadServlet</servlet-name>
+	  <url-pattern>*.war</url-pattern>
+	</servlet-mapping>
+	
+  	<servlet>
 	  <servlet-name>RequestDispatherFilter</servlet-name>
 	  <servlet-class>io.antmedia.console.servlet.ProxyServlet</servlet-class>
 	  <init-param>
