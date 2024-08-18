@@ -544,17 +544,7 @@ public class Broadcast {
 	}
 
 	public String getStatus() {
-		
-		if ((IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) || IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(status)) && 
-				!AntMediaApplicationAdapter.isStreaming(this)) 
-		{
-			logger.info("Stream:{} update time is not up to date. It's state:{} but it's updateTime is not up to date ", streamId, status);
-			return IAntMediaStreamHandler.BROADCAST_STATUS_ERROR;
-		} 
-		else {
-			return status;
-		}
-		
+		return status;
 	}
 
 	public void setStatus(String status) {
