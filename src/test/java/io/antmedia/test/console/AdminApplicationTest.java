@@ -34,6 +34,8 @@ import io.vertx.core.Vertx;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 
 public class AdminApplicationTest {
 
@@ -385,21 +387,26 @@ public class AdminApplicationTest {
 			AdminApplication adminApplication = Mockito.spy(new AdminApplication());
 			Mockito.doReturn(false).when(adminApplication).createApplication(Mockito.anyString(), Mockito.any());
 
-			adminApplication.createApplicationWithURL("app", "https://antmedia.io/rest");		
-			Mockito.verify(adminApplication).downloadWarFile("app", "https://antmedia.io/rest");
+			adminApplication.createApplicationWithURL("app", "https://antmedia.io/rest", "secret");		
+			Mockito.verify(adminApplication).downloadWarFile("app", "https://antmedia.io/rest", "secret");
 
-			adminApplication.createApplicationWithURL("app2", null);
+			adminApplication.createApplicationWithURL("app2", null, null);
 			//it should be never for app2 because url is null
-			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app2"), Mockito.anyString());
+			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app2"), nullable(String.class), nullable(String.class));
 
 
-			adminApplication.createApplicationWithURL("app3", "");
+			adminApplication.createApplicationWithURL("app3", "", null);
 			//it should be never for app3 because url is ""
-			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app3"), Mockito.anyString());
+			Mockito.verify(adminApplication, Mockito.never()).downloadWarFile(Mockito.eq("app3"), Mockito.anyString(),eq(null));
 
-			adminApplication.createApplicationWithURL("app4", "htdfdf");
-			//it should be 2 time because there is an url. It also with different app name.
-			Mockito.verify(adminApplication, Mockito.times(2)).downloadWarFile(Mockito.anyString(),Mockito.anyString());
+			adminApplication.createApplicationWithURL("app4", "htdfdf", null);
+			//it should be 2 time because url is not starting with http. It also with different app name.
+			Mockito.verify(adminApplication, Mockito.times(1)).downloadWarFile(Mockito.anyString(),Mockito.anyString(), nullable(String.class));
+			
+			adminApplication.createApplicationWithURL("app5", "https://dfaf", null);
+			//it should be 2 time because url is  starting with http. It also with different app name.
+			Mockito.verify(adminApplication, Mockito.times(2)).downloadWarFile(Mockito.anyString(),Mockito.anyString(), nullable(String.class));
+
 
 
 		} catch (IOException e) {
@@ -414,7 +421,7 @@ public class AdminApplicationTest {
 		AdminApplication adminApplication = Mockito.spy(new AdminApplication());
 		try{
 			//Just download something to check if it is downloading, the method only downloads with an http request.
-			assertNotNull(adminApplication.downloadWarFile("LiveApp", "https://antmedia.io/rest"));
+			assertNotNull(adminApplication.downloadWarFile("LiveApp", "https://antmedia.io/rest", "secret"));
 		}
 		catch(Exception e){
 			e.printStackTrace();
@@ -479,7 +486,7 @@ public class AdminApplicationTest {
 		app.createApplication(appName, null);
 		Mockito.verify(app).runCreateAppScript(appName, false, null, null, null, null);
 
-		assertFalse(app.createApplicationWithURL(appName, "some_url"));
+		assertFalse(app.createApplicationWithURL(appName, "some_url", null));
 
 		assertFalse(app.createApplication(appName, "some_url"));
 	}
