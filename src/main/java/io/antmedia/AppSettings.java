@@ -28,6 +28,7 @@ import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
+import dev.morphia.annotations.IndexOptions;
 import dev.morphia.annotations.Indexes;
 import io.antmedia.rest.VoDRestService;
 
@@ -55,7 +56,7 @@ import io.antmedia.rest.VoDRestService;
  *
  */
 @Entity("AppSettings")
-@Indexes({ @Index(fields = @Field("appName"))})
+@Indexes({ @Index(fields = @Field("appName"), options = @IndexOptions(unique = true, name="appName_unique_index"))})
 @PropertySource("/WEB-INF/red5-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AppSettings implements Serializable{

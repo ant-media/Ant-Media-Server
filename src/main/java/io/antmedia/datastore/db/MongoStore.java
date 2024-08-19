@@ -75,6 +75,7 @@ public class MongoStore extends DataStore {
 	private Datastore conferenceRoomDatastore;
 	private MongoClient mongoClient;
 
+
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
 	public static final String IMAGE_ID = "imageId"; 
@@ -88,6 +89,7 @@ public class MongoStore extends DataStore {
 	private static final String DASH_VIEWER_COUNT = "dashViewerCount";
 	private static final String WEBRTC_VIEWER_COUNT = "webRTCViewerCount";
 	private static final String META_DATA = "metaData";
+	private static final String UPDATE_TIME_FIELD = "updateTime";
 
 	public MongoStore(String host, String username, String password, String dbName) {
 
@@ -341,9 +343,7 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public long getBroadcastCount() {
-		synchronized(this) {
-			return datastore.find(Broadcast.class).count();
-		}
+		return this.getTotalBroadcastNumber();
 	}
 
 
@@ -683,9 +683,11 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public long getActiveBroadcastCount() {
-		synchronized(this) {
-			return datastore.find(Broadcast.class).filter(Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)).count();
+	public long getActiveBroadcastCount() 
+	{
+		synchronized(this) {			
+				LogicalFilter andFilter = Filters.and(Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING));
+				return datastore.find(Broadcast.class).filter(andFilter).count();
 		}
 	}
 
@@ -858,7 +860,7 @@ public class MongoStore extends DataStore {
 				}
 				
 				if (broadcast.getUpdateTime() != null) {
-					updates.add(set("updateTime", broadcast.getUpdateTime()));
+					updates.add(set(UPDATE_TIME_FIELD, broadcast.getUpdateTime()));
 				}
 				
 				if (broadcast.getSubtracksLimit() != null) {
@@ -1273,6 +1275,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getLocalLiveBroadcastCount(String hostAddress) {
 		synchronized(this) {
+			
 			return datastore.find(Broadcast.class)
 					.filter(Filters.and(
 							Filters.or(
@@ -1610,7 +1613,7 @@ public class MongoStore extends DataStore {
 	public List<Broadcast> getActiveSubtracks(String mainTrackId, String role) {
 		LogicalFilter filterForSubtracks = getFilterForSubtracks(mainTrackId, role, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		long activeIntervalValue = System.currentTimeMillis() - (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS);
-		filterForSubtracks.add(Filters.gte("updateTime", activeIntervalValue));
+		filterForSubtracks.add(Filters.gte(UPDATE_TIME_FIELD, activeIntervalValue));
 		
 		
 		 synchronized(this) {
@@ -1624,7 +1627,7 @@ public class MongoStore extends DataStore {
 	public long getActiveSubtracksCount(String mainTrackId, String role) {
 		LogicalFilter filterForSubtracks = getFilterForSubtracks(mainTrackId, role, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 		long activeIntervalValue = System.currentTimeMillis() - (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS);
-		filterForSubtracks.add(Filters.gte("updateTime", activeIntervalValue));
+		filterForSubtracks.add(Filters.gte(UPDATE_TIME_FIELD, activeIntervalValue));
 
 		synchronized(this) {
 			return 	datastore.find(Broadcast.class)

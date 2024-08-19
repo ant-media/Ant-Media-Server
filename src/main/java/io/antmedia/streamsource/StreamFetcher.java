@@ -854,8 +854,8 @@ public class StreamFetcher {
 								{
 
 									writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
-									unReferencePacket(tempPacket);
 									bufferQueue.remove(tempPacket); //remove the packet from the queue
+									unReferencePacket(tempPacket);
 								}
 								else {
 									//break the loop and don't block the thread because it's not correct time to send the packet
@@ -872,7 +872,7 @@ public class StreamFetcher {
 					}
 					catch (NoSuchElementException e) {
 						//You may or may not ignore this exception @mekya
-						logger.warn("You may or may not ignore this exception. I mean It can happen time to time in multithread environment -> {}", e.getMessage());
+						logger.warn("You may or may not ignore this exception. I mean It can happen time to time in multithread environment -> NoSuchElementException streamId:{}", streamId);
 					}
 
 					finally {
