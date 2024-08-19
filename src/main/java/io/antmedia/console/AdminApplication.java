@@ -134,8 +134,8 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 				if (warFileURI.startsWith("http"))  //covers both http and https
                 {
 					File file = downloadWarFile(appName, warFileURI, secretKey);
-					if (warFileFullPath == null) {
-						logger.error("War file cannot be downloaded from {}. It cannot be null. App:{} will not be created", warFileURI, appName);
+					if (file == null) {
+						logger.error("War file cannot be downloaded from {}. App:{} will not be created", warFileURI, appName);
 						return false;
 					}
 					warFileFullPath = file.getAbsolutePath();

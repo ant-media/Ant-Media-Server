@@ -36,6 +36,9 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 public class AdminApplicationTest {
 
@@ -406,7 +409,21 @@ public class AdminApplicationTest {
 			adminApplication.createApplicationWithURL("app5", "https://dfaf", null);
 			//it should be 2 time because url is  starting with http. It also with different app name.
 			Mockito.verify(adminApplication, Mockito.times(2)).downloadWarFile(Mockito.anyString(),Mockito.anyString(), nullable(String.class));
+			
+			
+			
+			
+			adminApplication = Mockito.spy(new AdminApplication());
+			Mockito.doReturn(false).when(adminApplication).createApplication(Mockito.anyString(), Mockito.any());
+			
+			Mockito.doReturn(null).when(adminApplication).downloadWarFile(Mockito.anyString(), anyString(), anyString());
+			adminApplication.createApplicationWithURL("app6", "https://antmedia.io/rest", "secret");
+			verify(adminApplication, never()).createApplication(Mockito.anyString(), Mockito.any());
 
+
+			Mockito.doReturn(new File("test")).when(adminApplication).downloadWarFile(Mockito.anyString(), anyString(), anyString());
+			adminApplication.createApplicationWithURL("app6", "https://antmedia.io/rest", "secret");
+			verify(adminApplication, times(1)).createApplication(Mockito.anyString(), Mockito.any());
 
 
 		} catch (IOException e) {

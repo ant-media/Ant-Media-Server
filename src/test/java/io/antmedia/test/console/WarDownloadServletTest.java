@@ -114,9 +114,6 @@ public class WarDownloadServletTest {
 		when(webApplicationContext2.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
 		assertTrue(appAdaptor.equals(warDownloadServlet.getAppAdaptor("test", request)));
 		
-		
-		
-		
 	}
 	
 	@Test
