@@ -448,7 +448,7 @@ public class AdminApplication extends MultiThreadedApplicationAdapter {
 		{
 			RequestConfig requestConfig = RequestConfig.custom().setConnectTimeout(2 * 1000).setSocketTimeout(5*1000).build();
 			
-			String jwtToken = JWTFilter.generateJwtToken(jwtSecretKey, System.currentTimeMillis() + JWT_TOKEN_TIMEOUT_MS);
+			String jwtToken = JWTFilter.generateJwtToken(jwtSecretKey, System.currentTimeMillis() + JWT_TOKEN_TIMEOUT_MS, "appname", appName);
 
 			HttpRequestBase get = (HttpRequestBase) RequestBuilder.get().setUri(warFileUrl).addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken).build();
 			get.setConfig(requestConfig);

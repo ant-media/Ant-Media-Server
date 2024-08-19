@@ -42,7 +42,7 @@ public class WarDownloadServlet extends HttpServlet{
 	private static final Logger logger = LoggerFactory.getLogger(WarDownloadServlet.class);
 
 	public WebApplicationContext getContext(HttpServletRequest req) {
-		return (ConfigurableWebApplicationContext) req.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
+		return (WebApplicationContext)req.getServletContext().getAttribute(WebApplicationContext.ROOT_WEB_APPLICATION_CONTEXT_ATTRIBUTE);
 
 	}
 
@@ -112,7 +112,7 @@ public class WarDownloadServlet extends HttpServlet{
 	 * AdminApplication makes the requests in {@link AdminApplication#downloadWarFile}
 	 */
 	@Override
-	protected void doGet(HttpServletRequest request, HttpServletResponse response)
+	public void doGet(HttpServletRequest request, HttpServletResponse response)
 			 {
 
 		String requestURI = request.getRequestURI().replaceAll(TokenFilterManager.REPLACE_CHARS_REGEX,"_") ; // The path including the context path
