@@ -80,6 +80,15 @@ public class WhipEndpoint extends RestServiceBase {
 			@Parameter String sdp) {
 
 		PublishParameters publishParameters = new PublishParameters(streamId);
+		
+		String prefix = "Bearer ";
+	    
+	    if (token != null && token.toLowerCase().startsWith(prefix.toLowerCase())) {
+	        // Extract the token by removing the prefix
+	        token = token.substring(prefix.length());
+	    }
+		
+		
 		publishParameters.setToken(token);
 		
 		publishParameters.setEnableVideo(enableVideo == null || enableVideo);
