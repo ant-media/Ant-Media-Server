@@ -6,10 +6,10 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.List;
 
+import io.antmedia.console.datastore.AbstractConsoleDataStore;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.glassfish.jersey.media.multipart.FormDataContentDisposition;
 import org.glassfish.jersey.media.multipart.FormDataParam;
-import org.red5.server.api.scope.IScope;
 import org.springframework.stereotype.Component;
 
 import com.google.gson.Gson;
@@ -26,7 +26,6 @@ import io.swagger.v3.oas.annotations.ExternalDocumentation;
 import io.swagger.v3.oas.annotations.OpenAPIDefinition;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.servers.Server;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
@@ -40,7 +39,6 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -70,7 +68,6 @@ public class RestServiceV2 extends CommonRestService {
 	@Path("/users")
 	@Produces(MediaType.APPLICATION_JSON)
 	@Consumes(MediaType.APPLICATION_JSON)
-	@Override
 	public Result addUser(@Parameter(description = "User object. If it is null, new user won't be created.", required = true) User user) {
 		return super.addUser(user);
 	}
@@ -187,6 +184,15 @@ public class RestServiceV2 extends CommonRestService {
 	@Consumes(MediaType.APPLICATION_JSON)
 	public Result authenticateUser(@Parameter(description = "User object to authenticate", required = true) User user) {
 	    return super.authenticateUser(user);
+	}
+	
+	@DELETE
+	@Path("/users/logout")
+	@Produces(MediaType.APPLICATION_JSON)
+	@Consumes(MediaType.APPLICATION_JSON)
+	@Override
+	public Result deleteSession() {
+	    return super.deleteSession();
 	}
 
 
@@ -343,6 +349,17 @@ public class RestServiceV2 extends CommonRestService {
 	@Path("/applications")
 	@Produces(MediaType.APPLICATION_JSON)
 	public String getApplications() {
+
+	/*	String userEmail = (String)httpRequest.getSession().getAttribute(CommonRestService.USER_EMAIL);
+		AbstractConsoleDataStore store = getAbstractConsoleDataStore();
+		if (store != null)
+		{
+			User currentUser = store.getUser(userEmail);*/
+
+
+
+
+
 	    return super.getApplications();
 	}
 

@@ -336,7 +336,7 @@ public class RTMPHandler extends BaseRTMPHandler {
 				// handle service calls
 				invokeCall(conn, call);
 			}
-		} else if (StreamAction.CONNECT.equals(action)) {
+		} else if (StreamAction.CONNECT.equalsAction(action)) {
 			// Handle connection
 			log.debug("connect - transaction id: {}", transId);
 			// Get parameters passed from client to NetConnection#connection

@@ -376,10 +376,13 @@ public class RTMPProtocolDecoder implements Constants, IEventDecoder {
             }
             rtmp.setLastReadPacketHeader(channelId, packet.getHeader());
             packet.setMessage(message);
-            if (message instanceof ChunkSize) {
+            if (message instanceof ChunkSize) 
+            {
                 ChunkSize chunkSizeMsg = (ChunkSize) message;
                 rtmp.setReadChunkSize(chunkSizeMsg.getSize());
-            } else if (message instanceof Abort) {
+            } 
+            else if (message instanceof Abort) 
+            {
                 log.debug("Abort packet detected");
                 // client is aborting a message, reset the packet because the next chunk will start a new packet
                 Abort abort = (Abort) message;

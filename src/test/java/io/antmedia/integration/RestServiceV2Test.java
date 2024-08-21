@@ -1015,7 +1015,7 @@ public class RestServiceV2Test {
 
 			Thread.sleep(1500);
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
-					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
+					+ "	-vcodec copy -f flv rtmp://127.0.0.1/LiveApp/" + broadcast.getStreamId());
 
 			Thread.sleep(3000);
 
@@ -1029,7 +1029,7 @@ public class RestServiceV2Test {
 			System.out.println("broadcast stream id: " + broadcast.getStreamId());
 
 			execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
-					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcastTemp.getStreamId());
+					+ "	-vcodec copy -f flv rtmp://127.0.0.1/LiveApp/" + broadcastTemp.getStreamId());
 
 
 			Awaitility.await().atMost(60, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
@@ -1065,7 +1065,7 @@ public class RestServiceV2Test {
 
 			// publish stream
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
-					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcast.getStreamId());
+					+ "	-vcodec copy -f flv rtmp://127.0.0.1/LiveApp/" + broadcast.getStreamId());
 
 			Awaitility.await().atMost(90, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
 				Broadcast broadcastReturnedTemp = callGetBroadcast(broadcast.getStreamId());
@@ -1479,7 +1479,7 @@ public class RestServiceV2Test {
 
 			String streamId = RandomStringUtils.randomAlphabetic(6);
 
-			String rtmpUrl = "rtmp://localhost/LiveApp/" + streamId;
+			String rtmpUrl = "rtmp://127.0.0.1/LiveApp/" + streamId;
 
 			Endpoint endpoint = new Endpoint();
 			endpoint.setRtmpUrl(rtmpUrl);
@@ -1522,7 +1522,7 @@ public class RestServiceV2Test {
 			assertEquals(IAntMediaStreamHandler.BROADCAST_STATUS_CREATED, broadcast.getEndPointList().get(0).getStatus());
 
 			Process execute = execute(
-					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
+					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 							+ broadcast.getStreamId());
 
 			appSettingsModel.setEndpointRepublishLimit(9);
@@ -1640,7 +1640,7 @@ public class RestServiceV2Test {
 
 			String streamId = RandomStringUtils.randomAlphabetic(6);
 			
-			String rtmpUrl = "rtmp://localhost/LiveApp/" + streamId;
+			String rtmpUrl = "rtmp://127.0.0.1/LiveApp/" + streamId;
 			
 			Endpoint endpoint = new Endpoint();
 			endpoint.setRtmpUrl(rtmpUrl);
@@ -1679,7 +1679,7 @@ public class RestServiceV2Test {
 			
 
 			Process execute = execute(
-					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://localhost/LiveApp/"
+					ffmpegPath + " -re -i src/test/resources/test.flv -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 							+ broadcast.getStreamId());
 
 
@@ -1710,7 +1710,7 @@ public class RestServiceV2Test {
 			
 				//add dynamic endpoint test
 				String streamIdDynamic = "dynamic_stream" + (int)(Math.random() * 999999);
-				String dynamicRtmpURL = "rtmp://localhost/LiveApp/" + streamIdDynamic;
+				String dynamicRtmpURL = "rtmp://127.0.0.1/LiveApp/" + streamIdDynamic;
 				 
 				Endpoint dynamicEndpoint = new Endpoint();
 				dynamicEndpoint.setRtmpUrl(dynamicRtmpURL);
@@ -1888,7 +1888,7 @@ public class RestServiceV2Test {
 
 			// publish stream
 			Process execute = execute(ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy "
-					+ "	-vcodec copy -f flv rtmp://localhost/LiveApp/" + broadcastFetched.getStreamId());
+					+ "	-vcodec copy -f flv rtmp://127.0.0.1/LiveApp/" + broadcastFetched.getStreamId());
 
 			/// get broadcast	
 			Awaitility.await().atMost(40, TimeUnit.SECONDS).pollInterval(2, TimeUnit.SECONDS).until(()-> {
@@ -1946,7 +1946,7 @@ public class RestServiceV2Test {
 			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
 			assertTrue(result.isSuccess());
 			Random r = new Random();
-			String streamId = "streamId" + r.nextInt();
+			String streamId = "streamId" +  Integer.toUnsignedString(r.nextInt());
 
 			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 

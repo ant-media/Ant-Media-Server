@@ -3,9 +3,9 @@ package io.antmedia.datastore.db.types;
 import java.util.ArrayList;
 import java.util.List;
 
-import dev.morphia.utils.IndexType;
-import io.antmedia.EncoderSettings;
 import org.bson.types.ObjectId;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -14,17 +14,19 @@ import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.Indexes;
+import dev.morphia.utils.IndexType;
+import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.EncoderSettings;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.swagger.v3.oas.annotations.media.Schema;
-
-import static io.antmedia.AppSettings.encodersList2Str;
-import static io.antmedia.AppSettings.encodersStr2List;
 
 
 @Schema(description="The basic broadcast class")
 @Entity(value = "broadcast")
-@Indexes({ @Index(fields = @Field(value = "name", type = IndexType.TEXT)), @Index(fields = @Field("streamId")) })
+@Indexes({ @Index(fields = @Field(value = "name", type = IndexType.TEXT)), @Index(fields = @Field("streamId")), @Index(fields = @Field("status")) })
 public class Broadcast {
 
+	private static final Logger logger = LoggerFactory.getLogger(Broadcast.class);
 
 	@JsonIgnore
 	@Id
@@ -40,10 +42,10 @@ public class Broadcast {
 	 * "finished", "broadcasting", "created"
 	 */
 
-	@Schema(description = "the status of the stream", allowableValues = "finished,broadcasting,created")
+	@Schema(description = "the status of the stream", allowableValues = "finished,broadcasting,created,preparing,error,failed")
 	private String status;
 
-	@Schema(description = "The status of the playlist. It's usable if type is playlist", allowableValues = "finished,broadcasting,created")
+	@Schema(description = "The status of the playlist. It's usable if type is playlist", allowableValues = "finished,broadcasting,created,preparing,error,failed")
 	private String playListStatus;
 	
 	/**
@@ -227,7 +229,192 @@ public class Broadcast {
 	@Schema(description ="Number of subtracks that is allowed to be created for the broadcast. It's usefult for limiting number of conference attendees. Default value is -1  and it means no limit")
 	private int subtracksLimit = -1;
 
+	/**
+	 * This is the expire time in milliseconds For instance if this value is
+	 * 10000 then broadcast should be started in 10 seconds after it is created.
+	 *
+	 * If expire duration is 0, then stream will never expire
+	 */
+	@Schema(description ="the expire time in milliseconds For instance if this value is 10000 then broadcast should be started in 10 seconds after it is created.If expire duration is 0, then stream will never expire")
+	private int expireDurationMS;
 
+	/**
+	 * RTMP URL where to publish live stream to
+	 */
+	@Schema(description ="the RTMP URL where to publish live stream to")
+	private String rtmpURL;
+
+	/**
+	 * zombi It is true, if a broadcast that is not added to data store through
+	 * rest service or management console It is false by default
+	 *
+	 */
+	@Schema(description ="is true, if a broadcast that is not added to data store through rest service or management console It is false by default")
+	private boolean zombi = false;
+
+	/**
+
+	 * Number of audio and video packets that is being pending to be encoded
+	 * in the queue
+	 */
+
+	@Schema(description ="the number of audio and video packets that is being pending to be encoded in the queue ")
+	private int pendingPacketSize = 0;
+
+	/**
+	 * number of hls viewers of the stream
+	 */
+
+	@Schema(description ="the number of HLS viewers of the stream")
+	private int hlsViewerCount = 0;
+	
+
+	/**
+	 * number of dash viewers of the stream
+	 */
+	@Schema(description ="the number of DASH viewers of the stream")
+	private int dashViewerCount = 0;
+
+	@Schema(description ="the number of WebRTC viewers of the stream")
+	private int webRTCViewerCount = 0;
+
+	@Schema(description ="the number of RTMP viewers of the stream")
+	private int rtmpViewerCount = 0;
+
+	@Schema(description ="the publishing start time of the stream")
+	private long startTime = 0;
+
+	@Schema(description ="the received bytes until now")
+	private long receivedBytes = 0;
+
+	@Schema(description ="the received bytes / duration")
+	private long bitrate = 0;
+
+	@Schema(description ="User - Agent")
+	private String userAgent = "N/A";
+
+	@Schema(description ="latitude of the broadcasting location")
+	private String latitude;
+
+	@Schema(description ="longitude of the broadcasting location")
+	private String longitude;
+
+	@Schema(description ="altitude of the broadcasting location")
+	private String altitude;
+
+	@Schema(description ="If this broadcast is a track of a WebRTC stream. This variable is Id of that stream.")
+	private String mainTrackStreamId;
+
+	/*
+	 * Refactor: remove this field and store everything as streams in the database.
+	 * On the other hand, we can keep the number of subtracks here
+	 * 
+	 * Lastly, there is also an dependency in the webpanel, it just plays the multitrack by looking at this field.
+	 * 
+	 * @depreated: Get the subtracks from the database
+	 */
+	@Deprecated(forRemoval = true, since="2.10.1")
+	@Schema(description ="If this broadcast is main track. This variable hold sub track ids.")
+	private List<String> subTrackStreamIds = new ArrayList<>();
+
+	@Schema(description ="Absolute start time in milliseconds - unix timestamp. It's used for measuring the absolute latency")
+	private long absoluteStartTimeMs;
+
+	@Schema(description ="Number of the allowed maximum WebRTC viewers for the broadcast")
+	private int webRTCViewerLimit = -1;
+
+	@Schema(description ="Number of the allowed maximum HLS viewers for the broadcast")
+	private int hlsViewerLimit = -1;
+	
+	@Schema(description ="Number of the allowed maximum DASH viewers for the broadcast")
+	private int dashViewerLimit = -1;
+
+	@Schema(description ="Name of the subfolder that will contain stream files")
+	private String subFolder;
+
+	/**
+	 * Current playing index for play lists
+	 */
+	@Schema(description ="Current playing index for playlist types")
+	private int currentPlayIndex = 0;
+	
+	/**
+	 * Meta data filed for the custom usage
+	 */
+	@Schema(description ="Meta data filed for the custom usage")
+	private String metaData = null;
+	
+	/**
+	 * The flag to enable/disable looping playlist. 
+	 * If it's true, playlist will be loop infinitely. If it's false, playlist played once and finished.
+	 * It's enable by default
+	 */
+	@Schema(description ="the identifier of playlist loop status")
+	private boolean playlistLoopEnabled = true;
+	
+	/**
+	 * Update time of the Broadcast object
+	 * This parameter updates consistently according to broadcast status
+	 */
+	private long updateTime = 0;
+
+	/**
+	 * Broadcast role for selective playback
+	 */
+	@Schema(description ="Broadcast role for selective playback")
+	private String role = null;
+
+	@Schema(description = "the HLS parameters of the broadcast")
+	private HLSParameters hlsParameters = null;
+
+	@Schema(description ="The identifier of whether stream should start/stop automatically. It's effective for Stream Sources/IP Cameras. "
+			+ "If there is no viewer after certain amount of seconds, it will stop. If there is an user want to watch the stream, it will start automatically")
+	private boolean autoStartStopEnabled = false;
+
+	@Schema(description ="The list of encoder settings")
+	private List<EncoderSettings> encoderSettingsList;
+	
+
+	@Entity
+	public static class HLSParameters
+	{
+
+		@Schema(description ="Duration of segments in m3u8 files in seconds")
+		private String hlsTime;
+
+		@Schema(description ="Set the maximum number of playlist entries, If 0 the list file will contain all the segments")
+		private String hlsListSize;
+
+	
+		@Schema(description ="Playlist type of m3u8 files, Can be 'event' or 'vod' or empty")
+		private String hlsPlayListType;
+
+
+		public String getHlsTime() {
+			return hlsTime;
+		}
+
+		public void setHlsTime(String hlsTime) {
+			this.hlsTime = hlsTime;
+		}
+
+		public String getHlsListSize() {
+			return hlsListSize;
+		}
+
+		public void setHlsListSize(String hlsListSize) {
+			this.hlsListSize = hlsListSize;
+		}
+
+		public String getHlsPlayListType() {
+			return hlsPlayListType;
+		}
+
+		public void setHlsPlayListType(String hlsPlayListType) {
+			this.hlsPlayListType = hlsPlayListType;
+		}
+	}
+	
 	@Entity
 	public static class PlayListItem
 	{
@@ -298,136 +485,7 @@ public class Broadcast {
 	public Broadcast() {
 		this.type = "liveStream";
 	}
-
-	/**
-	 * This is the expire time in milliseconds For instance if this value is
-	 * 10000 then broadcast should be started in 10 seconds after it is created.
-	 *
-	 * If expire duration is 0, then stream will never expire
-	 */
-	@Schema(description ="the expire time in milliseconds For instance if this value is 10000 then broadcast should be started in 10 seconds after it is created.If expire duration is 0, then stream will never expire")
-	private int expireDurationMS;
-
-	/**
-	 * RTMP URL where to publish live stream to
-	 */
-	@Schema(description ="the RTMP URL where to publish live stream to")
-	private String rtmpURL;
-
-	/**
-	 * zombi It is true, if a broadcast that is not added to data store through
-	 * rest service or management console It is false by default
-	 *
-	 */
-	@Schema(description ="is true, if a broadcast that is not added to data store through rest service or management console It is false by default")
-	private boolean zombi = false;
-
-	/**
-
-	 * Number of audio and video packets that is being pending to be encoded
-	 * in the queue
-	 */
-
-	@Schema(description ="the number of audio and video packets that is being pending to be encoded in the queue ")
-	private int pendingPacketSize = 0;
-
-	/**
-	 * number of hls viewers of the stream
-	 */
-
-	@Schema(description ="the number of HLS viewers of the stream")
-	private int hlsViewerCount = 0;
 	
-
-	/**
-	 * number of dash viewers of the stream
-	 */
-
-	@Schema(description ="the number of DASH viewers of the stream")
-	private int dashViewerCount = 0;
-
-	@Schema(description ="the number of WebRTC viewers of the stream")
-	private int webRTCViewerCount = 0;
-
-	@Schema(description ="the number of RTMP viewers of the stream")
-	private int rtmpViewerCount = 0;
-
-	@Schema(description ="the publishing start time of the stream")
-	private long startTime = 0;
-
-	@Schema(description ="the received bytes until now")
-	private long receivedBytes = 0;
-
-	@Schema(description ="the received bytes / duration")
-	private long bitrate = 0;
-
-	@Schema(description ="User - Agent")
-	private String userAgent = "N/A";
-
-	@Schema(description ="latitude of the broadcasting location")
-	private String latitude;
-
-	@Schema(description ="longitude of the broadcasting location")
-	private String longitude;
-
-	@Schema(description ="altitude of the broadcasting location")
-	private String altitude;
-
-	@Schema(description ="If this broadcast is a track of a WebRTC stream. This variable is Id of that stream.")
-	private String mainTrackStreamId;
-
-	@Schema(description ="If this broadcast is main track. This variable hold sub track ids.")
-	private List<String> subTrackStreamIds = new ArrayList<>();
-
-	@Schema(description ="Absolute start time in milliseconds - unix timestamp. It's used for measuring the absolute latency")
-	private long absoluteStartTimeMs;
-
-	@Schema(description ="Number of the allowed maximum WebRTC viewers for the broadcast")
-	private int webRTCViewerLimit = -1;
-
-	@Schema(description ="Number of the allowed maximum HLS viewers for the broadcast")
-	private int hlsViewerLimit = -1;
-	
-	@Schema(description ="Number of the allowed maximum DASH viewers for the broadcast")
-	private int dashViewerLimit = -1;
-
-	@Schema(description ="Name of the subfolder that will contain stream files")
-	private String subFolder;
-
-	/**
-	 * Current playing index for play lists
-	 */
-	@Schema(description ="Current playing index for playlist types")
-	private int currentPlayIndex = 0;
-	
-	/**
-	 * Meta data filed for the custom usage
-	 */
-	@Schema(description ="Meta data filed for the custom usage")
-	private String metaData = null;
-	
-	/**
-	 * The flag to enable/disable looping playlist. 
-	 * If it's true, playlist will be loop infinitely. If it's false, playlist played once and finished.
-	 * It's enable by default
-	 */
-	@Schema(description ="the identifier of playlist loop status")
-	private boolean playlistLoopEnabled = true;
-	
-	/**
-	 * Update time of the Broadcast object
-	 * This parameter updates consistently according to broadcast status
-	 */
-	private long updateTime = 0;
-
-	@Schema(description ="The identifier of whether stream should start/stop automatically. It's effective for Stream Sources/IP Cameras. "
-			+ "If there is no viewer after certain amount of seconds, it will stop. If there is an user want to watch the stream, it will start automatically")
-	private boolean autoStartStopEnabled = false;
-
-	@Schema(description ="The list of encoder settings")
-	private List<EncoderSettings> encoderSettingsList;
-
-
 	public Broadcast(String status, String name) {
 		this.setStatus(status);
 		this.setName(name);
@@ -777,10 +835,20 @@ public class Broadcast {
 		this.mainTrackStreamId = mainTrackStreamId;
 	}
 
+	/**
+	 * @deprecated get the subtracks directly from database 
+	 * @return
+	 */
+	@Deprecated(forRemoval = true, since="2.10.1")
 	public List<String> getSubTrackStreamIds() {
 		return subTrackStreamIds;
 	}
 
+	/**
+	 * @deprecated get the subtracks directly from database 
+	 * @param subTrackStreamIds
+	 */
+	@Deprecated(forRemoval = true, since="2.10.1")
 	public void setSubTrackStreamIds(List<String> subTrackStreamIds) {
 		this.subTrackStreamIds = subTrackStreamIds;
 	}
@@ -861,13 +929,7 @@ public class Broadcast {
 		this.metaData = metaData;
 	}
 	
-	public boolean isPlaylistLoopEnabled() {
-		return playlistLoopEnabled;
-	}
 
-	public void setPlaylistLoopEnabled(boolean playlistLoopEnabled) {
-		this.playlistLoopEnabled = playlistLoopEnabled;
-	}
 	
 	public int getDashViewerLimit() {
 		return dashViewerLimit;
@@ -893,6 +955,13 @@ public class Broadcast {
 		this.updateTime = updateTime;
 	}
 
+	public HLSParameters getHlsParameters() {
+		return hlsParameters;
+	}
+	public void setHlsParameters(HLSParameters hlsParameters) {
+		this.hlsParameters = hlsParameters;
+	}
+	
 	public boolean isAnyoneWatching(){
 		return getDashViewerCount() != 0 || getWebRTCViewerCount() != 0 || getRtmpViewerCount() != 0 || getHlsViewerCount() != 0;
 	}
@@ -937,4 +1006,19 @@ public class Broadcast {
 		this.encoderSettingsList = encoderSettingsList;
 	}
 
+	public String getRole() {
+		return role;
+	}
+
+	public void setRole(String role) {
+		this.role = role;
+	}
+
+	public boolean isPlaylistLoopEnabled() {
+		return playlistLoopEnabled;
+	}
+	
+	public void setPlaylistLoopEnabled(boolean playlistLoopEnabled) {
+		this.playlistLoopEnabled = playlistLoopEnabled;
+	}
 }

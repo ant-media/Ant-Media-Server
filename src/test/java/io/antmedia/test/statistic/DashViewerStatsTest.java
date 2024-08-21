@@ -30,6 +30,7 @@ import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.DataStoreFactory;
 import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.muxer.IAntMediaStreamHandler;
@@ -266,7 +267,9 @@ public class DashViewerStatsTest {
 			});
 			
 			broadcast.setUpdateTime(System.currentTimeMillis());
-			dsf.getDataStore().updateBroadcastFields(streamId, broadcast);
+			BroadcastUpdate update = new BroadcastUpdate();
+			update.setUpdateTime(broadcast.getUpdateTime());
+			dsf.getDataStore().updateBroadcastFields(streamId, update);
 			
 			// Check viewer is online
 			Awaitility.await().atMost(20, TimeUnit.SECONDS).until(

@@ -10,11 +10,14 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.catalina.util.NetMask;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.http.entity.ContentType;
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 
@@ -25,6 +28,7 @@ import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
+import dev.morphia.annotations.IndexOptions;
 import dev.morphia.annotations.Indexes;
 import io.antmedia.rest.VoDRestService;
 
@@ -52,12 +56,17 @@ import io.antmedia.rest.VoDRestService;
  *
  */
 @Entity("AppSettings")
-@Indexes({ @Index(fields = @Field("appName"))})
+@Indexes({ @Index(fields = @Field("appName"), options = @IndexOptions(unique = true, name="appName_unique_index"))})
 @PropertySource("/WEB-INF/red5-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AppSettings implements Serializable{
 
 	private static final long serialVersionUID = 1L;
+	
+	/**
+	 * @hidden
+	 */
+	private static final Logger logger = LoggerFactory.getLogger(AppSettings.class);
 
 	@JsonIgnore
 	@Id
@@ -1061,7 +1070,7 @@ public class AppSettings implements Serializable{
 	private int timeTokenPeriod = 60;	
 
 	/**
-	 * It can be event: or vod, Check HLS documentation for EXT-X-PLAYLIST-TYPE.
+	 * It can be event or vod, Check HLS documentation for EXT-X-PLAYLIST-TYPE.
 	 *
 	 */
 	@Value( "${hlsPlayListType:${"+SETTINGS_HLS_PLAY_LIST_TYPE+":}}" )
@@ -1171,8 +1180,8 @@ public class AppSettings implements Serializable{
 	 * Check for details: https://ffmpeg.org/ffmpeg-formats.html#Options-6
 	 * 
 	 */
-	@Value( "${hlsflags:${" + SETTINGS_HLS_FLAGS + ":delete_segments}}")
-	private String hlsflags="delete_segments";
+	@Value( "${hlsflags:${" + SETTINGS_HLS_FLAGS + ":delete_segments+program_date_time}}")
+	private String hlsflags="delete_segments+program_date_time";
 
 	private String mySqlClientPath = "/usr/local/antmedia/mysql";
 
@@ -1527,7 +1536,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * Specify the rtsp transport type in pulling IP Camera or RTSP sources
 	 * It can have string or integer values. 
-	 * One value can be given at a for as string. It can be udp, tcp udp_multicast, http, https
+	 * One value can be given at a time as string. It can be udp, tcp udp_multicast, http, https
 	 * Multiple values can be given at a time by OR operation 
 	 * udp -> 1 << 0 = 1
 	 * tcp -> 1 << 1 = 2
@@ -2042,12 +2051,6 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${id3TagEnabled:false}")
 	private boolean id3TagEnabled = false;
-
-	/**
-	 * Enables the SEI data for HLS
-	 */
-	@Value("${seiEnabled:false}")
-	private boolean seiEnabled = false;
 	
 	/**
 	 * Ant Media Server can get the audio level from incoming RTP Header in WebRTC streaming and send to the viewers.
@@ -2066,11 +2069,14 @@ public class AppSettings implements Serializable{
 	 * 
 	 * Ant Media Server sends audio level 5 times in a second
 	 */
-	@Value("${sendAudioLevelToViewers:true}")
-	private boolean sendAudioLevelToViewers = true;
-
-	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":true}}")
-	private boolean hwScalingEnabled = true;
+	@Value("${sendAudioLevelToViewers:false}")
+	private boolean sendAudioLevelToViewers = false;
+  
+  /**
+   * Enable/disable video frame scaling in GPU when there is an adaptive bitrate 
+   */
+	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":false}}")
+	private boolean hwScalingEnabled = false;
 
 	/**
 	 * Firebase Service Account Key JSON to send push notification
@@ -2140,6 +2146,43 @@ public class AppSettings implements Serializable{
 	@Value("${webhookPlayAuthUrl:}")
 	private String webhookPlayAuthUrl = "";
 
+	/**
+	 * Subfolder for the recording files (mp4 and webm)
+	 */
+	@Value("${recordingSubfolder:#{null}}")
+	private String recordingSubfolder;
+	
+	
+	/**
+	 * The content type that is used in the webhook POST request
+	 * It's added for backward compatibility. Default value is application/json.
+	 * 
+	 * Older version is using application/x-www-form-urlencoded as content type. 
+	 * If you don't want to change the content type, you can set this value to application/x-www-form-urlencoded     
+	 */
+	@Value("${webhookContentType:#{ T(org.apache.http.entity.ContentType).APPLICATION_JSON.getMimeType() }}")
+	private String webhookContentType = ContentType.APPLICATION_JSON.getMimeType();
+	
+	/*
+	 * The timeout in milliseconds for the ICE gathering process in WebRTC
+     * It's used especially in whip ingestion to return candidates in a short time
+	 */
+	@Value("${iceGatheringTimeoutMs:2000}")
+	private long iceGatheringTimeoutMs = 2000;
+	
+	
+
+	@Value("${customSettings:{}}")	
+	private JSONObject customSettings = new JSONObject();
+		
+		
+	public Object getCustomSetting(String key) {
+		return	customSettings.get(key);
+	}
+	
+	public void setCustomSetting(String key, Object value) {
+		customSettings.put(key, value);
+	}
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -2258,6 +2301,8 @@ public class AppSettings implements Serializable{
 	public void setWebRTCEnabled(boolean webRTCEnabled) {
 		this.webRTCEnabled = webRTCEnabled;
 	}
+	
+	
 
 	public static String encodersList2Str(List<EncoderSettings> encoderSettingsList) 
 	{
@@ -2571,6 +2616,7 @@ public class AppSettings implements Serializable{
 		aacEncodingEnabled=true;
 		ipFilterEnabled=true;
 		ingestingStreamLimit = -1;
+		recordingSubfolder = null;
 	}
 
 	public int getWebRTCPortRangeMax() {
@@ -3597,14 +3643,6 @@ public class AppSettings implements Serializable{
 		this.id3TagEnabled = id3TagEnabled;
 	}
 
-	public boolean isSeiEnabled() {
-		return seiEnabled;
-	}
-
-	public void setSeiEnabled(boolean seiEnabled) {
-		this.seiEnabled = seiEnabled;
-	}
-
 	public boolean isSendAudioLevelToViewers() {
 		return sendAudioLevelToViewers;
 	}
@@ -3729,5 +3767,38 @@ public class AppSettings implements Serializable{
 	public void setHlsSegmentType(String hlsSegmentType) {
 		this.hlsSegmentType = hlsSegmentType;
 	}
+
+	public String getRecordingSubfolder() {
+		return recordingSubfolder;
+	}
+
+	public void setRecordingSubfolder(String recordingSubfolder) {
+		this.recordingSubfolder = recordingSubfolder;
+	}
+
+	public String getWebhookContentType() {
+		return webhookContentType;
+	}
+
+	public void setWebhookContentType(String webhookContentType) {
+		this.webhookContentType = webhookContentType;
+	}
+
+	public long getIceGatheringTimeoutMs() {
+		return iceGatheringTimeoutMs;
+	}
+
+	public void setIceGatheringTimeoutMs(long iceGatheringTimeoutMs) {
+		this.iceGatheringTimeoutMs = iceGatheringTimeoutMs;
+	}
+
+	public JSONObject getCustomSettings() {
+		return customSettings;
+	}
+
+	public void setCustomSettings(JSONObject customSettings) {
+		this.customSettings = customSettings;
+	}
+
 
 }

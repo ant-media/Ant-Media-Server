@@ -102,10 +102,44 @@ get_password() {
   done
 }
 
+install_pkgs() {
+    if [ -f /etc/debian_version ]; then
+        sudo apt update -qq
+        sudo apt install -y jq dnsutils iptables
+    elif [ -f /etc/redhat-release ]; then
+        OS_VERSION=$(rpm -E %rhel)
+        pkgs="jq bind-utils iptables"
+        if [[ "$OS_VERSION" == "8" ]]; then
+            yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+        elif [[ "$OS_VERSION" == "9" ]]; then
+            yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+        else
+            exit 1
+        fi
+        sudo yum install -y $pkgs || sudo dnf install -y $pkgs
+    fi
+}
+
+install_pkgs
+
+# Check if there is a Container and install necessary packages
+is_docker_container() {
+    if [ -f /.dockerenv ]; then
+        return 0
+    fi
+
+    return 1
+}
+
 SUDO="sudo"
 if ! [ -x "$(command -v sudo)" ]; then
   SUDO=""
 fi
+
+if is_docker_container; then
+    SUDO=""
+fi
+
 
 output() {
   OUT=$?
@@ -135,15 +169,6 @@ wait_for_dns_validation() {
   done
 }
 
-# Install jq
-install_jq() {
-    if ! [ command -v jq &> /dev/null ]; then
-        sudo apt update -qq
-        sudo apt install -y jq
-    fi
-}
-
-install_jq
 
 fullChainFileExist=false
 if [ ! -z "$FULL_CHAIN_FILE" ] && [ -f "$FULL_CHAIN_FILE" ]; then
@@ -228,7 +253,7 @@ get_new_certificate(){
         $SUDO apt-get install certbot python3-certbot-dns-route53 -qq -y
         output
 
-      elif [ "$ID" == "centos" ] || [ "$ID" == "rocky" ] || [ "$ID" == "almalinux" ]; then
+      elif [ "$ID" == "centos" ] || [ "$ID" == "rocky" ] || [ "$ID" == "almalinux" ] || [ "$ID" == "rhel" ]; then
         $SUDO yum -y install epel-release
         $SUDO yum -y install certbot
         output
@@ -470,7 +495,11 @@ ipt_restore
 
 echo ""
 
-$SUDO service antmedia restart
+if is_docker_container; then
+    kill -HUP 1
+else
+    $SUDO service antmedia restart
+fi
 
 output
 

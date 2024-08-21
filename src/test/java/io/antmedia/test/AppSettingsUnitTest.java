@@ -21,6 +21,7 @@ import java.util.Queue;
 
 import org.apache.catalina.util.NetMask;
 import org.apache.commons.lang3.RandomUtils;
+import org.json.simple.JSONObject;
 import org.junit.Test;
 import org.red5.server.scope.WebScope;
 import org.springframework.test.annotation.DirtiesContext;
@@ -291,7 +292,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("secretpublish", appSettings.getTimeTokenSecretForPublish());
 
 		
-		assertEquals(true, appSettings.isHwScalingEnabled());
+		assertEquals(false, appSettings.isHwScalingEnabled());
 		appSettings.setHwScalingEnabled(false);
 		assertEquals(false, appSettings.isHwScalingEnabled());
 
@@ -322,6 +323,24 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		String webhookPlayAuthUrl = "playAuthUrl";
 		appSettings.setWebhookPlayAuthUrl(webhookPlayAuthUrl);
 		assertEquals(webhookPlayAuthUrl, appSettings.getWebhookPlayAuthUrl());
+
+		String recordinfSubFolder = "subfolder";
+		appSettings.setRecordingSubfolder(recordinfSubFolder);
+		assertEquals(recordinfSubFolder, appSettings.getRecordingSubfolder());
+		
+		
+		assertNull(appSettings.getCustomSetting("test"));
+		appSettings.setCustomSetting("test", "hello");
+		assertEquals("hello", appSettings.getCustomSetting("test"));
+		
+		
+		JSONObject customFields = new JSONObject();
+		customFields.put("test2", "hello2");
+		appSettings.setCustomSettings(customFields);
+		assertEquals("hello2", appSettings.getCustomSetting("test2"));
+		assertNull(appSettings.getCustomSetting("test"));
+
+
 
 	}
 	
@@ -379,7 +398,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("", appSettings.getStalkerDBUsername());
 		assertEquals("", appSettings.getStalkerDBPassword());
 		assertEquals(0, appSettings.getStreamFetcherBufferTime());
-		assertEquals("delete_segments", appSettings.getHlsflags());
+		assertEquals("delete_segments+program_date_time", appSettings.getHlsflags());
 		assertEquals("/usr/local/antmedia/mysql", appSettings.getMySqlClientPath());
 		assertEquals(false, appSettings.isPlayTokenControlEnabled());
 		assertEquals(false, appSettings.isTimeTokenSubscriberOnly());
@@ -532,11 +551,11 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(150, appSettings.getAbrUpScaleRTTMs(), 0.0001);
 		assertNotNull(appSettings.getClusterCommunicationKey());
 		assertEquals(false, appSettings.isId3TagEnabled());
-		assertEquals(true, appSettings.isSendAudioLevelToViewers());
+		assertEquals(false, appSettings.isSendAudioLevelToViewers());
 		assertNull(appSettings.getTimeTokenSecretForPublish());
 		assertNull(appSettings.getTimeTokenSecretForPlay());
 
-        assertTrue(appSettings.isHwScalingEnabled());
+        assertFalse(appSettings.isHwScalingEnabled());
 
 		assertNotNull(appSettings.getSubscriberAuthenticationKey());
 		assertNull(appSettings.getFirebaseAccountKeyJSON());
@@ -547,7 +566,6 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertEquals(0, appSettings.getWebhookRetryCount());
 		assertEquals(1000, appSettings.getWebhookRetryDelay());
-		assertEquals(false, appSettings.isSeiEnabled());
 		
 
 		assertFalse(appSettings.isSecureAnalyticEndpoint());
@@ -556,12 +574,22 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(appSettings.isWebhookPlayAuthEnabled());
 		assertEquals("", appSettings.getWebhookPlayAuthUrl());
 
+		assertNull(appSettings.getRecordingSubfolder());
+		assertEquals("application/json", appSettings.getWebhookContentType());
+
+        assertEquals(2000, appSettings.getIceGatheringTimeoutMs());
+        
+        assertEquals("{}",appSettings.getCustomSettings().toJSONString());
+        
+        
+
+
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					181, numberOfFields);
+					184, numberOfFields);
 
 		
 	}

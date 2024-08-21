@@ -99,6 +99,28 @@
 	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/(ffmpeg|cuda).*@.*$</packageUrl>
 	   <cve>CVE-2023-34112</cve>
 	</suppress>
-
-	
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-5.1.2-1.5.8.jar,ffmpeg-platform-5.1.2-1.5.8.jar, ffmpeg-5.1.2-1.5.8-linux-x86.jar
+	   This vulnerability is about using mpegvideoencoder. We don't use mpegvideo encoder in our end
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/(ffmpeg|cuda).*@.*$</packageUrl>
+	   <cve>CVE-2024-32230</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: ffmpeg-5.1.2-1.5.8.jar,ffmpeg-platform-5.1.2-1.5.8.jar, ffmpeg-5.1.2-1.5.8-linux-x86.jar
+	   This vulnerability is about using mpegvideoencoder. We don't use mpegvideo encoder in our end
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.bytedeco/(ffmpeg|cuda).*@.*$</packageUrl>
+	   <cve>CVE-2024-32229</cve>
+	</suppress>
+	<suppress>
+	   <notes><![CDATA[
+	   file name: tomcat-coyote-10.1.19.jar
+	   This vulnerability is about Tomcat fails to handle some cases of excessive HTTP headers correctly. We don't have problem with our headers in our end
+	   ]]></notes>
+	   <packageUrl regex="true">^pkg:maven/org\.apache\.tomcat/tomcat-coyote@10\.1\.19$</packageUrl>
+	   <cve>CVE-2024-34750</cve>
+	</suppress>
 </suppressions>

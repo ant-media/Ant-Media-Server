@@ -13,7 +13,7 @@ import io.antmedia.settings.ServerSettings;
 import io.antmedia.test.StreamFetcherUnitTest;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.tika.utils.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.awaitility.Awaitility;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -438,7 +438,7 @@ public class FrontEndTest {
 			assertNotNull(broadcast);
 
 			Process rtmpSendingProcess = execute(ffmpegPath
-					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://localhost/LiveApp/"
+					+ " -re -i src/test/resources/test.flv  -codec copy -f flv rtmp://127.0.0.1/LiveApp/"
 					+ broadcast.getStreamId());
 
 			LoggingPreferences logPrefs = new LoggingPreferences();
