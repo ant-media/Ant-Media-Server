@@ -1006,7 +1006,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testShoutcastSource() {
 		logger.info("running testShoutcastSource");
 		//test Southcast Source - http://sc13.shoutcaststreaming.us/
-		testFetchStreamSources("http://107.181.227.250:8526/stream/1/", false, false);
+		//http://107.181.227.250:8526/stream/1/
+		testFetchStreamSources("http://icecast.rte.ie/ieradio1", false, false);
 		logger.info("leaving testShoutcastSource");
 	}
 
