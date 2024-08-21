@@ -47,6 +47,7 @@ import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.javacpp.BytePointer;
+import org.json.simple.JSONObject;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamFilenameGenerator;
@@ -1444,4 +1445,9 @@ public abstract class Muxer {
 	public long getAudioNotWrittenCount() {
         return audioNotWrittenCount;
     }
+
+	public void writeMetaData(String data, long dts) {
+		//some subclasses may override this method such as HLS
+		
+	}
 }
