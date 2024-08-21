@@ -116,6 +116,7 @@
 					<property name="pattern" value="common" />
 					<property name="rotatable" value="true" />
 					<property name="requestAttributesEnabled" value="true" />
+					<property name="fileDateFormat" value="" />
 				</bean>
 				<bean class="io.antmedia.valves.DataTransferValve" >
 					<property name="asyncSupported" value="true" />
