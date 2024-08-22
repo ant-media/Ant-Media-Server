@@ -1040,6 +1040,7 @@ public abstract class RestServiceBase {
 				url.startsWith("https://") ||
 				url.startsWith("rtmp://") ||
 				url.startsWith("rtmps://") ||
+				url.startsWith("rtsps://") ||
 				url.startsWith(RTSP) ||
 				url.startsWith("udp://") ||
 				url.startsWith("srt://")
