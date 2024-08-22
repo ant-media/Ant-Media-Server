@@ -18,6 +18,7 @@ import static org.bytedeco.ffmpeg.global.avutil.av_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_malloc;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -61,6 +62,7 @@ import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IBroadcastStream;
 import org.red5.server.api.stream.IStreamCapableConnection;
 import org.red5.server.api.stream.IStreamPacket;
+import org.red5.server.net.rtmp.event.AudioData;
 import org.red5.server.net.rtmp.event.CachedEvent;
 import org.red5.server.net.rtmp.event.Notify;
 import org.red5.server.net.rtmp.event.VideoData;
@@ -1058,6 +1060,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return dataStore;
 	}
 
+	/**
+	 * This is the entrance points for the packet coming from the RTMP stream. 
+	 * It's directly used in EncoderAdaptor in Enterprise
+	 * 
+	 * We override the videoBufferReceived, audioBufferReceived, and notifyDataReceived methods to handle the packets in EncoderAdaptor
+	 * 
+	 * @param packet
+	 */
 	public void writeStreamPacket(IStreamPacket packet) 
 	{
 		long dts = Integer.toUnsignedLong(packet.getTimestamp());
@@ -1092,7 +1102,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			if (videoData.isExVideoHeader()) 
 			{
 				//handle composition time offset 
-
 				// https://veovera.org/docs/enhanced/enhanced-rtmp-v2.pdf
 
 				if (videoData.getExVideoPacketType() == ExVideoPacketType.CODED_FRAMES) {
@@ -1132,15 +1141,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			byteBuffer.put(packet.getData().buf().position(offset));
 
 
-			synchronized (muxerList) 
-			{
-				packetFeeder.writeVideoBuffer(byteBuffer, dts, 0, videoStreamIndex, isKeyFrame, 0, pts);
-
-				for (Muxer muxer : muxerList) 
-				{
-					muxer.writeVideoBuffer(byteBuffer, dts, 0, videoStreamIndex, isKeyFrame, 0, pts);
-				}
-			}
+			videoBufferReceived(dts, isKeyFrame, pts, byteBuffer);
 
 
 		}
@@ -1163,36 +1164,57 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			logger.trace("writeAudioBuffer video data packet timestamp:{} and packet timestamp:{} streamId:{}", dts, packet.getTimestamp(), streamId);
 
 
-			synchronized (muxerList) 
-			{
-				packetFeeder.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
-
-				for (Muxer muxer : muxerList) 
-				{
-					muxer.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
-				}
-			}
+			audioBufferReceived(dts, byteBuffer);
 
 		}
 		else if (packet.getDataType() == Constants.TYPE_NOTIFY) {
 
 			//it can be onMetadata or it can be onFI action
 
-
-			JSONObject jsonObject = getMetaData((Notify) packet);
-
-			if (jsonObject != null) {
-				String data = jsonObject.toJSONString();
-				synchronized (muxerList) 
-				{
-					for (Muxer muxer : muxerList) 
-					{
-						muxer.writeMetaData(data, dts);
-					}
-				}
+			if (appSettings.isRelayRTMPMetaDataToMuxers()) {
+				notifyDataReceived(packet, dts);
 			}
 			//FYI: action can be "onFI" to deliver timecode 
 
+		}
+	}
+
+	public void notifyDataReceived(IStreamPacket packet, long dts) {
+		JSONObject jsonObject = getMetaData((Notify) packet);
+
+		if (jsonObject != null) {
+			String data = jsonObject.toJSONString();
+			synchronized (muxerList) 
+			{
+				for (Muxer muxer : muxerList) 
+				{
+					muxer.writeMetaData(data, dts);
+				}
+			}
+		}
+	}
+
+	public void audioBufferReceived(long dts, ByteBuffer byteBuffer) {
+		synchronized (muxerList) 
+		{
+			packetFeeder.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
+
+			for (Muxer muxer : muxerList) 
+			{
+				muxer.writeAudioBuffer(byteBuffer, audioStreamIndex, dts);
+			}
+		}
+	}
+
+	public void videoBufferReceived(long dts, boolean isKeyFrame, long pts, ByteBuffer byteBuffer) {
+		synchronized (muxerList) 
+		{
+			packetFeeder.writeVideoBuffer(byteBuffer, dts, 0, videoStreamIndex, isKeyFrame, 0, pts);
+
+			for (Muxer muxer : muxerList) 
+			{
+				muxer.writeVideoBuffer(byteBuffer, dts, 0, videoStreamIndex, isKeyFrame, 0, pts);
+			}
 		}
 	}
 
@@ -1217,16 +1239,13 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			byte readDataType = input.readDataType();
 			if (readDataType == DataTypes.CORE_MAP) {
 				Map<Object, Object> readMap =  (Map<Object, Object>) input.readMap();
-
-				//log the each items in the map
-				for (Entry<Object, Object> entry : readMap.entrySet()) {
-					logger.info("metadata key -->>>> " + entry.getKey() + " value -->>>> " + entry.getValue());
-				}
+			
+				logger.info("metadata read from streamId: {} -> {}  " , streamId, readMap.toString());
 
 				return new JSONObject(readMap);			    
 			}
 			else {
-				logger.info("metadata read data type -->>>> " + readDataType);
+				logger.debug("metadata read data type -->>>> " + readDataType);
 			}
 		}
 		return null;
@@ -1887,7 +1906,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	@Override
-	public void packetReceived(IBroadcastStream stream, IStreamPacket packet)
+	public void packetReceived(IBroadcastStream stream, IStreamPacket packet) 
 	{
 
 		lastFrameTimestamp = packet.getTimestamp();
@@ -1909,20 +1928,35 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		queueSize.incrementAndGet();
 
 
-		CachedEvent event = new CachedEvent();
-		event.setData(packet.getData().duplicate());
-		event.setDataType(packet.getDataType());
-		event.setReceivedTime(System.currentTimeMillis());
-		event.setTimestamp(packet.getTimestamp());
+		if (packet instanceof VideoData || packet instanceof AudioData) {
 
-		if (packet instanceof VideoData) {
-			VideoData comingVideoData = (VideoData) packet;
-			event.setExVideoHeader(comingVideoData.isExVideoHeader());
-			event.setExVideoPacketType(comingVideoData.getExVideoPacketType());
-			event.setFrameType(comingVideoData.getFrameType());
+
+
+			CachedEvent event = new CachedEvent();
+			event.setData(packet.getData().duplicate());
+			event.setDataType(packet.getDataType());
+			event.setReceivedTime(System.currentTimeMillis());
+			event.setTimestamp(packet.getTimestamp());
+
+			if (packet instanceof VideoData) {
+				VideoData comingVideoData = (VideoData) packet;
+				event.setExVideoHeader(comingVideoData.isExVideoHeader());
+				event.setExVideoPacketType(comingVideoData.getExVideoPacketType());
+				event.setFrameType(comingVideoData.getFrameType());
+			}
+			
+			streamPacketQueue.add(event);
+		}
+		else if (packet instanceof Notify)  {
+			try {
+				streamPacketQueue.add(((Notify)packet).duplicate());
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			} 
+		
 		}
 
-		streamPacketQueue.add(event);
+		
 
 	}
 
