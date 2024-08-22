@@ -1928,7 +1928,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		queueSize.incrementAndGet();
 
 
-		if (packet instanceof VideoData || packet instanceof AudioData) {
+		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA || packet.getDataType() == Constants.TYPE_AUDIO_DATA) {
 
 
 
