@@ -343,7 +343,12 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		
 		appSettings.setRelayRTMPMetaDataToMuxers(true);
+		assertTrue(appSettings.isRelayRTMPMetaDataToMuxers());
+		
+		appSettings.setRelayRTMPMetaDataToMuxers(false);
 		assertFalse(appSettings.isRelayRTMPMetaDataToMuxers());
+
+
 
 
 
