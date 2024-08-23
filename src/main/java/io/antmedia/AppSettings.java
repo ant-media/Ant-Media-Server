@@ -30,6 +30,7 @@ import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.IndexOptions;
 import dev.morphia.annotations.Indexes;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.VoDRestService;
 
 /**
@@ -2174,7 +2175,25 @@ public class AppSettings implements Serializable{
 
 	@Value("${customSettings:{}}")	
 	private JSONObject customSettings = new JSONObject();
+	
+	/**
+	 * Relay RTMP metadata to muxers. It's true by default
+	 * RTMP can have metadata and it can be used for playback synchronization.
+	 * 
+	 * If it's true, Ant Media Server relays the metadata to muxers. 
+	 * Currently, HLSMuxer supports this feature through {@link Muxer#writeMetaData(String, long)}
+	 */
+	@Value("${relayRTMPMetaDataToMuxers:true}")	
+	private boolean relayRTMPMetaDataToMuxers = true;
 		
+	/**
+	 * Drop webrtc ingest if no packet received. It's true by default
+	 * It checks the audio packets in the WebRTC ingest stream. 
+	 * If no audio packet is received in the {@link #webRTCClientStartTimeoutMs}, it drops the stream.
+	 * 
+	 */
+	@Value("${dropWebRTCIngestIfNoAudioReceived:true}")
+	private boolean dropWebRTCIngestIfNoAudioReceived = true;
 		
 	public Object getCustomSetting(String key) {
 		return	customSettings.get(key);
@@ -3798,6 +3817,34 @@ public class AppSettings implements Serializable{
 
 	public void setCustomSettings(JSONObject customSettings) {
 		this.customSettings = customSettings;
+	}
+
+	/**
+	 * @return the relayRTMPMetaDataToMuxers
+	 */
+	public boolean isRelayRTMPMetaDataToMuxers() {
+		return relayRTMPMetaDataToMuxers;
+	}
+
+	/**
+	 * @param relayRTMPMetaDataToMuxers the relayRTMPMetaDataToMuxers to set
+	 */
+	public void setRelayRTMPMetaDataToMuxers(boolean relayRTMPMetaDataToMuxers) {
+		this.relayRTMPMetaDataToMuxers = relayRTMPMetaDataToMuxers;
+	}
+
+	/**
+	 * @return the dropWebRTCIngestIfNoAudioReceived
+	 */
+	public boolean isDropWebRTCIngestIfNoAudioReceived() {
+		return dropWebRTCIngestIfNoAudioReceived;
+	}
+
+	/**
+	 * @param dropWebRTCIngestIfNoAudioReceived the dropWebRTCIngestIfNoAudioReceived to set
+	 */
+	public void setDropWebRTCIngestIfNoAudioReceived(boolean dropWebRTCIngestIfNoAudioReceived) {
+		this.dropWebRTCIngestIfNoAudioReceived = dropWebRTCIngestIfNoAudioReceived;
 	}
 
 
