@@ -347,6 +347,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		
 		appSettings.setRelayRTMPMetaDataToMuxers(false);
 		assertFalse(appSettings.isRelayRTMPMetaDataToMuxers());
+		
+		appSettings.setDropWebRTCIngestIfNoAudioReceived(false);
+        assertFalse(appSettings.isDropWebRTCIngestIfNoAudioReceived());
+
 
 
 
@@ -593,6 +597,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
         
         assertTrue(appSettings.isRelayRTMPMetaDataToMuxers());
         
+        assertTrue(appSettings.isDropWebRTCIngestIfNoAudioReceived());
+        
         
 
 
@@ -601,7 +607,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					185, numberOfFields);
+					186, numberOfFields);
 
 		
 	}
