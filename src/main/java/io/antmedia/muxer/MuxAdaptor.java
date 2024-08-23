@@ -1225,17 +1225,8 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if ("onMetaData".equals(action)) {
 			// store the metadata
 
-			Input input = new org.red5.io.amf.Input(notifyEvent.getData());
-			byte object = input.readDataType();
-			if (object == DataTypes.CORE_SWITCH) {
+			Input input = getInput(notifyEvent);
 
-				input = new org.red5.io.amf3.Input(notifyEvent.getData());
-				((org.red5.io.amf3.Input) input).enforceAMF3();
-				// re-read data type after switching decode
-				object = input.readDataType();
-			}
-
-			String actionOnFI = input.readString();
 			byte readDataType = input.readDataType();
 			if (readDataType == DataTypes.CORE_MAP) {
 				Map<Object, Object> readMap =  (Map<Object, Object>) input.readMap();
@@ -1249,6 +1240,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 		}
 		return null;
+	}
+
+	public Input getInput(Notify notifyEvent) {
+		Input input = new org.red5.io.amf.Input(notifyEvent.getData());
+		if (input.readDataType() == DataTypes.CORE_SWITCH) {
+
+			input = new org.red5.io.amf3.Input(notifyEvent.getData());
+			((org.red5.io.amf3.Input) input).enforceAMF3();
+		}
+		return input;
 	}
 
 
@@ -1946,13 +1947,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			queueSize.incrementAndGet();
 
 		}
-		else if (packet.getDataType() == Constants.TYPE_STREAM_METADATA) {
-			
+		else if (packet instanceof Notify) 
+		{	
 			try 
 			{
 				streamPacketQueue.add(((Notify)packet).duplicate());
 				queueSize.incrementAndGet();
-
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			} 
