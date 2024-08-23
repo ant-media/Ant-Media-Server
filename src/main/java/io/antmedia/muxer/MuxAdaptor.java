@@ -1927,7 +1927,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 
-		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA || packet.getDataType() == Constants.TYPE_AUDIO_DATA || packet.getDataType() == Constants.TYPE_STREAM_METADATA) {
+		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA || packet.getDataType() == Constants.TYPE_AUDIO_DATA) {
 
 			CachedEvent event = new CachedEvent();
 			event.setData(packet.getData().duplicate());
@@ -1945,6 +1945,18 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			streamPacketQueue.add(event);
 			queueSize.incrementAndGet();
 
+		}
+		else if (packet.getDataType() == Constants.TYPE_STREAM_METADATA) {
+			
+			try 
+			{
+				streamPacketQueue.add(((Notify)packet).duplicate());
+				queueSize.incrementAndGet();
+
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			} 
+			
 		}
 		else {
 			logger.debug("Packet type:{} is not supported for stream: {}", streamId, packet.getDataType());
