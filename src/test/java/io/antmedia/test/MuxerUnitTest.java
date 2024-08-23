@@ -3588,6 +3588,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 		}
 	}
+	
+
 
 	@Test
 	public void testWriteStreamPacketHEVC() {
@@ -3608,15 +3610,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		CachedEvent event = new CachedEvent();
 		event.setDataType(IoConstants.TYPE_VIDEO);
 		event.setExVideoHeader(true);
-		event.setReceivedTime(System.currentTimeMillis());
-		int timestamp = (int)System.currentTimeMillis();
-		event.setTimestamp(timestamp);
+		event.setReceivedTime(1000);
+		long timestamp = 1000;
+		event.setTimestamp((int)timestamp);
 		event.setData(IoBuffer.allocate(1000));
 		event.setExVideoPacketType(ExVideoPacketType.CODED_FRAMES);
 
 		//assume that this decoder configuration file
 		muxAdaptor.writeStreamPacket(event);
-
 
 		muxAdaptor.writeStreamPacket(event);
 
@@ -3636,7 +3637,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		event.setReceivedTime(System.currentTimeMillis());
 		event.setData(IoBuffer.allocate(500));
 		timestamp += 50;
-		event.setTimestamp(timestamp);
+		event.setTimestamp((int)timestamp);
 		event.setExVideoPacketType(ExVideoPacketType.CODED_FRAMESX);
 
 		muxAdaptor.writeStreamPacket(event);
@@ -3656,7 +3657,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		event.setReceivedTime(System.currentTimeMillis());
 		event.setData(IoBuffer.allocate(1000));
 		timestamp += 50;
-		event.setTimestamp(timestamp);
+		event.setTimestamp((int)timestamp);
 
 		muxAdaptor.writeStreamPacket(event);
 
