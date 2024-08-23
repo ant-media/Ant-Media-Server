@@ -1231,9 +1231,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			if (readDataType == DataTypes.CORE_MAP) {
 				Map<Object, Object> readMap =  (Map<Object, Object>) input.readMap();
 			
-				logger.info("metadata read from streamId: {} -> {}  " , streamId, readMap.toString());
-
-				return new JSONObject(readMap);			    
+				logger.info("metadata read from streamId: {} -> {}  " , streamId, readMap);
+				if (readMap != null && !readMap.isEmpty()) {
+					return new JSONObject(readMap);
+				}
 			}
 			else {
 				logger.debug("metadata read data type -->>>> " + readDataType);

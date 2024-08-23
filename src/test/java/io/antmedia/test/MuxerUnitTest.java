@@ -1194,6 +1194,32 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertNull(hlsMuxer.getBitStreamFilter());
 	}
+	
+
+	
+	@Test
+	public void testHLSID3TagEnabled() {
+		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false));
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		hlsMuxer.init(appScope, "test", 0, "", 100);
+		
+		AVCodecContext codecContext = new AVCodecContext();
+		codecContext.width(640);
+		codecContext.height(480);
+		codecContext.codec_id(AV_CODEC_ID_H264);
+
+		boolean addStream = hlsMuxer.addStream(null, codecContext, 0);
+		
+		hlsMuxer.setId3Enabled(false);
+		
+		hlsMuxer.writeMetaData("hello", 0);
+		
+		//it should not write id3 tag
+		Mockito.verify(hlsMuxer, never()).writeDataFrame(any(), any());
+		
+		hlsMuxer.writeTrailer();
+		
+	}
 
 	@Test
 	public void testAVWriteFrame() {
@@ -4193,6 +4219,54 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		return datastore;
 	}
 
+	@Test
+	public void testNotifyMetadata() {
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+		clientBroadcastStream.setCodecInfo(info);
+		
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+
+		MuxAdaptor muxAdaptor = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope));
+		
+		Notify notify = mock(Notify.class);
+		when(notify.getData()).thenReturn(IoBuffer.allocate(100));
+		when(notify.getAction()).thenReturn("NOT_onMetaData");
+		
+		Muxer muxer = mock(Muxer.class);
+		muxAdaptor.addMuxer(muxer, 0);
+		
+		muxAdaptor.notifyMetaDataReceived(notify, 0);
+		
+		//verify that it's not called because action is not onMetaData
+		verify(muxer, never()).writeMetaData(anyString(), anyLong());
+		
+		
+		when(notify.getAction()).thenReturn("onMetaData");
+		muxAdaptor.notifyMetaDataReceived(notify, 0);
+		//verify that it's not called because data type is not as expected
+		verify(muxer, never()).writeMetaData(anyString(), anyLong());
+		
+		Input input = mock(Input.class);
+		when(input.readDataType()).thenReturn(DataTypes.CORE_MAP);
+		doReturn(input).when(muxAdaptor).getInput(any());
+		muxAdaptor.notifyMetaDataReceived(notify, 0);
+		verify(muxer, never()).writeMetaData(anyString(), anyLong());
+
+		
+		when(input.readMap()).thenReturn(new HashMap<>());
+		muxAdaptor.notifyMetaDataReceived(notify, 0);
+		verify(muxer, never()).writeMetaData(anyString(), anyLong());
+		
+		Map<String, String> map = new HashMap<>();
+		map.put("streamId", "streamId");
+		map.put("name", "streamId");
+		when(input.readMap()).thenReturn(map);
+		muxAdaptor.notifyMetaDataReceived(notify, 0);
+		verify(muxer, times(1)).writeMetaData(anyString(), anyLong());
+		
+	}
+	
 	@Test
 	public void testRelayRTMPMetadata() {
 

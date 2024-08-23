@@ -278,10 +278,6 @@ public class HLSMuxer extends Muxer  {
 	}
 
 	public synchronized void addID3Data(String data) {
-		if (!id3Enabled) {
-			logger.info("ID3 tag is disabled for stream:{}", streamId);
-			return;
-		}
 		
 		
 		int id3TagSize = data.length() + 3; // TXXX frame size (excluding 10 byte header)
@@ -313,6 +309,10 @@ public class HLSMuxer extends Muxer  {
 
 	public synchronized void writeID3Packet(ByteBuffer data)
 	{
+		if (!id3Enabled) {
+			logger.info("ID3 tag is disabled for stream:{}", streamId);
+			return;
+		}
 		//use the last send video pts as the pts of data
 		long pts = getLastPts();
 		id3DataPkt.pts(pts);
