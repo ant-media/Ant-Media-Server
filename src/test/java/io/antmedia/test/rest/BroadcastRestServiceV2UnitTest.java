@@ -3694,4 +3694,11 @@ public class BroadcastRestServiceV2UnitTest {
 		assertNotEquals(totp4, totp3);
 
 	}
+
+	@Test
+	public void testCheckURL() {
+		assertTrue(restServiceReal.checkStreamUrl("rtsps://something"));
+		assertFalse(restServiceReal.checkStreamUrl("dummy://something"));
+	}
+
 }
