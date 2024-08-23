@@ -268,8 +268,17 @@ public class HLSMuxer extends Muxer  {
 		}
 
 	}
+	
+	/**
+	 * We write metadata as ID3 tag for HLS Muxer
+	 */
+	@Override
+	public synchronized void writeMetaData(String data, long dts) {
+		addID3Data(data);
+	}
 
 	public synchronized void addID3Data(String data) {
+		
 		
 		int id3TagSize = data.length() + 3; // TXXX frame size (excluding 10 byte header)
 		int tagSize = id3TagSize + 10;
@@ -300,6 +309,10 @@ public class HLSMuxer extends Muxer  {
 
 	public synchronized void writeID3Packet(ByteBuffer data)
 	{
+		if (!id3Enabled) {
+			logger.info("ID3 tag is disabled for stream:{}", streamId);
+			return;
+		}
 		//use the last send video pts as the pts of data
 		long pts = getLastPts();
 		id3DataPkt.pts(pts);
