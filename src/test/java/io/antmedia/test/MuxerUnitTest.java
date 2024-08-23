@@ -4299,7 +4299,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 				if (packetNumber == 40000) {
 					logger.info("----input queue size: {}", muxAdaptor.getInputQueueSize());
-					Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> muxAdaptor.getInputQueueSize() == 0);
+					Awaitility.await().atMost(90, TimeUnit.SECONDS).until(() -> 
+					{ 
+						logger.info("----> input queue size: {}", muxAdaptor.getInputQueueSize());
+						return muxAdaptor.getInputQueueSize() == 0 ;
+					});
 					logger.info("----input queue size: {}", muxAdaptor.getInputQueueSize());
 					startOfRecordingTimeStamp = streamPacket.getTimestamp();
 					assertTrue(muxAdaptor.startRecording(RecordType.MP4, 0) != null);

@@ -1167,19 +1167,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			audioBufferReceived(dts, byteBuffer);
 
 		}
-		else if (packet.getDataType() == Constants.TYPE_NOTIFY) {
+		else if (packet.getDataType() == Constants.TYPE_STREAM_METADATA) {
 
 			//it can be onMetadata or it can be onFI action
 
 			if (appSettings.isRelayRTMPMetaDataToMuxers()) {
-				notifyDataReceived(packet, dts);
+				notifyMetaDataReceived(packet, dts);
 			}
 			//FYI: action can be "onFI" to deliver timecode 
 
 		}
 	}
 
-	public void notifyDataReceived(IStreamPacket packet, long dts) {
+	public void notifyMetaDataReceived(IStreamPacket packet, long dts) {
 		JSONObject jsonObject = getMetaData((Notify) packet);
 
 		if (jsonObject != null) {
@@ -1925,12 +1925,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 
 
-		queueSize.incrementAndGet();
 
 
-		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA || packet.getDataType() == Constants.TYPE_AUDIO_DATA) {
-
-
+		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA || packet.getDataType() == Constants.TYPE_AUDIO_DATA || packet.getDataType() == Constants.TYPE_STREAM_METADATA) {
 
 			CachedEvent event = new CachedEvent();
 			event.setData(packet.getData().duplicate());
@@ -1946,14 +1943,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 			
 			streamPacketQueue.add(event);
+			queueSize.incrementAndGet();
+
 		}
-		else if (packet instanceof Notify)  {
-			try {
-				streamPacketQueue.add(((Notify)packet).duplicate());
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			} 
-		
+		else {
+			logger.debug("Packet type:{} is not supported for stream: {}", streamId, packet.getDataType());
 		}
 
 		
