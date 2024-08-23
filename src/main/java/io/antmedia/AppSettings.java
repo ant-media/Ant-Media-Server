@@ -2187,13 +2187,13 @@ public class AppSettings implements Serializable{
 	private boolean relayRTMPMetaDataToMuxers = true;
 		
 	/**
-	 * Drop webrtc ingest if no packet received. It's true by default
-	 * It checks the audio packets in the WebRTC ingest stream. 
-	 * If no audio packet is received in the {@link #webRTCClientStartTimeoutMs}, it drops the stream.
+	 * Drop webrtc ingest if no packet received. It's false by default because video or audio may be disabled in the stream
+	 * It checks the audio/video packets in the WebRTC ingest stream. 
+	 * If no audio or video packets is received in the {@link #webRTCClientStartTimeoutMs}, it drops the stream.
 	 * 
 	 */
-	@Value("${dropWebRTCIngestIfNoAudioReceived:true}")
-	private boolean dropWebRTCIngestIfNoAudioReceived = true;
+	@Value("${dropWebRTCIngestIfNoPacketReceived:false}")
+	private boolean dropWebRTCIngestIfNoPacketReceived = false;
 		
 	public Object getCustomSetting(String key) {
 		return	customSettings.get(key);
@@ -3834,18 +3834,19 @@ public class AppSettings implements Serializable{
 	}
 
 	/**
-	 * @return the dropWebRTCIngestIfNoAudioReceived
+	 * @return the dropWebRTCIngestIfNoPacketReceived
 	 */
-	public boolean isDropWebRTCIngestIfNoAudioReceived() {
-		return dropWebRTCIngestIfNoAudioReceived;
+	public boolean isDropWebRTCIngestIfNoPacketReceived() {
+		return dropWebRTCIngestIfNoPacketReceived;
 	}
 
 	/**
-	 * @param dropWebRTCIngestIfNoAudioReceived the dropWebRTCIngestIfNoAudioReceived to set
+	 * @param dropWebRTCIngestIfNoPacketReceived the dropWebRTCIngestIfNoPacketReceived to set
 	 */
-	public void setDropWebRTCIngestIfNoAudioReceived(boolean dropWebRTCIngestIfNoAudioReceived) {
-		this.dropWebRTCIngestIfNoAudioReceived = dropWebRTCIngestIfNoAudioReceived;
+	public void setDropWebRTCIngestIfNoPacketReceived(boolean dropWebRTCIngestIfNoPacketReceived) {
+		this.dropWebRTCIngestIfNoPacketReceived = dropWebRTCIngestIfNoPacketReceived;
 	}
+
 
 
 }
