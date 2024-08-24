@@ -1017,9 +1017,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 	public void runScript(String scriptFile) {
-		vertx.executeBlocking(future -> {
+		vertx.executeBlocking(() -> {
 			try {
-				logger.info("running muxer finish script: {}", scriptFile);
+				logger.info("running script: {}", scriptFile);
 				Process exec = Runtime.getRuntime().exec(scriptFile);
 				int result = exec.waitFor();
 
@@ -1030,9 +1030,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				logger.error(ExceptionUtils.getStackTrace(e));
 				Thread.currentThread().interrupt();
 			}
-			future.complete();
+			
+			return null;
 
-		}, null);
+		}, false);
 	}
 
 	public static String getRelativePath(String filePath){

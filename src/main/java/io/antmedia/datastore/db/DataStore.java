@@ -175,6 +175,8 @@ public abstract class DataStore {
 	public abstract boolean delete(String id);
 
 	public abstract boolean deleteVod(String id);
+	
+	public abstract boolean updateVoDProcessStatus(String id, String status);
 
 	/**
 	 * Returns the Broadcast List in order
