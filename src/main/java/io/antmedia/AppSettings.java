@@ -2189,7 +2189,7 @@ public class AppSettings implements Serializable{
 	/**
 	 * Drop webrtc ingest if no packet received. It's false by default because video or audio may be disabled in the stream
 	 * It checks the audio/video packets in the WebRTC ingest stream. 
-	 * If no audio or video packets is received in the {@link #webRTCClientStartTimeoutMs}, it drops the stream.
+	 * If no audio or no video packets are received in the {@link #webRTCClientStartTimeoutMs}, it drops the stream.
 	 * 
 	 */
 	@Value("${dropWebRTCIngestIfNoPacketReceived:false}")

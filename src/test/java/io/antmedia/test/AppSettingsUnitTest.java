@@ -349,7 +349,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertFalse(appSettings.isRelayRTMPMetaDataToMuxers());
 		
 		appSettings.setDropWebRTCIngestIfNoPacketReceived(true);
-        assertFalse(appSettings.isDropWebRTCIngestIfNoPacketReceived());
+        assertTrue(appSettings.isDropWebRTCIngestIfNoPacketReceived());
 
 
 
