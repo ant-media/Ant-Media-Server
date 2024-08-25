@@ -358,7 +358,7 @@ public class VoDRestServiceV2UnitTest {
 	public void testUploadVoDfileNameAndResource() throws IOException {
 		VoDRestService streamSourceRest2 = Mockito.spy(restServiceReal);
 
-		MapDBStore datastore = spy(new MapDBStore("datastore", vertx));
+		MapDBStore datastore = spy(new MapDBStore("testUploadVoDfileNameAndResource", vertx));
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "junit";
@@ -402,6 +402,8 @@ public class VoDRestServiceV2UnitTest {
 			result = streamSourceRest2.uploadVoDFile(fileName, inputStream);
 			assertFalse(result.isSuccess());
 		}
+		
+		datastore.close(true);
 
 	}
 
@@ -410,7 +412,7 @@ public class VoDRestServiceV2UnitTest {
 
 		VoDRestService streamSourceRest2 = Mockito.spy(restServiceReal);
 
-		MapDBStore datastore = spy(new MapDBStore("datastore", vertx));
+		MapDBStore datastore = spy(new MapDBStore("testVoDUploadFinishedScript", vertx));
 
 		Scope scope = mock(Scope.class);
 		String scopeName = "junit";
@@ -460,6 +462,8 @@ public class VoDRestServiceV2UnitTest {
 
 			assertEquals(VoD.PROCESS_STATUS_FINISHED, voD.getProcessStatus());
 		}
+		
+		datastore.close(true);
 
 
 	}
