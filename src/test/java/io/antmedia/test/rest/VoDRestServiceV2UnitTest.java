@@ -290,13 +290,11 @@ public class VoDRestServiceV2UnitTest {
 
 
 	@Test
-	public void testUploadVodFile() {
+	public void testUploadVodFile() throws FileNotFoundException, IOException {
 		AppSettings appSettings = new AppSettings();
 
 		String fileName = RandomStringUtils.randomAlphabetic(11) + ".mp4"; 
-		FileInputStream inputStream;
-		try {
-			inputStream = new FileInputStream("src/test/resources/sample_MP4_480.mp4");
+		try (FileInputStream inputStream = new FileInputStream("src/test/resources/sample_MP4_480.mp4")) {
 
 			Scope scope = mock(Scope.class);
 			String scopeName = "scope";
@@ -338,9 +336,10 @@ public class VoDRestServiceV2UnitTest {
 
 			assertEquals(30526, restServiceReal.getVoD(vodId).getDuration());
 
-			inputStream = new FileInputStream("src/test/resources/big-buck-bunny_trailer.webm");
+			try (FileInputStream inputStream2 = new FileInputStream("src/test/resources/big-buck-bunny_trailer.webm")) {
 
-			restServiceReal.uploadVoDFile(fileName, inputStream);
+				restServiceReal.uploadVoDFile(fileName, inputStream2);
+			}
 
 
 			assertTrue(f.isDirectory());
@@ -351,13 +350,7 @@ public class VoDRestServiceV2UnitTest {
 
 			assertEquals(2, restServiceReal.getTotalVodNumber().getNumber());
 
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		} catch (IOException e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		} 
 
 	}
 
