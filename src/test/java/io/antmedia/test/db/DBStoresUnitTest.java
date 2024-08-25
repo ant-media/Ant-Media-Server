@@ -961,13 +961,13 @@ public class DBStoresUnitTest {
 
 		datastore.addVod(userVod2);
 		voD = datastore.getVoD(userVod2.getVodId());
-	    assertEquals(0, userVod2.getProcessStartTime());
-	    assertEquals(0, userVod2.getProcessEndTime());
+	    assertEquals(0, voD.getProcessStartTime());
+	    assertEquals(0, voD.getProcessEndTime());
 	        
         datastore.updateVoDProcessStatus(userVod2.getVodId(), VoD.PROCESS_STATUS_FINISHED);
         voD = datastore.getVoD(userVod2.getVodId());
-        assertEquals(0, userVod2.getProcessStartTime());
-        assertNotEquals(0, userVod2.getProcessEndTime());
+        assertEquals(0, voD.getProcessStartTime());
+        assertNotEquals(0, voD.getProcessEndTime());
         
         datastore.deleteVod(userVod2.getVodId());
         assertEquals(0, datastore.getTotalVodNumber());
