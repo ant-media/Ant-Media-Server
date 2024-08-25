@@ -140,7 +140,8 @@ public class DBStoresUnitTest {
 	public void testMapDBStore() throws Exception {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
-
+		
+		
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testGetActiveBroadcastCount(dataStore);
@@ -288,7 +289,6 @@ public class DBStoresUnitTest {
 		
 		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 
-		
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
@@ -403,6 +403,8 @@ public class DBStoresUnitTest {
 	}
 	
 	
+
+
 	
 	
 	@Test
@@ -564,6 +566,8 @@ public class DBStoresUnitTest {
 		}
 
 	}
+	
+
 	
 	public void testUnexpectedVodOffset(DataStore dataStore) {
 		clear(dataStore);
@@ -913,6 +917,12 @@ public class DBStoresUnitTest {
 		assertEquals(streamVod.getFileSize(), voD.getFileSize());
 		assertEquals(streamVod.getCreationDate(), voD.getCreationDate());
 		assertEquals(userVod.getType(), voD.getType());
+		
+		assertNull(voD.getProcessStatus());
+		datastore.updateVoDProcessStatus(voD.getVodId(), VoD.PROCESS_STATUS_INQUEUE);
+		
+		voD = datastore.getVoD(userVod.getVodId());
+        assertEquals(VoD.PROCESS_STATUS_INQUEUE, voD.getProcessStatus());
 
 		//delete streamVod
 		datastore.deleteVod(streamVod.getVodId());

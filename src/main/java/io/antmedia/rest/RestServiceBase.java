@@ -1255,8 +1255,6 @@ public abstract class RestServiceBase {
 							"streams/" + vodId + "." + fileExtension));
 
 
-
-
 					int read = 0;
 					byte[] bytes = new byte[2048];
 					try (OutputStream outpuStream = new FileOutputStream(savedFile))
@@ -1288,56 +1286,11 @@ public abstract class RestServiceBase {
 							success = true;
 							message = id;
 							
-							
-							if (StringUtils.isNotBlank(vodUploadFinishScript)) {
-								
-								String finalVoDId = id;
-								new Thread() {
-									public void run() 
-									{
-										
-										long startTime = System.currentTimeMillis();
-										getDataStore().updateVoDProcessStatus(finalVoDId, VoD.PROCESS_STATUS_PROCESSING);
-										
-										String command = vodUploadFinishScript + " " + savedFile.getAbsolutePath();
-										
-										try {
-											
-											Process exec = Runtime.getRuntime().exec(command);
-											
-											int waitFor = exec.waitFor();
-											
-											long endTime = System.currentTimeMillis();
-											
-											long durationMs = endTime - startTime;
-										
-											if (waitFor == 0) 
-											{
-												logger.info("VoD file is processed successfully for Id:{} and name:{} in {}ms", finalVoDId, newVod.getVodName(), durationMs);
-                                                getDataStore().updateVoDProcessStatus(finalVoDId, VoD.PROCESS_STATUS_FINISHED);
-                                            }
-                                            else 
-                                            {
-                                            	logger.error("VoD file could not be processed for Id:{} and name:{} in {}ms", finalVoDId, newVod.getVodName(), durationMs);
-                                                getDataStore().updateVoDProcessStatus(finalVoDId, VoD.PROCESS_STATUS_FAILED);
-                                            }
-											
-											
-										} catch (IOException e) {
-											logger.error(ExceptionUtils.getStackTrace(e));
-										} catch (InterruptedException e) {
-											logger.error(ExceptionUtils.getStackTrace(e));
-											Thread.currentThread().interrupt();
-
-										}
-										
-									}
-								}.start();
-								
+							if (StringUtils.isNotBlank(vodUploadFinishScript)) 
+							{
+								startVoDScriptProcess(vodUploadFinishScript, savedFile, newVod, id);	
 								
 							}
-
-							
 
 						}
 					}
@@ -1355,6 +1308,57 @@ public abstract class RestServiceBase {
 
 
 		return new Result(success, id, message);
+	}
+
+	public void startVoDScriptProcess(String vodUploadFinishScript, File savedFile, VoD newVod, String vodId) {
+		new Thread() {
+			public void run() 
+			{
+				
+				long startTime = System.currentTimeMillis();
+				getDataStore().updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_PROCESSING);
+				
+				String command = vodUploadFinishScript + " " + savedFile.getAbsolutePath();
+				
+				try {
+					
+					Process exec = getProcess(command);
+					
+					int waitFor = exec.waitFor();
+					
+					long endTime = System.currentTimeMillis();
+					
+					long durationMs = endTime - startTime;
+				
+					if (waitFor == 0) 
+					{
+						logger.info("VoD file is processed successfully for Id:{} and name:{} in {}ms", vodId, newVod.getVodName(), durationMs);
+		                getDataStore().updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_FINISHED);
+		            }
+		            else 
+		            {
+		            	logger.error("VoD file could not be processed for Id:{} and name:{} in {}ms", vodId, newVod.getVodName(), durationMs);
+		                getDataStore().updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_FAILED);
+		            }
+					
+					
+				} catch (IOException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				} catch (InterruptedException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+					Thread.currentThread().interrupt();
+				}
+				
+			}
+
+			
+		}.start();
+	}
+	
+	
+	
+	public Process getProcess(String command) throws IOException {
+		return Runtime.getRuntime().exec(command);
 	}
 
 
