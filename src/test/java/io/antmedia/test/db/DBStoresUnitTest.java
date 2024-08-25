@@ -228,6 +228,8 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() throws Exception {
 		DataStore dataStore = new InMemoryDataStore("testdb");
 		
+		testVoDFunctions(dataStore);
+
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
@@ -924,6 +926,22 @@ public class DBStoresUnitTest {
 		voD = datastore.getVoD(userVod.getVodId());
         assertEquals(VoD.PROCESS_STATUS_INQUEUE, voD.getProcessStatus());
 
+        assertEquals(0, voD.getProcessStartTime());
+        assertEquals(0, voD.getProcessEndTime());
+        
+        datastore.updateVoDProcessStatus(voD.getVodId(), VoD.PROCESS_STATUS_PROCESSING);
+        voD = datastore.getVoD(userVod.getVodId());
+        assertNotEquals(0, voD.getProcessStartTime());
+        assertEquals(0, voD.getProcessEndTime());
+        
+        datastore.updateVoDProcessStatus(voD.getVodId(), VoD.PROCESS_STATUS_FAILED);
+        voD = datastore.getVoD(userVod.getVodId());
+        assertNotEquals(0, voD.getProcessStartTime());
+        assertNotEquals(0, voD.getProcessEndTime());
+        
+        
+
+        
 		//delete streamVod
 		datastore.deleteVod(streamVod.getVodId());
 		assertNull(datastore.getVoD(streamVod.getVodId()));
@@ -936,6 +954,23 @@ public class DBStoresUnitTest {
 
 		//check vod number
 		assertEquals(0, datastore.getTotalVodNumber());
+		
+		
+		//check finished time
+        VoD userVod2 =new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.USER_VOD,vodId,null);
+
+		datastore.addVod(userVod2);
+		voD = datastore.getVoD(userVod2.getVodId());
+	    assertEquals(0, userVod2.getProcessStartTime());
+	    assertEquals(0, userVod2.getProcessEndTime());
+	        
+        datastore.updateVoDProcessStatus(userVod2.getVodId(), VoD.PROCESS_STATUS_FINISHED);
+        voD = datastore.getVoD(userVod2.getVodId());
+        assertEquals(0, userVod2.getProcessStartTime());
+        assertNotEquals(0, userVod2.getProcessEndTime());
+        
+        datastore.deleteVod(userVod2.getVodId());
+        assertEquals(0, datastore.getTotalVodNumber());
 
 	}
 

@@ -362,7 +362,58 @@ public class VoDRestServiceV2UnitTest {
 	}
 
 	@Test
-	public void testVoDUploadFinishedScript() {
+	public void testUploadVoDfileNameAndResource() throws FileNotFoundException {
+		VoDRestService streamSourceRest2 = Mockito.spy(restServiceReal);
+
+		MapDBStore datastore = spy(new MapDBStore("datastore", vertx));
+
+		Scope scope = mock(Scope.class);
+		String scopeName = "junit";
+		when(scope.getName()).thenReturn(scopeName);
+
+		AntMediaApplicationAdapter app = mock(AntMediaApplicationAdapter.class);
+		when(app.getScope()).thenReturn(scope);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+
+		StatsCollector statsCollector = mock(StatsCollector.class);
+		when(statsCollector.enoughResource()).thenReturn(true);
+		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(statsCollector);
+
+		streamSourceRest2.setAppCtx(context);
+
+		String fileName = RandomStringUtils.randomAlphabetic(11) + ".anythingelse";
+		FileInputStream inputStream = new FileInputStream("src/test/resources/sample_MP4_480.mp4");
+
+		Result result = streamSourceRest2.uploadVoDFile(fileName, inputStream);			
+
+		assertFalse(result.isSuccess());
+		assertEquals("notSupportedFileType", result.getMessage());
+		
+		AppSettings appSettings = new AppSettings();
+		Mockito.doReturn(appSettings).when(streamSourceRest2).getAppSettings();
+		Mockito.doReturn(datastore).when(streamSourceRest2).getDataStore();
+		
+		fileName = RandomStringUtils.randomAlphabetic(11) + ".wmv";
+		result = streamSourceRest2.uploadVoDFile(fileName, inputStream);
+		assertTrue(result.isSuccess());
+		
+		
+		appSettings.setVodUploadFinishScript("src/test/resources/echo.sh");
+		result = streamSourceRest2.uploadVoDFile(fileName, inputStream);
+		assertTrue(result.isSuccess());
+		
+		
+		when(statsCollector.enoughResource()).thenReturn(false);
+		result = streamSourceRest2.uploadVoDFile(fileName, inputStream);
+		assertFalse(result.isSuccess());
+
+
+	}
+
+	@Test
+	public void testVoDUploadFinishedScript() throws FileNotFoundException {
 
 		VoDRestService streamSourceRest2 = Mockito.spy(restServiceReal);
 
@@ -393,72 +444,70 @@ public class VoDRestServiceV2UnitTest {
 		Mockito.doReturn(appSettings).when(streamSourceRest2).getAppSettings();
 
 
-		try {
-			String fileName = RandomStringUtils.randomAlphabetic(11) + ".mp4";
-			FileInputStream inputStream = new FileInputStream("src/test/resources/sample_MP4_480.mp4");
 
-			Result result = streamSourceRest2.uploadVoDFile(fileName, inputStream);				
-			assertTrue(result.isSuccess());
-			
-			ArgumentCaptor<VoD> vodCapture = ArgumentCaptor.forClass(VoD.class);
-			Mockito.verify(datastore, Mockito.timeout(5000).times(1)).addVod(vodCapture.capture());
-			
-			assertEquals(VoD.PROCESS_STATUS_INQUEUE, vodCapture.getValue().getProcessStatus());
+		String fileName = RandomStringUtils.randomAlphabetic(11) + ".mp4";
+		FileInputStream inputStream = new FileInputStream("src/test/resources/sample_MP4_480.mp4");
 
-			Mockito.verify(streamSourceRest2,Mockito.times(1)).startVoDScriptProcess(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.anyString());
-			
-			verify(datastore, Mockito.timeout(5000).times(1)).updateVoDProcessStatus(result.getDataId(), VoD.PROCESS_STATUS_PROCESSING);
-			
-			verify(datastore, Mockito.timeout(5000).times(1)).updateVoDProcessStatus(result.getDataId(), VoD.PROCESS_STATUS_FINISHED);
+		Result result = streamSourceRest2.uploadVoDFile(fileName, inputStream);				
+		assertTrue(result.isSuccess());
 
-			
-			VoD voD = datastore.getVoD(result.getDataId());
+		ArgumentCaptor<VoD> vodCapture = ArgumentCaptor.forClass(VoD.class);
+		Mockito.verify(datastore, Mockito.timeout(5000).times(1)).addVod(vodCapture.capture());
 
-			assertEquals(VoD.PROCESS_STATUS_FINISHED, voD.getProcessStatus());
+		assertEquals(VoD.PROCESS_STATUS_INQUEUE, vodCapture.getValue().getProcessStatus());
 
-			
-		} catch (FileNotFoundException e1) {
-			e1.printStackTrace();
-		}
+		Mockito.verify(streamSourceRest2,Mockito.times(1)).startVoDScriptProcess(Mockito.anyString(), Mockito.any(), Mockito.any(), Mockito.anyString());
+
+		verify(datastore, Mockito.timeout(5000).times(1)).updateVoDProcessStatus(result.getDataId(), VoD.PROCESS_STATUS_PROCESSING);
+
+		verify(datastore, Mockito.timeout(5000).times(1)).updateVoDProcessStatus(result.getDataId(), VoD.PROCESS_STATUS_FINISHED);
+
+
+		VoD voD = datastore.getVoD(result.getDataId());
+
+		assertEquals(VoD.PROCESS_STATUS_FINISHED, voD.getProcessStatus());
+
+
+
 	}
-	
+
 	@Test
 	public void testStartVoDScriptProcess() throws IOException, InterruptedException {
 		VoDRestService streamSourceRest2 = Mockito.spy(restServiceReal);
 
 		InMemoryDataStore datastore = spy(new InMemoryDataStore("datastore"));
-		
+
 		streamSourceRest2.setDataStore(datastore);
-		
+
 		String scriptPath = "src/test/resources/echo.sh";
 		File file = new File("vodFile");
 		VoD vod = mock(VoD.class);
 		when(vod.getFilePath()).thenReturn("vodFile");
 		when(vod.getVodId()).thenReturn("vodId");
-		
+
 		Process process = mock(Process.class);
 		doReturn(process).when(streamSourceRest2).getProcess(Mockito.anyString());
-		
-		
+
+
 		when(process.waitFor()).thenReturn(0);
 		streamSourceRest2.startVoDScriptProcess(scriptPath, file, vod, vod.getVodId());
-		
+
 		verify(datastore, Mockito.timeout(5000).times(1)).updateVoDProcessStatus(vod.getVodId(), VoD.PROCESS_STATUS_PROCESSING);
 		verify(datastore, Mockito.timeout(5000).times(1)).updateVoDProcessStatus(vod.getVodId(), VoD.PROCESS_STATUS_FINISHED);
 
-		
+
 		when(process.waitFor()).thenReturn(-1);
 
 		streamSourceRest2.startVoDScriptProcess(scriptPath, file, vod, vod.getVodId());
 		verify(datastore, Mockito.timeout(5000).times(2)).updateVoDProcessStatus(vod.getVodId(), VoD.PROCESS_STATUS_PROCESSING);
 		verify(datastore, Mockito.timeout(5000).times(1)).updateVoDProcessStatus(vod.getVodId(), VoD.PROCESS_STATUS_FINISHED);
-		
-		
+
+
 	}
-	
-	
-	
-	
+
+
+
+
 
 	@Test
 	public void testVoDSorting() {

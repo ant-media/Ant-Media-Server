@@ -1297,8 +1297,8 @@ public abstract class RestServiceBase {
 				}
 			}
 			else {
-				//this message has a wrong meaning on the other hand it has been used in the frontend(webpanel). Both sides should be updated
-				message = "notMp4File";
+				//this message has been used in the frontend(webpanel) pay attention
+				message = "notSupportedFileType";
 			}
 
 		}
