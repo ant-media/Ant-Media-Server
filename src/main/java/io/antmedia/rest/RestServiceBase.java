@@ -495,12 +495,12 @@ public abstract class RestServiceBase {
 			String rtspURLWithAuth = RTSP + authparam + rtspURL.substring(RTSP.length());
 			logger.info("New Stream Source URL: {}", rtspURLWithAuth);
 			updatedBroadcast.setStreamUrl(rtspURLWithAuth);
-			
+
 		}
-	
+
 
 		removeEmptyPlayListItems(updatedBroadcast.getPlayListItemList());
-		
+
 		updatePlayListItemDurationsIfApplicable(updatedBroadcast.getPlayListItemList(), updatedBroadcast.getStreamId());
 
 
@@ -1227,59 +1227,78 @@ public abstract class RestServiceBase {
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
 
-			if ("mp4".equalsIgnoreCase(fileExtension) || "webm".equalsIgnoreCase(fileExtension) ||  "mov".equalsIgnoreCase(fileExtension) ||  "avi".equalsIgnoreCase(fileExtension)) {
+			if ("mp4".equalsIgnoreCase(fileExtension) || "webm".equalsIgnoreCase(fileExtension) 
+					||  "mov".equalsIgnoreCase(fileExtension) ||  "avi".equalsIgnoreCase(fileExtension)
+					||  "wmv".equalsIgnoreCase(fileExtension)) {
 
 
-				File streamsDirectory = new File(
-						getStreamsDirectory(appScopeName));
-
-				// if the directory does not exist, create it
-				if (!streamsDirectory.exists()) {
-					streamsDirectory.mkdirs();
-				}
-				String vodId = RandomStringUtils.randomNumeric(24);
-
-				File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
-						"streams/" + vodId + "." + fileExtension));
-
-				int read = 0;
-				byte[] bytes = new byte[2048];
-				try (OutputStream outpuStream = new FileOutputStream(savedFile))
+				IStatsCollector statsCollector = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
+				String vodUploadFinishScript = getAppSettings().getVodUploadFinishScript();
+				if (StringUtils.isNotBlank(vodUploadFinishScript)  && !statsCollector.enoughResource()) 
+				{
+					logger.info("Not enough resource to upload VoD file");
+					message = "Not enough system resources available to upload and process VoD File";
+				} 
+				else 
 				{
 
-					while ((read = inputStream.read(bytes)) != -1) {
-						outpuStream.write(bytes, 0, read);
+					File streamsDirectory = new File(
+							getStreamsDirectory(appScopeName));
+
+					// if the directory does not exist, create it
+					if (!streamsDirectory.exists()) {
+						streamsDirectory.mkdirs();
 					}
-					outpuStream.flush();
+					String vodId = RandomStringUtils.randomNumeric(24);
 
-					long fileSize = savedFile.length();
-					long unixTime = System.currentTimeMillis();
-
-					String path = savedFile.getPath();
+					File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
+							"streams/" + vodId + "." + fileExtension));
 
 
-					String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
+					int read = 0;
+					byte[] bytes = new byte[2048];
+					try (OutputStream outpuStream = new FileOutputStream(savedFile))
+					{
 
-					VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, Muxer.getDurationInMs(savedFile,fileName), fileSize,
-							VoD.UPLOADED_VOD, vodId, null);
+						while ((read = inputStream.read(bytes)) != -1) {
+							outpuStream.write(bytes, 0, read);
+						}
+						outpuStream.flush();
 
-					id = getDataStore().addVod(newVod);
+						long fileSize = savedFile.length();
+						long unixTime = System.currentTimeMillis();
 
-					if(id != null) {
-						success = true;
-						message = id;
+						String path = savedFile.getPath();
 
-						String vodFinishScript = getAppSettings().getVodUploadFinishScript();
-						if (vodFinishScript != null && !vodFinishScript.isEmpty()) {
-							getApplication().runScript(vodFinishScript + "  " + savedFile.getAbsolutePath());
+
+						String relativePath = AntMediaApplicationAdapter.getRelativePath(path);
+
+						VoD newVod = new VoD(fileName, "file", relativePath, fileName, unixTime, 0, Muxer.getDurationInMs(savedFile,fileName), fileSize,
+								VoD.UPLOADED_VOD, vodId, null);
+						
+						if (StringUtils.isNotBlank(vodUploadFinishScript)) {
+							newVod.setProcessStatus(VoD.PROCESS_STATUS_INQUEUE);
 						}
 
+						id = getDataStore().addVod(newVod);
+
+						if(id != null) {
+							success = true;
+							message = id;
+							
+							if (StringUtils.isNotBlank(vodUploadFinishScript)) 
+							{
+								startVoDScriptProcess(vodUploadFinishScript, savedFile, newVod, id);	
+								
+							}
+
+						}
 					}
 				}
 			}
 			else {
-				//this message has a wrong meaning on the other hand it has been used in the frontend(webpanel). Both sides should be updated
-				message = "notMp4File";
+				//this message has been used in the frontend(webpanel) pay attention
+				message = "notSupportedFileType";
 			}
 
 		}
@@ -1289,6 +1308,57 @@ public abstract class RestServiceBase {
 
 
 		return new Result(success, id, message);
+	}
+
+	public void startVoDScriptProcess(String vodUploadFinishScript, File savedFile, VoD newVod, String vodId) {
+		new Thread() {
+			public void run() 
+			{
+				
+				long startTime = System.currentTimeMillis();
+				getDataStore().updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_PROCESSING);
+				
+				String command = vodUploadFinishScript + " " + savedFile.getAbsolutePath();
+				
+				try {
+					
+					Process exec = getProcess(command);
+					
+					int waitFor = exec.waitFor();
+					
+					long endTime = System.currentTimeMillis();
+					
+					long durationMs = endTime - startTime;
+				
+					if (waitFor == 0) 
+					{
+						logger.info("VoD file is processed successfully for Id:{} and name:{} in {}ms", vodId, newVod.getVodName(), durationMs);
+		                getDataStore().updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_FINISHED);
+		            }
+		            else 
+		            {
+		            	logger.error("VoD file could not be processed for Id:{} and name:{} in {}ms", vodId, newVod.getVodName(), durationMs);
+		                getDataStore().updateVoDProcessStatus(vodId, VoD.PROCESS_STATUS_FAILED);
+		            }
+					
+					
+				} catch (IOException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				} catch (InterruptedException e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+					Thread.currentThread().interrupt();
+				}
+				
+			}
+
+			
+		}.start();
+	}
+	
+	
+	
+	public Process getProcess(String command) throws IOException {
+		return Runtime.getRuntime().exec(command);
 	}
 
 
@@ -1864,12 +1934,12 @@ public abstract class RestServiceBase {
 		String message = "";
 		if (subTrack != null && mainTrack != null)
 		{
-			
+
 			int subtrackLimit = mainTrack.getSubtracksLimit();
-			
-			
+
+
 			List<String> subTrackStreamIds = mainTrack.getSubTrackStreamIds();
-			
+
 			if (subtrackLimit != -1 &&  store.getActiveSubtracksCount(id, null) >= subtrackLimit) 
 			{
 				message = "Subtrack limit is reached for the main track:" + id;
@@ -1877,25 +1947,25 @@ public abstract class RestServiceBase {
 				result.setMessage(message);
 				return result;
 			}
-			
+
 			if (subTrackStreamIds == null) {
 				subTrackStreamIds = new ArrayList<>();
 			}
-			
+
 			subTrack.setMainTrackStreamId(id);
-			
-			
+
+
 			//Update subtrack's main Track Id
 			BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 			broadcastUpdate.setMainTrackStreamId(id);
-			
+
 			boolean success = store.updateBroadcastFields(subTrackId, broadcastUpdate);
 			if (success) 
 			{	
 				subTrackStreamIds.add(subTrackId);
 				broadcastUpdate = new BroadcastUpdate();
 				broadcastUpdate.setSubTrackStreamIds(subTrackStreamIds);
-				
+
 				success = store.updateBroadcastFields(id, broadcastUpdate);
 				RestServiceBase.setResultSuccess(result, success, "Subtrack:" + subTrackId + " cannot be added to main track: " + id);
 			}
@@ -1938,7 +2008,7 @@ public abstract class RestServiceBase {
 					}
 					else
 					{
-						
+
 						RestServiceBase.setResultSuccess(result, false, MAIN_TRACK_OF_THE_STREAM + subTrackId + " which is " + id +" cannot be removed");
 						logger.info(MAIN_TRACK_OF_THE_STREAM +" {} which is {} cannot be removed", subTrackId, id);
 					}
@@ -1946,7 +2016,7 @@ public abstract class RestServiceBase {
 				else {
 					RestServiceBase.setResultSuccess(result, false, MAIN_TRACK_OF_THE_STREAM + subTrackId + " which is " + id +" cannot be updated");
 					logger.info( MAIN_TRACK_OF_THE_STREAM +"{} which is {} not updated because either subtrack is null or its maintrack does not match with mainTrackId:{}", subTrackId, id, id);
-					
+
 				}
 
 			}

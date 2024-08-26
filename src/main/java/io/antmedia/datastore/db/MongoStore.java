@@ -266,6 +266,30 @@ public class MongoStore extends DataStore {
 		return false;
 
 	}
+	
+	@Override
+	public boolean updateVoDProcessStatus(String id, String status) {
+		synchronized (this) {
+			try {
+				Query<VoD> query = vodDatastore.find(VoD.class).filter(Filters.eq(VOD_ID, id));
+				Update<VoD> ops = query.update(set("processStatus", status));
+				if (VoD.PROCESS_STATUS_PROCESSING.equals(status)) 
+				{
+					ops.add(set("processStartTime", System.currentTimeMillis()));
+				}
+				else if (VoD.PROCESS_STATUS_FAILED.equals(status) || VoD.PROCESS_STATUS_FINISHED.equals(status)) 
+				{
+					ops.add(set("processEndTime", System.currentTimeMillis()));
+				}
+				
+				UpdateResult update = ops.execute();
+				return update.getMatchedCount() == 1;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
 
 	/*
 	 * (non-Javadoc)
