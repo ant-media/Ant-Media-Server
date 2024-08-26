@@ -1252,8 +1252,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 						||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(broadcast.getStatus()));
 	}
 
-	public Result startStreaming(Broadcast broadcast)
-	{
+	public Result startStreaming(Broadcast broadcast) {
 		Result result = new Result(false);
 
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
@@ -1263,11 +1262,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			result = getStreamFetcherManager().startStreaming(broadcast);
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
-            try {
-                result = getStreamFetcherManager().startPlaylist(broadcast);
-            } catch (URISyntaxException e) {
-                logger.error(e.getMessage());
-            }
+			try {
+				result = getStreamFetcherManager().startPlaylist(broadcast);
+
+			}catch (URISyntaxException e){
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+
         }
 		else {
 			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}", broadcast.getType(), broadcast.getStreamId());

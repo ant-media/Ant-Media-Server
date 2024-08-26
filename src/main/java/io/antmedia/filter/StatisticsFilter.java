@@ -1,6 +1,7 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

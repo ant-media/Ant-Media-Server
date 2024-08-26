@@ -1,6 +1,7 @@
 package io.antmedia.rest;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -1320,8 +1321,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Path("/{id}/start")
 	@Produces(MediaType.APPLICATION_JSON)
-	public Result startStreamSourceV2(@Parameter(description = "the id of the stream. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
-	{
+	public Result startStreamSourceV2(@Parameter(description = "the id of the stream. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) {
 		return super.startStreamSource(id);
 	}
 

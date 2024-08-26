@@ -5,12 +5,9 @@ import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
@@ -255,7 +252,7 @@ public class StreamFetcherManager {
 			try{
 				playItemInList(playlist, listener, -1);
 			}catch (URISyntaxException e){
-				logger.error(e.getMessage());
+				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
 	}
@@ -286,11 +283,13 @@ public class StreamFetcherManager {
 		{
 			int defaultHttpPort = serverSettings.getDefaultHttpPort();
 			int defaultHttpsPort = serverSettings.getDefaultHttpsPort();
+			String hostAddr = serverSettings.getHostAddress();
+			String serverName = serverSettings.getServerName();
 
 			// Get Current Playlist Stream Index
 			int currentStreamIndex = playlist.getCurrentPlayIndex();
 			String streamUrl = playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl();
-			String newStreamUrl = appendPortIfMissing(streamUrl, defaultHttpPort, defaultHttpsPort);
+			String newStreamUrl = appendPortIfSourceIsLocalAndPortMissing(streamUrl, hostAddr, serverName, defaultHttpPort, defaultHttpsPort);
 
 			// Check Stream URL is valid.
 			// If stream URL is not valid, it's trying next broadcast and trying.
@@ -356,10 +355,12 @@ public class StreamFetcherManager {
 				logger.warn("Resetting current play index to 0 because it's not in correct range for id: {}", playlist.getStreamId());
 				playlist.setCurrentPlayIndex(0);
 			}
+			String hostAddr = serverSettings.getHostAddress();
+			String serverName = serverSettings.getServerName();
 
 			PlayListItem playlistBroadcastItem = playlist.getPlayListItemList().get(playlist.getCurrentPlayIndex());
 			String streamUrl = playlistBroadcastItem.getStreamUrl();
-			String newStreamUrl = appendPortIfMissing(streamUrl, defaultHttpPort, defaultHttpsPort);
+			String newStreamUrl = appendPortIfSourceIsLocalAndPortMissing(streamUrl, hostAddr, serverName, defaultHttpPort, defaultHttpsPort);
 			try{
 				if(checkStreamUrlWithHTTP(newStreamUrl).isSuccess())
 				{
@@ -388,7 +389,11 @@ public class StreamFetcherManager {
 					String streamId = playlist.getStreamId();
 
 					streamScheduler.setStreamFetcherListener(listener -> {
-						playNextItemInList(streamId, listener);
+						try{
+							playNextItemInList(streamId, listener);
+						}catch (URISyntaxException e){
+							logger.error(ExceptionUtils.getStackTrace(e));
+						}
 					});
 
 					streamScheduler.setRestartStream(false);
@@ -406,7 +411,7 @@ public class StreamFetcherManager {
 
 
 					streamUrl = playlist.getStreamUrl();
-					newStreamUrl = appendPortIfMissing(streamUrl, defaultHttpPort, defaultHttpsPort);
+					newStreamUrl = appendPortIfSourceIsLocalAndPortMissing(streamUrl, hostAddr, serverName, defaultHttpPort, defaultHttpsPort);
 
 					if(checkStreamUrlWithHTTP(newStreamUrl).isSuccess()) {
 
@@ -679,12 +684,21 @@ public class StreamFetcherManager {
 
 		return result;
 	}
-
-	public String appendPortIfMissing(String url, int defaultHttpPort, int defaultHttpsPort) throws URISyntaxException {
+	
+	public String appendPortIfSourceIsLocalAndPortMissing(String url, String hostAddr, String serverName, int defaultHttpPort, int defaultHttpsPort) throws URISyntaxException {
 
 		URI uri = new URI(url);
 		int port = uri.getPort();
 		String scheme = uri.getScheme();
+		String host = uri.getHost();
+
+		//If url is other than local server, do not append port.
+		if (host == null ||
+				(!host.equalsIgnoreCase(hostAddr) &&
+						!host.equalsIgnoreCase("localhost") &&
+						!host.equalsIgnoreCase(serverName))) {
+			return url;
+		}
 
 		if (port == -1) {
 			if ("https".equalsIgnoreCase(scheme)) {

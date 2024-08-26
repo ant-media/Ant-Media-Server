@@ -1513,8 +1513,7 @@ public abstract class RestServiceBase {
 
 
 
-	public Result startStreamSource(String id)
-	{
+	public Result startStreamSource(String id) {
 		Result result = new Result(false);
 		Broadcast broadcast = getDataStore().get(id);
 
