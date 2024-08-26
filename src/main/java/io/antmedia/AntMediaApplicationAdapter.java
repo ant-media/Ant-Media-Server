@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -363,8 +364,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 							AntMediaApplicationAdapter.PLAY_LIST.equals(freshBroadcast.getType())) 
 					{
 						logger.info("Starting scheduled playlist for id:{} ", freshBroadcast.getStreamId());
-						streamFetcherManager.startPlaylist(freshBroadcast);
-					}
+                        try {
+                            streamFetcherManager.startPlaylist(freshBroadcast);
+                        } catch (URISyntaxException e) {
+                            logger.error(e.getMessage());
+                        }
+                    }
 					else 
 					{
 						if (freshBroadcast == null) {
@@ -1258,9 +1263,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			result = getStreamFetcherManager().startStreaming(broadcast);
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
-			result = getStreamFetcherManager().startPlaylist(broadcast);
-
-		}
+            try {
+                result = getStreamFetcherManager().startPlaylist(broadcast);
+            } catch (URISyntaxException e) {
+                logger.error(e.getMessage());
+            }
+        }
 		else {
 			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}", broadcast.getType(), broadcast.getStreamId());
 		}

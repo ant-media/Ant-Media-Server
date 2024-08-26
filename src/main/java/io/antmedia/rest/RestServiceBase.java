@@ -5,11 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.net.InetAddress;
-import java.net.MalformedURLException;
-import java.net.NetworkInterface;
-import java.net.SocketException;
-import java.net.URL;
+import java.net.*;
 import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -1585,8 +1581,11 @@ public abstract class RestServiceBase {
 				if (logger.isInfoEnabled()) {
 					logger.info("Switching to next item by REST method for playlist:{} and forwarding stream fetcher listener:{}", id.replaceAll(REPLACE_CHARS_FOR_SECURITY, "_"), streamFetcherListener.hashCode());
 				}
-
-				result = getApplication().getStreamFetcherManager().playItemInList(broadcast, streamFetcherListener, index);
+				try{
+					result = getApplication().getStreamFetcherManager().playItemInList(broadcast, streamFetcherListener, index);
+				}catch (URISyntaxException e){
+					logger.error(e.getMessage());
+				}
 			}
 			else {
 				result.setMessage("No active playlist for id:" + id + ". Start the playlist first");

@@ -2,6 +2,8 @@ package io.antmedia.streamsource;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.Collection;
 import java.util.List;
@@ -13,6 +15,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
+import io.antmedia.settings.ServerSettings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.server.api.scope.IScope;
@@ -71,6 +74,8 @@ public class StreamFetcherManager {
 
 	private AppSettings appSettings;
 
+	private ServerSettings serverSettings;
+
 	private ILicenceService licenseService;
 	
 	boolean serverShuttingDown = false;
@@ -81,6 +86,7 @@ public class StreamFetcherManager {
 		this.datastore = datastore;
 		this.scope=scope;
 		this.appSettings = (AppSettings) scope.getContext().getBean(AppSettings.BEAN_NAME);
+		this.serverSettings = (ServerSettings) scope.getContext().getBean(ServerSettings.BEAN_NAME);
 		this.licenseService = (ILicenceService)scope.getContext().getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString());
 		AMSShutdownManager.getInstance().subscribe(()-> shuttingDown());
 	}
@@ -213,7 +219,7 @@ public class StreamFetcherManager {
 		}
 	}
 
-	public static Result checkStreamUrlWithHTTP(String url){
+	public static Result checkStreamUrlWithHTTP(String url) throws URISyntaxException {
 
 		Result result = new Result(false);
 
@@ -246,7 +252,11 @@ public class StreamFetcherManager {
 		// Get current playlist in database, it may be updated
 		Broadcast playlist = datastore.get(streamId);
 		if (playlist != null) {
-			playItemInList(playlist, listener, -1);
+			try{
+				playItemInList(playlist, listener, -1);
+			}catch (URISyntaxException e){
+				logger.error(e.getMessage());
+			}
 		}
 	}
 
@@ -257,12 +267,11 @@ public class StreamFetcherManager {
 	 * @param listener
 	 * @param index if it's -1, it plays the next item, if it's zero or bigger, it skips that item to play
 	 */
-	public Result playItemInList(Broadcast playlist, IStreamFetcherListener listener, int index) 
-	{
+	public Result playItemInList(Broadcast playlist, IStreamFetcherListener listener, int index) throws URISyntaxException {
 		// It's necessary for skip new Stream Fetcher
 		stopStreaming(playlist.getStreamId());
 		Result result = new Result(false);
-		
+
 		if (serverShuttingDown) {
 			logger.info("Playlist will not try to play the next item because server is shutting down");
 			result.setMessage("Playlist will not try to play the next item because server is shutting down");
@@ -275,20 +284,31 @@ public class StreamFetcherManager {
 		if(!IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED.equals(playlist.getPlayListStatus())
 				&& skipNextPlaylistQueue(playlist, index) != null)
 		{
+			int defaultHttpPort = serverSettings.getDefaultHttpPort();
+			int defaultHttpsPort = serverSettings.getDefaultHttpsPort();
 
 			// Get Current Playlist Stream Index
 			int currentStreamIndex = playlist.getCurrentPlayIndex();
+			String streamUrl = playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl();
+			String newStreamUrl = appendPortIfMissing(streamUrl, defaultHttpPort, defaultHttpsPort);
+
 			// Check Stream URL is valid.
 			// If stream URL is not valid, it's trying next broadcast and trying.
-			if(checkStreamUrlWithHTTP(playlist.getPlayListItemList().get(currentStreamIndex).getStreamUrl()).isSuccess()) 
+			if(checkStreamUrlWithHTTP(newStreamUrl).isSuccess())
 			{
+
 				//update broadcast informations
 				PlayListItem fetchedBroadcast = playlist.getPlayListItemList().get(currentStreamIndex);
 				
 				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 				broadcastUpdate.setPlayListStatus(playlist.getPlayListStatus());
 				broadcastUpdate.setCurrentPlayIndex(playlist.getCurrentPlayIndex());
-				
+				if(!newStreamUrl.equals(streamUrl)){
+					PlayListItem playListItem = playlist.getPlayListItemList().get(playlist.getCurrentPlayIndex());
+					playListItem.setStreamUrl(newStreamUrl);
+					broadcastUpdate.setPlayListItemList(playlist.getPlayListItemList());
+				}
+
 				datastore.updateBroadcastFields(playlist.getStreamId(), broadcastUpdate);
 
 				StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast.getStreamUrl(), playlist.getStreamId(), fetchedBroadcast.getType(), scope,vertx, fetchedBroadcast.getSeekTimeInMs());
@@ -313,11 +333,13 @@ public class StreamFetcherManager {
 	}
 
 
-	public Result startPlaylist(Broadcast playlist){
+	public Result startPlaylist(Broadcast playlist) throws URISyntaxException {
 
 
 		Result result = new Result(false);
 		List<PlayListItem> playListItemList = playlist.getPlayListItemList();
+		int defaultHttpPort = serverSettings.getDefaultHttpPort();
+		int defaultHttpsPort = serverSettings.getDefaultHttpsPort();
 
 		if (isStreamRunning(playlist)) 
 		{
@@ -336,61 +358,85 @@ public class StreamFetcherManager {
 			}
 
 			PlayListItem playlistBroadcastItem = playlist.getPlayListItemList().get(playlist.getCurrentPlayIndex());
+			String streamUrl = playlistBroadcastItem.getStreamUrl();
+			String newStreamUrl = appendPortIfMissing(streamUrl, defaultHttpPort, defaultHttpsPort);
+			try{
+				if(checkStreamUrlWithHTTP(newStreamUrl).isSuccess())
+				{
 
-			if(checkStreamUrlWithHTTP(playlistBroadcastItem.getStreamUrl()).isSuccess()) 
-			{
+					logger.info("Starting playlist item:{} for streamId:{}", playlistBroadcastItem.getStreamUrl(), playlist.getStreamId());
+					// Check Stream URL is valid.
+					// If stream URL is not valid, it's trying next broadcast and trying.
+					// Create Stream Fetcher with Playlist Broadcast Item
+					StreamFetcher streamScheduler = new StreamFetcher(playlistBroadcastItem.getStreamUrl(), playlist.getStreamId(), playlistBroadcastItem.getType(), scope, vertx, playlistBroadcastItem.getSeekTimeInMs());
+					// Update Playlist current playing status
+					playlist.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
 
-				logger.info("Starting playlist item:{} for streamId:{}", playlistBroadcastItem.getStreamUrl(), playlist.getStreamId());
-				// Check Stream URL is valid.
-				// If stream URL is not valid, it's trying next broadcast and trying.
-				// Create Stream Fetcher with Playlist Broadcast Item
-				StreamFetcher streamScheduler = new StreamFetcher(playlistBroadcastItem.getStreamUrl(), playlist.getStreamId(), playlistBroadcastItem.getType(), scope, vertx, playlistBroadcastItem.getSeekTimeInMs());
-				// Update Playlist current playing status
-				playlist.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
-				
-				
-				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-				broadcastUpdate.setPlayListStatus(playlist.getPlayListStatus());
-				broadcastUpdate.setCurrentPlayIndex(playlist.getCurrentPlayIndex());
-				
-				// Update Datastore current play broadcast
-				datastore.updateBroadcastFields(playlist.getStreamId(), broadcastUpdate);
 
-				String streamId = playlist.getStreamId();
-
-				streamScheduler.setStreamFetcherListener(listener -> {
-					playNextItemInList(streamId, listener);
-				});
-
-				streamScheduler.setRestartStream(false);
-				startStreamScheduler(streamScheduler);
-				result.setSuccess(true);
-
-			}
-			else 
-			{
-
-				logger.warn("Current Playlist Stream URL -> {} is invalid", playlistBroadcastItem.getStreamUrl());
-
-				// This method skip next playlist item
-				playlist = skipNextPlaylistQueue(playlist, -1);
-
-				if(checkStreamUrlWithHTTP(playlist.getPlayListItemList().get(playlist.getCurrentPlayIndex()).getStreamUrl()).isSuccess()) {
-					result = startPlaylist(playlist);
-				}
-				else {
-					playlist.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-					// Update Datastore current play broadcast
-					
 					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
-					broadcastUpdate.setStatus(playlist.getStatus());
+					broadcastUpdate.setPlayListStatus(playlist.getPlayListStatus());
 					broadcastUpdate.setCurrentPlayIndex(playlist.getCurrentPlayIndex());
-					
-					datastore.updateBroadcastFields(playlist.getStreamId(), broadcastUpdate);
-					result.setSuccess(false);
-				}
+					if(!newStreamUrl.equals(streamUrl)){
+						PlayListItem playListItem = playlist.getPlayListItemList().get(playlist.getCurrentPlayIndex());
+						playListItem.setStreamUrl(newStreamUrl);
+						broadcastUpdate.setPlayListItemList(playlist.getPlayListItemList());
+					}
 
+					// Update Datastore current play broadcast
+					datastore.updateBroadcastFields(playlist.getStreamId(), broadcastUpdate);
+
+					String streamId = playlist.getStreamId();
+
+					streamScheduler.setStreamFetcherListener(listener -> {
+						playNextItemInList(streamId, listener);
+					});
+
+					streamScheduler.setRestartStream(false);
+					startStreamScheduler(streamScheduler);
+					result.setSuccess(true);
+
+				}
+				else
+				{
+
+					logger.warn("Current Playlist Stream URL -> {} is invalid", playlistBroadcastItem.getStreamUrl());
+
+					// This method skip next playlist item
+					playlist = skipNextPlaylistQueue(playlist, -1);
+
+
+					streamUrl = playlist.getStreamUrl();
+					newStreamUrl = appendPortIfMissing(streamUrl, defaultHttpPort, defaultHttpsPort);
+
+					if(checkStreamUrlWithHTTP(newStreamUrl).isSuccess()) {
+
+						if(!newStreamUrl.equals(streamUrl)){
+							BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+							PlayListItem playListItem = playlist.getPlayListItemList().get(playlist.getCurrentPlayIndex());
+							playListItem.setStreamUrl(newStreamUrl);
+							broadcastUpdate.setPlayListItemList(playlist.getPlayListItemList());
+							datastore.updateBroadcastFields(playlist.getStreamId(), broadcastUpdate);
+						}
+
+						result = startPlaylist(playlist);
+					}
+					else {
+						playlist.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
+						// Update Datastore current play broadcast
+
+						BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+						broadcastUpdate.setStatus(playlist.getStatus());
+						broadcastUpdate.setCurrentPlayIndex(playlist.getCurrentPlayIndex());
+
+						datastore.updateBroadcastFields(playlist.getStreamId(), broadcastUpdate);
+						result.setSuccess(false);
+					}
+
+				}
+			}catch (URISyntaxException e){
+				logger.error(e.getMessage());
 			}
+
 		}
 		else {
 			String msg = "There is no playlist  for stream id:" + playlist.getStreamId();
@@ -634,4 +680,35 @@ public class StreamFetcherManager {
 		return result;
 	}
 
+	public String appendPortIfMissing(String url, int defaultHttpPort, int defaultHttpsPort) throws URISyntaxException {
+
+		URI uri = new URI(url);
+		int port = uri.getPort();
+		String scheme = uri.getScheme();
+
+		if (port == -1) {
+			if ("https".equalsIgnoreCase(scheme)) {
+				return new URI(
+						uri.getScheme(),
+						uri.getUserInfo(),
+						uri.getHost(),
+						defaultHttpsPort,
+						uri.getPath(),
+						uri.getQuery(),
+						uri.getFragment()
+				).toString();
+			} else if ("http".equalsIgnoreCase(scheme)) {
+				return new URI(
+						uri.getScheme(),
+						uri.getUserInfo(),
+						uri.getHost(),
+						defaultHttpPort,
+						uri.getPath(),
+						uri.getQuery(),
+						uri.getFragment()
+				).toString();
+			}
+		}
+		return url;
+	}
 }

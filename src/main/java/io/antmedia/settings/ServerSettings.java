@@ -65,6 +65,8 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 
 	private static final String SETTINGS_SERVER_DEFAULT_HTTP_PORT = "http.port";
 
+	private static final String SETTINGS_SERVER_DEFAULT_HTTPS_PORT = "https.port";
+
 	private static final String SETTINGS_ORIGIN_PORT = "server.origin_port";
 
 	private static final String SETTINGS_SRT_PORT = "server.srt_port";
@@ -200,6 +202,13 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 	 */
 	@Value( "${"+SETTINGS_SERVER_DEFAULT_HTTP_PORT+":5080}" )
 	private int defaultHttpPort;
+
+	/**
+	 * Server default HTTPS port
+	 * It's 5443 by default
+	 */
+	@Value( "${"+SETTINGS_SERVER_DEFAULT_HTTPS_PORT+":5443}" )
+	private int defaultHttpsPort;
 
 	/**
 	 * Server JWT Control Enabled to access the REST API of the web panel
@@ -631,6 +640,13 @@ public class ServerSettings implements ApplicationContextAware, Serializable {
 		this.appIngestsSrtStreamsWithoutStreamId = appIngestsSrtStreamsWithoutStreamId;
 	}
 
+	public int getDefaultHttpsPort() {
+		return defaultHttpsPort;
+	}
+
+	public void setDefaultHttpsPort(int defaultHttpsPort) {
+		this.defaultHttpsPort = defaultHttpsPort;
+	}
 
 
 
