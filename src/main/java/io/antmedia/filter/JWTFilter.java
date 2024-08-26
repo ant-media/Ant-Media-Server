@@ -99,7 +99,7 @@ public class JWTFilter extends AbstractFilter {
 			result = true;
 		}
 		catch (JWTVerificationException ex) {
-			logger.error("JWT token is not valid for a jwtToken");
+			logger.error("JWT token is not valid for a jwtToken. Error is {}", ex.getMessage());
 
 		} 
 

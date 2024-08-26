@@ -14,6 +14,7 @@ import dev.morphia.utils.IndexType;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.media.Schema.AccessMode;
 
 
 @Entity("vod")
@@ -38,6 +39,16 @@ public class VoD implements Serializable {
 	 * The vod file user is uploaded 
 	 */
 	public static final String UPLOADED_VOD = "uploadedVod";
+	
+	
+	public static final String PROCESS_STATUS_INQUEUE = "inqueue";
+	
+	public static final String PROCESS_STATUS_PROCESSING = "processing";
+	
+	public static final String PROCESS_STATUS_FINISHED = "finished";
+	
+	public static final String PROCESS_STATUS_FAILED = "failed";
+	
 	
 	@JsonIgnore
 	@Id
@@ -75,6 +86,16 @@ public class VoD implements Serializable {
 
     @Schema(description = "The file path for the preview of the VoD")
     private String previewFilePath;
+    
+    @Schema(description = "The status of the VoD processing. It can be inqueue, processing, finished, failed")
+    private String processStatus;
+    
+    @Schema(description = "The start time of the VoD processing in milliseconds (UTC- Unix epoch)", accessMode = AccessMode.READ_ONLY)
+    private long processStartTime;
+    
+    @Schema(description = "The end time of the VoD processing in milliseconds", accessMode = AccessMode.READ_ONLY)
+    private long processEndTime;
+    
 
 	public VoD() {
 		//default constructor is used to return not found vod in rest service 
@@ -184,6 +205,48 @@ public class VoD implements Serializable {
 
 	public void setPreviewFilePath(String previewFilePath) {
 		this.previewFilePath = previewFilePath;
+	}
+
+	/**
+	 * @return the processStatus
+	 */
+	public String getProcessStatus() {
+		return processStatus;
+	}
+
+	/**
+	 * @param processStatus the processStatus to set
+	 */
+	public void setProcessStatus(String processStatus) {
+		this.processStatus = processStatus;
+	}
+
+	/**
+	 * @return the processStartTime
+	 */
+	public long getProcessStartTime() {
+		return processStartTime;
+	}
+
+	/**
+	 * @param processStartTime the processStartTime to set
+	 */
+	public void setProcessStartTime(long processStartTime) {
+		this.processStartTime = processStartTime;
+	}
+
+	/**
+	 * @return the processEndTime
+	 */
+	public long getProcessEndTime() {
+		return processEndTime;
+	}
+
+	/**
+	 * @param processEndTime the processEndTime to set
+	 */
+	public void setProcessEndTime(long processEndTime) {
+		this.processEndTime = processEndTime;
 	}
 
 }
