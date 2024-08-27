@@ -694,7 +694,7 @@ public class StreamFetcherManager {
 			String host = uri.getHost();
 
 
-			//If url is other than local server, do not append port. If source is in one of cluster nodes other than local, it wont append port.
+			//If url is other than local server, do not append port.
 			if (host == null ||
 					(!host.equalsIgnoreCase(hostAddr) &&
 							!host.equalsIgnoreCase("localhost") &&
