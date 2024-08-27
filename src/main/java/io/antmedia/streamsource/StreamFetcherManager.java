@@ -12,6 +12,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
+import io.antmedia.cluster.ClusterNode;
+import io.antmedia.cluster.IClusterNotifier;
+import io.antmedia.cluster.IClusterStore;
 import io.antmedia.settings.ServerSettings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -32,6 +35,8 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.vertx.core.Vertx;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.context.support.WebApplicationContextUtils;
 
 
 /**
@@ -216,7 +221,7 @@ public class StreamFetcherManager {
 		}
 	}
 
-	public static Result checkStreamUrlWithHTTP(String url) throws URISyntaxException {
+	public static Result checkStreamUrlWithHTTP(String url) {
 
 		Result result = new Result(false);
 
@@ -361,7 +366,6 @@ public class StreamFetcherManager {
 			PlayListItem playlistBroadcastItem = playlist.getPlayListItemList().get(playlist.getCurrentPlayIndex());
 			String streamUrl = playlistBroadcastItem.getStreamUrl();
 			String newStreamUrl = appendPortIfSourceIsLocalAndPortMissing(streamUrl, hostAddr, serverName, defaultHttpPort, defaultHttpsPort);
-			try{
 				if(checkStreamUrlWithHTTP(newStreamUrl).isSuccess())
 				{
 
@@ -389,12 +393,8 @@ public class StreamFetcherManager {
 					String streamId = playlist.getStreamId();
 
 					streamScheduler.setStreamFetcherListener(listener -> {
-						try{
-							playNextItemInList(streamId, listener);
-						}catch (URISyntaxException e){
-							logger.error(ExceptionUtils.getStackTrace(e));
-						}
-					});
+                        playNextItemInList(streamId, listener);
+                    });
 
 					streamScheduler.setRestartStream(false);
 					startStreamScheduler(streamScheduler);
@@ -410,12 +410,12 @@ public class StreamFetcherManager {
 					playlist = skipNextPlaylistQueue(playlist, -1);
 
 
-					streamUrl = playlist.getStreamUrl();
+					streamUrl = playlist.getPlayListItemList().get(playlist.getCurrentPlayIndex()).getStreamUrl();
 					newStreamUrl = appendPortIfSourceIsLocalAndPortMissing(streamUrl, hostAddr, serverName, defaultHttpPort, defaultHttpsPort);
 
 					if(checkStreamUrlWithHTTP(newStreamUrl).isSuccess()) {
 
-						if(!newStreamUrl.equals(streamUrl)){
+						if(newStreamUrl != null && !newStreamUrl.equals(streamUrl)){
 							BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
 							PlayListItem playListItem = playlist.getPlayListItemList().get(playlist.getCurrentPlayIndex());
 							playListItem.setStreamUrl(newStreamUrl);
@@ -438,9 +438,7 @@ public class StreamFetcherManager {
 					}
 
 				}
-			}catch (URISyntaxException e){
-				logger.error(e.getMessage());
-			}
+
 
 		}
 		else {
@@ -684,45 +682,61 @@ public class StreamFetcherManager {
 
 		return result;
 	}
-	
-	public String appendPortIfSourceIsLocalAndPortMissing(String url, String hostAddr, String serverName, int defaultHttpPort, int defaultHttpsPort) throws URISyntaxException {
 
-		URI uri = new URI(url);
-		int port = uri.getPort();
-		String scheme = uri.getScheme();
-		String host = uri.getHost();
-
-		//If url is other than local server, do not append port.
-		if (host == null ||
-				(!host.equalsIgnoreCase(hostAddr) &&
-						!host.equalsIgnoreCase("localhost") &&
-						!host.equalsIgnoreCase(serverName))) {
-			return url;
+	public String appendPortIfSourceIsLocalAndPortMissing(String url, String hostAddr, String serverName, int defaultHttpPort, int defaultHttpsPort) {
+		if(url == null){
+			return null;
 		}
+		try{
+			URI uri = new URI(url);
+			int port = uri.getPort();
+			String scheme = uri.getScheme();
+			String host = uri.getHost();
 
-		if (port == -1) {
-			if ("https".equalsIgnoreCase(scheme)) {
-				return new URI(
-						uri.getScheme(),
-						uri.getUserInfo(),
-						uri.getHost(),
-						defaultHttpsPort,
-						uri.getPath(),
-						uri.getQuery(),
-						uri.getFragment()
-				).toString();
-			} else if ("http".equalsIgnoreCase(scheme)) {
-				return new URI(
-						uri.getScheme(),
-						uri.getUserInfo(),
-						uri.getHost(),
-						defaultHttpPort,
-						uri.getPath(),
-						uri.getQuery(),
-						uri.getFragment()
-				).toString();
+
+			//If url is other than local server, do not append port. If source is in one of cluster nodes other than local, it wont append port.
+			if (host == null ||
+					(!host.equalsIgnoreCase(hostAddr) &&
+							!host.equalsIgnoreCase("localhost") &&
+							!host.equalsIgnoreCase(serverName))) {
+				return url;
 			}
+
+			if (port == -1) {
+				if ("https".equalsIgnoreCase(scheme)) {
+					return new URI(
+							uri.getScheme(),
+							uri.getUserInfo(),
+							uri.getHost(),
+							defaultHttpsPort,
+							uri.getPath(),
+							uri.getQuery(),
+							uri.getFragment()
+					).toString();
+				} else if ("http".equalsIgnoreCase(scheme)) {
+					return new URI(
+							uri.getScheme(),
+							uri.getUserInfo(),
+							uri.getHost(),
+							defaultHttpPort,
+							uri.getPath(),
+							uri.getQuery(),
+							uri.getFragment()
+					).toString();
+				}
+			}
+		}catch (URISyntaxException e){
+			logger.error(ExceptionUtils.getStackTrace(e));
 		}
+
 		return url;
+	}
+
+	public ServerSettings getServerSettings() {
+		return serverSettings;
+	}
+
+	public void setServerSettings(ServerSettings serverSettings) {
+		this.serverSettings = serverSettings;
 	}
 }

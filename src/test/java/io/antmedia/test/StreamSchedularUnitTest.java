@@ -10,10 +10,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,6 +23,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.settings.ServerSettings;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
@@ -43,6 +41,7 @@ import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.server.scope.WebScope;
 import org.slf4j.Logger;
@@ -84,6 +83,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 	public static String VALID_LONG_DURATION_MP4_URL_3 = "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4";
 	public static String INVALID_MP4_URL = "invalid_link";
 	public static String INVALID_403_MP4_URL = "https://httpstat.us/403";
+
 	private WebScope appScope;
 	protected static Logger logger = LoggerFactory.getLogger(StreamSchedularUnitTest.class);
 
@@ -515,7 +515,7 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 				
 				return index == 0;
 			});
-			
+
 			Result checked = StreamFetcherManager.checkStreamUrlWithHTTP(INVALID_MP4_URL);
 
 			assertEquals(false, checked.isSuccess());
@@ -1358,6 +1358,100 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
+	@Test
+	public void testLocalVodUrlWithNoPort() throws Exception {
+		String fqdn = "myserver.com";
+		String localhost = "localhost";
+		String ip = "10.1.1.1";
+		String localHttpUrlWithoutPort = "http://"+fqdn+"/LiveApp/streams/test.mp4";
+		String localHttpUrlWithPort = "http://"+fqdn+":5080/LiveApp/streams/test.mp4";
+
+		String localHttpsUrlWithoutPort = "https://"+fqdn+"/LiveApp/streams/test.mp4";
+		String localHttpsUrlWithPort = "https://"+fqdn+":5443/LiveApp/streams/test.mp4";
+
+		String localHttpIpWithoutPort = "http://"+ip+"/LiveApp/streams/test.mp4";
+		String localHttpIpWithPort = "http://"+ip+":5080/LiveApp/streams/test.mp4";
+
+		String localHttpsIpWithoutPort = "https://"+ip+"/LiveApp/streams/test.mp4";
+		String localHttpsIpWithPort = "https://"+ip+":5443/LiveApp/streams/test.mp4";
+
+		String localHostHttpWithoutPort = "http://"+localhost+"/LiveApp/streams/test.mp4";
+		String localHostHttpWithPort = "http://"+localhost+":5080/LiveApp/streams/test.mp4";
+
+		ServerSettings serverSettings = mock(ServerSettings.class);
+		when(serverSettings.getDefaultHttpPort()).thenReturn(5080);
+		when(serverSettings.getDefaultHttpsPort()).thenReturn(5443);
+
+		ApplicationContext context = mock(ApplicationContext.class);
+		when(context.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(app);
+
+		IStatsCollector statCollector = Mockito.mock(IStatsCollector.class);
+		when(statCollector.enoughResource()).thenReturn(true);
+		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(statCollector);
+
+		IDataStoreFactory dsf = (IDataStoreFactory) appScope.getContext().getBean(IDataStoreFactory.BEAN_NAME);
+
+		DataStore dataStore = dsf.getDataStore();
+
+		app.setDataStore(dataStore);
+
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
+		when(serverSettings.getServerName()).thenReturn(fqdn);
+		streamFetcherManager.setServerSettings(serverSettings);
+
+		app.setStreamFetcherManager(streamFetcherManager);
+
+		PlayListItem broadcastItem1 = new PlayListItem(localHttpUrlWithoutPort, AntMediaApplicationAdapter.VOD);
+		List<PlayListItem> broadcastList = new ArrayList<>();
+		broadcastList.add(broadcastItem1);
+
+		PlayListItem broadcastItem2 = new PlayListItem(localHttpsUrlWithoutPort, AntMediaApplicationAdapter.VOD);
+		broadcastList.add(broadcastItem2);
+
+		PlayListItem broadcastItem3 = new PlayListItem(localHttpIpWithoutPort, AntMediaApplicationAdapter.VOD);
+		broadcastList.add(broadcastItem3);
+
+		PlayListItem broadcastItem4 = new PlayListItem(localHttpsIpWithoutPort, AntMediaApplicationAdapter.VOD);
+		broadcastList.add(broadcastItem4);
+
+		PlayListItem broadcastItem5 = new PlayListItem(localHostHttpWithoutPort, AntMediaApplicationAdapter.VOD);
+		broadcastList.add(broadcastItem5);
+
+		Broadcast playlist = new Broadcast();
+		playlist.setStreamId("testId");
+		playlist.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		playlist.setPlayListItemList(broadcastList);
+		playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		dataStore.save(playlist);
+
+		try (MockedStatic<StreamFetcherManager> mockedStatic = mockStatic(StreamFetcherManager.class)) {
+			mockedStatic.when(() -> StreamFetcherManager.checkStreamUrlWithHTTP(anyString()))
+					.thenAnswer(invocation -> new Result(true));
+			Result startPlaylist = streamFetcherManager.startPlaylist(playlist);
+			assertTrue(startPlaylist.isSuccess());
+			assertEquals(localHttpUrlWithPort,dataStore.get(playlist.getStreamId()).getPlayListItemList().get(0).getStreamUrl());
+
+			Result playNextRes = streamFetcherManager.playItemInList(playlist, listener -> {}, 1);
+			assertTrue(playNextRes.isSuccess());
+			assertEquals(localHttpsUrlWithPort, dataStore.get(playlist.getStreamId()).getPlayListItemList().get(1).getStreamUrl());
+
+			when(serverSettings.getHostAddress()).thenReturn(ip);
+
+			playNextRes = streamFetcherManager.playItemInList(playlist, listener -> {}, 2);
+			assertTrue(playNextRes.isSuccess());
+			assertEquals(localHttpIpWithPort, dataStore.get(playlist.getStreamId()).getPlayListItemList().get(2).getStreamUrl());
+
+			playNextRes = streamFetcherManager.playItemInList(playlist, listener -> {}, 3);
+			assertTrue(playNextRes.isSuccess());
+			assertEquals(localHttpsIpWithPort, dataStore.get(playlist.getStreamId()).getPlayListItemList().get(3).getStreamUrl());
+
+			playNextRes = streamFetcherManager.playItemInList(playlist, listener -> {}, 4);
+			assertTrue(playNextRes.isSuccess());
+			assertEquals(localHostHttpWithPort, dataStore.get(playlist.getStreamId()).getPlayListItemList().get(4).getStreamUrl());
+
+		}
+
+	}
 }
 
 
