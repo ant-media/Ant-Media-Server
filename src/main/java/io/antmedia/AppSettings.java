@@ -16,6 +16,8 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 
@@ -26,7 +28,9 @@ import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
+import dev.morphia.annotations.IndexOptions;
 import dev.morphia.annotations.Indexes;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.VoDRestService;
 
 /**
@@ -53,12 +57,17 @@ import io.antmedia.rest.VoDRestService;
  *
  */
 @Entity("AppSettings")
-@Indexes({ @Index(fields = @Field("appName"))})
+@Indexes({ @Index(fields = @Field("appName"), options = @IndexOptions(unique = true, name="appName_unique_index"))})
 @PropertySource("/WEB-INF/red5-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AppSettings implements Serializable{
 
 	private static final long serialVersionUID = 1L;
+	
+	/**
+	 * @hidden
+	 */
+	private static final Logger logger = LoggerFactory.getLogger(AppSettings.class);
 
 	@JsonIgnore
 	@Id
@@ -1172,8 +1181,8 @@ public class AppSettings implements Serializable{
 	 * Check for details: https://ffmpeg.org/ffmpeg-formats.html#Options-6
 	 * 
 	 */
-	@Value( "${hlsflags:${" + SETTINGS_HLS_FLAGS + ":delete_segments}}")
-	private String hlsflags="delete_segments";
+	@Value( "${hlsflags:${" + SETTINGS_HLS_FLAGS + ":delete_segments+program_date_time}}")
+	private String hlsflags="delete_segments+program_date_time";
 
 	private String mySqlClientPath = "/usr/local/antmedia/mysql";
 
@@ -2161,7 +2170,38 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${iceGatheringTimeoutMs:2000}")
 	private long iceGatheringTimeoutMs = 2000;
+	
+	
 
+	@Value("${customSettings:{}}")	
+	private JSONObject customSettings = new JSONObject();
+	
+	/**
+	 * Relay RTMP metadata to muxers. It's true by default
+	 * RTMP can have metadata and it can be used for playback synchronization.
+	 * 
+	 * If it's true, Ant Media Server relays the metadata to muxers. 
+	 * Currently, HLSMuxer supports this feature through {@link Muxer#writeMetaData(String, long)}
+	 */
+	@Value("${relayRTMPMetaDataToMuxers:true}")	
+	private boolean relayRTMPMetaDataToMuxers = true;
+		
+	/**
+	 * Drop webrtc ingest if no packet received. It's false by default because video or audio may be disabled in the stream
+	 * It checks the audio/video packets in the WebRTC ingest stream. 
+	 * If no audio or no video packets are received in the {@link #webRTCClientStartTimeoutMs}, it drops the stream.
+	 * 
+	 */
+	@Value("${dropWebRTCIngestIfNoPacketReceived:false}")
+	private boolean dropWebRTCIngestIfNoPacketReceived = false;
+		
+	public Object getCustomSetting(String key) {
+		return	customSettings.get(key);
+	}
+	
+	public void setCustomSetting(String key, Object value) {
+		customSettings.put(key, value);
+	}
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;
@@ -2280,6 +2320,8 @@ public class AppSettings implements Serializable{
 	public void setWebRTCEnabled(boolean webRTCEnabled) {
 		this.webRTCEnabled = webRTCEnabled;
 	}
+	
+	
 
 	public static String encodersList2Str(List<EncoderSettings> encoderSettingsList) 
 	{
@@ -3768,4 +3810,43 @@ public class AppSettings implements Serializable{
 	public void setIceGatheringTimeoutMs(long iceGatheringTimeoutMs) {
 		this.iceGatheringTimeoutMs = iceGatheringTimeoutMs;
 	}
+
+	public JSONObject getCustomSettings() {
+		return customSettings;
+	}
+
+	public void setCustomSettings(JSONObject customSettings) {
+		this.customSettings = customSettings;
+	}
+
+	/**
+	 * @return the relayRTMPMetaDataToMuxers
+	 */
+	public boolean isRelayRTMPMetaDataToMuxers() {
+		return relayRTMPMetaDataToMuxers;
+	}
+
+	/**
+	 * @param relayRTMPMetaDataToMuxers the relayRTMPMetaDataToMuxers to set
+	 */
+	public void setRelayRTMPMetaDataToMuxers(boolean relayRTMPMetaDataToMuxers) {
+		this.relayRTMPMetaDataToMuxers = relayRTMPMetaDataToMuxers;
+	}
+
+	/**
+	 * @return the dropWebRTCIngestIfNoPacketReceived
+	 */
+	public boolean isDropWebRTCIngestIfNoPacketReceived() {
+		return dropWebRTCIngestIfNoPacketReceived;
+	}
+
+	/**
+	 * @param dropWebRTCIngestIfNoPacketReceived the dropWebRTCIngestIfNoPacketReceived to set
+	 */
+	public void setDropWebRTCIngestIfNoPacketReceived(boolean dropWebRTCIngestIfNoPacketReceived) {
+		this.dropWebRTCIngestIfNoPacketReceived = dropWebRTCIngestIfNoPacketReceived;
+	}
+
+
+
 }

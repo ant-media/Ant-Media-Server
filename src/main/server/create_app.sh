@@ -6,7 +6,7 @@ usage() {
   echo "Usage:"
   echo "$0 -n APPLICATION_NAME [-p INSTALLATION_PATH] [-w true|false] [-c true|false]"
   echo "Options:"
-  echo "-n: Name of the application that you want to have. It's mandatory"
+  echo "-n: Name of the application that you want to have. It's mandatory. Make sure there is no application with the same name"
   echo "-m: Database URI including username and password. It can be MongoDB or RedisDB connection url. If it's a cluster, it's mandatory. Otherwise optional"
   echo "-f: war file path for custom app deployment"
   echo "-p: (Optional) Path is the install location of Ant Media Server which is /usr/local/antmedia by default."
@@ -18,7 +18,10 @@ usage() {
  
   echo " "
   echo "Example: "
-  echo "$0 -n live -w"
+  echo "Deploy as a directory" 
+  echo "$0 -n live "
+  echo "Deploy as war file"
+  echo "$0 -n live -w false "
   echo " "
   echo "If you have any question, send e-mail to contact@antmedia.io"
 }
@@ -154,7 +157,6 @@ sed -i $SED_COMPATIBILITY 's/db.password=.*/db.password='$DB_PASS'/' $RED5_PROPE
 
 if [[ "$IS_CLUSTER" == "true" ]]; then
     echo "Cluster mode"
-    ln -s $WAR_FILE $AMS_DIR/webapps/root/$APP_NAME.war
 else 
     echo "Not cluster mode."    
 fi

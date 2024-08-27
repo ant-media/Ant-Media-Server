@@ -28,6 +28,7 @@ import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.rest.BroadcastRestService;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
@@ -352,14 +353,15 @@ public class PlaylistRestServiceV2UnitTest {
 
 		// getPlaylistId = null & playlistId = null
 		
-		playlist.setPlannedStartDate(100);
-		playlist.setUpdateTime(System.currentTimeMillis());
-		playlist.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
-		
-		assertTrue(restServiceReal.isStreaming(playlist));
-		
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setPlannedStartDate(100L);
+		broadcastUpdate.setUpdateTime(System.currentTimeMillis());
+		broadcastUpdate.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
 
-		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist);
+		result = restServiceReal.updateBroadcast(playlist.getStreamId(), broadcastUpdate);
+		
+		assertTrue(restServiceReal.isStreaming(dataStore.get(playlist.getStreamId())));
+		
 		Mockito.verify(app).cancelPlaylistSchedule(playlist.getStreamId());
 		Mockito.verify(app).schedulePlayList(Mockito.anyLong(), Mockito.any());
 		//because we don't restart for playlist
@@ -372,20 +374,14 @@ public class PlaylistRestServiceV2UnitTest {
 
 		// getPlaylistId = null & playlistId != null		
 
-		result = restServiceReal.updateBroadcast("test123", playlist);
+		result = restServiceReal.updateBroadcast("test123", broadcastUpdate);
 
 		assertEquals(false, result.isSuccess());
 
 		// getPlaylistId != null & playlistId = null
-		try {
-			playlist.setStreamId("notNullId");
-		}
-		catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		broadcastUpdate.setStreamId("notNullId");
 
-		result = restServiceReal.updateBroadcast(null, playlist);
+		result = restServiceReal.updateBroadcast(null, broadcastUpdate);
 
 		// getPlaylistId != null & playlistId != null
 		try {
@@ -395,11 +391,12 @@ public class PlaylistRestServiceV2UnitTest {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+		
 
 		playlist.setName("afterTestPlaylistName");
 		dataStore.save(playlist);
 		
-		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist);
+		result = restServiceReal.updateBroadcast(playlist.getStreamId(), broadcastUpdate);
 
 		assertEquals(true, result.isSuccess());
 
@@ -413,8 +410,9 @@ public class PlaylistRestServiceV2UnitTest {
 		broadcastList.clear();
 
 		playlist.setPlayListItemList(broadcastList);
-
-		result = restServiceReal.updateBroadcast(playlist.getStreamId(), playlist);
+		broadcastUpdate.setPlayListItemList(broadcastList);
+		
+		result = restServiceReal.updateBroadcast(playlist.getStreamId(), broadcastUpdate);
 
 		assertEquals(true, result.isSuccess());
 

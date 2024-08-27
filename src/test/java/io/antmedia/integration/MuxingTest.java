@@ -142,6 +142,7 @@ public class MuxingTest {
 		assertTrue("duplicate test AppFunctionalV2Test#testSendRTMPStream", true);
 	}
 
+	
 
 	@Test
 	public void testSupportVideoCodecUnSupportedAudioCodec() {
@@ -366,6 +367,57 @@ public class MuxingTest {
 		assertTrue("This test is merged with RestServiceV2Test#testAddEndpointCrossCheckV2", true);
 	}
 
+	
+	@Test
+	public void testHEVCWithRTMP() throws Exception {
+		
+		ConsoleAppRestServiceTest.resetCookieStore();
+		Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+		if (result.isSuccess()) {
+			Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+			assertTrue(createInitialUser.isSuccess());
+		}
+
+		result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+		assertTrue(result.isSuccess());
+		AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("live");
+		boolean mp4Enabled = appSettings.isMp4MuxingEnabled();
+		appSettings.setMp4MuxingEnabled(true);
+		
+		boolean hlsEnabled = appSettings.isHlsMuxingEnabled();
+		appSettings.setHlsMuxingEnabled(true);
+		ConsoleAppRestServiceTest.callSetAppSettings("live", appSettings);
+
+		
+		String streamId = "hevc"  + (int)(Math.random() * 999999);
+
+		Process rtmpSendingProcess = execute(
+				ffmpegPath + " -re -i src/test/resources/test_hevc.flv -codec copy -f flv rtmp://"
+						+ SERVER_ADDR + "/live/" + streamId);
+		
+		
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/live/streams/" + streamId+ ".m3u8");
+		});
+		
+		assertTrue(MuxingTest.videoExists);
+		assertTrue(MuxingTest.audioExists);
+		
+		
+		rtmpSendingProcess.destroy();
+		
+		
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/live/streams/" + streamId+ ".mp4");
+		});
+		
+		
+		appSettings.setMp4MuxingEnabled(mp4Enabled);
+		appSettings.setHlsMuxingEnabled(hlsEnabled);
+		ConsoleAppRestServiceTest.callSetAppSettings("live", appSettings);
+		
+		
+	}
 
 	@Test
 	public void testMp4Muxing() {

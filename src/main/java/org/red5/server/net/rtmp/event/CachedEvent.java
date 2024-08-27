@@ -20,6 +20,8 @@ package org.red5.server.net.rtmp.event;
 
 import org.apache.mina.core.buffer.IoBuffer;
 import org.red5.server.api.stream.IStreamPacket;
+import org.red5.server.net.rtmp.event.VideoData.ExVideoPacketType;
+import org.red5.server.net.rtmp.event.VideoData.FrameType;
 
 /**
  * Provides a means for storage of RTMP events.
@@ -41,6 +43,21 @@ public class CachedEvent implements IStreamPacket {
     private byte dataType;
 
     private IoBuffer data;
+    
+    /**
+     * Valid only for video packets
+     */
+	private boolean exVideoHeader = false;
+	/**
+	 * Valid only for video packets
+	 */
+	private ExVideoPacketType exVideoPacketType;
+
+	/**
+	 * Valid only for video packets
+	 */
+	private FrameType frameType = FrameType.UNKNOWN;
+
 
     /**
      * @return the timestamp
@@ -132,5 +149,29 @@ public class CachedEvent implements IStreamPacket {
             return false;
         return true;
     }
+
+	public boolean isExVideoHeader() {
+		return exVideoHeader;
+	}
+
+	public void setExVideoHeader(boolean exVideoHeader) {
+		this.exVideoHeader = exVideoHeader;
+	}
+
+	public ExVideoPacketType getExVideoPacketType() {
+		return exVideoPacketType;
+	}
+
+	public void setExVideoPacketType(ExVideoPacketType exVideoPacketType) {
+		this.exVideoPacketType = exVideoPacketType;
+	}
+
+	public FrameType getFrameType() {
+		return frameType;
+	}
+
+	public void setFrameType(FrameType frameType) {
+		this.frameType = frameType;
+	}
 
 }

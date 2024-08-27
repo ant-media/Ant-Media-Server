@@ -82,7 +82,7 @@ public class AppSettingsTest {
 		
 		//null case
 		assertTrue(mockApplicationAdapter.updateSettings(newSettings, false, false));
-		verify(mockApplicationAdapter).updateAppSettingsBean(appSettings, newSettings);
+		verify(mockApplicationAdapter).updateAppSettingsBean(appSettings, newSettings, false);
 		
 		//verify(mockSettings, times(1)).setEncoderSettingsString(settings.getEncoderSettingsString());
 		

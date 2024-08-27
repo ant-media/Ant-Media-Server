@@ -489,10 +489,10 @@ public class StreamFetcher {
 					});
 
 					packetWriterJobName = vertx.setPeriodic(PACKET_WRITER_PERIOD_IN_MS, l->
-							vertx.executeBlocking(() -> {
-								writeBufferedPacket();
-								return null;
-							}, false));
+					vertx.executeBlocking(() -> {
+						writeBufferedPacket();
+						return null;
+					}, false));
 
 
 
@@ -561,43 +561,9 @@ public class StreamFetcher {
 				 * Generally we don't use this feature most of the time
 				 */
 				AVPacket packet = getAVPacket();
+
 				av_packet_ref(packet, pkt);
 				bufferQueue.add(packet);
-
-				try {
-					//NoSuchElementException may be thrown
-					AVPacket pktHead = bufferQueue.first();
-					//NoSuchElementException may be thrown here as well - it's multithread @mekya
-					AVPacket pktTrailer = bufferQueue.last();
-					/**
-					 * BufferQueue may be polled in writer thread.
-					 * It's a very rare case to happen so that check if it's null
-					 */
-
-					lastPacketTimeMsInQueue = av_rescale_q(pktTrailer.dts(), inputFormatContext.streams(pkt.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
-
-					firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
-
-					bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
-
-					if ( bufferDuration > bufferTime) {
-
-						if (buffering.get()) {
-							//have the buffering finish time ms
-							bufferingFinishTimeMs = System.currentTimeMillis();
-							//have the first packet sent time
-							firstPacketReadyToSentTimeMs  = firstPacketTime;
-						}
-						buffering.set(false);
-					}
-
-					logBufferStatus();
-
-				}
-				catch (NoSuchElementException e) {
-					//You may or may not ignore this exception @mekya
-					logger.warn("You may or may not ignore this exception. I mean It can happen time to time in multithread environment -> {}", e.getMessage());
-				}
 			}
 			else {
 
@@ -668,11 +634,9 @@ public class StreamFetcher {
 				writeAllBufferedPackets();
 
 
-				long totalByteReceived = 0;
 				if (muxAdaptor != null) {
 					logger.info("Writing trailer in Muxadaptor {}", streamId);
 					muxAdaptor.writeTrailer();
-					totalByteReceived = muxAdaptor.getTotalByteReceived();
 					getInstance().muxAdaptorRemoved(muxAdaptor);
 					muxAdaptor = null;
 				}
@@ -691,9 +655,6 @@ public class StreamFetcher {
 					streamPublished=false;
 					closeCalled = true;
 				}
-
-
-
 
 
 				if(streamFetcherListener != null)
@@ -778,7 +739,7 @@ public class StreamFetcher {
 				}
 				else {
 					logger.info("Last dts:{} is bigger than incoming dts: {} for stream index:{} and streamId:{}-"
-									+ " If you see this log frequently and it's not related to playlist, you may TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings",
+							+ " If you see this log frequently and it's not related to playlist, you may TRY TO FIX it by setting \"streamFetcherBufferTime\"(to ie. 1000) in Application Settings",
 							lastSentDTS[packetIndex], pkt.dts(), packetIndex, streamId);
 					pktDts = lastSentDTS[packetIndex] + 1;
 				}
@@ -809,6 +770,7 @@ public class StreamFetcher {
 			return  inputFormatContext.streams(streamIndex).time_base();
 		}
 
+
 		public void checkAndFixSynch()
 		{
 			long now = System.currentTimeMillis();
@@ -834,7 +796,8 @@ public class StreamFetcher {
 				long minValueInMilliseconds = -1;
 				long maxValueInMilliseconds = -1;
 
-				//get the minimum and max values
+				//get the minimum and max values 
+
 				for (Long value : lastSendDTSInMsList) {
 					if (minValueInMilliseconds > value || minValueInMilliseconds == -1) {
 						minValueInMilliseconds = value;
@@ -870,6 +833,9 @@ public class StreamFetcher {
 				if (isJobRunning.compareAndSet(false, true))
 				{
 					try {
+
+						calculateBufferStatus();
+
 						if (!buffering.get())
 						{
 							while(!bufferQueue.isEmpty())
@@ -888,8 +854,8 @@ public class StreamFetcher {
 								{
 
 									writePacket(inputFormatContext.streams(tempPacket.stream_index()), tempPacket);
-									unReferencePacket(tempPacket);
 									bufferQueue.remove(tempPacket); //remove the packet from the queue
+									unReferencePacket(tempPacket);
 								}
 								else {
 									//break the loop and don't block the thread because it's not correct time to send the packet
@@ -904,6 +870,11 @@ public class StreamFetcher {
 
 						logBufferStatus();
 					}
+					catch (NoSuchElementException e) {
+						//You may or may not ignore this exception @mekya
+						logger.warn("You may or may not ignore this exception. I mean It can happen time to time in multithread environment -> NoSuchElementException streamId:{}", streamId);
+					}
+
 					finally {
 
 						isJobRunning.compareAndSet(true, false);
@@ -911,6 +882,39 @@ public class StreamFetcher {
 				}
 
 			}
+		}
+
+		public void calculateBufferStatus() {
+			//NoSuchElementException may be thrown
+			AVPacket pktHead = bufferQueue.first();
+			//NoSuchElementException may be thrown here as well - it's multithread @mekya
+			AVPacket pktTrailer = bufferQueue.last();
+
+			/**
+			 * Check if the values are not AV_NOPTS_VALUE because 
+			 * In multithread environment, it may be unreferenced in writer thread #writeBufferedPacket -> unReferencePacket
+			 */
+			lastPacketTimeMsInQueue = av_rescale_q(pktTrailer.dts(), inputFormatContext.streams(pktTrailer.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+
+			firstPacketTime = av_rescale_q(pktHead.pts(), inputFormatContext.streams(pktHead.stream_index()).time_base(), MuxAdaptor.TIME_BASE_FOR_MS);
+
+			bufferDuration = (lastPacketTimeMsInQueue - firstPacketTime);
+
+			//logger.info("lastPacketTimeMsInQueue:{} firstPacketTime:{} bufferDuration:{}", lastPacketTimeMsInQueue, firstPacketTime, bufferDuration);
+
+
+			if ( bufferDuration > bufferTime) {
+
+				if (buffering.get()) {
+					//have the buffering finish time ms
+					bufferingFinishTimeMs = System.currentTimeMillis();
+					//have the first packet sent time
+					firstPacketReadyToSentTimeMs  = firstPacketTime;
+				}
+				buffering.set(false);
+			}
+
+			logBufferStatus();
 		}
 
 

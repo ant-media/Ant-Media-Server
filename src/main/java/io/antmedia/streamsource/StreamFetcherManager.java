@@ -14,7 +14,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.annotation.Nonnull;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.tika.utils.ExceptionUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,6 +23,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.licence.ILicenceService;
 import io.antmedia.muxer.IAntMediaStreamHandler;
@@ -283,7 +284,12 @@ public class StreamFetcherManager {
 			{
 				//update broadcast informations
 				PlayListItem fetchedBroadcast = playlist.getPlayListItemList().get(currentStreamIndex);
-				datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
+				
+				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+				broadcastUpdate.setPlayListStatus(playlist.getPlayListStatus());
+				broadcastUpdate.setCurrentPlayIndex(playlist.getCurrentPlayIndex());
+				
+				datastore.updateBroadcastFields(playlist.getStreamId(), broadcastUpdate);
 
 				StreamFetcher newStreamScheduler = new StreamFetcher(fetchedBroadcast.getStreamUrl(), playlist.getStreamId(), fetchedBroadcast.getType(), scope,vertx, fetchedBroadcast.getSeekTimeInMs());
 				newStreamScheduler.setStreamFetcherListener(listener);
@@ -341,8 +347,14 @@ public class StreamFetcherManager {
 				StreamFetcher streamScheduler = new StreamFetcher(playlistBroadcastItem.getStreamUrl(), playlist.getStreamId(), playlistBroadcastItem.getType(), scope, vertx, playlistBroadcastItem.getSeekTimeInMs());
 				// Update Playlist current playing status
 				playlist.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+				
+				
+				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+				broadcastUpdate.setPlayListStatus(playlist.getPlayListStatus());
+				broadcastUpdate.setCurrentPlayIndex(playlist.getCurrentPlayIndex());
+				
 				// Update Datastore current play broadcast
-				datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
+				datastore.updateBroadcastFields(playlist.getStreamId(), broadcastUpdate);
 
 				String streamId = playlist.getStreamId();
 
@@ -369,7 +381,12 @@ public class StreamFetcherManager {
 				else {
 					playlist.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
 					// Update Datastore current play broadcast
-					datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
+					
+					BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+					broadcastUpdate.setStatus(playlist.getStatus());
+					broadcastUpdate.setCurrentPlayIndex(playlist.getCurrentPlayIndex());
+					
+					datastore.updateBroadcastFields(playlist.getStreamId(), broadcastUpdate);
 					result.setSuccess(false);
 				}
 
@@ -407,7 +424,12 @@ public class StreamFetcherManager {
 				logger.info("Play list looping is not enabled. It will be stopped for stream: {}", playlist.getStreamId());
 				//streaming is already stopped so that just update the database
 				playlist.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-				datastore.updateBroadcastFields(playlist.getStreamId(), playlist);
+				
+				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+				broadcastUpdate.setPlayListStatus(playlist.getPlayListStatus());
+				broadcastUpdate.setCurrentPlayIndex(playlist.getCurrentPlayIndex());
+				
+				datastore.updateBroadcastFields(playlist.getStreamId(), broadcastUpdate);
 
 				//return null if it's not looping
 				return null;
@@ -593,7 +615,9 @@ public class StreamFetcherManager {
 			if (broadcast != null && AntMediaApplicationAdapter.PLAY_LIST.equals(broadcast.getType())) 
 			{
 				broadcast.setPlayListStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FINISHED);
-				result.setSuccess(datastore.updateBroadcastFields(streamId, broadcast));
+				BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+				broadcastUpdate.setPlayListStatus(broadcast.getPlayListStatus());
+				result.setSuccess(datastore.updateBroadcastFields(streamId, broadcastUpdate));
 			}
 			else {
 				String msg = "Broadcast's type is not play list for stream:" + streamId;

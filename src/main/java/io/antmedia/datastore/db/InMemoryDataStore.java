@@ -12,14 +12,18 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import javax.annotation.Nonnull;
+
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
@@ -108,7 +112,7 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-
+	
 	@Override
 	public boolean updateDuration(String id, long duration) {
 		Broadcast broadcast = broadcastMap.get(id);
@@ -291,6 +295,24 @@ public class InMemoryDataStore extends DataStore {
 			id = vod.getVodId();
 		}
 		return id;
+	}
+	
+	@Override
+	public boolean updateVoDProcessStatus(String id, String status) {
+		VoD vod = vodMap.get(id);
+		if (vod != null) {
+			vod.setProcessStatus(status);
+			if (VoD.PROCESS_STATUS_PROCESSING.equals(status)) {
+				vod.setProcessStartTime(System.currentTimeMillis());
+			}
+			else if (VoD.PROCESS_STATUS_FAILED.equals(status) || VoD.PROCESS_STATUS_FINISHED.equals(status)) {
+				vod.setProcessEndTime(System.currentTimeMillis());
+			}
+			vodMap.put(id, vod);
+			return true;
+		}
+
+		return false;
 	}
 
 	@Override
@@ -504,7 +526,7 @@ public class InMemoryDataStore extends DataStore {
 	}
 
 	@Override
-	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {		
+	public boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast) {		
 		boolean result = false;
 		try {
 			Broadcast oldBroadcast = get(streamId);
@@ -918,13 +940,19 @@ public class InMemoryDataStore extends DataStore {
 		Broadcast mainTrack = broadcastMap.get(mainTrackId);
 		if (mainTrack != null && subTrackId != null) {
 			List<String> subTracks = mainTrack.getSubTrackStreamIds();
+			
 			if (subTracks == null) {
 				subTracks = new ArrayList<>();
 			}
-			subTracks.add(subTrackId);
-			mainTrack.setSubTrackStreamIds(subTracks);
-			broadcastMap.put(mainTrackId, mainTrack);
+			
+			if (!subTracks.contains(subTrackId)) 
+			{
+				subTracks.add(subTrackId);
+				mainTrack.setSubTrackStreamIds(subTracks);
+				broadcastMap.put(mainTrackId, mainTrack);
+			}
 			result = true;
+			
 		}
 		return result;
 	}
@@ -1042,5 +1070,85 @@ public class InMemoryDataStore extends DataStore {
 	@Override
 	public void migrateConferenceRoomsToBroadcasts() {
 		//no need to implement
+	}
+
+	@Override
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
+		return getSubtracks(mainTrackId, offset, size, role, null);
+	}
+	
+	@Override
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status) {
+		List<Broadcast> subtracks = new ArrayList<>();
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (StringUtils.isBlank(status) || status.equals(broadcast.getStatus()))) {
+				subtracks.add(broadcast);
+			}
+		}
+		return subtracks.subList(offset, Math.min(offset + size, subtracks.size()));
+	}
+	
+	@Override
+	public long getSubtrackCount(@Nonnull String mainTrackId, String role, String status) {
+		int count = 0;
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (StringUtils.isBlank(status) || status.equals(broadcast.getStatus()))) 
+			{
+				count++;
+			}
+		}
+		return count;
+	}
+	
+	@Override
+	public long getActiveSubtracksCount(String mainTrackId, String role) {
+		int count = 0;
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
+					&& (AntMediaApplicationAdapter.isStreaming(broadcast))) 
+			{
+				count++;
+			}
+		}
+		return count;
+	}
+	
+	@Override
+	public List<Broadcast> getActiveSubtracks(String mainTrackId, String role) 
+	{
+		List<Broadcast> subtracks = new ArrayList<>();
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (mainTrackId.equals(broadcast.getMainTrackStreamId())  
+					&& (StringUtils.isBlank(role) || role.equals(broadcast.getRole()))
+					&& (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(broadcast.getStatus()))
+					&& (AntMediaApplicationAdapter.isStreaming(broadcast))) 
+			{
+				subtracks.add(broadcast);
+			}
+		}
+		return subtracks;
+	}
+	
+	@Override
+	public boolean hasSubtracks(String streamId) {
+		
+		for (Broadcast broadcast : broadcastMap.values()) 
+		{
+			if (streamId.equals(broadcast.getMainTrackStreamId()) ) 
+			{
+				return true;
+			}
+		}
+		return false;
 	}
 }
