@@ -1064,7 +1064,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 
-	public long correctPacketDtsOverflow(long packetDts, byte streamType) {
+	public long correctPacketDtsOverflow(long packetDts) {
 		/*
 		 * Continuous RTMP streaming for approximately 24 days can cause the DTS values to overflow
 		 * and reset to 0 once they reach the maximum value for a signed integer.
@@ -1101,8 +1101,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	{
 		//RTMPProtocolDecoder overflows after 24 days(Integer.MAX_Value) of continuous streaming and it starts from zero again. 
 		//According to the protocol it should overflow after 49 days. Anyway, we fix the overflow here
-		long dts = packet.getTimestamp() & 0xffffffffL;
-		dts = correctPacketDtsOverflow(dts, packet.getDataType());
+		long dts = correctPacketDtsOverflow(packet.getTimestamp());
 
 		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA)
 		{

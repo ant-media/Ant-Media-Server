@@ -5497,8 +5497,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		}
 
-
-
 	}
 
 	@Test
@@ -5605,76 +5603,78 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		muxAdaptor.writeStreamPacket(audioPacket1);
-		int audioOverFlowCount = muxAdaptor.getOverflowCount()[1];
-		assertEquals(0, audioOverFlowCount);
-		long lastAudioDts = muxAdaptor.getLastDTS()[1];
+		int overFlowCount = muxAdaptor.getOverflowCount();
+		assertEquals(0, overFlowCount);
+		long lastAudioDts = muxAdaptor.getLastDTS();
 		assertEquals(lastAudioDts, audioPacket1.getTimestamp());
 
 		muxAdaptor.writeStreamPacket(videoPacket1);
-		int videoOverFlowCount = muxAdaptor.getOverflowCount()[0];
-		assertEquals(0, audioOverFlowCount);
-		long lastVideoDts = muxAdaptor.getLastDTS()[0];
-		assertEquals(lastVideoDts, videoPacket1.getTimestamp());
+		overFlowCount = muxAdaptor.getOverflowCount();
+		assertEquals(1, overFlowCount);
+		long lastVideoDts = muxAdaptor.getLastDTS();
+		assertEquals(lastVideoDts, videoPacket1.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 		muxAdaptor.writeStreamPacket(audioPacket2);
-		audioOverFlowCount = muxAdaptor.getOverflowCount()[1];
-		assertEquals(0, audioOverFlowCount);
-		lastAudioDts = muxAdaptor.getLastDTS()[1];
-		assertEquals(lastAudioDts, audioPacket2.getTimestamp());
+		overFlowCount = muxAdaptor.getOverflowCount();
+		assertEquals(1, overFlowCount);
+		lastAudioDts = muxAdaptor.getLastDTS();
+		assertEquals(lastAudioDts, audioPacket2.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 		muxAdaptor.writeStreamPacket(videoPacket2);
-		videoOverFlowCount = muxAdaptor.getOverflowCount()[0];
-		assertEquals(0, videoOverFlowCount);
-		lastVideoDts = muxAdaptor.getLastDTS()[0];
-		assertEquals(lastVideoDts, videoPacket2.getTimestamp());
+		overFlowCount = muxAdaptor.getOverflowCount();
+		assertEquals(1, overFlowCount);
+		lastVideoDts = muxAdaptor.getLastDTS();
+		assertEquals(lastVideoDts, videoPacket2.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 
-		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket2.getTimestamp());
-		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket2.getTimestamp(), 0, 0, false, 0, videoPacket2.getTimestamp());
+		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket2.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE );
+		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket2.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE, 0, 0, false, 0, videoPacket2.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 		muxAdaptor.writeStreamPacket(audioPacket3);
-		audioOverFlowCount = muxAdaptor.getOverflowCount()[1];
-		assertEquals(0, audioOverFlowCount);
-		lastAudioDts = muxAdaptor.getLastDTS()[1];
-		assertEquals(lastAudioDts, audioPacket3.getTimestamp());
+		overFlowCount = muxAdaptor.getOverflowCount();
+		assertEquals(1, overFlowCount);
+		lastAudioDts = muxAdaptor.getLastDTS();
+		assertEquals(lastAudioDts, audioPacket3.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 		muxAdaptor.writeStreamPacket(videoPacket3);
-		videoOverFlowCount = muxAdaptor.getOverflowCount()[0];
-		assertEquals(0, videoOverFlowCount);
-		lastVideoDts = muxAdaptor.getLastDTS()[0];
-		assertEquals(lastVideoDts, videoPacket3.getTimestamp());
+		overFlowCount = muxAdaptor.getOverflowCount();
+		assertEquals(1, overFlowCount);
+		lastVideoDts = muxAdaptor.getLastDTS();
+		assertEquals(lastVideoDts, videoPacket3.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
-		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket3.getTimestamp());
+		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket3.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 		directByteBufferVideo.position(0);
-		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket3.getTimestamp(), 0, 0, false, 0, videoPacket3.getTimestamp());
+		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket3.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE, 0, 0, false, 0, 
+					videoPacket3.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 		muxAdaptor.writeStreamPacket(audioPacket4);
-		audioOverFlowCount = muxAdaptor.getOverflowCount()[1];
-		assertEquals(0, audioOverFlowCount);
-		lastAudioDts = muxAdaptor.getLastDTS()[1];
-		assertEquals(lastAudioDts, audioPacket4.getTimestamp());
+		overFlowCount = muxAdaptor.getOverflowCount();
+		assertEquals(2, overFlowCount);
+		lastAudioDts = muxAdaptor.getLastDTS();
+		assertEquals(lastAudioDts, audioPacket4.getTimestamp()+(long) overFlowCount * Integer.MAX_VALUE);
 
 		muxAdaptor.writeStreamPacket(videoPacket4);
-		videoOverFlowCount = muxAdaptor.getOverflowCount()[0];
-		assertEquals(0, videoOverFlowCount);
-		lastVideoDts = muxAdaptor.getLastDTS()[0];
-		assertEquals(lastVideoDts, videoPacket4.getTimestamp());
+		overFlowCount = muxAdaptor.getOverflowCount();
+		assertEquals(2, overFlowCount);
+		lastVideoDts = muxAdaptor.getLastDTS();
+		assertEquals(lastVideoDts, videoPacket4.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
-		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket4.getTimestamp());
-		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket4.getTimestamp(), 0, 0, false, 0, videoPacket4.getTimestamp());
+		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket4.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
+		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket4.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE, 0, 0, false, 0, 
+					videoPacket4.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 		muxAdaptor.writeStreamPacket(audioPacketOverflowed);
-		audioOverFlowCount = muxAdaptor.getOverflowCount()[1];
-		assertEquals(1, audioOverFlowCount);
-		lastAudioDts = muxAdaptor.getLastDTS()[1];
-		assertEquals(lastAudioDts, audioPacketOverflowed.getTimestamp() + (long) audioOverFlowCount * Integer.MAX_VALUE);
+		overFlowCount = muxAdaptor.getOverflowCount();
+		assertEquals(3, overFlowCount);
+		lastAudioDts = muxAdaptor.getLastDTS();
+		assertEquals(lastAudioDts, audioPacketOverflowed.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 		muxAdaptor.writeStreamPacket(videoPacketOverflowed);
-		videoOverFlowCount = muxAdaptor.getOverflowCount()[0];
-		assertEquals(1, videoOverFlowCount);
-		lastVideoDts = muxAdaptor.getLastDTS()[0];
-		assertEquals(lastVideoDts, videoPacketOverflowed.getTimestamp() + (long) videoOverFlowCount * Integer.MAX_VALUE);
+		overFlowCount = muxAdaptor.getOverflowCount();
+		assertEquals(3, overFlowCount);
+		lastVideoDts = muxAdaptor.getLastDTS();
+		assertEquals(lastVideoDts, videoPacketOverflowed.getTimestamp() + (long) overFlowCount * Integer.MAX_VALUE);
 
 		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, lastAudioDts);
 		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, lastVideoDts, 0, 0, false, 0, lastVideoDts);
