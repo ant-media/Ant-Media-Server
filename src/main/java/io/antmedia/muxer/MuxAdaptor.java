@@ -1082,14 +1082,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				logger.info("Increasing the overflow count for stream:{} because incoming packetDts:{} is lower than the lastDts:{}", streamId, packetDts, lastDTS);
 				overflowCount++;
 			}
-
-			packetDts = packetDts + (long) overflowCount * Integer.MAX_VALUE;
 		}
 
 		lastDTS = packetDts;
 
-		return packetDts;
-
+		return packetDts + (long) overflowCount * Integer.MAX_VALUE;
 	}
 
 	/**
