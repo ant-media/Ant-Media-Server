@@ -215,6 +215,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	private Deque<PacketTime> packetTimeList = new ConcurrentLinkedDeque<>();
 
+	private long lastDTS = -1;
+	private int overflowCount = 0;
+
 	public boolean addID3Data(String data) {
 		for (Muxer muxer : muxerList) {
 			if(muxer instanceof HLSMuxer) {
@@ -294,7 +297,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private BytePointer audioExtraDataPointer;
 	private BytePointer videoExtraDataPointer;
 	private AtomicLong endpointStatusUpdaterTimer = new AtomicLong(-1l);
-	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();	
+	private ConcurrentHashMap<String, String> endpointStatusUpdateMap = new ConcurrentHashMap<>();
 
 	protected PacketFeeder packetFeeder;
 
@@ -1060,6 +1063,32 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return dataStore;
 	}
 
+
+	public long correctPacketDtsOverflow(long packetDts) {
+		/*
+		 * Continuous RTMP streaming for approximately 24 days can cause the DTS values to overflow
+		 * and reset to 0 once they reach the maximum value for a signed integer.
+		 * This method handles the overflow by continuing to increment the DTS values as if they hadn't reset,
+		 * ensuring that the timestamps remain consistent and do not start over from 0.
+		 * If this correction is not applied, errors occur when writing to the HLS muxer, leading to a halt in .ts generation.
+		 */
+
+
+		if (lastDTS > packetDts) {
+
+			if (lastDTS > (packetDts + (long) overflowCount * Integer.MAX_VALUE)) {
+				overflowCount++;
+			}
+
+			packetDts = packetDts + (long) overflowCount * Integer.MAX_VALUE;
+		}
+
+		lastDTS = packetDts;
+
+		return packetDts;
+
+	}
+
 	/**
 	 * This is the entrance points for the packet coming from the RTMP stream. 
 	 * It's directly used in EncoderAdaptor in Enterprise
@@ -1070,7 +1099,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	 */
 	public void writeStreamPacket(IStreamPacket packet) 
 	{
-		long dts = Integer.toUnsignedLong(packet.getTimestamp());
+		//RTMPProtocolDecoder overflows after 24 days(Integer.MAX_Value) of continuous streaming and it starts from zero again. 
+		//According to the protocol it should overflow after 49 days. Anyway, we fix the overflow here
+		long dts = correctPacketDtsOverflow(packet.getTimestamp());
 
 		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA)
 		{
@@ -2707,6 +2738,19 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		this.width = width;
 	}
 
+	public long getLastDTS() {
+		return lastDTS;
+	}
+
+	public int getOverflowCount() {
+		return overflowCount;
+	}
+
+	public PacketFeeder getPacketFeeder() {
+		return packetFeeder;
+	}
+
+	
 	public void setTotalByteReceived(long totalByteReceived) {
 		this.totalByteReceived = totalByteReceived;
 	}
