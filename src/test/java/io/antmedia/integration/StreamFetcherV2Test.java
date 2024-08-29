@@ -7,9 +7,11 @@ import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.datastore.db.types.VoD;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.global.avformat;
@@ -418,6 +420,74 @@ public class StreamFetcherV2Test extends AbstractJUnit4SpringContextTests{
 
 	}
 
+	@Test
+	public void testAppendPortIfSourceIsLocalAndPortMissing() throws Exception {
 
+		Result result = new Result(false);
+		File file = new File("src/test/resources/sample_MP4_480.mp4");
+		List<VoD> voDList = RestServiceV2Test.callGetVoDList();
+
+		for (VoD vod : voDList) {
+			RestServiceV2Test.deleteVoD(vod.getVodId());
+		}
+		voDList = RestServiceV2Test.callGetVoDList();
+		int vodCount = voDList.size();
+		logger.info("initial vod count: {}" , vodCount);
+
+
+		try {
+			result = RestServiceV2Test.callUploadVod(file);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		assertTrue(result.isSuccess());
+
+		String vodId =  result.getMessage();
+
+		String vodFileUrlWithPort = "http://" + AppFunctionalV2Test.SERVER_ADDR + ":5080/LiveApp/streams/" + vodId + ".mp4";
+		String vodFileUrlWithoutPort = "http://" + AppFunctionalV2Test.SERVER_ADDR + "/LiveApp/streams/" + vodId + ".mp4";
+
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+			List<VoD> tmpVoDList = RestServiceV2Test.callGetVoDList();
+			logger.info("received vod list size: {} expected vod list size: {}", tmpVoDList.size(), vodCount+1);
+			return (vodCount+1 == tmpVoDList.size()) &&
+					MuxingTest.testFile(vodFileUrlWithPort);
+		});
+
+		//create broadcast playlist with url without port
+		String streamId = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setType(AntMediaApplicationAdapter.PLAY_LIST);
+		broadcast.setStreamId(streamId);
+
+		Broadcast.PlayListItem playListItem = new Broadcast.PlayListItem();
+		playListItem.setStreamUrl(vodFileUrlWithoutPort);
+		List<Broadcast.PlayListItem> playListItemList = new ArrayList<>();
+		playListItemList.add(playListItem);
+		broadcast.setPlayListItemList(playListItemList);
+
+		Broadcast createdBroadcast = RestServiceV2Test.createBroadcast(broadcast);
+
+		assertNotNull(createdBroadcast);
+
+		assertTrue(RestServiceV2Test.callStartBroadast(streamId));
+
+		Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(5, TimeUnit.SECONDS).until(() -> {
+			Broadcast broadcast2 = RestServiceV2Test.callGetBroadcast(streamId);
+
+            assertNotNull(broadcast2);
+            return AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING.equals(broadcast2.getStatus());
+		});
+
+		assertTrue(RestServiceV2Test.callDeleteBroadcast(streamId).isSuccess());
+
+		voDList = RestServiceV2Test.callGetVoDList();
+
+		for (VoD vod : voDList) {
+			assertTrue(RestServiceV2Test.deleteVoD(vod.getVodId()).isSuccess());
+		}
+	}
 
 }
