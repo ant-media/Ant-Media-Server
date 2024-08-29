@@ -12,9 +12,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.annotation.Nonnull;
 
-import io.antmedia.cluster.ClusterNode;
-import io.antmedia.cluster.IClusterNotifier;
-import io.antmedia.cluster.IClusterStore;
 import io.antmedia.settings.ServerSettings;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -35,8 +32,6 @@ import io.antmedia.rest.model.Result;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.streamsource.StreamFetcher.IStreamFetcherListener;
 import io.vertx.core.Vertx;
-import org.springframework.web.context.WebApplicationContext;
-import org.springframework.web.context.support.WebApplicationContextUtils;
 
 
 /**

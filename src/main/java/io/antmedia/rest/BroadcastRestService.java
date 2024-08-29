@@ -1,18 +1,12 @@
 package io.antmedia.rest;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 
-import jakarta.ws.rs.core.Context;
-import jakarta.ws.rs.core.UriInfo;
-import org.apache.commons.lang3.RandomStringUtils;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.json.simple.JSONObject;
 import org.springframework.stereotype.Component;
 
 import com.amazonaws.util.Base32;
@@ -25,7 +19,6 @@ import io.antmedia.cluster.IStreamInfo;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
-import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.Subscriber;

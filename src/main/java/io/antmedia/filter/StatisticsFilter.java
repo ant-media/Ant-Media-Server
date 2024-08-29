@@ -1,7 +1,6 @@
 package io.antmedia.filter;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -15,7 +14,6 @@ import org.slf4j.LoggerFactory;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
-import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.IStreamStats;
 import jakarta.ws.rs.HttpMethod;
 

@@ -7,7 +7,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.*;
 import java.nio.file.Files;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
@@ -1583,7 +1582,7 @@ public abstract class RestServiceBase {
 				try{
 					result = getApplication().getStreamFetcherManager().playItemInList(broadcast, streamFetcherListener, index);
 				}catch (URISyntaxException e){
-					logger.error(e.getMessage());
+					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
 			else {

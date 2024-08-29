@@ -367,7 +367,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
                         try {
                             streamFetcherManager.startPlaylist(freshBroadcast);
                         } catch (URISyntaxException e) {
-                            logger.error(e.getMessage());
+                            logger.error(ExceptionUtils.getStackTrace(e));
                         }
                     }
 					else 
