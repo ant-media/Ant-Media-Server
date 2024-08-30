@@ -679,6 +679,8 @@ public class StreamFetcherManager {
 	}
 
 	public String appendPortIfSourceIsLocalAndPortMissing(String url, String hostAddr, String serverName, int defaultHttpPort, int defaultHttpsPort) {
+        logger.info("YUNUS: {} {} ", hostAddr, serverName);
+		
 		if(url == null){
 			return null;
 		}
