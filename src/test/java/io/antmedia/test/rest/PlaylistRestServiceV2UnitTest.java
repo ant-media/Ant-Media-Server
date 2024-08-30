@@ -556,6 +556,8 @@ public class PlaylistRestServiceV2UnitTest {
 		
 		IContext icontext = mock(IContext.class);
 		when(icontext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+		when(icontext.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
+
 		when(scope.getContext()).thenReturn(icontext);
 
 		restServiceReal.setScope(scope);
