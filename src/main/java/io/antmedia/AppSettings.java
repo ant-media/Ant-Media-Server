@@ -58,6 +58,7 @@ import io.antmedia.rest.VoDRestService;
  */
 @Entity("AppSettings")
 @Indexes({ @Index(fields = @Field("appName"), options = @IndexOptions(unique = true, name="appName_unique_index"))})
+
 @PropertySource("/WEB-INF/red5-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AppSettings implements Serializable{
@@ -3847,6 +3848,14 @@ public class AppSettings implements Serializable{
 		this.dropWebRTCIngestIfNoPacketReceived = dropWebRTCIngestIfNoPacketReceived;
 	}
 
+
+	/**
+	 * @return the dbId
+	 */
+	@JsonIgnore
+	public ObjectId getDbId() {
+		return dbId;
+	}
 
 
 }
