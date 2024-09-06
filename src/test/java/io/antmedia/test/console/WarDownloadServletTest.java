@@ -14,6 +14,8 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -123,7 +125,8 @@ public class WarDownloadServletTest {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = spy(new MockHttpServletResponse());
 		
-		request.setRequestURI("/test.war");
+		String appName = "test" + RandomStringUtils.randomAlphanumeric(16);
+		request.setRequestURI("/" + appName + ".war");
 		warDownloadServlet.doGet(request, response);
 		verify(response).sendError(HttpServletResponse.SC_BAD_REQUEST, "Token parameter is missing");
 		
@@ -134,7 +137,7 @@ public class WarDownloadServletTest {
 		
 		
 		AntMediaApplicationAdapter appAdaptor = mock(AntMediaApplicationAdapter.class);
-		Mockito.doReturn(appAdaptor).when(warDownloadServlet).getAppAdaptor("test", request);
+		Mockito.doReturn(appAdaptor).when(warDownloadServlet).getAppAdaptor(appName, request);
 		AppSettings appSettings = new AppSettings();
 		when(appAdaptor.getAppSettings()).thenReturn(appSettings);
 		response = spy(new MockHttpServletResponse());
@@ -142,7 +145,7 @@ public class WarDownloadServletTest {
 		verify(response).sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token is not valid");
 		
 		
-		String jwtToken = JWTFilter.generateJwtToken(appSettings.getClusterCommunicationKey(), System.currentTimeMillis() + 60000, "appName", "test");
+		String jwtToken = JWTFilter.generateJwtToken(appSettings.getClusterCommunicationKey(), System.currentTimeMillis() + 60000, "appName", appName);
 		request.removeHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION);
 		request.addHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken);
 		response = spy(new MockHttpServletResponse());
@@ -158,8 +161,6 @@ public class WarDownloadServletTest {
 		fos.write("test".getBytes());
 		
 		fos.close();
-		
-		
 		
 		f.deleteOnExit();
 		response = spy(new MockHttpServletResponse());
