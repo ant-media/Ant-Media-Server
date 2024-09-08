@@ -96,5 +96,11 @@ runs:
     - name: Replace ffmpeg builds
       shell: bash
       run: |
-          wget -O ~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-5.1.2-1.5.8-linux-x86_64.jar
-          wget -O ~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-arm64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-5.1.2-1.5.8-linux-arm64.jar
+          - mkdir -p ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/
+          - wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/ffmpeg-7.1.0-1.5.11-SNAPSHOT-linux-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1.0-1.5.11-SNAPSHOT-linux-x86_64.jar
+          - wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/ffmpeg-7.1.0-1.5.11-SNAPSHOT-macosx-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1.0-1.5.11-SNAPSHOT-macosx-x86_64.jar
+          - wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/ffmpeg-7.1.0-1.5.11-SNAPSHOT-linux-arm64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1.0-1.5.11-SNAPSHOT-linux-arm64.jar
+          - wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/ffmpeg-7.1.0-1.5.11-SNAPSHOT.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1.0-1.5.11-SNAPSHOT.jar
+
+          - mkdir -p ~/.m2/repository/org/bytedeco/ffmpeg-platform/7.1.0-1.5.11-SNAPSHOT/
+          - wget -O ~/.m2/repository/org/bytedeco/ffmpeg-platform/7.1.0-1.5.11-SNAPSHOT/ffmpeg-platform-7.1.0-1.5.11-SNAPSHOT.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-platform-7.1.0-1.5.11-SNAPSHOT.jar
