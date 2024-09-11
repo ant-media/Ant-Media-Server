@@ -344,6 +344,20 @@ public class VoDRestServiceV2UnitTest {
 
 			assertEquals(2, restServiceReal.getTotalVodNumber().getNumber());
 
+
+			inputStream = new FileInputStream("src/test/resources/sample-12s.mp3");
+
+			restServiceReal.uploadVoDFile(fileName, inputStream);
+
+
+			assertTrue(f.isDirectory());
+
+			assertEquals(3, f.list().length);
+
+			assertEquals(3, store.getTotalVodNumber());
+
+			assertEquals(3, restServiceReal.getTotalVodNumber().getNumber());
+
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 			fail(e.getMessage());
