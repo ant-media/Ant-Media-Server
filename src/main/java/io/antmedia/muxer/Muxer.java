@@ -706,40 +706,102 @@ public abstract class Muxer {
 		ApplicationContext appCtx = context.getApplicationContext();
 		return (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
 	}
-	
+
 	public String getExtendedName(String name, int resolution, int bitrate, String fileNameFormat){
 		// set default name
 		String resourceName = name;
 		int bitrateKbps = bitrate / 1000;
-		
+
 		// added before the if statement because of if addDateTimeToResourceName parameter return false, currentVoDTimeStamp returns 0
 		LocalDateTime ldt =  LocalDateTime.now();
 		currentVoDTimeStamp = ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
 		// add date time parameter to resource name if it is set
-		if (addDateTimeToResourceName) 
+		if (addDateTimeToResourceName)
 		{
 			resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
 			if (logger.isInfoEnabled()) {
 				logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
 			}
 		}
+		String customText = "";
+
+		int customTextStart = fileNameFormat.indexOf('{');
+		int customTextEnd = fileNameFormat.indexOf('}');
+		if (customTextStart != -1 && customTextEnd != -1 && customTextEnd > customTextStart) {
+			customText = fileNameFormat.substring(customTextStart + 1, customTextEnd);
+		}
+
+
+
 		String lowerCaseFormat = fileNameFormat.toLowerCase();
 		// add resolution height parameter if it is different than 0
 		if (resolution != 0 && lowerCaseFormat.contains("%r") && bitrateKbps != 0 && lowerCaseFormat.contains("%b"))
 		{
-			resourceName += (lowerCaseFormat.indexOf("r") > lowerCaseFormat.indexOf("b")) ?  "_" + bitrateKbps + "kbps" + resolution + "p" : "_" + resolution + "p" + bitrateKbps + "kbps";
+			if(customTextStart == -1){
+				resourceName += (lowerCaseFormat.indexOf("r") > lowerCaseFormat.indexOf("b")) ?  "_" + bitrateKbps + "kbps" + resolution + "p" : "_" + resolution + "p" + bitrateKbps + "kbps";
+			}else{
+				if(customTextStart > lowerCaseFormat.indexOf("%r") && customTextStart > lowerCaseFormat.indexOf("%b")){
+					//custom text to the end.
+					if(lowerCaseFormat.indexOf("%b") > lowerCaseFormat.indexOf("%r")){
+						resourceName+=  "_" + resolution + "p" + bitrateKbps + "kbps" + customText;
+					}else{
+						resourceName+=  "_" + bitrateKbps + "kbps" + resolution + "p" + customText;
+					}
+
+				}else if(customTextStart < lowerCaseFormat.indexOf("%r") && lowerCaseFormat.indexOf("%r") <  lowerCaseFormat.indexOf("%b")){
+					//custom text to the beginning
+					resourceName+= "_" + customText + resolution + "p" + bitrateKbps + "kbps";
+				}else if(customTextStart > lowerCaseFormat.indexOf("%r") && customTextStart < lowerCaseFormat.indexOf("%b")){
+
+					resourceName += "_" + resolution + "p" + customText + bitrateKbps + "kbps";
+
+				}else if(customTextStart > lowerCaseFormat.indexOf("%b") && customTextStart < lowerCaseFormat.indexOf("%r")){
+					resourceName += "_" + bitrateKbps + "kbps" + customText + resolution + "p";
+
+				}else if(customTextStart < lowerCaseFormat.indexOf("%b") && lowerCaseFormat.indexOf("%b") < lowerCaseFormat.indexOf("r")){
+
+					resourceName+= "_" + customText + bitrateKbps + "kbps" + resolution + "p";
+
+				}
+			}
 		}
 		else if(resolution != 0 && lowerCaseFormat.contains("%r") && (bitrateKbps == 0 || !lowerCaseFormat.contains("%b"))){
-			resourceName += "_" + resolution + "p" ;
+			if(customTextStart == -1){
+				resourceName += "_" + resolution + "p" ;
+			}else{
+				if(customTextStart > lowerCaseFormat.indexOf("%r")){
+					resourceName += "_" + resolution + "p" + customText;
+
+				}else if(customTextStart < lowerCaseFormat.indexOf("%r")){
+					resourceName += "_"+ customText + resolution + "p";
+				}
+			}
 		}
 		else if((resolution == 0 || !lowerCaseFormat.contains("%r")) && bitrateKbps != 0 && lowerCaseFormat.contains("%b")){
-			resourceName += "_" + bitrateKbps + "kbps" ;
+			if(customTextStart == -1){
+				resourceName += "_" + bitrateKbps + "kbps" ;
+			}else{
+				if(customTextStart > lowerCaseFormat.indexOf("%b")){
+					resourceName += "_" + bitrateKbps + "kbps"+ customText ;
+
+				}else if(customTextStart < lowerCaseFormat.indexOf("%b")){
+					resourceName += "_" + customText + bitrateKbps + "kbps" ;
+				}
+			}
 		}
-		else if( (!lowerCaseFormat.contains("%r") && !lowerCaseFormat.contains("%b")) && resolution != 0){
+		else if(customTextStart != -1 && ((!lowerCaseFormat.contains("%r") && bitrateKbps == 0 && lowerCaseFormat.contains("%b")) ||
+		   !lowerCaseFormat.contains("%r") && !lowerCaseFormat.contains("%b")) ){
+			resourceName += "_" + customText;
+
+		}
+		else if((!lowerCaseFormat.contains("%r") && !lowerCaseFormat.contains("%b")) && resolution != 0){
 			logger.info("No identifier found for file name, adding resolution");
-			resourceName += "_" + resolution + "p" ;
-			
+			if(customTextStart == -1){
+				resourceName += "_" + resolution + "p" ;
+			}else{
+				resourceName += "_" + customText + resolution + "p" ;
+			}
 		}
 		return resourceName;
 	}
