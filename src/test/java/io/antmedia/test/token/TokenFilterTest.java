@@ -437,6 +437,8 @@ public class TokenFilterTest {
 
 	@Test
 	public void testGetStreamId() {
+		
+		assertNull(TokenFilterManager.getStreamId(null));
 		String streamId = "stream_Id";
 		
 		assertEquals("test_stream_Id_davut_diyen_kedi", TokenFilterManager.getStreamId("/liveapp/streams/"+"test_"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));

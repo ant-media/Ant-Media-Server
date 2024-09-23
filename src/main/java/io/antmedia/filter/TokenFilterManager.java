@@ -172,6 +172,11 @@ public class TokenFilterManager extends AbstractFilter   {
 
 
 	public static String getStreamId(String requestURI) {
+		if (StringUtils.isBlank(requestURI)) {
+			logger.debug("requestURI is null or empty");
+			return null;
+		}
+		
 		requestURI = requestURI.replaceAll(REPLACE_CHARS_REGEX, "_");
 
 		int endIndex;
