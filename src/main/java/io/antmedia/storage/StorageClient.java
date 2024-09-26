@@ -55,7 +55,9 @@ public abstract class StorageClient {
 	
 	protected ProgressListener progressListener;
 
-	
+	private boolean pathStyleAccessEnabled;
+
+
 	/**
 	 * Delete file from storage
 	 * 
@@ -179,5 +181,13 @@ public abstract class StorageClient {
 
 	public void setCacheControl(String cacheControl) {
 		this.cacheControl = cacheControl;
+	}
+
+	public void setPathStyleAccessEnabled(boolean enabled) {
+		this.pathStyleAccessEnabled = enabled;
+	}
+
+	public boolean isPathStyleAccessEnabled() {
+		return pathStyleAccessEnabled;
 	}
 }

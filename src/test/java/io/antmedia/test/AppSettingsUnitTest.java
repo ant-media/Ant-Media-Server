@@ -598,8 +598,9 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
         assertTrue(appSettings.isRelayRTMPMetaDataToMuxers());
         
         assertFalse(appSettings.isDropWebRTCIngestIfNoPacketReceived());
-        
-        
+
+		assertFalse(appSettings.isS3PathStyleAccessEnabled());
+
 
 
 		//if we add a new field, we just need to check its default value in this test
@@ -607,7 +608,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					186, numberOfFields);
+					187, numberOfFields);
 
 		
 	}
