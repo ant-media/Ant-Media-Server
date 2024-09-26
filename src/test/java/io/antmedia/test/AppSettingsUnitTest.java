@@ -601,6 +601,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertFalse(appSettings.isS3PathStyleAccessEnabled());
 
+		appSettings.setS3PathStyleAccessEnabled(true);
+
+		assertTrue(appSettings.isS3PathStyleAccessEnabled());
+
 
 
 		//if we add a new field, we just need to check its default value in this test
