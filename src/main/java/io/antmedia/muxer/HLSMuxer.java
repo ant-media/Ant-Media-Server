@@ -31,9 +31,13 @@ public class HLSMuxer extends Muxer  {
 
 	
 	public static final String SEI_USER_DATA = "sei_user_data";
+	
+	private static final String TS_EXTENSION = "ts";
+	private static final String FMP4_EXTENSION = "fmp4";
 
-	private static final String SEGMENT_SUFFIX_TS = "%0"+SEGMENT_INDEX_LENGTH+"d.ts";
-	private static final String SEGMENT_SUFFIX_FMP4 = "%0"+SEGMENT_INDEX_LENGTH+"d.m4s";
+	private static final String SEGMENT_SUFFIX_TS = "%0"+SEGMENT_INDEX_LENGTH+"d." + TS_EXTENSION;
+	//DASH also has m4s and ChunkTransferServlet is responsbile for streaming m4s files, so it's better to use fmp4 here
+	private static final String SEGMENT_SUFFIX_FMP4 = "%0"+SEGMENT_INDEX_LENGTH+"d."+ FMP4_EXTENSION;
 	
 	private static final String HLS_SEGMENT_TYPE_MPEGTS = "mpegts";
 	private static final String HLS_SEGMENT_TYPE_FMP4 = "fmp4";
@@ -149,19 +153,17 @@ public class HLSMuxer extends Muxer  {
 
 			if (StringUtils.isNotBlank(httpEndpoint)) 			
 			{
-				
 				segmentFilename = httpEndpoint;
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
 				segmentFilename += (this.subFolder != null ? subFolder : "");
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
-				segmentFilename += initialResourceNameWithoutExtension;
-				
+				segmentFilename += initialResourceNameWithoutExtension;	
 			}
-			else {
+			else 
+			{
 				segmentFilename = file.getParentFile().toString();
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
 				segmentFilename += initialResourceNameWithoutExtension;
-				
 			}
 			
 			//remove double slashes with single slash because it may cause problems
@@ -285,13 +287,22 @@ public class HLSMuxer extends Muxer  {
 
 		ByteBuffer byteBuffer = ByteBuffer.allocate(tagSize + 10);
 		
-		logger.info("Adding ID3 data: {} lenght:{} byte length:{} buffer capacacity:{}", data, data.length(), data.getBytes().length, byteBuffer.capacity());
+		logger.debug("Adding ID3 data: {} lenght:{} to streamId:{} endpoint:{}", data, data.length(), byteBuffer.capacity(), streamId, getOutputURL());
 
 
 		byteBuffer.put("ID3".getBytes());
 		byteBuffer.put(new byte[]{0x03, 0x00}); // version
 		byteBuffer.put((byte) 0x00); // flags
-		byteBuffer.putInt(tagSize); // size
+		byte[] encodedSize = new byte[4];
+	        
+        // Encode the size according to ID3v2 rule
+        encodedSize[0] = (byte) ((tagSize >> 21) & 0x7F);
+        encodedSize[1] = (byte) ((tagSize >> 14) & 0x7F);
+        encodedSize[2] = (byte) ((tagSize >> 7) & 0x7F);
+        encodedSize[3] = (byte) (tagSize & 0x7F);
+
+	        
+		byteBuffer.put(encodedSize); // size
 
 		// TXXX frame
 		byteBuffer.put("TXXX".getBytes());
@@ -356,7 +367,7 @@ public class HLSMuxer extends Muxer  {
 			
 			vertx.setTimer(Integer.parseInt(hlsTime) * Integer.parseInt(hlsListSize) * 1000l, l -> 
 			{
-				final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
+				//final String filenameWithoutExtension = file.getName().substring(0, file.getName().lastIndexOf(extension));
 	
 				//SEGMENT_SUFFIX_TS is %09d.ts
 				//convert segmentFileName to regular expression
@@ -370,7 +381,7 @@ public class HLSMuxer extends Muxer  {
 				}
 				
 				String segmentFileWithoutSuffix = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix);
-				String regularExpression = segmentFileWithoutSuffix + "[0-9]*\\.(?:ts|m4s)$";
+				String regularExpression = segmentFileWithoutSuffix + "[0-9]*\\.(?:" + TS_EXTENSION +"|" + FMP4_EXTENSION +")$";
 				File[] files = getHLSFilesInDirectory(regularExpression);
 	
 				if (files != null)
