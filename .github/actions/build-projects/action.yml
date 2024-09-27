@@ -14,14 +14,14 @@ runs:
     - name: Replace ffmpeg builds
       shell: bash
       run: |
-        - mkdir -p ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/
-        - wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/ffmpeg-7.1.0-1.5.11-SNAPSHOT-linux-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1.0-1.5.11-SNAPSHOT-linux-x86_64.jar
-        - wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/ffmpeg-7.1.0-1.5.11-SNAPSHOT-macosx-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1.0-1.5.11-SNAPSHOT-macosx-x86_64.jar
-        - wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/ffmpeg-7.1.0-1.5.11-SNAPSHOT-linux-arm64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1.0-1.5.11-SNAPSHOT-linux-arm64.jar
-        - wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/ffmpeg-7.1.0-1.5.11-SNAPSHOT.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1.0-1.5.11-SNAPSHOT.jar
+           mkdir -p ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/
+           wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/ffmpeg-7.1.0-1.5.11-SNAPSHOT-linux-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1.0-1.5.11-SNAPSHOT-linux-x86_64.jar
+           wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/ffmpeg-7.1.0-1.5.11-SNAPSHOT-macosx-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1.0-1.5.11-SNAPSHOT-macosx-x86_64.jar
+           wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/ffmpeg-7.1.0-1.5.11-SNAPSHOT-linux-arm64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1.0-1.5.11-SNAPSHOT-linux-arm64.jar
+           wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1.0-1.5.11-SNAPSHOT/ffmpeg-7.1.0-1.5.11-SNAPSHOT.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1.0-1.5.11-SNAPSHOT.jar
 
-        - mkdir -p ~/.m2/repository/org/bytedeco/ffmpeg-platform/7.1.0-1.5.11-SNAPSHOT/
-        - wget -O ~/.m2/repository/org/bytedeco/ffmpeg-platform/7.1.0-1.5.11-SNAPSHOT/ffmpeg-platform-7.1.0-1.5.11-SNAPSHOT.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-platform-7.1.0-1.5.11-SNAPSHOT.jar
+           mkdir -p ~/.m2/repository/org/bytedeco/ffmpeg-platform/7.1.0-1.5.11-SNAPSHOT/
+           wget -O ~/.m2/repository/org/bytedeco/ffmpeg-platform/7.1.0-1.5.11-SNAPSHOT/ffmpeg-platform-7.1.0-1.5.11-SNAPSHOT.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-platform-7.1.0-1.5.11-SNAPSHOT.jar
 
     - name: Clone and build Ant Media Server Parent project
       shell: bash
