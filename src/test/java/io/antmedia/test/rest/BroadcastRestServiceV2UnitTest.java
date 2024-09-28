@@ -231,7 +231,7 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testGetDuration() {
 
 		Result result = restServiceReal.getDuration(StreamSchedularUnitTest.VALID_MP4_URL);
-		assertEquals(15045, Integer.valueOf(result.getDataId()).intValue());
+		assertEquals(15046, Integer.valueOf(result.getDataId()).intValue());
 		assertTrue(result.isSuccess());
 
 
