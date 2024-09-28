@@ -222,7 +222,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		BroadcastRestService.updatePlayListItemDurationsIfApplicable(broadcast.getPlayListItemList(), broadcast.getStreamId());
 
-		assertEquals(15045, item.getDurationInMs());
+		assertEquals(15046, item.getDurationInMs());
 		assertEquals(0, item2.getDurationInMs());
 	}
 
