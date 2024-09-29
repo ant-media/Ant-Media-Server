@@ -95,7 +95,21 @@ public class VoD implements Serializable {
     
     @Schema(description = "The end time of the VoD processing in milliseconds", accessMode = AccessMode.READ_ONLY)
     private long processEndTime;
-    
+
+	@Schema(description = "The description of the VoD.")
+	private String description;
+
+	@Schema(description = "The metadata of the VoD.")
+	private String metadata;
+
+	@Schema(description = "The latitude of the VoD.")
+	private String latitude;
+
+	@Schema(description = "The longitude of the VoD.")
+	private String longitude;
+
+	@Schema(description = "The altitude of the VoD.")
+	private String altitude;
 
 	public VoD() {
 		//default constructor is used to return not found vod in rest service 
@@ -247,6 +261,46 @@ public class VoD implements Serializable {
 	 */
 	public void setProcessEndTime(long processEndTime) {
 		this.processEndTime = processEndTime;
+	}
+
+	public String getDescription() {
+		return description;
+	}
+
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	public String getMetadata() {
+		return metadata;
+	}
+
+	public void setMetadata(String metadata) {
+		this.metadata = metadata;
+	}
+
+	public String getLatitude() {
+		return latitude;
+	}
+
+	public void setLatitude(String latitude) {
+		this.latitude = latitude;
+	}
+
+	public String getLongitude() {
+		return longitude;
+	}
+
+	public void setLongitude(String longitude) {
+		this.longitude = longitude;
+	}
+
+	public String getAltitude() {
+		return altitude;
+	}
+
+	public void setAltitude(String altitude) {
+		this.altitude = altitude;
 	}
 
 }
