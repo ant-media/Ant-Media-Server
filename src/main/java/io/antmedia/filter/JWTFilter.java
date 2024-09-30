@@ -32,7 +32,9 @@ public class JWTFilter extends AbstractFilter {
 
 	protected static Logger log = LoggerFactory.getLogger(JWTFilter.class);
 
-	public static final String JWT_TOKEN_HEADER = "Authorization";
+	public static final String JWT_TOKEN_AUTHORIZATION_HEADER = "Authorization";
+	public static final String JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX = "Bearer";
+
 
 	private AppSettings appSettings;
 
@@ -45,7 +47,15 @@ public class JWTFilter extends AbstractFilter {
 			((HttpServletResponse) response).sendError(HttpServletResponse.SC_FORBIDDEN, "Application is getting initialized");
 			return;
 		}
-		if(!appSettings.isJwtControlEnabled() || (httpRequest.getHeader(JWT_TOKEN_HEADER) != null && checkJWT(httpRequest.getHeader(JWT_TOKEN_HEADER)))) {
+
+		String jwtToken = httpRequest.getHeader(JWT_TOKEN_AUTHORIZATION_HEADER);
+
+		if(jwtToken != null && jwtToken.toLowerCase().startsWith(JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX.toLowerCase())){
+			jwtToken = jwtToken.substring(JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX.length()).trim();
+		}
+		
+
+		if(!appSettings.isJwtControlEnabled() || (jwtToken != null && checkJWT(jwtToken))) {
 			chain.doFilter(request, response);
 			return;
 		}
