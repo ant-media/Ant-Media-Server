@@ -32,13 +32,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
 import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -5719,6 +5713,108 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, lastAudioDts + (long) overFlowCount * Integer.MAX_VALUE);
 		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, lastVideoDts + (long) overFlowCount * Integer.MAX_VALUE,
 				0, 0, false, 0, lastVideoDts + (long) overFlowCount * Integer.MAX_VALUE);
+	}
+
+
+	@Test
+	public void testID3HeaderTagSize() {
+		int size = 257;
+		byte[] tagSizeBytes = HLSMuxer.convertIntToID3v2TagSize(size);
+		for (byte b : tagSizeBytes) {
+			System.out.printf("%02X ", b); // Print bytes in hexadecimal format
+		}
+
+		assertEquals(0x00, tagSizeBytes[0]);
+		assertEquals(0x00, tagSizeBytes[1]);
+		assertEquals(0x02, tagSizeBytes[2]);
+		assertEquals(0x01, tagSizeBytes[3]);
+
+
+		tagSizeBytes = HLSMuxer.convertIntToID3v2TagSize((int) Math.pow(2, 7));
+
+		assertEquals(0x00, tagSizeBytes[0]);
+		assertEquals(0x00, tagSizeBytes[1]);
+		assertEquals(0x01, tagSizeBytes[2]);
+		assertEquals(0x00, tagSizeBytes[3]);
+
+		tagSizeBytes = HLSMuxer.convertIntToID3v2TagSize((int) Math.pow(2, 14));
+
+		assertEquals(0x00, tagSizeBytes[0]);
+		assertEquals(0x01, tagSizeBytes[1]);
+		assertEquals(0x00, tagSizeBytes[2]);
+		assertEquals(0x00, tagSizeBytes[3]);
+
+		tagSizeBytes = HLSMuxer.convertIntToID3v2TagSize((int) Math.pow(2, 21));
+
+		assertEquals(0x01, tagSizeBytes[0]);
+		assertEquals(0x00, tagSizeBytes[1]);
+		assertEquals(0x00, tagSizeBytes[2]);
+		assertEquals(0x00, tagSizeBytes[3]);
+	}
+
+	@Test
+	public void testAddID3Data() {
+		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class),
+				"streams", 0, "http://example.com", false));
+		hlsMuxer.setId3Enabled(true);
+		hlsMuxer.createID3StreamIfRequired();
+		long lastPts = RandomUtils.nextLong();
+		doReturn(lastPts).when(hlsMuxer).getLastPts();
+		doNothing().when(hlsMuxer).writeDataFrame(any(), any());
+
+		int dataSize = 257 - 10 - 3;
+		String data = "a".repeat(dataSize); // Create a string with 247 'a' characters
+
+		hlsMuxer.addID3Data(data);
+
+		// Capture the parameter passed to writeID3Packet
+		ArgumentCaptor<ByteBuffer> captor = ArgumentCaptor.forClass(ByteBuffer.class);
+		verify(hlsMuxer).writeID3Packet(captor.capture());
+
+		ByteBuffer capturedBuffer = captor.getValue();
+
+		// Extract values from the captured buffer
+		byte[] id3Header = new byte[3];
+		capturedBuffer.get(id3Header);
+		assertArrayEquals("ID3".getBytes(), id3Header);
+
+		byte[] version = new byte[2];
+		capturedBuffer.get(version);
+		assertArrayEquals(new byte[]{0x03, 0x00}, version);
+
+		byte flags = capturedBuffer.get();
+		assertEquals(0x00, flags);
+
+		byte[] size = new byte[4];
+		capturedBuffer.get(size);
+		assertEquals(0x00, size[0]);
+		assertEquals(0x00, size[1]);
+		assertEquals(0x02, size[2]);
+		assertEquals(0x01, size[3]);
+
+		byte[] frameId = new byte[4];
+		capturedBuffer.get(frameId);
+		assertArrayEquals("TXXX".getBytes(), frameId);
+
+		int frameSize = capturedBuffer.getInt();
+		assertEquals(dataSize + 3, frameSize);
+
+		byte[] frameFlags = new byte[2];
+		capturedBuffer.get(frameFlags);
+		assertArrayEquals(new byte[]{0x00, 0x00}, frameFlags);
+
+		byte encoding = capturedBuffer.get();
+		assertEquals(0x03, encoding);
+
+		byte descriptionTerminator = capturedBuffer.get();
+		assertEquals(0x00, descriptionTerminator);
+
+		byte[] description = new byte[dataSize];
+		capturedBuffer.get(description);
+		assertArrayEquals(data.getBytes(), description);
+
+		byte endOfString = capturedBuffer.get();
+		assertEquals(0x00, endOfString);
 	}
 
 }
