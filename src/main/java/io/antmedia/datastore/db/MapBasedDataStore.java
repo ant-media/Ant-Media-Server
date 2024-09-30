@@ -115,6 +115,28 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 		return result;
 	}
+	
+	@Override
+	public boolean updateVoDProcessStatus(String id, String status) {
+		boolean result = false;
+		synchronized (this) {
+			String vodString = vodMap.get(id);
+			if (vodString != null) {
+				VoD vod = gson.fromJson(vodString, VoD.class);
+				if (VoD.PROCESS_STATUS_PROCESSING.equals(status)) {
+					vod.setProcessStartTime(System.currentTimeMillis());
+				}
+				else if (VoD.PROCESS_STATUS_FAILED.equals(status) || VoD.PROCESS_STATUS_FINISHED.equals(status)) {
+					vod.setProcessEndTime(System.currentTimeMillis());
+				}
+				vod.setProcessStatus(status);
+				vodMap.put(id, gson.toJson(vod));
+				result = true;
+			}
+		}
+		
+		return result;
+	}
 
 	@Override
 	public boolean updateDuration(String id, long duration) {

@@ -30,6 +30,7 @@ import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.IndexOptions;
 import dev.morphia.annotations.Indexes;
+import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.VoDRestService;
 
 /**
@@ -57,6 +58,7 @@ import io.antmedia.rest.VoDRestService;
  */
 @Entity("AppSettings")
 @Indexes({ @Index(fields = @Field("appName"), options = @IndexOptions(unique = true, name="appName_unique_index"))})
+
 @PropertySource("/WEB-INF/red5-web.properties")
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class AppSettings implements Serializable{
@@ -2174,7 +2176,25 @@ public class AppSettings implements Serializable{
 
 	@Value("${customSettings:{}}")	
 	private JSONObject customSettings = new JSONObject();
+	
+	/**
+	 * Relay RTMP metadata to muxers. It's true by default
+	 * RTMP can have metadata and it can be used for playback synchronization.
+	 * 
+	 * If it's true, Ant Media Server relays the metadata to muxers. 
+	 * Currently, HLSMuxer supports this feature through {@link Muxer#writeMetaData(String, long)}
+	 */
+	@Value("${relayRTMPMetaDataToMuxers:true}")	
+	private boolean relayRTMPMetaDataToMuxers = true;
 		
+	/**
+	 * Drop webrtc ingest if no packet received. It's false by default because video or audio may be disabled in the stream
+	 * It checks the audio/video packets in the WebRTC ingest stream. 
+	 * If no audio or no video packets are received in the {@link #webRTCClientStartTimeoutMs}, it drops the stream.
+	 * 
+	 */
+	@Value("${dropWebRTCIngestIfNoPacketReceived:false}")
+	private boolean dropWebRTCIngestIfNoPacketReceived = false;
 		
 	public Object getCustomSetting(String key) {
 		return	customSettings.get(key);
@@ -3798,6 +3818,43 @@ public class AppSettings implements Serializable{
 
 	public void setCustomSettings(JSONObject customSettings) {
 		this.customSettings = customSettings;
+	}
+
+	/**
+	 * @return the relayRTMPMetaDataToMuxers
+	 */
+	public boolean isRelayRTMPMetaDataToMuxers() {
+		return relayRTMPMetaDataToMuxers;
+	}
+
+	/**
+	 * @param relayRTMPMetaDataToMuxers the relayRTMPMetaDataToMuxers to set
+	 */
+	public void setRelayRTMPMetaDataToMuxers(boolean relayRTMPMetaDataToMuxers) {
+		this.relayRTMPMetaDataToMuxers = relayRTMPMetaDataToMuxers;
+	}
+
+	/**
+	 * @return the dropWebRTCIngestIfNoPacketReceived
+	 */
+	public boolean isDropWebRTCIngestIfNoPacketReceived() {
+		return dropWebRTCIngestIfNoPacketReceived;
+	}
+
+	/**
+	 * @param dropWebRTCIngestIfNoPacketReceived the dropWebRTCIngestIfNoPacketReceived to set
+	 */
+	public void setDropWebRTCIngestIfNoPacketReceived(boolean dropWebRTCIngestIfNoPacketReceived) {
+		this.dropWebRTCIngestIfNoPacketReceived = dropWebRTCIngestIfNoPacketReceived;
+	}
+
+
+	/**
+	 * @return the dbId
+	 */
+	@JsonIgnore
+	public ObjectId getDbId() {
+		return dbId;
 	}
 
 

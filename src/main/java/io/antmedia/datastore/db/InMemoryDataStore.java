@@ -112,7 +112,7 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-
+	
 	@Override
 	public boolean updateDuration(String id, long duration) {
 		Broadcast broadcast = broadcastMap.get(id);
@@ -295,6 +295,24 @@ public class InMemoryDataStore extends DataStore {
 			id = vod.getVodId();
 		}
 		return id;
+	}
+	
+	@Override
+	public boolean updateVoDProcessStatus(String id, String status) {
+		VoD vod = vodMap.get(id);
+		if (vod != null) {
+			vod.setProcessStatus(status);
+			if (VoD.PROCESS_STATUS_PROCESSING.equals(status)) {
+				vod.setProcessStartTime(System.currentTimeMillis());
+			}
+			else if (VoD.PROCESS_STATUS_FAILED.equals(status) || VoD.PROCESS_STATUS_FINISHED.equals(status)) {
+				vod.setProcessEndTime(System.currentTimeMillis());
+			}
+			vodMap.put(id, vod);
+			return true;
+		}
+
+		return false;
 	}
 
 	@Override
