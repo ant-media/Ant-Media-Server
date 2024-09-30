@@ -972,6 +972,22 @@ public class DBStoresUnitTest {
         datastore.deleteVod(userVod2.getVodId());
         assertEquals(0, datastore.getTotalVodNumber());
 
+		VoD userVod3 =new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.USER_VOD,vodId,null);
+		userVod3.setLatitude("10");
+		userVod3.setLongitude("15");
+		userVod3.setDescription("my vod");
+		userVod3.setMetadata("my metadata");
+		userVod3.setAltitude("20");
+		datastore.addVod(userVod3);
+		voD = datastore.getVoD(userVod3.getVodId());
+
+		assertEquals("10", voD.getLatitude());
+		assertEquals("15", voD.getLongitude());
+		assertEquals("20", voD.getAltitude());
+		assertEquals("my vod", voD.getDescription());
+		assertEquals("my metadata", voD.getMetadata());
+		
+
 	}
 
 	public void testEditCameraInfo(DataStore datastore) {

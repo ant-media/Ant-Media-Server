@@ -263,42 +263,72 @@ public class VoD implements Serializable {
 		this.processEndTime = processEndTime;
 	}
 
+	/**
+	 * @return the description
+	 */
 	public String getDescription() {
 		return description;
 	}
 
+	/**
+	 * @param description the description to set
+	 */
 	public void setDescription(String description) {
 		this.description = description;
 	}
 
+	/**
+	 * @return the metadata
+	 */
 	public String getMetadata() {
 		return metadata;
 	}
 
+	/**
+	 * @param metadata the metadata to set
+	 */
 	public void setMetadata(String metadata) {
 		this.metadata = metadata;
 	}
 
+	/**
+	 * @return the latitude
+	 */
 	public String getLatitude() {
 		return latitude;
 	}
 
+	/**
+	 * @param latitude the latitude to set
+	 */
 	public void setLatitude(String latitude) {
 		this.latitude = latitude;
 	}
 
+	/**
+	 * @return the longitude
+	 */
 	public String getLongitude() {
 		return longitude;
 	}
 
+	/**
+	 * @param longitude the longitude to set
+	 */
 	public void setLongitude(String longitude) {
 		this.longitude = longitude;
 	}
 
+	/**
+	 * @return the altitude
+	 */
 	public String getAltitude() {
 		return altitude;
 	}
 
+	/**
+	 * @param altitude the altitude to set
+	 */
 	public void setAltitude(String altitude) {
 		this.altitude = altitude;
 	}
