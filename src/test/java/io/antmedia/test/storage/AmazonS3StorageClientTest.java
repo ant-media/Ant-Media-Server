@@ -95,6 +95,7 @@ public class AmazonS3StorageClientTest {
 		storage.setRegion("eu-west-1");
 		storage.setStorageName(BUCKET_NAME);
 		storage.setStorageClass("STANDARD");
+		storage.setPathStyleAccessEnabled(false);
 		
 		File f = new File("src/test/resources/test.flv");
 		storage.setEnabled(true);
