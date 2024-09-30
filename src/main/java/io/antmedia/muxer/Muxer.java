@@ -1451,43 +1451,4 @@ public abstract class Muxer {
 		
 	}
 
-	public static int getResolutionHeight(String filePath) {
-		AVFormatContext inputFormatContext = avformat.avformat_alloc_context();
-
-		if (avformat_open_input(inputFormatContext, filePath, null, null) != 0) {
-			loggerStatic.error("Failed to open video file {}", filePath);
-			return 0;
-		}
-
-		if (avformat_find_stream_info(inputFormatContext, (AVDictionary) null) < 0) {
-			loggerStatic.error("Failed to retrieve stream info for: {}", filePath);
-			return 0;
-		}
-
-		// Find the first video stream
-		AVCodecContext codecContext = null;
-		int videoStreamIndex = -1;
-		for (int i = 0; i < inputFormatContext.nb_streams(); i++) {
-			AVStream stream = inputFormatContext.streams(i);
-			AVCodec codec = avcodec.avcodec_find_decoder(stream.codecpar().codec_id());
-			if (codec != null && stream.codecpar().codec_type() == AVMEDIA_TYPE_VIDEO) {
-				videoStreamIndex = i;
-				codecContext = avcodec.avcodec_alloc_context3(codec);
-				avcodec.avcodec_parameters_to_context(codecContext, stream.codecpar());
-				break;
-			}
-		}
-
-		if (videoStreamIndex == -1 || codecContext == null) {
-			loggerStatic.error("No video stream found in file {}", filePath);
-			return 0;
-		}
-
-        int height = codecContext.height();
-
-		avformat.avformat_close_input(inputFormatContext);
-
-		return height;
-	}
-
 }
