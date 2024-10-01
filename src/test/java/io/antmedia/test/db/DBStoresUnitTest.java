@@ -986,7 +986,9 @@ public class DBStoresUnitTest {
 		assertEquals("20", voD.getAltitude());
 		assertEquals("my vod", voD.getDescription());
 		assertEquals("my metadata", voD.getMetadata());
-		
+
+		datastore.deleteVod(userVod3.getVodId());
+		assertEquals(0, datastore.getTotalVodNumber());
 
 	}
 
