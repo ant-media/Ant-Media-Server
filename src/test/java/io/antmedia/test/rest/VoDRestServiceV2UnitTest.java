@@ -287,7 +287,7 @@ public class VoDRestServiceV2UnitTest {
 
 
 	}
-
+	
 
 	@Test
 	public void testUploadVodFile() throws FileNotFoundException, IOException {
@@ -338,7 +338,9 @@ public class VoDRestServiceV2UnitTest {
 
 			try (FileInputStream inputStream2 = new FileInputStream("src/test/resources/big-buck-bunny_trailer.webm")) {
 
-				restServiceReal.uploadVoDFile(fileName, inputStream2);
+				result = restServiceReal.uploadVoDFile(fileName, inputStream2);
+				assertTrue(result.isSuccess());
+
 			}
 
 
@@ -350,7 +352,23 @@ public class VoDRestServiceV2UnitTest {
 
 			assertEquals(2, restServiceReal.getTotalVodNumber().getNumber());
 
-		} 
+			try (FileInputStream inputStream2 = new FileInputStream("src/test/resources/test.mp3")) {
+
+				result = restServiceReal.uploadVoDFile(fileName, inputStream2);
+				assertTrue(result.isSuccess());
+			}
+
+
+			assertTrue(f.isDirectory());
+
+			assertEquals(3, f.list().length);
+
+			assertEquals(3, store.getTotalVodNumber());
+
+			assertEquals(3, restServiceReal.getTotalVodNumber().getNumber());
+		}
+		
+
 
 	}
 
