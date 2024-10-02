@@ -236,34 +236,6 @@ public class VoD implements Serializable {
 	}
 
 	/**
-	 * @return the processStartTime
-	 */
-	public long getProcessStartTime() {
-		return processStartTime;
-	}
-
-	/**
-	 * @param processStartTime the processStartTime to set
-	 */
-	public void setProcessStartTime(long processStartTime) {
-		this.processStartTime = processStartTime;
-	}
-
-	/**
-	 * @return the processEndTime
-	 */
-	public long getProcessEndTime() {
-		return processEndTime;
-	}
-
-	/**
-	 * @param processEndTime the processEndTime to set
-	 */
-	public void setProcessEndTime(long processEndTime) {
-		this.processEndTime = processEndTime;
-	}
-
-	/**
 	 * @return the description
 	 */
 	public String getDescription() {
@@ -292,10 +264,17 @@ public class VoD implements Serializable {
 	}
 
 	/**
-	 * @return the latitude
+	 * @return the altitude
 	 */
-	public String getLatitude() {
-		return latitude;
+	public String getAltitude() {
+		return altitude;
+	}
+
+	/**
+	 * @param altitude the altitude to set
+	 */
+	public void setAltitude(String altitude) {
+		this.altitude = altitude;
 	}
 
 	/**
@@ -303,6 +282,13 @@ public class VoD implements Serializable {
 	 */
 	public void setLatitude(String latitude) {
 		this.latitude = latitude;
+	}
+
+	/**
+	 * @return the latitude
+	 */
+	public String getLatitude() {
+		return latitude;
 	}
 
 	/**
@@ -320,17 +306,32 @@ public class VoD implements Serializable {
 	}
 
 	/**
-	 * @return the altitude
+	 * @return the processStartTime
 	 */
-	public String getAltitude() {
-		return altitude;
+	public long getProcessStartTime() {
+		return processStartTime;
 	}
 
 	/**
-	 * @param altitude the altitude to set
+	 * @param processStartTime the processStartTime to set
 	 */
-	public void setAltitude(String altitude) {
-		this.altitude = altitude;
+	public void setProcessStartTime(long processStartTime) {
+		this.processStartTime = processStartTime;
 	}
+
+	/**
+	 * @return the processEndTime
+	 */
+	public long getProcessEndTime() {
+		return processEndTime;
+	}
+
+	/**
+	 * @param processEndTime the processEndTime to set
+	 */
+	public void setProcessEndTime(long processEndTime) {
+		this.processEndTime = processEndTime;
+	}
+
 
 }
