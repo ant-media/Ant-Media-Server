@@ -132,6 +132,27 @@ public class JWTFilterTest {
             jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
             assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
         }
+
+        // JWT Token enable and valid token passed with Bearer prefix scenario
+        {
+            //reset filterchains
+            filterChain = new MockFilterChain();
+
+            //reset httpServletResponses
+            httpServletResponse = new MockHttpServletResponse();
+
+            //reset httpServletRequest
+            httpServletRequest = new MockHttpServletRequest();
+
+            appSettings.setJwtControlEnabled(true);
+
+            Mockito.doReturn(appSettings).when(jwtFilter).getAppSettings();
+
+            httpServletRequest.addHeader("Authorization", JWTFilter.JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX+" "+token);
+
+            jwtFilter.doFilter(httpServletRequest, httpServletResponse, filterChain);
+            assertEquals(HttpStatus.OK.value(),httpServletResponse.getStatus());
+        }
         
         // JWT Token enable and null header token scenario
         {
