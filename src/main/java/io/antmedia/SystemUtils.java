@@ -273,7 +273,7 @@ public class SystemUtils {
 	 * @return the amount of available physical memory
 	 */
 	public static long osAvailableMemory() {
-		return Pointer.availablePhysicalBytes();
+		return osTotalPhysicalMemory() - osInUsePhysicalMemory();
 	}
 
 	/**
