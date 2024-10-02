@@ -1252,9 +1252,12 @@ public abstract class RestServiceBase {
 					}
 					String vodId = RandomStringUtils.randomNumeric(24);
 
-					File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
-							"streams/" + vodId + "." + fileExtension));
+					
+					File savedFile = new File(streamsDirectory, vodId + "." + fileExtension);
 
+					if (!savedFile.toPath().normalize().startsWith(streamsDirectory.toPath().normalize())) {
+			            throw new IOException("Entry is outside of the target directory");
+					} 
 
 					int read = 0;
 					byte[] bytes = new byte[2048];
