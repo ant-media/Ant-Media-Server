@@ -16,8 +16,6 @@ public class PublishParameters {
     private String linkedSessionForSignaling;
     private String role;
     
-    private String role;
-    
     public PublishParameters(String streamId) {
     	this.streamId = streamId;
     } 
