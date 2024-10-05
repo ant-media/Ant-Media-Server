@@ -43,6 +43,7 @@ import dev.morphia.query.updates.UpdateOperator;
 import dev.morphia.query.updates.UpdateOperators;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
@@ -74,6 +75,7 @@ public class MongoStore extends DataStore {
 	private Datastore conferenceRoomDatastore;
 	private MongoClient mongoClient;
 
+
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
 	public static final String IMAGE_ID = "imageId"; 
@@ -87,6 +89,7 @@ public class MongoStore extends DataStore {
 	private static final String DASH_VIEWER_COUNT = "dashViewerCount";
 	private static final String WEBRTC_VIEWER_COUNT = "webRTCViewerCount";
 	private static final String META_DATA = "metaData";
+	private static final String UPDATE_TIME_FIELD = "updateTime";
 
 	public MongoStore(String host, String username, String password, String dbName) {
 
@@ -263,6 +266,30 @@ public class MongoStore extends DataStore {
 		return false;
 
 	}
+	
+	@Override
+	public boolean updateVoDProcessStatus(String id, String status) {
+		synchronized (this) {
+			try {
+				Query<VoD> query = vodDatastore.find(VoD.class).filter(Filters.eq(VOD_ID, id));
+				Update<VoD> ops = query.update(set("processStatus", status));
+				if (VoD.PROCESS_STATUS_PROCESSING.equals(status)) 
+				{
+					ops.add(set("processStartTime", System.currentTimeMillis()));
+				}
+				else if (VoD.PROCESS_STATUS_FAILED.equals(status) || VoD.PROCESS_STATUS_FINISHED.equals(status)) 
+				{
+					ops.add(set("processEndTime", System.currentTimeMillis()));
+				}
+				
+				UpdateResult update = ops.execute();
+				return update.getMatchedCount() == 1;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return false;
+	}
 
 	/*
 	 * (non-Javadoc)
@@ -340,9 +367,7 @@ public class MongoStore extends DataStore {
 	 */
 	@Override
 	public long getBroadcastCount() {
-		synchronized(this) {
-			return datastore.find(Broadcast.class).count();
-		}
+		return this.getTotalBroadcastNumber();
 	}
 
 
@@ -682,9 +707,11 @@ public class MongoStore extends DataStore {
 	}
 
 	@Override
-	public long getActiveBroadcastCount() {
-		synchronized(this) {
-			return datastore.find(Broadcast.class).filter(Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)).count();
+	public long getActiveBroadcastCount() 
+	{
+		synchronized(this) {			
+				LogicalFilter andFilter = Filters.and(Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING));
+				return datastore.find(Broadcast.class).filter(andFilter).count();
 		}
 	}
 
@@ -738,8 +765,7 @@ public class MongoStore extends DataStore {
 
 
 	@Override
-	public boolean updateBroadcastFields(String streamId, Broadcast broadcast) {
-		boolean result = false;
+	public boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast) {
 		synchronized(this) {
 			try {
 				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, streamId));
@@ -805,7 +831,7 @@ public class MongoStore extends DataStore {
 				if (broadcast.getListenerHookURL() != null && !broadcast.getListenerHookURL().isEmpty()) {
 					updates.add(set("listenerHookURL", broadcast.getListenerHookURL()));
 				}
-				if (broadcast.getSpeed() != 0) {
+				if (broadcast.getSpeed() != null) {
 					updates.add(set("speed", broadcast.getSpeed()));
 				}
 
@@ -817,26 +843,84 @@ public class MongoStore extends DataStore {
 					updates.add(set("conferenceMode", broadcast.getConferenceMode()));
 				}
 				
+				if (broadcast.getPlannedStartDate() != null) {
+					updates.add(set("plannedStartDate", broadcast.getPlannedStartDate()));
+				}
+				
+				if (broadcast.getSeekTimeInMs() != null) {
+					updates.add(set("seekTimeInMs", broadcast.getSeekTimeInMs()));
+				}
+				
+				if (broadcast.getReceivedBytes() != null) {
+					updates.add(set("receivedBytes", broadcast.getReceivedBytes()));
+				}
+				
+				if (broadcast.getBitrate() != null) {
+					updates.add(set("bitrate", broadcast.getBitrate()));
+				}
+				
+				if (broadcast.getUserAgent() != null) {
+					updates.add(set("userAgent", broadcast.getUserAgent()));
+				}
+				
+				if (broadcast.getWebRTCViewerLimit() != null) {
+					updates.add(set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit()));
+				}
 
+				if (broadcast.getHlsViewerLimit() != null) {
+					updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
+				}
+				
+				if (broadcast.getDashViewerLimit() != null) {
+					updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
+				}
+				
+				if (broadcast.getSubTrackStreamIds() != null) {
+					updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
+				}
+
+				if (broadcast.getMetaData() != null) {
+					updates.add(set(META_DATA, broadcast.getMetaData()));
+				}
+				
+				if (broadcast.getUpdateTime() != null) {
+					updates.add(set(UPDATE_TIME_FIELD, broadcast.getUpdateTime()));
+				}
+				
+				if (broadcast.getSubtracksLimit() != null) {
+					updates.add(set("subtracksLimit", broadcast.getSubtracksLimit()));
+				}
+				
+				if (broadcast.getCurrentPlayIndex() != null) {
+					updates.add(set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
+				}
+				
+				if (broadcast.getPlaylistLoopEnabled() != null) {
+					updates.add(set("playlistLoopEnabled", broadcast.getPlaylistLoopEnabled()));
+				}
+				
+				if (broadcast.getAutoStartStopEnabled() != null) {
+					updates.add(set("autoStartStopEnabled", broadcast.getAutoStartStopEnabled()));
+				}
+				
+				if (broadcast.getPendingPacketSize() != null) {
+					updates.add(set("pendingPacketSize", broadcast.getPendingPacketSize()));
+				}
+				
+				if (broadcast.getPlannedEndDate() != null) {
+					updates.add(set("plannedEndDate", broadcast.getPlannedEndDate()));
+				}
+
+				if (broadcast.getRole() != null) {
+					updates.add(set("role", broadcast.getRole()));
+				}
+				
+				
 				prepareFields(broadcast, updates);
 
-				updates.add(set("plannedStartDate", broadcast.getPlannedStartDate()));
-				updates.add(set("seekTimeInMs", broadcast.getSeekTimeInMs()));
-				updates.add(set("currentPlayIndex", broadcast.getCurrentPlayIndex()));
-				updates.add(set("receivedBytes", broadcast.getReceivedBytes()));
-				updates.add(set("bitrate", broadcast.getBitrate()));
-				updates.add(set("userAgent", broadcast.getUserAgent()));
-				updates.add(set("webRTCViewerLimit", broadcast.getWebRTCViewerLimit()));
-				updates.add(set("hlsViewerLimit", broadcast.getHlsViewerLimit()));
-				updates.add(set("dashViewerLimit", broadcast.getDashViewerLimit()));
-				updates.add(set("subTrackStreamIds", broadcast.getSubTrackStreamIds()));
-				updates.add(set(META_DATA, broadcast.getMetaData()));
-				updates.add(set("playlistLoopEnabled", broadcast.isPlaylistLoopEnabled()));
-				updates.add(set("updateTime", broadcast.getUpdateTime()));
-				updates.add(set("autoStartStopEnabled",broadcast.isAutoStartStopEnabled()));
-				updates.add(set("role", broadcast.getRole()));
-
 				UpdateResult updateResult = query.update(updates).execute();
+
+				
 				return updateResult.getModifiedCount() == 1;
 			} catch (Exception e) {
 				logger.error(e.getMessage());
@@ -845,13 +929,13 @@ public class MongoStore extends DataStore {
 		return false;
 	}
 
-	private void prepareFields(Broadcast broadcast, List<UpdateOperator> updates) {
+	private void prepareFields(BroadcastUpdate broadcast, List<UpdateOperator> updates) {
 
-		if ( broadcast.getDuration() != 0) {
+		if ( broadcast.getDuration() != null) {
 			updates.add(set(DURATION, broadcast.getDuration()));
 		}
 
-		if (broadcast.getStartTime() != 0) {
+		if (broadcast.getStartTime() != null) {
 			updates.add(set(START_TIME, broadcast.getStartTime()));
 		}
 
@@ -863,7 +947,7 @@ public class MongoStore extends DataStore {
 			updates.add(set(STATUS, broadcast.getStatus()));
 		}
 
-		if (broadcast.getAbsoluteStartTimeMs() != 0) {
+		if (broadcast.getAbsoluteStartTimeMs() != null) {
 			updates.add(set("absoluteStartTimeMs", broadcast.getAbsoluteStartTimeMs()));
 		}
 	}
@@ -1219,6 +1303,7 @@ public class MongoStore extends DataStore {
 	@Override
 	public long getLocalLiveBroadcastCount(String hostAddress) {
 		synchronized(this) {
+			
 			return datastore.find(Broadcast.class)
 					.filter(Filters.and(
 							Filters.or(
@@ -1514,18 +1599,80 @@ public class MongoStore extends DataStore {
 		return conferenceRoomDatastore;
 	}
 
+	@Override
 	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
+		return getSubtracks(mainTrackId, offset, size, role, null);
+	}
+	
+	@Override
+	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status) {
 		synchronized(this) {
-			Filter roleFilter;
-			if(StringUtils.isBlank(role)) {
-				roleFilter = Filters.eq(MAIN_TRACK_STREAM_ID, mainTrackId);
-			}
-			else {
-				roleFilter = Filters.and(Filters.eq(MAIN_TRACK_STREAM_ID, mainTrackId), Filters.eq(ROLE, role));
-			}
+			Filter roleFilter = getFilterForSubtracks(mainTrackId, role, status);
 			return 	datastore.find(Broadcast.class)
 					.filter(roleFilter)
 					.iterator(new FindOptions().skip(offset).limit(size)).toList();
 		}
 	}
+
+	private LogicalFilter getFilterForSubtracks(String mainTrackId, String role, String status) {
+		
+		LogicalFilter filter = Filters.and(Filters.eq(MAIN_TRACK_STREAM_ID, mainTrackId));
+		
+		if(StringUtils.isNotBlank(role)) {
+			filter.add(Filters.eq(ROLE, role));
+		}
+		
+		if (StringUtils.isNotBlank(status)) {
+			filter.add(Filters.eq(STATUS, status));
+		}
+		
+		return filter;
+	}
+	
+	@Override
+	public long getSubtrackCount(String mainTrackId, String role, String status) {
+		synchronized(this) {
+			return datastore.find(Broadcast.class).filter(getFilterForSubtracks(mainTrackId, role, status)).count();
+		}
+	}
+
+	
+	@Override
+	public List<Broadcast> getActiveSubtracks(String mainTrackId, String role) {
+		LogicalFilter filterForSubtracks = getFilterForSubtracks(mainTrackId, role, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		long activeIntervalValue = System.currentTimeMillis() - (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS);
+		filterForSubtracks.add(Filters.gte(UPDATE_TIME_FIELD, activeIntervalValue));
+		
+		
+		 synchronized(this) {
+			return 	datastore.find(Broadcast.class)
+					.filter(filterForSubtracks)
+					.iterator().toList();
+		}
+	}
+	
+	@Override
+	public long getActiveSubtracksCount(String mainTrackId, String role) {
+		LogicalFilter filterForSubtracks = getFilterForSubtracks(mainTrackId, role, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING);
+		long activeIntervalValue = System.currentTimeMillis() - (2 * MuxAdaptor.STAT_UPDATE_PERIOD_MS);
+		filterForSubtracks.add(Filters.gte(UPDATE_TIME_FIELD, activeIntervalValue));
+
+		synchronized(this) {
+			return 	datastore.find(Broadcast.class)
+					.filter(filterForSubtracks).count();
+		}
+	}
+	
+	public boolean hasSubtracks(String streamId) {
+		
+		LogicalFilter filterForSubtracks = getFilterForSubtracks(streamId, null, null);
+		synchronized(this) {
+			return 	datastore.find(Broadcast.class)
+					.filter(filterForSubtracks).first() != null;
+		}
+	}
+	
+
+	
+	
 }

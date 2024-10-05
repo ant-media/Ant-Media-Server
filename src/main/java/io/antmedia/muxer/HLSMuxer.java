@@ -29,10 +29,7 @@ import io.vertx.core.Vertx;
 
 public class HLSMuxer extends Muxer  {
 
-	private static final String HEVC_MP4TOANNEXB = "hevc_mp4toannexb";
-
-	private static final String H264_MP4TOANNEXB = "h264_mp4toannexb";
-
+	
 	public static final String SEI_USER_DATA = "sei_user_data";
 
 	private static final String SEGMENT_SUFFIX_TS = "%0"+SEGMENT_INDEX_LENGTH+"d.ts";
@@ -47,10 +44,6 @@ public class HLSMuxer extends Muxer  {
 	private String  hlsListSize = "20";
 	private String hlsTime = "5";
 	private String hlsPlayListType = null;
-
-	private long totalSize;
-	private long startTime;
-	private long currentTime;
 
 
 	private boolean deleteFileOnExit = true;
@@ -236,34 +229,12 @@ public class HLSMuxer extends Muxer  {
 				|| codecId == AV_CODEC_ID_H265 
 				|| codecId == AV_CODEC_ID_AC3);
 	}
-
-	public long getAverageBitrate() {
-
-		long duration = (currentTime - startTime) ;
-
-		if (duration > 0)
-		{
-			return (totalSize / duration) * 8;
-		}
-		return 0;
-	}
 	
-
 	@Override
 	public synchronized void writePacket(AVPacket pkt, AVRational inputTimebase, AVRational outputTimebase, int codecType)
 	{
-		
-		totalSize += pkt.size();
-		
-		currentTime = av_rescale_q(pkt.dts(), inputTimebase, avRationalTimeBase);
-		if (startTime == 0) {
-			startTime = currentTime;
-		}
-		
-		
+			
 		if (codecType == AVMEDIA_TYPE_VIDEO && pendingSEIData != null) {
-			
-			
 			
 			logger.info("sei data size:{} for streamId:{}", pendingSEIData.limit(), streamId);
 				
@@ -297,26 +268,46 @@ public class HLSMuxer extends Muxer  {
 		}
 
 	}
+	
+	/**
+	 * We write metadata as ID3 tag for HLS Muxer
+	 */
+	@Override
+	public synchronized void writeMetaData(String data, long dts) {
+		addID3Data(data);
+	}
+
+
+	public static byte[] convertIntToID3v2TagSize(int size) {
+		byte[] tagSizeBytes = new byte[4];
+		tagSizeBytes[0] = (byte) ((size >> 21) & 0x7F);
+		tagSizeBytes[1] = (byte) ((size >> 14) & 0x7F);
+		tagSizeBytes[2] = (byte) ((size >> 7) & 0x7F);
+		tagSizeBytes[3] = (byte) (size & 0x7F);
+		return tagSizeBytes;
+	}
 
 	public synchronized void addID3Data(String data) {
-		
-		int id3TagSize = data.length() + 3; // TXXX frame size (excluding 10 byte header)
-		int tagSize = id3TagSize + 10;
+		int frameSizeWithoutFrameHeader = data.length() + 3; // TXXX frame size, 3 is for encoding (1), description (1) and end of string (1) (https://id3.org/id3v2.3.0#User_defined_text_information_frame)
+		int tagSize = frameSizeWithoutFrameHeader + 10; // 10 is for frame header which is "TXXX" frame id (4), frame size info(4) and frame flags (2)  (https://id3.org/id3v2.3.0#ID3v2_frame_overview)
+		int id3ContentSize = tagSize + 10; // 10 is for ID3 header which is "ID3" (3), version (2), flags (1) and size info(4) (https://id3.org/id3v2.3.0#ID3v2_header)
 
-		ByteBuffer byteBuffer = ByteBuffer.allocate(tagSize + 10);
+		ByteBuffer byteBuffer = ByteBuffer.allocate(id3ContentSize);
 		
 		logger.info("Adding ID3 data: {} lenght:{} byte length:{} buffer capacacity:{}", data, data.length(), data.getBytes().length, byteBuffer.capacity());
 
-
+		// ID3 header (https://id3.org/id3v2.3.0#ID3v2_header)
 		byteBuffer.put("ID3".getBytes());
 		byteBuffer.put(new byte[]{0x03, 0x00}); // version
 		byteBuffer.put((byte) 0x00); // flags
-		byteBuffer.putInt(tagSize); // size
+		byteBuffer.put(convertIntToID3v2TagSize(tagSize)); // size
 
-		// TXXX frame
-		byteBuffer.put("TXXX".getBytes());
-		byteBuffer.putInt(id3TagSize); // size
-		byteBuffer.put(new byte[]{0x00, 0x00}); // flags
+		// TXXX frame header (https://id3.org/id3v2.3.0#ID3v2_frame_overview)
+		byteBuffer.put("TXXX".getBytes()); // frame id
+		byteBuffer.putInt(frameSizeWithoutFrameHeader); // frame size without frame header
+		byteBuffer.put(new byte[]{0x00, 0x00}); // frame flags
+
+		//TXXX frame content (https://id3.org/id3v2.3.0#User_defined_text_information_frame)
 		byteBuffer.put((byte) 0x03); // encoding
 		byteBuffer.put((byte) 0x00); // description 00
 		byteBuffer.put(data.getBytes()); // description
@@ -329,6 +320,10 @@ public class HLSMuxer extends Muxer  {
 
 	public synchronized void writeID3Packet(ByteBuffer data)
 	{
+		if (!id3Enabled) {
+			logger.info("ID3 tag is disabled for stream:{}", streamId);
+			return;
+		}
 		//use the last send video pts as the pts of data
 		long pts = getLastPts();
 		id3DataPkt.pts(pts);
@@ -499,7 +494,7 @@ public class HLSMuxer extends Muxer  {
 		pendingSEIData = ByteBuffer.allocateDirect(totalLength);
 
 		
-		if (StringUtils.equals(getBitStreamFilter(), H264_MP4TOANNEXB) || StringUtils.equals(getBitStreamFilter(), HEVC_MP4TOANNEXB)
+		if (StringUtils.equals(getBitStreamFilter(), BITSTREAM_FILTER_H264_MP4TOANNEXB) || StringUtils.equals(getBitStreamFilter(), BITSTREAM_FILTER_HEVC_MP4TOANNEXB)
 				|| HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) 
 		{
 			pendingSEIData.putInt(totalLength-4); 
@@ -551,10 +546,10 @@ public class HLSMuxer extends Muxer  {
 	{
 		
 		if (codecParameters.codec_id() == AV_CODEC_ID_H264) {
-            setBitstreamFilter(H264_MP4TOANNEXB);
+            setBitstreamFilter(BITSTREAM_FILTER_H264_MP4TOANNEXB);
         }
         else if (codecParameters.codec_id() == AV_CODEC_ID_H265){
-        	setBitstreamFilter(HEVC_MP4TOANNEXB);
+        	setBitstreamFilter(BITSTREAM_FILTER_HEVC_MP4TOANNEXB);
         }
         else if (codecParameters.codec_id() == AV_CODEC_ID_AAC && HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
         	//we need this conversion for fmp4
@@ -570,7 +565,7 @@ public class HLSMuxer extends Muxer  {
 		codecParameter.codec_type(AVMEDIA_TYPE_DATA);
 		codecParameter.codec_id(AV_CODEC_ID_TIMED_ID3);
 
-		return super.addStream(codecParameter, MuxAdaptor.TIME_BASE_FOR_MS, id3StreamIndex);
+		return super.addStream(codecParameter, MuxAdaptor.getTimeBaseForMs(), id3StreamIndex);
 	}
 	
 	public String getHlsListSize() {

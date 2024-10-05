@@ -1,8 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:lang="http://www.springframework.org/schema/lang" xmlns="http://www.springframework.org/schema/beans"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
-                           http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang.xsd">
+	xmlns:context="http://www.springframework.org/schema/context"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans
+	http://www.springframework.org/schema/beans/spring-beans-4.3.xsd 
+	http://www.springframework.org/schema/context
+	http://www.springframework.org/schema/context/spring-context-4.3.xsd
+	http://www.springframework.org/schema/aop 
+    http://www.springframework.org/schema/aop/spring-aop-4.3.xsd">
 
 	<bean id="placeholderConfig"
 		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
@@ -109,9 +114,6 @@
 				<bean id="flvFileService" class="org.red5.server.service.flv.impl.FLVService">
 					<property name="generateMetadata" value="true" />
 				</bean>
-				<bean id="mp3FileService" class="org.red5.server.service.mp3.impl.MP3Service" />
-				<bean id="mp4FileService" class="org.red5.server.service.mp4.impl.MP4Service" />
-				<bean id="m4aFileService" class="org.red5.server.service.m4a.impl.M4AService" />
 			</list>
 		</property>
 	</bean>
@@ -120,6 +122,8 @@
 		class="org.red5.server.stream.ClientBroadcastStream">
 		<property name="automaticRecording" value="true" />
 	</bean>
+	
+	
 
 
 	<!-- Scheduling service -->
@@ -182,6 +186,8 @@
 	init-method="start">
 		<property name="serverSettings" ref="ant.media.server.settings" />						
 	</bean>
+
+	<context:component-scan base-package="io.antmedia.component" />
 
 
 </beans>

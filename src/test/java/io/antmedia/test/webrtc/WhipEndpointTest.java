@@ -3,6 +3,7 @@ package io.antmedia.test.webrtc;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.times;
 
 import java.net.URI;
 import java.util.concurrent.CompletableFuture;
@@ -103,8 +104,35 @@ public class WhipEndpointTest {
 			assertEquals("stream123", publishParamsCaptor.getValue().getStreamId());
 			assertTrue(publishParamsCaptor.getValue().isEnableVideo());
 			assertTrue(publishParamsCaptor.getValue().isEnableAudio());
+			
+			
+			
+			String token = "TokeN";
+			whipEndpoint.startWhipPublish(null, "stream123", null, null, null, null, null, null, null, null, "Bearer " + token, null);
+			resultFuture.complete(new Result(true));
+			
+			publishParamsCaptor = ArgumentCaptor.forClass(PublishParameters.class);
+			Mockito.verify(app, times(2)).startHttpSignaling(publishParamsCaptor.capture(), Mockito.any(), Mockito.anyString());
+			assertEquals(token, publishParamsCaptor.getValue().getToken());
+			
+			
+			
+			whipEndpoint.startWhipPublish(null, "stream123", null, null, null, null, null, null, null, null, "bearer " + token, null);
+			resultFuture.complete(new Result(true));
+			publishParamsCaptor = ArgumentCaptor.forClass(PublishParameters.class);
+			Mockito.verify(app, times(3)).startHttpSignaling(publishParamsCaptor.capture(), Mockito.any(), Mockito.anyString());
+			assertEquals(token, publishParamsCaptor.getValue().getToken());
+			
+			
+			whipEndpoint.startWhipPublish(null, "stream123", null, null, null, null, null, null, null, null, token, null);
+			resultFuture.complete(new Result(true));
+			publishParamsCaptor = ArgumentCaptor.forClass(PublishParameters.class);
+			Mockito.verify(app, times(4)).startHttpSignaling(publishParamsCaptor.capture(), Mockito.any(), Mockito.anyString());
+			assertEquals(token, publishParamsCaptor.getValue().getToken());
 		
-		}	
+		}
+		
+		
 	}
 	
 	@Test

@@ -437,6 +437,8 @@ public class TokenFilterTest {
 
 	@Test
 	public void testGetStreamId() {
+		
+		assertNull(TokenFilterManager.getStreamId(null));
 		String streamId = "stream_Id";
 		
 		assertEquals("test_stream_Id_davut_diyen_kedi", TokenFilterManager.getStreamId("/liveapp/streams/"+"test_"+streamId+"_davut_diyen_kedi_adaptive.m3u8"));
@@ -614,6 +616,29 @@ public class TokenFilterTest {
 		
 		requestURI = "/LiveApp/streams/subfolder/"+ streamId + ".m3u8"; 
 		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		
+		requestURI = "/LiveApp/streams/subfolder/"+ streamId + ".m3u8"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		requestURI = "/LiveApp/streams/subfolder/ll-hls/"+ streamId + ".m3u8"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		requestURI = "/LiveApp/streams/subfolder/ll-hls/"+ streamId + "__lowlatency.m3u8"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		requestURI = "/LiveApp/streams/subfolder/ll-hls/"+streamId + "/"+ streamId + "__lowlatency.m3u8"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		requestURI = "/LiveApp/streams/subfolder/ll-hls/"+streamId + "/"+ streamId + "__anything.m3u8"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		requestURI = "/LiveApp/streams/subfolder/ll-hls/"+streamId + "/"+ streamId + "__anything.ts"; 
+		assertEquals(streamId, TokenFilterManager.getStreamId(requestURI));
+		
+		requestURI = "/LiveApp/streams/subfolder/ll-hls/"+streamId + "/"+ streamId + "_anything.ts"; 
+		assertNull(TokenFilterManager.getStreamId(requestURI));
+		
 				
 	}
 	
