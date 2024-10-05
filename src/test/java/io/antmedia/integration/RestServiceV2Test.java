@@ -1946,7 +1946,7 @@ public class RestServiceV2Test {
 			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
 			assertTrue(result.isSuccess());
 			Random r = new Random();
-			String streamId = "streamId" + r.nextInt();
+			String streamId = "streamId" +  Integer.toUnsignedString(r.nextInt());
 
 			AppSettings appSettingsModel = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 

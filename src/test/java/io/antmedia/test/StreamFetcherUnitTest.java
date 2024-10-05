@@ -622,6 +622,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		pkt.pts(0);
 		pkt.dts(0);
 		worker.packetRead(pkt);
+		worker.calculateBufferStatus();
 
 		assertEquals(100, worker.getBufferedDurationMs());
 
@@ -630,13 +631,15 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		pkt.pts(50);
 		pkt.dts(50);
 		worker.packetRead(pkt);
-
+		worker.calculateBufferStatus();
+		
 		assertEquals(100, worker.getBufferedDurationMs());
 
 		pkt = new AVPacket();
 		pkt.pts(500);
 		pkt.dts(500);
 		worker.packetRead(pkt);
+		worker.calculateBufferStatus();
 
 		assertEquals(500, worker.getBufferedDurationMs());
 
@@ -1003,7 +1006,8 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testShoutcastSource() {
 		logger.info("running testShoutcastSource");
 		//test Southcast Source - http://sc13.shoutcaststreaming.us/
-		testFetchStreamSources("http://107.181.227.250:8526/stream/1/", false, false);
+		//http://107.181.227.250:8526/stream/1/
+		testFetchStreamSources("http://icecast.rte.ie/ieradio1", false, false);
 		logger.info("leaving testShoutcastSource");
 	}
 

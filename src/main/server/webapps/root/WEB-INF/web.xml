@@ -87,6 +87,16 @@
   	</filter-mapping>
   	
   	<servlet>
+	  <servlet-name>WarDownloadServlet</servlet-name>
+	  <servlet-class>io.antmedia.console.servlet.WarDownloadServlet</servlet-class>
+	</servlet>
+	
+	<servlet-mapping>
+	  <servlet-name>WarDownloadServlet</servlet-name>
+	  <url-pattern>*.war</url-pattern>
+	</servlet-mapping>
+	
+  	<servlet>
 	  <servlet-name>RequestDispatherFilter</servlet-name>
 	  <servlet-class>io.antmedia.console.servlet.ProxyServlet</servlet-class>
 	  <init-param>
@@ -121,10 +131,15 @@
 	      <param-name>openApi.configuration.resourcePackages</param-name>
 	      <param-value>io.antmedia.console.rest</param-value>
 	    </init-param>
+	    <init-param>
+			<param-name>openapi.context.id</param-name>
+			<param-value>openapi-management</param-value>
+		</init-param>
 	  </servlet>
 
 	  <servlet-mapping>
 	    <servlet-name>OpenApi</servlet-name>
+	    <url-pattern>/openapi-management/*</url-pattern>
 	    <url-pattern>/openapi/*</url-pattern>
 	  </servlet-mapping>
 	

@@ -1,9 +1,5 @@
 package io.antmedia.test.console;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import org.junit.Test;
 
 import io.antmedia.console.datastore.AbstractConsoleDataStore;
@@ -11,8 +7,12 @@ import io.antmedia.console.datastore.MapDBStore;
 import io.antmedia.console.datastore.MongoStore;
 import io.antmedia.console.datastore.RedisStore;
 import io.antmedia.datastore.db.types.User;
-import io.antmedia.rest.model.UserType;
+import io.antmedia.datastore.db.types.UserType;
 import io.vertx.core.Vertx;
+
+import java.util.HashMap;
+
+import static org.junit.Assert.*;
 
 
 public class ConsoleDataStoreUnitTest {
@@ -45,21 +45,33 @@ public class ConsoleDataStoreUnitTest {
 		
 		String username = "test";
 		String password = "pass" + (Math.random()*10000);
-		User user = new User(username, password, UserType.ADMIN , "system");
+		HashMap<String, String> appNameUserTypeMap = new HashMap<>();
+
+		appNameUserTypeMap.put("system", UserType.ADMIN.toString());
+		User user = new User(username, password, UserType.ADMIN , "system", appNameUserTypeMap);
 		assertTrue(dtStore.addUser(user));
 		assertFalse(dtStore.addUser(user));
 		assertEquals(1, dtStore.getNumberOfUserRecords());
 		
 		assertTrue(dtStore.doesUsernameExist(username));
 		assertFalse(dtStore.doesUsernameExist(username+"123"));
-		
+
+		appNameUserTypeMap = new HashMap<>();
+		appNameUserTypeMap.put("LiveApp", UserType.USER.toString());
+		user.setAppNameUserType(appNameUserTypeMap);
+		assertTrue(dtStore.editUser(user));
+
+		user = dtStore.getUser(user.getEmail());
+		assertTrue(user.getAppNameUserType().containsKey("LiveApp"));
+		assertTrue(user.getAppNameUserType().get("LiveApp").equals(UserType.USER.toString()));
+
 		
 		assertTrue(dtStore.doesUserExist(username, password));
 		assertFalse(dtStore.doesUserExist(username, password + "123"));
 		assertFalse(dtStore.doesUserExist(username + "123", password));
-		
-		assertEquals(null, dtStore.getUser(username + "123"));
-		
+
+        assertNull(dtStore.getUser(username + "123"));
+
 		user = dtStore.getUser(username);
 		assertEquals(password, user.getPassword());
 		assertEquals(UserType.ADMIN, user.getUserType());
@@ -68,8 +80,7 @@ public class ConsoleDataStoreUnitTest {
 		assertFalse(dtStore.deleteUser(username+"123"));
 		
 		assertEquals(0, dtStore.getNumberOfUserRecords());
-		
-		
+
 	}
 
 }
