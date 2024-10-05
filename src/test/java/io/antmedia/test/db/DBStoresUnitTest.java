@@ -3160,9 +3160,11 @@ public class DBStoresUnitTest {
 
 		assertEquals(INITIAL_ROLE, dataStore.get(id).getRole());
 
-		broadcast.setRole(UPDATED_ROLE);
+		BroadcastUpdate updateData = new BroadcastUpdate();
 
-		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
+		updateData.setRole(UPDATED_ROLE);
+
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
 
 		assertEquals(UPDATED_ROLE, dataStore.get(id).getRole());
 	}
