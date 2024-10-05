@@ -95,7 +95,21 @@ public class VoD implements Serializable {
     
     @Schema(description = "The end time of the VoD processing in milliseconds", accessMode = AccessMode.READ_ONLY)
     private long processEndTime;
-    
+
+	@Schema(description = "The description of the VoD.")
+	private String description;
+
+	@Schema(description = "The metadata of the VoD.")
+	private String metadata;
+
+	@Schema(description = "The latitude of the VoD.")
+	private String latitude;
+
+	@Schema(description = "The longitude of the VoD.")
+	private String longitude;
+
+	@Schema(description = "The altitude of the VoD.")
+	private String altitude;
 
 	public VoD() {
 		//default constructor is used to return not found vod in rest service 
@@ -222,6 +236,76 @@ public class VoD implements Serializable {
 	}
 
 	/**
+	 * @return the description
+	 */
+	public String getDescription() {
+		return description;
+	}
+
+	/**
+	 * @param description the description to set
+	 */
+	public void setDescription(String description) {
+		this.description = description;
+	}
+
+	/**
+	 * @return the metadata
+	 */
+	public String getMetadata() {
+		return metadata;
+	}
+
+	/**
+	 * @param metadata the metadata to set
+	 */
+	public void setMetadata(String metadata) {
+		this.metadata = metadata;
+	}
+
+	/**
+	 * @return the altitude
+	 */
+	public String getAltitude() {
+		return altitude;
+	}
+
+	/**
+	 * @param altitude the altitude to set
+	 */
+	public void setAltitude(String altitude) {
+		this.altitude = altitude;
+	}
+
+	/**
+	 * @param latitude the latitude to set
+	 */
+	public void setLatitude(String latitude) {
+		this.latitude = latitude;
+	}
+
+	/**
+	 * @return the latitude
+	 */
+	public String getLatitude() {
+		return latitude;
+	}
+
+	/**
+	 * @return the longitude
+	 */
+	public String getLongitude() {
+		return longitude;
+	}
+
+	/**
+	 * @param longitude the longitude to set
+	 */
+	public void setLongitude(String longitude) {
+		this.longitude = longitude;
+	}
+
+	/**
 	 * @return the processStartTime
 	 */
 	public long getProcessStartTime() {
@@ -248,5 +332,6 @@ public class VoD implements Serializable {
 	public void setProcessEndTime(long processEndTime) {
 		this.processEndTime = processEndTime;
 	}
+
 
 }
