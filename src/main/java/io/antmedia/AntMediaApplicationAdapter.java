@@ -969,6 +969,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 
 		VoD newVod = new VoD(streamName, streamId, relativePath, vodName, systemTime, startTime, duration, fileSize, VoD.STREAM_VOD, vodIdFinal, previewFilePath);
+		if(broadcast != null){
+			newVod.setDescription(broadcast.getDescription());
+			newVod.setMetadata(broadcast.getMetaData());
+			newVod.setLongitude(broadcast.getLongitude());
+			newVod.setLatitude(broadcast.getLatitude());
+			newVod.setAltitude(broadcast.getAltitude());
+		}
+
 
 		if (getDataStore().addVod(newVod) == null) {
 			logger.warn("Stream vod with stream id {} cannot be added to data store", streamId);

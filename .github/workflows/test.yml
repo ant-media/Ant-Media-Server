@@ -5,9 +5,12 @@ on:
   push:
     branches:
       - '**'
+    tags:
+      - 'ams-v*'
   pull_request:
     branches:
       - '**'
+  
       
 env:
   RUNNER: ubuntu-22.04      
