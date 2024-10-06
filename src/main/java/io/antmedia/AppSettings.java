@@ -775,12 +775,36 @@ public class AppSettings implements Serializable{
 	@Value("${addDateTimeToMp4FileName:${"+SETTINGS_ADD_DATE_TIME_TO_MP4_FILE_NAME+":false}}")
 	private boolean addDateTimeToMp4FileName;
 
-
 	/**
-	 * The format of output mp4 and ts files.
-	 * To add resolution like stream1_240p.mp4, add %r to the string
-	 * To add bitrate like stream1_500kbps, add %b to the string
-	 * Add both for stream1_240p500kbps
+	 * The format of output mp4 and ts files. Generates an extended filename based on the given parameters and file name format.
+	 *
+	 * @param name            The base name of the file (e.g., "stream1")
+	 * @param resolution      The resolution of the video (e.g., 240, 480, 720)
+	 * @param bitrate         The bitrate of the video in kbps
+	 * @param fileNameFormat  The format string for the file name (e.g., "%r%b", "{customText}%r%b", "%r{customText}%b", "%b%r{customText}")
+	 * @return                The extended file name
+	 *
+	 * This method constructs an extended file name by appending various components based on the provided format:
+	 * - {customText}: Appends any custom text enclosed in curly braces
+	 * - %r: Appends the resolution (if non-zero) followed by 'p' (e.g., "720p")
+	 * - %b: Appends the bitrate in kbps (if non-zero) followed by "kbps" (e.g., "1500kbps")
+	 *
+	 * If addDateTimeToResourceName is true, it prepends a timestamp to the filename using the format:
+	 * yyyy-MM-dd_HH-mm-ss.SSS
+	 *
+	 * Examples:
+	 * 1. name = "myVideo", resolution = 720, bitrate = 1500, fileNameFormat = "%r%b"
+	 *    Result: "myVideo_720p1500kbps"
+	 *
+	 * 2. name = "stream1", resolution = 480, bitrate = 800, fileNameFormat = "{HD}%r%b"
+	 *    Result: "stream1_HD480p800kbps"
+	 *
+	 * 3. name = "lecture", resolution = 1080, bitrate = 2000, fileNameFormat = "%r{4K}%b"
+	 *    Result: "lecture_1080p4K2000kbps"
+	 *
+	 * 4. name = "live", resolution = 720, bitrate = 1500, fileNameFormat = "%b%r{custom}", addDateTimeToResourceName = true
+	 *    Result: "live-2023-10-15_12-05-30.123_1500kbps720pcustom"
+	 *    (assuming current date-time is October 15, 2023, 12:05:30.123)
 	 */
 	@Value("${fileNameFormat:${"+SETTINGS_FILE_NAME_FORMAT+":%r%b}}")
 	private String fileNameFormat = "%r%b";
