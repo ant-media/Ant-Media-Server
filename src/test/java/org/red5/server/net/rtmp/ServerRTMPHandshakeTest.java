@@ -3,6 +3,7 @@ package org.red5.server.net.rtmp;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.*;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -13,19 +14,31 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.antmedia.StreamIdValidator;
+import io.antmedia.statistic.IStatsCollector;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.mina.core.buffer.IoBuffer;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.io.object.StreamAction;
 import org.red5.io.utils.IOUtils;
+import org.red5.server.Context;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
+import org.red5.server.api.service.IServiceCall;
+import org.red5.server.api.service.IServiceInvoker;
 import org.red5.server.api.stream.IClientStream;
+import org.red5.server.api.stream.IStreamService;
+import org.red5.server.net.ICommand;
+import org.red5.server.net.rtmp.message.Header;
 import org.red5.server.net.rtmp.status.StatusObjectService;
+import org.red5.server.scope.Scope;
+import org.red5.server.stream.StreamService;
+import org.red5.server.util.ScopeUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -262,18 +275,18 @@ public class ServerRTMPHandshakeTest {
 	public void testRTMPPlaybackAndAllowed() {
 		RTMPHandler rtmpHandler = new RTMPHandler();
 
-		RTMPConnection conn = Mockito.mock(RTMPConnection.class);
-		Channel channel = Mockito.mock(Channel.class);
+		RTMPConnection conn = mock(RTMPConnection.class);
+		Channel channel = mock(Channel.class);
 
 		assertTrue(rtmpHandler.isAllowedIfRtmpPlayback(conn, channel, StreamAction.CONNECT));
 		AppSettings appSettings = new AppSettings();
-		IScope scope = Mockito.mock(IScope.class);
-		Mockito.when(conn.getScope()).thenReturn(scope);
+		IScope scope = mock(IScope.class);
+		when(conn.getScope()).thenReturn(scope);
 
-		IContext context = Mockito.mock(IContext.class);
-		Mockito.when(scope.getContext()).thenReturn(context);
+		IContext context = mock(IContext.class);
+		when(scope.getContext()).thenReturn(context);
 
-		Mockito.when(context.getBean(Mockito.anyString())).thenReturn(appSettings);
+		when(context.getBean(Mockito.anyString())).thenReturn(appSettings);
 		StatusObjectService statusObjectService = new StatusObjectService();
 		statusObjectService.loadStatusObjects();
 		rtmpHandler.setStatusObjectService(statusObjectService);
@@ -294,19 +307,64 @@ public class ServerRTMPHandshakeTest {
 			RTMPHandler rtmpHandler = new RTMPHandler();
 			rtmpHandler.logStreamNames(null);
 
-			RTMPConnection conn = Mockito.mock(RTMPConnection.class);
-			Collection<IClientStream> streams = Arrays.asList(Mockito.mock(IClientStream.class)); 
-			Mockito.when(conn.getStreams()).thenReturn(streams);
+			RTMPConnection conn = mock(RTMPConnection.class);
+			Collection<IClientStream> streams = Arrays.asList(mock(IClientStream.class));
+			when(conn.getStreams()).thenReturn(streams);
 			rtmpHandler.logStreamNames(conn);
 			
 			RTMPMinaConnection rtmpConnection = new RTMPMinaConnection();
 			rtmpConnection.logWarning();
 			
-			rtmpConnection.logStream(Mockito.mock(IClientStream.class));
+			rtmpConnection.logStream(mock(IClientStream.class));
 		}
 		catch (Exception e) {
 			fail(e.getMessage());
 		}
+	}
+
+	@Test
+	public void testParseSegmentParams(){
+		RTMPHandler rtmpHandler = spy(RTMPHandler.class);
+
+		RTMPConnection conn = mock(RTMPConnection.class);
+		Channel channel = mock(Channel.class);
+		Header source = mock(Header.class);
+		ICommand command = mock(ICommand.class);
+		IServiceCall call = mock(IServiceCall.class);
+		Context context = mock(Context.class);
+		Scope scope = mock(Scope.class);
+		IStatsCollector resourceMonitor = mock(IStatsCollector.class);
+		IServiceInvoker serviceInvoker = mock(IServiceInvoker.class);
+		IStreamService streamService = mock(IStreamService.class);
+
+
+		when(command.getTransactionId()).thenReturn(1);
+		when(command.getCall()).thenReturn(call);
+		when(conn.isConnected()).thenReturn(true);
+		when(conn.getScope()).thenReturn(scope);
+		when(scope.getContext()).thenReturn(context);
+		when(context.hasBean(IStatsCollector.BEAN_NAME)).thenReturn(true);
+		when(context.getBean(IStatsCollector.BEAN_NAME)).thenReturn(resourceMonitor);
+		when(resourceMonitor.enoughResource()).thenReturn(true);
+
+		when(context.getServiceInvoker()).thenReturn(serviceInvoker);
+
+		when(serviceInvoker.invoke(call, streamService)).thenReturn(true);
+
+
+		when(call.getServiceMethodName()).thenReturn("publish");
+
+		when(call.getArguments()).thenReturn(new Object[]{"testStream/token/subscriberId/subscriberCode"});
+
+		try (MockedStatic<ScopeUtils> mockedScopeUtils = mockStatic(ScopeUtils.class)) {
+			mockedScopeUtils.when(() -> ScopeUtils.getScopeService(any(), eq(IStreamService.class), eq(StreamService.class)))
+					.thenReturn(streamService);
+
+			rtmpHandler.onCommand(conn, channel, source, command);
+
+			verify(rtmpHandler, times(1)).invokeCall(conn, call, streamService);
+		}
+
 	}
 
 }

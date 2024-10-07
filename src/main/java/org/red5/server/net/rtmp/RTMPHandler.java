@@ -206,7 +206,7 @@ public class RTMPHandler extends BaseRTMPHandler {
 	 *            Server-side service object
 	 * @return true if the call was performed, otherwise false
 	 */
-	private boolean invokeCall(RTMPConnection conn, IServiceCall call, Object service) {
+	public boolean invokeCall(RTMPConnection conn, IServiceCall call, Object service) {
 		final IScope scope = conn.getScope();
 		final IContext context = scope.getContext();
 		if (log.isTraceEnabled()) {
