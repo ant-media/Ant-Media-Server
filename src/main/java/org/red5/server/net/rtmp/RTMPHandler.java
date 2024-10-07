@@ -283,15 +283,23 @@ public class RTMPHandler extends BaseRTMPHandler {
 								call.getArguments()[0] = streamId;
 							}
 
-							if(streamId.contains("?") && streamId.contains("=")) {
-								//this means query parameters (token, hash etc.) are added to URL, so split it
+							if (streamId.contains("?")) {
 								streamId = streamId.split("\\?")[0];
 							}
 
-							if(!StreamIdValidator.isStreamIdValid(streamId))
-							{
+							boolean isValidStreamId = false;
+
+							//check for both / and %2F
+							String[] pathSegments = streamId.split("/|%2F");
+
+
+							if (pathSegments.length > 0 && !pathSegments[0].isEmpty()) {
+								isValidStreamId = StreamIdValidator.isStreamIdValid(pathSegments[0]);
+							}
+
+							if (!isValidStreamId) {
 								Status status = getStatus(NS_FAILED).asStatus();
-								status.setDescription(INVALID_STREAM_NAME+" setream name:"+streamId);
+								status.setDescription(INVALID_STREAM_NAME + " stream name: " + streamId);
 								channel.sendStatus(status);
 								return;
 							}
