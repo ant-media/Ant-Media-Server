@@ -663,12 +663,12 @@ public class StreamService implements IStreamService {
     }
 
 
-        /**
-         * {@inheritDoc}
-         * We have added "synchronized" because this method can be called exactly with the same names at the same time
-         * It creates an extra zombi scope that is not deleted anytime.
-         * By synching this method, we prevent this problem.
-         */
+    /**
+     * {@inheritDoc}
+     * We have added "synchronized" because this method can be called exactly with the same names at the same time
+     * It creates an extra zombi scope that is not deleted anytime.
+     * By synching this method, we prevent this problem.
+     */
     public synchronized void publish(String name, String mode) {
     	
         Map<String, String> params = null;
