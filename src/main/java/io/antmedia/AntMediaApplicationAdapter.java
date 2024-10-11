@@ -391,7 +391,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	}
 
-
 	/**
 	 * This method is called after ungraceful shutdown
 	 * @return

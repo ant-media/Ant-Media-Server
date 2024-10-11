@@ -10,6 +10,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.catalina.util.NetMask;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.entity.ContentType;
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
@@ -23,6 +24,7 @@ import org.springframework.context.annotation.PropertySource;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.google.gson.Gson;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
@@ -30,6 +32,7 @@ import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.IndexOptions;
 import dev.morphia.annotations.Indexes;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.VoDRestService;
 
@@ -756,7 +759,7 @@ public class AppSettings implements Serializable{
 	 */
 	public static final String DEFAULT_VISIBILITY_MATRIX = ""
 			+ "{"
-				+ "\"default\": [\"default\"],"
+				+ "\""+ IAntMediaStreamHandler.DEFAULT_USER_ROLE +"\": [\""+IAntMediaStreamHandler.DEFAULT_USER_ROLE +"\"],"
 			
 				+ "\"host\":[\"host\",\"attendee\",\"speaker\"],"
 			
@@ -2220,7 +2223,7 @@ public class AppSettings implements Serializable{
 	
 	 */
 	@Value("${participantVisibilityMatrix:"+ DEFAULT_VISIBILITY_MATRIX +"}")
-	private String participantVisibilityMatrix = DEFAULT_VISIBILITY_MATRIX;
+	private JSONObject participantVisibilityMatrix ;
 
 
 	@Value("${customSettings:{}}")
@@ -2251,6 +2254,15 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${srtReceiveLatencyInMs:150}")
 	private int srtReceiveLatencyInMs = 150;
+
+	//Make sure you have a default constructor because it's populated by MongoDB
+	public AppSettings() {
+		try {
+			this.participantVisibilityMatrix = (JSONObject) new JSONParser().parse(DEFAULT_VISIBILITY_MATRIX);
+		} catch (ParseException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+	}
 
 	public Object getCustomSetting(String key) {
 		return	customSettings.get(key);
@@ -3860,13 +3872,13 @@ public class AppSettings implements Serializable{
 		this.webhookContentType = webhookContentType;
 	}
 
-	public String getParticipantVisibilityMatrix() {
+	public JSONObject getParticipantVisibilityMatrix() {
 		return participantVisibilityMatrix;
 	}
-
-	public void setParticipantVisibilityMatrix(String participantVisibilityMatrix) {
-		this.participantVisibilityMatrix = participantVisibilityMatrix;
-	}
+	
+	public void setParticipantVisibilityMatrix(JSONObject participantVisibilityMatrix) {
+        this.participantVisibilityMatrix = participantVisibilityMatrix;
+    }
 
 	public long getIceGatheringTimeoutMs() {
 		return iceGatheringTimeoutMs;
