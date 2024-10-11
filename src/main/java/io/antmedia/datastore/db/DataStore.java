@@ -19,7 +19,9 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -51,11 +53,12 @@ public abstract class DataStore {
 	
 	public abstract String save(Broadcast broadcast);
 
-	public Broadcast saveBroadcast (Broadcast broadcast) {
+	//TODO: In rare scenarios, streamId can not be unique 
+	public Broadcast saveBroadcast(Broadcast broadcast) {
 		String streamId = null;
 		try {
 		if (broadcast.getStreamId() == null || broadcast.getStreamId().isEmpty()) {
-			streamId = RandomStringUtils.randomAlphanumeric(12) + System.nanoTime();
+			streamId = RandomStringUtils.randomAlphanumeric(16) + System.nanoTime();
 			broadcast.setStreamId(streamId);
 		}
 		streamId = broadcast.getStreamId();
@@ -172,6 +175,8 @@ public abstract class DataStore {
 	public abstract boolean delete(String id);
 
 	public abstract boolean deleteVod(String id);
+	
+	public abstract boolean updateVoDProcessStatus(String id, String status);
 
 	/**
 	 * Returns the Broadcast List in order
@@ -662,7 +667,7 @@ public abstract class DataStore {
 			{
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
-				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) &&
 						(StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress()))) 
 				{
 					activeBroadcastCount++;
@@ -680,14 +685,16 @@ public abstract class DataStore {
 			for (String broadcastString : values) 
 			{
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
+				
 				String status = broadcast.getStatus();
-				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) && 
+				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) &&
 					  (StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress())))
 				{
 					broadcastList.add(broadcast);
 				}
 			}
 		}
+		
 		return broadcastList;
 	}
 
@@ -698,7 +705,7 @@ public abstract class DataStore {
 	 * @param broadcast
 	 * @return
 	 */
-	public abstract boolean updateBroadcastFields(String streamId, Broadcast broadcast);
+	public abstract boolean updateBroadcastFields(String streamId, BroadcastUpdate broadcast);
 
 	/**
 	 * Add or subtract the HLS viewer count from current value
@@ -823,7 +830,7 @@ public abstract class DataStore {
 	 * @param ipAddr
 	 * @param streamUrl
 	 */
-	protected void updateStreamInfo(Broadcast broadcast, Broadcast newBroadcast)
+	protected void updateStreamInfo(Broadcast broadcast, BroadcastUpdate newBroadcast)
 	{
 		if (newBroadcast.getName() != null) {
 			broadcast.setName(newBroadcast.getName());
@@ -861,11 +868,12 @@ public abstract class DataStore {
 			broadcast.setAltitude(newBroadcast.getAltitude());
 		}
 
+		//mainTrackStreamId can be empty
 		if (newBroadcast.getMainTrackStreamId() != null) {
 			broadcast.setMainTrackStreamId(newBroadcast.getMainTrackStreamId());
 		}
 
-		if (newBroadcast.getStartTime() != 0) {
+		if (newBroadcast.getStartTime() != null) {
 			broadcast.setStartTime(newBroadcast.getStartTime());
 		}
 
@@ -877,11 +885,11 @@ public abstract class DataStore {
 			broadcast.setStatus(newBroadcast.getStatus());
 		}
 
-		if (newBroadcast.getAbsoluteStartTimeMs() != 0) {
+		if (newBroadcast.getAbsoluteStartTimeMs() != null) {
 			broadcast.setAbsoluteStartTimeMs(newBroadcast.getAbsoluteStartTimeMs());
 		}		
 		
-		if (newBroadcast.getUpdateTime() != 0) {
+		if (newBroadcast.getUpdateTime() != null) {
 			broadcast.setUpdateTime(newBroadcast.getUpdateTime());
 		}
 		
@@ -903,7 +911,7 @@ public abstract class DataStore {
 			broadcast.setListenerHookURL(newBroadcast.getListenerHookURL());
 		}
 		
-		if (newBroadcast.getSpeed() != 0) {
+		if (newBroadcast.getSpeed() != null) {
 			broadcast.setSpeed(newBroadcast.getSpeed());
 		}
 
@@ -919,21 +927,74 @@ public abstract class DataStore {
 			broadcast.setEncoderSettingsList(newBroadcast.getEncoderSettingsList());
 		}
 		
+		if (newBroadcast.getPlannedStartDate() != null) {
+			broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
+		}
+		
+		if (newBroadcast.getPlannedEndDate() != null) {
+			broadcast.setPlannedEndDate(newBroadcast.getPlannedEndDate());
+		}
+		
+		if (newBroadcast.getSeekTimeInMs() != null) {
+			broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
+		}
+		
+		if (newBroadcast.getReceivedBytes() != null) {
+			broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
+		}
+		
+		if (newBroadcast.getDuration() != null) {
+            broadcast.setDuration(newBroadcast.getDuration());
+        }
+		
+		if (newBroadcast.getBitrate() != null) {
+			broadcast.setBitrate(newBroadcast.getBitrate());
+		}
+		
+		if (newBroadcast.getUserAgent() != null) {
+			broadcast.setUserAgent(newBroadcast.getUserAgent());
+		}
+		
+		if (newBroadcast.getWebRTCViewerLimit() != null) {
+			broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
+		}
+		
+		if (newBroadcast.getHlsViewerLimit() != null) {
+			broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
+		}
+		
+		if (newBroadcast.getDashViewerCount() != null) {
+			broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
+		}
+		
+		if (newBroadcast.getSubTrackStreamIds() != null) {
+			broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
+		}
+		
+		if (newBroadcast.getPlaylistLoopEnabled() != null) {
+			broadcast.setPlaylistLoopEnabled(newBroadcast.getPlaylistLoopEnabled());
+		}
+		
+		if (newBroadcast.getAutoStartStopEnabled() != null) {
+			broadcast.setAutoStartStopEnabled(newBroadcast.getAutoStartStopEnabled());
+        }		
+		
+		if (newBroadcast.getCurrentPlayIndex() != null) {
+			broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
+		}
+		
+		if (newBroadcast.getSubtracksLimit() != null) {
+			broadcast.setSubtracksLimit(newBroadcast.getSubtracksLimit());
+		}
+		
+		if (newBroadcast.getPendingPacketSize() != null) {
+			broadcast.setPendingPacketSize(newBroadcast.getPendingPacketSize());
+		}
 
-		broadcast.setPlannedStartDate(newBroadcast.getPlannedStartDate());
-		broadcast.setSeekTimeInMs(newBroadcast.getSeekTimeInMs());
-		broadcast.setCurrentPlayIndex(newBroadcast.getCurrentPlayIndex());
-		broadcast.setReceivedBytes(newBroadcast.getReceivedBytes());
-		broadcast.setDuration(newBroadcast.getDuration());
-		broadcast.setBitrate(newBroadcast.getBitrate());
-		broadcast.setUserAgent(newBroadcast.getUserAgent());
-		broadcast.setWebRTCViewerLimit(newBroadcast.getWebRTCViewerLimit());
-		broadcast.setHlsViewerLimit(newBroadcast.getHlsViewerLimit());
-		broadcast.setDashViewerCount(newBroadcast.getDashViewerCount());
-		broadcast.setSubTrackStreamIds(newBroadcast.getSubTrackStreamIds());
-		broadcast.setPlaylistLoopEnabled(newBroadcast.isPlaylistLoopEnabled());
-		broadcast.setAutoStartStopEnabled(newBroadcast.isAutoStartStopEnabled());
-		broadcast.setRole(newBroadcast.getRole());
+		if (newBroadcast.getRole() != null) {
+			broadcast.setRole(newBroadcast.getRole());
+		}
+
 	}
 
 
@@ -1126,19 +1187,27 @@ public abstract class DataStore {
 	public abstract boolean deleteP2PConnection(String streamId);
 
 	/**
+	 * @deprecated no need to use this method, logic has changed and we use directly getSubtracks, getActiveSubtracks.
+	 * It's kept for backward compatibility
+	 * 
 	 * Add a subtrack id to a main track (broadcast)
 	 * @param mainTrackId - main track id
 	 * @param subTrackId - main track id
 	 * @return boolean - success 
 	 */
+	@Deprecated(since = "2.9.1", forRemoval = true)
 	public abstract boolean addSubTrack(String mainTrackId, String subTrackId);
 
 	/**
+	 * @deprecated no need to use this method, logic has changed and we use directly getSubtracks, getActiveSubtracks.
+	 * It's kept for backward compatibility
+	 * 
 	 * Remove a subtrack id from a main track (broadcast)
 	 * @param mainTrackId - main track id
 	 * @param subTrackId - main track id
 	 * @return boolean - success
 	 */
+	@Deprecated(since = "2.9.1", forRemoval = true)
 	public abstract boolean removeSubTrack(String mainTrackId, String subTrackId);
 
 	/**
@@ -1326,6 +1395,20 @@ public abstract class DataStore {
 	 * @param broadcast
 	 * @return
 	 */
+	public static BroadcastUpdate conferenceUpdateToBroadcastUpdate(ConferenceRoom conferenceRoom) throws Exception {
+		BroadcastUpdate broadcast = new BroadcastUpdate();
+		broadcast.setStreamId(conferenceRoom.getRoomId());
+		broadcast.setPlannedStartDate(conferenceRoom.getStartDate());
+		broadcast.setPlannedEndDate(conferenceRoom.getEndDate());
+		broadcast.setZombi(conferenceRoom.isZombi());
+		broadcast.setOriginAdress(conferenceRoom.getOriginAdress());
+		broadcast.setConferenceMode(conferenceRoom.getMode());
+		broadcast.setSubTrackStreamIds(conferenceRoom.getRoomStreamList());
+
+		return broadcast;
+
+	}
+	
 	public static Broadcast conferenceToBroadcast(ConferenceRoom conferenceRoom) throws Exception {
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStreamId(conferenceRoom.getRoomId());
@@ -1336,19 +1419,80 @@ public abstract class DataStore {
 		broadcast.setConferenceMode(conferenceRoom.getMode());
 		broadcast.setSubTrackStreamIds(conferenceRoom.getRoomStreamList());
 
-
 		return broadcast;
 
 	}
-	
+
 	/**
 	 * Move ConferenceRoom to Broadcast
 	 */
 	public abstract void migrateConferenceRoomsToBroadcasts();
 
+	/**
+	 * Get the subtracks of the main track
+	 * @param mainTrackId the main track to get the subtracks
+	 * @param offset the offset to get the subtracks
+	 * @param size 	number of items to get
+	 * @param role the role of the subtracks for role based streaming especially in conferences. It can be null
+	 * @param status the status of the stream broadcasting, finished etc. It can be null
+	 * @return
+	 */
+    public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status);
+    
+    /**
+	 * Get the subtracks of the main track
+	 * @param mainTrackId the main track to get the subtracks
+	 * @param offset the offset to get the subtracks
+	 * @param size 	number of items to get
+	 * @param role the role of the subtracks for role based streaming especially in conferences. It can be null
+	 * @return
+	 */
     public abstract List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role);
+    
+    /**
+     * Get the count of subtracks
+     * @param mainTrackId the main track to get the subtracks
+     * @param role the role of the subtracks for role based streaming especially in conferences 
+     * @return number of subtracks
+     */
+    public abstract long getSubtrackCount(String mainTrackId, String role, String status);
+    
+    /**
+     * Get the count of active subtracks. If subtrack is stucked in broadcasting or preparing, it will not count it. 
+     * @param mainTrackId
+     * @param role
+     * @return
+     */
+    public abstract long getActiveSubtracksCount(String mainTrackId, String role);
+    
+    /**
+     * Get of active subtracks. If subtrack is stucked in broadcasting or preparing, it will not return it. 
+     * This method is generally not recommended to use because it can be very costly.
+     * It's implemented for the poll mechanism in Subtracks and poll mechanismi will be replaced with event mechanism
+     * @param mainTrackId
+     * @param role
+     * @return
+     */
+    public abstract List<Broadcast> getActiveSubtracks(String mainTrackId, String role);
+    
+    
+    /**
+     * 
+     * @param streamId
+     * @return If the stream has subtracks, it return true. If not, it returns false
+     */
+    public abstract boolean hasSubtracks(String streamId);
+    
 
     //**************************************
 	//ATTENTION: Write function descriptions while adding new functions
 	//**************************************	
+    
+    //**************************************
+    //ATTENTION 2: What is the reason you don't add descriptions to the functions? 
+    // Ignore this message if you have added descriptions to the new functions.
+    // I'm writing to the one who is ignoring this first message - mekya
+    //**************************************
+    
+    
 }

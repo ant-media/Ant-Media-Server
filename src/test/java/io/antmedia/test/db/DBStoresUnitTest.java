@@ -18,6 +18,9 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import io.antmedia.datastore.db.*;
+
+import org.apache.commons.compress.utils.FileNameUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
@@ -41,6 +44,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.EncoderSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
+import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
 import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
@@ -136,7 +140,8 @@ public class DBStoresUnitTest {
 	public void testMapDBStore() throws Exception {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
-
+		
+		
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testGetActiveBroadcastCount(dataStore);
@@ -183,6 +188,8 @@ public class DBStoresUnitTest {
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
 		testGetSubtracks(dataStore);
+		testGetSubtracksWithStatus(dataStore);
+
 		
 		dataStore.close(false);
 		
@@ -221,6 +228,8 @@ public class DBStoresUnitTest {
 	@Test
 	public void testMemoryDataStore() throws Exception {
 		DataStore dataStore = new InMemoryDataStore("testdb");
+		
+		testVoDFunctions(dataStore);
 
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
@@ -267,7 +276,7 @@ public class DBStoresUnitTest {
 		testUpdateMetaData(dataStore);
 		testStreamSourceList(dataStore);
 		testGetSubtracks(dataStore);
-
+		testGetSubtracksWithStatus(dataStore);
 
 		dataStore.close(false);
 
@@ -284,7 +293,6 @@ public class DBStoresUnitTest {
 		
 		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 
-		/*
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
@@ -331,8 +339,10 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 
-		 */
+		 
 		testGetSubtracks(dataStore);
+		testGetSubtracksWithStatus(dataStore);
+
 
 
 
@@ -392,10 +402,15 @@ public class DBStoresUnitTest {
 		testWebRTCViewerOperations(dataStore);
 		testUpdateMetaData(dataStore);
 		
+		testGetSubtracks(dataStore);
+		testGetSubtracksWithStatus(dataStore);
+		
 		dataStore.close(true);
 	}
 	
 	
+
+
 	
 	
 	@Test
@@ -520,13 +535,19 @@ public class DBStoresUnitTest {
 	public void clear(DataStore dataStore) 
 	{
 		long numberOfStreams = dataStore.getBroadcastCount();
-		int pageSize = 10;
-		long pageCount = numberOfStreams / pageSize + ((numberOfStreams % pageSize) > 0 ? 1 : 0);
 		int numberOfCall = 0;
+		int pageSize = 50;
+
 		List<Broadcast> totalBroadcastList = new ArrayList<>();
-		for (int i = 0; i < pageCount; i++) {
-			totalBroadcastList.addAll(dataStore.getBroadcastList(i * pageSize, pageSize, null, null, null, null));
+		for (int i = 0; i < Integer.MAX_VALUE; i++) {
+			List<Broadcast> broadcastList = dataStore.getBroadcastList(i * pageSize, pageSize, null, null, null, null);
+			if (broadcastList == null || broadcastList.size() == 0) {
+				break;
+			}
+			totalBroadcastList.addAll(broadcastList);
 		}
+		
+		
 
 		for (Broadcast broadcast : totalBroadcastList) {
 			numberOfCall++;
@@ -535,13 +556,14 @@ public class DBStoresUnitTest {
 
 		assertEquals(numberOfCall, numberOfStreams);
 		
-		long numberOfVods = dataStore.getTotalVodNumber();
-		pageSize = 50;
-		pageCount = numberOfVods / pageSize + ((numberOfVods % pageSize) > 0 ? 1 : 0);
 		numberOfCall = 0;
 		List<VoD> totalVoDList = new ArrayList<>();
-		for (int i = 0; i < pageCount; i++) {
-			totalVoDList.addAll(dataStore.getVodList(i * pageSize, pageSize, null, null, null, null));
+		for (int i = 0; i < Integer.MAX_VALUE; i++) {
+			List<VoD> vodList = dataStore.getVodList(i * pageSize, pageSize, null, null, null, null);
+			if (vodList == null || vodList.size() == 0) {
+				break;
+			}
+			totalVoDList.addAll(vodList);
 		}
 		
 		for (VoD vod : totalVoDList) {
@@ -550,6 +572,8 @@ public class DBStoresUnitTest {
 		}
 
 	}
+	
+
 	
 	public void testUnexpectedVodOffset(DataStore dataStore) {
 		clear(dataStore);
@@ -621,8 +645,10 @@ public class DBStoresUnitTest {
 
 		System.out.println("Stream count to be added: " + streamCount);
 
+		String streamId = null;
 		for (int i = 0; i < streamCount; i++) {
-			dataStore.save(new Broadcast(null, null));
+			streamId = dataStore.save(new Broadcast(null, null));
+			logger.info("Saved streamId:{}", streamId);
 		}
 
 		assertEquals(streamCount, dataStore.getBroadcastCount());
@@ -658,6 +684,7 @@ public class DBStoresUnitTest {
 		//check that active broadcast exactly the same as changed above
 		
 		//////this test is sometimes failing below, I think streamId may not be unique so I logged above to confirm it - mekya
+		//yes the streamId is not unique, we need to improve  - mekya Aug 11, 2024
 		assertEquals(numberOfStatusChangeStreams, dataStore.getActiveBroadcastCount());
 		
 		assertEquals(numberOfStatusChangeStreams, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
@@ -741,10 +768,23 @@ public class DBStoresUnitTest {
 
 
 		File f = new File("src/test/resources");
+		File[] files = f.listFiles();
+		int numberOfFiles = 0;
+		for (File file : files) 
+		{
+			String fileExtension = FilenameUtils.getExtension(file.getName());
+			if (file.isFile() && ("mp4".equals(fileExtension) || "flv".equals(fileExtension)
+					|| "mkv".equals(fileExtension))) 
+			{
+				numberOfFiles++;	
+			}
+		}
+
+		assertTrue(numberOfFiles > 7);
 
 		long totalVodCount = datastore.getTotalVodNumber();
 		assertEquals(0, totalVodCount);
-		assertEquals(7, datastore.fetchUserVodList(f));
+		assertEquals(numberOfFiles, datastore.fetchUserVodList(f));
 
 		//we know there are files there
 		//test_short.flv
@@ -754,12 +794,13 @@ public class DBStoresUnitTest {
 		//sample_MP4_480.mp4
 		//high_profile_delayed_video.flv
 		//test_video_360p_pcm_audio.mkv
+		//test_hevc.flv
 
 		totalVodCount = datastore.getTotalVodNumber();
-		assertEquals(7, totalVodCount);
+		assertEquals(numberOfFiles, totalVodCount);
 
 		List<VoD> vodList = datastore.getVodList(0, 50, null, null, null, null);
-		assertEquals(7, vodList.size());
+		assertEquals(numberOfFiles, vodList.size());
 		for (VoD voD : vodList) {
 			assertEquals("streams/resources/"+voD.getVodName(), voD.getFilePath());
 		}
@@ -882,7 +923,29 @@ public class DBStoresUnitTest {
 		assertEquals(streamVod.getFileSize(), voD.getFileSize());
 		assertEquals(streamVod.getCreationDate(), voD.getCreationDate());
 		assertEquals(userVod.getType(), voD.getType());
+		
+		assertNull(voD.getProcessStatus());
+		datastore.updateVoDProcessStatus(voD.getVodId(), VoD.PROCESS_STATUS_INQUEUE);
+		
+		voD = datastore.getVoD(userVod.getVodId());
+        assertEquals(VoD.PROCESS_STATUS_INQUEUE, voD.getProcessStatus());
 
+        assertEquals(0, voD.getProcessStartTime());
+        assertEquals(0, voD.getProcessEndTime());
+        
+        datastore.updateVoDProcessStatus(voD.getVodId(), VoD.PROCESS_STATUS_PROCESSING);
+        voD = datastore.getVoD(userVod.getVodId());
+        assertNotEquals(0, voD.getProcessStartTime());
+        assertEquals(0, voD.getProcessEndTime());
+        
+        datastore.updateVoDProcessStatus(voD.getVodId(), VoD.PROCESS_STATUS_FAILED);
+        voD = datastore.getVoD(userVod.getVodId());
+        assertNotEquals(0, voD.getProcessStartTime());
+        assertNotEquals(0, voD.getProcessEndTime());
+        
+        
+
+        
 		//delete streamVod
 		datastore.deleteVod(streamVod.getVodId());
 		assertNull(datastore.getVoD(streamVod.getVodId()));
@@ -894,6 +957,41 @@ public class DBStoresUnitTest {
 		assertNull(datastore.getVoD(voD.getVodId()));
 
 		//check vod number
+		assertEquals(0, datastore.getTotalVodNumber());
+		
+		
+		//check finished time
+        VoD userVod2 =new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.USER_VOD,vodId,null);
+
+		datastore.addVod(userVod2);
+		voD = datastore.getVoD(userVod2.getVodId());
+	    assertEquals(0, voD.getProcessStartTime());
+	    assertEquals(0, voD.getProcessEndTime());
+	        
+        datastore.updateVoDProcessStatus(userVod2.getVodId(), VoD.PROCESS_STATUS_FINISHED);
+        voD = datastore.getVoD(userVod2.getVodId());
+        assertEquals(0, voD.getProcessStartTime());
+        assertNotEquals(0, voD.getProcessEndTime());
+        
+        datastore.deleteVod(userVod2.getVodId());
+        assertEquals(0, datastore.getTotalVodNumber());
+
+		VoD userVod3 =new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.USER_VOD,vodId,null);
+		userVod3.setLatitude("10");
+		userVod3.setLongitude("15");
+		userVod3.setDescription("my vod");
+		userVod3.setMetadata("my metadata");
+		userVod3.setAltitude("20");
+		datastore.addVod(userVod3);
+		voD = datastore.getVoD(userVod3.getVodId());
+
+		assertEquals("10", voD.getLatitude());
+		assertEquals("15", voD.getLongitude());
+		assertEquals("20", voD.getAltitude());
+		assertEquals("my vod", voD.getDescription());
+		assertEquals("my metadata", voD.getMetadata());
+
+		datastore.deleteVod(userVod3.getVodId());
 		assertEquals(0, datastore.getTotalVodNumber());
 
 	}
@@ -914,10 +1012,16 @@ public class DBStoresUnitTest {
 		//change cam info
 		camera.setName("new_name");
 		camera.setIpAddr("1.1.1.1");
+		
+		BroadcastUpdate cameraUpdate = new BroadcastUpdate();
+		cameraUpdate.setName("new_name");
+		cameraUpdate.setIpAddr("1.1.1.1");
+		
 
-		datastore.updateBroadcastFields(camera.getStreamId(), camera);
+		datastore.updateBroadcastFields(camera.getStreamId(), cameraUpdate);
 
 		//check whether is changed or not
+		camera = datastore.get(camera.getStreamId());
 		assertEquals("1.1.1.1", camera.getIpAddr());
 		assertEquals("new_name", camera.getName());
 		datastore.delete(camera.getStreamId());
@@ -942,7 +1046,9 @@ public class DBStoresUnitTest {
 		//update metadata
 		broadcast.setMetaData(newMetadata);
 
-		datastore.updateBroadcastFields(broadcast.getStreamId(), broadcast);
+		BroadcastUpdate broadcastUpdate = new BroadcastUpdate();
+		broadcastUpdate.setMetaData(newMetadata);
+		datastore.updateBroadcastFields(broadcast.getStreamId(), broadcastUpdate);
 
 		Broadcast broadcast2 = datastore.get(streamId);
 
@@ -1547,7 +1653,7 @@ public class DBStoresUnitTest {
 			String name = "name 1";
 			String description = "description 2";
 			long now = System.currentTimeMillis();
-			Broadcast tmp = new Broadcast();
+			BroadcastUpdate tmp = new BroadcastUpdate();
 			tmp.setName(name);
 			tmp.setDescription(description);
 			tmp.setUpdateTime(now);
@@ -1558,11 +1664,13 @@ public class DBStoresUnitTest {
 			tmp.setSubFolder(subFolder);
 			String listenerHookURL = "test_listener_hook_url";
 			tmp.setListenerHookURL(listenerHookURL);
-			assertTrue(tmp.isPlaylistLoopEnabled());
+			assertNull(tmp.getPlaylistLoopEnabled());
 			tmp.setPlaylistLoopEnabled(false);
 			double speed = 1.0;
 			tmp.setSpeed(speed);
 			tmp.setSeekTimeInMs(136);
+			
+			
 			boolean result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmp);
 			assertTrue(result);
 
@@ -2534,14 +2642,20 @@ public class DBStoresUnitTest {
 
 		Broadcast tmpBroadcast = dataStore.get(broadcast.getStreamId());
 		List<Endpoint> endPointList = tmpBroadcast.getEndPointList();
+		
+		BroadcastUpdate updateData = new BroadcastUpdate();
 		for (Endpoint tmpEndpoint : endPointList) {
 			if (tmpEndpoint.getRtmpUrl().equals(rtmpUrl)) {
 				tmpEndpoint.setStatus(IAntMediaStreamHandler.BROADCAST_STATUS_FAILED);
+				
 				break;
 			}
 		}
+		
+		updateData.setEndPointList(endPointList);
+		
 		//update rtmpurl
-		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmpBroadcast); 
+		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), updateData); 
 		assertTrue(result);
 		
 		
@@ -2554,7 +2668,10 @@ public class DBStoresUnitTest {
 				break;
 			}
 		}
-		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), tmpBroadcast); 
+		updateData = new BroadcastUpdate();
+		updateData.setEndPointList(endPointList);
+
+		result = dataStore.updateBroadcastFields(broadcast.getStreamId(), updateData); 
 		assertTrue(result);
 		
 		
@@ -2675,7 +2792,13 @@ public class DBStoresUnitTest {
 		broadcastFromStore.setLongitude(longitude);
 		broadcastFromStore.setAltitude(altitude);
 		broadcastFromStore.setStatus(null);
-		assertTrue(dataStore.updateBroadcastFields(streamId, broadcastFromStore));
+		
+		BroadcastUpdate updateData = new BroadcastUpdate();
+		updateData.setLatitude(latitude);
+		updateData.setLongitude(longitude);
+		updateData.setAltitude(altitude);
+		updateData.setStatus(null);
+		assertTrue(dataStore.updateBroadcastFields(streamId, updateData));
 		
 		Broadcast broadcastFromStore2 = dataStore.get(streamId);
 		assertEquals(latitude, broadcastFromStore2.getLatitude());
@@ -2716,7 +2839,12 @@ public class DBStoresUnitTest {
 		broadcastList.clear();
 		broadcast.setPlayListItemList(broadcastList);
 		broadcast.setCurrentPlayIndex(10);
-		assertTrue(dataStore.updateBroadcastFields(streamId, broadcast));
+		
+		BroadcastUpdate updateData = new BroadcastUpdate();
+		updateData.setPlayListStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+		updateData.setPlayListItemList(broadcastList);
+		updateData.setCurrentPlayIndex(10);
+		assertTrue(dataStore.updateBroadcastFields(streamId, updateData));
 		
 		broadcast2 = dataStore.get(streamId);
 		assertTrue(broadcast2.getPlayListItemList() == null || broadcast2.getPlayListItemList().isEmpty());
@@ -2763,7 +2891,9 @@ public class DBStoresUnitTest {
 		assertNull(subtrack.getMainTrackStreamId());
 
 		subtrack.setMainTrackStreamId(mainTrackId);
-		assertTrue(dataStore.updateBroadcastFields(subTrackId, subtrack));
+		BroadcastUpdate updateData = new BroadcastUpdate();
+		updateData.setMainTrackStreamId(mainTrackId);
+		assertTrue(dataStore.updateBroadcastFields(subTrackId, updateData));
 
 		boolean result = dataStore.addSubTrack(mainTrackId, subTrackId);
 		assertTrue(result);
@@ -3030,9 +3160,11 @@ public class DBStoresUnitTest {
 
 		assertEquals(INITIAL_ROLE, dataStore.get(id).getRole());
 
-		broadcast.setRole(UPDATED_ROLE);
+		BroadcastUpdate updateData = new BroadcastUpdate();
 
-		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
+		updateData.setRole(UPDATED_ROLE);
+
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
 
 		assertEquals(UPDATED_ROLE, dataStore.get(id).getRole());
 	}
@@ -3187,8 +3319,11 @@ public class DBStoresUnitTest {
         settingsList.add(new EncoderSettings(720, 50000, 32000, true));
 
 		broadcast.setEncoderSettingsList(settingsList);
+		
+		BroadcastUpdate updateData = new BroadcastUpdate();
+		updateData.setEncoderSettingsList(settingsList);
 
-		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
 
 		assertEquals(32000, dataStore.get(id).getEncoderSettingsList().get(0).getAudioBitrate());
         assertEquals(50000, dataStore.get(id).getEncoderSettingsList().get(0).getVideoBitrate());
@@ -3197,15 +3332,14 @@ public class DBStoresUnitTest {
 			//because inmemorydata store just keeps the reference, it will be updated
 			broadcast.setEncoderSettingsList(null);
 		} 
-		dataStore.updateBroadcastFields(id, broadcast);
 
 		//it will not be updated because encoder settings is null
 		assertEquals(32000, dataStore.get(id).getEncoderSettingsList().get(0).getAudioBitrate());
         assertEquals(50000, dataStore.get(id).getEncoderSettingsList().get(0).getVideoBitrate());
 
 
-		broadcast.setEncoderSettingsList(new ArrayList<>());
-		assertTrue(dataStore.updateBroadcastFields(id, broadcast));
+		updateData.setEncoderSettingsList(new ArrayList<>());
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
 		assertTrue(dataStore.get(id).getEncoderSettingsList().isEmpty());
 
 
@@ -3243,7 +3377,8 @@ public class DBStoresUnitTest {
 		assertEquals(mockMap.size()+1, list.size());
 	}
 
-	private void testGetSubtracks(DataStore dataStore) {
+	private void testGetSubtracks(DataStore dataStore) 
+	{
 		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
 		String role1 = "role1";
 		String role2 = "role2";
@@ -3287,8 +3422,6 @@ public class DBStoresUnitTest {
 		for (Broadcast broadcast : subtracks) {
 			assertEquals(mainTrackId, broadcast.getMainTrackStreamId());
 			assertEquals(role1, broadcast.getRole());
-			assertNotEquals("subtrackTrackId0", broadcast.getStreamId());
-			assertNotEquals("subtrackTrackId2", broadcast.getStreamId());
 		}
 
 
@@ -3305,5 +3438,79 @@ public class DBStoresUnitTest {
 			assertEquals(mainTrackId, broadcast.getMainTrackStreamId());
 		}
 	}
+	
+	
+	public void testGetSubtracksWithStatus(DataStore dataStore) {
+		
+		String role1 = "role1";
+		String role2 = "role2";
+		
+		String mainTrackId = RandomStringUtils.randomAlphanumeric(8);
+		
+		for (int i = 0; i < 100; i++) {
+			Broadcast broadcast = new Broadcast();
+			broadcast.setType(AntMediaApplicationAdapter.LIVE_STREAM);
+            try {
+                broadcast.setStreamId("subtrack" + RandomStringUtils.randomAlphanumeric(24));
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            
+            if (i < 50) {
+            	broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+            	
+            	if (i % 2 == 0) {
+            		broadcast.setUpdateTime(System.currentTimeMillis());
+            	}
+            }
+            else {
+            	broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED);
+            }
+			broadcast.setMainTrackStreamId(mainTrackId);
+			broadcast.setRole(i%2 == 0 ? role1 : role2);
+            dataStore.save(broadcast);
+		}
+		
+		assertEquals(100, dataStore.getSubtrackCount(mainTrackId, null, null));
+		assertEquals(50, dataStore.getSubtrackCount(mainTrackId, null, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
+		assertEquals(25, dataStore.getSubtrackCount(mainTrackId, role1, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
+		assertEquals(25, dataStore.getSubtrackCount(mainTrackId, role2, AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING));
+
+		assertEquals(50, dataStore.getSubtrackCount(mainTrackId, null, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
+		assertEquals(25, dataStore.getSubtrackCount(mainTrackId, role1, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
+		assertEquals(25, dataStore.getSubtrackCount(mainTrackId, role2, AntMediaApplicationAdapter.BROADCAST_STATUS_FINISHED));
+		
+		
+		assertEquals(0, dataStore.getSubtrackCount("nonExistentMainTrack", null, null));
+		
+		// it is 25 because 25 subtracks has broadcasting status and their update time is up to date
+		assertEquals(25, dataStore.getActiveSubtracksCount(mainTrackId, null));
+	
+		assertEquals(25, dataStore.getActiveSubtracksCount(mainTrackId, role1));
+		assertEquals(0, dataStore.getActiveSubtracksCount(mainTrackId, role2));
+		assertEquals(0, dataStore.getActiveSubtracksCount("nonExistentMainTrack", null));
+		
+		
+		List<Broadcast> activeSubtracks = dataStore.getActiveSubtracks(mainTrackId, null);		
+		assertEquals(25, activeSubtracks.size());
+		
+		activeSubtracks = dataStore.getActiveSubtracks(mainTrackId, role1);		
+		assertEquals(25, activeSubtracks.size());
+		
+		activeSubtracks = dataStore.getActiveSubtracks(mainTrackId, role2);		
+		assertEquals(0, activeSubtracks.size());
+		
+		activeSubtracks = dataStore.getActiveSubtracks("nonExistentMainTrack", null);
+		assertEquals(0, activeSubtracks.size());
+		
+		assertTrue(dataStore.hasSubtracks(mainTrackId));
+		assertFalse(dataStore.hasSubtracks("nonExistentMainTrack"));
+
+		
+		
+	}
+	
+	
+
 
 }

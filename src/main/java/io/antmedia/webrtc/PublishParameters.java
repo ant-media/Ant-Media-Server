@@ -95,11 +95,17 @@ public class PublishParameters {
 		this.token = tokenId;
 	}
 
-    public String getRole() {
-        return role;
-    }
+	/**
+	 * @return the role
+	 */
+	public String getRole() {
+		return role;
+	}
 
-    public void setRole(String role) {
-        this.role = role;
-    }
+	/**
+	 * @param role the role to set
+	 */
+	public void setRole(String role) {
+		this.role = role;
+	}
 }

@@ -21,6 +21,7 @@ import java.util.Queue;
 
 import org.apache.catalina.util.NetMask;
 import org.apache.commons.lang3.RandomUtils;
+import org.json.simple.JSONObject;
 import org.junit.Test;
 import org.red5.server.scope.WebScope;
 import org.springframework.test.annotation.DirtiesContext;
@@ -328,6 +329,33 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		String recordinfSubFolder = "subfolder";
 		appSettings.setRecordingSubfolder(recordinfSubFolder);
 		assertEquals(recordinfSubFolder, appSettings.getRecordingSubfolder());
+		
+		
+		assertNull(appSettings.getCustomSetting("test"));
+		appSettings.setCustomSetting("test", "hello");
+		assertEquals("hello", appSettings.getCustomSetting("test"));
+		
+		
+		JSONObject customFields = new JSONObject();
+		customFields.put("test2", "hello2");
+		appSettings.setCustomSettings(customFields);
+		assertEquals("hello2", appSettings.getCustomSetting("test2"));
+		assertNull(appSettings.getCustomSetting("test"));
+		
+		
+		
+		appSettings.setRelayRTMPMetaDataToMuxers(true);
+		assertTrue(appSettings.isRelayRTMPMetaDataToMuxers());
+		
+		appSettings.setRelayRTMPMetaDataToMuxers(false);
+		assertFalse(appSettings.isRelayRTMPMetaDataToMuxers());
+		
+		appSettings.setDropWebRTCIngestIfNoPacketReceived(true);
+        assertTrue(appSettings.isDropWebRTCIngestIfNoPacketReceived());
+
+
+
+
 
 
 	}
@@ -386,7 +414,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("", appSettings.getStalkerDBUsername());
 		assertEquals("", appSettings.getStalkerDBPassword());
 		assertEquals(0, appSettings.getStreamFetcherBufferTime());
-		assertEquals("delete_segments", appSettings.getHlsflags());
+		assertEquals("delete_segments+program_date_time", appSettings.getHlsflags());
 		assertEquals("/usr/local/antmedia/mysql", appSettings.getMySqlClientPath());
 		assertEquals(false, appSettings.isPlayTokenControlEnabled());
 		assertEquals(false, appSettings.isTimeTokenSubscriberOnly());
@@ -568,6 +596,15 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
         assertEquals(2000, appSettings.getIceGatheringTimeoutMs());
         
         assertEquals(AppSettings.DEFAULT_VISIBILITY_MATRIX, appSettings.getParticipantVisibilityMatrix());
+        assertEquals("{}",appSettings.getCustomSettings().toJSONString());
+        
+        assertTrue(appSettings.isRelayRTMPMetaDataToMuxers());
+        
+        assertFalse(appSettings.isDropWebRTCIngestIfNoPacketReceived());
+
+		assertEquals(150, appSettings.getSrtReceiveLatencyInMs());
+		appSettings.setSrtReceiveLatencyInMs(200);
+		assertEquals(200, appSettings.getSrtReceiveLatencyInMs());
         
         
 
@@ -577,7 +614,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-					184, numberOfFields);
+					188, numberOfFields);
 	}
 	
 	
