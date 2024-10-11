@@ -736,10 +736,25 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
+	
 	/**
-	 * @hidden
+	 *  For the simple explanation
+	 * "default": ["default"] -> means default role can see the guys in the default role
+	 * "host":["host","attendee","speaker"] -> means host can see guys in the role of host, attendee and speaker
+	 * "attendee":["speaker","attendee"] -> means attendees can see guys in the role of speaker and attendees
+	 * "speaker":["host","speaker","attendee"] -> means speaker can see guys in the role of host, speaker and attendee
 	 */
-	private static final String SETTINGS_PARTICIPANT_VISIBILITY_MATRIX = "settings.participantVisibilityMatrix";
+	public static final String DEFAULT_VISIBILITY_MATRIX = ""
+			+ "{"
+				+ "\"default\": [\"default\"],"
+			
+				+ "\"host\":[\"host\",\"attendee\",\"speaker\"],"
+			
+				+ "\"attendee\":[\"speaker\",\"attendee\"],"
+				
+				+ "\"speaker\":[\"host\",\"speaker\",\"attendee\"]"
+				
+			+ "}";
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -2167,10 +2182,11 @@ public class AppSettings implements Serializable{
 	private long iceGatheringTimeoutMs = 2000;
 
 	/**
-	 * Participant Visibility Matrix for WebRTC Clients
+	 * Participant Visibility Matrix for WebRTC Clients. These are roles and each role can see the roles in this list
+	
 	 */
-	@Value("${participantVisibilityMatrix:${"+SETTINGS_PARTICIPANT_VISIBILITY_MATRIX+":{\"default\": [\"default\"],\"host\":[\"host\",\"attendee\",\"speaker\"],\"attendee\":[\"speaker\",\"attendee\"],\"speaker\":[\"host\",\"speaker\",\"attendee\"]}}}")
-	private String participantVisibilityMatrix = "";
+	@Value("${participantVisibilityMatrix:"+ DEFAULT_VISIBILITY_MATRIX +"}")
+	private String participantVisibilityMatrix = DEFAULT_VISIBILITY_MATRIX;
 
 	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
 		this.writeStatsToDatastore = writeStatsToDatastore;

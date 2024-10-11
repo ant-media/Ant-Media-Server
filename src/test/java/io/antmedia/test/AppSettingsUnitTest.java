@@ -566,6 +566,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("application/json", appSettings.getWebhookContentType());
 
         assertEquals(2000, appSettings.getIceGatheringTimeoutMs());
+        
+        assertEquals(AppSettings.DEFAULT_VISIBILITY_MATRIX, appSettings.getParticipantVisibilityMatrix());
+        
+        
 
 
 		//if we add a new field, we just need to check its default value in this test
