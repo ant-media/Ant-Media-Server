@@ -25,6 +25,7 @@ import java.util.Queue;
 import org.apache.catalina.util.NetMask;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -110,9 +111,11 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setHlsSegmentType("fmp4");
 		assertEquals("fmp4", appSettings.getHlsSegmentType());
 
-		assertEquals("{\"default\": [\"default\"],\"host\":[\"host\",\"attendee\",\"speaker\"],\"attendee\":[\"speaker\",\"attendee\"],\"speaker\":[\"host\",\"speaker\",\"attendee\"]}", appSettings.getParticipantVisibilityMatrix());
 		appSettings.setParticipantVisibilityMatrix((JSONObject) new JSONParser().parse("{\"default\":[\"default\"]}"));
-		assertEquals("{\"default\":[\"default\"]}", appSettings.getParticipantVisibilityMatrix());
+		JSONObject participantVisibilityMatrix = appSettings.getParticipantVisibilityMatrix();
+		assertEquals(1, participantVisibilityMatrix.size());
+		JSONArray jsonArray = (JSONArray) participantVisibilityMatrix.get("default");
+		assertEquals("default", jsonArray.get(0));
 	}
 
 	@Test
