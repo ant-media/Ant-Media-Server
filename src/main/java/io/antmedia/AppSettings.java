@@ -3,8 +3,10 @@ package io.antmedia;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -2223,11 +2225,11 @@ public class AppSettings implements Serializable{
 	
 	 */
 	@Value("${participantVisibilityMatrix:"+ DEFAULT_VISIBILITY_MATRIX +"}")
-	private JSONObject participantVisibilityMatrix ;
+	private Map<String, List<String>> participantVisibilityMatrix;
 
 
 	@Value("${customSettings:{}}")
-	private JSONObject customSettings = new JSONObject();
+	private Map<String, Object> customSettings = new HashMap<>();
 
 	/**
 	 * Relay RTMP metadata to muxers. It's true by default
@@ -2258,7 +2260,7 @@ public class AppSettings implements Serializable{
 	//Make sure you have a default constructor because it's populated by MongoDB
 	public AppSettings() {
 		try {
-			this.participantVisibilityMatrix = (JSONObject) new JSONParser().parse(DEFAULT_VISIBILITY_MATRIX);
+			this.participantVisibilityMatrix = (Map) new JSONParser().parse(DEFAULT_VISIBILITY_MATRIX);
 		} catch (ParseException e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
@@ -3872,11 +3874,11 @@ public class AppSettings implements Serializable{
 		this.webhookContentType = webhookContentType;
 	}
 
-	public JSONObject getParticipantVisibilityMatrix() {
+	public Map<String, List<String>> getParticipantVisibilityMatrix() {
 		return participantVisibilityMatrix;
 	}
 	
-	public void setParticipantVisibilityMatrix(JSONObject participantVisibilityMatrix) {
+	public void setParticipantVisibilityMatrix(Map<String, List<String>> participantVisibilityMatrix) {
         this.participantVisibilityMatrix = participantVisibilityMatrix;
     }
 
@@ -3888,11 +3890,11 @@ public class AppSettings implements Serializable{
 		this.iceGatheringTimeoutMs = iceGatheringTimeoutMs;
 	}
 
-	public JSONObject getCustomSettings() {
+	public Map<String, Object> getCustomSettings() {
 		return customSettings;
 	}
 
-	public void setCustomSettings(JSONObject customSettings) {
+	public void setCustomSettings(Map<String, Object> customSettings) {
 		this.customSettings = customSettings;
 	}
 

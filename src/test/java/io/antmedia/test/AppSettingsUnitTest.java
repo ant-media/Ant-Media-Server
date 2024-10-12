@@ -111,8 +111,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setHlsSegmentType("fmp4");
 		assertEquals("fmp4", appSettings.getHlsSegmentType());
 
-		appSettings.setParticipantVisibilityMatrix((JSONObject) new JSONParser().parse("{\"default\":[\"default\"]}"));
-		JSONObject participantVisibilityMatrix = appSettings.getParticipantVisibilityMatrix();
+		JSONObject visibilityMatrix = (JSONObject) new JSONParser().parse("{\"default\":[\"default\"]}");
+
+		appSettings.setParticipantVisibilityMatrix(visibilityMatrix);
+		Map participantVisibilityMatrix = appSettings.getParticipantVisibilityMatrix();
 		assertEquals(1, participantVisibilityMatrix.size());
 		JSONArray jsonArray = (JSONArray) participantVisibilityMatrix.get("default");
 		assertEquals("default", jsonArray.get(0));
@@ -609,13 +611,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertNotNull(appSettings.getParticipantVisibilityMatrix());
 
 
-		JSONObject visibilityMatrix = appSettings.getParticipantVisibilityMatrix();
-		HashMap<String, List<String>> trackSelectionMode = new HashMap<>();
-
-
-		for (Object key : visibilityMatrix.keySet()) {
-			trackSelectionMode.put((String) key, (List<String>) visibilityMatrix.get(key));
-		}
+		Map<String, List<String>> trackSelectionMode = appSettings.getParticipantVisibilityMatrix();
+		
 		
 		assertEquals(4, trackSelectionMode.size());
 		assertEquals(1, trackSelectionMode.get("default").size());
@@ -630,11 +627,10 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(3, trackSelectionMode.get("speaker").size());
 		assertEquals(Arrays.asList("host","speaker","attendee"), trackSelectionMode.get("speaker"));
 
-		
 
-
-
-		assertEquals("{}",appSettings.getCustomSettings().toJSONString());
+		Map map = appSettings.getCustomSettings();
+		assertNotNull(map);
+		assertEquals(0, map.size());
 
 		assertTrue(appSettings.isRelayRTMPMetaDataToMuxers());
 
