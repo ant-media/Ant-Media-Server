@@ -1948,6 +1948,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 						if (value instanceof List) {
 							store.put(field.getName(), AppSettings.encodersList2Str(newAppsettings.getEncoderSettings()));
 						}
+						else if (value instanceof Map) {
+							store.put(field.getName(), new JSONObject((Map) value).toJSONString());
+						}
 						else {
 							store.put(field.getName(), value != null ? String.valueOf(value) : "");
 						}
