@@ -753,22 +753,28 @@ public class AppSettings implements Serializable{
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
 	
 	/**
-	 *  For the simple explanation
+	 *  For default values
+	 *  
+	 *  "default" is the default role which is regular case
+	 *  "speaker" is the one who is speaking in the webinar
+	 *  "attendee" is the one who is attending the webinar and not publishing any video, just watching with playOnly mode
+	 *  "active_attendee" is the one who is attending the webinar and publishing video(Generally the user who joined the call during the webinar)
+	 *  
 	 * "default": ["default"] -> means default role can see the guys in the default role
-	 * "host":["host","attendee","speaker"] -> means host can see guys in the role of host, attendee and speaker
-	 * "attendee":["speaker","attendee"] -> means attendees can see guys in the role of speaker and attendees
-	 * "speaker":["host","speaker","attendee"] -> means speaker can see guys in the role of host, speaker and attendee
+	 * "speaker":["attendee","speaker"] -> //means speaker can see speaker and attendee
+	 * "attendee":["speaker","active_attendee"] -> //means attendee can see speaker and active attendee
+	 * "active_attendee":["active_attendee","speaker"] ->//means active attendee can see active attendee and speaker
 	 */
 	public static final String DEFAULT_VISIBILITY_MATRIX = ""
 			+ "{"
 				+ "\""+ IAntMediaStreamHandler.DEFAULT_USER_ROLE +"\": [\""+IAntMediaStreamHandler.DEFAULT_USER_ROLE +"\"],"
-			
-				+ "\"host\":[\"host\",\"attendee\",\"speaker\"],"
-			
-				+ "\"attendee\":[\"speaker\",\"attendee\"],"
+														
+				+ "\"speaker\":[\"speaker\", \"active_attendee\"]," //means speaker can see speaker and active_attendee
+								
+				+ "\"attendee\":[\"speaker\",\"active_attendee\"]," //means attendee can see speaker and active attendee
 				
-				+ "\"speaker\":[\"host\",\"speaker\",\"attendee\"]"
-				
+				+ "\"active_attendee\":[\"active_attendee\",\"speaker\"]," //means active attendee can see active attendee and speaker
+
 			+ "}";
 
 	/**
