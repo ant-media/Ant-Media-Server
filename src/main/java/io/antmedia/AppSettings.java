@@ -2199,6 +2199,10 @@ public class AppSettings implements Serializable{
 	/**
 	 * The period that server send stream status to the webhook
 	 * Default value is -1 which means disabled. 
+	 * 
+	 * Consume the webhook as soon as possible and don't make it wait.
+	 * 
+	 * Min recommended value is 5000 ms which means 5 seconds
 	 */
 	@Value("${webhookStreamStatusUpdatePeriodMs:-1}")
 	private long webhookStreamStatusUpdatePeriodMs = -1;

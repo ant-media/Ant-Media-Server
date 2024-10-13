@@ -640,6 +640,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setSrtReceiveLatencyInMs(200);
 		assertEquals(200, appSettings.getSrtReceiveLatencyInMs());
 
+		assertEquals(-1, appSettings.getWebhookStreamStatusUpdatePeriodMs());
 
 
 
@@ -648,7 +649,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				188, numberOfFields);
+				189, numberOfFields);
 	}
 
 
