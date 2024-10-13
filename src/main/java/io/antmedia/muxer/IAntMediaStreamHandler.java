@@ -28,6 +28,8 @@ public interface IAntMediaStreamHandler {
 	public static final String PUBLISH_TYPE_WEBRTC = "WebRTC";
 	public static final String PUBLISH_TYPE_SRT = "SRT";
 	
+	public static final String DEFAULT_USER_ROLE = "default";
+	
 	
 	public static final String WEBAPPS_PATH = "webapps/";
 

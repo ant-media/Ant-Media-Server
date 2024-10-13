@@ -910,6 +910,10 @@ public class MongoStore extends DataStore {
 				if (broadcast.getPlannedEndDate() != null) {
 					updates.add(set("plannedEndDate", broadcast.getPlannedEndDate()));
 				}
+
+				if (broadcast.getRole() != null) {
+					updates.add(set(ROLE, broadcast.getRole()));
+				}
 				
 				
 				prepareFields(broadcast, updates);

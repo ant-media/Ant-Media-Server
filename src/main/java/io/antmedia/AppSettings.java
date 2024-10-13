@@ -3,13 +3,16 @@ package io.antmedia;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 import org.apache.catalina.util.NetMask;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.entity.ContentType;
 import org.bson.types.ObjectId;
 import org.json.simple.JSONArray;
@@ -23,6 +26,7 @@ import org.springframework.context.annotation.PropertySource;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.google.gson.Gson;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
@@ -30,6 +34,7 @@ import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.IndexOptions;
 import dev.morphia.annotations.Indexes;
+import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.rest.VoDRestService;
 
@@ -746,6 +751,31 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
+	
+	/**
+	 *  For default values
+	 *  
+	 *  "default" is the default role which is regular case
+	 *  "speaker" is the one who is speaking in the webinar
+	 *  "attendee" is the one who is attending the webinar and not publishing any video, just watching with playOnly mode
+	 *  "active_attendee" is the one who is attending the webinar and publishing video(Generally the user who joined the call during the webinar)
+	 *  
+	 * "default": ["default"] -> means default role can see the guys in the default role
+	 * "speaker":["attendee","speaker"] -> //means speaker can see speaker and attendee
+	 * "attendee":["speaker","active_attendee"] -> //means attendee can see speaker and active attendee
+	 * "active_attendee":["active_attendee","speaker"] ->//means active attendee can see active attendee and speaker
+	 */
+	public static final String DEFAULT_VISIBILITY_MATRIX = ""
+			+ "{"
+				+ "\""+ IAntMediaStreamHandler.DEFAULT_USER_ROLE +"\": [\""+IAntMediaStreamHandler.DEFAULT_USER_ROLE +"\"],"
+														
+				+ "\"speaker\":[\"speaker\", \"active_attendee\"]," //means speaker can see speaker and active_attendee
+								
+				+ "\"attendee\":[\"speaker\",\"active_attendee\"]," //means attendee can see speaker and active attendee
+				
+				+ "\"active_attendee\":[\"active_attendee\",\"speaker\"]," //means active attendee can see active attendee and speaker
+
+			+ "}";
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -820,7 +850,7 @@ public class AppSettings implements Serializable{
 
 
 	/**
-	 * Encoder settings in comma separated format
+	 * Encoder settings in JSON format
 	 * This must be set for adaptive streaming,
 	 * If it is empty SFU mode will be active in WebRTCAppEE,
 	 * video height, video bitrate, and audio bitrate are set as an example,
@@ -2196,10 +2226,16 @@ public class AppSettings implements Serializable{
 	@Value("${iceGatheringTimeoutMs:2000}")
 	private long iceGatheringTimeoutMs = 2000;
 
+	/**
+	 * Participant Visibility Matrix for WebRTC Clients. These are roles and each role can see the roles in this list
+	
+	 */
+	@Value("${participantVisibilityMatrix:"+ DEFAULT_VISIBILITY_MATRIX +"}")
+	private Map<String, List<String>> participantVisibilityMatrix;
 
 
 	@Value("${customSettings:{}}")
-	private JSONObject customSettings = new JSONObject();
+	private Map<String, Object> customSettings = new HashMap<>();
 
 	/**
 	 * Relay RTMP metadata to muxers. It's true by default
@@ -2226,6 +2262,15 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${srtReceiveLatencyInMs:150}")
 	private int srtReceiveLatencyInMs = 150;
+
+	//Make sure you have a default constructor because it's populated by MongoDB
+	public AppSettings() {
+		try {
+			this.participantVisibilityMatrix = (Map) new JSONParser().parse(DEFAULT_VISIBILITY_MATRIX);
+		} catch (ParseException e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+	}
 
 	public Object getCustomSetting(String key) {
 		return	customSettings.get(key);
@@ -3835,6 +3880,14 @@ public class AppSettings implements Serializable{
 		this.webhookContentType = webhookContentType;
 	}
 
+	public Map<String, List<String>> getParticipantVisibilityMatrix() {
+		return participantVisibilityMatrix;
+	}
+	
+	public void setParticipantVisibilityMatrix(Map<String, List<String>> participantVisibilityMatrix) {
+        this.participantVisibilityMatrix = participantVisibilityMatrix;
+    }
+
 	public long getIceGatheringTimeoutMs() {
 		return iceGatheringTimeoutMs;
 	}
@@ -3843,11 +3896,11 @@ public class AppSettings implements Serializable{
 		this.iceGatheringTimeoutMs = iceGatheringTimeoutMs;
 	}
 
-	public JSONObject getCustomSettings() {
+	public Map<String, Object> getCustomSettings() {
 		return customSettings;
 	}
 
-	public void setCustomSettings(JSONObject customSettings) {
+	public void setCustomSettings(Map<String, Object> customSettings) {
 		this.customSettings = customSettings;
 	}
 
