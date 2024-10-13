@@ -618,14 +618,14 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(1, trackSelectionMode.get("default").size());
 		assertEquals(Arrays.asList("default"), trackSelectionMode.get("default"));
 		
-		assertEquals(3, trackSelectionMode.get("host").size());
-		assertEquals(Arrays.asList("host","attendee", "speaker"), trackSelectionMode.get("host"));
+		assertEquals(2, trackSelectionMode.get("speaker").size());
+		assertEquals(Arrays.asList("speaker", "active_attendee"), trackSelectionMode.get("speaker"));
 
 		assertEquals(2, trackSelectionMode.get("attendee").size());
-		assertEquals(Arrays.asList("speaker","attendee"), trackSelectionMode.get("attendee"));
+		assertEquals(Arrays.asList("speaker","active_attendee"), trackSelectionMode.get("attendee"));
 
-		assertEquals(3, trackSelectionMode.get("speaker").size());
-		assertEquals(Arrays.asList("host","speaker","attendee"), trackSelectionMode.get("speaker"));
+		assertEquals(2, trackSelectionMode.get("speaker").size());
+		assertEquals(Arrays.asList("active_attendee", "speaker"), trackSelectionMode.get("active_attendee"));
 
 
 		Map map = appSettings.getCustomSettings();
