@@ -393,7 +393,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	}
 
-
 	/**
 	 * This method is called after ungraceful shutdown
 	 * @return
@@ -1981,6 +1980,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 						Object value = field.get(newAppsettings);
 						if (value instanceof List) {
 							store.put(field.getName(), AppSettings.encodersList2Str(newAppsettings.getEncoderSettings()));
+						}
+						else if (value instanceof Map) {
+							store.put(field.getName(), new JSONObject((Map) value).toJSONString());
 						}
 						else {
 							store.put(field.getName(), value != null ? String.valueOf(value) : "");

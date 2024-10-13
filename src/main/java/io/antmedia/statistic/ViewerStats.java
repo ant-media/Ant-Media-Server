@@ -86,7 +86,7 @@ public class ViewerStats {
 					playStartedEvent.setStreamId(streamId);
 					playStartedEvent.setProtocol(type);
 					playStartedEvent.setApp(appName);
-					playStartedEvent.setEvent(PlayEvent.EVENT_PLAY_ENDED);
+					playStartedEvent.setEvent(PlayEvent.EVENT_PLAY_STARTED);
 					playStartedEvent.setSubscriberId(subscriberId);
 					
 					LoggerUtils.logAnalyticsFromServer(playStartedEvent);

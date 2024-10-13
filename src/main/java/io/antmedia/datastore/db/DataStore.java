@@ -990,6 +990,11 @@ public abstract class DataStore {
 		if (newBroadcast.getPendingPacketSize() != null) {
 			broadcast.setPendingPacketSize(newBroadcast.getPendingPacketSize());
 		}
+
+		if (newBroadcast.getRole() != null) {
+			broadcast.setRole(newBroadcast.getRole());
+		}
+
 	}
 
 

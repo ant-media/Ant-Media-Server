@@ -612,8 +612,8 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	@Test
-	public void testGetAppSettings() {
-		try {
+	public void testGetAppSettings() throws Exception {
+		
 			// get LiveApp default settings and check the default values
 			// get settings from the app
 			Result result = callIsEnterpriseEdition();
@@ -653,10 +653,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		
 	}
 
 
