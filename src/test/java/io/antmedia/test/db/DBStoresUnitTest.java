@@ -292,6 +292,8 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		
 		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
+		
+		testSaveDuplicateStreamId((MongoStore)dataStore);
 
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
@@ -347,6 +349,7 @@ public class DBStoresUnitTest {
 
 
 		dataStore.close(true);
+
 	}
 	
 	@Test
@@ -411,6 +414,17 @@ public class DBStoresUnitTest {
 	
 
 
+	public void testSaveDuplicateStreamId(MongoStore mongoStore ) throws Exception {
+		Broadcast broadcast = new Broadcast(null, null);
+		assertNotNull(mongoStore.save(broadcast));
+		
+		Broadcast broadcast2 = new Broadcast(null, null);
+		broadcast2.setStreamId(broadcast.getStreamId());
+		assertNull(mongoStore.save(broadcast2));
+		
+		
+		mongoStore.deleteDuplicateStreamIds(mongoStore.getDataStore().getCollection(Broadcast.class));
+	}
 	
 	
 	@Test

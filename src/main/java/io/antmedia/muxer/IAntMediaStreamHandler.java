@@ -219,4 +219,14 @@ public interface IAntMediaStreamHandler {
 	 * @return
 	 */
 	public IScope getScope();
+
+
+	/**
+	 * Notify the webhook about the stream status
+	 * 
+	 * @param streamName
+	 * @param absoluteStartTimeMs
+	 */
+	public void notifyWebhookForStreamStatus(Broadcast broadcast, int width, int height, long totalByteReceived,
+			int inputQueueSize, double speed);
 }

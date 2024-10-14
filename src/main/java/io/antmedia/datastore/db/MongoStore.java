@@ -9,7 +9,9 @@ import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 import dev.morphia.query.filters.Filter;
@@ -24,6 +26,9 @@ import org.slf4j.LoggerFactory;
 
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
+import com.mongodb.client.MongoIterable;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 
@@ -42,6 +47,7 @@ import dev.morphia.query.filters.Filters;
 import dev.morphia.query.updates.UpdateOperator;
 import dev.morphia.query.updates.UpdateOperators;
 import io.antmedia.AntMediaApplicationAdapter;
+import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
@@ -90,6 +96,9 @@ public class MongoStore extends DataStore {
 	private static final String WEBRTC_VIEWER_COUNT = "webRTCViewerCount";
 	private static final String META_DATA = "metaData";
 	private static final String UPDATE_TIME_FIELD = "updateTime";
+	
+	public static final String OLD_STREAM_ID_INDEX_NAME = "streamId_1";
+
 
 	public MongoStore(String host, String username, String password, String dbName) {
 
@@ -107,6 +116,8 @@ public class MongoStore extends DataStore {
 		detectionMap = Morphia.createDatastore(mongoClient, dbName + "detection");
 		conferenceRoomDatastore = Morphia.createDatastore(mongoClient, dbName + "room");
 
+		
+		deleteOldStreamIdIndex();
 		//*************************************************
 		//do not create data store for each type as we do above
 		//*************************************************
@@ -133,10 +144,60 @@ public class MongoStore extends DataStore {
 		// May 11, 2024
 		// we may remove this code after some time and ConferenceRoom class
 		// mekya
-		migrateConferenceRoomsToBroadcasts();
-		
+		migrateConferenceRoomsToBroadcasts();	
 		
 	}	
+	
+	@Deprecated(since = "2.12.0", forRemoval = true)
+	public void deleteOldStreamIdIndex() 
+	{
+		MongoCollection<Broadcast> collection = datastore.getCollection(Broadcast.class);
+		if (collection != null) 
+		{
+	        MongoIterable<Document> indexes = collection.listIndexes();
+	        
+	        try (MongoCursor<Document> cursor = indexes.iterator()) {
+	            while (cursor.hasNext()) {
+	                Document index = cursor.next();
+	                
+	                if (OLD_STREAM_ID_INDEX_NAME.equals(index.getString("name"))) 
+	                {
+		                logger.info("Found old index name: {} and deleting because it'll create a new one", index.getString("name"));
+		                collection.dropIndex(OLD_STREAM_ID_INDEX_NAME);
+		                
+		                logger.info("Checking data integrity");
+		                
+		                deleteDuplicateStreamIds(collection);
+		                
+		                break;
+	                }
+	            }
+	        }
+
+		}
+	}
+	
+	public void deleteDuplicateStreamIds(MongoCollection<Broadcast> collection) {
+		 // Use a set to track unique appNames
+       Set<String> uniqueStreamIds = new HashSet<>();
+
+
+       try (MongoCursor<Broadcast> cursor = collection.find(Broadcast.class).iterator()) {
+           while (cursor.hasNext()) {
+        	   Broadcast doc = cursor.next();
+               String streamId = doc.getStreamId();
+
+               // Check if appName is already encountered
+               if (uniqueStreamIds.contains(streamId)) {
+                   // If duplicate, delete the document
+                   collection.deleteOne(com.mongodb.client.model.Filters.eq("_id", doc.getDbId()));
+               } else {
+                   // Add to the set of unique appNames
+                   uniqueStreamIds.add(streamId);
+               }
+           }
+       }
+	}
 	
 	@Override
 	public void migrateConferenceRoomsToBroadcasts() {

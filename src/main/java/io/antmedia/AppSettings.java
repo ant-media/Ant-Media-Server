@@ -2195,6 +2195,17 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${webhookRetryAttemptDelay:1000}")
 	private long webhookRetryDelay = 1000;
+	
+	/**
+	 * The period that server send stream status to the webhook
+	 * Default value is -1 which means disabled. 
+	 * 
+	 * Consume the webhook as soon as possible and don't make it wait.
+	 * 
+	 * Min recommended value is 5000 ms which means 5 seconds
+	 */
+	@Value("${webhookStreamStatusUpdatePeriodMs:-1}")
+	private long webhookStreamStatusUpdatePeriodMs = -1;
 
 	/**
 	 * Webhook webrtc play authentication url.
@@ -3948,6 +3959,14 @@ public class AppSettings implements Serializable{
 
 	public void setSrtReceiveLatencyInMs(int srtReceiveLatencyInMs) {
 		this.srtReceiveLatencyInMs = srtReceiveLatencyInMs;
+	}
+
+	public long getWebhookStreamStatusUpdatePeriodMs() {
+		return webhookStreamStatusUpdatePeriodMs;
+	}
+	
+	public void setWebhookStreamStatusUpdatePeriodMs(long webhookStreamStatusUpdatePeriodMs) {
+		this.webhookStreamStatusUpdatePeriodMs = webhookStreamStatusUpdatePeriodMs;
 	}
 
 
