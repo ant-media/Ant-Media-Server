@@ -1,5 +1,8 @@
 package io.antmedia.console.datastore;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
@@ -12,7 +15,9 @@ import io.vertx.core.Vertx;
 public class ConsoleDataStoreFactory implements ApplicationContextAware {
 
 	private AbstractConsoleDataStore dataStore;
-	
+
+	private static Logger logger = LoggerFactory.getLogger(ConsoleDataStoreFactory.class);
+
 	@Value( "${"+AppSettings.SETTINGS_DB_APP_NAME+":#{null}}" )
 	private String appName;
 	
@@ -97,18 +102,21 @@ public class ConsoleDataStoreFactory implements ApplicationContextAware {
 
 	public AbstractConsoleDataStore getDataStore() {
 		if (dataStore == null) {
-			if(dbType.contentEquals("mongodb"))
+			if("mongodb".contentEquals(dbType))
 			{
-				
 				dataStore = new MongoStore(dbHost, dbUser, dbPassword);
 			}
-			else if(dbType.contentEquals("mapdb"))
+			else if("mapdb".contentEquals(dbType))
 			{
 				dataStore = new MapDBStore(vertx);
 			}
-			else if(dbType.contentEquals("redisdb"))
+			else if("redisdb".contentEquals(dbType))
 			{
 				dataStore = new RedisStore(dbHost);
+			}
+			else {
+				logger.error("!! datastore undefined db type: {}", dbType);
+				logger.error(ExceptionUtils.getStackTrace(new Exception()));
 			}
 		}
 		return dataStore;
