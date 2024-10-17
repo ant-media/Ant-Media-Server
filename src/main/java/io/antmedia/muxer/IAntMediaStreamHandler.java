@@ -28,6 +28,8 @@ public interface IAntMediaStreamHandler {
 	public static final String PUBLISH_TYPE_WEBRTC = "WebRTC";
 	public static final String PUBLISH_TYPE_SRT = "SRT";
 	
+	public static final String DEFAULT_USER_ROLE = "default";
+	
 	
 	public static final String WEBAPPS_PATH = "webapps/";
 
@@ -217,4 +219,14 @@ public interface IAntMediaStreamHandler {
 	 * @return
 	 */
 	public IScope getScope();
+
+
+	/**
+	 * Notify the webhook about the stream status
+	 * 
+	 * @param streamName
+	 * @param absoluteStartTimeMs
+	 */
+	public void notifyWebhookForStreamStatus(Broadcast broadcast, int width, int height, long totalByteReceived,
+			int inputQueueSize, double speed);
 }
