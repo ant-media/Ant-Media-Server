@@ -72,7 +72,6 @@ public class RTMPHandler extends BaseRTMPHandler {
 	private static final String HIGH_RESOURCE_USAGE = "current system resources not enough";
 	private static final String INVALID_STREAM_NAME = "stream name is invalid. Don't use special characters.";
 
-
 	/**
 	 * Status object service.
 	 */
@@ -111,6 +110,10 @@ public class RTMPHandler extends BaseRTMPHandler {
 	 */
 	public void setStatusObjectService(StatusObjectService statusObjectService) {
 		this.statusObjectService = statusObjectService;
+	}
+
+	public StatusObjectService getStatusObjectService() {
+		return statusObjectService;
 	}
 
 	public boolean isUnvalidatedConnectionAllowed() {
@@ -575,7 +578,7 @@ public class RTMPHandler extends BaseRTMPHandler {
 	}
 
 	public StatusObject getStatus(String code) {
-		return statusObjectService.getStatusObject(code);
+		return getStatusObjectService().getStatusObject(code);
 	}
 
 	/** {@inheritDoc} */

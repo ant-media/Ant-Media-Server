@@ -4,6 +4,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
+import static org.red5.server.net.rtmp.status.StatusCodes.NS_FAILED;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -35,6 +36,8 @@ import org.red5.server.api.stream.IClientStream;
 import org.red5.server.api.stream.IStreamService;
 import org.red5.server.net.ICommand;
 import org.red5.server.net.rtmp.message.Header;
+import org.red5.server.net.rtmp.status.Status;
+import org.red5.server.net.rtmp.status.StatusObject;
 import org.red5.server.net.rtmp.status.StatusObjectService;
 import org.red5.server.scope.Scope;
 import org.red5.server.stream.StreamService;
@@ -327,6 +330,9 @@ public class ServerRTMPHandshakeTest {
 		RTMPHandler rtmpHandler = spy(RTMPHandler.class);
 
 		RTMPConnection conn = mock(RTMPConnection.class);
+		StatusObjectService statusObjectService = mock(StatusObjectService.class);
+		StatusObject statusObject = mock(StatusObject.class);
+		Status status = mock(Status.class);
 		Channel channel = mock(Channel.class);
 		Header source = mock(Header.class);
 		ICommand command = mock(ICommand.class);
@@ -336,7 +342,6 @@ public class ServerRTMPHandshakeTest {
 		IStatsCollector resourceMonitor = mock(IStatsCollector.class);
 		IServiceInvoker serviceInvoker = mock(IServiceInvoker.class);
 		IStreamService streamService = mock(IStreamService.class);
-
 
 		when(command.getTransactionId()).thenReturn(1);
 		when(command.getCall()).thenReturn(call);
@@ -350,7 +355,9 @@ public class ServerRTMPHandshakeTest {
 		when(context.getServiceInvoker()).thenReturn(serviceInvoker);
 
 		when(serviceInvoker.invoke(call, streamService)).thenReturn(true);
-
+		when(rtmpHandler.getStatusObjectService()).thenReturn(statusObjectService);
+		when(statusObjectService.getStatusObject(NS_FAILED)).thenReturn(statusObject);
+		when(statusObject.asStatus()).thenReturn(status);
 
 		when(call.getServiceMethodName()).thenReturn("publish");
 
@@ -362,9 +369,18 @@ public class ServerRTMPHandshakeTest {
 
 			rtmpHandler.onCommand(conn, channel, source, command);
 
-			verify(rtmpHandler, times(1)).invokeCall(conn, call, streamService);
+			when(call.getArguments()).thenReturn(new Object[]{"/testStream/token/subscriberId/subscriberCode"});
+			rtmpHandler.onCommand(conn, channel, source, command);
+
+			//invalid streamId
+			when(call.getArguments()).thenReturn(new Object[]{"@invalidStreamId!/token/subscriberId/subscriberCode"});
+			rtmpHandler.onCommand(conn, channel, source, command);
+
+			verify(rtmpHandler,times(1)).getStatus(NS_FAILED);
+			verify(channel,times(1)).sendStatus(status);
+			verify(rtmpHandler, times(2)).invokeCall(conn, call, streamService);
+
 		}
 
 	}
-
 }
