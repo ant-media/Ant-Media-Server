@@ -1,5 +1,6 @@
 package io.antmedia.datastore.db;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -95,24 +96,25 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 
 	public void init()  
 	{
-		if(dbType.contentEquals(DB_TYPE_MONGODB))
+		if(DB_TYPE_MONGODB.contentEquals(dbType))
 		{
 			dataStore = new MongoStore(dbHost, dbUser, dbPassword, dbName);
 		}
-		else if(dbType .contentEquals(DB_TYPE_MAPDB))
+		else if(DB_TYPE_MAPDB .contentEquals(dbType))
 		{
 			dataStore = new MapDBStore(dbName+".db", vertx);
 		}
-		else if(dbType .contentEquals(DB_TYPE_REDISDB))
+		else if(DB_TYPE_REDISDB .contentEquals(dbType))
 		{
 			dataStore = new RedisStore(dbHost, dbName);
 		}
-		else if(dbType .contentEquals(DB_TYPE_MEMORYDB))
+		else if(DB_TYPE_MEMORYDB .contentEquals(dbType))
 		{
 			dataStore = new InMemoryDataStore(dbName);
 		}
 		else {
 			logger.error("Undefined Datastore:{}  db name:{}", dbType, dbName);
+			logger.error(ExceptionUtils.getStackTrace(new Exception()));
 		}
 		
 		logger.info("Used Datastore:{}  db name:{}", getDbType(), getDbName());
