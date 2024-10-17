@@ -65,7 +65,7 @@ usage() {
 }
 
 ipt_remove() {
-        iptab=`iptables -t nat -n -L PREROUTING | grep -E "REDIRECT.*dpt:80.*5080"`
+        iptab=`iptables -t nat -n -L PREROUTING 2>/dev/null  | grep -E "REDIRECT.*dpt:80.*5080"`
         if [ "$iptab" ]; then
                 iptables-save > /tmp/iptables_save
                 iptables -t nat -D PREROUTING -p tcp --dport 80 -j REDIRECT --to-port 5080
@@ -104,23 +104,21 @@ get_password() {
 
 install_pkgs() {
     if [ -f /etc/debian_version ]; then
-        sudo apt update -qq
-        sudo apt install -y jq dnsutils iptables
+        $SUDO apt update -qq
+        $SUDO apt install -y jq dnsutils iptables
     elif [ -f /etc/redhat-release ]; then
         OS_VERSION=$(rpm -E %rhel)
         pkgs="jq bind-utils iptables"
         if [[ "$OS_VERSION" == "8" ]]; then
-            yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
+            $SUDO yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
         elif [[ "$OS_VERSION" == "9" ]]; then
-            yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
+            $SUDO yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-9.noarch.rpm
         else
             exit 1
         fi
-        sudo yum install -y $pkgs || sudo dnf install -y $pkgs
+        $SUDO yum install -y $pkgs || sudo dnf install -y $pkgs
     fi
 }
-
-install_pkgs
 
 # Check if there is a Container and install necessary packages
 is_docker_container() {
@@ -140,6 +138,7 @@ if is_docker_container; then
     SUDO=""
 fi
 
+install_pkgs
 
 output() {
   OUT=$?
@@ -205,7 +204,9 @@ generate_jwt
 
 get_freedomain(){
   hostname="ams-$RANDOM"
-  result_marketplace=$(check_marketplace)
+  if ! is_docker_container; then
+      result_marketplace=$(check_marketplace)
+  fi
   get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
   ip=`curl -s http://checkip.amazonaws.com`
   if [ ! -z $get_license_key ]; then
