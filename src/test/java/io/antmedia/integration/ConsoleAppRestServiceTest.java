@@ -23,12 +23,16 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import io.antmedia.console.rest.CommonRestService;
 import io.antmedia.datastore.db.types.*;
 import io.antmedia.datastore.db.types.UserType;
+import io.antmedia.filter.JWTFilter;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPut;
@@ -608,8 +612,8 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	@Test
-	public void testGetAppSettings() {
-		try {
+	public void testGetAppSettings() throws Exception {
+		
 			// get LiveApp default settings and check the default values
 			// get settings from the app
 			Result result = callIsEnterpriseEdition();
@@ -649,10 +653,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		
 	}
 
 
@@ -3616,6 +3617,89 @@ public class ConsoleAppRestServiceTest{
 		assertTrue(deleteUserRes.isSuccess());
 	}
 
+	@Test
+	public void testRestJwtWithBearer() throws Exception {
+		String appName = "LiveApp";
+
+
+		AppSettings appSettings = callGetAppSettings(appName);
+		appSettings.setJwtControlEnabled(true);
+		String jwtSecretKey = "5NwKIVEetEfJzWxmMBz0SeSxFT2aCvNN";
+		appSettings.setJwtSecretKey(jwtSecretKey);
+		appSettings.setIpFilterEnabled(false);
+
+		assertTrue(callSetAppSettings(appName, appSettings).isSuccess());
+
+		String streamId = "testBroadcast" +  (int)(Math.random() * 1000);
+
+		int statusCode = callCreateBroadcastWithRestBearerJwt(appName, streamId, null);
+		assertEquals(HttpStatus.SC_FORBIDDEN, statusCode);
+
+
+		Algorithm algorithm = Algorithm.HMAC256(jwtSecretKey);
+		String jwt = JWT.create().
+				sign(algorithm);
+
+		statusCode = callCreateBroadcastWithRestBearerJwt(appName, streamId, jwt);
+
+		assertEquals(HttpStatus.SC_OK, statusCode);
+
+		statusCode = callDeleteBroadcastWithRestBearerJwt(appName, streamId, jwt);
+
+		assertEquals(HttpStatus.SC_OK, statusCode);
+
+		appSettings.setIpFilterEnabled(true);
+		appSettings.setJwtControlEnabled(false);
+		appSettings.setJwtSecretKey("");
+
+		assertTrue(callSetAppSettings(appName, appSettings).isSuccess());
+
+
+
+	}
+
+	public static int callCreateBroadcastWithRestBearerJwt(String appName, String streamId, String jwt) throws Exception {
+		String url = "http://127.0.0.1:5080/"+appName+"/rest/v2/broadcasts/create/";
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId(streamId);
+
+		HttpUriRequest post = RequestBuilder.post().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
+
+		if(jwt != null){
+			post.addHeader(HttpHeaders.AUTHORIZATION, JWTFilter.JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX+" "+jwt);
+		}
+
+		HttpResponse response = client.execute(post);
+
+		return response.getStatusLine().getStatusCode();
+
+	}
+
+	public static int callDeleteBroadcastWithRestBearerJwt(String appName, String streamId, String jwt) throws Exception {
+		String url = "http://127.0.0.1:5080/"+appName+"/rest/v2/broadcasts/"+streamId;
+
+		HttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
+		Gson gson = new Gson();
+		Broadcast broadcast = new Broadcast();
+		broadcast.setStreamId(streamId);
+
+		HttpUriRequest delete = RequestBuilder.delete().setUri(url).setHeader(HttpHeaders.CONTENT_TYPE, "application/json")
+				.setEntity(new StringEntity(gson.toJson(broadcast))).build();
+
+		if(jwt != null){
+			delete.addHeader(HttpHeaders.AUTHORIZATION, JWTFilter.JWT_TOKEN_AUTHORIZATION_HEADER_BEARER_PREFIX+" "+jwt);
+		}
+
+		HttpResponse response = client.execute(delete);
+
+		return response.getStatusLine().getStatusCode();
+
+	}
+
 	public static List<VoD> callGetVoDList(int offset, int size, String appName) {
 		try {
 
@@ -3651,7 +3735,6 @@ public class ConsoleAppRestServiceTest{
 		try {
 			//"http://" + InetAddress.getLocalHost().getHostAddress() + ":5080/rest/v2";
 			String url =  ROOT_SERVICE_URL +"/request?_path="+ appName  + "/rest/v2/broadcasts/create";
-
 
 			CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).setDefaultCookieStore(httpCookieStore).build();
 

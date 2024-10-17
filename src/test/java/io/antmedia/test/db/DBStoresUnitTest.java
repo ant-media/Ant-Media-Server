@@ -163,7 +163,8 @@ public class DBStoresUnitTest {
 		testVoDFunctions(dataStore);
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
-		testUpdateMetadata(dataStore);	
+		testUpdateMetadata(dataStore);
+		testUpdateRole(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
 		testRTMPViewerCount(dataStore);
@@ -250,6 +251,7 @@ public class DBStoresUnitTest {
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
+		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -290,6 +292,8 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		
 		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
+		
+		testSaveDuplicateStreamId((MongoStore)dataStore);
 
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
@@ -312,6 +316,7 @@ public class DBStoresUnitTest {
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
+		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -344,6 +349,7 @@ public class DBStoresUnitTest {
 
 
 		dataStore.close(true);
+
 	}
 	
 	@Test
@@ -374,6 +380,7 @@ public class DBStoresUnitTest {
 		testSaveStreamInDirectory(dataStore);
 		testEditCameraInfo(dataStore);
 		testUpdateMetadata(dataStore);
+		testUpdateRole(dataStore);
 		testGetActiveBroadcastCount(dataStore);
 		testUpdateHLSViewerCount(dataStore);
 		testWebRTCViewerCount(dataStore);
@@ -407,6 +414,17 @@ public class DBStoresUnitTest {
 	
 
 
+	public void testSaveDuplicateStreamId(MongoStore mongoStore ) throws Exception {
+		Broadcast broadcast = new Broadcast(null, null);
+		assertNotNull(mongoStore.save(broadcast));
+		
+		Broadcast broadcast2 = new Broadcast(null, null);
+		broadcast2.setStreamId(broadcast.getStreamId());
+		assertNull(mongoStore.save(broadcast2));
+		
+		
+		mongoStore.deleteDuplicateStreamIds(mongoStore.getDataStore().getCollection(Broadcast.class));
+	}
 	
 	
 	@Test
@@ -971,6 +989,24 @@ public class DBStoresUnitTest {
         
         datastore.deleteVod(userVod2.getVodId());
         assertEquals(0, datastore.getTotalVodNumber());
+
+		VoD userVod3 =new VoD("streamName", "streamId", "filePath", "vodName", 111, 111, 111, 111, VoD.USER_VOD,vodId,null);
+		userVod3.setLatitude("10");
+		userVod3.setLongitude("15");
+		userVod3.setDescription("my vod");
+		userVod3.setMetadata("my metadata");
+		userVod3.setAltitude("20");
+		datastore.addVod(userVod3);
+		voD = datastore.getVoD(userVod3.getVodId());
+
+		assertEquals("10", voD.getLatitude());
+		assertEquals("15", voD.getLongitude());
+		assertEquals("20", voD.getAltitude());
+		assertEquals("my vod", voD.getDescription());
+		assertEquals("my metadata", voD.getMetadata());
+
+		datastore.deleteVod(userVod3.getVodId());
+		assertEquals(0, datastore.getTotalVodNumber());
 
 	}
 
@@ -3117,6 +3153,34 @@ public class DBStoresUnitTest {
 		
 		assertFalse(dataStore.updateStreamMetaData("someDummyStream"+RandomStringUtils.randomAlphanumeric(8), UPDATED_DATA));
 
+	}
+
+	public void testUpdateRole(DataStore dataStore) {
+
+		final String INITIAL_ROLE  = "INITIAL_ROLE";
+		final String UPDATED_ROLE  = "UPDATED_ROLE";
+
+		String id = RandomStringUtils.randomAlphanumeric(8);
+
+		Broadcast broadcast= new Broadcast();
+		try {
+			broadcast.setStreamId(id);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+		broadcast.setRole(INITIAL_ROLE);
+		dataStore.save(broadcast);
+
+		assertEquals(INITIAL_ROLE, dataStore.get(id).getRole());
+
+		BroadcastUpdate updateData = new BroadcastUpdate();
+
+		updateData.setRole(UPDATED_ROLE);
+
+		assertTrue(dataStore.updateBroadcastFields(id, updateData));
+
+		assertEquals(UPDATED_ROLE, dataStore.get(id).getRole());
 	}
 
 	public void testBlockSubscriber(DataStore dataStore){

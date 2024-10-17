@@ -28,6 +28,7 @@ import javax.annotation.Nullable;
 import jakarta.servlet.ServletContext;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -1226,10 +1227,10 @@ public abstract class RestServiceBase {
 		String appScopeName = getScope().getName();
 		String fileExtension = FilenameUtils.getExtension(fileName);
 		try {
-
-			if ("mp4".equalsIgnoreCase(fileExtension) || "webm".equalsIgnoreCase(fileExtension) 
-					||  "mov".equalsIgnoreCase(fileExtension) ||  "avi".equalsIgnoreCase(fileExtension)
-					||  "wmv".equalsIgnoreCase(fileExtension)) {
+			
+		   String[] supportedFormats = new String[] {"mp4", "webm", "mov", "avi", "mp3", "wmv"};
+		   
+		   if (ArrayUtils.contains(supportedFormats, fileExtension)) {
 
 
 				IStatsCollector statsCollector = (IStatsCollector) getAppContext().getBean(IStatsCollector.BEAN_NAME);
@@ -1251,9 +1252,12 @@ public abstract class RestServiceBase {
 					}
 					String vodId = RandomStringUtils.randomNumeric(24);
 
-					File savedFile = new File(String.format("%s/webapps/%s/%s", System.getProperty("red5.root"), appScopeName,
-							"streams/" + vodId + "." + fileExtension));
+					
+					File savedFile = new File(streamsDirectory, vodId + "." + fileExtension);
 
+					if (!savedFile.toPath().normalize().startsWith(streamsDirectory.toPath().normalize())) {
+			            throw new IOException("Entry is outside of the target directory");
+					} 
 
 					int read = 0;
 					byte[] bytes = new byte[2048];
