@@ -331,9 +331,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private int videoCodecId = -1;
 
-
 	private boolean metadataTimeout = false;
 
+	private long lastWebhookStreamStatusUpdateTime = 0;
 
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, Broadcast broadcast, boolean isSource, IScope scope) {
 
@@ -1027,7 +1027,16 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize, System.currentTimeMillis());
 		}
-
+		
+		long webhookStreamStatusUpdatePeriod = appSettings.getWebhookStreamStatusUpdatePeriodMs();
+		if (webhookStreamStatusUpdatePeriod != -1 && (now - lastWebhookStreamStatusUpdateTime) > webhookStreamStatusUpdatePeriod) {
+			lastWebhookStreamStatusUpdateTime = now;
+			getStreamHandler().notifyWebhookForStreamStatus(getBroadcast(), width, height, totalByteReceived, inputQueueSize, speed);
+		}
+		
+		
+		
+		
 
 	}
 

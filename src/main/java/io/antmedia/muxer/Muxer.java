@@ -708,42 +708,67 @@ public abstract class Muxer {
 		ApplicationContext appCtx = context.getApplicationContext();
 		return (AppSettings) appCtx.getBean(AppSettings.BEAN_NAME);
 	}
-	
-	public String getExtendedName(String name, int resolution, int bitrate, String fileNameFormat){
-		// set default name
-		String resourceName = name;
-		int bitrateKbps = bitrate / 1000;
-		
-		// added before the if statement because of if addDateTimeToResourceName parameter return false, currentVoDTimeStamp returns 0
-		LocalDateTime ldt =  LocalDateTime.now();
-		currentVoDTimeStamp = ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
 
-		// add date time parameter to resource name if it is set
-		if (addDateTimeToResourceName) 
-		{
-			resourceName = name + "-" + ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN));
-			if (logger.isInfoEnabled()) {
-				logger.info("Date time resource name: {} local date time: {}", resourceName, ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
+	public String getExtendedName(String name, int resolution, int bitrate, String fileNameFormat) {
+		StringBuilder result = new StringBuilder(name);
+		int bitrateKbps = bitrate / 1000;
+
+		// Extract custom text from the format string (text between {} brackets)
+		String customText = extractCustomText(fileNameFormat);
+
+		// Replace the custom text placeholder with %c for easier processing
+		String format = fileNameFormat.replaceAll("\\{.*?}", "%c");
+
+		// Add date-time to the resource name if the flag is set
+		if (addDateTimeToResourceName) {
+			LocalDateTime ldt = LocalDateTime.now();
+			result.append("-").append(ldt.format(DateTimeFormatter.ofPattern(DATE_TIME_PATTERN)));
+			currentVoDTimeStamp = ldt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
+		}
+
+		// Process the format string if it's not empty
+		if (!format.isEmpty()) {
+			result.append("_");
+			for (char c : format.toCharArray()) {
+				if (c == '%') {
+					continue; // Skip the '%' character
+				}
+				switch (c) {
+					case 'r':
+						// Append resolution if it's non-zero
+						if (resolution != 0) {
+							result.append(resolution).append("p");
+						}
+						break;
+					case 'b':
+						// Append bitrate if it's non-zero
+						if (bitrateKbps != 0) {
+							result.append(bitrateKbps).append("kbps");
+						}
+						break;
+					case 'c':
+						// Append custom text if it's not empty
+						result.append(customText);
+						break;
+				}
 			}
+		} else if (resolution != 0) {
+			// If format is empty and resolution is non-zero, append only resolution
+			result.append("_").append(resolution).append("p");
 		}
-		String lowerCaseFormat = fileNameFormat.toLowerCase();
-		// add resolution height parameter if it is different than 0
-		if (resolution != 0 && lowerCaseFormat.contains("%r") && bitrateKbps != 0 && lowerCaseFormat.contains("%b"))
-		{
-			resourceName += (lowerCaseFormat.indexOf("r") > lowerCaseFormat.indexOf("b")) ?  "_" + bitrateKbps + "kbps" + resolution + "p" : "_" + resolution + "p" + bitrateKbps + "kbps";
+
+		// Remove trailing underscore if present
+		if (result.charAt(result.length() - 1) == '_') {
+			result.setLength(result.length() - 1);
 		}
-		else if(resolution != 0 && lowerCaseFormat.contains("%r") && (bitrateKbps == 0 || !lowerCaseFormat.contains("%b"))){
-			resourceName += "_" + resolution + "p" ;
-		}
-		else if((resolution == 0 || !lowerCaseFormat.contains("%r")) && bitrateKbps != 0 && lowerCaseFormat.contains("%b")){
-			resourceName += "_" + bitrateKbps + "kbps" ;
-		}
-		else if( (!lowerCaseFormat.contains("%r") && !lowerCaseFormat.contains("%b")) && resolution != 0){
-			logger.info("No identifier found for file name, adding resolution");
-			resourceName += "_" + resolution + "p" ;
-			
-		}
-		return resourceName;
+
+		return result.toString();
+	}
+
+	private String extractCustomText(String fileNameFormat) {
+		int start = fileNameFormat.indexOf('{');
+		int end = fileNameFormat.indexOf('}');
+		return (start != -1 && end != -1 && end > start) ? fileNameFormat.substring(start + 1, end) : "";
 	}
 
 	public File getResourceFile(IScope scope, String name, String extension, String subFolder) {
@@ -1462,4 +1487,5 @@ public abstract class Muxer {
 	public String getSubFolder() {
 		return subFolder;
 	}
+
 }

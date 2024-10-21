@@ -613,6 +613,11 @@ public class WebSocketConstants {
 	 * Currently it's implemented for WebRTC ingest
 	 */
 	public static final String NO_PACKET_RECEIVED_FOR_TIMEOUT_DURATION = "noPacketReceivedForTimeoutDuration";
+	
+	/**
+	 * This is the error definition that is sent when mainTrack cannot be created or updated in publishing process.
+	 */
+	public static final String MAINTRACK_DB_OPERATION_FAILED = "mainTrackDBOperationFailed";
 
 
 }

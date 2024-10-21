@@ -47,6 +47,7 @@ public class AppConfig {
         CustomEditorConfigurer configurer = new CustomEditorConfigurer();
         Map<Class<?>, Class<? extends PropertyEditor>> customEditors = new HashMap<>();
         customEditors.put(JSONObject.class, JSONObjectEditor.class);
+        customEditors.put(Map.class, JSONObjectEditor.class);
         configurer.setCustomEditors(customEditors);
         return configurer;
     }

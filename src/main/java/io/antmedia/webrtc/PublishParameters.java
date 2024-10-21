@@ -14,7 +14,6 @@ public class PublishParameters {
     private String mainTrack;
     private String metaData;
     private String linkedSessionForSignaling;
-    
     private String role;
     
     public PublishParameters(String streamId) {
