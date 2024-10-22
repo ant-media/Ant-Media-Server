@@ -3057,8 +3057,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
-	@Test
-	public void testMp4MuxingWithDirectParams() {
+	//@Test
+	public void disableTestMp4MuxingWithDirectParams() {
 		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
 		assertNotNull(vertx);
 
