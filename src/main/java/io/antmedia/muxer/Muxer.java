@@ -1477,7 +1477,6 @@ public abstract class Muxer {
 
 	public void writeMetaData(String data, long dts) {
 		//some subclasses may override this method such as HLS
-		
 	}
 	
 	public int getVideoCodecId() {

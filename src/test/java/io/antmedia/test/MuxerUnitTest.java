@@ -4235,7 +4235,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testNotifyMetadata() {
+	public void testNotifyMetadata() 
+	{
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
@@ -4244,25 +4245,31 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		MuxAdaptor muxAdaptor = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope));
 		
+		
 		Notify notify = mock(Notify.class);
 		when(notify.getData()).thenReturn(IoBuffer.allocate(100));
 		when(notify.getAction()).thenReturn("NOT_onMetaData");
 		
 		Muxer muxer = mock(Muxer.class);
 		muxAdaptor.addMuxer(muxer, 0);
+		Input input = mock(Input.class);
 		
 		muxAdaptor.notifyMetaDataReceived(notify, 0);
 		
 		//verify that it's not called because action is not onMetaData
 		verify(muxer, never()).writeMetaData(anyString(), anyLong());
 		
-		
+		when(input.readDataType()).thenReturn(DataTypes.CORE_NUMBER);
+		when(input.readMap()).thenReturn(new HashMap<>());
+
 		when(notify.getAction()).thenReturn("onMetaData");
+		when(notify.getData()).thenReturn(IoBuffer.allocate(100));
+
 		muxAdaptor.notifyMetaDataReceived(notify, 0);
 		//verify that it's not called because data type is not as expected
 		verify(muxer, never()).writeMetaData(anyString(), anyLong());
 		
-		Input input = mock(Input.class);
+	
 		when(input.readDataType()).thenReturn(DataTypes.CORE_MAP);
 		doReturn(input).when(muxAdaptor).getInput(any());
 		muxAdaptor.notifyMetaDataReceived(notify, 0);
@@ -4273,10 +4280,13 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		muxAdaptor.notifyMetaDataReceived(notify, 0);
 		verify(muxer, never()).writeMetaData(anyString(), anyLong());
 		
+		
+		when(notify.getData()).thenReturn(IoBuffer.allocate(100));
 		Map<String, String> map = new HashMap<>();
 		map.put("streamId", "streamId");
 		map.put("name", "streamId");
 		when(input.readMap()).thenReturn(map);
+		
 		muxAdaptor.notifyMetaDataReceived(notify, 0);
 		verify(muxer, times(1)).writeMetaData(anyString(), anyLong());
 		
