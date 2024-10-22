@@ -1511,7 +1511,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					//have the buffering finish time ms
 					bufferingFinishTimeMs = System.currentTimeMillis();
 					//have the first packet sent time
-					firstPacketReadyToSentTimeMs  = pktTrailer.getTimestamp();
+					firstPacketReadyToSentTimeMs  = pktHead.getTimestamp();
 					logger.info("Switching buffering from true to false for stream: {}", streamId);
 				}
 				//make buffering false whenever bufferDuration is bigger than bufferTimeMS
@@ -1993,10 +1993,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			closeRtmpConnection();
 			return;
 		}
-
-
-
-
 
 		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA || packet.getDataType() == Constants.TYPE_AUDIO_DATA) {
 
