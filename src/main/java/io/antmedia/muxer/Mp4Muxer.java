@@ -234,7 +234,7 @@ public class Mp4Muxer extends RecordMuxer {
 				int[] entryNb = new int[1];
 				entryNb[0] = stream.codecpar().nb_coded_side_data();
 				
-				if (stream.codecpar().coded_side_data() == null) {
+				if (stream.codecpar().coded_side_data() == null || stream.codecpar().coded_side_data().isNull()) {
 					stream.codecpar().coded_side_data(new AVPacketSideData());
 				}
 				
@@ -256,6 +256,8 @@ public class Mp4Muxer extends RecordMuxer {
 				
 				stream.codecpar().coded_side_data(av_packet_side_data_add);
 				stream.codecpar().nb_coded_side_data(entryNb[0]+1); 
+				
+				loggerStatic.info("Added rotation matrix side data to file:{}", dstFile);
 
 			}
 		}
