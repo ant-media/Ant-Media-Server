@@ -255,7 +255,8 @@ public class Mp4Muxer extends RecordMuxer {
 				avutil.av_display_rotation_set(intPointer, rotation);
 				
 				stream.codecpar().coded_side_data(av_packet_side_data_add);
-				stream.codecpar().nb_coded_side_data(entryNb[0]+1); 
+				//entryNb increases in av_packet_side_data_new so just update it
+				stream.codecpar().nb_coded_side_data(entryNb[0]); 
 				
 				loggerStatic.info("Added rotation matrix side data to file:{}", dstFile);
 
