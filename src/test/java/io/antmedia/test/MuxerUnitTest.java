@@ -632,7 +632,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//check the init file and m4s files there
 		assertTrue(hlsMuxer.getFile().exists());
 		assertTrue(new File(hlsMuxer.getFile().getParentFile()+ "/" + streamId + "_init.mp4").exists());
-		assertTrue(new File(hlsMuxer.getFile().getParentFile()+ "/" + streamId + "000000003.m4s").exists());
+		assertTrue(new File(hlsMuxer.getFile().getParentFile()+ "/" + streamId + "000000003.fmp4").exists());
 
 
 		assertTrue(MuxingTest.testFile(hlsMuxer.getFile().getAbsolutePath(), 107000));
@@ -649,7 +649,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			File[] filesTmp = hlsMuxer.getFile().getParentFile().listFiles(new FilenameFilter() {
 				@Override
 				public boolean accept(File dir, String name) {
-					return name.endsWith(".m4s") || name.endsWith(".m3u8");
+					return name.endsWith(".fmp4") || name.endsWith(".m3u8");
 				}
 			});
 			return 0 == filesTmp.length;
