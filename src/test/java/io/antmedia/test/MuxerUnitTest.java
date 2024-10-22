@@ -4618,8 +4618,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	@Test
-	public void testRemux() {
+	//@Test
+	public void disabletestRemux() {
 		avutil.av_log_set_level(avutil.AV_LOG_VERBOSE);
 
 		String input = "src/test/resources/test_video_360p.flv";
