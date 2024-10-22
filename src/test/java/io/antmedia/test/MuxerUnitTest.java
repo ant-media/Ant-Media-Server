@@ -1404,7 +1404,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	//@Test
+	@Test
 	public void testRTMPWriteCrash() {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -2502,7 +2502,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 
-	//@Test
+	@Test
 	public void testRtmpIngestBufferTime() {
 
 		try {
@@ -3057,8 +3057,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		}
 	}
 
-	//@Test
-	public void disableTestMp4MuxingWithDirectParams() {
+	@Test
+	public void testMp4MuxingWithDirectParams() {
 		Vertx vertx = (Vertx) applicationContext.getBean(AntMediaApplicationAdapter.VERTX_BEAN_NAME);
 		assertNotNull(vertx);
 
@@ -4628,8 +4628,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 
-	//@Test
-	public void disabletestRemux() {
+	@Test
+	public void testRemux() {
 		avutil.av_log_set_level(avutil.AV_LOG_VERBOSE);
 
 		String input = "src/test/resources/test_video_360p.flv";
@@ -5227,7 +5227,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(hlsMuxer, times(1)).writeDataFrame(any(), any());
 	}
 
-	//@Test
+	@Test
 	public void testID3Timing() {
 		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class),
 				"streams", 0, "http://example.com", false));

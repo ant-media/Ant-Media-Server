@@ -11,6 +11,8 @@ runs:
   using: "composite"
   steps:
 
+
+
     - name: Clone and build Ant Media Server Parent project
       shell: bash
       run: |
@@ -22,6 +24,13 @@ runs:
     - name: Build Ant Media Server project
       shell: bash
       run: mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true --quiet
+
+    - name: Replace ffmpeg builds
+      shell: bash
+      run: |
+           wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1-1.5.11-SNAPSHOT/ffmpeg-7.1-1.5.11-SNAPSHOT-linux-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1-1.5.11-SNAPSHOT-linux-x86_64.jar
+           wget -O ~/.m2/repository/org/bytedeco/ffmpeg/7.1-1.5.11-SNAPSHOT/ffmpeg-7.1-1.5.11-SNAPSHOT-linux-arm64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-7.1-1.5.11-SNAPSHOT-linux-arm64.jar
+
     
     - name: Clone and build StreamApp project
       shell: bash

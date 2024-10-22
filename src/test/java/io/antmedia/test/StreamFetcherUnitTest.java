@@ -1430,7 +1430,7 @@ public class StreamFetcherUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(worker, times(2)).packetRead(any());
 	}
 	
-	//@Test
+	@Test
 	public void testWritePacketOffset() {
 		StreamFetcher fetcher = new StreamFetcher("", "", AntMediaApplicationAdapter.VOD, appScope, vertx, 0);
 
