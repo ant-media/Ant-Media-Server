@@ -4620,7 +4620,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testRemux() {
-		String input = "target/test-classes/sample_MP4_480.mp4";
+		avutil.av_log_set_level(avutil.AV_LOG_VERBOSE);
+
+		String input = "src/test/resources/test_video_360p.flv";
 		String rotated = "rotated.mp4";
 
 		Mp4Muxer.remux(input, rotated, 90);

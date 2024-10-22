@@ -62,6 +62,7 @@ import org.bytedeco.ffmpeg.avcodec.AVBSFContext;
 import org.bytedeco.ffmpeg.avcodec.AVBitStreamFilter;
 import org.bytedeco.ffmpeg.avcodec.AVCodecParameters;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avcodec.AVPacketSideData;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
@@ -229,17 +230,33 @@ public class Mp4Muxer extends RecordMuxer {
 				//On the other hand, if av_stream_add_side_data below would copy the side data, there would be no problem.
 				//av_stream_add_side_data just sets the pointer
 				//mekya Jan 29, 22
-				IntPointer rotationMatrixPointer = new IntPointer(avutil.av_malloc(size)).capacity(size);
 				
-				avutil.av_display_rotation_set(rotationMatrixPointer, rotation);
-
-				BytePointer bytePointer = new BytePointer(rotationMatrixPointer);
-				bytePointer.limit(rotationMatrixPointer.sizeof() * rotationMatrixPointer.limit());
+				int[] entryNb = new int[1];
+				entryNb[0] = stream.codecpar().nb_coded_side_data();
 				
-				ret = avformat.av_stream_add_side_data(stream, avcodec.AV_PKT_DATA_DISPLAYMATRIX , bytePointer, bytePointer.limit());
-				if (ret < 0) {
+				if (stream.codecpar().coded_side_data() == null) {
+					stream.codecpar().coded_side_data(new AVPacketSideData());
+				}
+				
+				
+				AVPacketSideData av_packet_side_data_add = avcodec.av_packet_side_data_new(stream.codecpar().coded_side_data(), 
+						entryNb,
+						 avcodec.AV_PKT_DATA_DISPLAYMATRIX,
+						 size,
+						 0
+						);
+				//ret = avformat.av_stream_add_side_data(stream, avcodec.AV_PKT_DATA_DISPLAYMATRIX , bytePointer, bytePointer.limit());
+				if (av_packet_side_data_add == null) {
 					loggerStatic.error("Cannot add rotation matrix side data to file:{}", dstFile);
-				}				
+					return;
+				}		
+				
+				IntPointer intPointer = new IntPointer(av_packet_side_data_add.data());
+				avutil.av_display_rotation_set(intPointer, rotation);
+				
+				stream.codecpar().coded_side_data(av_packet_side_data_add);
+				stream.codecpar().nb_coded_side_data(entryNb[0]+1); 
+
 			}
 		}
 
