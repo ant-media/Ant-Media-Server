@@ -235,7 +235,7 @@ public class Mp4Muxer extends RecordMuxer {
 				entryNb[0] = stream.codecpar().nb_coded_side_data();
 				
 				AVPacketSideData sideData = new AVPacketSideData(stream.codecpar().coded_side_data());
-				AVPacketSideData av_packet_side_data_add = avcodec.av_packet_side_data_new(stream.codecpar().coded_side_data(), 
+				AVPacketSideData av_packet_side_data_add = avcodec.av_packet_side_data_new(sideData, 
 						entryNb,
 						 avcodec.AV_PKT_DATA_DISPLAYMATRIX,
 						 size,
