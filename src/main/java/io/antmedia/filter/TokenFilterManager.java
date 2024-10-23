@@ -79,8 +79,9 @@ public class TokenFilterManager extends AbstractFilter   {
 		 */
 
 
-		if (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method)) 
+		if (HttpMethod.GET.equals(method) || HttpMethod.HEAD.equals(method))
 		{
+			logger.info("yunus INSIDE TOKEN FILTER MANAGER!!");
 			if (streamId == null) {
 				logger.warn("No streamId found in the request: {}", httpRequest.getRequestURI());
 			}
@@ -98,12 +99,14 @@ public class TokenFilterManager extends AbstractFilter   {
 			
 			if (jwtInternalCommunicationToken != null) 
 			{
+				logger.info("yunus INTERNAL COMM TOKEN IS NOT NULL. WILL CHECK IT!");
 				//if jwtInternalCommunicationToken is not null, 
 				//it means that this is the origin instance and receiving request from the edge node directly
 				
 				boolean checkJwtToken = false;
 				if (streamId != null) {
 					checkJwtToken = tokenServiceTmp.isJwtTokenValid(jwtInternalCommunicationToken, appSettings.getClusterCommunicationKey(), streamId, Token.PLAY_TOKEN);
+					logger.info("yunus CHECKED INTERNAL COMM TOKEN AND ITS {}", checkJwtToken);
 				}
 				if (!checkJwtToken) 
 				{

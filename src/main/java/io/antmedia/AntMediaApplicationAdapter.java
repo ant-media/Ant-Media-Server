@@ -23,11 +23,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
+import io.antmedia.filter.JWTFilter;
+import io.antmedia.filter.TokenFilterManager;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpRequest;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.config.RequestConfig;
@@ -904,7 +907,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public ServerSettings getServerSettings()
 	{
 		if (serverSettings == null) {
-			serverSettings = (ServerSettings)scope.getContext().getApplicationContext().getBean(ServerSettings.BEAN_NAME);
+			serverSettings = (ServerSettings)getScope().getContext().getApplicationContext().getBean(ServerSettings.BEAN_NAME);
 		}
 		return serverSettings;
 	}
@@ -1191,6 +1194,14 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					.build();
 			httpPost.setConfig(requestConfig);
 
+			if (variables.containsKey(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION)) {
+				Object clusterAuthJwt = variables.get(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION);
+				if (clusterAuthJwt != null) {
+					httpPost.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterAuthJwt.toString());
+					variables.remove(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION);
+				}
+			}
+
 			if (ContentType.APPLICATION_FORM_URLENCODED.getMimeType().equals(contentType))
 			{
 				List<NameValuePair> urlParameters = new ArrayList<>();
@@ -1290,13 +1301,37 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public Result startStreaming(Broadcast broadcast)
 	{
+		logger.info("yunus START STREAMING REQUEST CAME!");
 		Result result = new Result(false);
 
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
 				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)
 				)  {
-			result = getStreamFetcherManager().startStreaming(broadcast);
+
+			if(isClusterMode()){
+				logger.info("yunus IS IS CLUSTER MODE");
+
+				String broadcastOriginAddress = broadcast.getOriginAdress();
+				logger.info("yunus broadcast origin address: {}", broadcastOriginAddress);
+				logger.info("yunus server settings host address: {}", getServerSettings().getHostAddress());
+
+
+				if(broadcastOriginAddress.equals(getServerSettings().getHostAddress())){
+					logger.info("yunus I AM THE ORIGIN I AM STARTING ON MYSELF");
+
+					result = getStreamFetcherManager().startStreaming(broadcast);
+					return result;
+				}
+
+				forwardStartStreaming(broadcast);
+				result.setSuccess(true);
+				return result;
+
+			}else{
+				result = getStreamFetcherManager().startStreaming(broadcast);
+			}
+			
 		}
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
 			result = getStreamFetcherManager().startPlaylist(broadcast);
@@ -1306,6 +1341,36 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}", broadcast.getType(), broadcast.getStreamId());
 		}
 		return result;
+	}
+
+	public void forwardStartStreaming(Broadcast broadcast){
+		logger.info("yunus FORWARD START STREAMING CALLED!");
+		String jwtToken = JWTFilter.generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);
+		logger.info("yunus GENERATED JWT TOKEN: {}", jwtToken);
+
+		String restRouteOfNode = "http://" + broadcast.getOriginAdress() + ":" + getServerSettings().getDefaultHttpPort()  + File.separator + getAppSettings().getAppName() + File.separator+ "rest" +
+				File.separator +"v2" + File.separator +"broadcasts" +
+				File.separator + broadcast.getStreamId() + File.separator + "start";
+
+		logger.info("yunus REST ROUTE: {}", jwtToken);
+
+
+		Map<String, Object> variables = new HashMap<>();
+
+		variables.put(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken);
+
+
+		vertx.executeBlocking(() -> {
+			try {
+				sendPOST(restRouteOfNode, variables, getAppSettings().getWebhookRetryCount(), getAppSettings().getWebhookContentType());
+			} catch (Exception exception) {
+				logger.error(ExceptionUtils.getStackTrace(exception));
+			}
+
+			return null;
+
+		}, false);
+
 	}
 
 	public Result stopStreaming(Broadcast broadcast)
@@ -1594,8 +1659,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public void closeDB(boolean deleteDB) {
-		boolean isClusterMode = getScope().getContext().hasBean(IClusterNotifier.BEAN_NAME);
-		if (deleteDB && isClusterMode)
+		boolean clusterMode = isClusterMode();
+		if (deleteDB && clusterMode)
 		{
 			//let the other nodes have enough time to synch
 			getVertx().setTimer(ClusterNode.NODE_UPDATE_PERIOD + 1000, l->
@@ -2230,6 +2295,10 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			closeBroadcast(streamId);
 			return null;
 		});
+	}
+
+	public boolean isClusterMode() {
+		return getScope().getContext().hasBean(IClusterNotifier.BEAN_NAME);
 	}
 
 	public void joinedTheRoom(String roomId, String streamId) {
