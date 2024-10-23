@@ -234,11 +234,7 @@ public class Mp4Muxer extends RecordMuxer {
 				int[] entryNb = new int[1];
 				entryNb[0] = stream.codecpar().nb_coded_side_data();
 				
-				if (stream.codecpar().coded_side_data() == null || stream.codecpar().coded_side_data().isNull()) {
-					stream.codecpar().coded_side_data(new AVPacketSideData());
-				}
-				
-				
+				AVPacketSideData sideData = new AVPacketSideData(stream.codecpar().coded_side_data());
 				AVPacketSideData av_packet_side_data_add = avcodec.av_packet_side_data_new(stream.codecpar().coded_side_data(), 
 						entryNb,
 						 avcodec.AV_PKT_DATA_DISPLAYMATRIX,
@@ -254,7 +250,7 @@ public class Mp4Muxer extends RecordMuxer {
 				IntPointer intPointer = new IntPointer(av_packet_side_data_add.data());
 				avutil.av_display_rotation_set(intPointer, rotation);
 				
-				stream.codecpar().coded_side_data(av_packet_side_data_add);
+				stream.codecpar().coded_side_data(sideData);
 				//entryNb increases in av_packet_side_data_new so just update it
 				stream.codecpar().nb_coded_side_data(entryNb[0]); 
 				
