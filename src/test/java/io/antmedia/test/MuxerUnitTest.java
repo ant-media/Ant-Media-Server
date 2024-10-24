@@ -632,7 +632,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		//check the init file and m4s files there
 		assertTrue(hlsMuxer.getFile().exists());
 		assertTrue(new File(hlsMuxer.getFile().getParentFile()+ "/" + streamId + "_init.mp4").exists());
-		assertTrue(new File(hlsMuxer.getFile().getParentFile()+ "/" + streamId + "000000003.m4s").exists());
+		assertTrue(new File(hlsMuxer.getFile().getParentFile()+ "/" + streamId + "000000003.fmp4").exists());
 
 
 		assertTrue(MuxingTest.testFile(hlsMuxer.getFile().getAbsolutePath(), 107000));
@@ -649,7 +649,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			File[] filesTmp = hlsMuxer.getFile().getParentFile().listFiles(new FilenameFilter() {
 				@Override
 				public boolean accept(File dir, String name) {
-					return name.endsWith(".m4s") || name.endsWith(".m3u8");
+					return name.endsWith(".fmp4") || name.endsWith(".m3u8");
 				}
 			});
 			return 0 == filesTmp.length;
@@ -702,8 +702,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				codecpar.bits_per_coded_sample(),
 				codecpar.bits_per_raw_sample(),
 				codecpar.block_align(),
-				codecpar.channel_layout(),
-				codecpar.channels(),
+				codecpar.ch_layout(),
+				codecpar.ch_layout().nb_channels(),
 				codecpar.codec_id(),
 				codecpar.codec_tag(),
 				codecpar.codec_type(),
@@ -1199,9 +1199,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		assertNull(hlsMuxer.getBitStreamFilter());
 	}
-	
 
-	
+
+
 	@Test
 	public void testHLSID3TagEnabled() {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -1210,23 +1210,23 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false));
 		hlsMuxer.init(appScope, "test", 0, "", 100);
-		
+
 		AVCodecContext codecContext = new AVCodecContext();
 		codecContext.width(640);
 		codecContext.height(480);
 		codecContext.codec_id(AV_CODEC_ID_H264);
 
 		boolean addStream = hlsMuxer.addStream(null, codecContext, 0);
-		
+
 		hlsMuxer.setId3Enabled(false);
-		
+
 		hlsMuxer.writeMetaData("hello", 0);
-		
+
 		//it should not write id3 tag
 		Mockito.verify(hlsMuxer, never()).writeDataFrame(any(), any());
-		
+
 		hlsMuxer.writeTrailer();
-		
+
 	}
 
 	@Test
@@ -1404,7 +1404,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	}
 
-	//@Test
+	@Test
 	public void testRTMPWriteCrash() {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
@@ -2194,7 +2194,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		});
 		assertEquals(Application.id.get(0), streamId);
 		assertEquals(Application.file.get(0).getName(), streamId + "_1.mp4");
-		assertEquals(10120L, (long) Application.duration.get(0));
+		assertEquals(10062L, (long) Application.duration.get(0));
 
 		broadcast = appAdaptor.getDataStore().get(streamId);
 		//we do not save duration of the finished live streams
@@ -2502,128 +2502,125 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 
-	//@Test
-	public void testRtmpIngestBufferTime() {
+	@Test
+	public void testRtmpIngestBufferTime() throws IOException {
 
+
+		if (appScope == null) {
+			appScope = (WebScope) applicationContext.getBean("web.scope");
+			logger.debug("Application / web scope: {}", appScope);
+			assertTrue(appScope.getDepth() == 1);
+		}
+
+		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
+		StreamCodecInfo info = new StreamCodecInfo();
+
+		clientBroadcastStream.setCodecInfo(info);
+
+		MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
+
+		//increase max analyze duration to some higher value because it's also to close connections if packet is not received
+		getAppSettings().setMaxAnalyzeDurationMS(5000);
+		getAppSettings().setRtmpIngestBufferTimeMs(1000);
+		getAppSettings().setMp4MuxingEnabled(false);
+		getAppSettings().setHlsMuxingEnabled(false);
+
+		File file = new File("target/test-classes/test.flv");
+
+		String streamId = "streamId" + (int) (Math.random() * 10000);
+		Broadcast broadcast = new Broadcast();
 		try {
-			if (appScope == null) {
-				appScope = (WebScope) applicationContext.getBean("web.scope");
-				logger.debug("Application / web scope: {}", appScope);
-				assertTrue(appScope.getDepth() == 1);
-			}
-
-			ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
-			StreamCodecInfo info = new StreamCodecInfo();
-
-			clientBroadcastStream.setCodecInfo(info);
-
-			MuxAdaptor muxAdaptor = MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope);
-
-			//increase max analyze duration to some higher value because it's also to close connections if packet is not received
-			getAppSettings().setMaxAnalyzeDurationMS(5000);
-			getAppSettings().setRtmpIngestBufferTimeMs(1000);
-			getAppSettings().setMp4MuxingEnabled(false);
-			getAppSettings().setHlsMuxingEnabled(false);
-
-			File file = new File("target/test-classes/test.flv");
-
-			String streamId = "streamId" + (int) (Math.random() * 10000);
-			Broadcast broadcast = new Broadcast();
-			try {
-				broadcast.setStreamId(streamId);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
-
-			muxAdaptor.setBroadcast(broadcast);
-			boolean result = muxAdaptor.init(appScope, streamId, false);
-			assertTrue(result);
-
-			muxAdaptor.start();
-
-
-			final FLVReader flvReader = new FLVReader(file);
-			boolean firstAudioPacketReceived = false;
-			boolean firstVideoPacketReceived = false;
-			long lastTimeStamp = 0;
-			while (flvReader.hasMoreTags()) {
-				ITag readTag = flvReader.readTag();
-				StreamPacket streamPacket = new StreamPacket(readTag);
-				lastTimeStamp = readTag.getTimestamp();
-				if (!firstAudioPacketReceived && streamPacket.getDataType() == Constants.TYPE_AUDIO_DATA) {
-					IAudioStreamCodec audioStreamCodec = AudioCodecFactory.getAudioCodec(streamPacket.getData().position(0));
-					info.setAudioCodec(audioStreamCodec);
-					audioStreamCodec.addData(streamPacket.getData().position(0));
-					info.setHasAudio(true);
-					firstAudioPacketReceived = true;
-				} else if (!firstVideoPacketReceived && streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
-					IVideoStreamCodec videoStreamCodec = VideoCodecFactory.getVideoCodec(streamPacket.getData().position(0));
-					videoStreamCodec.addData(streamPacket.getData().position(0));
-					info.setVideoCodec(videoStreamCodec);
-					info.setHasVideo(true);
-					firstVideoPacketReceived = true;
-				}
-
-
-				if (lastTimeStamp < 6000) {
-
-					if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
-						VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
-						videoData.setTimestamp(streamPacket.getTimestamp());
-						videoData.setReceivedTime(System.currentTimeMillis());
-
-						muxAdaptor.packetReceived(null, videoData);
-
-					}
-
-					else {
-						CachedEvent event = new CachedEvent();
-						event.setData(streamPacket.getData().duplicate());
-						event.setDataType(streamPacket.getDataType());
-						event.setReceivedTime(System.currentTimeMillis());
-						event.setTimestamp(streamPacket.getTimestamp());
-
-						muxAdaptor.packetReceived(null, event);
-
-					}
-
-
-				} else {
-					break;
-				}
-			}
-			System.gc();
-
-			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(muxAdaptor::isRecording);
-			//let the buffered time finish and buffering state is true
-			Awaitility.await().atMost(10, TimeUnit.SECONDS).until(muxAdaptor::isBuffering);
-
-			//load again for 6 more seconds
-			while (flvReader.hasMoreTags()) {
-				ITag readTag = flvReader.readTag();
-
-				if (readTag.getTimestamp() - lastTimeStamp < 6000) {
-					StreamPacket streamPacket = new StreamPacket(readTag);
-					muxAdaptor.packetReceived(null, streamPacket);
-				} else {
-					break;
-				}
-			}
-			System.out.println("finish feeding");
-			//buffering should be false after a while because it's loaded with 5 seconds
-			Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> !muxAdaptor.isBuffering());
-
-			//after 6 seconds buffering should be also true again because it's finished
-			Awaitility.await().atMost(6, TimeUnit.SECONDS).until(muxAdaptor::isBuffering);
-
-			muxAdaptor.stop(true);
-
-			Awaitility.await().atMost(4, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
-
+			broadcast.setStreamId(streamId);
 		} catch (Exception e) {
 			e.printStackTrace();
-			fail(e.getMessage());
 		}
+
+		muxAdaptor.setBroadcast(broadcast);
+		boolean result = muxAdaptor.init(appScope, streamId, false);
+		assertTrue(result);
+
+		muxAdaptor.start();
+
+
+		final FLVReader flvReader = new FLVReader(file);
+		boolean firstAudioPacketReceived = false;
+		boolean firstVideoPacketReceived = false;
+		long lastTimeStamp = 0;
+		while (flvReader.hasMoreTags()) {
+			ITag readTag = flvReader.readTag();
+			StreamPacket streamPacket = new StreamPacket(readTag);
+			lastTimeStamp = readTag.getTimestamp();
+			if (!firstAudioPacketReceived && streamPacket.getDataType() == Constants.TYPE_AUDIO_DATA) {
+				IAudioStreamCodec audioStreamCodec = AudioCodecFactory.getAudioCodec(streamPacket.getData().position(0));
+				info.setAudioCodec(audioStreamCodec);
+				audioStreamCodec.addData(streamPacket.getData().position(0));
+				info.setHasAudio(true);
+				firstAudioPacketReceived = true;
+			} else if (!firstVideoPacketReceived && streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+				IVideoStreamCodec videoStreamCodec = VideoCodecFactory.getVideoCodec(streamPacket.getData().position(0));
+				videoStreamCodec.addData(streamPacket.getData().position(0));
+				info.setVideoCodec(videoStreamCodec);
+				info.setHasVideo(true);
+				firstVideoPacketReceived = true;
+			}
+
+
+			if (lastTimeStamp < 6000) {
+
+				if (streamPacket.getDataType() == Constants.TYPE_VIDEO_DATA) {
+					VideoData videoData = new VideoData(streamPacket.getData().duplicate().position(0));
+					videoData.setTimestamp(streamPacket.getTimestamp());
+					videoData.setReceivedTime(System.currentTimeMillis());
+
+					muxAdaptor.packetReceived(null, videoData);
+
+				}
+
+				else {
+					CachedEvent event = new CachedEvent();
+					event.setData(streamPacket.getData().duplicate());
+					event.setDataType(streamPacket.getDataType());
+					event.setReceivedTime(System.currentTimeMillis());
+					event.setTimestamp(streamPacket.getTimestamp());
+
+					muxAdaptor.packetReceived(null, event);
+
+				}
+
+
+			} else {
+				break;
+			}
+		}
+		System.gc();
+
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(muxAdaptor::isRecording);
+		//let the buffered time finish and buffering state is true
+		Awaitility.await().atMost(10, TimeUnit.SECONDS).until(muxAdaptor::isBuffering);
+
+		//load again for 6 more seconds
+		while (flvReader.hasMoreTags()) {
+			ITag readTag = flvReader.readTag();
+
+			if (readTag.getTimestamp() - lastTimeStamp < 6000) {
+				StreamPacket streamPacket = new StreamPacket(readTag);
+				muxAdaptor.packetReceived(null, streamPacket);
+			} else {
+				break;
+			}
+		}
+		System.out.println("finish feeding");
+		//buffering should be false after a while because it's loaded with 5 seconds
+		Awaitility.await().atMost(5, TimeUnit.SECONDS).until(() -> !muxAdaptor.isBuffering());
+
+		//after 6 seconds buffering should be also true again because it's finished
+		Awaitility.await().atMost(6, TimeUnit.SECONDS).until(muxAdaptor::isBuffering);
+
+		muxAdaptor.stop(true);
+
+		Awaitility.await().atMost(4, TimeUnit.SECONDS).until(() -> !muxAdaptor.isRecording());
+
+
 
 		getAppSettings().setRtmpIngestBufferTimeMs(0);
 
@@ -2785,7 +2782,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		boolean result = muxAdaptor.init(appScope, streamId, false);
-		
+
 		muxAdaptor.getDataStore().save(broadcast);
 
 		muxAdaptor.updateStreamQualityParameters(streamId, null, 0.99612, 10);
@@ -2802,7 +2799,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(10, broadcast2.getPendingPacketSize());
 		long lastUpdateTime = broadcast2.getUpdateTime();
 		assertTrue((System.currentTimeMillis() - lastUpdateTime) < 1000);
-		
+
 		//todo: this is a hack to increase the coverage for webhook things, add better tests to confirm
 		muxAdaptor.getAppSettings().setWebhookStreamStatusUpdatePeriodMs(1000);
 
@@ -3599,7 +3596,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			}
 		}
 	}
-	
+
 
 
 	@Test
@@ -4235,53 +4232,63 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	}
 
 	@Test
-	public void testNotifyMetadata() {
+	public void testNotifyMetadata() 
+	{
 		ClientBroadcastStream clientBroadcastStream = new ClientBroadcastStream();
 		StreamCodecInfo info = new StreamCodecInfo();
 		clientBroadcastStream.setCodecInfo(info);
-		
+
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
 		MuxAdaptor muxAdaptor = spy(MuxAdaptor.initializeMuxAdaptor(clientBroadcastStream, null, false, appScope));
-		
+
+
 		Notify notify = mock(Notify.class);
 		when(notify.getData()).thenReturn(IoBuffer.allocate(100));
 		when(notify.getAction()).thenReturn("NOT_onMetaData");
-		
+
 		Muxer muxer = mock(Muxer.class);
 		muxAdaptor.addMuxer(muxer, 0);
-		
+		Input input = mock(Input.class);
+
 		muxAdaptor.notifyMetaDataReceived(notify, 0);
-		
+
 		//verify that it's not called because action is not onMetaData
 		verify(muxer, never()).writeMetaData(anyString(), anyLong());
-		
-		
+
+		when(input.readDataType()).thenReturn(DataTypes.CORE_NUMBER);
+		when(input.readMap()).thenReturn(new HashMap<>());
+
 		when(notify.getAction()).thenReturn("onMetaData");
+		when(notify.getData()).thenReturn(IoBuffer.allocate(100));
+
 		muxAdaptor.notifyMetaDataReceived(notify, 0);
 		//verify that it's not called because data type is not as expected
 		verify(muxer, never()).writeMetaData(anyString(), anyLong());
-		
-		Input input = mock(Input.class);
+
+
 		when(input.readDataType()).thenReturn(DataTypes.CORE_MAP);
 		doReturn(input).when(muxAdaptor).getInput(any());
 		muxAdaptor.notifyMetaDataReceived(notify, 0);
 		verify(muxer, never()).writeMetaData(anyString(), anyLong());
 
-		
+
 		when(input.readMap()).thenReturn(new HashMap<>());
 		muxAdaptor.notifyMetaDataReceived(notify, 0);
 		verify(muxer, never()).writeMetaData(anyString(), anyLong());
-		
+
+
+		when(notify.getData()).thenReturn(IoBuffer.allocate(100));
 		Map<String, String> map = new HashMap<>();
 		map.put("streamId", "streamId");
 		map.put("name", "streamId");
 		when(input.readMap()).thenReturn(map);
+
 		muxAdaptor.notifyMetaDataReceived(notify, 0);
 		verify(muxer, times(1)).writeMetaData(anyString(), anyLong());
-		
+
 	}
-	
+
 	@Test
 	public void testRelayRTMPMetadata() {
 
@@ -4328,22 +4335,22 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			boolean result = muxAdaptor.init(appScope, streamId, false);
 
 			assertTrue(result);
-			
+
 			HLSMuxer hlsMuxer = mock(HLSMuxer.class);
 			when(hlsMuxer.prepareIO()).thenReturn(true);
 			muxAdaptor.addMuxer(hlsMuxer, 0);
-			
+
 			//
 			Input input = mock(Input.class);
 			when(input.readDataType()).thenReturn(DataTypes.CORE_MAP);
-			
+
 			Map<String, String> map = new HashMap<>();
 			map.put("streamId", streamId);
 			map.put("name", streamId);
-            when(input.readMap()).thenReturn(map);
-			
-			
-				
+			when(input.readMap()).thenReturn(map);
+
+
+
 			doReturn(input).when(muxAdaptor).getInput(any());
 
 
@@ -4353,8 +4360,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			boolean firstAudioPacketReceived = false;
 			boolean firstVideoPacketReceived = false;
 			ArrayList<Integer> timeStamps = new ArrayList<>();
-			
-			
+
+
 			while (flvReader.hasMoreTags()) {
 
 				ITag readTag = flvReader.readTag();
@@ -4362,7 +4369,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				StreamPacket streamPacket = new StreamPacket(readTag);
 				lastTimeStamp = streamPacket.getTimestamp();
 
-			
+
 				timeStamps.add(lastTimeStamp);
 				if (!firstAudioPacketReceived && streamPacket.getDataType() == Constants.TYPE_AUDIO_DATA) {
 					System.out.println("audio configuration received");
@@ -4410,11 +4417,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 					Notify notify = new Notify(streamPacket.getData().duplicate());
 					notify.setAction("onMetaData");
 					notify.setTimestamp(streamPacket.getTimestamp());
-					
+
 					muxAdaptor.packetReceived(null, notify);
 				}
 			}
-			
+
 			verify(hlsMuxer, atLeast(1)).writeMetaData(eq(new JSONObject(map).toJSONString()), anyLong());
 
 			Awaitility.await().atMost(90, TimeUnit.SECONDS).until(muxAdaptor::isRecording);
@@ -4431,7 +4438,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			assertFalse(muxAdaptor.isRecording());
 
-			
+
 
 
 		} catch (Exception e) {
@@ -4620,7 +4627,8 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 	@Test
 	public void testRemux() {
-		String input = "target/test-classes/sample_MP4_480.mp4";
+
+		String input = "src/test/resources/test_video_360p.flv";
 		String rotated = "rotated.mp4";
 
 		Mp4Muxer.remux(input, rotated, 90);
@@ -5215,7 +5223,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		verify(hlsMuxer, times(1)).writeDataFrame(any(), any());
 	}
 
-	//@Test
+	@Test
 	public void testID3Timing() {
 		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class),
 				"streams", 0, "http://example.com", false));
@@ -5686,7 +5694,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		directByteBufferVideo.position(0);
 		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket3.getTimestamp(), 0, 0, false, 0, 
-					videoPacket3.getTimestamp());
+				videoPacket3.getTimestamp());
 
 		muxAdaptor.writeStreamPacket(audioPacket4);
 		overFlowCount = muxAdaptor.getOverflowCount();
@@ -5702,7 +5710,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		verify(hlsMuxer,times(1)).writeAudioBuffer(directByteBuffer,1, audioPacket4.getTimestamp());
 		verify(hlsMuxer,times(1)).writeVideoBuffer(directByteBufferVideo, videoPacket4.getTimestamp(), 0, 0, false, 0,
-					videoPacket4.getTimestamp() );
+				videoPacket4.getTimestamp() );
 
 		muxAdaptor.writeStreamPacket(audioPacketOverflowed);
 		overFlowCount = muxAdaptor.getOverflowCount();

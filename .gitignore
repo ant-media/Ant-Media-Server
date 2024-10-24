@@ -21,3 +21,4 @@ temp/
 *.iml
 .idea
 .fleet
+/ffmpeg*.jar

@@ -80,6 +80,11 @@ public class UploadHLSChunk extends HttpServlet {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		} 
 	}
+	
+	@Override
+	protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+		super.doPut(req, resp);
+	}
 
 	@Override
 	protected void doPut(HttpServletRequest req, HttpServletResponse resp) 
@@ -122,7 +127,7 @@ public class UploadHLSChunk extends HttpServlet {
 			}
 			else if (event.getEventType() == ProgressEventType.TRANSFER_COMPLETED_EVENT)
 			{	
-				logger.info("File uploaded to S3 with key: {}", s3FileKey);
+				logger.debug("File uploaded to S3 with key: {}", s3FileKey);
 			}
 		});
 
