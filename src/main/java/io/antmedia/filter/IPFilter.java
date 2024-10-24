@@ -31,7 +31,6 @@ public class IPFilter extends AbstractFilter {
 		
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		if (isAllowed(request.getRemoteAddr()) || RestProxyFilter.isNodeCommunicationTokenValid(httpRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION),  getAppSettings().getClusterCommunicationKey(), httpRequest.getRequestURI())) {
-			logger.info("yunus IT IS VALID, REREDIRECTING!!!");
 			chain.doFilter(request, response);
 			return;
 		}

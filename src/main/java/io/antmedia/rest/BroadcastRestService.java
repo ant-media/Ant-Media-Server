@@ -1322,7 +1322,6 @@ public class BroadcastRestService extends RestServiceBase{
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result startStreamSourceV2(@Parameter(description = "the id of the stream. The broadcast type should be IP Camera or Stream Source otherwise it does not work", required = true) @PathParam("id") String id) 
 	{
-		logger.info("yunus I RECEIVED START STREAMING!!!");
 		return super.startStreamSource(id);
 	}
 

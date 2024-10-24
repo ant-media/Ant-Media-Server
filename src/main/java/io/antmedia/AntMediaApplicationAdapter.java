@@ -1301,7 +1301,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public Result startStreaming(Broadcast broadcast)
 	{
-		logger.info("yunus START STREAMING REQUEST CAME!");
 		Result result = new Result(false);
 
 		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
@@ -1310,16 +1309,9 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				)  {
 
 			if(isClusterMode()){
-				logger.info("yunus IS IS CLUSTER MODE");
-
 				String broadcastOriginAddress = broadcast.getOriginAdress();
-				logger.info("yunus broadcast origin address: {}", broadcastOriginAddress);
-				logger.info("yunus server settings host address: {}", getServerSettings().getHostAddress());
-
 
 				if(broadcastOriginAddress.equals(getServerSettings().getHostAddress())){
-					logger.info("yunus I AM THE ORIGIN I AM STARTING ON MYSELF");
-
 					result = getStreamFetcherManager().startStreaming(broadcast);
 					return result;
 				}
@@ -1344,22 +1336,15 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	}
 
 	public void forwardStartStreaming(Broadcast broadcast){
-		logger.info("yunus FORWARD START STREAMING CALLED!");
 		String jwtToken = JWTFilter.generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);
-		logger.info("yunus GENERATED JWT TOKEN: {}", jwtToken);
-
 		String restRouteOfNode = "http://" + broadcast.getOriginAdress() + ":" + getServerSettings().getDefaultHttpPort()  + File.separator + getAppSettings().getAppName() + File.separator+ "rest" +
 				File.separator +"v2" + File.separator +"broadcasts" +
 				File.separator + broadcast.getStreamId() + File.separator + "start";
 
-		logger.info("yunus REST ROUTE: {}", jwtToken);
-
-
 		Map<String, Object> variables = new HashMap<>();
 
 		variables.put(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken);
-
-
+		
 		vertx.executeBlocking(() -> {
 			try {
 				sendPOST(restRouteOfNode, variables, getAppSettings().getWebhookRetryCount(), getAppSettings().getWebhookContentType());

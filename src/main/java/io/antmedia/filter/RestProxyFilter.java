@@ -257,9 +257,6 @@ public class RestProxyFilter extends AbstractFilter {
 	 */
 	public static  boolean isNodeCommunicationTokenValid(String jwtInternalCommunicationToken, String jwtSecretKey, String requestURI) 
 	{
-		logger.info("yunus CHECKING IF NODE COMMUNICATION TOKEN IS VALID OR NOT...");
-		logger.info("yunus token:{} ", jwtInternalCommunicationToken);
-
 		boolean result = false;
 		if (jwtInternalCommunicationToken != null)
 		{
