@@ -6,10 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -37,6 +34,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
+import io.antmedia.filter.TokenFilterManager;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
@@ -1816,10 +1814,85 @@ public class AntMediaApplicationAdaptorUnitTest {
 		startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
 		assertFalse(startStreaming);
 
-
-
 	}
 
+	@Test
+	public void testStartStreamingForwardToOrigin(){
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
+
+		when(context.getBean(IDataStoreFactory.BEAN_NAME)).thenReturn(dsf);
+
+
+		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
+		when(context.getApplicationContext()).thenReturn(appContext);
+		when(context.getResource(Mockito.anyString())).thenReturn(Mockito.mock(org.springframework.core.io.Resource.class));
+
+		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		when(spyAdapter.getScope()).thenReturn(scope);
+		when(scope.getContext()).thenReturn(context);
+
+		when(spyAdapter.getServerSettings()).thenReturn(serverSettings);
+		when(serverSettings.getHostAddress()).thenReturn("1.1.1.2");
+
+		AppSettings appSettings = new AppSettings();
+		appSettings.setAppName("WebRTCAppEE");
+
+		spyAdapter.setAppSettings(appSettings);
+		spyAdapter.setDataStore(dataStore);
+
+		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
+
+		when(appContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
+		when(appContext.containsBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(true);
+		when(appContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
+
+		when(scope.getContext()).thenReturn(context);
+		spyAdapter.setDataStoreFactory(dsf);
+
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+		spyAdapter.setScope(scope);
+
+		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
+		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		when(licenseService.isLicenceSuspended()).thenReturn(false);
+
+
+		Broadcast broadcast = new Broadcast();
+		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast.setOriginAdress("1.1.1.2");
+		broadcast.setStreamUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4");
+		dataStore.save(broadcast);
+
+		when(spyAdapter.isClusterMode()).thenReturn(true);
+
+		boolean startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
+		assertTrue(startStreaming);
+
+		when(serverSettings.getHostAddress()).thenReturn("1.1.1.3");
+		when(serverSettings.getDefaultHttpPort()).thenReturn(Integer.valueOf("5080"));
+
+		String restRouteOfNode = "http://" + broadcast.getOriginAdress() + ":" + "5080"  + File.separator + appSettings.getAppName() + File.separator+ "rest" +
+				File.separator +"v2" + File.separator +"broadcasts" +
+				File.separator + broadcast.getStreamId() + File.separator + "start";
+
+		startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
+		assertTrue(startStreaming);
+
+		verify(spyAdapter,times(1)).forwardStartStreaming(broadcast);
+		verify(spyAdapter,times(1)).sendPOST(eq(restRouteOfNode), argThat(map -> map.containsKey(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION)), anyInt(), anyString());
+
+	}
 	@Test
 	public void testStreamFetcherNotStartAutomatically() 
 	{
