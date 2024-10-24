@@ -97,18 +97,10 @@ public class RestProxyFilter extends AbstractFilter {
 				 * forward the request to the origin address. This also handles the scenario if the origin server is dead or broadcast stuck
 				 * because AntMediaApplicationAdapter.isStreaming checks the last update time
 				 */
-
-				// stop durumunda yönlendirme yok.
-				// broadcast rtsp ise offline olsa bile yönlendir.
-
-					//1-) origin ölmüş olabilir. (kubernetes pod is dead)
-				    //2-) node doluysa ne yapacağız.
 				else if (broadcast != null && AntMediaApplicationAdapter.isStreaming(broadcast)
 						&& !isRequestDestinedForThisNode(request.getRemoteAddr(), broadcast.getOriginAdress())
 						&& isHostRunning(broadcast.getOriginAdress(), getServerSettings().getDefaultHttpPort())) 
 				{
-
-
 					forwardRequestToNode(request, response, broadcast.getOriginAdress());
 				}
 				else 
