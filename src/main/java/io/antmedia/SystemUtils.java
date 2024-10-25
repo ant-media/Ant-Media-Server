@@ -286,8 +286,8 @@ public class SystemUtils {
 		if(containerized) {
 			return osFreePhysicalMemory();
 		}
-		
-		return Pointer.availablePhysicalBytes();
+
+		return availablePhysicalBytes();
 	}
 
 	/**
@@ -712,7 +712,6 @@ public class SystemUtils {
 		}
 	}
 
-
 	private static HotSpotDiagnosticMXBean getHotspotMBean() {
 		try {
 			synchronized (SystemUtils.class) {
@@ -730,14 +729,20 @@ public class SystemUtils {
 		return hotspotMBean;
 	}
 
+	public static long availablePhysicalBytes(){
+		return Pointer.availablePhysicalBytes();
+	}
+
 	public static boolean isContainerized() {
 		try {
+			Path dockerEnvPath = Paths.get("/.dockerenv");
 
 			// 1. Check for .dockerenv file
-			if (new File("/.dockerenv").exists()) {
+			if (Files.exists(dockerEnvPath)) {
 				logger.debug("Container detected via .dockerenv file");
 				return true;
 			}
+
 
 			// 2. Check cgroup info
 			Path cgroupPath = Paths.get("/proc/self/cgroup");
@@ -749,18 +754,6 @@ public class SystemUtils {
 							line.contains("/kubepods") ||
 							line.contains("/containerd")) {
 						logger.debug("Container detected via cgroup: {}", line);
-						return true;
-					}
-				}
-			}
-
-			// 3. Check mount namespaces
-			Path mountInfo = Paths.get("/proc/self/mountinfo");
-			if (Files.exists(mountInfo)) {
-				List<String> mountContent = Files.readAllLines(mountInfo);
-				for (String line : mountContent) {
-					if (line.contains("/docker") || line.contains("/lxc")) {
-						logger.debug("Container detected via mountinfo: {}", line);
 						return true;
 					}
 				}

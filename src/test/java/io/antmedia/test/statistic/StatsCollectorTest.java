@@ -7,15 +7,16 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.ThreadInfo;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -25,10 +26,12 @@ import org.apache.kafka.clients.producer.ProducerRecord;
 import org.apache.kafka.clients.producer.RecordMetadata;
 import org.awaitility.Awaitility;
 import org.bytedeco.ffmpeg.avutil.AVRational;
+import org.bytedeco.javacpp.Pointer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.red5.server.Launcher;
 import org.red5.server.api.IContext;
@@ -348,7 +351,7 @@ public class StatsCollectorTest {
 			return true;
 		});
 		
-		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic();
+		Mockito.verify(resMonitor, times(1)).startAnalytic();
 		
 		resMonitor.cancelHeartBeat();
 		
@@ -357,7 +360,7 @@ public class StatsCollectorTest {
 		resMonitor.setHeartBeatEnabled(false);
 		resMonitor.start();
 		assertFalse(resMonitor.isHeartBeatEnabled());
-		Mockito.verify(resMonitor, Mockito.times(1)).startAnalytic();
+		Mockito.verify(resMonitor, times(1)).startAnalytic();
 		
 		resMonitor.cancelHeartBeat();
 		
@@ -481,7 +484,7 @@ public class StatsCollectorTest {
 	
 		resMonitor.collectAndSendWebRTCClientsStats();
 		
-		verify(kafkaProducer, Mockito.times(1)).send(Mockito.any());		
+		verify(kafkaProducer, times(1)).send(Mockito.any());
 		
 	}
 	
@@ -712,5 +715,95 @@ public class StatsCollectorTest {
 		
 		
 	}
-	
+
+	@Test
+	public void testOsAvailableMemory() {
+		long availableMemory = 1024;
+		long containerizedMemory = 2048;
+		try (MockedStatic<SystemUtils> mockedSystemUtils = Mockito.mockStatic(SystemUtils.class)) {
+			// Set up base mocking to allow real method call
+			mockedSystemUtils.when(SystemUtils::osAvailableMemory)
+					.thenCallRealMethod();
+
+			// Test non-containerized scenario
+			mockedSystemUtils.when(SystemUtils::isContainerized).thenReturn(false);
+			mockedSystemUtils.when(SystemUtils::availablePhysicalBytes).thenReturn(availableMemory);
+
+			long nonContainerizedResult = SystemUtils.osAvailableMemory();
+			assertEquals(availableMemory, nonContainerizedResult);
+
+			// Reset the state for containerized scenario
+			SystemUtils.containerized = null;
+
+			// Test containerized scenario
+			mockedSystemUtils.when(SystemUtils::isContainerized).thenReturn(true);
+			mockedSystemUtils.when(SystemUtils::osFreePhysicalMemory).thenReturn(containerizedMemory);
+
+			long containerizedResult = SystemUtils.osAvailableMemory();
+			assertEquals(containerizedMemory, containerizedResult);
+
+			// Verify all calls
+			mockedSystemUtils.verify(SystemUtils::isContainerized, times(2));
+			mockedSystemUtils.verify(SystemUtils::availablePhysicalBytes, times(1));
+			mockedSystemUtils.verify(SystemUtils::osFreePhysicalMemory, times(1));
+		}
+	}
+
+	@Test
+	public void testIsContainerized() {
+		Path mockDockerEnvPath = Path.of("/tmp/test/.dockerenv");
+		Path mockCgroupPath = Path.of("/tmp/test/cgroup");
+
+		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class);
+			 MockedStatic<Paths> mockedPaths = Mockito.mockStatic(Paths.class)) {
+
+			// Setup path mocks
+			mockedPaths.when(() -> Paths.get("/.dockerenv")).thenReturn(mockDockerEnvPath);
+			mockedPaths.when(() -> Paths.get("/proc/self/cgroup")).thenReturn(mockCgroupPath);
+
+			// Test 1: Docker environment file exists
+			mockedFiles.when(() -> Files.exists(mockDockerEnvPath)).thenReturn(true);
+			assertTrue(SystemUtils.isContainerized());
+
+			// Test 2: Docker in cgroup
+			mockedFiles.when(() -> Files.exists(mockDockerEnvPath)).thenReturn(false);
+			mockedFiles.when(() -> Files.exists(mockCgroupPath)).thenReturn(true);
+			mockedFiles.when(() -> Files.readAllLines(mockCgroupPath))
+					.thenReturn(Collections.singletonList("12:memory:/docker/someId"));
+			assertTrue(SystemUtils.isContainerized());
+
+			// Test 3: LXC in cgroup
+			mockedFiles.when(() -> Files.readAllLines(mockCgroupPath))
+					.thenReturn(Collections.singletonList("12:memory:/lxc/someId"));
+			assertTrue(SystemUtils.isContainerized());
+
+			// Test 4: Kubernetes in cgroup
+			mockedFiles.when(() -> Files.readAllLines(mockCgroupPath))
+					.thenReturn(Collections.singletonList("12:memory:/kubepods/someId"));
+			assertTrue(SystemUtils.isContainerized());
+
+			// Test 5: Containerd in cgroup
+			mockedFiles.when(() -> Files.readAllLines(mockCgroupPath))
+					.thenReturn(Collections.singletonList("12:memory:/containerd/someId"));
+			assertTrue(SystemUtils.isContainerized());
+
+			// Test 6: No container
+			mockedFiles.when(() -> Files.readAllLines(mockCgroupPath))
+					.thenReturn(Collections.singletonList("12:memory:/user.slice"));
+			assertFalse(SystemUtils.isContainerized());
+
+			// Test 7: File access exception
+			mockedFiles.when(() -> Files.exists(mockDockerEnvPath))
+					.thenThrow(new SecurityException("Access denied"));
+			assertFalse(SystemUtils.isContainerized());
+
+			// Test 8: Read exception
+			mockedFiles.when(() -> Files.exists(mockDockerEnvPath)).thenReturn(false);
+			mockedFiles.when(() -> Files.exists(mockCgroupPath)).thenReturn(true);
+			mockedFiles.when(() -> Files.readAllLines(mockCgroupPath))
+					.thenThrow(new IOException("Read error"));
+			assertFalse(SystemUtils.isContainerized());
+		}
+	}
+
 }
