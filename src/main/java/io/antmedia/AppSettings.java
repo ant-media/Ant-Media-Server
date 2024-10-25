@@ -2129,7 +2129,8 @@ public class AppSettings implements Serializable{
 	private boolean sendAudioLevelToViewers = false;
 
 	/**
-	 * Enable/disable video frame scaling in GPU when there is an adaptive bitrate
+	 * Enable/disable video frame scaling in GPU when there is an adaptive bitrate.
+	 * It's disabled by default. If you want to use this feature, ask from Ant Media Support to have the build that supports this feature - mekya
 	 */
 	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":false}}")
 	private boolean hwScalingEnabled = false;

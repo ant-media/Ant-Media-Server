@@ -278,6 +278,8 @@ public abstract class Muxer {
 	private long startTimeInSeconds;
 	private long currentTimeInSeconds;
 
+	private int videoCodecId;
+
 
 	protected Muxer(Vertx vertx) {
 		this.vertx = vertx;
@@ -815,6 +817,7 @@ public abstract class Muxer {
 			inputOutputStreamIndexMap.put(streamIndex, outStream.index());
 			videoWidth = width;
 			videoHeight = height;
+			videoCodecId = codecId;
 			result = true;
 		}
 		return result;
@@ -904,6 +907,7 @@ public abstract class Muxer {
 				}
 				videoWidth = codecParameters.width();
 				videoHeight = codecParameters.height();
+				videoCodecId = codecParameters.codec_id();
 			}
 			else 
 			{
@@ -1473,7 +1477,14 @@ public abstract class Muxer {
 
 	public void writeMetaData(String data, long dts) {
 		//some subclasses may override this method such as HLS
-		
+	}
+	
+	public int getVideoCodecId() {
+		return videoCodecId;
+	}
+	
+	public String getSubFolder() {
+		return subFolder;
 	}
 
 }
