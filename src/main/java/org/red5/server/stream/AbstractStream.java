@@ -185,7 +185,7 @@ public abstract class AbstractStream implements IStream {
         
         //ECMA array
         if (readDataType == DataTypes.CORE_MAP) {
-        	log.info("metadata read data type -->>>> core map");
+        	log.debug("metadata read data type -->>>> core map");
 	        Map<Object, Object> readMap =  (Map<Object, Object>) input.readMap();
 	        Object timeCode = readMap.get("timecode");
 	        
