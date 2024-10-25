@@ -5,6 +5,10 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
 
 import javax.management.MBeanServer;
 
@@ -104,6 +108,8 @@ public class SystemUtils {
 	public static final int WINDOWS = 2;
 	
 	public static final int OS_TYPE;
+
+	public static Boolean containerized = null;
 	
 	static {
 		String osName = SystemUtils.osName.toLowerCase();
@@ -273,6 +279,14 @@ public class SystemUtils {
 	 * @return the amount of available physical memory
 	 */
 	public static long osAvailableMemory() {
+		if(containerized == null){
+			containerized = isContainerized();
+		}
+
+		if(containerized) {
+			return osFreePhysicalMemory();
+		}
+		
 		return Pointer.availablePhysicalBytes();
 	}
 
@@ -714,6 +728,50 @@ public class SystemUtils {
 			throw new RuntimeException(exp);
 		}
 		return hotspotMBean;
+	}
+
+	public static boolean isContainerized() {
+		try {
+
+			// 1. Check for .dockerenv file
+			if (new File("/.dockerenv").exists()) {
+				logger.debug("Container detected via .dockerenv file");
+				return true;
+			}
+
+			// 2. Check cgroup info
+			Path cgroupPath = Paths.get("/proc/self/cgroup");
+			if (Files.exists(cgroupPath)) {
+				List<String> cgroupContent = Files.readAllLines(cgroupPath);
+				for (String line : cgroupContent) {
+					if (line.contains("/docker") ||
+							line.contains("/lxc") ||
+							line.contains("/kubepods") ||
+							line.contains("/containerd")) {
+						logger.debug("Container detected via cgroup: {}", line);
+						return true;
+					}
+				}
+			}
+
+			// 3. Check mount namespaces
+			Path mountInfo = Paths.get("/proc/self/mountinfo");
+			if (Files.exists(mountInfo)) {
+				List<String> mountContent = Files.readAllLines(mountInfo);
+				for (String line : mountContent) {
+					if (line.contains("/docker") || line.contains("/lxc")) {
+						logger.debug("Container detected via mountinfo: {}", line);
+						return true;
+					}
+				}
+			}
+
+			return false;
+
+		} catch (Exception e) {
+			logger.debug("Error during container detection: {}", e.getMessage());
+			return false;
+		}
 	}
 	
 }
