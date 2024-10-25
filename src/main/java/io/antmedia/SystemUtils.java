@@ -1,6 +1,8 @@
 package io.antmedia;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.OperatingSystemMXBean;
@@ -284,8 +286,14 @@ public class SystemUtils {
 		}
 
 		if(containerized) {
-			return osFreePhysicalMemory();
-		}
+			try{
+				return getMemAvailableFromCgroup();
+
+			}catch (IOException e) {
+				logger.debug("Could not get mem available from cgroup. Will return os free physical memory instead.");
+                return osFreePhysicalMemory();
+            }
+        }
 
 		return availablePhysicalBytes();
 	}
@@ -764,6 +772,36 @@ public class SystemUtils {
 		} catch (Exception e) {
 			logger.debug("Error during container detection: {}", e.getMessage());
 			return false;
+		}
+	}
+
+	public static Long getMemAvailableFromCgroup() throws IOException {
+		Long memoryUsage;
+		Long memoryLimit;
+
+		// Try reading memory usage and limit for cgroups v1
+		if (Files.exists(Paths.get("/sys/fs/cgroup/memory/memory.usage_in_bytes")) &&
+				Files.exists(Paths.get("/sys/fs/cgroup/memory/memory.limit_in_bytes"))) {
+			memoryUsage = readLongFromFile("/sys/fs/cgroup/memory/memory.usage_in_bytes");
+			memoryLimit = readLongFromFile("/sys/fs/cgroup/memory/memory.limit_in_bytes");
+
+			// Try reading memory usage and limit for cgroups v2
+		} else if (Files.exists(Paths.get("/sys/fs/cgroup/memory.current")) &&
+				Files.exists(Paths.get("/sys/fs/cgroup/memory.max"))) {
+			memoryUsage = readLongFromFile("/sys/fs/cgroup/memory.current");
+			memoryLimit = readLongFromFile("/sys/fs/cgroup/memory.max");
+		} else {
+			logger.debug("Could not find cgroup memory files. Will return os free physical memory instead.");
+			return osFreePhysicalMemory();
+		}
+
+		// Calculate available memory
+		return memoryLimit - memoryUsage;
+	}
+
+	public static Long readLongFromFile(String filePath) throws IOException {
+		try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+			return Long.parseLong(reader.readLine().trim());
 		}
 	}
 	

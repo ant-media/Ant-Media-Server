@@ -7,8 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -720,7 +719,7 @@ public class StatsCollectorTest {
 	public void testOsAvailableMemory() {
 		long availableMemory = 1024;
 		long containerizedMemory = 2048;
-		try (MockedStatic<SystemUtils> mockedSystemUtils = Mockito.mockStatic(SystemUtils.class)) {
+		try (MockedStatic<SystemUtils> mockedSystemUtils = mockStatic(SystemUtils.class)) {
 			// Set up base mocking to allow real method call
 			mockedSystemUtils.when(SystemUtils::osAvailableMemory)
 					.thenCallRealMethod();
@@ -737,7 +736,7 @@ public class StatsCollectorTest {
 
 			// Test containerized scenario
 			mockedSystemUtils.when(SystemUtils::isContainerized).thenReturn(true);
-			mockedSystemUtils.when(SystemUtils::osFreePhysicalMemory).thenReturn(containerizedMemory);
+			mockedSystemUtils.when(SystemUtils::getMemAvailableFromCgroup).thenReturn(containerizedMemory);
 
 			long containerizedResult = SystemUtils.osAvailableMemory();
 			assertEquals(containerizedMemory, containerizedResult);
@@ -745,7 +744,7 @@ public class StatsCollectorTest {
 			// Verify all calls
 			mockedSystemUtils.verify(SystemUtils::isContainerized, times(2));
 			mockedSystemUtils.verify(SystemUtils::availablePhysicalBytes, times(1));
-			mockedSystemUtils.verify(SystemUtils::osFreePhysicalMemory, times(1));
+			mockedSystemUtils.verify(SystemUtils::getMemAvailableFromCgroup, times(1));
 		}
 	}
 
@@ -754,8 +753,8 @@ public class StatsCollectorTest {
 		Path mockDockerEnvPath = Path.of("/tmp/test/.dockerenv");
 		Path mockCgroupPath = Path.of("/tmp/test/cgroup");
 
-		try (MockedStatic<Files> mockedFiles = Mockito.mockStatic(Files.class);
-			 MockedStatic<Paths> mockedPaths = Mockito.mockStatic(Paths.class)) {
+		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class);
+			 MockedStatic<Paths> mockedPaths = mockStatic(Paths.class)) {
 
 			// Setup path mocks
 			mockedPaths.when(() -> Paths.get("/.dockerenv")).thenReturn(mockDockerEnvPath);
@@ -803,6 +802,79 @@ public class StatsCollectorTest {
 			mockedFiles.when(() -> Files.readAllLines(mockCgroupPath))
 					.thenThrow(new IOException("Read error"));
 			assertFalse(SystemUtils.isContainerized());
+		}
+	}
+
+	@Test
+	public void testGetMemAvailableFromCgroup() throws IOException {
+		String cgroupV1UsagePath = "/sys/fs/cgroup/memory/memory.usage_in_bytes";
+		String cgroupV1LimitPath = "/sys/fs/cgroup/memory/memory.limit_in_bytes";
+		String cgroupV2UsagePath = "/sys/fs/cgroup/memory.current";
+		String cgroupV2LimitPath = "/sys/fs/cgroup/memory.max";
+		long expectedUsage = 5000L;
+		long expectedLimit = 10000L;
+		long expectedOsFreeMemory = 8000L;
+
+		// Test all three scenarios using nested try-with-resources
+		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class);
+			 MockedStatic<Paths> mockedPaths = mockStatic(Paths.class)) {
+
+			// Mock Path objects
+			Path cgroupV1UsagePathObj = mock(Path.class);
+			Path cgroupV1LimitPathObj = mock(Path.class);
+			Path cgroupV2UsagePathObj = mock(Path.class);
+			Path cgroupV2LimitPathObj = mock(Path.class);
+
+			// Set up Paths.get() mocks
+			when(Paths.get(cgroupV1UsagePath)).thenReturn(cgroupV1UsagePathObj);
+			when(Paths.get(cgroupV1LimitPath)).thenReturn(cgroupV1LimitPathObj);
+			when(Paths.get(cgroupV2UsagePath)).thenReturn(cgroupV2UsagePathObj);
+			when(Paths.get(cgroupV2LimitPath)).thenReturn(cgroupV2LimitPathObj);
+
+			// Test Scenario 1: cgroups v1 exists
+			mockedFiles.when(() -> Files.exists(cgroupV1UsagePathObj)).thenReturn(true);
+			mockedFiles.when(() -> Files.exists(cgroupV1LimitPathObj)).thenReturn(true);
+
+			try (MockedStatic<SystemUtils> mockedMemoryUtils = mockStatic(SystemUtils.class,
+					CALLS_REAL_METHODS)) {
+				mockedMemoryUtils.when(() -> SystemUtils.readLongFromFile(cgroupV1UsagePath))
+						.thenReturn(expectedUsage);
+				mockedMemoryUtils.when(() -> SystemUtils.readLongFromFile(cgroupV1LimitPath))
+						.thenReturn(expectedLimit);
+
+				long result = SystemUtils.getMemAvailableFromCgroup();
+				assertEquals(expectedLimit - expectedUsage, result);
+			}
+
+			// Test Scenario 2: cgroups v2 exists (v1 doesn't exist)
+			mockedFiles.when(() -> Files.exists(cgroupV1UsagePathObj)).thenReturn(false);
+			mockedFiles.when(() -> Files.exists(cgroupV1LimitPathObj)).thenReturn(false);
+			mockedFiles.when(() -> Files.exists(cgroupV2UsagePathObj)).thenReturn(true);
+			mockedFiles.when(() -> Files.exists(cgroupV2LimitPathObj)).thenReturn(true);
+
+			try (MockedStatic<SystemUtils> mockedMemoryUtils = mockStatic(SystemUtils.class,
+					CALLS_REAL_METHODS)) {
+				mockedMemoryUtils.when(() -> SystemUtils.readLongFromFile(cgroupV2UsagePath))
+						.thenReturn(expectedUsage);
+				mockedMemoryUtils.when(() -> SystemUtils.readLongFromFile(cgroupV2LimitPath))
+						.thenReturn(expectedLimit);
+
+				long result = SystemUtils.getMemAvailableFromCgroup();
+				assertEquals(expectedLimit - expectedUsage, result);
+			}
+
+			// Test Scenario 3: No cgroups exist, falls back to OS memory
+			mockedFiles.when(() -> Files.exists(cgroupV2UsagePathObj)).thenReturn(false);
+			mockedFiles.when(() -> Files.exists(cgroupV2LimitPathObj)).thenReturn(false);
+
+			try (MockedStatic<SystemUtils> mockedMemoryUtils = mockStatic(SystemUtils.class,
+					CALLS_REAL_METHODS)) {
+				mockedMemoryUtils.when(SystemUtils::osFreePhysicalMemory)
+						.thenReturn(expectedOsFreeMemory);
+
+				long result = SystemUtils.getMemAvailableFromCgroup();
+				assertEquals(expectedOsFreeMemory, result);
+			}
 		}
 	}
 
