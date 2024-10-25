@@ -19,9 +19,7 @@ import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Random;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.*;
 
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
@@ -172,6 +170,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	public static final String STREAM_SOURCE = "streamSource";
 	public static final String PLAY_LIST = "playlist";
 	protected static final int END_POINT_LIMIT = 20;
+	public static final int CLUSTER_POST_RETRY_ATTEMPT = 3;
+	public static final int CLUSTER_POST_TIMEOUT_MS = 1000;
 
 	//Allow any sub directory under /
 	private static final String VOD_IMPORT_ALLOWED_DIRECTORY = "/";
@@ -1176,6 +1176,64 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
+
+	public boolean sendClusterPost(String url, String clusterCommunicationToken, int retryAttempts) {
+		logger.info("Sending cluster POST request to {}", url);
+		try (CloseableHttpClient httpClient = getHttpClient()) {
+			HttpPost httpPost = new HttpPost(url);
+			RequestConfig requestConfig = RequestConfig.custom()
+					.setConnectTimeout(CLUSTER_POST_TIMEOUT_MS)
+					.setConnectionRequestTimeout(CLUSTER_POST_TIMEOUT_MS)
+					.setSocketTimeout(CLUSTER_POST_TIMEOUT_MS)
+					.build();
+			httpPost.setConfig(requestConfig);
+
+			httpPost.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterCommunicationToken);
+
+			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
+				int statusCode = httpResponse.getStatusLine().getStatusCode();
+				logger.info("Cluster POST Response Status: {}", statusCode);
+				if (statusCode != HttpStatus.SC_OK) {
+					if (retryAttempts >= 1) {
+						logger.info("Retry attempt for Cluster POST in {} milliseconds due to non-200 response: {}",
+								appSettings.getWebhookRetryDelay(), statusCode);
+						return retrySendClusterPostWithDelay(url, clusterCommunicationToken, retryAttempts - 1);
+					} else {
+						logger.info("Stopping sending Cluster POST because no more retry attempts left. Giving up.");
+						return false;
+					}
+				}
+				return true;
+			}
+		} catch (IOException e) {
+			if (retryAttempts >= 1) {
+				logger.info("Retry attempt for Cluster POST in {} milliseconds due to IO exception: {}",
+						appSettings.getWebhookRetryDelay(), ExceptionUtils.getStackTrace(e));
+				return retrySendClusterPostWithDelay(url, clusterCommunicationToken, retryAttempts - 1);
+			} else {
+				logger.info("Stopping sending Cluster POST because no more retry attempts left. Giving up.");
+				return false;
+			}
+		}
+	}
+
+	public boolean retrySendClusterPostWithDelay(String url, String clusterCommunicationToken, int retryAttempts) {
+		CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
+			boolean result = sendClusterPost(url, clusterCommunicationToken, retryAttempts);
+			future.complete(result);
+		});
+
+		try {
+			// Timeout for each retry = retry delay + request timeout + buffer
+			return future.get(appSettings.getWebhookRetryDelay() + CLUSTER_POST_TIMEOUT_MS + 500, TimeUnit.MILLISECONDS);
+		} catch (InterruptedException | ExecutionException | TimeoutException e) {
+			logger.error("Error waiting for retry POST request completion", e);
+			return false;
+		}
+	}
+
 	/**
 	 *
 	 * @param url
@@ -1194,13 +1252,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					.build();
 			httpPost.setConfig(requestConfig);
 
-			if (variables.containsKey(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION)) {
-				Object clusterAuthJwt = variables.get(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION);
-				if (clusterAuthJwt != null) {
-					httpPost.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterAuthJwt.toString());
-					variables.remove(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION);
-				}
-			}
 
 			if (ContentType.APPLICATION_FORM_URLENCODED.getMimeType().equals(contentType))
 			{
@@ -1316,9 +1367,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 					return result;
 				}
 
-				forwardStartStreaming(broadcast);
-				result.setSuccess(true);
-				return result;
+				if(forwardStartStreaming(broadcast)){
+					result.setSuccess(true);
+					return result;
+				}
+
+				result = getStreamFetcherManager().startStreaming(broadcast);
+
 
 			}else{
 				result = getStreamFetcherManager().startStreaming(broadcast);
@@ -1335,26 +1390,34 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		return result;
 	}
 
-	public void forwardStartStreaming(Broadcast broadcast){
+	public boolean forwardStartStreaming(Broadcast broadcast) {
 		String jwtToken = JWTFilter.generateJwtToken(getAppSettings().getClusterCommunicationKey(), System.currentTimeMillis() + 5000);
-		String restRouteOfNode = "http://" + broadcast.getOriginAdress() + ":" + getServerSettings().getDefaultHttpPort()  + File.separator + getAppSettings().getAppName() + File.separator+ "rest" +
-				File.separator +"v2" + File.separator +"broadcasts" +
+		String restRouteOfNode = "http://" + broadcast.getOriginAdress() + ":" + getServerSettings().getDefaultHttpPort() +
+				File.separator + getAppSettings().getAppName() + File.separator + "rest" +
+				File.separator + "v2" + File.separator + "broadcasts" +
 				File.separator + broadcast.getStreamId() + File.separator + "start";
 
-		Map<String, Object> variables = new HashMap<>();
+		CompletableFuture<Boolean> future = new CompletableFuture<>();
 
-		variables.put(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, jwtToken);
-		
 		vertx.executeBlocking(() -> {
 			try {
-				sendPOST(restRouteOfNode, variables, getAppSettings().getWebhookRetryCount(), getAppSettings().getWebhookContentType());
+				boolean result = sendClusterPost(restRouteOfNode, jwtToken, CLUSTER_POST_RETRY_ATTEMPT);
+				future.complete(result);
 			} catch (Exception exception) {
 				logger.error(ExceptionUtils.getStackTrace(exception));
+				future.complete(false);
 			}
-
 			return null;
-
 		}, false);
+
+		try {
+			// Total timeout = retry attempts * (retry delay + request timeout) + buffer
+			long totalTimeout = CLUSTER_POST_RETRY_ATTEMPT * (appSettings.getWebhookRetryDelay() + 1000) + 1000;
+			return future.get(totalTimeout, TimeUnit.MILLISECONDS);
+		} catch (InterruptedException | ExecutionException | TimeoutException e) {
+			logger.error("Error waiting for Cluster POST request completion", e);
+			return false;
+		}
 
 	}
 
