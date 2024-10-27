@@ -612,8 +612,8 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	@Test
-	public void testGetAppSettings() {
-		try {
+	public void testGetAppSettings() throws Exception {
+		
 			// get LiveApp default settings and check the default values
 			// get settings from the app
 			Result result = callIsEnterpriseEdition();
@@ -653,10 +653,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		
 	}
 
 
@@ -1888,9 +1885,9 @@ public class ConsoleAppRestServiceTest{
 			String ffmpegBuildConf = (String) jsObject.get(StatsCollector.FFMPEG_BUILD_INFO);
 
 			assertTrue(ffmpegBuildConf.contains("--enable-cuda"));
-			assertTrue(ffmpegBuildConf.contains("--enable-libnpp"));
-			assertTrue(ffmpegBuildConf.contains("--extra-cflags=-I/usr/local/cuda/include"));
-			assertTrue(ffmpegBuildConf.contains("--extra-ldflags=-L/usr/local/cuda/lib64"));
+		//	assertTrue(ffmpegBuildConf.contains("--enable-libnpp")); we no longer support libnpp by default.
+		//	assertTrue(ffmpegBuildConf.contains("--extra-cflags=-I/usr/local/cuda/include"));
+		//	assertTrue(ffmpegBuildConf.contains("--extra-ldflags=-L/usr/local/cuda/lib64"));
 
 			//crystalhd is not supported in after 20.04 so remove them
 			assertTrue(ffmpegBuildConf.contains("--disable-decoder=h264_crystalhd"));

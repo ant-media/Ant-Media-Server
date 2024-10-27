@@ -205,7 +205,7 @@ generate_jwt
 
 get_freedomain(){
   hostname="ams-$RANDOM"
-  result_marketplace=$(check_marketplace)
+  result_marketplace=$(generate_jwt)
   get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
   ip=`curl -s http://checkip.amazonaws.com`
   if [ ! -z $get_license_key ]; then
