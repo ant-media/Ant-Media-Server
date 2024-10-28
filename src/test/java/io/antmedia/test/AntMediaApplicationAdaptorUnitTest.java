@@ -7,15 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.timeout;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -31,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -38,7 +31,9 @@ import io.antmedia.filter.TokenFilterManager;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.apache.http.HttpEntity;
+import org.apache.http.HttpStatus;
 import org.apache.http.StatusLine;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -1817,7 +1812,122 @@ public class AntMediaApplicationAdaptorUnitTest {
 	}
 
 	@Test
-	public void testStartStreamingForwardToOrigin(){
+	public void testStartStreamingForwardToOrigin() {
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		DataStore dataStore = new InMemoryDataStore("dbname");
+		DataStoreFactory dsf = Mockito.mock(DataStoreFactory.class);
+		Mockito.when(dsf.getDataStore()).thenReturn(dataStore);
+
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		when(context.getBean(IDataStoreFactory.BEAN_NAME)).thenReturn(dsf);
+
+		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
+		when(context.getApplicationContext()).thenReturn(appContext);
+		when(context.getResource(Mockito.anyString())).thenReturn(Mockito.mock(org.springframework.core.io.Resource.class));
+
+		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
+		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
+		when(spyAdapter.getScope()).thenReturn(scope);
+		when(scope.getContext()).thenReturn(context);
+		when(spyAdapter.getServerSettings()).thenReturn(serverSettings);
+
+		AppSettings appSettings = new AppSettings();
+		appSettings.setAppName("WebRTCAppEE");
+		appSettings.setWebhookRetryDelay(1000);
+		spyAdapter.setAppSettings(appSettings);
+		spyAdapter.setDataStore(dataStore);
+
+		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
+		when(appContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
+		when(appContext.containsBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(true);
+		when(appContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(appSettings);
+		when(scope.getContext()).thenReturn(context);
+
+		spyAdapter.setDataStoreFactory(dsf);
+		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
+		spyAdapter.setScope(scope);
+
+		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
+		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
+		when(licenseService.isLicenceSuspended()).thenReturn(false);
+
+		StreamFetcherManager streamFetcherManager = mock(StreamFetcherManager.class);
+		when(spyAdapter.getStreamFetcherManager()).thenReturn(streamFetcherManager);
+
+		// Test Case 1: Local server streaming (same origin address)
+		Broadcast broadcast1 = new Broadcast();
+		broadcast1.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast1.setOriginAdress("1.1.1.2");
+		broadcast1.setStreamUrl("https://example.com/stream1.mp4");
+		dataStore.save(broadcast1);
+
+		when(spyAdapter.isClusterMode()).thenReturn(true);
+		when(serverSettings.getHostAddress()).thenReturn("1.1.1.2");
+		when(streamFetcherManager.startStreaming(broadcast1)).thenReturn(new Result(true));
+
+		Result result1 = spyAdapter.startStreaming(broadcast1);
+		assertTrue(result1.isSuccess());
+		verify(streamFetcherManager, times(1)).startStreaming(broadcast1);
+		verify(spyAdapter, never()).forwardStartStreaming(broadcast1);
+
+		// Test Case 2: successful origin forward
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast2.setOriginAdress("1.1.1.2");
+		broadcast2.setStreamUrl("https://example.com/stream2.mp4");
+		dataStore.save(broadcast2);
+
+		when(serverSettings.getHostAddress()).thenReturn("1.1.1.3");
+		when(serverSettings.getDefaultHttpPort()).thenReturn(5080);
+
+		String expectedRestRoute = "http://" + broadcast2.getOriginAdress() + ":5080" +
+				File.separator + appSettings.getAppName() + File.separator + "rest" +
+				File.separator + "v2" + File.separator + "broadcasts" +
+				File.separator + broadcast2.getStreamId() + File.separator + "start";
+
+		Mockito.doReturn(true).when(spyAdapter).sendClusterPost(eq(expectedRestRoute), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+
+		Result result2 = spyAdapter.startStreaming(broadcast2);
+		assertTrue(result2.isSuccess());
+		verify(spyAdapter, times(1)).forwardStartStreaming(broadcast2);
+		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+
+		// Test Case 3: failed forward to origin, fallback to local edge streaming
+		Broadcast broadcast3 = new Broadcast();
+		broadcast3.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast3.setOriginAdress("1.1.1.2");
+		broadcast3.setStreamUrl("https://example.com/stream3.mp4");
+		dataStore.save(broadcast3);
+
+		Mockito.doReturn(false).when(spyAdapter).sendClusterPost(anyString(), anyString(), anyInt());
+		when(streamFetcherManager.startStreaming(broadcast3)).thenReturn(new Result(true));
+
+		Result result3 = spyAdapter.startStreaming(broadcast3);
+		assertTrue(result3.isSuccess());
+		verify(streamFetcherManager, times(1)).startStreaming(broadcast3);
+
+		// Test Case 4: Non-cluster mode streaming
+		when(spyAdapter.isClusterMode()).thenReturn(false);
+		Broadcast broadcast4 = new Broadcast();
+		broadcast4.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
+		broadcast4.setStreamUrl("https://example.com/stream4.mp4");
+		dataStore.save(broadcast4);
+
+		when(streamFetcherManager.startStreaming(broadcast4)).thenReturn(new Result(true));
+
+		Result result4 = spyAdapter.startStreaming(broadcast4);
+		assertTrue(result4.isSuccess());
+		verify(spyAdapter, never()).forwardStartStreaming(broadcast4);
+		verify(streamFetcherManager, times(1)).startStreaming(broadcast4);
+	}
+
+	@Test
+	public void testForwardStartStreaming() throws Exception {
 		IScope scope = mock(IScope.class);
 		when(scope.getName()).thenReturn("junit");
 
@@ -1828,71 +1938,214 @@ public class AntMediaApplicationAdaptorUnitTest {
 		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
 		IContext context = mock(IContext.class);
 		when(context.getBean(spyAdapter.VERTX_BEAN_NAME)).thenReturn(vertx);
-
 		when(context.getBean(IDataStoreFactory.BEAN_NAME)).thenReturn(dsf);
-
 
 		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
 		when(context.getApplicationContext()).thenReturn(appContext);
 		when(context.getResource(Mockito.anyString())).thenReturn(Mockito.mock(org.springframework.core.io.Resource.class));
 
-		AntMediaApplicationAdapter appAdaptor = Mockito.mock(AntMediaApplicationAdapter.class);
 		ServerSettings serverSettings = Mockito.mock(ServerSettings.class);
 		when(spyAdapter.getScope()).thenReturn(scope);
 		when(scope.getContext()).thenReturn(context);
-
 		when(spyAdapter.getServerSettings()).thenReturn(serverSettings);
-		when(serverSettings.getHostAddress()).thenReturn("1.1.1.2");
 
 		AppSettings appSettings = new AppSettings();
 		appSettings.setAppName("WebRTCAppEE");
-
+		appSettings.setWebhookRetryDelay(1000);
+		appSettings.setClusterCommunicationKey("test-key");
 		spyAdapter.setAppSettings(appSettings);
-		spyAdapter.setDataStore(dataStore);
 
-		when(appContext.getBean(AntMediaApplicationAdapter.BEAN_NAME)).thenReturn(appAdaptor);
+		when(serverSettings.getDefaultHttpPort()).thenReturn(5080);
 
-		when(appContext.containsBean(AppSettings.BEAN_NAME)).thenReturn(true);
+		// Test Case 1: Successful forward
+		Broadcast broadcast1 = new Broadcast();
+		broadcast1.setOriginAdress("127.0.0.1");
+		broadcast1.setStreamId("test-stream-1");
+
+		String expectedRestRoute = "http://127.0.0.1:5080" +
+				File.separator + appSettings.getAppName() + File.separator + "rest" +
+				File.separator + "v2" + File.separator + "broadcasts" +
+				File.separator + broadcast1.getStreamId() + File.separator + "start";
+
+		Mockito.doReturn(true).when(spyAdapter).sendClusterPost(eq(expectedRestRoute), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+
+		// Test successful forward
+		boolean result1 = spyAdapter.forwardStartStreaming(broadcast1);
+		assertTrue(result1);
+		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+
+		// Test Case 2: Failed forward
+		Broadcast broadcast2 = new Broadcast();
+		broadcast2.setOriginAdress("127.0.0.2");
+		broadcast2.setStreamId("test-stream-2");
+
+		String expectedRestRoute2 = "http://127.0.0.2:5080" +
+				File.separator + appSettings.getAppName() + File.separator + "rest" +
+				File.separator + "v2" + File.separator + "broadcasts" +
+				File.separator + broadcast2.getStreamId() + File.separator + "start";
+
+		// Mock sendClusterPost to return false
+		Mockito.doReturn(false).when(spyAdapter).sendClusterPost(eq(expectedRestRoute2), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+
+		boolean result2 = spyAdapter.forwardStartStreaming(broadcast2);
+		assertFalse(result2);
+		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute2), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+
+		// Test Case 3: Exception during execution
+		Broadcast broadcast3 = new Broadcast();
+		broadcast3.setOriginAdress("127.0.0.3");
+		broadcast3.setStreamId("test-stream-3");
+
+		String expectedRestRoute3 = "http://127.0.0.3:5080" +
+				File.separator + appSettings.getAppName() + File.separator + "rest" +
+				File.separator + "v2" + File.separator + "broadcasts" +
+				File.separator + broadcast3.getStreamId() + File.separator + "start";
+
+		// Mock sendClusterPost to throw exception
+		Mockito.doThrow(new RuntimeException("Test exception")).when(spyAdapter)
+				.sendClusterPost(eq(expectedRestRoute3), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+
+		boolean result3 = spyAdapter.forwardStartStreaming(broadcast3);
+		assertFalse(result3);
+		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute3), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+
+		// Test Case 4: Timeout scenario
+		Broadcast broadcast4 = new Broadcast();
+		broadcast4.setOriginAdress("127.0.0.4");
+		broadcast4.setStreamId("test-stream-4");
+
+		String expectedRestRoute4 = "http://127.0.0.4:5080" +
+				File.separator + appSettings.getAppName() + File.separator + "rest" +
+				File.separator + "v2" + File.separator + "broadcasts" +
+				File.separator + broadcast4.getStreamId() + File.separator + "start";
+
+		// Mock sendClusterPost to simulate timeout by sleeping
+		Mockito.doAnswer(invocation -> {
+			Thread.sleep(5000); // Sleep longer than the timeout
+			return true;
+		}).when(spyAdapter).sendClusterPost(eq(expectedRestRoute4), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+
+		// Reduce timeout for test purposes
+		appSettings.setWebhookRetryDelay(100);
+
+		boolean result4 = spyAdapter.forwardStartStreaming(broadcast4);
+		assertFalse(result4);
+		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute4), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+
+		// Verify JWT token format (at least check it's not empty and properly formatted)
+		ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
+		verify(spyAdapter, atLeastOnce()).sendClusterPost(anyString(), tokenCaptor.capture(), anyInt());
+		String capturedToken = tokenCaptor.getValue();
+		assertNotNull(capturedToken);
+        assertFalse(capturedToken.isEmpty());
+	}
+
+	@Test
+	public void testSendClusterPost() throws Exception {
+		IScope scope = mock(IScope.class);
+		when(scope.getName()).thenReturn("junit");
+
+		AntMediaApplicationAdapter spyAdapter = Mockito.spy(adapter);
+		IContext context = mock(IContext.class);
+		when(context.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
+
+		ApplicationContext appContext = Mockito.mock(ApplicationContext.class);
+		when(context.getApplicationContext()).thenReturn(appContext);
 		when(appContext.containsBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(true);
 		when(appContext.getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME)).thenReturn(vertx);
-		when(appContext.getBean(AppSettings.BEAN_NAME)).thenReturn(new AppSettings());
 
-		when(scope.getContext()).thenReturn(context);
-		spyAdapter.setDataStoreFactory(dsf);
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWebhookRetryDelay(100); // Small delay for testing
+		spyAdapter.setAppSettings(appSettings);
 
-		Mockito.doReturn(dataStore).when(spyAdapter).getDataStore();
-		spyAdapter.setScope(scope);
+		CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
+		Mockito.doReturn(httpClient).when(spyAdapter).getHttpClient();
 
-		ILicenceService licenseService = Mockito.mock(ILicenceService.class);
-		Mockito.when(context.getBean(ILicenceService.BeanName.LICENCE_SERVICE.toString())).thenReturn(licenseService);
-		when(licenseService.isLicenceSuspended()).thenReturn(false);
+		String testUrl = "http://localhost:5080/test";
+		String testToken = "test-token";
 
+		// Test Case 1: Successful request with 200 response
+		CloseableHttpResponse successResponse = mock(CloseableHttpResponse.class);
+		StatusLine successStatusLine = mock(StatusLine.class);
+		when(successStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_OK);
+		when(successResponse.getStatusLine()).thenReturn(successStatusLine);
+		when(httpClient.execute(any(HttpPost.class))).thenReturn(successResponse);
 
-		Broadcast broadcast = new Broadcast();
-		broadcast.setType(AntMediaApplicationAdapter.STREAM_SOURCE);
-		broadcast.setOriginAdress("1.1.1.2");
-		broadcast.setStreamUrl("https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerMeltdowns.mp4");
-		dataStore.save(broadcast);
+		boolean result1 = spyAdapter.sendClusterPost(testUrl, testToken, 3);
+		assertTrue(result1);
 
-		when(spyAdapter.isClusterMode()).thenReturn(true);
+		// Verify request configuration
+		ArgumentCaptor<HttpPost> httpPostCaptor = ArgumentCaptor.forClass(HttpPost.class);
+		verify(httpClient).execute(httpPostCaptor.capture());
+		HttpPost capturedPost = httpPostCaptor.getValue();
+		assertEquals(testUrl, capturedPost.getURI().toString());
+		assertEquals(testToken, capturedPost.getFirstHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION).getValue());
+		RequestConfig capturedConfig = capturedPost.getConfig();
+		assertEquals(AntMediaApplicationAdapter.CLUSTER_POST_TIMEOUT_MS, capturedConfig.getConnectTimeout());
+		assertEquals(AntMediaApplicationAdapter.CLUSTER_POST_TIMEOUT_MS, capturedConfig.getConnectionRequestTimeout());
+		assertEquals(AntMediaApplicationAdapter.CLUSTER_POST_TIMEOUT_MS, capturedConfig.getSocketTimeout());
 
-		boolean startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
-		assertTrue(startStreaming);
+		// Test Case 2: Failed request with retry
+		CloseableHttpResponse failResponse = mock(CloseableHttpResponse.class);
+		StatusLine failStatusLine = mock(StatusLine.class);
+		when(failStatusLine.getStatusCode()).thenReturn(HttpStatus.SC_INTERNAL_SERVER_ERROR);
+		when(failResponse.getStatusLine()).thenReturn(failStatusLine);
 
-		when(serverSettings.getHostAddress()).thenReturn("1.1.1.3");
-		when(serverSettings.getDefaultHttpPort()).thenReturn(Integer.valueOf("5080"));
+		// First call returns 500, second call returns 200
+		when(httpClient.execute(any(HttpPost.class)))
+				.thenReturn(failResponse)
+				.thenReturn(successResponse);
 
-		String restRouteOfNode = "http://" + broadcast.getOriginAdress() + ":" + "5080"  + File.separator + appSettings.getAppName() + File.separator+ "rest" +
-				File.separator +"v2" + File.separator +"broadcasts" +
-				File.separator + broadcast.getStreamId() + File.separator + "start";
+		boolean result2 = spyAdapter.sendClusterPost(testUrl, testToken, 2);
+		assertTrue(result2);
+		verify(spyAdapter, times(1)).retrySendClusterPostWithDelay(eq(testUrl), eq(testToken), eq(1));
 
-		startStreaming = spyAdapter.startStreaming(broadcast).isSuccess();
-		assertTrue(startStreaming);
+		// Test Case 3: Failed request with no more retries
+		when(httpClient.execute(any(HttpPost.class))).thenReturn(failResponse);
 
-		verify(spyAdapter,times(1)).forwardStartStreaming(broadcast);
-		verify(spyAdapter,times(1)).sendPOST(eq(restRouteOfNode), argThat(map -> map.containsKey(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION)), anyInt(), anyString());
+		boolean result3 = spyAdapter.sendClusterPost(testUrl, testToken, 0);
+		assertFalse(result3);
+		verify(spyAdapter, times(1)).retrySendClusterPostWithDelay(eq(testUrl), eq(testToken), anyInt());
 
+		// Test Case 4: IOException with retry
+		when(httpClient.execute(any(HttpPost.class)))
+				.thenThrow(new IOException("Test exception"))
+				.thenReturn(successResponse);
+
+		boolean result4 = spyAdapter.sendClusterPost(testUrl, testToken, 2);
+		assertTrue(result4);
+		verify(spyAdapter, times(2)).retrySendClusterPostWithDelay(eq(testUrl), eq(testToken), eq(1));
+
+		// Test Case 5: IOException with no more retries
+		when(httpClient.execute(any(HttpPost.class))).thenThrow(new IOException("Test exception"));
+
+		boolean result5 = spyAdapter.sendClusterPost(testUrl, testToken, 0);
+		assertFalse(result5);
+
+		// Test Case 6: Test retrySendClusterPostWithDelay timeout
+		CompletableFuture<Boolean> timeoutFuture = new CompletableFuture<>();
+		Mockito.doAnswer(invocation -> {
+			Thread.sleep(2000); // Sleep longer than timeout
+			timeoutFuture.complete(true);
+			return true;
+		}).when(spyAdapter).sendClusterPost(eq(testUrl), eq(testToken), eq(1));
+
+		boolean result6 = spyAdapter.retrySendClusterPostWithDelay(testUrl, testToken, 1);
+		assertFalse(result6);
+
+		// Test Case 7: Test retrySendClusterPostWithDelay success
+		CompletableFuture<Boolean> successFuture = new CompletableFuture<>();
+		Mockito.doAnswer(invocation -> {
+			successFuture.complete(true);
+			return true;
+		}).when(spyAdapter).sendClusterPost(eq(testUrl), eq(testToken), eq(1));
+
+		boolean result7 = spyAdapter.retrySendClusterPostWithDelay(testUrl, testToken, 1);
+		assertTrue(result7);
+
+		verify(httpClient, atLeastOnce()).close();
 	}
+
 	@Test
 	public void testStreamFetcherNotStartAutomatically() 
 	{
