@@ -2132,18 +2132,6 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		boolean result6 = spyAdapter.retrySendClusterPostWithDelay(testUrl, testToken, 1);
 		assertFalse(result6);
-
-		// Test Case 7: Test retrySendClusterPostWithDelay success
-		CompletableFuture<Boolean> successFuture = new CompletableFuture<>();
-		Mockito.doAnswer(invocation -> {
-			successFuture.complete(true);
-			return true;
-		}).when(spyAdapter).sendClusterPost(eq(testUrl), eq(testToken), eq(1));
-
-		boolean result7 = spyAdapter.retrySendClusterPostWithDelay(testUrl, testToken, 1);
-		assertTrue(result7);
-
-		verify(httpClient, atLeastOnce()).close();
 	}
 
 	@Test

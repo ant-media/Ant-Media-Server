@@ -1229,7 +1229,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			// Timeout for each retry = retry delay + request timeout + buffer
 			return future.get(appSettings.getWebhookRetryDelay() + CLUSTER_POST_TIMEOUT_MS + 500, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
-			logger.error("Error waiting for retry POST request completion", e);
+			logger.error(ExceptionUtils.getStackTrace(e));
+			Thread.currentThread().interrupt();
 			return false;
 		}
 	}
@@ -1415,7 +1416,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			long totalTimeout = CLUSTER_POST_RETRY_ATTEMPT * (appSettings.getWebhookRetryDelay() + 1000) + 1000;
 			return future.get(totalTimeout, TimeUnit.MILLISECONDS);
 		} catch (InterruptedException | ExecutionException | TimeoutException e) {
-			logger.error("Error waiting for Cluster POST request completion", e);
+			logger.error(ExceptionUtils.getStackTrace(e));
+			Thread.currentThread().interrupt();
 			return false;
 		}
 
