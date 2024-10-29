@@ -68,6 +68,8 @@ import com.sun.management.UnixOperatingSystemMXBean;
 public class SystemUtils {
 
 	public static final String HEAPDUMP_HPROF = "heapdump.hprof";
+	public static final long MAX_CONTAINER_MEMORY_LIMIT_BYTES = 109951162777600L; //100TB
+	public static final String MAX_MEMORY_CGROUP_V2 = "max";
 
 	/**
 	 * Obtain Operating System's name.
@@ -235,6 +237,25 @@ public class SystemUtils {
 	 * @return bytes size
 	 */
 	public static long osTotalPhysicalMemory() {
+		if(containerized == null){
+			containerized = isContainerized();
+		}
+
+		if(containerized) {
+			try{
+				return getMemoryLimitFromCgroup();
+
+			}catch (IOException e) {
+				logger.debug("Could not get memory limit from c group. {}", e.getMessage());
+			}
+		}
+
+		return getTotalPhysicalMemorySize();
+
+	}
+
+	public static long getTotalPhysicalMemorySize(){
+
 		final OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
 		if (osBean instanceof UnixOperatingSystemMXBean) {
 			return (((UnixOperatingSystemMXBean) osBean).getTotalPhysicalMemorySize());
@@ -248,7 +269,9 @@ public class SystemUtils {
 				return -1L;
 			}
 		}
+
 	}
+
 
 	/**
 	 * Obtain Free Physical Memory from Operating System's RAM.
@@ -775,6 +798,40 @@ public class SystemUtils {
 		}
 	}
 
+	public static Long getMemoryLimitFromCgroup() throws IOException {
+		long memoryLimit;
+
+		// Try reading memory limit for cgroups v1
+		if (Files.exists(Paths.get("/sys/fs/cgroup/memory/memory.limit_in_bytes"))) {
+			String memoryLimitString = readCgroupFile("/sys/fs/cgroup/memory/memory.limit_in_bytes");
+
+			memoryLimit = Long.parseLong(memoryLimitString);
+
+			//in cgroups v1 if memory limit is not set on container this value returns 9223372036854771712 2^63-1, but number is not 100%, changes based on architecture
+			//if memory limit returned is higher than 100TB its not set using cgroups.
+			if(memoryLimit > MAX_CONTAINER_MEMORY_LIMIT_BYTES) {
+				memoryLimit = getTotalPhysicalMemorySize();
+			}
+
+		// Try reading memory limit for cgroups v2
+		} else if (Files.exists(Paths.get("/sys/fs/cgroup/memory.max"))) {
+			String memoryLimitString = readCgroupFile("/sys/fs/cgroup/memory.max");
+
+			if(MAX_MEMORY_CGROUP_V2.equals(memoryLimitString)){ // memory limit is not set using cgroups v2
+				memoryLimit = getTotalPhysicalMemorySize();
+			}else{
+				memoryLimit = Long.parseLong(memoryLimitString);
+			}
+
+
+		} else {
+			logger.debug("Could not find cgroup max memory file. Will return os physical memory instead.");
+			return getTotalPhysicalMemorySize();
+		}
+
+		return memoryLimit;
+	}
+
 	public static Long getMemAvailableFromCgroup() throws IOException {
 		Long memoryUsage;
 		Long memoryLimit;
@@ -782,14 +839,18 @@ public class SystemUtils {
 		// Try reading memory usage and limit for cgroups v1
 		if (Files.exists(Paths.get("/sys/fs/cgroup/memory/memory.usage_in_bytes")) &&
 				Files.exists(Paths.get("/sys/fs/cgroup/memory/memory.limit_in_bytes"))) {
-			memoryUsage = readLongFromFile("/sys/fs/cgroup/memory/memory.usage_in_bytes");
-			memoryLimit = readLongFromFile("/sys/fs/cgroup/memory/memory.limit_in_bytes");
+			String memoryUsageString = readCgroupFile("/sys/fs/cgroup/memory/memory.usage_in_bytes");
+			memoryUsage = Long.parseLong(memoryUsageString);
+			memoryLimit = getMemoryLimitFromCgroup();
 
 			// Try reading memory usage and limit for cgroups v2
 		} else if (Files.exists(Paths.get("/sys/fs/cgroup/memory.current")) &&
 				Files.exists(Paths.get("/sys/fs/cgroup/memory.max"))) {
-			memoryUsage = readLongFromFile("/sys/fs/cgroup/memory.current");
-			memoryLimit = readLongFromFile("/sys/fs/cgroup/memory.max");
+
+			String memoryUsageString = readCgroupFile("/sys/fs/cgroup/memory.current");
+			memoryUsage = Long.parseLong(memoryUsageString);
+			memoryLimit = getMemoryLimitFromCgroup();
+
 		} else {
 			logger.debug("Could not find cgroup memory files. Will return os free physical memory instead.");
 			return osFreePhysicalMemory();
@@ -799,9 +860,9 @@ public class SystemUtils {
 		return memoryLimit - memoryUsage;
 	}
 
-	public static Long readLongFromFile(String filePath) throws IOException {
+	public static String readCgroupFile(String filePath) throws IOException {
 		try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-			return Long.parseLong(reader.readLine().trim());
+			return reader.readLine().trim();
 		}
 	}
 	

@@ -811,6 +811,8 @@ public class StatsCollectorTest {
 		String cgroupV1LimitPath = "/sys/fs/cgroup/memory/memory.limit_in_bytes";
 		String cgroupV2UsagePath = "/sys/fs/cgroup/memory.current";
 		String cgroupV2LimitPath = "/sys/fs/cgroup/memory.max";
+		String expectedUsageStr = "5000";
+		String expectedLimitStr = "10000";
 		long expectedUsage = 5000L;
 		long expectedLimit = 10000L;
 		long expectedOsFreeMemory = 8000L;
@@ -837,13 +839,13 @@ public class StatsCollectorTest {
 
 			try (MockedStatic<SystemUtils> mockedMemoryUtils = mockStatic(SystemUtils.class,
 					CALLS_REAL_METHODS)) {
-				mockedMemoryUtils.when(() -> SystemUtils.readLongFromFile(cgroupV1UsagePath))
-						.thenReturn(expectedUsage);
-				mockedMemoryUtils.when(() -> SystemUtils.readLongFromFile(cgroupV1LimitPath))
-						.thenReturn(expectedLimit);
+				mockedMemoryUtils.when(() -> SystemUtils.readCgroupFile(cgroupV1UsagePath))
+						.thenReturn(expectedUsageStr);
+				mockedMemoryUtils.when(() -> SystemUtils.readCgroupFile(cgroupV1LimitPath))
+						.thenReturn(expectedLimitStr);
 
 				long result = SystemUtils.getMemAvailableFromCgroup();
-				assertEquals(expectedLimit - expectedUsage, result);
+				assertEquals(Long.parseLong(expectedLimitStr) - Long.parseLong(expectedUsageStr), result);
 			}
 
 			// Test Scenario 2: cgroups v2 exists (v1 doesn't exist)
@@ -854,13 +856,13 @@ public class StatsCollectorTest {
 
 			try (MockedStatic<SystemUtils> mockedMemoryUtils = mockStatic(SystemUtils.class,
 					CALLS_REAL_METHODS)) {
-				mockedMemoryUtils.when(() -> SystemUtils.readLongFromFile(cgroupV2UsagePath))
-						.thenReturn(expectedUsage);
-				mockedMemoryUtils.when(() -> SystemUtils.readLongFromFile(cgroupV2LimitPath))
-						.thenReturn(expectedLimit);
+				mockedMemoryUtils.when(() -> SystemUtils.readCgroupFile(cgroupV2UsagePath))
+						.thenReturn(expectedUsageStr);
+				mockedMemoryUtils.when(() -> SystemUtils.readCgroupFile(cgroupV2LimitPath))
+						.thenReturn(expectedLimitStr);
 
 				long result = SystemUtils.getMemAvailableFromCgroup();
-				assertEquals(expectedLimit - expectedUsage, result);
+				assertEquals(Long.parseLong(expectedLimitStr) - Long.parseLong(expectedUsageStr), result);
 			}
 
 			// Test Scenario 3: No cgroups exist, falls back to OS memory
@@ -875,6 +877,83 @@ public class StatsCollectorTest {
 				long result = SystemUtils.getMemAvailableFromCgroup();
 				assertEquals(expectedOsFreeMemory, result);
 			}
+		}
+	}
+
+	@Test
+	public void testOsTotalPhysicalMemory() throws IOException {
+		final long PHYSICAL_MEMORY_SIZE = 16_000_000_000L; // 16GB
+
+		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class);
+			 MockedStatic<SystemUtils> mockedSystemUtils = mockStatic(SystemUtils.class,
+					 CALLS_REAL_METHODS)) {
+
+			// Test Case 1: Non-containerized environment
+			mockedSystemUtils.when(SystemUtils::isContainerized)
+					.thenReturn(false);
+			mockedSystemUtils.when(SystemUtils::getTotalPhysicalMemorySize)
+					.thenReturn(PHYSICAL_MEMORY_SIZE);
+
+			// Call the real method for osTotalPhysicalMemory
+			mockedSystemUtils.when(SystemUtils::osTotalPhysicalMemory)
+					.thenCallRealMethod();
+
+			assertEquals(PHYSICAL_MEMORY_SIZE, SystemUtils.osTotalPhysicalMemory());
+
+			// Test Case 2: Containerized environment with cgroups v1
+			mockedSystemUtils.when(SystemUtils::isContainerized)
+					.thenReturn(true);
+
+			// Mock cgroups v1 path exists
+			mockedFiles.when(() -> Files.exists(Paths.get("/sys/fs/cgroup/memory/memory.limit_in_bytes")))
+					.thenReturn(true);
+			mockedFiles.when(() -> Files.exists(Paths.get("/sys/fs/cgroup/memory.max")))
+					.thenReturn(false);
+
+			// Test 2a: Normal memory limit
+			long containerLimit = 8_000_000_000L; // 8GB
+			mockedSystemUtils.when(() -> SystemUtils.readCgroupFile(anyString()))
+					.thenReturn(String.valueOf(containerLimit));
+
+			assertEquals(containerLimit, SystemUtils.getMemoryLimitFromCgroup().longValue());
+
+			// Test 2b: Memory limit above MAX_CONTAINER_MEMORY_LIMIT_BYTES
+			mockedSystemUtils.when(() -> SystemUtils.readCgroupFile(anyString()))
+					.thenReturn(String.valueOf(SystemUtils.MAX_CONTAINER_MEMORY_LIMIT_BYTES + 1));
+
+			assertEquals(PHYSICAL_MEMORY_SIZE, SystemUtils.getMemoryLimitFromCgroup().longValue());
+
+			// Test Case 3: Containerized environment with cgroups v2
+			mockedFiles.when(() -> Files.exists(Paths.get("/sys/fs/cgroup/memory/memory.limit_in_bytes")))
+					.thenReturn(false);
+			mockedFiles.when(() -> Files.exists(Paths.get("/sys/fs/cgroup/memory.max")))
+					.thenReturn(true);
+
+			// Test 3a: Normal memory limit
+			mockedSystemUtils.when(() -> SystemUtils.readCgroupFile(anyString()))
+					.thenReturn("4000000000"); // 4GB
+
+			assertEquals(4_000_000_000L, SystemUtils.getMemoryLimitFromCgroup().longValue());
+
+			// Test 3b: No limit set (max)
+			mockedSystemUtils.when(() -> SystemUtils.readCgroupFile(anyString()))
+					.thenReturn(SystemUtils.MAX_MEMORY_CGROUP_V2);
+
+			assertEquals(PHYSICAL_MEMORY_SIZE, SystemUtils.getMemoryLimitFromCgroup().longValue());
+
+			// Test Case 4: No cgroup files exist
+			mockedFiles.when(() -> Files.exists(any(Path.class)))
+					.thenReturn(false);
+
+			assertEquals(PHYSICAL_MEMORY_SIZE, SystemUtils.getMemoryLimitFromCgroup().longValue());
+
+			// Test Case 5: IOException handling
+			mockedSystemUtils.when(SystemUtils::isContainerized)
+					.thenReturn(true);
+			mockedSystemUtils.when(SystemUtils::getMemoryLimitFromCgroup)
+					.thenThrow(new IOException("Test exception"));
+
+			assertEquals(PHYSICAL_MEMORY_SIZE, SystemUtils.osTotalPhysicalMemory());
 		}
 	}
 
