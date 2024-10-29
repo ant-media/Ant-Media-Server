@@ -780,10 +780,10 @@ public class SystemUtils {
 			if (Files.exists(cgroupPath)) {
 				List<String> cgroupContent = Files.readAllLines(cgroupPath);
 				for (String line : cgroupContent) {
-					if (line.contains("/docker") ||
-							line.contains("/lxc") ||
-							line.contains("/kubepods") ||
-							line.contains("/containerd")) {
+					if (line.contains("docker") ||
+							line.contains("lxc") ||
+							line.contains("kubepods") ||
+							line.contains("containerd")) {
 						logger.debug("Container detected via cgroup: {}", line);
 						return true;
 					}
