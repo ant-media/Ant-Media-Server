@@ -754,7 +754,8 @@ public class StatsCollectorTest {
 		Path mockCgroupPath = Path.of("/tmp/test/cgroup");
 
 		try (MockedStatic<Files> mockedFiles = mockStatic(Files.class);
-			 MockedStatic<Paths> mockedPaths = mockStatic(Paths.class)) {
+			 MockedStatic<Paths> mockedPaths = mockStatic(Paths.class);
+			 ) {
 
 			// Setup path mocks
 			mockedPaths.when(() -> Paths.get("/.dockerenv")).thenReturn(mockDockerEnvPath);
@@ -763,6 +764,7 @@ public class StatsCollectorTest {
 			// Test 1: Docker environment file exists
 			mockedFiles.when(() -> Files.exists(mockDockerEnvPath)).thenReturn(true);
 			assertTrue(SystemUtils.isContainerized());
+
 
 			// Test 2: Docker in cgroup
 			mockedFiles.when(() -> Files.exists(mockDockerEnvPath)).thenReturn(false);
@@ -803,6 +805,7 @@ public class StatsCollectorTest {
 					.thenThrow(new IOException("Read error"));
 			assertFalse(SystemUtils.isContainerized());
 		}
+
 	}
 
 	@Test
@@ -813,8 +816,7 @@ public class StatsCollectorTest {
 		String cgroupV2LimitPath = "/sys/fs/cgroup/memory.max";
 		String expectedUsageStr = "5000";
 		String expectedLimitStr = "10000";
-		long expectedUsage = 5000L;
-		long expectedLimit = 10000L;
+
 		long expectedOsFreeMemory = 8000L;
 
 		// Test all three scenarios using nested try-with-resources

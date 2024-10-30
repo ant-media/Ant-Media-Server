@@ -14,6 +14,7 @@ import java.util.List;
 
 import javax.management.MBeanServer;
 
+import org.apache.commons.lang3.StringUtils;
 import org.bytedeco.javacpp.Pointer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -774,8 +775,14 @@ public class SystemUtils {
 				return true;
 			}
 
+			// 2. Check env variable
+			String container = System.getenv("container");
+			if(StringUtils.isNotBlank(container)){
+				logger.debug("Container detected via env variable.");
+				return true;
+			}
 
-			// 2. Check cgroup info
+			// 3. Check cgroup info
 			Path cgroupPath = Paths.get("/proc/self/cgroup");
 			if (Files.exists(cgroupPath)) {
 				List<String> cgroupContent = Files.readAllLines(cgroupPath);
@@ -790,12 +797,12 @@ public class SystemUtils {
 				}
 			}
 
-			return false;
-
 		} catch (Exception e) {
-			logger.debug("Error during container detection: {}", e.getMessage());
-			return false;
+			logger.error("Error during container detection: {}", e.getMessage());
+
 		}
+
+		return false;
 	}
 
 	public static Long getMemoryLimitFromCgroup() throws IOException {
@@ -807,9 +814,10 @@ public class SystemUtils {
 
 			memoryLimit = Long.parseLong(memoryLimitString);
 
-			//in cgroups v1 if memory limit is not set on container this value returns 9223372036854771712 2^63-1, but number is not 100%, changes based on architecture
-			//if memory limit returned is higher than 100TB its not set using cgroups.
-			if(memoryLimit > MAX_CONTAINER_MEMORY_LIMIT_BYTES) {
+			// In cgroups v1, if the memory limit for a container isn't set, it typically returns 9223372036854771712 (2^63-1).
+			// However, this value may vary based on the architecture.
+			// Therefore, we consider it acceptable if the returned memory limit exceeds 100TB, indicating that the limit is not configured using cgroups.
+			if(memoryLimit > MAX_CONTAINER_MEMORY_LIMIT_BYTES || memoryLimit == 0 || memoryLimit == -1) {
 				memoryLimit = getTotalPhysicalMemorySize();
 			}
 
