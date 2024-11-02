@@ -242,27 +242,27 @@ public class TokenFilterManager extends AbstractFilter   {
 		}
 
 		//if specific ts file requested
-		tsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)+[0-9]{" + Muxer.SEGMENT_INDEX_LENGTH + "}.ts$";  // matches ending with _[_240p300kbps0000].ts or _[_300kbps0000].ts or _[_240p0000].ts default ts file extension _[0000].ts
+		tsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)+[0-9]{" + Muxer.SEGMENT_INDEX_LENGTH + "}.(ts|fmp4)$";  // matches ending with _[_240p300kbps0000].ts or _[_300kbps0000].ts or _[_240p0000].ts default ts file extension _[0000].ts
 		if (requestURI.matches(tsRegex)) {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
 		}
 
 		//for backward compatibility
-		tsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)+[0-9]{4}.ts$";  // matches ending with _[_240p300kbps0000].ts or _[_300kbps0000].ts or _[_240p0000].ts default ts file extension _[0000].ts
+		tsRegex = "(.*)_([0-9]+p|[0-9]+kbps|[0-9]+p[0-9]+kbps)+[0-9]{4}.(ts|fmp4)$";  // matches ending with _[_240p300kbps0000].ts or _[_300kbps0000].ts or _[_240p0000].ts default ts file extension _[0000].ts
 		if (requestURI.matches(tsRegex)) {
 			endIndex = requestURI.lastIndexOf('_'); //because file format is [NAME]_[RESOLUTION]p[0000].ts
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex);
 		}
 
-		tsRegex = "(.*)[0-9]{"+ Muxer.SEGMENT_INDEX_LENGTH +"}.ts$";  // matches default ts file extension  [0000].ts
+		tsRegex = "(.*)[0-9]{"+ Muxer.SEGMENT_INDEX_LENGTH +"}.(ts|fmp4)$";  // matches default ts file extension  [0000].ts
 		if (requestURI.matches(tsRegex)) {
 			endIndex = requestURI.lastIndexOf('.'); //because file format is [NAME][0000].ts
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex-Muxer.SEGMENT_INDEX_LENGTH);
 		}
 
 		//for backward compatibility
-		tsRegex = "(.*)[0-9]{4}.ts$";  // matches default ts file extension  [0000].ts
+		tsRegex = "(.*)[0-9]{4}.(ts|fmp4)$";  // matches default ts file extension  [0000].ts
 		if (requestURI.matches(tsRegex)) {
 			endIndex = requestURI.lastIndexOf('.'); //because file format is [NAME][0000].ts
 			return requestURI.substring(requestURI.lastIndexOf("/")+1, endIndex-4);

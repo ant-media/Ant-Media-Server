@@ -9,6 +9,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
 import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
 import static org.bytedeco.ffmpeg.global.avutil.AV_NOPTS_VALUE;
 import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_NONE;
+import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.junit.Assert.*;
 
@@ -533,8 +534,14 @@ public class MuxingTest {
 			System.out.println("cannot allocate input context");
 			return false;
 		}
+		
+		//allowed_extensions
+		
+		AVDictionary optionsDictionary = new AVDictionary();
+			
+		av_dict_set(optionsDictionary, "allowed_extensions", "ALL", 0);
 
-		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) null)) < 0) {
+		if ((ret = avformat_open_input(inputFormatContext, absolutePath, null, (AVDictionary) optionsDictionary)) < 0) {
 			System.out.println("cannot open input context: " + absolutePath);
 			return false;
 		}

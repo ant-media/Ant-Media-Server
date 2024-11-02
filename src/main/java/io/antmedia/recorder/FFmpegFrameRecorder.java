@@ -127,6 +127,7 @@ import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_S32P;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_U8;
 import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_U8P;
 import static org.bytedeco.ffmpeg.global.avutil.FF_QP2LAMBDA;
+import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
 import static org.bytedeco.ffmpeg.global.avutil.av_d2q;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_dict_set;
@@ -135,7 +136,6 @@ import static org.bytedeco.ffmpeg.global.avutil.av_frame_alloc;
 import static org.bytedeco.ffmpeg.global.avutil.av_frame_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_free;
 import static org.bytedeco.ffmpeg.global.avutil.av_get_bytes_per_sample;
-import static org.bytedeco.ffmpeg.global.avutil.av_get_default_channel_layout;
 import static org.bytedeco.ffmpeg.global.avutil.av_image_fill_arrays;
 import static org.bytedeco.ffmpeg.global.avutil.av_image_get_buffer_size;
 import static org.bytedeco.ffmpeg.global.avutil.av_inv_q;
@@ -144,10 +144,10 @@ import static org.bytedeco.ffmpeg.global.avutil.av_malloc;
 import static org.bytedeco.ffmpeg.global.avutil.av_rescale_q;
 import static org.bytedeco.ffmpeg.global.avutil.av_sample_fmt_is_planar;
 import static org.bytedeco.ffmpeg.global.avutil.av_samples_get_buffer_size;
-import static org.bytedeco.ffmpeg.global.swresample.swr_alloc_set_opts;
 import static org.bytedeco.ffmpeg.global.swresample.swr_convert;
 import static org.bytedeco.ffmpeg.global.swresample.swr_free;
 import static org.bytedeco.ffmpeg.global.swresample.swr_init;
+import static org.bytedeco.ffmpeg.global.swresample.swr_alloc_set_opts2;
 import static org.bytedeco.ffmpeg.global.swscale.SWS_BILINEAR;
 import static org.bytedeco.ffmpeg.global.swscale.sws_freeContext;
 import static org.bytedeco.ffmpeg.global.swscale.sws_getCachedContext;
@@ -171,9 +171,11 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVIOContext;
 import org.bytedeco.ffmpeg.avformat.AVOutputFormat;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
 import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVFrame;
 import org.bytedeco.ffmpeg.avutil.AVRational;
+import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.swresample.SwrContext;
 import org.bytedeco.ffmpeg.swscale.SwsContext;
 import org.bytedeco.javacpp.BytePointer;
@@ -269,6 +271,12 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             audio_pkt.releaseReference();
             video_pkt = audio_pkt = null;
         }
+        
+        if (default_layout != null) {
+            default_layout.releaseReference();
+            default_layout = null;
+        }
+
 
         /* close each codec */
         if (video_c != null) {
@@ -344,9 +352,10 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             sws_freeContext(img_convert_ctx);
             img_convert_ctx = null;
         }
-
+        
         if (samples_convert_ctx != null) {
             swr_free(samples_convert_ctx);
+            samples_convert_ctx.releaseReference();
             samples_convert_ctx = null;
         }
 
@@ -384,6 +393,8 @@ public class FFmpegFrameRecorder extends FrameRecorder {
     private AVFormatContext ifmt_ctx;
 
     private volatile boolean started = false;
+
+	private AVChannelLayout default_layout;
 
     @Override public int getFrameNumber() {
         return picture == null ? super.getFrameNumber() : (int)picture.pts();
@@ -571,7 +582,7 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             }
 
             if ((video_codec.capabilities() & AV_CODEC_CAP_EXPERIMENTAL) != 0) {
-                video_c.strict_std_compliance(AVCodecContext.FF_COMPLIANCE_EXPERIMENTAL);
+                video_c.strict_std_compliance(avcodec.FF_COMPLIANCE_EXPERIMENTAL);
             }
 
             if (maxBFrames >= 0) {
@@ -615,8 +626,11 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             /* put sample parameters */
             audio_c.bit_rate(audioBitrate);
             audio_c.sample_rate(sampleRate);
-            audio_c.channels(audioChannels);
-            audio_c.channel_layout(av_get_default_channel_layout(audioChannels));
+            default_layout = new AVChannelLayout().retainReference();
+
+            av_channel_layout_default(default_layout, audioChannels);
+
+            audio_c.ch_layout(default_layout);
             if (sampleFormat != AV_SAMPLE_FMT_NONE) {
                 audio_c.sample_fmt(sampleFormat);
             } else {
@@ -657,7 +671,7 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             }
 
             if ((audio_codec.capabilities() & AV_CODEC_CAP_EXPERIMENTAL) != 0) {
-                audio_c.strict_std_compliance(AVCodecContext.FF_COMPLIANCE_EXPERIMENTAL);
+                audio_c.strict_std_compliance(avcodec.FF_COMPLIANCE_EXPERIMENTAL);
             }
         }
 
@@ -746,7 +760,7 @@ public class FFmpegFrameRecorder extends FrameRecorder {
                support to compute the input frame size in samples */
             if (audio_c.frame_size() <= 1) {
                 audio_outbuf_size = AV_INPUT_BUFFER_MIN_SIZE;
-                audio_input_frame_size = audio_outbuf_size / audio_c.channels();
+                audio_input_frame_size = audio_outbuf_size / audio_c.ch_layout().nb_channels();
                 switch (audio_c.codec_id()) {
                     case AV_CODEC_ID_PCM_S16LE:
                     case AV_CODEC_ID_PCM_S16BE:
@@ -760,8 +774,8 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             } else {
                 audio_input_frame_size = audio_c.frame_size();
             }
-            int planes = av_sample_fmt_is_planar(audio_c.sample_fmt()) != 0 ? (int)audio_c.channels() : 1;
-            int data_size = av_samples_get_buffer_size((IntPointer)null, audio_c.channels(),
+            int planes = av_sample_fmt_is_planar(audio_c.sample_fmt()) != 0 ? (int)audio_c.ch_layout().nb_channels() : 1;
+            int data_size = av_samples_get_buffer_size((IntPointer)null, audio_c.ch_layout().nb_channels(),
                     audio_input_frame_size, audio_c.sample_fmt(), 1) / planes;
             samples_out = new BytePointer[planes];
             for (int i = 0; i < samples_out.length; i++) {
@@ -998,14 +1012,14 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             sampleRate = audio_c.sample_rate();
         }
         if (audioChannels <= 0) {
-            audioChannels = audio_c.channels();
+            audioChannels = audio_c.ch_layout().nb_channels();
         }
         int inputSize = samples != null ? samples[0].limit() - samples[0].position() : 0;
         int inputFormat = samples_format;
         int inputChannels = samples != null && samples.length > 1 ? 1 : audioChannels;
         int inputDepth = 0;
         int outputFormat = audio_c.sample_fmt();
-        int outputChannels = samples_out.length > 1 ? 1 : audio_c.channels();
+        int outputChannels = samples_out.length > 1 ? 1 : audio_c.ch_layout().nb_channels();
         int outputDepth = av_get_bytes_per_sample(outputFormat);
         if (samples != null && samples[0] instanceof ShortBuffer) {
             inputFormat = samples.length > 1 ? AV_SAMPLE_FMT_S16P : AV_SAMPLE_FMT_S16;
@@ -1025,12 +1039,20 @@ public class FFmpegFrameRecorder extends FrameRecorder {
             throw new Exception("Audio samples Buffer has unsupported type: " + samples);
         }
 
-        if (samples_convert_ctx == null || samples_channels != audioChannels || samples_format != inputFormat || samples_rate != sampleRate) {
-            samples_convert_ctx = swr_alloc_set_opts(samples_convert_ctx, audio_c.channel_layout(), outputFormat, audio_c.sample_rate(),
-                    av_get_default_channel_layout(audioChannels), inputFormat, sampleRate, 0, null);
-            if (samples_convert_ctx == null) {
-                throw new Exception("swr_alloc_set_opts() error: Cannot allocate the conversion context.");
-            } else if ((ret = swr_init(samples_convert_ctx)) < 0) {
+        if (samples_convert_ctx == null || samples_channels != audioChannels || samples_format != inputFormat || samples_rate != sampleRate) 
+        {
+        	 if (samples_convert_ctx == null) {
+                 samples_convert_ctx = new SwrContext().retainReference();
+             }
+        	
+        	
+            ret = swr_alloc_set_opts2(samples_convert_ctx, audio_c.ch_layout(), outputFormat, audio_c.sample_rate(),
+            		default_layout, inputFormat, sampleRate, 0, null);
+            if (ret < 0) 
+            {
+                throw new Exception("swr_alloc_set_opts2() error " + ret + ": Cannot allocate the conversion context.");
+            } 
+            else if ((ret = swr_init(samples_convert_ctx)) < 0) {
                 throw new Exception("swr_init() error " + ret + ": Cannot initialize the conversion context.");
             }
             samples_channels = audioChannels;
@@ -1079,7 +1101,7 @@ public class FFmpegFrameRecorder extends FrameRecorder {
         }
 
         frame.nb_samples(nb_samples);
-        avcodec_fill_audio_frame(frame, audio_c.channels(), audio_c.sample_fmt(), samples_out[0], (int)samples_out[0].position(), 0);
+        avcodec_fill_audio_frame(frame, audio_c.ch_layout().nb_channels(), audio_c.sample_fmt(), samples_out[0], (int)samples_out[0].position(), 0);
         for (int i = 0; i < samples_out.length; i++) {
             int linesize = 0;
             if (samples_out[0].position() > 0 && samples_out[0].position() < samples_out[0].limit()) {
@@ -1095,8 +1117,8 @@ public class FFmpegFrameRecorder extends FrameRecorder {
         frame.format(audio_c.sample_fmt());
         frame.quality(audio_c.global_quality());
         frame.sample_rate(audio_c.sample_rate());
-        frame.channels(audio_c.channels());
-        frame.channel_layout(av_get_default_channel_layout(audio_c.channels()));
+        frame.ch_layout(audio_c.ch_layout());
+        
         writeFrame(frame);
     }
 
