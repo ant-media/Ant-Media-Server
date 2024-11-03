@@ -23,6 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import io.antmedia.websocket.WebSocketConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.red5.io.utils.ObjectMap;
 import org.red5.server.BaseConnection;
@@ -58,6 +59,8 @@ import org.slf4j.LoggerFactory;
  * Stream service
  */
 public class StreamService implements IStreamService {
+
+    private static String[] urlKeys = {WebSocketConstants.STREAM_NAME, WebSocketConstants.TOKEN, WebSocketConstants.SUBSCRIBER_ID, WebSocketConstants.SUBSCRIBER_CODE};
 
     private static Logger log = LoggerFactory.getLogger(StreamService.class);
 
@@ -626,11 +629,44 @@ public class StreamService implements IStreamService {
         }
     }
 
-    
+    private Map<String, String> parseQueryParameters(String name) {
+        Map<String, String> params = new HashMap<>();
+        String tmp = name;
+        // check if we start with '?' or not
+        if (name.charAt(0) != '?') {
+            tmp = name.split("\\?")[1];
+        } else if (name.charAt(0) == '?') {
+            tmp = name.substring(1);
+        }
+        // now break up into key/value blocks
+        String[] kvs = tmp.split("&");
+        // take each key/value block and break into its key value parts
+        for (String kv : kvs) {
+            String[] split = kv.split("=");
+            params.put(split[0], split[1]);
+        }
+        return params;
+    }
+
+    // Handle the rtmp url format (e.g. /testStream/example_token/example_subscriberId/example_subscriberCode)
+    public Map<String, String> parsePathSegments(String name) {
+        Map<String, String> params = new HashMap<>();
+
+        // Split the name by both '/' and '%2F'
+        String[] pathSegments = name.split("/|%2F");
+
+        for (int i = 0; i < pathSegments.length && i < urlKeys.length; i++) {
+            params.put(urlKeys[i], pathSegments[i]);
+        }
+
+        return params;
+    }
+
+
     /**
      * {@inheritDoc}
      * We have added "synchronized" because this method can be called exactly with the same names at the same time
-     * It creates an extra zombi scope that is not deleted anytime. 
+     * It creates an extra zombi scope that is not deleted anytime.
      * By synching this method, we prevent this problem.
      */
     public synchronized void publish(String name, String mode) {
@@ -638,24 +674,13 @@ public class StreamService implements IStreamService {
         Map<String, String> params = null;
         if (name != null && name.contains("?")) {
             // read and utilize the query string values
-            params = new HashMap<String, String>();
-            String tmp = name;
-            // check if we start with '?' or not
-            if (name.charAt(0) != '?') {
-                tmp = name.split("\\?")[1];
-            } else if (name.charAt(0) == '?') {
-                tmp = name.substring(1);
-            }
-            // now break up into key/value blocks
-            String[] kvs = tmp.split("&");
-            // take each key/value block and break into its key value parts
-            for (String kv : kvs) {
-                String[] split = kv.split("=");
-                params.put(split[0], split[1]);
-            }
-            // grab the streams name
+            params = parseQueryParameters(name);
             name = name.substring(0, name.indexOf("?"));
+        } else if (name != null && name.matches(".*[/%2F].*")) { // match / or %2F
+            params = parsePathSegments(name);
+            name = params.getOrDefault("streamName", name);
         }
+
         log.debug("publish called with name {} and mode {}", name, mode);
         IConnection conn = Red5.getConnectionLocal();
         if (conn instanceof IStreamCapableConnection) {
