@@ -2129,7 +2129,8 @@ public class AppSettings implements Serializable{
 	private boolean sendAudioLevelToViewers = false;
 
 	/**
-	 * Enable/disable video frame scaling in GPU when there is an adaptive bitrate
+	 * Enable/disable video frame scaling in GPU when there is an adaptive bitrate.
+	 * It's disabled by default. If you want to use this feature, ask from Ant Media Support to have the build that supports this feature - mekya
 	 */
 	@Value("${hwScalingEnabled:${"+SETTINGS_HW_SCALING_ENABLED+":false}}")
 	private boolean hwScalingEnabled = false;
@@ -2273,6 +2274,13 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${srtReceiveLatencyInMs:150}")
 	private int srtReceiveLatencyInMs = 150;
+
+	/*
+	 * The size of encoding queue to keep the frames waiting for encoding in Stream Adaptor
+	 * default: 150 (5 seconds frame for 30 fps stream)
+	 */
+	@Value("${encodingQueueSize:150}")
+	private int encodingQueueSize = 150;
 
 	//Make sure you have a default constructor because it's populated by MongoDB
 	public AppSettings() {
@@ -3970,4 +3978,11 @@ public class AppSettings implements Serializable{
 	}
 
 
+    public int getEncodingQueueSize() {
+        return encodingQueueSize;
+    }
+
+    public void setEncodingQueueSize(int encodingQueueSize) {
+        this.encodingQueueSize = encodingQueueSize;
+    }
 }

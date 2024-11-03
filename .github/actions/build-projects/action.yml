@@ -10,7 +10,7 @@ inputs:
 runs:
   using: "composite"
   steps:
-      
+
     - name: Clone and build Ant Media Server Parent project
       shell: bash
       run: |
@@ -19,7 +19,7 @@ runs:
           mvn clean install -DskipTests -Dmaven.javadoc.skip=true -Dgpg.skip=true --quiet
           cd ..
      
-    - name: Build Ant Media Server project
+    - name: Build Ant Media Server project #let the dependencies be resolved
       shell: bash
       run: mvn clean install -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -Dgpg.skip=true --quiet
     
@@ -93,8 +93,4 @@ runs:
         cp -a  ManagementConsole_AngularApp/node_modules/. ~/ManagementConsole_AngularApp-node_modules-cache/
                   
  
-    - name: Replace ffmpeg builds
-      shell: bash
-      run: |
-          wget -O ~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-x86_64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-5.1.2-1.5.8-linux-x86_64.jar
-          wget -O ~/.m2/repository/org/bytedeco/ffmpeg/5.1.2-1.5.8/ffmpeg-5.1.2-1.5.8-linux-arm64.jar https://storage.sbg.cloud.ovh.net/v1/AUTH_8cb28f9bc6ee43f0a3a1825efbb4311e/test-storage/ffmpeg-5.1.2-1.5.8-linux-arm64.jar
+   

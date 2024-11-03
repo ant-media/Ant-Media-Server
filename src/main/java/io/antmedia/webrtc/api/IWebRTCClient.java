@@ -208,6 +208,12 @@ public interface IWebRTCClient {
 	 * @return
 	 */
 	public String getStreamId();
+
+	/**
+	 * Getter for remote ip address
+	 * @return
+	 */
+	public String getRemoteIpAddress();
 	
 	
 }
