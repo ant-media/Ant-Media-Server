@@ -1,6 +1,5 @@
 package io.antmedia.filter;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -15,13 +14,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import jakarta.ws.rs.HttpMethod;
 
-import org.springframework.util.StreamUtils;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 import io.lindstrom.m3u8.model.MediaPlaylist;
 import io.lindstrom.m3u8.model.MediaSegment;
@@ -42,103 +39,93 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 	@Override
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
 			throws IOException, ServletException {
-		HttpServletRequest httpRequest =(HttpServletRequest)request;
+		HttpServletRequest httpRequest = (HttpServletRequest) request;
+		HttpServletResponse httpResponse = (HttpServletResponse) response;
 
 		String method = httpRequest.getMethod();
 		if (HttpMethod.GET.equals(method) && httpRequest.getRequestURI().endsWith("m3u8")) {
-			//only accept GET methods
 			String startDate = request.getParameter(START);
 			String endDate = request.getParameter(END);
 			String token = request.getParameter("token");
 			String subscriberId = request.getParameter("subscriberId");
 			String subscriberCode = request.getParameter("subscriberCode");
 
-			boolean parameterExists = !StringUtils.isNullOrEmpty(token) || !StringUtils.isNullOrEmpty(subscriberId) || !StringUtils.isNullOrEmpty(subscriberCode);
+			boolean parameterExists = !StringUtils.isNullOrEmpty(token) ||
+					!StringUtils.isNullOrEmpty(subscriberId) ||
+					!StringUtils.isNullOrEmpty(subscriberCode);
 
-			if(httpRequest.getRequestURI().contains(ADAPTIVE_SUFFIX) && parameterExists){
-				addSecurityParametersToAdaptiveM3u8File(token, subscriberId, subscriberCode, request, response, chain);
-			}
+			// Use ContentCachingResponseWrapper for modifications
+			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(httpResponse);
 
-			if(StringUtils.isNullOrEmpty(startDate) || StringUtils.isNullOrEmpty(endDate)) {
-				if (!httpRequest.getRequestURI().contains(ADAPTIVE_SUFFIX) && parameterExists) {
-					addSecurityParametersToSegmentUrls(token, subscriberId, subscriberCode, request, response, chain);
-				}
-				else {
-					chain.doFilter(httpRequest, response);
-				}
-			}
-			else {
-				long start = Long.parseLong(startDate);
-				long end = Long.parseLong(endDate);
+			try {
+				// Proceed with adaptive and regular m3u8 handling
+				if (httpRequest.getRequestURI().contains(ADAPTIVE_SUFFIX) && parameterExists) {
+					addSecurityParametersToAdaptiveM3u8File(token, subscriberId, subscriberCode, request, responseWrapper, chain);
+				} else if (StringUtils.isNullOrEmpty(startDate) || StringUtils.isNullOrEmpty(endDate)) {
+					if (!httpRequest.getRequestURI().contains(ADAPTIVE_SUFFIX) && parameterExists) {
+						addSecurityParametersToSegmentUrls(token, subscriberId, subscriberCode, request, responseWrapper, chain);
+					} else {
+						chain.doFilter(request, responseWrapper);
+					}
+				} else {
+					// Handling of custom start/end time range for playlist segments
+					long start = Long.parseLong(startDate);
+					long end = Long.parseLong(endDate);
+					chain.doFilter(request, responseWrapper);
 
-				ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper((HttpServletResponse) response);
+					int status = responseWrapper.getStatus();
+					if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST) {
+						try {
+							final byte[] originalData = responseWrapper.getContentAsByteArray();
+							String original = new String(originalData, StandardCharsets.UTF_8);
 
-				chain.doFilter(request, responseWrapper);
+							MediaPlaylistParser parser = new MediaPlaylistParser();
+							MediaPlaylist playList = parser.readPlaylist(original);
 
-				int status = responseWrapper.getStatus();
+							List<MediaSegment> segments = new ArrayList<>();
+							for (MediaSegment segment : playList.mediaSegments()) {
+								segment.programDateTime().ifPresent(dateTime -> {
+									long time = dateTime.toEpochSecond();
+									if (time >= start && time <= end) {
+										segments.add(MediaSegment.builder()
+												.duration(segment.duration())
+												.uri(segment.uri())
+												.build());
+									}
+								});
+							}
 
-				if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST) 
-				{				
-					try {
-						// Get the original response data
-						final byte[] originalData = responseWrapper.getContentAsByteArray();
-						String original = new String(originalData);
+							MediaPlaylist newPlayList = MediaPlaylist.builder()
+									.version(playList.version())
+									.targetDuration(playList.targetDuration())
+									.ongoing(false)
+									.addAllMediaSegments(segments)
+									.build();
 
-						MediaPlaylistParser parser = new MediaPlaylistParser();
-						MediaPlaylist playList = parser.readPlaylist(original);
+							String newData = new MediaPlaylistParser().writePlaylistAsString(newPlayList);
+							if (parameterExists) {
+								newData = modifyManifestFileContent(newData, token, subscriberId, subscriberCode, SEGMENT_FILE_REGEX);
+							}
 
-						List<MediaSegment> segments = new ArrayList<>();
-
-						for (MediaSegment segment : playList.mediaSegments()) {
-							segment.programDateTime().ifPresent(dateTime -> {
-								long time = dateTime.toEpochSecond();
-								if(time >= start && time <= end) {
-									segments.add(MediaSegment.builder()
-											.duration(segment.duration())
-											.uri(segment.uri())
-											.build());
-								}
-							});
-
+							// Write final modified data to response
+							responseWrapper.resetBuffer(); // Clears any previous response data
+							responseWrapper.getOutputStream().write(newData.getBytes(StandardCharsets.UTF_8));
+						} catch (Exception e) {
+							logger.error("Error processing m3u8 filter:", e);
+							// Write the original response content if there's an exception
+							responseWrapper.copyBodyToResponse();
 						}
-
-						MediaPlaylist newPlayList = MediaPlaylist.builder()
-								.version(playList.version())
-								.targetDuration(playList.targetDuration())
-								.ongoing(false)
-								.addAllMediaSegments(segments)
-								.build();
-
-						// Modify the original data
-						MediaPlaylistParser parser2 = new MediaPlaylistParser();
-
-						String newData = parser2.writePlaylistAsString(newPlayList);
-
-						if(parameterExists) {
-							newData = modifyManifestFileContent(newData, token, subscriberId, subscriberCode, SEGMENT_FILE_REGEX);
-						}
-
-						// Write the data into the output stream
-						response.setContentLength(newData.length());
-						response.getOutputStream().write(newData.getBytes());
-
-						// Commit the written data
-						response.getWriter().flush();
-
-
-					} catch (Exception e) {
-						response.setContentLength(responseWrapper.getContentSize());
-						response.getOutputStream().write(responseWrapper.getContentAsByteArray());
-						response.flushBuffer();
-
+					} else {
+						responseWrapper.copyBodyToResponse(); // Pass-through in case of error status
 					}
 				}
+			} finally {
+				// Ensure the response body is copied back after all modifications
+				responseWrapper.copyBodyToResponse();
 			}
-		}
-		else {
+		} else {
 			chain.doFilter(httpRequest, response);
 		}
-
 	}
 
 	private void addSecurityParametersToSegmentUrls(String token, String subscriberId, String subscriberCode, ServletRequest request, ServletResponse response, FilterChain chain) throws IOException {
@@ -183,15 +170,15 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 		Pattern pattern = Pattern.compile(regex);
 		Matcher matcher = pattern.matcher(original);
 
-		StringBuffer result = new StringBuffer();
+		StringBuilder result = new StringBuilder();
 		while (matcher.find()) {
 			String replacementString = matcher.group();
-			
+
 			if (replacementString.contains("?")) {
 				replacementString += "&";
 			}
 			else {
-				replacementString += "?"; 
+				replacementString += "?";
 			}
 
 			if (!StringUtils.isNullOrEmpty(subscriberCode)) {
@@ -210,7 +197,6 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 		}
 		matcher.appendTail(result);
 
-		String modifiedContent = result.toString();
-		return modifiedContent;
+        return result.toString();
 	}
 }
