@@ -708,6 +708,11 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				if (mainBroadcast.isZombi()) {
 					logger.info("Deleting main track streamId:{} because it's a zombi stream and there is no activeSubtrack", mainBroadcast.getStreamId());
+					// delete all subtracks which are not broadcasting
+					long size = getDataStore().getSubtrackCount(mainBroadcast.getStreamId(), null, null);
+					getDataStore().getSubtracks(mainBroadcast.getStreamId(), 0, (int) size, null).forEach(broadcast -> {
+						getDataStore().delete(broadcast.getStreamId());
+					});
 					getDataStore().delete(mainBroadcast.getStreamId());
 				}
 				else {
