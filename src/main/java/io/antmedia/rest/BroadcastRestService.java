@@ -1011,7 +1011,7 @@ public class BroadcastRestService extends RestServiceBase{
 							getAppSettings().getTimeTokenPeriod(), 6, ITokenService.HMAC_SHA1);
 				}
 				else {
-					message = "Secret is not set in AppSettings. Please set timtokensecret publish or play in Applicaiton settings";
+					message = "Secret is not set in AppSettings. Please set timetokensecret publish or play in Application settings";
 				}
 
 			}
