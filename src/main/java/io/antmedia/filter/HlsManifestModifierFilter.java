@@ -44,7 +44,7 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 		String method = httpRequest.getMethod();
 		if (HttpMethod.GET.equals(method) && httpRequest.getRequestURI().endsWith("m3u8")) {
-			
+
 			//start date is in seconds since epoch
 			String startDate = request.getParameter(START);
 			//end date is in seconds since epoch
@@ -56,8 +56,8 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 			boolean parameterExists = !StringUtils.isNullOrEmpty(token) ||
 					!StringUtils.isNullOrEmpty(subscriberId) ||
 					!StringUtils.isNullOrEmpty(subscriberCode);
-			
-			
+
+
 
 			// Use ContentCachingResponseWrapper for modifications
 			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(httpResponse);
@@ -83,64 +83,63 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 				else 
 				{
 					// Handling of custom start/end time range for playlist segments
-					
+
 					long start = Long.parseLong(startDate);
 					long end = Long.parseLong(endDate);
 					chain.doFilter(request, responseWrapper);
 
 					int status = responseWrapper.getStatus();
 					if (HttpServletResponse.SC_OK <= status && status <= HttpServletResponse.SC_BAD_REQUEST) {
-						try {
-							final byte[] originalData = responseWrapper.getContentAsByteArray();
-							String original = new String(originalData, StandardCharsets.UTF_8);
-							
-							MediaPlaylistParser parser = new MediaPlaylistParser();
-							MediaPlaylist playList = parser.readPlaylist(original);
 
-							List<MediaSegment> segments = new ArrayList<>();
-							for (MediaSegment segment : playList.mediaSegments()) 
+						final byte[] originalData = responseWrapper.getContentAsByteArray();
+						String original = new String(originalData, StandardCharsets.UTF_8);
+
+						MediaPlaylistParser parser = new MediaPlaylistParser();
+						MediaPlaylist playList = parser.readPlaylist(original);
+
+						List<MediaSegment> segments = new ArrayList<>();
+						for (MediaSegment segment : playList.mediaSegments()) 
+						{
+							segment.programDateTime().ifPresent(dateTime -> 
 							{
-								segment.programDateTime().ifPresent(dateTime -> 
+								long time = dateTime.toEpochSecond();
+								if (time >= start && time <= end) 
 								{
-									long time = dateTime.toEpochSecond();
-									if (time >= start && time <= end) 
-									{
-										segments.add(MediaSegment.builder()
-												.duration(segment.duration())
-												.uri(segment.uri())
-												.build());
-									}
-								});
-							}
-
-							MediaPlaylist newPlayList = MediaPlaylist.builder()
-									.version(playList.version())
-									.targetDuration(playList.targetDuration())
-									.ongoing(false)
-									.addAllMediaSegments(segments)
-									.build();
-
-							String newData = new MediaPlaylistParser().writePlaylistAsString(newPlayList);
-							if (parameterExists) {
-								newData = modifyManifestFileContent(newData, token, subscriberId, subscriberCode, SEGMENT_FILE_REGEX);
-							}
-
-							// Write final modified data to response
-							responseWrapper.resetBuffer(); // Clears any previous response data
-							responseWrapper.getOutputStream().write(newData.getBytes(StandardCharsets.UTF_8));
-						} catch (Exception e) {
-							logger.error("Error processing m3u8 filter:", e);
-							// Write the original response content if there's an exception
-							responseWrapper.copyBodyToResponse();
+									segments.add(MediaSegment.builder()
+											.duration(segment.duration())
+											.uri(segment.uri())
+											.build());
+								}
+							});
 						}
-					} else {
-						responseWrapper.copyBodyToResponse(); // Pass-through in case of error status
-					}
+
+						MediaPlaylist newPlayList = MediaPlaylist.builder()
+								.version(playList.version())
+								.targetDuration(playList.targetDuration())
+								.ongoing(false)
+								.addAllMediaSegments(segments)
+								.build();
+
+						String newData = new MediaPlaylistParser().writePlaylistAsString(newPlayList);
+						if (parameterExists) {
+							newData = modifyManifestFileContent(newData, token, subscriberId, subscriberCode, SEGMENT_FILE_REGEX);
+						}
+
+						// Write final modified data to response
+						responseWrapper.resetBuffer(); // Clears any previous response data
+						responseWrapper.getOutputStream().write(newData.getBytes(StandardCharsets.UTF_8));
+						//copyBodyToResponse is called in finally block
+					} 
+					//we don't need else block because we are calling copyBodyToResponse in finally block
 				}
-			} 
+			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
 			finally 
 			{
 				// Ensure the response body is copied back after all modifications
+				//IT IS CALLED FOR ALL CASES
 				responseWrapper.copyBodyToResponse();
 			}
 		} 
@@ -150,42 +149,33 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 		}
 	}
 
-	private void addSecurityParametersToSegmentUrls(String token, String subscriberId, String subscriberCode, ServletRequest request, ServletResponse response, FilterChain chain) throws IOException {
+	private void addSecurityParametersToSegmentUrls(String token, String subscriberId, String subscriberCode, ServletRequest request, ContentCachingResponseWrapper response, FilterChain chain) throws IOException, ServletException {
 
 		addSecurityParametersToURLs(token, subscriberId, subscriberCode, request, response, chain, SEGMENT_FILE_REGEX);
 	}
 
-	public void addSecurityParametersToAdaptiveM3u8File(String token, String subscriberId, String subscriberCode, ServletRequest request, ServletResponse response, FilterChain chain) throws IOException {
+	public void addSecurityParametersToAdaptiveM3u8File(String token, String subscriberId, String subscriberCode, ServletRequest request, ContentCachingResponseWrapper response, FilterChain chain) throws IOException, ServletException {
 		addSecurityParametersToURLs(token, subscriberId, subscriberCode, request, response, chain, MANIFEST_FILE_REGEX);
 	}
 
 	public void addSecurityParametersToURLs(String token, String subscriberId, String subscriberCode,
-											ServletRequest request, ServletResponse response, FilterChain chain,
-											String regex) throws IOException {
-		HttpServletResponse httpResponse = (HttpServletResponse) response;
-		ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(httpResponse);
+			ServletRequest request, ContentCachingResponseWrapper responseWrapper, FilterChain chain,
+			String regex) throws IOException, ServletException 
+	{
 
-		try {
-			chain.doFilter(request, responseWrapper);
-			int status = responseWrapper.getStatus();
+		chain.doFilter(request, responseWrapper);
+		int status = responseWrapper.getStatus();
 
-			if (status >= HttpServletResponse.SC_OK && status <= HttpServletResponse.SC_BAD_REQUEST) {
-				byte[] originalData = responseWrapper.getContentAsByteArray();
-				String original = new String(originalData);
+		if (status >= HttpServletResponse.SC_OK && status <= HttpServletResponse.SC_BAD_REQUEST) {
+			byte[] originalData = responseWrapper.getContentAsByteArray();
+			String original = new String(originalData);
 
-				String modifiedContent = modifyManifestFileContent(original, token, subscriberId, subscriberCode, regex);
-				response.setContentLength(modifiedContent.length());
-				response.getOutputStream().write(modifiedContent.getBytes());
-				response.getOutputStream().flush();
-			}
-		} catch (Exception e) {
-			logger.error(ExceptionUtils.getStackTrace(e));
-			// In case of an error, revert to the original response content
-			byte[] originalContent = responseWrapper.getContentAsByteArray();
-			response.setContentLength(originalContent.length);
-			response.getOutputStream().write(originalContent);
-			response.flushBuffer();
+			String modifiedContent = modifyManifestFileContent(original, token, subscriberId, subscriberCode, regex);
+			responseWrapper.resetBuffer();
+			responseWrapper.getOutputStream().write(modifiedContent.getBytes());
+			//responseWrapper.copyBodyToResponse() is called in finaally block
 		}
+
 	}
 
 	private String modifyManifestFileContent(String original, String token, String subscriberId, String subscriberCode, String regex) {
@@ -219,6 +209,6 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 		}
 		matcher.appendTail(result);
 
-        return result.toString();
+		return result.toString();
 	}
 }
