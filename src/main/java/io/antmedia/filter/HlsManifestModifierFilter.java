@@ -44,7 +44,10 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 
 		String method = httpRequest.getMethod();
 		if (HttpMethod.GET.equals(method) && httpRequest.getRequestURI().endsWith("m3u8")) {
+			
+			//start date is in seconds since epoch
 			String startDate = request.getParameter(START);
+			//end date is in seconds since epoch
 			String endDate = request.getParameter(END);
 			String token = request.getParameter("token");
 			String subscriberId = request.getParameter("subscriberId");
@@ -53,22 +56,34 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 			boolean parameterExists = !StringUtils.isNullOrEmpty(token) ||
 					!StringUtils.isNullOrEmpty(subscriberId) ||
 					!StringUtils.isNullOrEmpty(subscriberCode);
+			
+			
 
 			// Use ContentCachingResponseWrapper for modifications
 			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(httpResponse);
 
-			try {
+			try 
+			{
 				// Proceed with adaptive and regular m3u8 handling
-				if (httpRequest.getRequestURI().contains(ADAPTIVE_SUFFIX) && parameterExists) {
+				if (httpRequest.getRequestURI().contains(ADAPTIVE_SUFFIX) && parameterExists) 
+				{
 					addSecurityParametersToAdaptiveM3u8File(token, subscriberId, subscriberCode, request, responseWrapper, chain);
-				} else if (StringUtils.isNullOrEmpty(startDate) || StringUtils.isNullOrEmpty(endDate)) {
-					if (!httpRequest.getRequestURI().contains(ADAPTIVE_SUFFIX) && parameterExists) {
+				} 
+				else if (StringUtils.isNullOrEmpty(startDate) || StringUtils.isNullOrEmpty(endDate)) 
+				{
+					if (!httpRequest.getRequestURI().contains(ADAPTIVE_SUFFIX) && parameterExists) 
+					{
 						addSecurityParametersToSegmentUrls(token, subscriberId, subscriberCode, request, responseWrapper, chain);
-					} else {
+					} 
+					else 
+					{
 						chain.doFilter(request, responseWrapper);
 					}
-				} else {
+				} 
+				else 
+				{
 					// Handling of custom start/end time range for playlist segments
+					
 					long start = Long.parseLong(startDate);
 					long end = Long.parseLong(endDate);
 					chain.doFilter(request, responseWrapper);
@@ -78,15 +93,18 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 						try {
 							final byte[] originalData = responseWrapper.getContentAsByteArray();
 							String original = new String(originalData, StandardCharsets.UTF_8);
-
+							
 							MediaPlaylistParser parser = new MediaPlaylistParser();
 							MediaPlaylist playList = parser.readPlaylist(original);
 
 							List<MediaSegment> segments = new ArrayList<>();
-							for (MediaSegment segment : playList.mediaSegments()) {
-								segment.programDateTime().ifPresent(dateTime -> {
+							for (MediaSegment segment : playList.mediaSegments()) 
+							{
+								segment.programDateTime().ifPresent(dateTime -> 
+								{
 									long time = dateTime.toEpochSecond();
-									if (time >= start && time <= end) {
+									if (time >= start && time <= end) 
+									{
 										segments.add(MediaSegment.builder()
 												.duration(segment.duration())
 												.uri(segment.uri())
@@ -119,11 +137,15 @@ public class HlsManifestModifierFilter extends AbstractFilter {
 						responseWrapper.copyBodyToResponse(); // Pass-through in case of error status
 					}
 				}
-			} finally {
+			} 
+			finally 
+			{
 				// Ensure the response body is copied back after all modifications
 				responseWrapper.copyBodyToResponse();
 			}
-		} else {
+		} 
+		else 
+		{
 			chain.doFilter(httpRequest, response);
 		}
 	}
