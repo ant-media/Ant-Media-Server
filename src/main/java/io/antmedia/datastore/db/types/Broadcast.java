@@ -45,22 +45,22 @@ public class Broadcast {
 	 * "finished", "broadcasting", "created"
 	 */
 
-	@Schema(description = "the status of the stream", allowableValues = "finished,broadcasting,created,preparing,error,failed")
+	@Schema(description = "the status of the stream", allowableValues = {"finished","broadcasting","created","preparing","error","failed"})
 	private String status;
 
-	@Schema(description = "The status of the playlist. It's usable if type is playlist", allowableValues = "finished,broadcasting,created,preparing,error,failed")
+	@Schema(description = "The status of the playlist. It's usable if type is playlist", allowableValues = {"finished","broadcasting","created","preparing","error","failed"})
 	private String playListStatus;
 	
 	/**
 	 * "liveStream", "ipCamera", "streamSource", "VoD"
 	 */
-	@Schema(description = "the type of the stream", allowableValues = "liveStream,ipCamera,streamSource,VoD,playlist")
+	@Schema(description = "the type of the stream", allowableValues = {"liveStream","ipCamera","streamSource","VoD","playlist"})
 	private String type;
 
 	/**
 	 * "WebRTC", "RTMP", "Pull"
 	 */
-	@Schema(description = "The publish type of the stream. It's read-only and its value updated on the server side", allowableValues = "WebRTC,RTMP,Pull")
+	@Schema(description = "The publish type of the stream. It's read-only and its value updated on the server side", allowableValues = {"WebRTC","RTMP","Pull"})
 	private String publishType;
 
 	/**
