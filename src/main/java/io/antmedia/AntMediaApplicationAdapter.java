@@ -1156,6 +1156,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				variables.put("inputQueueSize", inputQueueSize);
 				variables.put("speed", speed);
 				variables.put("timestamp", System.currentTimeMillis());
+				variables.put("streamName",broadcast.getName());
 
 				try {
 					sendPOST(listenerHookURL, variables, appSettings.getWebhookRetryCount(), appSettings.getWebhookContentType());
