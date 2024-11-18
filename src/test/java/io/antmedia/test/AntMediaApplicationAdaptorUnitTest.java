@@ -1890,12 +1890,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 				File.separator + "v2" + File.separator + "broadcasts" +
 				File.separator + broadcast2.getStreamId() + File.separator + "start";
 
-		Mockito.doReturn(true).when(spyAdapter).sendClusterPost(eq(expectedRestRoute), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+		Mockito.doReturn(true).when(spyAdapter).sendClusterPost(eq(expectedRestRoute), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT));
 
 		Result result2 = spyAdapter.startStreaming(broadcast2);
 		assertTrue(result2.isSuccess());
 		verify(spyAdapter, times(1)).forwardStartStreaming(broadcast2);
-		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT));
 
 		// Test Case 3: failed forward to origin, fallback to local edge streaming
 		Broadcast broadcast3 = new Broadcast();
@@ -1967,12 +1967,12 @@ public class AntMediaApplicationAdaptorUnitTest {
 				File.separator + "v2" + File.separator + "broadcasts" +
 				File.separator + broadcast1.getStreamId() + File.separator + "start";
 
-		Mockito.doReturn(true).when(spyAdapter).sendClusterPost(eq(expectedRestRoute), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+		Mockito.doReturn(true).when(spyAdapter).sendClusterPost(eq(expectedRestRoute), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT));
 
 		// Test successful forward
 		boolean result1 = spyAdapter.forwardStartStreaming(broadcast1);
 		assertTrue(result1);
-		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT));
 
 		// Test Case 2: Failed forward
 		Broadcast broadcast2 = new Broadcast();
@@ -1985,11 +1985,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 				File.separator + broadcast2.getStreamId() + File.separator + "start";
 
 		// Mock sendClusterPost to return false
-		Mockito.doReturn(false).when(spyAdapter).sendClusterPost(eq(expectedRestRoute2), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+		Mockito.doReturn(false).when(spyAdapter).sendClusterPost(eq(expectedRestRoute2), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT));
 
 		boolean result2 = spyAdapter.forwardStartStreaming(broadcast2);
 		assertFalse(result2);
-		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute2), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute2), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT));
 
 		// Test Case 3: Exception during execution
 		Broadcast broadcast3 = new Broadcast();
@@ -2003,11 +2003,11 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Mock sendClusterPost to throw exception
 		Mockito.doThrow(new RuntimeException("Test exception")).when(spyAdapter)
-				.sendClusterPost(eq(expectedRestRoute3), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+				.sendClusterPost(eq(expectedRestRoute3), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT));
 
 		boolean result3 = spyAdapter.forwardStartStreaming(broadcast3);
 		assertFalse(result3);
-		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute3), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute3), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT));
 
 		// Test Case 4: Timeout scenario
 		Broadcast broadcast4 = new Broadcast();
@@ -2023,14 +2023,14 @@ public class AntMediaApplicationAdaptorUnitTest {
 		Mockito.doAnswer(invocation -> {
 			Thread.sleep(5000); // Sleep longer than the timeout
 			return true;
-		}).when(spyAdapter).sendClusterPost(eq(expectedRestRoute4), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+		}).when(spyAdapter).sendClusterPost(eq(expectedRestRoute4), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT));
 
 		// Reduce timeout for test purposes
 		appSettings.setWebhookRetryDelay(100);
 
 		boolean result4 = spyAdapter.forwardStartStreaming(broadcast4);
 		assertFalse(result4);
-		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute4), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT));
+		verify(spyAdapter, times(1)).sendClusterPost(eq(expectedRestRoute4), anyString(), eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT));
 
 		// Verify JWT token format (at least check it's not empty and properly formatted)
 		ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
