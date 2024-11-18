@@ -1,5 +1,6 @@
 package io.antmedia;
 
+import static io.antmedia.rest.RestServiceBase.FETCH_REQUEST_REDIRECTED_TO_ORIGIN;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
 
 import java.io.File;
@@ -23,6 +24,7 @@ import java.util.concurrent.*;
 
 import io.antmedia.filter.JWTFilter;
 import io.antmedia.filter.TokenFilterManager;
+import io.antmedia.statistic.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -82,9 +84,6 @@ import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
 import io.antmedia.shutdown.AMSShutdownManager;
 import io.antmedia.shutdown.IShutdownListener;
-import io.antmedia.statistic.DashViewerStats;
-import io.antmedia.statistic.HlsViewerStats;
-import io.antmedia.statistic.ViewerStats;
 import io.antmedia.statistic.type.RTMPToWebRTCStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
@@ -103,6 +102,8 @@ import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.web.context.WebApplicationContext;
+
 public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter implements IAntMediaStreamHandler, IShutdownListener {
 
 	public static final String BEAN_NAME = "web.handler";
@@ -217,6 +218,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 	protected ISubtrackPoller subtrackPoller;
 
 	private Random random = new Random();
+
+	private IStatsCollector statsCollector;
 
 	@Override
 	public boolean appStart(IScope app) {
@@ -1176,7 +1179,6 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
-
 	public CompletableFuture<Boolean> sendClusterPost(String url, String clusterCommunicationToken, int retryAttempts) {
 		CompletableFuture<Boolean> future = new CompletableFuture<>();
 
@@ -1355,51 +1357,59 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 						||	IAntMediaStreamHandler.BROADCAST_STATUS_PREPARING.equals(broadcast.getStatus()));
 	}
 
-	public Result startStreaming(Broadcast broadcast)
-	{
+	public Result startStreaming(Broadcast broadcast) {
 		Result result = new Result(false);
 
-		if(broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
-				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)
-				)  {
+		// Check resource availability first
+		if (!getStatsCollector().enoughResource()) {
+			result.setMessage("Not enough resource on server to start streaming.");
+			return result;
+		}
 
-			if(isClusterMode()){
+		// Handle streaming for IP camera, stream source, and VOD
+		if (broadcast.getType().equals(AntMediaApplicationAdapter.IP_CAMERA) ||
+				broadcast.getType().equals(AntMediaApplicationAdapter.STREAM_SOURCE) ||
+				broadcast.getType().equals(AntMediaApplicationAdapter.VOD)) {
+
+			if (isClusterMode()) {
 				String broadcastOriginAddress = broadcast.getOriginAdress();
 
+				// Handle null or empty origin address
 				if (broadcastOriginAddress == null || broadcastOriginAddress.isEmpty()) {
 					result = getStreamFetcherManager().startStreaming(broadcast);
-					result.setMessage("Broadcasts origin address is not set. "+ getServerSettings().getHostAddress()+ " will fetch the stream.");
+					result.setMessage("Broadcasts origin address is not set. " +
+							getServerSettings().getHostAddress() + " will fetch the stream.");
 					return result;
 				}
 
-				if(broadcastOriginAddress.equals(getServerSettings().getHostAddress())){
+				// Handle matching origin address
+				if (broadcastOriginAddress.equals(getServerSettings().getHostAddress())) {
 					result = getStreamFetcherManager().startStreaming(broadcast);
 					return result;
 				}
 
-				// Forward start streaming request to origin server
+				// Forward request to origin server
 				forwardStartStreaming(broadcast);
-
-				// Immediately return a success result with additional context
 				result.setSuccess(true);
+				result.setErrorId(FETCH_REQUEST_REDIRECTED_TO_ORIGIN);
 				result.setMessage("Request forwarded to origin server for fetching. " +
 						"Check broadcast status for final confirmation.");
-
 				return result;
-
-			}else{
+			} else {
 				result = getStreamFetcherManager().startStreaming(broadcast);
 			}
-			
 		}
+		// Handle playlist type
 		else if (broadcast.getType().equals(AntMediaApplicationAdapter.PLAY_LIST)) {
 			result = getStreamFetcherManager().startPlaylist(broadcast);
-
 		}
+		// Handle unsupported broadcast types
 		else {
-			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}", broadcast.getType(), broadcast.getStreamId());
+			logger.info("Broadcast type is not supported for startStreaming:{} streamId:{}",
+					broadcast.getType(), broadcast.getStreamId());
+			result.setMessage("Broadcast type is not supported. It can be StreamSource, IP Camera, VOD, Playlist");
 		}
+
 		return result;
 	}
 
@@ -2388,6 +2398,18 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public Map<String, Long> getPlayListSchedulerTimer() {
 		return playListSchedulerTimer;
+	}
+
+	public IStatsCollector getStatsCollector() {
+		if(statsCollector == null)
+		{
+			statsCollector = (IStatsCollector)getScope().getContext().getApplicationContext().getBean(StatsCollector.BEAN_NAME);
+		}
+		return statsCollector;
+	}
+
+	public void setStatsCollector(IStatsCollector statsCollector) {
+		this.statsCollector = statsCollector;
 	}
 
 }
