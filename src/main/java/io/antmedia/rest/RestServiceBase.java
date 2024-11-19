@@ -1736,37 +1736,28 @@ public abstract class RestServiceBase {
 		return null;
 	}
 
-	protected Object getToken (String streamId, long expireDate, String type, String roomId)
-	{
-		Token token = null;
-		String message = "Define Stream ID, Token Type and Expire Date (unix time)";
-		if(streamId != null && type != null && expireDate > 0) {
-
-			ITokenService tokenService = getTokenService();
-
-			if(tokenService != null)
-			{
-				token = tokenService.createToken(streamId, expireDate, type, roomId);
-				if(token != null)
-				{
-					if (getDataStore().saveToken(token)) {
-						//returns token only everything is OK
-						return token;
-					}
-					else {
-						message = "Cannot save token to the datastore";
-					}
-				}
-				else {
-					message = "Cannot create token. It can be a mock token service";
-				}
-			}
-			else {
-				message = "No token service in this app";
-			}
+	protected Object getToken(String streamId, long expireDate, String type, String roomId) {
+		if (streamId == null || type == null || expireDate <= 0) {
+			return new Result(false, "Define Stream ID, Token Type and Expire Date (unix time)");
+		}
+		if (!type.equals(Token.PLAY_TOKEN) && !type.equals(Token.PUBLISH_TOKEN)) {
+			return new Result(false, "Invalid token type. Supported types are 'play' and 'publish'");
 		}
 
-		return new Result(false, message);
+		ITokenService tokenService = getTokenService();
+		if (tokenService == null) {
+			return new Result(false, "No token service in this app");
+		}
+
+		Token token = tokenService.createToken(streamId, expireDate, type, roomId);
+		if (token == null) {
+			return new Result(false, "Cannot create token. It may be a mock token service");
+		}
+		if (!getDataStore().saveToken(token)) {
+			return new Result(false, "Cannot save token to the datastore");
+		}
+
+		return token;
 	}
 
 	protected Object getJwtToken (String streamId, long expireDate, String type, String roomId)
