@@ -576,6 +576,24 @@ public class BroadcastRestServiceV2UnitTest {
 			assertFalse(result.isSuccess());
 		}
 
+		{
+			//set token type to Publish (must be publish)
+			tokenReturn = restServiceReal.getTokenV2(streamId, 123432, "Publish", "testRoom").getEntity();
+			assertTrue(tokenReturn instanceof Result);
+			result = (Result) tokenReturn;
+			assertFalse(result.isSuccess());
+
+		}
+
+		{
+			//set token type to Play (must be play)
+			tokenReturn = restServiceReal.getTokenV2(streamId, 123432, "Play", "testRoom").getEntity();
+			assertTrue(tokenReturn instanceof Result);
+			result = (Result) tokenReturn;
+			assertFalse(result.isSuccess());
+
+		}
+
 		Mockito.when(datastore.saveToken(Mockito.any())).thenReturn(true);
 		tokenReturn = (Object) restServiceReal.getTokenV2(streamId, 123432, Token.PLAY_TOKEN, "testRoom").getEntity();
 		assertTrue(tokenReturn instanceof Token);
