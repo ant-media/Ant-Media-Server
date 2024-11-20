@@ -612,8 +612,8 @@ public class ConsoleAppRestServiceTest{
 	}
 
 	@Test
-	public void testGetAppSettings() {
-		try {
+	public void testGetAppSettings() throws Exception {
+		
 			// get LiveApp default settings and check the default values
 			// get settings from the app
 			Result result = callIsEnterpriseEdition();
@@ -653,10 +653,7 @@ public class ConsoleAppRestServiceTest{
 			assertTrue(result.isSuccess());
 
 
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		
 	}
 
 
@@ -1376,8 +1373,29 @@ public class ConsoleAppRestServiceTest{
 			long expireDate = Instant.now().getEpochSecond() + 1000;
 
 			Broadcast broadcast = RestServiceV2Test.callCreateRegularBroadcast();
+
+			//only token types 'play' and 'publish' are allowed.
+			Token nullAccessToken1 = null;
+			try {
+				nullAccessToken1 = callGetToken("http://localhost:5080/" + appName + "/rest/v2/broadcasts/" + broadcast.getStreamId() + "/token", "Play", expireDate);
+			} catch (Exception e) {
+				log.info(e.getMessage());
+			}
+			assertNull(nullAccessToken1);
+
+			Token nullAccessToken2 = null;
+			try {
+				nullAccessToken2 = callGetToken("http://localhost:5080/" + appName + "/rest/v2/broadcasts/" + broadcast.getStreamId() + "/token", "Publish", expireDate);
+			} catch (Exception e) {
+				log.info(e.getMessage());
+			}
+			assertNull(nullAccessToken2);
+
+
 			Token accessToken = callGetToken( "http://localhost:5080/"+appName+"/rest/v2/broadcasts/"+broadcast.getStreamId()+"/token", Token.PLAY_TOKEN, expireDate);
 			assertNotNull(accessToken);
+
+
 
 
 			Process rtmpSendingProcess = execute(ffmpegPath
@@ -1888,9 +1906,9 @@ public class ConsoleAppRestServiceTest{
 			String ffmpegBuildConf = (String) jsObject.get(StatsCollector.FFMPEG_BUILD_INFO);
 
 			assertTrue(ffmpegBuildConf.contains("--enable-cuda"));
-			assertTrue(ffmpegBuildConf.contains("--enable-libnpp"));
-			assertTrue(ffmpegBuildConf.contains("--extra-cflags=-I/usr/local/cuda/include"));
-			assertTrue(ffmpegBuildConf.contains("--extra-ldflags=-L/usr/local/cuda/lib64"));
+		//	assertTrue(ffmpegBuildConf.contains("--enable-libnpp")); we no longer support libnpp by default.
+		//	assertTrue(ffmpegBuildConf.contains("--extra-cflags=-I/usr/local/cuda/include"));
+		//	assertTrue(ffmpegBuildConf.contains("--extra-ldflags=-L/usr/local/cuda/lib64"));
 
 			//crystalhd is not supported in after 20.04 so remove them
 			assertTrue(ffmpegBuildConf.contains("--disable-decoder=h264_crystalhd"));
@@ -2371,10 +2389,6 @@ public class ConsoleAppRestServiceTest{
 
 	}
 
-	//public static Token callGetToken(String streamId, String type, long expireDate) throws Exception {
-	//	return callGetToken(SERVICE_URL + "/broadcast/getToken", streamId, type, expireDate);
-	//}
-
 	public static Token callGetToken(String url, String type, long expireDate) throws Exception {
 
 		CloseableHttpClient client = HttpClients.custom().setRedirectStrategy(new LaxRedirectStrategy()).build();
@@ -2390,6 +2404,7 @@ public class ConsoleAppRestServiceTest{
 		if (response.getStatusLine().getStatusCode() != 200) {
 			throw new Exception(result.toString());
 		}
+
 		System.out.println("result string: " + result.toString());
 
 		return gson.fromJson(result.toString(), Token.class);

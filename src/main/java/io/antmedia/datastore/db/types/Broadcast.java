@@ -13,6 +13,7 @@ import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
 import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
+import dev.morphia.annotations.IndexOptions;
 import dev.morphia.annotations.Indexes;
 import dev.morphia.utils.IndexType;
 import io.antmedia.AntMediaApplicationAdapter;
@@ -23,7 +24,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 @Schema(description="The basic broadcast class")
 @Entity(value = "broadcast")
-@Indexes({ @Index(fields = @Field(value = "name", type = IndexType.TEXT)), @Index(fields = @Field("streamId")), @Index(fields = @Field("status")) })
+@Indexes({ @Index(fields = @Field(value = "name", type = IndexType.TEXT)), 
+	@Index(fields = @Field("streamId"), options = @IndexOptions(unique = true, name="streamId_unique_index")), 
+	@Index(fields = @Field("status")) })
 public class Broadcast {
 
 	private static final Logger logger = LoggerFactory.getLogger(Broadcast.class);
@@ -42,22 +45,22 @@ public class Broadcast {
 	 * "finished", "broadcasting", "created"
 	 */
 
-	@Schema(description = "the status of the stream", allowableValues = "finished,broadcasting,created,preparing,error,failed")
+	@Schema(description = "the status of the stream", allowableValues = {"finished","broadcasting","created","preparing","error","failed"})
 	private String status;
 
-	@Schema(description = "The status of the playlist. It's usable if type is playlist", allowableValues = "finished,broadcasting,created,preparing,error,failed")
+	@Schema(description = "The status of the playlist. It's usable if type is playlist", allowableValues = {"finished","broadcasting","created","preparing","error","failed"})
 	private String playListStatus;
 	
 	/**
 	 * "liveStream", "ipCamera", "streamSource", "VoD"
 	 */
-	@Schema(description = "the type of the stream", allowableValues = "liveStream,ipCamera,streamSource,VoD,playlist")
+	@Schema(description = "the type of the stream", allowableValues = {"liveStream","ipCamera","streamSource","VoD","playlist"})
 	private String type;
 
 	/**
 	 * "WebRTC", "RTMP", "Pull"
 	 */
-	@Schema(description = "The publish type of the stream. It's read-only and its value updated on the server side", allowableValues = "WebRTC,RTMP,Pull")
+	@Schema(description = "The publish type of the stream. It's read-only and its value updated on the server side", allowableValues = {"WebRTC","RTMP","Pull"})
 	private String publishType;
 
 	/**

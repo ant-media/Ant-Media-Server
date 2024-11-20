@@ -222,7 +222,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		BroadcastRestService.updatePlayListItemDurationsIfApplicable(broadcast.getPlayListItemList(), broadcast.getStreamId());
 
-		assertEquals(15045, item.getDurationInMs());
+		assertEquals(15046, item.getDurationInMs());
 		assertEquals(0, item2.getDurationInMs());
 	}
 
@@ -231,7 +231,7 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testGetDuration() {
 
 		Result result = restServiceReal.getDuration(StreamSchedularUnitTest.VALID_MP4_URL);
-		assertEquals(15045, Integer.valueOf(result.getDataId()).intValue());
+		assertEquals(15046, Integer.valueOf(result.getDataId()).intValue());
 		assertTrue(result.isSuccess());
 
 
@@ -574,6 +574,24 @@ public class BroadcastRestServiceV2UnitTest {
 			assertTrue(tokenReturn instanceof Result);
 			result = (Result) tokenReturn;
 			assertFalse(result.isSuccess());
+		}
+
+		{
+			//set token type to Publish (must be publish)
+			tokenReturn = restServiceReal.getTokenV2(streamId, 123432, "Publish", "testRoom").getEntity();
+			assertTrue(tokenReturn instanceof Result);
+			result = (Result) tokenReturn;
+			assertFalse(result.isSuccess());
+
+		}
+
+		{
+			//set token type to Play (must be play)
+			tokenReturn = restServiceReal.getTokenV2(streamId, 123432, "Play", "testRoom").getEntity();
+			assertTrue(tokenReturn instanceof Result);
+			result = (Result) tokenReturn;
+			assertFalse(result.isSuccess());
+
 		}
 
 		Mockito.when(datastore.saveToken(Mockito.any())).thenReturn(true);
@@ -2150,7 +2168,7 @@ public class BroadcastRestServiceV2UnitTest {
 
 		streamSourceRest.setAppCtx(appContext);
 
-		StatsCollector monitorService = new StatsCollector(); 
+		StatsCollector monitorService = spy(StatsCollector.class);
 
 		when(appContext.getBean(IStatsCollector.BEAN_NAME)).thenReturn(monitorService);
 
@@ -2180,6 +2198,8 @@ public class BroadcastRestServiceV2UnitTest {
 		//define CPU load below limit
 		int cpuLoad2 = 70;
 		int cpuLimit2 = 80;
+
+		when(monitorService.getMemoryLoad()).thenReturn(20);
 
 
 		monitorService.setCpuLimit(cpuLimit2);

@@ -1011,7 +1011,7 @@ public class BroadcastRestService extends RestServiceBase{
 							getAppSettings().getTimeTokenPeriod(), 6, ITokenService.HMAC_SHA1);
 				}
 				else {
-					message = "Secret is not set in AppSettings. Please set timtokensecret publish or play in Applicaiton settings";
+					message = "Secret is not set in AppSettings. Please set timetokensecret publish or play in Application settings";
 				}
 
 			}
@@ -1944,10 +1944,13 @@ public class BroadcastRestService extends RestServiceBase{
 	@Path("/{stream_id}/id3")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result addID3Data(@Parameter(description = "the id of the stream", required = true) @PathParam("stream_id") String streamId,
-			@Parameter(description = "ID3 data.", required = false) String data) {
+			@Parameter(description = "ID3 data.", required = false) String data) 
+	{
 		if(!getAppSettings().isId3TagEnabled()) {
 			return new Result(false, null, "ID3 tag is not enabled");
 		}
+		logger.info("ID3 data is received for stream: {} data: {}", streamId.replaceAll("[\n|\r|\t]", "_"), data.replaceAll("[\n|\r|\t]", "_"));
+		
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if(muxAdaptor != null) {
 			return new Result(muxAdaptor.addID3Data(data));

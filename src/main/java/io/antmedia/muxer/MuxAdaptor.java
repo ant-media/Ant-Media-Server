@@ -185,8 +185,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	protected IScope scope;
 
-	private String oldQuality;
-
 	private IAntMediaStreamHandler appAdapter;
 
 	protected List<EncoderSettings> encoderSettingsList;
@@ -218,8 +216,10 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	private long lastDTS = -1;
 	private int overflowCount = 0;
 
-	public boolean addID3Data(String data) {
-		for (Muxer muxer : muxerList) {
+	public boolean addID3Data(String data) 
+	{
+		for (Muxer muxer : muxerList) 
+		{
 			if(muxer instanceof HLSMuxer) {
 				((HLSMuxer)muxer).addID3Data(data);
 				return true;
@@ -331,6 +331,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	private int videoCodecId = -1;
 
+	private boolean metadataTimeout = false;
+
+	private long lastWebhookStreamStatusUpdateTime = 0;
 
 	public static MuxAdaptor initializeMuxAdaptor(ClientBroadcastStream clientBroadcastStream, Broadcast broadcast, boolean isSource, IScope scope) {
 
@@ -1023,9 +1026,17 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			publishStatsEvent.setHeight(height);
 
 			getStreamHandler().setQualityParameters(streamId, quality, speed, inputQueueSize, System.currentTimeMillis());
-			oldQuality = quality;
 		}
-
+		
+		long webhookStreamStatusUpdatePeriod = appSettings.getWebhookStreamStatusUpdatePeriodMs();
+		if (webhookStreamStatusUpdatePeriod != -1 && (now - lastWebhookStreamStatusUpdateTime) > webhookStreamStatusUpdatePeriod) {
+			lastWebhookStreamStatusUpdateTime = now;
+			getStreamHandler().notifyWebhookForStreamStatus(getBroadcast(), width, height, totalByteReceived, inputQueueSize, speed);
+		}
+		
+		
+		
+		
 
 	}
 
@@ -1194,14 +1205,23 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 			logger.trace("writeAudioBuffer video data packet timestamp:{} and packet timestamp:{} streamId:{}", dts, packet.getTimestamp(), streamId);
 
-
 			audioBufferReceived(dts, byteBuffer);
 
 		}
 		else if (packet.getDataType() == Constants.TYPE_STREAM_METADATA) {
 
-			//it can be onMetadata or it can be onFI action
-
+			//it can be onMetadata or it can be onFI action	
+			
+			//TODO: This is an ugly hack, for some reasons, safari does not play hevc stream if we write the metadata directly so we wait for 5 seconds
+			//to write metadata. This is a workaround and it should be fixed properly - @mekya
+			if (!metadataTimeout && (System.currentTimeMillis() - broadcast.getStartTime()) < 5000) 
+			{
+				logger.debug("Not notifying metadata because waiting for timeout for stream:{}", streamId);
+				return;
+			}
+			metadataTimeout  = true;
+	
+			logger.trace("metadata for stream:{} dts:{}", streamId, dts);
 			if (appSettings.isRelayRTMPMetaDataToMuxers()) {
 				notifyMetaDataReceived(packet, dts);
 			}
@@ -1210,11 +1230,14 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 	}
 
-	public void notifyMetaDataReceived(IStreamPacket packet, long dts) {
+	public JSONObject notifyMetaDataReceived(IStreamPacket packet, long dts) {
 		JSONObject jsonObject = getMetaData((Notify) packet);
+		
 
-		if (jsonObject != null) {
+		if (jsonObject != null ) {
+
 			String data = jsonObject.toJSONString();
+			
 			synchronized (muxerList) 
 			{
 				for (Muxer muxer : muxerList) 
@@ -1223,6 +1246,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				}
 			}
 		}
+		return jsonObject;
 	}
 
 	public void audioBufferReceived(long dts, ByteBuffer byteBuffer) {
@@ -1253,25 +1277,34 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	{
 		String action = notifyEvent.getAction();
 
+		JSONObject jsonObject = null;
 		if ("onMetaData".equals(action)) {
 			// store the metadata
 
-			Input input = getInput(notifyEvent);
+			while (notifyEvent.getData().hasRemaining()) 
+			{
+				Input input = getInput(notifyEvent);
 
-			byte readDataType = input.readDataType();
-			if (readDataType == DataTypes.CORE_MAP) {
-				Map<Object, Object> readMap =  (Map<Object, Object>) input.readMap();
-			
-				logger.info("metadata read from streamId: {} -> {}  " , streamId, readMap);
-				if (readMap != null && !readMap.isEmpty()) {
-					return new JSONObject(readMap);
+				byte readDataType = input.readDataType();
+				if (readDataType == DataTypes.CORE_MAP) 
+				{
+					Map<Object, Object> readMap =  (Map<Object, Object>) input.readMap();
+
+					logger.debug("metadata read from streamId: {} -> {} is empty:{} " , streamId, readMap, readMap.isEmpty());
+					//TODO: If there is a problem 
+					if (readMap != null && !readMap.isEmpty()) {
+						jsonObject = new JSONObject(readMap);
+						break;
+					}
+				}
+				else {
+					logger.debug("metadata read data type -->>>> " + readDataType);
 				}
 			}
-			else {
-				logger.debug("metadata read data type -->>>> " + readDataType);
-			}
 		}
-		return null;
+
+		logger.debug("Returning {} from onMetaData for streamId:{} action:{}", jsonObject, streamId, action);
+		return jsonObject;
 	}
 
 	public Input getInput(Notify notifyEvent) {
@@ -1404,7 +1437,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					long dts = packet.getTimestamp() & 0xffffffffL;
 
 					updateQualityParameters(dts, TIME_BASE_FOR_MS, 0, isKeyFrame);
-
+					
 
 					if (bufferTimeMs == 0) 
 					{
@@ -1478,7 +1511,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 					//have the buffering finish time ms
 					bufferingFinishTimeMs = System.currentTimeMillis();
 					//have the first packet sent time
-					firstPacketReadyToSentTimeMs  = pktTrailer.getTimestamp();
+					firstPacketReadyToSentTimeMs  = pktHead.getTimestamp();
 					logger.info("Switching buffering from true to false for stream: {}", streamId);
 				}
 				//make buffering false whenever bufferDuration is bigger than bufferTimeMS
@@ -1598,6 +1631,11 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 
 	public void updateQualityParameters(long pts, AVRational timebase, long packetSize, boolean isKeyFrame) {
 
+		if (pts <= 0) {
+			
+			logger.debug("Ignoring quality update because pts is less than or equal to 0 for streamId:{} this happens for Notify packets in RTMP ingest", streamId);
+			return;
+		}
 		long packetTime = av_rescale_q(pts, timebase, TIME_BASE_FOR_MS);
 		packetTimeList.add(new PacketTime(packetTime, System.currentTimeMillis()));
 
@@ -1956,10 +1994,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			return;
 		}
 
-
-
-
-
 		if (packet.getDataType() == Constants.TYPE_VIDEO_DATA || packet.getDataType() == Constants.TYPE_AUDIO_DATA) {
 
 			CachedEvent event = new CachedEvent();
@@ -1974,7 +2008,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				event.setExVideoPacketType(comingVideoData.getExVideoPacketType());
 				event.setFrameType(comingVideoData.getFrameType());
 			}
-			
+
 			streamPacketQueue.add(event);
 			queueSize.incrementAndGet();
 
@@ -1983,18 +2017,20 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		{	
 			try 
 			{
-				streamPacketQueue.add(((Notify)packet).duplicate());
+				Notify duplicatePacket = ((Notify)packet).duplicate();
+				duplicatePacket.setTimestamp(packet.getTimestamp());
+				streamPacketQueue.add(duplicatePacket);
 				queueSize.incrementAndGet();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			} 
-			
+
 		}
 		else {
 			logger.debug("Packet type:{} is not supported for stream: {}", streamId, packet.getDataType());
 		}
 
-		
+
 
 	}
 

@@ -12,12 +12,12 @@ import org.junit.Test;
 import org.junit.rules.TestRule;
 import org.junit.rules.TestWatcher;
 import org.junit.runner.Description;
-import org.mockito.ArgumentCaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.util.ContentCachingResponseWrapper;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,7 +25,7 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 public class HlsManifestModifierFilterTest {
-	
+
 	private HlsManifestModifierFilter hlsManifestModifierFilter;
 
 	protected static Logger logger = LoggerFactory.getLogger(HlsManifestModifierFilterTest.class);
@@ -35,24 +35,24 @@ public class HlsManifestModifierFilterTest {
 	public void before() {
 		hlsManifestModifierFilter = new HlsManifestModifierFilter();
 	}
-	
+
 	@After
 	public void after() {
 		hlsManifestModifierFilter = null;
 	}
-	
+
 	@Rule
 	public TestRule watcher = new TestWatcher() {
-	   protected void starting(Description description) {
-	      System.out.println("Starting test: " + description.getMethodName());
-	   }
-	   
-	   protected void failed(Throwable e, Description description) {
-		   System.out.println("Failed test: " + description.getMethodName());
-	   };
-	   protected void finished(Description description) {
-		   System.out.println("Finishing test: " + description.getMethodName());
-	   };
+		protected void starting(Description description) {
+			System.out.println("Starting test: " + description.getMethodName());
+		}
+
+		protected void failed(Throwable e, Description description) {
+			System.out.println("Failed test: " + description.getMethodName());
+		};
+		protected void finished(Description description) {
+			System.out.println("Finishing test: " + description.getMethodName());
+		};
 	};
 
 	String testM3u8Query = "#EXTM3U\n" +
@@ -94,7 +94,7 @@ public class HlsManifestModifierFilterTest {
 			"#EXT-X-PROGRAM-DATE-TIME:2024-03-08T22:28:18.910+0300\n" +
 			"test000000010.ts?test=123\n" +
 			"#EXT-X-ENDLIST\n";
-	
+
 	String testM3u8 = "#EXTM3U\n" +
 			"#EXT-X-VERSION:3\n" +
 			"#EXT-X-TARGETDURATION:2\n" +
@@ -142,7 +142,7 @@ public class HlsManifestModifierFilterTest {
 			"teststream_480p1000kbps.m3u8\n" +
 			"#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=1837224,RESOLUTION=960x720,CODECS=\"avc1.42e00a,mp4a.40.2\"\n" +
 			"teststream_720p2000kbps.m3u8\n";
-	
+
 	String testAdaptiveM3u8Query = "#EXTM3U\n" +
 			"#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=749592,RESOLUTION=480x360,CODECS=\"avc1.42e00a,mp4a.40.2\"\n" +
 			"teststream_360p800kbps.m3u8?segment=1234\n" +
@@ -158,32 +158,32 @@ public class HlsManifestModifierFilterTest {
 			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
 			FilterChain mockChain = mock(FilterChain.class);
 
-			//not get method
-			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
-			when(mockRequest.getMethod()).thenReturn("POST");
+			// Case 1: Request method is not GET
+			HttpServletRequest mockRequest1 = mock(HttpServletRequest.class);
+			when(mockRequest1.getMethod()).thenReturn("POST");
 
-			hlsManifestModifierFilter.doFilter(mockRequest, mockResponse, mockChain);
-			verify(mockChain).doFilter(mockRequest, mockResponse);
+			hlsManifestModifierFilter.doFilter(mockRequest1, mockResponse, mockChain);
+			verify(mockChain).doFilter(eq(mockRequest1), any(HttpServletResponse.class));
 
-			//not m3u8
+			// Case 2: URI does not end with .m3u8
 			HttpServletRequest mockRequest2 = mock(HttpServletRequest.class);
 			when(mockRequest2.getMethod()).thenReturn("GET");
 			when(mockRequest2.getRequestURI()).thenReturn("/LiveApp/streams/test.xyz");
 
 			hlsManifestModifierFilter.doFilter(mockRequest2, mockResponse, mockChain);
-			verify(mockChain).doFilter(mockRequest2, mockResponse);
+			verify(mockChain).doFilter(eq(mockRequest2), any(HttpServletResponse.class));
 
-
-			//no start end params
+			// Case 3: No start or end parameters provided
 			HttpServletRequest mockRequest3 = mock(HttpServletRequest.class);
 			when(mockRequest3.getMethod()).thenReturn("GET");
 			when(mockRequest3.getRequestURI()).thenReturn("/LiveApp/streams/test.m3u8");
+			when(mockRequest3.getParameter(HlsManifestModifierFilter.START)).thenReturn(null);
+			when(mockRequest3.getParameter(HlsManifestModifierFilter.END)).thenReturn(null);
 
 			hlsManifestModifierFilter.doFilter(mockRequest3, mockResponse, mockChain);
-			verify(mockChain).doFilter(mockRequest3, mockResponse);
+			verify(mockChain).doFilter(eq(mockRequest3), any(HttpServletResponse.class));
 
-
-			//blank start end params
+			// Case 4: Empty start and end parameters
 			HttpServletRequest mockRequest4 = mock(HttpServletRequest.class);
 			when(mockRequest4.getMethod()).thenReturn("GET");
 			when(mockRequest4.getRequestURI()).thenReturn("/LiveApp/streams/test.m3u8");
@@ -191,67 +191,64 @@ public class HlsManifestModifierFilterTest {
 			when(mockRequest4.getParameter(HlsManifestModifierFilter.END)).thenReturn("");
 
 			hlsManifestModifierFilter.doFilter(mockRequest4, mockResponse, mockChain);
-			verify(mockChain).doFilter(mockRequest4, mockResponse);
+			verify(mockChain).doFilter(eq(mockRequest4), any(HttpServletResponse.class));
 
-
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		} catch (ServletException e) {
+		} catch (IOException | ServletException e) {
 			throw new RuntimeException(e);
 		}
 	}
 
-	
+
 	@Test
 	public void testFilterIfIncludesQuery() {
 		try {
 			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
-			ServletOutputStream outputStream = mock(ServletOutputStream.class);
-			when(mockResponse.getOutputStream()).thenReturn(outputStream);
 			when(mockResponse.getStatus()).thenReturn(200);
-			when(mockResponse.getWriter()).thenReturn(mock(java.io.PrintWriter.class));
-			FilterChain myChain = new FilterChain() {
-				@Override
-				public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) throws IOException, ServletException {
-					((ContentCachingResponseWrapper)servletResponse).setStatus(200);
-					((ContentCachingResponseWrapper)servletResponse).getOutputStream().write(testM3u8Query.getBytes());
-				}
-			};
-			
+			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(mockResponse);
+			ServletOutputStream outputStream = mock(ServletOutputStream.class);
 
-			//blank start end params
+			// Set up response wrapper and mocks for output stream and response
+			when(mockResponse.getOutputStream()).thenReturn(outputStream);
+
+			// Define the mock filter chain to write the `.m3u8` content to the response wrapper
+			FilterChain myChain = (servletRequest, servletResponse) -> {
+				((ContentCachingResponseWrapper) servletResponse).setStatus(200);
+				((ContentCachingResponseWrapper) servletResponse).getOutputStream().write(testM3u8Query.getBytes(StandardCharsets.UTF_8));
+			};
+
+			// Set up request with method, URI, and parameters for start/end times and query details
 			HttpServletRequest mockRequest = mock(HttpServletRequest.class);
 			when(mockRequest.getMethod()).thenReturn("GET");
 			when(mockRequest.getRequestURI()).thenReturn("/LiveApp/streams/test.m3u8");
 			when(mockRequest.getParameter(HlsManifestModifierFilter.START)).thenReturn("1709926082");
 			when(mockRequest.getParameter(HlsManifestModifierFilter.END)).thenReturn("1709926087");
-			String subscriberId ="testSubscriber";
+
+			// Add subscriber parameters to be used in query
+			String subscriberId = "testSubscriber";
 			String subscriberCode = "883068";
 			String token = "testToken";
 			when(mockRequest.getParameter(WebSocketConstants.SUBSCRIBER_ID)).thenReturn(subscriberId);
 			when(mockRequest.getParameter(WebSocketConstants.SUBSCRIBER_CODE)).thenReturn(subscriberCode);
 			when(mockRequest.getParameter(WebSocketConstants.TOKEN)).thenReturn(token);
-			
 
-			
-			hlsManifestModifierFilter.doFilter(mockRequest, mockResponse, myChain);
+			// Run the filter
+			hlsManifestModifierFilter.doFilter(mockRequest, responseWrapper, myChain);
 
-			//verify that the response is written with captor
-			ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
-			verify(outputStream).write(captor.capture());
+			// Capture the modified `.m3u8` content after filter processing
+			byte[] modifiedResponseContent = responseWrapper.getContentAsByteArray();
+			String modifiedM3u8 = new String(modifiedResponseContent, StandardCharsets.UTF_8);
 
-			String modifiedM3u8 = new String(captor.getValue());
+			// Logging for debugging (if needed)
 			logger.info(modifiedM3u8);
 
-			assertFalse(modifiedM3u8.contains("test000000001.ts"));
+			// Assertions to confirm expected modifications
+			assertFalse(modifiedM3u8.contains("test000000001.ts"));  // Segment outside the range
 			assertTrue(modifiedM3u8.contains("test000000002.ts?test=123&subscriberCode=883068&subscriberId=testSubscriber&token=testToken"));
 			assertTrue(modifiedM3u8.contains("test000000003.ts?test=123&subscriberCode=883068&subscriberId=testSubscriber&token=testToken"));
 			assertTrue(modifiedM3u8.contains("test000000004.ts?test=123&subscriberCode=883068&subscriberId=testSubscriber&token=testToken"));
-			assertFalse(modifiedM3u8.contains("test000000005.ts"));
+			assertFalse(modifiedM3u8.contains("test000000005.ts"));  // Segment outside the range
 
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		} catch (ServletException e) {
+		} catch (IOException | ServletException e) {
 			throw new RuntimeException(e);
 		}
 	}
@@ -260,6 +257,8 @@ public class HlsManifestModifierFilterTest {
 	public void testFilter() {
 		try {
 			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(mockResponse);
+
 			ServletOutputStream outputStream = mock(ServletOutputStream.class);
 			when(mockResponse.getOutputStream()).thenReturn(outputStream);
 			when(mockResponse.getStatus()).thenReturn(200);
@@ -279,14 +278,12 @@ public class HlsManifestModifierFilterTest {
 			when(mockRequest.getParameter(HlsManifestModifierFilter.START)).thenReturn("1709926082");
 			when(mockRequest.getParameter(HlsManifestModifierFilter.END)).thenReturn("1709926087");
 
-			
-			hlsManifestModifierFilter.doFilter(mockRequest, mockResponse, myChain);
 
-			//verify that the response is written with captor
-			ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
-			verify(outputStream).write(captor.capture());
+			hlsManifestModifierFilter.doFilter(mockRequest, responseWrapper, myChain);
 
-			String modifiedM3u8 = new String(captor.getValue());
+			byte[] modifiedResponseContent = responseWrapper.getContentAsByteArray();
+			String modifiedM3u8 = new String(modifiedResponseContent, StandardCharsets.UTF_8);
+
 			//System.out.println(modifiedM3u8);
 
 			assertFalse(modifiedM3u8.contains("test000000001.ts"));
@@ -301,11 +298,13 @@ public class HlsManifestModifierFilterTest {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	@Test
 	public void testFilterAdaptiveQuery() {
 		try {
 			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(mockResponse);
+
 			ServletOutputStream outputStream = mock(ServletOutputStream.class);
 			when(mockResponse.getOutputStream()).thenReturn(outputStream);
 			when(mockResponse.getStatus()).thenReturn(200);
@@ -313,10 +312,10 @@ public class HlsManifestModifierFilterTest {
 			FilterChain myChain = new FilterChain() {
 				@Override
 				public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) throws IOException, ServletException {
-						if(servletResponse instanceof  ContentCachingResponseWrapper){
-							((ContentCachingResponseWrapper) servletResponse).setStatus(200);
-							((ContentCachingResponseWrapper) servletResponse).getOutputStream().write(testAdaptiveM3u8Query.getBytes());
-						}
+					if(servletResponse instanceof  ContentCachingResponseWrapper){
+						((ContentCachingResponseWrapper) servletResponse).setStatus(200);
+						((ContentCachingResponseWrapper) servletResponse).getOutputStream().write(testAdaptiveM3u8Query.getBytes());
+					}
 				}
 			};
 			String subscriberId = "testSubscriber";
@@ -330,13 +329,11 @@ public class HlsManifestModifierFilterTest {
 			when(mockRequest.getParameter(WebSocketConstants.SUBSCRIBER_CODE)).thenReturn(subscriberCode);
 			when(mockRequest.getParameter(WebSocketConstants.TOKEN)).thenReturn(token);
 
-			hlsManifestModifierFilter.doFilter(mockRequest, mockResponse, myChain);
+			hlsManifestModifierFilter.doFilter(mockRequest, responseWrapper, myChain);
 
-			ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
-			verify(outputStream,atLeastOnce()).write(captor.capture());
+			byte[] modifiedResponseContent = responseWrapper.getContentAsByteArray();
+			String modifiedM3u8 = new String(modifiedResponseContent, StandardCharsets.UTF_8);
 
-			String modifiedM3u8 = new String(captor.getValue());
-			
 			logger.info(modifiedM3u8);
 
 			assertTrue(modifiedM3u8.contains("teststream_360p800kbps.m3u8?segment=1234&subscriberCode=883068&subscriberId=testSubscriber&token=testToken"));
@@ -353,6 +350,8 @@ public class HlsManifestModifierFilterTest {
 
 		try {
 			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(mockResponse);
+
 			ServletOutputStream outputStream = mock(ServletOutputStream.class);
 			when(mockResponse.getOutputStream()).thenReturn(outputStream);
 			when(mockResponse.getStatus()).thenReturn(200);
@@ -360,10 +359,10 @@ public class HlsManifestModifierFilterTest {
 			FilterChain myChain = new FilterChain() {
 				@Override
 				public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) throws IOException, ServletException {
-						if(servletResponse instanceof  ContentCachingResponseWrapper){
-							((ContentCachingResponseWrapper) servletResponse).setStatus(200);
-							((ContentCachingResponseWrapper) servletResponse).getOutputStream().write(testAdaptiveM3u8.getBytes());
-						}
+					if(servletResponse instanceof  ContentCachingResponseWrapper){
+						((ContentCachingResponseWrapper) servletResponse).setStatus(200);
+						((ContentCachingResponseWrapper) servletResponse).getOutputStream().write(testAdaptiveM3u8.getBytes());
+					}
 				}
 			};
 			String subscriberId = "testSubscriber";
@@ -377,12 +376,11 @@ public class HlsManifestModifierFilterTest {
 			when(mockRequest.getParameter(WebSocketConstants.SUBSCRIBER_CODE)).thenReturn(subscriberCode);
 			when(mockRequest.getParameter(WebSocketConstants.TOKEN)).thenReturn(token);
 
-			hlsManifestModifierFilter.doFilter(mockRequest, mockResponse, myChain);
+			hlsManifestModifierFilter.doFilter(mockRequest, responseWrapper, myChain);
 
-			ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
-			verify(outputStream,atLeastOnce()).write(captor.capture());
+			byte[] modifiedResponseContent = responseWrapper.getContentAsByteArray();
+			String modifiedM3u8 = new String(modifiedResponseContent, StandardCharsets.UTF_8);
 
-			String modifiedM3u8 = new String(captor.getValue());
 
 			Pattern pattern = Pattern.compile("subscriberCode=(\\w+)&subscriberId=(\\w+)&token=(\\w+)");
 
@@ -403,6 +401,8 @@ public class HlsManifestModifierFilterTest {
 			assertTrue(found);
 
 			HttpServletResponse mockResponse2 = mock(HttpServletResponse.class);
+			ContentCachingResponseWrapper responseWrapper2 = new ContentCachingResponseWrapper(mockResponse2);
+
 			ServletOutputStream outputStream2 = mock(ServletOutputStream.class);
 			when(mockResponse2.getOutputStream()).thenReturn(outputStream2);
 			when(mockResponse2.getStatus()).thenReturn(200);
@@ -417,14 +417,14 @@ public class HlsManifestModifierFilterTest {
 			when(mockRequest2.getParameter(WebSocketConstants.TOKEN)).thenReturn(token);
 
 
-			hlsManifestModifierFilter.doFilter(mockRequest2, mockResponse2, myChain);
+			hlsManifestModifierFilter.doFilter(mockRequest2, responseWrapper2, myChain);
 
-			ArgumentCaptor<byte[]> captor2 = ArgumentCaptor.forClass(byte[].class);
-			verify(outputStream2,atLeastOnce()).write(captor2.capture());
+
+			byte[] modifiedResponseContent2 = responseWrapper2.getContentAsByteArray();
+			String modifiedm3u82 = new String(modifiedResponseContent2, StandardCharsets.UTF_8);
 
 			Pattern pattern2 = Pattern.compile("subscriberCode=(\\w+)&token=(\\w+)");
 
-			String modifiedm3u82 = new String(captor2.getValue());
 
 			Matcher matcher2 = pattern2.matcher(modifiedm3u82);
 			found = false;
@@ -439,6 +439,8 @@ public class HlsManifestModifierFilterTest {
 			assertTrue(found);
 
 			HttpServletResponse mockResponse3 = mock(HttpServletResponse.class);
+			ContentCachingResponseWrapper responseWrapper3 = new ContentCachingResponseWrapper(mockResponse3);
+
 			ServletOutputStream outputStream3 = mock(ServletOutputStream.class);
 			when(mockResponse3.getOutputStream()).thenReturn(outputStream3);
 			when(mockResponse3.getStatus()).thenReturn(200);
@@ -451,15 +453,14 @@ public class HlsManifestModifierFilterTest {
 			when(mockRequest3.getParameter(WebSocketConstants.SUBSCRIBER_ID)).thenReturn("");
 			when(mockRequest3.getParameter(WebSocketConstants.SUBSCRIBER_CODE)).thenReturn(null);
 			when(mockRequest3.getParameter(WebSocketConstants.TOKEN)).thenReturn(token);
-			
-			hlsManifestModifierFilter.doFilter(mockRequest3, mockResponse3, myChain);
 
-			ArgumentCaptor<byte[]> captor3 = ArgumentCaptor.forClass(byte[].class);
-			verify(outputStream3,atLeastOnce()).write(captor3.capture());
+			hlsManifestModifierFilter.doFilter(mockRequest3, responseWrapper3, myChain);
+
+			byte[] modifiedResponseContent3 = responseWrapper3.getContentAsByteArray();
+			String modifiedm3u83 = new String(modifiedResponseContent3, StandardCharsets.UTF_8);
 
 			Pattern pattern3 = Pattern.compile("token=(\\w+)");
 
-			String modifiedm3u83 = new String(captor3.getValue());
 
 			Matcher matcher3 = pattern3.matcher(modifiedm3u83);
 			found = false;
@@ -473,6 +474,8 @@ public class HlsManifestModifierFilterTest {
 			assertTrue(found);
 
 			HttpServletResponse mockResponse4 = mock(HttpServletResponse.class);
+			ContentCachingResponseWrapper responseWrapper4 = new ContentCachingResponseWrapper(mockResponse4);
+
 			ServletOutputStream outputStream4 = mock(ServletOutputStream.class);
 			when(mockResponse4.getOutputStream()).thenReturn(outputStream4);
 			when(mockResponse4.getStatus()).thenReturn(200);
@@ -487,14 +490,13 @@ public class HlsManifestModifierFilterTest {
 			when(mockRequest4.getParameter(WebSocketConstants.TOKEN)).thenReturn(null);
 
 
-			hlsManifestModifierFilter.doFilter(mockRequest4, mockResponse4, myChain);
+			hlsManifestModifierFilter.doFilter(mockRequest4, responseWrapper4, myChain);
 
-			ArgumentCaptor<byte[]> captor4 = ArgumentCaptor.forClass(byte[].class);
-			verify(outputStream4,atLeastOnce()).write(captor4.capture());
+			byte[] modifiedResponseContent4 = responseWrapper4.getContentAsByteArray();
+			String modifiedm3u84= new String(modifiedResponseContent4, StandardCharsets.UTF_8);
 
 			Pattern pattern4 = Pattern.compile("subscriberCode=(\\w+)&subscriberId=(\\w+)");
 
-			String modifiedm3u84 = new String(captor4.getValue());
 
 			Matcher matcher4 = pattern4.matcher(modifiedm3u84);
 
@@ -530,16 +532,15 @@ public class HlsManifestModifierFilterTest {
 	public void testAddTokenToSegmentURL(String testFileContent) {
 		try {
 			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(mockResponse);
+
 			ServletOutputStream outputStream = mock(ServletOutputStream.class);
 			when(mockResponse.getOutputStream()).thenReturn(outputStream);
 			when(mockResponse.getStatus()).thenReturn(200);
 			when(mockResponse.getWriter()).thenReturn(mock(java.io.PrintWriter.class));
-			FilterChain myChain = new FilterChain() {
-				@Override
-				public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse) throws IOException, ServletException {
-					((ContentCachingResponseWrapper)servletResponse).setStatus(200);
-					((ContentCachingResponseWrapper)servletResponse).getOutputStream().write(testFileContent.getBytes());
-				}
+			FilterChain myChain = (servletRequest, servletResponse) -> {
+				((ContentCachingResponseWrapper)servletResponse).setStatus(200);
+				((ContentCachingResponseWrapper)servletResponse).getOutputStream().write(testFileContent.getBytes());
 			};
 
 			String subscriberId = "testSubscriber";
@@ -554,13 +555,12 @@ public class HlsManifestModifierFilterTest {
 			when(mockRequest.getParameter(WebSocketConstants.TOKEN)).thenReturn(token);
 
 
-			hlsManifestModifierFilter.doFilter(mockRequest, mockResponse, myChain);
+			hlsManifestModifierFilter.doFilter(mockRequest, responseWrapper, myChain);
 
 			//verify that the response is written with captor
-			ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
-			verify(outputStream).write(captor.capture());
+			byte[] modifiedResponseContent4 = responseWrapper.getContentAsByteArray();
+			String modifiedM3u8= new String(modifiedResponseContent4, StandardCharsets.UTF_8);
 
-			String modifiedM3u8 = new String(captor.getValue());
 
 			Pattern pattern = Pattern.compile("subscriberCode=(\\w+)&subscriberId=(\\w+)");
 			Matcher matcher = pattern.matcher(modifiedM3u8);
@@ -592,6 +592,8 @@ public class HlsManifestModifierFilterTest {
 	public void testAddToSegmentWithTimeInterval() {
 		try {
 			HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+			ContentCachingResponseWrapper responseWrapper = new ContentCachingResponseWrapper(mockResponse);
+
 			ServletOutputStream outputStream = mock(ServletOutputStream.class);
 			when(mockResponse.getOutputStream()).thenReturn(outputStream);
 			when(mockResponse.getStatus()).thenReturn(200);
@@ -619,13 +621,12 @@ public class HlsManifestModifierFilterTest {
 			when(mockRequest.getParameter(WebSocketConstants.SUBSCRIBER_CODE)).thenReturn(subscriberCode);
 			when(mockRequest.getParameter(WebSocketConstants.TOKEN)).thenReturn(token);
 
-			hlsManifestModifierFilter.doFilter(mockRequest, mockResponse, myChain);
+			hlsManifestModifierFilter.doFilter(mockRequest, responseWrapper, myChain);
 
 			//verify that the response is written with captor
-			ArgumentCaptor<byte[]> captor = ArgumentCaptor.forClass(byte[].class);
-			verify(outputStream).write(captor.capture());
+			byte[] modifiedResponseContent = responseWrapper.getContentAsByteArray();
+			String modifiedM3u8= new String(modifiedResponseContent, StandardCharsets.UTF_8);
 
-			String modifiedM3u8 = new String(captor.getValue());
 			//System.out.println(modifiedM3u8);
 
 			assertFalse(modifiedM3u8.contains("test000000001.ts"));
@@ -640,5 +641,4 @@ public class HlsManifestModifierFilterTest {
 			throw new RuntimeException(e);
 		}
 	}
-
 }

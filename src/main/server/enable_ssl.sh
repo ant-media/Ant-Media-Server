@@ -204,9 +204,9 @@ generate_jwt
 
 get_freedomain(){
   hostname="ams-$RANDOM"
-  if ! is_docker_container; then
-      result_marketplace=$(check_marketplace)
-  fi
+  #Refactor: It seems that result_marketplace is not used. On the other hand, JWT_KEY is a variable in generate_jwt
+  #it's better to return JWT_KEY in generate_jwt and don't use any variable other script 
+  result_marketplace=$(generate_jwt)
   get_license_key=`cat $INSTALL_DIRECTORY/conf/red5.properties  | grep  "server.licence_key=*" | cut -d "=" -f 2`
   ip=`curl -s http://checkip.amazonaws.com`
   if [ ! -z $get_license_key ]; then

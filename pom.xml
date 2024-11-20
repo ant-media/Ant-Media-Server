@@ -533,6 +533,15 @@
             <artifactId>httpmime</artifactId>
             <version>${httpmime.version}</version>
         </dependency>
+          <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+                <!-- We explicityly overwrite below to resolve the CVE-2020-13956 vulnerability (We don't need to add this dependency explicitly, it's already added by other dependencies) ) 
+             We need to upgrade the httpclient to 5 later when all other dependent libs are up to date
+             mekya   -->
+    
+            <version>4.5.13</version>
+        </dependency>
         <dependency>
 		    <groupId>org.apache.kafka</groupId>
 		    <artifactId>kafka-streams</artifactId>
@@ -653,6 +662,7 @@
                                     </artifactItems>
                                 </configuration>
                             </execution>
+                            
                         </executions>
                     </plugin>
                     <plugin>
@@ -754,6 +764,8 @@
 									</arguments>
 								</configuration>
 							</execution>
+							
+							
 						</executions>
 			        </plugin>
                     <plugin>
@@ -955,6 +967,7 @@
 								</configuration>
 							</execution>
 						</executions>
+						
 			        </plugin>
                     <plugin>
                         <artifactId>maven-assembly-plugin</artifactId>
