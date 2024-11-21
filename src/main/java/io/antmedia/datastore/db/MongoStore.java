@@ -12,8 +12,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
 import dev.morphia.query.filters.Filter;
 import dev.morphia.query.filters.LogicalFilter;
 import org.apache.commons.io.FilenameUtils;
@@ -63,6 +65,8 @@ import io.antmedia.datastore.db.types.VoD;
 import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
+import org.springframework.cache.Cache;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 
 public class MongoStore extends DataStore {
 
@@ -80,11 +84,14 @@ public class MongoStore extends DataStore {
 	private Datastore detectionMap;
 	private Datastore conferenceRoomDatastore;
 	private MongoClient mongoClient;
+	public	CaffeineCacheManager cacheManager;
+
+	public Cache subscriberCache;
 
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
 
-	public static final String IMAGE_ID = "imageId"; 
+	public static final String IMAGE_ID = "imageId";
 	public static final String STATUS = "status";
 	private static final String ORIGIN_ADDRESS = "originAdress";
 	private static final String START_TIME = "startTime"; 
@@ -98,7 +105,9 @@ public class MongoStore extends DataStore {
 	private static final String UPDATE_TIME_FIELD = "updateTime";
 	
 	public static final String OLD_STREAM_ID_INDEX_NAME = "streamId_1";
-
+	public static final String SUBSCRIBER_CACHE = "subscriberCache";
+	public static final int SUBSCRIBER_CACHE_SIZE = 1000;
+	public static final int SUBSCRIBER_CACHE_EXPIRE_MINUTES = 60;
 
 	public MongoStore(String host, String username, String password, String dbName) {
 
@@ -139,13 +148,20 @@ public class MongoStore extends DataStore {
 		conferenceRoomDatastore.ensureIndexes();
 
 		available = true;
-		
+
+		cacheManager = new CaffeineCacheManager(SUBSCRIBER_CACHE);
+
+		cacheManager.setCaffeine(Caffeine.newBuilder()
+				.maximumSize(SUBSCRIBER_CACHE_SIZE)
+				.expireAfterWrite(SUBSCRIBER_CACHE_EXPIRE_MINUTES, TimeUnit.MINUTES)
+		);
+
 		//migrate from conference room to broadcast
 		// May 11, 2024
 		// we may remove this code after some time and ConferenceRoom class
 		// mekya
-		migrateConferenceRoomsToBroadcasts();	
-		
+		migrateConferenceRoomsToBroadcasts();
+
 	}	
 	
 	@Deprecated(since = "2.12.0", forRemoval = true)
@@ -1197,10 +1213,12 @@ public class MongoStore extends DataStore {
 	public boolean addSubscriber(String streamId, Subscriber subscriber) {
 		boolean result = false;
 		if (subscriber != null) {
+
 			synchronized (this) {
 				if (subscriber.getStreamId() != null && subscriber.getSubscriberId() != null) {
 					try {
 						subscriberDatastore.save(subscriber);
+						getSubscriberCache().put(getSubscriberCacheKey(streamId, subscriber.getSubscriberId()), subscriber);
 						result = true;
 					} catch (Exception e) {
 						logger.error(ExceptionUtils.getStackTrace(e));
@@ -1250,6 +1268,7 @@ public class MongoStore extends DataStore {
 					subscriber.setBlockedType(blockedType);
 					subscriber.setBlockedUntilUnitTimeStampMs(System.currentTimeMillis() + (seconds * 1000));
 					subscriberDatastore.save(subscriber);
+					getSubscriberCache().put(getSubscriberCacheKey(streamId, subscriber.getSubscriberId()), subscriber);
 					return true;
 				}
 				else {
@@ -1273,18 +1292,40 @@ public class MongoStore extends DataStore {
 		}
 	}
 
+	public String getSubscriberCacheKey(String streamId, String subscriberId){
+		return streamId + "_" + subscriberId;
+	}
+
 	@Override
 	public Subscriber getSubscriber(String streamId, String subscriberId) {
 		Subscriber subscriber = null;
 		if (subscriberId != null && streamId != null) {
+
+			String cacheKey = getSubscriberCacheKey(streamId, subscriberId);
+			Subscriber cachedSubscriber = getSubscriberCache().get(cacheKey, Subscriber.class);
+
+			if (cachedSubscriber != null && cachedSubscriber.getSubscriberId() != null) {
+				return cachedSubscriber;
+			}else if(cachedSubscriber != null){
+				return null;
+			}
+
 			synchronized (this) {
 				try {
 					subscriber = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId)).first();
+					if(subscriber == null){
+						getSubscriberCache().put(cacheKey, new Subscriber()); //Empty subscriber means that non existence result cached.
+					}else{
+						getSubscriberCache().put(cacheKey, subscriber);
+					}
+
 				} catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
+
 		}
+
 		return subscriber;
 	}
 
@@ -1732,8 +1773,20 @@ public class MongoStore extends DataStore {
 					.filter(filterForSubtracks).first() != null;
 		}
 	}
-	
 
-	
-	
+	public CaffeineCacheManager getCacheManager(){
+		return cacheManager;
+	}
+
+	public Cache getSubscriberCache() {
+		if(subscriberCache == null){
+			subscriberCache = cacheManager.getCache("subscriberCache");
+		}
+
+		return subscriberCache;
+	}
+
+
+
+
 }
