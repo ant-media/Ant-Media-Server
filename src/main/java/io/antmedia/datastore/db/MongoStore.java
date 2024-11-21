@@ -1237,6 +1237,9 @@ public class MongoStore extends DataStore {
 			try {
 				Query<Subscriber> query = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId));
 				result = query.delete().getDeletedCount() == 1;
+				if(result){
+					getSubscriberCache().evictIfPresent(getSubscriberCacheKey(streamId, subscriberId));
+				}
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1253,13 +1256,24 @@ public class MongoStore extends DataStore {
 			}
 
 			try {
+				long blockedUntilTimestampMs = System.currentTimeMillis() + (seconds * 1000L);
 				UpdateResult updateResult = subscriberDatastore.find(Subscriber.class)
 						.filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId))
 						.update(set("blockedType", blockedType),
-								set("blockedUntilUnitTimeStampMs", System.currentTimeMillis() + (seconds * 1000)))
+								set("blockedUntilUnitTimeStampMs", blockedUntilTimestampMs))
 						.execute();
 
 				long matchedCount = updateResult.getMatchedCount();
+				if(matchedCount == 1){
+					String cacheKey = getSubscriberCacheKey(streamId, subscriberId);
+					Subscriber subscriber = getSubscriberCache().get(cacheKey, Subscriber.class);
+					if(subscriber != null && subscriber.getSubscriberId() != null){
+						subscriber.setBlockedType(blockedType);
+						subscriber.setBlockedUntilUnitTimeStampMs(blockedUntilTimestampMs);
+						getSubscriberCache().put(cacheKey, subscriber);
+					}
+
+				}
 				if (matchedCount == 0) 
 				{
 					Subscriber subscriber = new Subscriber();
@@ -1287,6 +1301,7 @@ public class MongoStore extends DataStore {
 		synchronized(this) {
 			Query<Subscriber> query = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId));
 			DeleteResult delete = query.delete(new DeleteOptions().multi(true));
+			getSubscriberCache().clear();
 
 			return delete.getDeletedCount() >= 1;
 		}
@@ -1306,7 +1321,7 @@ public class MongoStore extends DataStore {
 
 			if (cachedSubscriber != null && cachedSubscriber.getSubscriberId() != null) {
 				return cachedSubscriber;
-			}else if(cachedSubscriber != null){
+			}else if(cachedSubscriber != null){ //Empty subscriber
 				return null;
 			}
 
@@ -1314,7 +1329,7 @@ public class MongoStore extends DataStore {
 				try {
 					subscriber = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId)).first();
 					if(subscriber == null){
-						getSubscriberCache().put(cacheKey, new Subscriber()); //Empty subscriber means that non existence result cached.
+						getSubscriberCache().put(cacheKey, new Subscriber()); //Empty subscriber means that non-existence result cached.
 					}else{
 						getSubscriberCache().put(cacheKey, subscriber);
 					}
@@ -1335,7 +1350,6 @@ public class MongoStore extends DataStore {
 		synchronized (this) {
 			try {
 				UpdateResult execute = subscriberDatastore.find(Subscriber.class).update(new UpdateOptions().multi(true), set("connected", false));
-
 				result = execute.getMatchedCount() > 1;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
