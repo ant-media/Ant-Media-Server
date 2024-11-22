@@ -1319,7 +1319,7 @@ public class MongoStore extends DataStore {
 			String cacheKey = getSubscriberCacheKey(streamId, subscriberId);
 			Subscriber cachedSubscriber = getSubscriberCache().get(cacheKey, Subscriber.class);
 
-			if (cachedSubscriber != null && cachedSubscriber.getSubscriberId() != null) {
+			if (cachedSubscriber != null && cachedSubscriber.getSubscriberId() != null) { // Subscriber exists in cache, return directly.
 				return cachedSubscriber;
 			}else if(cachedSubscriber != null){ //Empty subscriber
 				return null;
@@ -1329,9 +1329,9 @@ public class MongoStore extends DataStore {
 				try {
 					subscriber = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId)).first();
 					if(subscriber == null){
-						getSubscriberCache().put(cacheKey, new Subscriber()); //Empty subscriber means that non-existence result cached.
+						getSubscriberCache().put(cacheKey, new Subscriber()); //Empty subscriber means that non-existence result is cached.
 					}else{
-						getSubscriberCache().put(cacheKey, subscriber);
+						getSubscriberCache().put(cacheKey, subscriber); //Subscriber exists in DB. Cache him.
 					}
 
 				} catch (Exception e) {
