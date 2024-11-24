@@ -96,6 +96,7 @@ import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -827,8 +828,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		assertEquals(hookURL, spyAdaptor.getListenerHookURL(broadcast));
 
-
 		spyAdaptor = Mockito.spy(adapter);
+		Mockito.doNothing().when(spyAdaptor).resetHLSStats(Mockito.anyString());
+		Mockito.doNothing().when(spyAdaptor).resetDASHStats(Mockito.anyString());
 		appSettings = new AppSettings();
 		spyAdaptor.setServerSettings(new ServerSettings());
 		spyAdaptor.setAppSettings(appSettings);
