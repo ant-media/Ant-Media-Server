@@ -6,6 +6,12 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -26,6 +32,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -98,7 +105,6 @@ import io.antmedia.webrtc.PublishParameters;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketConstants;
-import io.micrometer.common.util.StringUtils;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
@@ -635,8 +641,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) {
 
-				getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
+				if (broadcast.isZombi()) {
 
+					logger.info("Deleting streamId:{} because it's a zombi stream", streamId);
+					getDataStore().delete(streamId);
+				}
+				else {
+
+					getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
+					// This is resets Viewer map in HLS Viewer Stats
+					resetHLSStats(streamId);
+
+					// This is resets Viewer map in DASH Viewer Stats
+					resetDASHStats(streamId);
+				}
 
 				final String listenerHookURL = getListenerHookURL(broadcast);
 				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
@@ -658,20 +676,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				if(StringUtils.isNotBlank(broadcast.getMainTrackStreamId())) {
 					updateMainTrackWithRecentlyFinishedBroadcast(broadcast);
-				}
-
-				if (broadcast.isZombi()) {
-
-					logger.info("Deleting streamId:{} because it's a zombi stream", streamId);
-					getDataStore().delete(streamId);
-				}
-				else {
-					// This is resets Viewer map in HLS Viewer Stats
-					resetHLSStats(streamId);
-
-					// This is resets Viewer map in DASH Viewer Stats
-					resetDASHStats(streamId);
-				}
+				}	
 
 				for (IStreamListener listener : streamListeners) {
 					listener.streamFinished(broadcast.getStreamId());
@@ -680,6 +685,38 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			}
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+	}
+
+	public static boolean isInstanceAlive(String originAdress, String hostAddress, int httpPort, String appName) {
+		if (StringUtils.isBlank(originAdress) || StringUtils.equals(originAdress, hostAddress)) {
+			return true;
+		}
+
+		String url = "http://" + originAdress + ":" + httpPort + "/" + appName;
+
+		boolean result = isEndpointReachable(url);
+		if (!result) {
+			logger.warn("Instance with origin address {} is not reachable through its app:{}", originAdress, appName);
+		}
+		return false;
+	}
+
+	public static boolean isEndpointReachable(String endpoint) {
+		HttpClient client = HttpClient.newHttpClient();
+		HttpRequest request = HttpRequest.newBuilder()
+				.uri(URI.create(endpoint))
+				.method("HEAD", HttpRequest.BodyPublishers.noBody()) // HEAD request
+				.timeout(java.time.Duration.ofSeconds(1))
+				.build();
+
+		try {
+			HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+			return true;
+		} 
+		catch (Exception e) {
+			logger.error("Enpoint is not reachable: {}, {}", endpoint, ExceptionUtils.getStackTrace(e));
+			return false;
 		}
 	}
 
@@ -1472,13 +1509,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void waitUntilLiveStreamsStopped() {
 		int i = 0;
-		int waitPeriod = 1000;
+		int waitPeriod = 500;
 		boolean everythingHasStopped = true;
 		while(getDataStore().getLocalLiveBroadcastCount(getServerSettings().getHostAddress()) > 0) {
 			try {
 				if (i > 3) {
 					logger.warn("Waiting for active broadcasts number decrease to zero for app: {}"
-							+ "total wait time: {}ms", getScope().getName(), i*waitPeriod);
+							+ " total wait time: {}ms", getScope().getName(), i*waitPeriod);
 				}
 				if (i>10) {
 					logger.error("Not all live streams're stopped gracefully. It will update the streams' status to finished explicitly");

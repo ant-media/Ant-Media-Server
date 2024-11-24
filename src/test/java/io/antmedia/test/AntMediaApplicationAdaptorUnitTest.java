@@ -228,6 +228,18 @@ public class AntMediaApplicationAdaptorUnitTest {
 				}
 				
 	}
+	
+	@Test
+	public void testEndpointReachable() {
+		boolean endpointReachable = AntMediaApplicationAdapter.isEndpointReachable("http://antmedia.io/not_exist");
+		//it should be true because we're just checking if it's reachable
+		assertTrue(endpointReachable);
+		
+		endpointReachable = AntMediaApplicationAdapter.isEndpointReachable("http://antmedia.io:45454/not_exist");
+		assertFalse(endpointReachable);
+
+	}
+	
 	@Test
 	public void testIsIncomingTimeValid() {
 		AppSettings newSettings = new AppSettings();
