@@ -246,7 +246,7 @@ get_new_certificate(){
       #  install letsencrypt and get the certificate
       echo "creating new certificate"
       distro
-      if [ "$ID" == "ubuntu" ]; then
+      if [[ "$ID" == "ubuntu" || "$ID" == "debian" ]]; then
 
         $SUDO apt-get update -qq -y
         output
