@@ -699,7 +699,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (!result) {
 			logger.warn("Instance with origin address {} is not reachable through its app:{}", originAdress, appName);
 		}
-		return false;
+		return result;
 	}
 
 	public static boolean isEndpointReachable(String endpoint) {

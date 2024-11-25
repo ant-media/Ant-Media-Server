@@ -238,6 +238,18 @@ public class AntMediaApplicationAdaptorUnitTest {
 		
 		endpointReachable = AntMediaApplicationAdapter.isEndpointReachable("http://antmedia.io:45454/not_exist");
 		assertFalse(endpointReachable);
+		
+		boolean instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("antmedia.io", null, 80, "");
+		assertTrue(instanceAlive);
+		
+		instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("antmedia.io", null, 4545, "");
+		assertFalse(instanceAlive);
+		
+		instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("", null, 4545, "");
+		assertTrue(instanceAlive);
+		
+		instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("localhost", "localhost", 4545, "");
+		assertTrue(instanceAlive);
 
 	}
 	
