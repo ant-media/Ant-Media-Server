@@ -251,7 +251,7 @@ get_new_certificate(){
         $SUDO apt-get update -qq -y
         output
 
-        $SUDO apt-get install certbot python3-certbot-dns-route53 -qq -y
+        $SUDO apt-get install cron certbot python3-certbot-dns-route53 -qq -y
         output
 
       elif [ "$ID" == "centos" ] || [ "$ID" == "rocky" ] || [ "$ID" == "almalinux" ] || [ "$ID" == "rhel" ]; then
