@@ -1,5 +1,6 @@
 package io.antmedia;
 
+import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
 
 import java.io.File;
@@ -686,6 +687,22 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
+	}
+	
+	public static Broadcast saveMainBroadcast(String streamId, String mainTrackId, DataStore dataStore) {
+		Broadcast mainBroadcast = new Broadcast();
+		try {
+			mainBroadcast.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		mainBroadcast.setZombi(true);
+		mainBroadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
+		mainBroadcast.getSubTrackStreamIds().add(streamId);
+		// don't set  setOriginAdress because it's not a real stream and it causes extra delay  -> mainBroadcast.setOriginAdress(serverSettings.getHostAddress()) 
+		mainBroadcast.setStartTime(System.currentTimeMillis());
+
+		return StringUtils.isNotBlank(dataStore.save(mainBroadcast)) ? mainBroadcast : null;
 	}
 
 	public static boolean isInstanceAlive(String originAdress, String hostAddress, int httpPort, String appName) {

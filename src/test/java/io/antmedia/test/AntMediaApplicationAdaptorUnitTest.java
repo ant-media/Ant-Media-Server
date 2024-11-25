@@ -2125,6 +2125,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 
 	}
+	
+	@Test
+	public void testSaveMainBroadcast() 
+	{
+		DataStore dataStore = new InMemoryDataStore("test");
+		Broadcast mainTrack = AntMediaApplicationAdapter.saveMainBroadcast("streamId", "mainTrackId", dataStore);
+		assertNotNull(mainTrack);
+		//origin address must be null because main track is not a real stream
+		assertNull(mainTrack.getOriginAdress());
+	}
 
 	@Test
 	public void testAppDeletion() 
