@@ -1368,9 +1368,7 @@ public class MongoStore extends DataStore {
 			return datastore.find(Broadcast.class)
 					.filter(Filters.and(
 							Filters.or(
-									Filters.eq(ORIGIN_ADDRESS, hostAddress),
-									Filters.exists(ORIGIN_ADDRESS).not()
-									),
+									Filters.eq(ORIGIN_ADDRESS, hostAddress)									),
 							Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)
 							)).count();
 		}
@@ -1383,9 +1381,7 @@ public class MongoStore extends DataStore {
 			return datastore.find(Broadcast.class)
 					.filter(Filters.and(
 							Filters.or(
-									Filters.eq(ORIGIN_ADDRESS, hostAddress),
-									Filters.exists(ORIGIN_ADDRESS).not()
-									),
+									Filters.eq(ORIGIN_ADDRESS, hostAddress)									),
 							Filters.eq(STATUS, IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING)
 							)).iterator().toList();
 		}
