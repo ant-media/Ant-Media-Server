@@ -688,7 +688,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
 	}
-	
+
 	public static Broadcast saveMainBroadcast(String streamId, String mainTrackId, DataStore dataStore) {
 		Broadcast mainBroadcast = new Broadcast();
 		try {
@@ -727,14 +727,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				.timeout(java.time.Duration.ofSeconds(1))
 				.build();
 
+
 		try {
 			HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
-			return true;
-		} 
-		catch (Exception e) {
+		} catch (InterruptedException e) {
+			logger.error("InterruptedException Enpoint is not reachable: {}, {}", endpoint, ExceptionUtils.getStackTrace(e));
+			Thread.currentThread().interrupt();
+			return false;
+		} catch (Exception e) {
 			logger.error("Enpoint is not reachable: {}, {}", endpoint, ExceptionUtils.getStackTrace(e));
 			return false;
 		}
+		return true;
+
+
 	}
 
 	/**
