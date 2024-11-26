@@ -141,7 +141,7 @@ public class DBStoresUnitTest {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
 		
-		
+		testLocalLiveBroadcast(dataStore);
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testGetActiveBroadcastCount(dataStore);
@@ -231,6 +231,7 @@ public class DBStoresUnitTest {
 		
 		testVoDFunctions(dataStore);
 
+		testLocalLiveBroadcast(dataStore);
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
@@ -293,8 +294,10 @@ public class DBStoresUnitTest {
 		
 		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 		
+		
 		testSaveDuplicateStreamId((MongoStore)dataStore);
 
+		testLocalLiveBroadcast(dataStore);
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
@@ -360,6 +363,7 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
 		
+		testLocalLiveBroadcast(dataStore);
 		testUpdateBroadcastEncoderSettings(dataStore);
 		testSubscriberMetaData(dataStore);
 		testBlockSubscriber(dataStore);
@@ -644,6 +648,58 @@ public class DBStoresUnitTest {
 		assertNotNull(broadcastList);
 		assertEquals(0, broadcastList.size());
 	}
+	
+	public void testLocalLiveBroadcast(DataStore dataStore) {
+		clear(dataStore);
+
+		assertEquals(0, dataStore.getBroadcastCount());
+		
+		long streamCount = 10;
+		String streamId = null;
+		for (int i = 0; i < streamCount; i++) {
+			Broadcast broadcast = new Broadcast(null, null);
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcast.setUpdateTime(System.currentTimeMillis());
+			streamId = dataStore.save(broadcast);
+			logger.info("Saved streamId:{}", streamId);
+		}
+		
+		
+		assertEquals(streamCount, dataStore.getActiveBroadcastCount());
+		
+		if (dataStore instanceof MapDBStore || dataStore instanceof InMemoryDataStore) {
+			assertEquals(streamCount, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+			
+			List<Broadcast> localLiveBroadcasts = dataStore.getLocalLiveBroadcasts(ServerSettings.getLocalHostAddress());
+            assertEquals(streamCount, localLiveBroadcasts.size());
+		} else {
+			
+			//because there is no origin address registered
+			assertEquals(0, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+			List<Broadcast> localLiveBroadcasts = dataStore.getLocalLiveBroadcasts(ServerSettings.getLocalHostAddress());
+			assertEquals(0, localLiveBroadcasts.size());
+		}
+		
+		clear(dataStore);
+
+		assertEquals(0, dataStore.getBroadcastCount());
+		
+		 streamCount = 15;
+		for (int i = 0; i < streamCount; i++) {
+			Broadcast broadcast = new Broadcast(null, null);
+			broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+			broadcast.setUpdateTime(System.currentTimeMillis());
+			broadcast.setOriginAdress(ServerSettings.getLocalHostAddress());
+			streamId = dataStore.save(broadcast);
+			logger.info("Saved streamId:{}", streamId);
+		}
+		
+		assertEquals(streamCount, dataStore.getLocalLiveBroadcastCount(ServerSettings.getLocalHostAddress()));
+		
+		List<Broadcast> localLiveBroadcasts = dataStore.getLocalLiveBroadcasts(ServerSettings.getLocalHostAddress());
+        assertEquals(streamCount, localLiveBroadcasts.size());
+		
+	}
 
 	public void testGetActiveBroadcastCount(DataStore dataStore) {
 
@@ -661,7 +717,9 @@ public class DBStoresUnitTest {
 
 		String streamId = null;
 		for (int i = 0; i < streamCount; i++) {
-			streamId = dataStore.save(new Broadcast(null, null));
+			Broadcast broadcast = new Broadcast(null, null);
+			broadcast.setOriginAdress(ServerSettings.getLocalHostAddress());
+			streamId = dataStore.save(broadcast);
 			logger.info("Saved streamId:{}", streamId);
 		}
 
