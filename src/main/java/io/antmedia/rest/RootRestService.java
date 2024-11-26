@@ -2,6 +2,9 @@ package io.antmedia.rest;
 
 import java.util.Map;
 
+import io.antmedia.datastore.db.MongoStore;
+import io.antmedia.rest.model.Result;
+import jakarta.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -59,6 +62,17 @@ public class RootRestService extends RestServiceBase {
 	@Produces(MediaType.APPLICATION_JSON)
 	public Version getVersion() {
 		return getSoftwareVersion();
+	}
+
+	@Operation(summary = "Retrieves the number of executed queries for MongoDB database.",
+			responses = {@ApiResponse(responseCode = "200", description = "Returns the total count of executed queries, useful for monitoring database activity and performance",
+			)})
+	@GET
+	@Path("/executed-query-count")
+	@Produces(MediaType.APPLICATION_JSON)
+	public Response executedQueryCount() {
+		return Response.status(Response.Status.OK).entity(new Result(true, String.valueOf(getDataStore().getExecutedQueryCount()))).build();
+
 	}
 
 	public static class RoomInfo{

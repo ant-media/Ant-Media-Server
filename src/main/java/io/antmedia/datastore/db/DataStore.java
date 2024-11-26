@@ -46,6 +46,8 @@ public abstract class DataStore {
 
 	private boolean writeStatsToDatastore = true;
 
+	public int executedQueryCount = 0;
+
 	protected volatile boolean available = false;
 
 	protected static Logger logger = LoggerFactory.getLogger(DataStore.class);
@@ -1493,6 +1495,15 @@ public abstract class DataStore {
     // Ignore this message if you have added descriptions to the new functions.
     // I'm writing to the one who is ignoring this first message - mekya
     //**************************************
-    
-    
+
+	/**
+	 *
+	 * Get executed query count for mongodb.
+	 * @return Executed query count.
+	 */
+	public int getExecutedQueryCount() {
+		return executedQueryCount;
+	}
+
+
 }
