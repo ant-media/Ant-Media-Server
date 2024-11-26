@@ -57,6 +57,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.FFmpegUtilities;
 import io.antmedia.datastore.db.DataStore;
 import io.antmedia.datastore.db.IDataStoreFactory;
+import io.antmedia.datastore.db.InMemoryDataStore;
 import io.antmedia.datastore.db.MapDBStore;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
@@ -700,6 +701,36 @@ public class StreamSchedularUnitTest extends AbstractJUnit4SpringContextTests {
 			e.printStackTrace();
 			fail(e.getMessage());
 		}
+	}
+	
+	@Test
+	public void testIsStreamRunning() 
+	{
+		DataStore dataStore = new InMemoryDataStore("test");
+		StreamFetcherManager streamFetcherManager = Mockito.spy(new StreamFetcherManager(vertx, dataStore, appScope));
+		
+		Broadcast broadcast = new Broadcast();
+		
+		dataStore.save(broadcast);
+		
+		boolean isStreamRunning = streamFetcherManager.isStreamRunning(broadcast);
+		assertFalse(isStreamRunning);
+		
+		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
+		broadcast.setUpdateTime(System.currentTimeMillis());
+		
+		isStreamRunning = streamFetcherManager.isStreamRunning(broadcast);
+		assertTrue(isStreamRunning);
+		
+		broadcast.setOriginAdress("not.accessible.antmedia.io");
+		isStreamRunning = streamFetcherManager.isStreamRunning(broadcast);
+		assertFalse(isStreamRunning);
+		
+		broadcast.setUpdateTime(0);
+		
+		isStreamRunning = streamFetcherManager.isStreamRunning(broadcast);
+		assertFalse(isStreamRunning);
+		
 	}
 
 	@Test

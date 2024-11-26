@@ -814,16 +814,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 				Broadcast mainBroadcast = getDataStore().get(mainTrack);
 				if(mainBroadcast == null) 
 				{
-					mainBroadcast = new Broadcast();
-					try {
-						mainBroadcast.setStreamId(mainTrack);
-					} catch (Exception e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
-					}
-					mainBroadcast.setZombi(true);
-					mainBroadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
-					mainBroadcast.getSubTrackStreamIds().add(streamId);
-					getDataStore().save(mainBroadcast);
+					mainBroadcast = AntMediaApplicationAdapter.saveMainBroadcast(streamId, mainTrack, getDataStore());
 				}
 				else 
 				{

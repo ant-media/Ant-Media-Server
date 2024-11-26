@@ -668,7 +668,7 @@ public abstract class DataStore {
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) &&
-						(StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress()))) 
+						(StringUtils.isBlank(hostAddress) || hostAddress.equals(broadcast.getOriginAdress()))) 
 				{
 					activeBroadcastCount++;
 				}
@@ -688,7 +688,7 @@ public abstract class DataStore {
 				
 				String status = broadcast.getStatus();
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) &&
-					  (StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress())))
+					  (StringUtils.isBlank(hostAddress) || hostAddress.equals(broadcast.getOriginAdress())))
 				{
 					broadcastList.add(broadcast);
 				}
