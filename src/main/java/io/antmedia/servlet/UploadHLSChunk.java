@@ -3,6 +3,8 @@ package io.antmedia.servlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -11,6 +13,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -23,9 +26,10 @@ import io.antmedia.AppSettings;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.storage.StorageClient;
 
+import static io.antmedia.muxer.Muxer.DATE_TIME_PATTERN;
+
 @MultipartConfig
 public class UploadHLSChunk extends HttpServlet {
-
 
 	private static final long serialVersionUID = 1L;
 
@@ -138,7 +142,41 @@ public class UploadHLSChunk extends HttpServlet {
 	public static String getS3Key(HttpServletRequest req, AppSettings appSettings) {
 		//No need have File.separator between the below strings because req.getPathInfo() starts with "/"
 		//req.getPathInfo(); includes only the part after /hls-upload/. In other words, just {SUB_FOLDER} + (M3U8 or TS files)
-		return Muxer.replaceDoubleSlashesWithSingleSlash(appSettings.getS3StreamsFolderPath() + File.separator + req.getPathInfo());
+
+		String mainTrackId = req.getHeader("mainTrackId");
+		String streamId = req.getHeader("streamId");
+
+		return Muxer.replaceDoubleSlashesWithSingleSlash(getExtendedS3StreamsFolderPath(mainTrackId, streamId, appSettings.getS3StreamsFolderPath()) + File.separator + req.getPathInfo());
+	}
+
+	public static String getExtendedS3StreamsFolderPath(String mainTrackId, String streamId, String s3StreamsFolder) {
+		if (s3StreamsFolder == null) {
+			return "";
+		}
+
+		String result = s3StreamsFolder;
+
+		if (mainTrackId == null) {
+			result = result.replace("%m/", "")
+					.replace("/%m", "")
+					.replace("%m", "");
+		} else {
+			result = result.replace("%m", mainTrackId);
+		}
+
+		if (streamId == null) {
+			result = result.replace("%s/", "")
+					.replace("/%s", "")
+					.replace("%s", "");
+		} else {
+			result = result.replace("%s", streamId);
+		}
+
+		result = result.replaceAll("//+", "/");
+
+		result = result.trim().replaceAll("^/+|/+$", "");
+
+		return result;
 	}
 
 }

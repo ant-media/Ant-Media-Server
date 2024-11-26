@@ -3,7 +3,6 @@ package io.antmedia.muxer;
 import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.bytedeco.ffmpeg.global.avutil.AV_OPT_SEARCH_CHILDREN;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,10 +14,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.bytedeco.ffmpeg.avcodec.*;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avformat;
-import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -61,6 +59,7 @@ public class HLSMuxer extends Muxer  {
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
 	private String segmentFilename;
+	private String mainTrackId = null;
 	
 	/**
 	 * HLS Segment Type. It can be "mpegts" or "fmp4"
@@ -134,14 +133,14 @@ public class HLSMuxer extends Muxer  {
 	/**
 	 * {@inheritDoc}
 	 */
-	@Override
-	public void init(IScope scope, String name, int resolutionHeight, String subFolder, int bitrate) {
+	public void init(IScope scope, String name, int resolutionHeight, String subFolder, int bitrate, String mainTrackId) {
 		if (!isInitialized) {
 
 			super.init(scope, name, resolutionHeight, subFolder, bitrate);
 
 			streamId = name;
 			this.subFolder = subFolder;
+			this.mainTrackId = mainTrackId;
 			options.put("hls_list_size", hlsListSize);
 			options.put("hls_time", hlsTime);
 
@@ -209,12 +208,38 @@ public class HLSMuxer extends Muxer  {
 		return super.getOutputURL();
 	}
 
+	public String getCustomHeaderStr() {
+		String customHeaderStr = "";
+
+		if (mainTrackId != null) {
+			customHeaderStr += "mainTrackId: " + mainTrackId + "\r\n";
+		}
+
+		if (streamId != null) {
+			customHeaderStr += "streamId: " + streamId + "\r\n";
+		}
+
+		return customHeaderStr;
+	}
 
 	public AVFormatContext getOutputFormatContext() {
 		if (outputFormatContext == null) {
 
 			outputFormatContext= new AVFormatContext(null);
 			int ret = avformat_alloc_output_context2(outputFormatContext, null, format, getOutputURL());
+
+			if((StringUtils.isNotBlank(httpEndpoint))) {
+				AVDictionary options = new AVDictionary();
+				String customHeaderStr = getCustomHeaderStr();
+				if(StringUtils.isNotBlank(customHeaderStr)){
+
+					av_dict_set(options, "headers", customHeaderStr, 0);
+					av_opt_set_dict2(outputFormatContext.priv_data(), options, 0);
+
+				}
+				av_dict_free(options);
+			}
+
 			if (ret < 0) {
 				logger.info("Could not create output context for {}",  getOutputURL());
 				return null;
@@ -633,5 +658,13 @@ public class HLSMuxer extends Muxer  {
 	
 	public ByteBuffer getPendingSEIData() {
 		return pendingSEIData;
+	}
+
+	public String getMainTrackId() {
+		return mainTrackId;
+	}
+
+	public void setMainTrackId(String mainTrackId) {
+		this.mainTrackId = mainTrackId;
 	}
 }

@@ -1,6 +1,5 @@
 package io.antmedia.test;
 
-
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AC3;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
@@ -9,6 +8,7 @@ import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HCA;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_HEVC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_MP3;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_NONE;
+
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_VP8;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_PKT_FLAG_KEY;
 import static org.bytedeco.ffmpeg.global.avcodec.av_init_packet;
@@ -23,15 +23,7 @@ import static org.bytedeco.ffmpeg.global.avformat.avformat_close_input;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_find_stream_info;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_free_context;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_open_input;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_ATTACHMENT;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_AUDIO;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_DATA;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_SUBTITLE;
-import static org.bytedeco.ffmpeg.global.avutil.AVMEDIA_TYPE_VIDEO;
-import static org.bytedeco.ffmpeg.global.avutil.AV_PIX_FMT_YUV420P;
-import static org.bytedeco.ffmpeg.global.avutil.AV_SAMPLE_FMT_FLTP;
-import static org.bytedeco.ffmpeg.global.avutil.av_channel_layout_default;
-import static org.bytedeco.ffmpeg.global.avutil.av_dict_get;
+import static org.bytedeco.ffmpeg.global.avutil.*;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -552,7 +544,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
 
 		//init
-		hlsMuxer.init(appScope, streamId, 0, null, 0);
+		hlsMuxer.init(appScope, streamId, 0, null, 0, null);
 
 
 		AVBSFContext initVideoBitstreamFilter = hlsMuxer.initVideoBitstreamFilter("h264_mp4toannexb",  inputFormatContext.streams(0).codecpar(),  inputFormatContext.streams(0).time_base());
@@ -596,7 +588,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
 
 		//init
-		hlsMuxer.init(appScope, streamId, 0, null, 0);
+		hlsMuxer.init(appScope, streamId, 0, null, 0, null);
 
 		//add video stream
 		assertEquals(AVMEDIA_TYPE_VIDEO, inputFormatContext.streams(0).codecpar().codec_type());
@@ -859,7 +851,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
 		hlsMuxer.setHlsParameters(null, null, null, null, null, null);
-		hlsMuxer.init(appScope, "test", 0, null, 0);
+		hlsMuxer.init(appScope, "test", 0, null, 0, null);
 		hlsMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
 		hlsMuxer.writeTrailer();
@@ -895,7 +887,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			String streamId = "streamId";
 			String subFolder = "subfolder";
 
-			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0, null);
 
 
 			assertEquals("http://example.com/" + subFolder + "/" + streamId + ".m3u8", hlsMuxer.getOutputURL());
@@ -909,7 +901,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			String streamId = "streamId";
 			String subFolder = "subfolder/";
 
-			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0, null);
 
 
 			assertEquals("http://example.com/" + subFolder + streamId + ".m3u8", hlsMuxer.getOutputURL());
@@ -935,7 +927,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
 
-			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0, null);
 
 
 			hlsMuxer.writeTrailer();
@@ -962,7 +954,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
 
-			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0, null);
 
 
 			hlsMuxer.writeTrailer();
@@ -987,7 +979,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
 
-			hlsMuxer.init(appScope, streamId, 0, null, 0);
+			hlsMuxer.init(appScope, streamId, 0, null, 0, null);
 
 
 			hlsMuxer.writeTrailer();
@@ -1185,7 +1177,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testHLSAddStream() {
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		hlsMuxer.init(appScope, "test", 0, "", 100);
+		hlsMuxer.init(appScope, "test", 0, "", 100, null);
 
 		assertFalse(hlsMuxer.writeHeader());
 
@@ -1209,7 +1201,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false));
-		hlsMuxer.init(appScope, "test", 0, "", 100);
+		hlsMuxer.init(appScope, "test", 0, "", 100, null);
 
 		AVCodecContext codecContext = new AVCodecContext();
 		codecContext.width(640);
@@ -3132,7 +3124,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamName = "stream_name_" + (int) (Math.random() * 10000);
 		//init
-		hlsMuxer.init(appScope, streamName, 0, null, 0);
+		hlsMuxer.init(appScope, streamName, 0, null, 0, null);
 
 		hlsMuxer.setId3Enabled(true);
 
@@ -3945,20 +3937,20 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testHLSNaming() {
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		hlsMuxer.init(appScope, "test", 0, "", 100);
+		hlsMuxer.init(appScope, "test", 0, "", 100, null);
 		assertEquals("./webapps/junit/streams/test%09d.ts", hlsMuxer.getSegmentFilename());
 
 		hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
-		hlsMuxer.init(appScope, "test", 0, "", 0);
+		hlsMuxer.init(appScope, "test", 0, "", 0, null);
 		assertEquals("./webapps/junit/streams/test%09d.ts", hlsMuxer.getSegmentFilename());
 
 		hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
-		hlsMuxer.init(appScope, "test", 300, "", 0);
+		hlsMuxer.init(appScope, "test", 300, "", 0, null);
 		assertEquals("./webapps/junit/streams/test_300p%09d.ts", hlsMuxer.getSegmentFilename());
 
 
 		hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
-		hlsMuxer.init(appScope, "test", 300, "", 400000);
+		hlsMuxer.init(appScope, "test", 300, "", 400000, null);
 		assertEquals("./webapps/junit/streams/test_300p400kbps%09d.ts", hlsMuxer.getSegmentFilename());
 
 	}
@@ -5367,7 +5359,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
 
 			//init
-			hlsMuxer.init(appScope, streamId, 0, null, 0);
+			hlsMuxer.init(appScope, streamId, 0, null, 0, null);
 
 			int width = 640;
 			int height = 480;
@@ -5442,7 +5434,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
 
 			//init
-			hlsMuxer.init(appScope, streamId, 0, null, 0);
+			hlsMuxer.init(appScope, streamId, 0, null, 0, null);
 
 			int width = 640;
 			int height = 480;
@@ -5479,7 +5471,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
 
 			//init
-			hlsMuxer.init(appScope, streamId, 0, null, 0);
+			hlsMuxer.init(appScope, streamId, 0, null, 0, null);
 
 			int width = 640;
 			int height = 480;
@@ -5518,7 +5510,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
 
 			//init
-			hlsMuxer.init(appScope, streamId, 0, null, 0);
+			hlsMuxer.init(appScope, streamId, 0, null, 0, null);
 
 
 			AVChannelLayout channelLayout = new AVChannelLayout();
@@ -5830,5 +5822,53 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		byte endOfString = capturedBuffer.get();
 		assertEquals(0x00, endOfString);
 	}
+
+	/*@Test
+	public void testOutputFormatContextHeaders() {
+		appScope = (WebScope) applicationContext.getBean("web.scope");
+		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+
+
+		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
+		String streamId = "test-stream";
+		String mainTrackId = "test-main-track";
+
+		hlsMuxer.init(appScope, streamId, 0, "", 0, mainTrackId);
+
+
+		// Get output format context
+		AVFormatContext formatContext = hlsMuxer.getOutputFormatContext();
+
+		// Assert context created
+		assertNotNull("Output format context should not be null", formatContext);
+
+		//somehow read headers and verify here.
+
+
+		assertEquals("Headers should match expected format",
+				"mainTrackId: test-main-track\r\nstreamId: test-stream\r\n",
+				avDictionaryEntry.value().getString());
+
+
+		// Verify headers
+
+
+		*//*assertEquals("Headers should match expected format",
+				"mainTrackId: test-main-track\r\nstreamId: test-stream\r\n",
+				headerValue.value().getString());
+
+		// Verify no headers when track IDs are null
+		Mockito.reset(instance);
+		Mockito.doReturn(null).when(instance).getMainTrackId();
+		Mockito.doReturn(null).when(instance).getStreamId();
+
+		AVFormatContext nullContext = instance.getOutputFormatContext();
+		assertNotNull("Output format context should not be null", nullContext);
+
+		options = new AVDictionary();
+		AVDictionaryEntry entry = av_dict_get(options, "headers", null, 0);
+		assertTrue("No headers should be present",
+				entry == null || StringUtils.isBlank(entry.value()));*//*
+	}*/
 
 }

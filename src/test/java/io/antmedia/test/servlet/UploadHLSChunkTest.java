@@ -1,5 +1,6 @@
 package io.antmedia.test.servlet;
 
+import static io.antmedia.servlet.UploadHLSChunk.getExtendedS3StreamsFolderPath;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -11,13 +12,18 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 
+import io.antmedia.muxer.MuxAdaptor;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
+import org.red5.server.scope.WebScope;
+import org.red5.server.stream.ClientBroadcastStream;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -174,7 +180,21 @@ public class UploadHLSChunkTest {
 
 		String s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
 		assertEquals("streams/test.m3u8", s3Key);
-		
+
+		String mainTrackId = "myMainTrackId";
+		String streamId = "myStreamId";
+
+		when(mockRequest.getHeader("mainTrackId")).thenReturn(mainTrackId);
+		when(mockRequest.getHeader("streamId")).thenReturn(streamId);
+
+		appSettings.setS3StreamsFolderPath("streams/%m/%s");
+
+		s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
+
+		assertEquals("streams/myMainTrackId/myStreamId/test.m3u8", s3Key);
+
+		appSettings = new AppSettings();
+
 		pathInfo = "/test.m3u8";
 		s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
 		assertEquals("streams/test.m3u8", s3Key);
@@ -184,6 +204,53 @@ public class UploadHLSChunkTest {
 		appSettings.setS3StreamsFolderPath("streams/");
 		s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
 		assertEquals("streams/test.m3u8", s3Key);
+	}
+
+	@Test
+	public void testGetExtendedS3StreamsFolderPath() {
+		String mainTrackId = "mainTrackId";
+		String streamId = "stream456";
+
+		AppSettings appSettings = new AppSettings();
+
+		assertEquals("", getExtendedS3StreamsFolderPath(mainTrackId, streamId, null));
+		assertEquals("simplepath", getExtendedS3StreamsFolderPath(mainTrackId, streamId, "simplepath"));
+		assertEquals("mainTrackId", getExtendedS3StreamsFolderPath(mainTrackId, streamId, "%m"));
+		assertEquals("stream456", getExtendedS3StreamsFolderPath(mainTrackId, streamId, "%s"));
+
+		assertEquals("mainTrackId/stream456", getExtendedS3StreamsFolderPath(mainTrackId, streamId, "%m/%s"));
+		assertEquals("stream456/mainTrackId", getExtendedS3StreamsFolderPath(mainTrackId, streamId, "%s/%m"));
+		assertEquals(appSettings.getS3StreamsFolderPath(), getExtendedS3StreamsFolderPath(mainTrackId, streamId, appSettings.getS3StreamsFolderPath()));
+		assertEquals(appSettings.getS3StreamsFolderPath()+"/mainTrackId/stream456", getExtendedS3StreamsFolderPath(mainTrackId, streamId, appSettings.getS3StreamsFolderPath()+"/%m/%s"));
+
+		assertEquals("streams", getExtendedS3StreamsFolderPath(null, null, "streams/%m/%s"));
+		assertEquals("streams", getExtendedS3StreamsFolderPath(null, null, "/streams/%m/%s/"));
+		assertEquals("streams", getExtendedS3StreamsFolderPath(null, null, "streams/%m/%s/"));
+		assertEquals("streams", getExtendedS3StreamsFolderPath(null, null, "/streams/%m/%s"));
+
+		assertEquals("streams",
+				getExtendedS3StreamsFolderPath(null, null, "streams/%m/%s"));
+
+		assertEquals("streams/stream1",
+				getExtendedS3StreamsFolderPath(null, "stream1", "streams/%m/%s"));
+
+		assertEquals("streams/track1",
+				getExtendedS3StreamsFolderPath("track1", null, "streams/%m/%s"));
+
+		assertEquals("streams/track1/stream1",
+				getExtendedS3StreamsFolderPath("track1", "stream1", "streams/%m/%s"));
+
+		assertEquals("streams/stream1",
+				getExtendedS3StreamsFolderPath(null, "stream1", "/streams/%m/%s/"));
+
+		assertEquals("lastpeony/mainTrackId/stream456",
+				getExtendedS3StreamsFolderPath(mainTrackId, streamId, "lastpeony/%m/%s"));
+
+		assertEquals("folder/mainTrackId",
+				getExtendedS3StreamsFolderPath(mainTrackId, streamId, "folder//%m"));
+
+		assertEquals("folder/mainTrackId",
+				getExtendedS3StreamsFolderPath(mainTrackId, streamId, "folder/%m/"));
 
 	}
 
