@@ -1831,17 +1831,26 @@ public class AppSettings implements Serializable{
 
 
 	/**
-	 * It's S3 streams MP4, WEBM  and HLS files storage name . 
-	 * It's streams by default.
+	 * Configures the S3 streams folder path for storing media files.
 	 *
-	 */
-	@Value( "${s3StreamsFolderPath:${"+SETTINGS_S3_STREAMS_FOLDER_PATH+":streams}}" )
-	private String  s3StreamsFolderPath="streams";
-
-	/**
-	 * It's S3 stream PNG files storage name . 
-	 * It's previews by default.
+	 * Supports flexible path configurations for different media types including:
+	 * - MP4 files
+	 * - WEBM files
+	 * - HLS (HTTP Live Streaming) files
 	 *
+	 * Path configuration supports dynamic placeholders for HLS files:
+	 * - '%m': Replaces with main track ID if exists
+	 * - '%s': Replaces with stream ID
+	 *
+	 * This is particularly useful for storing conference participant stream hls recordings in separate folders.
+	 *
+	 * Examples of path configurations:
+	 * - "streams" (default)                  → Basic folder → streams/0001.ts
+	 * - "%m"                                 → Use main track ID as folder  → mainTrackId/0001.ts
+	 * - "streams/%m/%s"                      → Nested folders with track and stream IDs → streams/mainTrackId/streamId/0001.ts
+	 * - "conference/videos/%m/%s"            → Custom path with prefixes → conference/videos/mainTrackId/streamId/0001.ts
+	 *
+	 * If main track ID or stream ID are null, they are omitted.
 	 */
 	@Value("${s3PreviewsFolderPath:${"+SETTINGS_S3_PREVIEWS_FOLDER_PATH+":previews}}")
 	private String  s3PreviewsFolderPath="previews";
