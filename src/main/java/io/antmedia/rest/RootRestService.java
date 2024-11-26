@@ -65,14 +65,12 @@ public class RootRestService extends RestServiceBase {
 	}
 
 	@Operation(summary = "Retrieves the number of executed queries for MongoDB database.",
-			responses = {@ApiResponse(responseCode = "200", description = "Returns the total count of executed queries, useful for monitoring database activity and performance",
-			)})
+			responses = {@ApiResponse(responseCode = "200", description = "Returns the total count of executed queries, useful for monitoring database activity and performance")})
 	@GET
 	@Path("/executed-query-count")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response executedQueryCount() {
 		return Response.status(Response.Status.OK).entity(new Result(true, String.valueOf(getDataStore().getExecutedQueryCount()))).build();
-
 	}
 
 	public static class RoomInfo{

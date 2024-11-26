@@ -1498,7 +1498,7 @@ public abstract class DataStore {
 
 	/**
 	 *
-	 * Get executed query count for mongodb.
+	 * Get executed query count. For now only mongodb queries are counted.
 	 * @return Executed query count.
 	 */
 	public int getExecutedQueryCount() {
