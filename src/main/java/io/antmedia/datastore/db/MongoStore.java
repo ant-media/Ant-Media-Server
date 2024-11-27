@@ -66,6 +66,7 @@ import io.antmedia.datastore.db.types.WebRTCViewerInfo;
 import io.antmedia.muxer.IAntMediaStreamHandler;
 import io.antmedia.muxer.MuxAdaptor;
 import org.springframework.cache.Cache;
+import org.springframework.cache.caffeine.CaffeineCache;
 import org.springframework.cache.caffeine.CaffeineCacheManager;
 
 public class MongoStore extends DataStore {
@@ -84,8 +85,8 @@ public class MongoStore extends DataStore {
 	private Datastore detectionMap;
 	private Datastore conferenceRoomDatastore;
 	private MongoClient mongoClient;
-	public	CaffeineCacheManager cacheManager;
-	public Cache subscriberCache;
+	public CaffeineCacheManager cacheManager;
+	public CaffeineCache subscriberCache;
 
 
 	protected static Logger logger = LoggerFactory.getLogger(MongoStore.class);
@@ -1266,6 +1267,7 @@ public class MongoStore extends DataStore {
 						executedQueryCount++;
 
 						subscriberDatastore.save(subscriber);
+
 						getSubscriberCache().put(getSubscriberCacheKey(streamId, subscriber.getSubscriberId()), subscriber);
 						result = true;
 					} catch (Exception e) {
@@ -1410,6 +1412,20 @@ public class MongoStore extends DataStore {
 
 				UpdateResult execute = subscriberDatastore.find(Subscriber.class).update(new UpdateOptions().multi(true), set("connected", false));
 				result = execute.getMatchedCount() > 1;
+				if(result){
+
+					getSubscriberCache().getNativeCache().asMap().forEach((key, value) -> {
+						if (value instanceof Subscriber) {
+							Subscriber subscriber = (Subscriber) value;
+							if(subscriber.getSubscriberId() != null){
+								subscriber.setConnected(false);
+								getSubscriberCache().put(key, subscriber);
+							}
+
+						}
+					});
+
+				}
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1879,9 +1895,9 @@ public class MongoStore extends DataStore {
 		return cacheManager;
 	}
 
-	public Cache getSubscriberCache() {
+	public CaffeineCache getSubscriberCache() {
 		if(subscriberCache == null){
-			subscriberCache = cacheManager.getCache("subscriberCache");
+			subscriberCache = (CaffeineCache) cacheManager.getCache("subscriberCache");
 		}
 
 		return subscriberCache;

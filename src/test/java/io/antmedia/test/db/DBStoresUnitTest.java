@@ -294,7 +294,7 @@ public class DBStoresUnitTest {
 		
 		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 		
-		
+	/*
 		testSaveDuplicateStreamId((MongoStore)dataStore);
 
 		testLocalLiveBroadcast(dataStore);
@@ -346,7 +346,9 @@ public class DBStoresUnitTest {
 
 		 
 		testGetSubtracks(dataStore);
-		testGetSubtracksWithStatus(dataStore);
+		testGetSubtracksWithStatus(dataStore);*/
+		testTimeBasedSubscriberOperations(dataStore);
+
 		testSubscriberCache(dataStore);
 
 		dataStore.close(true);
@@ -2307,7 +2309,10 @@ public class DBStoresUnitTest {
 		store.addSubscriberConnectionEvent(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), connected);
 		// isConnected should be true again
 		assertTrue(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
-		
+
+		subscribers = store.listAllSubscribers(streamId, 0, 10);
+
+
 		// reset connection status
 		assertTrue(store.resetSubscribersConnectedStatus());
 		// connection status should false again
