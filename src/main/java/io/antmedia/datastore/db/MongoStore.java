@@ -106,7 +106,7 @@ public class MongoStore extends DataStore {
 	public static final String OLD_STREAM_ID_INDEX_NAME = "streamId_1";
 	public static final String SUBSCRIBER_CACHE = "subscriberCache";
 	public static final int SUBSCRIBER_CACHE_SIZE = 1000;
-	public static final int SUBSCRIBER_CACHE_EXPIRE_SECONDS = 10;
+	public static final int SUBSCRIBER_CACHE_EXPIRE_SECONDS = 30;
 
 	public MongoStore(String host, String username, String password, String dbName) {
 
@@ -1384,7 +1384,6 @@ public class MongoStore extends DataStore {
 			synchronized (this) {
 				try {
 					executedQueryCount++;
-
 					subscriber = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId)).first();
 					if(subscriber == null){
 						getSubscriberCache().put(cacheKey, new Subscriber()); //Empty subscriber means that non-existence result is cached.

@@ -70,7 +70,7 @@ public class RootRestService extends RestServiceBase {
 	@Path("/executed-query-count")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Response executedQueryCount() {
-		return Response.status(Response.Status.OK).entity(new Result(true, String.valueOf(getDataStore().getExecutedQueryCount()))).build();
+		return Response.status(Response.Status.OK).entity(new Result(true, String.valueOf(getDataStore().getExecutedQueryCount()), "Executed mongodb query count" )).build();
 	}
 
 	public static class RoomInfo{
