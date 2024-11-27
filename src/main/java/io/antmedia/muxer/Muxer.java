@@ -624,7 +624,7 @@ public abstract class Muxer {
 	 */
 	public void init(IScope scope, String name, int resolution, String subFolder, int videoBitrate, String mainTrackId) {
 		this.streamId = name;
-		init(scope, name, resolution, true, subFolder, videoBitrate, null);
+		init(scope, name, resolution, true, subFolder, videoBitrate, mainTrackId);
 	}
 
 	/**
