@@ -59,8 +59,7 @@ public class HLSMuxer extends Muxer  {
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
 	private String segmentFilename;
-	private String mainTrackId = null;
-	
+
 	/**
 	 * HLS Segment Type. It can be "mpegts" or "fmp4"
 	 * 
@@ -136,11 +135,10 @@ public class HLSMuxer extends Muxer  {
 	public void init(IScope scope, String name, int resolutionHeight, String subFolder, int bitrate, String mainTrackId) {
 		if (!isInitialized) {
 
-			super.init(scope, name, resolutionHeight, subFolder, bitrate);
+			super.init(scope, name, resolutionHeight, subFolder, bitrate, mainTrackId);
 
 			streamId = name;
 			this.subFolder = subFolder;
-			this.mainTrackId = mainTrackId;
 			options.put("hls_list_size", hlsListSize);
 			options.put("hls_time", hlsTime);
 
@@ -660,11 +658,4 @@ public class HLSMuxer extends Muxer  {
 		return pendingSEIData;
 	}
 
-	public String getMainTrackId() {
-		return mainTrackId;
-	}
-
-	public void setMainTrackId(String mainTrackId) {
-		this.mainTrackId = mainTrackId;
-	}
 }

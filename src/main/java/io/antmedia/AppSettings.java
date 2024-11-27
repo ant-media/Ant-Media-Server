@@ -1852,8 +1852,16 @@ public class AppSettings implements Serializable{
 	 *
 	 * If main track ID or stream ID are null, they are omitted.
 	 */
+	@Value( "${s3StreamsFolderPath:${"+SETTINGS_S3_STREAMS_FOLDER_PATH+":streams}}" )
+	private String s3StreamsFolderPath="streams";
+
+	/**
+	 * It's S3 stream PNG files storage name .
+	 * It's previews by default.
+	 *
+	 */
 	@Value("${s3PreviewsFolderPath:${"+SETTINGS_S3_PREVIEWS_FOLDER_PATH+":previews}}")
-	private String  s3PreviewsFolderPath="previews";
+	private String s3PreviewsFolderPath="previews";
 
 	/*
 	 * Use http endpoint  in CMAF/HLS.

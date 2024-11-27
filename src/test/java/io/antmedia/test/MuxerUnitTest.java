@@ -326,7 +326,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
-		mp4Muxer.init(appScope, "test", 0, "", 0);
+		mp4Muxer.init(appScope, "test", 0, "", 0, null);
 		assertEquals(0, mp4Muxer.getOutputFormatContext().nb_streams());
 		AVChannelLayout layout = new AVChannelLayout();
 		av_channel_layout_default(layout, 1);
@@ -341,7 +341,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testAddExtradata() {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		mp4Muxer.init(appScope, "test", 0, "", 0);
+		mp4Muxer.init(appScope, "test", 0, "", 0, null);
 
 		AVCodecContext codecContext = new AVCodecContext();
 		codecContext.width(640);
@@ -372,7 +372,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testInitVideoBitstreamFilter() {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		mp4Muxer.init(appScope, "test", 0, "", 0);
+		mp4Muxer.init(appScope, "test", 0, "", 0, null);
 		mp4Muxer.getOutputFormatContext();
 
 		mp4Muxer.setBitstreamFilter("h264_mp4toannexb");
@@ -392,9 +392,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		mp4Muxer.clearResource();
 
-		mp4Muxer.init(appScope, "test", 0, "", 0);
+		mp4Muxer.init(appScope, "test", 0, "", 0, null);
 		//increase coverage
-		mp4Muxer.init(appScope, "test", 0, "", 0);
+		mp4Muxer.init(appScope, "test", 0, "", 0, null);
 
 		AVCodecContext codecContext = new AVCodecContext();
 		codecContext.width(640);
@@ -426,7 +426,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
-		mp4Muxer.init(appScope, "test", 0, "", 0);
+		mp4Muxer.init(appScope, "test", 0, "", 0, null);
 		assertEquals(0, mp4Muxer.getOutputFormatContext().nb_streams());
 
 		AVCodecContext codecContext = new AVCodecContext();
@@ -804,11 +804,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
 		Mp4Muxer mp4Muxer = new Mp4Muxer(null, null, "streams");
-		mp4Muxer.init(appScope, "test", 0, null, 0);
+		mp4Muxer.init(appScope, "test", 0, null, 0, null);
 
 
 		WebMMuxer webMMuxer = new WebMMuxer(null, null, "streams");
-		webMMuxer.init(appScope, "test", 0, null, 0);
+		webMMuxer.init(appScope, "test", 0, null, 0, null);
 
 
 		assertFalse(webMMuxer.isCodecSupported(AV_CODEC_ID_H264));
@@ -825,7 +825,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		mp4Muxer.init(appScope, "test", 0, null, 0);
+		mp4Muxer.init(appScope, "test", 0, null, 0, null);
 
 		SPSParser spsParser = new SPSParser(extradata_original, 5);
 
@@ -858,7 +858,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
-		rtmpMuxer.init(appScope, "test", 0, null, 0);
+		rtmpMuxer.init(appScope, "test", 0, null, 0, null);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
 
 	}
@@ -1236,7 +1236,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
-		rtmpMuxer.init(appScope, "", 0, "", 0);
+		rtmpMuxer.init(appScope, "", 0, "", 0, null);
 
 		rtmpMuxer.avWriteFrame(pkt, context);
 
@@ -1417,7 +1417,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
 
-		rtmpMuxer.init(appScope, "test", 0, null, 0);
+		rtmpMuxer.init(appScope, "test", 0, null, 0, null);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(rtmpMuxer.openIO());
 
@@ -1510,7 +1510,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
 
-		mp4Muxer.init(appScope, "test", 0, null, 0);
+		mp4Muxer.init(appScope, "test", 0, null, 0, null);
 
 
 		SPSParser spsParser = new SPSParser(extradata_original, 5);
@@ -3061,7 +3061,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamName = "stream_name_" + (int) (Math.random() * 10000);
 		//init
-		mp4Muxer.init(appScope, streamName, 0, null, 0);
+		mp4Muxer.init(appScope, streamName, 0, null, 0, null);
 
 		//add stream
 		int width = 640;
@@ -3212,7 +3212,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamName = "stream_name_" + (int) (Math.random() * 10000);
 		//init
-		mp4Muxer.init(appScope, streamName, 0, null, 0);
+		mp4Muxer.init(appScope, streamName, 0, null, 0, null);
 
 		//add stream
 		int width = 640;
@@ -3302,7 +3302,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			{
 				Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
 				//init
-				mp4Muxer.init(appScope, streamName, 0, null, 0);
+				mp4Muxer.init(appScope, streamName, 0, null, 0, null);
 
 				//initialize tmp file
 				mp4Muxer.getOutputFormatContext();
@@ -3326,7 +3326,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 					Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
 					//init
-					mp4Muxer.init(appScope, streamName, 0, null, 0);
+					mp4Muxer.init(appScope, streamName, 0, null, 0, null);
 
 					//initialize tmp file
 					mp4Muxer.getOutputFormatContext();
@@ -3360,7 +3360,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 				Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
 				//init
-				mp4Muxer.init(appScope, streamName, 0, null, 0);
+				mp4Muxer.init(appScope, streamName, 0, null, 0, null);
 
 				//initialize tmp file
 				mp4Muxer.getOutputFormatContext();
@@ -3384,7 +3384,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 				WebMMuxer webMMuxer = new WebMMuxer(client, vertx, "streams");
 				//init
-				webMMuxer.init(appScope, streamName, 0, null, 0);
+				webMMuxer.init(appScope, streamName, 0, null, 0, null);
 
 				//initialize tmp file
 				webMMuxer.getOutputFormatContext();
@@ -4721,7 +4721,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		doReturn(existingTempFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId + "_1"), eq(".mp4" + Muxer.TEMP_EXTENSION), eq(null));
 		doReturn(nonExistingTempFile_2).when(mp4Muxer).getResourceFile(any(), eq(streamId + "_2"), eq(".mp4" + Muxer.TEMP_EXTENSION), eq(null));
 
-		mp4Muxer.init(appScope, streamId, 0, false, null, 0);
+		mp4Muxer.init(appScope, streamId, 0, false, null, 0, null);
 
 		assertEquals(nonExistingFile_2, mp4Muxer.getFile());
 
@@ -4830,7 +4830,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		doReturn(existingTempFile).when(mp4Muxer).getResourceFile(any(), eq(streamId), eq(".mp4" + Muxer.TEMP_EXTENSION), eq(null));
 		doReturn(nonExistingTempFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId + "_1"), eq(".mp4" + Muxer.TEMP_EXTENSION), eq(null));
 
-		mp4Muxer.init(appScope, streamId, 0, false, null, 0);
+		mp4Muxer.init(appScope, streamId, 0, false, null, 0, null);
 
 		assertEquals(nonExistingFile_1, mp4Muxer.getFile());
 

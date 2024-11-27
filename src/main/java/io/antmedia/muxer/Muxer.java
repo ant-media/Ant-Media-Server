@@ -47,7 +47,6 @@ import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.javacpp.BytePointer;
-import org.json.simple.JSONObject;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamFilenameGenerator;
@@ -180,6 +179,7 @@ public abstract class Muxer {
 	}
 
 	protected String subFolder = null;
+	protected String mainTrackId = null;
 
 	/**
 	 * This class is used generally to send direct video buffer to muxer
@@ -622,40 +622,38 @@ public abstract class Muxer {
 	 * Inits the file to write. Multiple encoders can init the muxer. It is
 	 * redundant to init multiple times.
 	 */
-	public void init(IScope scope, String name, int resolution, String subFolder, int videoBitrate) {
+	public void init(IScope scope, String name, int resolution, String subFolder, int videoBitrate, String mainTrackId) {
 		this.streamId = name;
-		init(scope, name, resolution, true, subFolder, videoBitrate);
+		init(scope, name, resolution, true, subFolder, videoBitrate, null);
 	}
 
 	/**
 	 * Init file name
-	 *
+	 * <p>
 	 * file format is NAME[-{DATETIME}][_{RESOLUTION_HEIGHT}p_{BITRATE}kbps].{EXTENSION}
-	 *
+	 * <p>
 	 * Datetime format is yyyy-MM-dd_HH-mm
-	 *
+	 * <p>
 	 * We are using "-" instead of ":" in HH:mm -> Stream filename must not contain ":" character.
-	 *
+	 * <p>
 	 * sample naming -> stream1-yyyy-MM-dd_HH-mm_480p_500kbps.mp4 if datetime is added
 	 * stream1_480p.mp4 if no datetime
 	 *
+	 * @param name,           name of the stream
 	 * @param scope
-	 * @param name,
-	 *            name of the stream
-	 * @param resolution
-	 *            height of the stream, if it is zero, then no resolution will
-	 *            be added to resource name
-	 * @param overrideIfExist
-	 *            whether override if a file exists with the same name
-	 * @param bitrate
-	 * 			  bitrate of the stream, if it is zero, no bitrate will
-	 * 			  be added to resource name
+	 * @param resolution      height of the stream, if it is zero, then no resolution will
+	 *                        be added to resource name
+	 * @param overrideIfExist whether override if a file exists with the same name
+	 * @param bitrate         bitrate of the stream, if it is zero, no bitrate will
+	 *                        be added to resource name
+	 * @param mainTrackId
 	 */
-	public void init(IScope scope, final String name, int resolution, boolean overrideIfExist, String subFolder, int bitrate) {
+	public void init(IScope scope, final String name, int resolution, boolean overrideIfExist, String subFolder, int bitrate, String mainTrackId) {
 		if (!isInitialized) {
 			isInitialized = true;
 			this.scope = scope;
 			this.resolution = resolution;
+			this.mainTrackId = mainTrackId;
 
 			//Refactor: Getting AppSettings smells here
 			AppSettings appSettings = getAppSettings();
@@ -1485,6 +1483,14 @@ public abstract class Muxer {
 	
 	public String getSubFolder() {
 		return subFolder;
+	}
+
+	public String getMainTrackId() {
+		return mainTrackId;
+	}
+
+	public void setMainTrackId(String mainTrackId) {
+		this.mainTrackId = mainTrackId;
 	}
 
 }
