@@ -1411,7 +1411,7 @@ public class MongoStore extends DataStore {
 				executedQueryCount++;
 
 				UpdateResult execute = subscriberDatastore.find(Subscriber.class).update(new UpdateOptions().multi(true), set("connected", false));
-				result = execute.getMatchedCount() > 1;
+				result = execute.getMatchedCount() >= 1;
 				if(result){
 
 					getSubscriberCache().getNativeCache().asMap().forEach((key, value) -> {
@@ -1426,6 +1426,7 @@ public class MongoStore extends DataStore {
 					});
 
 				}
+
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
