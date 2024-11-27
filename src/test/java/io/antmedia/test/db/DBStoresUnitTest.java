@@ -347,9 +347,7 @@ public class DBStoresUnitTest {
 		 
 		testGetSubtracks(dataStore);
 		testGetSubtracksWithStatus(dataStore);
-
-
-
+		testSubscriberCache(dataStore);
 
 		dataStore.close(true);
 
@@ -3581,8 +3579,108 @@ public class DBStoresUnitTest {
 		
 		
 	}
-	
-	
+
+	public void testSubscriberCache(DataStore dataStore) {
+		int initalExecutedQueryCount = dataStore.getExecutedQueryCount();
+
+		String streamId = "stream"+RandomStringUtils.randomNumeric(6);;
+
+		Subscriber subscriber1 = new Subscriber();
+		String subscriberId1 = "subscriberId1";
+		subscriber1.setSubscriberId(subscriberId1);
+		subscriber1.setStreamId(streamId);
+
+		dataStore.addSubscriber(streamId, subscriber1); //executedQueryCount+1
+
+		Subscriber subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId1);
+
+		int executedQueryCount = dataStore.getExecutedQueryCount();
+
+        assertEquals(initalExecutedQueryCount + 1, executedQueryCount );
+
+		String subscriberCacheKey = ((MongoStore) dataStore).getSubscriberCacheKey(streamId,subscriberId1);
+
+		Subscriber subscriberFromCache = ((MongoStore) dataStore).getSubscriberCache().get(subscriberCacheKey,Subscriber.class);
+
+		assertNotNull(subscriberFromCache);
+
+		assertEquals(subscriberFromDB.getSubscriberId(), subscriberFromCache.getSubscriberId());
+
+		subscriberFromDB = dataStore.getSubscriber(streamId,subscriberId1);
+
+		executedQueryCount = dataStore.getExecutedQueryCount();
+
+		assertEquals(initalExecutedQueryCount + 1, executedQueryCount );
+
+		subscriberFromDB = dataStore.getSubscriber(streamId,subscriberId1);
+
+		executedQueryCount = dataStore.getExecutedQueryCount();
+
+		assertEquals(initalExecutedQueryCount + 1, executedQueryCount );
+
+		Subscriber nullSubscriber = dataStore.getSubscriber(streamId, "nullSubscriber"); //executedQueryCount+1
+
+		assertNull(nullSubscriber);
+
+		executedQueryCount = dataStore.getExecutedQueryCount();
+
+		assertEquals(initalExecutedQueryCount + 2, executedQueryCount );
+
+
+		subscriberCacheKey = ((MongoStore) dataStore).getSubscriberCacheKey(streamId,"nullSubscriber");
+
+		subscriberFromCache =  ((MongoStore) dataStore).getSubscriberCache().get(subscriberCacheKey,Subscriber.class);
+
+		assertNotNull(subscriberFromCache);
+
+        assertNull(subscriberFromCache.getSubscriberId());
+
+		executedQueryCount = dataStore.getExecutedQueryCount();
+
+		assertEquals(initalExecutedQueryCount + 2, executedQueryCount );
+
+		nullSubscriber = dataStore.getSubscriber(streamId, "nullSubscriber");
+
+		assertNull(nullSubscriber);
+
+		executedQueryCount = dataStore.getExecutedQueryCount();
+
+		assertEquals(initalExecutedQueryCount + 2, executedQueryCount );
+
+		assertTrue(dataStore.blockSubscriber(streamId, subscriberId1, Subscriber.PLAY_TYPE, 30));
+
+		subscriberCacheKey = ((MongoStore) dataStore).getSubscriberCacheKey(streamId,subscriberId1);
+
+
+		subscriberFromCache = ((MongoStore) dataStore).getSubscriberCache().get(subscriberCacheKey, Subscriber.class);
+
+		assertTrue(subscriberFromCache.isBlocked(Subscriber.PLAY_TYPE));
+
+		assertTrue(dataStore.blockSubscriber(streamId, "somesub", Subscriber.PLAY_TYPE, 30));
+
+		subscriberCacheKey =  ((MongoStore) dataStore).getSubscriberCacheKey(streamId,"somesub");
+
+		subscriberFromCache = ((MongoStore) dataStore).getSubscriberCache().get(subscriberCacheKey, Subscriber.class);
+
+		assertTrue(subscriberFromCache.isBlocked(Subscriber.PLAY_TYPE));
+
+		subscriberCacheKey =  ((MongoStore) dataStore).getSubscriberCacheKey(streamId,subscriberId1);
+
+		assertTrue(dataStore.deleteSubscriber(streamId, subscriberId1));
+
+		subscriberFromCache = ((MongoStore) dataStore).getSubscriberCache().get(subscriberCacheKey, Subscriber.class);
+
+		assertNull(subscriberFromCache);
+
+		assertTrue(dataStore.revokeSubscribers(streamId));
+
+		subscriberCacheKey =  ((MongoStore) dataStore).getSubscriberCacheKey(streamId,"somesub");
+
+		subscriberFromCache = ((MongoStore) dataStore).getSubscriberCache().get(subscriberCacheKey, Subscriber.class);
+
+		assertNull(subscriberFromCache);
+
+	}
 
 
 }
