@@ -76,6 +76,10 @@ public class WebSocketConstants {
 
 	public static final String JOIN_ROOM_COMMAND = "joinRoom";
 
+	/**
+	 * Please use {@link #MAIN_TRACK} instead
+	 */
+	@Deprecated(forRemoval = true, since = "2.11.3")
 	public static final String ROOM = "room";
 
 	public static final String JOIN_COMMAND = "join";
