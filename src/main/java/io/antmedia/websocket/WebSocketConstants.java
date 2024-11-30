@@ -76,6 +76,10 @@ public class WebSocketConstants {
 
 	public static final String JOIN_ROOM_COMMAND = "joinRoom";
 
+	/**
+	 * Please use {@link #MAIN_TRACK} instead
+	 */
+	@Deprecated(forRemoval = true, since = "2.11.3")
 	public static final String ROOM = "room";
 
 	public static final String JOIN_COMMAND = "join";
@@ -599,9 +603,29 @@ public class WebSocketConstants {
 	public static final String GET_SUBTRACKS_COMMAND = "getSubtracks";
 
 	/**
+	 * Command to get subtrack count for a main track
+	 */
+	public static final String GET_SUBTRACKS_COUNT_COMMAND = "getSubtracksCount";
+
+	/**
 	 * subtrack (broadcast) object list notification
 	 */
 	public static final String SUBTRACK_LIST_NOTIFICATION = "subtrackList";
+
+	/**
+	 * status field in websocket communication
+	 */
+	public static final String STATUS = "status";
+
+	/*
+	 * count field in websocket communication
+	 */
+	public static final String COUNT = "count";
+
+	/**
+	 * subtrack (broadcast) object count notification
+	 */
+	public static final String SUBTRACK_COUNT_NOTIFICATION = "subtrackCount";
 
 	/**
 	 * subtrack (broadcast) object list
