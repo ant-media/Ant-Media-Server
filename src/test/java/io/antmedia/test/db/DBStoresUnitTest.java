@@ -3582,7 +3582,7 @@ public class DBStoresUnitTest {
 	}
 
 	public void testSubscriberCache(DataStore dataStore) {
-		int initalExecutedQueryCount = dataStore.getExecutedQueryCount();
+		long initalExecutedQueryCount = dataStore.getExecutedQueryCount();
 
 		String streamId = "stream"+RandomStringUtils.randomNumeric(6);;
 
@@ -3595,7 +3595,7 @@ public class DBStoresUnitTest {
 
 		Subscriber subscriberFromDB = dataStore.getSubscriber(streamId, subscriberId1);
 
-		int executedQueryCount = dataStore.getExecutedQueryCount();
+		long executedQueryCount = dataStore.getExecutedQueryCount();
 
         assertEquals(initalExecutedQueryCount + 1, executedQueryCount );
 
