@@ -46,7 +46,7 @@ public abstract class DataStore {
 
 	private boolean writeStatsToDatastore = true;
 
-	public int executedQueryCount = 0;
+	public long executedQueryCount = 0;
 
 	protected volatile boolean available = false;
 
@@ -1501,7 +1501,7 @@ public abstract class DataStore {
 	 * Get executed query count. For now only mongodb queries are counted.
 	 * @return Executed query count.
 	 */
-	public int getExecutedQueryCount() {
+	public long getExecutedQueryCount() {
 		return executedQueryCount;
 	}
 

@@ -107,7 +107,7 @@ public class MongoStore extends DataStore {
 	public static final String OLD_STREAM_ID_INDEX_NAME = "streamId_1";
 	public static final String SUBSCRIBER_CACHE = "subscriberCache";
 	public static final int SUBSCRIBER_CACHE_SIZE = 1000;
-	public static final int SUBSCRIBER_CACHE_EXPIRE_SECONDS = 30;
+	public static final int SUBSCRIBER_CACHE_EXPIRE_SECONDS = 10;
 
 	public MongoStore(String host, String username, String password, String dbName) {
 
@@ -1377,10 +1377,16 @@ public class MongoStore extends DataStore {
 			String cacheKey = getSubscriberCacheKey(streamId, subscriberId);
 			Subscriber cachedSubscriber = getSubscriberCache().get(cacheKey, Subscriber.class);
 
-			if (cachedSubscriber != null && cachedSubscriber.getSubscriberId() != null) { // Subscriber exists in cache, return directly.
-				return cachedSubscriber;
-			}else if(cachedSubscriber != null){ //Empty subscriber
-				return null;
+			if (cachedSubscriber != null) 
+			{ 
+				if (StringUtils.isNotBlank(cachedSubscriber.getSubscriberId())) {
+					// Subscriber exists in cache, return directly.
+					return cachedSubscriber;
+				}
+				else {
+                    //Empty subscriber
+                    return null;
+                }
 			}
 
 			synchronized (this) {
