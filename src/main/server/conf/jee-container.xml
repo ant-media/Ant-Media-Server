@@ -40,7 +40,10 @@
 	<!-- Tomcat without SSL enabled -->
 	<bean id="tomcat.server" class="org.red5.server.tomcat.TomcatLoader"
 		depends-on="context.loader,warDeployer" lazy-init="true">
-		<!-- cluster --><!-- property name="cluster" ref="tomcat.cluster" /--><!-- cluster -->
+		<!--  make sure tomcat.cluster is initialized before TomcatLoader in cluster mode otherwise there maybe initialization exceptions -->
+		<!-- cluster start
+		<property name="clusterNotifier" ref="tomcat.cluster" />
+		cluster end -->
 		<property name="webappFolder" value="${red5.root}/webapps" />
 
 		<property name="connectors">
