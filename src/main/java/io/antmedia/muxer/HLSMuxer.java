@@ -14,7 +14,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.bytedeco.ffmpeg.avcodec.*;
 import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
-import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.javacpp.BytePointer;
@@ -206,38 +205,11 @@ public class HLSMuxer extends Muxer  {
 		return super.getOutputURL();
 	}
 
-	public String getCustomHeaderStr() {
-		String customHeaderStr = "";
-
-		if (mainTrackId != null) {
-			customHeaderStr += "mainTrackId: " + mainTrackId + "\r\n";
-		}
-
-		if (streamId != null) {
-			customHeaderStr += "streamId: " + streamId + "\r\n";
-		}
-
-		return customHeaderStr;
-	}
-
 	public AVFormatContext getOutputFormatContext() {
 		if (outputFormatContext == null) {
 
 			outputFormatContext= new AVFormatContext(null);
 			int ret = avformat_alloc_output_context2(outputFormatContext, null, format, getOutputURL());
-
-			if((StringUtils.isNotBlank(httpEndpoint))) {
-				AVDictionary options = new AVDictionary();
-				String customHeaderStr = getCustomHeaderStr();
-				if(StringUtils.isNotBlank(customHeaderStr)){
-
-					av_dict_set(options, "headers", customHeaderStr, 0);
-					av_opt_set_dict2(outputFormatContext.priv_data(), options, 0);
-
-				}
-				av_dict_free(options);
-			}
-
 			if (ret < 0) {
 				logger.info("Could not create output context for {}",  getOutputURL());
 				return null;

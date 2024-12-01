@@ -179,7 +179,6 @@ public abstract class Muxer {
 	}
 
 	protected String subFolder = null;
-	protected String mainTrackId = null;
 
 	/**
 	 * This class is used generally to send direct video buffer to muxer
