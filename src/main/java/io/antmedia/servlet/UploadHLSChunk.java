@@ -3,8 +3,6 @@ package io.antmedia.servlet;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -13,7 +11,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.bytedeco.ffmpeg.avutil.AVDictionary;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -25,8 +22,6 @@ import com.amazonaws.event.ProgressEventType;
 import io.antmedia.AppSettings;
 import io.antmedia.muxer.Muxer;
 import io.antmedia.storage.StorageClient;
-
-import static io.antmedia.muxer.Muxer.DATE_TIME_PATTERN;
 
 @MultipartConfig
 public class UploadHLSChunk extends HttpServlet {
