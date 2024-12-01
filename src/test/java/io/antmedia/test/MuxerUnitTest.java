@@ -1,5 +1,7 @@
 package io.antmedia.test;
 
+import static io.antmedia.muxer.MuxAdaptor.getExtendedSubfolder;
+import static io.antmedia.muxer.MuxAdaptor.getSubfolder;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AAC;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_AC3;
 import static org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_H264;
@@ -326,7 +328,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
-		mp4Muxer.init(appScope, "test", 0, "", 0, null);
+		mp4Muxer.init(appScope, "test", 0, "", 0);
 		assertEquals(0, mp4Muxer.getOutputFormatContext().nb_streams());
 		AVChannelLayout layout = new AVChannelLayout();
 		av_channel_layout_default(layout, 1);
@@ -341,7 +343,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testAddExtradata() {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		mp4Muxer.init(appScope, "test", 0, "", 0, null);
+		mp4Muxer.init(appScope, "test", 0, "", 0);
 
 		AVCodecContext codecContext = new AVCodecContext();
 		codecContext.width(640);
@@ -372,7 +374,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testInitVideoBitstreamFilter() {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		mp4Muxer.init(appScope, "test", 0, "", 0, null);
+		mp4Muxer.init(appScope, "test", 0, "", 0);
 		mp4Muxer.getOutputFormatContext();
 
 		mp4Muxer.setBitstreamFilter("h264_mp4toannexb");
@@ -392,9 +394,9 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		mp4Muxer.clearResource();
 
-		mp4Muxer.init(appScope, "test", 0, "", 0, null);
+		mp4Muxer.init(appScope, "test", 0, "", 0);
 		//increase coverage
-		mp4Muxer.init(appScope, "test", 0, "", 0, null);
+		mp4Muxer.init(appScope, "test", 0, "", 0);
 
 		AVCodecContext codecContext = new AVCodecContext();
 		codecContext.width(640);
@@ -426,7 +428,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(Mockito.mock(StorageClient.class), vertx, "");
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
-		mp4Muxer.init(appScope, "test", 0, "", 0, null);
+		mp4Muxer.init(appScope, "test", 0, "", 0);
 		assertEquals(0, mp4Muxer.getOutputFormatContext().nb_streams());
 
 		AVCodecContext codecContext = new AVCodecContext();
@@ -544,7 +546,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
 
 		//init
-		hlsMuxer.init(appScope, streamId, 0, null, 0, null);
+		hlsMuxer.init(appScope, streamId, 0, null, 0);
 
 
 		AVBSFContext initVideoBitstreamFilter = hlsMuxer.initVideoBitstreamFilter("h264_mp4toannexb",  inputFormatContext.streams(0).codecpar(),  inputFormatContext.streams(0).time_base());
@@ -588,7 +590,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
 
 		//init
-		hlsMuxer.init(appScope, streamId, 0, null, 0, null);
+		hlsMuxer.init(appScope, streamId, 0, null, 0);
 
 		//add video stream
 		assertEquals(AVMEDIA_TYPE_VIDEO, inputFormatContext.streams(0).codecpar().codec_type());
@@ -804,11 +806,11 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
 		Mp4Muxer mp4Muxer = new Mp4Muxer(null, null, "streams");
-		mp4Muxer.init(appScope, "test", 0, null, 0, null);
+		mp4Muxer.init(appScope, "test", 0, null, 0);
 
 
 		WebMMuxer webMMuxer = new WebMMuxer(null, null, "streams");
-		webMMuxer.init(appScope, "test", 0, null, 0, null);
+		webMMuxer.init(appScope, "test", 0, null, 0);
 
 
 		assertFalse(webMMuxer.isCodecSupported(AV_CODEC_ID_H264));
@@ -825,7 +827,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		mp4Muxer.init(appScope, "test", 0, null, 0, null);
+		mp4Muxer.init(appScope, "test", 0, null, 0);
 
 		SPSParser spsParser = new SPSParser(extradata_original, 5);
 
@@ -851,14 +853,14 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
 		hlsMuxer.setHlsParameters(null, null, null, null, null, null);
-		hlsMuxer.init(appScope, "test", 0, null, 0, null);
+		hlsMuxer.init(appScope, "test", 0, null, 0);
 		hlsMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(hlsMuxer.getRegisteredStreamIndexList().contains(50));
 		hlsMuxer.writeTrailer();
 
 
 		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
-		rtmpMuxer.init(appScope, "test", 0, null, 0, null);
+		rtmpMuxer.init(appScope, "test", 0, null, 0);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
 
 	}
@@ -887,7 +889,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			String streamId = "streamId";
 			String subFolder = "subfolder";
 
-			hlsMuxer.init(appScope, streamId, 0, subFolder, 0, null);
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
 
 
 			assertEquals("http://example.com/" + subFolder + "/" + streamId + ".m3u8", hlsMuxer.getOutputURL());
@@ -901,7 +903,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			String streamId = "streamId";
 			String subFolder = "subfolder/";
 
-			hlsMuxer.init(appScope, streamId, 0, subFolder, 0, null);
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
 
 
 			assertEquals("http://example.com/" + subFolder + streamId + ".m3u8", hlsMuxer.getOutputURL());
@@ -927,7 +929,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
 
-			hlsMuxer.init(appScope, streamId, 0, subFolder, 0, null);
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
 
 
 			hlsMuxer.writeTrailer();
@@ -954,7 +956,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
 
-			hlsMuxer.init(appScope, streamId, 0, subFolder, 0, null);
+			hlsMuxer.init(appScope, streamId, 0, subFolder, 0);
 
 
 			hlsMuxer.writeTrailer();
@@ -979,7 +981,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 			Mockito.doReturn(file).when(hlsMuxer).getHLSFilesInDirectory(Mockito.anyString());
 
-			hlsMuxer.init(appScope, streamId, 0, null, 0, null);
+			hlsMuxer.init(appScope, streamId, 0, null, 0);
 
 
 			hlsMuxer.writeTrailer();
@@ -1177,7 +1179,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testHLSAddStream() {
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		hlsMuxer.init(appScope, "test", 0, "", 100, null);
+		hlsMuxer.init(appScope, "test", 0, "", 100);
 
 		assertFalse(hlsMuxer.writeHeader());
 
@@ -1201,7 +1203,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 
 		HLSMuxer hlsMuxer = spy(new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false));
-		hlsMuxer.init(appScope, "test", 0, "", 100, null);
+		hlsMuxer.init(appScope, "test", 0, "", 100);
 
 		AVCodecContext codecContext = new AVCodecContext();
 		codecContext.width(640);
@@ -1236,7 +1238,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appScope = (WebScope) applicationContext.getBean("web.scope");
 
-		rtmpMuxer.init(appScope, "", 0, "", 0, null);
+		rtmpMuxer.init(appScope, "", 0, "", 0);
 
 		rtmpMuxer.avWriteFrame(pkt, context);
 
@@ -1417,7 +1419,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		RtmpMuxer rtmpMuxer = new RtmpMuxer("any_url", vertx);
 
-		rtmpMuxer.init(appScope, "test", 0, null, 0, null);
+		rtmpMuxer.init(appScope, "test", 0, null, 0);
 		rtmpMuxer.addStream(codecParameters, rat, 50);
 		assertTrue(rtmpMuxer.openIO());
 
@@ -1510,7 +1512,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		Mp4Muxer mp4Muxer = new Mp4Muxer(null, vertx, "streams");
 
-		mp4Muxer.init(appScope, "test", 0, null, 0, null);
+		mp4Muxer.init(appScope, "test", 0, null, 0);
 
 
 		SPSParser spsParser = new SPSParser(extradata_original, 5);
@@ -3061,7 +3063,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamName = "stream_name_" + (int) (Math.random() * 10000);
 		//init
-		mp4Muxer.init(appScope, streamName, 0, null, 0, null);
+		mp4Muxer.init(appScope, streamName, 0, null, 0);
 
 		//add stream
 		int width = 640;
@@ -3124,7 +3126,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamName = "stream_name_" + (int) (Math.random() * 10000);
 		//init
-		hlsMuxer.init(appScope, streamName, 0, null, 0, null);
+		hlsMuxer.init(appScope, streamName, 0, null, 0);
 
 		hlsMuxer.setId3Enabled(true);
 
@@ -3212,7 +3214,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		String streamName = "stream_name_" + (int) (Math.random() * 10000);
 		//init
-		mp4Muxer.init(appScope, streamName, 0, null, 0, null);
+		mp4Muxer.init(appScope, streamName, 0, null, 0);
 
 		//add stream
 		int width = 640;
@@ -3302,7 +3304,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			{
 				Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
 				//init
-				mp4Muxer.init(appScope, streamName, 0, null, 0, null);
+				mp4Muxer.init(appScope, streamName, 0, null, 0);
 
 				//initialize tmp file
 				mp4Muxer.getOutputFormatContext();
@@ -3326,7 +3328,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 					Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
 					//init
-					mp4Muxer.init(appScope, streamName, 0, null, 0, null);
+					mp4Muxer.init(appScope, streamName, 0, null, 0);
 
 					//initialize tmp file
 					mp4Muxer.getOutputFormatContext();
@@ -3360,7 +3362,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 				Mp4Muxer mp4Muxer = new Mp4Muxer(client, vertx, "streams");
 				//init
-				mp4Muxer.init(appScope, streamName, 0, null, 0, null);
+				mp4Muxer.init(appScope, streamName, 0, null, 0);
 
 				//initialize tmp file
 				mp4Muxer.getOutputFormatContext();
@@ -3384,7 +3386,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 				WebMMuxer webMMuxer = new WebMMuxer(client, vertx, "streams");
 				//init
-				webMMuxer.init(appScope, streamName, 0, null, 0, null);
+				webMMuxer.init(appScope, streamName, 0, null, 0);
 
 				//initialize tmp file
 				webMMuxer.getOutputFormatContext();
@@ -3937,20 +3939,20 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 	public void testHLSNaming() {
 		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
 		appScope = (WebScope) applicationContext.getBean("web.scope");
-		hlsMuxer.init(appScope, "test", 0, "", 100, null);
+		hlsMuxer.init(appScope, "test", 0, "", 100);
 		assertEquals("./webapps/junit/streams/test%09d.ts", hlsMuxer.getSegmentFilename());
 
 		hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
-		hlsMuxer.init(appScope, "test", 0, "", 0, null);
+		hlsMuxer.init(appScope, "test", 0, "", 0);
 		assertEquals("./webapps/junit/streams/test%09d.ts", hlsMuxer.getSegmentFilename());
 
 		hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
-		hlsMuxer.init(appScope, "test", 300, "", 0, null);
+		hlsMuxer.init(appScope, "test", 300, "", 0);
 		assertEquals("./webapps/junit/streams/test_300p%09d.ts", hlsMuxer.getSegmentFilename());
 
 
 		hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
-		hlsMuxer.init(appScope, "test", 300, "", 400000, null);
+		hlsMuxer.init(appScope, "test", 300, "", 400000);
 		assertEquals("./webapps/junit/streams/test_300p400kbps%09d.ts", hlsMuxer.getSegmentFilename());
 
 	}
@@ -4721,7 +4723,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		doReturn(existingTempFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId + "_1"), eq(".mp4" + Muxer.TEMP_EXTENSION), eq(null));
 		doReturn(nonExistingTempFile_2).when(mp4Muxer).getResourceFile(any(), eq(streamId + "_2"), eq(".mp4" + Muxer.TEMP_EXTENSION), eq(null));
 
-		mp4Muxer.init(appScope, streamId, 0, false, null, 0, null);
+		mp4Muxer.init(appScope, streamId, 0, false, null, 0);
 
 		assertEquals(nonExistingFile_2, mp4Muxer.getFile());
 
@@ -4830,7 +4832,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		doReturn(existingTempFile).when(mp4Muxer).getResourceFile(any(), eq(streamId), eq(".mp4" + Muxer.TEMP_EXTENSION), eq(null));
 		doReturn(nonExistingTempFile_1).when(mp4Muxer).getResourceFile(any(), eq(streamId + "_1"), eq(".mp4" + Muxer.TEMP_EXTENSION), eq(null));
 
-		mp4Muxer.init(appScope, streamId, 0, false, null, 0, null);
+		mp4Muxer.init(appScope, streamId, 0, false, null, 0);
 
 		assertEquals(nonExistingFile_1, mp4Muxer.getFile());
 
@@ -5359,7 +5361,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
 
 			//init
-			hlsMuxer.init(appScope, streamId, 0, null, 0, null);
+			hlsMuxer.init(appScope, streamId, 0, null, 0);
 
 			int width = 640;
 			int height = 480;
@@ -5434,7 +5436,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "fmp4");
 
 			//init
-			hlsMuxer.init(appScope, streamId, 0, null, 0, null);
+			hlsMuxer.init(appScope, streamId, 0, null, 0);
 
 			int width = 640;
 			int height = 480;
@@ -5471,7 +5473,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
 
 			//init
-			hlsMuxer.init(appScope, streamId, 0, null, 0, null);
+			hlsMuxer.init(appScope, streamId, 0, null, 0);
 
 			int width = 640;
 			int height = 480;
@@ -5510,7 +5512,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 			hlsMuxer.setHlsParameters("5", "2", "event", null, null, "mpegts");
 
 			//init
-			hlsMuxer.init(appScope, streamId, 0, null, 0, null);
+			hlsMuxer.init(appScope, streamId, 0, null, 0);
 
 
 			AVChannelLayout channelLayout = new AVChannelLayout();
@@ -5823,52 +5825,93 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(0x00, endOfString);
 	}
 
-	/*@Test
-	public void testOutputFormatContextHeaders() {
-		appScope = (WebScope) applicationContext.getBean("web.scope");
-		vertx = (Vertx) appScope.getContext().getApplicationContext().getBean(IAntMediaStreamHandler.VERTX_BEAN_NAME);
+	@Test
+	public void testGetSubfolder() throws Exception {
+		String mainTrackId = "mainTrackId";
+		String streamId = "stream456";
+
+		AppSettings appSettings = new AppSettings();
+
+		assertEquals("", getExtendedSubfolder(mainTrackId, streamId, null));
+		assertEquals("simplepath", getExtendedSubfolder(mainTrackId, streamId, "simplepath"));
+		assertEquals("mainTrackId", getExtendedSubfolder(mainTrackId, streamId, "%m"));
+		assertEquals("stream456", getExtendedSubfolder(mainTrackId, streamId, "%s"));
+
+		assertEquals("mainTrackId/stream456", getExtendedSubfolder(mainTrackId, streamId, "%m/%s"));
+		assertEquals("stream456/mainTrackId", getExtendedSubfolder(mainTrackId, streamId, "%s/%m"));
+		assertEquals(appSettings.getSubFolder(), getExtendedSubfolder(mainTrackId, streamId, appSettings.getSubFolder()));
+		assertEquals(appSettings.getSubFolder()+"mainTrackId/stream456", getExtendedSubfolder(mainTrackId, streamId, appSettings.getSubFolder()+"/%m/%s"));
+
+		assertEquals("folder", getExtendedSubfolder(null, null, "folder/%m/%s"));
+		assertEquals("folder", getExtendedSubfolder(null, null, "/folder/%m/%s/"));
+		assertEquals("folder", getExtendedSubfolder(null, null, "folder/%m/%s/"));
+		assertEquals("folder", getExtendedSubfolder(null, null, "/folder/%m/%s"));
+
+		assertEquals("folder",
+				getExtendedSubfolder(null, null, "folder/%m/%s"));
+
+		assertEquals("folder/stream1",
+				getExtendedSubfolder(null, "stream1", "folder/%m/%s"));
+
+		assertEquals("folder/track1",
+				getExtendedSubfolder("track1", null, "folder/%m/%s"));
+
+		assertEquals("folder/track1/stream1",
+				getExtendedSubfolder("track1", "stream1", "folder/%m/%s"));
+
+		assertEquals("folder/stream1",
+				getExtendedSubfolder(null, "stream1", "/folder/%m/%s/"));
+
+		assertEquals("lastpeony/mainTrackId/stream456",
+				getExtendedSubfolder(mainTrackId, streamId, "lastpeony/%m/%s"));
+
+		assertEquals("folder/mainTrackId",
+				getExtendedSubfolder(mainTrackId, streamId, "folder//%m"));
+
+		assertEquals("folder/mainTrackId",
+				getExtendedSubfolder(mainTrackId, streamId, "folder/%m/"));
+
+		appSettings.setSubFolder("defaultFolder");
+
+		assertEquals("defaultFolder", getSubfolder(null, appSettings));
+
+		Broadcast broadcastWithSubfolder = new Broadcast();
+		broadcastWithSubfolder.setSubFolder("customSubfolder");
+
+		Broadcast broadcastWithIds = new Broadcast();
+		broadcastWithIds.setMainTrackStreamId(mainTrackId);
+		broadcastWithIds.setStreamId(streamId);
+
+		assertEquals("customSubfolder", getSubfolder(broadcastWithSubfolder, appSettings));
+
+		appSettings.setSubFolder("recordings/%m/%s");
+		assertEquals("recordings/mainTrackId/stream456", getSubfolder(broadcastWithIds, appSettings));
+
+		appSettings.setSubFolder("recordings/%m/%s");
+		assertEquals("recordings", getSubfolder(null, appSettings));
+
+		Broadcast broadcastWithEmptyIds = new Broadcast();
+		broadcastWithEmptyIds.setMainTrackStreamId("");
+		broadcastWithEmptyIds.setStreamId("");
+		assertEquals("recordings", getSubfolder(broadcastWithEmptyIds, appSettings));
+
+		appSettings.setSubFolder("recordings/%m");
+		Broadcast broadcastWithOnlyMainTrack = new Broadcast();
+		broadcastWithOnlyMainTrack.setMainTrackStreamId(mainTrackId);
+		assertEquals("recordings/mainTrackId", getSubfolder(broadcastWithOnlyMainTrack, appSettings));
+
+		appSettings.setSubFolder("recordings/%s");
+		Broadcast broadcastWithOnlyStreamId = new Broadcast();
+		broadcastWithOnlyStreamId.setStreamId(streamId);
+		assertEquals("recordings/stream456", getSubfolder(broadcastWithOnlyStreamId, appSettings));
+
+		appSettings.setSubFolder("fixedFolder");
+		assertEquals("fixedFolder", getSubfolder(broadcastWithIds, appSettings));
+
+		//broadcast subfolder overwrites app settings sub folder.
+		assertEquals("customSubfolder", getSubfolder(broadcastWithSubfolder, appSettings));
 
 
-		HLSMuxer hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "streams", 0, "http://example.com", false);
-		String streamId = "test-stream";
-		String mainTrackId = "test-main-track";
-
-		hlsMuxer.init(appScope, streamId, 0, "", 0, mainTrackId);
-
-
-		// Get output format context
-		AVFormatContext formatContext = hlsMuxer.getOutputFormatContext();
-
-		// Assert context created
-		assertNotNull("Output format context should not be null", formatContext);
-
-		//somehow read headers and verify here.
-
-
-		assertEquals("Headers should match expected format",
-				"mainTrackId: test-main-track\r\nstreamId: test-stream\r\n",
-				avDictionaryEntry.value().getString());
-
-
-		// Verify headers
-
-
-		*//*assertEquals("Headers should match expected format",
-				"mainTrackId: test-main-track\r\nstreamId: test-stream\r\n",
-				headerValue.value().getString());
-
-		// Verify no headers when track IDs are null
-		Mockito.reset(instance);
-		Mockito.doReturn(null).when(instance).getMainTrackId();
-		Mockito.doReturn(null).when(instance).getStreamId();
-
-		AVFormatContext nullContext = instance.getOutputFormatContext();
-		assertNotNull("Output format context should not be null", nullContext);
-
-		options = new AVDictionary();
-		AVDictionaryEntry entry = av_dict_get(options, "headers", null, 0);
-		assertTrue("No headers should be present",
-				entry == null || StringUtils.isBlank(entry.value()));*//*
-	}*/
+	}
 
 }

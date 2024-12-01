@@ -521,7 +521,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		}
 
 		for (Muxer muxer : muxerList) {
-			muxer.init(scope, streamId, 0, broadcast.getSubFolder(), 0, null);
+			muxer.init(scope, streamId, 0, getSubfolder(getBroadcast(), getAppSettings()), 0);
 		}
 		getStreamHandler().muxAdaptorAdded(this);
 		return true;
@@ -2221,8 +2221,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	public boolean prepareMuxer(Muxer muxer, int resolutionHeight) 
 	{
 		boolean streamAdded = false;
-
-		muxer.init(scope, streamId, resolutionHeight, broadcast != null ? broadcast.getSubFolder(): null, 0, null);
+		muxer.init(scope, streamId, resolutionHeight, getSubfolder(getBroadcast(), getAppSettings()), 0);
 		logger.info("prepareMuxer for stream:{} muxer:{}", streamId, muxer.getClass().getSimpleName());
 
 		if (streamSourceInputFormatContext != null) 
@@ -2561,6 +2560,46 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			}
 		}
 		return result;
+	}
+
+	public static String getExtendedSubfolder(String mainTrackId, String streamId, String s3StreamsFolder) {
+		if (s3StreamsFolder == null) {
+			return "";
+		}
+
+		String result = s3StreamsFolder;
+
+		if (mainTrackId == null) {
+			result = result.replace("%m/", "")
+					.replace("/%m", "")
+					.replace("%m", "");
+		} else {
+			result = result.replace("%m", mainTrackId);
+		}
+
+		if (streamId == null) {
+			result = result.replace("%s/", "")
+					.replace("/%s", "")
+					.replace("%s", "");
+		} else {
+			result = result.replace("%s", streamId);
+		}
+
+		result = result.replaceAll("//+", "/");
+
+		result = result.trim().replaceAll("^/+|/+$", "");
+
+		return result;
+	}
+
+	public static String getSubfolder(Broadcast broadcast, AppSettings appSettings) {
+		return (broadcast != null && StringUtils.isNotBlank(broadcast.getSubFolder()))
+				? broadcast.getSubFolder()
+				: getExtendedSubfolder(
+				broadcast != null ? broadcast.getMainTrackStreamId() : null,
+				broadcast != null ? broadcast.getStreamId() : null,
+				appSettings.getSubFolder()
+		);
 	}
 
 	public boolean isEnableVideo() {

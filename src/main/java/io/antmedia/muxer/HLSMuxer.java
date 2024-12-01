@@ -132,10 +132,10 @@ public class HLSMuxer extends Muxer  {
 	/**
 	 * {@inheritDoc}
 	 */
-	public void init(IScope scope, String name, int resolutionHeight, String subFolder, int bitrate, String mainTrackId) {
+	public void init(IScope scope, String name, int resolutionHeight, String subFolder, int bitrate) {
 		if (!isInitialized) {
 
-			super.init(scope, name, resolutionHeight, subFolder, bitrate, mainTrackId);
+			super.init(scope, name, resolutionHeight, subFolder, bitrate);
 
 			streamId = name;
 			this.subFolder = subFolder;

@@ -622,9 +622,9 @@ public abstract class Muxer {
 	 * Inits the file to write. Multiple encoders can init the muxer. It is
 	 * redundant to init multiple times.
 	 */
-	public void init(IScope scope, String name, int resolution, String subFolder, int videoBitrate, String mainTrackId) {
+	public void init(IScope scope, String name, int resolution, String subFolder, int videoBitrate) {
 		this.streamId = name;
-		init(scope, name, resolution, true, subFolder, videoBitrate, mainTrackId);
+		init(scope, name, resolution, true, subFolder, videoBitrate);
 	}
 
 	/**
@@ -646,14 +646,12 @@ public abstract class Muxer {
 	 * @param overrideIfExist whether override if a file exists with the same name
 	 * @param bitrate         bitrate of the stream, if it is zero, no bitrate will
 	 *                        be added to resource name
-	 * @param mainTrackId
 	 */
-	public void init(IScope scope, final String name, int resolution, boolean overrideIfExist, String subFolder, int bitrate, String mainTrackId) {
+	public void init(IScope scope, final String name, int resolution, boolean overrideIfExist, String subFolder, int bitrate) {
 		if (!isInitialized) {
 			isInitialized = true;
 			this.scope = scope;
 			this.resolution = resolution;
-			this.mainTrackId = mainTrackId;
 
 			//Refactor: Getting AppSettings smells here
 			AppSettings appSettings = getAppSettings();
@@ -1483,14 +1481,6 @@ public abstract class Muxer {
 	
 	public String getSubFolder() {
 		return subFolder;
-	}
-
-	public String getMainTrackId() {
-		return mainTrackId;
-	}
-
-	public void setMainTrackId(String mainTrackId) {
-		this.mainTrackId = mainTrackId;
 	}
 
 }
