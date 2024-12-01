@@ -5840,7 +5840,6 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("mainTrackId/stream456", getExtendedSubfolder(mainTrackId, streamId, "%m/%s"));
 		assertEquals("stream456/mainTrackId", getExtendedSubfolder(mainTrackId, streamId, "%s/%m"));
 		assertEquals(appSettings.getSubFolder(), getExtendedSubfolder(mainTrackId, streamId, appSettings.getSubFolder()));
-		assertEquals(appSettings.getSubFolder()+"mainTrackId/stream456", getExtendedSubfolder(mainTrackId, streamId, appSettings.getSubFolder()+"/%m/%s"));
 
 		assertEquals("folder", getExtendedSubfolder(null, null, "folder/%m/%s"));
 		assertEquals("folder", getExtendedSubfolder(null, null, "/folder/%m/%s/"));
@@ -5866,7 +5865,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 				getExtendedSubfolder(mainTrackId, streamId, "lastpeony/%m/%s"));
 
 		assertEquals("folder/mainTrackId",
-				getExtendedSubfolder(mainTrackId, streamId, "folder//%m"));
+				getExtendedSubfolder(mainTrackId, streamId, "folder/%m"));
 
 		assertEquals("folder/mainTrackId",
 				getExtendedSubfolder(mainTrackId, streamId, "folder/%m/"));

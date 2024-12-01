@@ -2562,12 +2562,12 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return result;
 	}
 
-	public static String getExtendedSubfolder(String mainTrackId, String streamId, String s3StreamsFolder) {
-		if (s3StreamsFolder == null) {
+	public static String getExtendedSubfolder(String mainTrackId, String streamId, String subFolder) {
+		if (StringUtils.isEmpty(subFolder)) {
 			return "";
 		}
 
-		String result = s3StreamsFolder;
+		String result = subFolder;
 
 		if (mainTrackId == null) {
 			result = result.replace("%m/", "")
@@ -2585,9 +2585,9 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 			result = result.replace("%s", streamId);
 		}
 
-		result = result.replaceAll("//+", "/");
-
+		//remove slashes beginning and end of string
 		result = result.trim().replaceAll("^/+|/+$", "");
+
 
 		return result;
 	}

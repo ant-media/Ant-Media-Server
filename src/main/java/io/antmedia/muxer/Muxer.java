@@ -634,7 +634,7 @@ public abstract class Muxer {
 	 * Datetime format is yyyy-MM-dd_HH-mm
 	 *
 	 * We are using "-" instead of ":" in HH:mm -> Stream filename must not contain ":" character.
-	 * 
+	 *
 	 * sample naming -> stream1-yyyy-MM-dd_HH-mm_480p_500kbps.mp4 if datetime is added
 	 * stream1_480p.mp4 if no datetime
 	 *
