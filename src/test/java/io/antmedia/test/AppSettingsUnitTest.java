@@ -366,11 +366,6 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setDropWebRTCIngestIfNoPacketReceived(true);
 		assertTrue(appSettings.isDropWebRTCIngestIfNoPacketReceived());
 
-
-
-
-
-
 	}
 
 
@@ -645,6 +640,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(150, appSettings.getEncodingQueueSize());
 		appSettings.setEncodingQueueSize(200);
 		assertEquals(200, appSettings.getEncodingQueueSize());
+		assertEquals("png", appSettings.getPreviewFormat());
+		assertEquals(5, appSettings.getPreviewQuality());
 
 
 		//if we add a new field, we just need to check its default value in this test
@@ -652,7 +649,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				190, numberOfFields);
+				192, numberOfFields);
 	}
 
 

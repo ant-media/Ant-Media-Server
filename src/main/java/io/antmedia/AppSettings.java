@@ -776,6 +776,10 @@ public class AppSettings implements Serializable{
 				+ "\"active_attendee\":[\"active_attendee\",\"speaker\"]," //means active attendee can see active attendee and speaker
 
 			+ "}";
+	
+	//use lower case for theses fields because they are used in extension as well
+	public static final String PREVIEW_FORMAT_PNG = "png";
+	public static final String PREVIEW_FORMAT_JPG = "jpg";
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -895,8 +899,8 @@ public class AppSettings implements Serializable{
 	 * 0 means does not upload, 1 means upload
 	 * Least significant digit switches mp4 files upload to s3
 	 * Second digit switches HLS files upload to s3
-	 * Most significant digit switches PNG files upload to s3
-	 * Example: 5 ( 101 in binary ) means upload mp4 and PNG but not HLS
+	 * Most significant digit switches preview(png, jpeg) files upload to s3
+	 * Example: 5 ( 101 in binary ) means upload mp4 and previews but not HLS
 	 * HLS files still will be saved on the server if deleteHLSFilesOnEnded flag is false
 	 */
 	@Value( "${uploadExtensionsToS3:${"+SETTINGS_UPLOAD_EXTENSIONS_TO_S3+":7}}" )
@@ -1189,7 +1193,7 @@ public class AppSettings implements Serializable{
 	private boolean objectDetectionEnabled;
 	/**
 	 * It's mandatory,
-	 * This determines the period (milliseconds) of preview (png) file creation,
+	 * This determines the period (milliseconds) of preview (png, jpg) file creation,
 	 * This file is created into <APP_DIR>/preview directory. Default value is 5000.
 	 */
 
@@ -1427,6 +1431,20 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${generatePreview:${" + SETTINGS_GENERATE_PREVIEW+":false}}")
 	private boolean generatePreview;
+	
+	/**
+	 * Preview format can be png or jpg
+	 */
+	@Value( "${previewFormat:"+PREVIEW_FORMAT_PNG+"}")
+	private String previewFormat = PREVIEW_FORMAT_PNG;
+	
+	/**
+	 * Preview quality(qscale) for jpg format. It's valid when previewFormat is set to jpg
+	 * Default value is 5. The scale is between 2 to 31. 2 is the best quality, largest file size and 31 is the worst quality and lowest file size
+	 */
+	@Value("${previewQuality:5}")
+	private int previewQuality = 5;
+	
 
 	@Value( "${writeStatsToDatastore:${" + SETTINGS_WRITE_STATS_TO_DATASTORE +":true}}")
 	private boolean writeStatsToDatastore = true;
@@ -3985,4 +4003,32 @@ public class AppSettings implements Serializable{
     public void setEncodingQueueSize(int encodingQueueSize) {
         this.encodingQueueSize = encodingQueueSize;
     }
+
+	/**
+	 * @return the previewFormat
+	 */
+	public String getPreviewFormat() {
+		return previewFormat;
+	}
+
+	/**
+	 * @param previewFormat the previewFormat to set
+	 */
+	public void setPreviewFormat(String previewFormat) {
+		this.previewFormat = previewFormat;
+	}
+
+	/**
+	 * @return the previewQuality
+	 */
+	public int getPreviewQuality() {
+		return previewQuality;
+	}
+
+	/**
+	 * @param previewQuality the previewQuality to set
+	 */
+	public void setPreviewQuality(int previewQuality) {
+		this.previewQuality = previewQuality;
+	}
 }
