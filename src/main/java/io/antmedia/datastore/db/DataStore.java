@@ -46,6 +46,8 @@ public abstract class DataStore {
 
 	private boolean writeStatsToDatastore = true;
 
+	public long executedQueryCount = 0;
+
 	protected volatile boolean available = false;
 
 	protected static Logger logger = LoggerFactory.getLogger(DataStore.class);
@@ -668,7 +670,7 @@ public abstract class DataStore {
 				Broadcast broadcast = gson.fromJson(broadcastString, Broadcast.class);
 				String status = broadcast.getStatus();
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) &&
-						(StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress()))) 
+						(StringUtils.isBlank(hostAddress) || hostAddress.equals(broadcast.getOriginAdress()))) 
 				{
 					activeBroadcastCount++;
 				}
@@ -688,7 +690,7 @@ public abstract class DataStore {
 				
 				String status = broadcast.getStatus();
 				if (IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING.equals(status) &&
-					  (StringUtils.isAnyBlank(hostAddress, broadcast.getOriginAdress()) || hostAddress.equals(broadcast.getOriginAdress())))
+					  (StringUtils.isBlank(hostAddress) || hostAddress.equals(broadcast.getOriginAdress())))
 				{
 					broadcastList.add(broadcast);
 				}
@@ -1493,6 +1495,15 @@ public abstract class DataStore {
     // Ignore this message if you have added descriptions to the new functions.
     // I'm writing to the one who is ignoring this first message - mekya
     //**************************************
-    
-    
+
+	/**
+	 *
+	 * Get executed query count. For now only mongodb queries are counted.
+	 * @return Executed query count.
+	 */
+	public long getExecutedQueryCount() {
+		return executedQueryCount;
+	}
+
+
 }

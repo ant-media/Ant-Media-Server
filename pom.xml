@@ -312,6 +312,37 @@
             <groupId>org.springframework</groupId>
             <artifactId>spring-webmvc</artifactId>
         </dependency>
+        <dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-config</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-crypto</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-authorization-server</artifactId>
+		</dependency>
+
+
+		<!-- OAuth2 dependencies -->
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-oauth2-jose</artifactId>
+		</dependency>
        <dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
@@ -494,6 +525,7 @@
             <artifactId>jersey-media-sse</artifactId>
             <version>${jersey.version}</version>
         </dependency>
+ 
         <dependency>
             <groupId>org.mapdb</groupId>
             <artifactId>mapdb</artifactId>
@@ -576,6 +608,11 @@
             <groupId>io.lindstrom</groupId>
             <artifactId>m3u8-parser</artifactId>
             <version>0.27</version>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>3.1.8</version>
         </dependency>
     </dependencies>
     <profiles>
@@ -764,16 +801,7 @@
 									</arguments>
 								</configuration>
 							</execution>
-							<execution>
-								<id>download-custom-ffmpeg-builds</id> <!-- We're downloading custom builds because original files are updated when building and our custom build not works. We overwrite these info in assembely files  -->
-								<phase>package</phase>
-								<goals>
-									<goal>exec</goal>
-								</goals>
-								<configuration>
-							    	<executable>download_custom_ffmpeg_builds.sh</executable>
-								</configuration>
-							</execution>
+							
 							
 						</executions>
 			        </plugin>
@@ -973,16 +1001,6 @@
 										<argument>WebRTCAppEE</argument>
 										<argument>${project.build.directory}</argument>
 									</arguments>
-								</configuration>
-							</execution>
-							<execution>
-								<id>download-custom-ffmpeg-builds</id> <!-- We're downloading custom builds because original files are updated when building and our custom build not works. We overwrite these info in assembely files  -->
-								<phase>package</phase>
-								<goals>
-									<goal>exec</goal>
-								</goals>
-								<configuration>
-							    	<executable>download_custom_ffmpeg_builds.sh</executable>
 								</configuration>
 							</execution>
 						</executions>
