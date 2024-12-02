@@ -5872,7 +5872,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 
 		appSettings.setSubFolder("defaultFolder");
 
-		assertEquals("defaultFolder", getSubfolder(null, appSettings));
+		assertEquals("defaultFolder", getSubfolder(new Broadcast(), appSettings));
 
 		Broadcast broadcastWithSubfolder = new Broadcast();
 		broadcastWithSubfolder.setSubFolder("customSubfolder");
@@ -5887,7 +5887,7 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals("recordings/mainTrackId/stream456", getSubfolder(broadcastWithIds, appSettings));
 
 		appSettings.setSubFolder("recordings/%m/%s");
-		assertEquals("recordings", getSubfolder(null, appSettings));
+		assertEquals("recordings", getSubfolder(new Broadcast(), appSettings));
 
 		Broadcast broadcastWithEmptyIds = new Broadcast();
 		broadcastWithEmptyIds.setMainTrackStreamId("");
