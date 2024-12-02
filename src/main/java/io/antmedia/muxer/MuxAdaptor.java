@@ -2227,7 +2227,6 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		if (streamSourceInputFormatContext != null) 
 		{
 
-
 			for (int i = 0; i < streamSourceInputFormatContext.nb_streams(); i++) 
 			{
 				if (!muxer.addStream(streamSourceInputFormatContext.streams(i).codecpar(), streamSourceInputFormatContext.streams(i).time_base(), i)) {
@@ -2563,7 +2562,7 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 	}
 
 	public static String getExtendedSubfolder(String mainTrackId, String streamId, String subFolder) {
-		if (StringUtils.isEmpty(subFolder)) {
+		if (StringUtils.isBlank(subFolder)) {
 			return "";
 		}
 
@@ -2592,14 +2591,27 @@ public class MuxAdaptor implements IRecordingListener, IEndpointStatusListener {
 		return result;
 	}
 
-	public static String getSubfolder(Broadcast broadcast, AppSettings appSettings) {
-		return (broadcast != null && StringUtils.isNotBlank(broadcast.getSubFolder()))
-				? broadcast.getSubFolder()
-				: getExtendedSubfolder(
-				broadcast != null ? broadcast.getMainTrackStreamId() : null,
-				broadcast != null ? broadcast.getStreamId() : null,
-				appSettings.getSubFolder()
-		);
+	public static String getSubfolder(Broadcast broadcast, AppSettings appSettings) 
+	{
+		String subfolderTemplate = "";
+		if (broadcast == null) 
+		{
+			return subfolderTemplate;
+		}
+		
+		if (StringUtils.isNotBlank(broadcast.getSubFolder())) {
+			subfolderTemplate = broadcast.getSubFolder();
+		}
+		else {
+			subfolderTemplate = appSettings.getSubFolder();
+		}
+		
+		if (StringUtils.isNotBlank(subfolderTemplate)) 
+		{
+			subfolderTemplate = getExtendedSubfolder(broadcast.getMainTrackStreamId(), broadcast.getStreamId(), subfolderTemplate);
+		}
+		
+		return subfolderTemplate;
 	}
 
 	public boolean isEnableVideo() {
