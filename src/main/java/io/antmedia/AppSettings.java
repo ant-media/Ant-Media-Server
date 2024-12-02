@@ -751,7 +751,7 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
-	
+
 	/**
 	 *  For default values
 	 *  
@@ -1847,22 +1847,44 @@ public class AppSettings implements Serializable{
 	@Value( "${dashHttpStreaming:${"+SETTINGS_DASH_HTTP_STREAMING+":true}}" )
 	private boolean dashHttpStreaming=true;
 
+	/**
+	 * Configures the sub folder path for storing media files.
+	 * This setting is appended to s3StreamsFolderPath in case of S3 upload.
+	 * For instance if s3StreamsFolderPath is "streams"(default value) and subFolder is "someRoom", files will appear as
+	 * streams/someRoom/0001.ts
+	 *
+	 * Path configuration supports dynamic placeholders for files:
+	 * - '%m': Replaces with main track ID if exists
+	 * - '%s': Replaces with stream ID
+	 *
+	 * This is particularly useful for storing conference participant stream HLS recordings in separate folders.
+	 *
+	 * Examples of path configurations in S3 assuming s3StreamsFolderPath is "streams":
+	 * - "" (default)                  → Basic folder → streams/0001.ts
+	 * - "%m"                                 → Use main track ID as sub folder  → streams/mainTrackId/0001.ts
+	 * - "myStreams/%m/%s"                      → Nested folders with track and stream IDs → streams/myStreams/mainTrackId/streamId/0001.ts
+	 * - "conference/videos/%m/%s"            → Custom path with prefixes → streams/conference/videos/mainTrackId/streamId/0001.ts
+	 *
+	 * If main track ID or stream ID are null, they are omitted.
+	 */
+	@Value( "${subFolder:}" )
+	private String subFolder = "";
 
 	/**
-	 * It's S3 streams MP4, WEBM  and HLS files storage name . 
+	 * It's S3 streams MP4, WEBM  and HLS files storage name.
 	 * It's streams by default.
 	 *
 	 */
 	@Value( "${s3StreamsFolderPath:${"+SETTINGS_S3_STREAMS_FOLDER_PATH+":streams}}" )
-	private String  s3StreamsFolderPath="streams";
+	private String s3StreamsFolderPath="streams";
 
 	/**
-	 * It's S3 stream PNG files storage name . 
+	 * It's S3 stream PNG files storage name.
 	 * It's previews by default.
 	 *
 	 */
 	@Value("${s3PreviewsFolderPath:${"+SETTINGS_S3_PREVIEWS_FOLDER_PATH+":previews}}")
-	private String  s3PreviewsFolderPath="previews";
+	private String s3PreviewsFolderPath="previews";
 
 	/*
 	 * Use http endpoint  in CMAF/HLS.
@@ -4003,6 +4025,14 @@ public class AppSettings implements Serializable{
     public void setEncodingQueueSize(int encodingQueueSize) {
         this.encodingQueueSize = encodingQueueSize;
     }
+
+	public String getSubFolder() {
+		return subFolder;
+	}
+
+	public void setSubFolder(String subFolder) {
+		this.subFolder = subFolder;
+	}
 
 	/**
 	 * @return the previewFormat
