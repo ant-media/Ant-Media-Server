@@ -379,9 +379,6 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		testUnsetAppSettings((AppSettings) applicationContext.getBean("app.settings"));
 	}
 
-
-
-
 	public void testUnsetAppSettings(AppSettings appSettings) {
 
 		Field[] declaredFields = appSettings.getClass().getDeclaredFields();

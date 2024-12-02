@@ -751,10 +751,6 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
-	/**
-	 * @hidden
-	 */
-	private static final String SETTINGS_SUB_FOLDER = "settings.subFolder";
 
 	/**
 	 *  For default values
@@ -1871,7 +1867,7 @@ public class AppSettings implements Serializable{
 	 *
 	 * If main track ID or stream ID are null, they are omitted.
 	 */
-	@Value( "${subFolder:${"+SETTINGS_SUB_FOLDER+":}}" )
+	@Value( "${subFolder:}" )
 	private String subFolder = "";
 
 	/**
