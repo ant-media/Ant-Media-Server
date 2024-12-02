@@ -366,11 +366,6 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setDropWebRTCIngestIfNoPacketReceived(true);
 		assertTrue(appSettings.isDropWebRTCIngestIfNoPacketReceived());
 
-
-
-
-
-
 	}
 
 
@@ -645,6 +640,8 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		assertEquals(150, appSettings.getEncodingQueueSize());
 		appSettings.setEncodingQueueSize(200);
 		assertEquals(200, appSettings.getEncodingQueueSize());
+		assertEquals("png", appSettings.getPreviewFormat());
+		assertEquals(5, appSettings.getPreviewQuality());
 
 		assertEquals("", appSettings.getSubFolder());
 		appSettings.setSubFolder("test/folder");
@@ -656,7 +653,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				191, numberOfFields);
+				193, numberOfFields);
 	}
 
 
