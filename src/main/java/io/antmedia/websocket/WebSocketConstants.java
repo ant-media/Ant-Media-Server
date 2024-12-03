@@ -644,4 +644,9 @@ public class WebSocketConstants {
 	public static final String MAINTRACK_DB_OPERATION_FAILED = "mainTrackDBOperationFailed";
 
 
+	/**
+	 * This is passed in play websocket method to define the publisher stream id (if available) which uses same websocket channel with player
+	 * For example in conference case a participant use same websocket to publish its stream and to play the others
+	 */
+	public static final String USER_PUBLISH_ID = "userPublishId";
 }
