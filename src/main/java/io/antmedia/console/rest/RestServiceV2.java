@@ -544,7 +544,8 @@ public class RestServiceV2 extends CommonRestService {
 	@Path("/applications/{appName}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result createApplication(@Parameter(description = "Name for the new application", required = true) @PathParam("appName") String appName, @Parameter(description = "file", required = true) @FormDataParam("file") InputStream inputStream) {
-	    Result result;
+		logger.info("Application install request received for application {}", appName);
+		Result result;
 	    if (appName != null && appName.matches("^[a-zA-Z0-9]*$")) {
 	        boolean applicationAlreadyExist = isApplicationExists(appName);
 	        if (!applicationAlreadyExist) {
@@ -555,7 +556,9 @@ public class RestServiceV2 extends CommonRestService {
 	    } else {
 	        result = new Result(false, "Application name is not alphanumeric. Please provide alphanumeric characters");
 	    }
-	    return result;
+		logger.info("Application installation finished success: {}", result.isSuccess());
+
+		return result;
 	}
 
 

@@ -26,7 +26,6 @@ import org.springframework.context.annotation.PropertySource;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.google.gson.Gson;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
@@ -1756,7 +1755,32 @@ public class AppSettings implements Serializable{
 	/**
 	 * Set to true when you want to delete an application 
 	 */
+	@Deprecated (forRemoval = true)
 	private boolean toBeDeleted = false;
+
+
+
+	public static final String APPLICATION_STATUS_INSTALLING = "installing";
+	public static final String APPLICATION_STATUS_INSTALLED = "installed";
+	public static final String APPLICATION_STATUS_DELETED = "deleted";
+	public static final String APPLICATION_STATUS_INSTALLATION_FAILED = "installationFailed";
+
+
+	/**
+	 * Describes the application installation status. Possible values:
+	 *
+	 * Installing: App install Rest method received by host node
+	 * Installed: App installation completed on host node
+	 * Installation Failed: App installation can not be completed by host node
+	 * Deleted: App installation deleted on host node
+	 */
+	private String appStatus = APPLICATION_STATUS_INSTALLED;
+
+	/**
+	 * Application status update time
+	 */
+	private long appStatusUpdateTime;
+
 
 	/**
 	 * Set to true when the app settings are only created for pulling the war file.
@@ -3372,6 +3396,22 @@ public class AppSettings implements Serializable{
 
 	public void setToBeDeleted(boolean toBeDeleted) {
 		this.toBeDeleted = toBeDeleted;
+	}
+
+	public String getAppStatus() {
+		return appStatus;
+	}
+
+	public void setAppStatus(String appStatus) {
+		this.appStatus = appStatus;
+	}
+
+	public long getAppStatusUpdateTime() {
+		return appStatusUpdateTime;
+	}
+
+	public void setAppStatusUpdateTime(long appStatusUpdateTime) {
+		this.appStatusUpdateTime = appStatusUpdateTime;
 	}
 
 	public boolean isPullWarFile() {
