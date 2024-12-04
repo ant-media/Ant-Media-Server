@@ -750,7 +750,7 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
-	
+
 	/**
 	 *  For default values
 	 *  
@@ -775,6 +775,10 @@ public class AppSettings implements Serializable{
 				+ "\"active_attendee\":[\"active_attendee\",\"speaker\"]," //means active attendee can see active attendee and speaker
 
 			+ "}";
+	
+	//use lower case for theses fields because they are used in extension as well
+	public static final String PREVIEW_FORMAT_PNG = "png";
+	public static final String PREVIEW_FORMAT_JPG = "jpg";
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -894,8 +898,8 @@ public class AppSettings implements Serializable{
 	 * 0 means does not upload, 1 means upload
 	 * Least significant digit switches mp4 files upload to s3
 	 * Second digit switches HLS files upload to s3
-	 * Most significant digit switches PNG files upload to s3
-	 * Example: 5 ( 101 in binary ) means upload mp4 and PNG but not HLS
+	 * Most significant digit switches preview(png, jpeg) files upload to s3
+	 * Example: 5 ( 101 in binary ) means upload mp4 and previews but not HLS
 	 * HLS files still will be saved on the server if deleteHLSFilesOnEnded flag is false
 	 */
 	@Value( "${uploadExtensionsToS3:${"+SETTINGS_UPLOAD_EXTENSIONS_TO_S3+":7}}" )
@@ -1188,7 +1192,7 @@ public class AppSettings implements Serializable{
 	private boolean objectDetectionEnabled;
 	/**
 	 * It's mandatory,
-	 * This determines the period (milliseconds) of preview (png) file creation,
+	 * This determines the period (milliseconds) of preview (png, jpg) file creation,
 	 * This file is created into <APP_DIR>/preview directory. Default value is 5000.
 	 */
 
@@ -1426,6 +1430,20 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${generatePreview:${" + SETTINGS_GENERATE_PREVIEW+":false}}")
 	private boolean generatePreview;
+	
+	/**
+	 * Preview format can be png or jpg
+	 */
+	@Value( "${previewFormat:"+PREVIEW_FORMAT_PNG+"}")
+	private String previewFormat = PREVIEW_FORMAT_PNG;
+	
+	/**
+	 * Preview quality(qscale) for jpg format. It's valid when previewFormat is set to jpg
+	 * Default value is 5. The scale is between 2 to 31. 2 is the best quality, largest file size and 31 is the worst quality and lowest file size
+	 */
+	@Value("${previewQuality:5}")
+	private int previewQuality = 5;
+	
 
 	@Value( "${writeStatsToDatastore:${" + SETTINGS_WRITE_STATS_TO_DATASTORE +":true}}")
 	private boolean writeStatsToDatastore = true;
@@ -1853,22 +1871,44 @@ public class AppSettings implements Serializable{
 	@Value( "${dashHttpStreaming:${"+SETTINGS_DASH_HTTP_STREAMING+":true}}" )
 	private boolean dashHttpStreaming=true;
 
+	/**
+	 * Configures the sub folder path for storing media files.
+	 * This setting is appended to s3StreamsFolderPath in case of S3 upload.
+	 * For instance if s3StreamsFolderPath is "streams"(default value) and subFolder is "someRoom", files will appear as
+	 * streams/someRoom/0001.ts
+	 *
+	 * Path configuration supports dynamic placeholders for files:
+	 * - '%m': Replaces with main track ID if exists
+	 * - '%s': Replaces with stream ID
+	 *
+	 * This is particularly useful for storing conference participant stream HLS recordings in separate folders.
+	 *
+	 * Examples of path configurations in S3 assuming s3StreamsFolderPath is "streams":
+	 * - "" (default)                  → Basic folder → streams/0001.ts
+	 * - "%m"                                 → Use main track ID as sub folder  → streams/mainTrackId/0001.ts
+	 * - "myStreams/%m/%s"                      → Nested folders with track and stream IDs → streams/myStreams/mainTrackId/streamId/0001.ts
+	 * - "conference/videos/%m/%s"            → Custom path with prefixes → streams/conference/videos/mainTrackId/streamId/0001.ts
+	 *
+	 * If main track ID or stream ID are null, they are omitted.
+	 */
+	@Value( "${subFolder:}" )
+	private String subFolder = "";
 
 	/**
-	 * It's S3 streams MP4, WEBM  and HLS files storage name . 
+	 * It's S3 streams MP4, WEBM  and HLS files storage name.
 	 * It's streams by default.
 	 *
 	 */
 	@Value( "${s3StreamsFolderPath:${"+SETTINGS_S3_STREAMS_FOLDER_PATH+":streams}}" )
-	private String  s3StreamsFolderPath="streams";
+	private String s3StreamsFolderPath="streams";
 
 	/**
-	 * It's S3 stream PNG files storage name . 
+	 * It's S3 stream PNG files storage name.
 	 * It's previews by default.
 	 *
 	 */
 	@Value("${s3PreviewsFolderPath:${"+SETTINGS_S3_PREVIEWS_FOLDER_PATH+":previews}}")
-	private String  s3PreviewsFolderPath="previews";
+	private String s3PreviewsFolderPath="previews";
 
 	/*
 	 * Use http endpoint  in CMAF/HLS.
@@ -4025,4 +4065,40 @@ public class AppSettings implements Serializable{
     public void setEncodingQueueSize(int encodingQueueSize) {
         this.encodingQueueSize = encodingQueueSize;
     }
+
+	public String getSubFolder() {
+		return subFolder;
+	}
+
+	public void setSubFolder(String subFolder) {
+		this.subFolder = subFolder;
+	}
+
+	/**
+	 * @return the previewFormat
+	 */
+	public String getPreviewFormat() {
+		return previewFormat;
+	}
+
+	/**
+	 * @param previewFormat the previewFormat to set
+	 */
+	public void setPreviewFormat(String previewFormat) {
+		this.previewFormat = previewFormat;
+	}
+
+	/**
+	 * @return the previewQuality
+	 */
+	public int getPreviewQuality() {
+		return previewQuality;
+	}
+
+	/**
+	 * @param previewQuality the previewQuality to set
+	 */
+	public void setPreviewQuality(int previewQuality) {
+		this.previewQuality = previewQuality;
+	}
 }

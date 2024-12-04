@@ -3,7 +3,6 @@ package io.antmedia.muxer;
 import static org.bytedeco.ffmpeg.global.avcodec.*;
 import static org.bytedeco.ffmpeg.global.avformat.avformat_alloc_output_context2;
 import static org.bytedeco.ffmpeg.global.avutil.*;
-import static org.bytedeco.ffmpeg.global.avutil.AV_OPT_SEARCH_CHILDREN;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,8 +16,6 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avformat;
-import org.bytedeco.ffmpeg.global.avutil;
 import org.bytedeco.javacpp.BytePointer;
 import org.red5.server.api.scope.IScope;
 import org.slf4j.Logger;
@@ -61,7 +58,7 @@ public class HLSMuxer extends Muxer  {
 	private String s3StreamsFolderPath = "streams";
 	private boolean uploadHLSToS3 = true;
 	private String segmentFilename;
-	
+
 	/**
 	 * HLS Segment Type. It can be "mpegts" or "fmp4"
 	 * 
@@ -134,7 +131,6 @@ public class HLSMuxer extends Muxer  {
 	/**
 	 * {@inheritDoc}
 	 */
-	@Override
 	public void init(IScope scope, String name, int resolutionHeight, String subFolder, int bitrate) {
 		if (!isInitialized) {
 
@@ -208,7 +204,6 @@ public class HLSMuxer extends Muxer  {
 		}
 		return super.getOutputURL();
 	}
-
 
 	public AVFormatContext getOutputFormatContext() {
 		if (outputFormatContext == null) {
@@ -634,4 +629,5 @@ public class HLSMuxer extends Muxer  {
 	public ByteBuffer getPendingSEIData() {
 		return pendingSEIData;
 	}
+
 }
