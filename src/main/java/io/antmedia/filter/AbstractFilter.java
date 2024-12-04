@@ -5,6 +5,7 @@ import java.net.UnknownHostException;
 import java.util.Queue;
 
 
+import com.google.common.net.InetAddresses;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.security.ITokenService;
 import org.apache.catalina.util.NetMask;
@@ -27,7 +28,7 @@ import jakarta.servlet.FilterConfig;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 
-public abstract class AbstractFilter implements Filter{
+public abstract class AbstractFilter implements Filter {
 	
 	public static final String BROADCAST_OBJECT = "broadcast";
 
@@ -62,18 +63,32 @@ public abstract class AbstractFilter implements Filter{
 		return serverSettings;
 	}
 
-	public boolean checkCIDRList(Queue<NetMask> allowedCIDRList, final String remoteIPAdrress) {
+	public boolean checkCIDRList(Queue<NetMask> allowedCIDRList, final String remoteIPAddress) {
 		try {
-			InetAddress addr = InetAddress.getByName(remoteIPAdrress);
+			String ipToCheck;
+			if(InetAddresses.isInetAddress(remoteIPAddress)) {
+				ipToCheck = remoteIPAddress;
+			} else {
+				// attempt to strip off port number suffix, e.g. Azure Application Gateway case
+				ipToCheck = remoteIPAddress.substring(0, remoteIPAddress.lastIndexOf(':'));
+				if(InetAddresses.isInetAddress(ipToCheck)) {
+					if(logger.isTraceEnabled()) {
+						logger.trace("Removed port suffix from this remote IP address: {}", remoteIPAddress);
+					}
+				} else {
+					logger.error("Cannot perform CIDR filtering for the malformed IP: {}", remoteIPAddress);
+					return false;
+				}
+			}
+
+			InetAddress addr = InetAddress.getByName(ipToCheck);
 			for (final NetMask nm : allowedCIDRList) {
 				if (nm.matches(addr)) {
 					return true;
 				}
 			}
 		} catch (UnknownHostException e) {
-			// This should be in the 'could never happen' category but handle it
-			// to be safe.
-			logger.error("error", e);
+            logger.error("Error performing CIDR filtering for IP {}", remoteIPAddress, e);
 		}
 		return false;
 	}
@@ -105,10 +120,10 @@ public abstract class AbstractFilter implements Filter{
 		else 
 		{
 			if (appContext == null) {
-				logger.warn("App context not initialized ");
+				logger.warn("App context not initialized");
 			}
 			else {
-				logger.warn("App context not running yet." );
+				logger.warn("App context not running yet");
 			}
 		}
 
@@ -201,10 +216,10 @@ public abstract class AbstractFilter implements Filter{
 		else
 		{
 			if (appContext == null) {
-				logger.warn("App context not initialized ");
+				logger.warn("App context not initialized");
 			}
 			else {
-				logger.warn("App context not running yet." );
+				logger.warn("App context not running yet");
 			}
 		}
 
