@@ -147,36 +147,35 @@ public class HLSMuxer extends Muxer  {
 
 			logger.info("hls time:{}, hls list size:{} hls playlist type:{} for stream:{}", hlsTime, hlsListSize, this.hlsPlayListType, streamId);
 
-			if (StringUtils.isNotBlank(httpEndpoint)) 			
-			{
+			if (StringUtils.isNotBlank(httpEndpoint)) {
 				segmentFilename = httpEndpoint;
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
 				segmentFilename += (this.subFolder != null ? subFolder : "");
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
-				segmentFilename += initialResourceNameWithoutExtension;	
-			}
-			else 
-			{
+				segmentFilename += initialResourceNameWithoutExtension;
+			} else {
 				segmentFilename = file.getParentFile().toString();
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
 				segmentFilename += initialResourceNameWithoutExtension;
+				if(!StringUtils.isBlank(getAppSettings().getHlsSegmentFileNameFormat())) {
+					options.put("strftime", "1");
+					segmentFilename += getAppSettings().getHlsSegmentFileNameFormat();
+				}
 			}
-			
+
 			//remove double slashes with single slash because it may cause problems
 			segmentFilename = replaceDoubleSlashesWithSingleSlash(segmentFilename);
-			
+
 			options.put("hls_segment_type", hlsSegmentType);
 			if (HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
-				
+
 				segmentInitFilename = initialResourceNameWithoutExtension + "_init.mp4";
 				options.put("hls_fmp4_init_filename", segmentInitFilename);
 				segmentFilename += SEGMENT_SUFFIX_FMP4;
-			}
-			else { //if it's mpegts
+			} else { //if it's mpegts
 				segmentFilename += SEGMENT_SUFFIX_TS;
 			}
-			
-					
+
 			options.put("hls_segment_filename", segmentFilename);
 
 			if (hlsPlayListType != null && (hlsPlayListType.equals("event") || hlsPlayListType.equals("vod"))) 

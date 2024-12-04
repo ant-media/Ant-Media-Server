@@ -1144,6 +1144,14 @@ public class AppSettings implements Serializable{
 	@Value( "${hlsSegmentType:mpegts}" )
 	private String hlsSegmentType = "mpegts";
 
+
+	/**
+	 * HLS segment file name format. It can be like file-%Y%m%d-%s.ts
+	 *
+	 */
+	@Value( "${hlsSegmentFileNameFormat:}" )
+	private String hlsSegmentFileNameFormat = "";
+
 	/**
 	 * The path for manually saved used VoDs
 	 * Determines the directory to store VOD files.
@@ -3921,6 +3929,14 @@ public class AppSettings implements Serializable{
 
 	public void setHlsSegmentType(String hlsSegmentType) {
 		this.hlsSegmentType = hlsSegmentType;
+	}
+
+	public String getHlsSegmentFileNameFormat() {
+		return hlsSegmentFileNameFormat;
+	}
+
+	public void setHlsSegmentFileNameFormat(String hlsSegmentFileNameFormat) {
+		this.hlsSegmentFileNameFormat = hlsSegmentFileNameFormat;
 	}
 
 	public String getRecordingSubfolder() {
