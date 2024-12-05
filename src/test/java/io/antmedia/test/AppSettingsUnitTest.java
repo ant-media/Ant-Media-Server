@@ -638,7 +638,7 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setEncodingQueueSize(200);
 		assertEquals(200, appSettings.getEncodingQueueSize());
 		assertEquals("png", appSettings.getPreviewFormat());
-		assertEquals(5, appSettings.getPreviewQuality());
+		assertEquals(75, appSettings.getPreviewQuality());
 
 		assertEquals("", appSettings.getSubFolder());
 		appSettings.setSubFolder("test/folder");
