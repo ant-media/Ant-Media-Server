@@ -7,6 +7,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.times;
 
 import java.io.File;
@@ -387,7 +388,9 @@ public class ConsoleRestV2UnitTest {
 
 				Mockito.doReturn(adminApp).when(restServiceSpy).getApplication();
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
-				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
+
 				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
 
 				restServiceSpy.createApplication(appName, inputStream);
@@ -411,6 +414,10 @@ public class ConsoleRestV2UnitTest {
 				Mockito.doReturn(false).when(restServiceSpy).isClusterMode();
 				
 				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
+
 
 				Result result = restServiceSpy.createApplication(appName, inputStream);
 
@@ -442,7 +449,9 @@ public class ConsoleRestV2UnitTest {
 				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
 				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
 				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
-				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
+
 
 				restServiceSpy.createApplication(appName, null);
 
@@ -465,6 +474,10 @@ public class ConsoleRestV2UnitTest {
 				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
 				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
 				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
+
 
 				restServiceSpy.createApplication(appName, inputStream);
 
@@ -496,6 +509,10 @@ public class ConsoleRestV2UnitTest {
 				Mockito.when(rootScope.getScope(appName)).thenReturn(Mockito.mock(IScope.class));
 				Mockito.when(adminApp.getRootScope()).thenReturn(rootScope);
 				Mockito.doReturn(false).when(restServiceSpy).isApplicationExists(appName);
+				
+				Mockito.doReturn(Mockito.mock(AppSettings.class)).when(restServiceSpy).getSettings(appName);
+				Mockito.doReturn("").when(restServiceSpy).changeSettings(anyString(), any());
+
 				
 
 				restServiceSpy.createApplication(appName, inputStream);
