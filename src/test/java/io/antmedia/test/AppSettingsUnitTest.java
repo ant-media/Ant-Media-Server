@@ -644,13 +644,19 @@ public class AppSettingsUnitTest extends AbstractJUnit4SpringContextTests {
 		appSettings.setSubFolder("test/folder");
 		assertEquals("test/folder", appSettings.getSubFolder());
 
+		
+		appSettings.setAppStatus(AppSettings.APPLICATION_STATUS_INSTALLED);
+		assertEquals(AppSettings.APPLICATION_STATUS_INSTALLED, appSettings.getAppStatus());
+		
+		appSettings.setAppStatusUpdateTime(100);
+		assertEquals(100, appSettings.getAppStatusUpdateTime());
 
 		//if we add a new field, we just need to check its default value in this test
 		//When a new field is added or removed please update the number of fields and make this test pass
 		//by also checking its default value. 
 
 		assertEquals("New field is added to settings. PAY ATTENTION: Please CHECK ITS DEFAULT VALUE and fix the number of fields.", 
-				193, numberOfFields);
+				195, numberOfFields);
 	}
 
 
