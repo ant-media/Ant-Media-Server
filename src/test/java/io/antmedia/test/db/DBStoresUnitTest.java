@@ -1844,7 +1844,7 @@ public class DBStoresUnitTest {
 			update.setQuality("good");
 			update.setSpeed(0.0);
 			update.setPendingPacketSize(0);
-			result = dataStore.updateBroadcastFields(broadcast.getStreamId().toString(), update);
+			result = dataStore.updateBroadcastFields(broadcast3.getStreamId().toString(), update);
 			assertTrue(result);
 			assertEquals("good", dataStore.get(broadcast3.getStreamId()).getQuality());
 
@@ -2211,6 +2211,13 @@ public class DBStoresUnitTest {
 		// clean db in the begining of the test
 		String streamId = "stream1";
 		store.revokeSubscribers(streamId);
+		
+		//default value must be false
+		assertFalse(store.isWriteSubscriberEventsToDatastore());
+		
+		
+		store.setWriteSubscriberEventsToDatastore(true);
+		
 		// null checks
 		assertFalse(store.addSubscriber("stream1", null));
 		
@@ -2263,25 +2270,48 @@ public class DBStoresUnitTest {
 		assertEquals(subscriberPub.getSubscriberId(), written.getSubscriberId());
 		assertEquals(subscriberPub.getType(), written.getType());
 		
-		//delete this subscriber
-		assertTrue(store.deleteSubscriber(streamId, written.getSubscriberId()));
-		
-		subscribers = store.listAllSubscribers(streamId, 0, 10);
-		subscriberStats = store.listAllSubscriberStats(streamId, 0, 10);
-		
-		//it should be zero because subscriber is deleted
-		assertEquals(0, subscribers.size());
-		assertEquals(0, subscriberStats.size());
-		
-		//create subscriber again
-		assertTrue(store.addSubscriber(subscriberPlay.getStreamId(), subscriberPlay));
-
 		ConnectionEvent connected = new ConnectionEvent();
 		connected.setEventType(ConnectionEvent.CONNECTED_EVENT);
 		long eventTime = 20;
 		connected.setTimestamp(eventTime);
 		connected.setType(Subscriber.PLAY_TYPE);
 		String hostAddress = ServerSettings.getLocalHostAddress();
+		connected.setInstanceIP(hostAddress);
+		
+		
+		store.addSubscriberConnectionEvent(subscriberPub.getStreamId(), subscriberPub.getSubscriberId(), connected);
+		
+		assertEquals(1, store.getConnectionEvents(subscriberPub.getStreamId(), subscriberPub.getSubscriberId(), 0, 50).size());
+		assertEquals(1, store.getConnectionEvents(subscriberPub.getStreamId(), null, 0, 50).size());
+
+
+		//delete this subscriber
+		assertTrue(store.deleteSubscriber(subscriberPub.getStreamId(), subscriberPub.getSubscriberId()));
+		
+		assertEquals(0, store.getConnectionEvents(subscriberPub.getStreamId(), subscriberPub.getSubscriberId(), 0, 50).size());
+		assertEquals(0, store.getConnectionEvents(subscriberPub.getStreamId(), null, 0, 50).size());
+		
+		subscribers = store.listAllSubscribers(streamId, 0, 10);
+		subscriberStats = store.listAllSubscriberStats(streamId, 0, 10);
+	
+		
+		//it should be zero because subscriber is deleted
+		assertEquals(0, subscribers.size());
+		assertEquals(0, subscriberStats.size());
+		assertEquals(0, store.getConnectionEvents(streamId, written.getSubscriberId(), 0, 50).size());
+		
+		
+		
+		
+		//create subscriber again
+		assertTrue(store.addSubscriber(subscriberPlay.getStreamId(), subscriberPlay));
+
+		connected = new ConnectionEvent();
+		connected.setEventType(ConnectionEvent.CONNECTED_EVENT);
+		eventTime = 20;
+		connected.setTimestamp(eventTime);
+		connected.setType(Subscriber.PLAY_TYPE);
+		hostAddress = ServerSettings.getLocalHostAddress();
 		connected.setInstanceIP(hostAddress);
 		
 		ConnectionEvent disconnected = new ConnectionEvent();
@@ -2293,6 +2323,8 @@ public class DBStoresUnitTest {
 		store.addSubscriberConnectionEvent(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), connected);
 		// isConnected should be true
 		assertTrue(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
+		assertEquals(1, store.getConnectionEvents(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), 0, 50).size());
+		assertEquals(1, store.getConnectionEvents(subscriberPlay.getStreamId(), null, 0, 50).size());
 		
 		// add disconnected event
 		store.addSubscriberConnectionEvent(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), disconnected);
@@ -2304,7 +2336,8 @@ public class DBStoresUnitTest {
 		assertEquals(0, written.getCurrentConcurrentConnections());
 		
 		// there should be two events with correct order
-		List<ConnectionEvent> events = written.getStats().getConnectionEvents();
+		List<ConnectionEvent> events = store.getConnectionEvents(written.getStreamId(), written.getSubscriberId(), 0, 50);
+		
 		assertEquals(2, events.size());  
 		
 		assertEquals(ConnectionEvent.CONNECTED_EVENT, events.get(0).getEventType());
@@ -2313,6 +2346,13 @@ public class DBStoresUnitTest {
 		assertEquals(eventTime, events.get(0).getTimestamp());
 		assertEquals(ConnectionEvent.DISCONNECTED_EVENT, events.get(1).getEventType());
 		
+		connected = new ConnectionEvent();
+		connected.setEventType(ConnectionEvent.CONNECTED_EVENT);
+		eventTime = 20;
+		connected.setTimestamp(eventTime);
+		connected.setType(Subscriber.PLAY_TYPE);
+		hostAddress = ServerSettings.getLocalHostAddress();
+		connected.setInstanceIP(hostAddress);
 		
 		// add connected event
 		store.addSubscriberConnectionEvent(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), connected);
@@ -2323,8 +2363,21 @@ public class DBStoresUnitTest {
 		assertTrue(store.resetSubscribersConnectedStatus());
 		// connection status should false again
 		assertFalse(store.isSubscriberConnected(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId()));
+		events = store.getConnectionEvents(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), 0, 50);
+
+		assertEquals(3, events.size());
+		
+		events = store.getConnectionEvents(subscriberPlay.getStreamId(), null, 0, 50);
+		assertEquals(3, events.size());
+
 		
 		store.revokeSubscribers(streamId);
+		
+		events = store.getConnectionEvents(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), 0, 50);
+		assertEquals(0, events.size());
+		events = store.getConnectionEvents(subscriberPlay.getStreamId(), null, 0, 50);
+		assertEquals(0, events.size());
+
 		
 		{
 			//save subscriber again 

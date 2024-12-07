@@ -1,9 +1,12 @@
 package io.antmedia.datastore.db.types;
 
 
+import org.bson.types.ObjectId;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
+import dev.morphia.annotations.Id;
 import dev.morphia.annotations.Index;
 import dev.morphia.annotations.IndexOptions;
 import dev.morphia.annotations.Indexes;
@@ -47,6 +50,11 @@ public class ConnectionEvent {
     
     @Schema(description = "Subscriber id of the event")
     private String subscriberId;
+    
+    @JsonIgnore
+    @Schema(hidden = true)
+    @Id
+    private ObjectId dbId;
 
     public long getTimestamp() {
         return timestamp;

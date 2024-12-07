@@ -166,7 +166,7 @@ public class DashViewerStatsTest {
 	public void testSetApplicationContextSubscribers() {
 		ApplicationContext context = mock(ApplicationContext.class);
 
-		try {
+		
 
 			DataStoreFactory dsf = new DataStoreFactory();
 			dsf.setDbType("memorydb");
@@ -181,6 +181,7 @@ public class DashViewerStatsTest {
 
 			//set dash fragment duration to 0.5
 			settings.setDashFragmentDuration("0.5");
+			settings.setWriteSubscriberEventsToDatastore(true);
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
@@ -203,6 +204,8 @@ public class DashViewerStatsTest {
 			doReturn(true).when(viewerStats).isStreaming(Mockito.any());			
 			
 			dsf.setWriteStatsToDatastore(true);
+			dsf.setWriteSubscriberEventsToDatastore(true);
+			
 			dsf.setApplicationContext(context);
 			String streamId = dsf.getDataStore().save(broadcast);
 
@@ -256,12 +259,14 @@ public class DashViewerStatsTest {
 					boolean eventExist = false;
 					Subscriber subData = dsf.getDataStore().getSubscriber(streamId, subscriberPlay.getSubscriberId());
 					
-					List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
+					List<ConnectionEvent> events = dsf.getDataStore().getConnectionEvents(streamId, subscriberPlay.getSubscriberId(), 0, 50);
 					
 					if(events.size() == 2) {
 						ConnectionEvent event = events.get(0);
-						eventExist = ConnectionEvent.CONNECTED_EVENT == event.getEventType();
+						
+						eventExist = ConnectionEvent.CONNECTED_EVENT == events.get(0).getEventType();
 					}
+					log.info("isConnected: {} currentConcurrentConnections: {} events.size:{} eventExist: {}", subData.isConnected(), subData.getCurrentConcurrentConnections(), events.size(), eventExist);
 
 					return subData.isConnected() && subData.getCurrentConcurrentConnections() == 2 && eventExist; 
 			});
@@ -286,7 +291,7 @@ public class DashViewerStatsTest {
 			// a disconnection event should be added 
 			Subscriber subData = dsf.getDataStore().getSubscriber(streamId, subscriberPlay2.getSubscriberId());
 			
-			List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
+			List<ConnectionEvent> events = dsf.getDataStore().getConnectionEvents(streamId, subscriberPlay2.getSubscriberId(), 0, 50);
 			
 			assertEquals(4, events.size());
 			ConnectionEvent eventDis = events.get(3);
@@ -329,16 +334,13 @@ public class DashViewerStatsTest {
 
 			Subscriber subData2 = dsf.getDataStore().getSubscriber(streamId, subscriberPlay3.getSubscriberId());
 			
-			List<ConnectionEvent> events2 = subData2.getStats().getConnectionEvents();
+			List<ConnectionEvent> events2 = dsf.getDataStore().getConnectionEvents(streamId, subscriberPlay3.getSubscriberId(), 0, 50);
 			
 			assertEquals(2, events2.size());	
 			ConnectionEvent eventDis2 = events2.get(1);
 			assertSame(ConnectionEvent.DISCONNECTED_EVENT, eventDis2.getEventType());		
 			
-		} catch (Exception e) {
-			e.printStackTrace();
-			fail(e.getMessage());
-		}
+		
 		
 	}	
 

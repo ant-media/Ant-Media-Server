@@ -577,8 +577,9 @@ public abstract class DataStore {
 	 */	
 	public boolean addSubscriberConnectionEvent(String streamId, String subscriberId, ConnectionEvent event) {
 		boolean result = false;
-		if (writeSubscriberEventsToDatastore) 
+		if (writeSubscriberEventsToDatastore && event != null) 
 		{
+			
 			Subscriber subscriber = getSubscriber(streamId, subscriberId);
 			
 			if (subscriber != null && !StringUtils.isBlank(subscriber.getSubscriberId())) 
@@ -593,8 +594,11 @@ public abstract class DataStore {
 				addSubscriber(streamId, subscriber);
 			}
 			
-			handleConnectionEvent(streamId, subscriberId, event);
-			result = true;
+			result = handleConnectionEvent(streamId, subscriberId, event);
+		}
+		else {
+			logger.debug("Not saving subscriber events to datastore because either writeSubscriberEventsToDatastore are false in the settings or event is null."
+					+ "writeSubscriberEventsToDatastore:{} and event is {} null", writeSubscriberEventsToDatastore, event == null ? "" : "not");
 		}
 		return result;
 
@@ -602,12 +606,15 @@ public abstract class DataStore {
 	}
 
 	// helper method used by all datastores
-	protected void handleConnectionEvent(String streamId, String subscriberId, ConnectionEvent event) 
+	protected boolean handleConnectionEvent(String streamId, String subscriberId, ConnectionEvent event) 
 	{
-		event.setStreamId(streamId);
-		event.setSubscriberId(subscriberId);
-		
-		addConnectionEvent(event);
+		if (StringUtils.isNoneBlank(subscriberId, streamId)) {
+			event.setStreamId(streamId);
+			event.setSubscriberId(subscriberId);
+			
+			return addConnectionEvent(event);
+		}
+		return false;
 	}
 	
 	protected abstract boolean addConnectionEvent(ConnectionEvent event);
@@ -1007,6 +1014,10 @@ public abstract class DataStore {
 
 		if (newBroadcast.getPendingPacketSize() != null) {
 			broadcast.setPendingPacketSize(newBroadcast.getPendingPacketSize());
+		}
+		
+		if (newBroadcast.getQuality() != null) {
+			broadcast.setQuality(newBroadcast.getQuality());
 		}
 
 		if (newBroadcast.getRole() != null) {
@@ -1502,15 +1513,7 @@ public abstract class DataStore {
 	public abstract boolean hasSubtracks(String streamId);
 
 
-	//**************************************
-	//ATTENTION: Write function descriptions while adding new functions
-	//**************************************	
-
-	//**************************************
-	//ATTENTION 2: What is the reason you don't add descriptions to the functions? 
-	// Ignore this message if you have added descriptions to the new functions.
-	// I'm writing to the one who is ignoring this first message - mekya
-	//**************************************
+	
 
 	/**
 	 *
@@ -1549,5 +1552,31 @@ public abstract class DataStore {
 	 * @return
 	 */
 	public abstract List<ConnectionEvent> getConnectionEvents(String streamId, @Nullable String subscriberId, int offset, int size);
+	
+	/**
+	 * Simple converter from Collection to List
+	 * @param values
+	 * @return
+	 */
+	protected static List<ConnectionEvent> getConnectionEventListFromCollection(Collection<ConnectionEvent> values) {
+		List<ConnectionEvent> list = new ArrayList<>();		
+		
+		for(ConnectionEvent event: values) {
+			list.add(event);
+		}
+		
+		return list;
+		
+	}
+	
+	//**************************************
+	//ATTENTION: Write function above with descriptions while adding new functions
+	//**************************************	
+
+	//**************************************
+	//ATTENTION 2: What is the reason you don't add descriptions to the functions? 
+	// Ignore this message if you have added descriptions to the new functions.
+	// I'm writing to the one who is ignoring this first message - mekya
+	//**************************************
 
 }

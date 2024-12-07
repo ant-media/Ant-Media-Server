@@ -1002,6 +1002,10 @@ public class MongoStore extends DataStore {
 					updates.add(set(ROLE, broadcast.getRole()));
 				}
 				
+				if (broadcast.getQuality() != null) {
+					updates.add(set("quality", broadcast.getQuality()));
+				}
+				
 				
 				prepareFields(broadcast, updates);
 
@@ -1286,11 +1290,16 @@ public class MongoStore extends DataStore {
 			try {
 				executedQueryCount++;
 
-				Query<Subscriber> query = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq("subscriberId", subscriberId));
+				Query<Subscriber> query = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq(SUBSCRIBER_ID, subscriberId));
 				result = query.delete().getDeletedCount() == 1;
 				if(result){
 					getSubscriberCache().evictIfPresent(getSubscriberCacheKey(streamId, subscriberId));
 				}
+				
+				Query<ConnectionEvent> queryConnectionEvent = subscriberDatastore.find(ConnectionEvent.class).filter(Filters.eq(STREAM_ID, streamId), Filters.eq(SUBSCRIBER_ID, subscriberId));
+				queryConnectionEvent.delete(new DeleteOptions().multi(true));
+				
+				
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -1359,8 +1368,11 @@ public class MongoStore extends DataStore {
 			Query<Subscriber> query = subscriberDatastore.find(Subscriber.class).filter(Filters.eq(STREAM_ID, streamId));
 			DeleteResult delete = query.delete(new DeleteOptions().multi(true));
 			getSubscriberCache().clear();
+			
+			Query<ConnectionEvent> queryConnectionEvents = subscriberDatastore.find(ConnectionEvent.class).filter(Filters.eq(STREAM_ID, streamId));
+			DeleteResult deleteConnectionEvents = queryConnectionEvents.delete(new DeleteOptions().multi(true));
 
-			return delete.getDeletedCount() >= 1;
+			return delete.getDeletedCount() >= 1 || deleteConnectionEvents.getDeletedCount() >= 1;
 		}
 	}
 

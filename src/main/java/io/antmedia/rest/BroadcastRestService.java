@@ -1130,7 +1130,7 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Removes all subscribers related to the requested stream",
-			description = "Deletes all subscriber data associated with the specified stream.",
+			description = "Deletes all subscriber data associated with the specified stream including ConnectionEvents.",
 			responses = {
 					@ApiResponse(responseCode = "200", description = "Result of removing all subscribers",
 							content = @Content(

@@ -152,6 +152,14 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		
 		init();
 	}
+	
+	public void setWriteSubscriberEventsToDatastore(boolean writeSubscriberEventsToDatastore) {
+		this.writeSubscriberEventsToDatastore = writeSubscriberEventsToDatastore;
+	}
+	
+	public boolean isWriteSubscriberEventsToDatastore() {
+		return writeSubscriberEventsToDatastore;
+	}
 
 }
 	

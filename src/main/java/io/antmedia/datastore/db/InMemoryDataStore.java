@@ -9,7 +9,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
@@ -45,7 +47,7 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 	private Map<String, Subscriber> subscriberMap = new LinkedHashMap<>();
-	private Map<String, ConnectionEvent> connectionEvents = new LinkedHashMap<>();
+	private Map<String, Queue<ConnectionEvent>> connectionEvents = new LinkedHashMap<>();
 	private Map<String, SubscriberMetadata> subscriberMetadataMap = new LinkedHashMap<>();
 	private Map<String, WebRTCViewerInfo> webRTCViewerMap = new LinkedHashMap<>();
 
@@ -752,8 +754,26 @@ public class InMemoryDataStore extends DataStore {
 	
 	@Override
 	public List<ConnectionEvent> getConnectionEvents(String streamId, String subscriberId, int offset, int size) {
-		Collection<ConnectionEvent> values = connectionEvents.values();
-		List<ConnectionEvent> list = new ArrayList<>();
+		
+		String key = null;
+		if (StringUtils.isNotBlank(subscriberId)) {
+			key = Subscriber.getDBKey(streamId, subscriberId);
+		}
+		
+		List<ConnectionEvent> list = new ArrayList<>();		
+		if (key != null) {
+			Collection<ConnectionEvent> values = connectionEvents.get(key);
+			if (values != null) {
+				list = getConnectionEventListFromCollection(values);
+			}
+		}
+		else {
+			Collection<Queue<ConnectionEvent>> values = connectionEvents.values();
+			for (Queue<ConnectionEvent> queue : values) {
+				list.addAll(getConnectionEventListFromCollection(queue));
+			}
+		}
+		
 		List<ConnectionEvent> returnList = new ArrayList<>();
 		
 		int t = 0;
@@ -765,12 +785,6 @@ public class InMemoryDataStore extends DataStore {
 			offset = 0;
 		}
 		
-		for(ConnectionEvent event: values) {
-			if (streamId.equals(event.getStreamId()) && (StringUtils.isBlank(subscriberId) || subscriberId.equals(event.getSubscriberId()))) {
-				list.add(event);
-			}
-		}
-		
 		Iterator<ConnectionEvent> iterator = list.iterator();
 
 		while(itemCount < size && iterator.hasNext()) {
@@ -779,7 +793,6 @@ public class InMemoryDataStore extends DataStore {
 				iterator.next();
 			}
 			else {
-
 				returnList.add(iterator.next());
 				itemCount++;
 			}
@@ -787,13 +800,17 @@ public class InMemoryDataStore extends DataStore {
 		
 		return returnList;
 	}
-
+	
 	@Override
 	public boolean addConnectionEvent(ConnectionEvent connectionEvent) {
 		boolean result = false;
 		if (connectionEvent != null && StringUtils.isNoneBlank(connectionEvent.getStreamId(), connectionEvent.getSubscriberId())) {
 			try {
-				connectionEvents.put(Subscriber.getDBKey(connectionEvent.getStreamId(), connectionEvent.getSubscriberId()), connectionEvent);
+				String key = Subscriber.getDBKey(connectionEvent.getStreamId(), connectionEvent.getSubscriberId());
+				if (!connectionEvents.containsKey(key)) {
+					connectionEvents.put(key, new ConcurrentLinkedQueue<ConnectionEvent>());
+				}
+				connectionEvents.get(key).add(connectionEvent);
 				result = true;
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));

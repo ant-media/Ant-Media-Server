@@ -1,6 +1,7 @@
 package io.antmedia.datastore.db;
 
 import java.io.File;
+import java.lang.reflect.Type;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -8,7 +9,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.FilenameUtils;
@@ -20,6 +23,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
@@ -725,13 +729,38 @@ public abstract class MapBasedDataStore extends DataStore {
 
 		return result;
 	}
-	
+
 	@Override
 	public List<ConnectionEvent> getConnectionEvents(String streamId, String subscriberId, int offset, int size) {
-		Collection<String> values = connectionEventsMap.values();
-		List<ConnectionEvent> list = new ArrayList<>();
-		List<ConnectionEvent> returnList = new ArrayList<>();
+		String key = null;
+		if (StringUtils.isNotBlank(subscriberId)) {
+			key = Subscriber.getDBKey(streamId, subscriberId);
+		}
 		
+		List<ConnectionEvent> list = new ArrayList<>();		
+		if (key != null) 
+		{
+			Type queueType = new TypeToken<Queue<ConnectionEvent>>() {
+			}.getType();
+			Queue<ConnectionEvent> values = gson.fromJson(connectionEventsMap.get(key), queueType);
+			if (values != null) {
+				list = getConnectionEventListFromCollection(values);
+			}
+		}
+		else 
+		{
+			Collection<String> values = connectionEventsMap.values();
+			Type queueType = new TypeToken<Queue<ConnectionEvent>>() {
+			}.getType();
+			
+			for (String queueString : values) {
+				Queue<ConnectionEvent> queueValues = gson.fromJson(queueString, queueType);
+				list.addAll(getConnectionEventListFromCollection(queueValues));
+			}
+		}
+		
+		List<ConnectionEvent> returnList = new ArrayList<>();
+
 		int t = 0;
 		int itemCount = 0;
 		if (size > MAX_ITEM_IN_ONE_LIST) {
@@ -739,17 +768,6 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 		if (offset < 0) {
 			offset = 0;
-		}
-		
-		Iterator<String> iterator = values.iterator();
-
-		while (iterator.hasNext()) {
-			ConnectionEvent event = gson.fromJson(iterator.next(), ConnectionEvent.class);
-
-			if (streamId.equals(event.getStreamId())
-					&& (StringUtils.isBlank(subscriberId) || subscriberId.equals(event.getSubscriberId()))) {
-				list.add(event);
-			}
 		}
 
 		Iterator<ConnectionEvent> listIterator = list.iterator();
@@ -765,10 +783,9 @@ public abstract class MapBasedDataStore extends DataStore {
 
 			}
 		}
-		
+
 		return returnList;
 	}
-	
 
 
 	@Override
@@ -777,7 +794,24 @@ public abstract class MapBasedDataStore extends DataStore {
 		if (event != null && StringUtils.isNoneBlank(event.getStreamId(), event.getSubscriberId())) {
 			synchronized (this) {
 				try {
-					connectionEventsMap.put(Subscriber.getDBKey(event.getStreamId(), event.getSubscriberId()), gson.toJson(event));
+					String key = Subscriber.getDBKey(event.getStreamId(), event.getSubscriberId());
+					Queue<ConnectionEvent> connectionQueue = null;
+					if (connectionEventsMap.containsKey(key)) 
+					{
+						String connectionQueueString = connectionEventsMap.get(key);
+
+						Type queueType = new TypeToken<Queue<ConnectionEvent>>() {
+						}.getType();
+
+						connectionQueue = gson.fromJson(connectionQueueString, queueType);
+					}
+					else {
+						connectionQueue = new ConcurrentLinkedQueue<>();
+					}
+					
+					connectionQueue.add(event);
+
+					connectionEventsMap.put(key, gson.toJson(connectionQueue));
 					result = true;
 				} catch (Exception e) {
 					logger.error(ExceptionUtils.getStackTrace(e));
@@ -823,6 +857,8 @@ public abstract class MapBasedDataStore extends DataStore {
 		synchronized (this) {
 			try {
 				result = subscriberMap.remove(Subscriber.getDBKey(streamId, subscriberId)) != null;
+				
+				connectionEventsMap.keySet().removeIf(key -> key.equals(Subscriber.getDBKey(streamId, subscriberId)));
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -850,8 +886,9 @@ public abstract class MapBasedDataStore extends DataStore {
 						break;
 					}
 				}
-
 			}
+			
+			connectionEventsMap.keySet().removeIf(key -> key.startsWith(streamId + "-"));
 		}
 
 		return result;
