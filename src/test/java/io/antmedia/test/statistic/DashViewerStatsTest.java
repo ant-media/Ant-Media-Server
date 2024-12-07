@@ -108,6 +108,7 @@ public class DashViewerStatsTest {
 		viewerStats.setVertx(vertx);
 
 		DataStore dataStore = new InMemoryDataStore("datastore");
+		dataStore.setWriteSubscriberEventsToDatastore(true);
 		viewerStats.setDataStore(dataStore);
 		viewerStats.setServerSettings(new ServerSettings());
 		
@@ -131,7 +132,7 @@ public class DashViewerStatsTest {
 				boolean eventExist = false;
 				Subscriber subData = dataStore.getSubscriber(streamId, subscriberPlay.getSubscriberId());
 				
-				List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
+				List<ConnectionEvent> events = dataStore.getConnectionEvents(streamId, subscriberPlay.getSubscriberId(), 0, 50); 
 				
 				if(events.size() == 1) {
 					ConnectionEvent event2 = events.get(0);
