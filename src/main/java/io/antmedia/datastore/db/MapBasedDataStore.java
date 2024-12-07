@@ -25,6 +25,7 @@ import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
+import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
@@ -46,6 +47,7 @@ public abstract class MapBasedDataStore extends DataStore {
 	protected Map<String, String> detectionMap;
 	protected Map<String, String> tokenMap;
 	protected Map<String, String> subscriberMap;
+	protected Map<String, String> connectionEventsMap;
 	protected Map<String, String> conferenceRoomMap;
 	protected Map<String, String> webRTCViewerMap;
 	protected Map<String, String> subscriberMetadataMap;
@@ -54,13 +56,13 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	protected Gson gson;
 	protected String dbName;
-	
+
 	protected static Logger logger = LoggerFactory.getLogger(MapBasedDataStore.class);
 
 
 	public MapBasedDataStore(String dbName) {
 		this.dbName = dbName;
-		
+
 
 		GsonBuilder builder = new GsonBuilder();
 		gson = builder.create();
@@ -70,14 +72,14 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public String save(Broadcast broadcast) {
-    	String streamId = null;
+		String streamId = null;
 		synchronized (this) {
 			if (broadcast != null) {
 				Broadcast updatedBroadcast = super.saveBroadcast(broadcast);
 				streamId = updatedBroadcast.getStreamId();
 				map.put(updatedBroadcast.getStreamId(), gson.toJson(updatedBroadcast));
 			}
-	    	return streamId;
+			return streamId;
 		}
 	}
 
@@ -108,14 +110,14 @@ public abstract class MapBasedDataStore extends DataStore {
 						broadcast.setDashViewerCount(0);
 					}
 					setBroadcastToMap(broadcast, id);
-					
+
 					result = true;
 				}
 			}
 		}
 		return result;
 	}
-	
+
 	@Override
 	public boolean updateVoDProcessStatus(String id, String status) {
 		boolean result = false;
@@ -134,23 +136,7 @@ public abstract class MapBasedDataStore extends DataStore {
 				result = true;
 			}
 		}
-		
-		return result;
-	}
 
-	@Override
-	public boolean updateDuration(String id, long duration) {
-		boolean result = false;
-		synchronized (this) {
-			if (id != null) {
-				Broadcast broadcast = getBroadcastFromMap(id);
-				if (broadcast != null) {
-					broadcast.setDuration(duration);
-					setBroadcastToMap(broadcast, id);
-					result = true;
-				}
-			}
-		}
 		return result;
 	}
 
@@ -180,7 +166,7 @@ public abstract class MapBasedDataStore extends DataStore {
 		boolean result = false;
 		synchronized (this) {
 			if (id != null && endpoint != null) {
-				
+
 				Broadcast broadcast = getBroadcastFromMap(id);
 				if (broadcast != null) {
 
@@ -240,7 +226,7 @@ public abstract class MapBasedDataStore extends DataStore {
 	public long getActiveBroadcastCount() {
 		return super.getActiveBroadcastCount(map, gson, null);
 	}
-	 
+
 	public List<Broadcast> getActiveBroadcastList(String hostAddress) {
 		return super.getActiveBroadcastList(map, gson, hostAddress);
 	}
@@ -462,26 +448,6 @@ public abstract class MapBasedDataStore extends DataStore {
 	}
 
 	@Override
-	protected boolean updateSourceQualityParametersLocal(String id, String quality, double speed, int pendingPacketQueue) {
-		boolean result = false;
-		synchronized (this) {
-			if (id != null) {
-				Broadcast broadcast = getBroadcastFromMap(id);
-				if(broadcast != null) {
-					broadcast.setSpeed(speed);
-					if (quality != null) {
-						broadcast.setQuality(quality);
-					}
-					broadcast.setPendingPacketSize(pendingPacketQueue);
-					setBroadcastToMap(broadcast, id);
-					result = true;
-				}
-			}
-		}
-		return result;
-	}
-
-	@Override
 	public long getTotalBroadcastNumber() {
 		return super.getTotalBroadcastNumber(map);
 	}
@@ -490,7 +456,7 @@ public abstract class MapBasedDataStore extends DataStore {
 	public long getPartialBroadcastNumber(String search) {
 		return getBroadcastListV2(null ,search).size();
 	}
-	
+
 	@Override
 	public void saveDetection(String id, long timeElapsed, List<TensorFlowObject> detectedObjects) {
 		synchronized (this) {
@@ -563,7 +529,7 @@ public abstract class MapBasedDataStore extends DataStore {
 					int hlsViewerCount = broadcast.getHlsViewerCount();
 					hlsViewerCount += diffCount;
 					broadcast.setHlsViewerCount(hlsViewerCount);
-					
+
 					setBroadcastToMap(broadcast, streamId);
 					result = true;
 				}
@@ -571,7 +537,7 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 		return result;
 	}
-	
+
 	@Override
 	protected synchronized boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
 		boolean result = false;
@@ -580,7 +546,7 @@ public abstract class MapBasedDataStore extends DataStore {
 			if (streamId != null) {
 				Broadcast broadcast = get(streamId);
 				if (broadcast != null) {
-					
+
 					int dashViewerCount = broadcast.getDashViewerCount();
 					dashViewerCount += diffCount;
 					broadcast.setDashViewerCount(dashViewerCount);
@@ -599,7 +565,7 @@ public abstract class MapBasedDataStore extends DataStore {
 			if (streamId != null) {
 				Broadcast broadcast = get(streamId);
 				if (broadcast != null) {
-					
+
 					int webRTCViewerCount = broadcast.getWebRTCViewerCount();
 					if (increment) {
 						webRTCViewerCount++;
@@ -640,12 +606,12 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 		return result;
 	}
-	
+
 	public void clearStreamInfoList(String streamId) {
 		//used in mongo for cluster mode. useless here.
 	}
-	
-	
+
+
 	public List<StreamInfo> getStreamInfoList(String streamId) {
 		return new ArrayList<>();
 	}
@@ -759,31 +725,92 @@ public abstract class MapBasedDataStore extends DataStore {
 
 		return result;
 	}
+	
+	@Override
+	public List<ConnectionEvent> getConnectionEvents(String streamId, String subscriberId, int offset, int size) {
+		Collection<String> values = connectionEventsMap.values();
+		List<ConnectionEvent> list = new ArrayList<>();
+		List<ConnectionEvent> returnList = new ArrayList<>();
+		
+		int t = 0;
+		int itemCount = 0;
+		if (size > MAX_ITEM_IN_ONE_LIST) {
+			size = MAX_ITEM_IN_ONE_LIST;
+		}
+		if (offset < 0) {
+			offset = 0;
+		}
+		
+		Iterator<String> iterator = values.iterator();
+
+		while (iterator.hasNext()) {
+			ConnectionEvent event = gson.fromJson(iterator.next(), ConnectionEvent.class);
+
+			if (streamId.equals(event.getStreamId())
+					&& (StringUtils.isBlank(subscriberId) || subscriberId.equals(event.getSubscriberId()))) {
+				list.add(event);
+			}
+		}
+
+		Iterator<ConnectionEvent> listIterator = list.iterator();
+
+		while (itemCount < size && listIterator.hasNext()) {
+			if (t < offset) {
+				t++;
+				listIterator.next();
+			} else {
+
+				returnList.add(listIterator.next());
+				itemCount++;
+
+			}
+		}
+		
+		return returnList;
+	}
+	
+
+
+	@Override
+	protected boolean addConnectionEvent(ConnectionEvent event) {
+		boolean result = false;
+		if (event != null && StringUtils.isNoneBlank(event.getStreamId(), event.getSubscriberId())) {
+			synchronized (this) {
+				try {
+					connectionEventsMap.put(Subscriber.getDBKey(event.getStreamId(), event.getSubscriberId()), gson.toJson(event));
+					result = true;
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
+				}
+			}
+		}
+		return result;
+	}
 
 	public boolean blockSubscriber(String streamId, String subscriberId, String blockedType, int seconds) {
 		boolean result = false;
-			synchronized (this) {
+		synchronized (this) {
 
-				if (streamId != null && subscriberId != null) {
-					try {
-						Subscriber subscriber = gson.fromJson(subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId)), Subscriber.class);
-						if (subscriber == null) {
-							subscriber = new Subscriber();
-							subscriber.setStreamId(streamId);
-							subscriber.setSubscriberId(subscriberId);
-						}
-						subscriber.setBlockedType(blockedType);
-						subscriber.setBlockedUntilUnitTimeStampMs(System.currentTimeMillis() + (seconds * 1000));
-
-
-						subscriberMap.put(subscriber.getSubscriberKey(), gson.toJson(subscriber));
-
-						result = true;
-					} catch (Exception e) {
-						logger.error(ExceptionUtils.getStackTrace(e));
+			if (streamId != null && subscriberId != null) {
+				try {
+					Subscriber subscriber = gson.fromJson(subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId)), Subscriber.class);
+					if (subscriber == null) {
+						subscriber = new Subscriber();
+						subscriber.setStreamId(streamId);
+						subscriber.setSubscriberId(subscriberId);
 					}
+					subscriber.setBlockedType(blockedType);
+					subscriber.setBlockedUntilUnitTimeStampMs(System.currentTimeMillis() + (seconds * 1000));
+
+
+					subscriberMap.put(subscriber.getSubscriberKey(), gson.toJson(subscriber));
+
+					result = true;
+				} catch (Exception e) {
+					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
+		}
 
 
 		return result;
@@ -859,26 +886,26 @@ public abstract class MapBasedDataStore extends DataStore {
 			}
 		}
 	}
-	
+
 	@Override
 	public int resetBroadcasts(String hostAddress) {
 		synchronized (this) {
-			
+
 			int size = map.size();
 			int updateOperations = 0;
 			int zombieStreamCount = 0;
-			
+
 			Set<Entry<String,String>> entrySet = map.entrySet();
-			
+
 			Iterator<Entry<String, String>> iterator = entrySet.iterator();
 			int i = 0;
 			while (iterator.hasNext()) {
 				Entry<String, String> next = iterator.next();
-				
+
 				if (next != null) {
 					Broadcast broadcast = gson.fromJson(next.getValue(), Broadcast.class);
 					i++;
-					
+
 					if (broadcast.getOriginAdress() == null || broadcast.getOriginAdress().isEmpty() ||
 							hostAddress.equals(broadcast.getOriginAdress())) 
 					{
@@ -898,7 +925,7 @@ public abstract class MapBasedDataStore extends DataStore {
 						}
 					}
 				}
-				
+
 				if (i > size) {
 					logger.error(
 							"Inconsistency in DB found in resetting broadcasts for dbName:{}",
@@ -906,14 +933,14 @@ public abstract class MapBasedDataStore extends DataStore {
 					break;
 				}
 			}
-			
+
 			logger.info("Reset broadcasts result in deleting {} zombi streams and {} update operations",
 					zombieStreamCount, updateOperations);
-			
+
 			return updateOperations + zombieStreamCount;
 		}
 	}
-	
+
 	@Override
 	public void saveStreamInfo(StreamInfo streamInfo) {
 		//no need to implement this method, it is used in cluster mode
@@ -1061,7 +1088,7 @@ public abstract class MapBasedDataStore extends DataStore {
 			return webRTCViewerMap.remove(viewerId) != null;
 		}
 	}
-	
+
 	@Override
 	public boolean updateStreamMetaData(String streamId, String metaData) {
 		boolean result = false;
@@ -1077,20 +1104,20 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 		return result;
 	}
-	
-	
+
+
 	public void setBroadcastToMap(Broadcast broadcast, String streamId){
-		
+
 		String jsonVal = gson.toJson(broadcast);
 		String previousValue = null;
 
 		previousValue = map.replace(streamId, jsonVal);
-		
+
 		streamId = streamId.replaceAll(REPLACE_CHARS_REGEX, "_");
 		logger.debug("replacing id {} having value {} to {}", streamId,
 				previousValue, jsonVal);
 	}
-	
+
 	public Broadcast getBroadcastFromMap(String streamId) 
 	{
 		String jsonString = map.get(streamId);
@@ -1099,13 +1126,13 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 		return null;
 	}
-	
+
 	@Override
 	public void putSubscriberMetaData(String subscriberId, SubscriberMetadata metadata) {
 		metadata.setSubscriberId(subscriberId);
 		subscriberMetadataMap.put(subscriberId, gson.toJson(metadata));
 	}
-	
+
 	@Override
 	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
 		String jsonString = subscriberMetadataMap.get(subscriberId);
@@ -1114,7 +1141,7 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 		return null;
 	}
-	
+
 	public void migrateConferenceRoomsToBroadcasts() 
 	{
 		if (conferenceRoomMap.values() != null) {
@@ -1122,7 +1149,7 @@ public abstract class MapBasedDataStore extends DataStore {
 			for (String conferenceString : conferenceRoomMap.values()) 
 			{
 				ConferenceRoom room = gson.fromJson(conferenceString, ConferenceRoom.class);
-	
+
 				try {
 					Broadcast broadcast = conferenceToBroadcast(room);
 					if (get(broadcast.getStreamId()) == null) 
@@ -1135,7 +1162,7 @@ public abstract class MapBasedDataStore extends DataStore {
 					logger.error(ExceptionUtils.getStackTrace(e));
 				}
 			}
-			
+
 			for (String roomId : roomIdList) {
 				conferenceRoomMap.remove(roomId);
 			}
@@ -1145,7 +1172,7 @@ public abstract class MapBasedDataStore extends DataStore {
 	public Map<String, String> getConferenceRoomMap() {
 		return conferenceRoomMap;
 	}
-	
+
 	@Override
 	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
 		return getSubtracks(mainTrackId, offset, size, role, null);
@@ -1167,10 +1194,10 @@ public abstract class MapBasedDataStore extends DataStore {
 		}
 		return subtracks.subList(offset, Math.min(offset + size, subtracks.size()));
 	}
-	
+
 	@Override
 	public long getSubtrackCount(String mainTrackId, String role, String status) {
-		
+
 		int count = 0;
 		synchronized (this) {
 			for (String broadcastString : map.values()) {
@@ -1183,9 +1210,9 @@ public abstract class MapBasedDataStore extends DataStore {
 			}
 		}
 		return count;
-		
+
 	}
-	
+
 	@Override
 	public long getActiveSubtracksCount(String mainTrackId, String role) {
 		List<Broadcast> subtracks = new ArrayList<>();
@@ -1203,10 +1230,10 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
-		
+
 		return count;
 	}
-	
+
 	@Override
 	public List<Broadcast> getActiveSubtracks(String mainTrackId, String role) {
 		List<Broadcast> subtracks = new ArrayList<>();
@@ -1224,13 +1251,13 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
-		
+
 		return subtracks;
 	}
-	
+
 	@Override
 	public boolean hasSubtracks(String streamId) {
-		
+
 		synchronized (this) {
 			for (String broadcastString : map.values()) 
 			{
@@ -1241,7 +1268,7 @@ public abstract class MapBasedDataStore extends DataStore {
 				}
 			}
 		}
-		
+
 		return false;
 	}
 }

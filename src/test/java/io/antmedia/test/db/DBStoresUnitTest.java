@@ -941,8 +941,6 @@ public class DBStoresUnitTest {
 
 			assertNull(dataStore.get(null));
 
-			assertFalse(dataStore.updateDuration(null, 100000));
-
 			assertFalse(dataStore.updateStatus(null, "created"));
 
 			assertFalse(dataStore.addEndpoint(null, null));
@@ -1757,8 +1755,11 @@ public class DBStoresUnitTest {
 			assertEquals(listenerHookURL, broadcast2.getListenerHookURL());
 			assertFalse(broadcast2.isPlaylistLoopEnabled());
 			assertEquals(speed, broadcast2.getSpeed(), 0.1);
+			
+			BroadcastUpdate update = new BroadcastUpdate();
+			update.setDuration(100000L);
 
-			result = dataStore.updateDuration(broadcast.getStreamId().toString(), 100000);
+			result = dataStore.updateBroadcastFields(broadcast.getStreamId().toString(), update);
 			assertTrue(result);
 
 			broadcast2 = dataStore.get(key);
@@ -1828,13 +1829,22 @@ public class DBStoresUnitTest {
 			
 			assertEquals(broadcast3.getStreamId(), dataStore.get(broadcast3.getStreamId()).getStreamId());
 			
-			result = dataStore.updateSourceQualityParameters(broadcast3.getStreamId(), null, 0.1, 0);
+			update = new BroadcastUpdate();
+			update.setQuality("poor");
+			update.setSpeed(0.1);
+			update.setPendingPacketSize(0);
+			
+			result = dataStore.updateBroadcastFields(broadcast.getStreamId().toString(), update);
 			assertTrue(result);
 			//it's poor because it's not updated because of null
 			assertEquals("poor", dataStore.get(broadcast3.getStreamId()).getQuality());
 
 			
-			result = dataStore.updateSourceQualityParameters(broadcast3.getStreamId(), "good", 0, 0);
+			update = new BroadcastUpdate();
+			update.setQuality("good");
+			update.setSpeed(0.0);
+			update.setPendingPacketSize(0);
+			result = dataStore.updateBroadcastFields(broadcast.getStreamId().toString(), update);
 			assertTrue(result);
 			assertEquals("good", dataStore.get(broadcast3.getStreamId()).getQuality());
 
@@ -2373,7 +2383,6 @@ public class DBStoresUnitTest {
 		testDontUpdateHLSViewerStats(dataStore);
 		testDontUpdateDASHViewerStats(dataStore);
 		testDontUpdateWebRTCViewerStats(dataStore);
-		testDontUpdateSourceQualityParameters(dataStore);
 	}
 	
 	public void testDontUpdateRtmpViewerStats(DataStore dataStore) {
@@ -2410,15 +2419,6 @@ public class DBStoresUnitTest {
 
 		assertFalse(dataStore.updateWebRTCViewerCount(key, true));
 		assertEquals(0, dataStore.get(key).getWebRTCViewerCount());
-	}
-
-	public void testDontUpdateSourceQualityParameters(DataStore dataStore) {
-		Broadcast broadcast = new Broadcast();
-		broadcast.setName("test");
-		broadcast.setQuality("poor");
-		String key = dataStore.save(broadcast);
-		assertFalse(dataStore.updateSourceQualityParameters(key, "good", 0, 0));
-		assertEquals("poor", dataStore.get(key).getQuality());
 	}
 
 	private DataStore createDB(String type, boolean writeStats) {

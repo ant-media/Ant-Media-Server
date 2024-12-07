@@ -45,9 +45,10 @@ public class Subscriber {
     private String streamId;  
 
     /**
-     * Stats for this subscriber
+     * Stats for this subscriber. Get connection events directly instead of SubscriberStats
      */
     @Schema(description = "Stats for this subscriber")
+    @Deprecated (forRemoval = true, since = "2.12.0")
     private SubscriberStats stats = new SubscriberStats();
 
     /**
@@ -97,6 +98,18 @@ public class Subscriber {
     private long blockedUntilUnitTimeStampMs = 0;
 
     private String registeredNodeIp;
+    
+    /**
+     * The average video bitrate for a subscriber.
+     */
+    @Schema(description = "Average video bitrate for a subscriber")
+    private long avgVideoBitrate;
+
+    /**
+     * The average audio bitrate for a subscriber.
+     */
+    @Schema(description = "Average audio bitrate for a subscriber")
+    private long avgAudioBitrate;
 
 	public String getSubscriberId() {
 		return subscriberId;
@@ -213,5 +226,33 @@ public class Subscriber {
 
 	public void setBlockedUntilUnitTimeStampMs(long blockedUntilUnitTimeStampMs) {
 		this.blockedUntilUnitTimeStampMs = blockedUntilUnitTimeStampMs;
+	}
+
+	/**
+	 * @return the avgVideoBitrate
+	 */
+	public long getAvgVideoBitrate() {
+		return avgVideoBitrate;
+	}
+
+	/**
+	 * @param avgVideoBitrate the avgVideoBitrate to set
+	 */
+	public void setAvgVideoBitrate(long avgVideoBitrate) {
+		this.avgVideoBitrate = avgVideoBitrate;
+	}
+
+	/**
+	 * @return the avgAudioBitrate
+	 */
+	public long getAvgAudioBitrate() {
+		return avgAudioBitrate;
+	}
+
+	/**
+	 * @param avgAudioBitrate the avgAudioBitrate to set
+	 */
+	public void setAvgAudioBitrate(long avgAudioBitrate) {
+		this.avgAudioBitrate = avgAudioBitrate;
 	}
 }

@@ -53,6 +53,7 @@ import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
+import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.PushNotificationToken;
@@ -375,25 +376,6 @@ public class MongoStore extends DataStore {
 		return false;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see io.antmedia.datastore.db.IDataStore#updateDuration(java.lang.String,
-	 * long)
-	 */
-	@Override
-	public boolean updateDuration(String id, long duration) {
-		synchronized(this) {
-			try {
-				executedQueryCount+=2;
-				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
-				return query.update(set(DURATION, duration)).execute().getMatchedCount() == 1;
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return false;
-	}
 
 	/*
 	 * (non-Javadoc)
@@ -486,6 +468,29 @@ public class MongoStore extends DataStore {
 		catch (Exception e) {
 			return false;
 		}
+	}
+	
+	@Override
+	public List<ConnectionEvent> getConnectionEvents(String streamId, String subscriberId, int offset, int size) {
+		synchronized (this) {
+			try {
+				executedQueryCount++;
+				Query<ConnectionEvent> query = subscriberDatastore.find(ConnectionEvent.class)
+						.filter(Filters.eq(STREAM_ID, streamId));
+				
+				
+				if (StringUtils.isNotBlank(subscriberId)) {
+					query.filter(Filters.eq(SUBSCRIBER_ID, subscriberId));
+				}
+				
+				FindOptions findingOptions = new FindOptions().skip(offset).limit(size);
+				
+				return query.iterator(findingOptions).toList();
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+		return null;
 	}
 
 
@@ -727,29 +732,6 @@ public class MongoStore extends DataStore {
 
 	}
 
-
-
-
-	@Override
-	public boolean updateSourceQualityParametersLocal(String id, String quality, double speed, int pendingPacketQueue) {
-		synchronized(this) {
-			try {
-				executedQueryCount+=2;
-				Query<Broadcast> query = datastore.find(Broadcast.class).filter(Filters.eq(STREAM_ID, id));
-				List<UpdateOperator> updateOperators = new ArrayList<>();
-				updateOperators.add(set("speed", speed));
-				updateOperators.add(set("pendingPacketSize", pendingPacketQueue));
-
-				if (quality != null) {
-					updateOperators.add(set("quality", quality));
-				}
-				return query.update(updateOperators).execute().getModifiedCount() == 1;
-			} catch (Exception e) {
-				logger.error(ExceptionUtils.getStackTrace(e));
-			}
-		}
-		return false;
-	}
 
 	@Override
 	public long getTotalBroadcastNumber() {
@@ -1277,6 +1259,23 @@ public class MongoStore extends DataStore {
 			}
 		}
 
+		return result;
+	}
+	
+	@Override
+	protected boolean addConnectionEvent(ConnectionEvent event) {
+		boolean result = false;
+		if (event != null && StringUtils.isNoneBlank(event.getStreamId(), event.getSubscriberId())) {
+
+			try {
+				executedQueryCount++;
+				subscriberDatastore.save(event);
+				result = true;
+			}
+			catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
 		return result;
 	}
 
