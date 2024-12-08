@@ -762,13 +762,13 @@ public class InMemoryDataStore extends DataStore {
 		if (key != null) {
 			Collection<ConnectionEvent> values = connectionEvents.get(key);
 			if (values != null) {
-				list = getConnectionEventListFromCollection(values);
+				list = getConnectionEventListFromCollection(values, null);
 			}
 		}
 		else {
 			Collection<Queue<ConnectionEvent>> values = connectionEvents.values();
 			for (Queue<ConnectionEvent> queue : values) {
-				list.addAll(getConnectionEventListFromCollection(queue));
+				list.addAll(getConnectionEventListFromCollection(queue, streamId));
 			}
 		}
 		return MapBasedDataStore.getReturningConnectionEventsList(offset, size, list);

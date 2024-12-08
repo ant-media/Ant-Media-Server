@@ -70,6 +70,8 @@ public class DBStoresUnitTest {
 
 	private Vertx vertx = Vertx.vertx();
 
+	private AppSettings appSettings;
+
 	@Before
 	public void before() {
 		deleteMapDBFile();
@@ -141,6 +143,11 @@ public class DBStoresUnitTest {
 
 		DataStore dataStore = new MapDBStore("testdb", vertx);
 
+		appSettings = new AppSettings();
+
+		dataStore.setAppSettings(appSettings);
+
+		testConnectionEventsBug(dataStore);
 		testSubscriberAvgBitrate(dataStore);
 		testLocalLiveBroadcast(dataStore);
 		testUpdateBroadcastEncoderSettings(dataStore);
@@ -230,6 +237,11 @@ public class DBStoresUnitTest {
 	public void testMemoryDataStore() throws Exception {
 		DataStore dataStore = new InMemoryDataStore("testdb");
 
+		appSettings = new AppSettings();
+
+		dataStore.setAppSettings(appSettings);
+
+		testConnectionEventsBug(dataStore);
 		testSubscriberAvgBitrate(dataStore);
 		testVoDFunctions(dataStore);
 		testLocalLiveBroadcast(dataStore);
@@ -295,6 +307,11 @@ public class DBStoresUnitTest {
 
 		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
 
+		appSettings = new AppSettings();
+
+		dataStore.setAppSettings(appSettings);
+
+		testConnectionEventsBug(dataStore);
 		testSubscriberAvgBitrate(dataStore);
 		testSaveDuplicateStreamId((MongoStore)dataStore);
 
@@ -363,6 +380,11 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 		dataStore = new RedisStore("redis://127.0.0.1:6379", "testdb");
 
+		appSettings = new AppSettings();
+
+		dataStore.setAppSettings(appSettings);
+		
+		testConnectionEventsBug(dataStore);
 		testSubscriberAvgBitrate(dataStore);
 		testLocalLiveBroadcast(dataStore);
 		testUpdateBroadcastEncoderSettings(dataStore);
@@ -437,6 +459,10 @@ public class DBStoresUnitTest {
 
 		MapDBStore dataStore = new MapDBStore("src/test/resources/damaged_webrtcappee.db", vertx);
 
+		appSettings = new AppSettings();
+
+		dataStore.setAppSettings(appSettings);
+
 		//Following methods does not return before the bug is fixed
 		dataStore.fetchUserVodList(new File(""));
 
@@ -448,6 +474,10 @@ public class DBStoresUnitTest {
 	public void testConferenceRoomMigrationMapBased() {
 
 		MapDBStore dataStore = new MapDBStore("testdb" + RandomStringUtils.randomAlphanumeric(12) , vertx);
+
+		appSettings = new AppSettings();
+
+		dataStore.setAppSettings(appSettings);
 
 		Map<String, String> conferenceRoomMap = dataStore.getConferenceRoomMap();
 
@@ -504,6 +534,10 @@ public class DBStoresUnitTest {
 		dataStore.close(true);
 
 		dataStore = new MongoStore("127.0.0.1", "", "", "testdb");
+
+		appSettings = new AppSettings();
+
+		dataStore.setAppSettings(appSettings);
 
 		Datastore conferenceRoomMap = dataStore.getConferenceRoomDatastore();
 
@@ -2209,11 +2243,12 @@ public class DBStoresUnitTest {
 
 	}
 
-	
+
 	public  void testSubscriberAvgBitrate(DataStore store) {
 		String streamId = "stream1";
 
-		store.setWriteSubscriberEventsToDatastore(true);
+		appSettings.setWriteSubscriberEventsToDatastore(true);
+
 
 		// create a subscriber play
 		Subscriber subscriberPlay = new Subscriber();
@@ -2222,16 +2257,70 @@ public class DBStoresUnitTest {
 		subscriberPlay.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
 		subscriberPlay.setType(Subscriber.PLAY_TYPE);
 		assertTrue(store.addSubscriber(subscriberPlay.getStreamId(), subscriberPlay));
-		
+
 		assertTrue(store.updateSubscriberBitrateEvent(streamId, subscriberPlay.getSubscriberId(), 1000, 2000));
-		
+
 		Subscriber subscriber = store.getSubscriber(streamId, subscriberPlay.getSubscriberId());
 		assertEquals(1000, subscriber.getAvgVideoBitrate());
 		assertEquals(2000, subscriber.getAvgAudioBitrate());
+
+
+		appSettings.setWriteSubscriberEventsToDatastore(true);
+
+
+
+	}
+
+	public void testConnectionEventsBug(DataStore store) {
+		String streamIdPlay = "stream1";
+		String streamIdPublish = "stream2";
+		store.revokeSubscribers(streamIdPlay);
+		store.revokeSubscribers(streamIdPublish);
+
+		appSettings.setWriteSubscriberEventsToDatastore(true);
+
+		// create a subscriber play
+		Subscriber subscriberPlay = new Subscriber();
+		subscriberPlay.setStreamId(streamIdPlay);
+		subscriberPlay.setSubscriberId("subscriber1");
+		subscriberPlay.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
+		subscriberPlay.setType(Subscriber.PLAY_TYPE);
+		assertTrue(store.addSubscriber(subscriberPlay.getStreamId(), subscriberPlay));
+
+		// create a subscriber publish
+		Subscriber subscriberPub = new Subscriber();
+		subscriberPub.setStreamId(streamIdPublish);
+		subscriberPub.setSubscriberId("subscriber2");
+		subscriberPub.setB32Secret("6qsp6qhndryqs56zjmvs37i6gqtjsdvc");
+		subscriberPub.setType(Subscriber.PUBLISH_TYPE);
+		assertTrue(store.addSubscriber(subscriberPub.getStreamId(), subscriberPub));
+
+		ConnectionEvent connected = new ConnectionEvent();
+		connected.setEventType(ConnectionEvent.CONNECTED_EVENT);
+		long eventTime = 20;
+		connected.setTimestamp(eventTime);
+		connected.setType(Subscriber.PLAY_TYPE);
+		String hostAddress = ServerSettings.getLocalHostAddress();
+		connected.setInstanceIP(hostAddress);
+
+
+		assertTrue(store.addSubscriberConnectionEvent(subscriberPub.getStreamId(), subscriberPub.getSubscriberId(), connected));
+
+		connected = new ConnectionEvent();
+		connected.setEventType(ConnectionEvent.CONNECTED_EVENT);
+		eventTime = 20;
+		connected.setTimestamp(eventTime);
+		connected.setType(Subscriber.PLAY_TYPE);
+		hostAddress = ServerSettings.getLocalHostAddress();
+		connected.setInstanceIP(hostAddress);
+
+		assertTrue(store.addSubscriberConnectionEvent(subscriberPlay.getStreamId(), subscriberPlay.getSubscriberId(), connected));
 		
 		
-		store.setWriteSubscriberEventsToDatastore(false);
-		
+		assertEquals(1, store.getConnectionEvents(subscriberPub.getStreamId(), null, 0, 50).size());
+		assertEquals(1, store.getConnectionEvents(subscriberPlay.getStreamId(), null, 0, 50).size());
+
+
 
 	}
 
@@ -2241,10 +2330,8 @@ public class DBStoresUnitTest {
 		store.revokeSubscribers(streamId);
 
 		//default value must be false
-		assertFalse(store.isWriteSubscriberEventsToDatastore());
+		appSettings.setWriteSubscriberEventsToDatastore(true);
 
-
-		store.setWriteSubscriberEventsToDatastore(true);
 
 		// null checks
 		assertFalse(store.addSubscriber("stream1", null));
@@ -2438,9 +2525,10 @@ public class DBStoresUnitTest {
 			}
 
 		}
-		
-		
-		store.setWriteSubscriberEventsToDatastore(false);
+
+
+		appSettings.setWriteSubscriberEventsToDatastore(false);
+
 
 	}
 

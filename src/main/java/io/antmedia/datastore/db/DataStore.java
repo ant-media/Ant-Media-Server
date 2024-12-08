@@ -47,21 +47,17 @@ public abstract class DataStore {
 	public static final int MAX_ITEM_IN_ONE_LIST = 250;
 	public static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 
-	/**
-	 * If it's true, it writes the viewers updates to the data store
-	 */
-	private boolean writeStatsToDatastore = true;
-	
-	/**
-	 * If it's true, it writes the subscriber events to the data store
-	 */
-	private boolean writeSubscriberEventsToDatastore = false;
 
 	public long executedQueryCount = 0;
 
 	protected volatile boolean available = false;
 
 	protected static Logger logger = LoggerFactory.getLogger(DataStore.class);
+	
+	/**
+	 * We have appSettings fiels because we need to refect the changes on the fly
+	 */
+	protected AppSettings appSettings;
 
 
 	public abstract String save(Broadcast broadcast);
@@ -577,7 +573,7 @@ public abstract class DataStore {
 	 */	
 	public boolean addSubscriberConnectionEvent(String streamId, String subscriberId, ConnectionEvent event) {
 		boolean result = false;
-		if (writeSubscriberEventsToDatastore && event != null) 
+		if (appSettings.isWriteSubscriberEventsToDatastore() && event != null) 
 		{
 			
 			Subscriber subscriber = getSubscriber(streamId, subscriberId);
@@ -598,7 +594,7 @@ public abstract class DataStore {
 		}
 		else {
 			logger.debug("Not saving subscriber events to datastore because either writeSubscriberEventsToDatastore are false in the settings or event is null."
-					+ "writeSubscriberEventsToDatastore:{} and event is {} null", writeSubscriberEventsToDatastore, event == null ? "" : "not");
+					+ "writeSubscriberEventsToDatastore:{} and event is {} null", appSettings.isWriteSubscriberEventsToDatastore(), event == null ? "" : "not");
 		}
 		return result;
 
@@ -629,7 +625,7 @@ public abstract class DataStore {
 	public boolean updateSubscriberBitrateEvent(String streamId, String subscriberId,
 			long avgVideoBitrate, long avgAudioBitrate) {
 		boolean result = false;
-		if (writeSubscriberEventsToDatastore) 
+		if (appSettings.isWriteSubscriberEventsToDatastore()) 
 		{
 			Subscriber subscriber = getSubscriber(streamId, subscriberId);
 			if (subscriber != null) {	
@@ -738,7 +734,7 @@ public abstract class DataStore {
 	 * @param diffCount
 	 */
 	public boolean updateHLSViewerCount(String streamId, int diffCount) {
-		if (writeStatsToDatastore) {
+		if (appSettings.isWriteStatsToDatastore()) {
 			return updateHLSViewerCountLocal(streamId, diffCount);
 		}
 		return false;
@@ -752,7 +748,7 @@ public abstract class DataStore {
 	 * @param diffCount
 	 */
 	public boolean updateDASHViewerCount(String streamId, int diffCount) {
-		if (writeStatsToDatastore) {
+		if (appSettings.isWriteStatsToDatastore()) {
 			return updateDASHViewerCountLocal(streamId, diffCount);
 		}
 		return false;
@@ -793,7 +789,7 @@ public abstract class DataStore {
 	 * if it is false, decrement viewer count by one
 	 */
 	public boolean updateWebRTCViewerCount(String streamId, boolean increment) {
-		if (writeStatsToDatastore) {
+		if (appSettings.isWriteStatsToDatastore()) {
 			return updateWebRTCViewerCountLocal(streamId, increment);
 		}
 		return false;
@@ -809,7 +805,7 @@ public abstract class DataStore {
 	 * if it is false, decrement viewer count by one
 	 */
 	public boolean updateRtmpViewerCount(String streamId, boolean increment) {
-		if (writeStatsToDatastore) {
+		if (appSettings.isWriteStatsToDatastore()) {
 			return updateRtmpViewerCountLocal(streamId, increment);
 		}
 		return false;
@@ -836,14 +832,6 @@ public abstract class DataStore {
 	 * @param streamId
 	 */
 	public abstract  void clearStreamInfoList(String streamId);
-
-	public boolean isWriteStatsToDatastore() {
-		return writeStatsToDatastore;
-	}
-
-	public void setWriteStatsToDatastore(boolean writeStatsToDatastore) {
-		this.writeStatsToDatastore = writeStatsToDatastore;
-	}
 
 	/**
 	 * Updates the stream fields if it's not null
@@ -1525,22 +1513,6 @@ public abstract class DataStore {
 	}
 
 	/**
-	 * Setter for writeSubscriberEventsToDatastore
-	 * @param writeSubscriberEventsToDatastore
-	 */
-	public void setWriteSubscriberEventsToDatastore(boolean writeSubscriberEventsToDatastore) {
-		this.writeSubscriberEventsToDatastore = writeSubscriberEventsToDatastore;
-	}
-	
-	/**
-	 * Getter for writeSubscriberEventsToDatastore
-	 * @return
-	 */
-	public boolean isWriteSubscriberEventsToDatastore() {
-		return writeSubscriberEventsToDatastore;
-	}
-
-	/**
 	 * Get connection events for a specific streamId and subscriberId
 	 * 
 	 * ConnectionEvents are recorded if {@link AppSettings#isWriteSubscriberEventsToDatastore()} is true
@@ -1558,15 +1530,28 @@ public abstract class DataStore {
 	 * @param values
 	 * @return
 	 */
-	protected static List<ConnectionEvent> getConnectionEventListFromCollection(Collection<ConnectionEvent> values) {
+	protected static List<ConnectionEvent> getConnectionEventListFromCollection(Collection<ConnectionEvent> values, String streamId) {
 		List<ConnectionEvent> list = new ArrayList<>();		
 		
 		for(ConnectionEvent event: values) {
-			list.add(event);
+			if (StringUtils.isBlank(streamId)) {
+				list.add(event);
+			}
+			else if (streamId.equals(event.getStreamId())) {
+				list.add(event);
+			}
 		}
 		
 		return list;
 		
+	}
+	
+	/**
+	 * Setter for appSettings
+	 * @param appSettings
+	 */
+	public void setAppSettings(AppSettings appSettings) {
+		this.appSettings = appSettings;
 	}
 	
 	//**************************************

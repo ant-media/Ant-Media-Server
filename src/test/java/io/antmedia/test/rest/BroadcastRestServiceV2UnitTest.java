@@ -1925,7 +1925,12 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testTimeBasedSubscriberOperations() {
 
 		DataStore store = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
-		store.setWriteSubscriberEventsToDatastore(true);
+		
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWriteSubscriberEventsToDatastore(true);
+		
+		store.setAppSettings(appSettings);
+
 		restServiceReal.setDataStore(store);
 
 
