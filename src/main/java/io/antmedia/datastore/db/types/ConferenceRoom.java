@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 @Entity("ConferenceRoom")
 @Indexes({ @Index(fields = @Field("roomId")) })
 @Schema(description = "The Conference Room class")
+@Deprecated(forRemoval = true, since = "2.12.0")
 public class ConferenceRoom {
 	public static final String MULTI_TRACK_MODE = "multitrack";
 

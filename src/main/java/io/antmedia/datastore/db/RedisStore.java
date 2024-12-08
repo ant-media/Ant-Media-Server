@@ -64,6 +64,7 @@ public class RedisStore extends MapBasedDataStore {
 	    	streamInfoMap = redisson.getMap(dbName+"StreamInfo");
 	    	p2pMap = redisson.getMap(dbName+"P2P");
 	    	subscriberMetadataMap = redisson.getMap(dbName+"SubscriberMetaData");
+	    	connectionEventsMap = redisson.getMap(dbName+"ConnectionEvents");
 			
 			available = true;
     	}

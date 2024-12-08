@@ -6,8 +6,12 @@ import java.util.List;
 import dev.morphia.annotations.Entity;
 import io.swagger.v3.oas.annotations.media.Schema;
 
+/**
+ * Use Connection Event and Subscriber class instead of this class. No need to use this class anymore
+ */
 @Schema(description="Statistics for each subsciber to the stream")
 @Entity
+@Deprecated
 public class SubscriberStats {
 	
 	/**
@@ -23,9 +27,10 @@ public class SubscriberStats {
     private String streamId;
 
     /**
-     * The connection events happened for this subscriber.
+     * The connection events happened for this subscriber. Use ConnectionEvent class instead of this field
      */
     @Schema(description = "List of connection events")
+    @Deprecated(since = "2.12.0", forRemoval = true)
     private List<ConnectionEvent> connectionEvents = new ArrayList<>();
 
     /**
