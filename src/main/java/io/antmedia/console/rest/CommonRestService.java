@@ -1446,7 +1446,7 @@ public class CommonRestService {
 				tempSetting.setPullWarFile(true);
 				tempSetting.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
 				tempSetting.setAppStatus(AppSettings.APPLICATION_STATUS_INSTALLING);
-				tempSetting.setAppStatusUpdateTime(System.currentTimeMillis());
+				tempSetting.setAppInstallationTime(System.currentTimeMillis());
 
 				clusterNotifier.getClusterStore().saveSettings(tempSetting);
 			}
@@ -1495,7 +1495,6 @@ public class CommonRestService {
 		AppSettings appSettings = getSettings(appName);
 		logger.info("Update Application Status for {} from {} to {}", appName, appSettings.getAppStatus(), status);
 		appSettings.setAppStatus(status);
-		appSettings.setAppStatusUpdateTime(System.currentTimeMillis());
 
 		//TODO: following if statement will be removed because toBeDeleted is deprecated
 		if(AppSettings.APPLICATION_STATUS_DELETED.equals(status)) {

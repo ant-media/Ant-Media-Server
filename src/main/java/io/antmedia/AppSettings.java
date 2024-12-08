@@ -1804,10 +1804,9 @@ public class AppSettings implements Serializable{
 	private String appStatus = APPLICATION_STATUS_INSTALLED;
 
 	/**
-	 * Application status update time
+	 * The time when the application is installed
 	 */
-	private long appStatusUpdateTime;
-
+	private long appInstallationTime = 0;
 
 	/**
 	 * Set to true when the app settings are only created for pulling the war file.
@@ -3446,10 +3445,12 @@ public class AppSettings implements Serializable{
 		this.timeTokenPeriod = timeTokenPeriod;
 	}
 
+	@Deprecated(forRemoval = true, since = "2.12.0")
 	public boolean isToBeDeleted() {
 		return toBeDeleted;
 	}
 
+	@Deprecated(forRemoval = true, since = "2.12.0")
 	public void setToBeDeleted(boolean toBeDeleted) {
 		this.toBeDeleted = toBeDeleted;
 	}
@@ -3460,14 +3461,6 @@ public class AppSettings implements Serializable{
 
 	public void setAppStatus(String appStatus) {
 		this.appStatus = appStatus;
-	}
-
-	public long getAppStatusUpdateTime() {
-		return appStatusUpdateTime;
-	}
-
-	public void setAppStatusUpdateTime(long appStatusUpdateTime) {
-		this.appStatusUpdateTime = appStatusUpdateTime;
 	}
 
 	public boolean isPullWarFile() {
@@ -4130,5 +4123,19 @@ public class AppSettings implements Serializable{
 	 */
 	public void setWriteSubscriberEventsToDatastore(boolean writeSubscriberEventsToDatastore) {
 		this.writeSubscriberEventsToDatastore = writeSubscriberEventsToDatastore;
+	}
+
+	/**
+	 * @return the appInstallationTime
+	 */
+	public long getAppInstallationTime() {
+		return appInstallationTime;
+	}
+
+	/**
+	 * @param appInstallationTime the appInstallationTime to set
+	 */
+	public void setAppInstallationTime(long appInstallationTime) {
+		this.appInstallationTime = appInstallationTime;
 	}
 }

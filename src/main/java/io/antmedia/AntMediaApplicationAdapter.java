@@ -252,8 +252,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (app.getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
 			//which means it's in cluster mode
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
-			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
-			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false, true));
+			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());			
+			
+			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), new IAppSettingsUpdateListener() {
+				
+				@Override
+				public boolean settingsUpdated(AppSettings settings) {
+					return updateSettings(settings, false, true);
+				}
+				
+				@Override
+				public AppSettings getCurrentSettings() {
+					
+					return getAppSettings();
+				}
+			});
 			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
 
 			boolean updateClusterSettings = false;
@@ -1942,9 +1955,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			//we should set to be deleted because app deletion fully depends on the cluster synch TODO remove the following line because toBeDeleted is deprecated
 			appSettings.setToBeDeleted(newSettings.isToBeDeleted());
 
-			if(newSettings.getAppStatusUpdateTime() > appSettings.getAppStatusUpdateTime()) {
-				appSettings.setAppStatus(newSettings.getAppStatus());
-			}
+			appSettings.setAppStatus(newSettings.getAppStatus());
+			
 
 			boolean saveSettings = clusterNotifier.getClusterStore().saveSettings(appSettings);
 			logger.info("Saving settings to cluster db -> {} for app: {} and updateTime:{}", saveSettings, getScope().getName(), appSettings.getUpdateTime());
