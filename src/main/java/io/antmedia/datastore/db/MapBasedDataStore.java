@@ -732,33 +732,37 @@ public abstract class MapBasedDataStore extends DataStore {
 
 	@Override
 	public List<ConnectionEvent> getConnectionEvents(String streamId, String subscriberId, int offset, int size) {
-		String key = null;
-		if (StringUtils.isNotBlank(subscriberId)) {
-			key = Subscriber.getDBKey(streamId, subscriberId);
-		}
-		
 		List<ConnectionEvent> list = new ArrayList<>();		
-		if (key != null) 
-		{
-			Type queueType = new TypeToken<Queue<ConnectionEvent>>() {
-			}.getType();
-			Queue<ConnectionEvent> values = gson.fromJson(connectionEventsMap.get(key), queueType);
-			if (values != null) {
-				list = getConnectionEventListFromCollection(values);
+		synchronized (this) {
+			String key = Subscriber.getDBKey(streamId, subscriberId);
+
+			if (key != null) 
+			{
+				Type queueType = new TypeToken<Queue<ConnectionEvent>>() {
+				}.getType();
+				Queue<ConnectionEvent> values = gson.fromJson(connectionEventsMap.get(key), queueType);
+				if (values != null) {
+					list = getConnectionEventListFromCollection(values);
+				}
+			}
+			else 
+			{
+				Collection<String> values = connectionEventsMap.values();
+				Type queueType = new TypeToken<Queue<ConnectionEvent>>() {
+				}.getType();
+
+				for (String queueString : values) {
+					Queue<ConnectionEvent> queueValues = gson.fromJson(queueString, queueType);
+					list.addAll(getConnectionEventListFromCollection(queueValues));
+				}
 			}
 		}
-		else 
-		{
-			Collection<String> values = connectionEventsMap.values();
-			Type queueType = new TypeToken<Queue<ConnectionEvent>>() {
-			}.getType();
-			
-			for (String queueString : values) {
-				Queue<ConnectionEvent> queueValues = gson.fromJson(queueString, queueType);
-				list.addAll(getConnectionEventListFromCollection(queueValues));
-			}
-		}
-		
+
+		return getReturningConnectionEventsList(offset, size, list);
+
+	}
+
+	public static List<ConnectionEvent> getReturningConnectionEventsList(int offset, int size, List<ConnectionEvent> list) {
 		List<ConnectionEvent> returnList = new ArrayList<>();
 
 		int t = 0;
@@ -808,7 +812,7 @@ public abstract class MapBasedDataStore extends DataStore {
 					else {
 						connectionQueue = new ConcurrentLinkedQueue<>();
 					}
-					
+
 					connectionQueue.add(event);
 
 					connectionEventsMap.put(key, gson.toJson(connectionQueue));
@@ -857,7 +861,7 @@ public abstract class MapBasedDataStore extends DataStore {
 		synchronized (this) {
 			try {
 				result = subscriberMap.remove(Subscriber.getDBKey(streamId, subscriberId)) != null;
-				
+
 				connectionEventsMap.keySet().removeIf(key -> key.equals(Subscriber.getDBKey(streamId, subscriberId)));
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
@@ -887,7 +891,7 @@ public abstract class MapBasedDataStore extends DataStore {
 					}
 				}
 			}
-			
+
 			connectionEventsMap.keySet().removeIf(key -> key.startsWith(streamId + "-"));
 		}
 

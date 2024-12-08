@@ -1,4 +1,5 @@
 package io.antmedia.datastore.db.types;
+import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -111,21 +112,22 @@ public class Subscriber {
     @Schema(description = "Average audio bitrate for a subscriber")
     private long avgAudioBitrate;
 
-	public String getSubscriberId() {
-		return subscriberId;
-	}
-
+	
 	public void setSubscriberId(String subscriberId) {
 		this.subscriberId = subscriberId;
 	}
-
-	public String getStreamId() {
-		return streamId;
+	
+	public String getSubscriberId() {
+		return subscriberId;
 	}
 
 	public void setStreamId(String streamId) {
 		this.streamId = streamId;
 	}	
+	
+	public String getStreamId() {
+		return streamId;
+	}
 
 	public String getB32Secret() {
 		return b32Secret;
@@ -155,7 +157,10 @@ public class Subscriber {
 	}
 
 	public static String getDBKey(String streamId, String subscriberId) {
-		return streamId + "-" +subscriberId;
+		if (StringUtils.isNoneBlank(streamId, subscriberId)) {
+			return streamId + "-" +subscriberId;
+		}
+		return null;
 	}
 
 	public String getType() {

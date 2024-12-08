@@ -64,6 +64,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.ConferenceRoom;
+import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.StreamInfo;
 import io.antmedia.datastore.db.types.Subscriber;
@@ -1924,6 +1925,7 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testTimeBasedSubscriberOperations() {
 
 		DataStore store = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
+		store.setWriteSubscriberEventsToDatastore(true);
 		restServiceReal.setDataStore(store);
 
 
@@ -1948,6 +1950,24 @@ public class BroadcastRestServiceV2UnitTest {
 
 		assertEquals(2, subscribers.size());
 		assertEquals(2, subscriberStats.size());
+		
+		List<ConnectionEvent>  connectionEvents = restServiceReal.getConnectionEvents(subscriber.getStreamId(), 0, 10, null);
+		assertEquals(0, connectionEvents.size());
+		
+		ConnectionEvent event = new ConnectionEvent();
+		event.setEventType(ConnectionEvent.CONNECTED_EVENT);
+		event.setType(Subscriber.PLAY_TYPE);
+
+        assertTrue(store.addSubscriberConnectionEvent(subscriber.getStreamId(), subscriber.getSubscriberId(), event));
+		
+		connectionEvents = restServiceReal.getConnectionEvents(null, 0, 10, null);
+		assertEquals(0, connectionEvents.size());
+		
+		connectionEvents = restServiceReal.getConnectionEvents(subscriber.getStreamId(), 0, 10, null);
+		assertEquals(1, connectionEvents.size());
+		
+		connectionEvents = restServiceReal.getConnectionEvents(subscriber.getStreamId(), 0, 10, subscriber.getSubscriberId());
+		assertEquals(1, connectionEvents.size());
 
 		assertEquals("stream1", subscriberStats.get(0).getStreamId());
 		assertEquals("timeSubscriber", subscriberStats.get(0).getSubscriberId());

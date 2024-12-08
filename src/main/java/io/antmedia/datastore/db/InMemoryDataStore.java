@@ -755,10 +755,8 @@ public class InMemoryDataStore extends DataStore {
 	@Override
 	public List<ConnectionEvent> getConnectionEvents(String streamId, String subscriberId, int offset, int size) {
 		
-		String key = null;
-		if (StringUtils.isNotBlank(subscriberId)) {
-			key = Subscriber.getDBKey(streamId, subscriberId);
-		}
+		String key = Subscriber.getDBKey(streamId, subscriberId);
+		
 		
 		List<ConnectionEvent> list = new ArrayList<>();		
 		if (key != null) {
@@ -773,32 +771,7 @@ public class InMemoryDataStore extends DataStore {
 				list.addAll(getConnectionEventListFromCollection(queue));
 			}
 		}
-		
-		List<ConnectionEvent> returnList = new ArrayList<>();
-		
-		int t = 0;
-		int itemCount = 0;
-		if (size > MAX_ITEM_IN_ONE_LIST) {
-			size = MAX_ITEM_IN_ONE_LIST;
-		}
-		if (offset < 0) {
-			offset = 0;
-		}
-		
-		Iterator<ConnectionEvent> iterator = list.iterator();
-
-		while(itemCount < size && iterator.hasNext()) {
-			if (t < offset) {
-				t++;
-				iterator.next();
-			}
-			else {
-				returnList.add(iterator.next());
-				itemCount++;
-			}
-		}
-		
-		return returnList;
+		return MapBasedDataStore.getReturningConnectionEventsList(offset, size, list);
 	}
 	
 	@Override

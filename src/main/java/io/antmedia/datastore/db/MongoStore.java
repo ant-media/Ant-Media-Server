@@ -472,6 +472,7 @@ public class MongoStore extends DataStore {
 	
 	@Override
 	public List<ConnectionEvent> getConnectionEvents(String streamId, String subscriberId, int offset, int size) {
+		List<ConnectionEvent> connectionEvents = new ArrayList<>();
 		synchronized (this) {
 			try {
 				executedQueryCount++;
@@ -485,12 +486,12 @@ public class MongoStore extends DataStore {
 				
 				FindOptions findingOptions = new FindOptions().skip(offset).limit(size);
 				
-				return query.iterator(findingOptions).toList();
+				connectionEvents = query.iterator(findingOptions).toList();
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
 		}
-		return null;
+		return connectionEvents;
 	}
 
 
