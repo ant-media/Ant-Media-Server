@@ -808,6 +808,64 @@ public class MuxingTest {
 		}
 		return null;
 	}
+	
+	@Test
+	public void testHLSSegmentFileName() {
+
+		try {
+			ConsoleAppRestServiceTest.resetCookieStore();
+			Result result = ConsoleAppRestServiceTest.callisFirstLogin();
+			if (result.isSuccess()) {
+				Result createInitialUser = ConsoleAppRestServiceTest.createDefaultInitialUser();
+				assertTrue(createInitialUser.isSuccess());
+			}
+
+			result = ConsoleAppRestServiceTest.authenticateDefaultUser();
+			assertTrue(result.isSuccess());
+			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
+			boolean hlsEnabled = appSettings.isHlsMuxingEnabled();
+			appSettings.setHlsMuxingEnabled(true);
+			String hlsSegmentFileNameFormat = appSettings.getHlsSegmentFileNameFormat();
+			appSettings.setHlsSegmentFileNameFormat("-%Y%m%d-%s-");
+			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+			assertTrue(result.isSuccess());
+
+			// send rtmp stream with ffmpeg to red5
+			String streamName = "live_test"  + (int)(Math.random() * 999999);
+
+			// make sure that ffmpeg is installed and in path
+			Process rtmpSendingProcess = execute(
+					ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
+							+ SERVER_ADDR + "/LiveApp/" + streamName);
+			
+			try {
+				Process finalProcess = rtmpSendingProcess;
+				Awaitility.await().pollDelay(5, TimeUnit.SECONDS).atMost(10, TimeUnit.SECONDS).until(()-> {
+					return finalProcess.isAlive();
+				});
+			}
+			catch (Exception e) {
+				//try one more time because it may give high resource usage
+				 rtmpSendingProcess = execute(
+							ffmpegPath + " -re -i src/test/resources/test.flv -acodec copy -vcodec copy -f flv rtmp://"
+									+ SERVER_ADDR + "/LiveApp/" + streamName);
+            }
+			
+			
+
+			Awaitility.await().atMost(30, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
+			});
+
+			
+			appSettings.setHlsMuxingEnabled(hlsEnabled);
+			appSettings.setHlsSegmentFileNameFormat(hlsSegmentFileNameFormat);
+			ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
+		} catch (Exception e) {
+			e.printStackTrace();
+			fail(e.getMessage());
+		}
+	}
 
 	
 
