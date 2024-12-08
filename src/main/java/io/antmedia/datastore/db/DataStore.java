@@ -45,7 +45,7 @@ public abstract class DataStore {
 	//Do not forget to write function descriptions especially if you are adding new functions
 
 	public static final int MAX_ITEM_IN_ONE_LIST = 250;
-	private static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
+	public static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
 
 	/**
 	 * If it's true, it writes the viewers updates to the data store

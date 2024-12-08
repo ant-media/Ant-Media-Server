@@ -56,8 +56,6 @@ public abstract class MapBasedDataStore extends DataStore {
 	protected Map<String, String> webRTCViewerMap;
 	protected Map<String, String> subscriberMetadataMap;
 
-	public static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
-
 	protected Gson gson;
 	protected String dbName;
 
