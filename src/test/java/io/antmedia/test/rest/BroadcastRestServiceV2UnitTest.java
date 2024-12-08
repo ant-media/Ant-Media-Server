@@ -486,6 +486,7 @@ public class BroadcastRestServiceV2UnitTest {
 		restServiceReal.setAppCtx(context);
 
 		InMemoryDataStore dataStore = new InMemoryDataStore("testdb");
+		dataStore.setAppSettings(new AppSettings());
 		restServiceReal.setDataStore(dataStore);
 		Broadcast broadcast = new Broadcast();
 		broadcast.setStatus(AntMediaApplicationAdapter.BROADCAST_STATUS_BROADCASTING);
@@ -1925,7 +1926,12 @@ public class BroadcastRestServiceV2UnitTest {
 	public void testTimeBasedSubscriberOperations() {
 
 		DataStore store = new MapDBStore(RandomStringUtils.randomAlphanumeric(6) + ".db", vertx);
-		store.setWriteSubscriberEventsToDatastore(true);
+		
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWriteSubscriberEventsToDatastore(true);
+		
+		store.setAppSettings(appSettings);
+
 		restServiceReal.setDataStore(store);
 
 

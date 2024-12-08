@@ -56,8 +56,6 @@ public abstract class MapBasedDataStore extends DataStore {
 	protected Map<String, String> webRTCViewerMap;
 	protected Map<String, String> subscriberMetadataMap;
 
-	public static final String REPLACE_CHARS_REGEX = "[\n|\r|\t]";
-
 	protected Gson gson;
 	protected String dbName;
 
@@ -742,7 +740,7 @@ public abstract class MapBasedDataStore extends DataStore {
 				}.getType();
 				Queue<ConnectionEvent> values = gson.fromJson(connectionEventsMap.get(key), queueType);
 				if (values != null) {
-					list = getConnectionEventListFromCollection(values);
+					list = getConnectionEventListFromCollection(values, null);
 				}
 			}
 			else 
@@ -753,7 +751,7 @@ public abstract class MapBasedDataStore extends DataStore {
 
 				for (String queueString : values) {
 					Queue<ConnectionEvent> queueValues = gson.fromJson(queueString, queueType);
-					list.addAll(getConnectionEventListFromCollection(queueValues));
+					list.addAll(getConnectionEventListFromCollection(queueValues, streamId));
 				}
 			}
 		}

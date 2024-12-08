@@ -108,7 +108,10 @@ public class DashViewerStatsTest {
 		viewerStats.setVertx(vertx);
 
 		DataStore dataStore = new InMemoryDataStore("datastore");
-		dataStore.setWriteSubscriberEventsToDatastore(true);
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWriteSubscriberEventsToDatastore(true);
+		
+		dataStore.setAppSettings(appSettings);
 		viewerStats.setDataStore(dataStore);
 		viewerStats.setServerSettings(new ServerSettings());
 		

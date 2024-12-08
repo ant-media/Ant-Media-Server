@@ -96,7 +96,6 @@ import io.swagger.v3.oas.annotations.servers.Server;
 public class BroadcastRestService extends RestServiceBase{
 
 
-	private static final String REPLACE_CHARS = "[\n|\r|\t]";
 	private static final String STREAM_ID_NOT_VALID = "Stream id not valid";
 	private static final String RELATIVE_MOVE = "relative";
 	private static final String ABSOLUTE_MOVE = "absolute";
@@ -355,7 +354,7 @@ public class BroadcastRestService extends RestServiceBase{
 		{
 			Broadcast broadcastInDB = getDataStore().get(id);
 			if (broadcastInDB == null) {
-				String streamId = id.replaceAll("[\n|\r|\t]", "_");
+				String streamId = id.replaceAll(REPLACE_CHARS, "_");
 				logger.info("Broadcast with stream id: {} is null", streamId);
 				return new Result(false, "Broadcast with streamId: " + streamId + " does not exist");
 			}
@@ -1977,7 +1976,7 @@ public class BroadcastRestService extends RestServiceBase{
 		if(!getAppSettings().isId3TagEnabled()) {
 			return new Result(false, null, "ID3 tag is not enabled");
 		}
-		logger.info("ID3 data is received for stream: {} data: {}", streamId.replaceAll("[\n|\r|\t]", "_"), data.replaceAll("[\n|\r|\t]", "_"));
+		logger.info("ID3 data is received for stream: {} data: {}", streamId.replaceAll(REPLACE_CHARS, "_"), data.replaceAll(REPLACE_CHARS, "_"));
 		
 		MuxAdaptor muxAdaptor = getMuxAdaptor(streamId);
 		if(muxAdaptor != null) {

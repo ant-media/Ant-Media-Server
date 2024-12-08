@@ -26,7 +26,6 @@ import org.springframework.context.annotation.PropertySource;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.google.gson.Gson;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
@@ -1783,7 +1782,31 @@ public class AppSettings implements Serializable{
 	/**
 	 * Set to true when you want to delete an application 
 	 */
+	@Deprecated (forRemoval = true)
 	private boolean toBeDeleted = false;
+
+
+
+	public static final String APPLICATION_STATUS_INSTALLING = "installing";
+	public static final String APPLICATION_STATUS_INSTALLED = "installed";
+	public static final String APPLICATION_STATUS_DELETED = "deleted";
+	public static final String APPLICATION_STATUS_INSTALLATION_FAILED = "installationFailed";
+
+
+	/**
+	 * Describes the application installation status. Possible values:
+	 *
+	 * Installing: App install Rest method received by host node
+	 * Installed: App installation completed on host node
+	 * Installation Failed: App installation can not be completed by host node
+	 * Deleted: App installation deleted on host node
+	 */
+	private String appStatus = APPLICATION_STATUS_INSTALLED;
+
+	/**
+	 * The time when the application is installed
+	 */
+	private long appInstallationTime = 0;
 
 	/**
 	 * Set to true when the app settings are only created for pulling the war file.
@@ -3422,12 +3445,22 @@ public class AppSettings implements Serializable{
 		this.timeTokenPeriod = timeTokenPeriod;
 	}
 
+	@Deprecated(forRemoval = true, since = "2.12.0")
 	public boolean isToBeDeleted() {
 		return toBeDeleted;
 	}
 
+	@Deprecated(forRemoval = true, since = "2.12.0")
 	public void setToBeDeleted(boolean toBeDeleted) {
 		this.toBeDeleted = toBeDeleted;
+	}
+
+	public String getAppStatus() {
+		return appStatus;
+	}
+
+	public void setAppStatus(String appStatus) {
+		this.appStatus = appStatus;
 	}
 
 	public boolean isPullWarFile() {
@@ -4090,5 +4123,19 @@ public class AppSettings implements Serializable{
 	 */
 	public void setWriteSubscriberEventsToDatastore(boolean writeSubscriberEventsToDatastore) {
 		this.writeSubscriberEventsToDatastore = writeSubscriberEventsToDatastore;
+	}
+
+	/**
+	 * @return the appInstallationTime
+	 */
+	public long getAppInstallationTime() {
+		return appInstallationTime;
+	}
+
+	/**
+	 * @param appInstallationTime the appInstallationTime to set
+	 */
+	public void setAppInstallationTime(long appInstallationTime) {
+		this.appInstallationTime = appInstallationTime;
 	}
 }

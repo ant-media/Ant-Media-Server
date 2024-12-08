@@ -57,6 +57,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 	private Vertx vertx;
 	private boolean writeStatsToDatastore;
 	private boolean writeSubscriberEventsToDatastore;
+	private AppSettings appSettings;
 	
 	public String getDbName() {
 		return dbName;
@@ -119,8 +120,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		logger.info("Used Datastore:{}  db name:{}", getDbType(), getDbName());
 		
 		if(dataStore != null) {
-			dataStore.setWriteStatsToDatastore(writeStatsToDatastore);
-			dataStore.setWriteSubscriberEventsToDatastore(writeSubscriberEventsToDatastore);
+			dataStore.setAppSettings(appSettings);
 		}
 	}	
 	
@@ -146,9 +146,7 @@ public class DataStoreFactory implements IDataStoreFactory, ApplicationContextAw
 		
 		ServerSettings serverSettings = (ServerSettings) applicationContext.getBean(ServerSettings.BEAN_NAME);
 		hostAddress = serverSettings.getHostAddress();
-		AppSettings appSettings = ((AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME));
-		writeStatsToDatastore = appSettings.isWriteStatsToDatastore();
-		writeSubscriberEventsToDatastore = appSettings.isWriteSubscriberEventsToDatastore();
+		appSettings = ((AppSettings) applicationContext.getBean(AppSettings.BEAN_NAME));
 		
 		init();
 	}

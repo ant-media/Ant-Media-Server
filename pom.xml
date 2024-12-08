@@ -197,7 +197,7 @@
                 <configuration>
                     <useSystemClassLoader>false</useSystemClassLoader>
                     <argLine>@{argLine} -Xmx3000M -XX:+UseG1GC -XX:MaxGCPauseMillis=100 -Djava.library.path=${project.basedir}/src/main/server/lib/native-linux-x86_64</argLine>
-                	<skipAfterFailureCount>1</skipAfterFailureCount>
+                	<skipAfterFailureCount>10</skipAfterFailureCount>
                 </configuration>
             </plugin>
              <plugin>
