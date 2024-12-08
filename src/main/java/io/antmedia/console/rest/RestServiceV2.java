@@ -547,7 +547,8 @@ public class RestServiceV2 extends CommonRestService {
 	public Result createApplication(@Parameter(description = "Name for the new application", required = true) @PathParam("appName") String appName, @Parameter(description = "file", required = true) @FormDataParam("file") InputStream inputStream) {
 		logger.info("Application install request received for application {}", appName.replaceAll(RestServiceBase.REPLACE_CHARS, "_"));
 		Result result;
-	    if (appName != null && appName.matches("^[a-zA-Z0-9]*$")) {
+		
+	    if (appName != null && appName.matches("^[a-zA-Z0-9_-]*$")) {
 	        boolean applicationAlreadyExist = isApplicationExists(appName);
 	        if (!applicationAlreadyExist) {
 	            result = super.createApplication(appName, inputStream);
