@@ -780,6 +780,8 @@ public class AppSettings implements Serializable{
 	//use lower case for theses fields because they are used in extension as well
 	public static final String PREVIEW_FORMAT_PNG = "png";
 	public static final String PREVIEW_FORMAT_JPG = "jpg";
+	public static final String PREVIEW_FORMAT_WEBP = "webp";
+
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -1447,11 +1449,14 @@ public class AppSettings implements Serializable{
 	private String previewFormat = PREVIEW_FORMAT_PNG;
 	
 	/**
-	 * Preview quality(qscale) for jpg format. It's valid when previewFormat is set to jpg
-	 * Default value is 5. The scale is between 2 to 31. 2 is the best quality, largest file size and 31 is the worst quality and lowest file size
+	 * Preview quality. It's valid for JPG and WEBP formats.
+	 * JPG: The range is between 2 to 31. 2 is the best quality, largest file size and 31 is the worst quality and lowest file size. Recommended value is 5
+	 * WEBP: The range is between 0 to 100. 0 is the worst quality, smallest file size and 100 is the best quality and largest file size.Recommended value is 75
+	 * 
+	 * Pay attention that the quality parameter is not valid for PNG and default value for this preview is for WebP format. You need to change for JPG format
 	 */
-	@Value("${previewQuality:5}")
-	private int previewQuality = 5;
+	@Value("${previewQuality:75}")
+	private int previewQuality = 75;
 	
 
 	@Value( "${writeStatsToDatastore:${" + SETTINGS_WRITE_STATS_TO_DATASTORE +":true}}")
