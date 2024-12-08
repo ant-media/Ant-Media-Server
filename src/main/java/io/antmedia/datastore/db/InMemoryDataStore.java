@@ -9,7 +9,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.regex.Pattern;
 
 import javax.annotation.Nonnull;
@@ -24,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import io.antmedia.AntMediaApplicationAdapter;
 import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
+import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.P2PConnection;
 import io.antmedia.datastore.db.types.StreamInfo;
@@ -44,6 +47,7 @@ public class InMemoryDataStore extends DataStore {
 	private Map<String, List<TensorFlowObject>> detectionMap = new LinkedHashMap<>();
 	private Map<String, Token> tokenMap = new LinkedHashMap<>();
 	private Map<String, Subscriber> subscriberMap = new LinkedHashMap<>();
+	private Map<String, Queue<ConnectionEvent>> connectionEvents = new LinkedHashMap<>();
 	private Map<String, SubscriberMetadata> subscriberMetadataMap = new LinkedHashMap<>();
 	private Map<String, WebRTCViewerInfo> webRTCViewerMap = new LinkedHashMap<>();
 
@@ -112,18 +116,6 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-	
-	@Override
-	public boolean updateDuration(String id, long duration) {
-		Broadcast broadcast = broadcastMap.get(id);
-		boolean result = false;
-		if (broadcast != null) {
-			broadcast.setDuration(duration);
-			broadcastMap.put(id, broadcast);
-			result = true;
-		}
-		return result;
-	}
 
 	@Override
 	public boolean addEndpoint(String id, Endpoint endpoint) {
@@ -187,12 +179,12 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return activeBroadcastCount;
 	}
-	
-	
+
+
 	public long getLocalLiveBroadcastCount(String hostAddress) {
 		return getActiveBroadcastCount();
 	}
-	
+
 	public List<Broadcast> getLocalLiveBroadcasts(String hostAddress) 
 	{
 		List<Broadcast> broadcastList = new ArrayList<>();
@@ -219,11 +211,11 @@ public class InMemoryDataStore extends DataStore {
 
 	@Override
 	public List<Broadcast> getBroadcastList(int offset, int size, String type, String sortBy, String orderBy, String search) {
-		
+
 		Collection<Broadcast> values = broadcastMap.values();
 
 		ArrayList<Broadcast> list = new ArrayList<>();
-		
+
 		if(type != null && !type.isEmpty()) {
 			for (Broadcast broadcast : values) 
 			{
@@ -296,7 +288,7 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return id;
 	}
-	
+
 	@Override
 	public boolean updateVoDProcessStatus(String id, String status) {
 		VoD vod = vodMap.get(id);
@@ -319,18 +311,18 @@ public class InMemoryDataStore extends DataStore {
 	public List<VoD> getVodList(int offset, int size, String sortBy, String orderBy, String filterStreamId, String search)
 	{
 		ArrayList<VoD> vods = null;
-		
+
 		if (filterStreamId != null && !filterStreamId.isEmpty()) 
 		{
 			vods = new ArrayList<>();
-			
+
 			for (VoD vod : vodMap.values()) 
 			{
 				if(vod.getStreamId().equals(filterStreamId)) {
 					vods.add(vod);
 				}
 			}
-			
+
 		}
 		else {
 			vods = new ArrayList<>(vodMap.values());
@@ -401,7 +393,7 @@ public class InMemoryDataStore extends DataStore {
 					long unixTime = System.currentTimeMillis();
 
 					String filePath = file.getPath();
-					
+
 					String[] subDirs = filePath.split(Pattern.quote(File.separator));
 
 					String relativePath= "streams/" + subDirs[subDirs.length-2] +'/' +subDirs[subDirs.length-1];
@@ -419,26 +411,6 @@ public class InMemoryDataStore extends DataStore {
 		return numberOfSavedFiles;
 	}
 
-
-
-
-	@Override
-	public boolean updateSourceQualityParametersLocal(String id, String quality, double speed, int pendingPacketSize) {
-		boolean result = false;
-		if (id != null) {
-			Broadcast broadcast = broadcastMap.get(id);
-			if (broadcast != null) {
-				if (quality != null) {
-					broadcast.setQuality(quality);
-				}
-				broadcast.setSpeed(speed);
-				broadcast.setPendingPacketSize(pendingPacketSize);
-				broadcastMap.replace(id, broadcast);
-				result = true;
-			}
-		}
-		return result;
-	}
 
 	@Override
 	public long getTotalBroadcastNumber() {
@@ -561,7 +533,7 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public synchronized boolean updateDASHViewerCountLocal(String streamId, int diffCount) {
 		boolean result = false;
@@ -779,15 +751,58 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
+	
+	@Override
+	public List<ConnectionEvent> getConnectionEvents(String streamId, String subscriberId, int offset, int size) {
+		
+		String key = Subscriber.getDBKey(streamId, subscriberId);
+		
+		
+		List<ConnectionEvent> list = new ArrayList<>();		
+		if (key != null) {
+			Collection<ConnectionEvent> values = connectionEvents.get(key);
+			if (values != null) {
+				list = getConnectionEventListFromCollection(values);
+			}
+		}
+		else {
+			Collection<Queue<ConnectionEvent>> values = connectionEvents.values();
+			for (Queue<ConnectionEvent> queue : values) {
+				list.addAll(getConnectionEventListFromCollection(queue));
+			}
+		}
+		return MapBasedDataStore.getReturningConnectionEventsList(offset, size, list);
+	}
+	
+	@Override
+	public boolean addConnectionEvent(ConnectionEvent connectionEvent) {
+		boolean result = false;
+		if (connectionEvent != null && StringUtils.isNoneBlank(connectionEvent.getStreamId(), connectionEvent.getSubscriberId())) {
+			try {
+				String key = Subscriber.getDBKey(connectionEvent.getStreamId(), connectionEvent.getSubscriberId());
+				if (!connectionEvents.containsKey(key)) {
+					connectionEvents.put(key, new ConcurrentLinkedQueue<ConnectionEvent>());
+				}
+				connectionEvents.get(key).add(connectionEvent);
+				result = true;
+			} catch (Exception e) {
+				logger.error(ExceptionUtils.getStackTrace(e));
+			}
+		}
+
+		return result;
+	}
 
 	@Override
 	public boolean deleteSubscriber(String streamId, String subscriberId) {
-		
+
 		boolean result = false;
 		if(streamId != null && subscriberId != null) {
 			try {
-				 Subscriber sub = subscriberMap.remove(Subscriber.getDBKey(streamId, subscriberId));
+				Subscriber sub = subscriberMap.remove(Subscriber.getDBKey(streamId, subscriberId));
 				result = sub != null;
+				connectionEvents.keySet().removeIf(key -> key.equals(Subscriber.getDBKey(streamId, subscriberId)));
+
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -835,17 +850,19 @@ public class InMemoryDataStore extends DataStore {
 				iterator.remove();
 				subscriberMap.remove(subscriber.getSubscriberKey());
 			}
+			connectionEvents.keySet().removeIf(key -> key.startsWith(streamId+ "-"));
+
 			result = true;
 
 		}
 		return result;
 	}
-	
+
 	@Override
 	public Subscriber getSubscriber(String streamId, String subscriberId) {
 		return subscriberMap.get(Subscriber.getDBKey(streamId, subscriberId));
 	}
-	
+
 	@Override
 	public boolean resetSubscribersConnectedStatus() {
 		for(Subscriber subscriber: subscriberMap.values()) {
@@ -880,7 +897,7 @@ public class InMemoryDataStore extends DataStore {
 
 		return result;
 	}
-	
+
 	@Override
 	public boolean setWebMMuxing(String streamId, int enabled) {
 		boolean result = false;
@@ -940,11 +957,11 @@ public class InMemoryDataStore extends DataStore {
 		Broadcast mainTrack = broadcastMap.get(mainTrackId);
 		if (mainTrack != null && subTrackId != null) {
 			List<String> subTracks = mainTrack.getSubTrackStreamIds();
-			
+
 			if (subTracks == null) {
 				subTracks = new ArrayList<>();
 			}
-			
+
 			if (!subTracks.contains(subTrackId)) 
 			{
 				subTracks.add(subTrackId);
@@ -952,7 +969,7 @@ public class InMemoryDataStore extends DataStore {
 				broadcastMap.put(mainTrackId, mainTrack);
 			}
 			result = true;
-			
+
 		}
 		return result;
 	}
@@ -971,11 +988,11 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-  
+
 	@Override
 	public int resetBroadcasts(String hostAddress) {
 		Set<Entry<String,Broadcast>> entrySet = broadcastMap.entrySet();
-		
+
 		Iterator<Entry<String, Broadcast>> iterator = entrySet.iterator();
 		int i = 0;
 		while (iterator.hasNext()) {
@@ -994,8 +1011,8 @@ public class InMemoryDataStore extends DataStore {
 				i++;
 			}
 		}
-		
-		
+
+
 		return i;
 	}
 
@@ -1043,7 +1060,7 @@ public class InMemoryDataStore extends DataStore {
 		webRTCViewerMap.remove(viewerId);
 		return true;
 	}
-	
+
 	@Override
 	public boolean updateStreamMetaData(String streamId, String metaData) {
 		Broadcast broadcast = broadcastMap.get(streamId);
@@ -1055,12 +1072,12 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return result;
 	}
-	
+
 	@Override
 	public SubscriberMetadata getSubscriberMetaData(String subscriberId) {
 		return subscriberMetadataMap.get(subscriberId);
 	}
-	
+
 	@Override
 	public void putSubscriberMetaData(String subscriberId, SubscriberMetadata subscriberMetadata) {
 		subscriberMetadata.setSubscriberId(subscriberId);
@@ -1076,7 +1093,7 @@ public class InMemoryDataStore extends DataStore {
 	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role) {
 		return getSubtracks(mainTrackId, offset, size, role, null);
 	}
-	
+
 	@Override
 	public List<Broadcast> getSubtracks(String mainTrackId, int offset, int size, String role, String status) {
 		List<Broadcast> subtracks = new ArrayList<>();
@@ -1090,7 +1107,7 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return subtracks.subList(offset, Math.min(offset + size, subtracks.size()));
 	}
-	
+
 	@Override
 	public long getSubtrackCount(@Nonnull String mainTrackId, String role, String status) {
 		int count = 0;
@@ -1105,7 +1122,7 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return count;
 	}
-	
+
 	@Override
 	public long getActiveSubtracksCount(String mainTrackId, String role) {
 		int count = 0;
@@ -1121,7 +1138,7 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return count;
 	}
-	
+
 	@Override
 	public List<Broadcast> getActiveSubtracks(String mainTrackId, String role) 
 	{
@@ -1138,10 +1155,10 @@ public class InMemoryDataStore extends DataStore {
 		}
 		return subtracks;
 	}
-	
+
 	@Override
 	public boolean hasSubtracks(String streamId) {
-		
+
 		for (Broadcast broadcast : broadcastMap.values()) 
 		{
 			if (streamId.equals(broadcast.getMainTrackStreamId()) ) 

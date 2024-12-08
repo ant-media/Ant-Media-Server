@@ -3,6 +3,7 @@ package io.antmedia.rest;
 import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -26,6 +27,7 @@ import io.antmedia.datastore.db.types.Broadcast;
 import io.antmedia.datastore.db.types.BroadcastUpdate;
 import io.antmedia.datastore.db.types.Broadcast.PlayListItem;
 import io.antmedia.datastore.db.types.ConferenceRoom;
+import io.antmedia.datastore.db.types.ConnectionEvent;
 import io.antmedia.datastore.db.types.Endpoint;
 import io.antmedia.datastore.db.types.Subscriber;
 import io.antmedia.datastore.db.types.SubscriberStats;
@@ -890,8 +892,8 @@ public class BroadcastRestService extends RestServiceBase{
 		return subscribers;
 	}	
 
-	@Operation(summary = "Retrieve all subscriber statistics of the requested stream",
-			description = "Fetches comprehensive statistics for all subscribers of the specified stream.",
+	@Operation(summary = "Retrieve all subscriber statistics of the requested stream. Deprecated use connection-events method. ",
+			description = "Fetches comprehensive statistics for all subscribers of the specified stream. Deprecated use connection-events method. This method is kept for backward compatibility and getting old records. New records saved and retrieved with connection-events method because there is a schema design causes performance issues",
 			responses = {
 					@ApiResponse(responseCode = "200", description = "List of subscriber statistics",
 							content = @Content(
@@ -903,6 +905,7 @@ public class BroadcastRestService extends RestServiceBase{
 	@GET
 	@Path("/{id}/subscriber-stats/list/{offset}/{size}")
 	@Produces(MediaType.APPLICATION_JSON)
+	@Deprecated(since="2.12.0", forRemoval = true)
 	public List<SubscriberStats> listSubscriberStatsV2(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String streamId,
 			@Parameter(description = "the starting point of the list", required = true) @PathParam("offset") int offset,
 			@Parameter(description = "size of the return list (max:50 )", required = true) @PathParam("size") int size) {
@@ -912,6 +915,31 @@ public class BroadcastRestService extends RestServiceBase{
 		}
 		return subscriberStats;
 	}
+	
+	@Operation(summary = "Retrieve all subscriber statistics of the requested stream. Deprecated ",
+			description = "Fetches comprehensive statistics for all subscribers of the specified stream.",
+			responses = {
+					@ApiResponse(responseCode = "200", description = "List of subscriber statistics",
+							content = @Content(
+									mediaType = "application/json",
+									schema = @Schema(implementation = SubscriberStats.class, type = "array")
+									))
+	}
+			)
+	@GET
+	@Path("/{id}/connection-events/{offset}/{size}")
+	@Produces(MediaType.APPLICATION_JSON)
+	public List<ConnectionEvent> getConnectionEvents(@Parameter(description = "the id of the stream", required = true) @PathParam("id") String streamId,
+			@Parameter(description = "the starting point of the list", required = true) @PathParam("offset") int offset,
+			@Parameter(description = "size of the return list (max:50 )", required = true) @PathParam("size") int size,
+			@Parameter(description = "subscriberId to filter the connections events", required=false) @QueryParam("subscriberId") String subscriberId) {
+		List<ConnectionEvent> connectionEvents = new ArrayList<>();
+		if(StringUtils.isNotBlank(streamId)) {
+			connectionEvents = getDataStore().getConnectionEvents(streamId, subscriberId, offset, size);
+		}
+		return connectionEvents;
+	}
+	
 
 	@Operation(summary = "Add Subscriber to the requested stream",
 			description = "Adds a subscriber to the requested stream. If the subscriber's type is 'publish', they can also play the stream, which is critical in conferencing. If the subscriber's type is 'play', they can only play the stream. If 'b32Secret' is not set, it will default to the AppSettings. The length of 'b32Secret' should be a multiple of 8 and use base32 characters A–Z, 2–7.",
@@ -1102,7 +1130,7 @@ public class BroadcastRestService extends RestServiceBase{
 	}
 
 	@Operation(summary = "Removes all subscribers related to the requested stream",
-			description = "Deletes all subscriber data associated with the specified stream.",
+			description = "Deletes all subscriber data associated with the specified stream including ConnectionEvents.",
 			responses = {
 					@ApiResponse(responseCode = "200", description = "Result of removing all subscribers",
 							content = @Content(

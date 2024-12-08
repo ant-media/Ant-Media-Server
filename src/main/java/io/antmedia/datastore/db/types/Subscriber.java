@@ -1,4 +1,5 @@
 package io.antmedia.datastore.db.types;
+import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -45,9 +46,10 @@ public class Subscriber {
     private String streamId;  
 
     /**
-     * Stats for this subscriber
+     * Stats for this subscriber. Get connection events directly instead of SubscriberStats
      */
     @Schema(description = "Stats for this subscriber")
+    @Deprecated (forRemoval = true, since = "2.12.0")
     private SubscriberStats stats = new SubscriberStats();
 
     /**
@@ -97,22 +99,35 @@ public class Subscriber {
     private long blockedUntilUnitTimeStampMs = 0;
 
     private String registeredNodeIp;
+    
+    /**
+     * The average video bitrate for a subscriber.
+     */
+    @Schema(description = "Average video bitrate for a subscriber")
+    private long avgVideoBitrate;
 
-	public String getSubscriberId() {
-		return subscriberId;
-	}
+    /**
+     * The average audio bitrate for a subscriber.
+     */
+    @Schema(description = "Average audio bitrate for a subscriber")
+    private long avgAudioBitrate;
 
+	
 	public void setSubscriberId(String subscriberId) {
 		this.subscriberId = subscriberId;
 	}
-
-	public String getStreamId() {
-		return streamId;
+	
+	public String getSubscriberId() {
+		return subscriberId;
 	}
 
 	public void setStreamId(String streamId) {
 		this.streamId = streamId;
 	}	
+	
+	public String getStreamId() {
+		return streamId;
+	}
 
 	public String getB32Secret() {
 		return b32Secret;
@@ -142,7 +157,10 @@ public class Subscriber {
 	}
 
 	public static String getDBKey(String streamId, String subscriberId) {
-		return streamId + "-" +subscriberId;
+		if (StringUtils.isNoneBlank(streamId, subscriberId)) {
+			return streamId + "-" +subscriberId;
+		}
+		return null;
 	}
 
 	public String getType() {
@@ -213,5 +231,33 @@ public class Subscriber {
 
 	public void setBlockedUntilUnitTimeStampMs(long blockedUntilUnitTimeStampMs) {
 		this.blockedUntilUnitTimeStampMs = blockedUntilUnitTimeStampMs;
+	}
+
+	/**
+	 * @return the avgVideoBitrate
+	 */
+	public long getAvgVideoBitrate() {
+		return avgVideoBitrate;
+	}
+
+	/**
+	 * @param avgVideoBitrate the avgVideoBitrate to set
+	 */
+	public void setAvgVideoBitrate(long avgVideoBitrate) {
+		this.avgVideoBitrate = avgVideoBitrate;
+	}
+
+	/**
+	 * @return the avgAudioBitrate
+	 */
+	public long getAvgAudioBitrate() {
+		return avgAudioBitrate;
+	}
+
+	/**
+	 * @param avgAudioBitrate the avgAudioBitrate to set
+	 */
+	public void setAvgAudioBitrate(long avgAudioBitrate) {
+		this.avgAudioBitrate = avgAudioBitrate;
 	}
 }

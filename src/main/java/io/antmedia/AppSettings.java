@@ -1450,6 +1450,10 @@ public class AppSettings implements Serializable{
 	private int previewQuality = 75;
 	
 
+	/**
+	 * Whether to write viewers(HLS, WebRTC) count to the data store, it's true by default. 
+	 * If you set it to false, it decreases the number of write operations to the data store and you don't see the viewer count in datastore
+	 */
 	@Value( "${writeStatsToDatastore:${" + SETTINGS_WRITE_STATS_TO_DATASTORE +":true}}")
 	private boolean writeStatsToDatastore = true;
 
@@ -2350,6 +2354,13 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${encodingQueueSize:150}")
 	private int encodingQueueSize = 150;
+	
+	/**
+	 * Write subscriber events to datastore. It's false by default
+	 * Subscriber events are when they are connected/disconnected. Alternatively, you can get these events from analytics logs by default
+	 */
+	@Value("${writeSubscriberEventsToDatastore:false}")
+	private boolean writeSubscriberEventsToDatastore = false;
 
 	//Make sure you have a default constructor because it's populated by MongoDB
 	public AppSettings() {
@@ -4105,5 +4116,19 @@ public class AppSettings implements Serializable{
 	 */
 	public void setPreviewQuality(int previewQuality) {
 		this.previewQuality = previewQuality;
+	}
+
+	/**
+	 * @return the writeSubscriberEventsToDatastore
+	 */
+	public boolean isWriteSubscriberEventsToDatastore() {
+		return writeSubscriberEventsToDatastore;
+	}
+
+	/**
+	 * @param writeSubscriberEventsToDatastore the writeSubscriberEventsToDatastore to set
+	 */
+	public void setWriteSubscriberEventsToDatastore(boolean writeSubscriberEventsToDatastore) {
+		this.writeSubscriberEventsToDatastore = writeSubscriberEventsToDatastore;
 	}
 }
