@@ -828,6 +828,8 @@ public class InMemoryDataStore extends DataStore {
 			try {
 				Subscriber sub = subscriberMap.remove(Subscriber.getDBKey(streamId, subscriberId));
 				result = sub != null;
+				connectionEvents.keySet().removeIf(key -> key.equals(Subscriber.getDBKey(streamId, subscriberId)));
+
 			} catch (Exception e) {
 				logger.error(ExceptionUtils.getStackTrace(e));
 			}
@@ -875,6 +877,8 @@ public class InMemoryDataStore extends DataStore {
 				iterator.remove();
 				subscriberMap.remove(subscriber.getSubscriberKey());
 			}
+			connectionEvents.keySet().removeIf(key -> key.startsWith(streamId+ "-"));
+
 			result = true;
 
 		}
