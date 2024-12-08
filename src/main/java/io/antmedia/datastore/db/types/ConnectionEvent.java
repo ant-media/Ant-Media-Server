@@ -1,13 +1,24 @@
 package io.antmedia.datastore.db.types;
 
 
+import org.bson.types.ObjectId;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import dev.morphia.annotations.Entity;
+import dev.morphia.annotations.Field;
+import dev.morphia.annotations.Id;
+import dev.morphia.annotations.Index;
+import dev.morphia.annotations.IndexOptions;
+import dev.morphia.annotations.Indexes;
+import dev.morphia.utils.IndexType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 
 @Schema(description = "Connection Event for the subscriber")
 @Entity
+@Indexes({ 
+	@Index(fields = @Field("streamId")), 
+	@Index(fields = @Field("subscriberId")) })
 public class ConnectionEvent {
     @JsonIgnore
     public static final String CONNECTED_EVENT = "connected";
@@ -33,6 +44,17 @@ public class ConnectionEvent {
 
     @Schema(description = "Event protocol. It can be webrtc, hls, dash")
     private String eventProtocol;
+    
+    @Schema(description = "Stream id of the event")
+    private String streamId;
+    
+    @Schema(description = "Subscriber id of the event")
+    private String subscriberId;
+    
+    @JsonIgnore
+    @Schema(hidden = true)
+    @Id
+    private ObjectId dbId;
 
     public long getTimestamp() {
         return timestamp;
@@ -73,4 +95,32 @@ public class ConnectionEvent {
     public void setEventProtocol(String eventProtocol) {
         this.eventProtocol = eventProtocol;
     }
+
+	/**
+	 * @return the subscriberId
+	 */
+	public String getSubscriberId() {
+		return subscriberId;
+	}
+
+	/**
+	 * @param subscriberId the subscriberId to set
+	 */
+	public void setSubscriberId(String subscriberId) {
+		this.subscriberId = subscriberId;
+	}
+
+	/**
+	 * @return the streamId
+	 */
+	public String getStreamId() {
+		return streamId;
+	}
+
+	/**
+	 * @param streamId the streamId to set
+	 */
+	public void setStreamId(String streamId) {
+		this.streamId = streamId;
+	}
 }
