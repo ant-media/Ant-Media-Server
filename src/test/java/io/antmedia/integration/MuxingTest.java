@@ -825,8 +825,8 @@ public class MuxingTest {
 			AppSettings appSettings = ConsoleAppRestServiceTest.callGetAppSettings("LiveApp");
 			boolean hlsEnabled = appSettings.isHlsMuxingEnabled();
 			appSettings.setHlsMuxingEnabled(true);
-			String hlsSegmentFileNameFormat = appSettings.getHlsSegmentFileNameFormat();
-			appSettings.setHlsSegmentFileNameFormat("-%Y%m%d-%s-");
+			String hlsSegmentFileNameFormat = appSettings.getHlsSegmentFileSuffixFormat();
+			appSettings.setHlsSegmentFileNameFormat("-%Y%m%d-%s");
 			result = ConsoleAppRestServiceTest.callSetAppSettings("LiveApp", appSettings);
 			assertTrue(result.isSuccess());
 

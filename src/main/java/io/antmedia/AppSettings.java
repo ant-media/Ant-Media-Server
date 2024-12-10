@@ -1148,11 +1148,13 @@ public class AppSettings implements Serializable{
 
 
 	/**
-	 * HLS segment file name format. It can be like file-%Y%m%d-%s.ts
+	 * HLS segment file suffix format. 
+	 * By default: %09d which means 9 digit incremental
+	 * To add time: It can be like %Y%m%d-%s
 	 *
 	 */
-	@Value( "${hlsSegmentFileNameFormat:}" )
-	private String hlsSegmentFileNameFormat = "";
+	@Value( "${hlsSegmentFileSuffixFormat:%09d}" )
+	private String hlsSegmentFileSuffixFormat = "%09d";
 
 	/**
 	 * The path for manually saved used VoDs
@@ -3936,12 +3938,12 @@ public class AppSettings implements Serializable{
 		this.hlsSegmentType = hlsSegmentType;
 	}
 
-	public String getHlsSegmentFileNameFormat() {
-		return hlsSegmentFileNameFormat;
+	public String getHlsSegmentFileSuffixFormat() {
+		return hlsSegmentFileSuffixFormat;
 	}
 
-	public void setHlsSegmentFileNameFormat(String hlsSegmentFileNameFormat) {
-		this.hlsSegmentFileNameFormat = hlsSegmentFileNameFormat;
+	public void setHlsSegmentFileNameFormat(String hlsSegmentFileSuffixFormat) {
+		this.hlsSegmentFileSuffixFormat = hlsSegmentFileSuffixFormat;
 	}
 
 	public String getRecordingSubfolder() {

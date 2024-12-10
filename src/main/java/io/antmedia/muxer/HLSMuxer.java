@@ -29,13 +29,9 @@ public class HLSMuxer extends Muxer  {
 	
 	public static final String SEI_USER_DATA = "sei_user_data";
 	
-	private static final String TS_EXTENSION = "ts";
-	private static final String FMP4_EXTENSION = "fmp4";
+	private static final String TS_EXTENSION = ".ts";
+	private static final String FMP4_EXTENSION = ".fmp4";
 
-	private static final String SEGMENT_SUFFIX_TS = "%0"+SEGMENT_INDEX_LENGTH+"d." + TS_EXTENSION;
-	//DASH also has m4s and ChunkTransferServlet is responsbile for streaming m4s files, so it's better to use fmp4 here
-	private static final String SEGMENT_SUFFIX_FMP4 = "%0"+SEGMENT_INDEX_LENGTH+"d."+ FMP4_EXTENSION;
-	
 	private static final String HLS_SEGMENT_TYPE_MPEGTS = "mpegts";
 	private static final String HLS_SEGMENT_TYPE_FMP4 = "fmp4";
 
@@ -79,6 +75,8 @@ public class HLSMuxer extends Muxer  {
 	private ByteBuffer pendingSEIData;
 
 	private AVPacket tmpPacketForSEI;
+
+	private String segmentFileNameSuffix;
 
 	public HLSMuxer(Vertx vertx, StorageClient storageClient, String s3StreamsFolderPath, int uploadExtensionsToS3, String httpEndpoint, boolean addDateTimeToResourceName) {
 		super(vertx);
@@ -157,11 +155,15 @@ public class HLSMuxer extends Muxer  {
 				segmentFilename = file.getParentFile().toString();
 				segmentFilename += !segmentFilename.endsWith(File.separator) ? File.separator : "";
 				segmentFilename += initialResourceNameWithoutExtension;
-				if(!StringUtils.isBlank(getAppSettings().getHlsSegmentFileNameFormat())) {
-					options.put("strftime", "1");
-					segmentFilename += getAppSettings().getHlsSegmentFileNameFormat();
-				}
 			}
+			
+			segmentFileNameSuffix = getAppSettings().getHlsSegmentFileSuffixFormat();
+
+			if(segmentFileNameSuffix.contains("%s") || segmentFileNameSuffix.contains("%Y") || segmentFileNameSuffix.contains("%m")) {
+				options.put("strftime", "1");
+			}
+			
+			segmentFilename += getAppSettings().getHlsSegmentFileSuffixFormat();
 
 			//remove double slashes with single slash because it may cause problems
 			segmentFilename = replaceDoubleSlashesWithSingleSlash(segmentFilename);
@@ -171,10 +173,11 @@ public class HLSMuxer extends Muxer  {
 
 				segmentInitFilename = initialResourceNameWithoutExtension + "_init.mp4";
 				options.put("hls_fmp4_init_filename", segmentInitFilename);
-				segmentFilename += SEGMENT_SUFFIX_FMP4;
+				segmentFilename += FMP4_EXTENSION;
 			} else { //if it's mpegts
-				segmentFilename += SEGMENT_SUFFIX_TS;
+				segmentFilename += TS_EXTENSION;
 			}
+			
 
 			options.put("hls_segment_filename", segmentFilename);
 
@@ -371,10 +374,10 @@ public class HLSMuxer extends Muxer  {
 				
 				int indexOfSuffix = 0;
 				if (HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
-					indexOfSuffix = segmentFilename.indexOf(SEGMENT_SUFFIX_FMP4);
+					indexOfSuffix = segmentFilename.indexOf(segmentFileNameSuffix);
 				}
 				else {
-					indexOfSuffix = segmentFilename.indexOf(SEGMENT_SUFFIX_TS);
+					indexOfSuffix = segmentFilename.indexOf(segmentFileNameSuffix);
 				}
 				
 				String segmentFileWithoutSuffix = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix);

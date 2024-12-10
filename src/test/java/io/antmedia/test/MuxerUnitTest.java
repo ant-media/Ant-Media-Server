@@ -3955,10 +3955,10 @@ public class MuxerUnitTest extends AbstractJUnit4SpringContextTests {
 		hlsMuxer.init(appScope, "test", 300, "", 400000);
 		assertEquals("./webapps/junit/streams/test_300p400kbps%09d.ts", hlsMuxer.getSegmentFilename());
 
-		getAppSettings().setHlsSegmentFileNameFormat("-");
+		getAppSettings().setHlsSegmentFileNameFormat("-%Y%m%d-%s");
 		hlsMuxer = new HLSMuxer(vertx, Mockito.mock(StorageClient.class), "", 7, null, false);
 		hlsMuxer.init(appScope, "test", 0, "", 0);
-		assertEquals("./webapps/junit/streams/test-%Y%m%d-%s-%09d.ts", hlsMuxer.getSegmentFilename());
+		assertEquals("./webapps/junit/streams/test-%Y%m%d-%s.ts", hlsMuxer.getSegmentFilename());
 
 
 	}
