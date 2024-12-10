@@ -18,6 +18,7 @@ import com.google.gson.JsonObject;
 import io.antmedia.AppSettings;
 import io.antmedia.datastore.db.types.Licence;
 import io.antmedia.datastore.db.types.User;
+import io.antmedia.rest.RestServiceBase;
 import io.antmedia.rest.model.Result;
 import io.antmedia.settings.ServerSettings;
 import io.swagger.v3.oas.annotations.info.Contact;
@@ -544,8 +545,10 @@ public class RestServiceV2 extends CommonRestService {
 	@Path("/applications/{appName}")
 	@Produces(MediaType.APPLICATION_JSON)
 	public Result createApplication(@Parameter(description = "Name for the new application", required = true) @PathParam("appName") String appName, @Parameter(description = "file", required = true) @FormDataParam("file") InputStream inputStream) {
-	    Result result;
-	    if (appName != null && appName.matches("^[a-zA-Z0-9]*$")) {
+		logger.info("Application install request received for application {}", appName.replaceAll(RestServiceBase.REPLACE_CHARS, "_"));
+		Result result;
+		
+	    if (appName != null && appName.matches("^[a-zA-Z0-9_-]*$")) {
 	        boolean applicationAlreadyExist = isApplicationExists(appName);
 	        if (!applicationAlreadyExist) {
 	            result = super.createApplication(appName, inputStream);
@@ -555,7 +558,9 @@ public class RestServiceV2 extends CommonRestService {
 	    } else {
 	        result = new Result(false, "Application name is not alphanumeric. Please provide alphanumeric characters");
 	    }
-	    return result;
+		logger.info("Application installation finished success: {}", result.isSuccess());
+
+		return result;
 	}
 
 

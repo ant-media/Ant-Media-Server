@@ -1445,6 +1445,8 @@ public class CommonRestService {
 				tempSetting.setAppName(appName);
 				tempSetting.setPullWarFile(true);
 				tempSetting.setWarFileOriginServerAddress(getServerSettings().getHostAddress());
+				tempSetting.setAppStatus(AppSettings.APPLICATION_STATUS_INSTALLING);
+				tempSetting.setAppInstallationTime(System.currentTimeMillis());
 
 				clusterNotifier.getClusterStore().saveSettings(tempSetting);
 			}
@@ -1475,15 +1477,31 @@ public class CommonRestService {
 				    Thread.currentThread().interrupt();
 				}
 			}
-			
+
 			if (!applicationCreated) {
 				result.setSuccess(applicationCreated);
 				result.setMessage("Application " + appName + "is not created in the 20 seconds.");
 			}
 
 		}
-		
+
+		updateAppStatus(appName, result.isSuccess() ? AppSettings.APPLICATION_STATUS_INSTALLED
+				: AppSettings.APPLICATION_STATUS_INSTALLATION_FAILED);
+
 		return result;
+	}
+
+	private void updateAppStatus(String appName, String status) {
+		AppSettings appSettings = getSettings(appName);
+		logger.info("Update Application Status for {} from {} to {}", appName, appSettings.getAppStatus(), status);
+		appSettings.setAppStatus(status);
+
+		//TODO: following if statement will be removed because toBeDeleted is deprecated
+		if(AppSettings.APPLICATION_STATUS_DELETED.equals(status)) {
+			appSettings.setToBeDeleted(true);
+		}
+
+		changeSettings(appName, appSettings);
 	}
 
 
@@ -1496,10 +1514,7 @@ public class CommonRestService {
 			AppSettings appSettings = getSettings(appName);
 			
 			if (appSettings != null) {
-				appSettings.setToBeDeleted(true);
-				//change settings on the db to let undeploy the app
-				changeSettings(appName, appSettings);
-
+				updateAppStatus(appName, AppSettings.APPLICATION_STATUS_DELETED);
 				result = getApplication().deleteApplication(appName, deleteDB);
 			}
 			else {
