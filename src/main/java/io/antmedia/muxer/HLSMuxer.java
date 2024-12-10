@@ -29,8 +29,9 @@ public class HLSMuxer extends Muxer  {
 	
 	public static final String SEI_USER_DATA = "sei_user_data";
 	
-	private static final String TS_EXTENSION = ".ts";
-	private static final String FMP4_EXTENSION = ".fmp4";
+	private static final String LETTER_DOT = ".";
+	private static final String TS_EXTENSION = "ts";
+	private static final String FMP4_EXTENSION = "fmp4";
 
 	private static final String HLS_SEGMENT_TYPE_MPEGTS = "mpegts";
 	private static final String HLS_SEGMENT_TYPE_FMP4 = "fmp4";
@@ -168,6 +169,7 @@ public class HLSMuxer extends Muxer  {
 			//remove double slashes with single slash because it may cause problems
 			segmentFilename = replaceDoubleSlashesWithSingleSlash(segmentFilename);
 
+			segmentFilename += LETTER_DOT;
 			options.put("hls_segment_type", hlsSegmentType);
 			if (HLS_SEGMENT_TYPE_FMP4.equals(hlsSegmentType)) {
 
@@ -381,7 +383,7 @@ public class HLSMuxer extends Muxer  {
 				}
 				
 				String segmentFileWithoutSuffix = segmentFilename.substring(segmentFilename.lastIndexOf("/")+1, indexOfSuffix);
-				String regularExpression = segmentFileWithoutSuffix + "[0-9]*\\.(?:" + TS_EXTENSION +"|" + FMP4_EXTENSION +")$";
+				String regularExpression = segmentFileWithoutSuffix + ".*\\.(?:" + TS_EXTENSION +"|" + FMP4_EXTENSION +")$";
 				File[] files = getHLSFilesInDirectory(regularExpression);
 	
 				if (files != null)
