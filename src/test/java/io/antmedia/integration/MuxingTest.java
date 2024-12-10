@@ -857,6 +857,11 @@ public class MuxingTest {
 				return MuxingTest.testFile("http://" + SERVER_ADDR + ":5080/LiveApp/streams/" + streamName+ ".m3u8");
 			});
 
+			rtmpSendingProcess.destroyForcibly();
+			
+			Awaitility.await().atMost(15, TimeUnit.SECONDS).pollInterval(1, TimeUnit.SECONDS).until(() -> {
+				return null == RestServiceV2Test.getBroadcast(streamName);
+			});
 			
 			appSettings.setHlsMuxingEnabled(hlsEnabled);
 			appSettings.setHlsSegmentFileNameFormat(hlsSegmentFileNameFormat);
