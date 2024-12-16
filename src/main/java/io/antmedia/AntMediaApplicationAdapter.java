@@ -1467,7 +1467,8 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				result.setMessage("Request forwarded to origin server for fetching. " +
 						"Check broadcast status for final confirmation.");
 				return result;
-			} else {
+			} 
+			else {
 				result = getStreamFetcherManager().startStreaming(broadcast);
 			}
 		}

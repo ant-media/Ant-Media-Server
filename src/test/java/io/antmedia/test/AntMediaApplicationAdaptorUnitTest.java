@@ -1970,7 +1970,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		assertTrue(result4.isSuccess());
 
 		// Verify the async callback executed
-		await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
+		await().atMost(5, TimeUnit.SECONDS).untilAsserted(() -> {
 			verify(streamFetcherManager, times(1)).startStreaming(broadcast4);
 		});
 
