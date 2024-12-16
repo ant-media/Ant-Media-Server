@@ -29,7 +29,6 @@ public class TokenSessionFilter implements HttpSessionListener {
 		ITokenService tokenServiceTmp = getTokenService();
 		if (tokenServiceTmp != null) {
 			tokenServiceTmp.getAuthenticatedMap().remove(se.getSession().getId());
-			tokenServiceTmp.getSubscriberAuthenticatedMap().remove(se.getSession().getId());
 		}
 	}
 

@@ -12,7 +12,6 @@ import io.antmedia.datastore.db.types.Token;
 public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 
 	Map<String, String> authenticatedMap = new ConcurrentHashMap<>();
-	Map<String, String> subscriberAuthenticatedMap = new ConcurrentHashMap<>();
 
 	public boolean checkToken(String tokenId, String streamId, String sessionId, String type) {
 		return true;
@@ -36,11 +35,6 @@ public class MockTokenService implements  IStreamPublishSecurity, ITokenService{
 	@Override
 	public Map<String, String> getAuthenticatedMap() {
 		return authenticatedMap;
-	}
-	
-	@Override
-	public Map<String, String> getSubscriberAuthenticatedMap() {
-		return subscriberAuthenticatedMap;
 	}
 	
 	@Override
