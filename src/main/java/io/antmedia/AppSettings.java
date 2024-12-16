@@ -26,7 +26,6 @@ import org.springframework.context.annotation.PropertySource;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.google.gson.Gson;
 
 import dev.morphia.annotations.Entity;
 import dev.morphia.annotations.Field;
@@ -751,7 +750,7 @@ public class AppSettings implements Serializable{
 	 * @hidden
 	 */
 	private static final String SETTINGS_CLUSTER_COMMUNICATION_KEY = "settings.clusterCommunicationKey";
-	
+
 	/**
 	 *  For default values
 	 *  
@@ -776,6 +775,12 @@ public class AppSettings implements Serializable{
 				+ "\"active_attendee\":[\"active_attendee\",\"speaker\"]," //means active attendee can see active attendee and speaker
 
 			+ "}";
+	
+	//use lower case for theses fields because they are used in extension as well
+	public static final String PREVIEW_FORMAT_PNG = "png";
+	public static final String PREVIEW_FORMAT_JPG = "jpg";
+	public static final String PREVIEW_FORMAT_WEBP = "webp";
+
 
 	/**
 	 * Comma separated CIDR that rest services are allowed to response
@@ -895,8 +900,8 @@ public class AppSettings implements Serializable{
 	 * 0 means does not upload, 1 means upload
 	 * Least significant digit switches mp4 files upload to s3
 	 * Second digit switches HLS files upload to s3
-	 * Most significant digit switches PNG files upload to s3
-	 * Example: 5 ( 101 in binary ) means upload mp4 and PNG but not HLS
+	 * Most significant digit switches preview(png, jpeg) files upload to s3
+	 * Example: 5 ( 101 in binary ) means upload mp4 and previews but not HLS
 	 * HLS files still will be saved on the server if deleteHLSFilesOnEnded flag is false
 	 */
 	@Value( "${uploadExtensionsToS3:${"+SETTINGS_UPLOAD_EXTENSIONS_TO_S3+":7}}" )
@@ -1189,7 +1194,7 @@ public class AppSettings implements Serializable{
 	private boolean objectDetectionEnabled;
 	/**
 	 * It's mandatory,
-	 * This determines the period (milliseconds) of preview (png) file creation,
+	 * This determines the period (milliseconds) of preview (png, jpg) file creation,
 	 * This file is created into <APP_DIR>/preview directory. Default value is 5000.
 	 */
 
@@ -1427,7 +1432,28 @@ public class AppSettings implements Serializable{
 	 */
 	@Value( "${generatePreview:${" + SETTINGS_GENERATE_PREVIEW+":false}}")
 	private boolean generatePreview;
+	
+	/**
+	 * Preview format can be png or jpg
+	 */
+	@Value( "${previewFormat:"+PREVIEW_FORMAT_PNG+"}")
+	private String previewFormat = PREVIEW_FORMAT_PNG;
+	
+	/**
+	 * Preview quality. It's valid for JPG and WEBP formats.
+	 * JPG: The range is between 2 to 31. 2 is the best quality, largest file size and 31 is the worst quality and lowest file size. Recommended value is 5
+	 * WEBP: The range is between 0 to 100. 0 is the worst quality, smallest file size and 100 is the best quality and largest file size.Recommended value is 75
+	 * 
+	 * Pay attention that the quality parameter is not valid for PNG and default value for this preview is for WebP format. You need to change for JPG format
+	 */
+	@Value("${previewQuality:75}")
+	private int previewQuality = 75;
+	
 
+	/**
+	 * Whether to write viewers(HLS, WebRTC) count to the data store, it's true by default. 
+	 * If you set it to false, it decreases the number of write operations to the data store and you don't see the viewer count in datastore
+	 */
 	@Value( "${writeStatsToDatastore:${" + SETTINGS_WRITE_STATS_TO_DATASTORE +":true}}")
 	private boolean writeStatsToDatastore = true;
 
@@ -1756,7 +1782,31 @@ public class AppSettings implements Serializable{
 	/**
 	 * Set to true when you want to delete an application 
 	 */
+	@Deprecated (forRemoval = true)
 	private boolean toBeDeleted = false;
+
+
+
+	public static final String APPLICATION_STATUS_INSTALLING = "installing";
+	public static final String APPLICATION_STATUS_INSTALLED = "installed";
+	public static final String APPLICATION_STATUS_DELETED = "deleted";
+	public static final String APPLICATION_STATUS_INSTALLATION_FAILED = "installationFailed";
+
+
+	/**
+	 * Describes the application installation status. Possible values:
+	 *
+	 * Installing: App install Rest method received by host node
+	 * Installed: App installation completed on host node
+	 * Installation Failed: App installation can not be completed by host node
+	 * Deleted: App installation deleted on host node
+	 */
+	private String appStatus = APPLICATION_STATUS_INSTALLED;
+
+	/**
+	 * The time when the application is installed
+	 */
+	private long appInstallationTime = 0;
 
 	/**
 	 * Set to true when the app settings are only created for pulling the war file.
@@ -1829,22 +1879,44 @@ public class AppSettings implements Serializable{
 	@Value( "${dashHttpStreaming:${"+SETTINGS_DASH_HTTP_STREAMING+":true}}" )
 	private boolean dashHttpStreaming=true;
 
+	/**
+	 * Configures the sub folder path for storing media files.
+	 * This setting is appended to s3StreamsFolderPath in case of S3 upload.
+	 * For instance if s3StreamsFolderPath is "streams"(default value) and subFolder is "someRoom", files will appear as
+	 * streams/someRoom/0001.ts
+	 *
+	 * Path configuration supports dynamic placeholders for files:
+	 * - '%m': Replaces with main track ID if exists
+	 * - '%s': Replaces with stream ID
+	 *
+	 * This is particularly useful for storing conference participant stream HLS recordings in separate folders.
+	 *
+	 * Examples of path configurations in S3 assuming s3StreamsFolderPath is "streams":
+	 * - "" (default)                  → Basic folder → streams/0001.ts
+	 * - "%m"                                 → Use main track ID as sub folder  → streams/mainTrackId/0001.ts
+	 * - "myStreams/%m/%s"                      → Nested folders with track and stream IDs → streams/myStreams/mainTrackId/streamId/0001.ts
+	 * - "conference/videos/%m/%s"            → Custom path with prefixes → streams/conference/videos/mainTrackId/streamId/0001.ts
+	 *
+	 * If main track ID or stream ID are null, they are omitted.
+	 */
+	@Value( "${subFolder:}" )
+	private String subFolder = "";
 
 	/**
-	 * It's S3 streams MP4, WEBM  and HLS files storage name . 
+	 * It's S3 streams MP4, WEBM  and HLS files storage name.
 	 * It's streams by default.
 	 *
 	 */
 	@Value( "${s3StreamsFolderPath:${"+SETTINGS_S3_STREAMS_FOLDER_PATH+":streams}}" )
-	private String  s3StreamsFolderPath="streams";
+	private String s3StreamsFolderPath="streams";
 
 	/**
-	 * It's S3 stream PNG files storage name . 
+	 * It's S3 stream PNG files storage name.
 	 * It's previews by default.
 	 *
 	 */
 	@Value("${s3PreviewsFolderPath:${"+SETTINGS_S3_PREVIEWS_FOLDER_PATH+":previews}}")
-	private String  s3PreviewsFolderPath="previews";
+	private String s3PreviewsFolderPath="previews";
 
 	/*
 	 * Use http endpoint  in CMAF/HLS.
@@ -2281,6 +2353,13 @@ public class AppSettings implements Serializable{
 	 */
 	@Value("${encodingQueueSize:150}")
 	private int encodingQueueSize = 150;
+	
+	/**
+	 * Write subscriber events to datastore. It's false by default
+	 * Subscriber events are when they are connected/disconnected. Alternatively, you can get these events from analytics logs by default
+	 */
+	@Value("${writeSubscriberEventsToDatastore:false}")
+	private boolean writeSubscriberEventsToDatastore = false;
 
 	//Make sure you have a default constructor because it's populated by MongoDB
 	public AppSettings() {
@@ -3366,12 +3445,22 @@ public class AppSettings implements Serializable{
 		this.timeTokenPeriod = timeTokenPeriod;
 	}
 
+	@Deprecated(forRemoval = true, since = "2.12.0")
 	public boolean isToBeDeleted() {
 		return toBeDeleted;
 	}
 
+	@Deprecated(forRemoval = true, since = "2.12.0")
 	public void setToBeDeleted(boolean toBeDeleted) {
 		this.toBeDeleted = toBeDeleted;
+	}
+
+	public String getAppStatus() {
+		return appStatus;
+	}
+
+	public void setAppStatus(String appStatus) {
+		this.appStatus = appStatus;
 	}
 
 	public boolean isPullWarFile() {
@@ -3985,4 +4074,68 @@ public class AppSettings implements Serializable{
     public void setEncodingQueueSize(int encodingQueueSize) {
         this.encodingQueueSize = encodingQueueSize;
     }
+
+	public String getSubFolder() {
+		return subFolder;
+	}
+
+	public void setSubFolder(String subFolder) {
+		this.subFolder = subFolder;
+	}
+
+	/**
+	 * @return the previewFormat
+	 */
+	public String getPreviewFormat() {
+		return previewFormat;
+	}
+
+	/**
+	 * @param previewFormat the previewFormat to set
+	 */
+	public void setPreviewFormat(String previewFormat) {
+		this.previewFormat = previewFormat;
+	}
+
+	/**
+	 * @return the previewQuality
+	 */
+	public int getPreviewQuality() {
+		return previewQuality;
+	}
+
+	/**
+	 * @param previewQuality the previewQuality to set
+	 */
+	public void setPreviewQuality(int previewQuality) {
+		this.previewQuality = previewQuality;
+	}
+
+	/**
+	 * @return the writeSubscriberEventsToDatastore
+	 */
+	public boolean isWriteSubscriberEventsToDatastore() {
+		return writeSubscriberEventsToDatastore;
+	}
+
+	/**
+	 * @param writeSubscriberEventsToDatastore the writeSubscriberEventsToDatastore to set
+	 */
+	public void setWriteSubscriberEventsToDatastore(boolean writeSubscriberEventsToDatastore) {
+		this.writeSubscriberEventsToDatastore = writeSubscriberEventsToDatastore;
+	}
+
+	/**
+	 * @return the appInstallationTime
+	 */
+	public long getAppInstallationTime() {
+		return appInstallationTime;
+	}
+
+	/**
+	 * @param appInstallationTime the appInstallationTime to set
+	 */
+	public void setAppInstallationTime(long appInstallationTime) {
+		this.appInstallationTime = appInstallationTime;
+	}
 }

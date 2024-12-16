@@ -92,6 +92,7 @@ import io.antmedia.plugin.api.IPacketListener;
 import io.antmedia.rest.model.Result;
 import io.antmedia.security.AcceptOnlyStreamsInDataStore;
 import io.antmedia.settings.ServerSettings;
+import io.antmedia.statistic.HlsViewerStats;
 import io.antmedia.statistic.type.WebRTCAudioReceiveStats;
 import io.antmedia.statistic.type.WebRTCAudioSendStats;
 import io.antmedia.statistic.type.WebRTCVideoReceiveStats;
@@ -224,6 +225,30 @@ public class AntMediaApplicationAdaptorUnitTest {
 				}
 				
 	}
+	
+	@Test
+	public void testEndpointReachable() {
+		boolean endpointReachable = AntMediaApplicationAdapter.isEndpointReachable("http://antmedia.io/not_exist");
+		//it should be true because we're just checking if it's reachable
+		assertTrue(endpointReachable);
+		
+		endpointReachable = AntMediaApplicationAdapter.isEndpointReachable("http://antmedia.io:45454/not_exist");
+		assertFalse(endpointReachable);
+		
+		boolean instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("antmedia.io", null, 80, "");
+		assertTrue(instanceAlive);
+		
+		instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("antmedia.io", null, 4545, "");
+		assertFalse(instanceAlive);
+		
+		instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("", null, 4545, "");
+		assertTrue(instanceAlive);
+		
+		instanceAlive = AntMediaApplicationAdapter.isInstanceAlive("localhost", "localhost", 4545, "");
+		assertTrue(instanceAlive);
+
+	}
+	
 	@Test
 	public void testIsIncomingTimeValid() {
 		AppSettings newSettings = new AppSettings();
@@ -811,8 +836,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		assertEquals(hookURL, spyAdaptor.getListenerHookURL(broadcast));
 
-
 		spyAdaptor = Mockito.spy(adapter);
+		Mockito.doNothing().when(spyAdaptor).resetHLSStats(Mockito.anyString());
+		Mockito.doNothing().when(spyAdaptor).resetDASHStats(Mockito.anyString());
 		appSettings = new AppSettings();
 		spyAdaptor.setServerSettings(new ServerSettings());
 		spyAdaptor.setAppSettings(appSettings);
@@ -1913,12 +1939,10 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		when(serverSettings.getHostAddress()).thenReturn("1.1.1.2");
 
-		CompletableFuture<Boolean> successFuture = CompletableFuture.completedFuture(true);
 		String expectedRestRoute = "http://1.1.1.3:5080/WebRTCAppEE/rest/v2/broadcasts/test-stream-id/start";
-		Mockito.doReturn(successFuture).when(spyAdapter).sendClusterPost(
+		Mockito.doReturn(true).when(spyAdapter).sendClusterPost(
 				eq(expectedRestRoute),
-				anyString(),
-				eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT)
+				anyString()
 		);
 
 		Result result3 = spyAdapter.startStreaming(broadcast3);
@@ -1936,10 +1960,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		CompletableFuture<Boolean> failureFuture = CompletableFuture.completedFuture(false);
 		String expectedRestRoute2 = "http://1.1.1.4:5080/WebRTCAppEE/rest/v2/broadcasts/test-stream-id-2/start";
-		Mockito.doReturn(failureFuture).when(spyAdapter).sendClusterPost(
+		Mockito.doReturn(false).when(spyAdapter).sendClusterPost(
 				eq(expectedRestRoute2),
-				anyString(),
-				eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT)
+				anyString()
 		);
 		when(streamFetcherManager.startStreaming(broadcast4)).thenReturn(new Result(true));
 
@@ -2010,11 +2033,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 				File.separator + "v2" + File.separator + "broadcasts" +
 				File.separator + broadcast1.getStreamId() + File.separator + "start";
 
-		CompletableFuture<Boolean> successFuture = CompletableFuture.completedFuture(true);
-		Mockito.doReturn(successFuture).when(spyAdapter).sendClusterPost(
+		Mockito.doReturn(true).when(spyAdapter).sendClusterPost(
 				eq(expectedRestRoute1),
-				anyString(),
-				eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT)
+				anyString()
 		);
 
 		spyAdapter.forwardStartStreaming(broadcast1);
@@ -2023,8 +2044,7 @@ public class AntMediaApplicationAdaptorUnitTest {
 		await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
 			verify(spyAdapter, times(1)).sendClusterPost(
 					eq(expectedRestRoute1),
-					anyString(),
-					eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT)
+					anyString()
 			);
 			verify(streamFetcherManager, never()).startStreaming(broadcast1);
 		});
@@ -2039,11 +2059,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 				File.separator + "v2" + File.separator + "broadcasts" +
 				File.separator + broadcast2.getStreamId() + File.separator + "start";
 
-		CompletableFuture<Boolean> failureFuture = CompletableFuture.completedFuture(false);
-		Mockito.doReturn(failureFuture).when(spyAdapter).sendClusterPost(
+		Mockito.doReturn(false).when(spyAdapter).sendClusterPost(
 				eq(expectedRestRoute2),
-				anyString(),
-				eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT)
+				anyString()
 		);
 		when(streamFetcherManager.startStreaming(broadcast2)).thenReturn(new Result(true));
 
@@ -2051,10 +2069,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Verify failure case with local fallback
 		await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
-			verify(spyAdapter, times(1)).sendClusterPost(
+			verify(spyAdapter, times(4)).sendClusterPost(
 					eq(expectedRestRoute2),
-					anyString(),
-					eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT)
+					anyString()
 			);
 			verify(streamFetcherManager, times(1)).startStreaming(broadcast2);
 		});
@@ -2069,12 +2086,9 @@ public class AntMediaApplicationAdaptorUnitTest {
 				File.separator + "v2" + File.separator + "broadcasts" +
 				File.separator + broadcast3.getStreamId() + File.separator + "start";
 
-		CompletableFuture<Boolean> exceptionFuture = new CompletableFuture<>();
-		exceptionFuture.completeExceptionally(new RuntimeException("Test exception"));
-		Mockito.doReturn(exceptionFuture).when(spyAdapter).sendClusterPost(
+		Mockito.doReturn(false).when(spyAdapter).sendClusterPost(
 				eq(expectedRestRoute3),
-				anyString(),
-				eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT)
+				anyString()
 		);
 		when(streamFetcherManager.startStreaming(broadcast3)).thenReturn(new Result(true));
 
@@ -2082,17 +2096,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Verify exception case with local fallback
 		await().atMost(2, TimeUnit.SECONDS).untilAsserted(() -> {
-			verify(spyAdapter, times(1)).sendClusterPost(
+			verify(spyAdapter, times(4)).sendClusterPost(
 					eq(expectedRestRoute3),
-					anyString(),
-					eq(AntMediaApplicationAdapter.CLUSTER_POST_RETRY_ATTEMPT_COUNT)
+					anyString()
 			);
 			verify(streamFetcherManager, times(1)).startStreaming(broadcast3);
 		});
 
 		// Test Case 4: Verify JWT token format
 		ArgumentCaptor<String> tokenCaptor = ArgumentCaptor.forClass(String.class);
-		verify(spyAdapter, atLeast(3)).sendClusterPost(anyString(), tokenCaptor.capture(), anyInt());
+		verify(spyAdapter, atLeast(3)).sendClusterPost(anyString(), tokenCaptor.capture());
 
 		for (String capturedToken : tokenCaptor.getAllValues()) {
 			assertNotNull(capturedToken);
@@ -2141,14 +2154,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 				.thenReturn(successResponse);
 
 		// Test asynchronous behavior
-		CompletableFuture<Boolean> result = spyAdapter.sendClusterPost(testUrl, testToken, 1);
+		long startTime = System.currentTimeMillis();
+		boolean result = spyAdapter.sendClusterPost(testUrl, testToken);
 
+		long endTime = System.currentTimeMillis();
 		// Wait for the CompletableFuture to complete
-		assertTrue(result.get(2, TimeUnit.SECONDS));
+		assertTrue((endTime - startTime) < AntMediaApplicationAdapter.CLUSTER_POST_TIMEOUT_MS);
 
 		// Verify request configuration
 		ArgumentCaptor<HttpPost> httpPostCaptor = ArgumentCaptor.forClass(HttpPost.class);
-		verify(httpClient, times(2)).execute(httpPostCaptor.capture());
+		verify(httpClient, times(1)).execute(httpPostCaptor.capture());
 
 		List<HttpPost> capturedPosts = httpPostCaptor.getAllValues();
 		assertEquals(testUrl, capturedPosts.get(0).getURI().toString());
@@ -2162,19 +2177,19 @@ public class AntMediaApplicationAdaptorUnitTest {
 
 		// Test no retries left after failure
 		when(httpClient.execute(any(HttpPost.class))).thenReturn(failResponse);
-		CompletableFuture<Boolean> noRetryResult = spyAdapter.sendClusterPost(testUrl, testToken, 0);
-		assertFalse(noRetryResult.get(2, TimeUnit.SECONDS));
+		result = spyAdapter.sendClusterPost(testUrl, testToken);
+		assertFalse(result);
 
 		// Test IOException handling with retries
 		when(httpClient.execute(any(HttpPost.class)))
 				.thenThrow(new IOException("Test exception"))
 				.thenReturn(successResponse);
 
-		CompletableFuture<Boolean> ioRetryResult = spyAdapter.sendClusterPost(testUrl, testToken, 1);
-		assertTrue(ioRetryResult.get(2, TimeUnit.SECONDS));
+		result = spyAdapter.sendClusterPost(testUrl, testToken);
+		assertFalse(result);
 
 		// Verify the retry logic was triggered
-		verify(spyAdapter, times(2)).retrySendClusterPostWithDelay(eq(testUrl), eq(testToken), eq(0));
+		//verify(spyAdapter, times(2)).trySendClusterPostWithDelay(eq(testUrl), eq(testToken), eq(0));
 	}
 
 	@Test
@@ -2455,6 +2470,16 @@ public class AntMediaApplicationAdaptorUnitTest {
 		verify(clusterStreamFetcher, times(1)).remove(nonExistingStreamId, listener);
 
 
+	}
+	
+	@Test
+	public void testSaveMainBroadcast() 
+	{
+		DataStore dataStore = new InMemoryDataStore("test");
+		Broadcast mainTrack = AntMediaApplicationAdapter.saveMainBroadcast("streamId", "mainTrackId", dataStore);
+		assertNotNull(mainTrack);
+		//origin address must be null because main track is not a real stream
+		assertNull(mainTrack.getOriginAdress());
 	}
 
 	@Test

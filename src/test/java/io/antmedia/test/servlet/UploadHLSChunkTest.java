@@ -166,7 +166,6 @@ public class UploadHLSChunkTest {
 	
 	@Test
 	public void testGetS3Key() {
-		
 		String pathInfo = "test.m3u8";
 
 		when(mockRequest.getPathInfo()).thenReturn(pathInfo);
@@ -174,18 +173,16 @@ public class UploadHLSChunkTest {
 
 		String s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
 		assertEquals("streams/test.m3u8", s3Key);
-		
+
 		pathInfo = "/test.m3u8";
 		s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
 		assertEquals("streams/test.m3u8", s3Key);
-		
-		
+
+
 		pathInfo = "/test.m3u8";
 		appSettings.setS3StreamsFolderPath("streams/");
 		s3Key = UploadHLSChunk.getS3Key(mockRequest, appSettings);
 		assertEquals("streams/test.m3u8", s3Key);
-
 	}
-
 
 }

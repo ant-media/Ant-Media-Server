@@ -158,7 +158,7 @@ public abstract class RestServiceBase {
 	public static final String IPV4_REGEX = "(([0-1]?[0-9]{1,2}\\.)|(2[0-4][0-9]\\.)|(25[0-5]\\.)){3}(([0-1]?[0-9]{1,2})|(2[0-4][0-9])|(25[0-5]))";
 
 	public static final String LOOPBACK_REGEX = "^localhost$|^127(?:\\.[0-9]+){0,2}\\.[0-9]+$|^(?:0*\\:)*?:?0*1$";
-	private static final String REPLACE_CHARS = "[\n|\r|\t]";
+	public static final String REPLACE_CHARS = "[\n|\r|\t]";
 	@Context
 	protected ServletContext servletContext;
 	protected DataStoreFactory dataStoreFactory;
@@ -1013,7 +1013,7 @@ public abstract class RestServiceBase {
 			}
 
 			if (logger.isInfoEnabled())  {
-				logger.info("IP: {}", serverAddr.replaceAll("[\n|\r|\t]", "_"));
+				logger.info("IP: {}", serverAddr.replaceAll(REPLACE_CHARS, "_"));
 			}
 
 			if(serverAddr.split("\\.").length == 4 && validateIPaddress(serverAddr)){

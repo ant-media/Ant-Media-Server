@@ -1,12 +1,19 @@
 package io.antmedia;
 
 import static io.antmedia.rest.RestServiceBase.FETCH_REQUEST_REDIRECTED_TO_ORIGIN;
+import static io.antmedia.muxer.IAntMediaStreamHandler.BROADCAST_STATUS_BROADCASTING;
 import static org.bytedeco.ffmpeg.global.avcodec.avcodec_get_name;
 
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.net.HttpURLConnection;
+import java.net.URI;
+import java.net.URL;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -28,6 +35,7 @@ import io.antmedia.statistic.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpStatus;
@@ -97,7 +105,6 @@ import io.antmedia.webrtc.PublishParameters;
 import io.antmedia.webrtc.api.IWebRTCAdaptor;
 import io.antmedia.webrtc.api.IWebRTCClient;
 import io.antmedia.websocket.WebSocketConstants;
-import io.micrometer.common.util.StringUtils;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.dropwizard.MetricsService;
@@ -250,8 +257,21 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		if (app.getContext().hasBean(IClusterNotifier.BEAN_NAME)) {
 			//which means it's in cluster mode
 			clusterNotifier = (IClusterNotifier) app.getContext().getBean(IClusterNotifier.BEAN_NAME);
-			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());
-			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), settings -> updateSettings(settings, false, true));
+			logger.info("Registering settings listener to the cluster notifier for app: {}", app.getName());			
+
+			clusterNotifier.registerSettingUpdateListener(getAppSettings().getAppName(), new IAppSettingsUpdateListener() {
+
+				@Override
+				public boolean settingsUpdated(AppSettings settings) {
+					return updateSettings(settings, false, true);
+				}
+
+				@Override
+				public AppSettings getCurrentSettings() {
+
+					return getAppSettings();
+				}
+			});
 			AppSettings storedSettings = clusterNotifier.getClusterStore().getSettings(app.getName());
 
 			boolean updateClusterSettings = false;
@@ -640,8 +660,20 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 			Broadcast broadcast = getDataStore().get(streamId);
 			if (broadcast != null) {
 
-				getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
+				if (broadcast.isZombi()) {
 
+					logger.info("Deleting streamId:{} because it's a zombi stream", streamId);
+					getDataStore().delete(streamId);
+				}
+				else {
+
+					getDataStore().updateStatus(streamId, BROADCAST_STATUS_FINISHED);
+					// This is resets Viewer map in HLS Viewer Stats
+					resetHLSStats(streamId);
+
+					// This is resets Viewer map in DASH Viewer Stats
+					resetDASHStats(streamId);
+				}
 
 				final String listenerHookURL = getListenerHookURL(broadcast);
 				if (listenerHookURL != null && !listenerHookURL.isEmpty()) {
@@ -663,20 +695,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 				if(StringUtils.isNotBlank(broadcast.getMainTrackStreamId())) {
 					updateMainTrackWithRecentlyFinishedBroadcast(broadcast);
-				}
-
-				if (broadcast.isZombi()) {
-
-					logger.info("Deleting streamId:{} because it's a zombi stream", streamId);
-					getDataStore().delete(streamId);
-				}
-				else {
-					// This is resets Viewer map in HLS Viewer Stats
-					resetHLSStats(streamId);
-
-					// This is resets Viewer map in DASH Viewer Stats
-					resetDASHStats(streamId);
-				}
+				}	
 
 				for (IStreamListener listener : streamListeners) {
 					listener.streamFinished(broadcast.getStreamId());
@@ -686,6 +705,60 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		} catch (Exception e) {
 			logger.error(ExceptionUtils.getStackTrace(e));
 		}
+	}
+
+	public static Broadcast saveMainBroadcast(String streamId, String mainTrackId, DataStore dataStore) {
+		Broadcast mainBroadcast = new Broadcast();
+		try {
+			mainBroadcast.setStreamId(mainTrackId);
+		} catch (Exception e) {
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		mainBroadcast.setZombi(true);
+		mainBroadcast.setStatus(BROADCAST_STATUS_BROADCASTING);
+		mainBroadcast.getSubTrackStreamIds().add(streamId);
+		// don't set  setOriginAdress because it's not a real stream and it causes extra delay  -> mainBroadcast.setOriginAdress(serverSettings.getHostAddress()) 
+		mainBroadcast.setStartTime(System.currentTimeMillis());
+
+		return StringUtils.isNotBlank(dataStore.save(mainBroadcast)) ? mainBroadcast : null;
+	}
+
+	public static boolean isInstanceAlive(String originAdress, String hostAddress, int httpPort, String appName) {
+		if (StringUtils.isBlank(originAdress) || StringUtils.equals(originAdress, hostAddress)) {
+			return true;
+		}
+
+		String url = "http://" + originAdress + ":" + httpPort + "/" + appName;
+
+		boolean result = isEndpointReachable(url);
+		if (!result) {
+			logger.warn("Instance with origin address {} is not reachable through its app:{}", originAdress, appName);
+		}
+		return result;
+	}
+
+	public static boolean isEndpointReachable(String endpoint) {
+		HttpClient client = HttpClient.newHttpClient();
+		HttpRequest request = HttpRequest.newBuilder()
+				.uri(URI.create(endpoint))
+				.method("HEAD", HttpRequest.BodyPublishers.noBody()) // HEAD request
+				.timeout(java.time.Duration.ofSeconds(1))
+				.build();
+
+
+		try {
+			HttpResponse<Void> response = client.send(request, HttpResponse.BodyHandlers.discarding());
+		} catch (InterruptedException e) {
+			logger.error("InterruptedException Enpoint is not reachable: {}, {}", endpoint, ExceptionUtils.getStackTrace(e));
+			Thread.currentThread().interrupt();
+			return false;
+		} catch (Exception e) {
+			logger.error("Enpoint is not reachable: {}, {}", endpoint, ExceptionUtils.getStackTrace(e));
+			return false;
+		}
+		return true;
+
+
 	}
 
 	/**
@@ -1179,66 +1252,65 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		}
 	}
 
-	public CompletableFuture<Boolean> sendClusterPost(String url, String clusterCommunicationToken, int retryAttempts) {
-		CompletableFuture<Boolean> future = new CompletableFuture<>();
+	public boolean sendClusterPost(String url, String clusterCommunicationToken) 
+	{
 
-		vertx.executeBlocking(promise -> {
-			try (CloseableHttpClient httpClient = getHttpClient()) {
-				HttpPost httpPost = new HttpPost(url);
-				RequestConfig requestConfig = RequestConfig.custom()
-						.setConnectTimeout(CLUSTER_POST_TIMEOUT_MS)
-						.setConnectionRequestTimeout(CLUSTER_POST_TIMEOUT_MS)
-						.setSocketTimeout(CLUSTER_POST_TIMEOUT_MS)
-						.build();
-				httpPost.setConfig(requestConfig);
+		boolean result = false;
+		try (CloseableHttpClient httpClient = getHttpClient()) 
+		{
+			HttpPost httpPost = new HttpPost(url);
+			RequestConfig requestConfig = RequestConfig.custom()
+					.setConnectTimeout(CLUSTER_POST_TIMEOUT_MS)
+					.setConnectionRequestTimeout(CLUSTER_POST_TIMEOUT_MS)
+					.setSocketTimeout(CLUSTER_POST_TIMEOUT_MS)
+					.build();
+			httpPost.setConfig(requestConfig);
 
-				httpPost.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterCommunicationToken);
+			httpPost.setHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION, clusterCommunicationToken);
 
-				try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) {
-					int statusCode = httpResponse.getStatusLine().getStatusCode();
-					logger.info("Cluster POST Response Status: {}", statusCode);
-					if (statusCode == HttpStatus.SC_OK) {
-						promise.complete(true);
-					} else {
-						if (retryAttempts >= 1) {
-							logger.info("Retry attempt for Cluster POST in {} milliseconds due to non-200 response: {}",
-									appSettings.getWebhookRetryDelay(), statusCode);
-							retrySendClusterPostWithDelay(url, clusterCommunicationToken, retryAttempts - 1)
-									.thenAccept(promise::complete); // Chain retry result
-						} else {
-							logger.info("Stopping sending Cluster POST because no more retry attempts left. Giving up.");
-							promise.complete(false);
-						}
-					}
-				}
-			} catch (IOException e) {
-				if (retryAttempts >= 1) {
-					logger.info("Retry attempt for Cluster POST in {} milliseconds due to IO exception: {}",
-							appSettings.getWebhookRetryDelay(), ExceptionUtils.getStackTrace(e));
-					retrySendClusterPostWithDelay(url, clusterCommunicationToken, retryAttempts - 1)
-							.thenAccept(promise::complete); // Chain retry result
-				} else {
-					logger.info("Stopping sending Cluster POST because no more retry attempts left. Giving up.");
-					promise.complete(false);
-				}
+			try (CloseableHttpResponse httpResponse = httpClient.execute(httpPost)) 
+			{
+				int statusCode = httpResponse.getStatusLine().getStatusCode();
+				logger.info("Cluster POST Response Status: {}", statusCode);
+				if (statusCode == HttpStatus.SC_OK) {
+					result = true;
+				} 
 			}
-		}, result -> {
-			if (result.succeeded()) {
-				future.complete((Boolean) result.result());
-			} else {
-				future.completeExceptionally(result.cause());
-			}
-		});
-
-		return future;
+		} 
+		catch (IOException e) 
+		{
+			logger.error(ExceptionUtils.getStackTrace(e));
+		}
+		return result;
 	}
 
-	public CompletableFuture<Boolean> retrySendClusterPostWithDelay(String url, String clusterCommunicationToken, int retryAttempts) {
-		CompletableFuture<Boolean> future = new CompletableFuture<>();
+	public void trySendClusterPostWithDelay(String url, String clusterCommunicationToken, int retryAttempts, CompletableFuture<Boolean> future) {
 		vertx.setTimer(appSettings.getWebhookRetryDelay(), timerId -> {
-			sendClusterPost(url, clusterCommunicationToken, retryAttempts).thenAccept(future::complete);
+
+			vertx.executeBlocking(() -> {
+
+				boolean result = sendClusterPost(url, clusterCommunicationToken);
+
+				if (!result && retryAttempts >= 1) {
+					trySendClusterPostWithDelay(url, clusterCommunicationToken, retryAttempts - 1, future);
+				}
+				else {
+
+					future.complete(result);
+					if (result) {
+						logger.info("Cluster POST is successful another node for url:{}", url);
+					}
+					else {
+						logger.info("Cluster POST is not successful to another node for url:{} and no more retry attempts left",
+								url);
+					}
+				}
+				return null;
+
+			});
+
+
 		});
-		return future;
 	}
 
 	/**
@@ -1375,7 +1447,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				String broadcastOriginAddress = broadcast.getOriginAdress();
 
 				// Handle null or empty origin address
-				if (broadcastOriginAddress == null || broadcastOriginAddress.isEmpty()) {
+				if (StringUtils.isBlank(broadcastOriginAddress)) {
 					result = getStreamFetcherManager().startStreaming(broadcast);
 					result.setMessage("Broadcasts origin address is not set. " +
 							getServerSettings().getHostAddress() + " will fetch the stream.");
@@ -1417,7 +1489,7 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		String jwtToken = JWTFilter.generateJwtToken(
 				getAppSettings().getClusterCommunicationKey(),
 				System.currentTimeMillis() + 5000
-		);
+				);
 
 		String restRouteOfNode = "http://" + broadcast.getOriginAdress() + ":" +
 				getServerSettings().getDefaultHttpPort() +
@@ -1428,20 +1500,25 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 				File.separator + broadcast.getStreamId() +
 				File.separator + "start";
 
-		sendClusterPost(restRouteOfNode, jwtToken, CLUSTER_POST_RETRY_ATTEMPT_COUNT)
-				.thenAccept(success -> {
-					if (success) {
-						logger.info("Cluster POST redirection to {} succeeded", restRouteOfNode);
-					} else {
-						logger.info("Cluster POST redirection to {} failed. Local node {} will fetch the stream. ", restRouteOfNode, getServerSettings().getHostAddress());
-						getStreamFetcherManager().startStreaming(broadcast);
-					}
-				})
-				.exceptionally(ex -> {
-					logger.error("Cluster POST encountered an exception: {}", ExceptionUtils.getStackTrace(ex));
-					getStreamFetcherManager().startStreaming(broadcast);
-					return null;
-				});
+
+		CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+		trySendClusterPostWithDelay(restRouteOfNode, jwtToken, CLUSTER_POST_RETRY_ATTEMPT_COUNT, future);
+
+
+		future.thenAccept(success -> {
+			if (success) {
+				logger.info("Cluster POST redirection to {} succeeded", restRouteOfNode);
+			} else {
+				logger.info("Cluster POST redirection to {} failed. Local node {} will fetch the stream. ", restRouteOfNode, getServerSettings().getHostAddress());
+				getStreamFetcherManager().startStreaming(broadcast);
+			}
+		})
+		.exceptionally(ex -> {
+			logger.error("Cluster POST encountered an exception: {}", ExceptionUtils.getStackTrace(ex));
+			getStreamFetcherManager().startStreaming(broadcast);
+			return null;
+		});
 	}
 
 	public Result stopStreaming(Broadcast broadcast)
@@ -1607,13 +1684,13 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 
 	public void waitUntilLiveStreamsStopped() {
 		int i = 0;
-		int waitPeriod = 1000;
+		int waitPeriod = 500;
 		boolean everythingHasStopped = true;
 		while(getDataStore().getLocalLiveBroadcastCount(getServerSettings().getHostAddress()) > 0) {
 			try {
 				if (i > 3) {
 					logger.warn("Waiting for active broadcasts number decrease to zero for app: {}"
-							+ "total wait time: {}ms", getScope().getName(), i*waitPeriod);
+							+ " total wait time: {}ms", getScope().getName(), i*waitPeriod);
 				}
 				if (i>10) {
 					logger.error("Not all live streams're stopped gracefully. It will update the streams' status to finished explicitly");
@@ -2014,8 +2091,12 @@ public class AntMediaApplicationAdapter  extends MultiThreadedApplicationAdapter
 		securityHandler.setEnabled(newSettings.isAcceptOnlyStreamsInDataStore());
 
 		if (notifyCluster && clusterNotifier != null) {
-			//we should set to be deleted because app deletion fully depends on the cluster synch
+			//we should set to be deleted because app deletion fully depends on the cluster synch TODO remove the following line because toBeDeleted is deprecated
 			appSettings.setToBeDeleted(newSettings.isToBeDeleted());
+
+			appSettings.setAppStatus(newSettings.getAppStatus());
+
+
 			boolean saveSettings = clusterNotifier.getClusterStore().saveSettings(appSettings);
 			logger.info("Saving settings to cluster db -> {} for app: {} and updateTime:{}", saveSettings, getScope().getName(), appSettings.getUpdateTime());
 		}

@@ -26,7 +26,6 @@ import io.antmedia.storage.StorageClient;
 @MultipartConfig
 public class UploadHLSChunk extends HttpServlet {
 
-
 	private static final long serialVersionUID = 1L;
 
 	protected static Logger logger = LoggerFactory.getLogger(UploadHLSChunk.class);

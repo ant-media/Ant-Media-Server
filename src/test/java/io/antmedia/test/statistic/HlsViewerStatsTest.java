@@ -102,6 +102,11 @@ public class HlsViewerStatsTest {
 		viewerStats.setVertx(vertx);
 
 		DataStore dataStore = new InMemoryDataStore("datastore");
+		AppSettings appSettings = new AppSettings();
+		appSettings.setWriteSubscriberEventsToDatastore(true);
+		
+		dataStore.setAppSettings(appSettings);
+
 		viewerStats.setDataStore(dataStore);
 		
 		String streamId = "stream1";
@@ -127,7 +132,7 @@ public class HlsViewerStatsTest {
 				boolean eventExist = false;
 				Subscriber subData = dataStore.getSubscriber(streamId, subscriberPlay.getSubscriberId());
 				
-				List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
+				List<ConnectionEvent> events = dataStore.getConnectionEvents(streamId, subscriberPlay.getSubscriberId(), 0, 50);
 				
 				if(events.size() == 1) {
 					ConnectionEvent event2 = events.get(0);
@@ -176,6 +181,7 @@ public class HlsViewerStatsTest {
 
 			//set hls time to 1
 			settings.setHlsTime("1");
+			settings.setWriteSubscriberEventsToDatastore(true);
 			
 			when(context.getBean(AppSettings.BEAN_NAME)).thenReturn(settings);
 			when(context.getBean(ServerSettings.BEAN_NAME)).thenReturn(new ServerSettings());
@@ -246,7 +252,7 @@ public class HlsViewerStatsTest {
 					boolean eventExist = false;
 					Subscriber subData = dsf.getDataStore().getSubscriber(streamId, subscriberPlay.getSubscriberId());
 					
-					List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
+					List<ConnectionEvent> events =  dsf.getDataStore().getConnectionEvents(streamId, subscriberPlay.getSubscriberId(), 0, 50);
 					
 					if(events.size() == 1) {
 						ConnectionEvent event = events.get(0);
@@ -271,7 +277,7 @@ public class HlsViewerStatsTest {
 			// a disconnection event should be added 
 			Subscriber subData = dsf.getDataStore().getSubscriber(streamId, subscriberPlay2.getSubscriberId());
 			
-			List<ConnectionEvent> events = subData.getStats().getConnectionEvents();
+			List<ConnectionEvent> events =  dsf.getDataStore().getConnectionEvents(streamId, subscriberPlay2.getSubscriberId(), 0, 50);
 			
 			assertEquals(2, events.size());
 			ConnectionEvent eventDis = events.get(1);
@@ -313,7 +319,7 @@ public class HlsViewerStatsTest {
 			
 			Subscriber subData2 = dsf.getDataStore().getSubscriber(streamId, subscriberPlay3.getSubscriberId());
 			
-			List<ConnectionEvent> events2 = subData2.getStats().getConnectionEvents();
+			List<ConnectionEvent> events2 =  dsf.getDataStore().getConnectionEvents(streamId, subscriberPlay3.getSubscriberId(), 0, 50);
 			
 			assertEquals(2, events2.size());
 			ConnectionEvent eventDis2 = events.get(1);

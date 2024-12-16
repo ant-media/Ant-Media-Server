@@ -508,7 +508,7 @@ public class ConsoleAppRestServiceTest{
 
 		String content = Files.readString(propertiesFile.toPath());
 		assertTrue(content.contains("db.type=redisdb"));
-		assertTrue(content.contains("db.host=redis://127.0.0.1:6379"));
+		assertTrue(content.contains("db.host=redis://127.0.0.1:6379") || content.contains("db.host=redis\\://127.0.0.1\\:6379"));
 
 
 		result = deleteApplication(appName);

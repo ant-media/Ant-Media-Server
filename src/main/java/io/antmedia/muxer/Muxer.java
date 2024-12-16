@@ -47,7 +47,6 @@ import org.bytedeco.ffmpeg.avutil.AVRational;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.javacpp.BytePointer;
-import org.json.simple.JSONObject;
 import org.red5.server.api.IContext;
 import org.red5.server.api.scope.IScope;
 import org.red5.server.api.stream.IStreamFilenameGenerator;
@@ -639,17 +638,13 @@ public abstract class Muxer {
 	 * sample naming -> stream1-yyyy-MM-dd_HH-mm_480p_500kbps.mp4 if datetime is added
 	 * stream1_480p.mp4 if no datetime
 	 *
+	 * @param name,           name of the stream
 	 * @param scope
-	 * @param name,
-	 *            name of the stream
-	 * @param resolution
-	 *            height of the stream, if it is zero, then no resolution will
-	 *            be added to resource name
-	 * @param overrideIfExist
-	 *            whether override if a file exists with the same name
-	 * @param bitrate
-	 * 			  bitrate of the stream, if it is zero, no bitrate will
-	 * 			  be added to resource name
+	 * @param resolution      height of the stream, if it is zero, then no resolution will
+	 *                        be added to resource name
+	 * @param overrideIfExist whether override if a file exists with the same name
+	 * @param bitrate         bitrate of the stream, if it is zero, no bitrate will
+	 *                        be added to resource name
 	 */
 	public void init(IScope scope, final String name, int resolution, boolean overrideIfExist, String subFolder, int bitrate) {
 		if (!isInitialized) {

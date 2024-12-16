@@ -19,15 +19,15 @@ public class IPFilter extends AbstractFilter {
 
 	protected static Logger log = LoggerFactory.getLogger(IPFilter.class);
 
+	/**
+	 * This filter is being used for accessing applications REST API so that return valid is if {@link #isAllowed) or it's coming from isNodeCommunicationTokenValid
+	 * Check the {@code RestProxyFilter} for getting more information about isNodeCommunicationTokenValid
+	 *
+	 */
 	public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException 
-	
 	{
 		
-		/**
-		 * This filter is being used for accessing applications REST API so that return valid is if {@link #isAllowed) or it's coming from isNodeCommunicationTokenValid
-		 * Check the {@code RestProxyFilter} for getting more information about isNodeCommunicationTokenValid
-		 * 
-		 */
+
 		
 		HttpServletRequest httpRequest = (HttpServletRequest) request;
 		if (isAllowed(request.getRemoteAddr()) || RestProxyFilter.isNodeCommunicationTokenValid(httpRequest.getHeader(TokenFilterManager.TOKEN_HEADER_FOR_NODE_COMMUNICATION),  getAppSettings().getClusterCommunicationKey(), httpRequest.getRequestURI())) {
@@ -45,16 +45,16 @@ public class IPFilter extends AbstractFilter {
 	/**
 	 * Test if a remote's IP address is allowed to proceed.
 	 *
-	 * @param remoteIPAdrress The remote's IP address, as a string
+	 * @param remoteIPAddress The remote's IP address, as a string
 	 * @return true if allowed
 	 */
-	public boolean isAllowed(final String remoteIPAdrress) {
+	public boolean isAllowed(final String remoteIPAddress) {
 		AppSettings appSettings = getAppSettings();
 		boolean result = false;
 		if(appSettings != null) 
 		{
 			if (appSettings.isIpFilterEnabled()) {
-				result = checkCIDRList(appSettings.getAllowedCIDRList(),remoteIPAdrress);
+				result = checkCIDRList(appSettings.getAllowedCIDRList(),remoteIPAddress);
 			}
 			else {
 				result = true;
