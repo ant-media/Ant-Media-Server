@@ -116,5 +116,12 @@ public interface ITokenService {
 	 */
 
 	Map<String, String>  getAuthenticatedMap();
+	
+	/**
+	 * gets  map of authenticated subscriber sessions
+	 * @return list
+	 */
+
+	Map<String, String>  getSubscriberAuthenticatedMap();
 
 }
