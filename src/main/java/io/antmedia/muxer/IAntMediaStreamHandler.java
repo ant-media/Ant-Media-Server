@@ -181,6 +181,16 @@ public interface IAntMediaStreamHandler {
 	 * in the plugins. The returning frame listener should be feed with raw audio and video frames
 	 * 
 	 * @param streamId
+	 * @return
+	 */
+	public IFrameListener createCustomBroadcast(String streamId);
+	
+	
+	/**
+	 * Create another broadcast. It's useful to create another manipulated version of the original broadcast
+	 * in the plugins. The returning frame listener should be feed with raw audio and video frames
+	 * 
+	 * @param streamId
 	 * @param height
 	 * @param bitrate
 	 * @return
